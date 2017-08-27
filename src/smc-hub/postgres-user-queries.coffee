@@ -654,10 +654,13 @@ class exports.PostgreSQL extends PostgreSQL
         #     with valid upgrade fields.
         upgrade_fields = PROJECT_UPGRADES.params
         users = {}
+        # TODO: we obviously should check that a user is only changing the part
+        # of this object involving themselves... or adding/removing collaborators.
+        # That is not currently done below.  TODO TODO TODO  SECURITY.
         for id, x of obj.users
             if misc.is_valid_uuid_string(id)
                 for key in misc.keys(x)
-                    if key not in ['group', 'hide', 'upgrades']
+                    if key not in ['group', 'hide', 'upgrades', 'ssh_keys']
                         throw Error("unknown field '#{key}")
                 if x.group? and (x.group not in ['owner', 'collaborator'])
                     throw Error("invalid value for field 'group'")
@@ -669,6 +672,19 @@ class exports.PostgreSQL extends PostgreSQL
                     for k,_ of x.upgrades
                         if not upgrade_fields[k]
                             throw Error("invalid upgrades field '#{k}'")
+                if x.ssh_keys
+                    # do some checks.
+                    if not misc.is_object(x.ssh_keys)
+                        throw Error("ssh_keys must be an object")
+                    for fingerprint, key of x.ssh_keys
+                        if not key # deleting
+                            continue
+                        if not misc.is_object(key)
+                            throw Error("each key in ssh_keys must be an object")
+                        for k, v of key
+                            # the two dates are just numbers not actual timestamps...
+                            if k not in ['title', 'value', 'creation_date', 'last_use_date']
+                                throw Error("invalid ssh_keys field '#{k}'")
                 users[id] = x
         return users
 

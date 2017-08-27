@@ -60,7 +60,10 @@ exports.RUNNING_IN_NODE = process?.title == 'node'
 exports.required = required; exports.defaults = defaults; exports.types = types
 
 # startswith(s, x) is true if s starts with the string x or any of the strings in x.
+# It is false if s is not a string.
 exports.startswith = (s, x) ->
+    if typeof(s) != 'string'
+        return false
     if typeof(x) == "string"
         return s?.indexOf(x) == 0
     else
@@ -741,15 +744,15 @@ exports.retry_until_success = (opts) ->
                     opts.cb?("not_public")
                     return
                 if err and opts.warn?
-                    opts.warn("retry_until_success(#{opts.name}) -- err=#{err}")
+                    opts.warn("retry_until_success(#{opts.name}) -- err=#{JSON.stringify(err)}")
                 if opts.log?
-                    opts.log("retry_until_success(#{opts.name}) -- err=#{err}")
+                    opts.log("retry_until_success(#{opts.name}) -- err=#{JSON.stringify(err)}")
                 if opts.max_tries? and opts.max_tries <= tries
-                    opts.cb?("maximum tries (=#{opts.max_tries}) exceeded - last error #{err}")
+                    opts.cb?("maximum tries (=#{opts.max_tries}) exceeded - last error #{JSON.stringify(err)}")
                     return
                 delta = Math.min(opts.max_delay, opts.factor * delta)
                 if opts.max_time? and (new Date() - start_time) + delta > opts.max_time
-                    opts.cb?("maximum time (=#{opts.max_time}ms) exceeded - last error #{err}")
+                    opts.cb?("maximum time (=#{opts.max_time}ms) exceeded - last error #{JSON.stringify(err)}")
                     return
                 setTimeout(g, delta)
             else

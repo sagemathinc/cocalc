@@ -98,6 +98,9 @@ class ConsoleSessions
     set_secret_token: (secret_token) =>
         @_secret_token = secret_token
 
+    set_port: (port) =>
+        @_port = port
+
     session_exists: (session_uuid) =>
         return @_sessions[session_uuid]?
 
@@ -167,6 +170,10 @@ class ConsoleSessions
                     history = session.history # maintain history
                 winston.debug("console session does not exist or is not running, so we make a new session")
                 session = undefined
+                if @_port
+                    port = @_port
+                    cb()
+                    return
                 port_manager.get_port 'console', (err, _port) =>
                     if err
                         cb() # will try to restart console server in next step

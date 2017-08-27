@@ -362,6 +362,14 @@ Terminal.bindKeys = function(client_keydown) {
   if (Terminal.keys_are_bound) return;
   Terminal.keys_are_bound = true;
 
+  // We handle composite characters, which otherwise
+  // would not work with firefox and opera.  This
+  // addresses https://github.com/sagemathinc/cocalc/issues/2211
+  // Idea/work done by Gonzalo Tornaría.
+  on(document, "compositionend", function(ev) {
+    Terminal.focus.handler(ev.data);
+  }, true);
+
   on(document, 'keydown', function(ev) {
     if (typeof Terminal.focus === "undefined") {
        return;
@@ -2570,6 +2578,9 @@ Terminal.prototype.nextStop = function(x) {
 };
 
 Terminal.prototype.eraseRight = function(x, y) {
+  if(this.ybase + y >= this.lines.length)
+      return
+
   var line = this.lines[this.ybase + y]
     , ch = [this.curAttr, ' ']; // xterm
 
@@ -2585,6 +2596,9 @@ Terminal.prototype.eraseRight = function(x, y) {
 };
 
 Terminal.prototype.eraseLeft = function(x, y) {
+  if(this.ybase + y >= this.lines.length)
+      return
+
   var line = this.lines[this.ybase + y]
     , ch = [this.curAttr, ' ']; // xterm
 
@@ -2635,7 +2649,7 @@ Terminal.prototype.handleTitle = function(title) {
 
 /* Message as (nearly) arbitrary string.  Client sends a message by printing this:
 
-    \x1b]49;any string you want toges here\x07
+    \x1b]49;any string you want goes here\x07
 
 */
 Terminal.prototype.handleMesg = function(mesg) {
@@ -3058,10 +3072,10 @@ Terminal.prototype.insertChars = function(params) {
   ch = [this.curAttr, ' ']; // xterm
 
   while (param-- && j < this.cols) {
-    // sometimes, row is too large -- TODO no idea how to really fix this -- commented for now
-    // if (this.lines.length <= row) {
-    //     continue;
-    // }
+    // sometimes, row is too large
+    if (row >= this.lines.length) {
+        continue;
+    }
     // Question: How can you possibly have a problem because of running that code? It seems
     // like if you don't have that commented out code, then the next line would
     // cause a traceback? Answer: well, those tracebacks are there right now.

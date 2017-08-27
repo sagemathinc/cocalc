@@ -21,7 +21,7 @@
 
 {React, ReactDOM, rtypes, rclass, redux, Redux} = require('./smc-react')
 {Col, Row, ButtonToolbar, ButtonGroup, MenuItem, Button, Well, FormControl, FormGroup
- ButtonToolbar, Popover, OverlayTrigger, SplitButton, MenuItem, Alert, Checkbox} =  require('react-bootstrap')
+ ButtonToolbar, Popover, OverlayTrigger, SplitButton, MenuItem, Alert, Checkbox, Breadcrumb} =  require('react-bootstrap')
 misc = require('smc-util/misc')
 {ActivityDisplay, DeletedProjectWarning, DirectoryInput, Icon, Loading, ProjectState, COLORS,
  SearchInput, TimeAgo, ErrorDisplay, Space, Tip, LoginLink, Footer, CourseProjectExtraHelp} = require('./r_misc')
@@ -80,6 +80,10 @@ PathSegmentLink = rclass
         display    : rtypes.oneOfType([rtypes.string, rtypes.object])
         actions    : rtypes.object.isRequired
         full_name  : rtypes.string
+        active     : rtypes.bool
+
+    getDefaultProps: ->
+        active     : false
 
     styles :
         cursor   : 'pointer'
@@ -88,16 +92,18 @@ PathSegmentLink = rclass
     handle_click: ->
         @props.actions.open_directory(@props.path)
 
-    render_link: ->
-        <a style={@styles} onClick={@handle_click}>{@props.display}</a>
-
-    render: ->
+    render_content: ->
         if @props.full_name and @props.full_name isnt @props.display
-            <Tip title='Full name' tip={@props.full_name}>
-                {@render_link()}
+            <Tip tip={@props.full_name} placement='bottom' title='Full name'>
+                {@props.display}
             </Tip>
         else
-            return @render_link()
+            return @props.display
+
+    render: ->
+        <Breadcrumb.Item onClick={@handle_click} active={@props.active}>
+            {@render_content()}
+        </Breadcrumb.Item>
 
 FileCheckbox = rclass
     displayName : 'ProjectFiles-FileCheckbox'
@@ -672,7 +678,7 @@ FileListing = rclass
 
     render : ->
         <Col sm=12>
-            {@render_terminal_mode()}
+            {@render_terminal_mode() if not @props.public_view}
             {<ListingHeader
                 active_file_sort = {@props.active_file_sort}
                 sort_by          = {@props.sort_by}
@@ -691,7 +697,7 @@ ProjectFilesPath = rclass
 
     make_path: ->
         v = []
-        v.push <PathSegmentLink path='' display={<Icon name='home' />} key='home' actions={@props.actions} />
+        v.push <PathSegmentLink path='' display={<Icon name='home' />} key=0 actions={@props.actions} />
         if @props.current_path == ""
             return v
         path = @props.current_path
@@ -700,22 +706,20 @@ ProjectFilesPath = rclass
             path = path[1..]
         path_segments = path.split('/')
         for segment, i in path_segments
-            if i == 0 and root
-                v.push <span key={2 * i + 1}><span style={width: '2em', display:'inline-block'}>&nbsp;</span>/<Space/></span>
-            else
-                v.push <span key={2 * i + 1}><Space/>/<Space/></span>
+            is_last = i == path_segments.length - 1
             v.push <PathSegmentLink
                     path      = {path_segments[..i].join('/')}
                     display   = {misc.trunc_middle(segment, 15)}
                     full_name = {segment}
-                    key       = {2 * i + 2}
-                    actions   = {@props.actions} />
+                    key       = {i+1}
+                    actions   = {@props.actions}
+                    active    = {is_last} />
         return v
 
     render: ->
-        <div style={wordWrap:'break-word'}>
+        <Breadcrumb bsSize='small' style={marginBottom: '0'}>
             {@make_path()}
-        </div>
+        </Breadcrumb>
 
 ProjectFilesButtons = rclass
     displayName : 'ProjectFiles-ProjectFilesButtons'
@@ -733,29 +737,42 @@ ProjectFilesButtons = rclass
         e.preventDefault()
         @props.actions.setState(show_hidden : not @props.show_hidden)
 
+    handle_backup: (e) ->
+        e.preventDefault()
+        @props.actions.open_directory('.snapshots')
+
     render_refresh: ->
-        <a href='' onClick={@handle_refresh}><Icon name='refresh' /> </a>
+        <Button bsSize='small' onClick={@handle_refresh}>
+            <Icon name='refresh' />
+        </Button>
 
     render_hidden_toggle: ->
-        if @props.show_hidden
-            <a href='' onClick={@handle_hidden_toggle}><Icon name='eye' /> </a>
-        else
-            <a href='' onClick={@handle_hidden_toggle}><Icon name='eye-slash' /> </a>
+        icon = if @props.show_hidden then 'eye' else 'eye-slash'
+        <Button bsSize='small' onClick={@handle_hidden_toggle}>
+            <Icon name={icon} />
+        </Button>
 
     render_backup: ->
         if @props.public_view or not require('./customize').commercial
             return
         # NOTE -- snapshots aren't available except in commercial version -- they are complicated nontrivial thing that isn't usually setup...
-        <a href='' onClick={(e)=>e.preventDefault(); @props.actions.open_directory('.snapshots')}>
-            <Icon name='life-saver' /> <span style={fontSize: 14} className='hidden-sm'>Backups</span>
-        </a>
+        <Button bsSize='small' onClick={@handle_backup}>
+            <Icon name='life-saver' /> <span style={fontSize: 12} className='hidden-sm'>Backups</span>
+        </Button>
 
     render: ->
-        <div style={textAlign: 'right', fontSize: '14pt'}>
-            {@render_refresh()}
-            {@render_hidden_toggle()}
-            {@render_backup()}
-        </div>
+        <ButtonToolbar style={whiteSpace:'nowrap', padding: '0'} className='pull-right'>
+            <ButtonGroup bsSize='small'>
+                <Button bsSize='small' className="upload-button">
+                    <Icon name='upload' /> Upload
+                </Button>
+            </ButtonGroup>
+            <ButtonGroup bsSize='small' className='pull-right'>
+                {@render_refresh()}
+                {@render_hidden_toggle()}
+                {@render_backup()}
+            </ButtonGroup>
+        </ButtonToolbar>
 
 ProjectFilesActions = rclass
     displayName : 'ProjectFiles-ProjectFilesActions'
@@ -905,7 +922,7 @@ ProjectFilesActions = rclass
                 'download'
             ]
         <ButtonGroup bsSize='small'>
-                {(@render_action_button(v) for v in action_buttons)}
+            {(@render_action_button(v) for v in action_buttons)}
         </ButtonGroup>
 
     render: ->
@@ -1605,6 +1622,7 @@ ProjectFilesSearch = rclass
         selected_file_index: rtypes.number
         file_creation_error: rtypes.string
         num_files_displayed: rtypes.number
+        public_view        : rtypes.bool.isRequired
 
     getDefaultProps: ->
         file_search : ''
@@ -1704,7 +1722,7 @@ ProjectFilesSearch = rclass
         @props.actions.setState(file_creation_error : '')
 
     search_submit: (value, opts) ->
-        if value[0] == TERM_MODE_CHAR
+        if value[0] == TERM_MODE_CHAR and not @props.public_view
             command = value.slice(1, value.length)
             @execute_command(command)
         else if @props.selected_file
@@ -1780,7 +1798,9 @@ ProjectFilesNew = rclass
     new_file_button_types : ['sagews', 'term', 'ipynb', 'tex', 'rnw', 'md', 'tasks', 'course', 'sage', 'py', 'sage-chat']
 
     file_dropdown_icon: ->
-        <span><Icon name='plus-circle' /> Create</span>
+        <span style={whiteSpace: 'nowrap'}>
+            <Icon name='plus-circle' /> Create
+        </span>
 
     file_dropdown_item: (i, ext) ->
         {file_options} = require('./editor')
@@ -1806,16 +1826,15 @@ ProjectFilesNew = rclass
             @props.create_file()
 
     render: ->
-        # This div prevents the split button from line-breaking when the page is small
-        <div style={whiteSpace: 'nowrap', display: 'inline-block', marginRight: '20px' }>
-            <SplitButton id='new_file_dropdown' title={@file_dropdown_icon()} onClick={@on_create_button_clicked} >
+        <SplitButton id='new_file_dropdown'
+            title={@file_dropdown_icon()}
+            onClick={@on_create_button_clicked} >
                 {(@file_dropdown_item(i, ext) for i, ext of @new_file_button_types)}
                 <MenuItem divider />
                 <MenuItem eventKey='folder' key='folder' onSelect={@props.create_folder}>
                     <Icon name='folder' /> Folder
                 </MenuItem>
-            </SplitButton>
-        </div>
+        </SplitButton>
 
 error_style =
     marginRight : '1ex'
@@ -1968,19 +1987,12 @@ exports.ProjectFiles = rclass ({name}) ->
             actions      = {@props.actions} />
 
     render_new_file : ->
-        <Col sm=3 style={whiteSpace: 'nowrap'}>
-            <ProjectFilesNew
-                file_search   = {@props.file_search}
-                current_path  = {@props.current_path}
-                actions       = {@props.actions}
-                create_file   = {@create_file}
-                create_folder = {@create_folder} />
-            <Button
-                className = "upload-button"
-                >
-                <Icon name='upload' /> Upload
-            </Button>
-        </Col>
+        <ProjectFilesNew
+            file_search   = {@props.file_search}
+            current_path  = {@props.current_path}
+            actions       = {@props.actions}
+            create_file   = {@create_file}
+            create_folder = {@create_folder} />
 
     render_activity: ->
         <ActivityDisplay
@@ -2033,7 +2045,7 @@ exports.ProjectFiles = rclass ({name}) ->
                 <ErrorDisplay style={maxWidth:'100%'} bsStyle="warning" title="Showing only public files" error={"You are viewing a project that you are not a collaborator on. To view non-public files or edit files in this project you need to ask a collaborator of the project to add you."} />
             else
                 <div>
-                    <ErrorDisplay style={maxWidth:'100%'}  bsStyle="warning" title="Showing only public files" error={"You are not logged in. To view non-public files or edit files in this project you'll need to sign in. If you are not a collaborator then you need to ask a collaborator of the project to add you to access non public files."} />
+                    <ErrorDisplay style={maxWidth:'100%'}  bsStyle="warning" title="Showing only public files" error={"You are not logged in. To view non-public files or edit files in this project you will need to sign in. If you are not a collaborator then you need to ask a collaborator of the project to add you to access non public files."} />
                 </div>
         else
             if @props.redux.getStore('account')?.is_logged_in()
@@ -2049,10 +2061,9 @@ exports.ProjectFiles = rclass ({name}) ->
             return @render_project_state(project_state)
 
         if error
-            # double quotes needed for not_public. not sure why. maybe JSON.stringify is being called somewhere
             quotas = @props.get_total_project_quotas(@props.project_id)
             switch error
-                when '"not_public"'
+                when 'not_public'
                     e = @render_access_error()
                 when 'no_dir'
                     e = <ErrorDisplay title="No such directory" error={"The path #{@props.current_path} does not exist."} />
@@ -2064,7 +2075,7 @@ exports.ProjectFiles = rclass ({name}) ->
                 else
                     if error == 'no_instance' or (require('./customize').commercial and quotas? and not quotas?.member_host)
                         # the second part of the or is to blame it on the free servers...
-                        e = <ErrorDisplay title="Host down" error={"The host for this project is down, being rebooted, or is overloaded with users.   Free projects are hosted on potentially massively overloaded preemptible instances, which are rebooted at least once per day and periodically become unavailable.   To increase the robustness of your projects, please become a paying customer (US $7/month) by entering your credit card in the Billing tab next to account settings, then move your projects to a members only server. \n\n#{error if not quotas?.member_host}"} />
+                        e = <ErrorDisplay title="Project unavailable" error={"This project seems to not be responding.   Free projects are hosted on massively overloaded computers, which are rebooted at least once per day and periodically become unavailable.   To increase the robustness of your projects, please become a paying customer (US $7/month) by entering your credit card in the Billing tab next to account settings, then move your projects to a members only server. \n\n#{error if not quotas?.member_host}"} />
                     else
                         e = <ErrorDisplay title="Directory listing error" error={error} />
             return <div>
@@ -2124,8 +2135,8 @@ exports.ProjectFiles = rclass ({name}) ->
         </Button>
 
     render_project_state: (project_state) ->
-        <div style={fontSize:'40px', textAlign:'center', color:'#999999'} >
-            <ProjectState state={project_state} />
+        <div style={fontSize:'40px', textAlign:'center', color:'#666666'} >
+            <ProjectState state={project_state} show_desc={true} />
             <br/>
             {@render_start_project_button(project_state)}
         </div>
@@ -2158,8 +2169,8 @@ exports.ProjectFiles = rclass ({name}) ->
             {@render_deleted()}
             {@render_error()}
             {@render_activity()}
-            <Row>
-                <Col sm=3>
+            <div style={display: 'flex', flexFlow: 'row wrap', justifyContent: 'space-between', alignItems: 'stretch'}>
+                <div style={flex: '1 0 25%', marginRight: '10px', minWidth: '20em'}>
                     <ProjectFilesSearch
                         project_id          = {@props.project_id}
                         key                 = {@props.current_path}
@@ -2171,23 +2182,28 @@ exports.ProjectFiles = rclass ({name}) ->
                         file_creation_error = {@props.file_creation_error}
                         num_files_displayed = {visible_listing?.length}
                         create_file         = {@create_file}
-                        create_folder       = {@create_folder} />
-                </Col>
-                {@render_new_file() if not public_view}
-                <Col sm={if public_view then 6 else 3}>
+                        create_folder       = {@create_folder}
+                        public_view         = {public_view} />
+                </div>
+                {<div
+                    style={flex: '0 1 auto', marginRight: '10px', marginBottom:'15px'}
+                    className='cc-project-files-create-dropdown' >
+                        {@render_new_file()}
+                </div> if not public_view}
+                <div style={flex: '5 1 auto', marginRight: '10px', marginBottom:'15px'}>
                     <ProjectFilesPath current_path={@props.current_path} actions={@props.actions} />
-                </Col>
-                {<Col sm=3>
-                    <div style={height:0}>  {#height 0 so takes up no vertical space}
-                        <UsersViewing project_id={@props.project_id} />
-                    </div>
+                </div>
+                {<div style={flex: '0 1 auto', marginRight: '10px', marginBottom:'15px'}>
+                    <UsersViewing project_id={@props.project_id} />
+                </div> if not public_view}
+                {<div style={flex: '1 0 auto', marginBottom:'15px'}>
                     <ProjectFilesButtons
                         show_hidden  = {@props.show_hidden ? false}
                         current_path = {@props.current_path}
                         public_view  = {public_view}
                         actions      = {@props.actions} />
-                </Col> if not public_view}
-            </Row>
+                </div> if not public_view}
+            </div>
             <Row>
                 <Col sm=8>
                     {@render_files_actions(listing, public_view) if listing?}

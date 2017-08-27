@@ -1666,7 +1666,11 @@ def handle_session_term(signum, frame):
         if not pid: return
 
 secret_token = None
-secret_token_path = os.path.join(os.environ['SMC'], 'secret_token')
+
+if 'COCALC_SECRET_TOKEN' in os.environ:
+    secret_token_path = os.environ['COCALC_SECRET_TOKEN']
+else:
+    secret_token_path = os.path.join(os.environ['SMC'], 'secret_token')
 
 def unlock_conn(conn):
     global secret_token
@@ -1770,7 +1774,17 @@ def serve(port, host, extra_imports=False):
         log("imported sage.")
 
         # Monkey patch the html command.
+        try:
+            # need the following for sage_server to start with sage-8.0
+            # or `import sage.interacts.library` will fail
+            import sage.repl.user_globals
+            sage.repl.user_globals.set_globals(globals())
+            log("initialized user_globals")
+        except RuntimeError:
+            # may happen with sage version < 8.0
+            log("user_globals.set_globals failed, continuing",sys.exc_info())
         import sage.interacts.library
+
         sage.all.html = sage.misc.html.html = sage.interacts.library.html = sage_salvus.html
 
         # Set a useful figsize default; the matplotlib one is not notebook friendly.

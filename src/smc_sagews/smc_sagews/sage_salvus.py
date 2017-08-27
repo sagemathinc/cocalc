@@ -2590,6 +2590,14 @@ def show(*objs, **kwds):
         elif isinstance(obj, Animation):
             show_animation(obj, **kwds)
         elif isinstance(obj, Graphics3d):
+
+            # _extra_kwds processing follows the example of
+            # src/smc_sagews/smc_sagews/graphics.py:show_3d_plot_using_threejs()
+            extra_kwds = {} if obj._extra_kwds is None else obj._extra_kwds
+            for k in ['spin', 'renderer', 'viewer', 'frame', 'height', 'width', 'background', 'foreground', 'aspect_ratio']:
+                if k in extra_kwds and k not in kwds:
+                    kwds[k] = obj._extra_kwds[k]
+
             if kwds.get('viewer') == 'tachyon':
                 show_3d_plot_using_tachyon(obj, **kwds)
             else:

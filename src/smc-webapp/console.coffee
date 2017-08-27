@@ -110,6 +110,7 @@ class Console extends EventEmitter
         @path = @opts.path
 
         @mark_file_use = debounce(@mark_file_use, 3000)
+        @resize        = debounce(@resize, 500)
 
         @_project_actions = redux.getProjectActions(@project_id)
 
@@ -117,6 +118,8 @@ class Console extends EventEmitter
         # editor is focused.  This impacts the cursor, and also whether
         # messages such as open_file or open_directory are handled (see @init_mesg).
         @is_focused = false
+
+        @allow_resize = true
 
         # Create the DOM element that realizes this console, from an HTML template.
         @element = console_template.clone()
@@ -196,9 +199,8 @@ class Console extends EventEmitter
         @value += data.replace(/\x1b\[.{1,5}m|\x1b\].*0;|\x1b\[.*~|\x1b\[?.*l/g,'')
 
     init_mesg: () =>
-        @_ignore_mesg = false
         @terminal.on 'mesg', (mesg) =>
-            if @_ignore_mesg or not @is_focused   # ignore messages when terminal not in focus (otherwise collaboration is confusing)
+            if @_ignore or not @is_focused   # ignore messages when terminal not in focus (otherwise collaboration is confusing)
                 return
             try
                 mesg = from_json(mesg)
@@ -234,7 +236,7 @@ class Console extends EventEmitter
         # that is in turn connected to a console_server:
         @session = session
 
-        @_ignore_mesg = true
+        @_ignore = true
         @_connected = true
         @_needs_resize = true
 
@@ -243,6 +245,8 @@ class Console extends EventEmitter
         # This is usually caused by the user typing,
         # but can also be the result of a device attributes request.
         @terminal.on 'data',  (data) =>
+            if @_ignore
+                return
             if not @_connected
                 # not connected, so first connect, then write the data.
                 @session.reconnect (err) =>
@@ -271,24 +275,32 @@ class Console extends EventEmitter
         @resize_terminal()
         @config_session()
 
+    set_state_connected: =>
+        @element.find(".webapp-console-terminal").css('opacity':'1')
+        @element.find("a[href=\"#refresh\"]").removeClass('btn-success').find(".fa").removeClass('fa-spin')
+
+    set_state_disconnected:  =>
+        @element.find(".webapp-console-terminal").css('opacity':'.5')
+        @element.find("a[href=\"#refresh\"]").addClass('btn-success').find(".fa").addClass('fa-spin')
+
     config_session: () =>
         # The remote server sends data back to us to display:
         @session.on 'data',  (data) =>
             # console.log("terminal got #{data.length} characters -- '#{data}'")
             @_got_remote_data = new Date()
+            @set_state_connected()  # connected if we are getting data.
             if @_rendering_is_paused
                 @_render_buffer += data
             else
                 @render(data)
 
             if @_needs_resize
-                @resize()
+                @resize(true)
 
         @session.on 'reconnecting', () =>
             #console.log('terminal: reconnecting')
             @_reconnecting = new Date()
-            @element.find(".webapp-console-terminal").css('opacity':'.5')
-            @element.find("a[href=\"#refresh\"]").addClass('btn-success').find(".fa").addClass('fa-spin')
+            @set_state_disconnected()
 
         @session.on 'reconnect', () =>
             delete @_reconnecting
@@ -296,13 +308,12 @@ class Console extends EventEmitter
             @_needs_resize = true  # causes a resize when we next get data.
             @_connected = true
             @_got_remote_data = new Date()
-            @element.find(".webapp-console-terminal").css('opacity':'1')
-            @element.find("a[href=\"#refresh\"]").removeClass('btn-success').find(".fa").removeClass('fa-spin')
-            @_ignore_mesg = true
+            @set_state_connected()
             @reset()
             if @session.init_history?
                 #console.log("writing history")
                 try
+                    @_ignore = true
                     @terminal.write(@session.init_history)
                 catch e
                     console.log(e)
@@ -312,7 +323,6 @@ class Console extends EventEmitter
             # On first write we ignore any queued terminal attributes responses that result.
             @terminal.queue = ''
             @terminal.showCursor()
-            @_ignore_mesg = false
 
         @session.on 'close', () =>
             @_connected = false
@@ -331,8 +341,7 @@ class Console extends EventEmitter
             @append_to_value(@session.init_history)
 
         @terminal.showCursor()
-        @_ignore_mesg = false
-        @resize()
+        @resize(true)
 
     render: (data) =>
         #console.log "render '#{data}'"
@@ -415,8 +424,11 @@ class Console extends EventEmitter
                 @pause_rendering(true)
             return false
 
-        e = @element.find(".webapp-console-terminal")
 
+        ###
+        # these all seriously mess up copy paste -- let the user explicitly pause if they want.
+
+        e = @element.find(".webapp-console-terminal")
         e.mousedown () =>
             @pause_rendering(false)
 
@@ -432,6 +444,7 @@ class Console extends EventEmitter
         e.on 'copy', =>
             @unpause_rendering()
             setTimeout(@focus, 0)  # must happen in next cycle or copy will not work due to loss of focus.
+        ###
 
     _init_colors: () =>
         colors = Terminal.color_schemes[@opts.color_scheme].colors
@@ -455,7 +468,14 @@ class Console extends EventEmitter
 
     client_keydown: (ev) =>
         #console.log("client_keydown")
+        @allow_resize = true
+
+        if @_ignore
+            # no matter what cancel ignore if the user starts typing, since we absolutely must not loose anything they type.
+            @_ignore = false
+
         @mark_file_use()
+
         if ev.ctrlKey and ev.shiftKey
             switch ev.keyCode
                 when 190       # "control-shift->"
@@ -491,7 +511,7 @@ class Console extends EventEmitter
         $(@terminal.element).css('font-size':"#{@opts.font.size}px")
         @element.find(".webapp-console-font-indicator-size").text(@opts.font.size)
         @element.find(".webapp-console-font-indicator").stop().show().animate(opacity:1).fadeOut(duration:8000)
-        @resize()
+        @resize(true)
 
     _init_font_make_default: () =>
         @element.find("a[href=\"#font-make-default\"]").click () =>
@@ -586,18 +606,22 @@ class Console extends EventEmitter
         @element.find("a").tooltip(delay:{ show: 500, hide: 100 })
 
         @element.find("a[href=\"#increase-font\"]").click () =>
+            @allow_resize = true
             @_increase_font_size()
             return false
 
         @element.find("a[href=\"#decrease-font\"]").click () =>
+            @allow_resize = true
             @_decrease_font_size()
             return false
 
         @element.find("a[href=\"#refresh\"]").click () =>
+            @allow_resize = true
             @session?.reconnect()
             return false
 
         @element.find("a[href=\"#paste\"]").click () =>
+            @allow_resize = true
             id = uuid()
             s = "<h2><i class='fa project-file-icon fa-terminal'></i> Terminal Copy and Paste</h2>Copy and paste in terminals works as usual: to copy, highlight text then press ctrl+c (or command+c); press ctrl+v (or command+v) to paste. <br><br><span class='lighten'>NOTE: When no text is highlighted, ctrl+c sends the usual interrupt signal.</span><br><hr>You can copy the terminal history from here:<br><br><textarea readonly style='font-family: monospace;cursor: auto;width: 97%' id='#{id}' rows=10></textarea>"
             bootbox.alert(s)
@@ -668,6 +692,9 @@ class Console extends EventEmitter
             x = misc.replace_all(x, '”','"')
             x = misc.replace_all(x, '‘',"'")
             x = misc.replace_all(x, '’',"'")
+            x = misc.replace_all(x, '–', "--")
+            x = misc.replace_all(x, '—', "---")
+            @_ignore = false
             @session?.write_data(x)
             input_line.val('')
 
@@ -675,6 +702,7 @@ class Console extends EventEmitter
             if e.which == 13
                 e.preventDefault()
                 submit_line()
+                @_ignore = false
                 @session?.write_data("\n")
                 return false
             else if e.which == 67 and e.ctrlKey
@@ -684,6 +712,7 @@ class Console extends EventEmitter
         @element.find(".webapp-console-submit-line").click () =>
             #@focus()
             submit_line()
+            @_ignore = false
             @session?.write_data("\n")
             return false
 
@@ -727,6 +756,11 @@ class Console extends EventEmitter
             submit_line()
             @terminal.keyDown(keyCode:67, shiftKey:false, ctrlKey:true)
 
+        @element.find(".webapp-console-submit-ctrl-b").show().click (e) =>
+            #@focus()
+            submit_line()
+            @terminal.keyDown(keyCode:66, shiftKey:false, ctrlKey:true)
+
         ###
         @element.find(".webapp-console-up").click () ->
             vp = editor.getViewport()
@@ -758,6 +792,7 @@ class Console extends EventEmitter
         pb = @textarea
 
         f = (evt) =>
+            @_ignore = false
             data = pb.val()
             pb.val('')
             @session?.write_data(data)
@@ -791,7 +826,7 @@ class Console extends EventEmitter
             top       : "3.5em"
             bottom    : 1
 
-        @resize()
+        @resize(false)
 
     # exit fullscreen mode
     exit_fullscreen: () =>
@@ -800,7 +835,7 @@ class Console extends EventEmitter
                 position : 'relative'
                 top      : 0
                 width    : "100%"
-        @resize()
+        @resize(false)
 
     refresh: () =>
         @terminal.refresh(0, @opts.rows-1)
@@ -810,7 +845,11 @@ class Console extends EventEmitter
     # Determine the current size (rows and columns) of the DOM
     # element for the editor, then resize the renderer and the
     # remote PTY.
-    resize: () =>
+    resize: (internal) =>
+        if internal and not @allow_resize
+            return
+        @allow_resize = false
+
         if not @session?
             # don't bother if we don't even have a remote connection
             # FUTURE: could queue this up to send
@@ -846,9 +885,9 @@ class Console extends EventEmitter
     full_rerender: =>
         value = @value_orig
         @reset()
-        @_ignore_mesg = true
+        # start ignoring terminal output until the user explicitly does something (keys or paste)
+        @_ignore = true
         @render(value)
-        @_ignore_mesg = false
 
     resize_terminal: () =>
         # Determine size of container DOM.

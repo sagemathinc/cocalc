@@ -55,13 +55,29 @@ For **enhanced security**, make the container only listen on localhost
 
     docker stop cocalc
     docker rm cocalc
-    docker run --name=cocalc -d -v ~/cocalc:/projects -p  127.0.0.1:80:80 sagemathinc/cocalc
+    docker run --name=cocalc -d -v ~/cocalc:/projects -p  127.0.0.1:443:443 sagemathinc/cocalc
 
 Then the **only way** to access your CoCalc server is to type the following on your local computer
 
     ssh -L 8080:localhost:443 username@remote_server
 
 and open your web browser to https://localhost:8080
+
+### SSH into a project
+
+Instead of doing
+
+    docker run --name=cocalc -d -v ~/cocalc:/projects -p 443:443 sagemathinc/cocalc
+
+do this:
+
+    docker run --name=cocalc -d -v ~/cocalc:/projects -p 443:443 -p <your ip address>:2222:22  sagemathinc/cocalc
+
+Then you can do
+
+    ssh projectid@<your ip address> -p 2222
+
+
 
 ### Make a user an admin
 

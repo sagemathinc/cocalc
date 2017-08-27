@@ -788,6 +788,11 @@ class exports.Client extends EventEmitter
             event      : mesg.type
             error      : mesg.error
             account_id : @account_id
+            cb         : (err) =>
+                if err
+                    @error_to_client(id:mesg.id, error:err)
+                else
+                    @success_to_client(id:mesg.id)
 
     mesg_webapp_error: (mesg) =>
         @dbg('mesg_webapp_error')(mesg.msg)
@@ -1383,8 +1388,10 @@ class exports.Client extends EventEmitter
                     opts.cb("path '#{opts.path}' of project with id '#{opts.project_id}' is not public")
 
     mesg_public_get_directory_listing: (mesg) =>
+        dbg = @dbg('mesg_public_get_directory_listing')
         for k in ['path', 'project_id']
             if not mesg[k]?
+                dbg("missing stuff in message")
                 @error_to_client(id:mesg.id, error:"must specify #{k}")
                 return
 
@@ -1395,23 +1402,28 @@ class exports.Client extends EventEmitter
         listing  = undefined
         async.series([
             (cb) =>
+                dbg("checking for public path")
                 @database.has_public_path
                     project_id : mesg.project_id
                     cb         : (err, is_public) =>
                         if err
+                            dbg("error checking -- #{err}")
                             cb(err)
                         else if not is_public
+                            dbg("no public paths at all -- deny all listings")
                             cb("not_public") # be careful about changing this. This is a specific error we're giving now when a directory is not public.
                             # Client figures out context and gives more detailed error message. Right now we use it in src/smc-webapp/project_files.cjsx
                             # to provide user with helpful context based error about why they can't access a given directory
                         else
                             cb()
             (cb) =>
+                dbg("get the project")
                 @compute_server.project
                     project_id : mesg.project_id
                     cb         : (err, x) =>
                         project = x; cb(err)
             (cb) =>
+                dbg("get the directory listing")
                 project.directory_listing
                     path    : mesg.path
                     hidden  : mesg.hidden
@@ -1421,6 +1433,7 @@ class exports.Client extends EventEmitter
                     cb      : (err, x) =>
                         listing = x; cb(err)
             (cb) =>
+                dbg("filtering out public paths from listing")
                 @database.filter_public_paths
                     project_id : mesg.project_id
                     path       : mesg.path
@@ -1429,8 +1442,10 @@ class exports.Client extends EventEmitter
                         listing = x; cb(err)
         ], (err) =>
             if err
+                dbg("something went wrong -- #{err}")
                 @error_to_client(id:mesg.id, error:err)
             else
+                dbg("it worked; telling client")
                 @push_to_client(message.public_directory_listing(id:mesg.id, result:listing))
         )
 
@@ -1452,8 +1467,9 @@ class exports.Client extends EventEmitter
                         if err
                             @error_to_client(id:mesg.id, error:err)
                         else
-                            # since this is get_text_file
-                            data = data.toString('utf-8')
+                            # since this maybe be a Buffer... (depending on backend)
+                            if Buffer.isBuffer(data)
+                                data = data.toString('utf-8')
                             @push_to_client(message.public_text_file_contents(id:mesg.id, data:data))
 
     mesg_copy_public_path_between_projects: (mesg) =>
@@ -2102,6 +2118,12 @@ class exports.Client extends EventEmitter
             @error_to_client(id:mesg.id, error:"must be logged in and a member of the admin group to create invoice items")
             return
         dbg = @dbg("mesg_stripe_admin_create_invoice_item")
+        @_stripe = get_stripe()
+        if not @_stripe?
+            err = "stripe billing not configured"
+            dbg(err)
+            @error_to_client(id:id, error:err)
+            return
         customer_id = undefined
         description = undefined
         email       = undefined

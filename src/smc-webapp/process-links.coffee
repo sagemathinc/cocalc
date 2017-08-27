@@ -5,7 +5,15 @@ when we fully switch to react.
 
 misc = require('smc-util/misc')
 
-load_target = require('./smc-react').redux.getActions('projects').load_target
+projects_load_target = require('./smc-react').redux.getActions('projects').load_target
+
+load_target = (target, switch_to) ->
+    # get rid of "?something" in "path/file.ext?something"
+    i = target.lastIndexOf('/')
+    if i > 0 and '?' in target[i..]
+        j = target[i..].indexOf('?')
+        target = target[...(i + j)]
+    projects_load_target(target, switch_to)
 
 # make all links open internally or in a new tab; etc.
 # opts={project_id:?, file_path:path that contains file}

@@ -20,7 +20,7 @@ React Component for displaying the entire page on a mobile device.
 misc = require('smc-util/misc')
 
 {ProjectsNav} = require('./projects_nav')
-{ActiveAppContent, CookieWarning, LocalStorageWarning, ConnectionIndicator, ConnectionInfo, FullscreenButton, NavTab, NotificationBell, AppLogo, VersionWarning} = require('./app_shared')
+{ActiveAppContent, CookieWarning, LocalStorageWarning, ConnectionIndicator, ConnectionInfo, NavTab, NotificationBell, AppLogo, VersionWarning} = require('./app_shared')
 
 # Project tabs's names are their project id
 Page = rclass
@@ -34,7 +34,7 @@ Page = rclass
             avgping           : rtypes.number
             connection_status : rtypes.string
             new_version       : rtypes.object
-            fullscreen        : rtypes.bool
+            fullscreen        : rtypes.oneOf(['default', 'kiosk'])
             cookie_warning    : rtypes.bool
             local_storage_warning : rtypes.bool
             show_file_use     : rtypes.bool
@@ -169,7 +169,7 @@ Page = rclass
                 <ProjectsNav dropdown={true} />
                 {@render_menu_button()}
             </Navbar> if not @props.fullscreen}
-            {@render_menu() if @state.show_menu}
+            {@render_menu() if (@state.show_menu and (@props.fullscreen != 'kiosk'))}
             {# Children must define their own padding from navbar and screen borders}
             <ActiveAppContent active_top_tab={@props.active_top_tab} render_small={true}/>
         </div>

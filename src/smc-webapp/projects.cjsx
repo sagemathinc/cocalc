@@ -104,6 +104,33 @@ class ProjectsActions extends Actions
             event       : 'set'
             description : description
 
+    add_ssh_key_to_project: (opts) =>
+        opts = defaults opts,
+            project_id  : required
+            fingerprint : required
+            title       : required
+            value       : required
+        @redux.getTable('projects').set
+            project_id : opts.project_id
+            users      :
+                "#{@redux.getStore('account').get_account_id()}" :
+                    ssh_keys:
+                        "#{opts.fingerprint}":
+                            title         : opts.title
+                            value         : opts.value
+                            creation_date : new Date() - 0
+
+    delete_ssh_key_from_project: (opts) =>
+        opts = defaults opts,
+            project_id  : required
+            fingerprint : required
+        @redux.getTable('projects').set
+            project_id : opts.project_id
+            users      :
+                "#{@redux.getStore('account').get_account_id()}" :
+                    ssh_keys:
+                        "#{opts.fingerprint}": null
+
     # Apply default upgrades -- if available -- to the given project.
     # Right now this means upgrading to member hosting and enabling
     # network access.  Later this could mean something else, or be
@@ -187,6 +214,7 @@ class ProjectsActions extends Actions
         @set_project_open(opts.project_id)
         if opts.target?
             redux.getProjectActions(opts.project_id)?.load_target(opts.target, opts.switch_to)
+        redux.getActions('page').save_session()
 
     # Clearly should be in top.cjsx
     # tab at old_index taken out and then inserted into the resulting array's new index
@@ -201,9 +229,11 @@ class ProjectsActions extends Actions
         temp_list = x.delete(old_index)
         new_list = temp_list.splice(new_index, 0, item)
         @setState(open_projects:new_list)
+        redux.getActions('page').save_session()
 
     # should not be in projects...?
     load_target: (target, switch_to) =>
+        #if DEBUG then console.log("projects actions/load_target: #{target}")
         if not target or target.length == 0
             redux.getActions('page').set_active_tab('projects')
             return

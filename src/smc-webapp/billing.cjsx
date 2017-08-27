@@ -36,7 +36,7 @@ load_stripe = (cb) ->
     if Stripe?
         cb()
     else
-        $.getScript("https://js.stripe.com/v2/").done(->cb()).fail(->cb('Unable to load Stripe support'))
+        $.getScript("https://js.stripe.com/v2/").done(->cb()).fail(->cb('Unable to load Stripe support; make sure your browser is not blocking stripe.com.'))
 
 last_subscription_attempt = null
 
@@ -441,7 +441,7 @@ AddPaymentMethod = rclass
                 </Col>
             </Row>
             <div style={color:"#666", marginTop:'15px'}>
-                (PayPal or wire transfers are also possible -- email <HelpEmailLink/>.)
+                (PayPal or wire transfers for non-recurring subscriptions above $50 are also possible. Please email <HelpEmailLink/>.)
             </div>
         </div>
 
@@ -729,11 +729,11 @@ PlanInfo = rclass
     render_plan_info_line: (name, value, data) ->
         <div key={name} style={marginBottom:'5px', marginLeft:'10px'}>
             <Tip title={data.display} tip={data.desc}>
-                <span style={fontWeight:'bold',color:'#666'}>
+                <span style={fontWeight:'bold',color:'#444'}>
                     {value * data.pricing_factor} {misc.plural(value * data.pricing_factor, data.pricing_unit)}
                 </span>
                 <Space/>
-                <span style={color:'#999'}>
+                <span style={color:'#666'}>
                     {data.display}
                 </span>
             </Tip>
@@ -945,7 +945,7 @@ ConfirmPaymentMethod = rclass
             <p>The initial payment will be processed with the card below.</p>
             <p>Future payments will be made with your default card<Space/>
             <b>at the time of renewal</b>.
-            Changing your default card right before renewal will cause the <Space/>
+            Changing your default card right before renewal will cause the<Space/>
             new default to be charged instead of the previous one.</p>
         </span>
 
@@ -1296,6 +1296,20 @@ FAQS =
             instructions.   We will then respond with a custom invoice for your purchase that
             satisfies your unique requirements.
            </span>
+    course_required_plan:
+        q: <span>Am I <strong>required to pay</strong> for conducting a course?</span>
+        a: <span>
+            <strong>No.</strong> You can use all course related functionalities under a free plan.
+           </span>
+    student_files:
+        q: <span>What happens with the <strong>files of my students</strong> after the course finishes?</span>
+        a: <span>
+            Students will <strong>continue to have access</strong> to their files after the course,
+            regardless of running the course under a paid plan or for free.
+            Their projects remain accessible,
+            they can (optionally) upgrade their projects with their own subscriptions,
+            and they can also download all files to their local computer.
+           </span>
     close_browser:
         q: <span>Can I <b>close my web-browser</b> while I{"'"}m working?</span>
         a: <span>
@@ -1332,6 +1346,28 @@ FAQS =
             We care about your data, and also make offsite backups periodically to encrypted USB
             drives that are not physically connected to the internet.
            </span>
+    download_everything:
+        q: <span>How can I <strong>download my project files</strong>?</span>
+        a: <ol>
+             <li>
+                 You can download each file individually via the "Files" interface.
+                 Select the file and click the "Download" button.
+             </li>
+             <li>
+                 It is also possible to create an archive for a directory or all files.
+                 For that, create a "Terminal"-file and issue one of these commands:
+                 <ul>
+                  <li>
+                      ZIP archive (Windows): <code>zip -r9 "[filename].zip" [directory-name...]</code>
+                  </li>
+                  <li>
+                      Tarball (Unix-like): <code>tar cjvf "[filename].tar.bz2" [directory-name...]</code>
+                  </li>
+                 </ul>
+                 (Replace <code>[filename]</code> with the actual filename and <code>[directory-name]</code> by one or more filenames or directory names.)
+                 Afterwards, download the archive as explained above.
+             </li>
+           </ol>
 
 
 FAQ = exports.FAQ = rclass
@@ -1770,7 +1806,8 @@ BillingPage = rclass
                     purchase or renew your subscriptions.  Without a credit card
                     any current subscriptions will run to completion, but will not renew.
                     If you have any questions about subscriptions or billing (e.g., about
-                    using PayPal or wire transfers instead), please email <HelpEmailLink /> immediately.
+                    using PayPal or wire transfers for non-recurring subscriptions above $50,
+                    please email <HelpEmailLink /> immediately.
                 </span>
 
         else if subs == 0

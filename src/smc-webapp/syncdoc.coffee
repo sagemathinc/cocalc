@@ -202,6 +202,7 @@ class SynchronizedDocument2 extends SynchronizedDocument
         @editor.show_startup_message("Loading...", 'info')
         @codemirror.setOption('readOnly', true)
         @codemirror1.setOption('readOnly', true)
+        @codemirror.setValue('Loading...')
 
         if @filename[0] == '/'
             # uses symlink to '/', which is created by start_smc

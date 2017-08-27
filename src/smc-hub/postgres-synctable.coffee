@@ -844,13 +844,13 @@ class SyncTable extends EventEmitter
                 cb?()
 
     get: (key) =>
-        return if key? then @_value.get(key) else @_value
+        return if key? then @_value?.get(key) else @_value
 
     getIn: (x) =>
-        return @_value.getIn(x)
+        return @_value?.getIn(x)
 
     has: (key) =>
-        return @_value.has(key)
+        return @_value?.has(key)
 
     # wait until some function of this synctable is truthy
     wait: (opts) =>

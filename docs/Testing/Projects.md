@@ -1,0 +1,3 @@
+- Search input clears on esc, on `x`, opens project on `enter`
+- Filter description clears everything on clicking the cancel button
+- Create new project button opens up dialogue

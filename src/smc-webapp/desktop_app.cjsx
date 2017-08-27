@@ -78,7 +78,7 @@ Page = rclass
             avgping           : rtypes.number
             connection_status : rtypes.string
             new_version       : rtypes.object
-            fullscreen        : rtypes.bool
+            fullscreen        : rtypes.oneOf(['default', 'kiosk'])
             cookie_warning    : rtypes.bool
             local_storage_warning : rtypes.bool
             show_file_use     : rtypes.bool
@@ -92,6 +92,7 @@ Page = rclass
             user_type    : rtypes.string # Necessary for is_logged_in
             is_logged_in : rtypes.func
             other_settings : rtypes.object
+            is_global_info_visible : rtypes.func
         support :
             show : rtypes.bool
 
@@ -197,7 +198,7 @@ Page = rclass
             width         : '100vw'
             overflow      : 'hidden'
 
-        show_global_info = (@props.other_settings.show_global_info ? false) and (not @props.fullscreen) and @props.is_logged_in()
+        show_global_info = @props.is_global_info_visible() and (not @props.fullscreen) and @props.is_logged_in()
 
         style_top_bar =
             display       : 'flex'
@@ -226,7 +227,7 @@ Page = rclass
                 {@render_right_nav()}
             </Navbar> if not @props.fullscreen}
             {<div className="smc-sticky-position-hack" style={minHeight:positionHackHeight}> </div>if not @props.fullscreen}
-            <FullscreenButton />
+            {<FullscreenButton /> if (@props.fullscreen != 'kiosk')}
             {# Children must define their own padding from navbar and screen borders}
             {# Note that the parent is a flex container}
             <ActiveAppContent active_top_tab={@props.active_top_tab}/>

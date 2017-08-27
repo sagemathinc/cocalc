@@ -3,7 +3,11 @@ Jupyter Backend
 
 For interactive testing:
 
-coffee> k = require('./jupyter').kernel(name:'sagemath', path:'a.ipynb'); k.execute_code(all:true, cb:console.log, code:'2+3')
+$ source smc-env
+$ coffee
+coffee> j = require('./smc-project/jupyter/jupyter')
+coffee> k = j.kernel(name:'python3', path:'x.ipynb')
+coffee> k.execute_code(all:true, cb:((x) -> console.log(JSON.stringify(x))), code:'2+3')
 ###
 
 {EventEmitter} = require('events')

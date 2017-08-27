@@ -460,7 +460,7 @@ exports.execute_code = execute_code = (opts) ->
                 c()
         (c) ->
             if info?
-                fs.chmod(info.path, 0o777, c)
+                fs.chmod(info.path, 0o700, c)
             else
                 c()
 
@@ -477,6 +477,12 @@ exports.execute_code = execute_code = (opts) ->
 
             try
                 r = child_process.spawn(opts.command, opts.args, o)
+                if not r.stdout? or not r.stderr?
+                    # The docs/examples at https://nodejs.org/api/child_process.html#child_process_child_process_spawn_command_args_options
+                    # suggest that r.stdout and r.stderr are always defined.  However, this is
+                    # definitely NOT the case in edge cases, as we have observed.
+                    c("error creating child process -- couldn't spawn child process")
+                    return
             catch e
                 # Yes, spawn can cause this error if there is no memory, and there's no event! --  Error: spawn ENOMEM
                 c("error #{misc.to_json(e)}")
@@ -566,11 +572,11 @@ exports.execute_code = execute_code = (opts) ->
         # TODO:  This is dangerous, e.g., it could print out a secret_token to a log file.
         # winston.debug("(time: #{walltime() - start_time}): Done running '#{opts.command} #{opts.args.join(' ')}'; resulted in stdout='#{misc.trunc(stdout,512)}', stderr='#{misc.trunc(stderr,512)}', exit_code=#{exit_code}, err=#{err}")
         # Do not litter:
-        if tmpfilename?
+        if info?.path?
             try
-                fs.unlink(tmpfilename)
+                fs.unlink(info.path)
             catch e
-                winston.debug("failed to unlink #{tmpfilename}")
+                winston.debug("failed to unlink #{info.path}")
 
 
         if opts.verbose

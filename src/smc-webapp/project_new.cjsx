@@ -174,9 +174,13 @@ exports.FileTypeSelector = FileTypeSelector = rclass
             </Row>
             <Row style={row_style}>
                 <Col sm=6>
-                    <Tip title='LaTeX Document'   icon='file-excel-o'
+                    <Tip title='Markdown File'   icon='cc-icon-markdown'
+                        tip='Create a Markdown formatted document with real-time preview.'>
+                        <NewFileButton icon='cc-icon-markdown' name='Markdown' on_click={@props.create_file} ext='md' />
+                    </Tip>
+                    <Tip title='LaTeX Document'   icon='cc-icon-tex-file'
                         tip='Create a professional quality technical paper that contains sophisticated mathematical formulas.'>
-                        <NewFileButton icon='file-excel-o' name='LaTeX Document' on_click={@props.create_file} ext='tex' />
+                        <NewFileButton icon='cc-icon-tex-file' name='LaTeX' on_click={@props.create_file} ext='tex' />
                     </Tip>
                     <Tip title='Terminal'  icon='terminal'
                         tip="Create a command line terminal.  CoCalc includes a full interactive Linux command line console and color xterm.  Run command line software, vim, emacs and more.">

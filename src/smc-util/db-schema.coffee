@@ -196,6 +196,9 @@ schema.accounts =
             type : 'array'
             pg_type : 'TEXT[]'
             desc : "Array of groups that this user belongs to; usually empty.  The only group right now is 'admin', which grants admin rights."
+        ssh_keys :
+            type : 'map'
+            desc : 'Map from ssh key fingerprints to ssh key objects.'
         api_key :
             type : 'string'
             desc : "Optional API key that grants full API access to anything this account can access. Key is of the form 'sk_9QabcrqJFy7JIhvAGih5c6Nb', where the random part is 24 characters (base 62)."
@@ -241,7 +244,7 @@ schema.accounts =
                     page_size         : 50
                     standby_timeout_m : 10
                     default_file_sort : 'time'
-                    show_global_info  : true
+                    show_global_info2 : null
                 first_name      : ''
                 last_name       : ''
                 terminal        :
@@ -258,6 +261,7 @@ schema.accounts =
                 profile :
                     image       : undefined
                     color       : undefined
+                ssh_keys        : {}
         set :
             fields :
                 account_id      : 'account_id'
@@ -270,6 +274,7 @@ schema.accounts =
                 evaluate_key    : true
                 font_size       : true
                 profile         : true
+                ssh_keys        : true
             check_hook : (db, obj, account_id, project_id, cb) ->
                 # Hook to truncate some text fields to at most 254 characters, to avoid
                 # further trouble down the line.
@@ -658,7 +663,7 @@ schema.projects =
             desc : 'A longer textual description of the project.  This can include hashtags and should be formatted using markdown.'  # markdown rendering possibly not implemented
         users       :
             type : 'map'
-            desc : "This is a map from account_id's to {hide:bool, group:['owner',...], upgrades:{memory:1000, ...}}."
+            desc : "This is a map from account_id's to {hide:bool, group:['owner',...], upgrades:{memory:1000, ...}, ssh:{...}}."
         invite      :
             type : 'map'
             desc : "Map from email addresses to {time:when invite sent, error:error message if there was one}"
@@ -713,9 +718,6 @@ schema.projects =
             type : 'map'
             desc : '{project_id:[id of project that contains .course file], path:[path to .course file], pay:?, email_address:[optional email address of student -- used if account_id not known], account_id:[account id of student]}, where pay is either not set (or equals falseish) or is a timestamp by which the students must move the project to a members only server.'
             date : ['pay']
-        run :
-            type : 'boolean'
-            desc : 'If true, we try to run this project on kubernetes; if false, we delete it from running on kubernetes.'
         storage_server :
             type : 'integer'
             desc : 'Number of the Kubernetes storage server with the data for this project: one of 0, 1, 2, ...'
@@ -734,6 +736,9 @@ schema.projects =
         idle_timeout :
             type : 'integer'
             desc : 'If given and nonzero, project will be killed if it is idle for this many **minutes**, where idle *means* that last_edited has not been updated.'
+        run_quota :
+            type : 'map'
+            desc : 'If project is running, this is the quota that it is running with.'
 
     pg_indexes : [
         'last_edited',
@@ -785,11 +790,13 @@ schema.projects =
                 project_id     : null
                 title          : null
                 description    : null
+                status         : null
         set :
             fields :
                 project_id     : 'project_id'
                 title          : true
                 description    : true
+                status         : true
 
 # Table that enables set queries to the course field of a project.  Only
 # project owners are allowed to use this table.  The point is that this makes
@@ -905,6 +912,62 @@ schema.public_paths =
                 project_id  : true
                 path        : true
 
+###
+Requests and status related to copying files between projects.
+###
+schema.copy_paths =
+    primary_key : 'id'
+    fields:
+        id                 :
+            type : 'uuid'
+            desc : 'random unique id assigned to this copy request'
+        time               :
+            type : 'timestamp'
+            desc : 'when this request was made'
+        source_project_id  :
+            type : 'uuid'
+            desc : 'the project_id of the source project'
+        source_path        :
+            type : 'string'
+            desc : 'the path of the source file or directory'
+        target_project_id  :
+            type : 'uuid'
+            desc : 'the project_id of the target project'
+        target_path        :
+            type : 'string'
+            desc : 'the path of the target file or directory'
+        overwrite_newer    :
+            type : 'boolean'
+            desc : 'if new, overwrite newer files in destination'
+        delete_missing     :
+            type : 'boolean'
+            desc : "if true, delete files in the target that aren't in the source path"
+        backup             :
+            type : 'boolean'
+            desc : 'if true, make backup of files before overwriting'
+        bwlimit            :
+            type : 'string'
+            desc : 'optional limit on the bandwidth dedicated to this copy (passed to rsync)'
+        timeout            :
+            type : 'number'
+            desc : 'fail if the transfer itself takes longer than this number of seconds (passed to rsync)'
+        started :
+            type : 'timestamp'
+            desc : 'when the copy request actually started running'
+        finished :
+            type : 'timestamp'
+            desc : 'when the copy request finished'
+        error :
+            type : 'string'
+            desc : 'if the copy failed or output any errors, they are put here.'
+    pg_indexes : ['time']
+    # TODO: for now there are no user queries -- this is used entirely by backend servers,
+    # actually only in kucalc; later that may change, so the user can make copy
+    # requests this way, check on their status, show all current copies they are
+    # causing in a page (that is persistent over browser refreshes, etc.).
+    # That's for later.
+
+
 schema.remember_me =
     primary_key : 'hash'
     durability  : 'soft' # dropping this would just require a user to login again
@@ -973,6 +1036,10 @@ exports.site_settings_conf =
         name    : "Commercial UI elements ('yes' or 'no')"
         desc    : "Whether or not to include user interface elements related to for-pay upgrades and features.  Set to 'yes' to include these elements."
         default : "no"
+    kucalc:
+        name    : "KuCalc UI elements ('yes' or 'no')"
+        desc    : "Whether to show UI elements adapted to what the KuCalc backend provides"
+        default : "no"  # TODO -- this will *default* to yes when run from kucalc; but site admin can set it either way anywhere for testing.
 
 
 site_settings_fields = misc.keys(exports.site_settings_conf)
