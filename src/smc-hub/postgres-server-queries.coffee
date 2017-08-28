@@ -1672,7 +1672,7 @@ class exports.PostgreSQL extends PostgreSQL
             cb         : required
         if not @_validate_opts(opts) then return
         @_query
-            query : "SELECT invite#>'{#{opts.to}}' AS to FROM projects"
+            query : "SELECT invite#>'{\"#{opts.to}\"}' AS to FROM projects"
             where : 'project_id :: UUID = $' : opts.project_id
             cb    : one_result 'to', (err, y) =>
                 opts.cb(err, if not y? or y.error or not y.time then 0 else new Date(y.time))
