@@ -6,9 +6,16 @@ import re
 import os
 from textwrap import dedent
 
+class TestP3Mode:
+    """
+    not the same as python3 mode, which is an alias for anaconda3
+    """
+    def test_p3(self, exec2):
+        exec2("%python3\nimport sys\nprint(sys.version)", pattern=r"^3\.5\.\d+ ")
+
 class TestSingularMode:
     def test_singular_version(self, exec2):
-        exec2('%singular_kernel\nsystem("version");',pattern='(4100|4103)\n')
+        exec2('%singular_kernel\nsystem("version");','4103\n')
     def test_singular_factor_polynomial(self, exec2):
         code = dedent('''
         %singular_kernel
@@ -17,6 +24,7 @@ class TestSingularMode:
         factorize(f);''').strip()
         exec2(code,
              u'[1]:\n   _[1]=9\n   _[2]=x6-2x3y2-x2y3+y4\n   _[3]=-x5+y2\n[2]:\n   1,1,2\n')
+
 class TestScalaMode:
     def test_scala_list(self, exec2):
         exec2("%scala\nList(1,2,3)", html_pattern="res0.*List.*Int.*List.*1.*2.*3")
@@ -42,7 +50,7 @@ class TestScala211Mode:
         exec2("%scala211\nMatchTest1.main(Array())", pattern="many")
 
     def test_scala_version(self, exec2):
-        exec2("%scala211\nutil.Properties.versionString", html_pattern="2.11.8")
+        exec2("%scala211\nutil.Properties.versionString", html_pattern="2.11.11")
 
 class TestPython3Mode:
     def test_p3_max(self, exec2):
@@ -135,8 +143,6 @@ class TestShMode:
 class TestShDefaultMode:
     def test_start_sh_dflt(self, exec2):
         exec2("%default_mode sh")
-    def test_start_sh2(self, exec2):
-        exec2("who -b", pattern="system boot")
 
     def test_multiline_dflt(self, exec2):
         exec2("FOO=hello\necho $FOO", pattern="^hello")
@@ -228,7 +234,7 @@ class TestOctaveDefaultMode:
     def test_octave_capture3(self, exec2):
         exec2("%sage\nprint(output)", pattern = "   1   2")
     def test_octave_version(self, exec2):
-        exec2("version()", pattern="4.0.0")
+        exec2("version()", pattern="4.2.1")
 
 class TestAnaconda3Mode:
     def test_start_a3(self, exec2):
@@ -249,6 +255,6 @@ class TestJuliaMode:
         exec2('%jlk\nquadratic(a, sqr_term, b) = (-b + sqr_term) / 2a\nquadratic(2.0, -2.0, -12.0)', '2.5')
 
     def test_julia_version(self, exec2):
-        exec2("%jlk\nVERSION", pattern='"0.5.0"')
+        exec2("%jlk\nVERSION", pattern='"0.6.0"')
 
 
