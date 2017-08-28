@@ -286,6 +286,12 @@ def get_sage_server_info(log_file = default_log_file):
 secret_token = None
 secret_token_path = os.path.join(os.environ['SMC'], 'secret_token')
 
+if 'COCALC_SECRET_TOKEN' in os.environ:
+    secret_token_path = os.environ['COCALC_SECRET_TOKEN']
+else:
+    secret_token_path = os.path.join(os.environ['SMC'], 'secret_token')
+
+
 def client_unlock_connection(sock):
     secret_token = open(secret_token_path).read().strip()
     sock.sendall(secret_token)
