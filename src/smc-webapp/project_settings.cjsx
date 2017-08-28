@@ -1038,6 +1038,9 @@ SSHPanel = rclass
                 ssh_keys   = {@props.project.getIn(['users', webapp_client.account_id, 'ssh_keys'])}
                 delete_key = {@delete_ssh_key}
             >
+            <div>
+            <span>NOTE: If you want to use the same ssh key for all your projects, add a key using the "SSH Keys" tab under Account Settings. If you have done that, there is no need to configure an ssh key here.</span>
+            </div>
                 <SSHKeyAdder
                     add_ssh_key  = {@add_ssh_key}
                     toggleable   = {true}
