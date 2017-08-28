@@ -26,6 +26,12 @@ class TestLex:
         """;pi''')
         exec2(code, "pi\n")
 
+class TestSageVersion:
+    def test_sage_vsn(self, exec2):
+        code = "sage.misc.banner.banner()"
+        patn = "version 8.0"
+        exec2(code, pattern = patn)
+
 class TestDecorators:
     def test_simple_dec(self, exec2):
         code = dedent(r"""
