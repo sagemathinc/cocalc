@@ -10,8 +10,10 @@ class TestP3Mode:
     """
     not the same as python3 mode, which is an alias for anaconda3
     """
-    def test_p3(self, exec2):
-        exec2("%python3\nimport sys\nprint(sys.version)", pattern=r"^3\.5\.\d+ ")
+    def test_p3a(self, exec2):
+        exec2("p3 = jupyter('python3')")
+    def test_p3b(self, exec2):
+        exec2("%p3\nimport sys\nprint(sys.version)", pattern=r"^3\.5\.\d+ ")
 
 class TestSingularMode:
     def test_singular_version(self, exec2):
