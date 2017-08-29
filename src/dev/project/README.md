@@ -4,6 +4,23 @@ Scripts for doing development of SMC inside of an SMC project.
 
 **Requirement:** 1.5GB RAM and 1GB disk space
 
+## Initial check
+
+Things you might want to check when starting a new cocalc dev task. Use a .term for these.
+
+- If you think your project has state left over from previous development, you might want to remove or move aside:
+  - ~/.local (but see the next note for reinstalling `forever` command)
+  - ~/.smc
+  - ~/.npm
+  - any files in ~/bin that override system commands
+
+- It also helps to restart your project before starting a new dev task, to kill leftover processes and environment settings.
+
+- If `which forever` returns empty output, do
+```
+npm install --prefix=~/.local -g forever
+```
+
 ## Setup
 
 Run `npm run make` inside the `src/` subdirectory.
