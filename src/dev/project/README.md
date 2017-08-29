@@ -9,17 +9,12 @@ Scripts for doing development of SMC inside of an SMC project.
 Things you might want to check when starting a new cocalc dev task. Use a .term for these.
 
 - If you think your project has state left over from previous development, you might want to remove or move aside:
-  - ~/.local (but see the next note for reinstalling `forever` command)
+  - ~/.local (but see below about installing `forever` command)
   - ~/.smc
   - ~/.npm
   - any files in ~/bin that override system commands
 
 - It also helps to restart your project before starting a new dev task, to kill leftover processes and environment settings.
-
-- If `which forever` returns empty output, do
-```
-npm install --prefix=~/.local -g forever
-```
 
 ## Setup
 
@@ -28,6 +23,13 @@ This will install all the dependencies and does some additional setup.
 
 If you ever need to update dependencies or think there is a problem with them,
 just run `npm run clean` to get rid of them and run `npm run make` again.
+
+If, after running `npm run clean`, `which forever` produces empty output, do
+```
+npm install --prefix=~/.local -g forever
+```
+before running `npm run make`.
+
 
 ## The servers
 
