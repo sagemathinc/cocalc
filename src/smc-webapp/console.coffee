@@ -379,6 +379,7 @@ class Console extends EventEmitter
     pause_rendering: (immediate) =>
         if @_rendering_is_paused
             return
+        #console.log 'pause_rendering'
         @_rendering_is_paused = true
         if not @_render_buffer?
             @_render_buffer = ''
@@ -394,6 +395,7 @@ class Console extends EventEmitter
     unpause_rendering: () =>
         if not @_rendering_is_paused
             return
+        #console.log 'unpause_rendering'
         @_rendering_is_paused = false
         f = () =>
             @render(@_render_buffer)
@@ -439,7 +441,7 @@ class Console extends EventEmitter
 
         e.on 'copy', =>
             @unpause_rendering()
-            setTimeout(@focus, 0)  # must happen in next cycle or copy will not work due to loss of focus.
+            setTimeout(@focus, 5)  # must happen in next cycle or copy will not work due to loss of focus.
 
     _init_colors: () =>
         colors = Terminal.color_schemes[@opts.color_scheme].colors
@@ -479,7 +481,7 @@ class Console extends EventEmitter
                 when 188       # "control-shift-<"
                     @_decrease_font_size()
                     return false
-        if (ev.metaKey or ev.ctrlKey) and (ev.keyCode in [17, 86, 91, 93, 223, 224])  # command or control key (could be a paste coming)
+        if (ev.metaKey or ev.ctrlKey or ev.altKey) and (ev.keyCode in [17, 86, 91, 93, 223, 224])  # command or control key (could be a paste coming)
             #console.log("resetting hidden textarea")
             #console.log("clear hidden text area paste bin")
             # clear the hidden textarea pastebin, since otherwise
@@ -488,7 +490,7 @@ class Console extends EventEmitter
             # NOTE: we could do this on all keystrokes.  WE restrict as above merely for efficiency purposes.
             # See http://stackoverflow.com/questions/3902635/how-does-one-capture-a-macs-command-key-via-javascript
             @textarea.val('')
-        if @_rendering_is_paused and not (ev.ctrlKey or ev.metaKey)
+        if @_rendering_is_paused and not (ev.ctrlKey or ev.metaKey or ev.altKey)
             @unpause_rendering()
 
     _increase_font_size: () =>
@@ -794,7 +796,7 @@ class Console extends EventEmitter
 
         pb.on 'paste', =>
             pb.val('')
-            setTimeout(f,0)
+            setTimeout(f,5)
 
     #######################################################################
     # Public API
@@ -992,7 +994,7 @@ class Console extends EventEmitter
         @terminal.focus()
 
         $(@terminal.element).addClass('webapp-console-focus').removeClass('webapp-console-blur')
-        setTimeout((()=>delete @_focusing), 0)   # critical!
+        setTimeout((()=>delete @_focusing), 5)   # critical!
 
     set_title: (title) ->
         @opts.set_title?(title)
