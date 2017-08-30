@@ -39,7 +39,6 @@ underscore            = require('underscore')
 {AccountPage}         = require('./account_page')
 {UsersViewing}        = require('./other-users')
 {project_tasks}       = require('./project_tasks')
-async                 = require('async')
 
 feature = require('./feature')
 
@@ -1545,22 +1544,17 @@ ProjectFilesActionBox = rclass
 
     download_multiple_click: ->
         destination = ReactDOM.findDOMNode(@refs.download_archive).value
-        async.series([
-            (cb) =>
-                @props.actions.zip_files
-                    src  : @props.checked_files.toArray()
-                    dest : misc.path_to_file(@props.current_path, destination)
-                    cb   : cb
-            (cb) =>
-                @props.actions.fetch_directory_listing()
-                @props.actions.download_file
-                    path : destination
-                    log : true
-                cb()
-        ], (err, res) =>
-            if err
-                @props.actions.set_activity(id:misc.uuid(), error: err)
-        )
+        @props.actions.zip_files
+            src  : @props.checked_files.toArray()
+            dest : misc.path_to_file(@props.current_path, destination)
+            cb   : (err) ->
+                    if err
+                        @props.actions.set_activity(id:misc.uuid(), error: err)
+                        return
+                    @props.actions.download_file
+                        path : destination
+                        log : true
+                    @props.actions.fetch_directory_listing()
         @props.actions.set_all_files_unchecked()
         @props.actions.set_file_action()
 

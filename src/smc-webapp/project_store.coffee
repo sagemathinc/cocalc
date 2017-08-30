@@ -831,28 +831,18 @@ class ProjectActions extends Actions
             id       : undefined
             cb       : undefined
         args = (opts.zip_args ? []).concat(['-rq'], [opts.dest], opts.src)
-        if (opts.cb?)
-            webapp_client.exec
-                project_id      : @project_id
-                command         : 'zip'
-                args            : args
-                timeout         : 50
-                network_timeout : 60
-                err_on_exit     : true    # this should fail if exit_code != 0
-                path            : opts.path
-                cb              : opts.cb
-        else
+        if not opts.cb?
             id = opts.id ? misc.uuid()
             @set_activity(id:id, status:"Creating #{opts.dest} from #{opts.src.length} #{misc.plural(opts.src.length, 'file')}")
-            webapp_client.exec
-                project_id      : @project_id
-                command         : 'zip'
-                args            : args
-                timeout         : 50
-                network_timeout : 60
-                err_on_exit     : true    # this should fail if exit_code != 0
-                path            : opts.path
-                cb              : @_finish_exec(id)
+        webapp_client.exec
+            project_id      : @project_id
+            command         : 'zip'
+            args            : args
+            timeout         : 50
+            network_timeout : 60
+            err_on_exit     : true    # this should fail if exit_code != 0
+            path            : opts.path
+            cb              : opts.cb ? @_finish_exec(id)
 
     # DANGER: ASSUMES PATH IS IN THE DISPLAYED LISTING
     _convert_to_displayed_path: (path) =>
