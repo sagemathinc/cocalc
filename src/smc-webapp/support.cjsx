@@ -508,6 +508,9 @@ SupportForm = rclass
                     value       = {@props.body}
                     onChange    = {@data_change} />
             </FormGroup>
+            <div style={margin:'0px 10px'}>
+                <b>Include a link (the URL in your browser) to absolutely anything relevant to your question.</b>
+            </div>
         </form>
 
 
