@@ -830,11 +830,8 @@ class ProjectActions extends Actions
             path     : undefined   # default to root of project
             id       : undefined
             cb       : undefined
-        id = opts.id ? misc.uuid()
-        @set_activity(id:id, status:"Creating #{opts.dest} from #{opts.src.length} #{misc.plural(opts.src.length, 'file')}")
         args = (opts.zip_args ? []).concat(['-rq'], [opts.dest], opts.src)
         if (opts.cb?)
-            console.log("Found cb")
             webapp_client.exec
                 project_id      : @project_id
                 command         : 'zip'
@@ -843,9 +840,10 @@ class ProjectActions extends Actions
                 network_timeout : 60
                 err_on_exit     : true    # this should fail if exit_code != 0
                 path            : opts.path
-                cb              : cb
+                cb              : opts.cb
         else
-            console.log("No cb")
+            id = opts.id ? misc.uuid()
+            @set_activity(id:id, status:"Creating #{opts.dest} from #{opts.src.length} #{misc.plural(opts.src.length, 'file')}")
             webapp_client.exec
                 project_id      : @project_id
                 command         : 'zip'
