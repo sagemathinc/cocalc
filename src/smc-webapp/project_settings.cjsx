@@ -717,7 +717,7 @@ ProjectControlPanel = rclass
             <LabeledRow key='project_id' label='Project id'>
                 <pre>{@props.project.get('project_id')}</pre>
             </LabeledRow>
-            {@show_host()}
+            {@show_host() if @props.allow_ssh}
             If your project is not working, please create a <ShowSupportLink />.
             {<hr /> if @props.allow_ssh}
             {@ssh_notice() if @props.allow_ssh}
