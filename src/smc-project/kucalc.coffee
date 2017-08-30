@@ -131,6 +131,7 @@ disk_usage = (path, cb) ->
 # Every 60s, check if we can reach google's internal network -- in kucalc on GCE, this must be blocked.
 # If we recieve some information, exit with status code 99.
 exports.init_gce_firewall_test = (logger, interval_ms=60*1000) ->
+    return # temporarily disabled
     if not exports.IN_KUCALC
         logger?.warn("not running firewall test -- not in kucalc")
         return
