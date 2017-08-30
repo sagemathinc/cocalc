@@ -1498,16 +1498,16 @@ exports.CourseActions = class CourseActions extends Actions
             student = store.get_student(student)
             handout = store.get_handout(handout)
             obj = {table:'handouts', handout_id:handout.get('handout_id')}
-            status_map = @_get_one(obj)?.status_map
-            if not status_map?
+            status = @_get_one(obj)?.status
+            if not status?
                 return
-            student_status = (status_map[student.get('student_id')])
+            student_status = (status[student.get('student_id')])
             if not student_status?
                 return
             if student_status.start?
                 delete student_status.start
-                status_map[student.get('student_id')] = student_status
-                obj.status_map = status_map
+                status[student.get('student_id')] = student_status
+                obj.status = status
                 @_set(obj)
 
     # Copy the files for the given handout to the given student. If
