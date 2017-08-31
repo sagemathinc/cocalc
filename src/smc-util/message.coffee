@@ -2165,7 +2165,7 @@ read, with `cpu_shares` increased to 1024 = 4 * 256.
     -d '{"query":{"projects":{"project_id":"29163de6-b5b0-496f-b75d-24be9aa2aa1d", \\
                               "users":{"6c28c5f4-3235-46be-b025-166b4dcaac7e":{ \\
                                            "group":"owner", \\
-                                           "upgrades: {"cores":1, \\
+                                           "upgrades": {"cores":1, \\
                                                        "memory":3000, \\
                                                        "mintime":86400, \\
                                                        "network":1, \\
