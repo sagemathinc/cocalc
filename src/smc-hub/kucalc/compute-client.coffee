@@ -97,7 +97,9 @@ class Client
         if not @logger?
             return ->
         else
-            return (args...) => @logger.debug("kucalc.Client.#{f}", args...)
+            # still need @logger? since it can get cleaned
+            # up when Project is being freed.
+            return (args...) => @logger?.debug("kucalc.Client.#{f}", args...)
 
     project: (opts) =>
         opts = defaults opts,
@@ -175,7 +177,9 @@ class Project extends EventEmitter
         if not @logger?
             return ->
         else
-            return (args...) => @logger.debug("kucalc.Project('#{@project_id}').#{f}", args...)
+            # still need @logger? since it can get cleaned
+            # up when Project is being freed.
+            return (args...) => @logger?.debug("kucalc.Project('#{@project_id}').#{f}", args...)
 
     # free -- stop listening for status updates from the database and broadcasting
     # updates about this project.
@@ -544,7 +548,7 @@ class Project extends EventEmitter
                     dbg("error -- #{err}")
                     opts.cb(err)
                     return
-                if x.state.state not in ['running', 'starting', 'pending']
+                if x.state?.state not in ['running', 'starting', 'pending']
                     dbg("project not active")
                     opts.cb()
                     return
