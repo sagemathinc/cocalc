@@ -1547,7 +1547,7 @@ ProjectFilesActionBox = rclass
         @props.actions.zip_files
             src  : @props.checked_files.toArray()
             dest : misc.path_to_file(@props.current_path, destination)
-            cb   : (err) ->
+            cb   : (err) =>
                     if err
                         @props.actions.set_activity(id:misc.uuid(), error: err)
                         return
