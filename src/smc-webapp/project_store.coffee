@@ -829,9 +829,11 @@ class ProjectActions extends Actions
             zip_args : undefined
             path     : undefined   # default to root of project
             id       : undefined
-        id = opts.id ? misc.uuid()
-        @set_activity(id:id, status:"Creating #{opts.dest} from #{opts.src.length} #{misc.plural(opts.src.length, 'file')}")
+            cb       : undefined
         args = (opts.zip_args ? []).concat(['-rq'], [opts.dest], opts.src)
+        if not opts.cb?
+            id = opts.id ? misc.uuid()
+            @set_activity(id:id, status:"Creating #{opts.dest} from #{opts.src.length} #{misc.plural(opts.src.length, 'file')}")
         webapp_client.exec
             project_id      : @project_id
             command         : 'zip'
@@ -840,7 +842,7 @@ class ProjectActions extends Actions
             network_timeout : 60
             err_on_exit     : true    # this should fail if exit_code != 0
             path            : opts.path
-            cb              : @_finish_exec(id)
+            cb              : opts.cb ? @_finish_exec(id)
 
     # DANGER: ASSUMES PATH IS IN THE DISPLAYED LISTING
     _convert_to_displayed_path: (path) =>
