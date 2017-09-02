@@ -1544,16 +1544,17 @@ ProjectFilesActionBox = rclass
 
     download_multiple_click: ->
         destination = ReactDOM.findDOMNode(@refs.download_archive).value
+        dest = misc.path_to_file(@props.current_path, destination)
         @props.actions.zip_files
             src  : @props.checked_files.toArray()
-            dest : misc.path_to_file(@props.current_path, destination)
+            dest : dest
             cb   : (err) =>
                     if err
                         @props.actions.set_activity(id:misc.uuid(), error: err)
                         return
                     @props.actions.download_file
-                        path : destination
-                        log : true
+                        path : dest
+                        log  : true
                     @props.actions.fetch_directory_listing()
         @props.actions.set_all_files_unchecked()
         @props.actions.set_file_action()
