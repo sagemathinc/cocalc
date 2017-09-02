@@ -646,7 +646,7 @@ class ProjectActions extends Actions
                     project_id : @project_id
                     path       : path
                     hidden     : true
-                    max_time_s : 60  # keep trying for up to a minute
+                    max_time_s : 15*60  # keep trying for up to 15 minutes
                     group      : my_group
                     cb         : (err, listing) =>
                         the_listing = listing
@@ -1740,8 +1740,8 @@ get_directory_listing = (opts) ->
     misc.retry_until_success
         f           : f
         max_time    : opts.max_time_s * 1000
-        start_delay : 3000
-        max_delay   : 5000
+        start_delay : 2000
+        max_delay   : 10000
         #log       : console.log
         cb          : (err) ->
             #console.log opts.path, 'get_directory_listing.success or timeout', err
