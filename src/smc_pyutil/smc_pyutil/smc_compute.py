@@ -940,7 +940,7 @@ def main():
                 print json.dumps(out)
             if errors:
                 sys.exit(1)
-        subparser.add_argument("project_id", help="UUID of project", type=str, nargs="*")
+        subparser.add_argument("project_id", help="UUID of project", type=str, nargs="+")
         subparser.set_defaults(func=g)
 
     # optional arguments to all subcommands
