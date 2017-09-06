@@ -560,7 +560,7 @@ Assignment = rclass
         else
             icon = 'square-o'
         <Button
-            onClick={=>@actions(@props.name).toggle_skip_grading( @props.assignment.get('assignment_id'))}>
+            onClick={=>@actions(@props.name).toggle_skip_grading(@props.assignment.get('assignment_id'))}>
             <Icon name={icon} /> Skip Grading
         </Button>
 
@@ -568,10 +568,10 @@ Assignment = rclass
         if status.collect == 0
             # No button if nothing collected.
             return
-        skip_grading = @props.assignment.get('skip_grading') ? false
         if status.peer_collect? and status.peer_collect == 0
             # Peer grading enabled, but we didn't collect anything yet
             return
+        skip_grading = @props.assignment.get('skip_grading') ? false
         if (!skip_grading) and (status.not_return_graded == 0 and status.return_graded == 0)
             # Nothing unreturned and ungraded yet and also nothing returned yet
             return

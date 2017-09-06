@@ -330,9 +330,6 @@ exports.CourseStore = class CourseStore extends Store
                         info["not_#{t}"] += 1
                     previous = false
 
-        if assignment.get('skip_grading') ? false  # assume collected assignments are graded!
-            info['not_return_graded'] = info['collect']
-
         @_assignment_status[assignment_id] = info
         return info
 
