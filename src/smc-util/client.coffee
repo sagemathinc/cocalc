@@ -21,6 +21,10 @@
 
 DEBUG = false
 
+# Maximum number of outstanding concurrent messages (that have responses)
+# to send at once to the backend.
+MAX_CONCURRENT = 20
+
 {EventEmitter} = require('events')
 
 async = require('async')
@@ -204,6 +208,9 @@ class exports.Connection extends EventEmitter
         @setMaxListeners(3000)  # every open file/table/sync db listens for connect event, which adds up.
 
         @emit("connecting")
+        @_call             =
+            queue   : []    # messages in the queue to send
+            count   : 0     # number of message currently outstanding
         @_id_counter       = 0
         @_sessions         = {}
         @_new_sessions     = {}
@@ -589,6 +596,33 @@ class exports.Connection extends EventEmitter
         @register_data_handler(opts.data_channel, session.handle_data)
         opts.cb(false, session)
 
+    _do_call: (opts, cb) =>
+        id = opts.message.id ?= misc.uuid()
+
+        @call_callbacks[id] =
+            cb          : (args...) =>
+                if cb?
+                    cb()
+                    cb = undefined
+                opts.cb(args...)
+            error_event : opts.error_event
+            first       : true
+
+        @send(opts.message)
+
+        if opts.timeout
+            setTimeout(
+                (() =>
+                    if @call_callbacks[id]?.first
+                        error = "Timeout after #{opts.timeout} seconds"
+                        if cb?
+                            cb()
+                            cb = undefined
+                        opts.cb(error, message.error(id:id, error:error))
+                        delete @call_callbacks[id]
+                ), opts.timeout*1000
+            )
+
     call: (opts={}) =>
         # This function:
         #    * Modifies the message by adding an id attribute with a random uuid value
@@ -605,27 +639,22 @@ class exports.Connection extends EventEmitter
         if not opts.cb?
             @send(opts.message)
             return
-        if not opts.message.id?
-            id = misc.uuid()
-            opts.message.id = id
-        else
-            id = opts.message.id
+        @_call.queue.push(opts)
+        @_update_calls()
 
-        @call_callbacks[id] =
-            cb          : opts.cb
-            error_event : opts.error_event
-            first       : true
+    _update_calls: =>
+        while @_call.queue.length > 0 and @_call.count <= MAX_CONCURRENT
+            @_process_next_call()
 
-        @send(opts.message)
-        if opts.timeout
-            setTimeout(
-                (() =>
-                    if @call_callbacks[id]?.first
-                        error = "Timeout after #{opts.timeout} seconds"
-                        opts.cb(error, message.error(id:id, error:error))
-                        delete @call_callbacks[id]
-                ), opts.timeout*1000
-            )
+    _process_next_call: =>
+        if @_call.queue.length == 0
+            return
+        @_call.count += 1
+        #console.log('count (call):', @_call.count)
+        @_do_call @_call.queue.shift(), =>
+            @_call.count -= 1
+            #console.log('count (done):', @_call.count)
+            @_update_calls()
 
     call_local_hub: (opts) =>
         opts = defaults opts,
