@@ -239,7 +239,7 @@ schema.accounts =
                     theme                     : "default"
                     undo_depth                : 300
                 other_settings  :
-                    confirm_close     : true
+                    confirm_close     : false
                     mask_files        : true
                     page_size         : 50
                     standby_timeout_m : 10
