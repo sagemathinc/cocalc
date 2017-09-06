@@ -548,14 +548,28 @@ Assignment = rclass
         # Assign assignment to all (non-deleted) students.
         @props.redux.getActions(@props.name).return_assignment_to_all_students(@props.assignment)
 
+    render_skip_grading_button: (status) ->
+        if status.collect == 0
+            # No button if nothing collected.
+            return
+        if @props.assignment.get('skip_grading') ? false
+            icon = 'check-square-o'
+        else
+            icon = 'square-o'
+        <Button disabled={@props.expand_peer_config}
+            onClick={=>@actions(@props.name).toggle_skip_grading( @props.assignment.get('assignment_id'))}>
+            <Icon name={icon} /> Skip Grading
+        </Button>
+
     render_return_graded_button: (status) ->
         if status.collect == 0
             # No button if nothing collected.
             return
+        skip_grading = @props.assignment.get('skip_grading') ? false
         if status.peer_collect? and status.peer_collect == 0
             # Peer grading enabled, but we didn't collect anything yet
             return
-        if status.not_return_graded == 0 and status.return_graded == 0
+        if (!skip_grading) and (status.not_return_graded == 0 and status.return_graded == 0)
             # Nothing unreturned and ungraded yet and also nothing returned yet
             return
         if status.return_graded > 0

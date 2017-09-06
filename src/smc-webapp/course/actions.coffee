@@ -314,7 +314,7 @@ exports.CourseActions = class CourseActions extends Actions
 
     # Takes an item_name and the id of the time
     # item_name should be one of
-    # ['student', 'assignment', 'peer_config', handout']
+    # ['student', 'assignment', 'peer_config', handout', 'skip_grading']
     toggle_item_expansion: (item_name, item_id) =>
         store = @get_store()
         return if not store?
@@ -832,6 +832,13 @@ exports.CourseActions = class CourseActions extends Actions
         for k, v of config
             cur[k] = v
         @_set_assignment_field(assignment, 'peer_grade', cur)
+
+    toggle_skip_grading: (assignment_id) =>
+        store = @get_store()
+        return if not store?
+        assignment = store.get_assignment(assignment_id)
+        cur = assignment.get('skip_grading') ? false
+        @_set_assignment_field(assignment_id, 'skip_grading', !cur)
 
     # Synchronous function that makes the peer grading map for the given
     # assignment, if it hasn't already been made.
