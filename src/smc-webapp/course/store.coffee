@@ -288,7 +288,7 @@ exports.CourseStore = class CourseStore extends Store
         #  not_peer_collect    - number of students from whome we have NOT collected peer grading
         #  return_graded       - number of students to whom we've returned assignment
         #  not_return_graded   - number of students to whom we've NOT returned assignment
-        #                        but we collected it from them *and* assigned a grade
+        #                        but we collected it from them *and* either assigned a grade or skip grading
         #
         # This function caches its result and only recomputes values when the store changes,
         # so it should be safe to call in render.
@@ -329,6 +329,9 @@ exports.CourseStore = class CourseStore extends Store
                     if previous and (t!='return_graded' or @has_grade(assignment, student_id))
                         info["not_#{t}"] += 1
                     previous = false
+
+        if assignment.get('skip_grading') ? false  # assume collected assignments are graded!
+            info['not_return_graded'] = info['collect']
 
         @_assignment_status[assignment_id] = info
         return info

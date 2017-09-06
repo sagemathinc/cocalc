@@ -978,8 +978,8 @@ exports.CourseActions = class CourseActions extends Actions
                             bash       : true
                             path       : assignment.get('graded_path')
                             cb         : cb
-                      else
-                          cb(null)
+                    else
+                        cb(null)
             ], finish)
 
     # Copy the given assignment to all non-deleted students, doing several copies in parallel at once.
@@ -991,19 +991,22 @@ exports.CourseActions = class CourseActions extends Actions
         store = @get_store()
         if not store? or not @_store_is_initialized()
             return error("store not yet initialized")
-        if not assignment = store.get_assignment(assignment)  # correct use of "=" sign!
+        assignment = store.get_assignment(assignment)
+        if not assignment
             return error("no assignment")
         errors = ''
         peer = assignment.get('peer_grade')?.get('enabled')
+        skip_grading = assignment.get('skip_grading') ? false
         f = (student_id, cb) =>
             if not store.last_copied(previous_step('return_graded', peer), assignment, student_id, true)
                 # we never collected the assignment from this student
                 cb(); return
-            if not store.has_grade(assignment, student_id)
-                # we collected but didn't grade it yet
+            has_grade = store.has_grade(assignment, student_id)
+            if (not skip_grading) and (not has_grade)
+                # we collected and do grade, but didn't grade it yet
                 cb(); return
             if new_only
-                if store.last_copied('return_graded', assignment, student_id, true) and store.has_grade(assignment, student_id)
+                if store.last_copied('return_graded', assignment, student_id, true) and (skip_grading or has_grade)
                     # it was already returned
                     cb(); return
             n = misc.mswalltime()
