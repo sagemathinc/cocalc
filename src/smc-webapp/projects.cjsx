@@ -976,6 +976,22 @@ ProjectsListingDescription = rclass
             Cancel
         </Button></span>
 
+    render_projects_actions_toolbar: ->
+        <ButtonGroup  className = 'pull-right'>
+            {@render_remove_from_all_button() if @props.visible_projects.length > 0}
+            {@render_delete_all_button()      if @props.visible_projects.length > 0 and not @props.deleted}
+            {@render_hide_all_button()        if @props.visible_projects.length > 0 and not @props.hidden}
+        </ButtonGroup>
+
+    render_projects_actions_alert: ->
+        switch @state.show_alert
+            when 'hide'
+                return @render_hide_all()
+            when 'remove'
+                return @render_remove_from_all()
+            when 'delete'
+                return @render_delete_all()
+
     render_alert_message: ->
         query = @props.search.toLowerCase()
         hashtags_string = (name for name of @props.selected_hashtags).join(' ')
@@ -988,44 +1004,32 @@ ProjectsListingDescription = rclass
                 <strong>{"#{if @props.deleted then 'deleted ' else ''}#{if @props.hidden then 'hidden ' else ''}"}</strong>
                 projects<Space/>
                 {if query isnt '' then @render_span(query)}
-                {@render_remove_from_all_button() if @props.visible_projects.length > 0}
-                {@render_delete_all_button() if @props.visible_projects.length > 0 and not @props.deleted}
-                {@render_hide_all_button() if @props.visible_projects.length > 0 and not @props.hidden}
-                {switch @state.show_alert
-                    when 'hide'
-                        @render_hide_all()
-                    when 'remove'
-                        @render_remove_from_all()
-                    when 'delete'
-                        @render_delete_all()
-                }
+                {@render_projects_actions_toolbar()}
+                {@render_projects_actions_alert()}
             </Alert>
-    
+
     render_hide_all_button: ->
         <Button
-            className = 'pull-right'
             disabled  = {@state.show_alert == 'hide'}
             onClick   = {=>@setState(show_alert: 'hide')}
             >
-            <Icon name='eye-slash'/>  Hide
+            <Icon name='eye-slash'/>  Hide...
         </Button>
 
     render_delete_all_button: ->
         <Button
-            className = 'pull-right'
             disabled  = {@state.show_alert == 'delete'}
             onClick   = {=>@setState(show_alert: 'delete')}
             >
-            <Icon name='trash'/>  Delete
+            <Icon name='trash'/>  Delete...
         </Button>
 
     render_remove_from_all_button: ->
         <Button
-            className = 'pull-right'
             disabled  = {@state.show_alert == 'remove'}
             onClick   = {=>@setState(show_alert: 'remove')}
             >
-            <Icon name='user-times'/>  Remove Myself
+            <Icon name='user-times'/>  Remove Myself...
         </Button>
 
     render_hide_all: ->
@@ -1033,7 +1037,10 @@ ProjectsListingDescription = rclass
             return
         <Alert key='hide-all' style={marginTop:"15px"}>
             <h4><Icon name="eye-slash"/>  Hide Projects</h4>
-            Are you sure you want to hide the {@props.visible_projects.length} {misc.plural(@props.visible_projects.length, 'project')} listed below? <b>This can be undone in the {if @props.visible_projects.length > 1 then "projects'" else "project's"} settings.</b>
+            Are you sure you want to hide the {@props.visible_projects.length} {misc.plural(@props.visible_projects.length, 'project')} listed below?
+            <br/>
+            <b>This  hides the project from you, not your collaborators.</b>
+            {@render_can_be_undone()}
 
             <ButtonToolbar style={marginTop:'15px'}>
                 <Button bsStyle='warning' onClick={@do_hide_all}  >
@@ -1081,7 +1088,9 @@ ProjectsListingDescription = rclass
                 {head} {desc}
 
                 <p/>
-                Are you sure you want to remove yourself from the {v.length} {misc.plural(v.length, 'project')} listed below that you collaborate on?  <b>You will no longer have access and cannot add yourself back.</b>
+                Are you sure you want to remove yourself from the {v.length} {misc.plural(v.length, 'project')} listed below that you collaborate on?
+                <br/>
+                <b>You will no longer have access and cannot add yourself back.</b>
 
                 <ButtonToolbar style={marginTop:'15px'}>
                     <Button bsStyle='danger' onClick={@do_remove_from_all}  >
@@ -1098,6 +1107,12 @@ ProjectsListingDescription = rclass
             @actions('projects').remove_collaborator(project.project_id, webapp_client.account_id)
         @setState(show_alert: 'none')
 
+    render_can_be_undone: ->
+        <span>
+            <br/>
+            This can be undone in project settings.
+        </span>
+
     render_delete_all: ->
         if @props.visible_projects.length == 0
             return
@@ -1105,7 +1120,7 @@ ProjectsListingDescription = rclass
         if own == 0
             desc = 'You do not own any of the projects listed below.'
         else if own < @props.visible_projects.length
-            desc = "You are the owner on #{own} of the #{@props.visible_projects.length} of projects listed below."
+            desc = "You are the owner of #{own} of the #{@props.visible_projects.length} of projects listed below."
         else
             desc = "You are the owner of every displayed project."
         <Alert key='delete_all' style={marginTop:'15px'}>
@@ -1113,7 +1128,11 @@ ProjectsListingDescription = rclass
             {desc}
 
             <p/>
-            Are you sure you want to delete the {@props.visible_projects.length} {misc.plural(@props.visible_projects.length, 'project')} listed below? <b>This will delete the {misc.plural(@props.visible_projects.length, 'project')} for all participants.</b>
+            Are you sure you want to delete the {@props.visible_projects.length} {misc.plural(@props.visible_projects.length, 'project')} listed below?
+            <br/>
+            <b>This will delete the {misc.plural(@props.visible_projects.length, 'project')} for all collaborators.</b>
+            {@render_can_be_undone()}
+
             <ButtonToolbar style={marginTop:'15px'}>
                 <Button bsStyle='danger' onClick={@do_delete_all}  >
                     <Icon name='trash'/> Delete {@props.visible_projects.length} {misc.plural(@props.visible_projects.length, 'project')}
