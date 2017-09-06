@@ -10,18 +10,14 @@ last_style = (code, mode='python') ->
         style = s
     return style
 
-exports.run_mode = (code, mode) ->
+exports.run_mode = (code, mode, language) ->
     if not code  # code assumed trimmed
         return 'empty'
-    else if misc.endswith(code, '??')
+    else if language != 'prolog'
         if last_style(code, mode) in ['comment', 'string']
             return 'execute'
-        else
+        else if misc.endswith(code, '??')
             return 'show_source'
-    else if misc.endswith(code, '?')
-        if last_style(code, mode) in ['comment', 'string']
-            return 'execute'
-        else
+        else if misc.endswith(code, '?')
             return 'show_doc'
-    else
-        return 'execute'
+    return 'execute'
