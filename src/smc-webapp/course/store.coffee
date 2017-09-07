@@ -311,6 +311,7 @@ exports.CourseStore = class CourseStore extends Store
 
         # Is peer grading enabled?
         peer = assignment.get('peer_grade')?.get('enabled')
+        skip_grading = assignment.get('skip_grading') ? false
 
         info = {}
         for t in STEPS(peer)
@@ -326,7 +327,8 @@ exports.CourseStore = class CourseStore extends Store
                 else
                     # add one only if the previous step *was* done (and in
                     # the case of returning, they have a grade)
-                    if previous and (t!='return_graded' or @has_grade(assignment, student_id))
+                    graded = @has_grade(assignment, student_id) or skip_grading
+                    if previous and (t!='return_graded' or graded)
                         info["not_#{t}"] += 1
                     previous = false
 

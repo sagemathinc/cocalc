@@ -29,29 +29,17 @@ immutable = require('immutable')
 
 exports.STEPS = (peer) ->
     if peer
-        return ['assignment', 'collect', 'peer_assignment', 'peer_collect', 'skip_grading', 'return_graded']
+        return ['assignment', 'collect', 'peer_assignment', 'peer_collect', 'return_graded']
     else
-        return ['assignment', 'collect', 'skip_grading', 'return_graded']
+        return ['assignment', 'collect', 'return_graded']
 
 exports.previous_step = (step, peer) ->
-    switch step
-        when 'collect'
-            return 'assignment'
-        when 'return_graded'
-            if peer
-                return 'peer_collect'
-            else
-                return 'collect'
-        when 'assignment'
-            return
-        when 'peer_assignment'
-            return 'collect'
-        when 'peer_collect'
-            return 'peer_assignment'
-        when 'skip_grading'
-            return (if peer then 'peer_collect' else 'collect')
-        else
-            console.warn("BUG! previous_step('#{step}')")
+    prev = undefined
+    for s in exports.STEPS(peer)
+        if step == s
+            return prev
+        prev = s
+    console.warn("BUG! previous_step('#{step}, #{peer}')")
 
 exports.step_direction = (step) ->
     switch step

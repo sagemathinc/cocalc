@@ -301,9 +301,11 @@ Assignment = rclass
         buttons = []
         for name in STEPS(peer)
             b = @["render_#{name}_button"](status)
+            # squeeze in the skip grading button (don't add it to STEPS!)
+            if name == 'return_graded'
+                b2 = @render_skip_grading_button(status)
+                buttons.push(<Col md={width} key='skip_grading'>{b2}</Col>)
             if b?
-                if name == 'return_graded'
-                    buttons.push(<Col md={width} key='filler'></Col>)
                 buttons.push(<Col md={width} key={name}>{b}</Col>)
 
         v.push <Row key='header-control'>
