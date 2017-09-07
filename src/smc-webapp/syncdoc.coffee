@@ -294,7 +294,7 @@ class SynchronizedDocument2 extends SynchronizedDocument
                             @on_redo?(instance, changeObj)
                         if changeObj.origin != 'setValue'
                             @_last_change_time = new Date()
-                            @save_state_debounce()
+                            @save_state_debounce?()
                             @_syncstring.exit_undo_mode()
                     update_unsaved_uncommitted_changes()
 
@@ -364,7 +364,7 @@ class SynchronizedDocument2 extends SynchronizedDocument
             @_set_syncstring_to_codemirror()
         value = @_syncstring.undo().to_str()
         cm.setValueNoJump(value, true)
-        @save_state_debounce()
+        @save_state_debounce?()
         @_last_change_time = new Date()
 
     # per-session sync-aware redo
@@ -382,7 +382,7 @@ class SynchronizedDocument2 extends SynchronizedDocument
             throw Error("doc must have a to_str method, but is doc='#{doc}', typeof(doc)='#{typeof(doc)}'")
         value = doc.to_str()
         @focused_codemirror().setValueNoJump(value, true)
-        @save_state_debounce()
+        @save_state_debounce?()
         @_last_change_time = new Date()
 
     _connect: (cb) =>

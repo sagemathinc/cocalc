@@ -983,12 +983,12 @@ OtherSettings = rclass
 
     render_confirm: ->
         if not require('./feature').IS_MOBILE
-                <Checkbox
-                    checked  = {@props.other_settings.confirm_close}
-                    ref      = 'confirm_close'
-                    onChange = {(e)=>@on_change('confirm_close', e.target.checked)}>
-                    Confirm: always ask for confirmation before closing the browser window
-                </Checkbox>
+            <Checkbox
+                checked  = {@props.other_settings.confirm_close}
+                ref      = 'confirm_close'
+                onChange = {(e)=>@on_change('confirm_close', e.target.checked)}>
+                Confirm: always ask for confirmation before closing the browser window
+            </Checkbox>
 
     render_page_size_warning: ->
         BIG_PAGE_SIZE = 500
@@ -996,6 +996,19 @@ OtherSettings = rclass
             <Alert bsStyle='warning'>
                 Your file listing page size is set to {@props.other_settings.page_size}. Sizes above {BIG_PAGE_SIZE} may cause the file listing to render slowly for directories with lots of files.
             </Alert>
+
+    render_standby_timeout: ->
+        if require('./feature').IS_TOUCH
+            return
+        <LabeledRow label='Standby timeout'>
+            <NumberInput
+                on_change = {(n)=>@on_change('standby_timeout_m',n)}
+                min       = 1
+                max       = 180
+                unit      = "minutes"
+                number    = {@props.other_settings.standby_timeout_m} />
+        </LabeledRow>
+
 
     render: ->
         if not @props.other_settings
@@ -1030,14 +1043,7 @@ OtherSettings = rclass
                         max       = 1000000
                         number    = {@props.other_settings.page_size} />
             </LabeledRow>
-            <LabeledRow label='Standby timeout'>
-                <NumberInput
-                    on_change = {(n)=>@on_change('standby_timeout_m',n)}
-                    min       = 1
-                    max       = 180
-                    unit      = "minutes"
-                    number    = {@props.other_settings.standby_timeout_m} />
-            </LabeledRow>
+            {@render_standby_timeout()}
             {@render_page_size_warning()}
         </Panel>
 

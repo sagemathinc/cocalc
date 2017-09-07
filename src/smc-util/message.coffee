@@ -75,16 +75,13 @@ forums.
 ### Additional References
 
 - The CoCalc PostgreSQL schema definition
-[src/smc-util/db-schema.coffee]
-(https://github.com/sagemathinc/cocalc/blob/master/src/smc-util/db-schema.coffee)
+[src/smc-util/db-schema.coffee](https://github.com/sagemathinc/cocalc/blob/master/src/smc-util/db-schema.coffee)
 has information on tables and fields used with the API `query` request.
 - The API test suite
-[src/smc-hub/test/api/]
-(https://github.com/sagemathinc/cocalc/tree/master/src/smc-hub/test/api)
+[src/smc-hub/test/api/](https://github.com/sagemathinc/cocalc/tree/master/src/smc-hub/test/api)
 contains mocha unit tests for the API messages.
 - The CoCalc message definition file
-[src/smc-util/message.coffee]
-(https://github.com/sagemathinc/cocalc/blob/master/src/smc-util/message.coffee)
+[src/smc-util/message.coffee](https://github.com/sagemathinc/cocalc/blob/master/src/smc-util/message.coffee)
 contains the source for this guide.
 
 ### API Message Reference

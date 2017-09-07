@@ -1990,7 +1990,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
             if cells.length == 1 and opts.advance
                 @move_cursor_to_next_cell()
             if cells.length > 0
-                @save_state_debounce()
+                @save_state_debounce?()
 
         @close_on_action()  # close introspect popups
 
