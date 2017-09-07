@@ -789,6 +789,8 @@ class exports.Client extends EventEmitter
             error      : mesg.error
             account_id : @account_id
             cb         : (err) =>
+                if not mesg.id?
+                    return
                 if err
                     @error_to_client(id:mesg.id, error:err)
                 else
