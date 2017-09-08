@@ -934,6 +934,12 @@ exports.CourseActions = class CourseActions extends Actions
             return finish("no assignment")
         student_name = store.get_student_name(student)
         student_project_id = student.get('project_id')
+
+        # if skip_grading is true, this means there *might* no be a "grade" given,
+        # but instead some grading inside the files or an external tool is used.
+        # therefore, only create the grade file if this is false.
+        skip_grading = assignment.get('skip_grading') ? false
+
         if not student_project_id?
             # nothing to do
             @clear_activity(id)
@@ -948,10 +954,18 @@ exports.CourseActions = class CourseActions extends Actions
             src_path += '/' + student.get('student_id')
             async.series([
                 (cb) =>
+                    if skip_grading and not peer_graded
+                        cb(); return
                     # write their grade to a file
-                    content = "Your grade on this assignment:\n\n    #{grade}"
+                    content = "Your grade on this assignment:"
+                    if grade?   # likely undefined when skip_grading true & peer_graded true
+                        content = "\n\n    #{grade}"
                     if peer_graded
-                        content += "\n\n\nPEER GRADED:\n\nYour assignment was peer graded by other students.\nYou can find the comments they made in the folders below."
+                        content += """
+                                   \n\n\nPEER GRADED:\n
+                                   Your assignment was peer graded by other students.
+                                   You can find the comments they made in the folders below.
+                                   """
                     webapp_client.write_text_file_to_project
                         project_id : store.get('course_project_id')
                         path       : src_path + '/GRADE.txt'
