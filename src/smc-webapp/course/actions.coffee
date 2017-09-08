@@ -959,7 +959,7 @@ exports.CourseActions = class CourseActions extends Actions
                     # write their grade to a file
                     content = "Your grade on this assignment:"
                     if grade?   # likely undefined when skip_grading true & peer_graded true
-                        content = "\n\n    #{grade}"
+                        content += "\n\n    #{grade}"
                     if peer_graded
                         content += """
                                    \n\n\nPEER GRADED:\n

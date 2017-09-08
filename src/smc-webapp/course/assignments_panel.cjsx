@@ -554,9 +554,6 @@ Assignment = rclass
         if status.collect == 0
             # No button if nothing collected.
             return
-        # no button in peer grading mode
-        if !!@props.assignment.get('peer_grade')?.get('enabled')
-            return
         if @props.assignment.get('skip_grading') ? false
             icon = 'check-square-o'
         else
