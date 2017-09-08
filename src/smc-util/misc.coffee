@@ -1776,10 +1776,13 @@ exports.peer_grading_demo = (S = 10, N = 2) ->
 exports.ticket_id_to_ticket_url = (tid) ->
     return "https://sagemathcloud.zendesk.com/requests/#{tid}"
 
+# Checks if the string only makes sense (heuristically) as downloadable url
+is_only_downloadable = (string) ->
+    string.indexOf('://') != -1 or exports.startswith(string, 'git@github.com')
+
 # Apply various transformations to url's before downloading a file using the "+ New" from web thing:
 # This is useful, since people often post a link to a page that *hosts* raw content, but isn't raw
 # content, e.g., ipython nbviewer, trac patches, github source files (or repos?), etc.
-
 exports.transform_get_url = (url) ->  # returns something like {command:'wget', args:['http://...']}
     URL_TRANSFORMS =
         'http://trac.sagemath.org/attachment/ticket/'  :'http://trac.sagemath.org/raw-attachment/ticket/'
