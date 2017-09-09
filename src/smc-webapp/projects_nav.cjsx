@@ -31,7 +31,7 @@ feature = require('./feature')
 
 # SMC Components
 {React, ReactDOM, rclass, rtypes} = require('./smc-react')
-{Loading, Icon, Tip} = require('./r_misc')
+{Loading, Icon, Tip, UUID_Colorcoder} = require('./r_misc')
 {NavTab} = require('./app_shared')
 
 NavWrapper = ({style, children, id, className}) ->
@@ -87,8 +87,6 @@ ProjectTab = rclass
             set_window_title(title)
 
         desc = misc.trunc(@props.project?.get('description') ? '', 128)
-        project_state = @props.project?.getIn(['state', 'state'])
-        icon = require('smc-util/schema').COMPUTE_STATES[project_state]?.icon ? 'bullhorn'
 
         project_name_styles =
             whiteSpace: 'nowrap'
@@ -102,6 +100,17 @@ ProjectTab = rclass
             x_color = COLORS.TOP_BAR.X_HOVER
         else
             x_color = COLORS.TOP_BAR.X
+
+        make_icon = =>
+            project_state = @props.project?.getIn(['state', 'state'])
+            if project_state == 'running'
+                return <UUID_Colorcoder
+                    uuid={@props.project_id}
+                    form={'circular'}
+                    style={height: '18px', width: '18px', display: 'inline'} />
+            else
+                icon = require('smc-util/schema').COMPUTE_STATES[project_state]?.icon ? 'bullhorn'
+                return <Icon name={icon} style={fontSize:'20px'} />
 
         <SortableNavTab
             index          = {@props.index}
@@ -121,7 +130,7 @@ ProjectTab = rclass
             </div>
             <div style={project_name_styles}>
                 <Tip title={misc.trunc(title,32)} tip={desc} placement='bottom' size='small'>
-                    <Icon name={icon} style={fontSize:'20px'} />
+                    {make_icon()}
                     <span style={marginLeft: 5, position:'relative', top:-2}>{misc.trunc(title,24)}</span>
                 </Tip>
             </div>

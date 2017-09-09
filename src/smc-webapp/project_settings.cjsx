@@ -1,4 +1,4 @@
-###############################################################################
+##############################################################################
 #
 #    CoCalc: Collaborative Calculation in the Cloud
 #
@@ -31,7 +31,7 @@ misc                 = require('smc-util/misc')
 {project_tasks}      = require('./project_tasks')
 
 {Alert, Panel, Col, Row, Button, ButtonGroup, ButtonToolbar, FormControl, FormGroup, Well, Checkbox} = require('react-bootstrap')
-{ErrorDisplay, MessageDisplay, Icon, LabeledRow, Loading, MarkdownInput, ProjectState, SearchInput, TextInput,
+{ErrorDisplay, MessageDisplay, Icon, LabeledRow, Loading, MarkdownInput, ProjectState, SearchInput, TextInput, UUID_Colorcoder,
  NumberInput, DeletedProjectWarning, NonMemberProjectWarning, NoNetworkProjectWarning, Space, Tip, UPGRADE_ERROR_STYLE, UpgradeAdjustor} = require('./r_misc')
 {React, ReactDOM, Actions, Store, Table, redux, rtypes, rclass, Redux}  = require('./smc-react')
 {User} = require('./users')
@@ -706,6 +706,7 @@ ProjectControlPanel = rclass
             </LabeledRow>
 
     render: ->
+        project_id = @props.project.get('project_id')
         <ProjectSettingsPanel title='Project control' icon='gears'>
             <LabeledRow key='state' label='State'>
                 {@render_state()}
@@ -714,8 +715,12 @@ ProjectControlPanel = rclass
                 {@render_action_buttons()}
             </LabeledRow>
             {@render_confirm_restart()}
-            <LabeledRow key='project_id' label='Project id'>
-                <pre>{@props.project.get('project_id')}</pre>
+            <LabeledRow key='project_id' label='Project ID'>
+                <pre>{project_id}</pre>
+                <UUID_Colorcoder
+                    uuid={project_id}
+                    form={'horizontal'}
+                    style={height: '20px'} />
             </LabeledRow>
             {@show_host() if @props.allow_ssh}
             If your project is not working, please create a <ShowSupportLink />.

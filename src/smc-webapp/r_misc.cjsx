@@ -1300,6 +1300,63 @@ EditorFileInfoDropdown = rclass
 exports.render_file_info_dropdown = (filename, actions, dom_node, is_public) ->
     ReactDOM.render(<EditorFileInfoDropdown filename={filename} actions={actions} is_public={is_public} />, dom_node)
 
+exports.UUID_Colorcoder = rclass
+    displayName: 'UUID-Colorcoder'
+
+    propTypes :
+        uuid  : rtypes.string.isRequired
+        form  : rtypes.oneOf(['circular', 'horizontal']).isRequired
+        style : rtypes.object
+
+    getInitialState : ->
+        style : {}
+
+    colors : ->
+        # data will be 36 chars long, then partitioned into 6 rgb color strings
+        data = @props.uuid.replace(/-/g, 'a')
+        return ("##{data[(6*i)...(6*i+6)]}" for i in [0...6])
+
+    horizontal : ->
+        style = @props.style
+        style['display'] = 'flex'
+        make_div = (c) ->
+            <div
+                key={i}
+                style={backgroundColor: c, flex: '1 1 auto'}
+                title={"0x#{c[1..]}"}
+            >
+                &nbsp;
+            </div>
+        divs = (make_div(c) for c, i in @colors())
+        return <div style={style}>{divs}</div>
+
+    circ_point : (deg) ->
+        x = Math.cos(2 * Math.PI * deg / 360);
+        y = Math.sin(2 * Math.PI * deg / 360);
+        return [x, y]
+
+    circ_paths : ->
+        paths = []
+        colors = @colors()
+        coords = (@circ_point((360 / colors.length) * d) for d in [0...colors.length])
+        for i in [0...coords.length]
+            [x0, y0] = coords[i]
+            [x1, y1] = coords[(i + 1) % coords.length]
+            paths.push(<path key={i} d="M #{x0} #{y0} A 1 1 0 0 1 #{x1} #{y1} L 0 0" fill={colors[i]}></path>)
+        return paths
+
+    circular : ->
+        return <svg viewBox="-1 -1 2 2" style={@props.style}>
+                   <circle cx="0" cy="0" r="1" fill='#ffffff'/>
+                   {@circ_paths()}
+               </svg>
+
+    render : ->
+        if not misc.is_valid_uuid_string(@props.uuid)
+            return <div></div>
+
+        return @[@props.form]()
+
 exports.UPGRADE_ERROR_STYLE = UPGRADE_ERROR_STYLE =
     color        : 'white'
     background   : 'red'
