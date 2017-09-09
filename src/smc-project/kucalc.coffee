@@ -75,46 +75,23 @@ compute_status_memory = (status, cb) ->
                 cb()
 
 # this grabs the memory stats directly from the sysfs cgroup files
-# the usage is compensated by the cache usage in the stat file ...
+# the actual usage is the sum of the rss values plus cache, but we leave cache aside
 cgroup_memstats = (status, cb) ->
-    async.parallel({
-
-        cache : (cb) ->
-            fs.readFile '/sys/fs/cgroup/memory/memory.stat', 'utf8', (err, data) ->
-                if err
-                    cb(err, 0)
-                    return
-                for line in data.split('\n')
-                    [key, value] = line.split(' ')
-                    if key == 'cache'
-                        cb(null, parseInt(value))
-                        return
-                    cb('entry "cache" not found', 0)
-
-        limit : (cb) ->
-            fs.readFile '/sys/fs/cgroup/memory/memory.limit_in_bytes', 'utf8', (err, data) ->
-                if err
-                    cb(err, 0)
-                else
-                    value = parseInt(data.split('\n')[0])
-                    cb(null, value)
-
-        usage : (cb) ->
-            fs.readFile '/sys/fs/cgroup/memory/memory.usage_in_bytes', 'utf8', (err, data) ->
-                if err
-                    cb(err, 0)
-                else
-                    value = parseInt(data.split('\n')[0])
-                    cb(null, value)
-
-    }, (err, res) ->
+    fs.readFile '/sys/fs/cgroup/memory/memory.stat', 'utf8', (err, data) ->
         if err
             cb(err)
-        else
-            status.memory.rss += (res.usage - res.cache) / 1024
-            status.memory.limit = res.limit / 1024
-            cb()
-    )
+            return
+        stats = {}
+        for line in data.split('\n')
+            [key, value] = line.split(' ')
+            try
+                stats[key] = parseInt(value)
+
+        kib = 1024 # convert to kibibyte
+        status.memory.rss += (stats.total_rss ? 0 + stats.total_rss_huge ? 0) / kib
+        status.memory.cache = (stats.cache ? 0) / kib
+        status.memory.limit = (stats.hierarchical_memory_limit ? 0) / kib
+        cb()
 
 
 disk_usage = (path, cb) ->
