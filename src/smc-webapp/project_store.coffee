@@ -1123,7 +1123,7 @@ class ProjectActions extends Actions
         if (name == ".." or name == ".") and not opts.ext?
             @setState(file_creation_error: "Cannot create a file named . or ..")
             return
-        if name.indexOf('://') != -1 or misc.startswith(name, 'git@github.com')
+        if misc.is_only_downloadable(name)
             @new_file_from_web(name, opts.current_path)
             return
         if name[name.length - 1] == '/'
