@@ -23,7 +23,7 @@ DEBUG = false
 
 # Maximum number of outstanding concurrent messages (that have responses)
 # to send at once to the backend.
-MAX_CONCURRENT = 20
+MAX_CONCURRENT = 25
 
 {EventEmitter} = require('events')
 
@@ -597,6 +597,18 @@ class exports.Connection extends EventEmitter
         opts.cb(false, session)
 
     _do_call: (opts, cb) =>
+        if not opts.cb?
+            console.log("no opts.cb", opts.message)
+            # A call to the backend, but where we do not wait for a response.
+            # In order to maintain at least roughly our limit on MAX_CONCURRENT,
+            # we simply pretend that this message takes about 150ms
+            # to complete.  This helps space things out so the server can
+            # handle requests properly, instead of just discarding them (be nice
+            # to the backend and it will be nice to you).
+            @send(opts.message)
+            setTimeout(cb, 150)
+            return
+
         id = opts.message.id ?= misc.uuid()
 
         @call_callbacks[id] =
@@ -636,9 +648,6 @@ class exports.Connection extends EventEmitter
             timeout     : undefined
             error_event : false  # if true, turn error events into just a normal err
             cb          : undefined
-        if not opts.cb?
-            @send(opts.message)
-            return
         @_call.queue.push(opts)
         @_update_calls()
 
