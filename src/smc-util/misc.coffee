@@ -1777,7 +1777,7 @@ exports.ticket_id_to_ticket_url = (tid) ->
     return "https://sagemathcloud.zendesk.com/requests/#{tid}"
 
 # Checks if the string only makes sense (heuristically) as downloadable url
-is_only_downloadable = (string) ->
+exports.is_only_downloadable = (string) ->
     string.indexOf('://') != -1 or exports.startswith(string, 'git@github.com')
 
 # Apply various transformations to url's before downloading a file using the "+ New" from web thing:

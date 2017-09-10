@@ -598,7 +598,6 @@ class exports.Connection extends EventEmitter
 
     _do_call: (opts, cb) =>
         if not opts.cb?
-            console.log("no opts.cb", opts.message)
             # A call to the backend, but where we do not wait for a response.
             # In order to maintain at least roughly our limit on MAX_CONCURRENT,
             # we simply pretend that this message takes about 150ms
