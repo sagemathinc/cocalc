@@ -287,8 +287,12 @@ exports.StudentAssignmentInfo = rclass
     render: ->
         peer_grade = @props.assignment.get('peer_grade')?.get('enabled')
         skip_grading = @props.assignment.get('skip_grading') ? false
-        show_grade_col = (!skip_grading) and ((peer_grade and @props.info.last_peer_collect) or (not peer_grade and @props.info.last_collect))
-        show_return_graded = @props.grade or (skip_grading and @props.info.last_collect)
+        if peer_grade
+            show_grade_col = !skip_grading and @props.info.last_peer_collect
+            show_return_graded = @props.grade or (skip_grading and @props.info.last_peer_collect)
+        else
+            show_grade_col = !skip_grading and @props.info.last_collect
+            show_return_graded = @props.grade or (skip_grading and @props.info.last_collect)
         width = if peer_grade then 2 else 3
         <Row style={borderTop:'1px solid #aaa', paddingTop:'5px', paddingBottom: '5px'}>
             <Col md=2 key="title">
