@@ -550,7 +550,6 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
             style.paddingTop = '5px'
         <div className='container-content' style={style}>
             <DiskSpaceWarning project_id={@props.project_id} />
-            <RamWarning project_id={@props.project_id} />
             <FreeProjectWarning project_id={@props.project_id} name={name} />
             {@render_file_tabs(group == 'public') if not @props.fullscreen}
             <ProjectContentViewer
