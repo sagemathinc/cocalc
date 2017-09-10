@@ -38,9 +38,12 @@ REQUIRE_ACCOUNT_TO_EXECUTE_CODE = false
 # (this even includes keystrokes when using the terminal)
 MESG_QUEUE_INTERVAL_MS  = 0
 # If a client sends a massive burst of messages, we discard all but the most recent this many of them:
-#MESG_QUEUE_MAX_COUNT    = 25
+# The client *should* be implemented in a way so that this never happens, and when that is
+# the case -- according to our loging -- we might switch to immediately banning clients that
+# hit these limits...
 MESG_QUEUE_MAX_COUNT    = 300
 MESG_QUEUE_MAX_WARN    = 50
+
 # Any messages larger than this is dropped (it could take a long time to handle, by a de-JSON'ing attack, etc.).
 MESG_QUEUE_MAX_SIZE_MB  = 10
 
@@ -530,7 +533,10 @@ class exports.Client extends EventEmitter
             if @_handle_data_queue.length > MESG_QUEUE_MAX_COUNT
                 dbg("MESG_QUEUE_MAX_COUNT(=#{MESG_QUEUE_MAX_COUNT}) exceeded (=#{@_handle_data_queue.length}) -- drop oldest messages")
                 while @_handle_data_queue.length > MESG_QUEUE_MAX_COUNT
-                    @_handle_data_queue.shift()
+                    discarded_mesg = @_handle_data_queue.shift()
+                    data = discarded_mesg?[1]
+                    dbg("discarded_mesg='#{misc.trunc(data?.toString?(),1000)}'")
+
 
             # get task
             task = @_handle_data_queue.shift()
