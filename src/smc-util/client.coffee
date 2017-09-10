@@ -278,17 +278,17 @@ class exports.Connection extends EventEmitter
             message : message.ping()
             timeout : 15     # CRITICAL that this timeout be less than the @_ping_interval
             cb      : (err, pong) =>
-                #console.log(err, pong)
-                now = new Date()
-                # Only record something if success, got a pong, and the round trip is short!
-                # If user messes with their clock during a ping and we don't do this, then
-                # bad things will happen.
-                if not err and pong?.event == 'pong' and now - @_last_ping <= 1000*15
-                    @_last_pong = {server:pong.now, local:now}
-                    # See the function server_time below; subtract @_clock_skew from local time to get a better
-                    # estimate for server time.
-                    @_clock_skew = @_last_ping - 0 + ((@_last_pong.local - @_last_ping)/2) - @_last_pong.server
-                    misc.set_local_storage('clock_skew', @_clock_skew)
+                if not err
+                    now = new Date()
+                    # Only record something if success, got a pong, and the round trip is short!
+                    # If user messes with their clock during a ping and we don't do this, then
+                    # bad things will happen.
+                    if pong?.event == 'pong' and now - @_last_ping <= 1000*15
+                        @_last_pong = {server:pong.now, local:now}
+                        # See the function server_time below; subtract @_clock_skew from local time to get a better
+                        # estimate for server time.
+                        @_clock_skew = @_last_ping - 0 + ((@_last_pong.local - @_last_ping)/2) - @_last_pong.server
+                        misc.set_local_storage('clock_skew', @_clock_skew)
                 # try again later
                 setTimeout(@_ping, @_ping_interval)
 
@@ -648,6 +648,9 @@ class exports.Connection extends EventEmitter
             timeout     : undefined
             error_event : false  # if true, turn error events into just a normal err
             cb          : undefined
+        if not @is_connected()
+            opts.cb?('not connected')
+            return
         @_call.queue.push(opts)
         @_update_calls()
 
