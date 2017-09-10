@@ -598,6 +598,7 @@ class exports.Connection extends EventEmitter
 
     _do_call: (opts, cb) =>
         if not opts.cb?
+            # console.log("no opts.cb", opts.message)
             # A call to the backend, but where we do not wait for a response.
             # In order to maintain at least roughly our limit on MAX_CONCURRENT,
             # we simply pretend that this message takes about 150ms
@@ -668,14 +669,13 @@ class exports.Connection extends EventEmitter
         opts = defaults opts,
             project_id : required    # determines the destination local hub
             message    : required
-            multi_response : false
             timeout    : undefined
             cb         : undefined
         m = message.local_hub
-                multi_response : opts.multi_response
-                project_id : opts.project_id
-                message    : opts.message
-                timeout    : opts.timeout
+                multi_response : false
+                project_id     : opts.project_id
+                message        : opts.message
+                timeout        : opts.timeout
         if opts.cb?
             f = (err, resp) =>
                 #console.log("call_local_hub:#{misc.to_json(opts.message)} got back #{misc.to_json(err:err,resp:resp)}")
@@ -683,18 +683,10 @@ class exports.Connection extends EventEmitter
         else
             f = undefined
 
-        if opts.multi_response
-            m.id = misc.uuid()
-            #console.log("setting up execute callback on id #{m.id}")
-            @execute_callbacks[m.id] = (resp) =>
-                #console.log("execute_callback: ", resp)
-                opts.cb?(undefined, resp)
-            @send(m)
-        else
-            @call
-                message : m
-                timeout : opts.timeout
-                cb      : f
+        @call
+            message : m
+            timeout : opts.timeout
+            cb      : f
 
 
     #################################################
