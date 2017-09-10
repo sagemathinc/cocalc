@@ -299,14 +299,19 @@ Assignment = rclass
         else
             width = 3
         buttons = []
+        insert_skip_button = =>
+            b2 = @render_skip_grading_button(status)
+            buttons.push(<Col md={width} key='skip_grading'>{b2}</Col>)
+
         for name in STEPS(peer)
             b = @["render_#{name}_button"](status)
             # squeeze in the skip grading button (don't add it to STEPS!)
-            if name == 'return_graded'
-                b2 = @render_skip_grading_button(status)
-                buttons.push(<Col md={width} key='skip_grading'>{b2}</Col>)
+            if !peer and name == 'return_graded'
+                insert_skip_button()
             if b?
                 buttons.push(<Col md={width} key={name}>{b}</Col>)
+                if peer and name == 'peer_collect'
+                    insert_skip_button()
 
         v.push <Row key='header-control'>
             <Col md=10 mdOffset=2 key='buttons'>
