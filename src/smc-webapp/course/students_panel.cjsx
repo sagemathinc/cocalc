@@ -222,7 +222,9 @@ exports.StudentsPanel = rclass ({name}) ->
                     />
                 </Col>
                 <Col md=4>
-                    {<h6>(Omitting {num_omitted} students)</h6> if num_omitted}
+                    {<Button>
+                        Email All Students
+                    </Button> if @props.students.size > 0}
                 </Col>
                 <Col md=5>
                     <form onSubmit={@do_add_search}>
@@ -245,6 +247,11 @@ exports.StudentsPanel = rclass ({name}) ->
                     {@render_add_selector()}
                 </Col>
             </Row>
+            {<Row style={marginBottom:'-5px'}>
+                <Col md=4>
+                    <h6 style={marginTop:'0px'}>(Omitting {num_omitted} student{"s" if num_omitted > 1})</h6>
+                </Col>
+            </Row> if num_omitted}
             {@render_error()}
         </div>
 
