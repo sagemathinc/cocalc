@@ -1560,11 +1560,13 @@ class exports.PostgreSQL extends PostgreSQL
                     # some files in the listing might not be public, since the containing path isn't public, so we filter
                     # WARNING: this is kind of stupid since misc.path_is_in_public_paths is badly implemented, especially
                     # for this sort of iteration.  TODO: make this faster.  This could matter since is done on server.
-                    if not listing?.files?[0]?  # There is no telling what listing actually is, so be careful.
-                        listing.files = []
-                    else
+                    try
+                        # we use try/catch here since there is no telling what is in the listing object; the user
+                        # could pass in anything...
                         listing.files = (x for x in listing.files when \
                             misc.path_is_in_public_paths(misc.path_to_file(opts.path, x.name), public_paths))
+                    catch
+                        listing.files = []
                 opts.cb(undefined, listing)
 
     # Set last_edited for this project to right now, and possibly update its size.
