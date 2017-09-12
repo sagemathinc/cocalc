@@ -289,7 +289,10 @@ exports.init_http_proxy_server = (opts) ->
                         # This helps enormously when there is a burst of requests.
                         # Also if project restarts the raw port will change and we don't want to have
                         # fix this via getting an error.
-                        setTimeout((->delete _target_cache[key]), 7*60*1000)
+
+                        # Also, if the project stops and starts, the host=ip address could change, so
+                        # we need to timeout so we see that...
+                        setTimeout((->delete _target_cache[key]), 30*1000)
             )
 
     #proxy = http_proxy.createProxyServer(ws:true)

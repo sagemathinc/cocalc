@@ -150,7 +150,10 @@ class Project extends EventEmitter
                     dbg("successfully created synctable; now ready")
                     @is_ready = true
                     @synctable = synctable
-                    @synctable.on 'change', => @emit('change')
+                    @host = @getIn(['state', 'ip'])
+                    @synctable.on 'change', =>
+                        @host = @getIn(['state', 'ip'])
+                        @emit('change')
                     @emit("ready")
 
     # Get the current data about the project from the database.
@@ -198,6 +201,7 @@ class Project extends EventEmitter
         delete @project_id
         delete @compute_server
         delete @is_ready
+        delete @host
         # Make sure nothing else reacts to changes on this ProjectClient, since they won't happen.
         @removeAllListeners()
 
@@ -349,7 +353,7 @@ class Project extends EventEmitter
                     return
                 dbg('it is running')
                 address =
-                    host         : @getIn(['state', 'ip'])
+                    host         : @host
                     port         : LOCAL_HUB_PORT
                     secret_token : @getIn(['status', 'secret_token'])
                 if not address.secret_token
@@ -454,7 +458,7 @@ class Project extends EventEmitter
                 @start(cb:cb)
             (cb) =>
                 # TODO: This URL is obviously very specific to KuCalc -- hardcoded port and base url.
-                url = "http://project-#{@project_id}:6001/#{@project_id}/raw/.smc/directory_listing/#{opts.path}"
+                url = "http://#{@host}:6001/#{@project_id}/raw/.smc/directory_listing/#{opts.path}"
                 dbg("fetching listing from '#{url}'")
                 if opts.hidden
                     url += '?hidden=true'
@@ -506,7 +510,10 @@ class Project extends EventEmitter
                                         return
                             cb('file too big or not found in listing')
             (cb) =>
-                url = "http://project-#{@project_id}:6001/#{@project_id}/raw/#{opts.path}"
+                if not @host?
+                    cb('project not running')
+                    return
+                url = "http://#{@host}:6001/#{@project_id}/raw/#{opts.path}"
                 dbg("fetching file from '#{url}'")
                 misc.retry_until_success
                     f           : (cb) =>
