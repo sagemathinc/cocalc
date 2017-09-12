@@ -250,7 +250,7 @@ ProjectNewForm = rclass ({name}) ->
             @create_file(ext)
         else if @state.filename[@state.filename.length - 1] == '/'
             @create_folder()
-        else if misc.filename_extension(@state.filename)
+        else if misc.filename_extension(@state.filename) or misc.is_only_downloadable(@state.filename)
             @create_file()
         else
             @setState(extension_warning : true)

@@ -37,7 +37,7 @@ restart_sage_server = (cb) ->
         return
     t = new Date() - _restarted_sage_server
     if t <= SAGE_SERVER_MAX_STARTUP_TIME_S*1000
-        err = "restarted sage server #{t}ms ago -- still waiting for it to start"
+        err = "restarted sage server #{t}ms ago: not allowing too many restarts too quickly..."
         dbg(err)
         cb(err)
         return

@@ -281,7 +281,13 @@ class Support
                     @_zd.users.request 'POST', ['users', 'create_or_update'], user, (err, req, result) =>
                         if err
                             dbg("create_or_update user error: #{misc.to_json(err)}")
-                            err = "#{misc.to_json(misc.from_json(err.result))}"
+                            try
+                                # we HAVE had uncaught exceptions here in production
+                                # logged in the central_error_log!
+                                err = "#{misc.to_json(misc.from_json(err.result))}"
+                            catch
+                                # evidently err.result is not valid json so can't do better than to string it
+                                err = "#{err.result}"
                             #if err.result?.type == "Buffer"
                             #    err = err.result.data.map((c) -> String.fromCharCode(c)).join('')
                             #    dbg("create_or_update zendesk message: #{err}")

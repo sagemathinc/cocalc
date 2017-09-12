@@ -23,7 +23,7 @@ DEBUG = false
 
 # Maximum number of outstanding concurrent messages (that have responses)
 # to send at once to the backend.
-MAX_CONCURRENT = 20
+MAX_CONCURRENT = 25
 
 {EventEmitter} = require('events')
 
@@ -278,17 +278,17 @@ class exports.Connection extends EventEmitter
             message : message.ping()
             timeout : 15     # CRITICAL that this timeout be less than the @_ping_interval
             cb      : (err, pong) =>
-                #console.log(err, pong)
-                now = new Date()
-                # Only record something if success, got a pong, and the round trip is short!
-                # If user messes with their clock during a ping and we don't do this, then
-                # bad things will happen.
-                if not err and pong?.event == 'pong' and now - @_last_ping <= 1000*15
-                    @_last_pong = {server:pong.now, local:now}
-                    # See the function server_time below; subtract @_clock_skew from local time to get a better
-                    # estimate for server time.
-                    @_clock_skew = @_last_ping - 0 + ((@_last_pong.local - @_last_ping)/2) - @_last_pong.server
-                    misc.set_local_storage('clock_skew', @_clock_skew)
+                if not err
+                    now = new Date()
+                    # Only record something if success, got a pong, and the round trip is short!
+                    # If user messes with their clock during a ping and we don't do this, then
+                    # bad things will happen.
+                    if pong?.event == 'pong' and now - @_last_ping <= 1000*15
+                        @_last_pong = {server:pong.now, local:now}
+                        # See the function server_time below; subtract @_clock_skew from local time to get a better
+                        # estimate for server time.
+                        @_clock_skew = @_last_ping - 0 + ((@_last_pong.local - @_last_ping)/2) - @_last_pong.server
+                        misc.set_local_storage('clock_skew', @_clock_skew)
                 # try again later
                 setTimeout(@_ping, @_ping_interval)
 
@@ -597,6 +597,18 @@ class exports.Connection extends EventEmitter
         opts.cb(false, session)
 
     _do_call: (opts, cb) =>
+        if not opts.cb?
+            # console.log("no opts.cb", opts.message)
+            # A call to the backend, but where we do not wait for a response.
+            # In order to maintain at least roughly our limit on MAX_CONCURRENT,
+            # we simply pretend that this message takes about 150ms
+            # to complete.  This helps space things out so the server can
+            # handle requests properly, instead of just discarding them (be nice
+            # to the backend and it will be nice to you).
+            @send(opts.message)
+            setTimeout(cb, 150)
+            return
+
         id = opts.message.id ?= misc.uuid()
 
         @call_callbacks[id] =
@@ -636,8 +648,8 @@ class exports.Connection extends EventEmitter
             timeout     : undefined
             error_event : false  # if true, turn error events into just a normal err
             cb          : undefined
-        if not opts.cb?
-            @send(opts.message)
+        if not @is_connected()
+            opts.cb?('not connected')
             return
         @_call.queue.push(opts)
         @_update_calls()
@@ -660,14 +672,13 @@ class exports.Connection extends EventEmitter
         opts = defaults opts,
             project_id : required    # determines the destination local hub
             message    : required
-            multi_response : false
             timeout    : undefined
             cb         : undefined
         m = message.local_hub
-                multi_response : opts.multi_response
-                project_id : opts.project_id
-                message    : opts.message
-                timeout    : opts.timeout
+                multi_response : false
+                project_id     : opts.project_id
+                message        : opts.message
+                timeout        : opts.timeout
         if opts.cb?
             f = (err, resp) =>
                 #console.log("call_local_hub:#{misc.to_json(opts.message)} got back #{misc.to_json(err:err,resp:resp)}")
@@ -675,18 +686,10 @@ class exports.Connection extends EventEmitter
         else
             f = undefined
 
-        if opts.multi_response
-            m.id = misc.uuid()
-            #console.log("setting up execute callback on id #{m.id}")
-            @execute_callbacks[m.id] = (resp) =>
-                #console.log("execute_callback: ", resp)
-                opts.cb?(undefined, resp)
-            @send(m)
-        else
-            @call
-                message : m
-                timeout : opts.timeout
-                cb      : f
+        @call
+            message : m
+            timeout : opts.timeout
+            cb      : f
 
 
     #################################################
