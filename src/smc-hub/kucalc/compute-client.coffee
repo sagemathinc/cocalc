@@ -125,7 +125,6 @@ class Client
 # client code.
 class Project extends EventEmitter
     constructor: (@client, @project_id, @logger, @database) ->
-        @host = "project-#{@project_id}"
         dbg = @dbg('constructor')
         dbg("initializing")
 
@@ -198,7 +197,6 @@ class Project extends EventEmitter
         delete @logger
         delete @project_id
         delete @compute_server
-        delete @host
         delete @is_ready
         # Make sure nothing else reacts to changes on this ProjectClient, since they won't happen.
         @removeAllListeners()
@@ -351,7 +349,7 @@ class Project extends EventEmitter
                     return
                 dbg('it is running')
                 address =
-                    host         : @host
+                    host         : project?.getIn(['state', 'ip'])
                     port         : LOCAL_HUB_PORT
                     secret_token : @getIn(['status', 'secret_token'])
                 if not address.secret_token
