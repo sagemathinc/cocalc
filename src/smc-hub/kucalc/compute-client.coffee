@@ -349,7 +349,7 @@ class Project extends EventEmitter
                     return
                 dbg('it is running')
                 address =
-                    host         : project?.getIn(['state', 'ip'])
+                    host         : @getIn(['state', 'ip'])
                     port         : LOCAL_HUB_PORT
                     secret_token : @getIn(['status', 'secret_token'])
                 if not address.secret_token
