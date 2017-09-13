@@ -12,6 +12,14 @@ misc_node = require('smc-util-node/misc_node')
 # command line flag is passed in.
 exports.IN_KUCALC = false
 
+# static values for monitoring and project information
+# uniquely identifies this instance of the local hub
+session_id = misc.uuid()
+# record when this instance started
+start_ts   = (new Date()).getTime()
+# status information
+current_status = {}
+
 exports.init = (client) ->
     # update project status every 30s
     # TODO: could switch to faster when it's changing and slower when it isn't.
@@ -27,6 +35,7 @@ update_project_status = (client, cb) ->
         (cb) ->
             compute_status (err, s) ->
                 status = s
+                current_status = s
                 cb(err)
         (cb) ->
             client.query
@@ -38,13 +47,17 @@ update_project_status = (client, cb) ->
     )
 
 exports.compute_status = compute_status = (cb) ->
-    status = {memory:{rss:0}, disk_MB:0}
+    status =
+        memory   : {rss: 0}
+        disk_MB  : 0
+        cpu      : {}
+        start_ts : start_ts
     async.parallel([
         (cb) ->
             compute_status_disk(status, cb)
         (cb) ->
             #compute_status_memory(status, cb)
-            cgroup_memstats(status, cb)
+            cgroup_stats(status, cb)
         (cb) ->
             compute_status_tmp(status, cb)
     ], (err) ->
@@ -76,22 +89,38 @@ compute_status_memory = (status, cb) ->
 
 # this grabs the memory stats directly from the sysfs cgroup files
 # the actual usage is the sum of the rss values plus cache, but we leave cache aside
-cgroup_memstats = (status, cb) ->
-    fs.readFile '/sys/fs/cgroup/memory/memory.stat', 'utf8', (err, data) ->
-        if err
-            cb(err)
-            return
-        stats = {}
-        for line in data.split('\n')
-            [key, value] = line.split(' ')
-            try
-                stats[key] = parseInt(value)
+cgroup_stats = (status, cb) ->
+    async.parallel({
+        memory : (cb) ->
+            fs.readFile '/sys/fs/cgroup/memory/memory.stat', 'utf8', (err, data) ->
+                if err
+                    cb(err)
+                    return
+                stats = {}
+                for line in data.split('\n')
+                    [key, value] = line.split(' ')
+                    try
+                        stats[key] = parseInt(value)
+                cb(null, stats)
 
+        cpu : (cb) ->
+            fs.readFile '/sys/fs/cgroup/cpu,cpuacct/cpuacct.usage', 'utf8', (err, data) ->
+                if err
+                    cb(err)
+                    return
+                try
+                    cb(null, parseFloat(data) / Math.pow(10, 9))
+                catch
+                    cb(null, 0.0)
+
+    }, (err, res) ->
         kib = 1024 # convert to kibibyte
-        status.memory.rss += (stats.total_rss ? 0 + stats.total_rss_huge ? 0) / kib
-        status.memory.cache = (stats.cache ? 0) / kib
-        status.memory.limit = (stats.hierarchical_memory_limit ? 0) / kib
+        status.memory.rss  += (res.memory.total_rss ? 0 + stats.total_rss_huge ? 0) / kib
+        status.memory.cache = (res.memory.cache ? 0) / kib
+        status.memory.limit = (res.memory.hierarchical_memory_limit ? 0) / kib
+        status.cpu.usage    = res.cpu
         cb()
+    )
 
 
 disk_usage = (path, cb) ->
@@ -138,13 +167,30 @@ exports.init_gce_firewall_test = (logger, interval_ms=60*1000) ->
     setInterval(test_firewall, interval_ms)
     return
 
+exports.prometheus_metrics = () ->
+    {get_bugs_total} = require('./local_hub')
+    labels = "project_id=\"#{project_id}\",session_id=\"#{session_id}\""
+    """
+    # HELP kucalc_project_bugs_total The total number of caught bugs.
+    # TYPE kucalc_project_bugs_total counter
+    kucalc_project_bugs_total{#{labels}} #{get_bugs_total()}
+    # HELP kucalc_project_start_time when the project/session started
+    # TYPE kucalc_project_start_time counter
+    kucalc_project_start_time{#{labels}} #{start_ts}
+    # HELP kucalc_project_cpu_usage_seconds
+    # TYPE kucalc_project_cpu_usage_seconds counter
+    kucalc_project_start_time{#{labels}} #{current_status.cpu?.usage ? 0.0}
+    # HELP kucalc_project_memory_usage_ki
+    # TYPE kucalc_project_memory_usage_ki gauge
+    kucalc_project_memory_usage_ki #{current_status.memory?.rss ? 0.0}
+    # HELP kucalc_project_memory_limit_ki
+    # TYPE kucalc_project_memory_limit_ki gauge
+    kucalc_project_memory_limit_ki #{current_status.memory?.limit ? 0.0}
+    """
+
 # called inside raw_server
 exports.init_health_metrics = (raw_server, project_id) ->
     return if not exports.IN_KUCALC
-    # uniquely identifies this instance of the local hub
-    session_id = misc.uuid()
-    # record when this instance started
-    start_ts   = (new Date()).getTime()
 
     # Setup health and metrics (no url base prefix needed)
     raw_server.use '/health', (req, res) ->
@@ -156,13 +202,4 @@ exports.init_health_metrics = (raw_server, project_id) ->
     raw_server.use '/metrics', (req, res) ->
         res.setHeader("Content-Type", "text/plain; version=0.0.4")
         res.setHeader('Cache-Control', 'private, no-cache, must-revalidate')
-        {get_bugs_total} = require('./local_hub')
-        labels = "project_id=\"#{project_id}\",session_id=\"#{session_id}\""
-        res.send("""
-        # HELP kucalc_project_bugs_total The total number of caught bugs.
-        # TYPE kucalc_project_bugs_total counter
-        kucalc_project_bugs_total{#{labels}} #{get_bugs_total()}
-        # HELP kucalc_project_start_time when the project/session started
-        # TYPE kucalc_project_start_time counter
-        kucalc_project_start_time{#{labels}} #{start_ts}
-        """)
+        res.send(exports.prometheus_metrics())
