@@ -48,16 +48,19 @@ update_project_status = (client, cb) ->
 
 exports.compute_status = compute_status = (cb) ->
     status =
-        memory   : {rss: 0}
-        disk_MB  : 0
-        cpu      : {}
-        start_ts : start_ts
+        memory    : {rss: 0}
+        disk_MB   : 0
+        cpu       : {}
+        start_ts  : start_ts
+        processes : {}
     async.parallel([
         (cb) ->
             compute_status_disk(status, cb)
         (cb) ->
             #compute_status_memory(status, cb)
             cgroup_stats(status, cb)
+        (cb) ->
+            processes_info(status, cb)
         (cb) ->
             compute_status_tmp(status, cb)
     ], (err) ->
@@ -68,6 +71,24 @@ compute_status_disk = (status, cb) ->
     disk_usage "$HOME", (err, x) ->
         status.disk_MB = x
         cb(err)
+
+processes_info = (status, cb) ->
+    cols = ['pid','lstart','time','rss','args']
+    misc_node.execute_code
+        command : 'ps'
+        args    : ['--no-header', '-o', cols.join(','), '-u', 'user']
+        bash    : false
+        cb      : (err, out) ->
+            if err or out.exit_code != 0
+                cb(err)
+            else
+                cnt = -1  # no need to account for the ps process itself!
+                # TODO parsing anything out of ps is really hard :-(
+                for line in out.stdout.split('\n')
+                    if line.length > 0
+                        cnt += 1
+                status.processes.count = cnt
+                cb()
 
 # NOTE: we use tmpfs for /tmp, so RAM usage is the **sum** of /tmp and what
 # processes use.
@@ -182,10 +203,13 @@ exports.prometheus_metrics = () ->
     kucalc_project_start_time{#{labels}} #{current_status.cpu?.usage ? 0.0}
     # HELP kucalc_project_memory_usage_ki
     # TYPE kucalc_project_memory_usage_ki gauge
-    kucalc_project_memory_usage_ki #{current_status.memory?.rss ? 0.0}
+    kucalc_project_memory_usage_ki{#{labels}} #{current_status.memory?.rss ? 0.0}
     # HELP kucalc_project_memory_limit_ki
     # TYPE kucalc_project_memory_limit_ki gauge
-    kucalc_project_memory_limit_ki #{current_status.memory?.limit ? 0.0}
+    kucalc_project_memory_limit_ki{#{labels}} #{current_status.memory?.limit ? 0.0}
+    # HELP kucalc_project_running_processes_total
+    # TYPE kucalc_project_running_processes_total gauge
+    kucalc_project_running_processes_total{#{labels}} #{current_status.processes?.count ? 0}
     """
 
 # called inside raw_server
