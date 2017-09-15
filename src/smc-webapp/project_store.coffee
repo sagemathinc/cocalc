@@ -1706,14 +1706,17 @@ get_directory_listing = (opts) ->
         group      : required
         cb         : required
     {webapp_client} = require('./webapp_client')
+    events = require('./events')
     if opts.group in ['owner', 'collaborator', 'admin']
         method = webapp_client.project_directory_listing
         # Also, make sure project starts running, in case it isn't.
         state = redux.getStore('projects').getIn([opts.project_id, 'state', 'state'])
+        event_id = events.start({name:'listing', state:state, project_id:opts.project_id, path:opts.path})
         if state != 'running'
             redux.getActions('projects').start_project(opts.project_id)
     else
         method = webapp_client.public_project_directory_listing
+        event_id = events.start('listing-public', opts.project_id, opts.path)
     listing     = undefined
     listing_err = undefined
     f = (cb) ->
@@ -1747,5 +1750,6 @@ get_directory_listing = (opts) ->
         #log       : console.log
         cb          : (err) ->
             #console.log opts.path, 'get_directory_listing.success or timeout', err
+            events.stop(event_id, err)
             opts.cb(err ? listing_err, listing)
 
