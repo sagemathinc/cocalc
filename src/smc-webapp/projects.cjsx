@@ -28,7 +28,7 @@ underscore = require('underscore')
 
 misc = require('smc-util/misc')
 {required, defaults} = misc
-{html_to_text} = require('./misc_page')
+{html_to_text, analytics_event} = require('./misc_page')
 {SiteName, PolicyPricingPageUrl} = require('./customize')
 
 markdown = require('./markdown')
@@ -599,11 +599,17 @@ class ProjectsStore extends Store
         @get('open_projects').includes(project_id)
 
     wait_until_project_is_open: (project_id, timeout, cb) =>  # timeout in seconds
+        t0 = misc.server_time()
         @wait
             until   : => @is_project_open(project_id)
             timeout : timeout
             cb      : (err, x) =>
                 cb(err or x?.err)
+                t1 = misc.server_time()
+                td = Math.round(t1-t0) # must be an integer
+                # ch0: is just an identifier, read "channel 0" to distinquish from other places in the code reporting the same
+                if DEBUG then console.log('analytics_event', 'project', 'wait_open_ms', 'ch0', td)
+                analytics_event('project', 'wait_open_ms', 'ch0', td)
 
     wait_until_project_exists: (project_id, timeout, cb) =>
         @wait
