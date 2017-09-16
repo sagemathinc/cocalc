@@ -35,7 +35,8 @@ update_project_status = (client, cb) ->
         (cb) ->
             compute_status (err, s) ->
                 status = s
-                current_status = s
+                if not err
+                    current_status = s
                 cb(err)
         (cb) ->
             client.query
@@ -84,6 +85,7 @@ processes_info = (status, cb) ->
             else
                 cnt = -1  # no need to account for the ps process itself!
                 # TODO parsing anything out of ps is really hard :-(
+                # but we want to know how many sage, jupyter, console, etc. instances are running.
                 for line in out.stdout.split('\n')
                     if line.length > 0
                         cnt += 1
@@ -201,6 +203,9 @@ exports.prometheus_metrics = () ->
     # HELP kucalc_project_cpu_usage_seconds
     # TYPE kucalc_project_cpu_usage_seconds counter
     kucalc_project_start_time{#{labels}} #{current_status.cpu?.usage ? 0.0}
+    # HELP kucalc_project_disk_usage_mb
+    # TYPE kucalc_project_disk_usage_mb gauge
+    kucalc_project_disk_usage_mb{#{labels}} #{current_status.disk_MB ? 0.0}
     # HELP kucalc_project_memory_usage_ki
     # TYPE kucalc_project_memory_usage_ki gauge
     kucalc_project_memory_usage_ki{#{labels}} #{current_status.memory?.rss ? 0.0}
