@@ -210,7 +210,7 @@ exports.prometheus_metrics = () ->
     # HELP kucalc_project_running_processes_total
     # TYPE kucalc_project_running_processes_total gauge
     kucalc_project_running_processes_total{#{labels}} #{current_status.processes?.count ? 0}
-    """
+    """ + '\n'  # makes sure the response ends with a newline!
 
 # called inside raw_server
 exports.init_health_metrics = (raw_server, project_id) ->
