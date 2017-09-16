@@ -190,7 +190,7 @@ exports.init_gce_firewall_test = (logger, interval_ms=60*1000) ->
     setInterval(test_firewall, interval_ms)
     return
 
-exports.prometheus_metrics = () ->
+exports.prometheus_metrics = (project_id) ->
     {get_bugs_total} = require('./local_hub')
     labels = "project_id=\"#{project_id}\",session_id=\"#{session_id}\""
     """
@@ -231,4 +231,4 @@ exports.init_health_metrics = (raw_server, project_id) ->
     raw_server.use '/metrics', (req, res) ->
         res.setHeader("Content-Type", "text/plain; version=0.0.4")
         res.setHeader('Cache-Control', 'private, no-cache, must-revalidate')
-        res.send(exports.prometheus_metrics())
+        res.send(exports.prometheus_metrics(project_id))
