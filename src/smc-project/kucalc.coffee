@@ -202,7 +202,7 @@ exports.prometheus_metrics = (project_id) ->
     kucalc_project_start_time{#{labels}} #{start_ts}
     # HELP kucalc_project_cpu_usage_seconds
     # TYPE kucalc_project_cpu_usage_seconds counter
-    kucalc_project_start_time{#{labels}} #{current_status.cpu?.usage ? 0.0}
+    kucalc_project_cpu_usage_seconds{#{labels}} #{current_status.cpu?.usage ? 0.0}
     # HELP kucalc_project_disk_usage_mb
     # TYPE kucalc_project_disk_usage_mb gauge
     kucalc_project_disk_usage_mb{#{labels}} #{current_status.disk_MB ? 0.0}
