@@ -194,27 +194,27 @@ exports.prometheus_metrics = (project_id) ->
     {get_bugs_total} = require('./local_hub')
     labels = "project_id=\"#{project_id}\",session_id=\"#{session_id}\""
     """
-    # HELP kucalc_project_bugs_total The total number of caught bugs.
-    # TYPE kucalc_project_bugs_total counter
-    kucalc_project_bugs_total{#{labels}} #{get_bugs_total()}
-    # HELP kucalc_project_start_time when the project/session started
-    # TYPE kucalc_project_start_time counter
-    kucalc_project_start_time{#{labels}} #{start_ts}
-    # HELP kucalc_project_cpu_usage_seconds
-    # TYPE kucalc_project_cpu_usage_seconds counter
-    kucalc_project_cpu_usage_seconds{#{labels}} #{current_status.cpu?.usage ? 0.0}
-    # HELP kucalc_project_disk_usage_mb
-    # TYPE kucalc_project_disk_usage_mb gauge
-    kucalc_project_disk_usage_mb{#{labels}} #{current_status.disk_MB ? 0.0}
-    # HELP kucalc_project_memory_usage_ki
-    # TYPE kucalc_project_memory_usage_ki gauge
-    kucalc_project_memory_usage_ki{#{labels}} #{current_status.memory?.rss ? 0.0}
-    # HELP kucalc_project_memory_limit_ki
-    # TYPE kucalc_project_memory_limit_ki gauge
-    kucalc_project_memory_limit_ki{#{labels}} #{current_status.memory?.limit ? 0.0}
-    # HELP kucalc_project_running_processes_total
-    # TYPE kucalc_project_running_processes_total gauge
-    kucalc_project_running_processes_total{#{labels}} #{current_status.processes?.count ? 0}
+    # HELP cocalc_project_bugs_total The total number of caught bugs.
+    # TYPE cocalc_project_bugs_total counter
+    cocalc_project_bugs_total{#{labels}} #{get_bugs_total()}
+    # HELP cocalc_project_start_time when the project/session started
+    # TYPE cocalc_project_start_time counter
+    cocalc_project_start_time{#{labels}} #{start_ts}
+    # HELP cocalc_project_cpu_usage_seconds
+    # TYPE cocalc_project_cpu_usage_seconds counter
+    cocalc_project_cpu_usage_seconds{#{labels}} #{current_status.cpu?.usage ? 0.0}
+    # HELP cocalc_project_disk_usage_mb
+    # TYPE cocalc_project_disk_usage_mb gauge
+    cocalc_project_disk_usage_mb{#{labels}} #{current_status.disk_MB ? 0.0}
+    # HELP cocalc_project_memory_usage_ki
+    # TYPE cocalc_project_memory_usage_ki gauge
+    cocalc_project_memory_usage_ki{#{labels}} #{current_status.memory?.rss ? 0.0}
+    # HELP cocalc_project_memory_limit_ki
+    # TYPE cocalc_project_memory_limit_ki gauge
+    cocalc_project_memory_limit_ki{#{labels}} #{current_status.memory?.limit ? 0.0}
+    # HELP cocalc_project_running_processes_total
+    # TYPE cocalc_project_running_processes_total gauge
+    cocalc_project_running_processes_total{#{labels}} #{current_status.processes?.count ? 0}
     """ + '\n'  # makes sure the response ends with a newline!
 
 # called inside raw_server
