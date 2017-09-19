@@ -5,7 +5,7 @@
 # high and they have guaranteed cpu of about 1 or more).  The project will be so slow
 # it fails to start in time and times out.
 MIN_POSSIBLE_CPU =
-    member    : 0.1
+    member    : 0.15
     nonmember : 0.04
 
 # Min possible **guaranteed** RAM.
