@@ -18,11 +18,12 @@ exports.proxy_public_service = (opts) ->
         dbg()
     else
         dbg = ->
-    # request.host = project-[project_id]-[port]-other_stuff.cocalc.com
+    # request.headers.host = project-[project_id]-[port]-other_stuff.cocalc.com
+    host = request.headers.host
     n = "project-".length
-    project_id = opts.request.host.slice(n, n+36)
+    project_id = host.slice(n, n+36)
     dbg("project_id=", project_id)
-    port = opts.request.host.slice(n+37)
+    port = host.slice(n+37)
     i = Math.min(port.indexOf('.'), port.indexOf('-'))
     port = port.slice(0, i)
     dbg("port=", port)
