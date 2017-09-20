@@ -14,7 +14,7 @@ exports.proxy_public_service = (opts) ->
         logging        : undefined
     if opts.logging?
         dbg = (args...) ->
-            logging.debug('proxy_public_service:', args...)
+            opts.logging.debug('proxy_public_service:', args...)
         dbg()
     else
         dbg = ->
