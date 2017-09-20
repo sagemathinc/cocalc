@@ -42,6 +42,8 @@ hub_projects = require('./projects')
 auth = require('./auth')
 access = require('./access')
 
+{proxy_public_service} = require('./proxy-public')
+
 DEBUG2 = false
 
 if process.env.COCALC_DEBUG2
@@ -327,6 +329,16 @@ exports.init_http_proxy_server = (opts) ->
                 winston.debug("http_proxy_server(#{req_url}): #{m}")
 
         dbg('got request')
+
+        if misc.startswith(req.headers.host, 'project-')
+            # Project hosting a public service.
+            proxy_public_service
+                database       : database
+                compute_server : compute_server
+                request        : req
+                response       : res
+                logging        : winston
+            return
 
         cookies = new Cookies(req, res)
         remember_me = cookies.get(base_url + 'remember_me')
