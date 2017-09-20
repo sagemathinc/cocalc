@@ -308,6 +308,10 @@ exports.init_http_proxy_server = (opts) ->
     #proxy = http_proxy.createProxyServer(ws:true)
     proxy_cache = {}
     http_proxy_server = http.createServer (req, res) ->
+        if DEBUG3
+            for x in ['headers', 'rawHeaders', 'method', 'url']
+                winston.debug("req.#{x}: '#{JSON.stringify(req[x])}'")
+
         tm = misc.walltime()
         {query, pathname} = url.parse(req.url, true)
         req_url = req.url.slice(base_url.length)  # strip base_url for purposes of determining project location/permissions
@@ -319,9 +323,7 @@ exports.init_http_proxy_server = (opts) ->
 
         dbg = (m) ->
             ## for low level debugging
-            if DEBUG3
-                winston.debug("HTTP_PROXY_SERVER #{JSON.stringify(req)}")
-            else if DEBUG2
+            if DEBUG2
                 winston.debug("http_proxy_server(#{req_url}): #{m}")
 
         dbg('got request')
