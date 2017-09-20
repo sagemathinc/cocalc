@@ -23,10 +23,17 @@ exports.proxy_public_service = (opts) ->
     n = "project-".length
     project_id = host.slice(n, n+36)
     dbg("project_id=", project_id)
+
     port = host.slice(n+37)
-    i = Math.min(port.indexOf('.'), port.indexOf('-'))
+    i = 0
+    while port[i] >= '0' and port[i] <= '9'
+        i += 1
     port = port.slice(0, i)
+    if not port
+        port = '8000'  # default
+    port = parseInt(port)
     dbg("port=", port)
-    opts.response.send("public server!")
+
+    opts.response.end("public server at #{project_id}:#{port}")
 
 
