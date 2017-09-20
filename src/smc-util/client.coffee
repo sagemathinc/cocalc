@@ -28,7 +28,7 @@ MAX_CONCURRENT = 25
 {EventEmitter} = require('events')
 
 async = require('async')
-_     = require('underscore')
+underscore = require('underscore')
 
 syncstring = require('./syncstring')
 synctable  = require('./synctable')
@@ -206,6 +206,8 @@ class exports.Connection extends EventEmitter
         # The issue is https://github.com/sagemathinc/cocalc/issues/1098 and the errors we got are
         # (node) warning: possible EventEmitter memory leak detected. 301 listeners added. Use emitter.setMaxListeners() to increase limit.
         @setMaxListeners(3000)  # every open file/table/sync db listens for connect event, which adds up.
+
+        @_emit_queue_info = underscore.throttle(@_emit_queue_info, 2000)
 
         @emit("connecting")
         @_call             =
@@ -658,13 +660,19 @@ class exports.Connection extends EventEmitter
         while @_call.queue.length > 0 and @_call.count <= MAX_CONCURRENT
             @_process_next_call()
 
+    _emit_queue_info: =>
+        @emit('queue_info', {call_count:@_call.count, queue_length:@_call.queue.length})
+
     _process_next_call: =>
         if @_call.queue.length == 0
             return
         @_call.count += 1
         #console.log('count (call):', @_call.count)
-        @_do_call @_call.queue.shift(), =>
+        mesg = @_call.queue.shift()
+        @_emit_queue_info()
+        @_do_call mesg, =>
             @_call.count -= 1
+            @_emit_queue_info()
             #console.log('count (done):', @_call.count)
             @_update_calls()
 
@@ -1211,7 +1219,7 @@ class exports.Connection extends EventEmitter
         tail_args = ['-print']
 
         if opts.exclusions?
-            exclusion_args = _.map opts.exclusions, (excluded_path, index) =>
+            exclusion_args = underscore.map opts.exclusions, (excluded_path, index) =>
                 "-a -not \\( -path '#{opts.path}/#{excluded_path}' -prune \\)"
             args = args.concat(exclusion_args)
 
