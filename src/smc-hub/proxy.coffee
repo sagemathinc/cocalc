@@ -44,6 +44,11 @@ access = require('./access')
 
 DEBUG2 = false
 
+if process.env.COCALC_DEBUG2
+    DEBUG2 = true
+else
+    DEBUG2 = false
+
 exports.target_parse_req = target_parse_req = (remember_me, url) ->
     v          = url.split('/')
     project_id = v[1]
