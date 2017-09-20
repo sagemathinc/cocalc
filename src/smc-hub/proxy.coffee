@@ -49,6 +49,11 @@ if process.env.COCALC_DEBUG2
 else
     DEBUG2 = false
 
+if process.env.COCALC_DEBUG3
+    DEBUG3 = true
+else
+    DEBUG3 = false
+
 exports.target_parse_req = target_parse_req = (remember_me, url) ->
     v          = url.split('/')
     project_id = v[1]
@@ -314,8 +319,11 @@ exports.init_http_proxy_server = (opts) ->
 
         dbg = (m) ->
             ## for low level debugging
-            if DEBUG2
+            if DEBUG3
+                winston.debug("HTTP_PROXY_SERVER #{JSON.stringify(req)}")
+            else if DEBUG2
                 winston.debug("http_proxy_server(#{req_url}): #{m}")
+
         dbg('got request')
 
         cookies = new Cookies(req, res)
