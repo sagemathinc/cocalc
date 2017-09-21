@@ -530,7 +530,7 @@ patchSynctex(\"#{@filename_tex}\");' | R --no-save"
                 tmp_dir
                     project_id : @project_id
                     path       : "/tmp"
-                    ttl        : 180
+                    ttl        : 60
                     cb         : (err, _tmp) =>
                         tmp = "/tmp/#{_tmp}"
                         cb(err)
