@@ -497,6 +497,8 @@ SupportForm = rclass
             </FormGroup>
             <div style={margin:'10px', color:'#666'}>
                 1. What did you do exactly?  2. What happened?  3. How did this differ from what you expected?
+                <br/>
+                <b>If your support request involves any files at all, include the link (the URL in your browser) to the file; otherwise, answering your question may take many extra hours.</b>
             </div>
             <FormGroup>
                 <FormControl
