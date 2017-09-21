@@ -39,7 +39,7 @@ remove_tmp_dirs = (opts) ->
     # run, then the tmp dir will not get cleaned up.   This is OK with
     # kucalc, since it's tmpfs local to the project, and will get fixed
     # longrun by replacing this code by a stateful backend.
-    console.log 'setting timer to do rm_tmp'
+    #console.log 'setting timer to do rm_tmp'
     rm_tmp = ->
         command = "find . -type d -name 'tex-preview-*' -not -newermt '-#{opts.ttl} seconds' -exec rm -rf {} \\;"
         #console.log 'doing rm_tmp', command
