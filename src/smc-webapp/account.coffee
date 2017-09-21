@@ -46,8 +46,8 @@ load_app = (cb) ->
         require('./file_use.cjsx')   # initialize file_use notifications
         cb()
 
-webapp_client.on 'queue_info', (info) ->
-    redux.getActions('account')?.setState(queue_info: info)
+webapp_client.on 'mesg_info', (info) ->
+    redux.getActions('account')?.setState(mesg_info: info)
 
 signed_in = (mesg) ->
     {analytics_event} = require('./misc_page')
