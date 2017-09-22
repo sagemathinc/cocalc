@@ -204,10 +204,10 @@ exports.ConnectionIndicator = rclass
             icon_style = {marginRight: 8, fontSize: '13pt', display: 'inline'}
             if (@props.mesg_info?.enqueued ? 0) > 5  # serious backlog of data!
                 icon_style.color = 'red'
-            else if (@props.mesg_info?.count ? 0) > 4 # worrisome amount
+            else if (@props.mesg_info?.count ? 0) > 1 # worrisome amount
+                icon_style.color = '#f33'
+            else if (@props.mesg_info?.count ? 0) > 0 # working well but doing something minimal
                 icon_style.color = '#833'
-            else if (@props.mesg_info?.count ? 0) > 0 # working well but doing something.
-                icon_style.color = '#333'
             <div>
                 <Icon name='wifi' style={icon_style}/>
                 {<Tip
