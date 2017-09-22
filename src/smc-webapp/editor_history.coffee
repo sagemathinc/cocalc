@@ -208,6 +208,12 @@ class exports.HistoryEditor extends FileEditor
                 path       : @_open_file_path
                 foreground : true
 
+        open_snapshots = () =>
+            redux.getProjectActions(@project_id).open_directory(".snapshots")
+
+        @element.find("a[href=\"#snapshots\"]").click () =>
+            open_snapshots()
+
         @element.find("a[href=\"#file\"]").click(open_file)
 
         @element.find("a[href=\"#revert\"]").click () =>
