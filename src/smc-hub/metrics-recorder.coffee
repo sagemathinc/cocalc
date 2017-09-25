@@ -140,6 +140,12 @@ class MetricsRecorder
             catch
                 num_clients_gauge.set(0)
 
+        mem_usage = new_gauge('process_memory_usage', 'The process.memoryUsage() results', ['type'])
+        @register_collector ->
+            procmem = process.memoryUsage()
+            for k, v of procmem
+                mem_usage.labels(k).set(v)
+
         # our own CPU metrics monitor, separating user and sys!
         # it's actually a counter, since it is non-decreasing, but we'll use .set(...)
         @_cpu_seconds_total = new_gauge('process_cpu_categorized_seconds_total', 'Total number of CPU seconds used', ['type'])
