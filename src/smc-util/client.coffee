@@ -162,7 +162,7 @@ class Session extends EventEmitter
     handle_data: (data) =>
         @emit("data", data)
 
-    write_data: (data) ->
+    write_data: (data) =>
         @conn.write_data(@data_channel, data)
 
     restart: (cb) =>
