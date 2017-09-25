@@ -48,7 +48,11 @@ block content
       div.col-md-12.center
         h1 Online computing environment
       div.col-sm-6
-        img(src=require('!file-loader!sagepreview/01-worksheet.png'))
+        //- img(src=require('!file-loader!sagepreview/01-worksheet.png'))
+        div.
+          Intro to CoCalc (credits: Mark Quinn, University of Sheffield)
+        div.youtube-video-container
+          iframe(src="https://www.youtube.com/embed/fHr0LFjE8Uk?rel=0" frameborder="0" allowfullscreen)
       div.col-sm-6
         p #{NAME} is a #[strong sophisticated web service] for online computation:
         ul
