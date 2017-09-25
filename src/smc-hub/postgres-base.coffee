@@ -224,10 +224,6 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
     _init_metrics: =>
         # initialize metrics
         MetricsRecorder  = require('./metrics-recorder')
-        @query_time_quantile = MetricsRecorder.new_quantile('db_query_ms_quantile', 'db queries',
-            percentiles : [0, 0.25, 0.5, 0.75, 0.9, 0.99, 1]
-            labels: ['table']
-        )
         @query_time_histogram = MetricsRecorder.new_histogram('db_query_ms_histogram', 'db queries'
             buckets : [1, 5, 10, 20, 50, 100, 200, 500, 1000, 5000, 10000]
             labels: ['table']
@@ -510,7 +506,6 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
             @_client.query opts.query, opts.params, (err, result) =>
                 query_time_ms = new Date() - start
                 @_concurrent_queries -= 1
-                @query_time_quantile.observe({table:opts.table ? ''}, query_time_ms)
                 @query_time_histogram.observe({table:opts.table ? ''}, query_time_ms)
                 @concurrent_counter.labels('ended').inc(1)
                 if err

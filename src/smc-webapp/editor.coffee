@@ -142,7 +142,6 @@ codemirror_associations =
     bbl    : 'stex'
     xml    : 'xml'
     xsl    : 'xsl'
-    yaml   : 'yaml'
     ''     : 'text'
 
 file_associations = exports.file_associations = {}
@@ -233,6 +232,12 @@ file_associations['sass'] =
     icon   : 'fa-file-code-o'
     opts   : {mode:'text/x-sass', indent_unit:2, tab_size:2}
     name   : "SASS"
+
+file_associations['yml'] = file_associations['yaml'] =
+    editor : 'codemirror'
+    icon   : 'fa-code'
+    opts   : {mode:'yaml', indent_unit:2, tab_size:2}
+    name   : "YAML"
 
 file_associations['css'] =
     editor : 'codemirror'

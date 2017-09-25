@@ -28,7 +28,7 @@ MAX_CONCURRENT = 25
 {EventEmitter} = require('events')
 
 async = require('async')
-_     = require('underscore')
+underscore = require('underscore')
 
 syncstring = require('./syncstring')
 synctable  = require('./synctable')
@@ -207,10 +207,16 @@ class exports.Connection extends EventEmitter
         # (node) warning: possible EventEmitter memory leak detected. 301 listeners added. Use emitter.setMaxListeners() to increase limit.
         @setMaxListeners(3000)  # every open file/table/sync db listens for connect event, which adds up.
 
+        @_emit_mesg_info = underscore.throttle(@_emit_mesg_info, 1500)
+
         @emit("connecting")
         @_call             =
-            queue   : []    # messages in the queue to send
-            count   : 0     # number of message currently outstanding
+            queue       : []    # messages in the queue to send
+            count       : 0     # number of message currently outstanding
+            sent        : 0     # total number of messages sent to backend.
+            sent_length : 0     # total amount of data sent
+            recv        : 0     # number of messages received from backend
+            recv_length : 0     # total amount of data recv'd
         @_id_counter       = 0
         @_sessions         = {}
         @_new_sessions     = {}
@@ -232,6 +238,10 @@ class exports.Connection extends EventEmitter
         # and returns a function to write raw data to the socket.
         @_connect @url, (data) =>
             if data.length > 0  # all messages must start with a channel; length 0 means nothing.
+                #console.log("got #{data.length} of data")
+                @_call.recv += 1
+                @_call.recv_length += data.length
+                @_emit_mesg_info()
                 # Incoming messages are tagged with a single UTF-16
                 # character c (there are 65536 possibilities).  If
                 # that character is JSON_CHANNEL, the message is
@@ -378,7 +388,10 @@ class exports.Connection extends EventEmitter
     # Send a JSON message to the hub server.
     send: (mesg) =>
         #console.log("send at #{misc.mswalltime()}", mesg)
-        @write_data(JSON_CHANNEL, misc.to_json_socket(mesg))
+        data = misc.to_json_socket(mesg)
+        @_call.sent_length += data.length
+        @_emit_mesg_info()
+        @write_data(JSON_CHANNEL, data)
 
     # Send raw data via certain channel to the hub server.
     write_data: (channel, data) =>
@@ -410,6 +423,7 @@ class exports.Connection extends EventEmitter
     remember_me_key: => "remember_me#{window?.app_base_url ? ''}"
 
     handle_json_data: (data) =>
+        @_emit_mesg_info()
         mesg = misc.from_json_socket(data)
         if DEBUG
             console.log("handle_json_data: #{data}")
@@ -652,19 +666,28 @@ class exports.Connection extends EventEmitter
             opts.cb?('not connected')
             return
         @_call.queue.push(opts)
+        @_call.sent += 1
         @_update_calls()
 
     _update_calls: =>
         while @_call.queue.length > 0 and @_call.count <= MAX_CONCURRENT
             @_process_next_call()
 
+    _emit_mesg_info: =>
+        info = misc.copy_without(@_call, ['queue'])
+        info.enqueued = @_call.queue.length
+        @emit('mesg_info', info)
+
     _process_next_call: =>
         if @_call.queue.length == 0
             return
         @_call.count += 1
         #console.log('count (call):', @_call.count)
-        @_do_call @_call.queue.shift(), =>
+        mesg = @_call.queue.shift()
+        @_emit_mesg_info()
+        @_do_call mesg, =>
             @_call.count -= 1
+            @_emit_mesg_info()
             #console.log('count (done):', @_call.count)
             @_update_calls()
 
@@ -1211,7 +1234,7 @@ class exports.Connection extends EventEmitter
         tail_args = ['-print']
 
         if opts.exclusions?
-            exclusion_args = _.map opts.exclusions, (excluded_path, index) =>
+            exclusion_args = underscore.map opts.exclusions, (excluded_path, index) =>
                 "-a -not \\( -path '#{opts.path}/#{excluded_path}' -prune \\)"
             args = args.concat(exclusion_args)
 

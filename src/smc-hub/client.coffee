@@ -65,19 +65,11 @@ MetricsRecorder = require('./metrics-recorder')
 
 # setting up client metrics
 mesg_from_client_total         = MetricsRecorder.new_counter('mesg_from_client_total',
-                                     'counts Client::handle_json_message_from_client invocations', ['type', 'event'])
+                                     'counts Client::handle_json_message_from_client invocations', ['event'])
 push_to_client_stats_h         = MetricsRecorder.new_histogram('push_to_client_histo_ms', 'Client: push_to_client',
                                      buckets : [1, 10, 50, 100, 200, 500, 1000, 2000, 5000, 10000]
                                      labels: ['event']
                                  )
-push_to_client_stats_q         = MetricsRecorder.new_quantile('push_to_client_quant_ms', 'Client: push_to_client',
-                                     percentiles : [0, 0.25, 0.5, 0.75, 0.9, 0.99, 1]
-                                     labels: ['event']
-                                 )
-push_to_client_to_json_summary = MetricsRecorder.new_summary('push_to_client_to_json',
-                                     'summary stats for Client::push_to_client/to_json', labels: ['event'])
-
-uncaught_exception_total       =  MetricsRecorder.new_counter('uncaught_exception_total', 'counts "BUG"s')
 
 class exports.Client extends EventEmitter
     constructor: (opts) ->
@@ -278,7 +270,6 @@ class exports.Client extends EventEmitter
                 @_messages.count += 1
                 avg = Math.round(@_messages.total_time / @_messages.count)
                 dbg("[#{time_taken} mesg_time_ms]  [#{avg} mesg_avg_ms] -- mesg.id=#{mesg.id}")
-                push_to_client_stats_q.observe({event:mesg.event}, time_taken)
                 push_to_client_stats_h.observe({event:mesg.event}, time_taken)
 
         # If cb *is* given and mesg.id is *not* defined, then
@@ -602,6 +593,7 @@ class exports.Client extends EventEmitter
         handler = @["mesg_#{mesg.event}"]
         if handler?
             handler(mesg)
+            mesg_from_client_total.labels("#{mesg.event}").inc(1)
         else
             @push_to_client(message.error(error:"Hub does not know how to handle a '#{mesg.event}' event.", id:mesg.id))
             if mesg.event == 'get_all_activity'

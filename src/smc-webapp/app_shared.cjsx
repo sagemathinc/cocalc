@@ -190,6 +190,8 @@ exports.ConnectionIndicator = rclass
         page :
             avgping           : rtypes.number
             connection_status : rtypes.string
+        account :
+            mesg_info : rtypes.object
 
     propTypes :
         ping     : rtypes.number
@@ -199,8 +201,15 @@ exports.ConnectionIndicator = rclass
 
     connection_status: ->
         if @props.connection_status == 'connected'
+            icon_style = {marginRight: 8, fontSize: '13pt', display: 'inline'}
+            if (@props.mesg_info?.enqueued ? 0) > 5  # serious backlog of data!
+                icon_style.color = 'red'
+            else if (@props.mesg_info?.count ? 0) > 1 # worrisome amount
+                icon_style.color = '#f33'
+            else if (@props.mesg_info?.count ? 0) > 0 # working well but doing something minimal
+                icon_style.color = '#833'
             <div>
-                <Icon name='wifi' style={marginRight: 8, fontSize: '13pt', display: 'inline'} />
+                <Icon name='wifi' style={icon_style}/>
                 {<Tip
                     title     = {'Most recently recorded roundtrip time to the server.'}
                     placement = {'left'}
@@ -239,6 +248,31 @@ exports.ConnectionIndicator = rclass
             </div>
         </NavItem>
 
+bytes_to_str = (bytes) ->
+    x = Math.round(bytes / 1000)
+    if x < 1000
+        return x + "K"
+    return x/1000 + "M"
+
+
+MessageInfo = rclass
+    propTypes :
+        info : rtypes.object
+    render: ->
+        if not @props.info?
+            return <span></span>
+        if @props.info.count > 0
+            flight_style = {color:'red', fontWeight:'bold'}
+        <pre>
+            {@props.info.sent} messages sent ({bytes_to_str(@props.info.sent_length)})
+            <br/>
+            {@props.info.recv} messages received ({bytes_to_str(@props.info.recv_length)})
+            <br/>
+            <span style={flight_style}>{@props.info.count} messages in flight</span>
+            <br/>
+            {@props.info.enqueued} messages queued to send
+        </pre>
+
 exports.ConnectionInfo = rclass
     displayName : 'ConnectionInfo'
 
@@ -251,7 +285,8 @@ exports.ConnectionInfo = rclass
 
     reduxProps :
         account :
-            hub : rtypes.string
+            hub       : rtypes.string
+            mesg_info : rtypes.object
 
     close: ->
         @actions('page').show_connection(false)
@@ -279,10 +314,18 @@ exports.ConnectionInfo = rclass
                     </Button>
                 </Col>
             </Row>
+            <Row>
+                <Col sm=3>
+                    <h4>Messages</h4>
+                </Col>
+                <Col sm=5>
+                    <MessageInfo info={@props.mesg_info} />
+                </Col>
+            </Row>
         </div>
 
     render: ->
-        <Modal show={true} onHide={@close} animation={false}>
+        <Modal bsSize={"large"}  show={true} onHide={@close} animation={false}>
             <Modal.Header closeButton>
                 <Modal.Title>
                     <Icon name='wifi' style={marginRight: '1em'} /> Connection

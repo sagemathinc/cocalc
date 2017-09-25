@@ -341,7 +341,7 @@ exports.init_http_proxy_server = (opts) ->
                     dbg("used cached proxy object: #{misc.walltime(tm)}")
                 else
                     dbg("make a new proxy server connecting to this remote location")
-                    proxy = http_proxy.createProxyServer(ws:false, target:t, timeout:3000)
+                    proxy = http_proxy.createProxyServer(ws:false, target:t, timeout:7000)
                     # and cache it.
                     proxy_cache[t] = proxy
                     dbg("created new proxy: #{misc.walltime(tm)}")
