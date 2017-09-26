@@ -14,10 +14,13 @@ exports.exponentialBuckets = require('prom-client/lib/bucketGenerators').exponen
 exports.aggregators        = require('prom-client/lib/metricAggregators').aggregators
 
 exports.send = ->
-    console.log('sending metrics')
     {webapp_client} = require('./webapp_client')
+    if not webapp_client.is_connected()
+        console.log("prom-client.send: not connected")
+        return
     metrics = exports.Registry.globalRegistry.getMetricsAsJSON()
     webapp_client.send_metrics(metrics)
+    console.log('prom-client.send: sending metrics')
 
 _interval_s = undefined
 exports.start_metrics = (interval_s=120) ->

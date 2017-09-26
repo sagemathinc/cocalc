@@ -124,14 +124,21 @@ class MetricsRecorder
         @setup_monitoring()
         cb?(undefined, @)
 
+    client_metrics: =>
+        s = ''
+        for _, metrics of exports.client_metrics
+            for metric in metrics
+                s += '\n' + prom_client.register.getMetricAsPrometheusString(get: -> metric)
+        return s
+
     metrics: =>
         ###
         get a serialized representation of the metrics status
         (was a dict that should be JSON, now it is for prometheus)
         it's only called by hub_http_server for the /metrics endpoint
         ###
-        hub = prom_client.register.metrics()
-        clients = JSON.stringify(exports.client_metrics)
+        hub     = prom_client.register.metrics()
+        clients = @client_metrics()
         return hub + clients
 
     register_collector: (collector) =>
