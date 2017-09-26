@@ -17,3 +17,13 @@ exports.send = ->
     {webapp_client} = require('./webapp_client')
     metrics = exports.Registry.globalRegistry.getMetricsAsJSON()
     webapp_client.send_metrics(metrics)
+
+the_send_interval = undefined
+exports.send_interval = (interval_s=120) ->
+    exports.clear_send_interval()
+    the_send_interval = setInterval(exports.send, 1000*interval_s)
+
+exports.clear_send_interval = ->
+    if the_send_interval?
+        clearInterval(the_send_interval)
+        the_send_interval = undefined

@@ -182,7 +182,7 @@ class exports.Client extends EventEmitter
 
     dbg: (desc) =>
         if @logger?.debug
-            return (m...) => @logger.debug("Client(#{@id}).#{desc}: #{JSON.stringify(m...)}")
+            return (m...) => @logger.debug("Client(#{@id}).#{desc}: #{JSON.stringify(m)}")
         else
             return ->
 
@@ -2241,7 +2241,25 @@ class exports.Client extends EventEmitter
     # Receive and store in memory the latest metrics status from the client.
     mesg_metrics: (mesg) =>
         dbg = @dbg('mesg_metrics')
-        @_metrics =
-            time    : new Date()
-            metrics : mesg?.metrics
-        dbg(misc.to_json(@_metrics))
+        dbg()
+        if not mesg?.metrics
+            return
+        metrics = mesg.metrics
+        #dbg('GOT: ', misc.to_json(metrics))
+        if not misc.is_array(metrics)
+            # client is messing with us...?
+            return
+        for metric in metrics
+            if not misc.is_array(metric?.values)
+                # what?
+                return
+            for v in metric.values
+                if not misc.is_object(v?.labels)
+                    # what?
+                    return
+                v.labels.client_id  = @id
+                v.labels.account_id = @account_id
+        @metrics =
+            last_updated : new Date()
+            metrics      : metrics
+        #dbg('RECORDED: ', misc.to_json(@metrics))
