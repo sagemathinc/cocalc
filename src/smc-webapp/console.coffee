@@ -106,8 +106,6 @@ class Console extends EventEmitter
             on_reconnected : undefined
             set_title      : undefined
 
-        @_focus_hidden_textarea = debounce(@_focus_hidden_textarea, 250)
-
         @_init_default_settings()
 
         @project_id = @opts.project_id
