@@ -1697,6 +1697,11 @@ exports.deleteStoreActionsTable = (project_id, redux) ->
         redux.removeTable(key(project_id, table))
     redux.removeStore(name)
 
+prom_client = require('./prom-client')
+prom_get_dir_listing_h = prom_client.new_histogram(
+    'get_dir_listing_h_ms', 'get_directory_listing time',
+     {buckets : [50, 300, 1000, 3000, 10000, 30000, 60000], labels: ['public', 'state', 'err']})
+
 get_directory_listing = (opts) ->
     opts = defaults opts,
         project_id : required
@@ -1706,14 +1711,21 @@ get_directory_listing = (opts) ->
         group      : required
         cb         : required
     {webapp_client} = require('./webapp_client')
+
+    prom_start_time = new Date()
+    prom_labels     = {}
+
     if opts.group in ['owner', 'collaborator', 'admin']
         method = webapp_client.project_directory_listing
         # Also, make sure project starts running, in case it isn't.
         state = redux.getStore('projects').getIn([opts.project_id, 'state', 'state'])
         if state != 'running'
             redux.getActions('projects').start_project(opts.project_id)
+            prom_labels.state = state
     else
         method = webapp_client.public_project_directory_listing
+        prom_labels.public = true
+
     listing     = undefined
     listing_err = undefined
     f = (cb) ->
@@ -1747,5 +1759,9 @@ get_directory_listing = (opts) ->
         #log       : console.log
         cb          : (err) ->
             #console.log opts.path, 'get_directory_listing.success or timeout', err
+            if err
+                prom_labels.err = true
+            prom_get_dir_listing_h.observe(prom_labels, new Date() - prom_start_time)
+
             opts.cb(err ? listing_err, listing)
 

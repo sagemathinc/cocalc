@@ -61,8 +61,8 @@ CLIENT_MIN_ACTIVE_S = 45  # ??? is this a good choice?  No idea.
 
 # How frequently we tell the browser clients to report metrics back to us.
 # Set to 0 to completely disable metrics collection from clients.
-#CLIENT_METRICS_INTERVAL_S = 15  # for debugging...
 CLIENT_METRICS_INTERVAL_S = 60*2
+CLIENT_METRICS_INTERVAL_S = 10  # for debugging...
 
 # recording metrics and statistics
 metrics_recorder = require('./metrics-recorder')

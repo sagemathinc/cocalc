@@ -1,3 +1,10 @@
+###
+Use prom-client in browser!
+
+NOTE: We explicitly import inside the prom-client package, since the index.js
+in that package imports some things that make no sense in a browser.
+###
+
 exports.register           = require('prom-client/lib/registry').globalRegistry
 exports.Registry           = require('prom-client/lib/registry')
 exports.contentType        = require('prom-client/lib/registry').globalRegistry.contentType
@@ -35,3 +42,35 @@ exports.stop_metrics = ->
     if _interval_s?
         clearInterval(_interval_s)
         _interval_s = undefined
+
+# convenience functions
+{defaults} = require('smc-util/misc')
+
+PREFIX = 'webapp_'
+
+exports.new_counter = new_counter = (name, help, labels) ->
+    # a prometheus counter -- https://github.com/siimon/prom-client#counter
+    # use it like counter.labels(labelA, labelB).inc([positive number or default is 1])
+    if not name.endsWith('_total')
+        throw "Counter metric names have to end in [_unit]_total but I got '#{name}' -- https://prometheus.io/docs/practices/naming/"
+    return new exports.Counter(name: PREFIX + name, help: help, labelNames: labels)
+
+exports.new_gauge = new_gauge = (name, help, labels) ->
+    # a prometheus gauge -- https://github.com/siimon/prom-client#gauge
+    # basically, use it like gauge.labels(labelA, labelB).set(value)
+    return new exports.Gauge(name: PREFIX + name, help: help, labelNames: labels)
+
+exports.new_quantile = new_quantile = (name, help, config={}) ->
+    # invoked as quantile.observe(value)
+    config = defaults config,
+        # a few more than the default, in particular including the actual min and max
+        percentiles: [0.0, 0.01, 0.1, 0.25, 0.5, 0.75, 0.9, 0.99, 0.999, 1.0]
+        labels     : []
+    return new exports.Summary(name: PREFIX + name, help: help, labelNames:config.labels, percentiles: config.percentiles)
+
+exports.new_histogram = new_histogram = (name, help, config={}) ->
+    # invoked as histogram.observe(value)
+    config = defaults config,
+        buckets: [0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10]
+        labels : []
+    return new exports.Histogram(name: PREFIX + name, help: help, labelNames: config.labels, buckets:config.buckets)
