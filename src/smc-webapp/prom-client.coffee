@@ -16,16 +16,19 @@ exports.aggregators        = require('prom-client/lib/metricAggregators').aggreg
 exports.send = ->
     {webapp_client} = require('./webapp_client')
     if not webapp_client.is_connected()
-        console.log("prom-client.send: not connected")
+        #console.log("prom-client.send: not connected")
         return
     metrics = exports.Registry.globalRegistry.getMetricsAsJSON()
     webapp_client.send_metrics(metrics)
-    console.log('prom-client.send: sending metrics')
+    #console.log('prom-client.send: sending metrics')
 
 _interval_s = undefined
 exports.start_metrics = (interval_s=120) ->
-    console.log('start_metrics')
+    #console.log('start_metrics')
     exports.stop_metrics()
+    # send once so hub at least knows something about our metrics.
+    exports.send()
+    # and then send every interval_s seconds:
     _interval_s = setInterval(exports.send, 1000*interval_s)
 
 exports.stop_metrics = ->

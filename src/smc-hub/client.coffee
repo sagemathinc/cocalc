@@ -59,11 +59,10 @@ CLIENT_DESTROY_TIMER_S = 60*10  # 10 minutes
 
 CLIENT_MIN_ACTIVE_S = 45  # ??? is this a good choice?  No idea.
 
-
 # How frequently we tell the browser clients to report metrics back to us.
 # Set to 0 to completely disable metrics collection from clients.
-METRICS_INTERVAL_S = 15
-#METRICS_INTERVAL_S = 60*2
+#CLIENT_METRICS_INTERVAL_S = 15  # for debugging...
+CLIENT_METRICS_INTERVAL_S = 60*2
 
 # recording metrics and statistics
 metrics_recorder = require('./metrics-recorder')
@@ -144,8 +143,8 @@ class exports.Client extends EventEmitter
         # and this fails, user gets a message, and see that they must sign in.
         @_remember_me_interval = setInterval(@check_for_remember_me, 1000*60*5)
 
-        if METRICS_INTERVAL_S
-            @push_to_client(message.start_metrics(interval_s:METRICS_INTERVAL_S))
+        if CLIENT_METRICS_INTERVAL_S
+            @push_to_client(message.start_metrics(interval_s:CLIENT_METRICS_INTERVAL_S))
 
     touch: (opts={}) =>
         if not @account_id  # not logged in
