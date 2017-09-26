@@ -19,14 +19,14 @@
 #
 ###############################################################################
 
-window.prom_client = require('./prom-client')
-
 if not Primus?
     alert("Library not fully built (Primus not defined) -- refresh your browser")
     setTimeout((->window.location.reload()), 1000)
 
 $ = window.$
 _ = require('underscore')
+
+prom_client = require('./prom-client')
 
 client = require('smc-util/client')
 
@@ -93,6 +93,10 @@ class Connection extends client.Connection
 
         setTimeout(@_init_idle, 15 * 1000)
 
+        # Start reporting metrics to the backend if requested.
+        @on('start_metrics', prom_client.start_metrics)
+
+
     _setup_window_smc: () =>
         # if we are in DEBUG mode, inject the client into the global window object
         if not DEBUG
@@ -107,6 +111,8 @@ class Connection extends client.Connection
         # use to enable/disable verbose synctable logging
         window.smc.synctable_debug     = require('smc-util/synctable').set_debug
         window.smc.idle_trigger        = => @emit('idle', 'away')
+        window.smc.prom_client         = prom_client
+
 
         # Client-side testing code -- we use require.ensure so this stuff only
         # ever gets loaded by the browser if actually used.

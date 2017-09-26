@@ -60,16 +60,28 @@ CLIENT_DESTROY_TIMER_S = 60*10  # 10 minutes
 CLIENT_MIN_ACTIVE_S = 45  # ??? is this a good choice?  No idea.
 
 
+# How frequently we tell the browser clients to report metrics back to us.
+# Set to 0 to completely disable metrics collection from clients.
+METRICS_INTERVAL_S = 15
+#METRICS_INTERVAL_S = 60*2
+
 # recording metrics and statistics
-MetricsRecorder = require('./metrics-recorder')
+metrics_recorder = require('./metrics-recorder')
 
 # setting up client metrics
-mesg_from_client_total         = MetricsRecorder.new_counter('mesg_from_client_total',
+mesg_from_client_total         = metrics_recorder.new_counter('mesg_from_client_total',
                                      'counts Client::handle_json_message_from_client invocations', ['event'])
-push_to_client_stats_h         = MetricsRecorder.new_histogram('push_to_client_histo_ms', 'Client: push_to_client',
+push_to_client_stats_h         = metrics_recorder.new_histogram('push_to_client_histo_ms', 'Client: push_to_client',
                                      buckets : [1, 10, 50, 100, 200, 500, 1000, 2000, 5000, 10000]
                                      labels: ['event']
                                  )
+
+# All known metrics from connected clients.  (Map from id to metrics.)
+# id is deleted from this when client disconnects.
+client_metrics = metrics_recorder.client_metrics
+
+if not misc.is_object(client_metrics)
+    throw Error("metrics_recorder must have a client_metrics attribute map")
 
 class exports.Client extends EventEmitter
     constructor: (opts) ->
@@ -132,6 +144,9 @@ class exports.Client extends EventEmitter
         # and this fails, user gets a message, and see that they must sign in.
         @_remember_me_interval = setInterval(@check_for_remember_me, 1000*60*5)
 
+        if METRICS_INTERVAL_S
+            @push_to_client(message.start_metrics(interval_s:METRICS_INTERVAL_S))
+
     touch: (opts={}) =>
         if not @account_id  # not logged in
             opts.cb?('not logged in')
@@ -189,6 +204,8 @@ class exports.Client extends EventEmitter
     destroy: () =>
         dbg = @dbg('destroy')
         dbg("destroy connection: hub <--> client(id=#{@id}, address=#{@ip_address})  -- CLOSED")
+
+        delete client_metrics[@id]
         clearInterval(@_remember_me_interval)
         @query_cancel_all_changefeeds()
         @closed = true
@@ -2259,7 +2276,5 @@ class exports.Client extends EventEmitter
                     return
                 v.labels.client_id  = @id
                 v.labels.account_id = @account_id
-        @metrics =
-            last_updated : new Date()
-            metrics      : metrics
-        #dbg('RECORDED: ', misc.to_json(@metrics))
+        client_metrics[@id] = metrics
+        #dbg('RECORDED: ', misc.to_json(client_metrics[@id]))

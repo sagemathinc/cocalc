@@ -2302,3 +2302,13 @@ API message2
         metrics :
             init : required
             desc : 'object containing the metrics'
+
+API message2
+    event       : 'start_metrics'
+    fields:
+        interval_s :
+            init : required
+            desc : 'tells client that it should submit metrics to the hub every interval_s seconds'
+
+
+

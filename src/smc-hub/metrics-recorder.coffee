@@ -100,6 +100,13 @@ exports.new_histogram = new_histogram = (name, help, config={}) ->
         labels: []
     return new prom_client.Histogram(name: PREFIX + name, help: help, labelNames: config.labels, buckets:config.buckets)
 
+
+# This is modified by the Client class (in client.coffee) when metrics
+# get pushed from browsers.  It's a map from client_id to
+# an array of metrics objects, which are already labeled with extra
+# information about the client_id and account_id.
+exports.client_metrics = {}
+
 class MetricsRecorder
     constructor: (@dbg, cb) ->
         ###
@@ -123,7 +130,9 @@ class MetricsRecorder
         (was a dict that should be JSON, now it is for prometheus)
         it's only called by hub_http_server for the /metrics endpoint
         ###
-        return prom_client.register.metrics()
+        hub = prom_client.register.metrics()
+        clients = JSON.stringify(exports.client_metrics)
+        return hub + clients
 
     register_collector: (collector) =>
         # The added collector functions will be evaluated periodically to gather metrics

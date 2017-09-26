@@ -14,16 +14,18 @@ exports.exponentialBuckets = require('prom-client/lib/bucketGenerators').exponen
 exports.aggregators        = require('prom-client/lib/metricAggregators').aggregators
 
 exports.send = ->
+    console.log('sending metrics')
     {webapp_client} = require('./webapp_client')
     metrics = exports.Registry.globalRegistry.getMetricsAsJSON()
     webapp_client.send_metrics(metrics)
 
-the_send_interval = undefined
-exports.send_interval = (interval_s=120) ->
-    exports.clear_send_interval()
-    the_send_interval = setInterval(exports.send, 1000*interval_s)
+_interval_s = undefined
+exports.start_metrics = (interval_s=120) ->
+    console.log('start_metrics')
+    exports.stop_metrics()
+    _interval_s = setInterval(exports.send, 1000*interval_s)
 
-exports.clear_send_interval = ->
-    if the_send_interval?
-        clearInterval(the_send_interval)
-        the_send_interval = undefined
+exports.stop_metrics = ->
+    if _interval_s?
+        clearInterval(_interval_s)
+        _interval_s = undefined

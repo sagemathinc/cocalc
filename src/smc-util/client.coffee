@@ -473,6 +473,9 @@ class exports.Connection extends EventEmitter
                 if not mesg.id?
                     console.log("WARNING: #{misc.to_json(mesg.error)}")
                     return
+            when "start_metrics"
+                @emit("start_metrics", mesg.interval_s)
+
 
         id = mesg.id  # the call f(null,mesg) can mutate mesg (!), so we better save the id here.
         v = @call_callbacks[id]
