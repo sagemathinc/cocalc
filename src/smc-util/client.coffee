@@ -1777,6 +1777,11 @@ class exports.Connection extends EventEmitter
                     @_changefeed_ids = resp.changefeed_ids
                     opts.cb(undefined, resp.changefeed_ids)
 
+    # Send metrics to the hub this client is connected to.
+    # There is no confirmation or response.
+    send_metrics: (metrics) =>
+        @send(message.metrics(metrics:metrics))
+
 #################################################
 # Other account Management functionality shared between client and server
 #################################################

@@ -19,6 +19,8 @@
 #
 ###############################################################################
 
+window.prom_client = require('./prom-client')
+
 if not Primus?
     alert("Library not fully built (Primus not defined) -- refresh your browser")
     setTimeout((->window.location.reload()), 1000)

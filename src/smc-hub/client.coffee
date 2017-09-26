@@ -2237,3 +2237,11 @@ class exports.Client extends EventEmitter
                     @error_to_client(id:mesg.id, error:err)
                 else
                     @push_to_client(message.success(id:mesg.id))
+
+    # Receive and store in memory the latest metrics status from the client.
+    mesg_metrics: (mesg) =>
+        dbg = @dbg('mesg_metrics')
+        @_metrics =
+            time    : new Date()
+            metrics : mesg?.metrics
+        dbg(misc.to_json(@_metrics))
