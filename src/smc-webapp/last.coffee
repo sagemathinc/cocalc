@@ -139,3 +139,12 @@ $ ->
     document.getElementsByTagName("head")[0].appendChild(mjscript)
 
     misc.wrap_log()
+
+    # finally, record start time
+    # TODO compute an report startup initialization time
+    prom_client = require('./prom-client')
+    startup_time_gauge = prom_client.new_gauge('startup_time', 'When the webapp started')
+    startup_time_gauge.set(misc.get_start_time_ts().getTime())
+    browser_info_gauge = prom_client.new_gauge('browser_info', 'Information about the browser', ['browser', 'mobile', 'touch', 'git_version'])
+    feature = require('./feature')
+    browser_info_gauge.labels(feature.get_browser(), feature.IS_MOBILE, feature.IS_TOUCH, (SMC_GIT_REV ? 'N/A')).set(1)

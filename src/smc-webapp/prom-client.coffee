@@ -20,6 +20,9 @@ exports.exponentialBuckets = require('prom-client/lib/bucketGenerators').exponen
 
 exports.aggregators        = require('prom-client/lib/metricAggregators').aggregators
 
+# ATTN: default metrics do not work, because they are only added upon "proper" export -- not our .get json trick
+# exports.register.setDefaultLabels(defaultLabels)
+
 exports.send = ->
     {webapp_client} = require('./webapp_client')
     if not webapp_client.is_connected()
