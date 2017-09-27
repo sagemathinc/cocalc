@@ -1174,8 +1174,7 @@ exports.containing_public_path = (path, paths) ->
 
 # encode a UNIX path, which might have # and % in it.
 exports.encode_path = (path) ->
-    path = encodeURI(path)  # doesn't escape # and ?, since they are special for urls (but not unix paths)
-    return path.replace(/#/g,'%23').replace(/\?/g,'%3F')
+    return encodeURIComponent(path)  # also escapes # and ?
 
 
 # This adds a method _call_with_lock to obj, which makes it so it's easy to make it so only
