@@ -44,7 +44,7 @@ Each API command is invoked using an HTTPS PUT request.
 All commands support request parameters in JSON format, with request header
 `Content-Type: application/json`. Many commands (those that do not
 require lists or objects as parameters)
-also accept request parameters as key-value pairs, i.e. 
+also accept request parameters as key-value pairs, i.e.
 `Content-Type: application/x-www-form-urlencoded`.
 
 Responses are formatted as JSON strings.
@@ -2096,7 +2096,7 @@ The project shows the following upgrades:
 - cpu cores:       1
 - memory:          3000 MB
 - idle timeout:    24 hours (86400 seconds)
-- internet access: true 
+- internet access: true
 - cpu shares:      3 (stored in database as 768 = 3 * 256)
 - disk space:      27000 MB
 - member hosting:  true
@@ -2293,4 +2293,22 @@ Revoke a temporary authentication token for an account.
 ```
 """
 ###
+
+
+# client --> hub
+API message2
+    event       : 'metrics'
+    fields:
+        metrics :
+            init : required
+            desc : 'object containing the metrics'
+
+API message2
+    event       : 'start_metrics'
+    fields:
+        interval_s :
+            init : required
+            desc : 'tells client that it should submit metrics to the hub every interval_s seconds'
+
+
 

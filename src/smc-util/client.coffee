@@ -473,6 +473,9 @@ class exports.Connection extends EventEmitter
                 if not mesg.id?
                     console.log("WARNING: #{misc.to_json(mesg.error)}")
                     return
+            when "start_metrics"
+                @emit("start_metrics", mesg.interval_s)
+
 
         id = mesg.id  # the call f(null,mesg) can mutate mesg (!), so we better save the id here.
         v = @call_callbacks[id]
@@ -1787,6 +1790,11 @@ class exports.Connection extends EventEmitter
                 else
                     @_changefeed_ids = resp.changefeed_ids
                     opts.cb(undefined, resp.changefeed_ids)
+
+    # Send metrics to the hub this client is connected to.
+    # There is no confirmation or response.
+    send_metrics: (metrics) =>
+        @send(message.metrics(metrics:metrics))
 
 #################################################
 # Other account Management functionality shared between client and server
