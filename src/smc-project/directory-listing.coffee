@@ -22,7 +22,9 @@ exports.directory_listing_router = (express) ->
 directory_listing_http_server = (base, router) ->
 
     router.get base + '*', (req, res) ->
-        path = decodeURI(req.path.slice(base.length).trim())
+        # decodeURIComponent because decodeURI(misc.encode_path('asdf/te #1/')) != 'asdf/te #1/'
+        # https://github.com/sagemathinc/cocalc/issues/2400
+        path = decodeURIComponent(req.path.slice(base.length).trim())
         hidden = req.query.hidden
         exports.get_listing1 path, hidden, (err, listing) ->
             if err
