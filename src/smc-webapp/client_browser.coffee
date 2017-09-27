@@ -294,6 +294,12 @@ class Connection extends client.Connection
             #log("pong latency=#{conn.latency}")
             if not window.document.hasFocus? or window.document.hasFocus()
                 # networking/pinging slows down when browser not in focus...
+                if conn.latency > 10000
+                    # We get some ridiculous values from Primus when the browser
+                    # tab gains focus after not being in focus for a while (say on ipad but on many browsers)
+                    # that throttle.  Just discard them, since otherwise they lead to ridiculous false
+                    # numbers displayed in the browser.
+                    return
                 @emit "ping", conn.latency
 
         #conn.on 'outgoing::ping', () =>
