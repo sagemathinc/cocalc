@@ -32,16 +32,20 @@ underscore = require('underscore')
 
 # Prometheus client setup -- https://github.com/siimon/prom-client
 prom_client = require('prom-client')
-prom_default_metrics = prom_client.defaultMetrics
+
+
 # additionally, record GC statistics
 # https://www.npmjs.com/package/prometheus-gc-stats
 require('prometheus-gc-stats')()()
 
 # some constants
-FREQ_s     = 10   # update stats every FREQ seconds
-DELAY_s    = 5    # with an initial delay of DELAY seconds
+FREQ_s     = 5   # update stats every FREQ seconds
+DELAY_s    = 10    # with an initial delay of DELAY seconds
 #DISC_LEN   = 10   # length of queue for recording discrete values
 #MAX_BUFFER = 1000 # max. size of buffered values, which are cleared in the @_update step
+
+# collect some recommended default metrics
+prom_client.collectDefaultMetrics(timeout: FREQ_s * 1000)
 
 # CLK_TCK (usually 100, but maybe not ...)
 try
@@ -140,20 +144,27 @@ class MetricsRecorder
             catch
                 num_clients_gauge.set(0)
 
-        mem_usage = new_gauge('process_memory_usage', 'The process.memoryUsage() results', ['type'])
-        @register_collector ->
-            procmem = process.memoryUsage()
-            for k, v of procmem
-                mem_usage.labels(k).set(v)
+        # this is covered by prom_client.collectDefaultMetrics (see top part of this file)
+        #mem_usage = new_gauge('process_memory_usage', 'The process.memoryUsage() results', ['type'])
+        #@register_collector ->
+        #    procmem = process.memoryUsage()
+        #    for k, v of procmem
+        #        mem_usage.labels(k).set(v)
 
         # our own CPU metrics monitor, separating user and sys!
         # it's actually a counter, since it is non-decreasing, but we'll use .set(...)
         @_cpu_seconds_total = new_gauge('process_cpu_categorized_seconds_total', 'Total number of CPU seconds used', ['type'])
 
+        @_collect_duration = new_histogram('metrics_collect_duration_s', 'How long it took to gather the metrics', buckets:[0.0001, 0.001, 0.01, 1])
+        @_collect_duration_last = new_gauge('metrics_collect_duration_s_last', 'How long it took the last time to gather the metrics')
+
         # init periodically calling @_collect
         setTimeout((=> setInterval(@_collect, FREQ_s * 1000)), DELAY_s * 1000)
 
     _collect: =>
+        endG = @_collect_duration_last.startTimer()
+        endH = @_collect_duration.startTimer()
+
         # called by @_update to evaluate the collector functions
         #@dbg('_collect called')
         for c in @_collectors
@@ -172,6 +183,9 @@ class MetricsRecorder
             @_cpu_seconds_total.labels('chld_user')  .set(parseFloat(infos[13]) / CLK_TCK)
             @_cpu_seconds_total.labels('chld_system').set(parseFloat(infos[14]) / CLK_TCK)
 
+            # END: the timings for this run.
+            endG()
+            endH()
 
 
 # some of the commented code below might be used in the future when periodically collecting data (e.g. sliding max of "concurrent" value)
