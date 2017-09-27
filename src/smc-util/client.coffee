@@ -23,7 +23,7 @@ DEBUG = false
 
 # Maximum number of outstanding concurrent messages (that have responses)
 # to send at once to the backend.
-MAX_CONCURRENT = 25
+MAX_CONCURRENT = 40
 
 {EventEmitter} = require('events')
 
@@ -648,6 +648,17 @@ class exports.Connection extends EventEmitter
                         delete @call_callbacks[id]
                 ), opts.timeout*1000
             )
+        else
+            # IMPORTANT: No matter what call cb within 120s; if we don't do this then
+            # in case opts.timeout isn't set but opts.cb is, but user disconnects,
+            # then cb would never get called, which throws off our call counter.
+            # Note that the input to cb doesn't matter.
+            f = ->
+                if cb?
+                    cb()
+                    cb = undefined
+            setTimeout(f, 120*1000)
+
 
     call: (opts={}) =>
         # This function:
