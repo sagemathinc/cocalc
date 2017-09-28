@@ -261,9 +261,9 @@ exports.SettingsPanel = rclass
         content = "# Course '#{@props.settings.get('title')}'\n"
         content += "# exported #{timestamp}\n"
         content += "Name,Email,"
-        content += ("\"#{assignment.get('path')}\"" for assignment in assignments).join(',') + '\n'
+        content += ("\"grade-#{assignment.get('path')}\",\"comments-#{assignment.get('path')}\"" for assignment in assignments).join(',') + '\n'
         for student in store.get_sorted_students()
-            grades = ("\"#{store.get_grade(assignment, student) ? ''}\"" for assignment in assignments).join(',')
+            grades = ("\"#{store.get_grade(assignment, student) ? ''}\",\"#{store.get_comments(assignment, student) ? ''}\"" for assignment in assignments).join(',')
             name   = "\"#{store.get_student_name(student)}\""
             email  = "\"#{store.get_student_email(student) ? ''}\""
             line   = [name, email, grades].join(',')
