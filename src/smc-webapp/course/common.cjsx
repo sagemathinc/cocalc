@@ -161,7 +161,7 @@ exports.StudentAssignmentInfo = rclass
                         type        = 'text'
                         placeholder = 'Grade (any text)...'
                         onChange    = {=>@setState(edited_grade:ReactDOM.findDOMNode(@refs.grade_input).value ? '')}
-                        onKeyDown   = {(e)=>if e.keyCode == 27 then @setState(edited_grade:@props.grade, editing_grade:false)}
+                        onKeyDown   = {@on_key_down_grade_editor}
                     />
                     {@render_comments_editor()}
                     <Button bsStyle='success' onClick={@save_grade}>Save</Button>
@@ -181,8 +181,18 @@ exports.StudentAssignmentInfo = rclass
             type        = 'text'
             placeholder = 'Comments (optional)'
             onChange    = {=>@setState(edited_comments:ReactDOM.findDOMNode(@refs.comments_input).value ? '')}
-            onKeyDown   = {(e)=>if e.keyCode == 27 then @setState(edited_grade:@props.grade, editing_grade:false)}
+            onKeyDown   = {@on_key_down_grade_editor}
         />
+
+    on_key_down_grade_editor: (e) ->
+        switch e.keyCode
+            when 27
+                @setState
+                    edited_grade    : @props.grade
+                    edited_comments : @props.comments
+                    editing_grade   : false
+            when 13
+                @save_grade()
 
     render_grade: (width) ->
         bsStyle = if not (@props.grade ? '').trim() then 'primary'
