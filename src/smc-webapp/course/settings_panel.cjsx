@@ -277,8 +277,8 @@ exports.SettingsPanel = rclass
         exported = 'iso date'
         assignments = ['Assignment 1', 'Assignment 2']
         students=[
-            {'name':'Foo Bar', 'email': 'foo@bar.com', 'grades':[85,37]},
-            {'name':'Bar None', 'email': 'bar@school.edu', 'grades':[15,50]},
+            {'name':'Foo Bar', 'email': 'foo@bar.com', 'grades':[85,37], 'comments':['Good job', 'Not as good as assignment one :(']},
+            {'name':'Bar None', 'email': 'bar@school.edu', 'grades':[15,50], 'comments':['some_comments','Better!']},
         ]
         ###
         timestamp = (webapp_client.server_time()).toISOString()
@@ -293,10 +293,11 @@ exports.SettingsPanel = rclass
         content += 'students = [\n'
         for student in store.get_sorted_students()
             grades = (("'#{store.get_grade(assignment, student) ? ''}'") for assignment in assignments).join(',')
+            comments = (("'#{store.get_comments(assignment, student) ? ''}'") for assignment in assignments).join(',')
             name   = store.get_student_name(student)
             email  = store.get_student_email(student)
             email  = if email? then "'#{email}'" else 'None'
-            line   = "    {'name':'#{name}', 'email':#{email}, 'grades':[#{grades}]},"
+            line   = "    {'name':'#{name}', 'email':#{email}, 'grades':[#{grades}], 'comments':[#{comments}]},"
             content += line + '\n'
         content += ']\n'
         @write_file(@path('py'), content)
