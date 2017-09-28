@@ -194,7 +194,7 @@ exports.StudentAssignmentInfo = rclass
 
     render_grade: (width) ->
         bsStyle = if not (@props.grade ? '').trim() then 'primary'
-        text = if (@props.grade ? '').trim() then 'Enter grade' else 'Edit grade'
+        text = if (@props.grade ? '').trim() then 'Edit grade' else 'Enter grade'
 
         <Col md={width} key='grade'>
             <Tip title="Enter student's grade" tip="Enter the grade that you assigned to your student on this assignment here.  You can enter anything (it doesn't have to be a number).">
