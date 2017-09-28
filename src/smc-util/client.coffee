@@ -690,6 +690,7 @@ class exports.Connection extends EventEmitter
     _emit_mesg_info: =>
         info = misc.copy_without(@_call, ['queue'])
         info.enqueued = @_call.queue.length
+        info.max_concurrent = MAX_CONCURRENT
         @emit('mesg_info', info)
 
     _process_next_call: =>

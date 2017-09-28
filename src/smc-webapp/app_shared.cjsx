@@ -203,11 +203,11 @@ exports.ConnectionIndicator = rclass
         if @props.connection_status == 'connected'
             icon_style = {marginRight: 8, fontSize: '13pt', display: 'inline'}
             if (@props.mesg_info?.enqueued ? 0) > 5  # serious backlog of data!
-                icon_style.color = 'red'
+                icon_style.color = 'cyan'
             else if (@props.mesg_info?.count ? 0) > 1 # worrisome amount
-                icon_style.color = '#f33'
+                icon_style.color = '#08e'
             else if (@props.mesg_info?.count ? 0) > 0 # working well but doing something minimal
-                icon_style.color = '#833'
+                icon_style.color = '#00c'
             <div>
                 <Icon name='wifi' style={icon_style}/>
                 {<Tip
@@ -262,16 +262,21 @@ MessageInfo = rclass
         if not @props.info?
             return <span></span>
         if @props.info.count > 0
-            flight_style = {color:'red', fontWeight:'bold'}
-        <pre>
-            {@props.info.sent} messages sent ({bytes_to_str(@props.info.sent_length)})
-            <br/>
-            {@props.info.recv} messages received ({bytes_to_str(@props.info.recv_length)})
-            <br/>
-            <span style={flight_style}>{@props.info.count} messages in flight</span>
-            <br/>
-            {@props.info.enqueued} messages queued to send
-        </pre>
+            flight_style = {color:'#08e', fontWeight:'bold'}
+        <div>
+            <pre>
+                {@props.info.sent} messages sent ({bytes_to_str(@props.info.sent_length)})
+                <br/>
+                {@props.info.recv} messages received ({bytes_to_str(@props.info.recv_length)})
+                <br/>
+                <span style={flight_style}>{@props.info.count} messages in flight</span>
+                <br/>
+                {@props.info.enqueued} messages queued to send
+            </pre>
+            <div style={color:"#666"}>
+                Connection icon color changes as the number of messages increases. Usually, no action is needed, but the counts are helpful for diagnostic purposes or to help you understand what is going on.  The maximum number of messages that can be sent at the same time is {@props.info.max_concurrent}.
+            </div>
+        </div>
 
 exports.ConnectionInfo = rclass
     displayName : 'ConnectionInfo'
@@ -297,7 +302,7 @@ exports.ConnectionInfo = rclass
                 <Col sm=3>
                     <h4>Ping Time</h4>
                 </Col>
-                <Col sm=5>
+                <Col sm=6>
                     <pre>{@props.avgping}ms (latest: {@props.ping}ms)</pre>
                 </Col>
             </Row> if @props.ping}
@@ -305,10 +310,10 @@ exports.ConnectionInfo = rclass
                 <Col sm=3>
                     <h4>Hub Server</h4>
                 </Col>
-                <Col sm=5>
+                <Col sm=6>
                     <pre>{if @props.hub? then @props.hub else "Not signed in"}</pre>
                 </Col>
-                <Col sm=3 smOffset=1>
+                <Col sm=2 smOffset=1>
                     <Button bsStyle='warning' onClick={=>webapp_client._fix_connection(true)}>
                         <Icon name='repeat' spin={@props.status == 'connecting'} /> Reconnect
                     </Button>
@@ -318,7 +323,7 @@ exports.ConnectionInfo = rclass
                 <Col sm=3>
                     <h4>Messages</h4>
                 </Col>
-                <Col sm=5>
+                <Col sm=6>
                     <MessageInfo info={@props.mesg_info} />
                 </Col>
             </Row>
