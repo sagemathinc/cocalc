@@ -459,8 +459,27 @@ exports.ChatRoom = rclass ({name}) ->
         for f in ['set_preview_state', 'set_chat_log_state', 'debounce_bottom', 'mark_as_read']
             @[f] = underscore.debounce(@[f], 300)
 
+    fix_scroll_position_after_mount: ->
+        # Optionally set the scroll position back after waiting a moment
+        # for image sizes to load.
+        fix_pos = =>
+            if not @_is_mounted
+                return
+            scroll_to_position(@refs.log_container, @props.saved_position, @props.offset,
+                               @props.height, @props.use_saved_position, @props.actions)
+        # We adjust the scroll position multiple times due to dynamic content (e.g., images)
+        # changing the vertical height as the chat history is rendered.  This can fail
+        # if the dynamic change takes a while, but the failure is a slight scroll position
+        # issue -- if the user is switching tabs back and forth in a session, that is very
+        # unlikely, due to the browser caching the dynamic content.
+        # The user is also unlikely to manually scroll the page then see it jump to
+        # this fixed position dwithin 300ms of mounting.
+        for tm in [0, 150, 300]
+            setTimeout(fix_pos, tm)
+
     componentDidMount: ->
-        scroll_to_position(@refs.log_container, @props.saved_position, @props.offset, @props.height, @props.use_saved_position, @props.actions)
+        @_is_mounted = true
+        @fix_scroll_position_after_mount()
         if @props.is_preview
             if is_at_bottom(@props.saved_position, @props.offset, @props.height)
                 @debounce_bottom()
@@ -488,15 +507,12 @@ exports.ChatRoom = rclass ({name}) ->
             # Up arrow on an empty input
             @props.actions.set_to_last_input()
 
-    on_scroll: (e) ->
-        # TODO: this is so *stupid*; the scroll state should be saved in componentWillUnmount; saving
-        # it every time there is scrolling is absurdly inefficient....  See jupyter/cell-list.cjsx for
-        # how to do this right.
+    componentWillUnmount: ->
+        @_is_mounted = false
+
         @props.actions.set_use_saved_position(true)
-        #@_use_saved_position = true
         node = ReactDOM.findDOMNode(@refs.log_container)
         @props.actions.save_scroll_state(node.scrollTop, node.scrollHeight, node.offsetHeight)
-        e.preventDefault()
 
     button_send_chat: (e) ->
         send_chat(e, @refs.log_container, ReactDOM.findDOMNode(@refs.input).value, @props.actions)
@@ -667,7 +683,7 @@ exports.ChatRoom = rclass ({name}) ->
             {@render_button_row() if not IS_MOBILE}
             <Row className='smc-vfill'>
                 <Col className='smc-vfill' md={12} style={padding:'0px 2px 0px 2px'}>
-                    <Well style={chat_log_style} ref='log_container' onScroll={@on_scroll}>
+                    <Well style={chat_log_style} ref='log_container'>
                         <ChatLog
                             messages     = {@props.messages}
                             account_id   = {@props.account_id}
