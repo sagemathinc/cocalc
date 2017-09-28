@@ -597,7 +597,7 @@ Student = rclass
         store = @props.redux.getStore(@props.name)
         for assignment in store.get_sorted_assignments()
             grade    = store.get_grade(assignment, @props.student)
-            comments = store.get_comments(@props.assignment, student_id)
+            comments = store.get_comments(assignment, @props.student)
             info     = store.student_assignment_info(@props.student, assignment)
             <StudentAssignmentInfo
                 key        = {assignment.get('assignment_id')}
