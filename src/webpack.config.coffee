@@ -267,7 +267,6 @@ for [fn_in, fn_out] in [['index.pug', 'index.html']]
                         template         : path.join(INPUT, fn_in)
                         minify           : htmlMinifyOpts
                         GOOGLE_ANALYTICS : GOOGLE_ANALYTICS
-                        PREFIX           : ''
                         SCHEMA           : require('smc-util/schema')
                         PREFIX           : if fn_in == 'index.pug' then '' else '../'
     ))

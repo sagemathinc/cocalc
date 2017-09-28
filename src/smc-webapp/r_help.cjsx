@@ -43,7 +43,7 @@ li_style =
     lineHeight    : 'inherit'
     marginBottom  : '10px'
 
-exports.HelpPageUsageSection = HelpPageUsageSection = rclass
+HelpPageUsageSection = rclass
     reduxProps :
         server_stats :
             loading             : rtypes.bool.isRequired
@@ -342,7 +342,7 @@ LinkList = rclass
             {@render_links()}
         </Col>
 
-exports.ThirdPartySoftware = ThirdPartySoftware = rclass
+ThirdPartySoftware = rclass
     displayName : 'Help-ThirdPartySoftware'
     render: ->
         <LinkList title='Available Software' icon='question-circle' links={THIRD_PARTY} />

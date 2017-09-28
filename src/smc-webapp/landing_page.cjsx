@@ -26,12 +26,14 @@ The Landing Page
 {Alert, Button, ButtonToolbar, Col, Modal, Grid, Row, FormControl, FormGroup, Well, ClearFix} = require('react-bootstrap')
 {ErrorDisplay, Icon, Loading, ImmutablePureRenderMixin, Footer, UNIT, COLORS, ExampleBox} = require('./r_misc')
 {HelpEmailLink, SiteName, SiteDescription, TermsOfService, AccountCreationEmailInstructions} = require('./customize')
-{HelpPageUsageSection, ThirdPartySoftware} = require('./r_help')
+
 DESC_FONT = 'sans-serif'
+
+{ShowSupportLink} = require('./support')
 
 misc = require('smc-util/misc')
 {APP_TAGLINE} = require('smc-util/theme')
-{APP_ICON, APP_ICON_WHITE, APP_LOGO_NAME, APP_LOGO_NAME_WHITE} = require('./misc_page')
+{APP_BASE_URL, APP_ICON, APP_ICON_WHITE, APP_LOGO_NAME, APP_LOGO_NAME_WHITE} = require('./misc_page')
 
 $.get window.app_base_url + "/registration", (obj, status) ->
     if status == 'success'
@@ -476,34 +478,6 @@ LANDING_PAGE_CONTENT =
         heading : 'LaTeX Editor'
         text : 'Write beautiful documents using LaTeX.'
 
-SMC_Commercial = ->
-    <iframe
-        width       = "100%"
-        height      = "284"
-        src         = "https://www.youtube.com/embed/AEKOjac9obk"
-        frameBorder = "0"
-        allowFullScreen>
-    </iframe>
-
-SMC_Quote = ->
-    {DOMAIN_NAME} = require('smc-util/theme')
-    <div style={marginTop:'15px'}>
-        <a href="https://www.youtube.com/watch?v=ZcxUNemJfZw" target="_blank"  style={'width':'104px','height':'104px','float':'right'} title="Will Conley heads UCLA's massive use of CoCalc in the Mathematics for Life Scientists">
-            <img className='img-rounded' src={require('will_conley.jpg')} style={'height':'102px'} />
-        </a>
-        <p className='lighten'>"CoCalc provides a user-friendly interface. Students don’t need to install any software at all.
-        They just open up a web browser and go to {DOMAIN_NAME} and that’s it. They just type code directly
-        in, hit shift+enter and it runs, and they can see if it works. It provides immediate feedback.
-        The <a href='https://tutorial.cocalc.com/' target='_blank'>course
-        management features</a> work really well." - Will Conley, Math professor, University of California at Los Angeles
-        </p>
-        <p style={marginBottom:0} >
-            <a href="https://github.com/sagemathinc/cocalc/wiki/Quotes" target="_blank">What users are saying</a> {' | '}
-            <a href="https://github.com/sagemathinc/cocalc/wiki/Teaching" target="_blank">Courses using CoCalc</a> {' | '}
-            <a href="https://github.com/sagemathinc/cocalc/wiki/SMC-for-Students-and-Teachers" target="_blank">Unique Advantages</a>
-        </p>
-    </div>
-
 LandingPageContent = rclass
     displayName : 'LandingPageContent'
 
@@ -715,7 +689,7 @@ exports.LandingPage = rclass
                       </div>
                 </Row>
                 <Row>
-                    <Col sm=5>
+                    <Col sm=6>
                         <SignUp
                             sign_up_error   = {@props.sign_up_error}
                             strategies      = {@props.strategies}
@@ -724,31 +698,22 @@ exports.LandingPage = rclass
                             signing_up      = {@props.signing_up}
                             has_account     = {@props.has_account} />
                     </Col>
-                    <Col sm=7 className="hidden-xs" style={marginTop:'10px'}>
-                        <Well style={'float':'right', marginBottom:'15px'} className="lighten">
-                            <h3 style={marginTop: 0}>For professors teaching courses using open source software</h3>
-                            <p style={marginBottom:'15px'}>
-                            <SiteName /> is the easiest way to get your class up and running.  We eliminate installation
-                            problems, and the limitations of the Mathematica and ShareLaTeX cloud offerings.
-                            Our collaborative environment includes LaTeX, R, Jupyter, Python, SageMath,
-                            Octave, Julia, and much more.</p>
-                            <SMC_Commercial />
-                            <br />
-                            <SMC_Quote />
-                        </Well>
+                    <Col sm=6>
+                        <div style={color:"#333", fontSize:'12pt', marginTop:'2em'}>
+                            Create a new account here or sign in with an existing account above.
+                            <br/>
+                            <br/>
+
+                            If you have any questions create a <ShowSupportLink />.
+
+                            <br/>
+                            <br/>
+                            <a href={APP_BASE_URL + "/"}>Learn more about CoCalc...</a>
+                        </div>
                     </Col>
                 </Row>
-                <Row className='hidden-xs' style={marginBottom: 20}>
-                    <ThirdPartySoftware />
-                    <HelpPageUsageSection />
-                </Row>
-                <Row>
-                    <Col sm=12 className='hidden-xs'>
-                        <LandingPageContent />
-                    </Col>
-                </Row>
-                <SagePreview />
                 <Footer/>
             </div>
         else
             <Connecting />
+
