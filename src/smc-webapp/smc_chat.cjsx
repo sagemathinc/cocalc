@@ -493,8 +493,8 @@ exports.ChatRoom = rclass ({name}) ->
         # issue -- if the user is switching tabs back and forth in a session, that is very
         # unlikely, due to the browser caching the dynamic content.
         # The user is also unlikely to manually scroll the page then see it jump to
-        # this fixed position dwithin 300ms of mounting.
-        for tm in [0, 150, 300]
+        # this fixed position dwithin 500ms of mounting.
+        for tm in [0, 150, 500]
             setTimeout(fix_pos, tm)
 
     componentDidMount: ->
