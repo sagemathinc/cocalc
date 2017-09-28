@@ -133,6 +133,8 @@ exports.search_split = (search) ->
 # s = lower case string
 # v = array of terms as output by search_split above
 exports.search_match = (s, v) ->
+    if not s?
+        return false
     for x in v
         if s.indexOf(x) == -1
             return false

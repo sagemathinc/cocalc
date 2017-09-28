@@ -32,8 +32,8 @@ misc_page = require('./misc_page')
 
 # React libraries
 {React, ReactDOM, rclass, rtypes, Actions, Store}  = require('./smc-react')
-{Icon, Loading, Markdown, TimeAgo, Tip} = require('./r_misc')
-{Button, Col, Grid, FormGroup, FormControl, ListGroup, ListGroupItem, Row, ButtonGroup, Well} = require('react-bootstrap')
+{Icon, Loading, Markdown, SearchInput, TimeAgo, Tip} = require('./r_misc')
+{Alert, Button, Col, Grid, FormGroup, FormControl, ListGroup, ListGroupItem, Row, ButtonGroup, Well} = require('react-bootstrap')
 
 {User} = require('./users')
 
@@ -43,7 +43,6 @@ editor_chat = require('./editor_chat')
 
 {VideoChatButton} = require('./video-chat')
 {SMC_Dropwrapper} = require('./smc-dropzone')
-
 
 Message = rclass
     displayName: "Message"
@@ -336,9 +335,11 @@ ChatLog = rclass
         focus_end    : rtypes.func
         saved_mesg   : rtypes.string
         set_scroll   : rtypes.func
+        search       : rtypes.string
 
     shouldComponentUpdate: (next) ->
         return @props.messages != next.messages or
+               @props.search != next.search or
                @props.user_map != next.user_map or
                @props.account_id != next.account_id or
                @props.saved_mesg != next.saved_mesg
@@ -377,15 +378,29 @@ ChatLog = rclass
 
         sorted_dates = @props.messages.keySeq().sort().toJS()
         v = []
+        if @props.search
+            search_terms = misc.search_split(@props.search.toLowerCase())
+        else
+            search_terms = undefined
+
+        not_showing = 0
         for date, i in sorted_dates
-            sender_name = @get_user_name(@props.messages.get(date)?.get('sender_id'))
-            last_editor_name = @get_user_name(@props.messages.get(date)?.get('history').first()?.get('author_id'))
+            message = @props.messages.get(date)
+            first = message?.get('history').first()
+            last_editor_name = @get_user_name(first?.get('author_id'))
+            sender_name = @get_user_name(message?.get('sender_id'))
+            if search_terms?
+                content = first?.get('content') + ' ' + last_editor_name + ' ' + sender_name
+                content = content.toLowerCase()
+                if not misc.search_match(content, search_terms)
+                    not_showing += 1
+                    continue
 
             v.push <Message key={date}
                      account_id       = {@props.account_id}
-                     history          = {@props.messages.get(date).get('history')}
+                     history          = {message.get('history')}
                      user_map         = {@props.user_map}
-                     message          = {@props.messages.get(date)}
+                     message          = {message}
                      date             = {date}
                      project_id       = {@props.project_id}
                      file_path        = {@props.file_path}
@@ -403,6 +418,10 @@ ChatLog = rclass
                      close_input      = {@close_edit_inputs}
                      set_scroll       = {@props.set_scroll}
                     />
+
+        if not_showing
+            s = <Alert bsStyle='warning' key='not_showing'>Hiding {not_showing} chats that do not match search for '{@props.search}'.</Alert>
+            v.push(s)
 
         return v
 
@@ -424,6 +443,7 @@ exports.ChatRoom = rclass ({name}) ->
             saved_mesg         : rtypes.string
             saved_position     : rtypes.number
             use_saved_position : rtypes.bool
+            search             : rtypes.string
 
         users :
             user_map : rtypes.immutable
@@ -628,9 +648,21 @@ exports.ChatRoom = rclass ({name}) ->
             label      = {"Video Chat"}
         />
 
+    render_search: ->
+        <SearchInput
+            placeholder   = "Find messages..."
+            default_value = {@props.search}
+            on_change     = {underscore.debounce(((value)=>@props.actions.setState(search:value)), 500)}
+            style         = {margin:0}
+        />
+
     render_button_row: ->
-        <Row style={marginBottom:'5px'}>
-            <Col xs={12} md={12} className="pull-right" style={padding:'2px', textAlign:'right'}>
+        # padding in first column is to match the message list itself.
+        <Row style={marginTop:'5px'}>
+            <Col xs={6} md={6} style={padding:'2px'}>
+                {@render_search()}
+            </Col>
+            <Col xs={6} md={6} className="pull-right" style={padding:'2px', textAlign:'right'}>
                 <ButtonGroup>
                     {@render_timetravel_button()}
                     {@render_video_chat_button()}
@@ -693,6 +725,7 @@ exports.ChatRoom = rclass ({name}) ->
                             file_path    = {if @props.path? then misc.path_split(@props.path).head}
                             actions      = {@props.actions}
                             saved_mesg   = {@props.saved_mesg}
+                            search       = {@props.search}
                             set_scroll   = {@set_chat_log_state}
                             show_heads   = true />
                         {@render_preview_message() if @props.input.length > 0 and @props.is_preview}
