@@ -186,14 +186,11 @@ exports.StudentAssignmentInfo = rclass
         />
 
     on_key_down_grade_editor: (e) ->
-        switch e.keyCode
-            when 27
-                @setState
-                    edited_grade    : @props.grade
-                    edited_comments : @props.comments
-                    editing_grade   : false
-            when 13
-                @save_grade()
+        if e.keyCode == 27
+            @setState
+                edited_grade    : @props.grade
+                edited_comments : @props.comments
+                editing_grade   : false
 
     render_grade: (width) ->
         bsStyle = if not (@props.grade ? '').trim() then 'primary'
