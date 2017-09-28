@@ -128,12 +128,15 @@ class MetricsRecorder
         @setup_monitoring()
         cb?(undefined, @)
 
-    client_metrics: =>
-        s = ''
-        for _, metrics of exports.client_metrics
-            for metric in metrics
-                s += '\n' + prom_client.register.getMetricAsPrometheusString(get: -> metric)
-        return s
+    client_metrics: =
+        ###
+        exports.client_metrics is a mapping of client id to the json exported metric.
+        The AggregatorRegistry is supposed to work with a list of metrics, and by default,
+        it sums them up. `aggregate` is a static method and hence it should be ok to use it directly.
+        ###
+        metrics = (m for _, m of exports.client_metrics)
+        registry = prom_client.AggregatorRegistry.aggregate(metrics)
+        return registry.metrics()
 
     metrics: =>
         ###
