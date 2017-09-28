@@ -124,11 +124,13 @@ exports.StudentAssignmentInfo = rclass
         student    : rtypes.oneOfType([rtypes.string,rtypes.object]).isRequired # required string (student_id) or student immutable js object
         assignment : rtypes.oneOfType([rtypes.string,rtypes.object]).isRequired # required string (assignment_id) or assignment immutable js object
         grade      : rtypes.string
+        comment    : rtypes.string
         info       : rtypes.object.isRequired
 
     getInitialState: ->
-        editing_grade : false
-        edited_grade  : ''
+        editing_grade  : false
+        edited_grade   : ''
+        edited_comment : ''
 
     open: (type, assignment_id, student_id) ->
         @actions(@props.name).open_assignment(type, assignment_id, student_id)
@@ -142,37 +144,46 @@ exports.StudentAssignmentInfo = rclass
     save_grade: (e) ->
         e?.preventDefault()
         @actions(@props.name).set_grade(@props.assignment, @props.student, @state.edited_grade)
+        # Not implemented
+        #@actions(@props.name).set_grade(@props.assignment, @props.student, @state.edited_comment)
         @setState(editing_grade:false)
 
     edit_grade: ->
         @setState(edited_grade:@props.grade ? '', editing_grade:true)
 
-    render_grade_score: ->
+    render_grade_and_comment: ->
         if @state.editing_grade
             <form key='grade' onSubmit={@save_grade} style={marginTop:'15px'}>
                 <FormGroup>
-                    <InputGroup>
-                        <FormControl
-                            autoFocus
-                            value       = {@state.edited_grade}
-                            ref         = 'grade_input'
-                            type        = 'text'
-                            placeholder = 'Grade (any text)...'
-                            onChange    = {=>@setState(edited_grade:ReactDOM.findDOMNode(@refs.grade_input).value ? '')}
-                            onBlur      = {@save_grade}
-                            onKeyDown   = {(e)=>if e.keyCode == 27 then @setState(edited_grade:@props.grade, editing_grade:false)}
-                        />
-                        <InputGroup.Button>
-                            <Button bsStyle='success'>Save</Button>
-                        </InputGroup.Button>
-                    </InputGroup>
+                    <FormControl
+                        autoFocus
+                        value       = {@state.edited_grade}
+                        ref         = 'grade_input'
+                        type        = 'text'
+                        placeholder = 'Grade (any text)...'
+                        onChange    = {=>@setState(edited_grade:ReactDOM.findDOMNode(@refs.grade_input).value ? '')}
+                        onKeyDown   = {(e)=>if e.keyCode == 27 then @setState(edited_grade:@props.grade, editing_grade:false)}
+                    />
+                    {@render_comment_editor()}
+                    <Button bsStyle='success' onClick={@save_grade}>Save</Button>
                 </FormGroup>
             </form>
         else
             if @props.grade
                 <div key='grade' onClick={@edit_grade}>
-                    Grade: {@props.grade}
+                    Grade: {@props.grade}<br/>
+                    {<span>Comments: {@props.comments}</span> if @props.comments}
                 </div>
+
+    render_comment_editor: ->
+        <FormControl
+            value       = {@state.edited_comment}
+            ref         = 'comment_input'
+            type        = 'text'
+            placeholder = 'Comments (optional)'
+            onChange    = {=>@setState(edited_comment:ReactDOM.findDOMNode(@refs.comment_input).value ? '')}
+            onKeyDown   = {(e)=>if e.keyCode == 27 then @setState(edited_grade:@props.grade, editing_grade:false)}
+        />
 
     render_grade: (width) ->
         bsStyle = if not (@props.grade ? '').trim() then 'primary'
@@ -180,7 +191,7 @@ exports.StudentAssignmentInfo = rclass
             <Tip title="Enter student's grade" tip="Enter the grade that you assigned to your student on this assignment here.  You can enter anything (it doesn't have to be a number).">
                 <Button key='edit' onClick={@edit_grade} bsStyle={bsStyle}>Enter grade</Button>
             </Tip>
-            {@render_grade_score()}
+            {@render_grade_and_comment()}
         </Col>
 
     render_last_time: (name, time) ->
