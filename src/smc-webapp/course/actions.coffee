@@ -799,6 +799,17 @@ exports.CourseActions = class CourseActions extends Actions
         obj.grades = grades
         @_set(obj)
 
+    set_comments: (assignment, student, comments) =>
+        store = @get_store()
+        return if not store?
+        assignment    = store.get_assignment(assignment)
+        student       = store.get_student(student)
+        obj           = {table:'assignments', assignment_id:assignment.get('assignment_id')}
+        comments_map = @_get_one(obj).comments ? {}
+        comments_map[student.get('student_id')] = comments
+        obj.comments = comments_map
+        @_set(obj)
+
     set_active_assignment_sort: (column_name) =>
         store = @get_store()
         if not store?

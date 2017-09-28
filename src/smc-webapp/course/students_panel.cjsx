@@ -596,16 +596,18 @@ Student = rclass
     render_assignments_info_rows: ->
         store = @props.redux.getStore(@props.name)
         for assignment in store.get_sorted_assignments()
-            grade = store.get_grade(assignment, @props.student)
-            info = store.student_assignment_info(@props.student, assignment)
+            grade    = store.get_grade(assignment, @props.student)
+            comments = store.get_comments(@props.assignment, student_id)
+            info     = store.student_assignment_info(@props.student, assignment)
             <StudentAssignmentInfo
-                key={assignment.get('assignment_id')}
-                title={@render_title(assignment)}
-                name={@props.name}
-                student={@props.student}
-                assignment={assignment}
-                grade={grade}
-                info={info}
+                key        = {assignment.get('assignment_id')}
+                title      = {@render_title(assignment)}
+                name       = {@props.name}
+                student    = {@props.student}
+                assignment = {assignment}
+                grade      = {grade}
+                comments   = {comments}
+                info       = {info}
                 />
 
     render_assignments_info: ->
