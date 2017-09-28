@@ -164,7 +164,7 @@ exports.StudentAssignmentInfo = rclass
                         onKeyDown   = {@on_key_down_grade_editor}
                     />
                     {@render_comments_editor()}
-                    <Button bsStyle='success' onClick={@save_grade}>Save</Button>
+                    <Button bsStyle='success' onClick={@save_grade}, style={marginTop:'2px'}>Save</Button>
                 </FormGroup>
             </form>
         else
@@ -176,12 +176,13 @@ exports.StudentAssignmentInfo = rclass
 
     render_comments_editor: ->
         <FormControl
-            value       = {@state.edited_comments}
-            ref         = 'comments_input'
-            type        = 'text'
-            placeholder = 'Comments (optional)'
-            onChange    = {=>@setState(edited_comments:ReactDOM.findDOMNode(@refs.comments_input).value ? '')}
-            onKeyDown   = {@on_key_down_grade_editor}
+            value          = {@state.edited_comments}
+            ref            = 'comments_input'
+            componentClass = "textarea"
+            rows           = {2}
+            placeholder    = 'Comments (optional)'
+            onChange       = {=>@setState(edited_comments:ReactDOM.findDOMNode(@refs.comments_input).value ? '')}
+            onKeyDown      = {@on_key_down_grade_editor}
         />
 
     on_key_down_grade_editor: (e) ->
