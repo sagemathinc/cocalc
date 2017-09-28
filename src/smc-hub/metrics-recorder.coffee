@@ -128,7 +128,7 @@ class MetricsRecorder
         @setup_monitoring()
         cb?(undefined, @)
 
-    client_metrics: =
+    client_metrics: =>
         ###
         exports.client_metrics is a mapping of client id to the json exported metric.
         The AggregatorRegistry is supposed to work with a list of metrics, and by default,
