@@ -36,7 +36,7 @@ misc = require('smc-util/misc')
 {Icon, Loading, Space, TimeAgo, UNIT, Footer} = require('./r_misc')
 {HelpEmailLink, SiteName, SiteDescription, PolicyPricingPageUrl} = require('./customize')
 {RECENT_TIMES, RECENT_TIMES_KEY} = require('smc-util/schema')
-{COLORS, HELP_EMAIL, WIKI_URL} = require('smc-util/theme')
+{COLORS, HELP_EMAIL, WIKI_URL, TWITTER_HANDLE} = require('smc-util/theme')
 
 # List item style
 li_style =
@@ -207,8 +207,8 @@ CONNECT_LINKS =
         link : 'News and updates on our blog'
     twitter :
         icon : 'twitter-square'
-        href : 'https://twitter.com/co_calc'
-        link : 'Follow @co_calc on twitter'
+        href : "https://twitter.com/#{TWITTER_HANDLE}"
+        link : "Follow @#{TWITTER_HANDLE} on twitter"
     facebook :
         icon : 'facebook-square'
         href : 'https://www.facebook.com/CoCalcOnline/'
