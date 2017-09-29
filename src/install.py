@@ -157,7 +157,7 @@ def main():
     # add argument '--action'(just a flag) and '--debug' to uniformly deal with 'install.py webapp ***' and 'install.py all --web ***' for install_webapp 
     parser_all.add_argument('--action', default='build')
     parser_all.add_argument("--debug", action="store_true", help="if set and, build debug version of code (rather than production) for webapp")
-    parser_all.set_defaults(func = lambda args: install_all(compute=args.compute, web=args.web))
+    parser_all.set_defaults(func = lambda args: install_all(args))
 
     args = parser.parse_args()
     args.func(args)
