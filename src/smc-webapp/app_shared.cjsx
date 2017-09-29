@@ -203,7 +203,7 @@ exports.ConnectionIndicator = rclass
         if @props.connection_status == 'connected'
             icon_style = {marginRight: 8, fontSize: '13pt', display: 'inline'}
             if (@props.mesg_info?.enqueued ? 0) > 5  # serious backlog of data!
-                icon_style.color = 'cyan'
+                icon_style.color = 'red'
             else if (@props.mesg_info?.count ? 0) > 1 # worrisome amount
                 icon_style.color = '#08e'
             else if (@props.mesg_info?.count ? 0) > 0 # working well but doing something minimal
