@@ -387,8 +387,12 @@ SupportInfo = rclass
         <div>
             {what}
             <p>
-                Looking for documentation and help? Go to
+                <b>Looking for documentation and help?</b> Go to
                 the <a href="#{SmcWikiUrl}" target="_blank">CoCalc documentation</a>.
+            </p>
+            <p>
+                <b>Trying to sign out?</b>  Click on your name at the top, then click the
+                "Sign out..." button in account settings.
             </p>
             <p>
                 After submitting a ticket, you{"'"}ll get a link, which you may
