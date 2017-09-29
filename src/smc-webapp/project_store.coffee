@@ -1698,9 +1698,10 @@ exports.deleteStoreActionsTable = (project_id, redux) ->
     redux.removeStore(name)
 
 prom_client = require('./prom-client')
-prom_get_dir_listing_h = prom_client.new_histogram(
-    'get_dir_listing_seconds', 'get_directory_listing time',
-     {buckets : [1, 2, 5, 7, 10, 15, 20, 30, 50], labels: ['public', 'state', 'err']})
+if prom_client.enabled
+    prom_get_dir_listing_h = prom_client.new_histogram(
+        'get_dir_listing_seconds', 'get_directory_listing time',
+         {buckets : [1, 2, 5, 7, 10, 15, 20, 30, 50], labels: ['public', 'state', 'err']})
 
 get_directory_listing = (opts) ->
     opts = defaults opts,
@@ -1712,19 +1713,22 @@ get_directory_listing = (opts) ->
         cb         : required
     {webapp_client} = require('./webapp_client')
 
-    prom_dir_listing_start = new Date()
-    prom_labels = {public: false}
+    if prom_client.enabled
+        prom_dir_listing_start = new Date()
+        prom_labels = {public: false}
 
     if opts.group in ['owner', 'collaborator', 'admin']
         method = webapp_client.project_directory_listing
         # Also, make sure project starts running, in case it isn't.
         state = redux.getStore('projects').getIn([opts.project_id, 'state', 'state'])
-        prom_labels.state = state
+        if prom_client.enabled
+            prom_labels.state = state
         if state != 'running'
             redux.getActions('projects').start_project(opts.project_id)
     else
         method = webapp_client.public_project_directory_listing
-        prom_labels.public = true
+        if prom_client.enabled
+            prom_labels.public = true
 
     listing     = undefined
     listing_err = undefined
@@ -1759,8 +1763,9 @@ get_directory_listing = (opts) ->
         #log       : console.log
         cb          : (err) ->
             #console.log opts.path, 'get_directory_listing.success or timeout', err
-            prom_labels.err = !!err
-            prom_get_dir_listing_h.observe(prom_labels, (new Date() - prom_dir_listing_start) / 1000)
+            if prom_client.enabled
+                prom_labels.err = !!err
+                prom_get_dir_listing_h?.observe(prom_labels, (new Date() - prom_dir_listing_start) / 1000)
 
             opts.cb(err ? listing_err, listing)
 

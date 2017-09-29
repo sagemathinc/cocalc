@@ -4,6 +4,16 @@ Use prom-client in browser!
 NOTE: We explicitly import inside the prom-client package, since the index.js
 in that package imports some things that make no sense in a browser.
 ###
+console.log "not initializing prometheus"
+exports.enabled = false
+
+###
+# Disabled awaiting https://github.com/sagemathinc/cocalc/issues/2407
+###
+
+###
+console.log "initializing prometheus client"
+exports.enabled = true
 
 exports.register           = require('prom-client/lib/registry').globalRegistry
 exports.Registry           = require('prom-client/lib/registry')
@@ -77,3 +87,4 @@ exports.new_histogram = new_histogram = (name, help, config={}) ->
         buckets: [0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10]
         labels : []
     return new exports.Histogram(name: PREFIX + name, help: help, labelNames: config.labels, buckets:config.buckets)
+###

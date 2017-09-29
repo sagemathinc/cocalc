@@ -94,7 +94,8 @@ class Connection extends client.Connection
         setTimeout(@_init_idle, 15 * 1000)
 
         # Start reporting metrics to the backend if requested.
-        @on('start_metrics', prom_client.start_metrics)
+        if prom_client.enabled
+            @on('start_metrics', prom_client.start_metrics)
 
 
     _setup_window_smc: () =>

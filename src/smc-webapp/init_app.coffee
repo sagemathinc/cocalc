@@ -292,9 +292,10 @@ if DEBUG
         num_recent_disconnects     : num_recent_disconnects
 
 prom_client = require('./prom-client')
-prom_ping_time = prom_client.new_histogram('ping_ms', 'ping time',
-     {buckets : [50, 100, 150, 200, 300, 500, 1000, 2000, 5000]})
-prom_ping_time_last = prom_client.new_gauge('ping_last_ms', 'last reported ping time')
+if prom_client.enabled
+    prom_ping_time = prom_client.new_histogram('ping_ms', 'ping time',
+         {buckets : [50, 100, 150, 200, 300, 500, 1000, 2000, 5000]})
+    prom_ping_time_last = prom_client.new_gauge('ping_last_ms', 'last reported ping time')
 
 webapp_client.on "ping", (ping_time) ->
     ping_time_smooth = redux.getStore('page').get('avgping') ? ping_time
@@ -305,8 +306,10 @@ webapp_client.on "ping", (ping_time) ->
         decay = 1 - Math.exp(-1)
         ping_time_smooth = decay * ping_time_smooth + (1-decay) * ping_time
     redux.getActions('page').set_ping(ping_time, Math.round(ping_time_smooth))
-    prom_ping_time.observe(ping_time)
-    prom_ping_time_last.set(ping_time)
+
+    if prom_client.enabled
+        prom_ping_time.observe(ping_time)
+        prom_ping_time_last.set(ping_time)
 
 webapp_client.on "connected", () ->
     redux.getActions('page').set_connection_status('connected', new Date())
