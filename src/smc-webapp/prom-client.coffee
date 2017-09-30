@@ -17,6 +17,8 @@ exports.enabled = true
 # This compilation happens in the postinstall step of package.json, so is automatic whenever one does
 #    npm install
 
+require("babel-polyfill") # since prom-client-js was compiled using babel
+
 exports.register           = require('prom-client-js/lib/registry').globalRegistry
 exports.Registry           = require('prom-client-js/lib/registry')
 exports.contentType        = require('prom-client-js/lib/registry').globalRegistry.contentType
