@@ -529,7 +529,9 @@ exports.ChatRoom = rclass ({name}) ->
 
     componentWillUnmount: ->
         @_is_mounted = false
+        @save_scroll_position()
 
+    save_scroll_position: ->
         @props.actions.set_use_saved_position(true)
         node = ReactDOM.findDOMNode(@refs.log_container)
         @props.actions.save_scroll_state(node.scrollTop, node.scrollHeight, node.offsetHeight)
@@ -715,7 +717,10 @@ exports.ChatRoom = rclass ({name}) ->
             {@render_button_row() if not IS_MOBILE}
             <Row className='smc-vfill'>
                 <Col className='smc-vfill' md={12} style={padding:'0px 2px 0px 2px'}>
-                    <Well style={chat_log_style} ref='log_container'>
+                    <Well
+                        style    = {chat_log_style}
+                        ref      = 'log_container'
+                        onScroll = {underscore.debounce(@save_scroll_position,250)}>
                         <ChatLog
                             messages     = {@props.messages}
                             account_id   = {@props.account_id}
