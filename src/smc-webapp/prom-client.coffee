@@ -17,22 +17,23 @@ exports.enabled = true
 # This compilation happens in the postinstall step of package.json, so is automatic whenever one does
 #    npm install
 
-require("babel-polyfill") # since prom-client-js was compiled using babel
+if not global._babelPolyfill
+    require("babel-polyfill") # since prom-client-js was compiled using babel
 
-exports.register           = require('prom-client-js/lib/registry').globalRegistry
-exports.Registry           = require('prom-client-js/lib/registry')
-exports.contentType        = require('prom-client-js/lib/registry').globalRegistry.contentType
+exports.register           = require('./prom-client-js/lib/registry').globalRegistry
+exports.Registry           = require('./prom-client-js/lib/registry')
+exports.contentType        = require('./prom-client-js/lib/registry').globalRegistry.contentType
 
-exports.Counter            = require('prom-client-js/lib/counter')
-exports.Gauge              = require('prom-client-js/lib/gauge')
-exports.Histogram          = require('prom-client-js/lib/histogram')
-exports.Summary            = require('prom-client-js/lib/summary')
-exports.Pushgateway        = require('prom-client-js/lib/pushgateway')
+exports.Counter            = require('./prom-client-js/lib/counter')
+exports.Gauge              = require('./prom-client-js/lib/gauge')
+exports.Histogram          = require('./prom-client-js/lib/histogram')
+exports.Summary            = require('./prom-client-js/lib/summary')
+exports.Pushgateway        = require('./prom-client-js/lib/pushgateway')
 
-exports.linearBuckets      = require('prom-client-js/lib/bucketGenerators').linearBuckets
-exports.exponentialBuckets = require('prom-client-js/lib/bucketGenerators').exponentialBuckets
+exports.linearBuckets      = require('./prom-client-js/lib/bucketGenerators').linearBuckets
+exports.exponentialBuckets = require('./prom-client-js/lib/bucketGenerators').exponentialBuckets
 
-exports.aggregators        = require('prom-client-js/lib/metricAggregators').aggregators
+exports.aggregators        = require('./prom-client-js/lib/metricAggregators').aggregators
 
 # ATTN: default metrics do not work, because they are only added upon "proper" export -- not our .get json trick
 # exports.register.setDefaultLabels(defaultLabels)
