@@ -6,6 +6,8 @@
   "directories": {},
   "dependencies": {
     "async": "^1.4.2",
+    "babel-cli": "^6.26.0",
+    "babel-preset-env": "^1.6.0",
     "bootbox": "^4.4.0",
     "bootstrap": "^3.3.6",
     "bootstrap-colorpicker": "^2.3.6",
@@ -83,7 +85,8 @@
   "scripts": {
     "test": "echo 'TEST WEBAPP'; SMC_TEST=true node_modules/.bin/mocha --reporter progress test && echo 'TEST JUPYTER CLIENT'; cd jupyter && ../node_modules/.bin/mocha  --reporter progress  test",
     "lint": "node_modules/.bin/coffeelint -f ../smc-util/coffeelint.json -c *.coffee *.cjsx",
-    "coverage": "rm -rf ./coverage/; SMC_TEST=true node_modules/.bin/mocha --require ./coffee-coverage-loader.js && node_modules/.bin/istanbul report text html"
+    "coverage": "rm -rf ./coverage/; SMC_TEST=true node_modules/.bin/mocha --require ./coffee-coverage-loader.js && node_modules/.bin/istanbul report text html",
+    "postinstall": "node_modules/.bin/babel --presets=env  node_modules/prom-client -d node_modules/prom-client-js"
   },
   "repository": {
     "type": "git",
