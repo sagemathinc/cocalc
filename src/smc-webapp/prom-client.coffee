@@ -18,22 +18,16 @@ exports.enabled = true
 #    npm install
 
 if not global._babelPolyfill
-    require("babel-polyfill") # since prom-client-js was compiled using babel
+    # load this, since prom-client-js was compiled using babel and we need it on some browsers;
+    # also, use the if, since this code is imported multiple times as part of loading cocalc.
+    require("babel-polyfill")
 
-exports.register           = require('./prom-client-js/lib/registry').globalRegistry
-exports.Registry           = require('./prom-client-js/lib/registry')
-exports.contentType        = require('./prom-client-js/lib/registry').globalRegistry.contentType
-
-exports.Counter            = require('./prom-client-js/lib/counter')
-exports.Gauge              = require('./prom-client-js/lib/gauge')
-exports.Histogram          = require('./prom-client-js/lib/histogram')
-exports.Summary            = require('./prom-client-js/lib/summary')
-exports.Pushgateway        = require('./prom-client-js/lib/pushgateway')
-
-exports.linearBuckets      = require('./prom-client-js/lib/bucketGenerators').linearBuckets
-exports.exponentialBuckets = require('./prom-client-js/lib/bucketGenerators').exponentialBuckets
-
-exports.aggregators        = require('./prom-client-js/lib/metricAggregators').aggregators
+# Make things available.
+prom = require('prom-client-js')
+for x in ['register', 'Registry', 'contentType', 'Counter', 'Gauge', 'Histogram', 'Summary', 'Pushgateway', 'linearBuckets', 'exponentialBuckets']
+    exports[x] = prom[x]
+    if not exports[x]?
+        throw Error("bug -- missing prom-client-js.#{x} not defined")
 
 # ATTN: default metrics do not work, because they are only added upon "proper" export -- not our .get json trick
 # exports.register.setDefaultLabels(defaultLabels)
