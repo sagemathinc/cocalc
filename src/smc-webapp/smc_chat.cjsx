@@ -320,6 +320,8 @@ Message = rclass
                 {cols}
             </Row>
 
+SCROLL_DEBOUNCE_MS = 750
+
 ChatLog = rclass
     displayName: "ChatLog"
 
@@ -493,8 +495,8 @@ exports.ChatRoom = rclass ({name}) ->
         # issue -- if the user is switching tabs back and forth in a session, that is very
         # unlikely, due to the browser caching the dynamic content.
         # The user is also unlikely to manually scroll the page then see it jump to
-        # this fixed position dwithin 500ms of mounting.
-        for tm in [0, 150, 500]
+        # this fixed position within 500ms of mounting.
+        for tm in [0, 200, SCROLL_DEBOUNCE_MS-250]
             setTimeout(fix_pos, tm)
 
     componentDidMount: ->
@@ -720,7 +722,7 @@ exports.ChatRoom = rclass ({name}) ->
                     <Well
                         style    = {chat_log_style}
                         ref      = 'log_container'
-                        onScroll = {underscore.debounce(@save_scroll_position,250)}>
+                        onScroll = {underscore.debounce(@save_scroll_position,SCROLL_DEBOUNCE_MS)}>
                         <ChatLog
                             messages     = {@props.messages}
                             account_id   = {@props.account_id}
