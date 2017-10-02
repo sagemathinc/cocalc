@@ -265,7 +265,9 @@ exports.SettingsPanel = rclass
         content += ("\"comments: #{assignment.get('path')}\"" for assignment in assignments).join(',') + '\n'
         for student in store.get_sorted_students()
             grades   = ("\"#{store.get_grade(assignment, student) ? ''}\"" for assignment in assignments).join(',')
+            grades   = grades.replace(/\n/g, "\\n")
             comments = ("\"#{store.get_comments(assignment, student) ? ''}\"" for assignment in assignments).join(',')
+            comments = comments.replace(/\n/g, "\\n")
             name     = "\"#{store.get_student_name(student)}\""
             email    = "\"#{store.get_student_email(student) ? ''}\""
             line     = [name, email, grades, comments].join(',')
@@ -296,12 +298,14 @@ exports.SettingsPanel = rclass
 
         console.log "exporting py"
         for student in store.get_sorted_students()
-            grades = (("'#{store.get_grade(assignment, student) ? ''}'") for assignment in assignments).join(',')
+            grades   = (("'#{store.get_grade(assignment, student) ? ''}'") for assignment in assignments).join(',')
+            grades   = grades.replace(/\n/g, "\\n")
             comments = (("'#{store.get_comments(assignment, student) ? ''}'") for assignment in assignments).join(',')
-            name   = store.get_student_name(student)
-            email  = store.get_student_email(student)
-            email  = if email? then "'#{email}'" else 'None'
-            line   = "    {'name':'#{name}', 'email':#{email}, 'grades':[#{grades}], 'comments':[#{comments}]},"
+            comments = comments.replace(/\n/g, "\\n")
+            name     = store.get_student_name(student)
+            email    = store.get_student_email(student)
+            email    = if email? then "'#{email}'" else 'None'
+            line     = "    {'name':'#{name}', 'email':#{email}, 'grades':[#{grades}], 'comments':[#{comments}]},"
             content += line + '\n'
         content += ']\n'
         @write_file(@path('py'), content)
