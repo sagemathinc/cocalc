@@ -189,7 +189,7 @@ exports.StudentAssignmentInfo = rclass
             on_change        = {(value)=>@setState(edited_comments:value)}
             on_save          = {@save_grade}
             on_cancel        = {=>@setState(editing_grade:false)}
-            truncate         = {80}
+            rendered_style   = {maxHeight:'4em', overflowY:'auto', padding:'5px', border: '1px solid #888'}
         />
 
     on_key_down_grade_editor: (e) ->

@@ -1,6 +1,5 @@
 # 3rd Party Libraries
 markdown = require('../markdown')
-html_trunc = require('trunc-html')
 {Button, ButtonToolbar, FormControl, FormGroup} = require('react-bootstrap')
 
 # Internal Libraries
@@ -25,18 +24,18 @@ exports.MarkdownInput = rclass
     displayName : 'WidgetMarkdownInput'
 
     propTypes :
-        persist_id    : rtypes.string # A unique id to identify the input. Required if you want automatic persistence
-        attach_to     : rtypes.string # Removes record when given store name is destroyed. Only use with persist_id
-        default_value : rtypes.string
-        editing       : rtypes.bool   # Used to control the edit/display state. CANNOT be used with persist_id
-        save_disabled : rtypes.bool   # Used to control the save button
-        on_change     : rtypes.func   # called with the new value when the value while editing changes
-        on_save       : rtypes.func   # called when saving from editing and switching back
-        on_edit       : rtypes.func   # called when editing starts
-        on_cancel     : rtypes.func   # called when cancel button clicked
-        truncate      : rtypes.number # number of characters to display before truncating. No truncation if undefined
-        rows          : rtypes.number
-        placeholder   : rtypes.string
+        persist_id     : rtypes.string # A unique id to identify the input. Required if you want automatic persistence
+        attach_to      : rtypes.string # Removes record when given store name is destroyed. Only use with persist_id
+        default_value  : rtypes.string
+        editing        : rtypes.bool   # Used to control the edit/display state. CANNOT be used with persist_id
+        save_disabled  : rtypes.bool   # Used to control the save button
+        on_change      : rtypes.func   # called with the new value when the value while editing changes
+        on_save        : rtypes.func   # called when saving from editing and switching back
+        on_edit        : rtypes.func   # called when editing starts
+        on_cancel      : rtypes.func   # called when cancel button clicked
+        rows           : rtypes.number
+        placeholder    : rtypes.string
+        rendered_style : rtypes.object
 
     reduxProps:
         markdown_inputs :
@@ -97,10 +96,6 @@ exports.MarkdownInput = rclass
     to_html: ->
         if @props.default_value
             html = markdown.markdown_to_html(@props.default_value).s
-
-            if @props.truncate
-                html = html_trunc(html, @props.truncate).html
-
             {__html: html}
         else
             {__html: ''}
@@ -142,8 +137,13 @@ exports.MarkdownInput = rclass
                 </ButtonToolbar>
             </div>
         else
+            html = @to_html()
+            if html?.__html
+                style = @props.rendered_style
+            else
+                style = undefined
             <div>
-                <div onClick={@edit} dangerouslySetInnerHTML={@to_html()}></div>
+                <div onClick={@edit} dangerouslySetInnerHTML={html} style={style}></div>
                 {<Button onClick={@edit}>Edit</Button> if not @props.hide_edit_button}
             </div>
 
