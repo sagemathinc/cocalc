@@ -799,6 +799,17 @@ exports.CourseActions = class CourseActions extends Actions
         obj.grades = grades
         @_set(obj)
 
+    set_comments: (assignment, student, comments) =>
+        store = @get_store()
+        return if not store?
+        assignment    = store.get_assignment(assignment)
+        student       = store.get_student(student)
+        obj           = {table:'assignments', assignment_id:assignment.get('assignment_id')}
+        comments_map = @_get_one(obj).comments ? {}
+        comments_map[student.get('student_id')] = comments
+        obj.comments = comments_map
+        @_set(obj)
+
     set_active_assignment_sort: (column_name) =>
         store = @get_store()
         if not store?
@@ -921,6 +932,7 @@ exports.CourseActions = class CourseActions extends Actions
         if not store? or not @_store_is_initialized()
             return finish("store not yet initialized")
         grade = store.get_grade(assignment, student)
+        comments = store.get_comments(assignment, student)
         if not student = store.get_student(student)
             return finish("no student")
         if not assignment = store.get_assignment(assignment)
@@ -942,7 +954,8 @@ exports.CourseActions = class CourseActions extends Actions
             async.series([
                 (cb) =>
                     # write their grade to a file
-                    content = "Your grade on this assignment:\n\n    #{grade}"
+                    content = "Your grade on this assignment:\n\n    #{grade}\n\n"
+                    content += "Instructor comments:\n\n    #{comments}"
                     if peer_graded
                         content += "\n\n\nPEER GRADED:\n\nYour assignment was peer graded by other students.\nYou can find the comments they made in the folders below."
                     webapp_client.write_text_file_to_project
