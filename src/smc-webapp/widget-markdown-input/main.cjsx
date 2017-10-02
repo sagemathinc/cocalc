@@ -1,5 +1,6 @@
 # 3rd Party Libraries
 markdown = require('../markdown')
+html_trunc = require('trunc-html')
 {Button, ButtonToolbar, FormControl, FormGroup} = require('react-bootstrap')
 
 # Internal Libraries
@@ -95,9 +96,12 @@ exports.MarkdownInput = rclass
 
     to_html: ->
         if @props.default_value
+            html = markdown.markdown_to_html(@props.default_value).s
+
             if @props.truncate
-                value = @props.default
-            {__html: markdown.markdown_to_html(@props.default_value).s}
+                html = html_trunc(html, @props.truncate).html
+
+            {__html: html}
         else
             {__html: ''}
 

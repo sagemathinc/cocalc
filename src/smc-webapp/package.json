@@ -67,6 +67,7 @@
     "reselect": "^2.5.4",
     "three": "^0.78.0",
     "timeago": "^1.5.3",
+    "trunc-html": "^1.1.2",
     "underscore": "^1.8.3"
   },
   "devDependencies": {

@@ -172,8 +172,8 @@ exports.StudentAssignmentInfo = rclass
         else
             if @props.grade
                 <div key='grade' onClick={@edit_grade}>
-                    Grade: {@props.grade}<br/>
-                    {<span>Comments: {@props.comments}</span> if @props.comments}
+                    <strong>Grade</strong>: {@props.grade}<br/>
+                    {<span><strong>Comments</strong>:</span> if @props.comments}
                 </div>
 
     render_comments: ->
@@ -189,6 +189,7 @@ exports.StudentAssignmentInfo = rclass
             on_change        = {(value)=>@setState(edited_comments:value)}
             on_save          = {@save_grade}
             on_cancel        = {=>@setState(editing_grade:false)}
+            truncate         = {80}
         />
 
     on_key_down_grade_editor: (e) ->
