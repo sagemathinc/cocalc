@@ -79,7 +79,7 @@
     "coffee-script": "^1.9.3",
     "coffeelint": "^1.10.1",
     "coffeelint-cjsx": "git://github.com/sagemathinc/coffeelint-cjsx.git",
-    "expect": "^1.12.2",
+    "expect": "^21.0.0",
     "istanbul": "^0.4.0",
     "jsdom": "^7.0.2",
     "mocha": "^2.3.3",
