@@ -2,9 +2,9 @@
 Drag'n'Drop dropzone area
 ###
 
-ReactDOMServer = require('react-dom/server')   # for dropzone below
-Dropzone       = require('dropzone')
-DropComponent  = require('react-dropzone-component')
+ReactDOMServer      = require('react-dom/server')   # for dropzone below
+Dropzone            = require('dropzone')
+{DropzoneComponent} = require('react-dropzone-component')
 
 misc           = require('smc-util/misc')
 
@@ -75,7 +75,7 @@ exports.SMC_Dropzone = rclass
             {@render_close_button() if @props.close_button_onclick?}
             {render_header()}
             <div style={DROPSTYLE}>
-                <DropComponent
+                <DropzoneComponent
                     config        = {postUrl: @postUrl()}
                     eventHandlers = {@props.dropzone_handler}
                     djsConfig     = {previewTemplate: ReactDOMServer.renderToStaticMarkup(@dropzone_template())} />

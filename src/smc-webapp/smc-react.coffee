@@ -29,6 +29,8 @@ immutable        = require('immutable')
 underscore       = require('underscore')
 React            = require('react')
 redux_lib        = require('redux')
+createReactClass = require('create-react-class')
+PropTypes        = require('prop-types')
 {createSelector} = require('reselect')
 
 
@@ -468,7 +470,7 @@ react_component = (x) ->
         # Creates a react class that wraps the eventual component.
         # It calls the generator function with props as a parameter
         # and caches the result based on reduxProps
-        cached = React.createClass
+        cached = createReactClass
             # This only caches per Component. No memory leak, but could be faster for multiple components with the same signature
             render : () ->
                 @cache ?= {}
@@ -505,7 +507,7 @@ react_component = (x) ->
 
         x.actions = redux.getActions
 
-        C = React.createClass(x)
+        C = createReactClass(x)
         if x.reduxProps?
             # Make the ones comming from redux get automatically injected, as long
             # as this component is in a heierarchy wrapped by <Redux redux={redux}>...</Redux>
@@ -543,9 +545,9 @@ else if TIME
 else
     rclass = react_component
 
-Redux = React.createClass
+Redux = createReactClass
     propTypes :
-        redux : React.PropTypes.object.isRequired
+        redux : PropTypes.object.isRequired
     render: ->
         React.createElement(Provider, {store: @props.redux._redux_store}, @props.children)
         # The lines above are just the non-cjsx version of this:
@@ -561,7 +563,7 @@ exports.is_redux_actions = (obj) -> obj instanceof Actions
 # TODO: this code is also in many editors -- make them all just use this.
 exports.redux_name = (project_id, path) -> "editor-#{project_id}-#{path}"
 
-exports.rclass   = rclass    # use rclass instead of React.createClass to get access to reduxProps support
+exports.rclass   = rclass    # use rclass instead of createReactClass to get access to reduxProps support
 exports.rtypes   = rtypes    # has extra rtypes.immutable, needed for reduxProps to leave value as immutable
 exports.computed = computed
 exports.depends  = depends
