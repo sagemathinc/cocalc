@@ -619,7 +619,7 @@ Student = rclass
         <Row key='note' style={styles.note}>
             <Col xs=2>
                 <Tip title="Notes about this student" tip="Record notes about this student here. These notes are only visible to you, not to the student.  In particular, you might want to include an email address or other identifying information here, and notes about late assignments, excuses, etc.">
-                    Notes
+                    Private Student Notes
                 </Tip>
             </Col>
             <Col xs=10>
