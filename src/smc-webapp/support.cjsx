@@ -373,30 +373,36 @@ SupportInfo = rclass
             loc  = @props.actions.location()
             fn   = loc.slice(47) # / projects / uuid /
             what = <p>
-                       If you have a problem or question with "{fn}" in
-                       project "{title}", please create a support ticket.
+                       If you have a problem involving "{fn}" in the
+                       project "{title}", please create a support ticket below.
                    </p>
         else
             what = <p>
-                       If you have a problem with a specific project or file,
-                       close this dialog, navigate to it, and then click on
+                       If you have a problem involving a specific project or file,
+                       close this dialog, navigate to that file, then click on
                        {" "}<Icon name='medkit' />{" "}
                        in the top right corner to open it again.
-                       Otherwise, please go ahead.
+                       Otherwise, please fill out this form.
                    </p>
         <div>
             {what}
+            <ul>
+                <li>
+                    <b>Looking for documentation and help?</b> Go to
+                    the <a href="#{SmcWikiUrl}" target="_blank">CoCalc documentation</a>.
+                </li>
+                <li>
+                    <b>Trying to sign out?</b>  Click on your name at the top, then click the
+                    "Sign out..." button in account settings.
+                </li>
+                <li>
+                    <b>Requesting that we install software?</b> Include a complete example
+                    that we can easily use to verify that we properly installed the software.
+                </li>
+            </ul>
             <p>
-                <b>Looking for documentation and help?</b> Go to
-                the <a href="#{SmcWikiUrl}" target="_blank">CoCalc documentation</a>.
-            </p>
-            <p>
-                <b>Trying to sign out?</b>  Click on your name at the top, then click the
-                "Sign out..." button in account settings.
-            </p>
-            <p>
-                After submitting a ticket, you{"'"}ll get a link, which you may
-                want to save until you receive a confirmation email.
+                After submitting a ticket, you{"'"}ll receive a link, which you should save until
+                you receive a confirmation email.
                 You can also check the status of your ticket under "Support"
                 in your account settings.
             </p>
@@ -502,7 +508,7 @@ SupportForm = rclass
             <div style={margin:'10px', color:'#666'}>
                 1. What did you do exactly?  2. What happened?  3. How did this differ from what you expected?
                 <br/>
-                <b>If your support request involves any files at all, include the link (the URL in your browser) to the file; otherwise, answering your question may take many extra hours.</b>
+                <b><em>If your support request involves any files at all, include the link (the URL in your browser) to the file; otherwise, answering your question may take many extra hours.</em></b>
             </div>
             <FormGroup>
                 <FormControl
@@ -515,7 +521,7 @@ SupportForm = rclass
                     onChange    = {@data_change} />
             </FormGroup>
             <div style={margin:'0px 10px'}>
-                <b>Include a link (the URL in your browser) to absolutely anything relevant to your question.</b>
+                <b>Again: include a link (the URL in your browser) to absolutely anything relevant to your question.</b>
             </div>
         </form>
 
