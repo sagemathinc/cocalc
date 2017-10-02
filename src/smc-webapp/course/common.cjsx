@@ -172,7 +172,8 @@ exports.StudentAssignmentInfo = rclass
         else
             if @props.grade
                 <div key='grade' onClick={@edit_grade}>
-                    Grade: {@props.grade}
+                    Grade: {@props.grade}<br/>
+                    {<span>Comments: {@props.comments}</span> if @props.comments}
                 </div>
 
     render_comments: ->

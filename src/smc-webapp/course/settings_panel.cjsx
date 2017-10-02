@@ -298,7 +298,6 @@ exports.SettingsPanel = rclass
         for student in store.get_sorted_students()
             grades = (("'#{store.get_grade(assignment, student) ? ''}'") for assignment in assignments).join(',')
             comments = (("'#{store.get_comments(assignment, student) ? ''}'") for assignment in assignments).join(',')
-            comments = comments.replace(/\n/, "\\n")
             name   = store.get_student_name(student)
             email  = store.get_student_email(student)
             email  = if email? then "'#{email}'" else 'None'
