@@ -1,7 +1,10 @@
 Check on our SLO, namely number of projects that took 30s or more to start among the last 100 projects started.
 
-    select * from (select time, project_id,(event#>>'{time}')::INTEGER as t from project_log where event#>>'{event}'='start_project' order by time desc limit 100) as foo where t >= 30000;
+    select count(*) from project_log where event#>>'{event}'='start_project' and time >= now() - interval '1 day'; select * from (select now()-time as age, project_id,(event#>>'{time}')::INTEGER as t from project_log where event#>>'{event}'='start_project' and time >= now() - interval '1 day' order by time desc) as foo where t >= 30000 order by age;
 
+
+    select count(*) from project_log where event#>>'{event}'='start_project' and time >= now() - interval '1 day' and (event#>>'{time}')::INTEGER >= 20000; select count(*) from project_log where event#>>'{event}'='start_project' and time >= now() - interval '1 day';
+    
 Problems people are having right now:
 
     select NOW() - time as timeago, left(account_id::VARCHAR,6), left(error,70) as error from client_error_log order by time desc limit 50;
