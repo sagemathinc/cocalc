@@ -30,6 +30,7 @@ The Landing Page
 DESC_FONT = 'sans-serif'
 
 {ShowSupportLink} = require('./support')
+{reset_password_key} = require('./password-reset')
 
 misc = require('smc-util/misc')
 {APP_TAGLINE} = require('smc-util/theme')
@@ -38,13 +39,6 @@ misc = require('smc-util/misc')
 $.get window.app_base_url + "/registration", (obj, status) ->
     if status == 'success'
         redux.getActions('account').setState(token : obj.token)
-
-reset_password_key = () ->
-    url_args = window.location.href.split("#")
-    # toLowerCase is important since some mail transport agents will uppercase the URL -- see https://github.com/sagemathinc/cocalc/issues/294
-    if url_args.length == 2 and url_args[1].slice(0, 6).toLowerCase() == 'forgot'
-        return url_args[1].slice(7, 7+36).toLowerCase()
-    return undefined
 
 Passports = rclass
     displayName : 'Passports'
@@ -594,7 +588,6 @@ exports.LandingPage = rclass
     render: ->
         if not @props.remember_me
             reset_key = reset_password_key()
-
             if @props.has_remember_me
                 topbar =
                   img_icon    : APP_ICON_WHITE
