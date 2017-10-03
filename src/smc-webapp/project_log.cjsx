@@ -108,6 +108,10 @@ LogEntry = rclass
                 project_id = {@props.project_id} />
         </span>
 
+    render_start_project: ->
+        <span>started this project (took {Math.round(@props.event.time/1000)} seconds)
+        </span>
+
     render_miniterm_command: (cmd) ->
         if cmd.length > 50
             <Tip title='Full command' tip={cmd} delayHide={10000} rootClose={true} >
@@ -208,8 +212,8 @@ LogEntry = rclass
             return <span>{@props.event}</span>
 
         switch @props.event?.event
-            when 'open_project'
-                return <span>opened this project</span>
+            when 'start_project'
+                return @render_start_project()
             when 'open' # open a file
                 return @render_open_file()
             when 'set'
@@ -226,6 +230,8 @@ LogEntry = rclass
                 return @render_invite_user()
             when 'invite_nonuser'
                 return @render_invite_nonuser()
+            when 'open_project'  # not used anymore???
+                return <span>opened this project</span>
             else
                 # FUTURE:
                 return <span>{misc.to_json(@props.event)}</span>

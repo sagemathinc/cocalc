@@ -1720,12 +1720,14 @@ get_directory_listing = (opts) ->
     if opts.group in ['owner', 'collaborator', 'admin']
         method = webapp_client.project_directory_listing
         # Also, make sure project starts running, in case it isn't.
-        state = redux.getStore('projects').getIn([opts.project_id, 'state', 'state'])
+        state = redux.getStore('projects').getIn(['project_map', opts.project_id, 'state', 'state'])
         if prom_client.enabled
             prom_labels.state = state
         if state != 'running'
+            time0 = new Date()
             redux.getActions('projects').start_project(opts.project_id)
     else
+        state = time0 = undefined
         method = webapp_client.public_project_directory_listing
         if prom_client.enabled
             prom_labels.public = true
@@ -1768,4 +1770,10 @@ get_directory_listing = (opts) ->
                 prom_get_dir_listing_h?.observe(prom_labels, (new Date() - prom_dir_listing_start) / 1000)
 
             opts.cb(err ? listing_err, listing)
+            if state? and time0? and state != 'running' and not err
+                # successfully opened, started, and got directory listing
+                redux.getProjectActions(opts.project_id).log
+                    event : 'start_project'
+                    time  : new Date() - time0
+
 
