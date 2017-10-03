@@ -1,3 +1,6 @@
+Check on our SLO, namely number of projects that took 30s or more to start among the last 100 projects started.
+
+    select * from (select time, project_id,(event#>>'{time}')::INTEGER as t from project_log where event#>>'{event}'='start_project' order by time desc limit 100) as foo where t >= 30000;
 
 Problems people are having right now:
 
