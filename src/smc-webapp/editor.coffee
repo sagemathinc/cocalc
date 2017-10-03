@@ -99,7 +99,6 @@ codemirror_associations =
     hs     : 'text/x-haskell'
     lhs    : 'text/x-haskell'
     html   : 'htmlmixed'
-    jade   : 'text/x-pug'
     java   : 'text/x-java'
     jl     : 'text/x-julia'
     js     : 'javascript'
@@ -116,7 +115,6 @@ codemirror_associations =
     pari   : 'text/pari'
     php    : 'php'
     pl     : 'text/x-perl'
-    pug    : 'text/x-pug'
     py     : 'python'
     pyx    : 'python'
     r      : 'r'
@@ -238,6 +236,12 @@ file_associations['yml'] = file_associations['yaml'] =
     icon   : 'fa-code'
     opts   : {mode:'yaml', indent_unit:2, tab_size:2}
     name   : "YAML"
+
+file_associations['pug'] = file_associations['jade'] =
+    editor : 'codemirror'
+    icon   : 'fa-code'
+    opts   : {mode:'text/x-pug', indent_unit:2, tab_size:2}
+    name   : "PUG"
 
 file_associations['css'] =
     editor : 'codemirror'
