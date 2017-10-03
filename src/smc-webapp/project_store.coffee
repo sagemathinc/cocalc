@@ -1724,7 +1724,7 @@ get_directory_listing = (opts) ->
         if prom_client.enabled
             prom_labels.state = state
         if state != 'running'
-            time0 = new Date()
+            time0 = misc.server_time()
             redux.getActions('projects').start_project(opts.project_id)
     else
         state = time0 = undefined
@@ -1770,10 +1770,10 @@ get_directory_listing = (opts) ->
                 prom_get_dir_listing_h?.observe(prom_labels, (new Date() - prom_dir_listing_start) / 1000)
 
             opts.cb(err ? listing_err, listing)
-            if state? and time0? and state != 'running' and not err
+            if time0 and state != 'running' and not err
                 # successfully opened, started, and got directory listing
                 redux.getProjectActions(opts.project_id).log
                     event : 'start_project'
-                    time  : new Date() - time0
+                    time  : misc.server_time() - time0
 
 
