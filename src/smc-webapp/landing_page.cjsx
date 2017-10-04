@@ -337,10 +337,6 @@ ForgotPassword = rclass
                     check your spam folder
                 </span>
                 {s[1]}
-                <span>
-                    <br/>
-                    If you have trouble with the reset link you get via email, open it in <b>Private Browser Mode</b>.
-                </span>
             </span>
 
     hide_forgot_password: ->
