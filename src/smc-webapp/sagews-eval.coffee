@@ -21,13 +21,21 @@ class Cell
         @cell_id = opts.cell_id
 
 class Worksheet
-    constructor: (worksheet) ->
+    constructor: (sagews_doc, redux) ->
         # Copy over exactly the methods we need rather than everything.
         # This is a token attempt ot make this slightly less dangerous.
         # Obviously, execute_code is quite dangerous... for a particular project on the backend.
         @worksheet = {}
         for x in ['execute_code', 'interrupt', 'kill', 'element']
-            @worksheet[x] = worksheet[x]
+            @worksheet[x] = sagews_doc[x]
+
+        # The following project_page functions are assumed to be available
+        # by the backend sage_server.py, which generates code that uses them.
+        actions = redux.getProjectActions(sagews_doc.editor.project_id)
+        @project_page =
+            open_file        : actions.open_file
+            open_directory   : actions.open_directory
+            set_current_path : actions.set_current_path
 
     execute_code: (opts) =>
         if typeof opts == "string"
@@ -62,10 +70,13 @@ class Worksheet
             else
                 i.del_interact_var(opts.name)
 
-exports.sagews_eval = (code, worksheet, element, id, obj) ->
+
+
+exports.sagews_eval = (code, sagews_doc, element, id, obj, redux) ->
     if element?
         cell = new Cell(output : element, cell_id : id)
-    worksheet = new Worksheet(worksheet)
+    worksheet = new Worksheet(sagews_doc, redux)
+    sagews_doc = redux = undefined  # so not visible in eval
     print     = (s...) ->
         for i in [0...s.length]
             if typeof(s[i]) != 'string'

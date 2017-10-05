@@ -37,8 +37,9 @@ create_secret_token = (cb) ->
     )
 
 exports.init_secret_token = (cb) ->
-    winston.debug("initializing secret token")
-    fs.readFile common.secret_token_filename(), (err, data) ->
+    filename = common.secret_token_filename()
+    winston.debug("initializing secret token '#{filename}'")
+    fs.readFile filename, (err, data) ->
         if err
             create_secret_token(cb)
         else

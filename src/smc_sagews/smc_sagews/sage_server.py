@@ -653,9 +653,10 @@ class Salvus(object):
 
     def _action(self, path, foreground):
         if os.path.isdir(path):
-            action = "worksheet.project_page.chdir(obj.path);"
             if foreground:
-                action += "worksheet.project_page.display_tab('project-file-listing');"
+                action = "worksheet.project_page.open_directory(obj.path);"
+            else:
+                action = "worksheet.project_page.set_current_path(obj.path);"
         else:
             action = "worksheet.project_page.open_file({'path':obj.path, 'foreground': obj.foreground});"
         return action
