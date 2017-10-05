@@ -380,10 +380,13 @@ exports.SettingsPanel = rclass
     render_require_students_pay_when: ->
         if not @props.settings.get('pay')
             return <span/>
+        else if typeof @props.settings.get('pay') == 'string'
+            value = new Date(@props.settings.get('pay'))
+
         <div style={marginBottom:'1em'}>
             <div style={width:'50%', marginLeft:'3em', marginBottom:'1ex'}>
                 <Calendar
-                    value     = {@props.settings.get('pay')}
+                    value     = {value ? @props.settings.get('pay')}
                     on_change = {(date)=>@actions(@props.name).set_course_info(date)}
                 />
             </div>
