@@ -672,9 +672,9 @@ class Salvus(object):
 
     def close_tab(self, filename):
         """
-        Open an open file tab.  The filename is relative to the current working directory.
+        Close an open file tab.  The filename is relative to the current working directory.
         """
-        self.javascript("worksheet.editor.close(obj)", obj = filename, once=True)
+        self.javascript("worksheet.project_page.close_file(obj)", obj = filename, once=True)
 
     def threed(self,
                g,                   # sage Graphic3d object.

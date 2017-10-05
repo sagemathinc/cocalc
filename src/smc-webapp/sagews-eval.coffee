@@ -34,6 +34,7 @@ class Worksheet
         actions = redux.getProjectActions(sagews_doc.editor.project_id)
         @project_page =
             open_file        : actions.open_file
+            close_file       : actions.close_file
             open_directory   : actions.open_directory
             set_current_path : actions.set_current_path
 
