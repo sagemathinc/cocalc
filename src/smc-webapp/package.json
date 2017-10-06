@@ -63,7 +63,7 @@
     "react-json-inspector": "^7.0.1",
     "react-redux": "^5.0.6",
     "react-select": "git://github.com/JedWatson/react-select.git",
-    "react-sortable-hoc": "0.0.8",
+    "react-sortable-hoc": "^0.6.8",
     "react-timeago": "^3.1.3",
     "react-widgets": "^3.0.0",
     "redux": "^3.6.0",
