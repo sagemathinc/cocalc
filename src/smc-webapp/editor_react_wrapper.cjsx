@@ -22,7 +22,7 @@
 # the UI using React without having to rewrite all the editors.
 ##############################################################################
 
-{NotifyResize} = require('@zippytech/react-notify-resize')
+{NotifyResize} = require('./react-notify-resize/lib/index')
 
 {debounce} = require('underscore')
 
