@@ -119,7 +119,7 @@ class exports.UserQueryQueue
             orig_cb?(err, result)
 
         # Finally, do the query.
-        query_queue_exec.label('sent').inc()
+        query_queue_exec.labels('sent').inc()
         @_do_query(opts)
 
     _update: (state) =>
