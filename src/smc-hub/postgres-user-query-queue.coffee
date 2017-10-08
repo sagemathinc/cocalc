@@ -62,8 +62,7 @@ class exports.UserQueryQueue
             changes    : undefined
             cb         : undefined
         client_id = opts.client_id
-        @_dbg("user_query(client_id='#{opts.client_id}')")
-        delete opts.client_id
+        @_dbg("user_query(client_id='#{client_id}')")
         state = @_state[client_id]
         if not state?
             state = @_state[client_id] =
