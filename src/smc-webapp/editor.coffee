@@ -710,7 +710,7 @@ class FileEditor extends EventEmitter
 
         @element.show()
         # if above line reveals it, give it a bit time to do the layout first
-        @_show(opts)  # critical -- also do an intial layout!  Otherwise get a horrible messed up animation effect.
+        @_show(opts)  # critical -- also do an initial layout!  Otherwise get a horrible messed up animation effect.
         setTimeout((=> @_show(opts)), 10)
         if DEBUG
             window?.smc?.doc = @  # useful for debugging...
@@ -1740,6 +1740,9 @@ class CodeMirrorEditor extends FileEditor
 
     _show_codemirror_editors: (height) =>
         # console.log("_show_codemirror_editors: #{@_layout}")
+        if not @codemirror?
+            # already closed so can't show (in syncdoc, .codemirorr is deleted on close)
+            return
         switch @_layout
             when 0
                 p = 1
