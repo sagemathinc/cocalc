@@ -23,7 +23,7 @@ DEBUG = false
 
 # Maximum number of outstanding concurrent messages (that have responses)
 # to send at once to the backend.
-MAX_CONCURRENT = 40
+MAX_CONCURRENT = 50
 
 {EventEmitter} = require('events')
 
@@ -684,7 +684,7 @@ class exports.Connection extends EventEmitter
         @_update_calls()
 
     _update_calls: =>
-        while @_call.queue.length > 0 and @_call.count <= MAX_CONCURRENT
+        while @_call.queue.length > 0 and @_call.count < MAX_CONCURRENT
             @_process_next_call()
 
     _emit_mesg_info: =>
