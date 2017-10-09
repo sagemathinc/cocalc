@@ -72,7 +72,7 @@ exports.quota = (settings, users) ->
 
     # memory request
     if settings.memory_request
-        quota.memory_request = Math.max(MEMORY_REQUEST_MIN, to_int(settings.memory_request))
+        quota.memory_request = to_int(settings.memory_request)
     for _, val of users
         quota.memory_request += to_int(val?.upgrades?.memory_request)
 
