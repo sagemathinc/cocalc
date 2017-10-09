@@ -707,16 +707,17 @@ ProjectFilesPath = rclass
     make_path: ->
         v = []
         v.push <PathSegmentLink path='' display={<Icon name='home' />} key=0 actions={@props.actions} />
-        if @props.current_path == ""
-            return v
         path = @props.current_path
         root = path[0] == '/'
         if root
             path = path[1..]
-        path_segments = path.split('/')
+        if @props.current_path == ''
+            path_segments = []
+        else
+            path_segments = path.split('/')
         history_segments = @props.history_path.split('/')
         for segment, i in history_segments
-            is_last = i == path_segments.length - 1
+            is_current = i == path_segments.length - 1
             is_history = i >= path_segments.length
             v.push <PathSegmentLink
                     path      = {history_segments[..i].join('/')}
@@ -724,7 +725,7 @@ ProjectFilesPath = rclass
                     full_name = {segment}
                     key       = {i+1}
                     actions   = {@props.actions}
-                    active    = {is_last}
+                    active    = {is_current}
                     history   = {is_history} />
         return v
 
