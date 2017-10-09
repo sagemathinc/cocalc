@@ -979,6 +979,10 @@ exports.PathLink = rclass
         else
             @render_link(name)
 
+Globalize = require('globalize')
+globalizeLocalizer = require('react-widgets-globalize')
+globalizeLocalizer(Globalize)
+
 DateTimePicker = require('react-widgets/lib/DateTimePicker')
 
 DATETIME_PARSE_FORMATS = [
