@@ -22,6 +22,16 @@ USER_QUERY_TIMEOUT_MS = 15000
 # This is currently not used for anything except logging.
 TIME_HISTORY_LENGTH = 100
 
+# setup metrics
+metrics_recorder = require('./metrics-recorder')
+query_queue_exec = metrics_recorder.new_counter('query_queue_executed_total',
+                    'Executed queries and their status', ['status'])
+query_queue_duration = metrics_recorder.new_counter('query_queue_duration_seconds_total',
+                    'Total time it took to evaluate queries')
+query_queue_done = metrics_recorder.new_counter('query_queue_done_total',
+                    'Total number of evaluated queries')
+query_queue_info = metrics_recorder.new_gauge('query_queue_info', 'Information update about outstanding queries in the queue', ['client', 'info'])
+
 class exports.UserQueryQueue
     constructor: (opts) ->
         opts = defaults opts,
@@ -38,6 +48,7 @@ class exports.UserQueryQueue
     destroy: =>
         delete @_do_query
         delete @_limit
+        delete @_timeout_ms
         delete @_dbg
         delete @_state
 
@@ -83,6 +94,7 @@ class exports.UserQueryQueue
             # point in even trying; the client likely already gave up.
             opts.cb?("timeout")
             cb()
+            query_queue_exec.labels('timeout').inc()
             return
 
         @_dbg("_do_one_query(client_id='#{opts.client_id}') -- doing the query")
@@ -107,6 +119,7 @@ class exports.UserQueryQueue
             orig_cb?(err, result)
 
         # Finally, do the query.
+        query_queue_exec.labels('sent').inc()
         @_do_query(opts)
 
     _update: (state) =>
@@ -124,7 +137,10 @@ class exports.UserQueryQueue
         tm = new Date()
         @_do_one_query opts, =>
             state.count -= 1
-            state.time_ms.push(new Date() - tm)
+            duration_ms = new Date() - tm
+            state.time_ms.push(duration_ms)
+            query_queue_duration.inc(duration_ms / 1000)
+            query_queue_done.inc(1)
             if state.time_ms.length > TIME_HISTORY_LENGTH
                 state.time_ms.shift()
             @_info(state)
@@ -133,10 +149,17 @@ class exports.UserQueryQueue
     _avg: (state) =>
         # recent average time
         v = state.time_ms.slice(state.time_ms.length - 10)
+        if v.length == 0
+            return 0
         s = 0
         for a in v
             s += a
         return s / v.length
 
     _info: (state) =>
-        @_dbg("client_id='#{state.client_id}': avg=#{@_avg(state)}ms, count=#{state.count}, queued.length=#{state.queue?.length}, sent=#{state.sent}")
+        avg = @_avg(state)
+        #query_queue_info.labels(state.client_id, 'count').set(state.count)
+        query_queue_info.labels(state.client_id, 'avg').set(avg)
+        #query_queue_info.labels(state.client_id, 'length').set(state.queue?.length ? 0)
+        #query_queue_info.labels(state.client_id, 'sent').set(state.sent)
+        @_dbg("client_id='#{state.client_id}': avg=#{avg}ms, count=#{state.count}, queued.length=#{state.queue?.length}, sent=#{state.sent}")
