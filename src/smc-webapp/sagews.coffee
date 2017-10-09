@@ -1658,16 +1658,16 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                 if not CoffeeScript?
                     # DANGER: this is the only async code in process_output_mesg
                     misc_page.load_coffeescript_compiler () =>
-                        sagews_eval(CoffeeScript?.compile(code), @, opts.element)
+                        sagews_eval(CoffeeScript?.compile(code), @, opts.element, redux)
                 else
                     # DANGER: this is the only async code in process_output_mesg
-                    sagews_eval(CoffeeScript?.compile(code), @, opts.element)
+                    sagews_eval(CoffeeScript?.compile(code), @, opts.element, redux)
             else
                 # The eval below is an intentional cross-site scripting vulnerability
                 # in the fundamental design of SMC.
                 # Note that there is an allow_javascript document option, which (at some point) users
                 # will be able to set.  There is one more instance of eval below in _receive_broadcast.
-                sagews_eval(code, @, opts.element, undefined, obj)
+                sagews_eval(code, @, opts.element, undefined, obj, redux)
 
         if mesg.show?
             if opts.mark?
@@ -1744,7 +1744,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                                 if mesg.coffeescript
                                     code = CoffeeScript.compile(code)
                                 obj = JSON.parse(mesg.obj)
-                                sagews_eval(code, @, undefined, mesg.cell_id, obj)
+                                sagews_eval(code, @, undefined, mesg.cell_id, obj, redux)
                                 cb()
                         ])
 
@@ -1990,7 +1990,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
             if cells.length == 1 and opts.advance
                 @move_cursor_to_next_cell()
             if cells.length > 0
-                @save_state_debounce()
+                @save_state_debounce?()
 
         @close_on_action()  # close introspect popups
 

@@ -1,8 +1,9 @@
 {React, rclass, rtypes}  = require('./smc-react')
 {Loading, r_join, Space, Footer} = require('./r_misc')
 misc = require('smc-util/misc')
-{Button, Row, Col, Well, Panel, ProgressBar} = require('react-bootstrap')
+{Button, ButtonToolbar, Row, Col, Well, Panel, ProgressBar} = require('react-bootstrap')
 {HelpEmailLink, SiteName, PolicyPricingPageUrl} = require('./customize')
+{UpgradeRestartWarning} = require('./upgrade_restart_warning')
 
 {PROJECT_UPGRADES} = require('smc-util/schema')
 
@@ -15,6 +16,9 @@ exports.UpgradesPage = rclass
         stripe_customer : rtypes.object
 
     displayName : "UpgradesPage"
+
+    getInitialState: ->
+        expand_reset_all_projects : false
 
     render_no_upgrades: ->
         {SubscriptionGrid, ExplainResources, ExplainPlan, FAQ} = require('./billing')
@@ -155,11 +159,38 @@ exports.UpgradesPage = rclass
             i += 1
             @render_upgraded_project(project_id, upgrades, i%2==0)
 
+    confirm_reset: (e) ->
+        upgraded_projects = @props.redux.getStore('projects').get_projects_upgraded_by()
+        # TODO: Make async in case of many many projects
+        for project_id, upgrades of upgraded_projects
+            @actions('projects').clear_project_upgrades(project_id)
+        @setState(expand_reset_all_projects:false)
+
+    render_header: ->
+        <div>
+            <Row>
+                <Col sm=12 style={display:'flex'} >
+                    <h4 style={flex:'1'} >Upgrades you have applied to projects</h4>
+                    <Button onClick={=>@setState(expand_reset_all_projects:true)} disabled={@state.expand_reset_all_projects}>
+                        Reset all project upgrades...
+                    </Button>
+                </Col>
+            </Row>
+            {<Row>
+                <Col sm=12>
+                    <ResetProjectsConfirmation
+                        on_confirm = {@confirm_reset}
+                        on_cancel  = {=>@setState(expand_reset_all_projects:false)}
+                    />
+                </Col>
+            </Row> if @state.expand_reset_all_projects}
+        </div>
+
     render_upgraded_projects: ->
         upgraded_projects = @props.redux.getStore('projects').get_projects_upgraded_by()
         if not misc.len(upgraded_projects)
             return
-        <Panel header={<h4>Upgrades you have applied to projects</h4>}>
+        <Panel header={@render_header()}>
             <Row key='header'>
                 <Col sm=4>
                     <strong>Project</strong>
@@ -183,3 +214,18 @@ exports.UpgradesPage = rclass
                 {@render_upgraded_projects()}
                 <Footer/>
             </div>
+
+ResetProjectsConfirmation = ({on_confirm, on_cancel}) ->
+    <Well style={marginBottom:'0px', marginTop:'10px', textAlign:'center'}>
+        Are you sure you want to remove all your upgrades from all projects?<br/>
+        You will have all your upgrades available to use.<br/>
+        <UpgradeRestartWarning style={display:'inline-block', marginBottom:'5px'} />
+        <ButtonToolbar>
+            <Button bsStyle='warning' onClick={on_confirm}>
+                Yes, remove all upgrades.
+            </Button>
+            <Button onClick={on_cancel}>
+                Cancel
+            </Button>
+        </ButtonToolbar>
+    </Well>

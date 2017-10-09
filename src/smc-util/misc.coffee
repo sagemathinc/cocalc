@@ -60,7 +60,10 @@ exports.RUNNING_IN_NODE = process?.title == 'node'
 exports.required = required; exports.defaults = defaults; exports.types = types
 
 # startswith(s, x) is true if s starts with the string x or any of the strings in x.
+# It is false if s is not a string.
 exports.startswith = (s, x) ->
+    if typeof(s) != 'string'
+        return false
     if typeof(x) == "string"
         return s?.indexOf(x) == 0
     else
@@ -130,6 +133,8 @@ exports.search_split = (search) ->
 # s = lower case string
 # v = array of terms as output by search_split above
 exports.search_match = (s, v) ->
+    if not s?
+        return false
     for x in v
         if s.indexOf(x) == -1
             return false
@@ -741,15 +746,15 @@ exports.retry_until_success = (opts) ->
                     opts.cb?("not_public")
                     return
                 if err and opts.warn?
-                    opts.warn("retry_until_success(#{opts.name}) -- err=#{err}")
+                    opts.warn("retry_until_success(#{opts.name}) -- err=#{JSON.stringify(err)}")
                 if opts.log?
-                    opts.log("retry_until_success(#{opts.name}) -- err=#{err}")
+                    opts.log("retry_until_success(#{opts.name}) -- err=#{JSON.stringify(err)}")
                 if opts.max_tries? and opts.max_tries <= tries
-                    opts.cb?("maximum tries (=#{opts.max_tries}) exceeded - last error #{err}")
+                    opts.cb?("maximum tries (=#{opts.max_tries}) exceeded - last error #{JSON.stringify(err)}")
                     return
                 delta = Math.min(opts.max_delay, opts.factor * delta)
                 if opts.max_time? and (new Date() - start_time) + delta > opts.max_time
-                    opts.cb?("maximum time (=#{opts.max_time}ms) exceeded - last error #{err}")
+                    opts.cb?("maximum time (=#{opts.max_time}ms) exceeded - last error #{JSON.stringify(err)}")
                     return
                 setTimeout(g, delta)
             else
@@ -1173,7 +1178,6 @@ exports.containing_public_path = (path, paths) ->
 exports.encode_path = (path) ->
     path = encodeURI(path)  # doesn't escape # and ?, since they are special for urls (but not unix paths)
     return path.replace(/#/g,'%23').replace(/\?/g,'%3F')
-
 
 # This adds a method _call_with_lock to obj, which makes it so it's easy to make it so only
 # one method can be called at a time of an object -- all calls until completion
@@ -1773,10 +1777,13 @@ exports.peer_grading_demo = (S = 10, N = 2) ->
 exports.ticket_id_to_ticket_url = (tid) ->
     return "https://sagemathcloud.zendesk.com/requests/#{tid}"
 
+# Checks if the string only makes sense (heuristically) as downloadable url
+exports.is_only_downloadable = (string) ->
+    string.indexOf('://') != -1 or exports.startswith(string, 'git@github.com')
+
 # Apply various transformations to url's before downloading a file using the "+ New" from web thing:
 # This is useful, since people often post a link to a page that *hosts* raw content, but isn't raw
 # content, e.g., ipython nbviewer, trac patches, github source files (or repos?), etc.
-
 exports.transform_get_url = (url) ->  # returns something like {command:'wget', args:['http://...']}
     URL_TRANSFORMS =
         'http://trac.sagemath.org/attachment/ticket/'  :'http://trac.sagemath.org/raw-attachment/ticket/'

@@ -26,6 +26,8 @@
 #
 ###########################################
 
+ACTIVE_INTERVAL_MS = 10000
+
 $                = window.$
 
 {debounce}       = require('underscore')
@@ -110,6 +112,7 @@ class Console extends EventEmitter
         @path = @opts.path
 
         @mark_file_use = debounce(@mark_file_use, 3000)
+        @resize        = debounce(@resize, 500)
 
         @_project_actions = redux.getProjectActions(@project_id)
 
@@ -117,6 +120,8 @@ class Console extends EventEmitter
         # editor is focused.  This impacts the cursor, and also whether
         # messages such as open_file or open_directory are handled (see @init_mesg).
         @is_focused = false
+
+        #@user_is_active()
 
         # Create the DOM element that realizes this console, from an HTML template.
         @element = console_template.clone()
@@ -189,6 +194,14 @@ class Console extends EventEmitter
 
         if opts.session?
             @set_session(opts.session)
+
+    # call this whenever the *user* actively does something --
+    # this gives them control of the terminal size...
+    user_is_active: =>
+        @_last_active = new Date()
+
+    user_was_recently_active: =>
+        return new Date() - (@_last_active ? 0) <= ACTIVE_INTERVAL_MS
 
     append_to_value: (data) =>
         # this @value is used for copy/paste of the session history and @value_orig for resize/refresh
@@ -272,11 +285,20 @@ class Console extends EventEmitter
         @resize_terminal()
         @config_session()
 
+    set_state_connected: =>
+        @element.find(".webapp-console-terminal").css('opacity':'1')
+        @element.find("a[href=\"#refresh\"]").removeClass('btn-success').find(".fa").removeClass('fa-spin')
+
+    set_state_disconnected:  =>
+        @element.find(".webapp-console-terminal").css('opacity':'.5')
+        @element.find("a[href=\"#refresh\"]").addClass('btn-success').find(".fa").addClass('fa-spin')
+
     config_session: () =>
         # The remote server sends data back to us to display:
         @session.on 'data',  (data) =>
             # console.log("terminal got #{data.length} characters -- '#{data}'")
             @_got_remote_data = new Date()
+            @set_state_connected()  # connected if we are getting data.
             if @_rendering_is_paused
                 @_render_buffer += data
             else
@@ -288,8 +310,7 @@ class Console extends EventEmitter
         @session.on 'reconnecting', () =>
             #console.log('terminal: reconnecting')
             @_reconnecting = new Date()
-            @element.find(".webapp-console-terminal").css('opacity':'.5')
-            @element.find("a[href=\"#refresh\"]").addClass('btn-success').find(".fa").addClass('fa-spin')
+            @set_state_disconnected()
 
         @session.on 'reconnect', () =>
             delete @_reconnecting
@@ -297,8 +318,7 @@ class Console extends EventEmitter
             @_needs_resize = true  # causes a resize when we next get data.
             @_connected = true
             @_got_remote_data = new Date()
-            @element.find(".webapp-console-terminal").css('opacity':'1')
-            @element.find("a[href=\"#refresh\"]").removeClass('btn-success').find(".fa").removeClass('fa-spin')
+            @set_state_connected()
             @reset()
             if @session.init_history?
                 #console.log("writing history")
@@ -369,6 +389,7 @@ class Console extends EventEmitter
     pause_rendering: (immediate) =>
         if @_rendering_is_paused
             return
+        #console.log 'pause_rendering'
         @_rendering_is_paused = true
         if not @_render_buffer?
             @_render_buffer = ''
@@ -384,6 +405,7 @@ class Console extends EventEmitter
     unpause_rendering: () =>
         if not @_rendering_is_paused
             return
+        #console.log 'unpause_rendering'
         @_rendering_is_paused = false
         f = () =>
             @render(@_render_buffer)
@@ -408,6 +430,7 @@ class Console extends EventEmitter
     _init_rendering_pause: () =>
 
         btn = @element.find("a[href=\"#pause\"]").click (e) =>
+            @user_is_active()
             if @_rendering_is_paused
                 @unpause_rendering()
             else
@@ -415,11 +438,12 @@ class Console extends EventEmitter
             return false
 
         e = @element.find(".webapp-console-terminal")
-
         e.mousedown () =>
+            @user_is_active()
             @pause_rendering(false)
 
         e.mouseup () =>
+            @user_is_active()
             if not getSelection().toString()
                 @unpause_rendering()
                 return
@@ -429,8 +453,9 @@ class Console extends EventEmitter
                 @unpause_rendering()
 
         e.on 'copy', =>
+            @user_is_active()
             @unpause_rendering()
-            setTimeout(@focus, 0)  # must happen in next cycle or copy will not work due to loss of focus.
+            setTimeout(@focus, 5)  # must happen in next cycle or copy will not work due to loss of focus.
 
     _init_colors: () =>
         colors = Terminal.color_schemes[@opts.color_scheme].colors
@@ -454,12 +479,14 @@ class Console extends EventEmitter
 
     client_keydown: (ev) =>
         #console.log("client_keydown")
+        @allow_resize = true
 
         if @_ignore
             # no matter what cancel ignore if the user starts typing, since we absolutely must not loose anything they type.
             @_ignore = false
 
         @mark_file_use()
+        @user_is_active()
 
         if ev.ctrlKey and ev.shiftKey
             switch ev.keyCode
@@ -469,7 +496,7 @@ class Console extends EventEmitter
                 when 188       # "control-shift-<"
                     @_decrease_font_size()
                     return false
-        if (ev.metaKey or ev.ctrlKey) and (ev.keyCode in [17, 86, 91, 93, 223, 224])  # command or control key (could be a paste coming)
+        if (ev.metaKey or ev.ctrlKey or ev.altKey) and (ev.keyCode in [17, 86, 91, 93, 223, 224])  # command or control key (could be a paste coming)
             #console.log("resetting hidden textarea")
             #console.log("clear hidden text area paste bin")
             # clear the hidden textarea pastebin, since otherwise
@@ -478,7 +505,7 @@ class Console extends EventEmitter
             # NOTE: we could do this on all keystrokes.  WE restrict as above merely for efficiency purposes.
             # See http://stackoverflow.com/questions/3902635/how-does-one-capture-a-macs-command-key-via-javascript
             @textarea.val('')
-        if @_rendering_is_paused and not (ev.ctrlKey or ev.metaKey)
+        if @_rendering_is_paused and not (ev.ctrlKey or ev.metaKey or ev.altKey)
             @unpause_rendering()
 
     _increase_font_size: () =>
@@ -500,6 +527,7 @@ class Console extends EventEmitter
 
     _init_font_make_default: () =>
         @element.find("a[href=\"#font-make-default\"]").click () =>
+            @user_is_active()
             redux.getTable('account').set(terminal:{font_size:@opts.font.size})
             return false
 
@@ -531,6 +559,7 @@ class Console extends EventEmitter
             @mobile_target.css('width', ter.css('width'))
             @mobile_target.css('height', ter.css('height'))
             @_click = (e) =>
+                @user_is_active()
                 t = $(e.target)
                 if t[0]==@mobile_target[0] or t.hasParent(@element).length > 0
                     @focus()
@@ -539,6 +568,7 @@ class Console extends EventEmitter
             $(document).on 'click', @_click
         else
             @_mousedown = (e) =>
+                @user_is_active()
                 if $(e.target).hasParent(@element).length > 0
                     @focus()
                 else
@@ -546,6 +576,7 @@ class Console extends EventEmitter
             $(document).on 'mousedown', @_mousedown
 
             @_mouseup = (e) =>
+                @user_is_active()
                 t = $(e.target)
                 sel = window.getSelection().toString()
                 if t.hasParent(@element).length > 0 and sel.length == 0
@@ -553,6 +584,7 @@ class Console extends EventEmitter
             $(document).on 'mouseup', @_mouseup
 
             $(@terminal.element).bind 'copy', (e) =>
+                @user_is_active()
                 # re-enable paste but only *after* the copy happens
                 setTimeout(@_focus_hidden_textarea, 10)
 
@@ -575,11 +607,13 @@ class Console extends EventEmitter
         fullscreen = @element.find("a[href=\"#fullscreen\"]")
         exit_fullscreen = @element.find("a[href=\"#exit_fullscreen\"]")
         fullscreen.on 'click', () =>
+            @user_is_active()
             @fullscreen()
             exit_fullscreen.show()
             fullscreen.hide()
             return false
         exit_fullscreen.hide().on 'click', () =>
+            @user_is_active()
             @exit_fullscreen()
             exit_fullscreen.hide()
             fullscreen.show()
@@ -591,18 +625,22 @@ class Console extends EventEmitter
         @element.find("a").tooltip(delay:{ show: 500, hide: 100 })
 
         @element.find("a[href=\"#increase-font\"]").click () =>
+            @user_is_active()
             @_increase_font_size()
             return false
 
         @element.find("a[href=\"#decrease-font\"]").click () =>
+            @user_is_active()
             @_decrease_font_size()
             return false
 
         @element.find("a[href=\"#refresh\"]").click () =>
+            @user_is_active()
             @session?.reconnect()
             return false
 
         @element.find("a[href=\"#paste\"]").click () =>
+            @user_is_active()
             id = uuid()
             s = "<h2><i class='fa project-file-icon fa-terminal'></i> Terminal Copy and Paste</h2>Copy and paste in terminals works as usual: to copy, highlight text then press ctrl+c (or command+c); press ctrl+v (or command+v) to paste. <br><br><span class='lighten'>NOTE: When no text is highlighted, ctrl+c sends the usual interrupt signal.</span><br><hr>You can copy the terminal history from here:<br><br><textarea readonly style='font-family: monospace;cursor: auto;width: 97%' id='#{id}' rows=10></textarea>"
             bootbox.alert(s)
@@ -780,7 +818,7 @@ class Console extends EventEmitter
 
         pb.on 'paste', =>
             pb.val('')
-            setTimeout(f,0)
+            setTimeout(f,5)
 
     #######################################################################
     # Public API
@@ -826,7 +864,10 @@ class Console extends EventEmitter
     # Determine the current size (rows and columns) of the DOM
     # element for the editor, then resize the renderer and the
     # remote PTY.
-    resize: () =>
+    resize: =>
+        if not @user_was_recently_active()
+            return
+
         if not @session?
             # don't bother if we don't even have a remote connection
             # FUTURE: could queue this up to send
@@ -974,7 +1015,7 @@ class Console extends EventEmitter
         @terminal.focus()
 
         $(@terminal.element).addClass('webapp-console-focus').removeClass('webapp-console-blur')
-        setTimeout((()=>delete @_focusing), 0)   # critical!
+        setTimeout((()=>delete @_focusing), 5)   # critical!
 
     set_title: (title) ->
         @opts.set_title?(title)

@@ -16,6 +16,9 @@ doing a lot of IO-based things is what Node.JS is good at.
 
 require('coffee-cache').setCacheDir("#{process.env.HOME}/.coffee")
 
+
+BUG_COUNTER = 0
+
 process.addListener "uncaughtException", (err) ->
     winston.debug("BUG ****************************************************************************")
     winston.debug("Uncaught exception: " + err)
@@ -23,6 +26,10 @@ process.addListener "uncaughtException", (err) ->
     winston.debug("BUG ****************************************************************************")
     if console? and console.trace?
         console.trace()
+    BUG_COUNTER += 1
+
+exports.get_bugs_total = ->
+    return BUG_COUNTER
 
 path    = require('path')
 async   = require('async')
@@ -31,6 +38,7 @@ os      = require('os')
 net     = require('net')
 uuid    = require('uuid')
 winston = require('winston')
+request = require('request')
 program = require('commander')          # command line arguments -- https://github.com/visionmedia/commander.js/
 
 # Set the log level
@@ -45,6 +53,9 @@ smc_version = require('smc-util/smc-version')
 misc_node   = require('smc-util-node/misc_node')
 
 {to_json, from_json, defaults, required}   = require('smc-util/misc')
+
+# Functionality special to the KuCalc environment.
+kucalc = require('./kucalc')
 
 # The raw http server
 raw_server = require('./raw_server')
@@ -110,10 +121,11 @@ common = require('./common')
 json = common.json
 
 INFO = undefined
+hub_client = undefined
 init_info_json = (cb) ->
     winston.debug("Writing 'info.json'")
     filename = "#{SMC}/info.json"
-    if process.env.COCALC_PROJECT_ID? and process.env.COCALC_USERNAME?
+    if kucalc.IN_KUCALC and process.env.COCALC_PROJECT_ID? and process.env.COCALC_USERNAME?
         project_id = process.env.COCALC_PROJECT_ID
         username   = process.env.COCALC_USERNAME
     else
@@ -137,9 +149,8 @@ init_info_json = (cb) ->
         project_id : project_id
         location   : {host:host, username:username, port:port, path:'.'}
         base_url   : base_url
-    fs.writeFileSync(filename, misc.to_json(INFO))
-
-init_info_json()
+    exports.client = hub_client = new Client(INFO.project_id)
+    fs.writeFile(filename, misc.to_json(INFO), cb)
 
 # Connecting to existing session or making a new one.
 connect_to_session = (socket, mesg) ->
@@ -233,8 +244,6 @@ project, which will cause it to make another local_hub server, separate
 from the one you just started running.
 ###
 
-exports.client = hub_client = new Client(INFO.project_id)
-
 start_tcp_server = (secret_token, port, cb) ->
     # port: either numeric or 'undefined'
     if not secret_token?
@@ -281,6 +290,8 @@ start_server = (tcp_port, raw_port, cb) ->
         console_sessions.set_port(program.console_port)
     async.series([
         (cb) ->
+            init_info_json(cb)
+        (cb) ->
             # This is also written by forever; however, by writing it directly it's also possible
             # to run the local_hub server in a console, which is useful for debugging and development.
             fs.writeFile(misc_node.abspath("#{DATA}/local_hub.pid"), "#{process.pid}", cb)
@@ -316,9 +327,20 @@ program.usage('[?] [options]')
     .option('--tcp_port <n>', 'TCP server port to listen on (default: 0 = os assigned)', ((n)->parseInt(n)), 0)
     .option('--raw_port <n>', 'RAW server port to listen on (default: 0 = os assigned)', ((n)->parseInt(n)), 0)
     .option('--console_port <n>', 'port to find console server on (optional; uses port file if not given); if this is set we assume some other system is managing the console server and do not try to start it -- just assume it is listening on this port always', ((n)->parseInt(n)), 0)
+    .option('--kucalc', "Running in the kucalc environment")
+    .option('--test_firewall', 'Abort and exit w/ code 99 if internal GCE information is accessible')
     .parse(process.argv)
+
+if program.kucalc
+    winston.debug("running in kucalc")
+    kucalc.IN_KUCALC = true
+    if program.test_firewall
+        kucalc.init_gce_firewall_test(winston)
+else
+    winston.debug("NOT running in kucalc")
+    kucalc.IN_KUCALC = false
+
 
 start_server program.tcp_port, program.raw_port, (err) ->
     if err
         process.exit(1)
-

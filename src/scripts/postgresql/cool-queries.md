@@ -1,3 +1,8 @@
+Check on our SLO, namely number of projects that took 30s or more to start among the last 100 projects started.
+
+    select count(*) from project_log where event#>>'{event}'='start_project' and time >= now() - interval '1 day';
+
+    select * from (select now()-time as age, project_id,(event#>>'{time}')::INTEGER as t from project_log where event#>>'{event}'='start_project' and time >= now() - interval '1 hour' order by time desc) as foo where t > 20000 order by age;
 
 Problems people are having right now:
 
@@ -32,6 +37,8 @@ Active projects:
 Uncaught exceptions that got reported to the DB (so from storage, hubs, etc.):
 
     select time, NOW() - time as timeago, event, left(value#>>'{error}',80) from central_log where event = 'uncaught_exception' order by time desc limit 50;
+
+    select * from central_log where event = 'uncaught_exception' order by time desc limit 1;
 
 The syncstring (hence project_id, etc.) for a file with a given path somewhere... (you'll see this in the problems).  This can be kind of slow since there is no index.
 

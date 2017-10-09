@@ -38,9 +38,12 @@ REQUIRE_ACCOUNT_TO_EXECUTE_CODE = false
 # (this even includes keystrokes when using the terminal)
 MESG_QUEUE_INTERVAL_MS  = 0
 # If a client sends a massive burst of messages, we discard all but the most recent this many of them:
-#MESG_QUEUE_MAX_COUNT    = 25
+# The client *should* be implemented in a way so that this never happens, and when that is
+# the case -- according to our loging -- we might switch to immediately banning clients that
+# hit these limits...
 MESG_QUEUE_MAX_COUNT    = 300
 MESG_QUEUE_MAX_WARN    = 50
+
 # Any messages larger than this is dropped (it could take a long time to handle, by a de-JSON'ing attack, etc.).
 MESG_QUEUE_MAX_SIZE_MB  = 10
 
@@ -56,25 +59,27 @@ CLIENT_DESTROY_TIMER_S = 60*10  # 10 minutes
 
 CLIENT_MIN_ACTIVE_S = 45  # ??? is this a good choice?  No idea.
 
+# How frequently we tell the browser clients to report metrics back to us.
+# Set to 0 to completely disable metrics collection from clients.
+CLIENT_METRICS_INTERVAL_S = 60*2
 
 # recording metrics and statistics
-MetricsRecorder = require('./metrics-recorder')
+metrics_recorder = require('./metrics-recorder')
 
 # setting up client metrics
-mesg_from_client_total         = MetricsRecorder.new_counter('mesg_from_client_total',
-                                     'counts Client::handle_json_message_from_client invocations', ['type', 'event'])
-push_to_client_stats_h         = MetricsRecorder.new_histogram('push_to_client_histo_ms', 'Client: push_to_client',
+mesg_from_client_total         = metrics_recorder.new_counter('mesg_from_client_total',
+                                     'counts Client::handle_json_message_from_client invocations', ['event'])
+push_to_client_stats_h         = metrics_recorder.new_histogram('push_to_client_histo_ms', 'Client: push_to_client',
                                      buckets : [1, 10, 50, 100, 200, 500, 1000, 2000, 5000, 10000]
                                      labels: ['event']
                                  )
-push_to_client_stats_q         = MetricsRecorder.new_quantile('push_to_client_quant_ms', 'Client: push_to_client',
-                                     percentiles : [0, 0.25, 0.5, 0.75, 0.9, 0.99, 1]
-                                     labels: ['event']
-                                 )
-push_to_client_to_json_summary = MetricsRecorder.new_summary('push_to_client_to_json',
-                                     'summary stats for Client::push_to_client/to_json', labels: ['event'])
 
-uncaught_exception_total       =  MetricsRecorder.new_counter('uncaught_exception_total', 'counts "BUG"s')
+# All known metrics from connected clients.  (Map from id to metrics.)
+# id is deleted from this when client disconnects.
+client_metrics = metrics_recorder.client_metrics
+
+if not misc.is_object(client_metrics)
+    throw Error("metrics_recorder must have a client_metrics attribute map")
 
 class exports.Client extends EventEmitter
     constructor: (opts) ->
@@ -137,6 +142,9 @@ class exports.Client extends EventEmitter
         # and this fails, user gets a message, and see that they must sign in.
         @_remember_me_interval = setInterval(@check_for_remember_me, 1000*60*5)
 
+        if CLIENT_METRICS_INTERVAL_S
+            @push_to_client(message.start_metrics(interval_s:CLIENT_METRICS_INTERVAL_S))
+
     touch: (opts={}) =>
         if not @account_id  # not logged in
             opts.cb?('not logged in')
@@ -173,6 +181,11 @@ class exports.Client extends EventEmitter
 
         @conn.on "end", () =>
             dbg("connection: hub <--> client(id=#{@id}, address=#{@ip_address})  -- CLOSED")
+            @destroy()
+            ###
+            # I don't think this destroy_timer is of any real value at all unless
+            # we were to fully maintain client state while they are gone.  Doing this
+            # is a serious liability, e.g., in a load-spike situation.
             # CRITICAL -- of course we need to cancel all changefeeds when user disconnects,
             # even temporarily, since messages could be dropped otherwise. (The alternative is to
             # cache all messages in the hub, which has serious memory implications.)
@@ -182,18 +195,25 @@ class exports.Client extends EventEmitter
             # and we keep everything waiting for them for short time
             # in case this happens.
             @_destroy_timer = setTimeout(@destroy, 1000*CLIENT_DESTROY_TIMER_S)
+            ###
 
         dbg("connection: hub <--> client(id=#{@id}, address=#{@ip_address})  ESTABLISHED")
 
     dbg: (desc) =>
         if @logger?.debug
-            return (m...) => @logger.debug("Client(#{@id}).#{desc}: #{JSON.stringify(m...)}")
+            return (m...) => @logger.debug("Client(#{@id}).#{desc}: #{JSON.stringify(m)}")
         else
             return ->
 
     destroy: () =>
         dbg = @dbg('destroy')
         dbg("destroy connection: hub <--> client(id=#{@id}, address=#{@ip_address})  -- CLOSED")
+
+        if @id
+            # cancel any outstanding queries.
+            @database.cancel_user_queries(client_id:@id)
+
+        delete client_metrics[@id]
         clearInterval(@_remember_me_interval)
         @query_cancel_all_changefeeds()
         @closed = true
@@ -275,7 +295,6 @@ class exports.Client extends EventEmitter
                 @_messages.count += 1
                 avg = Math.round(@_messages.total_time / @_messages.count)
                 dbg("[#{time_taken} mesg_time_ms]  [#{avg} mesg_avg_ms] -- mesg.id=#{mesg.id}")
-                push_to_client_stats_q.observe({event:mesg.event}, time_taken)
                 push_to_client_stats_h.observe({event:mesg.event}, time_taken)
 
         # If cb *is* given and mesg.id is *not* defined, then
@@ -530,7 +549,10 @@ class exports.Client extends EventEmitter
             if @_handle_data_queue.length > MESG_QUEUE_MAX_COUNT
                 dbg("MESG_QUEUE_MAX_COUNT(=#{MESG_QUEUE_MAX_COUNT}) exceeded (=#{@_handle_data_queue.length}) -- drop oldest messages")
                 while @_handle_data_queue.length > MESG_QUEUE_MAX_COUNT
-                    @_handle_data_queue.shift()
+                    discarded_mesg = @_handle_data_queue.shift()
+                    data = discarded_mesg?[1]
+                    dbg("discarded_mesg='#{misc.trunc(data?.toString?(),1000)}'")
+
 
             # get task
             task = @_handle_data_queue.shift()
@@ -596,6 +618,7 @@ class exports.Client extends EventEmitter
         handler = @["mesg_#{mesg.event}"]
         if handler?
             handler(mesg)
+            mesg_from_client_total.labels("#{mesg.event}").inc(1)
         else
             @push_to_client(message.error(error:"Hub does not know how to handle a '#{mesg.event}' event.", id:mesg.id))
             if mesg.event == 'get_all_activity'
@@ -789,6 +812,8 @@ class exports.Client extends EventEmitter
             error      : mesg.error
             account_id : @account_id
             cb         : (err) =>
+                if not mesg.id?
+                    return
                 if err
                     @error_to_client(id:mesg.id, error:err)
                 else
@@ -1388,8 +1413,10 @@ class exports.Client extends EventEmitter
                     opts.cb("path '#{opts.path}' of project with id '#{opts.project_id}' is not public")
 
     mesg_public_get_directory_listing: (mesg) =>
+        dbg = @dbg('mesg_public_get_directory_listing')
         for k in ['path', 'project_id']
             if not mesg[k]?
+                dbg("missing stuff in message")
                 @error_to_client(id:mesg.id, error:"must specify #{k}")
                 return
 
@@ -1400,23 +1427,28 @@ class exports.Client extends EventEmitter
         listing  = undefined
         async.series([
             (cb) =>
+                dbg("checking for public path")
                 @database.has_public_path
                     project_id : mesg.project_id
                     cb         : (err, is_public) =>
                         if err
+                            dbg("error checking -- #{err}")
                             cb(err)
                         else if not is_public
+                            dbg("no public paths at all -- deny all listings")
                             cb("not_public") # be careful about changing this. This is a specific error we're giving now when a directory is not public.
                             # Client figures out context and gives more detailed error message. Right now we use it in src/smc-webapp/project_files.cjsx
                             # to provide user with helpful context based error about why they can't access a given directory
                         else
                             cb()
             (cb) =>
+                dbg("get the project")
                 @compute_server.project
                     project_id : mesg.project_id
                     cb         : (err, x) =>
                         project = x; cb(err)
             (cb) =>
+                dbg("get the directory listing")
                 project.directory_listing
                     path    : mesg.path
                     hidden  : mesg.hidden
@@ -1426,6 +1458,7 @@ class exports.Client extends EventEmitter
                     cb      : (err, x) =>
                         listing = x; cb(err)
             (cb) =>
+                dbg("filtering out public paths from listing")
                 @database.filter_public_paths
                     project_id : mesg.project_id
                     path       : mesg.path
@@ -1434,8 +1467,10 @@ class exports.Client extends EventEmitter
                         listing = x; cb(err)
         ], (err) =>
             if err
+                dbg("something went wrong -- #{err}")
                 @error_to_client(id:mesg.id, error:err)
             else
+                dbg("it worked; telling client")
                 @push_to_client(message.public_directory_listing(id:mesg.id, result:listing))
         )
 
@@ -1457,8 +1492,9 @@ class exports.Client extends EventEmitter
                         if err
                             @error_to_client(id:mesg.id, error:err)
                         else
-                            # since this is get_text_file
-                            data = data.toString('utf-8')
+                            # since this maybe be a Buffer... (depending on backend)
+                            if Buffer.isBuffer(data)
+                                data = data.toString('utf-8')
                             @push_to_client(message.public_text_file_contents(id:mesg.id, data:data))
 
     mesg_copy_public_path_between_projects: (mesg) =>
@@ -1530,11 +1566,14 @@ class exports.Client extends EventEmitter
             @_query_changefeeds[mesg.id] = true
         mesg_id = mesg.id
         @database.user_query
+            client_id  : @id
             account_id : @account_id
             query      : query
             options    : mesg.options
             changes    : if mesg.changes then mesg_id
             cb         : (err, result) =>
+                if @closed  # connection closed, so nothing further to do with this
+                    return
                 if result?.action == 'close'
                     err = 'close'
                 if err
@@ -2226,3 +2265,27 @@ class exports.Client extends EventEmitter
                     @error_to_client(id:mesg.id, error:err)
                 else
                     @push_to_client(message.success(id:mesg.id))
+
+    # Receive and store in memory the latest metrics status from the client.
+    mesg_metrics: (mesg) =>
+        dbg = @dbg('mesg_metrics')
+        dbg()
+        if not mesg?.metrics
+            return
+        metrics = mesg.metrics
+        #dbg('GOT: ', misc.to_json(metrics))
+        if not misc.is_array(metrics)
+            # client is messing with us...?
+            return
+        for metric in metrics
+            if not misc.is_array(metric?.values)
+                # what?
+                return
+            for v in metric.values
+                if not misc.is_object(v?.labels)
+                    # what?
+                    return
+                v.labels.client_id  = @id
+                v.labels.account_id = @account_id
+        client_metrics[@id] = metrics
+        #dbg('RECORDED: ', misc.to_json(client_metrics[@id]))

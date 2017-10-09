@@ -32,6 +32,38 @@ if not SMC_TEST
 zendesk_password_filename = ->
     return (process.env.SMC_ROOT ? '.') + '/data/secrets/zendesk'
 
+fixSessions = (body) ->
+    # takes the body of the ticket, searches for http[s]://<theme.DNS>/ URLs and either replaces ?session=* by ?session=support or adds it
+    body = body.replace(/\?session=([^\s]*)/g, '?session=support')
+
+    urlPattern = new RegExp("(http[s]?://[^\\s]*#{theme.DNS}[^\\s]+)", "g")
+    reSession = /session=([^\s]*)/g
+
+    ret = ''
+    offset = 0
+
+    while m = urlPattern.exec(body)
+        url = m[0]
+        i = m.index
+        j = i + url.length
+        #console.log(i, j)
+        #console.log(x[i..j])
+
+        ret += body[offset...i]
+
+        q = url.indexOf('?session')
+        if q >= 0
+            url = url[0...q]
+        q = url.indexOf('?')
+        if q >= 0
+            url += '&session=support'
+        else
+            url += '?session=support'
+        ret += url
+        offset = j
+    ret += body[offset...body.length]
+    return ret
+
 support = undefined
 exports.init_support = (cb) ->
     support = new Support cb: (err, s) =>
@@ -213,16 +245,19 @@ class Support
         remaining_info = _.omit(opts.info, _.keys(cus_fld_id))
         custom_fields.push(id: cus_fld_id.info, value: JSON.stringify(remaining_info))
 
+        # fix any copy/pasted links from inside the body of the message to replace an optional session
+        body = fixSessions(opts.body)
+
         # below the body message, add a link to the location
         # TODO fix hardcoded URL
         if opts.location?
             url  = "https://" + path.join(theme.DNS, opts.location)
-            body = opts.body + "\n\n#{url}"
+            body = body + "\n\n#{url}?session=support"
         else
-            body = opts.body + "\n\nNo location provided."
+            body = body + "\n\nNo location provided."
 
         if misc.is_valid_uuid_string(opts.info.course)
-            body += "\n\nCourse: #{theme.DOMAIN_NAME}/projects/#{opts.info.course}"
+            body += "\n\nCourse: #{theme.DOMAIN_NAME}/projects/#{opts.info.course}?session=support"
 
         # https://developer.zendesk.com/rest_api/docs/core/tickets#request-parameters
         ticket =
@@ -246,7 +281,13 @@ class Support
                     @_zd.users.request 'POST', ['users', 'create_or_update'], user, (err, req, result) =>
                         if err
                             dbg("create_or_update user error: #{misc.to_json(err)}")
-                            err = "#{misc.to_json(misc.from_json(err.result))}"
+                            try
+                                # we HAVE had uncaught exceptions here in production
+                                # logged in the central_error_log!
+                                err = "#{misc.to_json(misc.from_json(err.result))}"
+                            catch
+                                # evidently err.result is not valid json so can't do better than to string it
+                                err = "#{err.result}"
                             #if err.result?.type == "Buffer"
                             #    err = err.result.data.map((c) -> String.fromCharCode(c)).join('')
                             #    dbg("create_or_update zendesk message: #{err}")
@@ -283,3 +324,5 @@ class Support
         )
 
 
+if SMC_TEST
+    exports.fixSessions = fixSessions

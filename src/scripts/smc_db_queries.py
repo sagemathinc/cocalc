@@ -232,7 +232,7 @@ def export_accounts(outfn):
                 # data[email] = account
 
 
-def active_courses(days=7):
+def active_courses(days=7, json=False):
     # teacher's course IDs of all active student course projects
     #teacher_course_ids = projects.has_fields('course')\
     #    .filter(r.row["last_edited"] > days_ago(days))\
@@ -271,6 +271,10 @@ def active_courses(days=7):
         courses[member].append(tc)
 
     #pprint(courses)
+    if json:
+        import json
+        print(json.dumps(courses, default=datetime_serialize, indent=1))
+        return
 
     # e is a (account_id, account_data) pair
     # group_order = {"owner": 0, "collaborator": 1}
@@ -331,4 +335,7 @@ if __name__ == "__main__":
     import sys
     if len(sys.argv) >= 2:
         if sys.argv[1] == "courses":
-            active_courses(days = 100)
+            if len(sys.argv) >= 3 and sys.argv[2] == 'json':
+              active_courses(days = 100, json=True)
+            else:
+              active_courses(days = 100)

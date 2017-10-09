@@ -26,6 +26,8 @@ if not Primus?
 $ = window.$
 _ = require('underscore')
 
+prom_client = require('./prom-client')
+
 client = require('smc-util/client')
 
 misc_page = require('./misc_page')
@@ -89,11 +91,12 @@ class Connection extends client.Connection
         # This is used by the base class for marking file use notifications.
         @_redux = require('./smc-react').redux
 
-        # The following two lines disable the idle timeout functionality.
-        # This is disabled since it may be causing a DOS attack
-        # by users... not 100% sure yet.
-        #@set_standby_timeout_m = ->   # make this a no-op
         setTimeout(@_init_idle, 15 * 1000)
+
+        # Start reporting metrics to the backend if requested.
+        if prom_client.enabled
+            @on('start_metrics', prom_client.start_metrics)
+
 
     _setup_window_smc: () =>
         # if we are in DEBUG mode, inject the client into the global window object
@@ -109,6 +112,8 @@ class Connection extends client.Connection
         # use to enable/disable verbose synctable logging
         window.smc.synctable_debug     = require('smc-util/synctable').set_debug
         window.smc.idle_trigger        = => @emit('idle', 'away')
+        window.smc.prom_client         = prom_client
+
 
         # Client-side testing code -- we use require.ensure so this stuff only
         # ever gets loaded by the browser if actually used.
@@ -120,6 +125,11 @@ class Connection extends client.Connection
                 require('./test-client/init').clear()
 
     _init_idle: () =>
+        # Do not bother on mobile, since mobile devices already automatically disconnect themselves
+        # very aggressively to save battery life.
+        if require('./feature').IS_TOUCH
+            return
+
         ###
         The @_init_time is a timestamp in the future.
         It is pushed forward each time @_idle_reset is called.
@@ -285,6 +295,12 @@ class Connection extends client.Connection
             #log("pong latency=#{conn.latency}")
             if not window.document.hasFocus? or window.document.hasFocus()
                 # networking/pinging slows down when browser not in focus...
+                if conn.latency > 10000
+                    # We get some ridiculous values from Primus when the browser
+                    # tab gains focus after not being in focus for a while (say on ipad but on many browsers)
+                    # that throttle.  Just discard them, since otherwise they lead to ridiculous false
+                    # numbers displayed in the browser.
+                    return
                 @emit "ping", conn.latency
 
         #conn.on 'outgoing::ping', () =>

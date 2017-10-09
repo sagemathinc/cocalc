@@ -21,10 +21,14 @@
 
 DEBUG = false
 
+# Maximum number of outstanding concurrent messages (that have responses)
+# to send at once to the backend.
+MAX_CONCURRENT = 50
+
 {EventEmitter} = require('events')
 
 async = require('async')
-_     = require('underscore')
+underscore = require('underscore')
 
 syncstring = require('./syncstring')
 synctable  = require('./synctable')
@@ -158,7 +162,7 @@ class Session extends EventEmitter
     handle_data: (data) =>
         @emit("data", data)
 
-    write_data: (data) ->
+    write_data: (data) =>
         @conn.write_data(@data_channel, data)
 
     restart: (cb) =>
@@ -203,7 +207,16 @@ class exports.Connection extends EventEmitter
         # (node) warning: possible EventEmitter memory leak detected. 301 listeners added. Use emitter.setMaxListeners() to increase limit.
         @setMaxListeners(3000)  # every open file/table/sync db listens for connect event, which adds up.
 
+        @_emit_mesg_info = underscore.throttle(@_emit_mesg_info, 1500)
+
         @emit("connecting")
+        @_call             =
+            queue       : []    # messages in the queue to send
+            count       : 0     # number of message currently outstanding
+            sent        : 0     # total number of messages sent to backend.
+            sent_length : 0     # total amount of data sent
+            recv        : 0     # number of messages received from backend
+            recv_length : 0     # total amount of data recv'd
         @_id_counter       = 0
         @_sessions         = {}
         @_new_sessions     = {}
@@ -225,6 +238,10 @@ class exports.Connection extends EventEmitter
         # and returns a function to write raw data to the socket.
         @_connect @url, (data) =>
             if data.length > 0  # all messages must start with a channel; length 0 means nothing.
+                #console.log("got #{data.length} of data")
+                @_call.recv += 1
+                @_call.recv_length += data.length
+                @_emit_mesg_info()
                 # Incoming messages are tagged with a single UTF-16
                 # character c (there are 65536 possibilities).  If
                 # that character is JSON_CHANNEL, the message is
@@ -271,17 +288,17 @@ class exports.Connection extends EventEmitter
             message : message.ping()
             timeout : 15     # CRITICAL that this timeout be less than the @_ping_interval
             cb      : (err, pong) =>
-                #console.log(err, pong)
-                now = new Date()
-                # Only record something if success, got a pong, and the round trip is short!
-                # If user messes with their clock during a ping and we don't do this, then
-                # bad things will happen.
-                if not err and pong?.event == 'pong' and now - @_last_ping <= 1000*15
-                    @_last_pong = {server:pong.now, local:now}
-                    # See the function server_time below; subtract @_clock_skew from local time to get a better
-                    # estimate for server time.
-                    @_clock_skew = @_last_ping - 0 + ((@_last_pong.local - @_last_ping)/2) - @_last_pong.server
-                    misc.set_local_storage('clock_skew', @_clock_skew)
+                if not err
+                    now = new Date()
+                    # Only record something if success, got a pong, and the round trip is short!
+                    # If user messes with their clock during a ping and we don't do this, then
+                    # bad things will happen.
+                    if pong?.event == 'pong' and now - @_last_ping <= 1000*15
+                        @_last_pong = {server:pong.now, local:now}
+                        # See the function server_time below; subtract @_clock_skew from local time to get a better
+                        # estimate for server time.
+                        @_clock_skew = @_last_ping - 0 + ((@_last_pong.local - @_last_ping)/2) - @_last_pong.server
+                        misc.set_local_storage('clock_skew', @_clock_skew)
                 # try again later
                 setTimeout(@_ping, @_ping_interval)
 
@@ -371,7 +388,10 @@ class exports.Connection extends EventEmitter
     # Send a JSON message to the hub server.
     send: (mesg) =>
         #console.log("send at #{misc.mswalltime()}", mesg)
-        @write_data(JSON_CHANNEL, misc.to_json_socket(mesg))
+        data = misc.to_json_socket(mesg)
+        @_call.sent_length += data.length
+        @_emit_mesg_info()
+        @write_data(JSON_CHANNEL, data)
 
     # Send raw data via certain channel to the hub server.
     write_data: (channel, data) =>
@@ -403,6 +423,7 @@ class exports.Connection extends EventEmitter
     remember_me_key: => "remember_me#{window?.app_base_url ? ''}"
 
     handle_json_data: (data) =>
+        @_emit_mesg_info()
         mesg = misc.from_json_socket(data)
         if DEBUG
             console.log("handle_json_data: #{data}")
@@ -452,6 +473,9 @@ class exports.Connection extends EventEmitter
                 if not mesg.id?
                     console.log("WARNING: #{misc.to_json(mesg.error)}")
                     return
+            when "start_metrics"
+                @emit("start_metrics", mesg.interval_s)
+
 
         id = mesg.id  # the call f(null,mesg) can mutate mesg (!), so we better save the id here.
         v = @call_callbacks[id]
@@ -589,6 +613,56 @@ class exports.Connection extends EventEmitter
         @register_data_handler(opts.data_channel, session.handle_data)
         opts.cb(false, session)
 
+    _do_call: (opts, cb) =>
+        if not opts.cb?
+            # console.log("no opts.cb", opts.message)
+            # A call to the backend, but where we do not wait for a response.
+            # In order to maintain at least roughly our limit on MAX_CONCURRENT,
+            # we simply pretend that this message takes about 150ms
+            # to complete.  This helps space things out so the server can
+            # handle requests properly, instead of just discarding them (be nice
+            # to the backend and it will be nice to you).
+            @send(opts.message)
+            setTimeout(cb, 150)
+            return
+
+        id = opts.message.id ?= misc.uuid()
+
+        @call_callbacks[id] =
+            cb          : (args...) =>
+                if cb?
+                    cb()
+                    cb = undefined
+                opts.cb(args...)
+            error_event : opts.error_event
+            first       : true
+
+        @send(opts.message)
+
+        if opts.timeout
+            setTimeout(
+                (() =>
+                    if @call_callbacks[id]?.first
+                        error = "Timeout after #{opts.timeout} seconds"
+                        if cb?
+                            cb()
+                            cb = undefined
+                        opts.cb(error, message.error(id:id, error:error))
+                        delete @call_callbacks[id]
+                ), opts.timeout*1000
+            )
+        else
+            # IMPORTANT: No matter what call cb within 120s; if we don't do this then
+            # in case opts.timeout isn't set but opts.cb is, but user disconnects,
+            # then cb would never get called, which throws off our call counter.
+            # Note that the input to cb doesn't matter.
+            f = ->
+                if cb?
+                    cb()
+                    cb = undefined
+            setTimeout(f, 120*1000)
+
+
     call: (opts={}) =>
         # This function:
         #    * Modifies the message by adding an id attribute with a random uuid value
@@ -602,43 +676,47 @@ class exports.Connection extends EventEmitter
             timeout     : undefined
             error_event : false  # if true, turn error events into just a normal err
             cb          : undefined
-        if not opts.cb?
-            @send(opts.message)
+        if not @is_connected()
+            opts.cb?('not connected')
             return
-        if not opts.message.id?
-            id = misc.uuid()
-            opts.message.id = id
-        else
-            id = opts.message.id
+        @_call.queue.push(opts)
+        @_call.sent += 1
+        @_update_calls()
 
-        @call_callbacks[id] =
-            cb          : opts.cb
-            error_event : opts.error_event
-            first       : true
+    _update_calls: =>
+        while @_call.queue.length > 0 and @_call.count < MAX_CONCURRENT
+            @_process_next_call()
 
-        @send(opts.message)
-        if opts.timeout
-            setTimeout(
-                (() =>
-                    if @call_callbacks[id]?.first
-                        error = "Timeout after #{opts.timeout} seconds"
-                        opts.cb(error, message.error(id:id, error:error))
-                        delete @call_callbacks[id]
-                ), opts.timeout*1000
-            )
+    _emit_mesg_info: =>
+        info = misc.copy_without(@_call, ['queue'])
+        info.enqueued = @_call.queue.length
+        info.max_concurrent = MAX_CONCURRENT
+        @emit('mesg_info', info)
+
+    _process_next_call: =>
+        if @_call.queue.length == 0
+            return
+        @_call.count += 1
+        #console.log('count (call):', @_call.count)
+        mesg = @_call.queue.shift()
+        @_emit_mesg_info()
+        @_do_call mesg, =>
+            @_call.count -= 1
+            @_emit_mesg_info()
+            #console.log('count (done):', @_call.count)
+            @_update_calls()
 
     call_local_hub: (opts) =>
         opts = defaults opts,
             project_id : required    # determines the destination local hub
             message    : required
-            multi_response : false
             timeout    : undefined
             cb         : undefined
         m = message.local_hub
-                multi_response : opts.multi_response
-                project_id : opts.project_id
-                message    : opts.message
-                timeout    : opts.timeout
+                multi_response : false
+                project_id     : opts.project_id
+                message        : opts.message
+                timeout        : opts.timeout
         if opts.cb?
             f = (err, resp) =>
                 #console.log("call_local_hub:#{misc.to_json(opts.message)} got back #{misc.to_json(err:err,resp:resp)}")
@@ -646,18 +724,10 @@ class exports.Connection extends EventEmitter
         else
             f = undefined
 
-        if opts.multi_response
-            m.id = misc.uuid()
-            #console.log("setting up execute callback on id #{m.id}")
-            @execute_callbacks[m.id] = (resp) =>
-                #console.log("execute_callback: ", resp)
-                opts.cb?(undefined, resp)
-            @send(m)
-        else
-            @call
-                message : m
-                timeout : opts.timeout
-                cb      : f
+        @call
+            message : m
+            timeout : opts.timeout
+            cb      : f
 
 
     #################################################
@@ -915,9 +985,7 @@ class exports.Connection extends EventEmitter
         if opts.path[0] == '/'
             # absolute path to the root
             opts.path = '.smc/root' + opts.path  # use root symlink, which is created by start_smc
-
         url = misc.encode_path("#{base}/#{opts.project_id}/raw/#{opts.path}")
-
         opts.cb?(false, {url:url})
         return url
 
@@ -1181,7 +1249,7 @@ class exports.Connection extends EventEmitter
         tail_args = ['-print']
 
         if opts.exclusions?
-            exclusion_args = _.map opts.exclusions, (excluded_path, index) =>
+            exclusion_args = underscore.map opts.exclusions, (excluded_path, index) =>
                 "-a -not \\( -path '#{opts.path}/#{excluded_path}' -prune \\)"
             args = args.concat(exclusion_args)
 
@@ -1310,40 +1378,27 @@ class exports.Connection extends EventEmitter
         opts = defaults opts,
             project_id : required
             path       : '.'
-            time       : false
-            start      : 0
-            limit      : 999999999 # effectively unlimited by default -- get what you can in the time you have...
-            timeout    : 60
+            timeout    : 60         # ignored
             hidden     : false
             cb         : required
-
-        args = []
-        if opts.time
-            args.push("--time")
+        base = window?.app_base_url ? '' # will be defined in web browser
+        if opts.path[0] == '/'
+            opts.path = '.smc/root' + opts.path  # use root symlink, which is created by start_smc
+        url = misc.encode_path("#{base}/#{opts.project_id}/raw/.smc/directory_listing/#{opts.path}")
+        url += "?random=#{Math.random()}"
         if opts.hidden
-            args.push("--hidden")
-        args.push("--limit")
-        args.push(opts.limit)
-        args.push("--start")
-        args.push(opts.start)
-        if opts.path == ""
-            opts.path = "."
-        args.push('--')
-        args.push(opts.path)
-
-        @exec
-            project_id : opts.project_id
-            command    : 'smc-ls'
-            args       : args
-            timeout    : opts.timeout
-            cb         : (err, output) ->
-                if err
-                    opts.cb(err)
-                else if output.exit_code
-                    opts.cb(output.stderr)
-                else
-                    v = JSON.parse(output.stdout)
-                    opts.cb(err, v)
+            url += '&hidden=true'
+        #console.log(url)
+        req = $.ajax
+            dataType : "json"
+            url      : url
+            timeout  : 3000
+            success  : (data) ->
+                #console.log('success')
+                opts.cb(undefined, data)
+        req.fail (err) ->
+            #console.log('fail')
+            opts.cb(err)
 
     project_get_state: (opts) =>
         opts = defaults opts,
@@ -1736,6 +1791,11 @@ class exports.Connection extends EventEmitter
                 else
                     @_changefeed_ids = resp.changefeed_ids
                     opts.cb(undefined, resp.changefeed_ids)
+
+    # Send metrics to the hub this client is connected to.
+    # There is no confirmation or response.
+    send_metrics: (metrics) =>
+        @send(message.metrics(metrics:metrics))
 
 #################################################
 # Other account Management functionality shared between client and server

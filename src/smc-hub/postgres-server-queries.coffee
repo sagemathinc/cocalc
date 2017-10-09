@@ -1560,8 +1560,13 @@ class exports.PostgreSQL extends PostgreSQL
                     # some files in the listing might not be public, since the containing path isn't public, so we filter
                     # WARNING: this is kind of stupid since misc.path_is_in_public_paths is badly implemented, especially
                     # for this sort of iteration.  TODO: make this faster.  This could matter since is done on server.
-                    listing.files = (x for x in listing.files when \
-                        misc.path_is_in_public_paths(misc.path_to_file(opts.path, x.name), public_paths))
+                    try
+                        # we use try/catch here since there is no telling what is in the listing object; the user
+                        # could pass in anything...
+                        listing.files = (x for x in listing.files when \
+                            misc.path_is_in_public_paths(misc.path_to_file(opts.path, x.name), public_paths))
+                    catch
+                        listing.files = []
                 opts.cb(undefined, listing)
 
     # Set last_edited for this project to right now, and possibly update its size.
@@ -1672,7 +1677,7 @@ class exports.PostgreSQL extends PostgreSQL
             cb         : required
         if not @_validate_opts(opts) then return
         @_query
-            query : "SELECT invite#>'{#{opts.to}}' AS to FROM projects"
+            query : "SELECT invite#>'{\"#{opts.to}\"}' AS to FROM projects"
             where : 'project_id :: UUID = $' : opts.project_id
             cb    : one_result 'to', (err, y) =>
                 opts.cb(err, if not y? or y.error or not y.time then 0 else new Date(y.time))
@@ -1878,12 +1883,14 @@ class exports.PostgreSQL extends PostgreSQL
     # Ensure that all upgrades applied by the given user to projects are consistent,
     # truncating any that exceed their allotment.  NOTE: Unless there is a bug,
     # the only way the quotas should ever exceed their allotment would be if the
-    # user is trying to cheat.
+    # user is trying to cheat... *OR* a subscription was cancelled or ended.
     ensure_user_project_upgrades_are_valid: (opts) =>
         opts = defaults opts,
             account_id : required
-            fix        : true       # if true, will fix projects in database whose quotas exceed the alloted amount; it is the caller's responsibility to say actually change them.
+            fix        : true       # if true, will fix projects in database whose quotas exceed the alloted amount; it is the caller's responsibility to actually change them.
             cb         : required   # cb(err, excess)
+        dbg = @_dbg("ensure_user_project_upgrades_are_valid(account_id='#{opts.account_id}')")
+        dbg()
         excess = stripe_data = project_upgrades = undefined
         async.series([
             (cb) =>
@@ -1906,6 +1913,7 @@ class exports.PostgreSQL extends PostgreSQL
                 excess = require('smc-util/upgrades').available_upgrades(stripe_data, project_upgrades).excess
                 if opts.fix
                     fix = (project_id, cb) =>
+                        dbg("fixing project_id='#{project_id}' with excess #{JSON.stringify(excess[project_id])}")
                         upgrades = undefined
                         async.series([
                             (cb) =>
@@ -1934,6 +1942,39 @@ class exports.PostgreSQL extends PostgreSQL
         ], (err) =>
             opts.cb(err, excess)
         )
+
+    # Loop through every user of cocalc that is connected with stripe (so may have a subscription),
+    # and ensure that any upgrades that have applied to projects are valid.  It is important to
+    # run this periodically or there is a really natural common case where users can cheat:
+    #    (1) they apply upgrades to a project
+    #    (2) their subscription expires
+    #    (3) they do NOT touch upgrades on any projects again.
+    ensure_all_user_project_upgrades_are_valid: (opts) =>
+        opts = defaults opts,
+            cb : required
+        dbg = @_dbg("ensure_all_user_project_upgrades_are_valid")
+        locals = {}
+        async.series([
+            (cb) =>
+                @_query
+                    query : "SELECT account_id FROM accounts"
+                    where : "stripe_customer_id IS NOT NULL"
+                    cb    : all_results 'account_id', (err, account_ids) =>
+                        locals.account_ids = account_ids
+                        cb(err)
+            (cb) =>
+                m = 0
+                n = locals.account_ids.length
+                dbg("got #{n} accounts with stripe")
+                f = (account_id, cb) =>
+                    m += 1
+                    dbg("#{m}/#{n}")
+                    @ensure_user_project_upgrades_are_valid
+                        account_id : account_id
+                        cb         : cb
+                # We only do 1 at a time, since there is no hurry.
+                async.mapLimit(locals.account_ids, 1, f, cb)
+        ], opts.cb)
 
     # Return the sum total of all user upgrades to a particular project
     get_project_upgrades: (opts) =>

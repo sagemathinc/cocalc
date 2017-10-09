@@ -958,7 +958,7 @@ ProjectsListingDescription = rclass
         search            : ''
 
     getInitialState: ->
-        show_remove_from_all : false
+        show_alert: 'none'
 
     render_header: ->
         if @props.nb_projects > 0 and (@props.hidden or @props.deleted)
@@ -972,9 +972,25 @@ ProjectsListingDescription = rclass
     render_span: (query) ->
         <span>whose title, description or users contain <strong>{query}</strong>
         <Space/><Space/>
-        <Button onClick={=>@setState(show_remove_from_all:false); @props.on_cancel()}>
+        <Button onClick={=>@setState(show_alert: 'none'); @props.on_cancel()}>
             Cancel
         </Button></span>
+
+    render_projects_actions_toolbar: ->
+        <ButtonGroup  className = 'pull-right'>
+            {@render_remove_from_all_button() if @props.visible_projects.length > 0}
+            {@render_delete_all_button()      if @props.visible_projects.length > 0 and not @props.deleted}
+            {@render_hide_all_button()        if @props.visible_projects.length > 0 and not @props.hidden}
+        </ButtonGroup>
+
+    render_projects_actions_alert: ->
+        switch @state.show_alert
+            when 'hide'
+                return @render_hide_all()
+            when 'remove'
+                return @render_remove_from_all()
+            when 'delete'
+                return @render_delete_all()
 
     render_alert_message: ->
         query = @props.search.toLowerCase()
@@ -988,18 +1004,58 @@ ProjectsListingDescription = rclass
                 <strong>{"#{if @props.deleted then 'deleted ' else ''}#{if @props.hidden then 'hidden ' else ''}"}</strong>
                 projects<Space/>
                 {if query isnt '' then @render_span(query)}
-                {@render_remove_from_all_button() if @props.visible_projects.length > 0}
-                {@render_remove_from_all() if @state.show_remove_from_all}
+                {@render_projects_actions_toolbar()}
+                {@render_projects_actions_alert()}
             </Alert>
+
+    render_hide_all_button: ->
+        <Button
+            disabled  = {@state.show_alert == 'hide'}
+            onClick   = {=>@setState(show_alert: 'hide')}
+            >
+            <Icon name='eye-slash'/>  Hide...
+        </Button>
+
+    render_delete_all_button: ->
+        <Button
+            disabled  = {@state.show_alert == 'delete'}
+            onClick   = {=>@setState(show_alert: 'delete')}
+            >
+            <Icon name='trash'/>  Delete...
+        </Button>
 
     render_remove_from_all_button: ->
         <Button
-            className = 'pull-right'
-            disabled  = {@state.show_remove_from_all}
-            onClick   = {=>@setState(show_remove_from_all:true)}
+            disabled  = {@state.show_alert == 'remove'}
+            onClick   = {=>@setState(show_alert: 'remove')}
             >
             <Icon name='user-times'/>  Remove Myself...
         </Button>
+
+    render_hide_all: ->
+        if @props.visible_projects.length == 0
+            return
+        <Alert key='hide-all' style={marginTop:"15px"}>
+            <h4><Icon name="eye-slash"/>  Hide Projects</h4>
+            Are you sure you want to hide the {@props.visible_projects.length} {misc.plural(@props.visible_projects.length, 'project')} listed below?
+            <br/>
+            <b>This  hides the project from you, not your collaborators.</b>
+            {@render_can_be_undone()}
+
+            <ButtonToolbar style={marginTop:'15px'}>
+                <Button bsStyle='warning' onClick={@do_hide_all}  >
+                    <Icon name='eye-slash'/> Hide {@props.visible_projects.length} {misc.plural(@props.visible_projects.length, 'project')}
+                </Button>
+                <Button onClick={=>@setState(show_alert:'none')} >
+                    Cancel
+                </Button>
+            </ButtonToolbar>
+        </Alert>
+
+    do_hide_all: ->
+        for project in @props.visible_projects
+            @actions('projects').toggle_hide_project(project.project_id)
+        @setState(show_alert: 'none')
 
     collab_projects: ->
         # Determine visible projects this user does NOT own.
@@ -1015,7 +1071,7 @@ ProjectsListingDescription = rclass
                 {head}
                 You are the owner of every displayed project.  You can only remove yourself from projects that you do not own.
 
-                <Button onClick={=>@setState(show_remove_from_all:false)} >
+                <Button onClick={=>@setState(show_alert:'none')} >
                     Cancel
                 </Button>
             </Alert>
@@ -1028,17 +1084,19 @@ ProjectsListingDescription = rclass
                     desc = "You are a collaborator on the one project listed below."
                 else
                     desc = "You are a collaborator on ALL of the #{v.length} #{misc.plural(v.length, 'project')} listed below."
-            <Alert  style={marginTop:'15px'}>
+            <Alert style={marginTop:'15px'}>
                 {head} {desc}
 
                 <p/>
-                Are you sure you want to remove yourself from the {v.length} {misc.plural(v.length, 'project')} listed below that you collaborate on?  <b>You will no longer have access and cannot add yourself back.</b>
+                Are you sure you want to remove yourself from the {v.length} {misc.plural(v.length, 'project')} listed below that you collaborate on?
+                <br/>
+                <b>You will no longer have access and cannot add yourself back.</b>
 
                 <ButtonToolbar style={marginTop:'15px'}>
                     <Button bsStyle='danger' onClick={@do_remove_from_all}  >
                         <Icon name='user-times'/> Remove myself from {v.length} {misc.plural(v.length, 'project')}
                     </Button>
-                    <Button onClick={=>@setState(show_remove_from_all:false)} >
+                    <Button onClick={=>@setState(show_alert:'none')} >
                         Cancel
                     </Button>
                 </ButtonToolbar>
@@ -1047,7 +1105,48 @@ ProjectsListingDescription = rclass
     do_remove_from_all: ->
         for project in @collab_projects()
             @actions('projects').remove_collaborator(project.project_id, webapp_client.account_id)
-        @setState(show_remove_from_all:false)
+        @setState(show_alert: 'none')
+
+    render_can_be_undone: ->
+        <span>
+            <br/>
+            This can be undone in project settings.
+        </span>
+
+    render_delete_all: ->
+        if @props.visible_projects.length == 0
+            return
+        own = @props.visible_projects.length - @collab_projects().length
+        if own == 0
+            desc = 'You do not own any of the projects listed below.'
+        else if own < @props.visible_projects.length
+            desc = "You are the owner of #{own} of the #{@props.visible_projects.length} of projects listed below."
+        else
+            desc = "You are the owner of every displayed project."
+        <Alert key='delete_all' style={marginTop:'15px'}>
+            <h4><Icon name='trash'/>  Delete Projects</h4>
+            {desc}
+
+            <p/>
+            Are you sure you want to delete the {@props.visible_projects.length} {misc.plural(@props.visible_projects.length, 'project')} listed below?
+            <br/>
+            <b>This will delete the {misc.plural(@props.visible_projects.length, 'project')} for all collaborators.</b>
+            {@render_can_be_undone()}
+
+            <ButtonToolbar style={marginTop:'15px'}>
+                <Button bsStyle='danger' onClick={@do_delete_all}  >
+                    <Icon name='trash'/> Delete {@props.visible_projects.length} {misc.plural(@props.visible_projects.length, 'project')}
+                </Button>
+                <Button onClick={=>@setState(show_alert:'none')} >
+                    Cancel
+                </Button>
+            </ButtonToolbar>
+        </Alert>
+
+    do_delete_all: ->
+        for project in @props.visible_projects
+            @actions('projects').toggle_delete_project(project.project_id)
+        @setState(show_alert: 'none')
 
     render: ->
         <div>

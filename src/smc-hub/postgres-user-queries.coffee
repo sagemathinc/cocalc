@@ -17,14 +17,47 @@ underscore   = require('underscore')
 {PostgreSQL, one_result, all_results, count_result, pg_type} = require('./postgres')
 {quote_field} = require('./postgres-base')
 
+{UserQueryQueue} = require('./postgres-user-query-queue')
+
 {defaults} = misc = require('smc-util/misc')
 required = defaults.required
 
 {PROJECT_UPGRADES, SCHEMA} = require('smc-util/schema')
 
 class exports.PostgreSQL extends PostgreSQL
+    # Cancel all queued up queries by the given client
+    cancel_user_queries: (opts) =>
+        opts = defaults opts,
+            client_id  : required
+        @_user_query_queue?.cancel_user_queries(opts)
 
     user_query: (opts) =>
+        opts = defaults opts,
+            client_id  : undefined  # if given, uses to control number of queries at once by one client.
+            priority   : undefined  # (NOT IMPLEMENTED) priority for this query (an integer [-10,...,19] like in UNIX)
+            account_id : undefined
+            project_id : undefined
+            query      : required
+            options    : []
+            changes    : undefined
+            cb         : undefined
+
+        if not opts.client_id?
+            # No client_id given, so do not use query queue.
+            delete opts.priority
+            delete opts.client_id
+            @_user_query(opts)
+            return
+
+        if not @_user_query_queue?
+            o =
+                do_query   : @_user_query
+                dbg        : @_dbg('user_query_queue')
+            @_user_query_queue ?= new UserQueryQueue(o)
+
+        @_user_query_queue.user_query(opts)
+
+    _user_query: (opts) =>
         opts = defaults opts,
             account_id : undefined
             project_id : undefined

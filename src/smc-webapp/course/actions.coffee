@@ -486,14 +486,14 @@ exports.CourseActions = class CourseActions extends Actions
         @redux.getStore('projects').wait_until_project_created token, 30, (err, project_id) =>
             @clear_activity(id)
             if err
-                @set_error("error creating student project -- #{err}")
+                @set_error("error creating student project for #{store.get_student_name(student_id)} -- #{err}")
             else
                 @_set
                     create_project : null
                     project_id     : project_id
                     table          : 'students'
                     student_id     : student_id
-                @configure_project(student_id)
+                @configure_project(student_id, undefined, project_id)
             delete @_creating_student_project
             queue.shift()
             if queue.length > 0
@@ -636,7 +636,8 @@ exports.CourseActions = class CourseActions extends Actions
                 @redux.getActions('projects').set_project_course_info(student_project_id,
                         store.get('course_project_id'), store.get('course_filename'), pay, student_account_id, student_email_address)
 
-    configure_project: (student_id, do_not_invite_student_by_email) =>
+    configure_project: (student_id, do_not_invite_student_by_email, student_project_id) =>
+        # student_project_id is optional. Will be used instead of from student_id store if provided.
         # Configure project for the given student so that it has the right title,
         # description, and collaborators for belonging to the indicated student.
         # - Add student and collaborators on project containing this course to the new project.
@@ -644,7 +645,7 @@ exports.CourseActions = class CourseActions extends Actions
         # - Set the title to [Student name] + [course title] and description to course description.
         store = @get_store()
         return if not store?
-        student_project_id = store.getIn(['students', student_id, 'project_id'])
+        student_project_id = student_project_id ? store.getIn(['students', student_id, 'project_id'])
         if not student_project_id?
             @create_student_project(student_id)
         else
@@ -798,6 +799,17 @@ exports.CourseActions = class CourseActions extends Actions
         obj.grades = grades
         @_set(obj)
 
+    set_comments: (assignment, student, comments) =>
+        store = @get_store()
+        return if not store?
+        assignment    = store.get_assignment(assignment)
+        student       = store.get_student(student)
+        obj           = {table:'assignments', assignment_id:assignment.get('assignment_id')}
+        comments_map = @_get_one(obj).comments ? {}
+        comments_map[student.get('student_id')] = comments
+        obj.comments = comments_map
+        @_set(obj)
+
     set_active_assignment_sort: (column_name) =>
         store = @get_store()
         if not store?
@@ -920,6 +932,7 @@ exports.CourseActions = class CourseActions extends Actions
         if not store? or not @_store_is_initialized()
             return finish("store not yet initialized")
         grade = store.get_grade(assignment, student)
+        comments = store.get_comments(assignment, student)
         if not student = store.get_student(student)
             return finish("no student")
         if not assignment = store.get_assignment(assignment)
@@ -941,7 +954,8 @@ exports.CourseActions = class CourseActions extends Actions
             async.series([
                 (cb) =>
                     # write their grade to a file
-                    content = "Your grade on this assignment:\n\n    #{grade}"
+                    content = "Your grade on this assignment:\n\n    #{grade}\n\n"
+                    content += "Instructor comments:\n\n    #{comments}"
                     if peer_graded
                         content += "\n\n\nPEER GRADED:\n\nYour assignment was peer graded by other students.\nYou can find the comments they made in the folders below."
                     webapp_client.write_text_file_to_project
@@ -1497,16 +1511,16 @@ exports.CourseActions = class CourseActions extends Actions
             student = store.get_student(student)
             handout = store.get_handout(handout)
             obj = {table:'handouts', handout_id:handout.get('handout_id')}
-            status_map = @_get_one(obj)?.status_map
-            if not status_map?
+            status = @_get_one(obj)?.status
+            if not status?
                 return
-            student_status = (status_map[student.get('student_id')])
+            student_status = (status[student.get('student_id')])
             if not student_status?
                 return
             if student_status.start?
                 delete student_status.start
-                status_map[student.get('student_id')] = student_status
-                obj.status_map = status_map
+                status[student.get('student_id')] = student_status
+                obj.status = status
                 @_set(obj)
 
     # Copy the files for the given handout to the given student. If

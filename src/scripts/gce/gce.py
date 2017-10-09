@@ -641,7 +641,7 @@ class GCE(object):
         log("SILVER SUPPORT : %8s/month ", money(150))
         total_lower += 150
         total_upper += 150
-        log("SALES TAX    : %8s/month -- 10.1%% WA+Seattle sales tax", money(total_lower*0.0101))
+        log("SALES TAX    : %8s/month -- 10.1%% WA+Seattle sales tax", money(total_lower*0.101))
         total_lower *= 1.101
         total_upper *= 1.101
         log("TOTAL        : %8s/month -- up to as worse as %8s/month without sustained", money(total_lower), money(total_upper))

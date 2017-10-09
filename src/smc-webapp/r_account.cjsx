@@ -974,17 +974,21 @@ OtherSettings = rclass
         other_settings : rtypes.object
         redux          : rtypes.object
 
+    reduxProps :
+        account :
+            is_global_info_visible : rtypes.func
+
     on_change: (name, value) ->
         @props.redux.getTable('account').set(other_settings:{"#{name}":value})
 
     render_confirm: ->
         if not require('./feature').IS_MOBILE
-                <Checkbox
-                    checked  = {@props.other_settings.confirm_close}
-                    ref      = 'confirm_close'
-                    onChange = {(e)=>@on_change('confirm_close', e.target.checked)}>
-                    Confirm: always ask for confirmation before closing the browser window
-                </Checkbox>
+            <Checkbox
+                checked  = {@props.other_settings.confirm_close}
+                ref      = 'confirm_close'
+                onChange = {(e)=>@on_change('confirm_close', e.target.checked)}>
+                Confirm: always ask for confirmation before closing the browser window
+            </Checkbox>
 
     render_page_size_warning: ->
         BIG_PAGE_SIZE = 500
@@ -992,6 +996,19 @@ OtherSettings = rclass
             <Alert bsStyle='warning'>
                 Your file listing page size is set to {@props.other_settings.page_size}. Sizes above {BIG_PAGE_SIZE} may cause the file listing to render slowly for directories with lots of files.
             </Alert>
+
+    render_standby_timeout: ->
+        if require('./feature').IS_TOUCH
+            return
+        <LabeledRow label='Standby timeout'>
+            <NumberInput
+                on_change = {(n)=>@on_change('standby_timeout_m',n)}
+                min       = 1
+                max       = 180
+                unit      = "minutes"
+                number    = {@props.other_settings.standby_timeout_m} />
+        </LabeledRow>
+
 
     render: ->
         if not @props.other_settings
@@ -1006,11 +1023,11 @@ OtherSettings = rclass
                 Mask files: grey-out files in the files viewer that you probably do not want to open
             </Checkbox>
             <Checkbox
-                checked  = {@props.other_settings.show_global_info}
-                ref      = 'show_global_info'
-                onChange = {(e)=>@on_change('show_global_info', e.target.checked)}
+                checked  = {@props.is_global_info_visible()}
+                ref      = 'show_global_info2'
+                onChange = {(e)=>@on_change('show_global_info2', if e.target.checked then null else webapp_client.server_time())}
             >
-                Show global information: if enabled, a dismissible banner is visible on top
+                Show global information: if enabled, an orange information banner is visible on top
             </Checkbox>
             <LabeledRow label='Default file sort'>
                 <SelectorInput
@@ -1026,14 +1043,7 @@ OtherSettings = rclass
                         max       = 1000000
                         number    = {@props.other_settings.page_size} />
             </LabeledRow>
-            <LabeledRow label='Standby timeout'>
-                <NumberInput
-                    on_change = {(n)=>@on_change('standby_timeout_m',n)}
-                    min       = 1
-                    max       = 180
-                    unit      = "minutes"
-                    number    = {@props.other_settings.standby_timeout_m} />
-            </LabeledRow>
+            {@render_standby_timeout()}
             {@render_page_size_warning()}
         </Panel>
 

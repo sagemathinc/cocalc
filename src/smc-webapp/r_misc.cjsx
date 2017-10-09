@@ -21,8 +21,9 @@
 async = require('async')
 
 {React, ReactDOM, rclass, rtypes, is_redux, is_redux_actions, redux, Store, Actions} = require('./smc-react')
-{Alert, Button, ButtonToolbar, Checkbox, Col, FormControl, FormGroup, ControlLabel, InputGroup, OverlayTrigger, Popover, Tooltip, Row, Well} = require('react-bootstrap')
+{Alert, Button, ButtonToolbar, Checkbox, Col, FormControl, FormGroup, ControlLabel, InputGroup, OverlayTrigger, Popover, Modal, Tooltip, Row, Well} = require('react-bootstrap')
 {HelpEmailLink, SiteName, CompanyName, PricingUrl, PolicyTOSPageUrl, PolicyIndexPageUrl, PolicyPricingPageUrl} = require('./customize')
+{UpgradeRestartWarning} = require('./upgrade_restart_warning')
 
 # injected by webpack, but not for react-static renderings (ATTN don't assign to uppercase vars!)
 smc_version = SMC_VERSION ? 'N/A'
@@ -452,7 +453,7 @@ exports.LabeledRow = LabeledRow = rclass
             <Col xs={@props.label_cols} style={marginTop:'8px'}>
                 {@props.label}
             </Col>
-            <Col xs={12-@props.label_cols}>
+            <Col xs={12-@props.label_cols}  style={marginTop:'8px'}>
                 {@props.children}
             </Col>
         </Row>
@@ -463,40 +464,36 @@ help_text =
   borderRadius   : '5px'
   margin         : '5px'
 
-exports.Help = rclass
+exports.HelpIcon = rclass
     displayName : 'Misc-Help'
 
     propTypes :
-        button_label : rtypes.string.isRequired
         title        : rtypes.string.isRequired
 
     getDefaultProps: ->
-        button_label : 'Help'
         title        : 'Help'
 
     getInitialState: ->
         closed : true
 
-    render_title: ->
-        <span>
-            {@props.title}
-        </span>
+    close: ->
+        @setState(closed : true)
 
     render: ->
         if @state.closed
-            <div>
-                <Button bsStyle='info' onClick={=>@setState(closed:false)}><Icon name='question-circle'/> {@props.button_label}</Button>
-            </div>
-        else
-            <Well style={width:500, zIndex:10, boxShadow:'3px 3px 3px #aaa', position:'absolute'} className='well'>
-                <a href='' style={float:'right'} onClick={(e)=>e.preventDefault();@setState(closed:true)}><Icon name='times'/></a>
-                <h4>{@props.title}
-                </h4>
-                <div style={help_text}>
+            <a onClick={(e)=>e.preventDefault();@setState(closed:false)}><Icon style={color:'#5bc0de'} name='question-circle'/></a>
+        else if not @state.closed
+            <Modal show={not @state.closed} onHide={@close}>
+                <Modal.Header closeButton>
+                    <Modal.Title>{@props.title}</Modal.Title>
+                </Modal.Header>
+                <Modal.Body>
                     {@props.children}
-                </div>
-            </Well>
-
+                </Modal.Body>
+                <Modal.Footer>
+                    <Button onClick={@close}>Close</Button>
+                </Modal.Footer>
+            </Modal>
 
 ###
 # Customized TimeAgo support
@@ -533,9 +530,11 @@ exports.TimeAgo = rclass
 
     render: ->
         d = if misc.is_date(@props.date) then @props.date else new Date(@props.date)
-        if isNaN(d)  # http://stackoverflow.com/questions/1353684/detecting-an-invalid-date-date-instance-in-javascript
-            # This can and does happen!  Passing this to the third party TimeAgo component
-            # goes ballistic and crashes react (lame, but whatever).
+        try
+            d.toISOString()
+        catch
+            # NOTE: Using isNaN might not work on all browsers, so we use try/except
+            # See https://github.com/sagemathinc/cocalc/issues/2069
             return <div>Invalid Date</div>
         if @props.popover
             s = d.toLocaleString()
@@ -559,6 +558,7 @@ exports.SearchInput = rclass
     displayName : 'Misc-SearchInput'
 
     propTypes :
+        style           : rtypes.object
         autoFocus       : rtypes.bool
         autoSelect      : rtypes.bool
         placeholder     : rtypes.string
@@ -642,7 +642,7 @@ exports.SearchInput = rclass
         @clear_value()
 
     render: ->
-        <FormGroup>
+        <FormGroup style={@props.style}>
             <InputGroup>
                 <FormControl
                     autoFocus   = {@props.autoFocus}
@@ -1214,22 +1214,35 @@ exports.ProjectState = rclass
     displayName : 'Misc-ProjectState'
 
     propTypes :
-        state : rtypes.string
+        state     : rtypes.string
+        show_desc : rtypes.bool
 
     getDefaultProps: ->
-        state : 'unknown'
+        state     : 'unknown'
+        show_desc : false
 
     render_spinner:  ->
         <span>... <Icon name='cc-icon-cocalc-ring' spin /></span>
+
+    render_desc: (desc) ->
+        if not @props.show_desc
+            return
+        <span>
+            <br/>
+            <span style={fontSize:'11pt'}>
+                {desc}
+            </span>
+        </span>
 
     render: ->
         s = COMPUTE_STATES[@props.state]
         if not s?
             return <Loading />
         {display, desc, icon, stable} = s
-        <Tip title={display} tip={desc}>
+        <span>
             <Icon name={icon} /> {display} {@render_spinner() if not stable}
-        </Tip>
+            {@render_desc(desc)}
+        </span>
 
 
 # info button inside the editor when editing a file. links you back to the file listing with the action prompted
@@ -1589,10 +1602,10 @@ exports.UpgradeAdjustor = rclass
                 <span style={color:"#666"}>Adjust <i>your</i> contributions to the quotas on this project (disk space, memory, cores, etc.).  The total quotas for this project are the sum of the contributions of all collaborators and the free base quotas.</span>
                 <hr/>
                 <Row>
-                    <Col md=1>
+                    <Col md=2>
                         <b style={fontSize:'12pt'}>Quota</b>
                     </Col>
-                    <Col md=5>
+                    <Col md=4>
                         <Button
                             bsSize  = 'xsmall'
                             onClick = {@max_upgrades}
@@ -1616,6 +1629,7 @@ exports.UpgradeAdjustor = rclass
                 <hr/>
 
                 {@render_upgrade_row(n, quota_params[n], remaining[n], current[n], limits[n]) for n in PROJECT_UPGRADES.field_order}
+                <UpgradeRestartWarning />
                 {@props.children}
                 <ButtonToolbar style={marginTop:'10px'}>
                     <Button

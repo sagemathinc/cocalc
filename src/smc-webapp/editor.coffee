@@ -99,7 +99,6 @@ codemirror_associations =
     hs     : 'text/x-haskell'
     lhs    : 'text/x-haskell'
     html   : 'htmlmixed'
-    jade   : 'text/x-pug'
     java   : 'text/x-java'
     jl     : 'text/x-julia'
     js     : 'javascript'
@@ -116,7 +115,6 @@ codemirror_associations =
     pari   : 'text/pari'
     php    : 'php'
     pl     : 'text/x-perl'
-    pug    : 'text/x-pug'
     py     : 'python'
     pyx    : 'python'
     r      : 'r'
@@ -142,7 +140,6 @@ codemirror_associations =
     bbl    : 'stex'
     xml    : 'xml'
     xsl    : 'xsl'
-    yaml   : 'yaml'
     ''     : 'text'
 
 file_associations = exports.file_associations = {}
@@ -233,6 +230,18 @@ file_associations['sass'] =
     icon   : 'fa-file-code-o'
     opts   : {mode:'text/x-sass', indent_unit:2, tab_size:2}
     name   : "SASS"
+
+file_associations['yml'] = file_associations['yaml'] =
+    editor : 'codemirror'
+    icon   : 'fa-code'
+    opts   : {mode:'yaml', indent_unit:2, tab_size:2}
+    name   : "YAML"
+
+file_associations['pug'] = file_associations['jade'] =
+    editor : 'codemirror'
+    icon   : 'fa-code'
+    opts   : {mode:'text/x-pug', indent_unit:2, tab_size:2}
+    name   : "PUG"
 
 file_associations['css'] =
     editor : 'codemirror'
@@ -701,7 +710,7 @@ class FileEditor extends EventEmitter
 
         @element.show()
         # if above line reveals it, give it a bit time to do the layout first
-        @_show(opts)  # critical -- also do an intial layout!  Otherwise get a horrible messed up animation effect.
+        @_show(opts)  # critical -- also do an initial layout!  Otherwise get a horrible messed up animation effect.
         setTimeout((=> @_show(opts)), 10)
         if DEBUG
             window?.smc?.doc = @  # useful for debugging...
@@ -1357,7 +1366,7 @@ class CodeMirrorEditor extends FileEditor
         if ext != 'sagews'
             console.error("editor.print called on file with extension '#{ext}' but only supports 'sagews'.")
             return
-    
+
         async.series([
             (cb) =>
                 @save(cb)
@@ -1731,6 +1740,9 @@ class CodeMirrorEditor extends FileEditor
 
     _show_codemirror_editors: (height) =>
         # console.log("_show_codemirror_editors: #{@_layout}")
+        if not @codemirror?
+            # already closed so can't show (in syncdoc, .codemirorr is deleted on close)
+            return
         switch @_layout
             when 0
                 p = 1

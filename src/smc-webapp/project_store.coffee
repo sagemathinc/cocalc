@@ -216,7 +216,7 @@ class ProjectActions extends Actions
         x = store.activity?.toJS()
         if not x?
             x = {}
-        # Actual implemenation of above specified API is VERY minimal for
+        # Actual implementyation of above specified API is VERY minimal for
         # now -- just enough to display something to user.
         if opts.status?
             x[opts.id] = opts.status
@@ -630,15 +630,19 @@ class ProjectActions extends Actions
         # that we know our relation to this project, namely so that
         # get_my_group is defined.
         id = misc.uuid()
-        @set_activity(id:id, status:"getting file listing for #{misc.trunc_middle(path,30)}...")
-        async.waterfall([
+        @set_activity(id:id, status:"scanning '#{misc.trunc_middle(path,30)}'")
+        my_group = undefined
+        the_listing = undefined
+        async.series([
             (cb) =>
                 # make sure that our relationship to this project is known.
                 @redux.getStore('projects').wait
                     until   : (s) => s.get_my_group(@project_id)
                     timeout : 30
-                    cb      : cb
-            (group, cb) =>
+                    cb      : (err, group) =>
+                        my_group = group
+                        cb(err)
+            (cb) =>
                 store = @get_store()
                 if not store?
                     cb("store no longer defined"); return
@@ -647,17 +651,21 @@ class ProjectActions extends Actions
                     project_id : @project_id
                     path       : path
                     hidden     : true
-                    max_time_s : 120  # keep trying for up to 2 minutes
-                    group      : group
-                    cb         : cb
-        ], (err, listing) =>
+                    max_time_s : 15*60  # keep trying for up to 15 minutes
+                    group      : my_group
+                    cb         : (err, listing) =>
+                        the_listing = listing
+                        cb(err)
+        ], (err) =>
             @set_activity(id:id, stop:'')
             # Update the path component of the immutable directory listings map:
             store = @get_store()
             #if DEBUG then console.log('ProjectStore::fetch_directory_listing done', store, listing)
             if not store?
                 return
-            map = store.directory_listings.set(path, if err then misc.to_json(err) else immutable.fromJS(listing.files))
+            if err and not misc.is_string(err)
+                err = misc.to_json(err)
+            map = store.directory_listings.set(path, if err then err else immutable.fromJS(the_listing.files))
             @setState(directory_listings : map)
             # done! releasing lock, then executing callback(s)
             cbs = @_set_directory_files_lock[_key]
@@ -826,9 +834,11 @@ class ProjectActions extends Actions
             zip_args : undefined
             path     : undefined   # default to root of project
             id       : undefined
-        id = opts.id ? misc.uuid()
-        @set_activity(id:id, status:"Creating #{opts.dest} from #{opts.src.length} #{misc.plural(opts.src.length, 'file')}")
+            cb       : undefined
         args = (opts.zip_args ? []).concat(['-rq'], [opts.dest], opts.src)
+        if not opts.cb?
+            id = opts.id ? misc.uuid()
+            @set_activity(id:id, status:"Creating #{opts.dest} from #{opts.src.length} #{misc.plural(opts.src.length, 'file')}")
         webapp_client.exec
             project_id      : @project_id
             command         : 'zip'
@@ -837,7 +847,7 @@ class ProjectActions extends Actions
             network_timeout : 60
             err_on_exit     : true    # this should fail if exit_code != 0
             path            : opts.path
-            cb              : @_finish_exec(id)
+            cb              : opts.cb ? @_finish_exec(id)
 
     # DANGER: ASSUMES PATH IS IN THE DISPLAYED LISTING
     _convert_to_displayed_path: (path) =>
@@ -1118,7 +1128,7 @@ class ProjectActions extends Actions
         if (name == ".." or name == ".") and not opts.ext?
             @setState(file_creation_error: "Cannot create a file named . or ..")
             return
-        if name.indexOf('://') != -1 or misc.startswith(name, 'git@github.com')
+        if misc.is_only_downloadable(name)
             @new_file_from_web(name, opts.current_path)
             return
         if name[name.length - 1] == '/'
@@ -1694,6 +1704,12 @@ exports.deleteStoreActionsTable = (project_id, redux) ->
         redux.removeTable(key(project_id, table))
     redux.removeStore(name)
 
+prom_client = require('./prom-client')
+if prom_client.enabled
+    prom_get_dir_listing_h = prom_client.new_histogram(
+        'get_dir_listing_seconds', 'get_directory_listing time',
+         {buckets : [1, 2, 5, 7, 10, 15, 20, 30, 50], labels: ['public', 'state', 'err']})
+
 get_directory_listing = (opts) ->
     opts = defaults opts,
         project_id : required
@@ -1703,33 +1719,68 @@ get_directory_listing = (opts) ->
         group      : required
         cb         : required
     {webapp_client} = require('./webapp_client')
+
+    if prom_client.enabled
+        prom_dir_listing_start = new Date()
+        prom_labels = {public: false}
+
     if opts.group in ['owner', 'collaborator', 'admin']
         method = webapp_client.project_directory_listing
+        # Also, make sure project starts running, in case it isn't.
+        state = redux.getStore('projects').getIn(['project_map', opts.project_id, 'state', 'state'])
+        if prom_client.enabled
+            prom_labels.state = state
+        if state != 'running'
+            time0 = misc.server_time()
+            redux.getActions('projects').start_project(opts.project_id)
     else
+        state = time0 = undefined
         method = webapp_client.public_project_directory_listing
+        if prom_client.enabled
+            prom_labels.public = true
+
     listing     = undefined
     listing_err = undefined
     f = (cb) ->
+        #console.log 'get_directory_listing.f ', opts.path
         method
             project_id : opts.project_id
             path       : opts.path
             hidden     : opts.hidden
-            timeout    : 15
+            timeout    : 30
             cb         : (err, x) ->
-                if typeof(err) == 'string' and err.indexOf('error: no such path') != -1
-                    # In this case, the call itself is successful, even when it returns an error; it told
-                    # us there is no such file.
-                    listing_err = err
-                    listing = x
-                    cb()
-                else
-                    listing = x
+                if err
                     cb(err)
+                else
+                    if x?.error
+                        if x.error.code == 'ENOENT'
+                            listing_err = 'no_dir'
+                        else if x.error.code == 'ENOTDIR'
+                            listing_err = 'not_a_dir'
+                        else
+                            listing_err = x.error
+                        cb()
+                    else
+                        listing = x
+                        cb()
 
     misc.retry_until_success
-        f        : f
-        max_time : opts.max_time_s * 1000
-        #log      : console.log
-        cb       : (err) ->
+        f           : f
+        max_time    : opts.max_time_s * 1000
+        start_delay : 2000
+        max_delay   : 10000
+        #log       : console.log
+        cb          : (err) ->
+            #console.log opts.path, 'get_directory_listing.success or timeout', err
+            if prom_client.enabled
+                prom_labels.err = !!err
+                prom_get_dir_listing_h?.observe(prom_labels, (new Date() - prom_dir_listing_start) / 1000)
+
             opts.cb(err ? listing_err, listing)
+            if time0 and state != 'running' and not err
+                # successfully opened, started, and got directory listing
+                redux.getProjectActions(opts.project_id).log
+                    event : 'start_project'
+                    time  : misc.server_time() - time0
+
 

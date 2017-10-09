@@ -703,7 +703,9 @@ class exports.JupyterActions extends Actions
         switch cell_type
             when 'code'
                 code = @_get_cell_input(id).trim()
-                switch parsing.run_mode(code, @store.getIn(['cm_options', 'mode', 'name']))
+                cm_mode = @store.getIn(['cm_options', 'mode', 'name'])
+                language = @store.getIn(['kernel_info', 'language'])
+                switch parsing.run_mode(code, cm_mode, language)
                     when 'show_source'
                         @introspect(code.slice(0,code.length-2), 1)
                     when 'show_doc'

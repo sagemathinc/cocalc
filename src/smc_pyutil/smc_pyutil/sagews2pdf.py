@@ -224,7 +224,8 @@ FOOTER = """
 """
 
 # TODO: this needs to use salvus.project_info() or an environment variable or something!
-BASE_URL = 'https://cocalc.com'
+# This will work fine inside KuCalc.
+BASE_URL = 'https://proxy'
 
 import argparse, base64, cPickle, json, os, shutil, sys, textwrap, HTMLParser, tempfile, urllib
 from uuid import uuid4
@@ -352,7 +353,9 @@ class Parser(HTMLParser.HTMLParser):
                 else:
                     href_download = href
 
-                c = "rm -f '%s'; wget '%s' --output-document='%s'"%(filename, href_download, filename)
+                # NOTE --no-check-certificate is needed since this query is done inside
+                # the cluster, where the cert won't match the local service name.
+                c = "rm -f '%s'; wget --no-check-certificate '%s' --output-document='%s'"%(filename, href_download, filename)
                 if ext == '.svg':
                     # convert to pdf
                     c += " && rm -f '%s'; inkscape --without-gui --export-pdf='%s' '%s'" % (base+'.pdf',base+'.pdf',filename)
@@ -564,7 +567,7 @@ class Cell(object):
                         img = filename
                     else:
                         # Get the file from remote server
-                        c = "rm -f '%s'; wget '%s' --output-document='%s'"%(filename, target, filename)
+                        c = "rm -f '%s'; wget --no-check-certificate '%s' --output-document='%s'"%(filename, target, filename)
                         # If we succeeded, convert it to a png, which is what we can easily embed
                         # in a latex document (svg's don't work...)
                         self._commands.append(c)

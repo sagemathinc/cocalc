@@ -102,6 +102,7 @@ QuotaConsole = rclass
         project_id                   : rtypes.string.isRequired
         project_settings             : rtypes.object            # settings contains the base values for quotas
         project_status               : rtypes.object
+        project_state                : rtypes.string            # opened, running, starting, stopping, etc.  -- only show memory usage when project_state == 'running'
         user_map                     : rtypes.object.isRequired
         quota_params                 : rtypes.object.isRequired # from the schema
         account_groups               : rtypes.array.isRequired
@@ -152,7 +153,12 @@ QuotaConsole = rclass
             # amount given by free project
             upgrade_list.unshift(<li key='free'>{amount} {misc.plural(amount, unit)} given by free project</li>)
 
-        <LabeledRow label={<Tip title={params_data.display} tip={params_data.desc}>{params_data.display}</Tip>} key={params_data.display}>
+        <LabeledRow
+            label = {<Tip title={params_data.display}
+            tip   = {params_data.desc}>{params_data.display}</Tip>}
+            key   = {params_data.display}
+            style = {borderBottom:'1px solid #ccc'}
+            >
             {if @state.editing then quota.edit else quota.view}
             <ul style={color:'#666'}>
                 {upgrade_list}
@@ -265,6 +271,20 @@ QuotaConsole = rclass
                 style    = {@admin_input_validation_styles(@state[label])}
                 onChange = {(e)=>@setState("#{label}":e.target.value)} />
 
+    render_disk_used: (disk) ->
+        if not disk
+            return
+        <span>
+            <Space/> (<b>{disk} MB</b> used)
+        </span>
+
+    render_memory_used: (memory) ->
+        if @props.project_state not in ['running', 'saving']
+            return
+        <span>
+            <Space/> (<b>{memory} MB</b> used)
+        </span>
+
     render: ->
         settings     = @props.project_settings
         if not settings?
@@ -293,17 +313,20 @@ QuotaConsole = rclass
         # the keys in quotas have to match those in PROJECT_UPGRADES.field_order
         quotas =
             disk_quota  :
-                view : <span><b>{r(total_quotas['disk_quota'] * quota_params['disk_quota'].display_factor)} MB</b> disk space available - <b>{disk} MB</b> used</span>
-                edit : <span><b>{@render_input('disk_quota')} MB</b> disk space available - <b>{disk} MB</b> used</span>
+                view : <span><b>{r(total_quotas['disk_quota'] * quota_params['disk_quota'].display_factor)} MB</b> disk usage limit {@render_disk_used(disk)}</span>
+                edit : <span><b>{@render_input('disk_quota')} MB</b> disk space limit <Space/> {@render_disk_used(disk)}</span>
             memory      :
-                view : <span><b>{r(total_quotas['memory'] * quota_params['memory'].display_factor)} MB</b> RAM memory available - <b>{memory} MB</b> used</span>
-                edit : <span><b>{@render_input('memory')} MB</b> RAM memory available - <b>{memory} MB</b> used</span>
+                view : <span><b>{r(total_quotas['memory'] * quota_params['memory'].display_factor)} MB</b> shared RAM memory limit {@render_memory_used(memory)}</span>
+                edit : <span><b>{@render_input('memory')} MB</b> RAM memory limit {@render_memory_used(memory)} </span>
+            memory_request :
+                view : <span><b>{r(total_quotas['memory_request'] * quota_params['memory_request'].display_factor)} MB</b> dedicated RAM</span>
+                edit : <span><b>{@render_input('memory_request')} MB</b> dedicated RAM memory</span>
             cores       :
                 view : <b>{r(total_quotas['cores'] * quota_params['cores'].display_factor)} {misc.plural(total_quotas['cores'] * quota_params['cores'].display_factor, 'core')}</b>
                 edit : <b>{@render_input('cores')} cores</b>
             cpu_shares  :
-                view : <b>{r(total_quotas['cpu_shares'] * quota_params['cpu_shares'].display_factor)} {misc.plural(total_quotas['cpu_shares'] * quota_params['cpu_shares'].display_factor, 'share')}</b>
-                edit : <b>{@render_input('cpu_shares')} {misc.plural(total_quotas['cpu_shares'], 'share')}</b>
+                view : <b>{r(total_quotas['cpu_shares'] * quota_params['cpu_shares'].display_factor)} {misc.plural(total_quotas['cpu_shares'] * quota_params['cpu_shares'].display_factor, 'core')}</b>
+                edit : <b>{@render_input('cpu_shares')} {misc.plural(total_quotas['cpu_shares'], 'core')}</b>
             mintime     :
                 view : <span><b>{r(misc.round2(total_quotas['mintime'] * quota_params['mintime'].display_factor))} {misc.plural(total_quotas['mintime'] * quota_params['mintime'].display_factor, 'hour')}</b> of non-interactive use before project stops</span>
                 edit : <span><b>{@render_input('mintime')} hours</b> of non-interactive use before project stops</span>
@@ -370,6 +393,7 @@ UsagePanel = rclass
                 project_id                   = {@props.project_id}
                 project_settings             = {@props.project.get('settings')}
                 project_status               = {@props.project.get('status')}
+                project_state                = {@props.project.get('state')?.get('state')}
                 user_map                     = {@props.user_map}
                 quota_params                 = {require('smc-util/schema').PROJECT_UPGRADES.params}
                 account_groups               = {@props.account_groups}
@@ -618,7 +642,7 @@ ProjectControlPanel = rclass
                 <div>
                     SSH into your project: <span style={color:'#666'}>First add your public key to <a onClick={@open_authorized_keys} href=''>~/.ssh/authorized_keys</a>, then use the following username@host:</span>
                     {# WARNING: previous use of <FormControl> here completely breaks copy on Firefox.}
-                    <pre>{"#{misc.replace_all(project_id, '-', '')}@#{host}.sagemath.com"} </pre>
+                    <pre>{"#{misc.replace_all(project_id, '-', '')}@#{host}.cocalc.com"} </pre>
                     <a href="https://github.com/sagemathinc/cocalc/wiki/AllAboutProjects#create-ssh-key" target="_blank">
                     <Icon name='life-ring'/> How to create SSH keys</a>
                 </div>
@@ -633,14 +657,11 @@ ProjectControlPanel = rclass
 
     render_state: ->
         <span style={fontSize : '12pt', color: '#666'}>
-            <ProjectState state={@props.project.get('state')?.get('state')} />
+            <ProjectState show_desc={true} state={@props.project.get('state')?.get('state')} />
         </span>
 
     restart_project: ->
         @actions('projects').restart_project(@props.project.get('project_id'))
-
-    save_project: ->
-        @actions('projects').save_project(@props.project.get('project_id'))
 
     stop_project: ->
         @actions('projects').stop_project(@props.project.get('project_id'))
@@ -675,10 +696,14 @@ ProjectControlPanel = rclass
             <Button bsStyle='warning' disabled={'stop' not in commands} onClick={(e)=>e.preventDefault(); @stop_project()}>
                 <Icon name={COMPUTE_STATES.stopping.icon} /> Stop
             </Button>
-            <Button bsStyle='success' disabled={'save' not in commands} onClick={(e)=>e.preventDefault(); @save_project()}>
-                <Icon name={COMPUTE_STATES.saving.icon} /> Save
-            </Button>
         </ButtonToolbar>
+
+    show_host: ->
+        host = @props.project.get('host')?.get('host')
+        if host
+            <LabeledRow key='host' label='Host'>
+                <pre>{host}.sagemath.com</pre>
+            </LabeledRow>
 
     render: ->
         <ProjectSettingsPanel title='Project control' icon='gears'>
@@ -692,9 +717,7 @@ ProjectControlPanel = rclass
             <LabeledRow key='project_id' label='Project id'>
                 <pre>{@props.project.get('project_id')}</pre>
             </LabeledRow>
-            <LabeledRow key='host' label='Host'>
-                <pre>{@props.project.get('host')?.get('host')}.sagemath.com</pre>
-            </LabeledRow>
+            {@show_host() if @props.allow_ssh}
             If your project is not working, please create a <ShowSupportLink />.
             {<hr /> if @props.allow_ssh}
             {@ssh_notice() if @props.allow_ssh}
@@ -989,16 +1012,6 @@ SSHPanel = rclass
         user_map   : rtypes.immutable.Map
         account_id : rtypes.string
 
-    render_how_to: ->
-        project_id = @props.project.get('project_id')
-        host = @props.project.get('host')?.get('host')
-        if host?
-            <div>
-                To SSH into your project, use the following <span style={color:'#666'}>username@host:</span>
-                {# WARNING: previous use of <FormControl> here completely breaks copy on Firefox.}
-                <pre>{"#{misc.replace_all(project_id, '-', '')}@#{host}.sagemath.com"} </pre>
-            </div>
-
     add_ssh_key: (opts) ->
         opts.project_id = @props.project.get('project_id')
         @actions('projects').add_ssh_key_to_project(opts)
@@ -1008,19 +1021,34 @@ SSHPanel = rclass
             fingerprint : fingerprint
             project_id  : @props.project.get('project_id')
 
+    render_ssh_notice: ->
+        user = misc.replace_all(@props.project.get('project_id'), '-', '')
+        addr = "#{user}@ssh.cocalc.com"
+        <div>
+            <span>Use the following username@host:</span>
+            <pre>{addr}</pre>
+            <a href="https://github.com/sagemathinc/cocalc/wiki/AllAboutProjects#create-ssh-key" target="_blank">
+                <Icon name='life-ring'/> How to create SSH keys
+            </a>
+        </div>
+
     render: ->
-        <SSHKeyList
-            user_map   = {@props.user_map}
-            ssh_keys   = {@props.project.getIn(['users', webapp_client.account_id, 'ssh_keys'])}
-            delete_key = {@delete_ssh_key}
-        >
-            <SSHKeyAdder
-                add_ssh_key  = {@add_ssh_key}
-                toggleable   = {true}
-                style        = {marginBottom:'10px'}
-                account_id   = {@props.account_id} />
-            {@render_how_to()}
-        </SSHKeyList>
+        <div>
+            <SSHKeyList
+                ssh_keys   = {@props.project.getIn(['users', webapp_client.account_id, 'ssh_keys'])}
+                delete_key = {@delete_ssh_key}
+            >
+            <div>
+            <span>NOTE: If you want to use the same ssh key for all your projects, add a key using the "SSH Keys" tab under Account Settings. If you have done that, there is no need to configure an ssh key here.</span>
+            </div>
+                <SSHKeyAdder
+                    add_ssh_key  = {@add_ssh_key}
+                    toggleable   = {true}
+                    style        = {marginBottom:'10px'}
+                    account_id   = {@props.account_id} />
+            {@render_ssh_notice()}
+            </SSHKeyList>
+        </div>
 
 ProjectSettingsBody = rclass ({name}) ->
     displayName : 'ProjectSettings-ProjectSettingsBody'

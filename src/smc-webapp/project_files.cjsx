@@ -1548,44 +1548,72 @@ ProjectFilesActionBox = rclass
             if not (single_file_data.is_public and single_file_data.public?.path isnt single_file)
                 @share_click()
 
-    download_click: ->
+    download_single_click: ->
         @props.actions.download_file
             path : @props.checked_files.first()
             log : true
         @props.actions.set_file_action()
 
-    render_download_link: (single_item) ->
-        target = @props.actions.get_store().get_raw_link(single_item)
-        <pre style={@pre_styles}>
-            <a href={target} target='_blank'>{target}</a>
-        </pre>
+    download_multiple_click: ->
+        destination = ReactDOM.findDOMNode(@refs.download_archive).value
+        dest = misc.path_to_file(@props.current_path, destination)
+        @props.actions.zip_files
+            src  : @props.checked_files.toArray()
+            dest : dest
+            cb   : (err) =>
+                    if err
+                        @props.actions.set_activity(id:misc.uuid(), error: err)
+                        return
+                    @props.actions.download_file
+                        path : dest
+                        log  : true
+                    @props.actions.fetch_directory_listing()
+        @props.actions.set_all_files_unchecked()
+        @props.actions.set_file_action()
 
-    render_download_alert: ->
-        <Alert bsStyle='warning'>
-            <h4><Icon name='exclamation-triangle' /> Notice</h4>
-            <p>Download for multiple files and directories is not yet implemented.</p>
-            <p>For now, create a zip archive or download files one at a time.</p>
-        </Alert>
+    render_download_single: (single_item) ->
+        target = @props.actions.get_store().get_raw_link(single_item)
+        <div>
+            <h4>Download link</h4>
+            <pre style={@pre_styles}>
+                <a href={target} target='_blank'>{target}</a>
+            </pre>
+        </div>
+
+    render_download_multiple: ->
+        <div>
+            <h4>Download as archive</h4>
+            <FormGroup>
+                <FormControl
+                    autoFocus    = {true}
+                    ref          = 'download_archive'
+                    key          = 'download_archive'
+                    type         = 'text'
+                    defaultValue = {account.default_filename('zip')}
+                    placeholder  = 'Result archive...'
+                    onKeyDown    = {@action_key}
+                />
+            </FormGroup>
+        </div>
 
     render_download: ->
         single_item = @props.checked_files.first()
         if @props.checked_files.size isnt 1 or @props.file_map[misc.path_split(single_item).tail]?.isdir
-            download_not_implemented_yet = true
+            download_multiple_files = true
         <div>
             <Row>
                 <Col sm=5 style={color:'#666'}>
-                    <h4>Download file to your computer</h4>
+                    <h4>Download file(s) to your computer</h4>
                     {@render_selected_files_list()}
                 </Col>
                 <Col sm=7 style={color:'#666'}>
-                    <h4>Download link</h4>
-                    {if download_not_implemented_yet then @render_download_alert() else @render_download_link(single_item)}
+                    {if download_multiple_files then @render_download_multiple() else @render_download_single(single_item)}
                 </Col>
             </Row>
             <Row>
                 <Col sm=12>
                     <ButtonToolbar>
-                        <Button bsStyle='primary' onClick={@download_click} disabled={download_not_implemented_yet}>
+                        <Button bsStyle='primary' onClick={if download_multiple_files then @download_multiple_click else @download_single_click}>
                             <Icon name='cloud-download' /> Download
                         </Button>
                         <Button onClick={@cancel_action}>
@@ -2058,7 +2086,7 @@ exports.ProjectFiles = rclass ({name}) ->
                 <ErrorDisplay style={maxWidth:'100%'} bsStyle="warning" title="Showing only public files" error={"You are viewing a project that you are not a collaborator on. To view non-public files or edit files in this project you need to ask a collaborator of the project to add you."} />
             else
                 <div>
-                    <ErrorDisplay style={maxWidth:'100%'}  bsStyle="warning" title="Showing only public files" error={"You are not logged in. To view non-public files or edit files in this project you'll need to sign in. If you are not a collaborator then you need to ask a collaborator of the project to add you to access non public files."} />
+                    <ErrorDisplay style={maxWidth:'100%'}  bsStyle="warning" title="Showing only public files" error={"You are not logged in. To view non-public files or edit files in this project you will need to sign in. If you are not a collaborator then you need to ask a collaborator of the project to add you to access non public files."} />
                 </div>
         else
             if @props.redux.getStore('account')?.is_logged_in()
@@ -2074,10 +2102,9 @@ exports.ProjectFiles = rclass ({name}) ->
             return @render_project_state(project_state)
 
         if error
-            # double quotes needed for not_public. not sure why. maybe JSON.stringify is being called somewhere
             quotas = @props.get_total_project_quotas(@props.project_id)
             switch error
-                when '"not_public"'
+                when 'not_public'
                     e = @render_access_error()
                 when 'no_dir'
                     e = <ErrorDisplay title="No such directory" error={"The path #{@props.current_path} does not exist."} />
@@ -2089,7 +2116,7 @@ exports.ProjectFiles = rclass ({name}) ->
                 else
                     if error == 'no_instance' or (require('./customize').commercial and quotas? and not quotas?.member_host)
                         # the second part of the or is to blame it on the free servers...
-                        e = <ErrorDisplay title="Host down" error={"The host for this project is down, being rebooted, or is overloaded with users.   Free projects are hosted on potentially massively overloaded preemptible instances, which are rebooted at least once per day and periodically become unavailable.   To increase the robustness of your projects, please become a paying customer (US $7/month) by entering your credit card in the Billing tab next to account settings, then move your projects to a members only server. \n\n#{error if not quotas?.member_host}"} />
+                        e = <ErrorDisplay title="Project unavailable" error={"This project seems to not be responding.   Free projects are hosted on massively overloaded computers, which are rebooted at least once per day and periodically become unavailable.   To increase the robustness of your projects, please become a paying customer (US $7/month) by entering your credit card in the Billing tab next to account settings, then move your projects to a members only server. \n\n#{error if not quotas?.member_host}"} />
                     else
                         e = <ErrorDisplay title="Directory listing error" error={error} />
             return <div>
@@ -2149,8 +2176,8 @@ exports.ProjectFiles = rclass ({name}) ->
         </Button>
 
     render_project_state: (project_state) ->
-        <div style={fontSize:'40px', textAlign:'center', color:'#999999'} >
-            <ProjectState state={project_state} />
+        <div style={fontSize:'40px', textAlign:'center', color:'#666666'} >
+            <ProjectState state={project_state} show_desc={true} />
             <br/>
             {@render_start_project_button(project_state)}
         </div>

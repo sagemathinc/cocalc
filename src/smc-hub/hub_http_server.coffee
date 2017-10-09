@@ -75,24 +75,18 @@ exports.init_express_http_server = (opts) ->
     router.use(body_parser.urlencoded({ extended: true }))
 
     # initialize metrics
-    response_time_quantile = MetricsRecorder.new_quantile('http_quantile', 'http server',
-                                  percentiles : [0, 0.5, 0.75, 0.9, 0.99, 1]
-                                  labels: ['path', 'method', 'code']
-                             )
     response_time_histogram = MetricsRecorder.new_histogram('http_histogram', 'http server'
-                                  buckets : [0.0001, 0.0005, 0.001, 0.002, 0.005, 0.01, 0.1, 0.5, 1, 5, 10]
+                                  buckets : [0.001, 0.01, 0.1, 1, 2, 10, 20]
                                   labels: ['path', 'method', 'code']
                               )
 
     router.use (req, res, next) ->
-        res_finished_q = response_time_quantile.startTimer()
         res_finished_h = response_time_histogram.startTimer()
         original_end = res.end
         res.end = ->
             original_end.apply(res, arguments)
             {dirname} = require('path')
             dir_path = dirname(req.path).split('/')[1] # for two levels: split('/')[1..2].join('/')
-            res_finished_q({path:dir_path, method:req.method, code:res.statusCode})
             res_finished_h({path:dir_path, method:req.method, code:res.statusCode})
         next()
 
@@ -398,8 +392,8 @@ exports.init_express_http_server = (opts) ->
                                     # when connection dies, clear from cache
                                     proxy.on("error", -> delete proxy_cache[key])
                                     proxy.web(req, res)
-                                    # also delete after a few seconds
-                                    setTimeout((-> delete proxy_cache[key]), 10000)
+                                    # also delete eventually (1 hour)
+                                    setTimeout((-> delete proxy_cache[key]), 1000*60*60)
 
         raw_regexp = '^' + opts.base_url + '\/[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}\/raw*'
         app.get( raw_regexp, dev_proxy_raw)

@@ -190,6 +190,10 @@ exports.FileTypeSelector = FileTypeSelector = rclass
                         tip='Create a todo list to keep track of everything you are doing on a project.  Put #hashtags in the item descriptions and set due dates.'>
                         <NewFileButton icon='tasks' name='Task List' on_click={@props.create_file} ext='tasks' />
                     </Tip>
+                    <Tip title='Stopwatch'   icon='clock-o'
+                        tip='Create a collaborative stopwatch to keep track how long it takes to do something.'>
+                        <NewFileButton icon='clock-o' name='Stopwatch' on_click={@props.create_file} ext='time' />
+                    </Tip>
                 </Col>
                 <Col sm=6>
                     <Tip title='Manage a Course'  placement='left'  icon='graduation-cap'
@@ -250,7 +254,7 @@ ProjectNewForm = rclass ({name}) ->
             @create_file(ext)
         else if @state.filename[@state.filename.length - 1] == '/'
             @create_folder()
-        else if misc.filename_extension(@state.filename)
+        else if misc.filename_extension(@state.filename) or misc.is_only_downloadable(@state.filename)
             @create_file()
         else
             @setState(extension_warning : true)
