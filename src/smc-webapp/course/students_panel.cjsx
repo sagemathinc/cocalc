@@ -596,16 +596,18 @@ Student = rclass
     render_assignments_info_rows: ->
         store = @props.redux.getStore(@props.name)
         for assignment in store.get_sorted_assignments()
-            grade = store.get_grade(assignment, @props.student)
-            info = store.student_assignment_info(@props.student, assignment)
+            grade    = store.get_grade(assignment, @props.student)
+            comments = store.get_comments(assignment, @props.student)
+            info     = store.student_assignment_info(@props.student, assignment)
             <StudentAssignmentInfo
-                key={assignment.get('assignment_id')}
-                title={@render_title(assignment)}
-                name={@props.name}
-                student={@props.student}
-                assignment={assignment}
-                grade={grade}
-                info={info}
+                key        = {assignment.get('assignment_id')}
+                title      = {@render_title(assignment)}
+                name       = {@props.name}
+                student    = {@props.student}
+                assignment = {assignment}
+                grade      = {grade}
+                comments   = {comments}
+                info       = {info}
                 />
 
     render_assignments_info: ->
@@ -617,7 +619,7 @@ Student = rclass
         <Row key='note' style={styles.note}>
             <Col xs=2>
                 <Tip title="Notes about this student" tip="Record notes about this student here. These notes are only visible to you, not to the student.  In particular, you might want to include an email address or other identifying information here, and notes about late assignments, excuses, etc.">
-                    Notes
+                    Private Student Notes
                 </Tip>
             </Col>
             <Col xs=10>

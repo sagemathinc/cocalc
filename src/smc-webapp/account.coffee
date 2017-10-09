@@ -32,6 +32,8 @@ account_page    = require('./account_page')
 misc     = require("misc")
 {redux}   = require('./smc-react')
 
+{reset_password_key} = require('./password-reset')
+
 ################################################
 # Account creation
 ################################################
@@ -85,6 +87,12 @@ webapp_client.on("signed_in", signed_in)
 # Automatically log in
 ################################################
 remember_me = webapp_client.remember_me_key()
+if reset_password_key()
+    # Attempting to do a password reset -- clearly we do NOT want to wait in the hopes
+    # that sign in via a cookie is going to work.  Without deleting this, the reset
+    # password dialog that appears will immediately vanish with a frustrating redirect.
+    delete localStorage[remember_me]
+
 if misc.get_local_storage(remember_me)
     redux.getActions('account').setState(remember_me: true)
     # just in case, always show manual login screen after 45s.

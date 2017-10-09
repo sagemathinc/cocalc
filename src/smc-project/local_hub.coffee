@@ -332,9 +332,14 @@ program.usage('[?] [options]')
     .parse(process.argv)
 
 if program.kucalc
+    winston.debug("running in kucalc")
     kucalc.IN_KUCALC = true
     if program.test_firewall
         kucalc.init_gce_firewall_test(winston)
+else
+    winston.debug("NOT running in kucalc")
+    kucalc.IN_KUCALC = false
+
 
 start_server program.tcp_port, program.raw_port, (err) ->
     if err

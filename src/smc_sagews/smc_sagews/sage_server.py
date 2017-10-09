@@ -653,9 +653,10 @@ class Salvus(object):
 
     def _action(self, path, foreground):
         if os.path.isdir(path):
-            action = "worksheet.project_page.chdir(obj.path);"
             if foreground:
-                action += "worksheet.project_page.display_tab('project-file-listing');"
+                action = "worksheet.project_page.open_directory(obj.path);"
+            else:
+                action = "worksheet.project_page.set_current_path(obj.path);"
         else:
             action = "worksheet.project_page.open_file({'path':obj.path, 'foreground': obj.foreground});"
         return action
@@ -671,9 +672,9 @@ class Salvus(object):
 
     def close_tab(self, filename):
         """
-        Open an open file tab.  The filename is relative to the current working directory.
+        Close an open file tab.  The filename is relative to the current working directory.
         """
-        self.javascript("worksheet.editor.close(obj)", obj = filename, once=True)
+        self.javascript("worksheet.project_page.close_file(obj)", obj = filename, once=True)
 
     def threed(self,
                g,                   # sage Graphic3d object.

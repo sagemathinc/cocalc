@@ -1,3 +1,8 @@
+Check on our SLO, namely number of projects that took 30s or more to start among the last 100 projects started.
+
+    select count(*) from project_log where event#>>'{event}'='start_project' and time >= now() - interval '1 day';
+
+    select * from (select now()-time as age, project_id,(event#>>'{time}')::INTEGER as t from project_log where event#>>'{event}'='start_project' and time >= now() - interval '1 hour' order by time desc) as foo where t > 20000 order by age;
 
 Problems people are having right now:
 

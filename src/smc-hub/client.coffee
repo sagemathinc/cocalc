@@ -181,6 +181,11 @@ class exports.Client extends EventEmitter
 
         @conn.on "end", () =>
             dbg("connection: hub <--> client(id=#{@id}, address=#{@ip_address})  -- CLOSED")
+            @destroy()
+            ###
+            # I don't think this destroy_timer is of any real value at all unless
+            # we were to fully maintain client state while they are gone.  Doing this
+            # is a serious liability, e.g., in a load-spike situation.
             # CRITICAL -- of course we need to cancel all changefeeds when user disconnects,
             # even temporarily, since messages could be dropped otherwise. (The alternative is to
             # cache all messages in the hub, which has serious memory implications.)
@@ -190,6 +195,7 @@ class exports.Client extends EventEmitter
             # and we keep everything waiting for them for short time
             # in case this happens.
             @_destroy_timer = setTimeout(@destroy, 1000*CLIENT_DESTROY_TIMER_S)
+            ###
 
         dbg("connection: hub <--> client(id=#{@id}, address=#{@ip_address})  ESTABLISHED")
 
@@ -202,6 +208,10 @@ class exports.Client extends EventEmitter
     destroy: () =>
         dbg = @dbg('destroy')
         dbg("destroy connection: hub <--> client(id=#{@id}, address=#{@ip_address})  -- CLOSED")
+
+        if @id
+            # cancel any outstanding queries.
+            @database.cancel_user_queries(client_id:@id)
 
         delete client_metrics[@id]
         clearInterval(@_remember_me_interval)
@@ -1556,11 +1566,14 @@ class exports.Client extends EventEmitter
             @_query_changefeeds[mesg.id] = true
         mesg_id = mesg.id
         @database.user_query
+            client_id  : @id
             account_id : @account_id
             query      : query
             options    : mesg.options
             changes    : if mesg.changes then mesg_id
             cb         : (err, result) =>
+                if @closed  # connection closed, so nothing further to do with this
+                    return
                 if result?.action == 'close'
                     err = 'close'
                 if err

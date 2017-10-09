@@ -151,7 +151,8 @@ html.no-js(lang="en")
     script
       :coffee-script
         html = document.documentElement
-        html.className = html.className.replace(/\bno-js\b/, 'js')
+        window.onload = ->
+          html.className = html.className.replace(/\bno-js\b/, 'js')
     noscript
       style.
         html.no-js { display: block; }

@@ -176,6 +176,9 @@ exports.CourseStore = class CourseStore extends Store
     get_grade: (assignment, student) =>
         return @get_assignment(assignment)?.get('grades')?.get(@get_student(student)?.get('student_id'))
 
+    get_comments: (assignment, student) =>
+        return @get_assignment(assignment)?.get('comments')?.get(@get_student(student)?.get('student_id'))
+
     get_due_date: (assignment) =>
         due_date = @get_assignment(assignment)?.get('due_date')
         if due_date?

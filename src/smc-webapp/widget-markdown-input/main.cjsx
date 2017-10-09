@@ -24,15 +24,18 @@ exports.MarkdownInput = rclass
     displayName : 'WidgetMarkdownInput'
 
     propTypes :
-        persist_id    : rtypes.string # A unique id to identify the input. Required if you want automatic persistence
-        attach_to     : rtypes.string # Removes record when given store name is destroyed
-        default_value : rtypes.string
-        on_change     : rtypes.func
-        on_save       : rtypes.func   # called when saving from editing and switching back
-        on_edit       : rtypes.func   # called when editing starts
-        on_cancel     : rtypes.func   # called when cancel button clicked
-        rows          : rtypes.number
-        placeholder   : rtypes.string
+        persist_id     : rtypes.string # A unique id to identify the input. Required if you want automatic persistence
+        attach_to      : rtypes.string # Removes record when given store name is destroyed. Only use with persist_id
+        default_value  : rtypes.string
+        editing        : rtypes.bool   # Used to control the edit/display state. CANNOT be used with persist_id
+        save_disabled  : rtypes.bool   # Used to control the save button
+        on_change      : rtypes.func   # called with the new value when the value while editing changes
+        on_save        : rtypes.func   # called when saving from editing and switching back
+        on_edit        : rtypes.func   # called when editing starts
+        on_cancel      : rtypes.func   # called when cancel button clicked
+        rows           : rtypes.number
+        placeholder    : rtypes.string
+        rendered_style : rtypes.object
 
     reduxProps:
         markdown_inputs :
@@ -53,14 +56,16 @@ exports.MarkdownInput = rclass
             state_app.getStore(@props.attach_to).on('destroy', @clear_persist)
 
     componentWillUnmount: ->
-        if @props.persist_id? and not @state.editing
+        if @props.persist_id? and not (@state.editing or @props.editing)
             @clear_persist()
 
     persist_value: (value) ->
-        @actions(info.name).set_value(@props.persist_id, value ? @state.value)
+        if @props.persist_id?
+            @actions(info.name).set_value(@props.persist_id, value ? @state.value)
 
     clear_persist: ->
-        @actions(info.name).clear(@props.persist_id)
+        if @props.persist_id?
+            @actions(info.name).clear(@props.persist_id)
 
     set_value: (value) ->
         @props.on_change?(value)
@@ -69,27 +74,29 @@ exports.MarkdownInput = rclass
 
     edit: ->
         @props.on_edit?()
-        @setState(editing : true, value : @props.default_value)
+        @setState(editing : true) if not @props.editing?
+        @setState(value : @props.default_value)
 
     cancel: ->
         @props.on_cancel?()
         @clear_persist()
-        @setState(editing : false)
+        @setState(editing : false) if not @props.editing?
 
     save: ->
         @props.on_save?(@state.value)
         @clear_persist()
-        @setState(editing : false)
+        @setState(editing : false) if not @props.editing?
 
     keydown: (e) ->
         if e.keyCode==27
-            @setState(editing:false)
+            @cancel()
         else if e.keyCode==13 and e.shiftKey
             @save()
 
     to_html: ->
         if @props.default_value
-            {__html: markdown.markdown_to_html(@props.default_value).s}
+            html = markdown.markdown_to_html(@props.default_value).s
+            {__html: html}
         else
             {__html: ''}
 
@@ -97,7 +104,7 @@ exports.MarkdownInput = rclass
         # Maybe there's a better way to fix this.
         # Required here because of circular requiring otherwise.
         {Tip, Icon} = require('../r_misc')
-        if @state.editing
+        if @state.editing or @props.editing
             tip = <span>
                 You may enter (Github flavored) markdown here.  In particular, use # for headings, > for block quotes, *'s for italic text, **'s for bold text, - at the beginning of a line for lists, back ticks ` for code, and URL's will automatically become links.
             </span>
@@ -123,14 +130,20 @@ exports.MarkdownInput = rclass
                 </div>
                 <ButtonToolbar style={paddingBottom:'5px'}>
                     <Button key='save' bsStyle='success' onClick={@save}
-                            disabled={@state.value == @props.default_value}>
+                            disabled={if @props.save_disabled? then @props.save_disabled else @state.value == @props.default_value}>
                         <Icon name='edit' /> Save
                     </Button>
                     <Button key='cancel' onClick={@cancel}>Cancel</Button>
                 </ButtonToolbar>
             </div>
         else
+            html = @to_html()
+            if html?.__html
+                style = @props.rendered_style
+            else
+                style = undefined
             <div>
-                <div onClick={@edit} dangerouslySetInnerHTML={@to_html()}></div>
-                <Button onClick={@edit}>Edit</Button>
+                <div onClick={@edit} dangerouslySetInnerHTML={html} style={style}></div>
+                {<Button onClick={@edit}>Edit</Button> if not @props.hide_edit_button}
             </div>
+
