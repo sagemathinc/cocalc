@@ -708,15 +708,16 @@ ProjectFilesPath = rclass
         v = []
         v.push <PathSegmentLink path='' display={<Icon name='home' />} key=0 actions={@props.actions} />
         path = @props.current_path
+        history_path = @props.history_path
         root = path[0] == '/'
-        if root
-            path = path[1..]
         if @props.current_path == ''
             path_segments = []
         else
             path_segments = path.split('/')
-        history_segments = @props.history_path.split('/')
+        history_segments = history_path.split('/')
         for segment, i in history_segments
+            if root and i == 0
+                continue
             is_current = i == path_segments.length - 1
             is_history = i >= path_segments.length
             v.push <PathSegmentLink
