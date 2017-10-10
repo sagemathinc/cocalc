@@ -1708,8 +1708,8 @@ class exports.Connection extends EventEmitter
             x[table] = opts[table]
         return @query(query:x, changes: true)
 
-    sync_table: (query, options, debounce_interval=2000, throttle_changes=undefined) =>
-        return synctable.sync_table(query, options, @, debounce_interval, throttle_changes)
+    sync_table: (query, options, debounce_interval=2000, throttle_changes=undefined, use_cache=true) =>
+        return synctable.sync_table(query, options, @, debounce_interval, throttle_changes, use_cache)
 
     sync_string: (opts) =>
         opts = defaults opts,

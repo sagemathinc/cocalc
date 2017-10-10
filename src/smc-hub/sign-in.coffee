@@ -319,7 +319,7 @@ exports.sign_in_using_api_key = (opts) ->
         (cb) ->
             dbg("get account and check credentials")
             opts.database.get_account_with_api_key
-                api_key : opts.api_key
+                api_key : mesg.api_key
                 cb      : (err, a) ->
                     if err
                         cb(err)

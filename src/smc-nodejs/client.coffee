@@ -5,11 +5,10 @@ Node.js client for CoCalc.
 
 ###
 
-{EventEmitter} = require('events')
-
+async = require('async')
 require('coffee-cache').setCacheDir('/tmp/coffee-cache/')
 
-WebSocket = require('ws')
+Primus = require('primus') # Primus library from npm install primus
 
 client = require('smc-util/client')
 misc = require('smc-util/misc')
@@ -29,44 +28,110 @@ exports.client = (opts) ->
 class Connection extends client.Connection
     constructor: (url, @_auth_token, @_api_key) ->
         super(url)
-        #@_redux = require('./smc-react').redux
-
-    destroy: =>
-        @_conn?.removeAllListeners()
-        @_conn?.close()
-        delete @_conn
 
     dbg: (name) =>
         return (args...) => console.log("Client.#{name}", args...)
 
+    destroy: =>
+        @_destroyed = true
+        @_conn?.removeAllListeners()
+        @_conn?.end()
+        delete @_conn
+
+
     _connect: (url, ondata) =>
+        if @_destroyed
+            return
         dbg = @dbg("_connect")
         dbg()
 
-        i = url.indexOf('//')
+        @url = url
+        if @ondata?
+            # handlers already setup
+            return
+
+        @ondata = ondata
+
+        i = url.indexOf('://')
+        a = url.slice(i+3)
+        i = a.indexOf('/')
         if i == -1
-            url = 'ws://' + url
-        if not misc.endswith(url, '/hub')
-            if not misc.endswith(url, '/')
-                url += '/'
-            url += 'hub'
-        dbg("connecting to '#{url}'")
+            pathname = '/hub'
+        else
+            pathname = require('path').join(a.slice(i+1), 'hub')
+        dbg("pathname='#{pathname}'")
+        Socket = Primus.createSocket(pathname : pathname)
+        conn = new Socket(url)
 
-        @_conn = conn = new WebSocket(url)
-
-        conn.on 'message', (data) =>
-            console.log("message '#{data}'")
-            ondata(data)
-
+        @_conn = conn
         conn.on 'open', () =>
             @_connected = true
-            @emit("connected", 'websocket')
+            @_connection_is_totally_dead = false
+            if @_conn_id?
+                conn.write(@_conn_id)
+            else
+                conn.write("XXXXXXXXXXXXXXXXXXXX")
+            protocol = 'websocket'
+            @emit("connected", protocol)
+            dbg("connected")
+
+            conn.removeAllListeners('data')
+            f = (data) =>
+                @_conn_id = data.toString()
+                conn.removeListener('data',f)
+                conn.on('data', ondata)
+            conn.on("data", f)
+
             @_sign_in()
 
+        conn.on 'outgoing::open', (evt) =>
+            dbg("connecting")
+            @emit("connecting")
+
+        conn.on 'offline', (evt) =>
+            dbg("offline")
+            @_connected = false
+            @emit("disconnected", "offline")
+
+        conn.on 'online', (evt) =>
+            dbg("online")
+
+        conn.on 'offline', (evt) =>
+            dbg("offline")
+            @_connected = false
+            @emit("disconnected", "offline")
+
+        conn.on 'online', (evt) =>
+            dbg("online")
+
+        conn.on 'message', (evt) =>
+            ondata(evt.data)
+
+        conn.on 'error', (err) =>
+            dbg("error: ", err)
+
+        conn.on 'close', () =>
+            dbg("closed")
+            @_connected = false
+            @emit("disconnected", "close")
+
+        conn.on 'end', =>
+            @_connection_is_totally_dead = true
+
+        conn.on 'reconnect scheduled', (opts) =>
+            @_num_attempts = opts.attempt
+            @emit("disconnected", "close") # This just informs everybody that we *are* disconnected.
+            @emit("connecting")
+            conn.removeAllListeners('data')
+            dbg("reconnect scheduled in #{opts.scheduled} ms  (attempt #{opts.attempt} out of #{opts.retries})")
+
+        conn.on 'incoming::pong', (time) =>
+            dbg("pong latency=#{conn.latency}")
+            @emit("ping", conn.latency)
+
         @_write = (data) =>
-            console.log("@_write '#{data}'", data.length)
-            conn.send data, (err) =>
-                console.log("Done sending '#{data}'", err)
+            #dbg("@_write '#{data}'", data.length)
+            conn.write(data)
 
     _sign_in: =>
         dbg = @dbg('_sign_in')
@@ -93,6 +158,63 @@ class Connection extends client.Connection
                     else
                         dbg("success")
 
+    # we do this mainly for stress testing
+    get_sync_tables: (opts) =>
+        opts = defaults opts,
+            tables : ['accounts', 'projects', 'file_use', 'stats', 'collaborators', 'system_notifications']
+            cb     : undefined
+        v = {}
+        f = (table, cb) =>
+            v[table] = t = @sync_table(table, undefined, 2000, undefined, false)
+            t.once('connected', (=>cb()))
+        async.map opts.tables, f, (err) =>
+            opts.cb?(err, v)
+        return
+
+
+###
+Sign into the given server nclients times in parallel, call get_sync_tables to
+setup the standard synctable (record how long that takes), then disconnect.
+###
+exports.bench = (opts) ->
+    opts = defaults opts,
+        url        : required
+        api_key    : undefined   # one of api_key or auth_token must be given
+        auth_token : undefined
+        nclients   : 1           # number of distinct clients to connect at once.
+        wait_s     : 0
+        cb         : undefined   # (err, data)
+    data = {}
+    clients = {}
+    i = 0
+    f = (n, cb) ->
+        info = data[n] = {}
+        t0 = new Date()
+        console.log("*** #{n}: ...")
+        clients[n] = exports.client
+            url        : opts.url
+            auth_token : opts.auth_token
+            api_key    : opts.api_key
+        clients[n].once 'signed_in', ->
+            clients[n].get_sync_tables
+                cb : (err) ->
+                    if err
+                        info.err = err
+                    info.time = new Date() - t0
+                    i += 1
+                    console.log("*** #{i}/#{opts.nclients}", info)
+                    f = ->
+                        clients[n].destroy()
+                        cb()
+                    setTimeout(f, opts.wait_s*1000)
+
+    tm = new Date()
+    async.map [0...opts.nclients], f, =>
+        total = new Date() - tm
+        console.log(data)
+        console.log("DONE -- total time ", total)
+        console.log("DONE -- average time ", total/opts.nclients)
+        opts.cb(undefined, data)
 
 
 

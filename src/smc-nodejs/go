@@ -1,0 +1,1 @@
+echo "n=$1;require('./client').bench(url:'http://localhost:54249/45f4aab5-7698-4ac8-9f63-9fd307401ad7/port/54249/',api_key:'$2', nclients:n, wait_s:60, cb:->process.exit(0));0" | coffee

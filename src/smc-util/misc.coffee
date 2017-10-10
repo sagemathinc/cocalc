@@ -1856,24 +1856,13 @@ exports.suggest_duplicate_filename = (name) ->
 # See https://github.com/sagemathinc/cocalc/issues/237
 
 exports.set_local_storage = (key, val) ->
-    try
-        localStorage[key] = val
-    catch e
-        console.warn("localStorage set error -- #{e}")
+    localStorage?[key] = val
 
 exports.get_local_storage = (key) ->
-    try
-        return localStorage[key]
-    catch e
-        console.warn("localStorage get error -- #{e}")
-
+    return localStorage?[key]
 
 exports.delete_local_storage = (key) ->
-    try
-        delete localStorage[key]
-    catch e
-        console.warn("localStorage delete error -- #{e}")
-
+    delete localStorage?[key]
 
 exports.has_local_storage = () ->
     try
@@ -1885,10 +1874,7 @@ exports.has_local_storage = () ->
         return false
 
 exports.local_storage_length = () ->
-    try
-        return localStorage.length
-    catch e
-        return 0
+    return localStorage?.length ? 0
 
 # Takes an object representing a directed graph shaped as follows:
 # DAG =
