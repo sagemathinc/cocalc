@@ -716,6 +716,15 @@ class exports.Client extends EventEmitter
             host     : @_opts.host
             port     : @_opts.port
 
+    mesg_sign_in_using_api_key: (mesg) =>
+        sign_in.sign_in_using_api_key
+            client   : @
+            mesg     : mesg
+            logger   : @logger
+            database : @database
+            host     : @_opts.host
+            port     : @_opts.port
+
     mesg_sign_out: (mesg) =>
         if not @account_id?
             @push_to_client(message.error(id:mesg.id, error:"Not signed in."))

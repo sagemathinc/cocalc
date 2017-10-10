@@ -782,10 +782,22 @@ class exports.Connection extends EventEmitter
     sign_in_using_auth_token: (opts) ->
         opts = defaults opts,
             auth_token : required
+            timeout    : undefined
             cb         : required
         @call
             message : message.sign_in_using_auth_token
                 auth_token : opts.auth_token
+            timeout : opts.timeout
+            cb      : opts.cb
+
+    sign_in_using_api_key: (opts) ->
+        opts = defaults opts,
+            api_key : required
+            timeout : undefined
+            cb      : required
+        @call
+            message : message.sign_in_using_api_key
+                api_key : opts.api_key
             timeout : opts.timeout
             cb      : opts.cb
 

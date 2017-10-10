@@ -47,7 +47,8 @@
     "webpack-dev-server": "^1.14.1",
     "webpack-path-rewriter": "^1.1.3",
     "webpack-sha-hash": "^1.0.0",
-    "webpack-stats-plugin": "^0.1.1"
+    "webpack-stats-plugin": "^0.1.1",
+    "ws": "^3.2.0"
   },
   "scripts": {
     "lint": "node_modules/.bin/coffeelint -f smc-util/coffeelint.json -c *.coffee && cd smc-hub && npm run lint && cd ../smc-webapp && npm run lint && cd ../smc-util && npm run lint && cd ../smc-util-node && npm run lint",

@@ -187,6 +187,7 @@ init_primus_server = (http_server) ->
     primus_server.on "connection", (conn) ->
         # Now handle the connection
         winston.debug("primus_server: new connection from #{conn.address.ip} -- #{conn.id}")
+        conn.on 'data', (data) => winston.debug("DATA '#{data}'")
         primus_conn_sent_data = false
         f = (data) ->
             primus_conn_sent_data = true

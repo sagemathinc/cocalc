@@ -245,7 +245,89 @@ exports.sign_in_using_auth_token = (opts) ->
                         err = 'auth_token is not valid'
                     account_id = _account_id; cb(err)
         (cb) ->
-            dbg("successly got account_id; now getting more information about the account")
+            dbg("successfully got account_id; now getting more information about the account")
+            opts.database.get_account
+                account_id : account_id
+                columns    : ['email_address']
+                cb         : (err, _account) ->
+                    account = _account; cb(err)
+        # remember me
+        (cb) ->
+            dbg("remember_me -- setting the remember_me cookie")
+            signed_in_mesg = message.signed_in
+                id            : mesg.id
+                account_id    : account_id
+                email_address : account.email_address
+                remember_me   : false
+                hub           : opts.host + ':' + opts.port
+            client.remember_me
+                account_id    : signed_in_mesg.account_id
+                email_address : signed_in_mesg.email_address
+                ttl           : 12*3600
+                cb            : cb
+    ], (err) ->
+        if err
+            dbg("send error to user (in #{misc.walltime(tm)}seconds) -- #{err}")
+            sign_in_error(err)
+            opts.cb?(err)
+        else
+            dbg("user got signed in fine (in #{misc.walltime(tm)}seconds) -- sending them a message")
+            client.signed_in(signed_in_mesg)
+            client.push_to_client(signed_in_mesg)
+            opts.cb?()
+    )
+
+
+# sign in using api key -- some of this is lazily copied from sign_in_using_auth_key
+exports.sign_in_using_api_key = (opts) ->
+    {client, mesg} = opts = defaults opts,
+        client   : required
+        mesg     : required
+        logger   : undefined
+        database : required
+        host     : undefined
+        port     : undefined
+        cb       : undefined
+
+    if opts.logger?
+        dbg = (m) ->
+            opts.logger.debug("sign_in_using_api_key: #{m}")
+        dbg()
+    else
+        dbg = ->
+    tm = misc.walltime()
+
+    sign_in_error = (error) ->
+        dbg("sign_in_using_api_key_error -- #{error}")
+        client.push_to_client(message.error(id:mesg.id, error:error))
+        opts.cb?(error)
+
+    if not mesg.api_key
+        sign_in_error("missing api_key.")
+        return
+
+    m = sign_in_check
+        email : mesg.api_key
+        ip    : client.ip_address
+    if m
+        sign_in_error("sign_in_check fail(ip=#{client.ip_address})")
+        return
+
+    signed_in_mesg = undefined
+    account = account_id = undefined
+    async.series([
+        (cb) ->
+            dbg("get account and check credentials")
+            opts.database.get_account_with_api_key
+                api_key : opts.api_key
+                cb      : (err, a) ->
+                    if err
+                        cb(err)
+                    else
+                        account_id = a
+                        cb()
+        (cb) ->
+            dbg("successfully got account_id; now getting more information about the account")
             opts.database.get_account
                 account_id : account_id
                 columns    : ['email_address']

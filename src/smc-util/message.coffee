@@ -461,6 +461,11 @@ message
     event      : 'sign_in_using_auth_token'
     auth_token : required
 
+message
+    id      : undefined
+    event   : 'sign_in_using_api_key'
+    api_key : required
+
 # hub --> client
 message
     id     : undefined
