@@ -291,6 +291,7 @@ exports.CodeMirrorEditor = rclass
             editor =
                 save        : @_cm_save
                 set_cursor  : @_cm_set_cursor
+                tab_key     : @tab_key
             @props.actions.register_input_editor(@props.id, editor)
 
         if @props.is_focused

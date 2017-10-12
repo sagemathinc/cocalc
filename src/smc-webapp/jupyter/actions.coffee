@@ -1098,6 +1098,10 @@ class exports.JupyterActions extends Actions
         id ?= @store.get('cur_id')
         return (@_input_editors?[id]?.save?() ? @store.getIn(['cells', id, 'input']) ? '')
 
+    # Press tab key in editor of currently selected cell.
+    tab_key: =>
+        @_input_editors?[@store.get('cur_id')]?.tab_key?()
+
     set_cursor: (id, pos) =>
         ###
         id = cell id

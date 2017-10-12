@@ -77,7 +77,7 @@ exports.TopButtonbar = rclass ({name}) ->
         @render_button_group(['move cell up', 'move cell down'], true)
 
     render_group_run: ->
-        @render_button_group(['run cell and select next', {name:'interrupt kernel', disabled:@props.kernel_state != 'busy'}])
+        @render_button_group(['run cell and select next', {name:'interrupt kernel', disabled:@props.kernel_state != 'busy'}, 'tab key'])
 
     cell_select_type: (event) ->
         @props.actions.set_selected_cell_type(event.target.value)

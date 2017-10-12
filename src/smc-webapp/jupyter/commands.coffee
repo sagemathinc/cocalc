@@ -487,6 +487,11 @@ exports.commands = (actions) ->
         m : 'Switch to Classical Notebook...'
         f : -> actions.switch_to_classical_notebook()
 
+    'tab key' :
+        i : 'step-forward'
+        m : 'Tab Key (completion)...'
+        f : -> actions.tab_key()
+
     'time travel' :
         m : 'TimeTravel...'
         f : -> actions.show_history_viewer()
