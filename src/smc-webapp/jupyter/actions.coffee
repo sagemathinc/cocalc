@@ -785,6 +785,21 @@ class exports.JupyterActions extends Actions
             @move_cursor(1)
 
 
+    run_cell_and_insert_new_cell_below: =>
+        v = @store.get_selected_cell_ids_list()
+        @run_selected_cells()
+        if @store.get('cur_id') in v
+            new_id = @insert_cell(1)
+        else
+            new_id = @insert_cell(-1)
+        # Set mode back to edit in the next loop since something above
+        # sets it to escape.  See https://github.com/sagemathinc/cocalc/issues/2372
+        f = =>
+            @set_cur_id(new_id)
+            @set_mode('edit')
+            @scroll('cell visible')
+        setTimeout(f, 0)
+
     run_all_cells: =>
         @store.get('cell_list').forEach (id) =>
             @run_cell(id)
