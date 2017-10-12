@@ -119,9 +119,8 @@ TextPlain = rclass
 
     render: ->
         <div style={STDOUT_STYLE}>
-            <span>  {# span?  what? -- See https://github.com/sagemathinc/cocalc/issues/1958 }
-                {@props.value}
-            </span>
+            {# span?  what? -- See https://github.com/sagemathinc/cocalc/issues/1958 }
+            <span>{@props.value}</span>
         </div>
 
 UntrustedJavascript = rclass
