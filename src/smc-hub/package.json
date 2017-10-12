@@ -68,9 +68,9 @@
   },
   "scripts": {
     "test": "(npm run testpg && npm run testapi && npm run testmisc); rc=$?; ../scripts/mocha_clean.sh; exit $rc",
-    "testpg": "echo 'TEST POSTGRES'; SMC_DB_RESET=true SMC_TEST=true time node_modules/.bin/mocha --reporter ${REPORTER:-progress} test/postgres",
-    "testapi": "echo 'TEST API'; SMC_DB_RESET=true SMC_TEST=true node_modules/.bin/mocha --reporter ${REPORTER:-progress} test/api",
-    "testmisc": "echo 'TEST MISC'; SMC_DB_RESET=true SMC_TEST=true node_modules/.bin/mocha --reporter ${REPORTER:-progress} test/misc",
+    "testpg": "echo 'TEST POSTGRES'; SMC_DB_RESET=true SMC_TEST=true time node_modules/.bin/mocha --reporter ${REPORTER:-progress} test/postgres/*.coffee",
+    "testapi": "echo 'TEST API'; SMC_DB_RESET=true SMC_TEST=true node_modules/.bin/mocha --reporter ${REPORTER:-progress} test/api/*.coffee",
+    "testmisc": "echo 'TEST MISC'; SMC_DB_RESET=true SMC_TEST=true node_modules/.bin/mocha --reporter ${REPORTER:-progress} test/misc/*.coffee",
     "coverage": "rm -rf ./coverage/; SMC_TEST=true node_modules/.bin/mocha --require ./coffee-coverage-loader.js && node_modules/.bin/istanbul report text html",
     "lint": "node_modules/.bin/coffeelint -f ../smc-util/coffeelint.json -c *.coffee"
   },
