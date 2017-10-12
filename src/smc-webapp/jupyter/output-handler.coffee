@@ -98,6 +98,9 @@ class exports.OutputHandler extends EventEmitter
     # Call error if an error occurs.  An appropriate error message is generated.
     # Computation is considered done.
     error: (err) =>
+        if err == 'closed'
+            # See https://github.com/sagemathinc/cocalc/issues/2388
+            err = 'Kernel terminated -- this might be caused by running out of memory or hitting a bug in some library (e.g., forking too many processes, trying to access invalid memory, etc.). Consider restarting or upgrading your project or running the relevant code directly in a terminal to track down the cause.'
         @message
             text : "#{err}"
             name : "stderr"
