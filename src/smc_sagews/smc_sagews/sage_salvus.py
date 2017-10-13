@@ -3847,7 +3847,8 @@ def julia(code=None,**kwargs):
 
     State is preserved between cells.
 
-    This is different than the julia command in Sage itself.
+    This is different than the julia command in Sage itself (which you can
+    access via sage.interfaces.julia), which uses a more brittle pexpect interface.
 
     """
     if julia.jupyter_kernel is None:
