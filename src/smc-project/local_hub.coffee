@@ -292,6 +292,16 @@ start_server = (tcp_port, raw_port, cb) ->
         (cb) ->
             init_info_json(cb)
         (cb) ->
+            raw_server.start_raw_server
+                project_id : INFO.project_id
+                base_url   : INFO.base_url
+                host       : process.env.SMC_PROXY_HOST ? INFO.location.host ? 'localhost'
+                data_path  : DATA
+                home       : process.env.HOME
+                port       : raw_port
+                logger     : winston
+                cb         : cb
+        (cb) ->
             # This is also written by forever; however, by writing it directly it's also possible
             # to run the local_hub server in a console, which is useful for debugging and development.
             fs.writeFile(misc_node.abspath("#{DATA}/local_hub.pid"), "#{process.pid}", cb)
@@ -305,16 +315,6 @@ start_server = (tcp_port, raw_port, cb) ->
                     cb()
         (cb) ->
             start_tcp_server(the_secret_token, tcp_port, cb)
-        (cb) ->
-            raw_server.start_raw_server
-                project_id : INFO.project_id
-                base_url   : INFO.base_url
-                host       : process.env.SMC_PROXY_HOST ? INFO.location.host ? 'localhost'
-                data_path  : DATA
-                home       : process.env.HOME
-                port       : raw_port
-                logger     : winston
-                cb         : cb
     ], (err) ->
         if err
             winston.debug("ERROR starting server -- #{err}")
