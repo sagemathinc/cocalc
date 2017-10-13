@@ -1749,6 +1749,7 @@ get_directory_listing = (opts) ->
             hidden     : opts.hidden
             timeout    : 30
             cb         : (err, x) ->
+                #console.log("f ", err, x)
                 if err
                     cb(err)
                 else
@@ -1767,9 +1768,9 @@ get_directory_listing = (opts) ->
     misc.retry_until_success
         f           : f
         max_time    : opts.max_time_s * 1000
-        start_delay : 2000
-        max_delay   : 10000
-        #log       : console.log
+        start_delay : 100
+        max_delay   : 1000
+        #log         : console.log
         cb          : (err) ->
             #console.log opts.path, 'get_directory_listing.success or timeout', err
             if prom_client.enabled
