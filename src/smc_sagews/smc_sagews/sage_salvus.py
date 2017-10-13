@@ -3833,15 +3833,27 @@ def java(s):
         except:
             pass
 
-# Julia pexepect interface support
-import julia
-import sage.interfaces
-sage.interfaces.julia = julia # the module
-julia = julia.julia # specific instance
-sage.interfaces.all.julia = julia
+########################################################
+# Julia mode
+########################################################
 
+def julia(code=None,**kwargs):
+    """
+    Block decorator to run Julia over Jupyter bridge.
 
+    To use this, put %julia on a line by itself in a cell so that it applies to
+    the rest of the cell, or put it at the beginning of a line to
+    run just that line using julia.
 
+    State is preserved between cells.
+
+    This is different than the julia command in Sage itself.
+
+    """
+    if julia.jupyter_kernel is None:
+        julia.jupyter_kernel = jupyter("julia")
+    return julia.jupyter_kernel(code,**kwargs)
+julia.jupyter_kernel = None
 
 # Help command
 import sage.misc.sagedoc
