@@ -412,7 +412,7 @@ Assignment = rclass
     copy_confirm_all_caution: (step) ->
         switch step
             when 'assignment'
-                return "This will recopy all of the files to them.  CAUTION: if you update a file that a student has also worked on, their work will get copied to a backup file ending in a tilde, or possibly only be available in snapshots."
+                return <span>This will recopy all of the files to them.  CAUTION: if you update a file that a student has also worked on, their work will get copied to a backup file ending in a tilde, or possibly only be available in snapshots <a target='_blank' href='https://github.com/sagemathinc/cocalc/wiki/CourseCopy'>(more details)</a>.</span>
             when 'collect'
                 return "This will recollect all of the homework from them.  CAUTION: if you have graded/edited a file that a student has updated, your work will get copied to a backup file ending in a tilde, or possibly only be available in snapshots."
             when 'return_graded'
