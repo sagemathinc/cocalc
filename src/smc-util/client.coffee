@@ -1652,6 +1652,10 @@ class exports.Connection extends EventEmitter
     # Support Tickets
 
     create_support_ticket: ({opts, cb}) =>
+        if opts.body?
+            # Make it so the session is ignored in any URL appearing in the body.
+            # Obviously, this is not 100% bullet proof, but should help enormously.
+            opts.body = misc.replace_all(opts.body, '?session=', '?session=#')
         @call
             message      : message.create_support_ticket(opts)
             timeout      : 20
