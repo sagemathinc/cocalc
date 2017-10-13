@@ -249,8 +249,8 @@ class exports.JupyterActions extends Actions
     clear_selected_outputs: =>
         cells = @store.get('cells')
         for id in @store.get_selected_cell_ids_list()
-            if cells.get(id).get('output')?
-                @_set({type:'cell', id:id, output:null}, false)
+            if cells.get(id).get('output')? or cell.get('exec_count')
+                @_set({type:'cell', id:id, output:null, exec_count:null}, false)
         @_sync()
 
     clear_all_outputs: =>
