@@ -488,6 +488,7 @@ exports.LocalStorageWarning = rclass
 # It was first used for a general CoCalc announcement, but it's general enough to be used later on
 # for other global announcements.
 # For now, it just has a simple dismiss button backed by the account → other_settings, though.
+# 20171013: disabled, see https://github.com/sagemathinc/cocalc/issues/1982
 exports.GlobalInformationMessage = rclass
     displayName: 'GlobalInformationMessage'
 
