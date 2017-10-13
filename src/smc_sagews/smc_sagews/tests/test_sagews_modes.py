@@ -249,14 +249,10 @@ class TestAnaconda3Mode:
         exec2('%a3\nxyz*', html_pattern = 'span style.*color')
 
 class TestJuliaMode:
-    def test_julia1(self, exec2):
-        # julia kernel takes 8-12 sec to load
-        exec2('jlk=jupyter("julia")')
-
-    def test_julia2(self, exec2):
-        exec2('%jlk\nquadratic(a, sqr_term, b) = (-b + sqr_term) / 2a\nquadratic(2.0, -2.0, -12.0)', '2.5')
+    def test_julia_quadratic(self, exec2):
+        exec2('%julia\nquadratic(a, sqr_term, b) = (-b + sqr_term) / 2a\nquadratic(2.0, -2.0, -12.0)', '2.5')
 
     def test_julia_version(self, exec2):
-        exec2("%jlk\nVERSION", pattern='"0.6.0"')
+        exec2("%julia\nVERSION", pattern='"0.6.0"')
 
 
