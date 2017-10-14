@@ -1796,6 +1796,17 @@ class exports.JupyterActions extends Actions
                 metadata : null,
                 save
             return
+        # special fields
+        # "collapsed", "scrolled", "slideshow", and "tags"
+        if metadata.tags?
+            for tag in metadata.tags
+                @add_tag(id, tag, false)
+            delete metadata.tags
+        # important to not store redundant inconsistent fields:
+        for field in ['collapsed', 'scrolled', 'slideshow']
+            if metadata[field]?
+                delete metadata[field]
+
         # first delete
         @_set
             type     : 'cell'

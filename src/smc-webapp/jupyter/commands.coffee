@@ -22,7 +22,7 @@ exports.commands = (actions) ->
         f : -> actions.cell_toolbar('tags')
 
     'cell toolbar metadata':
-        m : 'Edit Metadata'
+        m : 'Edit Custom Metadata'
         f : -> actions.cell_toolbar('metadata')
 
     'cell toolbar slideshow':
