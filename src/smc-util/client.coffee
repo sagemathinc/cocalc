@@ -1378,7 +1378,7 @@ class exports.Connection extends EventEmitter
         opts = defaults opts,
             project_id : required
             path       : '.'
-            timeout    : 60         # ignored
+            timeout    : 5  # in seconds
             hidden     : false
             cb         : required
         base = window?.app_base_url ? '' # will be defined in web browser
@@ -1392,7 +1392,7 @@ class exports.Connection extends EventEmitter
         req = $.ajax
             dataType : "json"
             url      : url
-            timeout  : 3000
+            timeout  : opts.timeout * 1000
             success  : (data) ->
                 #console.log('success')
                 opts.cb(undefined, data)

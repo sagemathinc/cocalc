@@ -1731,11 +1731,15 @@ get_directory_listing = (opts) ->
         if prom_client.enabled
             prom_labels.state = state
         if state != 'running'
+            timeout = .5
             time0 = misc.server_time()
             redux.getActions('projects').start_project(opts.project_id)
+        else
+            timeout = 1
     else
         state = time0 = undefined
-        method = webapp_client.public_project_directory_listing
+        method  = webapp_client.public_project_directory_listing
+        timeout = 15
         if prom_client.enabled
             prom_labels.public = true
 
@@ -1747,10 +1751,12 @@ get_directory_listing = (opts) ->
             project_id : opts.project_id
             path       : opts.path
             hidden     : opts.hidden
-            timeout    : 30
+            timeout    : timeout
             cb         : (err, x) ->
                 #console.log("f ", err, x)
                 if err
+                    if timeout < 5
+                        timeout *= 1.3
                     cb(err)
                 else
                     if x?.error
