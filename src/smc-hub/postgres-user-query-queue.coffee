@@ -13,7 +13,7 @@ The point of this is to make it so:
 required = defaults.required
 
 # We do at most this many user queries **at once** to the database on behalf of each connected client.
-USER_QUERY_LIMIT      = 1
+USER_QUERY_LIMIT      = 3
 
 # If we don't even start query by this long after we receive query, then we consider it failed
 USER_QUERY_TIMEOUT_MS = 15000
