@@ -682,7 +682,7 @@ PathSegmentLink = rclass
 
     style: ->
         if @props.history
-            return {color: '#a0a0a0'}
+            return {color: '#c0c0c0'}
         else if @props.active
             return {color: COLORS.BS_BLUE_BGRND}
         {}
