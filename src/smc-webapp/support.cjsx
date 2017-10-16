@@ -399,6 +399,13 @@ SupportInfo = rclass
                     <b>Requesting that we install software?</b> Include a complete example
                     that we can easily use to verify that we properly installed the software.
                 </li>
+                <li>
+                    <a target="_blank" href="https://github.com/sagemathinc/cocalc/wiki/DeleteProject">All your files seem gone or you deleted your project...?</a>
+                </li>
+                <li>
+                    <a target="_blank" href="https://github.com/sagemathinc/cocalc/wiki/SageWorksheetWontRun">Sage will not run...?</a>
+                </li>
+
             </ul>
             <p>
                 After submitting a ticket, you{"'"}ll receive a link, which you should save until
