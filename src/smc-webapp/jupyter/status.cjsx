@@ -53,6 +53,7 @@ exports.Kernel = rclass ({name}) ->
             backend_state : rtypes.string
             kernel_state  : rtypes.string
             trust         : rtypes.bool
+            read_only     : rtypes.bool
 
     shouldComponentUpdate: (next) ->
         return next.kernel     != @props.kernel or \
@@ -61,7 +62,8 @@ exports.Kernel = rclass ({name}) ->
             next.kernel_info   != @props.kernel_info or \
             next.backend_state != @props.backend_state or \
             next.kernel_state  != @props.kernel_state or \
-            next.trust         != @props.trust
+            next.trust         != @props.trust or \
+            next.read_only     != @props.read_only
 
     render_logo: ->
         if not @props.project_id? or not @props.kernel?
@@ -89,6 +91,8 @@ exports.Kernel = rclass ({name}) ->
             </span>
 
     render_backend_state_icon: ->
+        if @props.read_only
+            return
         backend_state = @props.backend_state
         if not backend_state?
             return <Loading />
