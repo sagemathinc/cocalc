@@ -93,7 +93,7 @@ class Connection extends client.Connection
 
         # 60 min default. Correct val will get set when user account settings are loaded.
         # Set here rather than in @_init_idle to avoid any potential race.
-        @_idle_timeout = 60 * 60 * 1000
+        @_idle_timeout = 15 * 60 * 1000
 
         setTimeout(@_init_idle, 15 * 1000)
 
