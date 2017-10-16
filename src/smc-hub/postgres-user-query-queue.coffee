@@ -12,8 +12,10 @@ The point of this is to make it so:
 {defaults} = misc = require('smc-util/misc')
 required = defaults.required
 
-# We do at most this many user queries **at once** to the database on behalf of each connected client.
-USER_QUERY_LIMIT      = 3
+# We do at most this many user queries **at once** to the database on behalf
+# of each connected client.  This only applies when the global limit has
+# been exceeded.
+USER_QUERY_LIMIT = 1
 
 # If we don't even start query by this long after we receive query, then we consider it failed
 USER_QUERY_TIMEOUT_MS = 15000
@@ -21,6 +23,13 @@ USER_QUERY_TIMEOUT_MS = 15000
 # How many recent query times to save for each client.
 # This is currently not used for anything except logging.
 TIME_HISTORY_LENGTH = 100
+
+# Do not throttle queries at all unless there are at least this
+# many global outstanding concurent **user queries**.  The point is that
+# if there's very little load, we should get queries done as fast
+# as possible for users.
+GLOBAL_LIMIT = 75
+#GLOBAL_LIMIT = 4
 
 # setup metrics
 metrics_recorder = require('./metrics-recorder')
@@ -32,18 +41,22 @@ query_queue_done = metrics_recorder.new_counter('query_queue_done_total',
                     'Total number of evaluated queries')
 query_queue_info = metrics_recorder.new_gauge('query_queue_info', 'Information update about outstanding queries in the queue', ['client', 'info'])
 
+global_count = 0
+
 class exports.UserQueryQueue
     constructor: (opts) ->
         opts = defaults opts,
-            do_query   : required
-            dbg        : required
-            limit      : USER_QUERY_LIMIT
-            timeout_ms : USER_QUERY_TIMEOUT_MS
-        @_do_query   = opts.do_query
-        @_limit      = opts.limit
-        @_dbg        = opts.dbg
-        @_timeout_ms = opts.timeout_ms
-        @_state      = {}
+            do_query     : required
+            dbg          : required
+            limit        : USER_QUERY_LIMIT
+            timeout_ms   : USER_QUERY_TIMEOUT_MS
+            global_limit : GLOBAL_LIMIT
+        @_do_query     = opts.do_query
+        @_limit        = opts.limit
+        @_dbg          = opts.dbg
+        @_timeout_ms   = opts.timeout_ms
+        @_global_limit = opts.global_limit
+        @_state        = {}
 
     destroy: =>
         delete @_do_query
@@ -51,6 +64,7 @@ class exports.UserQueryQueue
         delete @_timeout_ms
         delete @_dbg
         delete @_state
+        delete @_global_limit
 
     cancel_user_queries: (opts) =>
         opts = defaults opts,
@@ -123,7 +137,7 @@ class exports.UserQueryQueue
         @_do_query(opts)
 
     _update: (state) =>
-        while state.queue? and state.queue.length > 0 and state.count < @_limit
+        while state.queue? and state.queue.length > 0 and (global_count < @_global_limit or state.count < @_limit)
             @_process_next_call(state)
 
     _process_next_call: (state) =>
@@ -132,11 +146,13 @@ class exports.UserQueryQueue
         if state.queue.length == 0
             return
         state.count += 1
+        global_count += 1
         opts = state.queue.shift()
         @_info(state)
         tm = new Date()
         @_do_one_query opts, =>
             state.count -= 1
+            global_count -= 1
             duration_ms = new Date() - tm
             state.time_ms.push(duration_ms)
             query_queue_duration.inc(duration_ms / 1000)
@@ -162,4 +178,4 @@ class exports.UserQueryQueue
         query_queue_info.labels(state.client_id, 'avg').set(avg)
         #query_queue_info.labels(state.client_id, 'length').set(state.queue?.length ? 0)
         #query_queue_info.labels(state.client_id, 'sent').set(state.sent)
-        @_dbg("client_id='#{state.client_id}': avg=#{avg}ms, count=#{state.count}, queued.length=#{state.queue?.length}, sent=#{state.sent}")
+        @_dbg("client_id='#{state.client_id}': avg=#{avg}ms, count(local=#{state.count},global=#{global_count}), queued.length=#{state.queue?.length}, sent=#{state.sent}")
