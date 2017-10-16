@@ -61,7 +61,6 @@ class exports.JupyterActions extends Actions
 
     _init: (project_id, path, syncdb, store, client) =>
         store.dbg = (f) => return client.dbg("JupyterStore('#{store.get('path')}').#{f}")
-
         @util = util # TODO: for debugging only
         @_state      = 'init'   # 'init', 'load', 'ready', 'closed'
         @store       = store
@@ -100,6 +99,10 @@ class exports.JupyterActions extends Actions
             @syncdb.on('metadata-change', @set_save_status)
             @syncdb.on('connected', @set_save_status)
 
+            # Also maintain read_only state.
+            @syncdb.on('metadata-change', @sync_read_only)
+            @syncdb.on('connected', @sync_read_only)
+
         @syncdb.on('change', @_syncdb_change)
 
         if not client.is_project() # project doesn't care about cursors
@@ -117,6 +120,13 @@ class exports.JupyterActions extends Actions
 
             @init_scroll_pos_hook()
 
+    sync_read_only: =>
+        a = @store.get('read_only')
+        b = @syncdb?.is_read_only()
+        if a != b
+            @setState(read_only: b)
+            @set_cm_options()
+
     init_scroll_pos_hook: =>
         # maintain scroll hook on change; critical for multiuser editing
         before = after = undefined
@@ -126,7 +136,6 @@ class exports.JupyterActions extends Actions
             after  = $(".cocalc-jupyter-hook").offset()?.top
             if before? and after? and before != after
                 @scroll(after - before)
-
 
     _account_change: (state) => # TODO: this is just an ugly hack until we implement redux change listeners for particular keys.
         if not state.get('editor_settings').equals(@_account_change_editor_settings)
@@ -614,6 +623,9 @@ class exports.JupyterActions extends Actions
         @syncdb.sync()
 
     save: =>
+        if @store.get('read_only')
+            # can't save when readonly
+            return
         if @store.get('mode') == 'edit'
             @_get_cell_input()
         # Saves our customer format sync doc-db to disk; the backend will
@@ -1416,9 +1428,10 @@ class exports.JupyterActions extends Actions
             mode = @store.get('kernel')   # may be better than nothing...; e.g., octave kernel has no mode.
         editor_settings  = @redux.getStore('account')?.get('editor_settings')?.toJS?()
         line_numbers = @store.get_local_storage('line_numbers')
+        read_only = @store.get('read_only')
         x = immutable.fromJS
-            options  : cm_options(mode, editor_settings, line_numbers)
-            markdown : cm_options({name:'gfm2'}, editor_settings, line_numbers)
+            options  : cm_options(mode, editor_settings, line_numbers, read_only)
+            markdown : cm_options({name:'gfm2'}, editor_settings, line_numbers, read_only)
 
         if not x.equals(@store.get('cm_options'))  # actually changed
             @setState(cm_options: x)

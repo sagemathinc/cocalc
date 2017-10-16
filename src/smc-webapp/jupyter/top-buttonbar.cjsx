@@ -29,12 +29,14 @@ exports.TopButtonbar = rclass ({name}) ->
             sel_ids                 : rtypes.immutable.Set   # set of selected cells
             has_unsaved_changes     : rtypes.bool
             has_uncommitted_changes : rtypes.bool
+            read_only               : rtypes.bool
             kernel_state            : rtypes.string
 
     shouldComponentUpdate: (next) ->
         return next.cur_id != @props.cur_id or \
             next.cells?.getIn([@props.cur_id, 'cell_type']) != @props.cells?.getIn([@props.cur_id, 'cell_type']) or \
             next.has_unsaved_changes != @props.has_unsaved_changes or \
+            next.read_only != @props.read_only or \
             next.has_uncommitted_changes != @props.has_uncommitted_changes or \
             next.kernel_state != @props.kernel_state
 
@@ -50,6 +52,8 @@ exports.TopButtonbar = rclass ({name}) ->
     render_button: (key, name) ->
         if typeof(name) == 'object'
             {name, disabled} = name
+        if @props.read_only  # all buttons disabled in read-only mode
+            disabled = true
         obj = @props.actions._commands?[name]
         if not obj?
             return
@@ -94,6 +98,7 @@ exports.TopButtonbar = rclass ({name}) ->
             onChange       = {@cell_select_type}
             className      = 'hidden-xs'
             style          = {maxWidth: '8em'}
+            disabled       = {@props.read_only}
             value          = {cell_type ? 'code'}>
             <option value="code"          >Code</option>
             <option value="markdown"      >Markdown</option>
@@ -135,8 +140,8 @@ exports.TopButtonbar = rclass ({name}) ->
                 title    = 'Save file to disk'
                 bsStyle  = "success"
                 onClick  = {=>@props.actions.save(); @focus()}
-                disabled = {not @props.has_unsaved_changes}>
-                <Icon name='save'/> <span className = 'hidden-sm'>Save</span>
+                disabled = {not @props.has_unsaved_changes or @props.read_only}>
+                <Icon name='save'/> <span className = 'hidden-sm'>{if @props.read_only then 'Readonly' else 'Save'}</span>
                 {@render_uncommitted()}
             </Button>
             <Button
