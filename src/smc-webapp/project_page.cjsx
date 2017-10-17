@@ -569,16 +569,13 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
             height: '100%'
 
         ads = require('./ads')
-        setTimeout((-> ads.load()), 1000)
-        <div style={style} id={ads.id}>
-            ad
-        </div>
+        setTimeout((-> ads.load()), 2000)
+        <div style={style} id={ads.id} />
 
     render: ->
         if not @props.open_files_order?
             return <Loading />
         ads = require('./ads')
-        ads.init() # safe to call many times
         if (require('./customize').commercial) and (ads.have_code())
             style =
                 display       : 'flex'
