@@ -241,8 +241,9 @@ FreeProjectWarning = rclass ({name}) ->
             color      : 'grey'
             position   : 'relative'
             height     : 0
+        {SiteName} = require('./customize')
         <Alert bsStyle='warning' style={styles}>
-            <Icon name='exclamation-triangle' /> WARNING: This project runs {<span>on a <b>free server (which may be unavailable during peak hours)</b></span> if host} {<span>without <b>internet access</b></span> if internet} &mdash;
+            <Icon name='exclamation-triangle' /> You work in a free project. Please consider supporting <SiteName/> by upgrading to a member project! {<span>on a <b>free server (which may be unavailable during peak hours)</b></span> if host} {<span>without <b>internet access</b></span> if internet} &mdash;
             <a onClick={=>@actions(project_id: @props.project_id).show_extra_free_warning()} style={cursor:'pointer'}> learn more...</a>
             <a style={dismiss_styles} onClick={@actions(project_id: @props.project_id).close_free_warning}>×</a>
             {@extra(host, internet)}
@@ -536,9 +537,7 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
             </div>
         </div>
 
-    render : ->
-        if not @props.open_files_order?
-            return <Loading />
+    render_content: ->
         group = @props.get_my_group(@props.project_id)
         active_path = misc.tab_to_path(@props.active_project_tab)
         style =
@@ -563,6 +562,36 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
                 save_scroll     = {@actions(name).get_scroll_saver_for(active_path)}
             />
         </div>
+
+    render_ad: ->
+        style =
+            width: '160px'
+            height: '100%'
+
+        ads = require('./ads')
+        setTimeout((-> ads.load()), 1000)
+        <div style={style} id={ads.id}>
+            ad
+        </div>
+
+    render: ->
+        if not @props.open_files_order?
+            return <Loading />
+        ads = require('./ads')
+        ads.init() # safe to call many times
+        if (require('./customize').commercial) and (ads.have_code())
+            style =
+                display       : 'flex'
+                flexDirection : 'row'
+                flex          : 1
+                overflow      : 'auto'
+
+            <div className='container-ad-wrapper' style={style}>
+                {@render_content()}
+                {@render_ad()}
+            </div>
+        else
+            return @render_content()
 
 exports.MobileProjectPage = rclass ({name}) ->
     displayName : 'MobileProjectPage'
