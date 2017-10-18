@@ -400,11 +400,15 @@ SupportInfo = rclass
                     that we can easily use to verify that we properly installed the software.
                 </li>
                 <li>
-                    <a target="_blank" href="https://github.com/sagemathinc/cocalc/wiki/DeleteProject">All your files seem gone or you deleted your project...?</a>
+                    <a target="_blank" href="https://github.com/sagemathinc/cocalc/wiki/MySubscriptionDoesNotWork">You bought a subscription but it does not work...</a>
                 </li>
                 <li>
-                    <a target="_blank" href="https://github.com/sagemathinc/cocalc/wiki/SageWorksheetWontRun">Sage will not run...?</a>
+                    <a target="_blank" href="https://github.com/sagemathinc/cocalc/wiki/DeleteProject">All your files seem gone or you deleted your project...</a>
                 </li>
+                <li>
+                    <a target="_blank" href="https://github.com/sagemathinc/cocalc/wiki/SageWorksheetWontRun">Sage will not run...</a>
+                </li>
+
 
             </ul>
             <p>
