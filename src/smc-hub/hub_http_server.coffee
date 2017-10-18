@@ -277,6 +277,20 @@ exports.init_express_http_server = (opts) ->
                 else
                     res.json(settings)
 
+    # sitemaps, special case of /projects
+    router.get ['/projects/sitemaps/*'], (req, res) ->
+        # sitemaps have limits. Once when we get there, we need to server more than one and a sitemap index page
+        # https://support.google.com/webmasters/answer/183668
+        # For now, just one
+        url = require('url')
+        path = url.parse(req.url).pathname
+        file = path.split('/')[-1..][0]
+        if file == '0.txt'
+            sitemap = require('./sitemap')
+            sitemap.sitemap(res)
+        else
+            res.status(404).end()
+
     # Save other paths in # part of URL then redirect to the single page app.
     router.get ['/projects*', '/help*', '/settings*'], (req, res) ->
         url = require('url')
