@@ -1518,7 +1518,7 @@ class exports.JupyterActions extends Actions
         @confirm_dialog
             icon    : 'warning'
             title   : 'Trust this Notebook?'
-            body    : 'A trusted Jupyter notebook may execute hidden malicious Javascript code when you open it. Selecting trust below, or evaluating any cell, will immediately execute any Javascript code in this notebook now and henceforth. (NOTE: SageMathCloud does NOT implement the official Jupyter security model for trusted notebooks; in particular, we assume that you do trust collaborators on your SageMathCloud projects.)'
+            body    : 'A trusted Jupyter notebook may execute hidden malicious Javascript code when you open it. Selecting trust below, or evaluating any cell, will immediately execute any Javascript code in this notebook now and henceforth. (NOTE: CoCalc does NOT implement the official Jupyter security model for trusted notebooks; in particular, we assume that you do trust collaborators on your CoCalc projects.)'
             choices : [{title:'Trust', style:'danger', default:true}, {title:'Cancel'}]
             cb      : (choice) =>
                 if choice == 'Trust'
