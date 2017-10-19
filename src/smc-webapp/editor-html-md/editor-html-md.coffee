@@ -86,7 +86,11 @@ class exports.HTML_MD_Editor extends editor.FileEditor
 
         save_scroll_pos =  =>
             @preview_scroll_position = @preview.scrollTop()
-        @preview.on('scroll', _.throttle(save_scroll_pos, 1000))
+        # DO not throttle, since the _show() below, which restores position, can get
+        # called at any time and often, e.g., right when scrolling and if we throttle,
+        # then the scroll position jumps back.
+        #@preview.on('scroll', _.throttle(save_scroll_pos, 1000))
+        @preview.on('scroll', save_scroll_pos)
 
         # initialize the codemirror editor
         @source_editor = editor.codemirror_session_editor(@project_id, @filename, @opts)
