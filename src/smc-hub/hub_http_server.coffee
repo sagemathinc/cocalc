@@ -105,6 +105,7 @@ exports.init_express_http_server = (opts) ->
         res.header('Cache-Control', 'private, no-cache, must-revalidate')
         res.write('''
                   User-agent: *
+                  Allow: /projects/487587b1-8b24-401a-92d9-a9b930edd53d/
                   Disallow: /projects/*
                   Disallow: /*/raw/
                   Disallow: /*/port/
