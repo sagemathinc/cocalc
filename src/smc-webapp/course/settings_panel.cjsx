@@ -318,10 +318,14 @@ exports.SettingsPanel = rclass
                 <Button onClick={@save_grades_to_py}><Icon name='file-code-o'/> Python file...</Button>
             </ButtonToolbar>
             <hr/>
-            <span style={color:"#666"}>
+            <div style={color:"#666"}>
                 Export all the grades you have recorded
                 for students in your course to a csv or Python file.
-            </span>
+                <br/>
+                In Microsoft Excel, you can {' '}
+                <a target="_blank" href="https://support.office.com/en-us/article/Import-or-export-text-txt-or-csv-files-5250ac4c-663c-47ce-937b-339e391393ba">
+                import the CSV file</a>.
+            </div>
         </Panel>
 
     ###
