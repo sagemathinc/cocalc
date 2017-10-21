@@ -291,6 +291,7 @@ exports.CodeMirrorEditor = rclass
             editor =
                 save        : @_cm_save
                 set_cursor  : @_cm_set_cursor
+                tab_key     : @tab_key
             @props.actions.register_input_editor(@props.id, editor)
 
         if @props.is_focused
@@ -304,6 +305,13 @@ exports.CodeMirrorEditor = rclass
         else if @props.last_cursor?
             @cm.setCursor(@props.last_cursor)
             @props.set_last_cursor()
+
+        # Finally, do a refresh in the next render loop, once layout is done.
+        # See https://github.com/sagemathinc/cocalc/issues/2397
+        # Note that this also avoids a significant disturbing flicker delay
+        # even for non-raw cells.  This obviously probably slows down initial
+        # load or switch to of the page, unfortunately.  Such is life.
+        setTimeout((=>@cm?.refresh()),1)
 
     componentDidMount: ->
         @init_codemirror(@props.options, @props.value)

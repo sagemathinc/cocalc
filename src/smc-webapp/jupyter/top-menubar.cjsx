@@ -43,9 +43,11 @@ exports.TopMenubar = rclass ({name}) ->
             view_mode           : rtypes.string
             toolbar             : rtypes.bool
             cell_toolbar        : rtypes.string
+            read_only           : rtypes.bool
 
     shouldComponentUpdate: (next) ->
         return next.has_unsaved_changes != @props.has_unsaved_changes or \
+            next.read_only != @props.read_only or \
             next.kernels != @props.kernels or \
             next.kernel != @props.kernel or \
             next.kernel_state != @props.kernel_state or \
@@ -74,25 +76,34 @@ exports.TopMenubar = rclass ({name}) ->
             trust = {name:"trust notebook", display:"Trust Notebook..."}
 
         save = 'save notebook'
-        if not @props.has_unsaved_changes
+        if not @props.has_unsaved_changes or @props.read_only
             save = '<' + save
+
+        rename = 'rename notebook'
+        if not @props.has_unsaved_changes or @props.read_only
+            rename = '<' + rename
+
+        close_and_halt = 'close and halt'
+        if not @props.has_unsaved_changes or @props.read_only
+            close_and_halt = '<' + close_and_halt
 
         @render_menu
             heading : 'File'
             names   : [
                 'new notebook', 'open file', '', \
-                'duplicate notebook', 'rename notebook', save, 'time travel', '', \
+                'duplicate notebook', rename, save, 'time travel', '', \
                 'print preview', '<Download as...', '>nbconvert ipynb',  script_entry, '>nbconvert html', '>nbconvert markdown', '>nbconvert rst', '>nbconvert tex', '>nbconvert pdf',  '>nbconvert sagews', '', '>nbconvert slides', '>nbconvert asciidoc', '', \
                 trust, '', \
-                'close and halt', '', \
+                close_and_halt, '', \
                 'switch to classical notebook'
             ]
 
     render_edit: ->
         cell_type = @props.cells?.get(@props.cur_id)?.get('cell_type')
         @render_menu
-            heading : 'Edit'
-            names   : \
+            heading  : 'Edit'
+            disabled : @props.read_only
+            names    : \
                 ["global undo", "global redo", "", \
                  "cut cell", "copy cell", "paste cell above", "paste cell below", "paste cell and replace", "delete cell", "", \
                  "split cell at cursor", "merge cell with previous cell", "merge cell with next cell", "merge cells", "", \
@@ -119,8 +130,9 @@ exports.TopMenubar = rclass ({name}) ->
                 cell_toolbars.push(item_name)
 
         @render_menu
-            heading : 'View'
-            names : \
+            heading  : 'View'
+            disabled : @props.read_only
+            names    : \
                 ['toggle header', toolbar, 'toggle all line numbers', '', \
                  '<Cell Toolbar...'].concat(cell_toolbars).concat(['', \
                  'zoom in', 'zoom out', '', \
@@ -131,11 +143,13 @@ exports.TopMenubar = rclass ({name}) ->
             heading   : 'Insert'
             names     : ['insert cell above', 'insert cell below']
             min_width : '15em'
+            disabled  : @props.read_only
 
     render_cell: ->
         @render_menu
-            heading : 'Cell'
-            names   : [\
+            heading  : 'Cell'
+            disabled : @props.read_only
+            names    : [\
                 'run cell', 'run cell and select next', 'run cell and insert below', \
                 'run all cells', 'run all cells above', 'run all cells below', '', \
                 '<Cell Type...',\
@@ -175,8 +189,9 @@ exports.TopMenubar = rclass ({name}) ->
                  '<Change kernel...'].concat(items).concat(['', 'refresh kernels'])
 
         @render_menu
-            heading : 'Kernel'
-            names   : names
+            heading  : 'Kernel'
+            names    : names
+            disabled : @props.read_only
 
     focus: ->
         $(":focus").blur() # battling with react-bootstrap stupidity... ?
@@ -240,11 +255,12 @@ exports.TopMenubar = rclass ({name}) ->
 
     render_menu: (opts) ->
         {heading, names, opacity, min_width} = defaults opts,
-            heading : required
-            names   : required
-            opacity : 1
+            heading   : required
+            names     : required
+            opacity   : 1
             min_width : '20em'
-        <Dropdown key={heading} id={heading}>
+            disabled  : false
+        <Dropdown key={heading} id={heading} disabled={opts.disabled}>
             <Dropdown.Toggle noCaret bsStyle='default' style={TITLE_STYLE}>
                 {heading}
             </Dropdown.Toggle>
@@ -327,7 +343,7 @@ exports.TopMenubar = rclass ({name}) ->
                 <MenuItem eventKey="help-keyboard" onClick={@command("edit keyboard shortcuts")}><Icon name='keyboard-o'/>  Keyboard Shortcuts...</MenuItem>
                 <MenuItem divider />
                 {external_link('Notebook Help', 'http://nbviewer.jupyter.org/github/ipython/ipython/blob/3.x/examples/Notebook/Index.ipynb')}
-                {external_link('Jupyter in SageMathCloud','https://github.com/sagemathinc/cocalc/wiki/sagejupyter')}
+                {external_link('Jupyter in CoCalc','https://github.com/sagemathinc/cocalc/wiki/sagejupyter')}
                 {external_link('Markdown', 'https://help.github.com/articles/basic-writing-and-formatting-syntax')}
                 <MenuItem divider />
                 {@render_links()}

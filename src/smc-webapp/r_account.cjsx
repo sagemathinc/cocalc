@@ -1022,13 +1022,6 @@ OtherSettings = rclass
             >
                 Mask files: grey-out files in the files viewer that you probably do not want to open
             </Checkbox>
-            <Checkbox
-                checked  = {@props.is_global_info_visible()}
-                ref      = 'show_global_info2'
-                onChange = {(e)=>@on_change('show_global_info2', if e.target.checked then null else webapp_client.server_time())}
-            >
-                Show global information: if enabled, an orange information banner is visible on top
-            </Checkbox>
             <LabeledRow label='Default file sort'>
                 <SelectorInput
                     selected  = {@props.other_settings.default_file_sort}

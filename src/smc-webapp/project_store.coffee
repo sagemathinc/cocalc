@@ -583,8 +583,13 @@ class ProjectActions extends Actions
             throw Error("Current path should be a string. Revieved arguments are available in window.cpath_args")
         # Set the current path for this project. path is either a string or array of segments.
 
+        history_path = @get_store()?.history_path ? ''
+        if (!history_path.startsWith(path)) or (path.length > history_path.length)
+            history_path = path
+
         @setState
             current_path           : path
+            history_path           : history_path
             page_number            : 0
             most_recent_file_click : undefined
 
@@ -1387,6 +1392,7 @@ create_project_store_def = (name, project_id) ->
 
     getInitialState: =>
         current_path       : ''
+        history_path       : ''
         show_hidden        : false
         checked_files      : immutable.Set()
         public_paths       : undefined
@@ -1405,6 +1411,7 @@ create_project_store_def = (name, project_id) ->
     stateTypes:
         # Shared
         current_path       : rtypes.string
+        history_path       : rtypes.string
         open_files         : rtypes.immutable.Map
         open_files_order   : rtypes.immutable.List
         public_paths       : rtypes.immutable.List
@@ -1478,7 +1485,7 @@ create_project_store_def = (name, project_id) ->
 
     # cached pre-processed file listing, which should always be up to date when
     # called, and properly depends on dependencies.
-    displayed_listing: depends('active_file_sort', 'current_path', 'directory_listings', 'stripped_public_paths', 'file_search', 'other_settings', 'show_hidden') ->
+    displayed_listing: depends('active_file_sort', 'current_path', 'history_path', 'directory_listings', 'stripped_public_paths', 'file_search', 'other_settings', 'show_hidden') ->
         search_escape_char = '/'
         listing = @directory_listings.get(@current_path)
         if typeof(listing) == 'string'
@@ -1724,11 +1731,15 @@ get_directory_listing = (opts) ->
         if prom_client.enabled
             prom_labels.state = state
         if state != 'running'
+            timeout = .5
             time0 = misc.server_time()
             redux.getActions('projects').start_project(opts.project_id)
+        else
+            timeout = 1
     else
         state = time0 = undefined
-        method = webapp_client.public_project_directory_listing
+        method  = webapp_client.public_project_directory_listing
+        timeout = 15
         if prom_client.enabled
             prom_labels.public = true
 
@@ -1740,9 +1751,12 @@ get_directory_listing = (opts) ->
             project_id : opts.project_id
             path       : opts.path
             hidden     : opts.hidden
-            timeout    : 30
+            timeout    : timeout
             cb         : (err, x) ->
+                #console.log("f ", err, x)
                 if err
+                    if timeout < 5
+                        timeout *= 1.3
                     cb(err)
                 else
                     if x?.error
@@ -1760,9 +1774,9 @@ get_directory_listing = (opts) ->
     misc.retry_until_success
         f           : f
         max_time    : opts.max_time_s * 1000
-        start_delay : 2000
-        max_delay   : 10000
-        #log       : console.log
+        start_delay : 100
+        max_delay   : 1000
+        #log         : console.log
         cb          : (err) ->
             #console.log opts.path, 'get_directory_listing.success or timeout', err
             if prom_client.enabled

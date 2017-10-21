@@ -1712,6 +1712,11 @@ class SyncDoc extends EventEmitter
             cb?()
             return
 
+        if @get_read_only()
+            # save should fail if file is read only
+            cb?('readonly')
+            return
+
         @_save_to_disk()
         if not @_syncstring_table?
             cb("@_syncstring_table must be defined")
@@ -1822,7 +1827,7 @@ class SyncDoc extends EventEmitter
         ], (err) =>
             #dbg("returned from write_file: #{err}")
             if err
-                @_set_save(state:'done', error:err)
+                @_set_save(state:'done', error:JSON.stringify(err))
             else
                 @_set_save(state:'done', error:false, hash:misc.hash_string(data))
             cb(err)

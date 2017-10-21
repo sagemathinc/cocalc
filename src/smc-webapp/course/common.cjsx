@@ -231,6 +231,8 @@ exports.StudentAssignmentInfo = rclass
             v.push <Button key="copy_cancel" onClick={=>@setState("#{key}":false);}>
                  Cancel
             </Button>
+            if name.toLowerCase() == 'assign'
+                v.push <div style={margin:'5px'}><a target='_blank' href='https://github.com/sagemathinc/cocalc/wiki/CourseCopy'>What happens when I assign again?</a></div>
             return v
         else
             <Button key="copy" bsStyle='warning' onClick={=>@setState("#{key}":true)}>

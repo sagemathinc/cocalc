@@ -33,8 +33,8 @@ zendesk_password_filename = ->
     return (process.env.SMC_ROOT ? '.') + '/data/secrets/zendesk'
 
 fixSessions = (body) ->
-    # takes the body of the ticket, searches for http[s]://<theme.DNS>/ URLs and either replaces ?session=* by ?session=support or adds it
-    body = body.replace(/\?session=([^\s]*)/g, '?session=support')
+    # takes the body of the ticket, searches for http[s]://<theme.DNS>/ URLs and either replaces ?session=* by ?session= or adds it
+    body = body.replace(/\?session=([^\s]*)/g, '?session=')
 
     urlPattern = new RegExp("(http[s]?://[^\\s]*#{theme.DNS}[^\\s]+)", "g")
     reSession = /session=([^\s]*)/g
@@ -56,9 +56,9 @@ fixSessions = (body) ->
             url = url[0...q]
         q = url.indexOf('?')
         if q >= 0
-            url += '&session=support'
+            url += '&session='
         else
-            url += '?session=support'
+            url += '?session='
         ret += url
         offset = j
     ret += body[offset...body.length]
@@ -252,12 +252,12 @@ class Support
         # TODO fix hardcoded URL
         if opts.location?
             url  = "https://" + path.join(theme.DNS, opts.location)
-            body = body + "\n\n#{url}?session=support"
+            body = body + "\n\n#{url}?session="
         else
             body = body + "\n\nNo location provided."
 
         if misc.is_valid_uuid_string(opts.info.course)
-            body += "\n\nCourse: #{theme.DOMAIN_NAME}/projects/#{opts.info.course}?session=support"
+            body += "\n\nCourse: #{theme.DOMAIN_NAME}/projects/#{opts.info.course}?session="
 
         # https://developer.zendesk.com/rest_api/docs/core/tickets#request-parameters
         ticket =

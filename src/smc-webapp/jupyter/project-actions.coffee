@@ -11,6 +11,7 @@ fully unit test it via mocking of components.
 immutable      = require('immutable')
 async          = require('async')
 underscore     = require('underscore')
+fs             = require('fs')
 
 misc           = require('smc-util/misc')
 actions        = require('./actions')
@@ -83,6 +84,8 @@ class exports.JupyterActions extends actions.JupyterActions
 
         # Listen for changes...
         @syncdb.on('change', @_backend_syncdb_change)
+
+        #@_sync_file_mode()
 
     _first_load: =>
         dbg = @dbg("_first_load")
@@ -471,9 +474,58 @@ class exports.JupyterActions extends actions.JupyterActions
                 # be inefficient and could lead to corruption.
                 return
             @load_ipynb_file()
+            #@_sync_file_mode()
 
         @_file_watcher.on 'delete', =>
             dbg('delete')
+
+    ###
+    # Unfortunately, though I spent two hours on this approach... it just doesn't work,
+    # since, e.g., if the sync file doesn't already exist, it can't be created,
+    # which breaks everything.  So disabling for now and re-opening the issue.
+    _sync_file_mode: =>
+        dbg = @dbg("_sync_file_mode"); dbg()
+        # Make the mode of the syncdb file the same as the mode of the .ipynb file.
+        # This is used for read-only status.
+        ipynb_file  = @store.get('path')
+        locals =
+            ipynb_file_ro  : undefined
+            syncdb_file_ro : undefined
+        syncdb_file = @syncdb.get_path()
+        async.parallel([
+            (cb) ->
+                fs.access ipynb_file, fs.constants.W_OK, (err) ->
+                    # Also store in @_ipynb_file_ro to prevent starting kernel in this case.
+                    @_ipynb_file_ro = locals.ipynb_file_ro = !!err
+                    cb()
+            (cb) ->
+                fs.access syncdb_file, fs.constants.W_OK, (err) ->
+                    locals.syncdb_file_ro = !!err
+                    cb()
+        ], ->
+            if locals.ipynb_file_ro == locals.syncdb_file_ro
+                return
+            dbg("mode change")
+            async.parallel([
+                (cb) ->
+                    fs.stat ipynb_file, (err, stats) ->
+                        locals.ipynb_stats = stats
+                        cb(err)
+                (cb) ->
+                    # error if syncdb_file doesn't exist, which is GOOD, since
+                    # in that case we do not want to chmod which would create
+                    # that file as empty and blank it.
+                    fs.stat(syncdb_file, cb)
+            ], (err) ->
+                if not err
+                    dbg("changing syncb mode to match ipynb mode")
+                    fs.chmod(syncdb_file, locals.ipynb_stats.mode)
+                else
+                    dbg("error stating ipynb", err)
+            )
+        )
+    ###
+
 
     _load_from_disk_if_newer: (cb) =>
         dbg = @dbg("load_from_disk_if_newer")

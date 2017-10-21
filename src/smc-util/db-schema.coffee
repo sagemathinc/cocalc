@@ -495,7 +495,7 @@ schema.file_use =
         get :
             pg_where : ['projects', 'last_edited IS NOT NULL']
             pg_changefeed: 'projects'
-            options : [{order_by : '-last_edited'}, {limit : 200}]  # limit is kind of arbitrary; not sure what to do.
+            options : [{order_by : '-last_edited'}, {limit : 100}]  # limit is kind of arbitrary; not sure what to do; I benchmarked 100 vs 200 on myself, and 100 is much faster.
             throttle_changes : 3000
             fields :
                 id          : null
@@ -1094,8 +1094,8 @@ schema.stats =
     pg_indexes : ['time']
     user_query:
         get:
-            pg_where: ["time >= NOW() - INTERVAL '1 hour'"]
-            pg_changefeed : 'one-hour'
+            pg_where: ["time >= NOW() - INTERVAL '5 minutes'"]
+            pg_changefeed : 'five-minutes'
             options : [{'order_by':'-time'}]
             throttle_changes : 5000
             fields :

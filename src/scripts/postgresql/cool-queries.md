@@ -127,3 +127,10 @@ Hourly (or 10minute blocks) active users
     FROM file_access_log
     WHERE time >= NOW() - '2 week'::interval
     GROUP BY day, hour -- , min10
+
+## Stripe
+
+```
+smc=# select stripe_customer#>'{subscriptions}' from accounts where stripe_customer is not null limit 1;
+
+```

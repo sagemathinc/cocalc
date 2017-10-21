@@ -1206,6 +1206,7 @@ class exports.PostgreSQL extends PostgreSQL
                 pg_changefeed = client_query?.get?.pg_changefeed
                 if not pg_changefeed?
                     cb(); return
+
                 if pg_changefeed == 'projects'
                     pg_changefeed =  (db, account_id) =>
                         where  : (obj) =>
@@ -1229,7 +1230,7 @@ class exports.PostgreSQL extends PostgreSQL
                                 if x.account_id == account_id
                                     feed.delete({project_id:x.project_id})
 
-                if pg_changefeed == 'one-hour'
+                else if pg_changefeed == 'one-hour'
                     pg_changefeed = ->
                         where : (obj) ->
                             if obj.time?
@@ -1237,8 +1238,16 @@ class exports.PostgreSQL extends PostgreSQL
                             else
                                 return true
                         select : {id:'UUID', time:'TIMESTAMP'}
+                else if pg_changefeed == 'five-minutes'
+                    pg_changefeed = ->
+                        where : (obj) ->
+                            if obj.time?
+                                return new Date(obj.time) >= misc.minutes_ago(5)
+                            else
+                                return true
+                        select : {id:'UUID', time:'TIMESTAMP'}
 
-                if pg_changefeed == 'collaborators'
+                else if pg_changefeed == 'collaborators'
                     if not account_id?
                         cb("account_id must be given")
                         return

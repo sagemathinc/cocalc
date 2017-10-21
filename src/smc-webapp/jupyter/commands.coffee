@@ -22,7 +22,7 @@ exports.commands = (actions) ->
         f : -> actions.cell_toolbar('tags')
 
     'cell toolbar metadata':
-        m : 'Edit Metadata'
+        m : 'Edit Custom Metadata'
         f : -> actions.cell_toolbar('metadata')
 
     'cell toolbar slideshow':
@@ -403,18 +403,9 @@ exports.commands = (actions) ->
         f : -> actions.run_selected_cells(); actions.set_mode('escape'); actions.scroll('cell visible')
 
     'run cell and insert below' :
-        m : 'Run Cells and Insert Below'
+        m : 'Run Cells and Insert New Cell Below'
         k : [{which:13, alt:true}]
-        f : ->
-            v = store.get_selected_cell_ids_list()
-            actions.move_cursor_after_selected_cells()
-            actions.run_selected_cells()
-            if id() in v
-                actions.insert_cell(1)
-            else
-                actions.insert_cell(-1)
-            actions.set_mode('edit')
-            actions.scroll('cell visible')
+        f : -> actions.run_cell_and_insert_new_cell_below()
 
     'run cell and select next' :
         i : 'play'
@@ -495,6 +486,11 @@ exports.commands = (actions) ->
     'switch to classical notebook' :
         m : 'Switch to Classical Notebook...'
         f : -> actions.switch_to_classical_notebook()
+
+    'tab key' :
+        i : 'step-forward'
+        m : 'Tab Key (completion)...'
+        f : -> actions.tab_key()
 
     'time travel' :
         m : 'TimeTravel...'

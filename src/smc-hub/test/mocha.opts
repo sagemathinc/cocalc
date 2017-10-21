@@ -1,4 +1,4 @@
---compilers coffee:coffee-script/register
+--require coffee-script/register
 --reporter spec
 --recursive
 
