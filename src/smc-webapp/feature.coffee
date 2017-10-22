@@ -101,7 +101,7 @@ if window?
         if not page?
             # It's fine to wait until page has loaded and then some before showing a warning
             # to the user.  This is also necessary to ensure the page actions/store have been defined.
-            setTimeout(2000, cookies_and_local_storage)
+            setTimeout(cookies_and_local_storage, 2000)
             return
 
         # Check for cookies (see http://stackoverflow.com/questions/6125330/javascript-navigator-cookieenabled-browser-compatibility)
@@ -112,7 +112,7 @@ if window?
         if not require('smc-util/misc').has_local_storage()
             page.show_local_storage_warning()
 
-    setTimeout(2000, cookies_and_local_storage)
+    setTimeout(cookies_and_local_storage, 2000)
 
 else
     # Backend.
