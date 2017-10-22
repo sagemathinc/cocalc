@@ -65,9 +65,10 @@ class AccountActions extends Actions
                     when "account_creation_failed"
                         @setState('sign_up_error': mesg.reason)
                     when "signed_in"
-                        {analytics_event} = require('./misc_page')
-                        analytics_event('account', 'create_account') # user created an account
                         redux.getActions('page').set_active_tab('projects')
+                        {analytics_event, track_conversion} = require('./misc_page')
+                        analytics_event('account', 'create_account') # user created an account
+                        track_conversion('create_account')
                     else
                         # should never ever happen
                         # alert_message(type:"error", message: "The server responded with invalid message to account creation request: #{JSON.stringify(mesg)}")
