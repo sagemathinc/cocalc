@@ -94,9 +94,6 @@ if window?
     if DEBUG
         console.log "DEBUG MODE:", DEBUG
 
-    # These checks must be **after** the above functions are defined, since showing
-    # these warnings requires functions like get_browser are already defined.
-    # See https://github.com/sagemathinc/cocalc/issues/1898
     cookies_and_local_storage = ->
         if not navigator?
             return
@@ -115,7 +112,7 @@ if window?
         if not require('smc-util/misc').has_local_storage()
             page.show_local_storage_warning()
 
-    cookies_and_local_storage()
+    setTimeout(2000, cookies_and_local_storage)
 
 else
     # Backend.
