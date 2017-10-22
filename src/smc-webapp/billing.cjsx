@@ -145,6 +145,13 @@ class BillingActions extends Actions
             @setState(error: '')
             @_action('create_subscription', 'Create a subscription', plan : plan)
             last_subscription_attempt = misc.server_time()
+            @track_subscription(plan)
+
+    # conversion tracking (commercial only)
+    track_subscription: (plan) =>
+        usd = 7.00 # TODO derive this from the plan
+        {track_conversion} = require('./misc_page')
+        track_conversion('subscription', usd)
 
     # Cancel all subscriptions, remove credit cards, etc. -- this is not a normal action, and is used
     # only when deleting an account.  We allow it a callback.

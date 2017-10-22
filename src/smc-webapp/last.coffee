@@ -138,7 +138,23 @@ $ ->
         MathJax.Hub?.Queue([mathjax_finish_startup])
     document.getElementsByTagName("head")[0].appendChild(mjscript)
 
+    # enable logging
     misc.wrap_log()
+
+    # for commercial setup, enable conversion tracking
+    if require('./customize').commercial
+        theme = require('smc-util/theme')
+        # the gtag initialization
+        window.dataLayer = window.dataLayer || []
+        window.gtag = ->
+            dataLayer.push(arguments)
+        window.gtag('js', new Date())
+        window.gtag('config', theme.gtag_id)
+        # load tagmanager
+        jtag = document.createElement("script")
+        jtag.src = "https://www.googletagmanager.com/gtag/js?id=#{theme.gtag_id}"
+        jtag.async = true
+        document.getElementsByTagName("head")[0].appendChild(jtag)
 
     # finally, record start time
     # TODO compute an report startup initialization time
