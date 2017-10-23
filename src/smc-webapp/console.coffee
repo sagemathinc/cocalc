@@ -505,8 +505,11 @@ class Console extends EventEmitter
             # NOTE: we could do this on all keystrokes.  WE restrict as above merely for efficiency purposes.
             # See http://stackoverflow.com/questions/3902635/how-does-one-capture-a-macs-command-key-via-javascript
             @textarea.val('')
-        if @_rendering_is_paused and not (ev.ctrlKey or ev.metaKey or ev.altKey)
-            @unpause_rendering()
+        if @_rendering_is_paused
+            if not (ev.ctrlKey or ev.metaKey or ev.altKey)
+                @unpause_rendering()
+            else
+                return false
 
     _increase_font_size: () =>
         @opts.font.size += 1
@@ -865,7 +868,7 @@ class Console extends EventEmitter
     # element for the editor, then resize the renderer and the
     # remote PTY.
     resize: =>
-        if not @user_was_recently_active()
+        if not @user_was_recently_active() or @_rendering_is_paused
             return
 
         if not @session?
