@@ -536,7 +536,8 @@ exports.ChatRoom = rclass ({name}) ->
     save_scroll_position: ->
         @props.actions.set_use_saved_position(true)
         node = ReactDOM.findDOMNode(@refs.log_container)
-        @props.actions.save_scroll_state(node.scrollTop, node.scrollHeight, node.offsetHeight)
+        if node?
+            @props.actions.save_scroll_state(node.scrollTop, node.scrollHeight, node.offsetHeight)
 
     button_send_chat: (e) ->
         send_chat(e, @refs.log_container, ReactDOM.findDOMNode(@refs.input).value, @props.actions)
