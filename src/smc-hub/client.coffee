@@ -1743,6 +1743,13 @@ class exports.Client extends EventEmitter
                                 cb(undefined, customer_id)
                         delete @_stripe_customer_id_cbs
 
+                        # Log that the user is requesting this info, which means
+                        # they are billing the subscription page.  This is
+                        # potentially useful to record.
+                        @database.log
+                            event : 'billing'
+                            value : {account_id: @account_id}
+
     stripe_need_customer_id: (id, cb) =>
         # Like stripe_get_customer_id, except sends an error to the
         # user if they aren't registered yet, instead of returning undefined.
