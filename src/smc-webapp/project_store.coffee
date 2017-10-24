@@ -24,7 +24,8 @@ underscore = require('underscore')
 immutable  = require('immutable')
 
 # At most this many of the most recent log messages for a project get loaded:
-MAX_PROJECT_LOG_ENTRIES = 5000
+# TODO: add a button to load the entire log or load more...
+MAX_PROJECT_LOG_ENTRIES = 400
 
 misc      = require('smc-util/misc')
 {MARKERS} = require('smc-util/sagews')
