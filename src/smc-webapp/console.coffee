@@ -868,6 +868,7 @@ class Console extends EventEmitter
     # element for the editor, then resize the renderer and the
     # remote PTY.
     resize: =>
+        # The or @_rendering_is_paused fixes https://github.com/sagemathinc/cocalc/issues/2363
         if not @user_was_recently_active() or @_rendering_is_paused
             return
 
