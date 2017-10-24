@@ -26,6 +26,7 @@ exports.create_account = (opts) ->
         host     : undefined
         port     : undefined
         sign_in  : false      # if true, the newly created user will also be signed in; only makes sense for browser clients!
+        utm      : undefined
         cb       : undefined
     id = opts.mesg.id
     account_id = null
@@ -117,14 +118,18 @@ exports.create_account = (opts) ->
                         account_id = result
                         cb()
                         # log to db -- no need to make client wait for this:
+                        data =
+                            account_id    : account_id
+                            first_name    : opts.mesg.first_name
+                            last_name     : opts.mesg.last_name
+                            email_address : opts.mesg.email_address
+                            created_by    : opts.client.ip_address
+                        if opts.utm?
+                            for k, v of opts.utm
+                                data["utm_#{k}"] = v
                         opts.database.log
                             event : 'create_account'
-                            value :
-                                account_id    : account_id
-                                first_name    : opts.mesg.first_name
-                                last_name     : opts.mesg.last_name
-                                email_address : opts.mesg.email_address
-                                created_by    : opts.client.ip_address
+                            value : data
         (cb) ->
             dbg("check for account creation actions")
             opts.database.do_account_creation_actions

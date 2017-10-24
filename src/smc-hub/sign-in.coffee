@@ -87,6 +87,7 @@ exports.sign_in = (opts) ->
         database : required
         host     : undefined
         port     : undefined
+        utm      : undefined
         cb       : undefined
 
     if opts.logger?
@@ -105,6 +106,7 @@ exports.sign_in = (opts) ->
             successful    : false
             email_address : mesg.email_address
             account_id    : account?.account_id
+            utm           : opts.utm
         client.push_to_client(message.sign_in_failed(id:mesg.id, email_address:mesg.email_address, reason:error))
         opts.cb?(error)
 
@@ -286,16 +288,21 @@ exports.record_sign_in = (opts) ->
         database      : required
         email_address : undefined
         account_id    : undefined
+        utm           : undefined
         remember_me   : false
     if not opts.successful
         record_sign_in_fail
             email : opts.email_address
             ip    : opts.ip_address
     else
+        data =
+            ip_address    : opts.ip_address
+            email_address : opts.email_address ? null
+            remember_me   : opts.remember_me
+            account_id    : opts.account_id
+        if opts.utm?
+            for k, v of opts.utm
+                data["utm_#{k}"] = v
         opts.database.log
             event : 'successful_sign_in'
-            value :
-                ip_address    : opts.ip_address
-                email_address : opts.email_address ? null
-                remember_me   : opts.remember_me
-                account_id    : opts.account_id
+            value : data

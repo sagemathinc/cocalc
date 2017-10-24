@@ -1817,6 +1817,9 @@ exports.get_cookie = (name) ->
     parts = value.split("; " + name + "=")
     return parts.pop().split(";").shift() if (parts.length == 2)
 
+exports.delete_cookie = (name) ->
+    document.cookie = name + '=; expires=Thu, 01 Jan 1970 00:00:01 GMT;'
+
 # see http://stackoverflow.com/questions/3169786/clear-text-selection-with-javascript
 exports.clear_selection = ->
     if window.getSelection?().empty?
@@ -1848,3 +1851,13 @@ exports.get_query_params = ->
 
 exports.get_query_param = (p) ->
     return exports.get_query_params()[p]
+
+# If there is UTM information in the known cookie, extract and return it
+# Then, delete this cookie.
+utm_cookie_name = 'CC_UTM'
+# returns: either undefined or a dict of utm params and their values
+exports.get_utm = ->
+    c = exports.get_cookie(utm_cookie_name)
+    if DEBUG then console.log("UTM", c)
+    exports.delete_cookie(utm_cookie_name)
+    return undefined
