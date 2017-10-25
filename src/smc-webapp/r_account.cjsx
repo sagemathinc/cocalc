@@ -751,6 +751,7 @@ EDITOR_SETTINGS_CHECKBOXES =
     show_trailing_whitespace  : 'show spaces at ends of lines'
     spaces_instead_of_tabs    : 'send 4 spaces when the tab key is pressed'
     extra_button_bar          : 'more editing functions (mainly in Sage worksheets)'
+    jupyter_classic           : 'use legacy Jupyter notebook implementation'
 
 EditorSettingsCheckboxes = rclass
     displayName : 'Account-EditorSettingsCheckboxes'
