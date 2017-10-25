@@ -249,8 +249,8 @@ class ProjectActions extends Actions
             project_id : @project_id
         if not id
             # new log entry
-            id             = misc.uuid()
-            obj.time       = new Date()
+            id       = misc.uuid()
+            obj.time = misc.server_time()
         obj.id = id
         require('./webapp_client').webapp_client.query
             query : {project_log : obj}
@@ -274,7 +274,7 @@ class ProjectActions extends Actions
         {id, start} = data
         # do not allow recording the time more than once, which would be weird.
         delete @_log_open_time[path]
-        @log({time: new Date() - start}, id)
+        @log({time: misc.server_time() - start}, id)
 
     # Save the given file in this project (if it is open) to disk.
     save_file: (opts) =>
@@ -372,7 +372,7 @@ class ProjectActions extends Actions
                             # since the idea of "finishing opening and rendering" is
                             # not simple to define.
                             @_log_open_time ?= {}
-                            @_log_open_time[opts.path] = {id:id, start:new Date()}
+                            @_log_open_time[opts.path] = {id:id, start:misc.server_time()}
 
                             # grab chat state from local storage
                             local_storage = require('./editor').local_storage
@@ -1752,7 +1752,7 @@ get_directory_listing = (opts) ->
     {webapp_client} = require('./webapp_client')
 
     if prom_client.enabled
-        prom_dir_listing_start = new Date()
+        prom_dir_listing_start = misc.server_time()
         prom_labels = {public: false}
 
     if opts.group in ['owner', 'collaborator', 'admin']
@@ -1812,7 +1812,7 @@ get_directory_listing = (opts) ->
             #console.log opts.path, 'get_directory_listing.success or timeout', err
             if prom_client.enabled
                 prom_labels.err = !!err
-                prom_get_dir_listing_h?.observe(prom_labels, (new Date() - prom_dir_listing_start) / 1000)
+                prom_get_dir_listing_h?.observe(prom_labels, (misc.server_time() - prom_dir_listing_start) / 1000)
 
             opts.cb(err ? listing_err, listing)
             if time0 and state != 'running' and not err
