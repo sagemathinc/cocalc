@@ -1376,14 +1376,15 @@ class CodeMirrorEditor extends FileEditor
                     command     : "smc-sagews2ipynb #{@filename}"
                     bash        : true
                     err_on_exit : false
-                    cb          : (err, output) =>
-                        if err
-                            alert_message(type:"error", message:"Error occured converting #{@filename}")
-                        else
-                            redux.getProjectActions(@project_id).open_file
-                                path               : base + '.ipynb'
-                                foreground         : true
-        ])
+                    cb          : () =>
+                        redux.getProjectActions(@project_id).open_file
+                            path               : base + '.ipynb'
+                            foreground         : true
+                        cb()
+        ], (err) =>
+            if err
+                alert_message(type:"error", message:"Error: " + err)
+        )
 
     cut: (cm) =>
         if not cm?
