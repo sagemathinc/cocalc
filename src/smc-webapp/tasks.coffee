@@ -136,6 +136,7 @@ class TaskList
             if err
                 cb?(err)
                 return
+            redux.getProjectActions(@project_id).log_opened_time(@filename)
             @readonly = @db.is_read_only()
             if @readonly
                 @save_button.find("span").text("Readonly")

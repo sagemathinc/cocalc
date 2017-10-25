@@ -98,6 +98,13 @@ LogEntry = rclass
         backgroundStyle : rtypes.object
         project_id      : rtypes.string
 
+    render_took: ->
+        if not @props.event?.time
+            return
+        <span style={color:'#666'}>
+            <Space />(took {(Math.round(@props.event.time/100)/10).toFixed(1)}s)
+        </span>
+
     render_open_file: ->
         <span>opened<Space/>
             <PathLink
@@ -106,10 +113,11 @@ LogEntry = rclass
                 style      = {if @props.cursor then selected_item}
                 trunc      = 50
                 project_id = {@props.project_id} />
+            {@render_took()}
         </span>
 
     render_start_project: ->
-        <span>started this project (took {Math.round(@props.event.time/1000)} seconds)
+        <span>started this project {@render_took()}
         </span>
 
     render_miniterm_command: (cmd) ->
@@ -383,7 +391,6 @@ exports.ProjectLog = rclass ({name}) ->
             return
 
         if not immutable.is(next_user_map, @_last_user_map) and @_log?
-            # Update any names that changed in the existing log
             next_user_map.map (val, account_id) =>
                 if not immutable.is(val, @_last_user_map?.get(account_id))
                     for x in @_log
@@ -392,11 +399,25 @@ exports.ProjectLog = rclass ({name}) ->
 
         if not immutable.is(next_project_log, @_last_project_log)
             # The project log changed, so record the new entries
+            # and update any existing entries that changed, e.g., timing information added.
             new_log = []
             next_project_log.map (val, id) =>
-                if not @_last_project_log?.get(id)?
+                e = @_last_project_log?.get(id)
+                if not e?
                     # new entry we didn't have before
                     new_log.push(val.toJS())
+                else if not immutable.is(val, e)
+                    # An existing entry changed; this happens
+                    # when files are opened and the total time to open gets reported.
+                    id = val.get('id')
+                    # find it in the past log:
+                    for x in @_log
+                        if x.id == id
+                            # and process the change
+                            for k, v of val.toJS()
+                                x[k] = v
+                            @process_log_entry(x)
+                            break
             if new_log.length > 1
                 new_log.sort((a,b) -> misc.cmp(b.time, a.time))
                 # combine redundant subsequent events that differ only by time
