@@ -2056,5 +2056,6 @@ exports.sanitize_html_attributes = ($, node) ->
             $(node).removeAttr(attrName)
 
 # common UTM parameters
+# changes must also be done in webapp-lib/_inc_analytics.pug
 exports.utm_keys = ['source', 'medium', 'campaign', 'term', 'content']
 exports.utm_cookie_name = 'CC_UTM'
