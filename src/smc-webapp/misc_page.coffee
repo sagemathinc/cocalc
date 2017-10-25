@@ -1854,10 +1854,35 @@ exports.get_query_param = (p) ->
 
 # If there is UTM information in the known cookie, extract and return it
 # Then, delete this cookie.
+# Reference: https://en.wikipedia.org/wiki/UTM_parameters
+#
+# Parameter                 Purpose/Example
+# utm_source (required)     Identifies which site sent the traffic, and is a required parameter.
+#                           utm_source=Google
+#
+# utm_medium                Identifies what type of link was used,
+#                           such as cost per click or email.
+#                           utm_medium=cpc
+# utm_campaign              Identifies a specific product promotion or strategic campaign.
+#                           utm_campaign=spring_sale
+# utm_term                  Identifies search terms.
+#                           utm_term=running+shoes
+# utm_content               Identifies what specifically was clicked to bring the user to the site,
+#                           such as a banner ad or a text link. It is often used for A/B testing
+#                           and content-targeted ads.
+#                           utm_content=logolink or utm_content=textlink
+#
+# the name of the cookie where we temporarily store this information as json
 utm_cookie_name = 'CC_UTM'
 # returns: either undefined or a dict of utm params and their values
 exports.get_utm = ->
     c = exports.get_cookie(utm_cookie_name)
     if DEBUG then console.log("UTM", c)
     exports.delete_cookie(utm_cookie_name)
-    return undefined
+    return misc.from_json(c)
+
+# store eventually available information form the url parameters in the utm cookie
+# do not overwrite any available information
+exports.save_utm_info = ->
+    c = exports.get_cookie(utm_cookie_name)
+    
