@@ -1156,8 +1156,7 @@ exports.ExplainPlan = ExplainPlan = rclass
                 <p>
                 We offer course packages to support teaching using <SiteName/>.
                 They start right after purchase and last for the indicated period and do <b>not auto-renew</b>.
-                Following <a href="https://tutorial.cocalc.com/" target="_blank">this
-                guide</a>, create a course file.
+                Following <a href="https://tutorial.cocalc.com/" target="_blank">this guide</a>, create a course file.
                 Each time you add a student to your course, a project will be automatically created for that student.
                 You can create and distribute assignments,
                 students work on assignments inside their project (where you can see their progress
@@ -1174,9 +1173,9 @@ exports.ExplainPlan = ExplainPlan = rclass
 
                 </p>
 
-                <h4>Your or your institution pays</h4>
-                You or your institution may pay for one of the course plans.  You then use your plan to upgrade
-                all projects in the course in the settings tab of the course file.
+                <h4>You or your institution pays</h4>
+                You or your institution may pay for one of the course plans.
+                You then use your plan to upgrade all projects in the course in the settings tab of the course file.
 
                 <h4>Students pay</h4>
                 In the settings tab of your course, you require that all students
