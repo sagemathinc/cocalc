@@ -80,6 +80,7 @@ exports.init_express_http_server = (opts) ->
                                   labels: ['path', 'method', 'code']
                               )
 
+    # response time metrics
     router.use (req, res, next) ->
         res_finished_h = response_time_histogram.startTimer()
         original_end = res.end
@@ -88,6 +89,24 @@ exports.init_express_http_server = (opts) ->
             {dirname} = require('path')
             dir_path = dirname(req.path).split('/')[1] # for two levels: split('/')[1..2].join('/')
             res_finished_h({path:dir_path, method:req.method, code:res.statusCode})
+        next()
+
+    # save utm parameters in a (temporary) session cookie.
+    # webapp takes care of consuming it (see misc_page.get_utm)
+    router.use (req, res, next) ->
+        # quickly return in the usual case
+        if Object.keys(req.query).length == 0
+            next()
+            return
+        utm = {}
+        for k, v of req.query
+            continue if not misc.startswith(k, 'utm_')
+            k = k[4..]
+            utm[k] = v if k in misc.utm_keys
+        if Object.keys(utm).length
+            res.cookie(misc.utm_cookie_name, misc.to_json(utm), httpOnly: false)
+            res.locals.utm = utm
+        #winston.debug("UTM: #{misc.to_json(utm)}")
         next()
 
     app.enable('trust proxy') # see http://stackoverflow.com/questions/10849687/express-js-how-to-get-remote-client-address

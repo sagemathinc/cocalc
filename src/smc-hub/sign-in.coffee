@@ -87,7 +87,6 @@ exports.sign_in = (opts) ->
         database : required
         host     : undefined
         port     : undefined
-        utm      : undefined
         cb       : undefined
 
     if opts.logger?
@@ -106,7 +105,6 @@ exports.sign_in = (opts) ->
             successful    : false
             email_address : mesg.email_address
             account_id    : account?.account_id
-            utm           : opts.utm
         client.push_to_client(message.sign_in_failed(id:mesg.id, email_address:mesg.email_address, reason:error))
         opts.cb?(error)
 
@@ -169,6 +167,7 @@ exports.sign_in = (opts) ->
                     email_address : mesg.email_address
                     remember_me   : false
                     hub           : opts.host + ':' + opts.port
+                    utm           : mesg.utm
                 client.remember_me
                     account_id    : signed_in_mesg.account_id
                     email_address : signed_in_mesg.email_address

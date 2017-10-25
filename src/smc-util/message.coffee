@@ -366,6 +366,9 @@ API message2
         agreed_to_terms:
             init   : required
             desc   : 'must be true for request to succeed'
+        utm:
+            init   : undefined
+            desc   : 'UTM parameters'
         token:
             init   : undefined   # only required when token is set.
             desc   : 'account creation token - see src/dev/docker/README.md'
@@ -455,6 +458,7 @@ message
     email_address  : required
     password       : required
     remember_me    : false
+    utm            : undefined
 
 message
     id         : undefined
@@ -484,6 +488,7 @@ message
     email_address  : undefined     # email address they signed in under
     first_name     : undefined
     last_name      : undefined
+    utm            : undefined
 
 # client --> hub
 message

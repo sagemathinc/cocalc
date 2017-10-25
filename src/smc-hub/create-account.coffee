@@ -26,7 +26,6 @@ exports.create_account = (opts) ->
         host     : undefined
         port     : undefined
         sign_in  : false      # if true, the newly created user will also be signed in; only makes sense for browser clients!
-        utm      : undefined
         cb       : undefined
     id = opts.mesg.id
     account_id = null
@@ -124,8 +123,8 @@ exports.create_account = (opts) ->
                             last_name     : opts.mesg.last_name
                             email_address : opts.mesg.email_address
                             created_by    : opts.client.ip_address
-                        if opts.utm?
-                            for k, v of opts.utm
+                        if opts.mesg.utm?
+                            for k, v of opts.mesg.utm
                                 data["utm_#{k}"] = v
                         opts.database.log
                             event : 'create_account'

@@ -1820,6 +1820,14 @@ exports.get_cookie = (name) ->
 exports.delete_cookie = (name) ->
     document.cookie = name + '=; expires=Thu, 01 Jan 1970 00:00:01 GMT;'
 
+exports.set_cookie = (name, value, days) ->
+    expires = ''
+    if days
+        date = new Date()
+        date.setTime(date.getTime() + (days*24*60*60*1000))
+        expires = "; expires=" + date.toUTCString()
+    document.cookie = name + "=" + value + expires + "; path=/"
+
 # see http://stackoverflow.com/questions/3169786/clear-text-selection-with-javascript
 exports.clear_selection = ->
     if window.getSelection?().empty?
@@ -1871,18 +1879,15 @@ exports.get_query_param = (p) ->
 #                           such as a banner ad or a text link. It is often used for A/B testing
 #                           and content-targeted ads.
 #                           utm_content=logolink or utm_content=textlink
-#
-# the name of the cookie where we temporarily store this information as json
-utm_cookie_name = 'CC_UTM'
-# returns: either undefined or a dict of utm params and their values
-exports.get_utm = ->
-    c = exports.get_cookie(utm_cookie_name)
-    if DEBUG then console.log("UTM", c)
-    exports.delete_cookie(utm_cookie_name)
-    return misc.from_json(c)
 
-# store eventually available information form the url parameters in the utm cookie
-# do not overwrite any available information
-exports.save_utm_info = ->
-    c = exports.get_cookie(utm_cookie_name)
-    
+
+# get eventually available information form the utm cookie
+# delete it afterwards
+exports.get_utm = ->
+    c = exports.get_cookie(misc.utm_cookie_name)
+    return undefined if not c
+    try
+        data = misc.from_json(window.decodeURIComponent(c))
+        if DEBUG then console.log("get_utm cookie data", data)
+        exports.delete_cookie(misc.utm_cookie_name)
+        return data

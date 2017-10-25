@@ -2055,3 +2055,6 @@ exports.sanitize_html_attributes = ($, node) ->
         if attrName?.indexOf('on') == 0 or attrValue?.indexOf('javascript:') == 0
             $(node).removeAttr(attrName)
 
+# common UTM parameters
+exports.utm_keys = ['source', 'medium', 'campaign', 'term', 'content']
+exports.utm_cookie_name = 'CC_UTM'
