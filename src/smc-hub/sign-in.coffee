@@ -299,9 +299,7 @@ exports.record_sign_in = (opts) ->
             email_address : opts.email_address ? null
             remember_me   : opts.remember_me
             account_id    : opts.account_id
-        if opts.utm?
-            for k, v of opts.utm
-                data["utm_#{k}"] = v
+        data.utm = opts.utm if opts.utm?
         opts.database.log
             event : 'successful_sign_in'
             value : data

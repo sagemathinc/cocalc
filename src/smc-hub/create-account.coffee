@@ -123,9 +123,7 @@ exports.create_account = (opts) ->
                             last_name     : opts.mesg.last_name
                             email_address : opts.mesg.email_address
                             created_by    : opts.client.ip_address
-                        if opts.mesg.utm?
-                            for k, v of opts.mesg.utm
-                                data["utm_#{k}"] = v
+                        data.utm = opts.mesg.utm if opts.mesg.utm?
                         opts.database.log
                             event : 'create_account'
                             value : data
