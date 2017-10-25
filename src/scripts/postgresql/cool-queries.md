@@ -6,7 +6,7 @@ Check on our SLO, namely number of projects that took 30s or more to start among
 
 How log files are taking to open, as perceived by the user:
 
-    select event#>>'{filename}', event#>'{time}' from project_log where event#>>'{time}' is not null and event#>>'{action}'='open' order by time desc limit 100;
+    select event#>>'{time}' as time_ms, left(event#>>'{filename}',70) as filename, project_id from project_log where time >= now() - interval '1 hour' and event#>>'{time}' is not null and event#>>'{action}'='open' order by time desc limit 100;
 
 Problems people are having right now:
 

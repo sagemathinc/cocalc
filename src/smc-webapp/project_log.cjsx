@@ -240,9 +240,10 @@ LogEntry = rclass
                 return @render_invite_nonuser()
             when 'open_project'  # not used anymore???
                 return <span>opened this project</span>
-            else
-                # FUTURE:
-                return <span>{misc.to_json(@props.event)}</span>
+            # ignore unknown -- would just look mangled to user...
+            #else
+            # FUTURE:
+            #    return <span>{misc.to_json(@props.event)}</span>
 
     render_user: ->
         <User user_map={@props.user_map} account_id={@props.account_id} />
