@@ -111,3 +111,6 @@ exports.register = ->
             return name
 
 exports.register()
+
+# Temporary so long as we support jupyter classic
+require('./jupyter-classic-support')
