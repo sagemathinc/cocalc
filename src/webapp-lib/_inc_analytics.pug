@@ -24,7 +24,7 @@ if typeof GOOGLE_ANALYTICS !== "undefined" && GOOGLE_ANALYTICS !== null
 
 //- UTM parameter extraction
 //- On kucalc, static pages are served without going through the hub.
-//- Therefore we have to do the extraction everywhere
+//- Therefore we have to do the extraction on static pages, too!
 script
   :coffee-script
     utm = {}

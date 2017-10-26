@@ -236,24 +236,45 @@ class ProjectActions extends Actions
         return
 
     # report a log event to the backend -- will indirectly result in a new entry in the store...
-    log: (event) =>
+    # Returns the random log entry uuid. If called later with that id, then the time isn't
+    # changed and the event is merely updated.
+    log: (event, id) =>
         if @redux.getStore('projects').get_my_group(@project_id) in ['public', 'admin']
             # Ignore log events for *both* admin and public.
             # Admin gets to be secretive (also their account_id --> name likely wouldn't be known to users).
             # Public users don't log anything.
             return # ignore log events
+        obj =
+            event      : event
+            project_id : @project_id
+        if not id
+            # new log entry
+            id       = misc.uuid()
+            obj.time = misc.server_time()
+        obj.id = id
         require('./webapp_client').webapp_client.query
-            query :
-                project_log :
-                    project_id : @project_id
-                    time       : new Date()
-                    event      : event
-            cb : (err) =>
+            query : {project_log : obj}
+            cb    : (err) =>
                 if err
                     # TODO: what do we want to do if a log doesn't get recorded?
                     # (It *should* keep trying and store that in localStorage, and try next time, etc...
                     #  of course done in a systematic way across everything.)
                     console.warn('error recording a log entry: ', err, event)
+        return id
+
+    log_opened_time: (path) =>
+        # Call log_opened with a path to update the log with the fact that
+        # this file successfully opened and rendered so that the user can
+        # actually see it.  This is used to get a sense for how long things
+        # are taking...
+        data = @_log_open_time?[path]
+        if not data?
+            # never setup log event recording the start of open (this would get set in @open_file)
+            return
+        {id, start} = data
+        # do not allow recording the time more than once, which would be weird.
+        delete @_log_open_time[path]
+        @log({time: misc.server_time() - start}, id)
 
     # Save the given file in this project (if it is open) to disk.
     save_file: (opts) =>
@@ -339,10 +360,19 @@ class ProjectActions extends Actions
                         if not is_public
                             # the ? is because if the user is anonymous they don't have a file_use Actions (yet)
                             @redux.getActions('file_use')?.mark_file(@project_id, opts.path, 'open')
-                            @log
+                            event =
                                 event     : 'open'
                                 action    : 'open'
                                 filename  : opts.path
+                            id = @log(event)
+
+                            # Save the log entry id, so it is possible to optionally
+                            # record how long it took for the file to open.  This
+                            # may happen via a call from random places in our codebase,
+                            # since the idea of "finishing opening and rendering" is
+                            # not simple to define.
+                            @_log_open_time ?= {}
+                            @_log_open_time[opts.path] = {id:id, start:misc.server_time()}
 
                             # grab chat state from local storage
                             local_storage = require('./editor').local_storage
@@ -1722,7 +1752,7 @@ get_directory_listing = (opts) ->
     {webapp_client} = require('./webapp_client')
 
     if prom_client.enabled
-        prom_dir_listing_start = new Date()
+        prom_dir_listing_start = misc.server_time()
         prom_labels = {public: false}
 
     if opts.group in ['owner', 'collaborator', 'admin']
@@ -1782,7 +1812,7 @@ get_directory_listing = (opts) ->
             #console.log opts.path, 'get_directory_listing.success or timeout', err
             if prom_client.enabled
                 prom_labels.err = !!err
-                prom_get_dir_listing_h?.observe(prom_labels, (new Date() - prom_dir_listing_start) / 1000)
+                prom_get_dir_listing_h?.observe(prom_labels, (misc.server_time() - prom_dir_listing_start) / 1000)
 
             opts.cb(err ? listing_err, listing)
             if time0 and state != 'running' and not err

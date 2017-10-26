@@ -751,7 +751,7 @@ EDITOR_SETTINGS_CHECKBOXES =
     show_trailing_whitespace  : 'show spaces at ends of lines'
     spaces_instead_of_tabs    : 'send 4 spaces when the tab key is pressed'
     extra_button_bar          : 'more editing functions (mainly in Sage worksheets)'
-    jupyter_classic           : 'use legacy Jupyter notebook implementation'
+    jupyter_classic           : <span>use classical Jupyter notebook <a href='https://github.com/sagemathinc/cocalc/wiki/JupyterClassicModern' target='_blank'>(DANGER: this can cause trouble...)</a></span>
 
 EditorSettingsCheckboxes = rclass
     displayName : 'Account-EditorSettingsCheckboxes'
@@ -761,7 +761,10 @@ EditorSettingsCheckboxes = rclass
         on_change       : rtypes.func.isRequired
 
     label_checkbox: (name, desc) ->
-        return misc.capitalize(name.replace(/_/g,' ').replace(/-/g,' ').replace('xml','XML')) + ': ' + desc
+        <span>
+            {misc.capitalize(name.replace(/_/g,' ').replace(/-/g,' ').replace('xml','XML')) + ': '}
+            {desc}
+        </span>
 
     render_checkbox: (name, desc) ->
         <Checkbox checked  = {@props.editor_settings[name]}
