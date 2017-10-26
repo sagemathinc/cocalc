@@ -665,6 +665,8 @@ ProjectControlPanel = rclass
     render_idle_timeout: ->
         # get_idle_timeout_horizon depends on the project object, so this will update properly....
         date = redux.getStore('projects').get_idle_timeout_horizon(@props.project.get('project_id'))
+        if not date  # e.g., viewing as admin...
+            return
         return <span style={color:'#666'}>
             <Icon name='clock-o' /> <b>About <TimeAgo date={date}/></b> project will stop unless somebody actively edits.
         </span>
