@@ -32,7 +32,7 @@ misc                 = require('smc-util/misc')
 
 {Alert, Panel, Col, Row, Button, ButtonGroup, ButtonToolbar, FormControl, FormGroup, Well, Checkbox} = require('react-bootstrap')
 {ErrorDisplay, MessageDisplay, Icon, LabeledRow, Loading, MarkdownInput, ProjectState, SearchInput, TextInput,
- NumberInput, DeletedProjectWarning, NonMemberProjectWarning, NoNetworkProjectWarning, Space, Tip, UPGRADE_ERROR_STYLE, UpgradeAdjustor} = require('./r_misc')
+ NumberInput, DeletedProjectWarning, NonMemberProjectWarning, NoNetworkProjectWarning, Space, TimeAgo, Tip, UPGRADE_ERROR_STYLE, UpgradeAdjustor} = require('./r_misc')
 {React, ReactDOM, Actions, Store, Table, redux, rtypes, rclass, Redux}  = require('./smc-react')
 {User} = require('./users')
 
@@ -608,6 +608,8 @@ JupyterServerPanel = rclass
                 </b>
             </span>
         </ProjectSettingsPanel>
+
+
 ProjectControlPanel = rclass
     displayName : 'ProjectSettings-ProjectControlPanel'
 
@@ -660,6 +662,13 @@ ProjectControlPanel = rclass
             <ProjectState show_desc={true} state={@props.project.get('state')?.get('state')} />
         </span>
 
+    render_idle_timeout: ->
+        # get_idle_timeout_horizon depends on the project object, so this will update properly....
+        date = redux.getStore('projects').get_idle_timeout_horizon(@props.project.get('project_id'))
+        return <span style={color:'#666'}>
+            <Icon name='clock-o' /> <b>About <TimeAgo date={date}/></b> project will stop unless somebody actively edits.
+        </span>
+
     restart_project: ->
         @actions('projects').restart_project(@props.project.get('project_id'))
 
@@ -705,11 +714,20 @@ ProjectControlPanel = rclass
                 <pre>{host}.sagemath.com</pre>
             </LabeledRow>
 
+    render_idle_timeout_row: ->
+        if @props.project.getIn(['state', 'state']) != 'running'
+            return
+        <LabeledRow key='idle-timeout' label='Idle Timeout'>
+            {@render_idle_timeout()}
+        </LabeledRow>
+
+
     render: ->
         <ProjectSettingsPanel title='Project control' icon='gears'>
             <LabeledRow key='state' label='State'>
                 {@render_state()}
             </LabeledRow>
+            {@render_idle_timeout_row()}
             <LabeledRow key='action' label='Actions'>
                 {@render_action_buttons()}
             </LabeledRow>

@@ -670,6 +670,17 @@ class ProjectsStore extends Store
                 upgrades[prop] = (upgrades[prop] ? 0) + val
         return upgrades
 
+    # The timestap (in server time) when this project will
+    # idle timeout if not edited by anybody.
+    get_idle_timeout_horizon: (project_id) =>
+        # time when last edited in server time
+        last_edited = @getIn(['project_map', project_id, 'last_edited'])
+        # mintime = time in seconds project can stay unused
+        mintime = @getIn(['project_map', project_id, 'settings', 'mintime'])
+        @getIn(['project_map', project_id, 'users'])?.map (info, account_id) =>
+            mintime += info?.getIn(['upgrades', 'mintime']) ? 0
+        return new Date((last_edited - 0) + 1000*mintime)
+
     # Get the total quotas for the given project, including free base values and all user upgrades
     get_total_project_quotas: (project_id) =>
         base_values = @getIn(['project_map', project_id, 'settings'])?.toJS()
