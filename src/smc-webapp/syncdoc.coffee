@@ -253,7 +253,7 @@ class SynchronizedDocument2 extends SynchronizedDocument
 
                 @_init_cursor_activity()
 
-                redux.getProjectActions(@project_id).log_opened_time(@filename)
+                redux.getProjectActions(@project_id)?.log_opened_time(@filename)
 
                 @_syncstring.on 'change', =>
                     if @_closed

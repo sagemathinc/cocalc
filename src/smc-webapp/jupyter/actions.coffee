@@ -106,7 +106,7 @@ class exports.JupyterActions extends Actions
         @syncdb.on('change', @_syncdb_change)
 
         @syncdb.once 'change', =>
-            @redux.getProjectActions(project_id).log_opened_time(path)
+            @redux.getProjectActions(project_id)?.log_opened_time(path)
 
 
         if not client.is_project() # project doesn't care about cursors
