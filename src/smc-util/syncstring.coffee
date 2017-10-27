@@ -944,7 +944,6 @@ class SyncDoc extends EventEmitter
                             return
                         init = init.toJS()
                         err  = init.error
-                        console.log(err, init, @_patch_list.count(), init.size)
                         if err
                             @emit('init', err)
                             return

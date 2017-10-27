@@ -116,7 +116,7 @@ exports.CellInput = rclass
         return options
 
     render_codemirror: (type) ->
-        if @props.actions?
+        if @props.actions? and @props.is_focused
             <CodeMirror
                 value         = {@props.cell.get('input') ? ''}
                 options       = {@options(type)}
