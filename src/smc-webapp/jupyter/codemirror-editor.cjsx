@@ -249,9 +249,14 @@ exports.CodeMirrorEditor = rclass
         else
             options0.readOnly = true
 
+        ###
+        # Disabled for efficiency reasons:
+        #   100% for speed reasons, we only use codemirror for cells with cursors
+        #   or the active cell, so don't want to show a gutter.
         if options0.foldGutter
             options0.extraKeys["Ctrl-Q"] = (cm) -> cm.foldCodeSelectionAware()
             options0.gutters = ["CodeMirror-linenumbers", "CodeMirror-foldgutter"]  # TODO: if we later change options to disable folding, the gutter still remains in the editors.
+        ###
 
         @cm = CodeMirror.fromTextArea(node, options0)
         @cm.save = => @props.actions.save()
