@@ -322,7 +322,7 @@ QuotaConsole = rclass
                 view : <span><b>{r(total_quotas['memory_request'] * quota_params['memory_request'].display_factor)} MB</b> dedicated RAM</span>
                 edit : <span><b>{@render_input('memory_request')} MB</b> dedicated RAM memory</span>
             cores       :
-                view : <b>{r(total_quotas['cores'] * quota_params['cores'].display_factor)} {misc.plural(total_quotas['cores'] * quota_params['cores'].display_factor, 'core')}</b>
+                view : <span><b>{r(total_quotas['cores'] * quota_params['cores'].display_factor)} {misc.plural(total_quotas['cores'] * quota_params['cores'].display_factor, 'core')}</b></span>
                 edit : <b>{@render_input('cores')} cores</b>
             cpu_shares  :
                 view : <b>{r(total_quotas['cpu_shares'] * quota_params['cpu_shares'].display_factor)} {misc.plural(total_quotas['cpu_shares'] * quota_params['cpu_shares'].display_factor, 'core')}</b>
@@ -609,7 +609,6 @@ JupyterServerPanel = rclass
             </span>
         </ProjectSettingsPanel>
 
-
 ProjectControlPanel = rclass
     displayName : 'ProjectSettings-ProjectControlPanel'
 
@@ -618,8 +617,8 @@ ProjectControlPanel = rclass
         show_ssh : false
 
     propTypes :
-        project   : rtypes.object.isRequired
-        allow_ssh : rtypes.bool
+        project           : rtypes.object.isRequired
+        allow_ssh         : rtypes.bool
 
     open_authorized_keys: (e) ->
         e.preventDefault()
@@ -668,7 +667,7 @@ ProjectControlPanel = rclass
         if not date  # e.g., viewing as admin...
             return
         return <span style={color:'#666'}>
-            <Icon name='clock-o' /> <b>About <TimeAgo date={date}/></b> project will stop unless somebody actively edits.
+            <Icon name='hourglass-half' /> <b>About <TimeAgo date={date}/></b> project will stop unless somebody actively edits.
         </span>
 
     restart_project: ->
@@ -719,17 +718,50 @@ ProjectControlPanel = rclass
     render_idle_timeout_row: ->
         if @props.project.getIn(['state', 'state']) != 'running'
             return
-        <LabeledRow key='idle-timeout' label='Idle Timeout'>
+        <LabeledRow key='idle-timeout' label='Idle Timeout' style={@rowstyle()}>
             {@render_idle_timeout()}
         </LabeledRow>
 
+    render_uptime: ->
+        # start_ts is e.g. 1508576664416
+        start_ts = @props.project.getIn(['status', 'start_ts'])
+        return if not start_ts?
+        return if @props.project.getIn(['state', 'state']) != 'running'
+        delta_s = (misc.server_time().getTime() - start_ts) / 1000
+        uptime_str = misc.seconds2hms(delta_s, true)
+        <LabeledRow key='uptime' label='Uptime' style={@rowstyle()}>
+            <span style={color:'#666'}>
+                 <Icon name='clock-o' /> <b>{uptime_str}</b> total runtime of this session
+            </span>
+        </LabeledRow>
+
+    render_cpu_usage: ->
+        cpu = @props.project.getIn(['status', 'cpu', 'usage'])
+        return if not cpu?
+        return if @props.project.getIn(['state', 'state']) != 'running'
+        cpu_str = misc.seconds2hms(cpu, true)
+        <LabeledRow key='cpu-usage' label='CPU Usage' style={@rowstyle(true)}>
+            <span style={color:'#666'}>
+                <Icon name='calculator' /> <b>{cpu_str}</b> of CPU time used during this session
+            </span>
+        </LabeledRow>
+
+    rowstyle: (delim) ->
+        style =
+            marginBottom:  '5px'
+            paddingBottom: '10px'
+        if delim
+            style.borderBottom = '1px solid #ccc'
+        return style
 
     render: ->
         <ProjectSettingsPanel title='Project control' icon='gears'>
-            <LabeledRow key='state' label='State'>
+            <LabeledRow key='state' label='State' style={@rowstyle(true)}>
                 {@render_state()}
             </LabeledRow>
             {@render_idle_timeout_row()}
+            {@render_uptime()}
+            {@render_cpu_usage()}
             <LabeledRow key='action' label='Actions'>
                 {@render_action_buttons()}
             </LabeledRow>
