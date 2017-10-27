@@ -30,6 +30,7 @@ passport= require('passport')
 
 misc    = require('smc-util/misc')
 message = require('smc-util/message')     # message protocol between front-end and back-end
+sign_in = require('./sign-in')
 
 Cookies = require('cookies')
 
@@ -112,6 +113,8 @@ passport_login = (opts) ->
     has_valid_remember_me = false
     account_id    = undefined
     email_address = undefined
+    locals =
+        new_account_created : false
     async.series([
         (cb) ->
             dbg("check if user has a valid remember_me token, in which case we can trust who they are already")
@@ -205,6 +208,7 @@ passport_login = (opts) ->
                         passport_profile  : opts.profile
                         cb                : (err, _account_id) ->
                             account_id = _account_id
+                            locals.new_account_created = true
                             cb(err)
                 (cb) ->
                     if not email_address?
@@ -214,7 +218,33 @@ passport_login = (opts) ->
                             email_address : email_address
                             account_id    : account_id
                             cb            : cb
+
+                (cb) ->
+                    data =
+                        account_id    : account_id
+                        first_name    : opts.first_name
+                        last_name     : opts.last_name
+                        email_address : email_address ? null
+                        created_by    : opts.req.ip
+                    data.utm = opts.res.utm if opts.res.utm?
+                    opts.database.log
+                        event : 'create_account'
+                        value : data
+                    cb() # don't let client wait for this
             ], cb)
+
+        (cb) ->
+            if locals.new_account_created
+                cb()
+            sign_in.record_sign_in
+                ip_address    : opts.req.ip
+                successful    : true
+                remember_me   : has_valid_remember_me
+                email_address : email_address
+                account_id    : account_id
+                utm           : opts.res.utm
+                database      : opts.database
+            cb() # don't let client wait for this
 
         (cb) ->
             target = BASE_URL + "/app#login"

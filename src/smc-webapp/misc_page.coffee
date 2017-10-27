@@ -1871,10 +1871,13 @@ exports.get_query_param = (p) ->
 # utm_medium                Identifies what type of link was used,
 #                           such as cost per click or email.
 #                           utm_medium=cpc
+#
 # utm_campaign              Identifies a specific product promotion or strategic campaign.
 #                           utm_campaign=spring_sale
+#
 # utm_term                  Identifies search terms.
 #                           utm_term=running+shoes
+#
 # utm_content               Identifies what specifically was clicked to bring the user to the site,
 #                           such as a banner ad or a text link. It is often used for A/B testing
 #                           and content-targeted ads.
@@ -1884,11 +1887,10 @@ exports.get_query_param = (p) ->
 # get eventually available information form the utm cookie
 # delete it afterwards
 exports.get_utm = ->
-    cookie_name = exports.APP_BASE_URL + misc.utm_cookie_name
-    c = exports.get_cookie(cookie_name)
+    c = exports.get_cookie(misc.utm_cookie_name)
     return undefined if not c
     try
         data = misc.from_json(window.decodeURIComponent(c))
         if DEBUG then console.log("get_utm cookie data", data)
-        exports.delete_cookie(cookie_name)
+        exports.delete_cookie(misc.utm_cookie_name)
         return data

@@ -101,13 +101,11 @@ exports.init_express_http_server = (opts) ->
         utm = {}
         for k, v of req.query
             continue if not misc.startswith(k, 'utm_')
-            # also intentionally limit the length of key and value
+            # intentionally limit the length of key and value
             k = k[4...50]
             utm[k] = v[...50] if k in misc.utm_keys
         if Object.keys(utm).length
-            {base_url} = require('./base-url')
-            cookie_name = base_url() + misc.utm_cookie_name
-            res.cookie(cookie_name, misc.to_json(utm), httpOnly: false)
+            res.cookie(misc.utm_cookie_name, httpOnly: false)
             res.locals.utm = utm
         #winston.debug("UTM: #{misc.to_json(utm)}")
         next()
