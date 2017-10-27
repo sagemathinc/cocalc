@@ -403,7 +403,11 @@ exports.MultipleAddSearch = MultipleAddSearch = rclass
 
     add_button_clicked: (e) ->
         e.preventDefault()
-        @props.add_selected(@state.selected_items)
+        if @state.selected_items.length == 0
+            first_entry = ReactDOM.findDOMNode(@refs.selector).firstChild.value
+            @props.add_selected([first_entry])
+        else
+            @props.add_selected(@state.selected_items)
         @clear_and_focus_search_input()
 
     change_selection: (e) ->
@@ -437,10 +441,9 @@ exports.MultipleAddSearch = MultipleAddSearch = rclass
             when 0 then "No #{@props.item_name} found"
             when 1 then "Add #{@props.item_name}"
             else switch num_items_selected
-                when 0 then "Select #{@props.item_name} above"
-                when 1 then "Add selected #{@props.item_name}"
+                when 0, 1 then "Add selected #{@props.item_name}"
                 else "Add #{num_items_selected} #{@props.item_name}s"
-        <Button disabled={num_items_selected == 0} onClick={@add_button_clicked}><Icon name="plus" /> {btn_text}</Button>
+        <Button disabled={@props.search_results.size == 0} onClick={@add_button_clicked}><Icon name="plus" /> {btn_text}</Button>
 
     render: ->
         <div>

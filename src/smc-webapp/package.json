@@ -55,7 +55,7 @@
     "prom-client": "^10.1.1",
     "prop-types": "^15.6.0",
     "react": "^16.0.0",
-    "react-bootstrap": "^0.31.3",
+    "react-bootstrap": "^0.31.5",
     "react-chosen": "^0.3.8",
     "react-dom": "^16.0.0",
     "react-draggable": "^3.0.0",
