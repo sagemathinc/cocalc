@@ -816,7 +816,7 @@ class SyncDoc extends EventEmitter
     # The project calls this once it has checked for the file on disk; this
     # way the frontend knows that the syncstring has been initialized in
     # the database, and also if there was an error doing the check.
-    _set_initialized: (error, cb) =>
+    _set_initialized: (error, is_read_only, cb) =>
         init = {time: misc.server_time()}
         if error
             init.error = "error - #{JSON.stringify(error)}"  # must be a string!
@@ -829,6 +829,7 @@ class SyncDoc extends EventEmitter
                     project_id : @_project_id
                     path       : @_path
                     init       : init
+                    read_only  : is_read_only
             cb : cb
 
     # List of timestamps of the versions of this string in the sync
@@ -976,33 +977,36 @@ class SyncDoc extends EventEmitter
                     cb : cb
         ], (err)=>cb?(err))
 
-    _update_if_file_is_read_only: (cb) =>
+    _file_is_read_only: (cb) =>
         @_client.path_access
             path : @_path
             mode : 'w'
             cb   : (err) =>
-                @_set_read_only(!!err)
+                cb(undefined, !!err)
+
+    _update_if_file_is_read_only: (cb) =>
+        @_file_is_read_only (err, is_read_only) =>
+                @_set_read_only(is_read_only)
                 cb?()
 
     _load_from_disk_if_newer: (cb) =>
         tm     = @last_changed()
         dbg    = @_client.dbg("syncstring._load_from_disk_if_newer('#{@_path}')")
-        exists = undefined
-        async.series([
+        locals = {exists: false, is_read_only: false}
+        async.series([
             (cb) =>
                 dbg("check if path exists")
                 @_client.path_exists
                     path : @_path
-                    cb   : (err, _exists) =>
+                    cb   : (err, exists) =>
                         if err
                             cb(err)
                         else
-                            exists = _exists
+                            locals.exists = exists
                             cb()
             (cb) =>
-                if not exists
+                if not locals.exists
                     dbg("file does NOT exist")
-                    @_set_read_only(false)
                     cb()
                     return
                 if tm?
@@ -1020,18 +1024,20 @@ class SyncDoc extends EventEmitter
                                 cb()
                 else
                     dbg("never edited before")
-                    if exists
+                    if locals.exists
                         dbg("path exists, so load from disk")
                         @_load_from_disk(cb)
                     else
                         cb()
             (cb) =>
-                if exists
-                    @_update_if_file_is_read_only(cb)
+                if locals.exists
+                    @_file_is_read_only (err, is_read_only) ->
+                        locals.is_read_only = is_read_only
+                        cb(err)
                 else
                     cb()
         ], (err) =>
-            @_set_initialized(err, cb)
+            @_set_initialized(err, locals.is_read_only, cb)
         )
 
     _patch_table_query: (cutoff) =>
