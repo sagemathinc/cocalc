@@ -593,7 +593,7 @@ class SyncDoc extends EventEmitter
             window.syncstrings[@_path] = @
         ###
 
-        # window.s = @
+        ## window?.s = @
 
         #dbg = @dbg("constructor(path='#{@_path}')")
         #dbg('connecting...')
@@ -816,8 +816,8 @@ class SyncDoc extends EventEmitter
     # The project calls this once it has checked for the file on disk; this
     # way the frontend knows that the syncstring has been initialized in
     # the database, and also if there was an error doing the check.
-    _set_initialized: (error, is_read_only, cb) =>
-        init = {time: misc.server_time()}
+    _set_initialized: (error, is_read_only, size, cb) =>
+        init = {time: misc.server_time(), size:size}
         if error
             init.error = "error - #{JSON.stringify(error)}"  # must be a string!
         else
@@ -939,7 +939,24 @@ class SyncDoc extends EventEmitter
                 @_syncstring_table.wait
                     until : (t) => t.get_one()?.get('init')
                     cb    : (err, init) =>
-                        @emit('init', err ? init.toJS().error)
+                        if err
+                            @emit('init', err)
+                            return
+                        init = init.toJS()
+                        err  = init.error
+                        console.log(err, init, @_patch_list.count(), init.size)
+                        if err
+                            @emit('init', err)
+                            return
+                        if @_client.is_user() and @_patch_list.count() == 0 and (init.size ? 0) > 0
+                            # wait for a change -- i.e., project loading the file from
+                            # disk and making available...  Because init.size > 0, we know that
+                            # there must be SOMETHING in the patches table once initialization is done.
+                            # This is the root cause of https://github.com/sagemathinc/cocalc/issues/2382
+                            @_patches_table.once 'change', =>
+                                @emit('init')
+                        else
+                            @emit('init')
                 if err
                     cb(err)
                 else
@@ -992,7 +1009,7 @@ class SyncDoc extends EventEmitter
     _load_from_disk_if_newer: (cb) =>
         tm     = @last_changed()
         dbg    = @_client.dbg("syncstring._load_from_disk_if_newer('#{@_path}')")
-        locals = {exists: false, is_read_only: false}
+        locals = {exists: false, is_read_only: false, size:0}
         async.series([
             (cb) =>
                 dbg("check if path exists")
@@ -1018,7 +1035,9 @@ class SyncDoc extends EventEmitter
                                 cb(err)
                             else if stats.ctime > tm
                                 dbg("disk file changed more recently than edits, so loading")
-                                @_load_from_disk(cb)
+                                @_load_from_disk (err, size) =>
+                                    locals.size = size
+                                    cb(err)
                             else
                                 dbg("stick with database version")
                                 cb()
@@ -1026,7 +1045,9 @@ class SyncDoc extends EventEmitter
                     dbg("never edited before")
                     if locals.exists
                         dbg("path exists, so load from disk")
-                        @_load_from_disk(cb)
+                        @_load_from_disk (err, size) =>
+                            locals.size = size
+                            cb(err)
                     else
                         cb()
             (cb) =>
@@ -1037,7 +1058,7 @@ class SyncDoc extends EventEmitter
                 else
                     cb()
         ], (err) =>
-            @_set_initialized(err, locals.is_read_only, cb)
+            @_set_initialized(err, locals.is_read_only, locals.size, cb)
         )
 
     _patch_table_query: (cutoff) =>
@@ -1614,7 +1635,7 @@ class SyncDoc extends EventEmitter
                 cb()
         ], (err) => cb?(err))
 
-    _load_from_disk: (cb) =>
+    _load_from_disk: (cb) =>   # cb(err, size)
         path = @get_path()
         dbg = @_client.dbg("syncstring._load_from_disk('#{path}')")
         dbg()
@@ -1622,24 +1643,24 @@ class SyncDoc extends EventEmitter
             cb?('lock')
             return
         @_load_from_disk_lock = true
-        exists = undefined
+        locals = {exists: undefined, size:0}
         async.series([
             (cb) =>
                 @_client.path_exists
                     path : path
-                    cb   : (err, x) =>
-                        exists = x
+                    cb   : (err, exists) =>
+                        locals.exists = exists
                         if not exists
                             dbg("file no longer exists")
                             @from_str('')
                         cb(err)
             (cb) =>
-                if exists
+                if locals.exists
                     @_update_if_file_is_read_only(cb)
                 else
                     cb()
             (cb) =>
-                if not exists
+                if not locals.exists
                     cb()
                     return
                 @_client.path_read
@@ -1650,7 +1671,8 @@ class SyncDoc extends EventEmitter
                             dbg("failed -- #{err}")
                             cb(err)
                         else
-                            dbg("got it -- length=#{data?.length}")
+                            locals.size = data?.length ? 0
+                            dbg("got it -- length=#{locals.size}")
                             @from_str(data)
                             # we also know that this is the version on disk, so we update the hash
                             @_set_save(state:'done', error:false, hash:misc.hash_string(data))
@@ -1660,7 +1682,7 @@ class SyncDoc extends EventEmitter
                 @_save(cb)
         ], (err) =>
             @_load_from_disk_lock = false
-            cb?(err)
+            cb?(err, locals.size)
         )
 
     _set_save: (x) =>
