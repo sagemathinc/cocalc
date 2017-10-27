@@ -2108,7 +2108,7 @@ class Terminal extends FileEditor
                         content    : session.session_uuid
                         cb         : cb
 
-                    redux.getProjectActions(@project_id).log_opened_time(@filename)
+                    redux.getProjectActions(@project_id)?.log_opened_time(@filename)
 
         path = misc.path_split(@filename).head
         mesg.params  = {command:'bash', rows:@opts.rows, cols:@opts.cols, path:path, filename:@filename}
