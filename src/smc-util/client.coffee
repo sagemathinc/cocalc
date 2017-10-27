@@ -1756,7 +1756,8 @@ class exports.Connection extends EventEmitter
             cb      : undefined
         if opts.options? and not misc.is_array(opts.options)
             throw Error("options must be an array")
-        #console.log("query=#{misc.to_json(opts.query)}")
+        #@__query_id ?= 0; @__query_id += 1; id = @__query_id
+        #console.log("#{(new Date()).toISOString()} -- #{id}: query=#{misc.to_json(opts.query)}")
         err = validate_client_query(opts.query, @account_id)
         if err
             opts.cb?(err)
@@ -1770,7 +1771,9 @@ class exports.Connection extends EventEmitter
             message     : mesg
             error_event : true
             timeout     : opts.timeout
-            cb          : opts.cb
+            cb          : (args...) ->
+                #console.log("#{(new Date()).toISOString()} -- #{id}: query_resp=#{misc.to_json(args)}")
+                opts.cb?(args...)
 
     query_cancel: (opts) =>
         opts = defaults opts,
