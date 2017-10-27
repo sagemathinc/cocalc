@@ -493,6 +493,9 @@ class Kernel extends EventEmitter
                 @_call(opts)
 
     _call: (opts) =>
+        if not @_channels?
+            opts.cb('not running (no channels defined)')
+            return
         message =
             header:
                 msg_id   : misc.uuid()
