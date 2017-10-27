@@ -423,6 +423,15 @@ TerminalModeDisplay = rclass
             </Col>
         </Row>
 
+FirstSteps = rclass
+    displayName : 'ProjectFiles-FirstSteps'
+
+    propTypes :
+        actions       : rtypes.object.isRequired
+
+    render: ->
+        <div>First Steps</div>
+
 NoFiles = rclass
     propTypes :
         actions       : rtypes.object.isRequired
@@ -638,6 +647,16 @@ FileListing = rclass
                 create_folder = {@props.create_folder}
                 create_file   = {@props.create_file} />
 
+    render_first_steps: ->
+        return if @props.listing.length > 3
+        return if @props.file_search[0] is TERM_MODE_CHAR
+        return if @props.current_path == ''
+        return if @props.public_view
+
+        <FirstSteps
+            actions       = {@props.actions}
+            />
+
     render_terminal_mode: ->
         if @props.file_search[0] == TERM_MODE_CHAR
             <TerminalModeDisplay/>
@@ -652,6 +671,7 @@ FileListing = rclass
                 /> if @props.listing.length > 0}
             {@render_rows()}
             {@render_no_files()}
+            {@render_first_steps()}
         </Col>
 
 # One segment of the directory links at the top of the files listing.
