@@ -101,10 +101,13 @@ exports.init_express_http_server = (opts) ->
         utm = {}
         for k, v of req.query
             continue if not misc.startswith(k, 'utm_')
-            k = k[4..]
-            utm[k] = v if k in misc.utm_keys
+            # also intentionally limit the length of key and value
+            k = k[4...50]
+            utm[k] = v[...50] if k in misc.utm_keys
         if Object.keys(utm).length
-            res.cookie(misc.utm_cookie_name, misc.to_json(utm), httpOnly: false)
+            {base_url} = require('./base-url')
+            cookie_name = base_url() + misc.utm_cookie_name
+            res.cookie(cookie_name, misc.to_json(utm), httpOnly: false)
             res.locals.utm = utm
         #winston.debug("UTM: #{misc.to_json(utm)}")
         next()
@@ -124,7 +127,6 @@ exports.init_express_http_server = (opts) ->
         res.header('Cache-Control', 'private, no-cache, must-revalidate')
         res.write('''
                   User-agent: *
-                  Allow: /projects/487587b1-8b24-401a-92d9-a9b930edd53d/
                   Disallow: /projects/*
                   Disallow: /*/raw/
                   Disallow: /*/port/

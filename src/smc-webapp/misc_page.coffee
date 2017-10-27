@@ -1884,10 +1884,11 @@ exports.get_query_param = (p) ->
 # get eventually available information form the utm cookie
 # delete it afterwards
 exports.get_utm = ->
-    c = exports.get_cookie(misc.utm_cookie_name)
+    cookie_name = exports.APP_BASE_URL + misc.utm_cookie_name
+    c = exports.get_cookie(cookie_name)
     return undefined if not c
     try
         data = misc.from_json(window.decodeURIComponent(c))
         if DEBUG then console.log("get_utm cookie data", data)
-        exports.delete_cookie(misc.utm_cookie_name)
+        exports.delete_cookie(cookie_name)
         return data
