@@ -48,6 +48,8 @@ markdown_post_hook = (elt) ->
         return
 
 exports.CellInput = rclass
+    displayName : 'CellInput'
+
     propTypes:
         actions          : rtypes.object   # not defined = read only
         cm_options       : rtypes.immutable.Map.isRequired

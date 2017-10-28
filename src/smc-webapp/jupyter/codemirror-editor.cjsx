@@ -23,6 +23,8 @@ FOCUSED_STYLE =
 
 
 exports.CodeMirrorEditor = rclass
+    displayName : 'CodeMirrorEditor'
+
     propTypes :
         actions          : rtypes.object
         id               : rtypes.string.isRequired
