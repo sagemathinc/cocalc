@@ -5,9 +5,19 @@ For interactive testing:
 
 $ source smc-env
 $ coffee
-coffee> j = require('./smc-project/jupyter/jupyter')
-coffee> k = j.kernel(name:'python3', path:'x.ipynb')
-coffee> k.execute_code(all:true, cb:((x) -> console.log(JSON.stringify(x))), code:'2+3')
+j = require('./smc-project/jupyter/jupyter')
+k = j.kernel(name:'python3', path:'x.ipynb')
+k.execute_code(all:true, cb:((x) -> console.log(JSON.stringify(x))), code:'2+3')
+
+Interactive testing at the command prompt involving stdin:
+
+echo=(content, cb) -> cb(undefined, '389'+content.prompt)
+k.execute_code(all:true, stdin:echo, cb:((x) -> console.log(JSON.stringify(x))), code:'input("a")')
+
+k.execute_code(all:true, stdin:echo, cb:((x) -> console.log(JSON.stringify(x))), code:'[input("-"+str(i)) for i in range(100)]')
+
+echo=(content, cb) -> setTimeout((->cb(undefined, '389'+content.prompt)), 1000)
+
 ###
 
 {EventEmitter} = require('events')
@@ -379,22 +389,26 @@ class Kernel extends EventEmitter
 
         if opts.stdin?
             g = (mesg) =>
-                dbg("got STDIN message -- #{JSON.stringify(mesg)}")
+                dbg("STDIN kernel --> server: #{JSON.stringify(mesg)}")
                 if mesg.parent_header.msg_id != message.header.msg_id
+                    dbg("STDIN msg_id mismatch: #{mesg.parent_header.msg_id}!=#{message.header.msg_id}")
                     return
 
                 opts.stdin mesg.content, (err, response) =>
+                    dbg("STDIN client --> server #{err}, #{JSON.stringify(response)}")
                     if err
                         response = "ERROR -- #{err}"
                     m =
+                        parent_header : message.header
                         header :
-                            msg_id   : message.header.msg_id
+                            msg_id   : misc.uuid() # message.header.msg_id
                             username : ''
                             session  : ''
                             msg_type : 'input_reply'
-                            version  : '5.0'
+                            version  : '5.2'
                         content :
                             value: response
+                    dbg("STDIN server --> kernel: #{JSON.stringify(m)}")
                     @_channels.stdin.next(m)
 
             @on('stdin', g)

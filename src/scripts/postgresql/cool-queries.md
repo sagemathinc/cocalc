@@ -2,7 +2,7 @@ Check on our SLO, namely number of projects that took 30s or more to start among
 
     select count(*) from project_log where event#>>'{event}'='start_project' and time >= now() - interval '1 day';
 
-    select * from (select now()-time as age, project_id,(event#>>'{time}')::INTEGER as t from project_log where event#>>'{event}'='start_project' and time >= now() - interval '1 hour' order by time desc) as foo where t > 20000 order by age;
+    select * from (select now()-time as age, project_id,(event#>>'{time}')::INTEGER as t from project_log where event#>>'{event}'='start_project' and time >= now() - interval '1 hour' and time <= now() order by time desc) as foo where t > 20000 order by age;
 
 How log files are taking to open, as perceived by the user:
 
