@@ -168,7 +168,7 @@ exports.CodeMirrorEditor = rclass
             return
         cur = @cm.getCursor()
         if cur?.line == @cm.firstLine() and cur?.ch == 0
-            @adjacent_cell(-1)
+            @adjacent_cell(-1, -1)
         else
             CodeMirror.commands.goLineUp(@cm)
 
@@ -178,7 +178,7 @@ exports.CodeMirrorEditor = rclass
         cur = @cm.getCursor()
         n = @cm.lastLine()
         if cur?.line == n and cur?.ch == @cm.getLine(n)?.length
-            @adjacent_cell(0)  # the down arrow goes to the general key handler instead
+            @adjacent_cell(0, 1)
         else
             CodeMirror.commands.goLineDown(@cm)
 
@@ -197,18 +197,13 @@ exports.CodeMirrorEditor = rclass
         cur = @cm.getCursor()
         n = @cm.lastLine()
         if cur?.line == n and cur?.ch == @cm.getLine(n)?.length
-            @adjacent_cell(0, 1)  # the down arrow goes to the general key handler instead
+            @adjacent_cell(0, 1)
         else
             CodeMirror.commands.goPageDown(@cm)
 
     adjacent_cell: (y, delta) ->
-        @props.actions.set_mode('escape')
-        finish = =>
-            if delta?
-                @props.actions.move_cursor(delta)
-            @props.actions.set_mode('edit')
-            @props.actions.set_cursor(@props.actions.store.get('cur_id'), {x:0, y:y})
-        setTimeout(finish, 0)
+        @props.actions.move_cursor(delta)
+        @props.actions.set_cursor(@props.actions.store.get('cur_id'), {x:0, y:y})
 
     tab_nothing_selected: ->
         if not @cm?
