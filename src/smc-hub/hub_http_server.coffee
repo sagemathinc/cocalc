@@ -99,6 +99,19 @@ exports.init_express_http_server = (opts) ->
             res.setHeader('Cache-Control', "public, max-age='#{timeout}'")
             res.setHeader('Expires', new Date(Date.now() + timeout).toUTCString());
 
+    # robots.txt: disable indexing for published subdirectories, in particular to avoid a lot of 500/404 errors
+    router.use '/robots.txt', (req, res) ->
+        res.header("Content-Type", "text/plain")
+        res.header('Cache-Control', 'private, no-cache, must-revalidate')
+        res.write('''
+                  User-agent: *
+                  Allow: /projects/487587b1-8b24-401a-92d9-a9b930edd53d/
+                  Disallow: /projects/*
+                  Disallow: /*/raw/
+                  Disallow: /*/port/
+                  ''')
+        res.end()
+
     # The /static content
     router.use '/static',
         express.static(STATIC_PATH, setHeaders: cacheLongTerm)

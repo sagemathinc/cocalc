@@ -385,7 +385,6 @@ SupportInfo = rclass
                        Otherwise, please fill out this form.
                    </p>
         <div>
-            {what}
             <ul>
                 <li>
                     <b>Looking for documentation and help?</b> Go to
@@ -396,17 +395,30 @@ SupportInfo = rclass
                     "Sign out..." button in account settings.
                 </li>
                 <li>
-                    <b>Requesting that we install software?</b> Include a complete example
+                    <a target="_blank" href="https://github.com/sagemathinc/cocalc/wiki/MySubscriptionDoesNotWork">You bought a subscription but it does not work...</a>
+                </li>
+                <li>
+                    <a target="_blank" href="https://github.com/sagemathinc/cocalc/wiki/DeleteProject">All your files seem gone or you deleted your project...</a>
+                </li>
+                <li>
+                    <a target="_blank" href="https://github.com/sagemathinc/cocalc/wiki/SageWorksheetWontRun">My Sage worksheet or Jupyter notebook is very slow or will not run...</a>
+                </li>
+                <li>
+                    <a target="_blank" href="https://github.com/sagemathinc/cocalc/wiki/SageQuestion">I have a question about how to use Sage...</a>
+                </li>
+                <li>
+                    <b>Requesting that we install software?</b> Fill out the form below and
+                    include a complete example
                     that we can easily use to verify that we properly installed the software.
                 </li>
                 <li>
-                    <a target="_blank" href="https://github.com/sagemathinc/cocalc/wiki/DeleteProject">All your files seem gone or you deleted your project...?</a>
+                    <b>Hit a bug or just need to talk with us?</b>  Fill out the form below...
                 </li>
-                <li>
-                    <a target="_blank" href="https://github.com/sagemathinc/cocalc/wiki/SageWorksheetWontRun">Sage will not run...?</a>
-                </li>
-
             </ul>
+
+            <h2>Create a Support Ticket</h2>
+
+            {what}
             <p>
                 After submitting a ticket, you{"'"}ll receive a link, which you should save until
                 you receive a confirmation email.
@@ -485,7 +497,7 @@ SupportForm = rclass
             </Alert>
         else
             <Alert bsStyle='info'>
-                Please make sure the email address is correct.
+                Please make sure your email address is correct.
             </Alert>
 
         <form>
@@ -527,9 +539,6 @@ SupportForm = rclass
                     value       = {@props.body}
                     onChange    = {@data_change} />
             </FormGroup>
-            <div style={margin:'0px 10px'}>
-                <b>Again: include a link (the URL in your browser) to absolutely anything relevant to your question.</b>
-            </div>
         </form>
 
 
@@ -583,7 +592,7 @@ exports.Support = rclass
 
         <Modal bsSize={"large"} show={@props.show} onHide={@close} animation={false}>
             <Modal.Header closeButton>
-                <Modal.Title>Support Ticket</Modal.Title>
+                <Modal.Title><Icon name='medkit' /> Help</Modal.Title>
             </Modal.Header>
 
             <Modal.Body>

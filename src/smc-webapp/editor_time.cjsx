@@ -88,7 +88,7 @@ Stopwatch = rclass
         label        : rtypes.string.isRequired  # a text label
         total        : rtypes.number.isRequired  # total time accumulated before entering current state
         state        : rtypes.string.isRequired  # 'paused' or 'running' or 'stopped'
-        time         : rtypes.object.isRequired  # when entered this state
+        time         : rtypes.number.isRequired  # when entered this state
         click_button : rtypes.func.isRequired
 
     mixins: [SetIntervalMixin]

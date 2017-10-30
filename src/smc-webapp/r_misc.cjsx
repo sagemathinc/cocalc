@@ -980,7 +980,7 @@ exports.PathLink = rclass
             @render_link(name)
 
 Globalize = require('globalize')
-globalizeLocalizer = require('react-widgets/lib/localizers/globalize')
+globalizeLocalizer = require('react-widgets-globalize')
 globalizeLocalizer(Globalize)
 
 DateTimePicker = require('react-widgets/lib/DateTimePicker')

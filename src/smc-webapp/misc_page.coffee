@@ -1762,6 +1762,28 @@ exports.analytics_pageview = (args...) ->
 exports.analytics_event = (args...) ->
     exports.analytics('event', args...)
 
+# conversion tracking (commercial only)
+exports.track_conversion = (type, amount) ->
+    return if not require('./customize').commercial
+    return if DEBUG
+
+    theme = require('smc-util/theme')
+    if type == 'create_account'
+        tag = theme.sign_up_id
+        amount = 1 # that's not true
+    else if type == 'subscription'
+        tag = theme.conversion_id
+    else
+        console.warn("unknown conversion type: #{type}")
+        return
+
+    window.gtag?('event', 'conversion',
+        send_to     : "#{theme.gtag_id}/#{tag}"
+        value       : amount
+        currency    : 'USD'
+    )
+
+
 # These are used to disable pointer events for iframes when dragging something that may move over an iframe.
 # See http://stackoverflow.com/questions/3627217/jquery-draggable-and-resizeable-over-iframes-solution
 exports.drag_start_iframe_disable = ->

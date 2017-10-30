@@ -1037,6 +1037,7 @@ Terminal.prototype.refresh = function(start, end) {
 };
 
 Terminal.prototype.cursorBlink = function() {
+  return;  /* we use css for this */
   if (Terminal.focus !== this) return;
   this.cursorState ^= 1;
   this.refresh(this.y, this.y);
@@ -1053,6 +1054,7 @@ Terminal.prototype.showCursor = function() {
 };
 
 Terminal.prototype.startBlink = function() {
+  return;  /* we use css for this */
   if (!Terminal.cursorBlink) return;
   var self = this;
   this._blinker = function() {
@@ -1062,6 +1064,7 @@ Terminal.prototype.startBlink = function() {
 };
 
 Terminal.prototype.refreshBlink = function() {
+  return;  /* we use css for this */
   if (!Terminal.cursorBlink) return;
   clearInterval(this._blink);
   this._blink = setInterval(this._blinker, 500);

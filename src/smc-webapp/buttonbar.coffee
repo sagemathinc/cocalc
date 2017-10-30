@@ -894,6 +894,8 @@ exports.commands =
             url: 'http://doc.sagemath.org/html/en/reference/index.html'
         sagemathkeyboardshortcuts:
             url: 'https://github.com/sagemathinc/cocalc/wiki/Keyboard-Shortcuts'
+        sagesyntaxerrors:
+            url: 'https://github.com/sagemathinc/cocalc/wiki/MathematicalSyntaxErrors'
         help:
             wrap:
                 left  : "help("
@@ -1563,20 +1565,21 @@ initialize_sage_python_r_toolbar = () ->
             ["Python", "#mode_python"],
             ["R", "#mode_r"],
             ["Shell", "#mode_sh"],
-
         ]]
     add_menu(system_bar, mode_list)
 
     help_list = ["<i class='fa fa-question-circle'></i> Help", "Sage Worksheet Help",
         [
-            ["General help", "#help"],
-            ["Mode commands", "#modes"],
-            ["Jupyter kernels", "#jupyterkernels"],
-            ["SageMath Documentation"],
+            ["SageMath Help"],
             ["Overview", "#sagemathdoc"],
             ["Tutorial", "#sagemathtutorial"],
             ["Reference", "#sagemathreference"],
-            ["Keyboard Shortcuts", "#sagemathkeyboardshortcuts"]
+            ["Keyboard Shortcuts", "#sagemathkeyboardshortcuts"],
+            ["Common Syntax Problems", "#sagesyntaxerrors"],
+            ["Sage Worksheet Commands"],
+            ["General help", "#help"],
+            ["Mode commands", "#modes"],
+            ["Jupyter kernels", "#jupyterkernels"],
         ]]
     add_menu(system_bar, help_list)
     ## MAYBE ADD THESE in another menu:

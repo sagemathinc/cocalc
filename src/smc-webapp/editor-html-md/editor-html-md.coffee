@@ -83,8 +83,14 @@ class exports.HTML_MD_Editor extends editor.FileEditor
 
         @preview = @element.find(".webapp-editor-html-md-preview")
         @preview_content = @preview.find(".webapp-editor-html-md-preview-content")
-        @preview.on 'scroll', =>
+
+        save_scroll_pos =  =>
             @preview_scroll_position = @preview.scrollTop()
+        # DO not throttle, since the _show() below, which restores position, can get
+        # called at any time and often, e.g., right when scrolling and if we throttle,
+        # then the scroll position jumps back.
+        #@preview.on('scroll', _.throttle(save_scroll_pos, 1000))
+        @preview.on('scroll', save_scroll_pos)
 
         # initialize the codemirror editor
         @source_editor = editor.codemirror_session_editor(@project_id, @filename, @opts)
@@ -584,6 +590,7 @@ class exports.HTML_MD_Editor extends editor.FileEditor
         @source_editor._set(content)
 
     _show: =>
+        @preview?.scrollTop(@preview_scroll_position)
         if $.browser.safari  # safari flex bug: https://github.com/philipwalton/flexbugs/issues/132
             @element.make_height_defined()
         return

@@ -105,6 +105,12 @@ class exports.JupyterActions extends Actions
 
         @syncdb.on('change', @_syncdb_change)
 
+        @syncdb.once 'change', =>
+            # Important -- this also gets run on the backend, where
+            # @redux.getProjectActions(project_id) is maybe undefined...
+            @redux.getProjectActions(project_id)?.log_opened_time(path)
+
+
         if not client.is_project() # project doesn't care about cursors
             @syncdb.on('cursor_activity', @_syncdb_cursor_activity)
 
@@ -340,6 +346,8 @@ class exports.JupyterActions extends Actions
 
     # Set which cell is currently the cursor.
     set_cur_id: (id) =>
+        if @store.getIn(['cells', id, 'cell_type']) == 'markdown' and @store.get('mode') == 'edit'
+            @set_md_cell_editing(id) 
         @setState(cur_id : id)
 
     set_cur_id_from_index: (i) =>
@@ -1518,7 +1526,7 @@ class exports.JupyterActions extends Actions
         @confirm_dialog
             icon    : 'warning'
             title   : 'Trust this Notebook?'
-            body    : 'A trusted Jupyter notebook may execute hidden malicious Javascript code when you open it. Selecting trust below, or evaluating any cell, will immediately execute any Javascript code in this notebook now and henceforth. (NOTE: SageMathCloud does NOT implement the official Jupyter security model for trusted notebooks; in particular, we assume that you do trust collaborators on your SageMathCloud projects.)'
+            body    : 'A trusted Jupyter notebook may execute hidden malicious Javascript code when you open it. Selecting trust below, or evaluating any cell, will immediately execute any Javascript code in this notebook now and henceforth. (NOTE: CoCalc does NOT implement the official Jupyter security model for trusted notebooks; in particular, we assume that you do trust collaborators on your CoCalc projects.)'
             choices : [{title:'Trust', style:'danger', default:true}, {title:'Cancel'}]
             cb      : (choice) =>
                 if choice == 'Trust'
@@ -1843,8 +1851,8 @@ class exports.JupyterActions extends Actions
     switch_to_classical_notebook: =>
         @confirm_dialog
             title   : 'Switch to the Classical Notebook?'
-            body    : 'If you are having trouble with the new Jupyter Notebook, you can switch back to the Classical Jupyter Notebook.   You can always switch back later (and please let us know what is missing so we can add it!).\n\n---\n\n**WARNING:** Multiple people simultaneously editing a notebook, with some using classical and some using the new mode, will NOT work!  Switching back and forth will likely also cause problems (use TimeTravel to recover).  *Please avoid using classical notebook mode if you possibly can!*'
-            choices : [{title:'Switch to Classical Notebook', style:'warning'}, {title:'Continue using new notebook', default:true}]
+            body    : 'If you are having trouble with the modern CoCalc Jupyter Notebook, you can switch to the Classical Jupyter Notebook.   You can always switch back to modern easily later from Jupyter or account settings (and please let us know what is missing so we can add it!).\n\n---\n\n**WARNING:** Multiple people simultaneously editing a notebook, with some using classical and some using the new mode, will NOT work!  Switching back and forth will likely also cause problems (use TimeTravel to recover).  *Please avoid using classical notebook mode if you possibly can!*\n\n[More info and the latest status...](https://github.com/sagemathinc/cocalc/wiki/JupyterClassicModern)'
+            choices : [{title:'Switch to Classical Notebook', style:'warning'}, {title:'Continue using Modern Notebook', default:true}]
             cb      : (choice) =>
                 console.log 'choice', choice
                 if choice != 'Switch to Classical Notebook'

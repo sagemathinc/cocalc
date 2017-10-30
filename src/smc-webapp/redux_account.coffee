@@ -65,9 +65,10 @@ class AccountActions extends Actions
                     when "account_creation_failed"
                         @setState('sign_up_error': mesg.reason)
                     when "signed_in"
-                        {analytics_event} = require('./misc_page')
-                        analytics_event('account', 'create_account') # user created an account
                         redux.getActions('page').set_active_tab('projects')
+                        {analytics_event, track_conversion} = require('./misc_page')
+                        analytics_event('account', 'create_account') # user created an account
+                        track_conversion('create_account')
                     else
                         # should never ever happen
                         # alert_message(type:"error", message: "The server responded with invalid message to account creation request: #{JSON.stringify(mesg)}")
@@ -334,10 +335,4 @@ account_store.on 'change', ->
         last_set_standby_timeout_m = x
         webapp_client.set_standby_timeout_m(x)
 
-account_store.on 'change', ->
-    x = account_store.getIn(['editor_settings', 'jupyter_classic'])
-    if x?
-        if x
-            require('./editor').switch_to_ipynb_classic()
-        else
-            require('./jupyter/register').register()
+

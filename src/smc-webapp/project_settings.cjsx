@@ -32,7 +32,7 @@ misc                 = require('smc-util/misc')
 
 {Alert, Panel, Col, Row, Button, ButtonGroup, ButtonToolbar, FormControl, FormGroup, Well, Checkbox} = require('react-bootstrap')
 {ErrorDisplay, MessageDisplay, Icon, LabeledRow, Loading, MarkdownInput, ProjectState, SearchInput, TextInput,
- NumberInput, DeletedProjectWarning, NonMemberProjectWarning, NoNetworkProjectWarning, Space, Tip, UPGRADE_ERROR_STYLE, UpgradeAdjustor} = require('./r_misc')
+ NumberInput, DeletedProjectWarning, NonMemberProjectWarning, NoNetworkProjectWarning, Space, TimeAgo, Tip, UPGRADE_ERROR_STYLE, UpgradeAdjustor} = require('./r_misc')
 {React, ReactDOM, Actions, Store, Table, redux, rtypes, rclass, Redux}  = require('./smc-react')
 {User} = require('./users')
 
@@ -322,7 +322,7 @@ QuotaConsole = rclass
                 view : <span><b>{r(total_quotas['memory_request'] * quota_params['memory_request'].display_factor)} MB</b> dedicated RAM</span>
                 edit : <span><b>{@render_input('memory_request')} MB</b> dedicated RAM memory</span>
             cores       :
-                view : <b>{r(total_quotas['cores'] * quota_params['cores'].display_factor)} {misc.plural(total_quotas['cores'] * quota_params['cores'].display_factor, 'core')}</b>
+                view : <span><b>{r(total_quotas['cores'] * quota_params['cores'].display_factor)} {misc.plural(total_quotas['cores'] * quota_params['cores'].display_factor, 'core')}</b></span>
                 edit : <b>{@render_input('cores')} cores</b>
             cpu_shares  :
                 view : <b>{r(total_quotas['cpu_shares'] * quota_params['cpu_shares'].display_factor)} {misc.plural(total_quotas['cpu_shares'] * quota_params['cpu_shares'].display_factor, 'core')}</b>
@@ -608,6 +608,7 @@ JupyterServerPanel = rclass
                 </b>
             </span>
         </ProjectSettingsPanel>
+
 ProjectControlPanel = rclass
     displayName : 'ProjectSettings-ProjectControlPanel'
 
@@ -616,8 +617,8 @@ ProjectControlPanel = rclass
         show_ssh : false
 
     propTypes :
-        project   : rtypes.object.isRequired
-        allow_ssh : rtypes.bool
+        project           : rtypes.object.isRequired
+        allow_ssh         : rtypes.bool
 
     open_authorized_keys: (e) ->
         e.preventDefault()
@@ -658,6 +659,15 @@ ProjectControlPanel = rclass
     render_state: ->
         <span style={fontSize : '12pt', color: '#666'}>
             <ProjectState show_desc={true} state={@props.project.get('state')?.get('state')} />
+        </span>
+
+    render_idle_timeout: ->
+        # get_idle_timeout_horizon depends on the project object, so this will update properly....
+        date = redux.getStore('projects').get_idle_timeout_horizon(@props.project.get('project_id'))
+        if not date  # e.g., viewing as admin...
+            return
+        return <span style={color:'#666'}>
+            <Icon name='hourglass-half' /> <b>About <TimeAgo date={date}/></b> project will stop unless somebody actively edits.
         </span>
 
     restart_project: ->
@@ -705,11 +715,53 @@ ProjectControlPanel = rclass
                 <pre>{host}.sagemath.com</pre>
             </LabeledRow>
 
+    render_idle_timeout_row: ->
+        if @props.project.getIn(['state', 'state']) != 'running'
+            return
+        <LabeledRow key='idle-timeout' label='Idle Timeout' style={@rowstyle()}>
+            {@render_idle_timeout()}
+        </LabeledRow>
+
+    render_uptime: ->
+        # start_ts is e.g. 1508576664416
+        start_ts = @props.project.getIn(['status', 'start_ts'])
+        return if not start_ts?
+        return if @props.project.getIn(['state', 'state']) != 'running'
+        delta_s = (misc.server_time().getTime() - start_ts) / 1000
+        uptime_str = misc.seconds2hms(delta_s, true)
+        <LabeledRow key='uptime' label='Uptime' style={@rowstyle()}>
+            <span style={color:'#666'}>
+                 <Icon name='clock-o' /> <b>{uptime_str}</b> total runtime of this session
+            </span>
+        </LabeledRow>
+
+    render_cpu_usage: ->
+        cpu = @props.project.getIn(['status', 'cpu', 'usage'])
+        return if not cpu?
+        return if @props.project.getIn(['state', 'state']) != 'running'
+        cpu_str = misc.seconds2hms(cpu, true)
+        <LabeledRow key='cpu-usage' label='CPU Usage' style={@rowstyle(true)}>
+            <span style={color:'#666'}>
+                <Icon name='calculator' /> <b>{cpu_str}</b> of CPU time used during this session
+            </span>
+        </LabeledRow>
+
+    rowstyle: (delim) ->
+        style =
+            marginBottom:  '5px'
+            paddingBottom: '10px'
+        if delim
+            style.borderBottom = '1px solid #ccc'
+        return style
+
     render: ->
         <ProjectSettingsPanel title='Project control' icon='gears'>
-            <LabeledRow key='state' label='State'>
+            <LabeledRow key='state' label='State' style={@rowstyle(true)}>
                 {@render_state()}
             </LabeledRow>
+            {@render_idle_timeout_row()}
+            {@render_uptime()}
+            {@render_cpu_usage()}
             <LabeledRow key='action' label='Actions'>
                 {@render_action_buttons()}
             </LabeledRow>

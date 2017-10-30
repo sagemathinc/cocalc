@@ -238,6 +238,7 @@ schema.accounts =
                     bindings                  : "standard"
                     theme                     : "default"
                     undo_depth                : 300
+                    jupyter_classic           : false
                 other_settings  :
                     confirm_close     : false
                     mask_files        : true
