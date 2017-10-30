@@ -145,6 +145,13 @@ class BillingActions extends Actions
             @setState(error: '')
             @_action('create_subscription', 'Create a subscription', plan : plan)
             last_subscription_attempt = misc.server_time()
+            @track_subscription(plan)
+
+    # conversion tracking (commercial only)
+    track_subscription: (plan) =>
+        usd = 7.00 # TODO derive this from the plan
+        {track_conversion} = require('./misc_page')
+        track_conversion('subscription', usd)
 
     # Cancel all subscriptions, remove credit cards, etc. -- this is not a normal action, and is used
     # only when deleting an account.  We allow it a callback.
@@ -1149,8 +1156,7 @@ exports.ExplainPlan = ExplainPlan = rclass
                 <p>
                 We offer course packages to support teaching using <SiteName/>.
                 They start right after purchase and last for the indicated period and do <b>not auto-renew</b>.
-                Following <a href="https://tutorial.cocalc.com/" target="_blank">this
-                guide</a>, create a course file.
+                Following <a href="https://tutorial.cocalc.com/" target="_blank">this guide</a>, create a course file.
                 Each time you add a student to your course, a project will be automatically created for that student.
                 You can create and distribute assignments,
                 students work on assignments inside their project (where you can see their progress
@@ -1167,9 +1173,9 @@ exports.ExplainPlan = ExplainPlan = rclass
 
                 </p>
 
-                <h4>Your or your institution pays</h4>
-                You or your institution may pay for one of the course plans.  You then use your plan to upgrade
-                all projects in the course in the settings tab of the course file.
+                <h4>You or your institution pays</h4>
+                You or your institution may pay for one of the course plans.
+                You then use your plan to upgrade all projects in the course in the settings tab of the course file.
 
                 <h4>Students pay</h4>
                 In the settings tab of your course, you require that all students

@@ -558,6 +558,7 @@ exports.SearchInput = rclass
     displayName : 'Misc-SearchInput'
 
     propTypes :
+        style           : rtypes.object
         autoFocus       : rtypes.bool
         autoSelect      : rtypes.bool
         placeholder     : rtypes.string
@@ -641,7 +642,7 @@ exports.SearchInput = rclass
         @clear_value()
 
     render: ->
-        <FormGroup>
+        <FormGroup style={@props.style}>
             <InputGroup>
                 <FormControl
                     autoFocus   = {@props.autoFocus}
@@ -979,7 +980,7 @@ exports.PathLink = rclass
             @render_link(name)
 
 Globalize = require('globalize')
-globalizeLocalizer = require('react-widgets/lib/localizers/globalize')
+globalizeLocalizer = require('react-widgets-globalize')
 globalizeLocalizer(Globalize)
 
 DateTimePicker = require('react-widgets/lib/DateTimePicker')

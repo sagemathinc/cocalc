@@ -20,7 +20,7 @@ exports.DOMAIN_NAME          = 'https://' + exports.DNS
 exports.DISCUSSION_GROUP     = 'https://groups.google.com/forum/#!forum/cocalc'
 exports.WIKI_URL             = 'https://github.com/sagemathinc/cocalc/wiki/Portal'
 exports.HELP_EMAIL           = 'help@sagemath.com'
-exports.TWITTER_HANDLE       = 'co_calc'   # without the @
+exports.TWITTER_HANDLE       = 'cocalc_com'   # without the @
 exports.BILLING_EMAIL        = 'billing@sagemath.com'
 exports.BILLING_ADDRESS      = '''
                                1212 East Barclay Court
@@ -34,6 +34,10 @@ exports.COPYRIGHT_AGENT_HTML = '''
                                Seattle, WA 98122<br>
                                <a href='mailto:copyright@sagemath.com'>copyright@sagemath.com</a>
                                '''
+# for conversion tracking (commercial only)
+exports.gtag_id              = 'AW-943259268'
+exports.sign_up_id           = '44ZfCImosncQhP3jwQM'
+exports.conversion_id        = 'zttYCNDZsXcQhP3jwQM'
 
 # this is used in smc-hub/email.coffee and hub.coffee to specify the template and ASM groups for sendgrid
 exports.SENDGRID_TEMPLATE_ID    = '0375d02c-945f-4415-a611-7dc3411e2a78'

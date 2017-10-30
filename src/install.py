@@ -74,6 +74,11 @@ def install_webapp(*args):
         cmd("cd examples && make")
         for path in ['.', 'smc-util', 'smc-util-node', 'smc-webapp', 'smc-webapp/jupyter']:
             cmd("cd %s; npm --loglevel=warn install"%path)
+
+        # In some contexts (e.g., kubernetes) the postinstall hook doesnot work; so we just
+        # run it again here. :-(
+        cmd("cd smc-webapp; node_modules/.bin/babel --presets=env  node_modules/prom-client -d node_modules/prom-client-js")
+
         # react static step must come *before* webpack step
         cmd("update_react_static")
         # update primus - so client has it.

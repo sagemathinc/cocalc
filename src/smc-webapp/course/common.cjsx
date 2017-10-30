@@ -30,7 +30,7 @@ misc = require('smc-util/misc')
 
 {Button, ButtonToolbar, ButtonGroup, FormControl, FormGroup, InputGroup, Row, Col} = require('react-bootstrap')
 
-{ErrorDisplay, Icon, Space, TimeAgo, Tip, SearchInput} = require('../r_misc')
+{ErrorDisplay, Icon, MarkdownInput, Space, TimeAgo, Tip, SearchInput} = require('../r_misc')
 
 immutable = require('immutable')
 
@@ -124,11 +124,17 @@ exports.StudentAssignmentInfo = rclass
         student    : rtypes.oneOfType([rtypes.string,rtypes.object]).isRequired # required string (student_id) or student immutable js object
         assignment : rtypes.oneOfType([rtypes.string,rtypes.object]).isRequired # required string (assignment_id) or assignment immutable js object
         grade      : rtypes.string
+        comments   : rtypes.string
         info       : rtypes.object.isRequired
 
     getInitialState: ->
-        editing_grade : false
-        edited_grade  : ''
+        editing_grade   : false
+        edited_grade    : @props.grade ? ''
+        edited_comments : @props.comments ? ''
+
+    getDefaultProps: ->
+        grade    : ''
+        comments : ''
 
     open: (type, assignment_id, student_id) ->
         @actions(@props.name).open_assignment(type, assignment_id, student_id)
@@ -140,47 +146,74 @@ exports.StudentAssignmentInfo = rclass
         @actions(@props.name).stop_copying_assignment(type, assignment_id, student_id)
 
     save_grade: (e) ->
-        e?.preventDefault()
+        e?.preventDefault?()
         @actions(@props.name).set_grade(@props.assignment, @props.student, @state.edited_grade)
+        @actions(@props.name).set_comments(@props.assignment, @props.student, @state.edited_comments)
         @setState(editing_grade:false)
 
     edit_grade: ->
-        @setState(edited_grade:@props.grade ? '', editing_grade:true)
+        @setState(editing_grade:true)
 
-    render_grade_score: ->
+    render_grade: ->
         if @state.editing_grade
             <form key='grade' onSubmit={@save_grade} style={marginTop:'15px'}>
                 <FormGroup>
-                    <InputGroup>
-                        <FormControl
-                            autoFocus
-                            value       = {@state.edited_grade}
-                            ref         = 'grade_input'
-                            type        = 'text'
-                            placeholder = 'Grade (any text)...'
-                            onChange    = {=>@setState(edited_grade:ReactDOM.findDOMNode(@refs.grade_input).value ? '')}
-                            onBlur      = {@save_grade}
-                            onKeyDown   = {(e)=>if e.keyCode == 27 then @setState(edited_grade:@props.grade, editing_grade:false)}
-                        />
-                        <InputGroup.Button>
-                            <Button bsStyle='success'>Save</Button>
-                        </InputGroup.Button>
-                    </InputGroup>
+                    <FormControl
+                        autoFocus   = {true}
+                        value       = {@state.edited_grade}
+                        ref         = 'grade_input'
+                        type        = 'text'
+                        placeholder = 'Grade (any text)...'
+                        onChange    = {=>@setState(edited_grade:ReactDOM.findDOMNode(@refs.grade_input).value ? '')}
+                        onKeyDown   = {@on_key_down_grade_editor}
+                    />
                 </FormGroup>
             </form>
         else
             if @props.grade
                 <div key='grade' onClick={@edit_grade}>
-                    Grade: {@props.grade}
+                    <strong>Grade</strong>: {@props.grade}<br/>
+                    {<span><strong>Comments</strong>:</span> if @props.comments}
                 </div>
 
-    render_grade: (width) ->
-        bsStyle = if not (@props.grade ? '').trim() then 'primary'
+    render_comments: ->
+        <MarkdownInput
+            autoFocus        = {false}
+            editing          = {@state.editing_grade}
+            hide_edit_button = {true}
+            save_disabled    = {@state.edited_grade == @props.grade and @state.edited_comments == @props.comments}
+            rows             = {5}
+            placeholder      = 'Comments (optional)'
+            default_value    = {@state.edited_comments}
+            on_edit          = {=>@setState(editing_grade:true)}
+            on_change        = {(value)=>@setState(edited_comments:value)}
+            on_save          = {@save_grade}
+            on_cancel        = {=>@setState(editing_grade:false)}
+            rendered_style   = {maxHeight:'4em', overflowY:'auto', padding:'5px', border: '1px solid #888'}
+        />
+
+    on_key_down_grade_editor: (e) ->
+        switch e.keyCode
+            when 27
+                @setState
+                    edited_grade    : @props.grade
+                    edited_comments : @props.comments
+                    editing_grade   : false
+            when 13
+                if e.shiftKey
+                    @save_grade()
+
+
+    render_grade_col: (width) ->
+        bsStyle = if not (@props.grade).trim() then 'primary'
+        text = if (@props.grade).trim() then 'Edit grade' else 'Enter grade'
+
         <Col md={width} key='grade'>
             <Tip title="Enter student's grade" tip="Enter the grade that you assigned to your student on this assignment here.  You can enter anything (it doesn't have to be a number).">
-                <Button key='edit' onClick={@edit_grade} bsStyle={bsStyle}>Enter grade</Button>
+                <Button key='edit' onClick={@edit_grade} bsStyle={bsStyle}>{text}</Button>
             </Tip>
-            {@render_grade_score()}
+            {@render_grade()}
+            {@render_comments()}
         </Col>
 
     render_last_time: (name, time) ->
@@ -198,6 +231,8 @@ exports.StudentAssignmentInfo = rclass
             v.push <Button key="copy_cancel" onClick={=>@setState("#{key}":false);}>
                  Cancel
             </Button>
+            if name.toLowerCase() == 'assign'
+                v.push <div style={margin:'5px'}><a target='_blank' href='https://github.com/sagemathinc/cocalc/wiki/CourseCopy'>What happens when I assign again?</a></div>
             return v
         else
             <Button key="copy" bsStyle='warning' onClick={=>@setState("#{key}":true)}>
@@ -312,7 +347,7 @@ exports.StudentAssignmentInfo = rclass
                     </Col>
                     {@render_peer_assign()  if peer_grade and @props.info.peer_assignment}
                     {@render_peer_collect() if peer_grade and @props.info.peer_collect}
-                    {if show_grade_col then @render_grade(width) else <Col md={width} key='grade'></Col>}
+                    {if show_grade_col then @render_grade_col(width) else <Col md={width} key='grade'></Col>}
                     <Col md={width} key='return_graded'>
                         {@render_last('Return', @props.info.last_return_graded, 'graded', @props.info.last_collect?,
                            "Copy the graded assignment back to your student's project.",
@@ -374,7 +409,11 @@ exports.MultipleAddSearch = MultipleAddSearch = rclass
 
     add_button_clicked: (e) ->
         e.preventDefault()
-        @props.add_selected(@state.selected_items)
+        if @state.selected_items.length == 0
+            first_entry = ReactDOM.findDOMNode(@refs.selector).firstChild.value
+            @props.add_selected([first_entry])
+        else
+            @props.add_selected(@state.selected_items)
         @clear_and_focus_search_input()
 
     change_selection: (e) ->
@@ -408,10 +447,9 @@ exports.MultipleAddSearch = MultipleAddSearch = rclass
             when 0 then "No #{@props.item_name} found"
             when 1 then "Add #{@props.item_name}"
             else switch num_items_selected
-                when 0 then "Select #{@props.item_name} above"
-                when 1 then "Add selected #{@props.item_name}"
+                when 0, 1 then "Add selected #{@props.item_name}"
                 else "Add #{num_items_selected} #{@props.item_name}s"
-        <Button disabled={num_items_selected == 0} onClick={@add_button_clicked}><Icon name="plus" /> {btn_text}</Button>
+        <Button disabled={@props.search_results.size == 0} onClick={@add_button_clicked}><Icon name="plus" /> {btn_text}</Button>
 
     render: ->
         <div>

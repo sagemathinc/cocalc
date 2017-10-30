@@ -751,6 +751,7 @@ EDITOR_SETTINGS_CHECKBOXES =
     show_trailing_whitespace  : 'show spaces at ends of lines'
     spaces_instead_of_tabs    : 'send 4 spaces when the tab key is pressed'
     extra_button_bar          : 'more editing functions (mainly in Sage worksheets)'
+    jupyter_classic           : <span>use classical Jupyter notebook <a href='https://github.com/sagemathinc/cocalc/wiki/JupyterClassicModern' target='_blank'>(DANGER: this can cause trouble...)</a></span>
 
 EditorSettingsCheckboxes = rclass
     displayName : 'Account-EditorSettingsCheckboxes'
@@ -760,7 +761,10 @@ EditorSettingsCheckboxes = rclass
         on_change       : rtypes.func.isRequired
 
     label_checkbox: (name, desc) ->
-        return misc.capitalize(name.replace(/_/g,' ').replace(/-/g,' ').replace('xml','XML')) + ': ' + desc
+        <span>
+            {misc.capitalize(name.replace(/_/g,' ').replace(/-/g,' ').replace('xml','XML')) + ': '}
+            {desc}
+        </span>
 
     render_checkbox: (name, desc) ->
         <Checkbox checked  = {@props.editor_settings[name]}
@@ -1021,13 +1025,6 @@ OtherSettings = rclass
                 onChange = {(e)=>@on_change('mask_files', e.target.checked)}
             >
                 Mask files: grey-out files in the files viewer that you probably do not want to open
-            </Checkbox>
-            <Checkbox
-                checked  = {@props.is_global_info_visible()}
-                ref      = 'show_global_info2'
-                onChange = {(e)=>@on_change('show_global_info2', if e.target.checked then null else webapp_client.server_time())}
-            >
-                Show global information: if enabled, an orange information banner is visible on top
             </Checkbox>
             <LabeledRow label='Default file sort'>
                 <SelectorInput

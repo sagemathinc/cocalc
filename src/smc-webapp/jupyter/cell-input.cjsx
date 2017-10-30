@@ -48,6 +48,8 @@ markdown_post_hook = (elt) ->
         return
 
 exports.CellInput = rclass
+    displayName : 'CellInput'
+
     propTypes:
         actions          : rtypes.object   # not defined = read only
         cm_options       : rtypes.immutable.Map.isRequired
@@ -116,7 +118,9 @@ exports.CellInput = rclass
         return options
 
     render_codemirror: (type) ->
-        if @props.actions?
+        if @props.actions? and (@props.is_current or @props.is_focused or @props.cell.get('cursors'))
+            # Not static public view *and* either the cell is focused or has
+            # cursors on it, so we use the full slow editable codemirror rendering.
             <CodeMirror
                 value         = {@props.cell.get('input') ? ''}
                 options       = {@options(type)}
@@ -127,6 +131,7 @@ exports.CellInput = rclass
                 cursors       = {@props.cell.get('cursors')}
             />
         else
+            # Vastly faster renderer.
             <CodeMirrorStatic
                 value         = {@props.cell.get('input') ? ''}
                 options       = {@options(type)}
@@ -197,7 +202,7 @@ exports.CellInput = rclass
     render_time: ->
         cell = @props.cell
         if cell.get('start')?
-            <div style={position:'relative', zIndex: 1, right: 0, width: '100%', paddingLeft:'5px'}, className='pull-right hidden-xs'>
+            <div style={position:'absolute', zIndex: 1, right: '2px', width: '100%', paddingLeft:'5px'}, className='pull-right hidden-xs'>
                 <div style={color:'#999', fontSize:'8pt', position:'absolute', right:'5px', lineHeight: 1.25, top: '1px', textAlign:'right'}>
                     <CellTiming
                         start = {cell.get('start')}
@@ -209,14 +214,13 @@ exports.CellInput = rclass
 
     render: ->
         type = @props.cell.get('cell_type') ? 'code'
-        <div style={display: 'flex', flexDirection: 'row', alignItems: 'stretch'}>
-            {@render_input_prompt(type)}
-            {@render_complete()}
-            <div style={width:'100%'}>
-                {@render_cell_toolbar()}
-                <div>
-                    {@render_time()}
-                    {@render_input_value(type)}
-                </div>
+        <div>
+            {@render_cell_toolbar()}
+            <div style={display: 'flex', flexDirection: 'row', alignItems: 'stretch'}>
+                {@render_input_prompt(type)}
+                {@render_complete()}
+                {@render_input_value(type)}
+                {@render_time()}
             </div>
         </div>
+

@@ -17,14 +17,47 @@ underscore   = require('underscore')
 {PostgreSQL, one_result, all_results, count_result, pg_type} = require('./postgres')
 {quote_field} = require('./postgres-base')
 
+{UserQueryQueue} = require('./postgres-user-query-queue')
+
 {defaults} = misc = require('smc-util/misc')
 required = defaults.required
 
 {PROJECT_UPGRADES, SCHEMA} = require('smc-util/schema')
 
 class exports.PostgreSQL extends PostgreSQL
+    # Cancel all queued up queries by the given client
+    cancel_user_queries: (opts) =>
+        opts = defaults opts,
+            client_id  : required
+        @_user_query_queue?.cancel_user_queries(opts)
 
     user_query: (opts) =>
+        opts = defaults opts,
+            client_id  : undefined  # if given, uses to control number of queries at once by one client.
+            priority   : undefined  # (NOT IMPLEMENTED) priority for this query (an integer [-10,...,19] like in UNIX)
+            account_id : undefined
+            project_id : undefined
+            query      : required
+            options    : []
+            changes    : undefined
+            cb         : undefined
+
+        if not opts.client_id?
+            # No client_id given, so do not use query queue.
+            delete opts.priority
+            delete opts.client_id
+            @_user_query(opts)
+            return
+
+        if not @_user_query_queue?
+            o =
+                do_query   : @_user_query
+                dbg        : @_dbg('user_query_queue')
+            @_user_query_queue ?= new UserQueryQueue(o)
+
+        @_user_query_queue.user_query(opts)
+
+    _user_query: (opts) =>
         opts = defaults opts,
             account_id : undefined
             project_id : undefined
@@ -1173,6 +1206,7 @@ class exports.PostgreSQL extends PostgreSQL
                 pg_changefeed = client_query?.get?.pg_changefeed
                 if not pg_changefeed?
                     cb(); return
+
                 if pg_changefeed == 'projects'
                     pg_changefeed =  (db, account_id) =>
                         where  : (obj) =>
@@ -1196,7 +1230,7 @@ class exports.PostgreSQL extends PostgreSQL
                                 if x.account_id == account_id
                                     feed.delete({project_id:x.project_id})
 
-                if pg_changefeed == 'one-hour'
+                else if pg_changefeed == 'one-hour'
                     pg_changefeed = ->
                         where : (obj) ->
                             if obj.time?
@@ -1204,8 +1238,16 @@ class exports.PostgreSQL extends PostgreSQL
                             else
                                 return true
                         select : {id:'UUID', time:'TIMESTAMP'}
+                else if pg_changefeed == 'five-minutes'
+                    pg_changefeed = ->
+                        where : (obj) ->
+                            if obj.time?
+                                return new Date(obj.time) >= misc.minutes_ago(5)
+                            else
+                                return true
+                        select : {id:'UUID', time:'TIMESTAMP'}
 
-                if pg_changefeed == 'collaborators'
+                else if pg_changefeed == 'collaborators'
                     if not account_id?
                         cb("account_id must be given")
                         return

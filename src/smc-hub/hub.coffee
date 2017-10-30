@@ -476,6 +476,7 @@ stripe_sync = (dump_only, cb) ->
 #############################################
 BASE_URL = ''
 metric_blocked  = undefined
+uncaught_exception_total = undefined
 
 exports.start_server = start_server = (cb) ->
     winston.debug("start_server")
@@ -513,6 +514,7 @@ exports.start_server = start_server = (cb) ->
                     cb(err)
                 else
                     metric_blocked = MetricsRecorder.new_counter('blocked_ms_total', 'accumulates the "blocked" time in the hub [ms]')
+                    uncaught_exception_total =  MetricsRecorder.new_counter('uncaught_exception_total', 'counts "BUG"s')
                     cb()
             )
         (cb) ->
@@ -685,6 +687,7 @@ command_line = () ->
             winston.debug(err.stack)
             winston.debug("BUG ****************************************************************************")
             database?.uncaught_exception(err)
+            uncaught_exception_total?.inc(1)
 
         if program.passwd
             winston.debug("Resetting password")

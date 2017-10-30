@@ -26,6 +26,8 @@ if not Primus?
 $ = window.$
 _ = require('underscore')
 
+prom_client = require('./prom-client')
+
 client = require('smc-util/client')
 
 misc_page = require('./misc_page')
@@ -89,7 +91,16 @@ class Connection extends client.Connection
         # This is used by the base class for marking file use notifications.
         @_redux = require('./smc-react').redux
 
+        # 60 min default. Correct val will get set when user account settings are loaded.
+        # Set here rather than in @_init_idle to avoid any potential race.
+        @_idle_timeout = 15 * 60 * 1000
+
         setTimeout(@_init_idle, 15 * 1000)
+
+        # Start reporting metrics to the backend if requested.
+        if prom_client.enabled
+            @on('start_metrics', prom_client.start_metrics)
+
 
     _setup_window_smc: () =>
         # if we are in DEBUG mode, inject the client into the global window object
@@ -105,6 +116,8 @@ class Connection extends client.Connection
         # use to enable/disable verbose synctable logging
         window.smc.synctable_debug     = require('smc-util/synctable').set_debug
         window.smc.idle_trigger        = => @emit('idle', 'away')
+        window.smc.prom_client         = prom_client
+
 
         # Client-side testing code -- we use require.ensure so this stuff only
         # ever gets loaded by the browser if actually used.
@@ -130,8 +143,6 @@ class Connection extends client.Connection
         A document.body event listener here and one for each jupyter iframe.body (see jupyter.coffee).
         ###
 
-        # 15 min default in case it isn't set (it will get set when user account settings are loaded)
-        @_idle_timeout ?= 15 * 60 * 1000
         @_idle_reset()
         setInterval(@_idle_check, 60 * 1000)
 
@@ -176,20 +187,21 @@ class Connection extends client.Connection
         if not @_idle_time?
             return
         now = (new Date()).getTime()
-        # console.log("idle: checking idle #{@_idle_time} < #{now}")
+        #console.log("idle: checking idle #{@_idle_time} < #{now}")
         if @_idle_time < now
             @emit('idle', 'away')
 
     # Set @_idle_time to the **moment in in the future** at which the user will be
-    # considered idle, and also emit event indicator using is currently active.
+    # considered idle, and also emit event indicating that user is currently active.
     _idle_reset: =>
         @_idle_time = (new Date()).getTime() + @_idle_timeout + 1000
-        # console.log '_idle_reset', new Date(@_idle_time), ' _idle_timeout=', @_idle_timeout
+        #console.log '_idle_reset', new Date(@_idle_time), ' _idle_timeout=', @_idle_timeout
         @emit('idle', 'active')
 
     # Change the standby timeout to a particular time in minutes.
     # This gets called when the user configuration settings are set/loaded.
     set_standby_timeout_m: (time_m) =>
+        # console.log 'set_standby_timeout_m', time_m
         @_idle_timeout = time_m * 60 * 1000
         @_idle_reset()
 
@@ -286,6 +298,12 @@ class Connection extends client.Connection
             #log("pong latency=#{conn.latency}")
             if not window.document.hasFocus? or window.document.hasFocus()
                 # networking/pinging slows down when browser not in focus...
+                if conn.latency > 10000
+                    # We get some ridiculous values from Primus when the browser
+                    # tab gains focus after not being in focus for a while (say on ipad but on many browsers)
+                    # that throttle.  Just discard them, since otherwise they lead to ridiculous false
+                    # numbers displayed in the browser.
+                    return
                 @emit "ping", conn.latency
 
         #conn.on 'outgoing::ping', () =>

@@ -419,7 +419,7 @@ Assignment = rclass
     copy_confirm_all_caution: (step) ->
         switch step
             when 'assignment'
-                return "This will recopy all of the files to them.  CAUTION: if you update a file that a student has also worked on, their work will get copied to a backup file ending in a tilde, or possibly only be available in snapshots."
+                return <span>This will recopy all of the files to them.  CAUTION: if you update a file that a student has also worked on, their work will get copied to a backup file ending in a tilde, or possibly only be available in snapshots <a target='_blank' href='https://github.com/sagemathinc/cocalc/wiki/CourseCopy'>(more details)</a>.</span>
             when 'collect'
                 return "This will recollect all of the homework from them.  CAUTION: if you have graded/edited a file that a student has updated, your work will get copied to a backup file ending in a tilde, or possibly only be available in snapshots."
             when 'return_graded'
@@ -777,13 +777,14 @@ StudentListForAssignment = rclass
     render_student_info: (student_id) ->
         store = @props.redux.getStore(@props.name)
         <StudentAssignmentInfo
-              key     = {student_id}
-              title   = {misc.trunc_middle(store.get_student_name(student_id), 40)}
-              name    = {@props.name}
-              student = {student_id}
+              key        = {student_id}
+              title      = {misc.trunc_middle(store.get_student_name(student_id), 40)}
+              name       = {@props.name}
+              student    = {student_id}
               assignment = {@props.assignment}
-              grade   = {store.get_grade(@props.assignment, student_id)}
-              info    = {store.student_assignment_info(student_id, @props.assignment)} />
+              grade      = {store.get_grade(@props.assignment, student_id)}
+              comments   = {store.get_comments(@props.assignment, student_id)}
+              info       = {store.student_assignment_info(student_id, @props.assignment)} />
 
     render_students: ->
         v = util.parse_students(@props.students, @props.user_map, @props.redux)

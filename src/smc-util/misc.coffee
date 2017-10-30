@@ -133,6 +133,8 @@ exports.search_split = (search) ->
 # s = lower case string
 # v = array of terms as output by search_split above
 exports.search_match = (s, v) ->
+    if not s?
+        return false
     for x in v
         if s.indexOf(x) == -1
             return false
@@ -1177,7 +1179,6 @@ exports.encode_path = (path) ->
     path = encodeURI(path)  # doesn't escape # and ?, since they are special for urls (but not unix paths)
     return path.replace(/#/g,'%23').replace(/\?/g,'%3F')
 
-
 # This adds a method _call_with_lock to obj, which makes it so it's easy to make it so only
 # one method can be called at a time of an object -- all calls until completion
 # of the first one get an error.
@@ -1458,16 +1459,26 @@ exports.round2 = round2 = (num) ->
     # padding to fix floating point issue (see http://stackoverflow.com/questions/11832914/round-to-at-most-2-decimal-places-in-javascript)
     Math.round((num + 0.00001) * 100) / 100
 
-exports.seconds2hms = seconds2hms = (secs) ->
+exports.seconds2hms = seconds2hms = (secs, longform) ->
+    longform ?= false
     s = round2(secs % 60)
     m = Math.floor(secs / 60) % 60
     h = Math.floor(secs / 60 / 60)
     if h == 0 and m == 0
-        return "#{s}s"
+        if longform
+            return "#{s} #{exports.plural(s, 'second')}"
+        else
+            return "#{s}s"
     if h > 0
-        return "#{h}h#{m}m#{s}s"
+        if longform
+            return "#{h} #{exports.plural(s, 'hour')} #{m} #{exports.plural(m, 'minute')}  #{s} #{exports.plural(s, 'second')}"
+        else
+            return "#{h}h#{m}m#{s}s"
     if m > 0
-        return "#{m}m#{s}s"
+        if longform
+            return "#{m} #{exports.plural(m, 'minute')} #{s} #{exports.plural(s, 'second')}"
+        else
+            return "#{m}m#{s}s"
 
 # returns the number parsed from the input text, or undefined if invalid
 # rounds to the nearest 0.01 if round_number is true (default : true)

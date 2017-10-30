@@ -23,12 +23,12 @@ DEBUG = false
 
 # Maximum number of outstanding concurrent messages (that have responses)
 # to send at once to the backend.
-MAX_CONCURRENT = 25
+MAX_CONCURRENT = 75
 
 {EventEmitter} = require('events')
 
 async = require('async')
-_     = require('underscore')
+underscore = require('underscore')
 
 syncstring = require('./syncstring')
 synctable  = require('./synctable')
@@ -162,7 +162,7 @@ class Session extends EventEmitter
     handle_data: (data) =>
         @emit("data", data)
 
-    write_data: (data) ->
+    write_data: (data) =>
         @conn.write_data(@data_channel, data)
 
     restart: (cb) =>
@@ -207,10 +207,16 @@ class exports.Connection extends EventEmitter
         # (node) warning: possible EventEmitter memory leak detected. 301 listeners added. Use emitter.setMaxListeners() to increase limit.
         @setMaxListeners(3000)  # every open file/table/sync db listens for connect event, which adds up.
 
+        @_emit_mesg_info = underscore.throttle(@_emit_mesg_info, 1500)
+
         @emit("connecting")
         @_call             =
-            queue   : []    # messages in the queue to send
-            count   : 0     # number of message currently outstanding
+            queue       : []    # messages in the queue to send
+            count       : 0     # number of message currently outstanding
+            sent        : 0     # total number of messages sent to backend.
+            sent_length : 0     # total amount of data sent
+            recv        : 0     # number of messages received from backend
+            recv_length : 0     # total amount of data recv'd
         @_id_counter       = 0
         @_sessions         = {}
         @_new_sessions     = {}
@@ -232,6 +238,10 @@ class exports.Connection extends EventEmitter
         # and returns a function to write raw data to the socket.
         @_connect @url, (data) =>
             if data.length > 0  # all messages must start with a channel; length 0 means nothing.
+                #console.log("got #{data.length} of data")
+                @_call.recv += 1
+                @_call.recv_length += data.length
+                @_emit_mesg_info()
                 # Incoming messages are tagged with a single UTF-16
                 # character c (there are 65536 possibilities).  If
                 # that character is JSON_CHANNEL, the message is
@@ -378,7 +388,10 @@ class exports.Connection extends EventEmitter
     # Send a JSON message to the hub server.
     send: (mesg) =>
         #console.log("send at #{misc.mswalltime()}", mesg)
-        @write_data(JSON_CHANNEL, misc.to_json_socket(mesg))
+        data = misc.to_json_socket(mesg)
+        @_call.sent_length += data.length
+        @_emit_mesg_info()
+        @write_data(JSON_CHANNEL, data)
 
     # Send raw data via certain channel to the hub server.
     write_data: (channel, data) =>
@@ -410,6 +423,7 @@ class exports.Connection extends EventEmitter
     remember_me_key: => "remember_me#{window?.app_base_url ? ''}"
 
     handle_json_data: (data) =>
+        @_emit_mesg_info()
         mesg = misc.from_json_socket(data)
         if DEBUG
             console.log("handle_json_data: #{data}")
@@ -459,6 +473,9 @@ class exports.Connection extends EventEmitter
                 if not mesg.id?
                     console.log("WARNING: #{misc.to_json(mesg.error)}")
                     return
+            when "start_metrics"
+                @emit("start_metrics", mesg.interval_s)
+
 
         id = mesg.id  # the call f(null,mesg) can mutate mesg (!), so we better save the id here.
         v = @call_callbacks[id]
@@ -634,6 +651,17 @@ class exports.Connection extends EventEmitter
                         delete @call_callbacks[id]
                 ), opts.timeout*1000
             )
+        else
+            # IMPORTANT: No matter what call cb within 120s; if we don't do this then
+            # in case opts.timeout isn't set but opts.cb is, but user disconnects,
+            # then cb would never get called, which throws off our call counter.
+            # Note that the input to cb doesn't matter.
+            f = ->
+                if cb?
+                    cb()
+                    cb = undefined
+            setTimeout(f, 120*1000)
+
 
     call: (opts={}) =>
         # This function:
@@ -652,19 +680,29 @@ class exports.Connection extends EventEmitter
             opts.cb?('not connected')
             return
         @_call.queue.push(opts)
+        @_call.sent += 1
         @_update_calls()
 
     _update_calls: =>
-        while @_call.queue.length > 0 and @_call.count <= MAX_CONCURRENT
+        while @_call.queue.length > 0 and @_call.count < MAX_CONCURRENT
             @_process_next_call()
+
+    _emit_mesg_info: =>
+        info = misc.copy_without(@_call, ['queue'])
+        info.enqueued = @_call.queue.length
+        info.max_concurrent = MAX_CONCURRENT
+        @emit('mesg_info', info)
 
     _process_next_call: =>
         if @_call.queue.length == 0
             return
         @_call.count += 1
         #console.log('count (call):', @_call.count)
-        @_do_call @_call.queue.shift(), =>
+        mesg = @_call.queue.shift()
+        @_emit_mesg_info()
+        @_do_call mesg, =>
             @_call.count -= 1
+            @_emit_mesg_info()
             #console.log('count (done):', @_call.count)
             @_update_calls()
 
@@ -1211,7 +1249,7 @@ class exports.Connection extends EventEmitter
         tail_args = ['-print']
 
         if opts.exclusions?
-            exclusion_args = _.map opts.exclusions, (excluded_path, index) =>
+            exclusion_args = underscore.map opts.exclusions, (excluded_path, index) =>
                 "-a -not \\( -path '#{opts.path}/#{excluded_path}' -prune \\)"
             args = args.concat(exclusion_args)
 
@@ -1340,7 +1378,7 @@ class exports.Connection extends EventEmitter
         opts = defaults opts,
             project_id : required
             path       : '.'
-            timeout    : 60         # ignored
+            timeout    : 5  # in seconds
             hidden     : false
             cb         : required
         base = window?.app_base_url ? '' # will be defined in web browser
@@ -1354,7 +1392,7 @@ class exports.Connection extends EventEmitter
         req = $.ajax
             dataType : "json"
             url      : url
-            timeout  : 3000
+            timeout  : opts.timeout * 1000
             success  : (data) ->
                 #console.log('success')
                 opts.cb(undefined, data)
@@ -1614,6 +1652,10 @@ class exports.Connection extends EventEmitter
     # Support Tickets
 
     create_support_ticket: ({opts, cb}) =>
+        if opts.body?
+            # Make it so the session is ignored in any URL appearing in the body.
+            # Obviously, this is not 100% bullet proof, but should help enormously.
+            opts.body = misc.replace_all(opts.body, '?session=', '?session=#')
         @call
             message      : message.create_support_ticket(opts)
             timeout      : 20
@@ -1714,7 +1756,8 @@ class exports.Connection extends EventEmitter
             cb      : undefined
         if opts.options? and not misc.is_array(opts.options)
             throw Error("options must be an array")
-        #console.log("query=#{misc.to_json(opts.query)}")
+        #@__query_id ?= 0; @__query_id += 1; id = @__query_id
+        #console.log("#{(new Date()).toISOString()} -- #{id}: query=#{misc.to_json(opts.query)}")
         err = validate_client_query(opts.query, @account_id)
         if err
             opts.cb?(err)
@@ -1728,7 +1771,9 @@ class exports.Connection extends EventEmitter
             message     : mesg
             error_event : true
             timeout     : opts.timeout
-            cb          : opts.cb
+            cb          : (args...) ->
+                #console.log("#{(new Date()).toISOString()} -- #{id}: query_resp=#{misc.to_json(args)}")
+                opts.cb?(args...)
 
     query_cancel: (opts) =>
         opts = defaults opts,
@@ -1753,6 +1798,11 @@ class exports.Connection extends EventEmitter
                 else
                     @_changefeed_ids = resp.changefeed_ids
                     opts.cb(undefined, resp.changefeed_ids)
+
+    # Send metrics to the hub this client is connected to.
+    # There is no confirmation or response.
+    send_metrics: (metrics) =>
+        @send(message.metrics(metrics:metrics))
 
 #################################################
 # Other account Management functionality shared between client and server

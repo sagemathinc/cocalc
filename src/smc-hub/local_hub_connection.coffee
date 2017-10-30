@@ -41,7 +41,7 @@ clients = require('./clients')
 # then the BLOB is saved indefinitely.
 BLOB_TTL_S = 60*60*24     # 1 day
 
-if process.env.DEVEL and not process.env.SMC_TEST
+if not process.env.SMC_TEST
     DEBUG = true
 
 connect_to_a_local_hub = (opts) ->    # opts.cb(err, socket)

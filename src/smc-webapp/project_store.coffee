@@ -24,7 +24,8 @@ underscore = require('underscore')
 immutable  = require('immutable')
 
 # At most this many of the most recent log messages for a project get loaded:
-MAX_PROJECT_LOG_ENTRIES = 5000
+# TODO: add a button to load the entire log or load more...
+MAX_PROJECT_LOG_ENTRIES = 400
 
 misc      = require('smc-util/misc')
 {MARKERS} = require('smc-util/sagews')
@@ -235,24 +236,45 @@ class ProjectActions extends Actions
         return
 
     # report a log event to the backend -- will indirectly result in a new entry in the store...
-    log: (event) =>
+    # Returns the random log entry uuid. If called later with that id, then the time isn't
+    # changed and the event is merely updated.
+    log: (event, id) =>
         if @redux.getStore('projects').get_my_group(@project_id) in ['public', 'admin']
             # Ignore log events for *both* admin and public.
             # Admin gets to be secretive (also their account_id --> name likely wouldn't be known to users).
             # Public users don't log anything.
             return # ignore log events
+        obj =
+            event      : event
+            project_id : @project_id
+        if not id
+            # new log entry
+            id       = misc.uuid()
+            obj.time = misc.server_time()
+        obj.id = id
         require('./webapp_client').webapp_client.query
-            query :
-                project_log :
-                    project_id : @project_id
-                    time       : new Date()
-                    event      : event
-            cb : (err) =>
+            query : {project_log : obj}
+            cb    : (err) =>
                 if err
                     # TODO: what do we want to do if a log doesn't get recorded?
                     # (It *should* keep trying and store that in localStorage, and try next time, etc...
                     #  of course done in a systematic way across everything.)
                     console.warn('error recording a log entry: ', err, event)
+        return id
+
+    log_opened_time: (path) =>
+        # Call log_opened with a path to update the log with the fact that
+        # this file successfully opened and rendered so that the user can
+        # actually see it.  This is used to get a sense for how long things
+        # are taking...
+        data = @_log_open_time?[path]
+        if not data?
+            # never setup log event recording the start of open (this would get set in @open_file)
+            return
+        {id, start} = data
+        # do not allow recording the time more than once, which would be weird.
+        delete @_log_open_time[path]
+        @log({time: misc.server_time() - start}, id)
 
     # Save the given file in this project (if it is open) to disk.
     save_file: (opts) =>
@@ -338,10 +360,19 @@ class ProjectActions extends Actions
                         if not is_public
                             # the ? is because if the user is anonymous they don't have a file_use Actions (yet)
                             @redux.getActions('file_use')?.mark_file(@project_id, opts.path, 'open')
-                            @log
+                            event =
                                 event     : 'open'
                                 action    : 'open'
                                 filename  : opts.path
+                            id = @log(event)
+
+                            # Save the log entry id, so it is possible to optionally
+                            # record how long it took for the file to open.  This
+                            # may happen via a call from random places in our codebase,
+                            # since the idea of "finishing opening and rendering" is
+                            # not simple to define.
+                            @_log_open_time ?= {}
+                            @_log_open_time[opts.path] = {id:id, start:misc.server_time()}
 
                             # grab chat state from local storage
                             local_storage = require('./editor').local_storage
@@ -583,8 +614,13 @@ class ProjectActions extends Actions
             throw Error("Current path should be a string. Revieved arguments are available in window.cpath_args")
         # Set the current path for this project. path is either a string or array of segments.
 
+        history_path = @get_store()?.history_path ? ''
+        if (!history_path.startsWith(path)) or (path.length > history_path.length)
+            history_path = path
+
         @setState
             current_path           : path
+            history_path           : history_path
             page_number            : 0
             most_recent_file_click : undefined
 
@@ -1387,6 +1423,7 @@ create_project_store_def = (name, project_id) ->
 
     getInitialState: =>
         current_path       : ''
+        history_path       : ''
         show_hidden        : false
         checked_files      : immutable.Set()
         public_paths       : undefined
@@ -1405,6 +1442,7 @@ create_project_store_def = (name, project_id) ->
     stateTypes:
         # Shared
         current_path       : rtypes.string
+        history_path       : rtypes.string
         open_files         : rtypes.immutable.Map
         open_files_order   : rtypes.immutable.List
         public_paths       : rtypes.immutable.List
@@ -1478,7 +1516,7 @@ create_project_store_def = (name, project_id) ->
 
     # cached pre-processed file listing, which should always be up to date when
     # called, and properly depends on dependencies.
-    displayed_listing: depends('active_file_sort', 'current_path', 'directory_listings', 'stripped_public_paths', 'file_search', 'other_settings', 'show_hidden') ->
+    displayed_listing: depends('active_file_sort', 'current_path', 'history_path', 'directory_listings', 'stripped_public_paths', 'file_search', 'other_settings', 'show_hidden') ->
         search_escape_char = '/'
         listing = @directory_listings.get(@current_path)
         if typeof(listing) == 'string'
@@ -1697,6 +1735,12 @@ exports.deleteStoreActionsTable = (project_id, redux) ->
         redux.removeTable(key(project_id, table))
     redux.removeStore(name)
 
+prom_client = require('./prom-client')
+if prom_client.enabled
+    prom_get_dir_listing_h = prom_client.new_histogram(
+        'get_dir_listing_seconds', 'get_directory_listing time',
+         {buckets : [1, 2, 5, 7, 10, 15, 20, 30, 50], labels: ['public', 'state', 'err']})
+
 get_directory_listing = (opts) ->
     opts = defaults opts,
         project_id : required
@@ -1706,14 +1750,30 @@ get_directory_listing = (opts) ->
         group      : required
         cb         : required
     {webapp_client} = require('./webapp_client')
+
+    if prom_client.enabled
+        prom_dir_listing_start = misc.server_time()
+        prom_labels = {public: false}
+
     if opts.group in ['owner', 'collaborator', 'admin']
         method = webapp_client.project_directory_listing
         # Also, make sure project starts running, in case it isn't.
-        state = redux.getStore('projects').getIn([opts.project_id, 'state', 'state'])
+        state = redux.getStore('projects').getIn(['project_map', opts.project_id, 'state', 'state'])
+        if prom_client.enabled
+            prom_labels.state = state
         if state != 'running'
+            timeout = .5
+            time0 = misc.server_time()
             redux.getActions('projects').start_project(opts.project_id)
+        else
+            timeout = 1
     else
-        method = webapp_client.public_project_directory_listing
+        state = time0 = undefined
+        method  = webapp_client.public_project_directory_listing
+        timeout = 15
+        if prom_client.enabled
+            prom_labels.public = true
+
     listing     = undefined
     listing_err = undefined
     f = (cb) ->
@@ -1722,9 +1782,12 @@ get_directory_listing = (opts) ->
             project_id : opts.project_id
             path       : opts.path
             hidden     : opts.hidden
-            timeout    : 30
+            timeout    : timeout
             cb         : (err, x) ->
+                #console.log("f ", err, x)
                 if err
+                    if timeout < 5
+                        timeout *= 1.3
                     cb(err)
                 else
                     if x?.error
@@ -1742,10 +1805,20 @@ get_directory_listing = (opts) ->
     misc.retry_until_success
         f           : f
         max_time    : opts.max_time_s * 1000
-        start_delay : 2000
-        max_delay   : 10000
-        #log       : console.log
+        start_delay : 100
+        max_delay   : 1000
+        #log         : console.log
         cb          : (err) ->
             #console.log opts.path, 'get_directory_listing.success or timeout', err
+            if prom_client.enabled
+                prom_labels.err = !!err
+                prom_get_dir_listing_h?.observe(prom_labels, (misc.server_time() - prom_dir_listing_start) / 1000)
+
             opts.cb(err ? listing_err, listing)
+            if time0 and state != 'running' and not err
+                # successfully opened, started, and got directory listing
+                redux.getProjectActions(opts.project_id).log
+                    event : 'start_project'
+                    time  : misc.server_time() - time0
+
 

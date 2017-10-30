@@ -61,7 +61,6 @@ class exports.JupyterActions extends Actions
 
     _init: (project_id, path, syncdb, store, client) =>
         store.dbg = (f) => return client.dbg("JupyterStore('#{store.get('path')}').#{f}")
-
         @util = util # TODO: for debugging only
         @_state      = 'init'   # 'init', 'load', 'ready', 'closed'
         @store       = store
@@ -100,7 +99,17 @@ class exports.JupyterActions extends Actions
             @syncdb.on('metadata-change', @set_save_status)
             @syncdb.on('connected', @set_save_status)
 
+            # Also maintain read_only state.
+            @syncdb.on('metadata-change', @sync_read_only)
+            @syncdb.on('connected', @sync_read_only)
+
         @syncdb.on('change', @_syncdb_change)
+
+        @syncdb.once 'change', =>
+            # Important -- this also gets run on the backend, where
+            # @redux.getProjectActions(project_id) is maybe undefined...
+            @redux.getProjectActions(project_id)?.log_opened_time(path)
+
 
         if not client.is_project() # project doesn't care about cursors
             @syncdb.on('cursor_activity', @_syncdb_cursor_activity)
@@ -117,6 +126,13 @@ class exports.JupyterActions extends Actions
 
             @init_scroll_pos_hook()
 
+    sync_read_only: =>
+        a = @store.get('read_only')
+        b = @syncdb?.is_read_only()
+        if a != b
+            @setState(read_only: b)
+            @set_cm_options()
+
     init_scroll_pos_hook: =>
         # maintain scroll hook on change; critical for multiuser editing
         before = after = undefined
@@ -126,7 +142,6 @@ class exports.JupyterActions extends Actions
             after  = $(".cocalc-jupyter-hook").offset()?.top
             if before? and after? and before != after
                 @scroll(after - before)
-
 
     _account_change: (state) => # TODO: this is just an ugly hack until we implement redux change listeners for particular keys.
         if not state.get('editor_settings').equals(@_account_change_editor_settings)
@@ -249,14 +264,14 @@ class exports.JupyterActions extends Actions
     clear_selected_outputs: =>
         cells = @store.get('cells')
         for id in @store.get_selected_cell_ids_list()
-            if cells.get(id).get('output')?
-                @_set({type:'cell', id:id, output:null}, false)
+            if cells.get(id).get('output')? or cell.get('exec_count')
+                @_set({type:'cell', id:id, output:null, exec_count:null}, false)
         @_sync()
 
     clear_all_outputs: =>
         @store.get('cells').forEach (cell, id) =>
-            if cell.get('output')?
-                @_set({type:'cell', id:id, output:null}, false)
+            if cell.get('output')? or cell.get('exec_count')
+                @_set({type:'cell', id:id, output:null, exec_count:null}, false)
             return
         @_sync()
 
@@ -331,6 +346,8 @@ class exports.JupyterActions extends Actions
 
     # Set which cell is currently the cursor.
     set_cur_id: (id) =>
+        if @store.getIn(['cells', id, 'cell_type']) == 'markdown' and @store.get('mode') == 'edit'
+            @set_md_cell_editing(id) 
         @setState(cur_id : id)
 
     set_cur_id_from_index: (i) =>
@@ -614,6 +631,9 @@ class exports.JupyterActions extends Actions
         @syncdb.sync()
 
     save: =>
+        if @store.get('read_only')
+            # can't save when readonly
+            return
         if @store.get('mode') == 'edit'
             @_get_cell_input()
         # Saves our customer format sync doc-db to disk; the backend will
@@ -784,6 +804,21 @@ class exports.JupyterActions extends Actions
             @set_mode('escape')
             @move_cursor(1)
 
+
+    run_cell_and_insert_new_cell_below: =>
+        v = @store.get_selected_cell_ids_list()
+        @run_selected_cells()
+        if @store.get('cur_id') in v
+            new_id = @insert_cell(1)
+        else
+            new_id = @insert_cell(-1)
+        # Set mode back to edit in the next loop since something above
+        # sets it to escape.  See https://github.com/sagemathinc/cocalc/issues/2372
+        f = =>
+            @set_cur_id(new_id)
+            @set_mode('edit')
+            @scroll('cell visible')
+        setTimeout(f, 0)
 
     run_all_cells: =>
         @store.get('cell_list').forEach (id) =>
@@ -1082,6 +1117,10 @@ class exports.JupyterActions extends Actions
     _get_cell_input: (id) =>
         id ?= @store.get('cur_id')
         return (@_input_editors?[id]?.save?() ? @store.getIn(['cells', id, 'input']) ? '')
+
+    # Press tab key in editor of currently selected cell.
+    tab_key: =>
+        @_input_editors?[@store.get('cur_id')]?.tab_key?()
 
     set_cursor: (id, pos) =>
         ###
@@ -1397,9 +1436,10 @@ class exports.JupyterActions extends Actions
             mode = @store.get('kernel')   # may be better than nothing...; e.g., octave kernel has no mode.
         editor_settings  = @redux.getStore('account')?.get('editor_settings')?.toJS?()
         line_numbers = @store.get_local_storage('line_numbers')
+        read_only = @store.get('read_only')
         x = immutable.fromJS
-            options  : cm_options(mode, editor_settings, line_numbers)
-            markdown : cm_options({name:'gfm2'}, editor_settings, line_numbers)
+            options  : cm_options(mode, editor_settings, line_numbers, read_only)
+            markdown : cm_options({name:'gfm2'}, editor_settings, line_numbers, read_only)
 
         if not x.equals(@store.get('cm_options'))  # actually changed
             @setState(cm_options: x)
@@ -1486,7 +1526,7 @@ class exports.JupyterActions extends Actions
         @confirm_dialog
             icon    : 'warning'
             title   : 'Trust this Notebook?'
-            body    : 'A trusted Jupyter notebook may execute hidden malicious Javascript code when you open it. Selecting trust below, or evaluating any cell, will immediately execute any Javascript code in this notebook now and henceforth. (NOTE: SageMathCloud does NOT implement the official Jupyter security model for trusted notebooks; in particular, we assume that you do trust collaborators on your SageMathCloud projects.)'
+            body    : 'A trusted Jupyter notebook may execute hidden malicious Javascript code when you open it. Selecting trust below, or evaluating any cell, will immediately execute any Javascript code in this notebook now and henceforth. (NOTE: CoCalc does NOT implement the official Jupyter security model for trusted notebooks; in particular, we assume that you do trust collaborators on your CoCalc projects.)'
             choices : [{title:'Trust', style:'danger', default:true}, {title:'Cancel'}]
             cb      : (choice) =>
                 if choice == 'Trust'
@@ -1777,6 +1817,17 @@ class exports.JupyterActions extends Actions
                 metadata : null,
                 save
             return
+        # special fields
+        # "collapsed", "scrolled", "slideshow", and "tags"
+        if metadata.tags?
+            for tag in metadata.tags
+                @add_tag(id, tag, false)
+            delete metadata.tags
+        # important to not store redundant inconsistent fields:
+        for field in ['collapsed', 'scrolled', 'slideshow']
+            if metadata[field]?
+                delete metadata[field]
+
         # first delete
         @_set
             type     : 'cell'
@@ -1800,8 +1851,8 @@ class exports.JupyterActions extends Actions
     switch_to_classical_notebook: =>
         @confirm_dialog
             title   : 'Switch to the Classical Notebook?'
-            body    : 'If you are having trouble with the new Jupyter Notebook, you can switch back to the Classical Jupyter Notebook.   You can always switch back later (and please let us know what is missing so we can add it!).\n\n---\n\n**WARNING:** Multiple people simultaneously editing a notebook, with some using classical and some using the new mode, will NOT work!  Switching back and forth will likely also cause problems (use TimeTravel to recover).  *Please avoid using classical notebook mode if you possibly can!*'
-            choices : [{title:'Switch to Classical Notebook', style:'warning'}, {title:'Continue using new notebook', default:true}]
+            body    : 'If you are having trouble with the modern CoCalc Jupyter Notebook, you can switch to the Classical Jupyter Notebook.   You can always switch back to modern easily later from Jupyter or account settings (and please let us know what is missing so we can add it!).\n\n---\n\n**WARNING:** Multiple people simultaneously editing a notebook, with some using classical and some using the new mode, will NOT work!  Switching back and forth will likely also cause problems (use TimeTravel to recover).  *Please avoid using classical notebook mode if you possibly can!*\n\n[More info and the latest status...](https://github.com/sagemathinc/cocalc/wiki/JupyterClassicModern)'
+            choices : [{title:'Switch to Classical Notebook', style:'warning'}, {title:'Continue using Modern Notebook', default:true}]
             cb      : (choice) =>
                 console.log 'choice', choice
                 if choice != 'Switch to Classical Notebook'

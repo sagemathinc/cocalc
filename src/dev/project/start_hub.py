@@ -14,10 +14,8 @@ util.chdir()
 
 ports = util.get_ports()
 base_url = util.base_url()
-hostname = socket.gethostname()
 
-cmd = "cd ../../&& . smc-env &&  service_hub.py --dev --foreground --hostname={hostname} --port={hub_port} --proxy_port=0 --gap=0 --base_url={base_url} start".format(
-    hostname      = hostname,
+cmd = "cd ../../ && . smc-env &&  service_hub.py --dev --foreground --hostname=0.0.0.0 --port={hub_port} --proxy_port=0 --gap=0 --base_url={base_url} start".format(
     base_url      = base_url,
     hub_port      = ports['hub'])
 

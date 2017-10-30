@@ -203,7 +203,7 @@ describe 'generate_selectors', ->
         val2 = store_def.short_name()
         val3 = store_def.short_name()
 
-        expect(val1).toNotEqual(val2)
+        expect(val1).not.toEqual(val2)
         expect(val2).toEqual(val3)
 
         expect initial_comps + 1

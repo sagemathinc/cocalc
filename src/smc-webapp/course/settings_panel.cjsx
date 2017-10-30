@@ -261,12 +261,16 @@ exports.SettingsPanel = rclass
         content = "# Course '#{@props.settings.get('title')}'\n"
         content += "# exported #{timestamp}\n"
         content += "Name,Email,"
-        content += ("\"#{assignment.get('path')}\"" for assignment in assignments).join(',') + '\n'
+        content += ("\"grade: #{assignment.get('path')}\"" for assignment in assignments).join(',') + ','
+        content += ("\"comments: #{assignment.get('path')}\"" for assignment in assignments).join(',') + '\n'
         for student in store.get_sorted_students()
-            grades = ("\"#{store.get_grade(assignment, student) ? ''}\"" for assignment in assignments).join(',')
-            name   = "\"#{store.get_student_name(student)}\""
-            email  = "\"#{store.get_student_email(student) ? ''}\""
-            line   = [name, email, grades].join(',')
+            grades   = ("\"#{store.get_grade(assignment, student) ? ''}\"" for assignment in assignments).join(',')
+            grades   = grades.replace(/\n/g, "\\n")
+            comments = ("\"#{store.get_comments(assignment, student) ? ''}\"" for assignment in assignments).join(',')
+            comments = comments.replace(/\n/g, "\\n")
+            name     = "\"#{store.get_student_name(student)}\""
+            email    = "\"#{store.get_student_email(student) ? ''}\""
+            line     = [name, email, grades, comments].join(',')
             content += line + '\n'
         @write_file(@path('csv'), content)
 
@@ -277,8 +281,8 @@ exports.SettingsPanel = rclass
         exported = 'iso date'
         assignments = ['Assignment 1', 'Assignment 2']
         students=[
-            {'name':'Foo Bar', 'email': 'foo@bar.com', 'grades':[85,37]},
-            {'name':'Bar None', 'email': 'bar@school.edu', 'grades':[15,50]},
+            {'name':'Foo Bar', 'email': 'foo@bar.com', 'grades':[85,37], 'comments':['Good job', 'Not as good as assignment one :(']},
+            {'name':'Bar None', 'email': 'bar@school.edu', 'grades':[15,50], 'comments':['some_comments','Better!']},
         ]
         ###
         timestamp = (webapp_client.server_time()).toISOString()
@@ -291,12 +295,17 @@ exports.SettingsPanel = rclass
         content += ("'#{assignment.get('path')}'" for assignment in assignments).join(',') + ']\n'
 
         content += 'students = [\n'
+
+        console.log "exporting py"
         for student in store.get_sorted_students()
-            grades = (("'#{store.get_grade(assignment, student) ? ''}'") for assignment in assignments).join(',')
-            name   = store.get_student_name(student)
-            email  = store.get_student_email(student)
-            email  = if email? then "'#{email}'" else 'None'
-            line   = "    {'name':'#{name}', 'email':#{email}, 'grades':[#{grades}]},"
+            grades   = (("'#{store.get_grade(assignment, student) ? ''}'") for assignment in assignments).join(',')
+            grades   = grades.replace(/\n/g, "\\n")
+            comments = (("'#{store.get_comments(assignment, student) ? ''}'") for assignment in assignments).join(',')
+            comments = comments.replace(/\n/g, "\\n")
+            name     = store.get_student_name(student)
+            email    = store.get_student_email(student)
+            email    = if email? then "'#{email}'" else 'None'
+            line     = "    {'name':'#{name}', 'email':#{email}, 'grades':[#{grades}], 'comments':[#{comments}]},"
             content += line + '\n'
         content += ']\n'
         @write_file(@path('py'), content)
@@ -309,10 +318,14 @@ exports.SettingsPanel = rclass
                 <Button onClick={@save_grades_to_py}><Icon name='file-code-o'/> Python file...</Button>
             </ButtonToolbar>
             <hr/>
-            <span style={color:"#666"}>
+            <div style={color:"#666"}>
                 Export all the grades you have recorded
                 for students in your course to a csv or Python file.
-            </span>
+                <br/>
+                In Microsoft Excel, you can {' '}
+                <a target="_blank" href="https://support.office.com/en-us/article/Import-or-export-text-txt-or-csv-files-5250ac4c-663c-47ce-937b-339e391393ba">
+                import the CSV file</a>.
+            </div>
         </Panel>
 
     ###
@@ -380,10 +393,13 @@ exports.SettingsPanel = rclass
     render_require_students_pay_when: ->
         if not @props.settings.get('pay')
             return <span/>
+        else if typeof @props.settings.get('pay') == 'string'
+            value = new Date(@props.settings.get('pay'))
+
         <div style={marginBottom:'1em'}>
             <div style={width:'50%', marginLeft:'3em', marginBottom:'1ex'}>
                 <Calendar
-                    value     = {@props.settings.get('pay')}
+                    value     = {value ? @props.settings.get('pay')}
                     on_change = {(date)=>@actions(@props.name).set_course_info(date)}
                 />
             </div>

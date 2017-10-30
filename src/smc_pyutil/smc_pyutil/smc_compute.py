@@ -400,6 +400,10 @@ class Project(object):
 
         os.environ['SMC_BASE_URL'] = base_url
 
+        # When running CoCalc inside of CoCalc, this env variable
+        # could cause trouble, e.g., confusing the sagews server.
+        if 'COCALC_SECRET_TOKEN' in os.environ:
+            del os.environ['COCALC_SECRET_TOKEN']
         if self._dev:
             self.dev_env()
             os.chdir(self.project_path)

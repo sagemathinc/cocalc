@@ -46,11 +46,11 @@ html.no-js(lang="en")
             li
               a(href=PREFIX + "policies/index.html") Policies
             li
-              a(href=PREFIX + "doc/api.html") API
-            li
               a(href=PREFIX + "policies/pricing.html") Pricing
             li
-              a.get-started(href=PREFIX + "app") Start #{NAME}
+              a(href=PREFIX + "doc/api.html") API
+            li
+              a.get-started(href=PREFIX + "app") Run #{NAME}
 
     block content
 
@@ -137,12 +137,22 @@ html.no-js(lang="en")
             visibility     : visible
             &:hover
               color        : $COL_GRAY
+        .youtube-video-container
+          width            : 100%
+          height           : 0
+          padding-bottom   : 56.25%
+          overflow         : hidden
 
+          iframe, object, embed
+            position   : absolute
+            width      : 95%
+            height     : 95%
 
     script
       :coffee-script
         html = document.documentElement
-        html.className = html.className.replace(/\bno-js\b/, 'js')
+        window.onload = ->
+          html.className = html.className.replace(/\bno-js\b/, 'js')
     noscript
       style.
         html.no-js { display: block; }

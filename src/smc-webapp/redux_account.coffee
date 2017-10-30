@@ -65,9 +65,10 @@ class AccountActions extends Actions
                     when "account_creation_failed"
                         @setState('sign_up_error': mesg.reason)
                     when "signed_in"
-                        {analytics_event} = require('./misc_page')
-                        analytics_event('account', 'create_account') # user created an account
                         redux.getActions('page').set_active_tab('projects')
+                        {analytics_event, track_conversion} = require('./misc_page')
+                        analytics_event('account', 'create_account') # user created an account
+                        track_conversion('create_account')
                     else
                         # should never ever happen
                         # alert_message(type:"error", message: "The server responded with invalid message to account creation request: #{JSON.stringify(mesg)}")
@@ -264,10 +265,14 @@ class AccountStore extends Store
         if sgi2 == 'loading'   # unknown state, right after opening the application
             return false
         if not sgi2?           # not set means there is no timestamp → show banner
-            return true
+            return false  # true ## change to true, if reimplemnted.
         sgi2_dt = new Date(sgi2)
-        start_dt = new Date('2017-08-25T19:00:00.000Z')
-        return start_dt < webapp_client.server_time() and sgi2_dt < start_dt
+        ## idea behind this: show the banner only if its start_dt timetstamp is earlier than now
+        ## *and* when the last "dismiss time" by the user is prior to it. I.e. also change the
+        ## fallback in case there is no timestamp back to true.
+        # start_dt = new Date('2017-08-25T19:00:00.000Z')
+        # return start_dt < webapp_client.server_time() and sgi2_dt < start_dt
+        return false
 
 # Register account store
 # Use the database defaults for all account info until this gets set after they login
@@ -330,10 +335,4 @@ account_store.on 'change', ->
         last_set_standby_timeout_m = x
         webapp_client.set_standby_timeout_m(x)
 
-account_store.on 'change', ->
-    x = account_store.getIn(['editor_settings', 'jupyter_classic'])
-    if x?
-        if x
-            require('./editor').switch_to_ipynb_classic()
-        else
-            require('./jupyter/register').register()
+

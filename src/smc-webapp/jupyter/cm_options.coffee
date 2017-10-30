@@ -8,7 +8,7 @@ immutable = require('immutable')
 
 # mode = codemirror mode object
 # editor_settings - from account store.
-exports.cm_options = (mode, editor_settings, line_numbers) ->
+exports.cm_options = (mode, editor_settings, line_numbers, read_only) ->
     editor_settings ?= {}
     mode ?= {name:'python'}
 
@@ -26,7 +26,7 @@ exports.cm_options = (mode, editor_settings, line_numbers) ->
         autoCloseTags           : editor_settings.auto_close_xml_tags
         foldGutter              : editor_settings.code_folding
         lineWrapping            : true
-        readOnly                : false
+        readOnly                : read_only
         indentWithTabs          : not editor_settings.spaces_instead_of_tabs
         showCursorWhenSelecting : true
         extraKeys               : {}
