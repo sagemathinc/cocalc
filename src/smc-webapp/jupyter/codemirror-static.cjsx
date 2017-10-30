@@ -31,6 +31,8 @@ BLURRED_STYLE =
     paddingLeft   : '4px'
 
 exports.CodeMirrorStatic = rclass
+    displayName : 'CodeMirrorStatic'
+
     propTypes:
         actions          : rtypes.object
         id               : rtypes.string.isRequired

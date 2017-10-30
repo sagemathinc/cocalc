@@ -346,6 +346,8 @@ class exports.JupyterActions extends Actions
 
     # Set which cell is currently the cursor.
     set_cur_id: (id) =>
+        if @store.getIn(['cells', id, 'cell_type']) == 'markdown' and @store.get('mode') == 'edit'
+            @set_md_cell_editing(id) 
         @setState(cur_id : id)
 
     set_cur_id_from_index: (i) =>

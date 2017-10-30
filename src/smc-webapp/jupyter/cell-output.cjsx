@@ -13,6 +13,8 @@ misc = require('smc-util/misc')
 {OutputToggle, CollapsedOutput} = require('./cell-output-toggle')
 
 exports.CellOutput = rclass
+    displayName : 'CellOutput'
+
     propTypes :
         actions     : rtypes.object
         id          : rtypes.string.isRequired
