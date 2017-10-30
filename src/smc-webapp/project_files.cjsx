@@ -428,9 +428,21 @@ FirstSteps = rclass
 
     propTypes :
         actions       : rtypes.object.isRequired
+        first_steps   : rtypes.string
+        current_path  : rtypes.string
+
+    get_first_steps: ->
+        @props.actions.copy_from_library({dest:@props.current_path + '/examples'})
 
     render: ->
-        <div>First Steps</div>
+        if DEBUG then console.log '@props.current_path', @props.current_path
+        <div style={textAlign: 'center', marginTop: '3em'}>
+            First Steps at <code>{@props.first_steps}</code>
+            <br/>
+            <Button onClick={@get_first_steps}>
+                Get Examples
+            </Button>
+        </div>
 
 NoFiles = rclass
     propTypes :
@@ -581,6 +593,7 @@ FileListing = rclass
         show_upload         : rtypes.bool
         shift_is_down       : rtypes.bool
         sort_by             : rtypes.func
+        first_steps         : rtypes.string
 
     getDefaultProps: ->
         file_search : ''
@@ -648,13 +661,15 @@ FileListing = rclass
                 create_file   = {@props.create_file} />
 
     render_first_steps: ->
+        return if not @props.first_steps
         return if @props.listing.length > 3
         return if @props.file_search[0] is TERM_MODE_CHAR
-        return if @props.current_path == ''
         return if @props.public_view
 
         <FirstSteps
             actions       = {@props.actions}
+            first_steps   = {@props.first_steps}
+            current_path  = {@props.current_path}
             />
 
     render_terminal_mode: ->
@@ -1935,6 +1950,7 @@ exports.ProjectFiles = rclass ({name}) ->
             file_creation_error : rtypes.string
             displayed_listing   : rtypes.object
             new_name            : rtypes.string
+            first_steps         : rtypes.string
 
     propTypes :
         project_id    : rtypes.string
@@ -1947,6 +1963,7 @@ exports.ProjectFiles = rclass ({name}) ->
         new_name    : ''
         actions     : redux.getActions(name) # TODO: Do best practices way
         redux       : redux
+        first_steps : '/ext/library/first-steps'
 
     getInitialState: ->
         show_pay      : false
@@ -2173,6 +2190,7 @@ exports.ProjectFiles = rclass ({name}) ->
                     project_id          = {@props.project_id}
                     shift_is_down       = {@state.shift_is_down}
                     sort_by             = {@props.actions.set_sorted_file_column}
+                    first_steps         = {@props.first_steps}
                     event_handlers
                 />
             </SMC_Dropwrapper>

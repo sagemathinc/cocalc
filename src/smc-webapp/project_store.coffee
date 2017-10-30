@@ -890,6 +890,26 @@ class ProjectActions extends Actions
             else
                 return path
 
+    copy_from_library: (opts) =>
+        opts = defaults opts,
+            src     : '/ext/library/first-steps'
+            dest    : undefined
+
+        opts.dest ?= "./#{@current_path}/"
+
+        id = opts.id ? misc.uuid()
+        @set_activity(id:id, status:"Copying files from library ...")
+
+        webapp_client.exec
+            project_id      : @project_id
+            command         : 'rsync'  # don't use "a" option to rsync, since on snapshots results in destroying project access!
+            args            : ['-rltgoDxH'].concat(opts.src).concat([opts.dest])
+            timeout         : 120   # how long rsync runs on client
+            network_timeout : 120   # how long network call has until it must return something or get total error.
+            err_on_exit     : true
+            path            : '.'
+            cb              : @_finish_exec(id)
+
     copy_paths: (opts) =>
         opts = defaults opts,
             src           : required     # Should be an array of source paths
@@ -1434,6 +1454,7 @@ create_project_store_def = (name, project_id) ->
         open_files_order   : immutable.List([])
         open_files         : immutable.Map({})
         num_ghost_file_tabs: 0
+        first_steps        : '/ext/library/first-steps'  # TODO determine once at startup if this path exists
 
     reduxState:
         account:
@@ -1469,6 +1490,7 @@ create_project_store_def = (name, project_id) ->
         selected_file_index    : rtypes.number     # Index on file listing to highlight starting at 0. undefined means none highlighted
         new_name               : rtypes.string
         most_recent_file_click : rtypes.string
+        first_steps            : rtypes.string
 
         # Project Log
         project_log : rtypes.immutable
