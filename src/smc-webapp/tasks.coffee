@@ -962,7 +962,6 @@ class TaskList
 
         finished = false
         stop_editing = () =>
-            currently_focused_editor = undefined
             finished = true
             e.removeClass('webapp-task-editing-desc')
             e.find(".webapp-task-desc").removeClass('webapp-task-desc-editing')

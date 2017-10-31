@@ -2601,6 +2601,10 @@ def show(*objs, **kwds):
             if kwds.get('viewer') == 'tachyon':
                 show_3d_plot_using_tachyon(obj, **kwds)
             else:
+                if kwds.get('viewer') == 'threejs':
+                    del kwds['viewer']
+                if kwds.get('online'):
+                    del kwds['online']
                 salvus.threed(obj, **kwds)
                 # graphics.show_3d_plot_using_threejs(obj, **kwds)
         elif isinstance(obj, Tachyon):

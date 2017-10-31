@@ -44,6 +44,8 @@ exports.TopMenubar = rclass ({name}) ->
             toolbar             : rtypes.bool
             cell_toolbar        : rtypes.string
             read_only           : rtypes.bool
+        "page" :
+            fullscreen          : rtypes.string
 
     shouldComponentUpdate: (next) ->
         return next.has_unsaved_changes != @props.has_unsaved_changes or \
@@ -87,16 +89,19 @@ exports.TopMenubar = rclass ({name}) ->
         if not @props.has_unsaved_changes or @props.read_only
             close_and_halt = '<' + close_and_halt
 
-        @render_menu
-            heading : 'File'
-            names   : [
+        names = [
                 'new notebook', 'open file', '', \
                 'duplicate notebook', rename, save, 'time travel', '', \
                 'print preview', '<Download as...', '>nbconvert ipynb',  script_entry, '>nbconvert html', '>nbconvert markdown', '>nbconvert rst', '>nbconvert tex', '>nbconvert pdf',  '>nbconvert sagews', '', '>nbconvert slides', '>nbconvert asciidoc', '', \
                 trust, '', \
-                close_and_halt, '', \
-                'switch to classical notebook'
-            ]
+                close_and_halt]
+        if @props.fullscreen != 'kiosk'
+            names.push('')
+            names.push('switch to classical notebook')
+
+        @render_menu
+            heading : 'File'
+            names   : names
 
     render_edit: ->
         cell_type = @props.cells?.get(@props.cur_id)?.get('cell_type')
