@@ -91,7 +91,8 @@ exports.SiteDescription = rclass
 exports.CompanyName = rclass
     displayName : 'CompanyName'
     render:->
-        <span>SageMath, Inc.</span>
+        {COMPANY_NAME} = require('smc-util/theme')
+        <span>{COMPANY_NAME}</span>
 
 TermsOfService = rclass
     displayName : 'TermsOfService'

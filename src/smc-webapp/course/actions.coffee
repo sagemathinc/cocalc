@@ -512,6 +512,8 @@ exports.CourseActions = class CourseActions extends Actions
         s = @get_store()
         if not s?
             return
+        {SITE_NAME} = require('smc-util/theme')
+        SiteName = @redux.getStore('customize').site_name ? SITE_NAME
         body = s.get_email_invite()
         invite = (x) =>
             account_store = @redux.getStore('account')
@@ -520,7 +522,7 @@ exports.CourseActions = class CourseActions extends Actions
             if '@' in x
                 if not do_not_invite_student_by_email
                     title   = s.getIn(['settings', 'title'])
-                    subject = "CoCalc Invitation to Course #{title}"
+                    subject = "#{SiteName} Invitation to Course #{title}"
                     body    = body.replace(/{title}/g, title).replace(/{name}/g, name)
                     body    = markdownlib.markdown_to_html(body).s
                     @redux.getActions('projects').invite_collaborators_by_email(student_project_id, x, body, subject, true, replyto, name)
