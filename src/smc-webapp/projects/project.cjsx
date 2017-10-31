@@ -3,12 +3,10 @@ Render a single project entry, which goes in the list of projects
 ###
 
 {React, rtypes, rclass}  = require('../smc-react')
-
-{Row, Col, Well} = require('react-bootstrap')
-
-{Icon, Markdown, ProjectState, TimeAgo} = require('../r_misc')
-
+{Button, Row, Col, Well} = require('react-bootstrap')
+{Icon, Markdown, ProjectState, r_join, Space, TimeAgo} = require('../r_misc')
 {User} = require('../users')
+{AddCollaborators} = require('../collaborators/add-to-project')
 
 exports.ProjectRow = rclass
     displayName : 'Projects-ProjectRow'
@@ -21,12 +19,15 @@ exports.ProjectRow = rclass
     getDefaultProps: ->
         user_map : undefined
 
+    getInitialState: ->
+        add_collab: false
+
     render_status: ->
-        state = @props.project.state?.state
+        state = @props.project.state?.state ? 'closed'
         if state?
-            <span style={color: '#666'}>
+            <a>
                 <ProjectState state={state} />
-            </span>
+            </a>
 
     render_last_edited: ->
         try
@@ -44,7 +45,44 @@ exports.ProjectRow = rclass
                            last_active = {other[i].last_active}
                            account_id  = {other[i].account_id}
                            user_map    = {@props.user_map} />
-        return users
+        return r_join(users)
+
+    render_add_collab: ->
+        if not @state.add_collab
+            return
+        # We get the immutable.js project object since that's what
+        # the add collaborators object expects.   @props.project
+        # should be immutable js, but that's not what we implemented
+        # long ago, and I'm not fixing this now.  This won't result
+        # in bad/stale data that matters, since when this object
+        # changes, then @props.project changes.
+        imm = @props.redux.getStore('projects').getIn(['project_map', @props.project.project_id])
+        <AddCollaboratorsArea
+            project = {imm}
+            done    = {=>@setState(add_collab: false)}
+        />
+
+    render_collab_caret: ->
+        if @state.add_collab
+            icon = <Icon name='caret-down'/>
+        else
+            icon = <Icon name='caret-right'/>
+        <span
+            style = {fontSize:'15pt'}
+            onClick={(e) => @setState(add_collab:not @state.add_collab); e.stopPropagation()}>
+            {icon}
+        </span>
+
+    render_collab: ->
+        <div>
+            <div style={maxHeight: '7em', overflowY: 'auto'}>
+                <a> {@render_collab_caret()} <Space/>
+                    <Icon name='user' style={fontSize: '16pt', marginRight:'10px'}/>
+                    {@render_user_list()}
+                </a>
+            </div>
+            {@render_add_collab()}
+        </div>
 
     render_project_title: ->
         <a>
@@ -69,11 +107,15 @@ exports.ProjectRow = rclass
             switch_to  : not(e.which == 2 or (e.ctrlKey or e.metaKey))
         e.preventDefault()
 
-    open_edit_collaborator: (e) ->
+    open_project_settings: (e) ->
         @actions('projects').open_project
             project_id : @props.project.project_id
             switch_to  : not(e.which == 2 or (e.ctrlKey or e.metaKey))
             target     : 'settings'
+        e.stopPropagation()
+
+    open_add_collaborators: (e) ->
+        @setState(add_collab:true)
         e.stopPropagation()
 
     render: ->
@@ -83,25 +125,43 @@ exports.ProjectRow = rclass
             cursor          : 'pointer'
             wordWrap        : 'break-word'
 
-        <Well style={project_row_styles} onClick={@handle_click} onMouseDown={@handle_mouse_down}>
+        <Well style={project_row_styles} onMouseDown={@handle_mouse_down}>
             <Row>
-                <Col sm=3 style={fontWeight: 'bold', maxHeight: '7em', overflowY: 'auto'}>
+                <Col onClick={@handle_click} sm=2 style={fontWeight: 'bold', maxHeight: '7em', overflowY: 'auto'}>
                     {@render_project_title()}
                 </Col>
-                <Col sm=2 style={color: '#666', maxHeight: '7em', overflowY: 'auto'}>
+                <Col onClick={@handle_click} sm=2 style={color: '#666', maxHeight: '7em', overflowY: 'auto'}>
                     {@render_last_edited()}
                 </Col>
-                <Col sm=2 style={color: '#666', maxHeight: '7em', overflowY: 'auto'}>
+                <Col onClick={@handle_click} sm=2 style={color: '#666', maxHeight: '7em', overflowY: 'auto'}>
                     {@render_project_description()}
                 </Col>
-                <Col sm=3 style={maxHeight: '7em', overflowY: 'auto'}>
-                    <a onClick={@open_edit_collaborator}>
-                        <Icon name='user' style={fontSize: '16pt', marginRight:'10px'}/>
-                        {@render_user_list()}
-                    </a>
+                <Col onClick={@open_add_collaborators} sm=4>
+                    {@render_collab()}
                 </Col>
-                <Col sm=2>
+                <Col sm=2 onClick={@open_project_settings}>
                     {@render_status()}
                 </Col>
             </Row>
         </Well>
+
+
+AddCollaboratorsArea = rclass
+    propTypes: ->
+        project : rtypes.immutable.Map.isRequired
+        done    : rtypes.func.isRequired
+
+    done: (e) ->
+        @props.done()
+        e.stopPropagation()
+
+    render: ->
+        <div>
+            <h4>Add Collaborators</h4>
+            <AddCollaborators
+                project = {@props.project}
+                inline  = {true}
+            />
+            <Button onClick={@done}>Close</Button>
+        </div>
+

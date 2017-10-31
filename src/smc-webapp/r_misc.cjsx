@@ -1025,10 +1025,6 @@ exports.Calendar = rclass
             onChange     = {@props.on_change}
         />
 
-# WARNING: the keys of the input components must not be small negative integers
-# TODO: I think this function is completely unecessary and all use of it should be deleted (?).
-# It's probably just used to workaround not understanding React, when we were first figuring
-# things out.
 exports.r_join = (components, sep=', ') ->
     v = []
     n = misc.len(components)

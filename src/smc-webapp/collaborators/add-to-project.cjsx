@@ -4,7 +4,7 @@ Add collaborators to a project
 
 {React, ReactDOM, redux, rtypes, rclass}  = require('../smc-react')
 
-{Button, ButtonToolbar, FormControl, FormGroup, Well, Checkbox} = require('react-bootstrap')
+{Alert, Button, ButtonToolbar, FormControl, FormGroup, Well, Checkbox} = require('react-bootstrap')
 
 {Icon, LabeledRow, Loading, MarkdownInput, SearchInput} = require('../r_misc')
 
@@ -14,7 +14,8 @@ exports.AddCollaborators = rclass
     displayName : 'ProjectSettings-AddCollaborators'
 
     propTypes :
-        project : rtypes.object.isRequired
+        project : rtypes.immutable.Map.isRequired
+        inline  : rtypes.bool
 
     reduxProps :
         account :
@@ -175,18 +176,25 @@ exports.AddCollaborators = rclass
         disabled = select.length == 0 or (select.length >= 2 and nb_selected == 0)
         <Button onClick={=>@add_selected(select)} disabled={disabled}><Icon name='user-plus' /> {btn_text}</Button>
 
+    render_input_row: ->
+        input =
+            <SearchInput
+                on_submit   = {@do_search}
+                value       = {@state.search}
+                placeholder = 'Search by name or email address...'
+                on_change   = {(value) => @setState(select:undefined, search:value)}
+                on_clear    = {@reset}
+            />
+        if @props.inline
+            return input
+        else
+            <LabeledRow label='Add collaborators'>
+                {input}
+            </LabeledRow>
 
     render: ->
         <div>
-            <LabeledRow label='Add collaborators'>
-                <SearchInput
-                    on_submit   = {@do_search}
-                    value       = {@state.search}
-                    placeholder = 'Search by name or email address...'
-                    on_change   = {(value) => @setState(select:undefined, search:value)}
-                    on_clear    = {@reset}
-                />
-            </LabeledRow>
+            {@render_input_row()}
             {@render_search()}
             {@render_select_list()}
             {@render_send_email()}
