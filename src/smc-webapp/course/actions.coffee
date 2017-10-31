@@ -1305,7 +1305,7 @@ exports.CourseActions = class CourseActions extends Actions
             cb         : (err) =>
                 if not err
                     # now copy actual stuff to grade
-                    async.map(peers, f, finish)
+                    async.mapLimit(peers, PARALLEL_LIMIT, f, finish)
                 else
                     finish(err)
 
@@ -1377,7 +1377,7 @@ exports.CourseActions = class CourseActions extends Actions
                         cb         : cb
             ], cb)
 
-        async.map(peers, f, finish)
+        async.mapLimit(peers, PARALLEL_LIMIT, f, finish)
 
     # This doesn't really stop it yet, since that's not supported by the backend.
     # It does stop the spinner and let the user try to restart the copy.
