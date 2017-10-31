@@ -91,7 +91,7 @@ exports.init_express_http_server = (opts) ->
             res_finished_h({path:dir_path, method:req.method, code:res.statusCode})
         next()
 
-    # save utm parameters in a (temporary) session cookie.
+    # save utm parameters in a (temporary) session cookie or read it to fill in locals.utm
     # webapp takes care of consuming it (see misc_page.get_utm)
     router.use (req, res, next) ->
         # quickly return in the usual case
@@ -99,16 +99,25 @@ exports.init_express_http_server = (opts) ->
             next()
             return
         utm = {}
+
+        utm_cookie = req.cookies[misc.utm_cookie_name]
+        if utm_cookie
+            try
+                data = misc.from_json(window.decodeURIComponent(utm_cookie))
+                utm = misc.merge(utm, data)
+
         for k, v of req.query
             continue if not misc.startswith(k, 'utm_')
             # unknown input, limit the length of key and value
             k = k[4...50]
             utm[k] = v[...50] if k in misc.utm_keys
+
         if Object.keys(utm).length
             utm_data = encodeURIComponent(JSON.stringify(utm))
             res.cookie(misc.utm_cookie_name, utm_data, {path: '/', maxAge: ms('1 day'), httpOnly: false})
             res.locals.utm = utm
-        winston.debug("HTTP server: #{req.url} -- UTM: #{misc.to_json(utm)} in locals: #{misc.to_json(res.locals.utm)}")
+
+        winston.debug("HTTP server: #{req.url} -- UTM: #{misc.to_json(res.locals.utm)}")
         next()
 
     app.enable('trust proxy') # see http://stackoverflow.com/questions/10849687/express-js-how-to-get-remote-client-address
