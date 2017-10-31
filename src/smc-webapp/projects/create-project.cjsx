@@ -33,6 +33,7 @@ exports.NewProjectCreator = rclass
         redux.getActions('billing')?.update_customer()
 
     cancel_editing: ->
+        console.log 'cancel_editing'
         @setState
             state      : 'view'
             title_text : ''
@@ -58,7 +59,9 @@ exports.NewProjectCreator = rclass
                     error : "Error creating project -- #{err}"
             else
                 actions.apply_default_upgrades(project_id: project_id)
-                actions.open_project(project_id: project_id)
+                actions.set_add_collab(project_id, true)
+                actions.open_project(project_id: project_id, switch_to:false)
+                @cancel_editing()
 
     handle_keypress: (e) ->
         if e.keyCode == 27

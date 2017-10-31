@@ -2,6 +2,8 @@
 Render a single project entry, which goes in the list of projects
 ###
 
+immutable  = require('immutable')
+
 {React, rtypes, rclass}  = require('../smc-react')
 {Button, Row, Col, Well} = require('react-bootstrap')
 {Icon, Markdown, ProjectState, r_join, Space, TimeAgo} = require('../r_misc')
@@ -12,15 +14,17 @@ exports.ProjectRow = rclass
     displayName : 'Projects-ProjectRow'
 
     propTypes :
-        project : rtypes.object.isRequired
-        index   : rtypes.number
-        redux   : rtypes.object
+        project  : rtypes.object.isRequired
+        index    : rtypes.number
+        redux    : rtypes.object
+        user_map : rtypes.immutable.Map
+
+    reduxProps:
+        "projects" :
+            add_collab : rtypes.immutable.Set
 
     getDefaultProps: ->
         user_map : undefined
-
-    getInitialState: ->
-        add_collab: false
 
     render_status: ->
         state = @props.project.state?.state ? 'closed'
@@ -33,7 +37,7 @@ exports.ProjectRow = rclass
         try
             <TimeAgo date={(new Date(@props.project.last_edited)).toISOString()} />
         catch e
-            console.log("error setting time of project #{@props.project.project_id} to #{@props.project.last_edited} -- #{e}; please report to help@sagemath.com")
+            console.warn("error setting time of project #{@props.project.project_id} to #{@props.project.last_edited} -- #{e}; please report to help@sagemath.com")
 
     render_user_list: ->
         other = ({account_id:account_id} for account_id,_ of @props.project.users)
@@ -47,8 +51,15 @@ exports.ProjectRow = rclass
                            user_map    = {@props.user_map} />
         return r_join(users)
 
+    add_collab: (set) ->
+        project_id = @props.project.project_id
+        if set?
+            @props.redux.getActions('projects').set_add_collab(project_id, set)
+        else
+            return @props.add_collab?.has(project_id)
+
     render_add_collab: ->
-        if not @state.add_collab
+        if not @add_collab()
             return
         # We get the immutable.js project object since that's what
         # the add collaborators object expects.   @props.project
@@ -59,25 +70,25 @@ exports.ProjectRow = rclass
         imm = @props.redux.getStore('projects').getIn(['project_map', @props.project.project_id])
         <AddCollaboratorsArea
             project = {imm}
-            done    = {=>@setState(add_collab: false)}
         />
 
     render_collab_caret: ->
-        if @state.add_collab
+        if @add_collab()
             icon = <Icon name='caret-down'/>
         else
             icon = <Icon name='caret-right'/>
-        <span
-            style = {fontSize:'15pt'}
-            onClick={(e) => @setState(add_collab:not @state.add_collab); e.stopPropagation()}>
+        <span style = {fontSize:'15pt'}>
             {icon}
         </span>
 
     render_collab: ->
         <div>
-            <div style={maxHeight: '7em', overflowY: 'auto'}>
+            <div
+                style   = {maxHeight : '7em', overflowY: 'auto'}
+                onClick = {@toggle_add_collaborators}
+                >
                 <a> {@render_collab_caret()} <Space/>
-                    <Icon name='user' style={fontSize: '16pt', marginRight:'10px'}/>
+                    <Icon name='user' style={fontSize: '16pt', marginRight:'10px'}/>
                     {@render_user_list()}
                 </a>
             </div>
@@ -114,8 +125,8 @@ exports.ProjectRow = rclass
             target     : 'settings'
         e.stopPropagation()
 
-    open_add_collaborators: (e) ->
-        @setState(add_collab:true)
+    toggle_add_collaborators: (e) ->
+        @add_collab(not @add_collab())
         e.stopPropagation()
 
     render: ->
@@ -136,7 +147,7 @@ exports.ProjectRow = rclass
                 <Col onClick={@handle_click} sm=2 style={color: '#666', maxHeight: '7em', overflowY: 'auto'}>
                     {@render_project_description()}
                 </Col>
-                <Col onClick={@open_add_collaborators} sm=4>
+                <Col sm=4>
                     {@render_collab()}
                 </Col>
                 <Col sm=2 onClick={@open_project_settings}>
@@ -149,19 +160,16 @@ exports.ProjectRow = rclass
 AddCollaboratorsArea = rclass
     propTypes: ->
         project : rtypes.immutable.Map.isRequired
-        done    : rtypes.func.isRequired
-
-    done: (e) ->
-        @props.done()
-        e.stopPropagation()
 
     render: ->
         <div>
-            <h4>Add Collaborators</h4>
+            <h5>Add Collaborators</h5>
+            <div style={color:'#666', marginBottom:'10px'}>
+                Who would you like to work with on this project?
+            </div>
             <AddCollaborators
                 project = {@props.project}
                 inline  = {true}
             />
-            <Button onClick={@done}>Close</Button>
         </div>
 

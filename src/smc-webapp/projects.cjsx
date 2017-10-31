@@ -54,6 +54,16 @@ _create_project_tokens = {}
 
 # Define projects actions
 class ProjectsActions extends Actions
+    # set whether the "add collaborators" component is displayed for the given project
+    # in the project listing
+    set_add_collab: (project_id, enabled) =>
+        add_collab = store.get('add_collab') ? immutable.Set()
+        if enabled
+            add_collab = add_collab.add(project_id)
+        else
+            add_collab = add_collab.delete(project_id)
+        @setState(add_collab:add_collab)
+
     set_project_open: (project_id, err) =>
         x = store.get('open_projects')
         index = x.indexOf(project_id)
