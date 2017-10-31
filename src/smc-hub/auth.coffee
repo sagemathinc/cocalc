@@ -21,6 +21,34 @@
 
 ###
 Passport Authentication (oauth, etc.)
+
+Server-side setup
+-----------------
+
+In order to get this running, you have to manually setup each service.
+That requires to register with the authentication provider, telling them about CoCalc,
+the domain you use, the return path for the response, and adding the client identification
+and corresponding secret keys to the database.
+Then, the service is active and will be presented to the user on the sign up page.
+The following is an example for setting up google oauth.
+The other services are similar.
+
+1. background: https://developers.google.com/identity/sign-in/web/devconsole-project
+2. https://console.cloud.google.com/apis/credentials/consent
+3. https://console.developers.google.com/apis/credentials → create credentials → oauth, ...
+4. The return path for google is https://{DOMAIN_NAME}/auth/google/return
+5. When done, there should be an entry under "OAuth 2.0 client IDs"
+6. ... and you have your ID and secret!
+
+Now, connect to the database, where the setup is in the passports_settings table:
+
+1. there sould be a site_conf entry:
+```
+insert into passport_settings (strategy , conf ) VALUES ( 'site_conf', '{"auth": "https://[DOMAIN_NAME/auth"}'::JSONB );
+```
+2. insert into passport_settings (strategy , conf ) VALUES ( 'google', '{"clientID": "....apps.googleusercontent.com", "clientSecret": "..."}'::JSONB )
+
+Then restart the hubs.
 ###
 
 async   = require('async')
