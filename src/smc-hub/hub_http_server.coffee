@@ -108,7 +108,7 @@ exports.init_express_http_server = (opts) ->
             utm_data = encodeURIComponent(JSON.stringify(utm))
             res.cookie(misc.utm_cookie_name, utm_data, {path: '/', maxAge: ms('1 day'), httpOnly: false})
             res.locals.utm = utm
-        #winston.debug("UTM: #{misc.to_json(utm)}")
+        winston.debug("HTTP server: #{req.url} -- UTM: #{misc.to_json(utm)} in locals: #{misc.to_json(res.locals.utm)}")
         next()
 
     app.enable('trust proxy') # see http://stackoverflow.com/questions/10849687/express-js-how-to-get-remote-client-address

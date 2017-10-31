@@ -264,6 +264,7 @@ passport_login = (opts) ->
         (cb) ->
             if locals.new_account_created
                 cb(); return
+            dbg("record_sign_in: #{opts.req.url} -- res.locals.utm: #{misc.to_json(opts.res.locals.utm)}")
             sign_in.record_sign_in
                 ip_address    : opts.req.ip
                 successful    : true
