@@ -39,7 +39,7 @@ class TestSageTiming:
         tick = time.time()
         elapsed = tick - start
         print("elapsed 2: %s"%elapsed)
-        assert elapsed < 2.0
+        assert elapsed < 4.0
 
     def test_import_sage_server(self):
         start = time.time()
