@@ -1894,3 +1894,9 @@ exports.get_utm = ->
         if DEBUG then console.log("get_utm cookie data", data)
         exports.delete_cookie(misc.utm_cookie_name)
         return data
+
+# get referrer information
+exports.get_referrer = ->
+    c = exports.get_cookie(misc.referrer_cookie_name)
+    exports.delete_cookie(misc.referrer_cookie_name)
+    return c if c

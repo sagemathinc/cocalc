@@ -369,6 +369,9 @@ API message2
         utm:
             init   : undefined
             desc   : 'UTM parameters'
+        referrer:
+            init   : undefined
+            desc   : 'Referrer URL'
         token:
             init   : undefined   # only required when token is set.
             desc   : 'account creation token - see src/dev/docker/README.md'
@@ -459,6 +462,7 @@ message
     password       : required
     remember_me    : false
     utm            : undefined
+    referrer       : undefined
 
 message
     id         : undefined
@@ -489,6 +493,7 @@ message
     first_name     : undefined
     last_name      : undefined
     utm            : undefined
+    referrer       : undefined
 
 # client --> hub
 message

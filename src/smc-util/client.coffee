@@ -742,6 +742,7 @@ class exports.Connection extends EventEmitter
             agreed_to_terms: required
             token          : undefined       # only required if an admin set the account creation token.
             utm            : undefined
+            referrer       : undefined
             timeout        : 40
             cb             : required
 
@@ -764,6 +765,7 @@ class exports.Connection extends EventEmitter
                 agreed_to_terms : opts.agreed_to_terms
                 token           : opts.token
                 utm             : opts.utm
+                referrer        : opts.referrer
             timeout : opts.timeout
             cb      : (err, resp) =>
                 setTimeout((() => delete @_create_account_lock), 1500)
@@ -799,6 +801,7 @@ class exports.Connection extends EventEmitter
             cb            : required
             timeout       : 40
             utm           : undefined
+            referrer      : undefined
 
         @call
             message : message.sign_in
@@ -806,6 +809,7 @@ class exports.Connection extends EventEmitter
                 password      : opts.password
                 remember_me   : opts.remember_me
                 utm           : opts.utm
+                referrer      : opts.referrer
             timeout : opts.timeout
             cb      : opts.cb
 

@@ -22,9 +22,11 @@ if typeof GOOGLE_ANALYTICS !== "undefined" && GOOGLE_ANALYTICS !== null
     script(async src='//www.google-analytics.com/analytics.js')
     //--- End Google Analytics ---
 
-//- UTM parameter extraction
+//- UTM parameter and referral storage
 //- On kucalc, static pages are served without going through the hub.
 //- Therefore we have to do the extraction on static pages, too!
+//- The referral is only stored if not already set.
+//- This helps to filter the SSO auth pages, which are uninteresting referrals
 script
   :coffee-script
     utm = {}
@@ -37,10 +39,15 @@ script
       continue if k not in ['source', 'medium', 'campaign', 'term', 'content']
       utm[k] = decodeURIComponent(v)
       write_cookie = true
+
+    days = 1
+    date = new Date()
+    date.setTime(date.getTime() + (days*24*60*60*1000))
+    expires = "expires=" + date.toUTCString()
+
     if write_cookie
-      days = 1
-      date = new Date()
-      date.setTime(date.getTime() + (days*24*60*60*1000))
-      expires = "expires=" + date.toUTCString()
       data = window.encodeURIComponent(JSON.stringify(utm))
       document.cookie = "CC_UTM=#{data}; #{expires}; path=/"
+
+    if document.referrer.length > 0 and document.cookie.indexOf('; CC_REF=') == -1
+      document.cookie = "CC_REF=#{document.referrer}; #{expires}; path=/"

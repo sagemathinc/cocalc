@@ -12,7 +12,7 @@ immutable = require('immutable')
 misc = require('smc-util/misc')
 {defaults, required} = misc
 
-{get_utm} = require('./misc_page')
+{get_utm, get_referrer} = require('./misc_page')
 
 help = ->
     return redux.getStore('customize').get('help_email')
@@ -33,6 +33,7 @@ class AccountActions extends Actions
             remember_me   : true
             timeout       : 30
             utm           : get_utm()
+            referrer      : get_referrer()
             cb            : (error, mesg) =>
                 @setState(signing_in: false)
                 if error
@@ -60,6 +61,7 @@ class AccountActions extends Actions
             agreed_to_terms : true
             token           : token
             utm             : get_utm()
+            referrer        : get_referrer()
             cb              : (err, mesg) =>
                 @setState(signing_up: false)
                 if err?
