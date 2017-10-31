@@ -8,8 +8,6 @@ Create a new project
 
 {Icon, Space} = require('../r_misc')
 
-
-
 misc = require('smc-util/misc')
 
 
