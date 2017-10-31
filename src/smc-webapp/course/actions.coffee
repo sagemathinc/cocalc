@@ -512,6 +512,8 @@ exports.CourseActions = class CourseActions extends Actions
         s = @get_store()
         if not s?
             return
+        {SITE_NAME} = require('smc-util/theme')
+        SiteName = @redux.getStore('customize').site_name ? SITE_NAME
         body = s.get_email_invite()
         invite = (x) =>
             account_store = @redux.getStore('account')
@@ -520,7 +522,7 @@ exports.CourseActions = class CourseActions extends Actions
             if '@' in x
                 if not do_not_invite_student_by_email
                     title   = s.getIn(['settings', 'title'])
-                    subject = "CoCalc Invitation to Course #{title}"
+                    subject = "#{SiteName} Invitation to Course #{title}"
                     body    = body.replace(/{title}/g, title).replace(/{name}/g, name)
                     body    = markdownlib.markdown_to_html(body).s
                     @redux.getActions('projects').invite_collaborators_by_email(student_project_id, x, body, subject, true, replyto, name)
@@ -984,8 +986,8 @@ exports.CourseActions = class CourseActions extends Actions
                             bash       : true
                             path       : assignment.get('graded_path')
                             cb         : cb
-                      else
-                          cb(null)
+                    else
+                        cb(null)
             ], finish)
 
     # Copy the given assignment to all non-deleted students, doing several copies in parallel at once.
@@ -1303,7 +1305,7 @@ exports.CourseActions = class CourseActions extends Actions
             cb         : (err) =>
                 if not err
                     # now copy actual stuff to grade
-                    async.map(peers, f, finish)
+                    async.mapLimit(peers, PARALLEL_LIMIT, f, finish)
                 else
                     finish(err)
 
@@ -1375,7 +1377,7 @@ exports.CourseActions = class CourseActions extends Actions
                         cb         : cb
             ], cb)
 
-        async.map(peers, f, finish)
+        async.mapLimit(peers, PARALLEL_LIMIT, f, finish)
 
     # This doesn't really stop it yet, since that's not supported by the backend.
     # It does stop the spinner and let the user try to restart the copy.
