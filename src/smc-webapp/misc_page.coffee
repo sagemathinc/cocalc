@@ -1818,7 +1818,7 @@ exports.get_cookie = (name) ->
     return parts.pop().split(";").shift() if (parts.length == 2)
 
 exports.delete_cookie = (name) ->
-    document.cookie = name + '=; expires=Thu, 01 Jan 1970 00:00:01 GMT;'
+    document.cookie = name + '=; expires=Thu, 01 Jan 1970 00:00:01 GMT; path=/'
 
 exports.set_cookie = (name, value, days) ->
     expires = ''
