@@ -263,7 +263,7 @@ passport_login = (opts) ->
 
         (cb) ->
             if locals.new_account_created
-                cb()
+                cb(); return
             sign_in.record_sign_in
                 ip_address    : opts.req.ip
                 successful    : true
