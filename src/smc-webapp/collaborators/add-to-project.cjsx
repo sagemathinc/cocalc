@@ -90,6 +90,7 @@ exports.AddCollaborators = rclass
                                                                          replyto,
                                                                          replyto_name)
         @setState(email_to:'',email_body:'')
+        @reset()
 
     render_send_email: ->
         if not @state.email_to
@@ -179,11 +180,11 @@ exports.AddCollaborators = rclass
         <div>
             <LabeledRow label='Add collaborators'>
                 <SearchInput
-                    on_submit       = {@do_search}
-                    default_value   = {@state.search}
-                    placeholder     = 'Search by name or email address...'
-                    on_change       = {(value) => @setState(select:undefined)}
-                    on_clear        = {@reset}
+                    on_submit   = {@do_search}
+                    value       = {@state.search}
+                    placeholder = 'Search by name or email address...'
+                    on_change   = {(value) => @setState(select:undefined, search:value)}
+                    on_clear    = {@reset}
                 />
             </LabeledRow>
             {@render_search()}
