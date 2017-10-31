@@ -42,6 +42,8 @@ markdown = require('./markdown')
 {PROJECT_UPGRADES} = require('smc-util/schema')
 {redux_name} = require('project_store')
 
+{NewProjectCreator} = require('./projects/create-project')
+
 MAX_DEFAULT_PROJECTS = 50
 
 _create_project_tokens = {}
@@ -204,12 +206,12 @@ class ProjectsActions extends Actions
             target     : undefined # string  The file path to open
             switch_to  : true      # bool    Whether or not to foreground it
         require('./project_store') # registers the project store with redux...
-        store = redux.getProjectStore(opts.project_id)
-        actions = redux.getProjectActions(opts.project_id)
+        project_store = redux.getProjectStore(opts.project_id)
+        project_actions = redux.getProjectActions(opts.project_id)
         relation = redux.getStore('projects').get_my_group(opts.project_id)
         if not relation? or relation in ['public', 'admin']
             @fetch_public_project_title(opts.project_id)
-        actions.fetch_directory_listing()
+        project_actions.fetch_directory_listing()
         redux.getActions('page').set_active_tab(opts.project_id) if opts.switch_to
         @set_project_open(opts.project_id)
         if opts.target?
@@ -735,136 +737,6 @@ class ProjectsTable extends Table
         actions.setState(project_map: table.get())
 
 redux.createTable('projects', ProjectsTable)
-
-NewProjectCreator = rclass
-    displayName : 'Projects-NewProjectCreator'
-
-    propTypes :
-        nb_projects : rtypes.number.isRequired
-
-    getInitialState: ->
-        state =
-            state      : if @props.nb_projects == 0 then 'edit' else 'view'    # view --> edit --> saving --> view
-            title_text : ''
-            error      : ''
-
-    start_editing: ->
-        @setState
-            state      : 'edit'
-            title_text : ''
-        # We also update the customer billing iformation; this is important since
-        # we will call apply_default_upgrades in a moment, and it will be more
-        # accurate with the latest billing information recently loaded.
-        redux.getActions('billing')?.update_customer()
-
-    cancel_editing: ->
-        @setState
-            state      : 'view'
-            title_text : ''
-            error      : ''
-
-    toggle_editing: ->
-        if @state.state == 'view'
-            @start_editing()
-        else
-            @cancel_editing()
-
-    create_project: (quotas_to_apply) ->
-        token = misc.uuid()
-        @setState(state:'saving')
-        actions.create_project
-            title : @state.title_text
-            token : token
-        store.wait_until_project_created token, 30, (err, project_id) =>
-            if err?
-                @setState
-                    state : 'edit'
-                    error : "Error creating project -- #{err}"
-            else
-                actions.apply_default_upgrades(project_id: project_id)
-                actions.open_project(project_id: project_id)
-
-
-    handle_keypress: (e) ->
-        if e.keyCode == 27
-            @cancel_editing()
-        else if e.keyCode == 13 and @state.title_text != ''
-            @create_project()
-
-    render_info_alert: ->
-        if @state.state == 'saving'
-            <div style={marginTop:'30px'}>
-                <Alert bsStyle='info'>Creating project... <Icon name='cc-icon-cocalc-ring' spin /></Alert>
-            </div>
-
-    render_error: ->
-        if @state.error
-            <div style={marginTop:'30px'}>
-                <ErrorDisplay error={@state.error} onClose={=>@setState(error:'')} />
-            </div>
-
-    render_input_section: ->
-        <Well style={backgroundColor: '#FFF'}>
-            <Row>
-                <Col sm=6>
-                    <FormGroup>
-                        <FormControl
-                            ref         = 'new_project_title'
-                            type        = 'text'
-                            placeholder = 'Project title'
-                            disabled    = {@state.state == 'saving'}
-                            value       = {@state.title_text}
-                            onChange    = {=>@setState(title_text:ReactDOM.findDOMNode(@refs.new_project_title).value)}
-                            onKeyDown   = {@handle_keypress}
-                            autoFocus   />
-                    </FormGroup>
-                    <ButtonToolbar>
-                        <Button
-                            disabled  = {@state.title_text == '' or @state.state == 'saving'}
-                            onClick   = {=>@create_project(false)}
-                            bsStyle  = 'success' >
-                            Create project
-                        </Button>
-                        <Button
-                            disabled = {@state.state is 'saving'}
-                            onClick  = {@cancel_editing} >
-                            Cancel
-                        </Button>
-                    </ButtonToolbar>
-                </Col>
-                <Col sm=6>
-                    <div style={color:'#666'}>
-                        A <b>project</b> is your own computational workspace that you can share with others.
-                        You can easily change the project title later.
-                    </div>
-                </Col>
-            </Row>
-            <Row>
-                <Col sm=12>
-                    {@render_error()}
-                    {@render_info_alert()}
-                </Col>
-            </Row>
-        </Well>
-
-    render: ->
-        <Row>
-            <Col sm=4>
-                <Button
-                    bsStyle  = 'success'
-                    active   = {@state.state != 'view'}
-                    disabled = {@state.state != 'view'}
-                    block
-                    type     = 'submit'
-                    onClick  = {@toggle_editing}>
-                    <Icon name='plus-circle' /> Create new project...
-                </Button>
-            </Col>
-            {<Col sm=12>
-                <Space/>
-                {@render_input_section()}
-            </Col> if @state.state != 'view'}
-        </Row>
 
 ProjectsFilterButtons = rclass
     displayName : 'ProjectsFilterButtons'
@@ -1549,7 +1421,7 @@ exports.ProjectsPage = ProjectsPage = rclass
                     <Row>
                         <Col sm=12 style={marginTop:'1ex'}>
                             <NewProjectCreator
-                                nb_projects = {@project_list().length}
+                                start_in_edit_mode = {@project_list().length == 0}
                                 />
                         </Col>
                     </Row>
