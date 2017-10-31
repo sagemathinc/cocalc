@@ -984,8 +984,8 @@ exports.CourseActions = class CourseActions extends Actions
                             bash       : true
                             path       : assignment.get('graded_path')
                             cb         : cb
-                      else
-                          cb(null)
+                    else
+                        cb(null)
             ], finish)
 
     # Copy the given assignment to all non-deleted students, doing several copies in parallel at once.
