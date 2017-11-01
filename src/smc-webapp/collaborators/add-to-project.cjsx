@@ -188,7 +188,8 @@ exports.AddCollaborators = rclass
         if @props.inline
             return input
         else
-            <LabeledRow label='Add collaborators'>
+            label = <span style={fontSize:'12pt'}>Add People:</span>
+            <LabeledRow label={label}>
                 {input}
             </LabeledRow>
 

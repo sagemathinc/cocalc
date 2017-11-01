@@ -866,9 +866,8 @@ CollaboratorsPanel = rclass
     render: ->
         <ProjectSettingsPanel title='Collaborators' icon='user'>
             <div key='mesg'>
-                <span style={color:'#666'}>
-                    Collaborators can <b>modify anything</b> in this project, except backups.
-                    They can add and remove other collaborators, but cannot remove owners.
+                <span style={color:'#333', fontSize:'12pt'}>
+                    Who would you like to work with on this project?
                 </span>
             </div>
             <hr />

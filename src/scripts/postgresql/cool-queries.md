@@ -1,3 +1,9 @@
+Recently added collaborators:
+
+    select now()-time,project_id from project_log where time >= now() - interval '1 day' and time <= now() and event#>>'{event}' = 'invite_user' order by time desc;
+
+    select count(*) from project_log where time >= now() - interval '2 day' and time <= now() - interval '1 day' and event#>>'{event}' = 'invite_user';  select count(*) from project_log where time >= now() - interval '1 day' and time <= now() and event#>>'{event}' = 'invite_user';
+
 Check on our SLO, namely number of projects that took 30s or more to start among the last 100 projects started.
 
     select count(*) from project_log where event#>>'{event}'='start_project' and time >= now() - interval '1 day';
