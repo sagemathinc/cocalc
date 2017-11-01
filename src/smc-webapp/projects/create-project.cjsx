@@ -33,7 +33,7 @@ exports.NewProjectCreator = rclass
         redux.getActions('billing')?.update_customer()
 
     cancel_editing: ->
-        console.log 'cancel_editing'
+        #console.log 'cancel_editing'
         @setState
             state      : 'view'
             title_text : ''
