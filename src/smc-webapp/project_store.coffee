@@ -896,16 +896,17 @@ class ProjectActions extends Actions
     # this is called once by the project initialization
     check_first_steps: =>
         {NO_FIRST_STEPS_SENTINEL_FILE} = require('./project_files')
+        cmd = "test ! -e #{NO_FIRST_STEPS_SENTINEL_FILE} && test -e #{LIBRARY.first_steps}"
         webapp_client.exec
             project_id      : @project_id
-            command         : 'test'   # /usr/bin/test
-            args            : ['-e', NO_FIRST_STEPS_SENTINEL_FILE]
+            command         : cmd
+            bash            : true
             timeout         : 30
             network_timeout : 120
             err_on_exit     : false
             path            : '.'
             cb              : (err, output) =>
-                if output.exit_code != 0
+                if output.exit_code == 0
                     @setState(show_first_steps:true)
                 else
                     @setState(show_first_steps:false)
