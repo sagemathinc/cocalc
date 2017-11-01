@@ -172,7 +172,7 @@ exports.AccountPage = rclass
                 {<Row>
                     <Col md={12}>
                         <Tabs activeKey={@props.active_page} onSelect={@handle_select} animation={false} style={paddingTop: "1em"} id="account-page-tabs">
-                            <Tab key='account' eventKey="account" title={<span><Icon name='wrench'/> Account Settings</span>}>
+                            <Tab key='account' eventKey="account" title={<span><Icon name='wrench'/> Preferences</span>}>
                                 {@render_account_settings()  if not @props.active_page? or @props.active_page == 'account'}
                             </Tab>
                             {@render_commercial_tabs()}
