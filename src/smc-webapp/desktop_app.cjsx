@@ -115,8 +115,11 @@ Page = rclass
     render_account_tab: ->
         if @props.account_id
             a = <Avatar
-                    size        = {20}
-                    account_id  = {@props.account_id}  />
+                    size       = {20}
+                    account_id = {@props.account_id}
+                    no_tooltip = {true}
+                    no_loading = {true}
+                    />
         else
             a = 'cog'
         <NavTab
