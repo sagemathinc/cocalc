@@ -57,6 +57,9 @@ BANNED_FILE_TYPES             = ['doc', 'docx', 'pdf', 'sws']
 
 FROM_WEB_TIMEOUT_S = 45
 
+exports.LIBRARY = LIBRARY =
+    first_steps : '/ext/library/first-steps'
+
 QUERIES =
     project_log :
         query :
@@ -890,25 +893,60 @@ class ProjectActions extends Actions
             else
                 return path
 
+    # this is called once by the project initialization
+    check_first_steps: =>
+        {NO_FIRST_STEPS_SENTINEL_FILE} = require('./project_files')
+        webapp_client.exec
+            project_id      : @project_id
+            command         : 'test'   # /usr/bin/test
+            args            : ['-e', NO_FIRST_STEPS_SENTINEL_FILE]
+            timeout         : 30
+            network_timeout : 120
+            err_on_exit     : false
+            path            : '.'
+            cb              : (err, output) =>
+                if output.exit_code != 0
+                    @setState(show_first_steps:true)
+                else
+                    @setState(show_first_steps:false)
+
     copy_from_library: (opts) =>
         opts = defaults opts,
-            src     : '/ext/library/first-steps'
-            dest    : undefined
-
-        opts.dest ?= "./#{@current_path}/"
+            src     : LIBRARY.first_steps
+            dest    : '.'
 
         id = opts.id ? misc.uuid()
         @set_activity(id:id, status:"Copying files from library ...")
 
         webapp_client.exec
             project_id      : @project_id
-            command         : 'rsync'  # don't use "a" option to rsync, since on snapshots results in destroying project access!
+            command         : 'rsync'
             args            : ['-rltgoDxH'].concat(opts.src).concat([opts.dest])
             timeout         : 120   # how long rsync runs on client
             network_timeout : 120   # how long network call has until it must return something or get total error.
             err_on_exit     : true
             path            : '.'
-            cb              : @_finish_exec(id)
+            cb              : (err, output) =>
+                (@_finish_exec(id))(err, output)
+                @open_file(path: 'first-steps/first-steps.tasks')
+
+    touch_file: (opts) =>
+        opts = defaults opts,
+            path : '.'
+            dest : required
+
+        id = misc.uuid()
+        @set_activity(id:id, status: "Touching #{opts.dest} ...")
+
+        webapp_client.exec
+            project_id       : @project_id
+            command          : 'touch'
+            args             : [opts.dest]
+            timeout          : 30
+            network_timeout  : 120
+            err_on_exit      : true
+            path             : opts.path
+            cb               : @_finish_exec(id)
 
     copy_paths: (opts) =>
         opts = defaults opts,
@@ -1454,7 +1492,7 @@ create_project_store_def = (name, project_id) ->
         open_files_order   : immutable.List([])
         open_files         : immutable.Map({})
         num_ghost_file_tabs: 0
-        first_steps        : '/ext/library/first-steps'  # TODO determine once at startup if this path exists
+        show_first_steps   : false
 
     reduxState:
         account:
@@ -1490,7 +1528,7 @@ create_project_store_def = (name, project_id) ->
         selected_file_index    : rtypes.number     # Index on file listing to highlight starting at 0. undefined means none highlighted
         new_name               : rtypes.string
         most_recent_file_click : rtypes.string
-        first_steps            : rtypes.string
+        show_first_steps       : rtypes.bool
 
         # Project Log
         project_log : rtypes.immutable

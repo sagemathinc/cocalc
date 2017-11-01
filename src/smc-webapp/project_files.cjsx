@@ -21,12 +21,13 @@
 
 {React, ReactDOM, rtypes, rclass, redux, Redux} = require('./smc-react')
 {Col, Row, ButtonToolbar, ButtonGroup, MenuItem, Button, Well, FormControl, FormGroup
- ButtonToolbar, Popover, OverlayTrigger, SplitButton, MenuItem, Alert, Checkbox, Breadcrumb} =  require('react-bootstrap')
+ ButtonToolbar, Popover, OverlayTrigger, SplitButton, MenuItem, Alert, Checkbox, Breadcrumb, Navbar} =  require('react-bootstrap')
 misc = require('smc-util/misc')
 {ActivityDisplay, DeletedProjectWarning, DirectoryInput, Icon, Loading, ProjectState, COLORS,
  SearchInput, TimeAgo, ErrorDisplay, Space, Tip, LoginLink, Footer, CourseProjectExtraHelp} = require('./r_misc')
 {SMC_Dropwrapper} = require('./smc-dropzone')
 {FileTypeSelector, NewFileButton} = require('./project_new')
+{SiteName} = require('./customize')
 
 {BillingPageLink, BillingPageForCourseRedux, PayCourseFee}     = require('./billing')
 {human_readable_size} = require('./misc_page')
@@ -44,6 +45,8 @@ feature = require('./feature')
 
 Combobox = require('react-widgets/lib/Combobox') # TODO: delete this when the combobox is in r_misc
 TERM_MODE_CHAR = '/'
+
+exports.NO_FIRST_STEPS_SENTINEL_FILE = '.cc-no-first-steps'
 
 exports.file_action_buttons = file_action_buttons =
         compress :
@@ -427,22 +430,42 @@ FirstSteps = rclass
     displayName : 'ProjectFiles-FirstSteps'
 
     propTypes :
-        actions       : rtypes.object.isRequired
-        first_steps   : rtypes.string
-        current_path  : rtypes.string
+        actions : rtypes.object.isRequired
 
     get_first_steps: ->
-        @props.actions.copy_from_library({dest:@props.current_path + '/examples'})
+        {LIBRARY} = require('./project_store')
+        @props.actions.copy_from_library(src:LIBRARY.first_steps)
+
+    dismiss_first_steps: ->
+        @props.actions.touch_file(dest: exports.NO_FIRST_STEPS_SENTINEL_FILE)
+        @props.actions.setState(show_first_steps:false)
 
     render: ->
-        if DEBUG then console.log '@props.current_path', @props.current_path
-        <div style={textAlign: 'center', marginTop: '3em'}>
-            First Steps at <code>{@props.first_steps}</code>
-            <br/>
-            <Button onClick={@get_first_steps}>
-                Get Examples
-            </Button>
-        </div>
+        <Row>
+          <Navbar>
+            <Navbar.Header style={marginTop:'10px'}>
+              <Navbar.Brand>
+                New to <SiteName/>?
+              </Navbar.Brand>
+              <Navbar.Toggle />
+            </Navbar.Header>
+            <Navbar.Collapse>
+              <Navbar.Text>
+                <Button
+                    onClick = {@get_first_steps}
+                    bsStyle = {'info'} >
+                        Start the <strong>First Steps</strong> guide!
+                </Button>
+              </Navbar.Text>
+              <Navbar.Text>
+                <Button
+                    onClick={@dismiss_first_steps}>
+                        Dismiss
+                </Button>
+              </Navbar.Text>
+            </Navbar.Collapse>
+          </Navbar>
+        </Row>
 
 NoFiles = rclass
     propTypes :
@@ -593,11 +616,12 @@ FileListing = rclass
         show_upload         : rtypes.bool
         shift_is_down       : rtypes.bool
         sort_by             : rtypes.func
-        first_steps         : rtypes.string
+        show_first_steps    : rtypes.bool
 
     getDefaultProps: ->
-        file_search : ''
-        show_upload : false
+        file_search      : ''
+        show_upload      : false
+        show_first_steps : false
 
     render_row: (name, size, time, mask, isdir, display_name, public_data, index) ->
         checked = @props.checked_files.has(misc.path_to_file(@props.current_path, name))
@@ -661,16 +685,14 @@ FileListing = rclass
                 create_file   = {@props.create_file} />
 
     render_first_steps: ->
-        return if not @props.first_steps
-        return if @props.listing.length > 3
-        return if @props.file_search[0] is TERM_MODE_CHAR
+        return if not @props.show_first_steps
         return if @props.public_view
+        return if @props.current_path isnt '' # only show in $HOME
+        return if @props.listing.length > 3   # don't show if user already has files
+        return if @props.file_map['first-steps']?.isdir  # don't show if we have it ...
+        return if @props.file_search[0] is TERM_MODE_CHAR
 
-        <FirstSteps
-            actions       = {@props.actions}
-            first_steps   = {@props.first_steps}
-            current_path  = {@props.current_path}
-            />
+        <FirstSteps actions={@props.actions} />
 
     render_terminal_mode: ->
         if @props.file_search[0] == TERM_MODE_CHAR
@@ -679,6 +701,7 @@ FileListing = rclass
     render : ->
         <Col sm=12>
             {@render_terminal_mode() if not @props.public_view}
+            {@render_first_steps()}
             {<ListingHeader
                 active_file_sort = {@props.active_file_sort}
                 sort_by          = {@props.sort_by}
@@ -686,7 +709,6 @@ FileListing = rclass
                 /> if @props.listing.length > 0}
             {@render_rows()}
             {@render_no_files()}
-            {@render_first_steps()}
         </Col>
 
 # One segment of the directory links at the top of the files listing.
@@ -1950,7 +1972,7 @@ exports.ProjectFiles = rclass ({name}) ->
             file_creation_error : rtypes.string
             displayed_listing   : rtypes.object
             new_name            : rtypes.string
-            first_steps         : rtypes.string
+            show_first_steps    : rtypes.bool
 
     propTypes :
         project_id    : rtypes.string
@@ -1958,12 +1980,12 @@ exports.ProjectFiles = rclass ({name}) ->
         redux         : rtypes.object
 
     getDefaultProps: ->
-        page_number : 0
-        file_search : ''
-        new_name    : ''
-        actions     : redux.getActions(name) # TODO: Do best practices way
-        redux       : redux
-        first_steps : '/ext/library/first-steps'
+        page_number      : 0
+        file_search      : ''
+        new_name         : ''
+        actions          : redux.getActions(name) # TODO: Do best practices way
+        redux            : redux
+        show_first_steps : false
 
     getInitialState: ->
         show_pay      : false
@@ -2190,7 +2212,7 @@ exports.ProjectFiles = rclass ({name}) ->
                     project_id          = {@props.project_id}
                     shift_is_down       = {@state.shift_is_down}
                     sort_by             = {@props.actions.set_sorted_file_column}
-                    first_steps         = {@props.first_steps}
+                    show_first_steps    = {@props.show_first_steps}
                     event_handlers
                 />
             </SMC_Dropwrapper>
