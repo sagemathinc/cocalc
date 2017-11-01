@@ -31,6 +31,8 @@ exports.TopButtonbar = rclass ({name}) ->
             has_uncommitted_changes : rtypes.bool
             read_only               : rtypes.bool
             kernel_state            : rtypes.string
+        "page" :
+            fullscreen : rtypes.string
 
     shouldComponentUpdate: (next) ->
         return next.cur_id != @props.cur_id or \
@@ -126,7 +128,7 @@ exports.TopButtonbar = rclass ({name}) ->
         <UncommittedChanges has_uncommitted_changes={@props.has_uncommitted_changes} />
 
     render_switch_button: ->
-        if $.browser.firefox
+        if @props.fullscreen == 'kiosk' or $.browser.firefox
             return
         <Button
             title   = 'Switch to classical notebook'

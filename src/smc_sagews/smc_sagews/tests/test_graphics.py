@@ -24,6 +24,21 @@ class TestTachyon:
     def test_t(self, execblob):
         execblob("t", want_html = False, file_type='png', ignore_stdout = True)
 
+class TestThreeJS:
+    # https://github.com/sagemathinc/cocalc/issues/2450
+    def test_2450(self, execblob):
+        code = """
+        t, theta = var('t, theta', domain='real')
+        x(t) = cosh(t)
+        z(t) = t
+        formula = (x(t)*cos(theta), x(t)*sin(theta), z(t))
+        parameters = ((t, -3, 3), (theta, -pi, pi))
+        surface = ParametrizedSurface3D(formula, parameters)
+        p = surface.plot(aspect_ratio=1, color='yellow')
+        show(p, viewer='threejs', online=True)
+        """
+        execblob(dedent(code), want_html=False, ignore_stdout=True, file_type='sage3d')
+
 class TestGraphics:
     def test_plot(self, execblob):
         execblob("plot(cos(x),x,0,pi)", want_html = False, file_type = 'svg')

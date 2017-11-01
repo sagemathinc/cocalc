@@ -1,12 +1,18 @@
+Recently added collaborators:
+
+    select now()-time,project_id from project_log where time >= now() - interval '1 day' and time <= now() and event#>>'{event}' = 'invite_user' order by time desc;
+
+    select count(*) from project_log where time >= now() - interval '2 day' and time <= now() - interval '1 day' and event#>>'{event}' = 'invite_user';  select count(*) from project_log where time >= now() - interval '1 day' and time <= now() and event#>>'{event}' = 'invite_user';
+
 Check on our SLO, namely number of projects that took 30s or more to start among the last 100 projects started.
 
     select count(*) from project_log where event#>>'{event}'='start_project' and time >= now() - interval '1 day';
 
-    select * from (select now()-time as age, project_id,(event#>>'{time}')::INTEGER as t from project_log where event#>>'{event}'='start_project' and time >= now() - interval '1 hour' order by time desc) as foo where t > 20000 order by age;
+    select * from (select now()-time as age, project_id,(event#>>'{time}')::INTEGER as t from project_log where event#>>'{event}'='start_project' and time >= now() - interval '1 hour' and time <= now() order by time desc) as foo where t > 20000 order by age;
 
-How log files are taking to open, as perceived by the user:
+How long files are taking to open, as perceived by the user:
 
-    select event#>>'{time}' as time_ms, left(event#>>'{filename}',70) as filename, project_id from project_log where time >= now() - interval '1 hour' and event#>>'{time}' is not null and event#>>'{action}'='open' order by time desc limit 100;
+    select event#>>'{time}' as time_ms, left(event#>>'{filename}',70) as filename, project_id from project_log where time >= now() - interval '1 hour' and time <= now() and event#>>'{time}' is not null and event#>>'{action}'='open' order by time desc limit 100;
 
 Problems people are having right now:
 

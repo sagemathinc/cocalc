@@ -1025,7 +1025,6 @@ exports.Calendar = rclass
             onChange     = {@props.on_change}
         />
 
-# WARNING: the keys of the input components must not be small negative integers
 exports.r_join = (components, sep=', ') ->
     v = []
     n = misc.len(components)
