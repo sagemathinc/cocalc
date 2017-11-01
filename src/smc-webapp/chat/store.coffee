@@ -20,6 +20,7 @@ exports.get_store_def = (name) ->
         use_saved_position : types.bool           # whether or not to maintain last saved scroll position (used when unmounting then remounting, e.g., due to tab change)
         saved_position     : types.number
         search             : types.string
+        add_collab         : types.bool
 
     getInitialState: =>
         height             : 0
@@ -33,4 +34,5 @@ exports.get_store_def = (name) ->
         use_saved_position : undefined
         saved_position     : undefined
         search             : ''
+        add_collab         : false
 

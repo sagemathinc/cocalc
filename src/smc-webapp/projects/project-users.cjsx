@@ -20,6 +20,7 @@ exports.ProjectUsers = rclass
 
     propTypes: ->
         project : rtypes.immutable.Map.isRequired
+        none    : rtypes.object   # optional component to display if there are no other users
 
     render :->
         if not @props.user_map?
@@ -36,5 +37,7 @@ exports.ProjectUsers = rclass
                            user_map    = {@props.user_map} />
         if v.length > 0
             return r_join(v)
+        else if @props.none
+            return @props.none
         else
             return <span></span>
