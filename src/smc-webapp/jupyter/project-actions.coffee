@@ -50,6 +50,9 @@ class exports.JupyterActions extends actions.JupyterActions
         @_kernel_state = state
         @_set({type:'settings', kernel_state: state}, save)
 
+    set_kernel_usage: (usage) =>
+        @_set({type:'settings', kernel_usage: usage})
+
     # Called exactly once when the manager first starts up after the store is initialized.
     # Here we ensure everything is in a consistent state so that we can react
     # to changes later.
@@ -204,6 +207,8 @@ class exports.JupyterActions extends actions.JupyterActions
         @_jupyter_kernel.on 'spawn_error', (err) =>
             # TODO: need to save so gets reported to frontend...
             dbg("error: #{err}")
+
+        @_jupyter_kernel.on('usage', @set_kernel_usage)
 
         # Ready to run code, etc.
         @sync_exec_state()

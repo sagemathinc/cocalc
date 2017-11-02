@@ -534,6 +534,7 @@ class exports.JupyterActions extends Actions
                         trust             : !!record.get('trust')  # case to boolean
                         backend_state     : record.get('backend_state')
                         kernel_state      : record.get('kernel_state')
+                        kernel_usage      : record.get('kernel_usage')
                         metadata          : record.get('metadata')   # extra custom user-specified metadata
                         max_output_length : bounded_integer(record.get('max_output_length'), 100, 100000, 20000)
                     if kernel != orig_kernel

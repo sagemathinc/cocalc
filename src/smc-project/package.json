@@ -18,6 +18,7 @@
     "mkdirp": "^0.5.1",
     "mocha": "^3.4.2",
     "node-cleanup": "^2.1.2",
+    "pidusage": "^1.2.0",
     "posix": "^4.0.0",
     "pty.js": "^0.3.0",
     "request": "^2",
