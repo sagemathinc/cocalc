@@ -202,6 +202,8 @@ exports.Kernel = rclass ({name}) ->
             Usage of the kernel process updated every few seconds.
             <br/>
             Does NOT include subprocesses.
+            <br/>
+            You can clear all memory by selecting Close and Halt from the File menu or restarting your kernel.
         </div>
         <Tip
             title     = "Kernel CPU and Memory Usage"
