@@ -1217,6 +1217,65 @@ class ProjectActions extends Actions
                 @set_activity(id: id, stop:'')
                 cb?(err)
 
+    # slowdown is an estimate how much longer computations take -- unit is percent
+    init_free_compute_slowdown: =>
+        if not @get_store()?
+            setTimeout(@init_free_compute_slowdown, 5000)
+        return if @get_store().free_compute_slowdown?
+        @setState(free_compute_slowdown : 0.0)
+        {webapp_client} = require('./webapp_client')
+        ncpu = undefined
+
+        # TODO figure out how to start and stop load estimation based on project state and member quota
+        f = =>
+            proj_store = @redux.getStore('projects')
+            quotas = proj_store.get_total_project_quotas(@project_id)
+            state  = proj_store.getIn(['project_map', @project_id, 'state', 'state'])
+            if state != 'running'
+                @setState(free_compute_slowdown : undefined)
+                return # end tail recursion
+            # project running and not on a members host
+            if (quotas?) and (not quotas.member_host)
+                webapp_client.exec
+                    project_id   : @project_id
+                    command      : '/bin/cat'
+                    args         : ['/proc/loadavg']
+                    bash         : false
+                    err_on_exit  : true
+                    cb           : (err, output) =>
+                        try
+                            [l1, l5, l15, ...] = output.stdout.split(' ')
+                            l5 = window.parseFloat(l5)
+                            #l5 = 4.2 if DEBUG             # testing only
+                            #quotas.cores = 0.75  if DEBUG # testing only
+                            # normalized load 5 bounded by 1
+                            n5 = Math.max(1, l5 / ncpu)
+                            slowdown = (100 * n5 * (1 / Math.min(quotas.cores ? 1, 1))) - 100
+                            #slowdown = 42 if DEBUG        # testing only
+                            #if DEBUG then console.log('updating free_compute_slowdown: n5 =', n5)
+                            if isFinite(slowdown) and not isNaN(slowdown)
+                                @setState(free_compute_slowdown : Math.max(0.0, slowdown))
+                            else
+                                @setState(free_compute_slowdown : 0.0)
+                        setTimeout(f, 30 * 1000)
+            else
+                # otherwise, check again later ...
+                @setState(free_compute_slowdown : 0.0)
+                setTimeout(f, 120 * 1000)
+
+        # get the number of cpus, which is constant
+        webapp_client.exec
+            project_id   : @project_id
+            bash         : true
+            command      : 'grep process /proc/cpuinfo | wc -l'
+            err_on_exit  : true
+            cb           : (err, output) =>
+                if err
+                    return
+                try
+                    ncpu = window.parseInt(output.stdout)
+                    f()
+
     ###
     # Actions for PUBLIC PATHS
     ###
@@ -1456,6 +1515,7 @@ create_project_store_def = (name, project_id) ->
         free_warning_closed      : rtypes.bool     # Makes bottom height update
         free_warning_extra_shown : rtypes.bool
         num_ghost_file_tabs      : rtypes.number
+        free_compute_slowdown    : rtypes.number
 
         # Project Files
         activity               : rtypes.immutable
@@ -1820,5 +1880,4 @@ get_directory_listing = (opts) ->
                 redux.getProjectActions(opts.project_id).log
                     event : 'start_project'
                     time  : misc.server_time() - time0
-
 
