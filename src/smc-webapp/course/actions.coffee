@@ -314,7 +314,7 @@ exports.CourseActions = class CourseActions extends Actions
 
     # Takes an item_name and the id of the time
     # item_name should be one of
-    # ['student', 'assignment', 'peer_config', handout']
+    # ['student', 'assignment', 'peer_config', handout', 'skip_grading']
     toggle_item_expansion: (item_name, item_id) =>
         store = @get_store()
         return if not store?
@@ -846,6 +846,13 @@ exports.CourseActions = class CourseActions extends Actions
             cur[k] = v
         @_set_assignment_field(assignment, 'peer_grade', cur)
 
+    toggle_skip_grading: (assignment_id) =>
+        store = @get_store()
+        return if not store?
+        assignment = store.get_assignment(assignment_id)
+        cur = assignment.get('skip_grading') ? false
+        @_set_assignment_field(assignment_id, 'skip_grading', !cur)
+
     # Synchronous function that makes the peer grading map for the given
     # assignment, if it hasn't already been made.
     update_peer_assignment: (assignment) =>
@@ -941,6 +948,12 @@ exports.CourseActions = class CourseActions extends Actions
             return finish("no assignment")
         student_name = store.get_student_name(student)
         student_project_id = student.get('project_id')
+
+        # if skip_grading is true, this means there *might* no be a "grade" given,
+        # but instead some grading inside the files or an external tool is used.
+        # therefore, only create the grade file if this is false.
+        skip_grading = assignment.get('skip_grading') ? false
+
         if not student_project_id?
             # nothing to do
             @clear_activity(id)
@@ -955,11 +968,23 @@ exports.CourseActions = class CourseActions extends Actions
             src_path += '/' + student.get('student_id')
             async.series([
                 (cb) =>
+                    if skip_grading and not peer_graded
+                        cb(); return
+                    if grade? or peer_graded
+                        content = "Your grade on this assignment:"
+                    else
+                        content = ''
                     # write their grade to a file
-                    content = "Your grade on this assignment:\n\n    #{grade}\n\n"
-                    content += "Instructor comments:\n\n    #{comments}"
+                    if grade?   # likely undefined when skip_grading true & peer_graded true
+                        content += "\n\n    #{grade}"
+                        if comments?
+                            content += "\n\nInstructor comments:\n\n    #{comments}"
                     if peer_graded
-                        content += "\n\n\nPEER GRADED:\n\nYour assignment was peer graded by other students.\nYou can find the comments they made in the folders below."
+                        content += """
+                                   \n\n\nPEER GRADED:\n
+                                   Your assignment was peer graded by other students.
+                                   You can find the comments they made in the folders below.
+                                   """
                     webapp_client.write_text_file_to_project
                         project_id : store.get('course_project_id')
                         path       : src_path + '/GRADE.txt'
@@ -999,19 +1024,22 @@ exports.CourseActions = class CourseActions extends Actions
         store = @get_store()
         if not store? or not @_store_is_initialized()
             return error("store not yet initialized")
-        if not assignment = store.get_assignment(assignment)  # correct use of "=" sign!
+        assignment = store.get_assignment(assignment)
+        if not assignment
             return error("no assignment")
         errors = ''
         peer = assignment.get('peer_grade')?.get('enabled')
+        skip_grading = assignment.get('skip_grading') ? false
         f = (student_id, cb) =>
             if not store.last_copied(previous_step('return_graded', peer), assignment, student_id, true)
                 # we never collected the assignment from this student
                 cb(); return
-            if not store.has_grade(assignment, student_id)
-                # we collected but didn't grade it yet
+            has_grade = store.has_grade(assignment, student_id)
+            if (not skip_grading) and (not has_grade)
+                # we collected and do grade, but didn't grade it yet
                 cb(); return
             if new_only
-                if store.last_copied('return_graded', assignment, student_id, true) and store.has_grade(assignment, student_id)
+                if store.last_copied('return_graded', assignment, student_id, true) and (skip_grading or has_grade)
                     # it was already returned
                     cb(); return
             n = misc.mswalltime()

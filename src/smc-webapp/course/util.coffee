@@ -34,22 +34,12 @@ exports.STEPS = (peer) ->
         return ['assignment', 'collect', 'return_graded']
 
 exports.previous_step = (step, peer) ->
-    switch step
-        when 'collect'
-            return 'assignment'
-        when 'return_graded'
-            if peer
-                return 'peer_collect'
-            else
-                return 'collect'
-        when 'assignment'
-            return
-        when 'peer_assignment'
-            return 'collect'
-        when 'peer_collect'
-            return 'peer_assignment'
-        else
-            console.warn("BUG! previous_step('#{step}')")
+    prev = undefined
+    for s in exports.STEPS(peer)
+        if step == s
+            return prev
+        prev = s
+    console.warn("BUG! previous_step('#{step}, #{peer}')")
 
 exports.step_direction = (step) ->
     switch step
