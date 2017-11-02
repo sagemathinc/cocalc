@@ -833,7 +833,7 @@ class SyncTable extends EventEmitter
         # Have to query to get actual changed data.
         @_db._query
             query : @_select_query
-            where : misc.merge("#{@_primary_key} = ANY($)" : misc.keys(changed), @_where)
+            where : [{"#{@_primary_key} = ANY($)" : misc.keys(changed)}, @_where]
             cb    : (err, result) =>
                 if err
                     @_dbg("update")("error #{err}")

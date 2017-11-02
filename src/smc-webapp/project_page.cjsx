@@ -480,7 +480,7 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
             is_active    = {@props.active_project_tab == misc.path_to_tab(path)}
         />
 
-    render_chat_indicator: ->
+    render_chat_indicator: (shrink_fixed_tabs) ->
         if @props.active_project_tab?.slice(0,7) != 'editor-'
             # TODO: This is the case where we would support project-wide side chat, or side chats
             # for each individual Files/Search, etc. page (not clear!)
@@ -489,9 +489,10 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
         is_chat_open = @props.open_files.getIn([path, 'is_chat_open'])
         <div style = {CHAT_INDICATOR_STYLE}>
             <ChatIndicator
-                project_id   = {@props.project_id}
-                path         = {path}
-                is_chat_open = {is_chat_open}
+                project_id        = {@props.project_id}
+                path              = {path}
+                is_chat_open      = {is_chat_open}
+                shrink_fixed_tabs = {shrink_fixed_tabs}
             />
         </div>
 
@@ -532,7 +533,7 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
                         {@file_tabs()}
                     </SortableNav>
                 </div>
-                {@render_chat_indicator() if not is_public}
+                {@render_chat_indicator(shrink_fixed_tabs) if not is_public}
             </div>
         </div>
 

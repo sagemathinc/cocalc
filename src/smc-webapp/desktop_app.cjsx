@@ -36,6 +36,7 @@
 {AccountPage}  = require('./account_page') # SMELL: Not used but gets around a webpack error..
 {FileUsePage}  = require('./file_use')
 {Support}      = require('./support')
+{Avatar}       = require('./other-users')
 
 # CoCalc Libraries
 misc = require('smc-util/misc')
@@ -86,6 +87,7 @@ Page = rclass
             file_use         : rtypes.immutable.Map
             get_notify_count : rtypes.func
         account :
+            account_id   : rtypes.string
             first_name   : rtypes.string # Necessary for get_fullname
             last_name    : rtypes.string # Necessary for get_fullname
             get_fullname : rtypes.func
@@ -108,14 +110,22 @@ Page = rclass
             name = misc.trunc_middle(@props.get_fullname(), 32)
         if not name.trim()
             name = "Account"
-
         return name
 
     render_account_tab: ->
+        if @props.account_id
+            a = <Avatar
+                    size       = {20}
+                    account_id = {@props.account_id}
+                    no_tooltip = {true}
+                    no_loading = {true}
+                    />
+        else
+            a = 'cog'
         <NavTab
             name           = 'account'
-            label          = {@account_name()}
-            icon           = 'cog'
+            label          = {'Account'}           # @account_name()
+            icon           = {a}
             actions        = {@actions('page')}
             active_top_tab = {@props.active_top_tab}
         />

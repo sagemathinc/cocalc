@@ -4,6 +4,12 @@ Recently added collaborators:
 
     select count(*) from project_log where time >= now() - interval '2 day' and time <= now() - interval '1 day' and event#>>'{event}' = 'invite_user';  select count(*) from project_log where time >= now() - interval '1 day' and time <= now() and event#>>'{event}' = 'invite_user';
 
+Exclude course projects:
+
+    select now()-a.time,a.project_id from project_log as a, projects as b where a.time >= now() - interval '1 day' and a.time <= now() and a.event#>>'{event}' = 'invite_user'  and a.project_id = b.project_id and b.course is null order by a.time desc;
+
+    select count(*) from project_log as a, projects as b where a.time >= now() - interval '1 day' and a.time <= now() and a.event#>>'{event}' = 'invite_user'  and a.project_id = b.project_id and b.course is null;  select count(*) from project_log as a, projects as b where a.time >= now() - interval '2 day' and a.time <= now() - interval '1 day' and a.event#>>'{event}' = 'invite_user'  and a.project_id = b.project_id and b.course is null;    select count(*) from project_log as a, projects as b where a.time >= now() - interval '3 day' and a.time <= now() - interval '2 day' and a.event#>>'{event}' = 'invite_user'  and a.project_id = b.project_id and b.course is null;
+
 Check on our SLO, namely number of projects that took 30s or more to start among the last 100 projects started.
 
     select count(*) from project_log where event#>>'{event}'='start_project' and time >= now() - interval '1 day';

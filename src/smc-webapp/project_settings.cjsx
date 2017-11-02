@@ -864,7 +864,7 @@ CollaboratorsPanel = rclass
         user_map : rtypes.object
 
     render: ->
-        <ProjectSettingsPanel title='Collaborators' icon='user'>
+        <ProjectSettingsPanel title='Add People to Project' icon='user'>
             <div key='mesg'>
                 <span style={color:'#333', fontSize:'12pt'}>
                     Who would you like to work with on this project?

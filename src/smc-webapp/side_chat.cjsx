@@ -43,6 +43,9 @@ editor_chat = require('./editor_chat')
 
 {redux_name, init_redux, newest_content, sender_is_viewer, show_user_name, is_editing, blank_column, render_markdown, render_history_title, render_history_footer, render_history, get_user_name, send_chat, clear_input, is_at_bottom, scroll_to_bottom, scroll_to_position} = require('./editor_chat')
 
+{ProjectUsers} = require('./projects/project-users')
+{AddCollaborators} = require('./collaborators/add-to-project')
+
 Message = rclass
     displayName: "Message"
 
@@ -367,6 +370,7 @@ ChatRoom = rclass ({name}) ->
             offset             : rtypes.number
             saved_mesg         : rtypes.string
             use_saved_position : rtypes.bool
+            add_collab         : rtypes.bool
         users :
             user_map : rtypes.immutable
         account :
@@ -374,6 +378,8 @@ ChatRoom = rclass ({name}) ->
             font_size  : rtypes.number
         file_use :
             file_use : rtypes.immutable
+        projects :
+            project_map : rtypes.immutable.Map
 
     propTypes:
         redux       : rtypes.object.isRequired
@@ -421,6 +427,61 @@ ChatRoom = rclass ({name}) ->
         if not @props.use_saved_position
             scroll_to_bottom(@refs.log_container, @props.actions)
 
+    render_collab_caret: ->
+        if @props.add_collab
+            icon = <Icon name='caret-down'/>
+        else
+            icon = <Icon name='caret-right'/>
+        <div
+            style   = {fontSize:'15pt', width:'16px', display:'inline-block', cursor:'pointer'}
+        >
+            {icon}
+        </div>
+
+    render_add_collab: ->
+        if not @props.add_collab
+            return
+        project = @props.project_map?.get(@props.project_id)
+        if not project?
+            return
+        <div>
+            <div style={margin:'10px 0px'}>
+                Who else would you like to work with?
+            </div>
+            <AddCollaborators
+                project = {project}
+                inline  = {true}
+            />
+            <span style={color:'#666'}>
+                NOTE: Anybody you add can work with you on any file in this project. Remove people in settings.
+            </span>
+        </div>
+
+    render_collab_list: ->
+        project = @props.project_map?.get(@props.project_id)
+        if not project?
+            return
+        style = undefined
+        if not @props.add_collab
+            style =
+                maxHeight    : '1.7em'
+                whiteSpace   : 'nowrap'
+                overflow     : 'hidden'
+                textOverflow : 'ellipsis'
+        <div style   = {style}
+             onClick = {=>@props.actions.setState(add_collab:not @props.add_collab)}>
+            {@render_collab_caret()}
+            <span style={color:'#777', fontSize:'10pt'}>
+                <ProjectUsers project={project} none={<span>Add people to work with...</span>}/>
+            </span>
+        </div>
+
+    render_project_users: ->
+        <div style={margin:'5px 15px'}>
+            {@render_collab_list()}
+            {@render_add_collab()}
+        </div>
+
     render: ->
         if not @props.messages? or not @props.redux?
             return <Loading/>
@@ -431,6 +492,7 @@ ChatRoom = rclass ({name}) ->
 
         <div style       = {height:'100%', width:'100%', position:'absolute', display:'flex', flexDirection:'column', backgroundColor:'#efefef'}
              onMouseMove = {mark_as_read}>
+            {@render_project_users()}
             <div style   = {log_container_style}
                  ref     = 'log_container'
                  onScroll= {@on_scroll}>

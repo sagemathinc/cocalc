@@ -404,6 +404,9 @@ SupportInfo = rclass
                     <a target="_blank" href="https://github.com/sagemathinc/cocalc/wiki/SageWorksheetWontRun">My Sage worksheet or Jupyter notebook is very slow or will not run...</a>
                 </li>
                 <li>
+                    <a target="_blank" href="https://github.com/sagemathinc/cocalc/wiki/KernelTerminated">My Jupyter notebook keeps crashing with "Kernel terminated"...</a>
+                </li>
+                <li>
                     <a target="_blank" href="https://github.com/sagemathinc/cocalc/wiki/SageQuestion">I have a question about how to use Sage...</a>
                 </li>
                 <li>
