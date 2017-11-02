@@ -1169,7 +1169,7 @@ exports.NonMemberProjectWarning = (opts) ->
 
     if free_compute_slowdown? and free_compute_slowdown > 0
         pct = Math.round(free_compute_slowdown)
-        slowdown = <span><Space />Due to heavy load your computations are currently slowed down by at least {pct}%.</span>
+        slowdown = <span><Space />Due to heavy load computations on this project are currently {pct}% slower than they would be on a member's server.</span>
     else
         slowdown = ''
 
