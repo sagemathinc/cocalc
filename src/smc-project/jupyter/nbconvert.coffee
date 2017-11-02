@@ -29,12 +29,17 @@ exports.nbconvert = (opts) ->
         command = 'jupyter'
         args    = ['nbconvert'].concat(opts.args)
 
+    # Note about bash/ulimit_timeout below.  This is critical since nbconvert
+    # could launch things like pdflatex that might run forever and without
+    # ulimit they do not get killed properly; this has happened in production!
     misc_node.execute_code
-        command     : command
-        args        : args
-        path        : opts.directory
-        err_on_exit : true
-        timeout     : opts.timeout   # in seconds
+        command        : command
+        args           : args
+        path           : opts.directory
+        err_on_exit    : true
+        timeout        : opts.timeout   # in seconds
+        ulimit_timeout : true
+        bash           : true    # so can use ulimit_timeout
         cb          : (err, output) =>
             if err and output?.stderr
                 err = output?.stderr

@@ -2,6 +2,8 @@
 NBConvert dialog -- for running nbconvert
 ###
 
+shell_escape = require('shell-escape')
+
 {Icon, Loading} = require('../r_misc')
 {React, ReactDOM, rclass, rtypes}  = require('../smc-react')
 TimeAgo = require('react-timeago').default
@@ -128,9 +130,12 @@ exports.NBConvert = rclass
 
     render_cmd: ->
         if @props.nbconvert_dialog.get('to') == 'sagews'
-            cmd = "smc-ipynb2sagews '#{misc.path_split(@props.path)?.tail}'"
+            cmd = shell_escape(["smc-ipynb2sagews", misc.path_split(@props.path)?.tail])
         else
-            cmd = "jupyter nbconvert #{@args().join(' ')} '#{misc.path_split(@props.path)?.tail}'"
+            v = ["jupyter", "nbconvert"]
+            v = v.concat(@args())
+            v.push(misc.path_split(@props.path)?.tail)
+            cmd = shell_escape(v)
         <pre  style={margin: '15px 0px', overflowX: 'auto'}>{cmd}</pre>
 
     render_started: ->

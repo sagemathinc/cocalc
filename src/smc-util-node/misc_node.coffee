@@ -34,6 +34,8 @@ winston = require('winston')
 async   = require('async')
 path    = require('path')
 
+shell_escape = require('shell-escape')
+
 misc = require('smc-util/misc')
 {walltime, defaults, required, to_json} = misc
 message = require('smc-util/message')
@@ -380,13 +382,15 @@ async          = require('async')
 fs             = require('fs')
 child_process  = require 'child_process'
 
+
 exports.execute_code = execute_code = (opts) ->
     opts = defaults opts,
         command    : required
         args       : []
         path       : undefined   # defaults to home directory; where code is executed from
         timeout    : 10          # timeout in *seconds*
-        ulimit_timeout : true    # if set, use ulimit to ensure a cpu timeout -- don't use when launching a daemon!
+        ulimit_timeout : true    # If set, use ulimit to ensure a cpu timeout -- don't use when launching a daemon!
+                                 # This has no effect if bash not true.
         err_on_exit: true        # if true, then a nonzero exit code will result in cb(error_message)
         max_output : undefined   # bound on size of stdout and stderr; further output ignored
         bash       : false       # if true, ignore args and evaluate command as a bash command
@@ -404,6 +408,10 @@ exports.execute_code = execute_code = (opts) ->
     s = opts.command.split(/\s+/g) # split on whitespace
     if opts.args.length == 0 and s.length > 1
         opts.bash = true
+    else if opts.bash and opts.args.length > 0
+        # Selected bash, but still passed in args.
+        opts.command = shell_escape([opts.command].concat(opts.args))
+        opts.args = []
 
     if not opts.home?
         opts.home = process.env.HOME
@@ -558,8 +566,8 @@ exports.execute_code = execute_code = (opts) ->
                             r.kill("SIGKILL")  # this does not kill the process group :-(
                         catch e
                             # Exceptions can happen, which left uncaught messes up calling code bigtime.
-                        if opts.verbose
-                            winston.debug("execute_code: r.kill raised an exception.")
+                            if opts.verbose
+                                winston.debug("execute_code: r.kill raised an exception.")
                         if not callback_done
                             callback_done = true
                             c("killed command '#{opts.command} #{opts.args.join(' ')}'")
