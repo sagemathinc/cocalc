@@ -609,6 +609,7 @@ class Kernel extends EventEmitter
             return
         @_nbconvert_lock = true
         args = misc.copy(opts.args)
+        args.push('--')
         args.push(@_filename)
         nbconvert.nbconvert
             args      : args

@@ -129,11 +129,15 @@ exports.NBConvert = rclass
         </div>
 
     render_cmd: ->
+        # WARNING: this is just for looks; cmd is not what is literally run on the backend, though
+        # it **should** be in theory.  But if you were to just change this, don't expect it to magically
+        # change on the backend, as other code generates the cmd there. If this bugs you, refactor it!
         if @props.nbconvert_dialog.get('to') == 'sagews'
             cmd = shell_escape(["smc-ipynb2sagews", misc.path_split(@props.path)?.tail])
         else
             v = ["jupyter", "nbconvert"]
             v = v.concat(@args())
+            v.push('--')
             v.push(misc.path_split(@props.path)?.tail)
             cmd = shell_escape(v)
         <pre  style={margin: '15px 0px', overflowX: 'auto'}>{cmd}</pre>

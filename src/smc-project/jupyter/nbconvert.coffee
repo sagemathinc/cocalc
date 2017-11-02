@@ -24,7 +24,7 @@ exports.nbconvert = (opts) ->
     if to == 'sagews'
         # support sagews convertor, which is its own script, not in nbconvert.
         command = 'smc-ipynb2sagews'
-        args    = opts.args.slice(0, j).concat(opts.args.slice(j+2))
+        args    = opts.args.slice(0, j).concat(opts.args.slice(j+3))  # j+3 cuts out --to and --.
     else
         command = 'jupyter'
         args    = ['nbconvert'].concat(opts.args)
