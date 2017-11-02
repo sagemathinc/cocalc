@@ -1218,10 +1218,10 @@ class ProjectActions extends Actions
                 cb?(err)
 
     # slowdown is an estimate how much longer computations take -- unit is percent
+    # After initialization, updated every 30 seconds if the store exists
+    # Requires the store to be initialized
     init_free_compute_slowdown: =>
-        if not @get_store()?
-            setTimeout(@init_free_compute_slowdown, 5000)
-        return if @get_store().free_compute_slowdown?
+        return if not @get_store()? or @get_store().free_compute_slowdown?
         @setState(free_compute_slowdown : 0.0)
         {webapp_client} = require('./webapp_client')
         ncpu = undefined
@@ -1257,11 +1257,11 @@ class ProjectActions extends Actions
                                 @setState(free_compute_slowdown : Math.max(0.0, slowdown))
                             else
                                 @setState(free_compute_slowdown : 0.0)
-                        setTimeout(f, 30 * 1000)
+                        setTimeout(f, 30 * 1000) if @get_store()?
             else
                 # otherwise, check again later ...
                 @setState(free_compute_slowdown : 0.0)
-                setTimeout(f, 120 * 1000)
+                setTimeout(f, 120 * 1000) if @get_store()?
 
         # get the number of cpus, which is constant
         webapp_client.exec
