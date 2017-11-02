@@ -1888,7 +1888,7 @@ exports.get_query_param = (p) ->
 # delete it afterwards
 exports.get_utm = ->
     c = exports.get_cookie(misc.utm_cookie_name)
-    return undefined if not c
+    return if not c
     try
         data = misc.from_json(window.decodeURIComponent(c))
         if DEBUG then console.log("get_utm cookie data", data)
@@ -1898,5 +1898,6 @@ exports.get_utm = ->
 # get referrer information
 exports.get_referrer = ->
     c = exports.get_cookie(misc.referrer_cookie_name)
+    return if not c
     exports.delete_cookie(misc.referrer_cookie_name)
-    return c if c
+    return c

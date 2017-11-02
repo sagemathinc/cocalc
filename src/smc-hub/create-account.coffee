@@ -123,7 +123,8 @@ exports.create_account = (opts) ->
                             last_name     : opts.mesg.last_name
                             email_address : opts.mesg.email_address
                             created_by    : opts.client.ip_address
-                        data.utm = opts.mesg.utm if opts.mesg.utm?
+                        data.utm      = opts.mesg.utm      if opts.mesg.utm?
+                        data.referrer = opts.mesg.referrer if opts.mesg.referrer?
                         opts.database.log
                             event : 'create_account'
                             value : data
@@ -147,6 +148,7 @@ exports.create_account = (opts) ->
             if not opts.sign_in
                 cb(); return
             dbg("send message back to user that they are logged in as the new user (in #{misc.walltime(tm)}seconds)")
+            # no utm/referrer info being logged, because it is already done in the create_account entry above.
             mesg1 = message.signed_in
                 id            : opts.mesg.id
                 account_id    : account_id

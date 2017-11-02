@@ -1,5 +1,6 @@
 //- if we have a GA token, insert the google analytics async script
 - var GOOGLE_ANALYTICS = htmlWebpackPlugin.options.GOOGLE_ANALYTICS
+- var DNS = htmlWebpackPlugin.options.theme.DNS
 if typeof GOOGLE_ANALYTICS !== "undefined" && GOOGLE_ANALYTICS !== null
     //--- Google Analytics ---
     script.
@@ -27,6 +28,7 @@ if typeof GOOGLE_ANALYTICS !== "undefined" && GOOGLE_ANALYTICS !== null
 //- Therefore we have to do the extraction on static pages, too!
 //- The referral is only stored if not already set.
 //- This helps to filter the SSO auth pages, which are uninteresting referrals
+script window._DNS = '#{DNS}';
 script
   :coffee-script
     utm = {}
@@ -50,4 +52,9 @@ script
       document.cookie = "CC_UTM=#{data}; #{expires}; path=/"
 
     if document.referrer.length > 0 and document.cookie.indexOf('; CC_REF=') == -1
-      document.cookie = "CC_REF=#{document.referrer}; #{expires}; path=/"
+      url = window._DNS.replace('.', '\\.')
+      re = new RegExp(":\/\/(.*\.|)#{url}\/")
+      if not document.referrer.match(re)
+        document.cookie = "CC_REF=#{document.referrer}; #{expires}; path=/"
+
+    delete window._DNS
