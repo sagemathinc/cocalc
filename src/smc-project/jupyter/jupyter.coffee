@@ -240,7 +240,7 @@ class Kernel extends EventEmitter
                     dbg("err", err, " -- skip")
                     return
                 for x in ['cpu', 'memory']
-                    if usage[x] > locals.last_usage[x]*(1+locals.thresh) or usage[x] < locals.last_usage[x]*(1-locals.thresh) or usage[x] == 0 and local.last_usage[x] > 0
+                    if usage[x] > locals.last_usage[x]*(1+locals.thresh) or usage[x] < locals.last_usage[x]*(1-locals.thresh) or usage[x] == 0 and locals.last_usage[x] > 0
                         locals.last_usage = usage
                         @emit('usage', usage)
                         break
