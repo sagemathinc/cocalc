@@ -91,7 +91,7 @@ exports.init_express_http_server = (opts) ->
             res_finished_h({path:dir_path, method:req.method, code:res.statusCode})
         next()
 
-    # save utm parameters in a (temporary) session cookie or read it to fill in locals.utm
+    # save utm parameters and referrer in a (short lived) cookie or read it to fill in locals.utm
     # webapp takes care of consuming it (see misc_page.get_utm)
     router.use (req, res, next) ->
         # quickly return in the usual case
@@ -108,7 +108,7 @@ exports.init_express_http_server = (opts) ->
 
         for k, v of req.query
             continue if not misc.startswith(k, 'utm_')
-            # unknown input, limit the length of key and value
+            # untrusted input, limit the length of key and value
             k = k[4...50]
             utm[k] = v[...50] if k in misc.utm_keys
 
@@ -116,6 +116,10 @@ exports.init_express_http_server = (opts) ->
             utm_data = encodeURIComponent(JSON.stringify(utm))
             res.cookie(misc.utm_cookie_name, utm_data, {path: '/', maxAge: ms('1 day'), httpOnly: false})
             res.locals.utm = utm
+
+        referrer_cookie = req.cookies[misc.referrer_cookie_name]
+        if referrer_cookie
+            res.locals.referrer = referrer_cookie
 
         winston.debug("HTTP server: #{req.url} -- UTM: #{misc.to_json(res.locals.utm)}")
         next()

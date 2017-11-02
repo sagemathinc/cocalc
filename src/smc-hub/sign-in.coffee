@@ -301,8 +301,8 @@ exports.record_sign_in = (opts) ->
             email_address : opts.email_address ? null
             remember_me   : opts.remember_me
             account_id    : opts.account_id
-        data.utm = opts.utm if opts.utm?
-        data.referrer = opts.referrer if opts.referrer?
+        data.utm      = opts.utm      if opts.utm
+        data.referrer = opts.referrer if opts.referrer
         opts.database.log
             event : 'successful_sign_in'
             value : data

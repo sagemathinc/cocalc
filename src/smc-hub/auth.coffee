@@ -254,7 +254,8 @@ passport_login = (opts) ->
                         last_name     : opts.last_name
                         email_address : email_address ? null
                         created_by    : opts.req.ip
-                    data.utm = opts.res.locals.utm if opts.res.locals.utm?
+                    data.utm      = opts.res.locals.utm      if opts.res.locals.utm
+                    data.referrer = opts.res.locals.referrer if opts.res.locals.referrer
                     opts.database.log
                         event : 'create_account'
                         value : data
@@ -272,6 +273,7 @@ passport_login = (opts) ->
                 email_address : email_address
                 account_id    : account_id
                 utm           : opts.res.locals.utm
+                referrer      : opts.res.locals.referrer
                 database      : opts.database
             cb() # don't let client wait for this
 
