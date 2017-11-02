@@ -299,12 +299,19 @@ Assignment = rclass
         else
             width = 3
         buttons = []
+        insert_skip_button = =>
+            b2 = @render_skip_grading_button(status)
+            buttons.push(<Col md={width} key='skip_grading'>{b2}</Col>)
+
         for name in STEPS(peer)
             b = @["render_#{name}_button"](status)
+            # squeeze in the skip grading button (don't add it to STEPS!)
+            if !peer and name == 'return_graded'
+                insert_skip_button()
             if b?
-                if name == 'return_graded'
-                    buttons.push(<Col md={width} key='filler'></Col>)
                 buttons.push(<Col md={width} key={name}>{b}</Col>)
+                if peer and name == 'peer_collect'
+                    insert_skip_button()
 
         v.push <Row key='header-control'>
             <Col md=10 mdOffset=2 key='buttons'>
@@ -548,6 +555,19 @@ Assignment = rclass
         # Assign assignment to all (non-deleted) students.
         @props.redux.getActions(@props.name).return_assignment_to_all_students(@props.assignment)
 
+    render_skip_grading_button: (status) ->
+        if status.collect == 0
+            # No button if nothing collected.
+            return
+        if @props.assignment.get('skip_grading') ? false
+            icon = 'check-square-o'
+        else
+            icon = 'square-o'
+        <Button
+            onClick={=>@actions(@props.name).toggle_skip_grading(@props.assignment.get('assignment_id'))}>
+            <Icon name={icon} /> Skip Grading
+        </Button>
+
     render_return_graded_button: (status) ->
         if status.collect == 0
             # No button if nothing collected.
@@ -555,7 +575,8 @@ Assignment = rclass
         if status.peer_collect? and status.peer_collect == 0
             # Peer grading enabled, but we didn't collect anything yet
             return
-        if status.not_return_graded == 0 and status.return_graded == 0
+        skip_grading = @props.assignment.get('skip_grading') ? false
+        if (!skip_grading) and (status.not_return_graded == 0 and status.return_graded == 0)
             # Nothing unreturned and ungraded yet and also nothing returned yet
             return
         if status.return_graded > 0

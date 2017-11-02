@@ -890,6 +890,19 @@ schema.public_paths =
         disabled    :
             type : 'boolean'
             desc : 'if true then disabled'
+        created :
+            type : 'timestamp'
+            desc : 'when this path was created'
+        last_edited :
+            type : 'timestamp'
+            desc : 'when this path was last edited'
+        last_saved :
+            type : 'timestamp'
+            desc : 'when this path was last saved (or deleted if disabled) by manage-storage'
+        counter :
+            type : 'number'
+            desc : 'the number of times this public path has been accessed'
+
     pg_indexes : ['project_id']
     user_query:
         get :

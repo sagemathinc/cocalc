@@ -63,6 +63,8 @@ exports.Avatar = Avatar = rclass
         path       : rtypes.string   # if given, showing avatar for a specific file
         activity   : rtypes.object   # if given; is most recent activity -- {project_id:?, path:?, last_used:?} object;
                                      # When defined, fade out over time; click goes to that file.
+        no_tooltip : rtypes.bool     # if true, do not show a tooltip with full name info
+        no_loading : rtypes.bool     # if true do not show a loading indicator (show nothing)
 
     getDefaultProps: ->
         size      : 30
@@ -182,8 +184,7 @@ exports.Avatar = Avatar = rclass
             fontSize   : "#{.7*size}px"
             opacity    : @fade()
 
-        <OverlayTrigger placement='top' overlay={@render_tooltip()}>
-            <div style = {display:'inline-block', pointer:'cursor'}>
+        elt = <div style = {display:'inline-block', pointer:'cursor'}>
                 <div
                     style   = {misc.merge outer_style, CIRCLE_OUTER_STYLE}
                     onClick = {@click_avatar}
@@ -191,7 +192,12 @@ exports.Avatar = Avatar = rclass
                     {@render_inside()}
                 </div>
             </div>
-        </OverlayTrigger>
+        if @props.no_tooltip
+            return elt
+        else
+            <OverlayTrigger placement='top' overlay={@render_tooltip()}>
+                {elt}
+            </OverlayTrigger>
 
 most_recent = (activity) ->
     last_used = activity[0].last_used
@@ -253,7 +259,10 @@ exports.UsersViewing = rclass
 
     render: ->
         if not @props.file_use? or not @props.account_id?
-            return <Loading/>
+            if @props.no_loading
+                return <span></span>
+            else
+                return <Loading/>
         users = redux.getStore('file_use').get_active_users
             project_id : @props.project_id
             path       : @props.path

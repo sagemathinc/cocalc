@@ -939,8 +939,11 @@ class TaskList
         e = task.element
         if not e?
             return
-        if e.hasClass('webapp-task-editing-desc') and e.data('cm')?
-            e.data('cm').focus()
+        cm = e.data('cm')
+        if e.hasClass('webapp-task-editing-desc') and cm?
+            cm.focus()
+            cm.refresh()
+            currently_focused_editor = cm
             return
         e.find(".webapp-task-desc").addClass('webapp-task-desc-editing')
         e.find(".webapp-task-toggle-icons").hide()
@@ -951,6 +954,7 @@ class TaskList
         if elt.length > 0
             elt.show()
             cm = e.data('cm')
+            currently_focused_editor = cm
             cm.focus()
             e.addClass('webapp-task-editing-desc')
             # apply any changes
@@ -962,6 +966,8 @@ class TaskList
 
         finished = false
         stop_editing = () =>
+            if currently_focused_editor?.task_id == task.task_id
+                currently_focused_editor = undefined
             finished = true
             e.removeClass('webapp-task-editing-desc')
             e.find(".webapp-task-desc").removeClass('webapp-task-desc-editing')
@@ -1008,6 +1014,7 @@ class TaskList
 
         cm = CodeMirror.fromTextArea(elt.find("textarea")[0], opts)
         cm.save = @save
+        cm.task_id = task.task_id
         if editor_settings.bindings == 'vim'
             cm.setOption("vimMode", true)
 
@@ -1047,13 +1054,17 @@ class TaskList
         # (unless there are incoming sync updates to process).
         cm.on 'changes', underscore.debounce(sync_desc, 2000)
 
+        # NOTE: calling cm.focus() does NOT cause this 'focus' below to get called always, at least
+        # not on ipad.  So... that's why we explicitly set currently_focused_editor in various
+        # places above too.
         cm.on 'focus', () ->
             currently_focused_editor = cm
             $(cm.getWrapperElement()).addClass('webapp-new-task-cm-editor-focus')
 
         cm.on 'blur', () ->
             $(cm.getWrapperElement()).removeClass('webapp-new-task-cm-editor-focus')
-            currently_focused_editor = undefined
+            if currently_focused_editor?.task_id == task.task_id
+                currently_focused_editor = undefined
 
         cm.focus()
         if cursor_at_end

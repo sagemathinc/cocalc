@@ -321,7 +321,13 @@ exports.StudentAssignmentInfo = rclass
 
     render: ->
         peer_grade = @props.assignment.get('peer_grade')?.get('enabled')
-        show_grade_col = (peer_grade and @props.info.last_peer_collect) or (not peer_grade and @props.info.last_collect)
+        skip_grading = @props.assignment.get('skip_grading') ? false
+        if peer_grade
+            show_grade_col = !skip_grading and @props.info.last_peer_collect
+            show_return_graded = @props.grade or (skip_grading and @props.info.last_peer_collect)
+        else
+            show_grade_col = !skip_grading and @props.info.last_collect
+            show_return_graded = @props.grade or (skip_grading and @props.info.last_collect)
         width = if peer_grade then 2 else 3
         <Row style={borderTop:'1px solid #aaa', paddingTop:'5px', paddingBottom: '5px'}>
             <Col md=2 key="title">
@@ -345,7 +351,7 @@ exports.StudentAssignmentInfo = rclass
                     <Col md={width} key='return_graded'>
                         {@render_last('Return', @props.info.last_return_graded, 'graded', @props.info.last_collect?,
                            "Copy the graded assignment back to your student's project.",
-                           "Open the copy of your student's work that you returned to them. This opens the returned assignment directly in their project.") if @props.grade}
+                           "Open the copy of your student's work that you returned to them. This opens the returned assignment directly in their project.") if show_return_graded}
                     </Col>
                 </Row>
             </Col>

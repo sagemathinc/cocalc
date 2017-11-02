@@ -7,8 +7,8 @@ immutable  = require('immutable')
 {React, rtypes, rclass}  = require('../smc-react')
 {Button, Row, Col, Well} = require('react-bootstrap')
 {Icon, Markdown, ProjectState, r_join, Space, TimeAgo} = require('../r_misc')
-{User} = require('../users')
 {AddCollaborators} = require('../collaborators/add-to-project')
+{ProjectUsers} = require('./project-users')
 
 exports.ProjectRow = rclass
     displayName : 'Projects-ProjectRow'
@@ -17,14 +17,10 @@ exports.ProjectRow = rclass
         project  : rtypes.object.isRequired
         index    : rtypes.number
         redux    : rtypes.object
-        user_map : rtypes.immutable.Map
 
     reduxProps:
-        "projects" :
+        projects :
             add_collab : rtypes.immutable.Set
-
-    getDefaultProps: ->
-        user_map : undefined
 
     render_status: ->
         state = @props.project.state?.state ? 'closed'
@@ -40,16 +36,10 @@ exports.ProjectRow = rclass
             console.warn("error setting time of project #{@props.project.project_id} to #{@props.project.last_edited} -- #{e}; please report to help@sagemath.com")
 
     render_user_list: ->
-        other = ({account_id:account_id} for account_id,_ of @props.project.users)
-        @props.redux.getStore('projects').sort_by_activity(other, @props.project.project_id)
-        users = []
-        for i in [0...other.length]
-            users.push <User
-                           key         = {other[i].account_id}
-                           last_active = {other[i].last_active}
-                           account_id  = {other[i].account_id}
-                           user_map    = {@props.user_map} />
-        return r_join(users)
+        imm = @props.redux.getStore('projects').getIn(['project_map', @props.project.project_id])
+        <ProjectUsers
+            project={imm}
+        />
 
     add_collab: (set) ->
         project_id = @props.project.project_id
@@ -163,7 +153,7 @@ AddCollaboratorsArea = rclass
 
     render: ->
         <div>
-            <h5>Add Collaborators</h5>
+            <h5>Add People</h5>
             <div style={color:'#666', marginBottom:'10px'}>
                 Who would you like to work with on this project?
             </div>
