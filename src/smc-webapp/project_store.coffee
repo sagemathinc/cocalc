@@ -1752,6 +1752,7 @@ exports.getStore = getStore = (project_id, redux) ->
     actions = redux.createActions(name, ProjectActions)
     actions.project_id = project_id  # so actions can assume this is available on the object
     store = redux.createStore(create_project_store_def(name, project_id))
+    actions.init_free_compute_slowdown()
 
     queries = misc.deep_copy(QUERIES)
     create_table = (table_name, q) ->

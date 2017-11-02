@@ -225,7 +225,7 @@ class ProjectsActions extends Actions
         relation = redux.getStore('projects').get_my_group(opts.project_id)
         if not relation? or relation in ['public', 'admin']
             @fetch_public_project_title(opts.project_id)
-        project_actions.fetch_directory_listing(finish_cb:project_actions.init_free_compute_slowdown)
+        project_actions.fetch_directory_listing()
         redux.getActions('page').set_active_tab(opts.project_id) if opts.switch_to
         @set_project_open(opts.project_id)
         if opts.target?
