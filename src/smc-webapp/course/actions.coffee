@@ -969,11 +969,12 @@ exports.CourseActions = class CourseActions extends Actions
             async.series([
                 (cb) =>
                     if skip_grading and not peer_graded
-                        cb(); return
-                    if grade? or peer_graded
-                        content = "Your grade on this assignment:"
+                        content = 'Your instructor is doing grading outside CoCalc, or there is no grading for this assignment.'
                     else
-                        content = ''
+                        if grade? or peer_graded
+                            content = "Your grade on this assignment:"
+                        else
+                            content = ''
                     # write their grade to a file
                     if grade?   # likely undefined when skip_grading true & peer_graded true
                         content += "\n\n    #{grade}"
