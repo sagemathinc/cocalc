@@ -1169,17 +1169,17 @@ exports.NonMemberProjectWarning = (opts) ->
 
     if free_compute_slowdown? and free_compute_slowdown > 0
         pct = Math.round(free_compute_slowdown)
-        slowdown = <span><Space />Due to heavy load computations on this project are currently {pct}% slower than they would be on a member's server.</span>
+        slowdown = <span><Space />Due to heavy load computations on this project are running {pct}% slower than they would on a member's server.</span>
     else
         slowdown = ''
 
     <Alert bsStyle='warning' style={marginTop:'10px'}>
         <h4><Icon name='exclamation-triangle'/>  Warning: this project is <strong>running on a free server</strong></h4>
         <p>
+            {slowdown}
             Projects running on free servers compete for resources with a large number of other free projects.
             The free servers are <b><i>randomly rebooted frequently</i></b>,
             and are often <b><i>much more heavily loaded</i></b> than members-only servers.
-            {slowdown}
             {suggestion}
         </p>
     </Alert>

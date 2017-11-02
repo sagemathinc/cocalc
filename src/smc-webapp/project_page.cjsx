@@ -246,12 +246,12 @@ FreeProjectWarning = rclass ({name}) ->
 
         if @props.free_compute_slowdown? and @props.free_compute_slowdown > 0.0
             pct = Math.round(@props.free_compute_slowdown)
-            slowdown = <span>and due to heavy load, computations on this project are currently <b>{pct}% slower than they would be on a members server</b>.</span>
+            slowdown = <span>Due to heavy load, computations in this project are running <b>{pct}% slower than they would on a members server</b>.</span>
         else
             slowdown = ''
 
         <Alert bsStyle='warning' style={styles}>
-            <Icon name='exclamation-triangle' /> WARNING: This project runs {<span>on a <b>free server</b> (which may become unavailable) {slowdown}</span> if host} {<span>without <b>internet access</b></span> if internet} &mdash;
+            <Icon name='exclamation-triangle' /> WARNING: This project runs {<span>on a <b>free server</b></span> if host} {<span>without <b>internet access</b></span> if internet} {slowdown if host} &mdash;
             <a onClick={=>@actions(project_id: @props.project_id).show_extra_free_warning()} style={cursor:'pointer'}> learn more...</a>
             <a style={dismiss_styles} onClick={@actions(project_id: @props.project_id).close_free_warning}>×</a>
             {@extra(host, internet)}
