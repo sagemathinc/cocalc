@@ -943,24 +943,6 @@ class ProjectActions extends Actions
                 if not err
                     @open_file(path: lib.start)
 
-    touch_file: (opts) =>
-        opts = defaults opts,
-            path : '.'
-            dest : required
-
-        id = misc.uuid()
-        @set_activity(id:id, status: "Touching #{opts.dest} ...")
-
-        webapp_client.exec
-            project_id       : @project_id
-            command          : 'touch'
-            args             : [opts.dest]
-            timeout          : 30
-            network_timeout  : 120
-            err_on_exit      : true
-            path             : opts.path
-            cb               : @_finish_exec(id)
-
     copy_paths: (opts) =>
         opts = defaults opts,
             src           : required     # Should be an array of source paths
