@@ -86,15 +86,14 @@ exports.TopMenubar = rclass ({name}) ->
             rename = '<' + rename
 
         close_and_halt = 'close and halt'
-        if not @props.has_unsaved_changes or @props.read_only
+        if @props.read_only
             close_and_halt = '<' + close_and_halt
 
         names = [
-                'new notebook', 'open file', '', \
+                'new notebook', 'open file', close_and_halt, '', \
                 'duplicate notebook', rename, save, 'time travel', '', \
                 'print preview', '<Download as...', '>nbconvert ipynb',  script_entry, '>nbconvert html', '>nbconvert markdown', '>nbconvert rst', '>nbconvert tex', '>nbconvert pdf',  '>nbconvert sagews', '', '>nbconvert slides', '>nbconvert asciidoc', '', \
-                trust, '', \
-                close_and_halt]
+                trust]
         if @props.fullscreen != 'kiosk'
             names.push('')
             names.push('switch to classical notebook')

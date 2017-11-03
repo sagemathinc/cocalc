@@ -30,6 +30,12 @@ KERNEL_NAME_STYLE =
     borderLeft  : '1px solid #666'
     paddingLeft : '5px'
 
+KERNEL_USAGE_STYLE =
+    margin       : '5px'
+    color        : '#666'
+    borderRight  : '1px solid #666'
+    paddingRight : '5px'
+
 KERNEL_ERROR_STYLE =
     margin          : '5px'
     color           : '#fff'
@@ -52,6 +58,7 @@ exports.Kernel = rclass ({name}) ->
             kernel_info   : rtypes.immutable.Map
             backend_state : rtypes.string
             kernel_state  : rtypes.string
+            kernel_usage  : rtypes.immutable.Map
             trust         : rtypes.bool
             read_only     : rtypes.bool
 
@@ -62,6 +69,7 @@ exports.Kernel = rclass ({name}) ->
             next.kernel_info   != @props.kernel_info or \
             next.backend_state != @props.backend_state or \
             next.kernel_state  != @props.kernel_state or \
+            next.kernel_usage  != @props.kernel_usage or \
             next.trust         != @props.trust or \
             next.read_only     != @props.read_only
 
@@ -165,10 +173,55 @@ exports.Kernel = rclass ({name}) ->
             {body}
         </Tip>
 
+    render_usage: ->
+        if not @props.kernel_usage?
+            # unknown, e.g, not reporting/working or old backend.
+            return
+        if @props.backend_state != 'running' and @props.backend_state != 'starting'
+            # not using resourcesw
+            memory = cpu = 0
+        else
+            memory = @props.kernel_usage.get('memory')
+            if not memory?
+                return
+            cpu = @props.kernel_usage.get('cpu')
+            if not cpu?
+                return
+            memory = Math.round(memory/1000000)
+            cpu    = Math.round(cpu)
+            cpu_style = memory_style = undefined
+            if cpu > 10 and cpu < 50
+                cpu_style = {backgroundColor:'yellow'}
+            if cpu > 50
+                cpu_style = {backgroundColor:'rgb(92,184,92)', color:'white'}
+            if memory > 500
+                memory_style = {backgroundColor:'yellow'}
+            if memory > 800  # TODO: depend on upgrades...?
+                memory_style = {backgroundColor:'red', color:'white'}
+        tip = <div>
+            Usage of the kernel process updated every few seconds.
+            <br/>
+            Does NOT include subprocesses.
+            <br/>
+            You can clear all memory by selecting Close and Halt from the File menu or restarting your kernel.
+        </div>
+        <Tip
+            title     = "Kernel CPU and Memory Usage"
+            tip       = {tip}
+            placement = 'bottom'
+        >
+            <span style={KERNEL_USAGE_STYLE}>
+                CPU: <span style={cpu_style}>{cpu}%</span>
+            </span>
+            <span style={KERNEL_USAGE_STYLE}>
+                Memory: <span style={memory_style}>{memory}MB</span>
+            </span>
+        </Tip>
+
     render : ->
         if not @props.kernel?
             return <span/>
-        title = <span>{@render_trust()}{@render_name()}</span>
+        title = <span>{@render_usage()}{@render_trust()}{@render_name()}</span>
         body = <div className='pull-right' style={color:'#666', cursor:'pointer', marginTop:'7px'}>
                 {title}
                 {@render_backend_state_icon()}

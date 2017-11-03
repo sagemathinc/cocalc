@@ -31,6 +31,7 @@ exports.TopButtonbar = rclass ({name}) ->
             has_uncommitted_changes : rtypes.bool
             read_only               : rtypes.bool
             kernel_state            : rtypes.string
+            kernel_usage            : rtypes.immutable.Map
         "page" :
             fullscreen : rtypes.string
 
@@ -40,7 +41,8 @@ exports.TopButtonbar = rclass ({name}) ->
             next.has_unsaved_changes != @props.has_unsaved_changes or \
             next.read_only != @props.read_only or \
             next.has_uncommitted_changes != @props.has_uncommitted_changes or \
-            next.kernel_state != @props.kernel_state
+            next.kernel_state != @props.kernel_state or \
+            next.kernel_usage != @props.kernel_usage
 
     command: (name, focus) ->
         return =>
@@ -53,14 +55,21 @@ exports.TopButtonbar = rclass ({name}) ->
 
     render_button: (key, name) ->
         if typeof(name) == 'object'
-            {name, disabled} = name
+            {name, disabled, style} = name
+        else
+            style = undefined
         if @props.read_only  # all buttons disabled in read-only mode
             disabled = true
         obj = @props.actions._commands?[name]
         if not obj?
             return
         focus = not misc.endswith(obj.m, '...')
-        <Button key={key} onClick={@command(name, focus)} title={obj.m} disabled={disabled} >
+        <Button
+            key      = {key}
+            onClick  = {@command(name, focus)}
+            title    = {obj.m}
+            disabled = {disabled}
+            style    = {style} >
             <Icon name={obj.i}/>
         </Button>
 
@@ -83,7 +92,11 @@ exports.TopButtonbar = rclass ({name}) ->
         @render_button_group(['move cell up', 'move cell down'], true)
 
     render_group_run: ->
-        @render_button_group(['run cell and select next', {name:'interrupt kernel', disabled:@props.kernel_state != 'busy'}, 'tab key'])
+        if (@props.kernel_usage?.get('cpu') ? 0) >= 50
+            stop_style = {backgroundColor:'rgb(92,184,92)', color:'white'}
+        else
+            stop_style = undefined
+        @render_button_group(['run cell and select next', {name:'interrupt kernel', disabled:@props.kernel_state != 'busy', style:stop_style}, 'tab key'])
 
     cell_select_type: (event) ->
         @props.actions.set_selected_cell_type(event.target.value)

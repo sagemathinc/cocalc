@@ -100,10 +100,13 @@ class exports.OutputHandler extends EventEmitter
     error: (err) =>
         if err == 'closed'
             # See https://github.com/sagemathinc/cocalc/issues/2388
-            err = 'Kernel terminated -- this might be caused by running out of memory or hitting a bug in some library (e.g., forking too many processes, trying to access invalid memory, etc.). Consider restarting or upgrading your project or running the relevant code directly in a terminal to track down the cause.'
-        @message
-            text : "#{err}"
-            name : "stderr"
+            @message
+                data :
+                    "text/markdown" : "<font color='red'>**Jupyter Kernel terminated:**</font> This might be caused by running out of memory or hitting a bug in some library (e.g., forking too many processes, trying to access invalid memory, etc.). Consider restarting or upgrading your project or running the relevant code directly in a terminal to track down the cause, as [explained here](https://github.com/sagemathinc/cocalc/wiki/KernelTerminated)."
+        else
+            @message
+                text : "#{err}"
+                name : "stderr"
         @done()
 
     # Call done exactly once when done

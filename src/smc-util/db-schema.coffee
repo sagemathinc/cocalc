@@ -904,6 +904,7 @@ schema.public_paths =
             desc : 'the number of times this public path has been accessed'
 
     pg_indexes : ['project_id']
+
     user_query:
         get :
             pg_where : ["project_id = $::UUID": 'project_id']
@@ -914,6 +915,10 @@ schema.public_paths =
                 path        : null
                 description : null
                 disabled    : null   # if true then disabled
+                last_edited : null
+                created     : null
+                last_saved  : null
+                counter     : null
         set :
             fields :
                 id          : (obj, db) -> db.sha1(obj.project_id, obj.path)
@@ -921,10 +926,15 @@ schema.public_paths =
                 path        : true
                 description : true
                 disabled    : true
+                last_edited : true
+                created     : true
             required_fields :
                 id          : true
                 project_id  : true
                 path        : true
+
+
+schema.public_paths.project_query = misc.deep_copy(schema.public_paths.user_query)
 
 ###
 Requests and status related to copying files between projects.
