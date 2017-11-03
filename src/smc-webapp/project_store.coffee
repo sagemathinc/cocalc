@@ -1221,13 +1221,22 @@ class ProjectActions extends Actions
     # Actions for PUBLIC PATHS
     ###
     set_public_path: (path, description) =>
-        obj = {project_id:@project_id, path:path, disabled:false}
+        obj =
+            project_id  : @project_id
+            path        : path
+            disabled    : false
+            last_edited : misc.server_time()
         if description?
             obj.description = description
+
         @redux.getProjectTable(@project_id, 'public_paths').set(obj)
 
     disable_public_path: (path) =>
-        @redux.getProjectTable(@project_id, 'public_paths').set(project_id:@project_id, path:path, disabled:true)
+        @redux.getProjectTable(@project_id, 'public_paths').set
+            project_id  : @project_id
+            path        : path
+            disabled    : true
+            last_edited : misc.server_time()
 
 
     ###
