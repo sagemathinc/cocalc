@@ -27,7 +27,7 @@ _             = require('underscore')
 {redux, rclass, React, ReactDOM, rtypes, Actions, Store}  = require('./smc-react')
 
 {Button, ButtonToolbar, FormControl, FormGroup, Row, Col, Accordion, Panel, Well, Alert, ButtonGroup, InputGroup} = require('react-bootstrap')
-{ActivityDisplay, ErrorDisplay, Icon, Loading, SelectorInput, r_join, Space, TimeAgo, Tip, Footer} = require('./r_misc')
+{ActivityDisplay, ErrorDisplay, Icon, Loading, SelectorInput, r_join, SkinnyError, Space, TimeAgo, Tip, Footer} = require('./r_misc')
 {HelpEmailLink, SiteName, PolicyPricingPageUrl, PolicyPrivacyPageUrl, PolicyCopyrightPageUrl} = require('./customize')
 
 {PROJECT_UPGRADES} = require('smc-util/schema')
@@ -90,11 +90,12 @@ class BillingActions extends Actions
         cb = opts.cb
         opts.cb = (err, value) =>
             @setState(action:'')
-            if err
-                @setState(error:err)
+            if action == 'fetch_coupon'
+                cb(err, value)
+            else if err
+                @setState(error:JSON.stringify(err))
                 cb?(err)
             else
-                cb(err, value) if action == 'fetch_coupon'
                 @update_customer(cb)
         {webapp_client} = require('./webapp_client')   # do not put at top level, since some code runs on server
         webapp_client["stripe_#{action}"](opts)
@@ -151,13 +152,16 @@ class BillingActions extends Actions
     fetch_coupon: (id) =>
         cb = (err, coupon) =>
             if err
-                @setState(error: err)
+                @setState(coupon_error: err)
             else if coupon
                 @setState(applied_coupons : store.get('applied_coupons').set(coupon.id, coupon))
         opts =
             id     : id
             cb     : cb
         @_action('fetch_coupon', "Getting coupon: #{id}", opts)
+
+    clear_coupon_error: =>
+        @setState(coupon_error : '')
 
     remove_all_coupons: =>
         @setState(applied_coupons : {})
@@ -827,6 +831,7 @@ AddSubscription = rclass
         selected_plan   : rtypes.string
         actions         : rtypes.object.isRequired
         applied_coupons : rtypes.immutable.Map
+        coupon_error    : rtypes.string
 
     getDefaultProps: ->
         selected_plan : ''
@@ -945,7 +950,7 @@ AddSubscription = rclass
                     {<ConfirmPaymentMethod
                         is_recurring = {@is_recurring()}
                     /> if @props.selected_plan isnt ''}
-                    {<CouponAdder applied_coupons={@props.applied_coupons} />}
+                    {<CouponAdder applied_coupons={@props.applied_coupons} coupon_error={@props.coupon_error} />}
                     {@render_create_subscription_buttons()}
                 </Well>
                 <ExplainResources type='shared'/>
@@ -997,10 +1002,12 @@ CouponAdder = rclass
 
     propTypes:
         applied_coupons : rtypes.immutable.Map
+        coupon_error    : rtypes.string
 
     getInitialState: ->
         coupon_id : ''
 
+    # Remove typed coupon if it got successfully added to the list
     componentWillReceiveProps: (next_props) ->
         if next_props.applied_coupons.has(@state.coupon_id)
             @setState(coupon_id : '')
@@ -1039,6 +1046,7 @@ CouponAdder = rclass
                     </InputGroup.Button>
                 </InputGroup>
             </FormGroup>
+            {<SkinnyError error_text={@props.coupon_error} on_close={@actions('billing').clear_coupon_error} /> if @props.coupon_error}
         </Well>
 
 CouponList = rclass
@@ -1567,6 +1575,7 @@ Subscriptions = rclass
         selected_plan   : rtypes.string
         redux           : rtypes.object.isRequired
         applied_coupons : rtypes.immutable.Map
+        coupon_error    : rtypes.string
 
     getInitialState: ->
         state : 'view'    # view -> add_new ->         # FUTURE: ??
@@ -1585,7 +1594,8 @@ Subscriptions = rclass
             on_close        = {=>@setState(state : 'view'); set_selected_plan('')}
             selected_plan   = {@props.selected_plan}
             actions         = {@props.redux.getActions('billing')}
-            applied_coupons = {@props.applied_coupons} />
+            applied_coupons = {@props.applied_coupons}
+            coupon_error    = {@props.coupon_error} />
 
     render_header: ->
         <Row>
@@ -1854,6 +1864,7 @@ BillingPage = rclass
             no_stripe       : rtypes.bool     # if true, stripe definitely isn't configured on the server
             selected_plan   : rtypes.string
             applied_coupons : rtypes.immutable.Map
+            coupon_error    : rtypes.string
         projects :
             project_map : rtypes.immutable # used, e.g., for course project payments; also computing available upgrades
         account :
@@ -1953,6 +1964,7 @@ BillingPage = rclass
         <Subscriptions
             subscriptions   = {@props.customer.subscriptions}
             applied_coupons = {@props.applied_coupons}
+            coupon_error    = {@props.coupon_error}
             sources         = {@props.customer.sources}
             selected_plan   = {@props.selected_plan}
             redux           = {@props.redux} />
