@@ -88,12 +88,13 @@ class BillingActions extends Actions
     _action: (action, desc, opts) =>
         @setState(action: desc)
         cb = opts.cb
-        opts.cb = (err) =>
+        opts.cb = (err, value) =>
             @setState(action:'')
             if err
                 @setState(error:err)
                 cb?(err)
             else
+                cb(err, value) if action == 'fetch_coupon'
                 @update_customer(cb)
         {webapp_client} = require('./webapp_client')   # do not put at top level, since some code runs on server
         webapp_client["stripe_#{action}"](opts)
@@ -150,11 +151,19 @@ class BillingActions extends Actions
     fetch_coupon: (id) =>
         cb = (err, coupon) =>
             if err
-                @setState(action:'', error: err)
+                @setState(error: err)
             else if coupon
-                @setState(applied_coupons : store.get('applied_coupons').push(coupon))
+                @setState(applied_coupons : store.get('applied_coupons').set(coupon.id, coupon))
+        opts =
+            id     : id
+            cb     : cb
+        @_action('fetch_coupon', "Getting coupon: #{id}", opts)
 
-        @_action('fetch_coupon', 'Get a coupon', {coupon_id : id})
+    remove_all_coupons: =>
+        @setState(applied_coupons : {})
+
+    remove_coupon: (id) =>
+        @setState(applied_coupons : store.get('applied_coupons').delete(id))
 
     # conversion tracking (commercial only)
     track_subscription: (plan) =>
@@ -185,7 +194,7 @@ class BillingActions extends Actions
 
 
 actions = redux.createActions('billing', BillingActions)
-store   = redux.createStore('billing')
+store   = redux.createStore('billing', Store, {applied_coupons:{}})
 
 validate =
     valid   : {border:'1px solid green'}
@@ -814,9 +823,10 @@ AddSubscription = rclass
     displayName : 'AddSubscription'
 
     propTypes :
-        on_close      : rtypes.func.isRequired
-        selected_plan : rtypes.string
-        actions       : rtypes.object.isRequired
+        on_close        : rtypes.func.isRequired
+        selected_plan   : rtypes.string
+        actions         : rtypes.object.isRequired
+        applied_coupons : rtypes.immutable.Map
 
     getDefaultProps: ->
         selected_plan : ''
@@ -935,7 +945,7 @@ AddSubscription = rclass
                     {<ConfirmPaymentMethod
                         is_recurring = {@is_recurring()}
                     /> if @props.selected_plan isnt ''}
-                    {<CouponAdder />}
+                    {<CouponAdder applied_coupons={@props.applied_coupons} />}
                     {@render_create_subscription_buttons()}
                 </Well>
                 <ExplainResources type='shared'/>
@@ -986,7 +996,18 @@ CouponAdder = rclass
     displayName : 'CouponAdder'
 
     propTypes:
-        applied_coupons : rtypes.immutable.List
+        applied_coupons : rtypes.immutable.Map
+
+    getInitialState: ->
+        coupon_id : ''
+
+    key_down: (e) ->
+        if e.keyCode == 13
+            @submit()
+
+    submit: (e) ->
+        e?.preventDefault()
+        @actions('billing').fetch_coupon(@state.coupon_id) if @state.coupon_id
 
     render: ->
         # TODO: Error when a coupon duplicate is added
@@ -995,19 +1016,19 @@ CouponAdder = rclass
         #       $7/mo after the first
         <Well>
             <h4><Icon name='plus' /> Add a coupon?</h4>
-            {<CouponList applied_coupons={@props.appied_coupons} /> if @props.applied_coupons?.size > 0}
+            {<CouponList applied_coupons={@props.applied_coupons} /> if @props.applied_coupons?.size > 0}
             <FormGroup>
                 <InputGroup>
                     <FormControl
                         ref         = 'coupon_adder'
                         type        = 'text'
                         size        = '7'
-                        placeholder = ''
-                        onChange    = {=>console.log "TODO: Update coupon"}
-
+                        placeholder = 'Enter your code here...'
+                        onChange    = {(e) => @setState(coupon_id : e.target.value)}
+                        onKeyDown   = {@key_down}
                     />
                     <InputGroup.Button>
-                        <Button onClick={=>console.log "TODO: Submit coupon:"} >
+                        <Button onClick={@submit} >
                             <Icon name='check' />
                         </Button>
                     </InputGroup.Button>
@@ -1019,25 +1040,27 @@ CouponList = rclass
     displayName : 'CouponList'
 
     propTypes:
-        applied_coupons : rtypes.immutable.List
+        applied_coupons : rtypes.immutable.Map
 
     render: ->
-        for coupon in @props.applied_coupons
-            <CouponInfo coupon={coupon} id={coupon.get('id')} />
+        v = []
+        @props.applied_coupons.forEach (coupon, id) =>
+            v.push(<CouponInfo key={id} coupon={coupon}/>)
+        return v
 
 CouponInfo = rclass
     displayName : 'CouponInfo'
 
     propTypes:
-        coupon : rtypes.immutable.Map
+        coupon : rtypes.object
 
     render: ->
         <Row>
             <Col md=4>
-                Name
+                {@props.coupon.id}
             </Col>
             <Col md=8>
-                Description. ie. 30% off all payments or $10 of credit or $2 off all payments
+                {@props.coupon.metadata.description}
             </Col>
         </Row>
 
@@ -1537,10 +1560,11 @@ Subscriptions = rclass
     displayName : 'Subscriptions'
 
     propTypes :
-        subscriptions : rtypes.object
-        sources       : rtypes.object.isRequired
-        selected_plan : rtypes.string
-        redux         : rtypes.object.isRequired
+        subscriptions   : rtypes.object
+        sources         : rtypes.object.isRequired
+        selected_plan   : rtypes.string
+        redux           : rtypes.object.isRequired
+        applied_coupons : rtypes.immutable.Map
 
     getInitialState: ->
         state : 'view'    # view -> add_new ->         # FUTURE: ??
@@ -1556,9 +1580,10 @@ Subscriptions = rclass
 
     render_add_subscription: ->
         <AddSubscription
-            on_close      = {=>@setState(state : 'view'); set_selected_plan('')}
-            selected_plan = {@props.selected_plan}
-            actions       = {@props.redux.getActions('billing')} />
+            on_close        = {=>@setState(state : 'view'); set_selected_plan('')}
+            selected_plan   = {@props.selected_plan}
+            actions         = {@props.redux.getActions('billing')}
+            applied_coupons = {@props.applied_coupons} />
 
     render_header: ->
         <Row>
@@ -1819,13 +1844,14 @@ BillingPage = rclass
 
     reduxProps :
         billing :
-            customer      : rtypes.object
-            invoices      : rtypes.object
-            error         : rtypes.string
-            action        : rtypes.string
-            loaded        : rtypes.bool
-            no_stripe     : rtypes.bool     # if true, stripe definitely isn't configured on the server
-            selected_plan : rtypes.string
+            customer        : rtypes.object
+            invoices        : rtypes.object
+            error           : rtypes.string
+            action          : rtypes.string
+            loaded          : rtypes.bool
+            no_stripe       : rtypes.bool     # if true, stripe definitely isn't configured on the server
+            selected_plan   : rtypes.string
+            applied_coupons : rtypes.immutable.Map
         projects :
             project_map : rtypes.immutable # used, e.g., for course project payments; also computing available upgrades
         account :
@@ -1925,10 +1951,11 @@ BillingPage = rclass
 
     render_subscriptions: ->
         <Subscriptions
-            subscriptions = {@props.customer.subscriptions}
-            sources       = {@props.customer.sources}
-            selected_plan = {@props.selected_plan}
-            redux         = {@props.redux} />
+            subscriptions   = {@props.customer.subscriptions}
+            applied_coupons = {@props.applied_coupons}
+            sources         = {@props.customer.sources}
+            selected_plan   = {@props.selected_plan}
+            redux           = {@props.redux} />
 
     render_page: ->
         cards    = @props.customer?.sources?.total_count ? 0

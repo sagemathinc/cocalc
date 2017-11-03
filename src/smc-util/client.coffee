@@ -1612,7 +1612,7 @@ class exports.Connection extends EventEmitter
             cb : required
 
         # TODO: Call stripe.coupons.retrieve(opts.id, opts.cb)
-        return
+        opts.cb undefined,
             id                 : opts.id
             object             : "coupon"
             amount_off         : 5
