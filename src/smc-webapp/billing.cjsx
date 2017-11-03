@@ -926,6 +926,7 @@ AddSubscription = rclass
                     {<ConfirmPaymentMethod
                         is_recurring = {@is_recurring()}
                     /> if @props.selected_plan isnt ''}
+                    {<CouponAdder />}
                     {@render_create_subscription_buttons()}
                 </Well>
                 <ExplainResources type='shared'/>
@@ -971,6 +972,65 @@ ConfirmPaymentMethod = rclass
                 />
             </Well>
         </Alert>
+
+CouponAdder = rclass
+    displayName : 'CouponAdder'
+
+    propTypes:
+        applied_coupons : rtypes.immutable.List
+
+    render: ->
+        # TODO: Error when a coupon duplicate is added
+        # TODO: (Here or elsewhere) Your final cost is:
+        #       $2 for the first month
+        #       $7/mo after the first
+        <Well>
+            <h4><Icon name='plus' /> Add a coupon?</h4>
+            {<CouponList applied_coupons={@props.appied_coupons} /> if @props.applied_coupons?.size > 0}
+            <FormGroup>
+                <InputGroup>
+                    <FormControl
+                        ref         = 'coupon_adder'
+                        type        = 'text'
+                        size        = '7'
+                        placeholder = ''
+                        onChange    = {=>console.log "TODO: Update coupon"}
+
+                    />
+                    <InputGroup.Button>
+                        <Button onClick={=>console.log "TODO: Submit coupon:"} >
+                            <Icon name='check' />
+                        </Button>
+                    </InputGroup.Button>
+                </InputGroup>
+            </FormGroup>
+        </Well>
+
+CouponList = rclass
+    displayName : 'CouponList'
+
+    propTypes:
+        applied_coupons : rtypes.immutable.List
+
+    render: ->
+        for coupon in @props.applied_coupons
+            <CouponInfo coupon={coupon} id={coupon.get('id')} />
+
+CouponInfo = rclass
+    displayName : 'CouponInfo'
+
+    propTypes:
+        coupon : rtypes.immutable.Map
+
+    render: ->
+        <Row>
+            <Col md=4>
+                Name
+            </Col>
+            <Col md=8>
+                Description. ie. 30% off all payments or $10 of credit or $2 off all payments
+            </Col>
+        </Row>
 
 
 exports.SubscriptionGrid = SubscriptionGrid = rclass
