@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import argparse, os, sys, time
+import argparse, os, sys, time, urllib
 
 SRC = os.path.split(os.path.realpath(__file__))[0]
 
@@ -81,6 +81,18 @@ def install_webapp(*args):
 
         # react static step must come *before* webpack step
         cmd("update_react_static")
+
+        # download compute environment information
+        # TOOD python 3: https://docs.python.org/3.5/library/urllib.request.html#urllib.request.urlretrieve
+        try:
+            host = 'https://storage.googleapis.com/cocalc-compute-environment/'
+            for fn in ['compute-inventory.json', 'compute-components.json']:
+                out = os.path.join(SRC, 'webapp-lib', fn)
+                urllib.urlretrieve(host + fn, out)
+        except Exception as ex:
+            print("WARNING: problem while downloading the compute environment information")
+            print(ex)
+
         # update primus - so client has it.
         install_primus()
         # update term.js

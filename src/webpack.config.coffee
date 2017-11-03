@@ -108,6 +108,7 @@ OUTPUT        = misc_node.OUTPUT_DIR
 DEVEL         = "development"
 NODE_ENV      = process.env.NODE_ENV || DEVEL
 PRODMODE      = NODE_ENV != DEVEL
+COMP_ENV      = process.env.CC_COMP_ENV || PRODMODE
 CDN_BASE_URL  = process.env.CDN_BASE_URL    # CDN_BASE_URL must have a trailing slash
 DEVMODE       = not PRODMODE
 MINIFY        = !! process.env.WP_MINIFY
@@ -134,6 +135,7 @@ else
 console.log "SMC_VERSION      = #{SMC_VERSION}"
 console.log "SMC_GIT_REV      = #{GIT_REV}"
 console.log "NODE_ENV         = #{NODE_ENV}"
+console.log "COMP_ENV         = #{COMP_ENV}"
 console.log "BASE_URL         = #{BASE_URL}"
 console.log "CDN_BASE_URL     = #{CDN_BASE_URL}"
 console.log "DEBUG            = #{DEBUG}"
@@ -236,6 +238,7 @@ pug2app = new HtmlWebpackPlugin(
                         description      : DESCRIPTION
                         BASE_URL         : base_url_html
                         theme            : theme
+                        COMP_ENV         : COMP_ENV
                         git_rev          : GIT_REV
                         mathjax          : MATHJAX_URL
                         filename         : 'app.html'
@@ -279,6 +282,7 @@ for dp in (x for x in glob.sync('webapp-lib/doc/*.pug') when path.basename(x)[0]
                         date             : BUILD_DATE
                         title            : TITLE
                         theme            : theme
+                        COMP_ENV         : COMP_ENV
                         template         : dp
                         chunks           : ['css']
                         inject           : 'head'
@@ -297,6 +301,7 @@ for pp in (x for x in glob.sync('webapp-lib/policies/*.pug') when path.basename(
                         date             : BUILD_DATE
                         title            : TITLE
                         theme            : theme
+                        COMP_ENV         : COMP_ENV
                         template         : pp
                         chunks           : ['css']
                         inject           : 'head'
@@ -306,6 +311,27 @@ for pp in (x for x in glob.sync('webapp-lib/policies/*.pug') when path.basename(
                         BASE_URL         : base_url_html
                         PREFIX           : '../'
     ))
+
+# build pages for compute environment
+if COMP_ENV
+    for SW_ENV in ['a', 'b', 'c']
+        output_fn = "software/#{SW_ENV}.html"
+        staticPages.push(new HtmlWebpackPlugin(
+                        filename         : output_fn
+                        date             : BUILD_DATE
+                        title            : TITLE
+                        theme            : theme
+                        COMP_ENV         : COMP_ENV
+                        SW_ENV           : SW_ENV
+                        template         : 'webapp-lib/_software.pug'
+                        chunks           : ['css']
+                        inject           : 'head'
+                        minify           : htmlMinifyOpts
+                        GOOGLE_ANALYTICS : GOOGLE_ANALYTICS
+                        hash             : PRODMODE
+                        BASE_URL         : base_url_html
+                        PREFIX           : '../'
+        ))
 
 #video chat is done differently, this is kept for reference.
 ## video chat: not possible to render to html, while at the same time also supporting query parameters for files in the url
