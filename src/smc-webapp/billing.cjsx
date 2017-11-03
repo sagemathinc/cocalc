@@ -147,6 +147,15 @@ class BillingActions extends Actions
             last_subscription_attempt = misc.server_time()
             @track_subscription(plan)
 
+    fetch_coupon: (id) =>
+        cb = (err, coupon) =>
+            if err
+                @setState(action:'', error: err)
+            else if coupon
+                @setState(applied_coupons : store.get('applied_coupons').push(coupon))
+
+        @_action('fetch_coupon', 'Get a coupon', {coupon_id : id})
+
     # conversion tracking (commercial only)
     track_subscription: (plan) =>
         usd = 7.00 # TODO derive this from the plan

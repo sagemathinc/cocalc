@@ -1603,6 +1603,32 @@ class exports.Connection extends EventEmitter
                 else
                     opts.cb(undefined, mesg.subscriptions)
 
+    # Gets the coupon for this account. Returns an error if invalid
+    # https://stripe.com/docs/api#retrieve_coupon
+    stripe_fetch_coupon: (opts) =>
+        # TODO: Types
+        opts = defaults opts,
+            id : undefined
+            cb : required
+
+        # TODO: Call stripe.coupons.retrieve(opts.id, opts.cb)
+        return
+            id                 : opts.id
+            object             : "coupon"
+            amount_off         : 5
+            created            : 1441750359
+            currency           : "usd"
+            duration           : "once"
+            duration_in_months : null
+            livemode           : false
+            max_redemptions    : null
+            percent_off        : null
+            redeem_by          : null
+            times_redeemed     : 2
+            valid              : true
+            metadata           :
+                description : "$5 off your first subscription!"
+
     # gets list of invoices for this account.
     stripe_get_invoices: (opts) =>
         opts = defaults opts,
