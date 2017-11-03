@@ -1231,11 +1231,8 @@ class ProjectActions extends Actions
             proj_store = @redux.getStore('projects')
             quotas = proj_store.get_total_project_quotas(@project_id)
             state  = proj_store.getIn(['project_map', @project_id, 'state', 'state'])
-            if state != 'running'
-                @setState(free_compute_slowdown : undefined)
-                return # end tail recursion
             # project running and not on a members host
-            if (quotas?) and (not quotas.member_host)
+            if state == 'running' and (quotas?) and (not quotas.member_host)
                 webapp_client.exec
                     project_id   : @project_id
                     command      : '/bin/cat'
