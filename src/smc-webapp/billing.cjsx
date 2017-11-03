@@ -1001,6 +1001,10 @@ CouponAdder = rclass
     getInitialState: ->
         coupon_id : ''
 
+    componentWillReceiveProps: (next_props) ->
+        if next_props.applied_coupons.has(@state.coupon_id)
+            @setState(coupon_id : '')
+
     key_down: (e) ->
         if e.keyCode == 13
             @submit()
@@ -1020,6 +1024,7 @@ CouponAdder = rclass
             <FormGroup>
                 <InputGroup>
                     <FormControl
+                        value       = {@state.coupon_id}
                         ref         = 'coupon_adder'
                         type        = 'text'
                         size        = '7'
