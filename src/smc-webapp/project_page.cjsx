@@ -246,7 +246,7 @@ FreeProjectWarning = rclass ({name}) ->
 
         if @props.free_compute_slowdown? and @props.free_compute_slowdown > 0.0
             pct = Math.round(@props.free_compute_slowdown)
-            slowdown = <span>and due to heavy load, computations in this project are running <b>{pct}% slower than they would on a members server</b>.</span>
+            slowdown = <span>and computations in this project could run up to <b>{pct}% faster after upgrading</b> to member server hosting.</span>
         else
             slowdown = ''
 
