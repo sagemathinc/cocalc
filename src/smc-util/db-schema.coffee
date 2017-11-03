@@ -916,6 +916,7 @@ schema.public_paths =
                 description : null
                 disabled    : null   # if true then disabled
                 last_edited : null
+                created     : null
                 last_saved  : null
                 counter     : null
         set :
@@ -926,6 +927,7 @@ schema.public_paths =
                 description : true
                 disabled    : true
                 last_edited : true
+                created     : true
             required_fields :
                 id          : true
                 project_id  : true
