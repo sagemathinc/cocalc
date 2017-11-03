@@ -1226,22 +1226,23 @@ class ProjectActions extends Actions
         {webapp_client} = require('./webapp_client')
         ncpu = undefined
 
-        ###
         # Comment out f() at the bottom of init_free_compute_slowdown to use f_test
         # Expect load to increase by 1% every second while load should be displayed
-        test_load = 0
-        f_test = =>
-            proj_store = @redux.getStore('projects')
-            quotas = proj_store.get_total_project_quotas(@project_id)
-            state  = proj_store.getIn(['project_map', @project_id, 'state', 'state'])
-            if state == 'running' and (quotas?) and (not quotas.member_host)
-                test_load = test_load + 1
-                @setState(free_compute_slowdown : test_load)
-            else
-                @setState(free_compute_slowdown : 0.0)
-            setTimeout(f_test, 1000)
-        f_test()
-        ###
+        # Console logs should stop when project is closed
+        # Projects should have independent load values
+        # test_load = 0
+        # f_test = =>
+        #     proj_store = @redux.getStore('projects')
+        #     quotas = proj_store.get_total_project_quotas(@project_id)
+        #     state  = proj_store.getIn(['project_map', @project_id, 'state', 'state'])
+        #     if state == 'running' and (quotas?) and (not quotas.member_host)
+        #         test_load = test_load + 1
+        #         @setState(free_compute_slowdown : test_load)
+        #     else
+        #         @setState(free_compute_slowdown : 0.0)
+        #     console.log "test load for", @project_id, "is", test_load
+        #     setTimeout(f_test, 1000) if @get_store()?
+        # f_test()
 
         f = =>
             proj_store = @redux.getStore('projects')
