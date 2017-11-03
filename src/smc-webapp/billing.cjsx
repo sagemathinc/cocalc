@@ -27,7 +27,7 @@ _             = require('underscore')
 {redux, rclass, React, ReactDOM, rtypes, Actions, Store}  = require('./smc-react')
 
 {Button, ButtonToolbar, FormControl, FormGroup, Row, Col, Accordion, Panel, Well, Alert, ButtonGroup, InputGroup} = require('react-bootstrap')
-{ActivityDisplay, ErrorDisplay, Icon, Loading, SelectorInput, r_join, SkinnyError, Space, TimeAgo, Tip, Footer} = require('./r_misc')
+{ActivityDisplay, CloseX, ErrorDisplay, Icon, Loading, SelectorInput, r_join, SkinnyError, Space, TimeAgo, Tip, Footer} = require('./r_misc')
 {HelpEmailLink, SiteName, PolicyPricingPageUrl, PolicyPrivacyPageUrl, PolicyCopyrightPageUrl} = require('./customize')
 
 {PROJECT_UPGRADES} = require('smc-util/schema')
@@ -164,7 +164,7 @@ class BillingActions extends Actions
         @setState(coupon_error : '')
 
     remove_all_coupons: =>
-        @setState(applied_coupons : {})
+        @setState(applied_coupons : {}, coupon_error : '')
 
     remove_coupon: (id) =>
         @setState(applied_coupons : store.get('applied_coupons').delete(id))
@@ -1021,10 +1021,14 @@ CouponAdder = rclass
         @actions('billing').fetch_coupon(@state.coupon_id) if @state.coupon_id
 
     render: ->
-        # TODO: Error when a coupon duplicate is added
         # TODO: (Here or elsewhere) Your final cost is:
         #       $2 for the first month
         #       $7/mo after the first
+        if @props.applied_coupons?.size > 0
+            placeholder_text = 'Enter another code?'
+        else
+            placeholder_text = 'Enter your code here...'
+
         <Well>
             <h4><Icon name='plus' /> Add a coupon?</h4>
             {<CouponList applied_coupons={@props.applied_coupons} /> if @props.applied_coupons?.size > 0}
@@ -1035,12 +1039,12 @@ CouponAdder = rclass
                         ref         = 'coupon_adder'
                         type        = 'text'
                         size        = '7'
-                        placeholder = 'Enter your code here...'
+                        placeholder = {placeholder_text}
                         onChange    = {(e) => @setState(coupon_id : e.target.value)}
                         onKeyDown   = {@key_down}
                     />
                     <InputGroup.Button>
-                        <Button onClick={@submit} >
+                        <Button onClick={@submit} disabled={@state.coupon_id == ''}>
                             <Icon name='check' />
                         </Button>
                     </InputGroup.Button>
@@ -1580,6 +1584,11 @@ Subscriptions = rclass
     getInitialState: ->
         state : 'view'    # view -> add_new ->         # FUTURE: ??
 
+    close_add_subscription: ->
+        @setState(state : 'view')
+        set_selected_plan('')
+        @actions('billing').remove_all_coupons()
+
     render_add_subscription_button: ->
         <Button
             bsStyle   = 'primary'
@@ -1591,7 +1600,7 @@ Subscriptions = rclass
 
     render_add_subscription: ->
         <AddSubscription
-            on_close        = {=>@setState(state : 'view'); set_selected_plan('')}
+            on_close        = {@close_add_subscription}
             selected_plan   = {@props.selected_plan}
             actions         = {@props.redux.getActions('billing')}
             applied_coupons = {@props.applied_coupons}

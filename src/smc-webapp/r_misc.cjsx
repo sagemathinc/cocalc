@@ -213,7 +213,7 @@ exports.CloseX = CloseX = rclass
             <Icon style={@props.style} name='times' />
         </a>
 
-SimpleX = ({onClick}) ->
+exports.SimpleX = SimpleX = ({onClick}) ->
     <a href='' onClick={(e)=>e.preventDefault(); onClick()}>
         <Icon name='times' />
     </a>
