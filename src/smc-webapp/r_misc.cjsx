@@ -213,6 +213,15 @@ exports.CloseX = CloseX = rclass
             <Icon style={@props.style} name='times' />
         </a>
 
+SimpleX = ({onClick}) ->
+    <a href='' onClick={(e)=>e.preventDefault(); onClick()}>
+        <Icon name='times' />
+    </a>
+
+exports.SkinnyError = ({error_text, on_close}) ->
+    <div style={color:'red'}>
+         <SimpleX onClick={on_close} /> {error_text}
+    </div>
 
 error_text_style =
     marginRight : '1ex'
