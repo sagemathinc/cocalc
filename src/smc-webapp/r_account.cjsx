@@ -174,6 +174,45 @@ EmailAddressSetting = rclass
             {@render_edit() if @state.state != 'view'}
         </LabeledRow>
 
+NewsletterSetting = rclass
+    displayName : 'Account-NewsletterSetting'
+
+    propTypes :
+        other_settings : rtypes.object
+        email_address  : rtypes.string
+        redux          : rtypes.object
+
+    on_change: (value) ->
+        @props.redux.getTable('account').set({"other_settings": {"newsletter" : value}})
+
+    blog: ->
+        {BLOG_URL} = require('smc-util/theme')
+        return if not BLOG_URL
+        return <span>(<a href={BLOG_URL} target="_blank">check out our blog</a>)</span>
+
+    render_checkbox: ->
+        <Checkbox
+            style    = {margin: '0'}
+            checked  = {@props.other_settings.newsletter}
+            ref      = 'newsletter'
+            onChange = {(e)=>@on_change(e.target.checked)}
+        >
+            <span>
+                Recieve periodic updates {@blog()}
+                <br/>
+                (Changes take up to 24 hours to be effective.)
+            </span>
+        </Checkbox>
+
+    render: ->
+        valid = misc.is_valid_email_address(@props.email_address)
+        <LabeledRow label='Newsletter'  style={marginBottom: '15px'}>
+            {@render_checkbox() if valid}
+            {<span style={color: 'red'}>
+                You need to enter a (valid) email address above!
+            </span> if not valid}
+        </LabeledRow>
+
 PasswordSetting = rclass
     displayName : 'Account-PasswordSetting'
 
@@ -314,6 +353,7 @@ AccountSettings = rclass
         everywhere           : rtypes.bool
         redux                : rtypes.object
         delete_account_error : rtypes.string
+        other_settings       : rtypes.object
 
     getInitialState: ->
         add_strategy_link      : undefined
@@ -477,6 +517,11 @@ AccountSettings = rclass
                 redux         = {@props.redux}
                 ref           = 'email_address'
                 maxLength     = 254
+                />
+            <NewsletterSetting
+                redux          = {@props.redux}
+                email_address  = {@props.email_address}
+                other_settings = {@props.other_settings}
                 />
             <PasswordSetting
                 email_address = {@props.email_address}
@@ -1456,6 +1501,7 @@ exports.AccountSettingsTop = rclass
                         show_sign_out  = {@props.show_sign_out}
                         sign_out_error = {@props.sign_out_error}
                         everywhere     = {@props.everywhere}
+                        other_settings = {@props.other_settings}
                         redux          = {@props.redux} />
                     <TerminalSettings
                         terminal = {@props.terminal}
