@@ -985,6 +985,14 @@ OtherSettings = rclass
     on_change: (name, value) ->
         @props.redux.getTable('account').set(other_settings:{"#{name}":value})
 
+    render_first_steps: ->
+        <Checkbox
+            checked  = {@props.other_settings.first_steps}
+            ref      = 'first_steps'
+            onChange = {(e)=>@on_change('first_steps', e.target.checked)}>
+            Offer to setup the "First Steps" guide (if available).
+        </Checkbox>
+
     render_confirm: ->
         if not require('./feature').IS_MOBILE
             <Checkbox
@@ -1013,33 +1021,42 @@ OtherSettings = rclass
                 number    = {@props.other_settings.standby_timeout_m} />
         </LabeledRow>
 
+    render_mask_files: ->
+        <Checkbox
+            checked  = {@props.other_settings.mask_files}
+            ref      = 'mask_files'
+            onChange = {(e)=>@on_change('mask_files', e.target.checked)}
+        >
+            Mask files: grey-out files in the files viewer that you probably do not want to open
+        </Checkbox>
+
+    render_default_file_sort: ->
+        <LabeledRow label='Default file sort'>
+            <SelectorInput
+                selected  = {@props.other_settings.default_file_sort}
+                options   = {time:'Sort by time', name:'Sort by name'}
+                on_change = {(value)=>@on_change('default_file_sort', value)}
+            />
+        </LabeledRow>
+
+    render_page_size: ->
+        <LabeledRow label='Number of files per page'>
+            <NumberInput
+                    on_change = {(n)=>@on_change('page_size',n)}
+                    min       = 1
+                    max       = 1000000
+                    number    = {@props.other_settings.page_size} />
+        </LabeledRow>
 
     render: ->
         if not @props.other_settings
             return <Loading />
         <Panel header={<h2> <Icon name='gear' /> Other settings</h2>}>
             {@render_confirm()}
-            <Checkbox
-                checked  = {@props.other_settings.mask_files}
-                ref      = 'mask_files'
-                onChange = {(e)=>@on_change('mask_files', e.target.checked)}
-            >
-                Mask files: grey-out files in the files viewer that you probably do not want to open
-            </Checkbox>
-            <LabeledRow label='Default file sort'>
-                <SelectorInput
-                    selected  = {@props.other_settings.default_file_sort}
-                    options   = {time:'Sort by time', name:'Sort by name'}
-                    on_change = {(value)=>@on_change('default_file_sort', value)}
-                />
-            </LabeledRow>
-            <LabeledRow label='Number of files per page'>
-                <NumberInput
-                        on_change = {(n)=>@on_change('page_size',n)}
-                        min       = 1
-                        max       = 1000000
-                        number    = {@props.other_settings.page_size} />
-            </LabeledRow>
+            {@render_first_steps()}
+            {@render_mask_files()}
+            {@render_default_file_sort()}
+            {@render_page_size()}
             {@render_standby_timeout()}
             {@render_page_size_warning()}
         </Panel>

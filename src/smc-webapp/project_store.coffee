@@ -57,8 +57,12 @@ BANNED_FILE_TYPES             = ['doc', 'docx', 'pdf', 'sws']
 
 FROM_WEB_TIMEOUT_S = 45
 
+# src: where the library files are
+# start: open this file after copying the directory
 exports.LIBRARY = LIBRARY =
-    first_steps : '/ext/library/first-steps'
+    first_steps :
+        src    : '/ext/library/first-steps'
+        start  : 'first-steps/first-steps.tasks'
 
 QUERIES =
     project_log :
@@ -899,8 +903,7 @@ class ProjectActions extends Actions
 
     # this is called once by the project initialization
     check_first_steps: =>
-        {NO_FIRST_STEPS_SENTINEL_FILE} = require('./project_files')
-        cmd = "test ! -e #{NO_FIRST_STEPS_SENTINEL_FILE} && test -e #{LIBRARY.first_steps}"
+        cmd = "test -e #{LIBRARY.first_steps.src}"
         webapp_client.exec
             project_id      : @project_id
             command         : cmd
@@ -910,30 +913,35 @@ class ProjectActions extends Actions
             err_on_exit     : false
             path            : '.'
             cb              : (err, output) =>
-                if output.exit_code == 0
-                    @setState(show_first_steps:true)
-                else
-                    @setState(show_first_steps:false)
+                if not err
+                    @setState(first_steps_available:(output.exit_code == 0))
 
     copy_from_library: (opts) =>
         opts = defaults opts,
-            src     : LIBRARY.first_steps
-            dest    : '.'
+            entry : 'first_steps'
+
+        lib = LIBRARY[opts.entry]
+        if not lib?
+            @setState(error: "Library entry '#{opts.entry}' unknown")
+            return
 
         id = opts.id ? misc.uuid()
         @set_activity(id:id, status:"Copying files from library ...")
 
+        # the rsync command purposely does not preserve the timestamps,
+        # such that they look like "new files" and listed on top under default sorting
         webapp_client.exec
             project_id      : @project_id
             command         : 'rsync'
-            args            : ['-rltgoDxH'].concat(opts.src).concat([opts.dest])
+            args            : ['-rlDx'].concat(lib.src).concat(['.'])
             timeout         : 120   # how long rsync runs on client
             network_timeout : 120   # how long network call has until it must return something or get total error.
             err_on_exit     : true
             path            : '.'
             cb              : (err, output) =>
                 (@_finish_exec(id))(err, output)
-                @open_file(path: 'first-steps/first-steps.tasks')
+                if not err
+                    @open_file(path: lib.start)
 
     touch_file: (opts) =>
         opts = defaults opts,
@@ -1497,19 +1505,19 @@ create_project_store_def = (name, project_id) ->
             @redux.getActions('page').close_project_tab(@project_id)
 
     getInitialState: =>
-        current_path       : ''
-        history_path       : ''
-        show_hidden        : false
-        checked_files      : immutable.Set()
-        public_paths       : undefined
-        directory_listings : immutable.Map()
-        user_input         : ''
-        show_upload        : false
-        active_project_tab : 'files'
-        open_files_order   : immutable.List([])
-        open_files         : immutable.Map({})
-        num_ghost_file_tabs: 0
-        show_first_steps   : false
+        current_path           : ''
+        history_path           : ''
+        show_hidden            : false
+        checked_files          : immutable.Set()
+        public_paths           : undefined
+        directory_listings     : immutable.Map()
+        user_input             : ''
+        show_upload            : false
+        active_project_tab     : 'files'
+        open_files_order       : immutable.List([])
+        open_files             : immutable.Map({})
+        num_ghost_file_tabs    : 0
+        first_steps_available  : false
 
     reduxState:
         account:
@@ -1545,7 +1553,7 @@ create_project_store_def = (name, project_id) ->
         selected_file_index    : rtypes.number     # Index on file listing to highlight starting at 0. undefined means none highlighted
         new_name               : rtypes.string
         most_recent_file_click : rtypes.string
-        show_first_steps       : rtypes.bool
+        first_steps_available  : rtypes.bool
 
         # Project Log
         project_log : rtypes.immutable
