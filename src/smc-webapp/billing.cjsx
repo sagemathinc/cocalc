@@ -1869,9 +1869,7 @@ BillingPage = rclass
 
     render_action: ->
         if @props.action
-            <div style={position:'relative', top:'-70px'}>   {# probably ActivityDisplay should manage its own position better. }
-                <ActivityDisplay activity ={[@props.action]} on_clear={=>@props.redux.getActions('billing').clear_action()} />
-            </div>
+            <ActivityDisplay style={position:'fixed', right:'45px', top:'85px'} activity ={[@props.action]} on_clear={=>@props.redux.getActions('billing').clear_action()} />
 
     render_error: ->
         if @props.error
