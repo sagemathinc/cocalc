@@ -1021,7 +1021,7 @@ CouponAdder = rclass
         <Well>
             <h4><Icon name='plus' /> Add a coupon?</h4>
             {<CouponList applied_coupons={@props.applied_coupons} /> if @props.applied_coupons?.size > 0}
-            <FormGroup>
+            <FormGroup style={marginTop:'5px'}>
                 <InputGroup>
                     <FormControl
                         value       = {@state.coupon_id}
