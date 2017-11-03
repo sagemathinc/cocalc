@@ -818,6 +818,19 @@ class SyncTable extends EventEmitter
                 if @_state == 'ready'   # only send out change notifications after ready.
                     process.nextTick(=>@emit('change', k))
 
+    # Remove from synctable anything that no longer matches the where criterion.
+    _process_deleted: (rows, changed) =>
+        kept = {}
+        for x in rows
+            kept[x[@_primary_key]] = true
+        for k of changed
+            if not kept[k] and @_value.has(k)
+                # The record with primary_key k no longer matches the where criterion
+                # so we delete it from our synctable.
+                @_value = @_value.delete(k)
+                if @_state == 'ready'
+                    process.nextTick(=>@emit('change', k))
+
     # Grab any entries from table about which we have been notified of changes.
     _update: (cb) =>
         if misc.len(@_changed) == 0 # nothing to do
@@ -841,6 +854,7 @@ class SyncTable extends EventEmitter
                         @_changed[k] = true   # will try again later
                 else
                     @_process_results(result.rows)
+                    @_process_deleted(result.rows, changed)
                 cb?()
 
     get: (key) =>

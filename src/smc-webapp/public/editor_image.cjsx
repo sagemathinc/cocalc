@@ -1,5 +1,5 @@
 # React libraries
-{React, ReactDOM, rclass, rtypes, Redux, Actions, Store}  = require('../smc-react')
+{React, ReactDOM, rclass, rtypes}  = require('../smc-react')
 {webapp_client} = require('../webapp_client')
 
 PublicImage = rclass

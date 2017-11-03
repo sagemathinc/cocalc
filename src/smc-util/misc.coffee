@@ -1461,7 +1461,12 @@ exports.round2 = round2 = (num) ->
 
 exports.seconds2hms = seconds2hms = (secs, longform) ->
     longform ?= false
-    s = round2(secs % 60)
+    if secs < 10
+        s = round2(secs % 60)
+    else if secs < 60
+        s = round1(secs % 60)
+    else
+        s = Math.round(secs % 60)
     m = Math.floor(secs / 60) % 60
     h = Math.floor(secs / 60 / 60)
     if h == 0 and m == 0
@@ -1471,7 +1476,7 @@ exports.seconds2hms = seconds2hms = (secs, longform) ->
             return "#{s}s"
     if h > 0
         if longform
-            return "#{h} #{exports.plural(s, 'hour')} #{m} #{exports.plural(m, 'minute')}  #{s} #{exports.plural(s, 'second')}"
+            return "#{h} #{exports.plural(h, 'hour')} #{m} #{exports.plural(m, 'minute')}"
         else
             return "#{h}h#{m}m#{s}s"
     if m > 0

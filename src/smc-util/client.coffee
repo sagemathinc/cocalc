@@ -23,7 +23,7 @@ DEBUG = false
 
 # Maximum number of outstanding concurrent messages (that have responses)
 # to send at once to the backend.
-MAX_CONCURRENT = 75
+MAX_CONCURRENT = 100
 
 {EventEmitter} = require('events')
 

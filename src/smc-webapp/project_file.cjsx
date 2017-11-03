@@ -146,9 +146,9 @@ require('./editor_time')
 require('./jupyter/register')
 
 # Public editors
-require('./public/editor_md')
 require('./public/editor_image')
 
-# require('./editor_codemirror')
+# Raw data editors
+require('./editor-data/generic')
 
 require('./editor').register_nonreact_editors()

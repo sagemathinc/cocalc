@@ -73,6 +73,10 @@ QUERIES =
             path        : null
             description : null
             disabled    : null
+            created     : null
+            last_edited : null
+            last_saved  : null
+            counter     : null
 
 must_define = (redux) ->
     if not redux?
@@ -1294,13 +1298,25 @@ class ProjectActions extends Actions
     # Actions for PUBLIC PATHS
     ###
     set_public_path: (path, description) =>
-        obj = {project_id:@project_id, path:path, disabled:false}
-        if description?
-            obj.description = description
+        obj =
+            project_id  : @project_id
+            path        : path
+            description : description
+            disabled    : false
+        obj.last_edited = obj.created = now = misc.server_time()
+        # only set created if this obj is new; have to just linearly search through paths right now...
+        @get_store()?.public_paths?.map (v, k) ->
+            if v.get('path') == path
+                delete obj.created
+                return false
         @redux.getProjectTable(@project_id, 'public_paths').set(obj)
 
     disable_public_path: (path) =>
-        @redux.getProjectTable(@project_id, 'public_paths').set(project_id:@project_id, path:path, disabled:true)
+        @redux.getProjectTable(@project_id, 'public_paths').set
+            project_id  : @project_id
+            path        : path
+            disabled    : true
+            last_edited : misc.server_time()
 
 
     ###
