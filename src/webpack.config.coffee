@@ -108,7 +108,7 @@ OUTPUT        = misc_node.OUTPUT_DIR
 DEVEL         = "development"
 NODE_ENV      = process.env.NODE_ENV || DEVEL
 PRODMODE      = NODE_ENV != DEVEL
-COMP_ENV      = process.env.CC_COMP_ENV || PRODMODE
+COMP_ENV      = (process.env.CC_COMP_ENV || PRODMODE) and (fs.existsSync('webapp-lib/compute-components.json'))
 CDN_BASE_URL  = process.env.CDN_BASE_URL    # CDN_BASE_URL must have a trailing slash
 DEVMODE       = not PRODMODE
 MINIFY        = !! process.env.WP_MINIFY
@@ -261,6 +261,7 @@ for [fn_in, fn_out] in [['index.pug', 'index.html']]
                         description      : DESCRIPTION
                         BASE_URL         : base_url_html
                         theme            : theme
+                        COMP_ENV         : COMP_ENV
                         git_rev          : GIT_REV
                         mathjax          : MATHJAX_URL
                         filename         : fn_out
@@ -314,16 +315,41 @@ for pp in (x for x in glob.sync('webapp-lib/policies/*.pug') when path.basename(
 
 # build pages for compute environment
 if COMP_ENV
-    for SW_ENV in ['a', 'b', 'c']
-        output_fn = "software/#{SW_ENV}.html"
+    components = JSON.parse(fs.readFileSync('webapp-lib/compute-components.json', 'utf8'))
+    #console.log(JSON.stringify(Object.keys(components)))
+    inventory  = JSON.parse(fs.readFileSync('webapp-lib/compute-inventory.json', 'utf8'))
+
+    staticPages.push(new HtmlWebpackPlugin(
+                        filename         : "doc/software.html"
+                        date             : BUILD_DATE
+                        title            : TITLE
+                        theme            : theme
+                        COMP_ENV         : COMP_ENV
+                        components       : components
+                        inventory        : inventory
+                        template         : 'webapp-lib/doc/software.pug'
+                        chunks           : ['css']
+                        inject           : 'head'
+                        minify           : htmlMinifyOpts
+                        GOOGLE_ANALYTICS : GOOGLE_ANALYTICS
+                        hash             : PRODMODE
+                        BASE_URL         : base_url_html
+                        PREFIX           : '../'
+    ))
+
+    for infn in glob.sync('webapp-lib/doc/software-*.pug')
+        sw_env = path.basename(infn).split('-')[1].split('.')[0]
+        output_fn = "doc/software-#{sw_env}.html"
         staticPages.push(new HtmlWebpackPlugin(
                         filename         : output_fn
                         date             : BUILD_DATE
                         title            : TITLE
                         theme            : theme
                         COMP_ENV         : COMP_ENV
-                        SW_ENV           : SW_ENV
-                        template         : 'webapp-lib/_software.pug'
+                        components       : components
+                        inventory        : inventory
+                        sw_env           : sw_env
+                        template         : infn
                         chunks           : ['css']
                         inject           : 'head'
                         minify           : htmlMinifyOpts

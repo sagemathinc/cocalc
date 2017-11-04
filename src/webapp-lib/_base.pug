@@ -45,6 +45,9 @@ html.no-js(lang="en")
             //-   a(href=PREFIX + "#a-explore") Explore
             li
               a(href=PREFIX + "policies/index.html") Policies
+            if htmlWebpackPlugin.options.COMP_ENV
+              li
+                a(href=PREFIX + "doc/software.html") Software
             li
               a(href=PREFIX + "policies/pricing.html") Pricing
             li

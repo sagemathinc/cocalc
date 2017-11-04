@@ -1,0 +1,33 @@
+//- for development, run $ env CC_COMP_ENV=true CC_STATICPAGES=true npm run webpack-watch
+
+extends ../_base.pug
+
+block vars
+  - subtitle = NAME + " Software Environments"
+
+block header
+  meta(name="description" content=NAME + " Features")
+
+block content
+  a.anchor#a-top
+  div.container
+    div.row#top
+      h1 INDEX
+      ul
+        li
+          a(href='software-python.html') Python
+        li
+          a(href='software-r.html') R Statistical Software
+        li
+          a(href='software-executables.html') Executables
+        li
+          a(href='software-julia.html') Julia
+
+
+
+  //- CSS comes at the bottom: overwrites styles defined in the header
+  style
+    :sass
+      @import "smc-webapp/_colors.sass"
+      div#top
+        margin           : 5rem 0

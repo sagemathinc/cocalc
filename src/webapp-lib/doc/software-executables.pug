@@ -1,21 +1,19 @@
+//- for development, run $ env CC_COMP_ENV=true CC_STATICPAGES=true npm run webpack-watch
 
 extends ../_base.pug
 
 block vars
-  - subtitle = "Compute Environment"
+  - subtitle = NAME + " Software Environments"
 
 block header
-  meta(name="description" content=NAME + " Compute Environment")
+  meta(name="description" content=NAME + " Features")
 
 block content
   a.anchor#a-top
   div.container
     div.row#top
-      h1 Compute Environment
+      h1 Executables
 
-      ul
-        li
-          a(href="environment-python.html") Python
 
 
   //- CSS comes at the bottom: overwrites styles defined in the header

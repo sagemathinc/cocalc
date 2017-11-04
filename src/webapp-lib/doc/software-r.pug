@@ -1,11 +1,9 @@
-//- template for the software and compute environment inventory pages
 //- for development, run $ env CC_COMP_ENV=true CC_STATICPAGES=true npm run webpack-watch
 
-extends _base.pug
+extends ../_base.pug
 
 block vars
-  - SW_ENV = htmlWebpackPlugin.options.SW_ENV
-  - subtitle = NAME + " " + SW_ENV + " Software Environment"
+  - subtitle = NAME + " Software Environments"
 
 block header
   meta(name="description" content=NAME + " Features")
@@ -14,7 +12,8 @@ block content
   a.anchor#a-top
   div.container
     div.row#top
-      h1 SW_ENV
+      h1 R Statistical Software
+
 
 
   //- CSS comes at the bottom: overwrites styles defined in the header

@@ -1,0 +1,71 @@
+//- for development, run $ env CC_COMP_ENV=true CC_STATICPAGES=true npm run webpack-watch
+
+extends ../_base.pug
+
+block vars
+  - subtitle = NAME + " Python Software Environment"
+
+block header
+  meta(name="description" content=NAME + " Python Software Environment")
+
+block content
+  a.anchor#a-top
+  div.container
+    div.row#top
+      h1= NAME + " Python Environment"
+      div.
+        This table lists available Python libraries with their respective versions.
+        The header at the top lists the available environments.
+        The left column describes the name and summary of the library.
+
+  - var components = htmlWebpackPlugin.options.components['python']
+  - var inventory  = htmlWebpackPlugin.options.inventory['python']
+  - var envs       = htmlWebpackPlugin.options.inventory['language_exes']
+
+  div.container
+    div.row
+      ul
+        for env, idx in envs
+          if env.lang == 'python'
+            li
+              b= env.name + ": "
+              span= env.doc
+
+  div.container
+    div.row
+      table.table
+        tr
+          th
+          each val, iidx in inventory
+            th= envs[iidx].name
+        each cval, cidx in components
+          tr
+            td
+              if cval
+                b
+                  if cval.url
+                    a(href=cval.url)= cval.name
+                  else
+                    = cval.name
+                br/
+                span= cval.summary
+              else
+                b= cidx
+            each ival, iidx in inventory
+              td.version
+                if inventory[iidx][cidx]
+                  = inventory[iidx][cidx]
+                else
+                  = ''
+
+
+
+  //- CSS comes at the bottom: overwrites styles defined in the header
+  style
+    :sass
+      @import "smc-webapp/_colors.sass"
+      div#top
+        margin           : 5rem 0
+      td.version
+        font-size        : 120%
+        font-weight      : bold
