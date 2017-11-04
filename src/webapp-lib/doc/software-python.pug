@@ -1,64 +1,26 @@
-//- for development, run $ env CC_COMP_ENV=true CC_STATICPAGES=true npm run webpack-watch
+//- for development, run $ env CC_COMP_ENV=true CC_STATICPAGES=true npm run webpack-debug
 
 extends ../_base.pug
 
 block vars
-  - subtitle = NAME + " Python Software Environment"
+  - subtitle = NAME + " Python Environments"
 
 block header
-  meta(name="description" content=NAME + " Python Software Environment")
+  meta(name="description" content=NAME + " Python Environments")
 
 block content
   a.anchor#a-top
   div.container
     div.row#top
-      h1= NAME + " Python Environment"
+      h1 Python Environments
       div.
         This table lists available Python libraries with their respective versions.
         The header at the top lists the available environments.
         The left column describes the name and summary of the library.
+      div.
+        Besides the listed libraries, you can also install additional ones directly in your project.
 
-  - var components = htmlWebpackPlugin.options.components['python']
-  - var inventory  = htmlWebpackPlugin.options.inventory['python']
-  - var envs       = htmlWebpackPlugin.options.inventory['language_exes']
-
-  div.container
-    div.row
-      ul
-        for env, idx in envs
-          if env.lang == 'python'
-            li
-              b= env.name + ": "
-              span= env.doc
-
-  div.container
-    div.row
-      table.table
-        tr
-          th
-          each val, iidx in inventory
-            th= envs[iidx].name
-        each cval, cidx in components
-          tr
-            td
-              if cval
-                b
-                  if cval.url
-                    a(href=cval.url)= cval.name
-                  else
-                    = cval.name
-                br/
-                span= cval.summary
-              else
-                b= cidx
-            each ival, iidx in inventory
-              td.version
-                if inventory[iidx][cidx]
-                  = inventory[iidx][cidx]
-                else
-                  = ''
-
-
+  +software-environment-table('python')
 
   //- CSS comes at the bottom: overwrites styles defined in the header
   style
@@ -66,6 +28,3 @@ block content
       @import "smc-webapp/_colors.sass"
       div#top
         margin           : 5rem 0
-      td.version
-        font-size        : 120%
-        font-weight      : bold

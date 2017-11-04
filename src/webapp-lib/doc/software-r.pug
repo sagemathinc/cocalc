@@ -1,19 +1,26 @@
-//- for development, run $ env CC_COMP_ENV=true CC_STATICPAGES=true npm run webpack-watch
+//- for development, run $ env CC_COMP_ENV=true CC_STATICPAGES=true npm run webpack-debug
 
 extends ../_base.pug
 
 block vars
-  - subtitle = NAME + " Software Environments"
+  - subtitle = NAME + " R Environments"
 
 block header
-  meta(name="description" content=NAME + " Features")
+  meta(name="description" content=NAME + " R Environments")
 
 block content
   a.anchor#a-top
   div.container
     div.row#top
-      h1 R Statistical Software
+      h1 R Statistical Software Environments
+      div.
+        This table lists available R libraries with their respective version numbers.
+        The header at the top lists the available environments.
+        The left column describes the name and summary of the library.
+      div.
+        Besides the listed libraries, you can also install additional ones directly in your project.
 
+  +software-environment-table('R')
 
 
   //- CSS comes at the bottom: overwrites styles defined in the header

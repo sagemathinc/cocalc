@@ -9,6 +9,49 @@ mixin video-player
     video(loop).fit
       block
 
+mixin software-environment-table(lang)
+  - var components = htmlWebpackPlugin.options.components[lang]
+  - var inventory  = htmlWebpackPlugin.options.inventory[lang]
+  - var envs       = htmlWebpackPlugin.options.inventory['language_exes']
+
+  div.container
+    div.row
+      ul
+        for env, idx in envs
+          if env.lang == lang
+            li
+              b
+                a(href=env.url)= env.name
+                = ': '
+              = env.doc
+
+  div.container
+    div.row
+      table.table
+        tr
+          th
+          each val, iidx in inventory
+            th.software= envs[iidx].name
+        each cval, cidx in components
+          tr
+            td
+              if cval
+                b
+                  if cval.url
+                    a(href=cval.url)= cval.name
+                  else
+                    = cval.name
+                br/
+                span= cval.summary
+              else
+                b= cidx
+            each ival, iidx in inventory
+              td.version
+                if inventory[iidx][cidx]
+                  = inventory[iidx][cidx]
+                else
+                  = ''
+
 doctype html
 
 -
@@ -106,6 +149,11 @@ html.no-js(lang="en")
           visibility     : hidden
         blockquote.blockquote
           font-size      : inherit
+        th.software
+          white-space      : nowrap
+        td.version
+          font-size        : 120%
+          font-weight      : bold
         .btn-xlg
           font-size        : 24px
           line-height      : 1.5

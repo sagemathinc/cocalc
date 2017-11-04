@@ -1,20 +1,38 @@
-//- for development, run $ env CC_COMP_ENV=true CC_STATICPAGES=true npm run webpack-watch
+//- for development, run $ env CC_COMP_ENV=true CC_STATICPAGES=true npm run webpack-debug
 
 extends ../_base.pug
 
 block vars
-  - subtitle = NAME + " Software Environments"
+  - subtitle = NAME + " Software Executables"
 
 block header
-  meta(name="description" content=NAME + " Features")
+  meta(name="description" content=NAME + " Executables")
+
 
 block content
+  - var info  = htmlWebpackPlugin.options.components['executables']
+  - var execs = htmlWebpackPlugin.options.inventory['executables']
+
   a.anchor#a-top
   div.container
     div.row#top
       h1 Executables
+      div.
+        This is a non-comprehensive list of executables available on #{NAME}.
+        The output of running the executable with #[code --version] or equivalent is shown below.
+        This offers some information about the tool and its available version number.
+      div.
+        On #{NAME}, you can also install and/or compile your own executable binaries.
+        You have a lot of control about the environment in a project.
 
-
+  div.container
+    div.row
+      div
+        each exe, idx in execs
+          h3
+            = info[idx].name
+            code.software= idx
+          pre.stdout= exe
 
   //- CSS comes at the bottom: overwrites styles defined in the header
   style
@@ -22,3 +40,13 @@ block content
       @import "smc-webapp/_colors.sass"
       div#top
         margin           : 5rem 0
+      code.software
+        font-size        : 80%
+        margin-left      : 2rem
+        position         : relative
+        bottom           : 2px
+      pre.stdout
+        font-size        : 80%
+        font-family      : monospace
+        max-height       : 12rem
+        white-space      : pre-wrap
