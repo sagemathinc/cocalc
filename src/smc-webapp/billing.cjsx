@@ -152,9 +152,12 @@ class BillingActions extends Actions
     fetch_coupon: (id) =>
         cb = (err, coupon) =>
             if err
-                @setState(coupon_error: err)
+                @setState(coupon_error: "An error has occurred: err")
+            else if not coupon.valid
+                @setState(coupon_error: "Sorry! That coupon has expired."
             else if coupon
                 @setState(applied_coupons : store.get('applied_coupons').set(coupon.id, coupon))
+
         opts =
             id     : id
             cb     : cb
