@@ -1672,6 +1672,25 @@ capture = Capture(stdout=None, stderr=None, append=False, echo=False)
 
 import sage.misc.cython
 
+def asy(code=None, **kwds):
+    # make a .pdf from .asy code and display it
+    # asy command can also be used to make .eps file
+    import tempfile
+    import subprocess
+    # FIXME delete tempfiles after viewing
+    fname1 = tempfile.mkstemp(suffix=".asy")[1]
+    fname2 = tempfile.mkstemp(suffix=".pdf")[1]
+    with open(fname1,"w") as outf1:
+        outf1.write(code)
+    cmd = "/usr/bin/asy -offscreen -f pdf -o {} {}".format(fname2, fname1)
+    p = subprocess.Popen(cmd, shell=True)
+    ldoc = r"""
+\begin{{center}}
+\includegraphics[width=.8\textwidth]{{{}}}
+\end{{center}}
+""".format(fname2)
+    latex0(ldoc)
+
 def cython(code=None, **kwds):
     """
     Block decorator to easily include Cython code in CoCalc worksheets.
