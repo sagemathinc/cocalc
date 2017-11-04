@@ -12,6 +12,11 @@ block header
 block content
   - var info  = htmlWebpackPlugin.options.components['executables']
   - var execs = htmlWebpackPlugin.options.inventory['executables']
+  -
+    var exec_keys = Object.keys(execs);
+    exec_keys.sort(function (a, b) {
+      return info[a].name.localeCompare(info[b].name.toLowerCase());
+    });
 
   a.anchor#a-top
   div.container
@@ -27,12 +32,12 @@ block content
 
   div.container
     div.row
-      div
-        each exe, idx in execs
-          h3
-            = info[idx].name
-            code.software= idx
-          pre.stdout= exe
+      each idx in exec_keys
+        h3
+          = info[idx].name
+          code.software= idx
+        //- this also escapes the output, which is necessary because there are some strings that could be interpreted as html
+        pre.stdout= execs[idx]
 
   //- CSS comes at the bottom: overwrites styles defined in the header
   style
@@ -40,6 +45,8 @@ block content
       @import "smc-webapp/_colors.sass"
       div#top
         margin           : 5rem 0
+      .container > div.row
+        margin           : 0
       code.software
         font-size        : 80%
         margin-left      : 2rem
