@@ -1625,7 +1625,7 @@ class exports.Connection extends EventEmitter
             percent_off        : null
             redeem_by          : null
             times_redeemed     : 2
-            valid              : true
+            valid              : false
             metadata           :
                 description : "$5 off your first subscription!"
 

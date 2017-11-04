@@ -145,7 +145,13 @@ class BillingActions extends Actions
             @setState(action:'', error: 'Too many subscription attempts in the last minute.  Please **REFRESH YOUR BROWSER** THEN  DOUBLE CHECK YOUR SUBSCRIPTION LIST!')
         else
             @setState(error: '')
-            @_action('create_subscription', 'Create a subscription', plan : plan)
+            # TODO: Support multiple coupons.
+            if store.get('applied_coupons').size > 0
+                coupon = store.get('applied_coupons').first()
+            opts =
+                plan   : plan
+                coupon : coupon.id
+            @_action('create_subscription', 'Create a subscription', opts)
             last_subscription_attempt = misc.server_time()
             @track_subscription(plan)
 
@@ -154,7 +160,7 @@ class BillingActions extends Actions
             if err
                 @setState(coupon_error: "An error has occurred: err")
             else if not coupon.valid
-                @setState(coupon_error: "Sorry! That coupon has expired."
+                @setState(coupon_error: "Sorry! That coupon has expired.")
             else if coupon
                 @setState(applied_coupons : store.get('applied_coupons').set(coupon.id, coupon))
 
@@ -1035,7 +1041,7 @@ CouponAdder = rclass
         <Well>
             <h4><Icon name='plus' /> Add a coupon?</h4>
             {<CouponList applied_coupons={@props.applied_coupons} /> if @props.applied_coupons?.size > 0}
-            <FormGroup style={marginTop:'5px'}>
+            {<FormGroup style={marginTop:'5px'}>
                 <InputGroup>
                     <FormControl
                         value       = {@state.coupon_id}
@@ -1052,7 +1058,7 @@ CouponAdder = rclass
                         </Button>
                     </InputGroup.Button>
                 </InputGroup>
-            </FormGroup>
+            </FormGroup> if @props.applied_coupons?.size == 0}{# TODO: Support multiple coupons}
             {<SkinnyError error_text={@props.coupon_error} on_close={@actions('billing').clear_coupon_error} /> if @props.coupon_error}
         </Well>
 
@@ -1078,6 +1084,7 @@ CouponInfo = rclass
             </Col>
             <Col md=8>
                 {@props.coupon.metadata.description}
+                <CloseX on_close={=>@actions('billing').remove_coupon(@props.coupon.id)} />
             </Col>
         </Row>
 
