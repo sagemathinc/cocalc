@@ -34,6 +34,8 @@ $.fn.process_smc_links = (opts={}) ->
                 if href[0] == '#'
                     # CASE: internal link on same document - do not touch (e.g., sections in jupyter/sagews)
                     continue
+                if misc.startswith(href, 'mailto:')
+                    continue
                 if opts.href_transform?
                     # special option; used, e.g., for Jupyter's attachment: url's
                     href = opts.href_transform(href)
