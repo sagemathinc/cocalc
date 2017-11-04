@@ -427,17 +427,18 @@ copyWebpackPlugin = new CopyWebpackPlugin []
 ###
 
 # this is like C's #ifdef for the source code. It is particularly useful in the
-# source code of SMC, such that it knows about itself's version and where
+# source code of CoCalc's webapp, such that it knows about itself's version and where
 # mathjax is. The version&date is shown in the hover-title in the footer (year).
 setNODE_ENV         = new webpack.DefinePlugin
-                                'process.env' :
-                                   'NODE_ENV' : JSON.stringify(NODE_ENV)
-                                'MATHJAX_URL' : JSON.stringify(MATHJAX_URL)
-                                'SMC_VERSION' : JSON.stringify(SMC_VERSION)
-                                'SMC_GIT_REV' : JSON.stringify(GIT_REV)
-                                'BUILD_DATE'  : JSON.stringify(BUILD_DATE)
-                                'BUILD_TS'    : JSON.stringify(BUILD_TS)
-                                'DEBUG'       : JSON.stringify(DEBUG)
+                                'process.env'     :
+                                   'NODE_ENV'       : JSON.stringify(NODE_ENV)
+                                'MATHJAX_URL'     : JSON.stringify(MATHJAX_URL)
+                                'SMC_VERSION'     : JSON.stringify(SMC_VERSION)
+                                'SMC_GIT_REV'     : JSON.stringify(GIT_REV)
+                                'COCALC_COMP_ENV' : JSON.stringify(COMP_ENV)
+                                'BUILD_DATE'      : JSON.stringify(BUILD_DATE)
+                                'BUILD_TS'        : JSON.stringify(BUILD_TS)
+                                'DEBUG'           : JSON.stringify(DEBUG)
 
 # This is not used, but maybe in the future.
 # Writes a JSON file containing the main webpack-assets and their filenames.

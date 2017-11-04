@@ -37,6 +37,7 @@ misc = require('smc-util/misc')
 {HelpEmailLink, SiteName, SiteDescription, PolicyPricingPageUrl} = require('./customize')
 {RECENT_TIMES, RECENT_TIMES_KEY} = require('smc-util/schema')
 {COLORS, HELP_EMAIL, WIKI_URL, TWITTER_HANDLE} = require('smc-util/theme')
+{ComputeEnvironment} = require('./r_compute_env')
 
 # List item style
 li_style =
@@ -353,6 +354,10 @@ exports.render_static_third_party_software = ->
 exports.HelpPage = HelpPage = rclass
     displayName : 'HelpPage'
 
+    render_compute_env: ->
+        env = <ComputeEnvironment />
+        return <Row>{env}</Row> if env?
+
     render: ->
         banner_style =
             backgroundColor : 'white'
@@ -395,6 +400,7 @@ exports.HelpPage = HelpPage = rclass
                 <Row>
                     {<LinkList title='About' icon='info-circle' links={ABOUT_LINKS} width={12} /> if require('./customize').commercial}
                 </Row>
+                {@render_compute_env()}
             </Col>
             <Col sm=1 md=2 xsHidden></Col>
             <Col xs=12 sm=12 md=12>
