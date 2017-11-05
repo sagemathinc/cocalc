@@ -1702,7 +1702,7 @@ ProjectFilesSearch = rclass
                     # computation was cancelled -- ignore result.
                     return
                 if err
-                    @setState(error:err, state:'edit')
+                    @setState(error:JSON.stringify(err), state:'edit')
                 else
                     if output.stdout
                         # Find the current path
