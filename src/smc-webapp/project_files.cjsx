@@ -139,10 +139,38 @@ ListingHeader = rclass
             </Col>
         </Row>
 
+ShareButton = rclass
+    propTypes:
+        id     : rtypes.string
+        type   : rtypes.string # directory or file
+
+    render_share_popover: ->
+        <Popover title={"Share this #{@props.type} publicly?"} id={@props.id} >
+            <span style={wordWrap:'break-word'}>
+                TODO: ADD SHARE UI HERE. Baller.
+            </span>
+        </Popover>
+
+    render: ->
+        <span><Space/>
+            <OverlayTrigger
+                trigger   = 'click'
+                rootClose = {true}
+                overlay   = {@render_share_popover()}
+            >
+                <Button
+                    bsStyle = 'default'
+                    bsSize  = 'xsmall'
+                    onClick = {(e)->e.stopPropagation()}
+                >
+                    <Icon name='share-square-o' /> <span className='hidden-xs'>Share...</span>
+                </Button>
+            </OverlayTrigger>
+        </span>
+
 PublicButton = rclass
     propTypes:
         id     : rtypes.string
-        public : rtypes.bool
         data   : rtypes.object
         type   : rtypes.string # directory or file
 
@@ -154,8 +182,6 @@ PublicButton = rclass
         </Popover>
 
     render: ->
-        return null unless @props.public
-
         <span><Space/>
             <OverlayTrigger
                 trigger   = 'click'
@@ -243,12 +269,17 @@ FileRow = rclass
 
 
     render_public_file_info: ->
-        <PublicButton
-            id     = {@props.name}
-            public = {@props.public_data? and @props.is_public}
-            data   = {@props.public_data}
-            type   = 'file'
-        />
+        if @props.public_data? and @props.is_public
+            <PublicButton
+                id     = {@props.name}
+                data   = {@props.public_data}
+                type   = 'file'
+            />
+        else
+            <ShareButton
+                id     = {@props.name}
+                type   = 'file'
+            />
 
     fullpath: ->
         misc.path_to_file(@props.current_path, @props.name)
@@ -369,12 +400,16 @@ DirectoryRow = rclass
             @props.actions.set_file_search('')
 
     render_public_directory_info: ->
-        <PublicButton
-            id     = {@props.name}
-            public = {@props.public_data? and @props.is_public}
-            data   = {@props.public_data}
-            type   = 'folder'
-        />
+        if @props.public_data? and @props.is_public
+            <PublicButton
+                id     = {@props.name}
+                data   = {@props.public_data}
+                type   = 'folder'
+            />
+        else
+            <ShareButton
+                id     = {@props.name}
+                type   = 'folder'/>
 
     render_time: ->
         if @props.time?
