@@ -139,6 +139,39 @@ ListingHeader = rclass
             </Col>
         </Row>
 
+PublicButton = rclass
+    propTypes:
+        id     : rtypes.string
+        public : rtypes.bool
+        data   : rtypes.object
+        type   : rtypes.string # directory or file
+
+    render_public_info_popover: ->
+        <Popover title={"This #{@props.type} is being shared publicly"} id={@props.id} >
+            <span style={wordWrap:'break-word'}>
+                Description: {@props.data.description}
+            </span>
+        </Popover>
+
+    render: ->
+        return null unless @props.public
+
+        <span><Space/>
+            <OverlayTrigger
+                trigger   = 'click'
+                rootClose = {true}
+                overlay   = {@render_public_info_popover()}
+            >
+                <Button
+                    bsStyle = 'info'
+                    bsSize  = 'xsmall'
+                    onClick = {(e)->e.stopPropagation()}
+                >
+                    <Icon name='bullhorn' /> <span className='hidden-xs'>Public...</span>
+                </Button>
+            </OverlayTrigger>
+        </span>
+
 FileRow = rclass
     displayName : 'ProjectFiles-FileRow'
 
@@ -208,29 +241,14 @@ FileRow = rclass
         else
             @render_name_link(styles, name, ext)
 
-    render_public_file_info_popover: ->
-        <Popover title='This file is being shared publicly' id='public_share' >
-            <span style={wordWrap:'break-word'}>
-                Description: {@props.public_data.description}
-            </span>
-        </Popover>
 
     render_public_file_info: ->
-        if @props.public_data? and @props.is_public
-            <span><Space/>
-                <OverlayTrigger
-                    trigger   = 'click'
-                    rootClose
-                    overlay   = {@render_public_file_info_popover()} >
-                    <Button
-                        bsStyle = 'info'
-                        bsSize  = 'xsmall'
-                        onClick = {(e)->e.stopPropagation()}
-                    >
-                        <Icon name='bullhorn' /> <span className='hidden-xs'>Public</span>
-                    </Button>
-                </OverlayTrigger>
-            </span>
+        <PublicButton
+            id     = {@props.name}
+            public = {@props.public_data? and @props.is_public}
+            data   = {@props.public_data}
+            type   = 'file'
+        />
 
     fullpath: ->
         misc.path_to_file(@props.current_path, @props.name)
@@ -350,27 +368,13 @@ DirectoryRow = rclass
             @props.actions.open_directory(path)
             @props.actions.set_file_search('')
 
-    render_public_directory_info_popover: ->
-        <Popover id={@props.name} title='This folder is being shared publicly' style={wordWrap:'break-word'}>
-            Description: {@props.public_data.description}
-        </Popover>
-
     render_public_directory_info: ->
-        if @props.public_data? and @props.is_public
-            <span><Space/>
-                <OverlayTrigger
-                    trigger   = 'click'
-                    rootClose
-                    overlay   = {@render_public_directory_info_popover()} >
-                    <Button
-                        bsStyle = 'info'
-                        bsSize  = 'xsmall'
-                        onClick = {(e)->e.stopPropagation()}
-                    >
-                        <Icon name='bullhorn' /> <span className='hidden-xs'>Public</span>
-                    </Button>
-                </OverlayTrigger>
-            </span>
+        <PublicButton
+            id     = {@props.name}
+            public = {@props.public_data? and @props.is_public}
+            data   = {@props.public_data}
+            type   = 'folder'
+        />
 
     render_time: ->
         if @props.time?
@@ -403,7 +407,12 @@ DirectoryRow = rclass
             overflowWrap   : 'break-word'
             verticalAlign  : 'sub'
 
-        <Row style={row_styles} onMouseDown={@handle_mouse_down} onClick={@handle_click} className={'noselect' if @props.no_select}>
+        <Row
+            style={row_styles}
+            onMouseDown={@handle_mouse_down}
+            onClick={@handle_click}
+            className={'noselect' if @props.no_select}
+        >
             <Col sm=2 xs=3>
                 <FileCheckbox
                     name         = {@props.name}
