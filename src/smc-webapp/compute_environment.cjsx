@@ -19,12 +19,15 @@
 #
 ###############################################################################
 
-{Col, Row, Panel, Table, Tab, Tabs} = require('react-bootstrap')
+{Col, Row, Panel, Table, Tab, Tabs, Modal, Button} = require('react-bootstrap')
 {redux, Redux, rclass, rtypes, React, Actions, Store} = require('./smc-react')
 {Loading} = require('./r_misc')
+{HelpEmailLink, SiteName} = require('./customize')
+
 schema = require('smc-util/schema')
 misc   = require('smc-util/misc')
 theme  = require('smc-util/theme')
+
 
 NAME   = 'compute_environment'
 
@@ -52,7 +55,11 @@ class ComputeEnvironmentActions extends Actions
 
     init_data: (inventory, components) ->
         @setState(inventory:inventory, components:components)
-        @setState(langs: (k for k, v of inventory when k isnt 'language_exes'))
+        langs = (k for k, v of inventory when k isnt 'language_exes')
+        langs.sort((a, b) ->
+            return a.toLowerCase().localeCompare(b.toLowerCase())
+        )
+        @setState(langs: langs)
 
     load: ->
         return if @get('loading')
@@ -68,7 +75,7 @@ class ComputeEnvironmentActions extends Actions
 # utils
 full_lang_name = (lang) ->
     switch lang
-        when 'r'
+        when 'R'
             return 'R Project'
     return lang.charAt(0).toUpperCase() + lang[1..]
 
@@ -82,14 +89,29 @@ Executables = rclass
         inventory     : rtypes.object.isRequired    # already language-specific
         components    : rtypes.object.isRequired    # already language-specific
 
-    executables_list: ->
-        for i in [0..100]
-            <li key={i}>Executable {i}</li>
-
     render: ->
-        <ul>
-            {@executables_list()}
-        </ul>
+        style =
+            maxHeight    : '12rem'
+            overflowY    : 'auto'
+            fontSize     : '80%'
+
+        execs = misc.keys(@props.inventory)
+        name  = ((x) => @props.components[x].name)
+        execs.sort(((a, b) -> name(a).toLowerCase().localeCompare(name(b).toLowerCase())))
+        for exec in execs
+            stdout = @props.inventory[exec]
+            <Row key={exec} style={margin: '2rem 0 2rem 0'}>
+                <Col md={3}>
+                    <b>{name(exec)}</b>
+                    <br/>
+                    <code style={fontSize: '80%'}>{exec}</code>
+                </Col>
+                <Col md={9}>
+                    <pre style={style}>
+                        {stdout}
+                    </pre>
+                </Col>
+            </Row>
 
 LanguageTable = rclass
     displayName : 'ComputeEnvironment-LanguageTable'
@@ -99,49 +121,81 @@ LanguageTable = rclass
         inventory     : rtypes.object.isRequired    # already language-specific
         components    : rtypes.object.isRequired    # already language-specific
         lang_exes     : rtypes.object.isRequired
+        version_click : rtypes.func.isRequired
 
     lang_table_header: ->
         <thead>
             <tr>
-                <th key={''}></th>
+                <th key={'__package'}>Package</th>
                 {
                     for inventory_idx of @props.inventory
-                        <th key={inventory_idx}>{@props.lang_exes[inventory_idx].name}</th>
+                        <th
+                            key    = {inventory_idx}
+                            style  = {whiteSpace: 'nowrap'}
+                        >
+                            {@props.lang_exes[inventory_idx].name}
+                        </th>
                 }
             </tr>
         </thead>
 
+
     lang_table_body_row_versions: (component_idx) ->
         for inventory_idx, inventory_info of @props.inventory
-            <td key={inventory_idx}>version {component_idx}</td>
+            do (inventory_idx) =>
+                info = inventory_info[component_idx]
+                <td
+                    key        = {inventory_idx}
+                    style      = {cursor: 'pointer' if info?}
+                    onClick    = {(=> @props.version_click(inventory_idx, component_idx)) if info?}
+                >
+                    {info ? ''}
+                </td>
 
-    lang_table_body_row_name: (component_idx, component_info) ->
+    lang_table_body_row_name: (component_idx) ->
+
+        style =
+            fontWeight  : 'bold'
+        summary =
+            fontSize    : '80%'
+
+        component_info = @props.components[component_idx]
         if component_info
-            <th key={'name'}>
-            <div>
-            {
-                if component_info.url
-                    <a href={component_info.url}>{component_info.name}</a>
-                else
-                    component_info.name
-            }
-            </div>
-            {<div>{component_info.summary}</div> if component_info.summary}
-            </th>
+            <td key={'__name'}>
+                <div style={style}>
+                {
+                    if component_info.url
+                        <a target='_blank' href={component_info.url}>{component_info.name}</a>
+                    else
+                        component_info.name
+                }
+                </div>
+                {<div style={summary}>{component_info.summary}</div> if component_info.summary}
+            </td>
         else
-            <th key={'name'}>{component_idx}</th>
+            <td key={'name'}>
+                <div style={style}>{component_idx}</div>
+            </td>
 
-    lang_table_body_row: (component_idx, component_info) ->
+    lang_table_body_row: (component_idx) ->
         <tr key={component_idx}>
-            {@lang_table_body_row_name(component_idx, component_info)}
+            {@lang_table_body_row_name(component_idx)}
             {@lang_table_body_row_versions(component_idx)}
         </tr>
 
     lang_table_body: ->
         <tbody>
         {
-            for component_idx, component_info of @props.components
-                @lang_table_body_row(component_idx, component_info)
+            component_idxs = (k for k, v of @props.components)
+            component_idxs.sort((a, b) =>
+                return a.localeCompare(b)
+                # TOOD make this below here work
+                #name_a = (@props.components[a] ? a).toLowerCase()
+                #name_b = (@props.components[b] ? b).toLowerCase()
+                #return name_a.localeCompare(name_b)
+            )
+            for component_idx in component_idxs
+                @lang_table_body_row(component_idx)
         }
         </tbody>
 
@@ -168,12 +222,68 @@ ComputeEnvironment = rclass
         @props.actions.load()
 
     getInitialState: ->
-        selected_lang: 'python'
+        selected_lang      : 'python'
+        show_version_popup : false
+        inventory_idx      : ''
+        component_idx      : ''
+
+    version_click: (inventory_idx, component_idx) ->
+        if DEBUG then console.log inventory_idx, component_idx
+        @setState(
+            show_version_popup : true
+            inventory_idx      : inventory_idx
+            component_idx      : component_idx
+        )
+
+    version_close: ->
+        @setState(show_version_popup: false)
+
+    version_information_popup: ->
+        {li_style} = require('./r_help')
+
+        lang_info = @props.inventory['language_exes'][@state.inventory_idx]
+        version = @props.inventory[@state.selected_lang]?[@state.inventory_idx]?[@state.component_idx] ? '?'
+        jupyter_bridge_url = "https://github.com/sagemathinc/cocalc/wiki/sagejupyter#-question-how-do-i-start-a-jupyter-kernel-in-a-sage-worksheet"
+
+        <Modal
+            key        = {'modal'}
+            show       = {@state.show_version_popup}
+            onHide     = {@version_close}
+            animation  = {false}
+        >
+            <Modal.Header closeButton>
+                <Modal.Title>Library {@state.component_idx}</Modal.Title>
+            </Modal.Header>
+            <Modal.Body>
+                <p>
+                    The library <code>{@state.component_idx}</code>{' '}
+                    of version {version}{' '}
+                    is available in the {lang_info?.name ? @state.inventory_idx} environment.
+                </p>
+                <p>
+                    You can access it by
+                    <ul>
+                        <li style={li_style}>selecting the appropriate Kernel in a Jupyter Notebook,</li>
+                        <li style={li_style}>load it from within a SageMath Worksheet via the{' '}
+                            <a target='_blank' href={jupyter_bridge_url}>Jupyter Bridge</a>.
+                            E.g. for Anaconda:
+                            <pre>
+                                %auto
+                                anaconda3 = jupyter('anaconda3')
+                                %default_mode anaconda3
+                            </pre>
+                        </li>
+                        <li style={li_style}>or run it in a Terminal ("Files" → "Terminal")</li>
+                    </ul>
+                </p>
+            </Modal.Body>
+            <Modal.Footer>
+                <Button onClick={@version_close}>Close</Button>
+            </Modal.Footer>
+        </Modal>
 
     body: (lang) ->
-        # why is lang sometimes undefined?
-        return if not lang?
-        <div style={height: '60vh', overflowY: 'scroll'}>
+        <div style={height: '75vh', overflowY: 'scroll', overflowX: 'hidden'}>
         {
             if lang is 'executables'
                 <Executables
@@ -181,37 +291,90 @@ ComputeEnvironment = rclass
                     components   = {@props.components[lang]}/>
             else
                 <LanguageTable
-                    lang         = {lang}
-                    inventory    = {@props.inventory[lang]}
-                    components   = {@props.components[lang]}
-                    lang_exes    = {@props.inventory['language_exes']}/>
+                    lang          = {lang}
+                    version_click = {@version_click}
+                    inventory     = {@props.inventory[lang]}
+                    components    = {@props.components[lang]}
+                    lang_exes     = {@props.inventory['language_exes']}/>
         }
         </div>
 
     control_tabs: ->
         for lang in @props.langs
-            <Tab key={lang} eventKey={lang} title={full_lang_name(lang)}>{@body(lang)}</Tab>
+            <Tab key={lang} eventKey={lang} title={full_lang_name(lang)}>
+                {@body(lang)}
+            </Tab>
 
-    controls: ->
+    tabs: ->
         <Tabs
+            key={'tabs'}
             activeKey={@props.selected_lang}
             onSelect={((key) => @setState(selected_lang:key))}
+            animation={false}
             id={"about-compute-environment-tabs"}
         >
             {@control_tabs()}
         </Tabs>
 
-    main: ->
-        <Row>
-            <hr/>
-            <h3>Available Software and Programming Libraries</h3>
-            {@controls()}
-            {@body()}
-        </Row>
+    environment_information: ->
+        {li_style} = require('./r_help')
+
+        num = {}
+        for env in ['R', 'julia', 'python', 'executables']
+            num[env] = misc.keys(@props.components[env] ? {}).length ? 0
+        num.language_exes = misc.keys(@props.inventory['language_exes'] ? {}).length ? 0
+        execs = @props.inventory['language_exes'] ? {}
+        exec_keys = misc.keys(execs)
+        exec_keys.sort((a, b) ->
+            execs[a].name.toLowerCase().localeCompare(execs[b].name.toLowerCase())
+        )
+
+        <div key={'intro'} style={marginBottom: '20px'}>
+            <p>
+                <SiteName /> offers a comprehensive collection of software environments and libraries.{' '}
+                There are {num.python} Python packages, {num.R} R packages, {num.julia} Julia libraries{' '}
+                and more than {num.executables} executables installed.
+            </p>
+            <p>
+                There are {num.language_exes} programming language environments available:
+                <ul>
+                {
+                    for k in exec_keys
+                        info = execs[k]
+                        <li key={k} style={li_style}>
+                            <b>
+                                <a href={info.url} target='_blank'>
+                                    {info.name}
+                                </a>
+                                {':'}
+                            </b>{' '}
+                            {info.doc}
+                        </li>
+                }
+                </ul>
+            </p>
+        </div>
+
+    ui: ->
+        [
+            @version_information_popup()
+        ,
+            @environment_information()
+        ,
+            @tabs()
+        ]
 
     render: ->
-        return <Loading/> if not (@props.inventory and @props.components and @props.langs?.length > 0)
-        @main()
+        <Row>
+            <hr/>
+            <h3>Software and Programming Libraries Details</h3>
+            {
+                if @props.inventory and @props.components and @props.langs?.length > 0
+                    @ui()
+                else
+                    <Loading/>
+            }
+        </Row>
 
 
 # react magic

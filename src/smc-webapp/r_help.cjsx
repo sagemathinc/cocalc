@@ -40,7 +40,7 @@ misc = require('smc-util/misc')
 {ComputeEnvironment} = require('./compute_environment')
 
 # List item style
-li_style =
+li_style = exports.li_style =
     lineHeight    : 'inherit'
     marginBottom  : '10px'
 
@@ -346,7 +346,7 @@ LinkList = rclass
 ThirdPartySoftware = rclass
     displayName : 'Help-ThirdPartySoftware'
     render: ->
-        <LinkList title='Available Software' icon='question-circle' links={THIRD_PARTY} />
+        <LinkList title='Software' icon='question-circle' links={THIRD_PARTY} />
 
 exports.render_static_third_party_software = ->
     <LinkList title='' icon='question-circle' width={12} links={THIRD_PARTY} />

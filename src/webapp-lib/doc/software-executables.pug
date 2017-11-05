@@ -15,7 +15,7 @@ block content
   -
     var exec_keys = Object.keys(execs);
     exec_keys.sort(function (a, b) {
-      return info[a].name.localeCompare(info[b].name.toLowerCase());
+      return info[a].name.toLowerCase().localeCompare(info[b].name.toLowerCase());
     });
 
   a.anchor#a-top
