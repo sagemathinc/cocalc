@@ -435,7 +435,7 @@ setNODE_ENV         = new webpack.DefinePlugin
                                 'MATHJAX_URL'     : JSON.stringify(MATHJAX_URL)
                                 'SMC_VERSION'     : JSON.stringify(SMC_VERSION)
                                 'SMC_GIT_REV'     : JSON.stringify(GIT_REV)
-                                'COCALC_COMP_ENV' : JSON.stringify(COMP_ENV)
+                                'KUCALC_COMP_ENV' : "#{COMP_ENV}"   # true or false, no need to special encode
                                 'BUILD_DATE'      : JSON.stringify(BUILD_DATE)
                                 'BUILD_TS'        : JSON.stringify(BUILD_TS)
                                 'DEBUG'           : JSON.stringify(DEBUG)

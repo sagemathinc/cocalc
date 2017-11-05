@@ -37,7 +37,7 @@ misc = require('smc-util/misc')
 {HelpEmailLink, SiteName, SiteDescription, PolicyPricingPageUrl} = require('./customize')
 {RECENT_TIMES, RECENT_TIMES_KEY} = require('smc-util/schema')
 {COLORS, HELP_EMAIL, WIKI_URL, TWITTER_HANDLE} = require('smc-util/theme')
-{ComputeEnvironment} = require('./r_compute_env')
+{ComputeEnvironment} = require('./compute_environment')
 
 # List item style
 li_style =
