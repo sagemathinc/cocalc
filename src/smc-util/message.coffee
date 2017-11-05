@@ -1593,7 +1593,7 @@ contains one file "hello.txt" and one subdirectory "p2".
 Security key may be blank.
 
 ```
-  curl -u sk_abcdefQWERTY090900000000: \\
+  curl -u : \\
     -d path=Public \\
     -d project_id=9a19cca3-c53d-4c7c-8c0f-e166aada7bb6 \\
     https://cocalc.com/api/v1/public_get_directory_listing
@@ -2059,7 +2059,7 @@ Options for the 'query' API message must be sent as JSON object.
 A query is either _get_ (read from database), or _set_ (write to database).
 A query is _get_ if any query keys are null, otherwise the query is _set_.
 
-Examples of _get_ query:
+#### Examples of _get_ query:
 
 Get title and description for a project, given the project id.
 ```
@@ -2156,7 +2156,42 @@ The project shows the following upgrades:
        "id":"9dd3ef3f-002b-4893-b31f-ff51440c855f"}
 ```
 
-Examples of _set_ query.
+Get editor settings for the present user.
+
+```
+  curl -u sk_abcdefQWERTY090900000000: \\
+    -H "Content-Type: application/json" \\
+    -d '{"query":{"accounts":{"account_id":"29163de6-b5b0-496f-b75d-24be9aa2aa1d","editor_settings":null}}}' \\
+    https://cocalc.com/api/v1/query
+  ==> {"event":"query",
+       "multi_response":false,
+       "id":"9dd3ef3f-002b-4893-b31f-ff51440c855f",
+       "query": {"accounts": {"account_id": "29163de6-b5b0-496f-b75d-24be9aa2aa1d",
+                              "editor_settings": {"auto_close_brackets": True,
+                                                  "auto_close_xml_tags": True,
+                                                  "bindings": "standard",
+                                                  "code_folding": True,
+                                                  "electric_chars": True,
+                                                  "extra_button_bar": True,
+                                                  "first_line_number": 1,
+                                                  "indent_unit": 4,
+                                                  "jupyter_classic": False,
+                                                  "line_numbers": True,
+                                                  "line_wrapping": True,
+                                                  "match_brackets": True,
+                                                  "match_xml_tags": True,
+                                                  "multiple_cursors": True,
+                                                  "show_trailing_whitespace": True,
+                                                  "smart_indent": True,
+                                                  "spaces_instead_of_tabs": True,
+                                                  "strip_trailing_whitespace": False,
+                                                  "tab_size": 4,
+                                                  "theme": "default",
+                                                  "track_revisions": True,
+                                                  "undo_depth": 300}}}}
+```
+
+#### Examples of _set_ query.
 
 Set title and description for a project, given the project id.
 ```
@@ -2209,6 +2244,24 @@ read, with `cpu_shares` increased to 1024 = 4 * 256.
          "query":{},
          "multi_response":false,
          "id":"ec822d6f-f9fe-443d-9845-9cd5f68bac20"}
+```
+
+Set present user to open Jupyter notebooks in
+"Modern Notebook" as opposed to "Classical Notebook".
+This change not usually needed, because accounts
+default to "Modern Notebook".
+
+It is not necessary to specify the entire `editor_settings` object
+if you are only setting the `jupyter_classic` attribute.
+```
+  curl -u sk_abcdefQWERTY090900000000: \\
+    -H "Content-Type: application/json" \\
+    -d '{"query":{"accounts":{"account_id":"29163de6-b5b0-496f-b75d-24be9aa2aa1d","editor_settings":{"jupyter_classic":false}}}}' \\
+    https://cocalc.com/api/v1/query
+  ==> {"event":"query",
+       "multi_response":false,
+       "id":"9dd3ef3f-002b-4893-b31f-ff51440c855f",
+       "query": {}}
 ```
 
 
