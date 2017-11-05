@@ -1128,13 +1128,15 @@ of the two strings and the last name begins with the other.
 String and email queries may be mixed in the list for a single
 user_search call. Searches are case-insensitive.
 
+Security key may be blank.
+
 Note: there is a hard limit of 50 returned items in the results.
 
 Examples:
 
 Search for account by email.
 ```
-  curl -u sk_abcdefQWERTY090900000000: \\
+  curl -u : \\
     -d query=jd@m.local \\
     https://cocalc.com/api/v1/user_search
   ==> {"event":"user_search_results",
@@ -1503,12 +1505,20 @@ API message2
     desc  : """
 Test API connection, return time as ISO string when server responds to ping.
 
+Security key may be blank.
+
 Examples:
 
 Omitting request id:
 ```
   curl -X POST -u sk_abcdefQWERTY090900000000: https://cocalc.com/api/v1/ping
   ==> {"event":"pong","id":"c74afb40-d89b-430f-836a-1d889484c794","now":"2017-05-24T13:29:11.742Z"}
+```
+
+Omitting request id and using blank security key:
+```
+  curl -X POST -u : https://cocalc.com/api/v1/ping
+  ==>  {"event":"pong","id":"d90f529b-e026-4a60-8131-6ce8b6d4adc8","now":"2017-11-05T21:10:46.585Z"}
 ```
 
 Using `uuid` shell command to create a request id:
@@ -1580,6 +1590,8 @@ Examples:
 Get public directory listing. Directory "Public" is shared and
 contains one file "hello.txt" and one subdirectory "p2".
 
+Security key may be blank.
+
 ```
   curl -u sk_abcdefQWERTY090900000000: \\
     -d path=Public \\
@@ -1616,11 +1628,13 @@ User does not need to be owner or collaborator in the target project
 and does not need to be logged into CoCalc.
 Argument `path` is relative to home directory in target project.
 
+Security key may be blank.
+
 Examples
 
 Read a public file.
 ```
-  curl -u sk_abcdefQWERTY090900000000: \\
+  curl -u : \\
     -d project_id=e49e86aa-192f-410b-8269-4b89fd934fba \\
     -d path=Public/hello.txt
     https://cocalc.com/api/v1/public_get_text_file
