@@ -2074,6 +2074,27 @@ Get title and description for a project, given the project id.
        "multi_response":false}
 ```
 
+Get info on all projects for the account whose security key is provided.
+The information returned may be any of the api-accessible fields in the
+`projects` table. These fields are listed in CoCalc source file
+src/smc-util/db-schema.coffee, under `schema.projects.user_query`.
+In this example, project name and description are returned.
+```
+  curl -u sk_abcdefQWERTY090900000000: -H "Content-Type: application/json" \\
+    -d '{"query":{"projects":[{"project_id":null,"title":null,"description":null}]}}' \\
+    https://cocalc.com/api/v1/query
+  ==> {"event":"query",
+       "id":"8ec4ac73-2595-42d2-ad47-0b9641043b46",
+       "multi_response": False,
+       "query": {"projects": [{"description": "Synthetic Monitoring",
+                         "project_id": "1fa1626e-ce25-4871-9b0e-19191cd03325",
+                         "title": "SYNTHMON"},
+                        {"description": "No Description",
+                         "project_id": "639a6b2e-7499-41b5-ac1f-1701809699a7",
+                         "title": "TESTPROJECT 99"}]}}
+```
+
+
 Get project id, given title and description.
 ```
   curl -u sk_abcdefQWERTY090900000000: -H "Content-Type: application/json" \\
