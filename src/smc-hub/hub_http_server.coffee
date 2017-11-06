@@ -419,13 +419,13 @@ exports.init_express_http_server = (opts) ->
         PROJECT_PATH = conf.project_path()
         share_server = require('./share/server')
         raw_router = share_server.raw_router
-            database   : opts.database
-            share_path : "#{PROJECT_PATH}/[project_id]"
-            logger     : winston
+            database : opts.database
+            path     : "#{PROJECT_PATH}/[project_id]"
+            logger   : winston
         share_router = share_server.share_router
-            database   : opts.database
-            share_path : "#{PROJECT_PATH}/[project_id]"
-            logger     : winston
+            database : opts.database
+            path     : "#{PROJECT_PATH}/[project_id]"
+            logger   : winston
         app.use(opts.base_url + '/raw',   raw_router)
         app.use(opts.base_url + '/share', share_router)
 

@@ -27,7 +27,7 @@ exports.init = (opts) ->
         raw_path       : undefined
         logger         : undefined
 
-    opts.logger?.debug("initializing express http share server")
+    opts.logger?.debug("initializing server using share_path='#{opts.share_path}', raw_path='#{opts.raw_path}'")
 
     # Create an express application
     router = express.Router()
@@ -44,15 +44,15 @@ exports.init = (opts) ->
 
     if opts.raw_path
         raw_router = exports.raw_router
-            database   : opts.database
-            share_path : opts.raw_path
-            logger     : opts.logger
+            database : opts.database
+            path     : opts.raw_path
+            logger   : opts.logger
 
     if opts.share_path
         share_router = exports.share_router
-            database   : opts.database
-            share_path : opts.share_path
-            logger     : opts.logger
+            database : opts.database
+            path     : opts.share_path
+            logger   : opts.logger
 
     if opts.base_url
         app.use(opts.base_url, router)
@@ -68,9 +68,9 @@ exports.init = (opts) ->
 
 exports.raw_router = (opts) ->
     opts = defaults opts,
-        database   : required
-        share_path : required
-        logger     : undefined
+        database : required
+        path     : required
+        logger   : undefined
 
     router = express.Router()
 
@@ -84,6 +84,7 @@ exports.raw_router = (opts) ->
             return
         path = req.path.slice(38)
         public_access_request
+            database   : opts.database
             project_id : project_id
             path       : path
             cb         : (err, is_public) ->
@@ -93,14 +94,14 @@ exports.raw_router = (opts) ->
                 else if not is_public
                     res.status(404).end()
                 else
-                    dir = opts.share_path.replace('[project_id]', project_id)
+                    dir = opts.path.replace('[project_id]', project_id)
                     res.sendFile(os_path.join(dir, path))
 
 exports.share_router = (opts) ->
     opts = defaults opts,
-        database   : required
-        share_path : required
-        logger     : undefined
+        database : required
+        path     : required
+        logger   : undefined
 
     router = express.Router()
 
