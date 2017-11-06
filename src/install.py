@@ -84,14 +84,16 @@ def install_webapp(*args):
 
         # download compute environment information
         # TOOD python 3: https://docs.python.org/3.5/library/urllib.request.html#urllib.request.urlretrieve
-        try:
-            host = 'https://storage.googleapis.com/cocalc-compute-environment/'
-            for fn in ['compute-inventory.json', 'compute-components.json']:
-                out = os.path.join(SRC, 'webapp-lib', fn)
-                urllib.urlretrieve(host + fn, out)
-        except Exception as ex:
-            print("WARNING: problem while downloading the compute environment information")
-            print(ex)
+        if os.environ.get('CC_COMP_ENV') == 'true':
+            print("Downloading compute environment information, because 'CC_COMP_ENV' is true")
+            try:
+                host = 'https://storage.googleapis.com/cocalc-compute-environment/'
+                for fn in ['compute-inventory.json', 'compute-components.json']:
+                    out = os.path.join(SRC, 'webapp-lib', fn)
+                    urllib.urlretrieve(host + fn, out)
+            except Exception as ex:
+                print("WARNING: problem while downloading the compute environment information")
+                print(ex)
 
         # update primus - so client has it.
         install_primus()
