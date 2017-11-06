@@ -21,7 +21,7 @@
 
 {Col, Row, Panel, Table, Tab, Tabs, Modal, Button} = require('react-bootstrap')
 {redux, Redux, rclass, rtypes, React, Actions, Store} = require('./smc-react')
-{Loading} = require('./r_misc')
+{Loading, Markdown} = require('./r_misc')
 {HelpEmailLink, SiteName} = require('./customize')
 
 schema = require('smc-util/schema')
@@ -37,10 +37,11 @@ ComputeEnvironmentStore =
     name: NAME
 
     getInitialState: ->
-        inventory   : undefined
-        components  : undefined
-        langs       : undefined
-        loading     : false
+        inventory      : undefined
+        components     : undefined
+        langs          : undefined
+        selected_lang  : 'python'      # we assume there will always be a python language environment
+        loading        : false
 
     stateTypes:
         inventory     : rtypes.object
@@ -215,6 +216,7 @@ ComputeEnvironment = rclass
             components    : rtypes.object
             selected_lang : rtypes.string
             langs         : rtypes.arrayOf(rtypes.string)
+            selected_lang : rtypes.string
 
     propTypes :
         actions : rtypes.object
@@ -223,13 +225,12 @@ ComputeEnvironment = rclass
         @props.actions.load()
 
     getInitialState: ->
-        selected_lang      : 'python'
         show_version_popup : false
         inventory_idx      : ''
         component_idx      : ''
 
     version_click: (inventory_idx, component_idx) ->
-        if DEBUG then console.log inventory_idx, component_idx
+        #if DEBUG then console.log inventory_idx, component_idx
         @setState(
             show_version_popup : true
             inventory_idx      : inventory_idx
@@ -242,9 +243,22 @@ ComputeEnvironment = rclass
     version_information_popup: ->
         {li_style} = require('./r_help')
 
-        lang_info = @props.inventory['language_exes'][@state.inventory_idx]
-        version = @props.inventory[@state.selected_lang]?[@state.inventory_idx]?[@state.component_idx] ? '?'
+        lang_info          = @props.inventory['language_exes'][@state.inventory_idx]
+        version            = @props.inventory[@props.selected_lang]?[@state.inventory_idx]?[@state.component_idx] ? '?'
+        # we're optimistic and treat 'description' as markdown,
+        # but in reality it might be plaintext, Rst or HTML
+        component_info     = @props.components[@props.selected_lang]?[@state.component_idx]
+        description        = component_info?.descr
+        # doc is often an html link, but sometimes not.
+        # Hence we treat it as an arbitrary string and use Markdown to turn it into a URL if possible.
+        doc                = component_info?.doc
+        url                = component_info?.url
+        name               = component_info?.name
+        lang_env_name      = lang_info?.name ? @state.inventory_idx
         jupyter_bridge_url = "https://github.com/sagemathinc/cocalc/wiki/sagejupyter#-question-how-do-i-start-a-jupyter-kernel-in-a-sage-worksheet"
+        style_descr =
+            maxHeight   : '12rem'
+            overflowY   : 'auto'
 
         <Modal
             key        = {'modal'}
@@ -253,14 +267,30 @@ ComputeEnvironment = rclass
             animation  = {false}
         >
             <Modal.Header closeButton>
-                <Modal.Title>Library {@state.component_idx}</Modal.Title>
+                <Modal.Title>Library <b>{@state.component_idx}</b> ({version})</Modal.Title>
             </Modal.Header>
             <Modal.Body>
-                <p>
-                    The library <code>{@state.component_idx}</code>{' '}
-                    of version {version}{' '}
-                    is available in the {lang_info?.name ? @state.inventory_idx} environment.
+                <p style={fontWeight: 'bold'}>
+                    The library{' '}
+                    {
+                        if url
+                            <a target='_blank' href={url}>{name}</a>
+                        else
+                            name
+                    }{' '}
+                    is available in version {version}{' '}
+                    as part of the {lang_env_name} environment.
                 </p>
+                {
+                    <p>
+                        <Markdown value={"Documentation: #{doc}"} />
+                    </p> if doc?
+                }
+                {
+                    <p style={style_descr}>
+                        <Markdown value={description} />
+                    </p> if description?
+                }
                 <p>
                     You can access it by
                 </p>
@@ -310,7 +340,7 @@ ComputeEnvironment = rclass
         <Tabs
             key={'tabs'}
             activeKey={@props.selected_lang}
-            onSelect={((key) => @setState(selected_lang:key))}
+            onSelect={((key) => @props.actions.setState(selected_lang:key))}
             animation={false}
             id={"about-compute-environment-tabs"}
         >
@@ -334,34 +364,31 @@ ComputeEnvironment = rclass
             <p>
                 <SiteName /> offers a comprehensive collection of software environments and libraries.{' '}
                 There are {num.python} Python packages, {num.R} R packages, {num.julia} Julia libraries{' '}
-                and more than {num.executables} executables installed.
+                and more than {num.executables} executables installed.{' '}
+                Click on a version number to learn more about the particular library.
             </p>
             <p>
                 There are {num.language_exes} programming language environments available:
-                <ul>
-                {
-                    for k in exec_keys
-                        info = execs[k]
-                        <li key={k} style={li_style}>
-                            <b>
-                                <a href={info.url} target='_blank'>
-                                    {info.name}
-                                </a>
-                                {':'}
-                            </b>{' '}
-                            {info.doc}
-                        </li>
-                }
-                </ul>
             </p>
+            <ul styke={margin: '10px 0'}>
+            {
+                for k in exec_keys
+                    info = execs[k]
+                    <li key={k} style={li_style}>
+                        <b>
+                            <a href={info.url} target='_blank'>{info.name}</a>{':'}
+                        </b>
+                        {' '}
+                        {info.doc}
+                    </li>
+            }
+            </ul>
         </div>
 
     ui: ->
         [
             @version_information_popup()
-        ,
             @environment_information()
-        ,
             @tabs()
         ]
 

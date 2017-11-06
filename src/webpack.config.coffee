@@ -239,6 +239,8 @@ pug2app = new HtmlWebpackPlugin(
                         BASE_URL         : base_url_html
                         theme            : theme
                         COMP_ENV         : COMP_ENV
+                        components       : {}   # no data needed, empty is fine
+                        inventory        : {}   # no data needed, empty is fine
                         git_rev          : GIT_REV
                         mathjax          : MATHJAX_URL
                         filename         : 'app.html'
@@ -262,6 +264,8 @@ for [fn_in, fn_out] in [['index.pug', 'index.html']]
                         BASE_URL         : base_url_html
                         theme            : theme
                         COMP_ENV         : COMP_ENV
+                        components       : {}   # no data needed, empty is fine
+                        inventory        : {}   # no data needed, empty is fine
                         git_rev          : GIT_REV
                         mathjax          : MATHJAX_URL
                         filename         : fn_out
@@ -284,6 +288,8 @@ for dp in (x for x in glob.sync('webapp-lib/doc/*.pug') when path.basename(x)[0]
                         title            : TITLE
                         theme            : theme
                         COMP_ENV         : COMP_ENV
+                        components       : {}   # no data needed, empty is fine
+                        inventory        : {}   # no data needed, empty is fine
                         template         : dp
                         chunks           : ['css']
                         inject           : 'head'
@@ -303,6 +309,8 @@ for pp in (x for x in glob.sync('webapp-lib/policies/*.pug') when path.basename(
                         title            : TITLE
                         theme            : theme
                         COMP_ENV         : COMP_ENV
+                        components       : {}   # no data needed, empty is fine
+                        inventory        : {}   # no data needed, empty is fine
                         template         : pp
                         chunks           : ['css']
                         inject           : 'head'

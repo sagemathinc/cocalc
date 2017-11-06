@@ -10,9 +10,9 @@ block header
 
 
 block content
-  - var info  = htmlWebpackPlugin.options.components['executables']
-  - var execs = htmlWebpackPlugin.options.inventory['executables']
   -
+    var info  = htmlWebpackPlugin.options.components['executables'] || {}
+    var execs = htmlWebpackPlugin.options.inventory['executables'] || {}
     var exec_keys = Object.keys(execs);
     exec_keys.sort(function (a, b) {
       return info[a].name.toLowerCase().localeCompare(info[b].name.toLowerCase());

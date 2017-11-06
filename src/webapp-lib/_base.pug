@@ -10,9 +10,10 @@ mixin video-player
       block
 
 mixin software-environment-table(lang)
-  - var components = htmlWebpackPlugin.options.components[lang]
-  - var inventory  = htmlWebpackPlugin.options.inventory[lang]
-  - var envs       = htmlWebpackPlugin.options.inventory['language_exes']
+  -
+    var components = htmlWebpackPlugin.options.components[lang] || {}
+    var inventory  = htmlWebpackPlugin.options.inventory[lang] || {}
+    var envs       = htmlWebpackPlugin.options.inventory['language_exes'] || {}
 
   div.container
     div.row#software-env-top
