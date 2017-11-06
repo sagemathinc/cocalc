@@ -2252,7 +2252,7 @@ This change not usually needed, because accounts
 default to "Modern Notebook".
 
 It is not necessary to specify the entire `editor_settings` object
-if you are only setting the `jupyter_classic` attribute.
+if you are only setting the `jupyter_classic` attribute because changes are merged in.
 ```
   curl -u sk_abcdefQWERTY090900000000: \\
     -H "Content-Type: application/json" \\
