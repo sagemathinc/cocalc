@@ -262,20 +262,20 @@ ComputeEnvironment = rclass
                 </p>
                 <p>
                     You can access it by
-                    <ul>
-                        <li style={li_style}>selecting the appropriate Kernel in a Jupyter Notebook,</li>
-                        <li style={li_style}>load it from within a SageMath Worksheet via the{' '}
-                            <a target='_blank' href={jupyter_bridge_url}>Jupyter Bridge</a>.
-                            E.g. for Anaconda:
-                            <pre>
-                                %auto
-                                anaconda3 = jupyter('anaconda3')
-                                %default_mode anaconda3
-                            </pre>
-                        </li>
-                        <li style={li_style}>or run it in a Terminal ("Files" → "Terminal")</li>
-                    </ul>
                 </p>
+                <ul>
+                    <li style={li_style}>selecting the appropriate Kernel in a Jupyter Notebook,</li>
+                    <li style={li_style}>load it from within a SageMath Worksheet via the{' '}
+                        <a target='_blank' href={jupyter_bridge_url}>Jupyter Bridge</a>.
+                        E.g. for Anaconda:
+                        <pre>
+                            %auto
+                            anaconda3 = jupyter('anaconda3')
+                            %default_mode anaconda3
+                        </pre>
+                    </li>
+                    <li style={li_style}>or run it in a Terminal ("Files" → "Terminal")</li>
+                </ul>
             </Modal.Body>
             <Modal.Footer>
                 <Button onClick={@version_close}>Close</Button>
