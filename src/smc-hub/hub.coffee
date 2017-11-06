@@ -579,7 +579,7 @@ exports.start_server = start_server = (cb) ->
             if not program.raw_port
                 cb(); return
             winston.debug("initializing the raw server on port #{program.raw_port}")
-            x = raw_server.init
+            x = share_server.init
                 database       : database
                 base_url       : BASE_URL
                 raw_path       : program.raw_path
