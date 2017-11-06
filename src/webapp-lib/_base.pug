@@ -30,6 +30,10 @@ html.no-js(lang="en")
     include _inc_head.pug
     title= fulltitle
     block header
+    style
+      :sass
+        html.no-js
+          display : none
 
   body
 
@@ -59,8 +63,6 @@ html.no-js(lang="en")
     style
       :sass
         @import "smc-webapp/_colors.sass"
-        html.no-js
-          display          : none
         nav.navbar.navbar-default
           border-bottom    : 2px solid $COL_GRAY
           background-color : $COL_GRAY_LL
