@@ -1763,6 +1763,7 @@ class exports.Client extends EventEmitter
                 cb(err); return
             cb(undefined, customer_id)
 
+    # id : user's CoCalc account id
     stripe_get_customer: (id, cb) =>
         dbg = @dbg("stripe_get_customer")
         dbg("getting id")
@@ -2113,6 +2114,33 @@ class exports.Client extends EventEmitter
                     @stripe_error_to_client(id:mesg.id, error:err)
                 else
                     @push_to_client(message.stripe_subscriptions(id:mesg.id, subscriptions:subscriptions))
+
+    mesg_stripe_get_coupon: (mesg) =>
+        dbg = @dbg("mesg_stripe_get_coupon")
+        dbg("get the coupon with id == #{mesg.coupon_id}")
+        if not @ensure_fields(mesg, 'coupon_id')
+            dbg("missing field coupon_id")
+            return
+
+        @stripe_get_customer mesg.id, (err, customer) =>
+            if err
+                return
+            async.waterfall([
+                (cb) =>
+                    dbg("retrieve the coupon.")
+                    @_stripe.coupons.retrieve(mesg.coupon_id, cb)
+                (coupon, cb) =>
+                    dbg("check account coupon_history")
+                    # TODO: Limit coupon use. Need a db entry
+                    #if coupon_history[mesg.coupon_id] >= (coupon.metadata.max_per_account ? 1)
+                    #    cb("You have already used this coupon the maximum number of times")
+                    cb(undefined, coupon)
+            ], (err, coupon) =>
+                if err
+                    @stripe_error_to_client(id:mesg.id, error:err)
+                else
+                    @push_to_client(message.stripe_coupon(id:mesg.id, coupon:coupon))
+            )
 
     mesg_stripe_get_charges: (mesg) =>
         dbg = @dbg("mesg_stripe_get_charges")

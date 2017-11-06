@@ -1850,6 +1850,17 @@ message
     id            : undefined
     subscriptions : undefined
 
+API message
+    event     : 'stripe_get_coupon'
+    id        : undefined
+    coupon_id : required
+
+message
+    event  : 'stripe_coupon'
+    id     : undefined
+    coupon : undefined
+
+
 # charges
 API message
     event          : 'stripe_get_charges'

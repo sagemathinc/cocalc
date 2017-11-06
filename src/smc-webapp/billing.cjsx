@@ -90,7 +90,7 @@ class BillingActions extends Actions
         cb = opts.cb
         opts.cb = (err, value) =>
             @setState(action:'')
-            if action == 'fetch_coupon'
+            if action == 'get_coupon'
                 cb(err, value)
             else if err
                 @setState(error:JSON.stringify(err))
@@ -155,19 +155,19 @@ class BillingActions extends Actions
             last_subscription_attempt = misc.server_time()
             @track_subscription(plan)
 
-    fetch_coupon: (id) =>
+    get_coupon: (id) =>
         cb = (err, coupon) =>
             if err
-                @setState(coupon_error: "An error has occurred: err")
+                @setState(coupon_error: JSON.stringify(err))
             else if not coupon.valid
                 @setState(coupon_error: "Sorry! That coupon has expired.")
             else if coupon
                 @setState(applied_coupons : store.get('applied_coupons').set(coupon.id, coupon))
 
         opts =
-            id     : id
-            cb     : cb
-        @_action('fetch_coupon', "Getting coupon: #{id}", opts)
+            coupon_id : id
+            cb        : cb
+        @_action('get_coupon', "Getting coupon: #{id}", opts)
 
     clear_coupon_error: =>
         @setState(coupon_error : '')
@@ -1027,7 +1027,7 @@ CouponAdder = rclass
 
     submit: (e) ->
         e?.preventDefault()
-        @actions('billing').fetch_coupon(@state.coupon_id) if @state.coupon_id
+        @actions('billing').get_coupon(@state.coupon_id) if @state.coupon_id
 
     render: ->
         # TODO: (Here or elsewhere) Your final cost is:
