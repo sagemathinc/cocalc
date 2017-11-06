@@ -20,13 +20,11 @@ misc         = require('smc-util/misc')
 {defaults, required} = misc
 
 exports.init = (opts) ->
-    console.log 'share server - doing nothing'
     opts = defaults opts,
         database       : required
         base_url       : required
-        port           : required
-        host           : required
-        share_path     : required
+        share_path     : undefined
+        raw_path       : undefined
         logger         : undefined
 
     opts.logger?.debug("initializing express http share server")
@@ -34,9 +32,6 @@ exports.init = (opts) ->
     # Create an express application
     router = express.Router()
     app    = express()
-
-    router.get '/', (req, res) ->
-        res.send("<a href='raw'>raw</a><br/><a href='share'>share</a>")
 
     router.get '/alive', (req, res) ->
         if not hub_register.database_is_working()
@@ -47,27 +42,26 @@ exports.init = (opts) ->
         else
             res.send('alive')
 
-    router.get '/', (req, res) ->
-        res.send("<a href='raw'>raw</a><br/><a href='share'>share</a>")
+    if opts.raw_path
+        raw_router = exports.raw_router
+            database   : opts.database
+            share_path : opts.raw_path
+            logger     : opts.logger
 
-    raw_router = exports.raw_router
-        database   : opts.database
-        share_path : opts.share_path
-        logger     : opts.logger
-
-    share_router = exports.share_router
-        database   : opts.database
-        share_path : opts.share_path
-        logger     : opts.logger
+    if opts.share_path
+        share_router = exports.share_router
+            database   : opts.database
+            share_path : opts.share_path
+            logger     : opts.logger
 
     if opts.base_url
         app.use(opts.base_url, router)
-        app.use(opts.base_url + '/raw',   raw_router)
-        app.use(opts.base_url + '/share', share_router)
+        app.use(opts.base_url + '/raw',   raw_router)   if opts.raw_path
+        app.use(opts.base_url + '/share', share_router) if opts.share_path
     else
         app.use(router)
-        app.use('/raw',   raw_router)
-        app.use('/share', share_router)
+        app.use('/raw',   raw_router)   if opts.raw_path
+        app.use('/share', share_router) if opts.share_path
 
     http_server = http.createServer(app)
     return {http_server:http_server, express_router:router}
