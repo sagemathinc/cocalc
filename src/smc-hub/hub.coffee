@@ -575,9 +575,8 @@ exports.start_server = start_server = (cb) ->
                 host           : program.host
                 share_path     : program.share_path
                 logger         : winston
-            {http_server, express_router} = x
             winston.debug("starting share express webserver listening on #{program.share_host}:#{program.port}")
-            http_server.listen(program.share_port, program.host, cb)
+            x.http_server.listen(program.share_port, program.host, cb)
         (cb) ->
             if not program.port
                 cb(); return
