@@ -28,6 +28,7 @@ schema = require('smc-util/schema')
 misc   = require('smc-util/misc')
 theme  = require('smc-util/theme')
 
+# This depends on two files: compute-inventory.json and compute-components.json described in webapp-lib/README.md
 
 NAME   = 'compute_environment'
 
