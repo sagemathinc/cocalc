@@ -15,7 +15,7 @@ mixin software-environment-table(lang)
   - var envs       = htmlWebpackPlugin.options.inventory['language_exes']
 
   div.container
-    div.row
+    div.row#software-env-top
       ul
         for env, idx in envs
           if env.lang == lang
@@ -25,7 +25,6 @@ mixin software-environment-table(lang)
                 = ': '
               = env.doc
 
-  div.container
     div.row
       table.table
         tr
@@ -139,8 +138,14 @@ html.no-js(lang="en")
         .fit
           width          : 100%
           heigh          : auto
-        body > div.container > footer
-          margin-top     : 6rem
+        body
+          div.container
+            > footer
+              margin-top     : 6rem
+            > div.row#top
+              margin         : 5rem 0 0 0
+            > div#software-env-top
+              margin         : 2rem 0 5rem 0
         /* used for a.anchor#a-name with an offset to compensate for the static navbar on top */
         a.anchor
           display        : block
