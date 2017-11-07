@@ -150,7 +150,7 @@ class BillingActions extends Actions
                 coupon = store.get('applied_coupons').first()
             opts =
                 plan   : plan
-                coupon : coupon.id
+                coupon : coupon?.id
             @_action('create_subscription', 'Create a subscription', opts)
             last_subscription_attempt = misc.server_time()
             @track_subscription(plan)
