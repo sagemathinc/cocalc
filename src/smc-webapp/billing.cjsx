@@ -159,10 +159,9 @@ class BillingActions extends Actions
         cb = (err, coupon) =>
             if err
                 @setState(coupon_error: JSON.stringify(err))
-            else if not coupon.valid
-                @setState(coupon_error: "Sorry! That coupon has expired.")
-            else if coupon
-                @setState(applied_coupons : store.get('applied_coupons').set(coupon.id, coupon))
+            else
+                applied_coupons = store.get('applied_coupons').set(coupon.id, coupon)
+                @setState(applied_coupons : applied_coupons, coupon_error:'')
 
         opts =
             coupon_id : id
