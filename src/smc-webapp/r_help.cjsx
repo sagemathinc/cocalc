@@ -37,9 +37,10 @@ misc = require('smc-util/misc')
 {HelpEmailLink, SiteName, SiteDescription, PolicyPricingPageUrl} = require('./customize')
 {RECENT_TIMES, RECENT_TIMES_KEY} = require('smc-util/schema')
 {COLORS, HELP_EMAIL, WIKI_URL, TWITTER_HANDLE} = require('smc-util/theme')
+{ComputeEnvironment} = require('./compute_environment')
 
 # List item style
-li_style =
+li_style = exports.li_style =
     lineHeight    : 'inherit'
     marginBottom  : '10px'
 
@@ -345,13 +346,17 @@ LinkList = rclass
 ThirdPartySoftware = rclass
     displayName : 'Help-ThirdPartySoftware'
     render: ->
-        <LinkList title='Available Software' icon='question-circle' links={THIRD_PARTY} />
+        <LinkList title='Software' icon='question-circle' links={THIRD_PARTY} />
 
 exports.render_static_third_party_software = ->
     <LinkList title='' icon='question-circle' width={12} links={THIRD_PARTY} />
 
 exports.HelpPage = HelpPage = rclass
     displayName : 'HelpPage'
+
+    render_compute_env: ->
+        env = <ComputeEnvironment />
+        return <Row>{env}</Row> if env?
 
     render: ->
         banner_style =
@@ -395,6 +400,7 @@ exports.HelpPage = HelpPage = rclass
                 <Row>
                     {<LinkList title='About' icon='info-circle' links={ABOUT_LINKS} width={12} /> if require('./customize').commercial}
                 </Row>
+                {@render_compute_env() if KUCALC_COMP_ENV}
             </Col>
             <Col sm=1 md=2 xsHidden></Col>
             <Col xs=12 sm=12 md=12>
