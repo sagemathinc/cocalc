@@ -1815,11 +1815,11 @@ API message
 
 # Create a subscription to a plan
 API message
-    event    : 'stripe_create_subscription'
-    id       : undefined
-    plan     : required   # name of plan
-    quantity : 1
-    coupon   : undefined
+    event     : 'stripe_create_subscription'
+    id        : undefined
+    plan      : required   # name of plan
+    quantity  : 1
+    coupon_id : undefined
 
 # Delete a subscription to a plan
 API message
@@ -1836,7 +1836,7 @@ API message
     quantity        : undefined   # only give if changing
     projects        : undefined   # change associated projects from what they were to new list
     plan            : undefined   # change plan to this
-    coupon          : undefined   # apply a coupon to this subscription
+    coupon_id       : undefined   # apply a coupon to this subscription
 
 API message
     event          : 'stripe_get_subscriptions'

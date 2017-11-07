@@ -2002,7 +2002,7 @@ class exports.Client extends EventEmitter
             options =
                 plan     : mesg.plan
                 quantity : mesg.quantity
-                coupon   : mesg.coupon
+                coupon   : mesg.coupon_id
 
             subscription = undefined
             tax_rate = undefined
@@ -2113,7 +2113,7 @@ class exports.Client extends EventEmitter
                     changes =
                         quantity : mesg.quantity
                         plan     : mesg.plan
-                        coupon   : mesg.coupon
+                        coupon   : mesg.coupon_id
                     @_stripe.customers.updateSubscription(customer_id, subscription_id, changes, cb)
                 (cb) =>
                     @database.stripe_update_customer(account_id : @account_id, stripe : @_stripe, customer_id : customer_id, cb: cb)

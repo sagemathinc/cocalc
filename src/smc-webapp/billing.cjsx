@@ -149,8 +149,8 @@ class BillingActions extends Actions
             if store.get('applied_coupons').size > 0
                 coupon = store.get('applied_coupons').first()
             opts =
-                plan   : plan
-                coupon : coupon?.id
+                plan      : plan
+                coupon_id : coupon?.id
             @_action('create_subscription', 'Create a subscription', opts)
             last_subscription_attempt = misc.server_time()
             @track_subscription(plan)
