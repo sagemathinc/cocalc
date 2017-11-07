@@ -2023,28 +2023,14 @@ class exports.Client extends EventEmitter
                 (cb) =>
                     if options.coupon
                         dbg("add coupon to customer history")
-                        async.series([
-                            (local_cb) =>
-                                dbg("retrieve the coupon")
-                                @_stripe.coupons.retrieve(options.coupon, local_cb)
-                            (local_cb) =>
-                                @database.get_coupon_history
-                                    account_id : @account_id
-                                    cb         : local_cb
-                        ], (err, [coupon, coupon_history]) =>
-                            if not coupon.valid
-                                cb("Coupon is no longer valid")
-
-                            times_used = coupon_history[coupon.id] ? 0
-                            if times_used >= (coupon.metadata.max_per_account ? 1)
-                                cb("Coupon used too many times")
-
-                            coupon_history[coupon.id] = times_used + 1
+                        @validate_coupon options.coupon, (err, coupon, coupon_history) =>
+                            if err
+                                cb(err)
+                            coupon_history[coupon.id] += 1
                             @database.update_coupon_history
                                 account_id     : @account_id
                                 coupon_history : coupon_history
                                 cb             : cb
-                        )
                 (cb) =>
                     dbg("add customer subscription to stripe")
                     @_stripe.customers.createSubscription customer_id, options, (err, s) =>
@@ -2146,29 +2132,41 @@ class exports.Client extends EventEmitter
         if not @ensure_fields(mesg, 'coupon_id')
             dbg("missing field coupon_id")
             return
-
-        @stripe_get_customer mesg.id, (err, customer) =>
+        @validate_coupon mesg.coupon_id, (err, coupon) =>
             if err
-                return
-            async.waterfall([
-                (cb) =>
-                    dbg("retrieve the coupon")
-                    @_stripe.coupons.retrieve(mesg.coupon_id, cb)
-                (coupon, cb) =>
-                    dbg("check account coupon_history")
-                    @database.get_coupon_history
-                        account_id : @account_id
-                        cb         : (err, coupon_history) =>
-                            if coupon_history[mesg.coupon_id] >= (coupon.metadata.max_per_account ? 1)
-                                cb("You have already used this coupon the maximum number of times")
-                            else
-                                cb(undefined, coupon)
-            ], (err, coupon) =>
-                if err
-                    @stripe_error_to_client(id:mesg.id, error:err)
-                else
-                    @push_to_client(message.stripe_coupon(id:mesg.id, coupon:coupon))
-            )
+                @stripe_error_to_client(id:mesg.id, error:err)
+            else
+                @push_to_client(message.stripe_coupon(id:mesg.id, coupon:coupon))
+
+    # Checks these coupon criteria:
+    # - Exists
+    # - Is valid
+    # - Used by this account less than the max per account (hard coded default is 1)
+    # Calls cb(err, coupon, coupon_history)
+    validate_coupon: (coupon_id, cb) =>
+        dbg = @dbg("validate_coupon")
+        @_stripe = get_stripe()
+        async.series([
+            (local_cb) =>
+                dbg("retrieve the coupon")
+                @_stripe.coupons.retrieve(coupon_id, local_cb)
+            (local_cb) =>
+                dbg("check account coupon_history")
+                @database.get_coupon_history
+                    account_id : @account_id
+                    cb         : local_cb
+        ], (err, [coupon, coupon_history]) =>
+            if err
+                cb(err)
+            if not coupon.valid
+                cb("Sorry! This coupon has expired.")
+            times_used = coupon_history[coupon.id] ? 0
+            if times_used >= (coupon.metadata.max_per_account ? 1)
+                cb("You've already used this coupon.")
+
+            coupon_history[coupon.id] = times_used
+            cb(err, coupon, coupon_history)
+        )
 
     mesg_stripe_get_charges: (mesg) =>
         dbg = @dbg("mesg_stripe_get_charges")
