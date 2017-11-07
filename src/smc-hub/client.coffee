@@ -2095,6 +2095,16 @@ class exports.Client extends EventEmitter
             subscription = undefined
             async.series([
                 (cb) =>
+                    if mesg.coupon_id
+                        @validate_coupon mesg.coupon_id, (err, coupon, coupon_history) =>
+                            if err
+                                cb(err)
+                            coupon_history[coupon.id] += 1
+                            @database.update_coupon_history
+                                account_id     : @account_id
+                                coupon_history : coupon_history
+                                cb             : cb
+                (cb) =>
                     dbg("Update the subscription.")
                     changes =
                         quantity : mesg.quantity
