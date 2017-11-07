@@ -338,7 +338,7 @@ exports.init_http_proxy_server = (opts) ->
                 if proxy_cache[t]?
                     # we already have the proxy server for this remote location in the cache, so use it.
                     proxy = proxy_cache[t]
-                    dbg("used cached proxy object: #{misc.walltime(tm)}")
+                    dbg("using cached proxy object: #{misc.walltime(tm)}")
                 else
                     dbg("make a new proxy server connecting to this remote location")
                     proxy = http_proxy.createProxyServer(ws:false, target:t, timeout:7000)
@@ -347,10 +347,24 @@ exports.init_http_proxy_server = (opts) ->
                     dbg("created new proxy: #{misc.walltime(tm)}")
                     # setup error handler, so that if something goes wrong with this proxy (it will,
                     # e.g., on project restart), we properly invalidate it.
-                    proxy.on "error", (e) ->
-                        dbg("http proxy error -- #{e}")
+                    remove_from_cache = ->
                         delete proxy_cache[t]
                         invalidate_target_cache(remember_me, req_url)
+                        proxy.close()
+
+                    proxy.on "error", (e) ->
+                        dbg("http proxy error event -- #{e}")
+                        remove_from_cache()
+
+                    proxy.on "close", ->  # only happens with websockets, but...
+                        remove_from_cache()
+
+                    # Always clear after 5 minutes.  This is fine since the proxy is just used
+                    # to handle individual http requests, and the cache is entirely for speed.
+                    # Also, it avoids weird cases, where maybe error/close don't get
+                    # properly called, but the proxy is not working due to network issues.
+                    setTimeout(remove_from_cache, 5*60*1000)
+
                     #proxy.on 'proxyRes', (res) ->
                     #    dbg("(mark: #{misc.walltime(tm)}) got response from the target")
 
