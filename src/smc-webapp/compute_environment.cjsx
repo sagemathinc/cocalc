@@ -374,7 +374,7 @@ ComputeEnvironment = rclass
                 Click on a version number to learn more about the particular library.
             </p>
             <p>
-                There are {num.language_exes} programming language environments available:
+                This overview shows {num.language_exes} programming language environments:
             </p>
             <ul styke={margin: '10px 0'}>
             {
