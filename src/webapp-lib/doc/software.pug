@@ -3,7 +3,9 @@
 extends ../_base.pug
 
 block vars
-  - subtitle = NAME + " Software Environments"
+  -
+    navbar_active = 'software';
+    subtitle = NAME + " Software Environments";
 
 block header
   meta(name="description" content=NAME + " Features")

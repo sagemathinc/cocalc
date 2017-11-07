@@ -3,10 +3,12 @@
 extends ../_base.pug
 
 block vars
-  - var subtitle = "API"
-  - var api_root = '/api/v1/'
-  - var api_doc = require('smc-util/message').documentation
-  - var markdown = require('marked')
+  -
+    navbar_active = 'api';
+    var subtitle = "API";
+    var api_root = '/api/v1/';
+    var api_doc = require('smc-util/message').documentation;
+    var markdown = require('marked');
 
 block header
   script(type="text/javascript")

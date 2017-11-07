@@ -61,6 +61,14 @@ doctype html
   var COMPANY_EMAIL = htmlWebpackPlugin.options.theme.COMPANY_EMAIL;
   var PREFIX        = htmlWebpackPlugin.options.PREFIX;
   var subtitle      = null;
+  var navbar_active = null;
+  function navbar_highlight(what) {
+    if (navbar_active == what) {
+      return 'active';
+    } else {
+      return '';
+    }
+  };
 
 block vars
 
@@ -90,14 +98,18 @@ html.no-js(lang="en")
           ul.nav.navbar-nav.navbar-right
             //- li
             //-   a(href=PREFIX + "#a-explore") Explore
-            li
+
+            li(class=navbar_highlight("policies"))
               a(href=PREFIX + "policies/index.html") Policies
+
             if htmlWebpackPlugin.options.COMP_ENV
-              li
+              li(class=navbar_highlight('software'))
                 a(href=PREFIX + "doc/software.html") Software
-            li
+
+            li(class=navbar_highlight('pricing'))
               a(href=PREFIX + "policies/pricing.html") Pricing
-            li
+
+            li(class=navbar_highlight('api'))
               a(href=PREFIX + "doc/api.html") API
             li
               a.get-started(href=PREFIX + "app") Sign In
@@ -125,8 +137,11 @@ html.no-js(lang="en")
               height       : 3rem
               width        : auto
               margin-right : 2rem
-          .navbar-nav>li>a
-            font-size      : 2rem
+          .navbar-nav>li
+            >a
+              font-size      : 2rem
+            &.active>a
+              font-weight  : bold
         div.jumbotron
           padding-top      : 10rem
           background-color : $COL_GRAY_LL

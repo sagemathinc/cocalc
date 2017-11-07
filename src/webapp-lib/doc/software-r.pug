@@ -3,7 +3,9 @@
 extends ../_base.pug
 
 block vars
-  - subtitle = NAME + " R Environments"
+  -
+    navbar_active = 'software';
+    subtitle = NAME + " R Environments";
 
 block header
   meta(name="description" content=NAME + " R Environments")
