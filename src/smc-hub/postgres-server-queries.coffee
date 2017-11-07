@@ -684,14 +684,11 @@ class exports.PostgreSQL extends PostgreSQL
             coupon_history : required
             cb             : undefined
         @_dbg("Setting to #{opts.coupon_history}")
-        async.series([
-            (cb) =>
-                @_query
-                    query : 'UPDATE accounts'
-                    set   : 'coupon_history::JSONB' : opts.coupon_history
-                    where : 'account_id = $::UUID'  : opts.account_id
-                    cb    : opts.cb
-            ])
+        @_query
+            query : 'UPDATE accounts'
+            set   : 'coupon_history::JSONB' : opts.coupon_history
+            where : 'account_id = $::UUID'  : opts.account_id
+            cb    : opts.cb
 
     ###
     Querying for searchable information about accounts.
