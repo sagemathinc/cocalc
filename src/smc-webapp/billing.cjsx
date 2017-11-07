@@ -141,7 +141,7 @@ class BillingActions extends Actions
     create_subscription: (plan='standard') =>
         {webapp_client} = require('./webapp_client')   # do not put at top level, since some code runs on server
         lsa = last_subscription_attempt
-        if lsa? and lsa > misc.server_minutes_ago(2)
+        if lsa? and lsa.plan == plan and lsa.timestamp > misc.server_minutes_ago(2)
             @setState(action:'', error: 'Too many subscription attempts in the last minute.  Please **REFRESH YOUR BROWSER** THEN  DOUBLE CHECK YOUR SUBSCRIPTION LIST!')
         else
             @setState(error: '')
@@ -152,7 +152,7 @@ class BillingActions extends Actions
                 plan      : plan
                 coupon_id : coupon?.id
             @_action('create_subscription', 'Create a subscription', opts)
-            last_subscription_attempt = misc.server_time()
+            last_subscription_attempt = {timestamp:misc.server_time(), plan:plan}
             @track_subscription(plan)
 
     get_coupon: (id) =>
