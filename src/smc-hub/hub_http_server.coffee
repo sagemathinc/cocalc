@@ -112,6 +112,7 @@ exports.init_express_http_server = (opts) ->
                   Disallow: /projects/*
                   Disallow: /*/raw/
                   Disallow: /*/port/
+                  Disallow: /haproxy
                   ''')
         res.end()
 
