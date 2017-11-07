@@ -1059,6 +1059,7 @@ CouponAdder = rclass
                 </InputGroup>
             </FormGroup> if @props.applied_coupons?.size == 0}{# TODO: Support multiple coupons}
             {<SkinnyError error_text={@props.coupon_error} on_close={@actions('billing').clear_coupon_error} /> if @props.coupon_error}
+            {<div style={color:'rgb(153, 153, 153)', fontWeight:'200'}>No coupons applied</div> if @props.applied_coupons?.size == 0}
         </Well>
 
 CouponList = rclass
