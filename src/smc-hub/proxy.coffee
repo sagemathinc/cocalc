@@ -44,6 +44,16 @@ access = require('./access')
 
 DEBUG2 = false
 
+# In the interest of security and "XSS", we strip all cookies that contain "remembe_me" before
+# passing them along via the proxy.  Obviously, this could randomly break something that just
+# happens to put remember_me in a cookie name.  We could change the cookie name to cocalc_remembe_me
+# at some point to reduce the chances of that...
+exports.strip_remember_me_cookies = (cookie) ->
+    if not cookie?
+        return cookie
+    else
+        return (c for c in cookie.split(';') when c.toLowerCase().split('=')[0].indexOf('remember_me') == -1).join(';')
+
 exports.target_parse_req = target_parse_req = (remember_me, url) ->
     v          = url.split('/')
     project_id = v[1]
@@ -368,6 +378,11 @@ exports.init_http_proxy_server = (opts) ->
                     #proxy.on 'proxyRes', (res) ->
                     #    dbg("(mark: #{misc.walltime(tm)}) got response from the target")
 
+                # Before passing the request on to the proxy, we remove **all** cookies whose
+                # name contains "remember_me", to prevent the project backend from getting at
+                # the user's session cookie, since one project shouldn't be able to get
+                # access to any user's account.
+                req.headers['cookie'] = exports.strip_remember_me_cookies(req.headers['cookie'])
                 proxy.web(req, res)
 
     winston.debug("starting proxy server listening on #{opts.host}:#{opts.port}")
