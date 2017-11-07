@@ -267,6 +267,8 @@ block content
             Out of the box hundreds of open-source tools are available for you.
             Here is a short list of a selected few:
           include _static_third_party_software.html
+          if htmlWebpackPlugin.options.COMP_ENV
+            a.btn.btn-default(href="doc/software.html" role="button") Software environment details &raquo
         a.anchor#a-stats
         div.col-md-6#stats
           h2 #[i.fa.fa-line-chart] Statistics
