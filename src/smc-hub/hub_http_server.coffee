@@ -49,6 +49,9 @@ hub_proxy    = require('./proxy')
 hub_projects = require('./projects')
 MetricsRecorder  = require('./metrics-recorder')
 
+conf         = require('./conf')
+
+
 {http_message_api_v1} = require('./api/handler')
 
 # Rendering stripe invoice server side to PDF in memory
@@ -378,6 +381,9 @@ exports.init_express_http_server = (opts) ->
 
         # Also, ensure the raw server works
         dev_proxy_raw = (req, res) ->
+            # avoid XSS...
+            req.headers['cookie'] = hub_proxy.strip_remember_me_cookies(req.headers['cookie'])
+            #winston.debug("cookie=#{req.headers['cookie']}")
             req_url = req.url.slice(opts.base_url.length)
             {key, project_id} = hub_proxy.target_parse_req('', req_url)
             winston.debug("dev_proxy_raw", project_id)
@@ -411,6 +417,20 @@ exports.init_express_http_server = (opts) ->
         raw_regexp = '^' + opts.base_url + '\/[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}\/raw*'
         app.get( raw_regexp, dev_proxy_raw)
         app.post(raw_regexp, dev_proxy_raw)
+
+        # Also create and expose the share server
+        PROJECT_PATH = conf.project_path()
+        share_server = require('./share/server')
+        raw_router = share_server.raw_router
+            database : opts.database
+            path     : "#{PROJECT_PATH}/[project_id]"
+            logger   : winston
+        share_router = share_server.share_router
+            database : opts.database
+            path     : "#{PROJECT_PATH}/[project_id]"
+            logger   : winston
+        app.use(opts.base_url + '/raw',   raw_router)
+        app.use(opts.base_url + '/share', share_router)
 
     app.on 'upgrade', (req, socket, head) ->
         winston.debug("\n\n*** http_server websocket(#{req.url}) ***\n\n")

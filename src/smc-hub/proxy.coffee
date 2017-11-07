@@ -44,6 +44,16 @@ access = require('./access')
 
 DEBUG2 = false
 
+# In the interest of security and "XSS", we strip all cookies that contain "remembe_me" before
+# passing them along via the proxy.  Obviously, this could randomly break something that just
+# happens to put remember_me in a cookie name.  We could change the cookie name to cocalc_remembe_me
+# at some point to reduce the chances of that...
+exports.strip_remember_me_cookies = (cookie) ->
+    if not cookie?
+        return cookie
+    else
+        return (c for c in cookie.split(';') when c.toLowerCase().split('=')[0].indexOf('remember_me') == -1).join(';')
+
 exports.target_parse_req = target_parse_req = (remember_me, url) ->
     v          = url.split('/')
     project_id = v[1]
@@ -338,7 +348,7 @@ exports.init_http_proxy_server = (opts) ->
                 if proxy_cache[t]?
                     # we already have the proxy server for this remote location in the cache, so use it.
                     proxy = proxy_cache[t]
-                    dbg("used cached proxy object: #{misc.walltime(tm)}")
+                    dbg("using cached proxy object: #{misc.walltime(tm)}")
                 else
                     dbg("make a new proxy server connecting to this remote location")
                     proxy = http_proxy.createProxyServer(ws:false, target:t, timeout:7000)
@@ -347,13 +357,32 @@ exports.init_http_proxy_server = (opts) ->
                     dbg("created new proxy: #{misc.walltime(tm)}")
                     # setup error handler, so that if something goes wrong with this proxy (it will,
                     # e.g., on project restart), we properly invalidate it.
-                    proxy.on "error", (e) ->
-                        dbg("http proxy error -- #{e}")
+                    remove_from_cache = ->
                         delete proxy_cache[t]
                         invalidate_target_cache(remember_me, req_url)
+                        proxy.close()
+
+                    proxy.on "error", (e) ->
+                        dbg("http proxy error event -- #{e}")
+                        remove_from_cache()
+
+                    proxy.on "close", ->  # only happens with websockets, but...
+                        remove_from_cache()
+
+                    # Always clear after 5 minutes.  This is fine since the proxy is just used
+                    # to handle individual http requests, and the cache is entirely for speed.
+                    # Also, it avoids weird cases, where maybe error/close don't get
+                    # properly called, but the proxy is not working due to network issues.
+                    setTimeout(remove_from_cache, 5*60*1000)
+
                     #proxy.on 'proxyRes', (res) ->
                     #    dbg("(mark: #{misc.walltime(tm)}) got response from the target")
 
+                # Before passing the request on to the proxy, we remove **all** cookies whose
+                # name contains "remember_me", to prevent the project backend from getting at
+                # the user's session cookie, since one project shouldn't be able to get
+                # access to any user's account.
+                req.headers['cookie'] = exports.strip_remember_me_cookies(req.headers['cookie'])
                 proxy.web(req, res)
 
     winston.debug("starting proxy server listening on #{opts.host}:#{opts.port}")
