@@ -22,8 +22,6 @@ node_modules
 src/static/
 src/static.git/
 src/webapp-lib/policies/_static_pricing_page.html
-src/webapp-lib/compute-components.json
-src/webapp-lib/compute-inventory.json
 src/webapp-lib/_static_*.html
 src/webapp-lib/examples/
 src/smc-webapp/_colors.sass

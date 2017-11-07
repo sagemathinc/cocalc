@@ -32,6 +32,16 @@ theme  = require('smc-util/theme')
 
 NAME   = 'compute_environment'
 
+# utils
+full_lang_name = (lang) ->
+    switch lang
+        when 'R'
+            return 'R Project'
+    return lang.charAt(0).toUpperCase() + lang[1..]
+
+by_lowercase = (a, b) ->
+    return a.toLowerCase().localeCompare(b.toLowerCase())
+
 
 ComputeEnvironmentStore =
     name: NAME
@@ -56,30 +66,26 @@ class ComputeEnvironmentActions extends Actions
         @redux.getStore(@name).get(key)
 
     init_data: (inventory, components) ->
-        @setState(inventory:inventory, components:components)
+        # both are empty objects by default
         langs = (k for k, v of inventory when k isnt 'language_exes')
-        langs.sort((a, b) ->
-            return a.toLowerCase().localeCompare(b.toLowerCase())
+        langs.sort(by_lowercase)
+        @setState(
+            langs     : langs
+            inventory : inventory
+            components: components
         )
-        @setState(langs: langs)
+        #if DEBUG then console.log(inventory, components, langs)
 
     load: ->
         return if @get('loading')
         @setState(loading: true)
         if DEBUG then console.log("ComputeEnvironmentActions: loading ...")
         require.ensure [], =>
+            # these files only contain "{}" per default!
             inventory  = require('webapp-lib/compute-inventory.json')
             components = require('webapp-lib/compute-components.json')
             @init_data(inventory, components)
             if DEBUG then console.log("ComputeEnvironmentActions: loading done.")
-
-
-# utils
-full_lang_name = (lang) ->
-    switch lang
-        when 'R'
-            return 'R Project'
-    return lang.charAt(0).toUpperCase() + lang[1..]
 
 
 # the components
@@ -99,7 +105,7 @@ Executables = rclass
 
         execs = misc.keys(@props.inventory)
         name  = ((x) => @props.components[x].name)
-        execs.sort(((a, b) -> name(a).toLowerCase().localeCompare(name(b).toLowerCase())))
+        execs.sort(((a, b) -> by_lowercase(name(a), name(b))))
         for exec in execs
             stdout = @props.inventory[exec]
             <Row key={exec} style={margin: '2rem 0 2rem 0'}>
@@ -357,7 +363,7 @@ ComputeEnvironment = rclass
         execs = @props.inventory['language_exes'] ? {}
         exec_keys = misc.keys(execs)
         exec_keys.sort((a, b) ->
-            execs[a].name.toLowerCase().localeCompare(execs[b].name.toLowerCase())
+            return by_lowercase(execs[a].name, execs[b].name)
         )
 
         <div key={'intro'} style={marginBottom: '20px'}>
@@ -397,8 +403,12 @@ ComputeEnvironment = rclass
             <hr/>
             <h3>Software and Programming Libraries Details</h3>
             {
-                if @props.inventory and @props.components and @props.langs?.length > 0
-                    @ui()
+                if @props.inventory? and @props.components?
+                    if @props.langs?.length > 0
+                        @ui()
+                    else
+                        # Only shown if explicitly requested but no data available
+                        'Compute environment information not available.'
                 else
                     <Loading/>
             }
@@ -414,7 +424,7 @@ exports.ComputeEnvironment = ->
     displayName : 'ComputeEnvironment-redux'
 
     render: ->
-        return if not KUCALC_COMP_ENV
+        return null if not KUCALC_COMP_ENV
         <Redux redux={redux}>
             <ComputeEnvironment actions={actions} />
         </Redux>
