@@ -156,6 +156,12 @@ console.log "MATHJAX_URL      = #{MATHJAX_URL}"
 console.log "MATHJAX_ROOT     = #{MATHJAX_ROOT}"
 console.log "MATHJAX_LIB      = #{MATHJAX_LIB}"
 
+# fallback case: if COMP_ENV is false (default) we still need empty json files to satisfy the webpack dependencies
+if not COMP_ENV
+    for fn in ['webapp-lib/compute-components.json', 'webapp-lib/compute-inventory.json']
+        continue if fs.existsSync(fn)
+        fs.writeFileSync(fn, '{}')
+
 # adds a banner to each compiled and minified source .js file
 banner = new webpack.BannerPlugin(
                         """\
