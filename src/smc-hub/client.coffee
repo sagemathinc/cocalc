@@ -2026,6 +2026,7 @@ class exports.Client extends EventEmitter
                         @validate_coupon options.coupon, (err, coupon, coupon_history) =>
                             if err
                                 cb(err)
+                                return
                             coupon_history[coupon.id] += 1
                             @database.update_coupon_history
                                 account_id     : @account_id
@@ -2099,6 +2100,7 @@ class exports.Client extends EventEmitter
                         @validate_coupon mesg.coupon_id, (err, coupon, coupon_history) =>
                             if err
                                 cb(err)
+                                return
                             coupon_history[coupon.id] += 1
                             @database.update_coupon_history
                                 account_id     : @account_id
@@ -2168,11 +2170,14 @@ class exports.Client extends EventEmitter
         ], (err, [coupon, coupon_history]) =>
             if err
                 cb(err)
+                return
             if not coupon.valid
                 cb("Sorry! This coupon has expired.")
+                return
             times_used = coupon_history[coupon.id] ? 0
             if times_used >= (coupon.metadata.max_per_account ? 1)
                 cb("You've already used this coupon.")
+                return
 
             coupon_history[coupon.id] = times_used
             cb(err, coupon, coupon_history)
