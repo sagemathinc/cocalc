@@ -185,6 +185,7 @@ FreeProjectWarning = rclass ({name}) ->
         "#{name}" :
             free_warning_extra_shown : rtypes.bool
             free_warning_closed      : rtypes.bool
+            free_compute_slowdown    : rtypes.number
 
     propTypes:
         project_id : rtypes.string
@@ -192,6 +193,7 @@ FreeProjectWarning = rclass ({name}) ->
     shouldComponentUpdate: (nextProps) ->
         return @props.free_warning_extra_shown != nextProps.free_warning_extra_shown or
             @props.free_warning_closed != nextProps.free_warning_closed or
+            @props.free_compute_slowdown != nextProps.free_compute_slowdown or
             @props.project_map?.get(@props.project_id)?.get('users') != nextProps.project_map?.get(@props.project_id)?.get('users')
 
     extra: (host, internet) ->
@@ -241,8 +243,15 @@ FreeProjectWarning = rclass ({name}) ->
             color      : 'grey'
             position   : 'relative'
             height     : 0
+
+        if @props.free_compute_slowdown? and @props.free_compute_slowdown > 0.0
+            pct = Math.round(@props.free_compute_slowdown)
+            slowdown = <span>and computations in this project could run up to <b>{pct}% faster after upgrading</b> to member server hosting.</span>
+        else
+            slowdown = ''
+
         <Alert bsStyle='warning' style={styles}>
-            <Icon name='exclamation-triangle' /> WARNING: This project runs {<span>on a <b>free server (which may be unavailable during peak hours)</b></span> if host} {<span>without <b>internet access</b></span> if internet} &mdash;
+            <Icon name='exclamation-triangle' /> WARNING: This project runs {<span>on a <b>free server</b></span> if host} {<span>without <b>internet access</b></span> if internet} {slowdown if host} &mdash;
             <a onClick={=>@actions(project_id: @props.project_id).show_extra_free_warning()} style={cursor:'pointer'}> learn more...</a>
             <a style={dismiss_styles} onClick={@actions(project_id: @props.project_id).close_free_warning}>×</a>
             {@extra(host, internet)}
@@ -434,11 +443,11 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
         page :
             fullscreen : rtypes.oneOf(['default', 'kiosk'])
         "#{name}" :
-            active_project_tab  : rtypes.string
-            open_files          : rtypes.immutable
-            open_files_order    : rtypes.immutable
-            free_warning_closed : rtypes.bool     # Makes bottom height update
-            num_ghost_file_tabs : rtypes.number
+            active_project_tab    : rtypes.string
+            open_files            : rtypes.immutable
+            open_files_order      : rtypes.immutable
+            free_warning_closed   : rtypes.bool     # Makes bottom height update
+            num_ghost_file_tabs   : rtypes.number
 
     propTypes :
         project_id : rtypes.string
