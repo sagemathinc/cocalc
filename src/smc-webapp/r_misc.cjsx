@@ -213,6 +213,15 @@ exports.CloseX = CloseX = rclass
             <Icon style={@props.style} name='times' />
         </a>
 
+exports.SimpleX = SimpleX = ({onClick}) ->
+    <a href='' onClick={(e)=>e.preventDefault(); onClick()}>
+        <Icon name='times' />
+    </a>
+
+exports.SkinnyError = ({error_text, on_close}) ->
+    <div style={color:'red'}>
+         <SimpleX onClick={on_close} /> {error_text}
+    </div>
 
 error_text_style =
     marginRight : '1ex'
@@ -826,6 +835,7 @@ exports.ActivityDisplay = rclass
         activity : rtypes.array.isRequired   # array of strings
         trunc    : rtypes.number             # truncate activity messages at this many characters (default: 80)
         on_clear : rtypes.func               # if given, called when a clear button is clicked
+        style    : rtypes.object             # additional styles to be merged onto activity_style
 
     render_items: ->
         n = @props.trunc ? 80
@@ -837,7 +847,10 @@ exports.ActivityDisplay = rclass
 
     render: ->
         if misc.len(@props.activity) > 0
-            <div key='activity' style={activity_style}>
+            if @props.style
+                adjusted_style = Object.assign({}, activity_style, @props.style)
+
+            <div key='activity' style={adjusted_style ? activity_style}>
                 {<CloseX on_close={@props.on_clear} /> if @props.on_clear?}
                 {@render_items() if @props.activity.length > 0}
             </div>
