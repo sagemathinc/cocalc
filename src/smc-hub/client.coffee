@@ -2176,6 +2176,7 @@ class exports.Client extends EventEmitter
             if not coupon.valid
                 cb("Sorry! This coupon has expired.")
                 return
+            coupon_history ?= {}
             times_used = coupon_history[coupon.id] ? 0
             if times_used >= (coupon.metadata.max_per_account ? 1)
                 cb("You've already used this coupon.")
