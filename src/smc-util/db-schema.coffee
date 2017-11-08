@@ -294,6 +294,40 @@ schema.accounts =
                         obj[field] = obj[field].slice(0,254)
                 cb()
 
+
+# This is for scheduling up tasks that should happen in the future.
+# E.g. this is used by the hub to schedule email notifications to be sent to an account.
+# They're deduplicated based on "account_id", "type", "scheduled" and "payload".
+schem.event_queue =
+    desc : 'This table collects all notifications (to be sent via "email", etc.) before they are sent'
+    primary_key : 'id'
+    pg_indexes : ['time', 'scheduled', 'done']
+    fields :
+        id :
+            type : 'uuid'
+            desc : 'primary key'
+        account_id :
+            type : 'uuid'
+            desc : 'recipient of the notification'
+        type :
+            type : 'string'
+            desc : 'an identifier what kind of event this is. used for interpreting the payload correctly. e.g. "email_notification"'
+        payload :
+            type : 'map'
+            desc : 'data about the event'
+        scheduled :
+            type : 'timestamp'
+            desc : 'if set, this is the time when this event should be processed (i.e. when current time <= scheduled)'
+        started :
+            type : 'timestamp'
+            desc : 'set to the current time when processing started (primarily used as an execlusive lock; timeout, if "done" is never set)'
+        done :
+            type : 'timestamp'
+            desc : 'when processing the event finished successfully'
+        error :
+            type : 'string'
+            desc : 'if there are any errors, they are put here.'
+
 schema.blobs =
     desc : 'Table that stores blobs mainly generated as output of Sage worksheets.'
     primary_key : 'id'
