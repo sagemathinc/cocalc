@@ -298,7 +298,7 @@ schema.accounts =
 # This is for scheduling up tasks that should happen in the future.
 # E.g. this is used by the hub to schedule email notifications to be sent to an account.
 # They're deduplicated based on "account_id", "type", "scheduled" and "payload".
-schem.event_queue =
+schema.event_queue =
     desc : 'This table collects all notifications (to be sent via "email", etc.) before they are sent'
     primary_key : 'id'
     pg_indexes : ['time', 'scheduled', 'done']

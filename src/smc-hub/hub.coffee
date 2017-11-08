@@ -70,6 +70,8 @@ hub_proxy            = require('./proxy')
 
 share_server         = require('./share/server')
 
+event_queue          = require('./event_queue')
+
 MetricsRecorder = require('./metrics-recorder')
 
 # express http server -- serves some static/dynamic endpoints
@@ -604,6 +606,14 @@ exports.start_server = start_server = (cb) ->
                     else
                         cb()
             ], cb)
+        (cb) ->
+            console.log('program.event_queue', program.event_queue)
+            if not program.event_queue
+                cb(); return
+            event_queue.start
+                database : database
+                logger   : winston
+                cb       : cb
     ], (err) =>
         if err
             winston.error("Error starting hub services! err=#{err}")
@@ -624,7 +634,7 @@ exports.start_server = start_server = (cb) ->
                     port           : program.proxy_port
                     host           : program.host
 
-            if program.port or program.share_port or program.proxy_port
+            if program.port or program.share_port or program.proxy_port or program.event_queue
                 # Register periodically with the database.
                 hub_register.start
                     database   : database
@@ -693,6 +703,7 @@ command_line = () ->
         .option('--delete_expired', 'Delete expired data from the database', String, 'yes')
         .option('--blob_maintenance', 'Do blob-related maintenance (dump to tarballs, offload to gcloud)', String, 'yes')
         .option('--add_user_to_project [project_id,email_address]', 'Add user with given email address to project with given ID', String, '')
+        .option('--event_queue', 'Start processing what is in the event queue', String, 'yes')
         .option('--base_url [string]', 'Base url, so https://sitenamebase_url/', String, '')  # '' or string that starts with /
         .option('--local', 'If option is specified, then *all* projects run locally as the same user as the server and store state in .sagemathcloud-local instead of .sagemathcloud; also do not kill all processes on project restart -- for development use (default: false, since not given)', Boolean, false)
         .option('--foreground', 'If specified, do not run as a deamon')
