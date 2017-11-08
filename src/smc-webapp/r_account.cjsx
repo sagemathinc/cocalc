@@ -205,12 +205,16 @@ NewsletterSetting = rclass
         </Checkbox>
 
     render: ->
-        valid = misc.is_valid_email_address(@props.email_address)
+        has_email = @props.email_address?.length > 0
         <LabeledRow label='Newsletter'  style={marginBottom: '15px'}>
-            {@render_checkbox() if valid}
-            {<span style={color: 'red'}>
-                You need to enter a (valid) email address above!
-            </span> if not valid}
+        {
+            if has_email
+                @render_checkbox()
+            else
+                <span style={fontWeight: 'bold'}>
+                    You need to enter an email address above!
+                </span>
+        }
         </LabeledRow>
 
 PasswordSetting = rclass
