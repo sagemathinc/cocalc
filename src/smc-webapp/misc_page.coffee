@@ -1817,6 +1817,17 @@ exports.get_cookie = (name) ->
     parts = value.split("; " + name + "=")
     return parts.pop().split(";").shift() if (parts.length == 2)
 
+exports.delete_cookie = (name) ->
+    document.cookie = name + '=; expires=Thu, 01 Jan 1970 00:00:01 GMT; path=/'
+
+exports.set_cookie = (name, value, days) ->
+    expires = ''
+    if days
+        date = new Date()
+        date.setTime(date.getTime() + (days*24*60*60*1000))
+        expires = "; expires=" + date.toUTCString()
+    document.cookie = name + "=" + value + expires + "; path=/"
+
 # see http://stackoverflow.com/questions/3169786/clear-text-selection-with-javascript
 exports.clear_selection = ->
     if window.getSelection?().empty?
@@ -1848,3 +1859,45 @@ exports.get_query_params = ->
 
 exports.get_query_param = (p) ->
     return exports.get_query_params()[p]
+
+# If there is UTM information in the known cookie, extract and return it
+# Then, delete this cookie.
+# Reference: https://en.wikipedia.org/wiki/UTM_parameters
+#
+# Parameter                 Purpose/Example
+# utm_source (required)     Identifies which site sent the traffic, and is a required parameter.
+#                           utm_source=Google
+#
+# utm_medium                Identifies what type of link was used,
+#                           such as cost per click or email.
+#                           utm_medium=cpc
+#
+# utm_campaign              Identifies a specific product promotion or strategic campaign.
+#                           utm_campaign=spring_sale
+#
+# utm_term                  Identifies search terms.
+#                           utm_term=running+shoes
+#
+# utm_content               Identifies what specifically was clicked to bring the user to the site,
+#                           such as a banner ad or a text link. It is often used for A/B testing
+#                           and content-targeted ads.
+#                           utm_content=logolink or utm_content=textlink
+
+
+# get eventually available information form the utm cookie
+# delete it afterwards
+exports.get_utm = ->
+    c = exports.get_cookie(misc.utm_cookie_name)
+    return if not c
+    try
+        data = misc.from_json(window.decodeURIComponent(c))
+        if DEBUG then console.log("get_utm cookie data", data)
+        exports.delete_cookie(misc.utm_cookie_name)
+        return data
+
+# get referrer information
+exports.get_referrer = ->
+    c = exports.get_cookie(misc.referrer_cookie_name)
+    return if not c
+    exports.delete_cookie(misc.referrer_cookie_name)
+    return c

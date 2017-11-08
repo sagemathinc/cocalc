@@ -83,6 +83,7 @@ exports.init_express_http_server = (opts) ->
                                   labels: ['path', 'method', 'code']
                               )
 
+    # response time metrics
     router.use (req, res, next) ->
         res_finished_h = response_time_histogram.startTimer()
         original_end = res.end
@@ -91,6 +92,39 @@ exports.init_express_http_server = (opts) ->
             {dirname} = require('path')
             dir_path = dirname(req.path).split('/')[1] # for two levels: split('/')[1..2].join('/')
             res_finished_h({path:dir_path, method:req.method, code:res.statusCode})
+        next()
+
+    # save utm parameters and referrer in a (short lived) cookie or read it to fill in locals.utm
+    # webapp takes care of consuming it (see misc_page.get_utm)
+    router.use (req, res, next) ->
+        # quickly return in the usual case
+        if Object.keys(req.query).length == 0
+            next()
+            return
+        utm = {}
+
+        utm_cookie = req.cookies[misc.utm_cookie_name]
+        if utm_cookie
+            try
+                data = misc.from_json(window.decodeURIComponent(utm_cookie))
+                utm = misc.merge(utm, data)
+
+        for k, v of req.query
+            continue if not misc.startswith(k, 'utm_')
+            # untrusted input, limit the length of key and value
+            k = k[4...50]
+            utm[k] = v[...50] if k in misc.utm_keys
+
+        if Object.keys(utm).length
+            utm_data = encodeURIComponent(JSON.stringify(utm))
+            res.cookie(misc.utm_cookie_name, utm_data, {path: '/', maxAge: ms('1 day'), httpOnly: false})
+            res.locals.utm = utm
+
+        referrer_cookie = req.cookies[misc.referrer_cookie_name]
+        if referrer_cookie
+            res.locals.referrer = referrer_cookie
+
+        winston.debug("HTTP server: #{req.url} -- UTM: #{misc.to_json(res.locals.utm)}")
         next()
 
     app.enable('trust proxy') # see http://stackoverflow.com/questions/10849687/express-js-how-to-get-remote-client-address
@@ -108,7 +142,6 @@ exports.init_express_http_server = (opts) ->
         res.header('Cache-Control', 'private, no-cache, must-revalidate')
         res.write('''
                   User-agent: *
-                  Allow: /projects/487587b1-8b24-401a-92d9-a9b930edd53d/
                   Disallow: /projects/*
                   Disallow: /*/raw/
                   Disallow: /*/port/
