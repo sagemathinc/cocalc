@@ -1,0 +1,38 @@
+//- for development, run $ env CC_COMP_ENV=true CC_STATICPAGES=true npm run webpack-debug
+
+extends ../_base.pug
+
+block vars
+  -
+    navbar_active = 'software';
+    subtitle = NAME + " Software Environments";
+
+block header
+  meta(name="description" content=NAME + " Features")
+
+block content
+  a.anchor#a-top
+  div.container
+    div.row#top
+      h1 Available Software
+      div= "These pages contain information about available software on " + NAME + "."
+      ul
+        li
+          a(href='software-executables.html') Executables
+        li
+          a(href='software-python.html') Python Libraries
+        li
+          a(href='software-r.html') R Statistical Software Libraries
+        li
+          a(href='software-julia.html') Julia Libraries
+
+
+  style
+    :sass
+      @import "smc-webapp/_colors.sass"
+      div.row#top
+        min-height: 50vh
+        ul
+          li
+            margin-top    : 10px
+            margin-bottom : 10px
