@@ -109,6 +109,7 @@ class Connection extends client.Connection
         window.smc                     ?= {}
         window.smc.client              = @
         window.smc.misc                = require('smc-util/misc')
+        window.smc.misc_page           = require('./misc_page')
         window.smc.immutable           = require('immutable')
         window.smc.done                = window.smc.misc.done
         window.smc.sha1                = require('sha1')

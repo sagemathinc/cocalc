@@ -189,6 +189,9 @@ schema.accounts =
         stripe_customer :
             type : 'map'
             desc : 'Information about customer from the point of view of stripe (exactly what is returned by stripe.customers.retrieve).'
+        coupon_history :
+            type : 'map'
+            desc : 'Information about which coupons the customer has used and the number of times'
         profile :
             type : 'map'
             desc : 'Information related to displaying this users location and presence in a document or chatroom.'
@@ -260,6 +263,7 @@ schema.accounts =
                 groups          : []
                 last_active     : null
                 stripe_customer : null
+                coupon_history  : null
                 profile :
                     image       : undefined
                     color       : undefined

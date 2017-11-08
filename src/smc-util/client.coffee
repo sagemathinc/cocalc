@@ -23,7 +23,7 @@ DEBUG = false
 
 # Maximum number of outstanding concurrent messages (that have responses)
 # to send at once to the backend.
-MAX_CONCURRENT = 75
+MAX_CONCURRENT = 100
 
 {EventEmitter} = require('events')
 
@@ -741,6 +741,8 @@ class exports.Connection extends EventEmitter
             password       : required
             agreed_to_terms: required
             token          : undefined       # only required if an admin set the account creation token.
+            utm            : undefined
+            referrer       : undefined
             timeout        : 40
             cb             : required
 
@@ -762,6 +764,8 @@ class exports.Connection extends EventEmitter
                 password        : opts.password
                 agreed_to_terms : opts.agreed_to_terms
                 token           : opts.token
+                utm             : opts.utm
+                referrer        : opts.referrer
             timeout : opts.timeout
             cb      : (err, resp) =>
                 setTimeout((() => delete @_create_account_lock), 1500)
@@ -796,12 +800,16 @@ class exports.Connection extends EventEmitter
             remember_me   : false
             cb            : required
             timeout       : 40
+            utm           : undefined
+            referrer      : undefined
 
         @call
             message : message.sign_in
                 email_address : opts.email_address
                 password      : opts.password
                 remember_me   : opts.remember_me
+                utm           : opts.utm
+                referrer      : opts.referrer
             timeout : opts.timeout
             cb      : opts.cb
 
@@ -1541,15 +1549,15 @@ class exports.Connection extends EventEmitter
 
     stripe_create_subscription: (opts) =>
         opts = defaults opts,
-            plan     : required
-            quantity : 1
-            coupon   : undefined
-            cb       : required
+            plan      : required
+            quantity  : 1
+            coupon_id : undefined
+            cb        : required
         @call
             message : message.stripe_create_subscription
-                plan     : opts.plan
-                quantity : opts.quantity
-                coupon   : opts.coupon
+                plan      : opts.plan
+                quantity  : opts.quantity
+                coupon_id : opts.coupon_id
             error_event : true
             cb          : opts.cb
 
@@ -1568,18 +1576,18 @@ class exports.Connection extends EventEmitter
     stripe_update_subscription: (opts) =>
         opts = defaults opts,
             subscription_id : required
-            quantity : undefined  # if given, must be >= number of projects
-            coupon   : undefined
-            projects : undefined  # ids of projects that subscription applies to
-            plan     : undefined
-            cb       : required
+            quantity  : undefined  # if given, must be >= number of projects
+            coupon_id : undefined
+            projects  : undefined  # ids of projects that subscription applies to
+            plan      : undefined
+            cb        : required
         @call
             message : message.stripe_update_subscription
                 subscription_id : opts.subscription_id
-                quantity : opts.quantity
-                coupon   : opts.coupon
-                projects : opts.projects
-                plan     : opts.plan
+                quantity  : opts.quantity
+                coupon_id : opts.coupon_id
+                projects  : opts.projects
+                plan      : opts.plan
             error_event : true
             cb          : opts.cb
 
@@ -1602,6 +1610,23 @@ class exports.Connection extends EventEmitter
                     opts.cb(err)
                 else
                     opts.cb(undefined, mesg.subscriptions)
+
+    # Gets the coupon for this account. Returns an error if invalid
+    # https://stripe.com/docs/api#retrieve_coupon
+    stripe_get_coupon: (opts) =>
+        opts = defaults opts,
+            coupon_id : undefined
+            cb        : required
+
+        @call
+            message     :
+                message.stripe_get_coupon(coupon_id : opts.coupon_id)
+            error_event : true
+            cb          : (err, mesg) =>
+                if err
+                    opts.cb(err)
+                else
+                    opts.cb(undefined, mesg.coupon)
 
     # gets list of invoices for this account.
     stripe_get_invoices: (opts) =>

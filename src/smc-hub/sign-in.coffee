@@ -167,6 +167,8 @@ exports.sign_in = (opts) ->
                     email_address : mesg.email_address
                     remember_me   : false
                     hub           : opts.host + ':' + opts.port
+                    utm           : mesg.utm
+                    referrer      : mesg.referrer
                 client.remember_me
                     account_id    : signed_in_mesg.account_id
                     email_address : signed_in_mesg.email_address
@@ -286,16 +288,21 @@ exports.record_sign_in = (opts) ->
         database      : required
         email_address : undefined
         account_id    : undefined
+        utm           : undefined
+        referrer      : undefined
         remember_me   : false
     if not opts.successful
         record_sign_in_fail
             email : opts.email_address
             ip    : opts.ip_address
     else
+        data =
+            ip_address    : opts.ip_address
+            email_address : opts.email_address ? null
+            remember_me   : opts.remember_me
+            account_id    : opts.account_id
+        data.utm      = opts.utm      if opts.utm
+        data.referrer = opts.referrer if opts.referrer
         opts.database.log
             event : 'successful_sign_in'
-            value :
-                ip_address    : opts.ip_address
-                email_address : opts.email_address ? null
-                remember_me   : opts.remember_me
-                account_id    : opts.account_id
+            value : data
