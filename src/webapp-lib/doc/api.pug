@@ -21,8 +21,13 @@ block content
         h1 #{NAME} API
         div!= markdown(api_doc.intro)
       div.col-md-12
-        h2 Endpoints:
     - var api_doc_keys = Object.keys(api_doc.events).sort()
+        h2 List of Endpoints:
+          ul
+    each key in api_doc_keys
+          li
+            a(href="#"+key) #{key}
+    h2 Endpoints:
     each key in api_doc_keys
       - var val = api_doc.events[key]
       a(class="anchor" id=key)
