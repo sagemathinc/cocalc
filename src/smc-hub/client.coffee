@@ -2034,6 +2034,8 @@ class exports.Client extends EventEmitter
                                 account_id     : @account_id
                                 coupon_history : coupon_history
                                 cb             : cb
+                    else
+                        cb()
                 (cb) =>
                     dbg("add customer subscription to stripe")
                     @_stripe.customers.createSubscription customer_id, options, (err, s) =>
