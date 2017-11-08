@@ -157,6 +157,9 @@ schema.accounts =
         other_settings :
             type : 'map'
             desc : 'Miscellaneous overall configuration settings for SMC, e.g., confirm close on exit?'
+        notifications :
+            type : 'map'
+            desc : 'User preferences for receiving notfications'
         first_name :
             type : 'string'
             pg_type : "VARCHAR(254)"  # some limit (actually around 3000) is required for indexing
@@ -249,6 +252,8 @@ schema.accounts =
                     standby_timeout_m : 10
                     default_file_sort : 'time'
                     show_global_info2 : null
+                notifications :
+                    new_collaborators  : true
                 first_name      : ''
                 last_name       : ''
                 terminal        :
@@ -272,6 +277,7 @@ schema.accounts =
                 account_id      : 'account_id'
                 editor_settings : true
                 other_settings  : true
+                notifications   : true
                 first_name      : true
                 last_name       : true
                 terminal        : true

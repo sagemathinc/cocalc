@@ -1,4 +1,4 @@
-###############################################################################
+##############################################################################
 #
 #    CoCalc: Collaborative Calculation in the Cloud
 #
@@ -75,6 +75,7 @@ exports.AccountPage = rclass
             font_size               : rtypes.number
             editor_settings         : rtypes.object
             other_settings          : rtypes.immutable.Map
+            notifications           : rtypes.immutable.Map
             profile                 : rtypes.object
             groups                  : rtypes.array
             stripe_customer         : rtypes.object
@@ -125,6 +126,7 @@ exports.AccountPage = rclass
             font_size       = {@props.font_size}
             editor_settings = {@props.editor_settings}
             other_settings  = {@props.other_settings.toJS()}
+            notifications   = {@props.notifications.toJS()}
             groups          = {@props.groups} />
 
     render_landing_page: ->
