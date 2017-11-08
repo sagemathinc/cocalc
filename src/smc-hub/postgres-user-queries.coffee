@@ -1160,6 +1160,8 @@ class exports.PostgreSQL extends PostgreSQL
                                  where, json_fields, account_id, client_query, cb) =>
         dbg = @_dbg("_user_get_query_changefeed(table='#{table}')")
         dbg()
+        # WARNING: always call changes.cb!  Do not do something like f = changes.cb, then call f!!!!
+        # This is because the value of changes.cb may be changed by the caller.
         if not misc.is_object(changes)
             cb("changes must be an object with keys id and cb")
             return
@@ -1353,7 +1355,9 @@ class exports.PostgreSQL extends PostgreSQL
             return
 
         _query_opts = {}  # this will be the input to the @_query command.
-        result = undefined
+        locals =
+            result     : undefined
+            changes_cb : undefined
         async.series([
             (cb) =>
                 if client_query.get.check_hook?
@@ -1381,16 +1385,34 @@ class exports.PostgreSQL extends PostgreSQL
                 misc.merge(_query_opts, x)
 
                 if opts.changes?
+                    locals.changes_cb = opts.changes.cb
+                    locals.changes_queue = []
+                    # see note about why we do the following at the bottom of this file
+                    opts.changes.cb = (err, obj) ->
+                        locals.changes_queue.push({err:err, obj:obj})
                     @_user_get_query_changefeed(opts.changes, table, primary_keys,
                                                 opts.query, _query_opts.where, json_fields,
                                                 opts.account_id, client_query, cb)
                 else
                     cb()
             (cb) =>
-                @_user_get_query_do_query _query_opts, client_query, opts.query, opts.multi, json_fields, (err, x) =>
-                    result = x; cb(err)
+                @_user_get_query_do_query _query_opts, client_query, opts.query, opts.multi, json_fields, (err, result) =>
+                    if err
+                        cb(err)
+                        return
+                    locals.result = result
+                    cb()
         ], (err) =>
-            opts.cb(err, result if not err)
+            if err
+                opts.cb(err)
+                return
+            opts.cb(undefined, locals.result)
+            if opts.changes?
+                opts.changes.cb = locals.changes_cb
+                ##dbg("sending queued #{JSON.stringify(locals.changes_queue)}")
+                for {err, obj} in locals.changes_queue
+                    ##dbg("sending queued changes #{JSON.stringify([err, obj])}")
+                    opts.changes.cb(err, obj)
         )
 
     ###
@@ -1520,3 +1542,15 @@ awaken_project = (db, project_id) ->
                             # This is so the project can find out that the user wants to save a file (etc.)
                             db.ensure_connection_to_project?(project_id)
 
+###
+Note about opts.changes.cb:
+
+Regarding sync, what was happening I think is:
+ - (a) https://github.com/sagemathinc/cocalc/blob/master/src/smc-hub/postgres-user-queries.coffee#L1384 starts sending changes
+ - (b) https://github.com/sagemathinc/cocalc/blob/master/src/smc-hub/postgres-user-queries.coffee#L1393 sends the full table.
+
+(a) could result in changes actually getting to the client before the table itself has been initialized.  The client code assumes that it only gets changes *after* the table is initialized.  The browser client seems to be smart enough that it detects this situation and resets itself, so the browser never gets messed up as a result.
+However, the project definitely does NOT do so well, and it can get messed up.  Then it has a broken version of the table, missing some last minute change.    It is broken until the project forgets about that table entirely, which is can be a pretty long time (or project restart).
+
+My fix is to queue up those changes on the server, then only start sending them to the client **after** the (b) query is done.  I tested this by using setTimeout to manually delay (b) for a few seconds, and fully seeing the "file won't save problem".   The other approach would make it so clients are more robust against getting changes first.  However, it would take a long time for all clients to update (restart all projects), and it's an annoying assumption to make in general -- we may have entirely new clients later and they could make the same bad assumptions about order...
+###
