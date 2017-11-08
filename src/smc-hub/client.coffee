@@ -1763,6 +1763,7 @@ class exports.Client extends EventEmitter
                 cb(err); return
             cb(undefined, customer_id)
 
+    # id : user's CoCalc account id
     stripe_get_customer: (id, cb) =>
         dbg = @dbg("stripe_get_customer")
         dbg("getting id")
@@ -2001,7 +2002,7 @@ class exports.Client extends EventEmitter
             options =
                 plan     : mesg.plan
                 quantity : mesg.quantity
-                coupon   : mesg.coupon
+                coupon   : mesg.coupon_id
 
             subscription = undefined
             tax_rate = undefined
@@ -2019,6 +2020,18 @@ class exports.Client extends EventEmitter
                                 #    "Error: Invalid decimal: 8.799999999999999; must contain at maximum two decimal places."
                                 options.tax_percent = Math.round(tax_rate*100*100)/100
                             cb(err)
+                (cb) =>
+                    if options.coupon
+                        dbg("add coupon to customer history")
+                        @validate_coupon options.coupon, (err, coupon, coupon_history) =>
+                            if err
+                                cb(err)
+                                return
+                            coupon_history[coupon.id] += 1
+                            @database.update_coupon_history
+                                account_id     : @account_id
+                                coupon_history : coupon_history
+                                cb             : cb
                 (cb) =>
                     dbg("add customer subscription to stripe")
                     @_stripe.customers.createSubscription customer_id, options, (err, s) =>
@@ -2083,11 +2096,22 @@ class exports.Client extends EventEmitter
             subscription = undefined
             async.series([
                 (cb) =>
+                    if mesg.coupon_id
+                        @validate_coupon mesg.coupon_id, (err, coupon, coupon_history) =>
+                            if err
+                                cb(err)
+                                return
+                            coupon_history[coupon.id] += 1
+                            @database.update_coupon_history
+                                account_id     : @account_id
+                                coupon_history : coupon_history
+                                cb             : cb
+                (cb) =>
                     dbg("Update the subscription.")
                     changes =
                         quantity : mesg.quantity
                         plan     : mesg.plan
-                        coupon   : mesg.coupon
+                        coupon   : mesg.coupon_id
                     @_stripe.customers.updateSubscription(customer_id, subscription_id, changes, cb)
                 (cb) =>
                     @database.stripe_update_customer(account_id : @account_id, stripe : @_stripe, customer_id : customer_id, cb: cb)
@@ -2113,6 +2137,51 @@ class exports.Client extends EventEmitter
                     @stripe_error_to_client(id:mesg.id, error:err)
                 else
                     @push_to_client(message.stripe_subscriptions(id:mesg.id, subscriptions:subscriptions))
+
+    mesg_stripe_get_coupon: (mesg) =>
+        dbg = @dbg("mesg_stripe_get_coupon")
+        dbg("get the coupon with id == #{mesg.coupon_id}")
+        if not @ensure_fields(mesg, 'coupon_id')
+            dbg("missing field coupon_id")
+            return
+        @validate_coupon mesg.coupon_id, (err, coupon) =>
+            if err
+                @stripe_error_to_client(id:mesg.id, error:err)
+            else
+                @push_to_client(message.stripe_coupon(id:mesg.id, coupon:coupon))
+
+    # Checks these coupon criteria:
+    # - Exists
+    # - Is valid
+    # - Used by this account less than the max per account (hard coded default is 1)
+    # Calls cb(err, coupon, coupon_history)
+    validate_coupon: (coupon_id, cb) =>
+        dbg = @dbg("validate_coupon")
+        @_stripe = get_stripe()
+        async.series([
+            (local_cb) =>
+                dbg("retrieve the coupon")
+                @_stripe.coupons.retrieve(coupon_id, local_cb)
+            (local_cb) =>
+                dbg("check account coupon_history")
+                @database.get_coupon_history
+                    account_id : @account_id
+                    cb         : local_cb
+        ], (err, [coupon, coupon_history]) =>
+            if err
+                cb(err)
+                return
+            if not coupon.valid
+                cb("Sorry! This coupon has expired.")
+                return
+            times_used = coupon_history[coupon.id] ? 0
+            if times_used >= (coupon.metadata.max_per_account ? 1)
+                cb("You've already used this coupon.")
+                return
+
+            coupon_history[coupon.id] = times_used
+            cb(err, coupon, coupon_history)
+        )
 
     mesg_stripe_get_charges: (mesg) =>
         dbg = @dbg("mesg_stripe_get_charges")

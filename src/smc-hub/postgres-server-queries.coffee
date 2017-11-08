@@ -666,6 +666,31 @@ class exports.PostgreSQL extends PostgreSQL
         ], opts.cb)
 
     ###
+    Auxillary billing related queries
+    ###
+    get_coupon_history: (opts) =>
+        opts = defaults opts,
+            account_id : required
+            cb         : undefined
+        @_dbg("Getting coupon history")
+        @_query
+            query : "SELECT coupon_history FROM accounts"
+            where : 'account_id = $::UUID' : opts.account_id
+            cb    : one_result("coupon_history", opts.cb)
+
+    update_coupon_history: (opts) =>
+        opts = defaults opts,
+            account_id     : required
+            coupon_history : required
+            cb             : undefined
+        @_dbg("Setting to #{opts.coupon_history}")
+        @_query
+            query : 'UPDATE accounts'
+            set   : 'coupon_history::JSONB' : opts.coupon_history
+            where : 'account_id = $::UUID'  : opts.account_id
+            cb    : opts.cb
+
+    ###
     Querying for searchable information about accounts.
     ###
     account_ids_to_usernames: (opts) =>

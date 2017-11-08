@@ -1541,15 +1541,15 @@ class exports.Connection extends EventEmitter
 
     stripe_create_subscription: (opts) =>
         opts = defaults opts,
-            plan     : required
-            quantity : 1
-            coupon   : undefined
-            cb       : required
+            plan      : required
+            quantity  : 1
+            coupon_id : undefined
+            cb        : required
         @call
             message : message.stripe_create_subscription
-                plan     : opts.plan
-                quantity : opts.quantity
-                coupon   : opts.coupon
+                plan      : opts.plan
+                quantity  : opts.quantity
+                coupon_id : opts.coupon_id
             error_event : true
             cb          : opts.cb
 
@@ -1568,18 +1568,18 @@ class exports.Connection extends EventEmitter
     stripe_update_subscription: (opts) =>
         opts = defaults opts,
             subscription_id : required
-            quantity : undefined  # if given, must be >= number of projects
-            coupon   : undefined
-            projects : undefined  # ids of projects that subscription applies to
-            plan     : undefined
-            cb       : required
+            quantity  : undefined  # if given, must be >= number of projects
+            coupon_id : undefined
+            projects  : undefined  # ids of projects that subscription applies to
+            plan      : undefined
+            cb        : required
         @call
             message : message.stripe_update_subscription
                 subscription_id : opts.subscription_id
-                quantity : opts.quantity
-                coupon   : opts.coupon
-                projects : opts.projects
-                plan     : opts.plan
+                quantity  : opts.quantity
+                coupon_id : opts.coupon_id
+                projects  : opts.projects
+                plan      : opts.plan
             error_event : true
             cb          : opts.cb
 
@@ -1602,6 +1602,23 @@ class exports.Connection extends EventEmitter
                     opts.cb(err)
                 else
                     opts.cb(undefined, mesg.subscriptions)
+
+    # Gets the coupon for this account. Returns an error if invalid
+    # https://stripe.com/docs/api#retrieve_coupon
+    stripe_get_coupon: (opts) =>
+        opts = defaults opts,
+            coupon_id : undefined
+            cb        : required
+
+        @call
+            message     :
+                message.stripe_get_coupon(coupon_id : opts.coupon_id)
+            error_event : true
+            cb          : (err, mesg) =>
+                if err
+                    opts.cb(err)
+                else
+                    opts.cb(undefined, mesg.coupon)
 
     # gets list of invoices for this account.
     stripe_get_invoices: (opts) =>
