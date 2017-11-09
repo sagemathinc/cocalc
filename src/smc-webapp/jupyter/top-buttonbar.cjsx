@@ -173,14 +173,13 @@ exports.TopButtonbar = rclass ({name}) ->
                 onClick = {=>@props.actions.show_history_viewer()}>
                 <Icon name='history'/> <span className = 'hidden-sm'>TimeTravel</span>
             </Button>
+            {@render_close_and_halt()}
             {# @render_switch_button()}
         </ButtonGroup>
 
     render: ->
         <div style={margin: '1px 1px 0px 10px', backgroundColor:'#fff'}>
             <Form inline>
-                {@render_close_and_halt()}
-                <span style={marginLeft:'5px'}/>
                 {@render_add_cell()}
                 <span style={marginLeft:'5px'}/>
                 {@render_group_edit()}
