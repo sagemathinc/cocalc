@@ -697,13 +697,16 @@ schema.projects =
         last_edited :
             type : 'timestamp'
             desc : 'The last time some file was edited in this project.  This is the last time that the file_use table was updated for this project.'
+        last_started :
+            type : 'timestamp'
+            desc : 'The last time the project started running.'
         last_active :
             type : 'map'
             desc : "Map from account_id's to the timestamp of when the user with that account_id touched this project."
             date : 'all'
         created :
             type : 'timestamp'
-            desc : 'When the account was created.'
+            desc : 'When the project was created.'
         action_request :
             type : 'map'
             desc : "Request state change action for project: {action:['restart', 'stop', 'save', 'close'], started:timestamp, err:?, finished:timestamp}"
@@ -714,10 +717,10 @@ schema.projects =
             date : ['assigned', 'saved']
         last_backup :
             type : 'timestamp'
-            desc : "Timestamp of last off-disk successful backup using bup to Google cloud storage"
+            desc : "(DEPRECATED) Timestamp of last off-disk successful backup using bup to Google cloud storage"
         storage_request :
             type : 'map'
-            desc : "{action:['save', 'close', 'move', 'open'], requested:timestap, pid:?, target:?, started:timestamp, finished:timestamp, err:?}"
+            desc : "(DEPRECATED) {action:['save', 'close', 'move', 'open'], requested:timestap, pid:?, target:?, started:timestamp, finished:timestamp, err:?}"
             date : ['started', 'finished', 'requested']
         course :
             type : 'map'
@@ -725,10 +728,10 @@ schema.projects =
             date : ['pay']
         storage_server :
             type : 'integer'
-            desc : 'Number of the Kubernetes storage server with the data for this project: one of 0, 1, 2, ...'
+            desc : '(DEPRECATED) Number of the Kubernetes storage server with the data for this project: one of 0, 1, 2, ...'
         storage_ready :
             type : 'boolean'
-            desc : 'Whether storage is ready to be used on the storage server.  Do NOT try to start project until true; this gets set by storage daemon when it notices the that run is true.'
+            desc : '(DEPRECATED) Whether storage is ready to be used on the storage server.  Do NOT try to start project until true; this gets set by storage daemon when it notices the that run is true.'
         disk_size :
             type : 'integer'
             desc : 'Size in megabytes of the project disk.'
@@ -770,6 +773,7 @@ schema.projects =
                 state          : null
                 last_edited    : null
                 last_active    : null
+                last_started   : null
                 action_request : null   # last requested action -- {action:?, time:?, started:?, finished:?, err:?}
                 course         : null
         set :
