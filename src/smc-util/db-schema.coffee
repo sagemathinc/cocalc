@@ -773,7 +773,6 @@ schema.projects =
                 state          : null
                 last_edited    : null
                 last_active    : null
-                last_started   : null
                 action_request : null   # last requested action -- {action:?, time:?, started:?, finished:?, err:?}
                 course         : null
         set :
