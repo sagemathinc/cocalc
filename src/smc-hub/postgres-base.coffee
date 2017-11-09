@@ -64,15 +64,38 @@ read_password_from_disk = ->
         # no password file
         return
 
+exports.pg_connect_info = (host_info, password) ->
+    host_info = host_info ? process.env['PGHOST'] ? 'localhost'    # or 'hostname:port'
+    i = host_info.indexOf(':')
+    if i != -1
+        host = host_info.slice(0, i)
+        port = parseInt(host_info.slice(i+1))
+    else
+        host = host_info
+        port = 5432
+
+    info =
+        host         : host
+        port         : port
+        database     : process.env['SMC_DB'] ? 'smc'
+        user         : process.env['PGUSER'] ? 'smc'
+        password     : password ? read_password_from_disk()
+
+    console.log("pg_connect_info = #{JSON.stringify(info)}")
+    return info
+
+
 class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whenever we successfully connect to the database.
     constructor: (opts) ->
+        pg_info = exports.pg_connect_info(opts.host, opts.password)
         opts = defaults opts,
-            host         : process.env['PGHOST'] ? 'localhost'    # or 'hostname:port'
-            database     : process.env['SMC_DB'] ? 'smc'
-            user         : process.env['PGUSER'] ? 'smc'
+            host         : pg_info.host
+            port         : pg_info.port
+            database     : pg_info.database
+            user         : pg_info.user
+            password     : pg_info.password
             debug        : exports.DEBUG
             connect      : true
-            password     : undefined
             pool         : undefined   # IGNORED for now.
             cache_expiry : 3000  # expire cached queries after this many milliseconds
                                  # keep this very short; it's just meant to reduce impact of a bunch of
@@ -86,18 +109,13 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
         @_ensure_exists = opts.ensure_exists
         dbg = @_dbg("constructor")  # must be after setting @_debug above
         dbg(opts)
-        i = opts.host.indexOf(':')
-        if i != -1
-            @_host = opts.host.slice(0, i)
-            @_port = parseInt(opts.host.slice(i+1))
-        else
-            @_host = opts.host
-            @_port = 5432
+        @_host = opts.host
+        @_port = opts.port
         @_concurrent_warn = opts.concurrent_warn
         @_user = opts.user
         @_database = opts.database
         @_concurrent_queries = 0
-        @_password = opts.password ? read_password_from_disk()
+        @_password = opts.password
         @_init_metrics()
 
         if opts.cache_expiry and opts.cache_size

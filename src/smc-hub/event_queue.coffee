@@ -22,21 +22,29 @@
 # This manages processing the event queue
 
 async   = require('async')
+PgBoss  = require('pg-boss')
 
 winston = require('winston')
 winston.remove(winston.transports.Console)
 winston.add(winston.transports.Console, {level: 'debug', timestamp:true, colorize:true})
 
+{pg_connect_info} = require('./postgres-base')
 misc_node = require('smc-util-node/misc_node')
 {defaults, required} = misc = require('smc-util/misc')
 required = defaults.required
 
 
+
 class EventQueue
     constructor: (opts) ->
+        pg_info = pg_connect_info()
         opts = defaults opts,
-            database       : required
             timeout        : 1 * 60 * 1000
+            db_database    : pg_info.database
+            db_host        : pg_info.host
+            db_user        : pg_info.user
+            db_password    : pg_info.password
+            db_port        : pg_info.port
             logger         : undefined
             cb             : required
 
@@ -44,25 +52,26 @@ class EventQueue
 
         @logger   = opts.logger
         @timeout  = opts.timeout
-        @database = opts.database
-
+        @boss     = new PgBoss(
+            database  : opts.db_database
+            host      : opts.db_host
+            user      : opts.db_user
+            password  : opts.db_password
+            port      : opts.db_port
+            uuid      : 'v4'
+        )
         @dbg = (f, msg) ->
             @logger?.debug("EventQueue: main loop")
-
+        @boss.start()
         cb?()
 
-    start: ->
-        @dbg('main loop')
-        setTimeout(@start, @timeout)
 
+# ---
 
-_started = false
+_event_queue = null
 exports.start = (opts) ->
+    if _event_queue
+        return _event_queue
 
-    if _started
-        opts.logger?.warn("event queue already initialized")
-        return
-    _started = true
-
-    event_queue = new EventQueue(opts)
-    event_queue.start()
+    _event_queue = new EventQueue(opts)
+    return _event_queue

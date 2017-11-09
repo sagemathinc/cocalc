@@ -70,8 +70,6 @@ hub_proxy            = require('./proxy')
 
 share_server         = require('./share/server')
 
-event_queue          = require('./event_queue')
-
 MetricsRecorder = require('./metrics-recorder')
 
 # express http server -- serves some static/dynamic endpoints
@@ -607,11 +605,10 @@ exports.start_server = start_server = (cb) ->
                         cb()
             ], cb)
         (cb) ->
-            console.log('program.event_queue', program.event_queue)
             if not program.event_queue
                 cb(); return
+            event_queue = require('./event_queue')
             event_queue.start
-                database : database
                 logger   : winston
                 cb       : cb
     ], (err) =>
