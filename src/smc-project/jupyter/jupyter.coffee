@@ -181,7 +181,7 @@ class Kernel extends EventEmitter
                 start_delay : 500
                 max_delay   : 5000
                 factor      : 1.4
-                max_time    : 45000
+                max_time    : 2*60000  # long in case of starting many at once -- we don't want them to all fail and start again and fail ad infinitum!
                 f : (cb) =>
                     @kernel_info(cb : =>)
                     cb(@_state == 'starting')
@@ -230,8 +230,8 @@ class Kernel extends EventEmitter
             clearInterval(@_usage_interval)
         locals =
             last_usage : {cpu:0, memory:0}
-            thresh     : 0.25  # report any change of at least thresh percent (we always report cpu dropping to 0)
-            interval   : 10000  # frequently (~8s) should be OK, since it just reads /proc filesystem
+            thresh     : 0.2 # report any change of at least thresh percent (we always report cpu dropping to 0)
+            interval   : 5000  # frequently should be OK, since it just reads /proc filesystem
         @emit('usage', locals.last_usage)
         dbg = @dbg("usage_monitor")
         update_usage = =>
