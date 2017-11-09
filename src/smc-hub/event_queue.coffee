@@ -32,7 +32,7 @@ winston.add(winston.transports.Console, {level: 'debug', timestamp:true, coloriz
 misc_node = require('smc-util-node/misc_node')
 {defaults, required} = misc = require('smc-util/misc')
 required = defaults.required
-
+{DOMAIN_NAME, HELP_EMAIL, SITE_NAME} = require('smc-util/theme')
 
 
 class EventQueue
@@ -53,33 +53,87 @@ class EventQueue
         @logger   = opts.logger
         @timeout  = opts.timeout
         @boss     = new PgBoss(
-            database  : opts.db_database
-            host      : opts.db_host
-            user      : opts.db_user
-            password  : opts.db_password
-            port      : opts.db_port
-            uuid      : 'v4'
+            database                    : opts.db_database
+            host                        : opts.db_host
+            user                        : opts.db_user
+            password                    : opts.db_password
+            port                        : opts.db_port
+            monitorStateIntervalMinutes : 1
+            uuid                        : 'v4'
         )
         @dbg = (f, msg) ->
-            @logger?.debug("EventQueue::#{f}: #{msg}")
+            @logger?.debug("EventQueue::#{f}: #{misc.to_json(msg)}")
         @boss.start().then(-> opts.cb?())
+        @boss.on 'monitor-states', (states) =>
+            @dbg('monitor-states', states)
 
     # called by the hub when in --event_queue mode
     start_worker : (cb) ->
-        dbg = (m) => @dbg('worker', m)
+        dbg = (m) => @dbg('start_worker', m)
         dbg('started')
-        sub = @boss.subscribe 'project_exec', (job) ->
-            dbg("got 'project_exec' data: #{misc.to_json(job.data)}")
-            job.done()
+        async.series([
+            (cb) => @worker_test(cb)
+            (cb) => @worker_email_new_user(cb)
+        ],
+            (err, mesg) ->
+                dbg('init done')
+                cb?(err, mesg)
+        )
 
+    worker_test: (cb) =>
+        dbg = (m) => @dbg('worker_test', m)
+        sub = @boss.subscribe 'project_exec', (job) =>
+            dbg("got 'project_exec' data: #{misc.to_json(job.data)}")
+
+            ## TODO remove this, only for debugging
+            #if job.data.command?
+            #    l1 = job.data.command.split('\n')[0]
+            #    if misc.startswith(l1, 'echo pgboss') #  signup asdf@asdf
+            #        tokens = l1.split(/\s+/)
+            #        @publish('email_new_user', {email_address: tokens[2]})
+
+            job.done()
         sub.then ->
-            dbg('subscription created')
+            dbg('worker_test created')
             cb?()
 
-    publish : (name, payload, options) ->
+    worker_email_new_user: (cb) =>
+        dbg = (m) => @dbg('email_new_user', m)
+
+        sub = @boss.subscribe 'email_new_user', (job) ->
+            dbg("got 'email_new_user' data: #{misc.to_json(job.data)}")
+            data = job.data
+            if not data.email_address?
+                job.done()
+                return
+
+            body = """
+            <h2>Hello {data.first_name} {data.last_name}!</h2>
+            <br/>
+            <p>
+            Your account id is <code>{data.account_id}</code>.
+            </p>
+            """
+
+            {send_email} = require('./email')
+            send_email
+                subject    : "Welcome to #{SITE_NAME}"
+                body       : body
+                from       : "CoCalc <#{HELP_EMAIL}>"
+                to         : data.email_address
+                category   : "new_signup"
+                asm_group  : 147985
+                cb         : job.done
+
+        sub.then ->
+            dbg('worker_email_new_user created')
+            cb?()
+
+    publish : (name, payload, options, cb) ->
         status = @boss.publish(name, payload, options)
-        status.then (jobId) ->
+        status.then cb ? (jobId) ->
             console.log("job #{jobId} submitted")
+        return status
 
 # ---
 

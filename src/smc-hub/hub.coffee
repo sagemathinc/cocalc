@@ -614,7 +614,7 @@ exports.start_server = start_server = (cb) ->
                 cb       : cb
             )
         (cb) ->
-            console.log("program.event_queue = #{program.event_queue}")
+            winston.debug("program.event_queue = #{program.event_queue}")
             if program.event_queue
                 locals.event_queue.start_worker(cb)
             else
