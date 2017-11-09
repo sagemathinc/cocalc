@@ -108,10 +108,10 @@ class EventQueue
                 return
 
             body = """
-            <h2>Hello {data.first_name} {data.last_name}!</h2>
+            <h2>Hello #{data.first_name} #{data.last_name}!</h2>
             <br/>
             <p>
-            Your account id is <code>{data.account_id}</code>.
+            Your account id is <code>#{data.account_id}</code>.
             </p>
             """
 
@@ -129,11 +129,19 @@ class EventQueue
             dbg('worker_email_new_user created')
             cb?()
 
+    send_notification_email_to_user: (account_id, cb) ->
+        payload =
+            singletonKey    : account_id
+        options =
+            singletonHours  : 24   # only one job every 24 hours max
+        job = @publish('notify_user_via_email', payload, options)
+        return job
+
     publish : (name, payload, options, cb) ->
-        status = @boss.publish(name, payload, options)
-        status.then cb ? (jobId) ->
+        job = @boss.publish(name, payload, options)
+        job.then cb ? (jobId) ->
             console.log("job #{jobId} submitted")
-        return status
+        return job
 
 # ---
 
