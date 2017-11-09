@@ -55,9 +55,10 @@ exports.TopButtonbar = rclass ({name}) ->
 
     render_button: (key, name) ->
         if typeof(name) == 'object'
-            {name, disabled, style} = name
-        else
-            style = undefined
+            {name, disabled, style, label} = name
+        style    ?= undefined
+        disabled ?= false
+        label    ?= ''
         if @props.read_only  # all buttons disabled in read-only mode
             disabled = true
         obj = @props.actions._commands?[name]
@@ -70,7 +71,7 @@ exports.TopButtonbar = rclass ({name}) ->
             title    = {obj.m}
             disabled = {disabled}
             style    = {style} >
-            <Icon name={obj.i}/>
+            <Icon name={obj.i}/> {label}
         </Button>
 
     render_buttons: (names) ->
@@ -149,6 +150,13 @@ exports.TopButtonbar = rclass ({name}) ->
             <Icon name='exchange'/> <span className = 'hidden-sm'>Classical Notebook...</span>
         </Button>
 
+    render_close_and_halt: ->
+        obj =
+            name     : 'close and halt'
+            disabled : false
+            label    : 'Close and Halt'
+        return @render_button('close and halt', obj)
+
     render_group_save_timetravel: ->
         <ButtonGroup className = 'hidden-xs'>
             <Button
@@ -165,12 +173,14 @@ exports.TopButtonbar = rclass ({name}) ->
                 onClick = {=>@props.actions.show_history_viewer()}>
                 <Icon name='history'/> <span className = 'hidden-sm'>TimeTravel</span>
             </Button>
-            {@render_switch_button()}
+            {# @render_switch_button()}
         </ButtonGroup>
 
     render: ->
         <div style={margin: '1px 1px 0px 10px', backgroundColor:'#fff'}>
             <Form inline>
+                {@render_close_and_halt()}
+                <span style={marginLeft:'5px'}/>
                 {@render_add_cell()}
                 <span style={marginLeft:'5px'}/>
                 {@render_group_edit()}
