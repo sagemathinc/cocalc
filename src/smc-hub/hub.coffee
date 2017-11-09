@@ -506,6 +506,9 @@ exports.start_server = start_server = (cb) ->
 
     init_smc_version()
 
+    locals =
+        event_queue : undefined
+
     async.series([
         (cb) ->
             if not program.port
@@ -605,12 +608,17 @@ exports.start_server = start_server = (cb) ->
                         cb()
             ], cb)
         (cb) ->
-            if not program.event_queue
-                cb(); return
-            event_queue = require('./event_queue')
-            event_queue.start
+            {init} = require('./event_queue')
+            locals.event_queue = init(
                 logger   : winston
                 cb       : cb
+            )
+        (cb) ->
+            console.log("program.event_queue = #{program.event_queue}")
+            if program.event_queue
+                locals.event_queue.start_worker(cb)
+            else
+                cb()
     ], (err) =>
         if err
             winston.error("Error starting hub services! err=#{err}")
@@ -700,7 +708,7 @@ command_line = () ->
         .option('--delete_expired', 'Delete expired data from the database', String, 'yes')
         .option('--blob_maintenance', 'Do blob-related maintenance (dump to tarballs, offload to gcloud)', String, 'yes')
         .option('--add_user_to_project [project_id,email_address]', 'Add user with given email address to project with given ID', String, '')
-        .option('--event_queue', 'Start processing what is in the event queue', String, 'yes')
+        .option('--event_queue', 'Start a worker processing what is in the event queue', String, 'yes')
         .option('--base_url [string]', 'Base url, so https://sitenamebase_url/', String, '')  # '' or string that starts with /
         .option('--local', 'If option is specified, then *all* projects run locally as the same user as the server and store state in .sagemathcloud-local instead of .sagemathcloud; also do not kill all processes on project restart -- for development use (default: false, since not given)', Boolean, false)
         .option('--foreground', 'If specified, do not run as a deamon')

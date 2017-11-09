@@ -81,7 +81,7 @@ exports.pg_connect_info = (host_info, password) ->
         user         : process.env['PGUSER'] ? 'smc'
         password     : password ? read_password_from_disk()
 
-    console.log("pg_connect_info = #{JSON.stringify(info)}")
+    #console.log("pg_connect_info = #{JSON.stringify(info)}")
     return info
 
 

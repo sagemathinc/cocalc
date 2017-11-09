@@ -61,17 +61,33 @@ class EventQueue
             uuid      : 'v4'
         )
         @dbg = (f, msg) ->
-            @logger?.debug("EventQueue: main loop")
-        @boss.start()
-        cb?()
+            @logger?.debug("EventQueue::#{f}: #{msg}")
+        @boss.start().then(-> opts.cb?())
 
+    # called by the hub when in --event_queue mode
+    start_worker : (cb) ->
+        dbg = (m) => @dbg('worker', m)
+        dbg('started')
+        sub = @boss.subscribe 'project_exec', (job) ->
+            dbg("got 'project_exec' data: #{misc.to_json(job.data)}")
+            job.done()
+
+        sub.then ->
+            dbg('subscription created')
+            cb?()
+
+    publish : (name, payload, options) ->
+        status = @boss.publish(name, payload, options)
+        status.then (jobId) ->
+            console.log("job #{jobId} submitted")
 
 # ---
 
-_event_queue = null
-exports.start = (opts) ->
-    if _event_queue
-        return _event_queue
-
+_event_queue = undefined
+exports.init = (opts) ->
+    return _event_queue if _event_queue?
     _event_queue = new EventQueue(opts)
     return _event_queue
+
+exports.get = ->
+    _event_queue
