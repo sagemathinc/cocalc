@@ -230,8 +230,8 @@ class Kernel extends EventEmitter
             clearInterval(@_usage_interval)
         locals =
             last_usage : {cpu:0, memory:0}
-            thresh     : 0.2  # report any change of at least thresh percent (we always report cpu dropping to 0)
-            interval   : 8000  # frequently (~8s) should be OK, since it just reads /proc filesystem
+            thresh     : 0.25  # report any change of at least thresh percent (we always report cpu dropping to 0)
+            interval   : 10000  # frequently (~8s) should be OK, since it just reads /proc filesystem
         @emit('usage', locals.last_usage)
         dbg = @dbg("usage_monitor")
         update_usage = =>
