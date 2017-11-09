@@ -947,6 +947,8 @@ ProjectSettingsBody = rclass ({name}) ->
             get_upgrades_you_applied_to_project : rtypes.func
             get_total_project_quotas : rtypes.func
             get_upgrades_to_project : rtypes.func
+        "#{name}" :
+            free_compute_slowdown    : rtypes.number
 
     shouldComponentUpdate: (nextProps) ->
         return @props.project != nextProps.project or @props.user_map != nextProps.user_map or \
@@ -968,7 +970,7 @@ ProjectSettingsBody = rclass ({name}) ->
         {commercial} = require('./customize')
 
         <div>
-            {if commercial and total_project_quotas? and not total_project_quotas.member_host then <NonMemberProjectWarning upgrade_type='member_host' upgrades_you_can_use={upgrades_you_can_use} upgrades_you_applied_to_all_projects={upgrades_you_applied_to_all_projects} course_info={course_info} account_id={webapp_client.account_id} email_address={@props.email_address}/>}
+            {if commercial and total_project_quotas? and not total_project_quotas.member_host then <NonMemberProjectWarning upgrade_type='member_host' upgrades_you_can_use={upgrades_you_can_use} upgrades_you_applied_to_all_projects={upgrades_you_applied_to_all_projects} course_info={course_info} account_id={webapp_client.account_id} email_address={@props.email_address} free_compute_slowdown={@props.free_compute_slowdown}/>}
             {if commercial and total_project_quotas? and not total_project_quotas.network then <NoNetworkProjectWarning upgrade_type='network' upgrades_you_can_use={upgrades_you_can_use} upgrades_you_applied_to_all_projects={upgrades_you_applied_to_all_projects} /> }
             {if @props.project.get('deleted') then <DeletedProjectWarning />}
             <h1 style={marginTop:"0px"}><Icon name='wrench' /> Settings and configuration</h1>

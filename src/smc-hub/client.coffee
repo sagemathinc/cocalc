@@ -357,6 +357,8 @@ class exports.Client extends EventEmitter
             remember_me   : signed_in_mesg.remember_me    # True if sign in accomplished via rememember me token.
             email_address : signed_in_mesg.email_address
             account_id    : signed_in_mesg.account_id
+            utm           : signed_in_mesg.utm
+            referrer      : signed_in_mesg.referrer
             database      : @database
 
         # Get user's group from database.
@@ -2032,6 +2034,8 @@ class exports.Client extends EventEmitter
                                 account_id     : @account_id
                                 coupon_history : coupon_history
                                 cb             : cb
+                    else
+                        cb()
                 (cb) =>
                     dbg("add customer subscription to stripe")
                     @_stripe.customers.createSubscription customer_id, options, (err, s) =>
@@ -2174,6 +2178,7 @@ class exports.Client extends EventEmitter
             if not coupon.valid
                 cb("Sorry! This coupon has expired.")
                 return
+            coupon_history ?= {}
             times_used = coupon_history[coupon.id] ? 0
             if times_used >= (coupon.metadata.max_per_account ? 1)
                 cb("You've already used this coupon.")
