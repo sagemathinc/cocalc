@@ -78,6 +78,7 @@ exports.commands = (actions) ->
         f : -> actions.clear_selected_outputs()
 
     'close and halt' :
+        i : 'hand-stop-o'
         m : 'Close and Halt'
         f : ->
             actions.signal('SIGKILL')

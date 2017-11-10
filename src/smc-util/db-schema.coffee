@@ -645,7 +645,7 @@ schema.project_log =
         get :
             pg_where     : 'projects'
             pg_changefeed: 'projects'
-            options   : [{order_by : '-time'}, {limit : 400}]
+            options   : [{order_by : '-time'}, {limit : 1000}]
             throttle_changes : 2000
             fields :
                 id          : null
