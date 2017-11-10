@@ -25,7 +25,7 @@ immutable  = require('immutable')
 
 # At most this many of the most recent log messages for a project get loaded:
 # TODO: add a button to load the entire log or load more...
-MAX_PROJECT_LOG_ENTRIES = 400
+MAX_PROJECT_LOG_ENTRIES = 1000
 
 misc      = require('smc-util/misc')
 {MARKERS} = require('smc-util/sagews')
