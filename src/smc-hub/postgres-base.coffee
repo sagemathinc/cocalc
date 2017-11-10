@@ -78,7 +78,7 @@ exports.pg_connect_info = (host_info, password) ->
     info =
         host         : host
         port         : port
-        database     : process.env['SMC_DB'] ? 'smc'
+        name         : process.env['SMC_DB'] ? 'smc'
         user         : process.env['PGUSER'] ? 'smc'
         password     : password ? read_password_from_disk()
 
@@ -92,7 +92,7 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
         opts = defaults opts,
             host         : pg_info.host
             port         : pg_info.port
-            database     : pg_info.database
+            database     : pg_info.name       # this will be @_database and used as "database" in pg.Client
             user         : pg_info.user
             password     : pg_info.password
             debug        : exports.DEBUG

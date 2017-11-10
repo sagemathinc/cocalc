@@ -610,6 +610,7 @@ exports.start_server = start_server = (cb) ->
         (cb) ->
             {init} = require('./event_queue')
             locals.event_queue = init(
+                database : database
                 logger   : winston
                 cb       : cb
             )

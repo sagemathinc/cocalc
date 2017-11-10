@@ -36,7 +36,8 @@ class EventQueue
         pg_info = pg_connect_info()
         opts = defaults opts,
             timeout        : 1 * 60 * 1000
-            db_database    : pg_info.database
+            database       : required   # that's "the" database
+            db_name        : pg_info.name
             db_host        : pg_info.host
             db_user        : pg_info.user
             db_password    : pg_info.password
@@ -46,10 +47,11 @@ class EventQueue
 
         opts.logger?.debug("initializing event queue processing")
 
+        @database = opts.database
         @logger   = opts.logger
         @timeout  = opts.timeout
         @boss     = new PgBoss(
-            database                    : opts.db_database
+            database                    : opts.db_name
             host                        : opts.db_host
             user                        : opts.db_user
             password                    : opts.db_password
@@ -135,12 +137,19 @@ class EventQueue
                     n = [""] # list of html strings
                     cb(null, n)
                 user : (cb) ->
-                    # TODO db query for user info based on job.data.account_id
-                    user =
-                        email_address : ''
-                        first_name    : ''
-                        last_name     : ''
-                    cb(null, user)
+                    @database.get_account
+                        columns    : ['email_address', 'first_name', 'last_name']
+                        account_id : job.data.account_id
+                        cb         : (err, r) =>
+                            if err
+                                cb(err)
+                            else
+                                cb(null,
+                                    email_address : r.email_address
+                                    first_name    : r.first_name
+                                    last_name     : r.last_name
+                                )
+
             }, (err, data) ->
                 if err
                     job.done(err)
@@ -164,8 +173,8 @@ class EventQueue
     # see https://github.com/timgit/pg-boss/issues/8 for a discussion how this is possible
     publish_send_notification_email_to_user: (opts) ->
         opts = defaults opts,
-            account_id : required
-            cb         : undefined
+            account_id      : required
+            cb              : undefined
         payload =
             singletonKey    : account_id
             created         : new Date()
