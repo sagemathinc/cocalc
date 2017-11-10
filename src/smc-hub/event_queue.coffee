@@ -24,10 +24,6 @@
 async   = require('async')
 PgBoss  = require('pg-boss')
 
-winston = require('winston')
-winston.remove(winston.transports.Console)
-winston.add(winston.transports.Console, {level: 'debug', timestamp:true, colorize:true})
-
 {pg_connect_info} = require('./postgres-base')
 misc_node = require('smc-util-node/misc_node')
 {defaults, required} = misc = require('smc-util/misc')
@@ -63,9 +59,12 @@ class EventQueue
         )
         @dbg = (f, msg) ->
             @logger?.debug("EventQueue::#{f}: #{misc.to_json(msg)}")
-        @boss.start().then(-> opts.cb?())
+        @boss.start().then(=> opts.cb?(null, @))
         @boss.on 'monitor-states', (states) =>
             @dbg('monitor-states', states)
+
+    stop: (cb) ->
+        @boss.stop().then(-> cb?())
 
     # called by the hub when in --event_queue mode
     start_worker : (cb) ->

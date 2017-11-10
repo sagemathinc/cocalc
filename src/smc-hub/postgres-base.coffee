@@ -44,7 +44,8 @@ if not pg?
 
 
 winston = require('winston')
-winston.remove(winston.transports.Console)
+try
+    winston.remove(winston.transports.Console)
 winston.add(winston.transports.Console, {level: 'debug', timestamp:true, colorize:true})
 
 misc_node = require('smc-util-node/misc_node')
