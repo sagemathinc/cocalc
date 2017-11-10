@@ -70,9 +70,11 @@ class EventQueue
     start_worker : (cb) ->
         dbg = (m) => @dbg('start_worker', m)
         dbg('started')
+        # don't forget to call the cb for each created worker
         async.series([
-            (cb) => @worker_test(cb)
-            (cb) => @worker_email_new_user(cb)
+            @worker_test
+            @worker_email_new_user
+            @worker_notify_user_via_email
         ],
             (err, mesg) ->
                 dbg('init done')
@@ -92,9 +94,11 @@ class EventQueue
             #        @publish('email_new_user', {email_address: tokens[2]})
 
             job.done()
+
         sub.then ->
-            dbg('worker_test created')
+            dbg('created')
             cb?()
+
 
     worker_email_new_user: (cb) =>
         dbg = (m) => @dbg('email_new_user', m)
@@ -106,35 +110,73 @@ class EventQueue
                 job.done()
                 return
 
-            body = """
-            <h2>Hello #{data.first_name} #{data.last_name}!</h2>
-            <br/>
-            <p>
-            Your account id is <code>#{data.account_id}</code>.
-            </p>
-            """
-
-            {send_email} = require('./email')
-            send_email
-                subject    : "Welcome to #{SITE_NAME}"
-                body       : body
-                from       : "CoCalc <#{HELP_EMAIL}>"
-                to         : data.email_address
-                category   : "new_signup"
-                asm_group  : 147985
-                cb         : job.done
+            {send_email_to_new_user} = require('./email')
+            send_email_to_new_user
+                email_address : data.email_address
+                first_name    : data.first_name
+                last_name     : data.last_name
+                cb            : job.done
 
         sub.then ->
-            dbg('worker_email_new_user created')
+            dbg('created')
             cb?()
 
-    send_notification_email_to_user: (account_id, cb) ->
+
+    worker_notify_user_via_email: (cb) =>
+        dbg = (m) => @dbg('notify_user_via_email', m)
+
+        sub = @boss.subscribe 'notify_user_via_email', (job) ->
+            dbg("got #{misc.to_json(job.data)}")
+
+            async.parallel({
+                notifications : (cb) ->
+                    # TODO database query to get all current notifications, going back 24 hours max
+                    # based on job.data.account_id and job.data.created
+                    n = [""] # list of html strings
+                    cb(null, n)
+                user : (cb) ->
+                    # TODO db query for user info based on job.data.account_id
+                    user =
+                        email_address : ''
+                        first_name    : ''
+                        last_name     : ''
+                    cb(null, user)
+            }, (err, data) ->
+                if err
+                    job.done(err)
+                    return
+
+                {send_notification_email_to_user} = require('./email')
+                send_notification_email_to_user
+                    email_address : data.user.email_address
+                    first_name    : data.user.first_name
+                    last_name     : data.user.last_name
+                    notifications : data.notifications      # list of html strings
+                    cb            : job.done
+            )
+
+        sub.then ->
+            dbg('created')
+            cb?()
+
+
+    # we only want to notify once every 24 hours and delay it a bit for deduplication
+    # see https://github.com/timgit/pg-boss/issues/8 for a discussion how this is possible
+    publish_send_notification_email_to_user: (opts) ->
+        opts = defaults opts,
+            account_id : required
+            cb         : undefined
         payload =
             singletonKey    : account_id
+            created         : new Date()
         options =
             singletonHours  : 24   # only one job every 24 hours max
+            startIn         : '30 minutes'
         job = @publish('notify_user_via_email', payload, options)
-        return job
+        if opts.cb?
+            return job.then(opts.cb)
+        else
+            return job
 
     publish : (name, payload, options, cb) ->
         job = @boss.publish(name, payload, options)
