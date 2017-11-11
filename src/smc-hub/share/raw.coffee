@@ -17,6 +17,8 @@ misc         = require('smc-util/misc')
 
 listing = require('./listing')
 
+HEXCHARS = ("#{i}" for i in [0..9]).concat(String.fromCharCode(i) for i in [97..122])
+
 # redirect /[uuid] and /[uuid]?query=123 to /[uuid]/ and /[uuid]/?query=123
 redirect_to_directory = (req, res) ->
     query = req.url.slice(req.path.length)
@@ -40,7 +42,73 @@ exports.raw_router = (opts) ->
     router = express.Router()
 
     router.get '/', (req, res) ->
-        res.send("raw router")
+        # simple listing by first 2 characters in project_id
+        # CREATE INDEX IF NOT EXISTS project_id_2char ON public_paths (substring(project_id::text from 1 for 2));
+        # CREATE INDEX IF NOT EXISTS project_id_1char ON public_paths (substring(project_id::text from 1 for 1));
+
+        opts.database._query
+            query : '''
+                    SELECT DISTINCT(substring(project_id::text from 1 for 1)) AS prefix, COUNT(DISTINCT project_id) AS num FROM public_paths
+                    GROUP BY prefix
+                    ORDER BY prefix
+                    '''
+            cb    : (err, result) ->
+                if err
+                    res.send(JSON.stringify(err))
+                else
+                    out = """
+                    <h1>Public Projects</h1>
+                    """
+                    for row in result.rows
+                        out += "<a href='#{row.prefix}'>#{row.prefix}...</a> (#{row.num})<br/>"
+                    res.send(out)
+
+    router.get /^\/[0-9a-z]$/, (req, res) ->
+        # matches one uuid char
+        c1 = req.path[1]
+
+        opts.database._query
+            query : '''
+                    SELECT DISTINCT(substring(project_id::text from 1 for 2)) AS prefix, COUNT(DISTINCT project_id) AS num FROM public_paths
+                    WHERE substring(project_id::text from 1 for 1) = $1::TEXT
+                    GROUP BY prefix
+                    ORDER BY prefix
+                    '''
+            params : [c1]
+            cb    : (err, result) ->
+                if err
+                    res.send(JSON.stringify(err))
+                else
+                    out = """
+                    <h1>Public Projects</h1>
+                    <a href='./'>UP</a><br/><br/>
+                    """
+                    for row in result.rows
+                        out += "<a href='#{row.prefix}'>#{row.prefix}...</a> (#{row.num})<br/>"
+                    res.send(out)
+
+    router.get /^\/[0-9a-z]{2}$/, (req, res) ->
+        # matches two uuid char
+        c2 = req.path[1..2]
+        console.log(c2)
+        opts.database._query
+            query : 'SELECT DISTINCT(project_id) FROM public_paths'
+            where :
+                "substring(project_id::text from 1 for 2) = $::TEXT" : c2
+            order_by : 'project_id'
+            cb    : (err, result) ->
+                if err
+                    res.send(JSON.stringify(err))
+                else
+                    out = """
+                    <h1>Public Projects</h1>
+                    <a href='#{c2[0]}'>UP</a><br/><br/>
+                    Found #{result.rowCount}<br/><br/>
+                    """
+                    for row in result.rows
+                        pid = row.project_id
+                        out += "<a href='#{pid}'>#{pid}</a><br/>"
+                    res.send(out)
 
     router.get '*', (req, res) ->
         project_id = req.path.slice(1,37)

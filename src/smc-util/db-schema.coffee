@@ -911,7 +911,7 @@ schema.public_paths =
             type : 'number'
             desc : 'the number of times this public path has been accessed'
 
-    pg_indexes : ['project_id']
+    pg_indexes : ['project_id', '(substring(project_id::text from 1 for 1))', '(substring(project_id::text from 1 for 2))']
 
     user_query:
         get :
