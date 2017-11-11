@@ -10,8 +10,10 @@ misc                 = require('smc-util/misc')
 {defaults, required} = misc
 
 stripe  = undefined
+DEFAULT_VERSION = '2017-08-15'
 
-exports.get_stripe = ->
+exports.get_stripe = (version) ->
+    stripe.setApiVersion(version ? DEFAULT_VERSION)
     return stripe
 
 # TODO: this could listen to a changefeed on the database
