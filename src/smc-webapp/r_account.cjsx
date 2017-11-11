@@ -697,6 +697,39 @@ ProfileSettings = rclass
              </LabeledRow>
         </Panel>
 
+NotificationSettings = rclass
+    displayName : 'Account-NotificationSettings'
+
+    propTypes :
+        email_address : rtypes.string
+        notifications : rtypes.object
+        redux         : rtypes.object
+
+    on_change: (name, value) ->
+        @props.redux.getTable('account').set(notifications:{"#{name}":value})
+
+    body: ->
+        <LabeledRow label='New collaborators'>
+            <Checkbox
+                checked  = {@props.notifications.new_collaborators}
+                ref      = 'new_collaborators'
+                onChange = {(e)=>@on_change('new_collaborators', e.target.checked)}
+            >
+                New project collaborators
+            </Checkbox>
+        </LabeledRow>
+
+    render: ->
+        <Loading /> if not @props.notifications?
+        <Panel header={<h2> <Icon name='fa-bell' /> Email Notifications</h2>}>
+            {
+                if @props.email_address
+                    @body()
+                else
+                    'You must set an email address in order to receive notification emails!'
+            }
+        </Panel>
+
 # WARNING: in console.coffee there is also code to set the font size,
 # which our store ignores...
 TerminalSettings = rclass
@@ -1442,6 +1475,7 @@ exports.AccountSettingsTop = rclass
         font_size       : rtypes.number
         editor_settings : rtypes.object
         other_settings  : rtypes.object
+        notifications   : rtypes.object
         groups          : rtypes.array
 
     render: ->
@@ -1457,6 +1491,10 @@ exports.AccountSettingsTop = rclass
                         sign_out_error = {@props.sign_out_error}
                         everywhere     = {@props.everywhere}
                         redux          = {@props.redux} />
+                    <NotificationSettings
+                        notifications   = {@props.notifications}
+                        email_address   = {@props.email_address}
+                        redux           = {@props.redux} />
                     <TerminalSettings
                         terminal = {@props.terminal}
                         redux    = {@props.redux} />

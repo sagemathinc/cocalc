@@ -128,6 +128,15 @@ exports.create_account = (opts) ->
                         opts.database.log
                             event : 'create_account'
                             value : data
+
+                        # create task to send email to the user
+                        event_queue = require('./event_queue')
+                        # delay by 10 minutes
+                        new_user =
+                            email_address : data.email_address
+                            first_name    : data.first_name
+                            last_name     : data.last_name
+                        event_queue.get().publish('email_new_user', new_user, {startIn: 10 * 60})
         (cb) ->
             dbg("check for account creation actions")
             opts.database.do_account_creation_actions

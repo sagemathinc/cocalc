@@ -27,6 +27,8 @@ PROJECT_GROUPS = misc.PROJECT_GROUPS
 
 {PostgreSQL, PROJECT_COLUMNS, one_result, all_results, count_result, expire_time} = require('./postgres')
 
+notifications = require('./notifications')
+
 class exports.PostgreSQL extends PostgreSQL
 
     # write an event to the central_log table
@@ -1454,7 +1456,13 @@ class exports.PostgreSQL extends PostgreSQL
                         group: opts.group
             where       :
                 "project_id = $::UUID": opts.project_id
-            cb          : opts.cb
+            cb          : (err, result) ->
+                opts.cb(err, result)
+                notifications.new_project_collaborator(
+                    database          : @
+                    project_id        : opts.project_id
+                    new_collaborator  : opts.account_id
+                )
 
     set_project_status: (opts) =>
         opts = defaults opts,

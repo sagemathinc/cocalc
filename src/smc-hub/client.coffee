@@ -1013,6 +1013,11 @@ class exports.Client extends EventEmitter
         @get_project mesg, 'write', (err, project) =>
             if err
                 return
+            # TODO: THIS IS ONLY FOR TESTING
+            console.log(DEBUG2)
+            {get} = require('./event_queue')
+            event_queue = get()
+            event_queue.publish('project_exec', mesg)
             project.call
                 mesg    : mesg
                 timeout : mesg.timeout

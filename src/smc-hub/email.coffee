@@ -40,6 +40,7 @@ misc         = require('smc-util/misc')
 {defaults, required} = misc
 
 {SENDGRID_TEMPLATE_ID, SENDGRID_ASM_NEWSLETTER, COMPANY_NAME, COMPANY_EMAIL} = require('smc-util/theme')
+{DOMAIN_NAME, HELP_EMAIL, SITE_NAME} = require('smc-util/theme')
 
 email_server = undefined
 
@@ -164,6 +165,64 @@ exports.send_email = send_email = (opts={}) ->
             dbg("successfully sent email")
         opts.cb?(err, message)
     )
+
+# Welcome email for new user
+exports.send_email_to_new_user = (opts) ->
+    opts = defaults opts,
+        email_address : required
+        first_name    : required
+        last_name     : required
+        cb            : undefined
+
+    body = """
+    <h2>Hello #{opts.first_name} #{opts.last_name}!</h2>
+    <br/>
+    <p>
+    You signed up on #{SITE_NAME} accessible via <a href="#{DOMAIN_NAME}">#{DOMAIN_NAME}</a>.
+    </p>
+    <p>
+    If there are any problems, email us at <a href="mailto:#{HELP_EMAIL}">#{HELP_EMAIL}</a>.
+    </p>
+    """
+
+    exports.send_email
+        subject    : "Welcome to #{SITE_NAME}"
+        body       : body
+        from       : "CoCalc <#{HELP_EMAIL}>"
+        to         : opts.email_address
+        category   : "new_signup"
+        asm_group  : 147985           # https://app.sendgrid.com/suppressions/advanced_suppression_manager
+        cb         : opts.cb
+
+# Notification email
+exports.send_notification_email_to_user = (opts) ->
+    opts = defaults opts,
+        email_address : required
+        first_name    : required
+        last_name     : required
+        notifications : required
+        cb            : undefined
+
+    notifications_list = ("<li>#{x}</li>" for x in opts.notifications).join('\n')
+
+    body = """
+    <h2>Hello #{opts.first_name} #{opts.last_name}!</h2>
+    <br/>
+    <p>
+    There is new activity on #{SITE_NAME} waiting for you. Access it via <a href="#{DOMAIN_NAME}">#{DOMAIN_NAME}</a>.
+    </p>
+    <ul>
+    #{notifications_list}
+    </ul>
+    """
+    exports.send_email
+        subject    : "New activity on #{SITE_NAME}"
+        body       : body
+        from       : "CoCalc <#{HELP_EMAIL}>"
+        to         : opts.email_address
+        category   : "notifications"
+        asm_group  : 148185        # https://app.sendgrid.com/suppressions/advanced_suppression_manager
+        cb         : opts.cb
 
 
 # Send a mass email to every address in a file.

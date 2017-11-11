@@ -37,6 +37,7 @@
     "password-hash": "^1.2.2",
     "pdfkit": "^0.7.1",
     "pg": "^6.1.0",
+    "pg-boss": "^2.3",
     "pg-native": "^1.10.0",
     "primus": "^4.0.1",
     "prom-client": "^10.1.0",
