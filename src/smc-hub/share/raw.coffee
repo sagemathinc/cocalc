@@ -154,7 +154,8 @@ serve_raw_path = (req, res, path, info) ->
             res.sendStatus(404)
             return
         if stats.isDirectory()
-            send_directory_listing(req, res, path, info)
+            # Actually a directorys
+            redirect_to_directory(req, res)
         else
             res.sendFile(path)
 
