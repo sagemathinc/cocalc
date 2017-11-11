@@ -17,6 +17,12 @@ misc         = require('smc-util/misc')
 
 listing = require('./listing')
 
+# redirect /[uuid] and /[uuid]?query=123 to /[uuid]/ and /[uuid]/?query=123
+redirect_to_directory = (req, res) ->
+    query = req.url.slice(req.path.length)
+    res.redirect(301, req.baseUrl + req.path + '/' + query)
+
+
 exports.raw_router = (opts) ->
     opts = defaults opts,
         database : required
@@ -41,6 +47,12 @@ exports.raw_router = (opts) ->
         if not misc.is_valid_uuid_string(project_id)
             res.status(404).end()
             return
+
+        # this must be /[uuid]
+        if req.path.length == 37
+            redirect_to_directory(req, res)
+            return
+
         d('project_id=', project_id)
         path = req.path.slice(38)
         d('path=', path)
@@ -61,26 +73,25 @@ exports.raw_router = (opts) ->
                 else
                     dir = opts.path.replace('[project_id]', project_id)
                     info = {project_id: project_id, path:path}
-                    d("serve", path, " from", dir, info)
-                    serve_raw_path(res, os_path.join(dir, path), info)
+                    d("serve", path, "from", dir, info)
+                    serve_raw_path(req, res, os_path.join(dir, path), info)
 
-serve_raw_path = (res, path, info) ->
+serve_raw_path = (req, res, path, info) ->
     if path.length > 0 and path[path.length - 1] == '/'
-        send_directory_listing(res, path, info)
+        send_directory_listing(req, res, path, info)
         return
     fs.lstat path, (err, stats) ->
         if err
             # no such file
-            res.send(404)
+            res.sendStatus(404)
             return
         if stats.isDirectory()
-            # TODO: redirect to /
-            res.send(404)
+            send_directory_listing(req, res, path, info)
         else
             res.sendFile(path)
 
 
-send_directory_listing = (res, path, info) ->
+send_directory_listing = (req, res, path, info) ->
     done = false
     async.series([
         (cb) ->
@@ -104,7 +115,7 @@ send_directory_listing = (res, path, info) ->
                 cb(); return
             listing.get_listing path, (err, data) ->
                 if err
-                    res.send(404)
+                    res.sendStatus(404)
                 else
                     res.send(listing.render_directory_listing(data, info))
     ])
