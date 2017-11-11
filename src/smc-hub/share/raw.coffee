@@ -46,21 +46,30 @@ exports.raw_router = (opts) ->
         # CREATE INDEX IF NOT EXISTS project_id_2char ON public_paths (substring(project_id::text from 0 for 2));
         links = ("<a href='#{l}'>#{l}...</a>" for l in HEXCHARS)
         links = links.join('<br/>')
-        res.send(links)
+        out = """
+        <h1>Public Projects</h1>
+        #{links}
+        """
+        res.send(out)
 
     router.get /^\/[0-9a-z]$/, (req, res) ->
         # matches one uuid char
         c1 = req.path[1]
         links = ("<a href='#{c1}#{l}'>#{c1}#{l}...</a>" for l in HEXCHARS)
         links = links.join('<br/>')
-        res.send(links)
+        out = """
+        <h1>Public Projects</h1>
+        <a href='./'>UP</a><br/><br/>
+        #{links}
+        """
+        res.send(out)
 
     router.get /^\/[0-9a-z]{2}$/, (req, res) ->
         # matches two uuid char
         c2 = req.path[1..2]
         console.log(c2)
         opts.database._query
-            query : 'SELECT project_id FROM public_paths'
+            query : 'SELECT DISTINCT(project_id) FROM public_paths'
             where :
                 "substring(project_id::text from 1 for 2) = $::TEXT" : c2
             order_by : 'project_id'
@@ -68,8 +77,11 @@ exports.raw_router = (opts) ->
                 if err
                     res.send(JSON.stringify(err))
                 else
-                    out = "Found #{result.rowCount}<br/>"
-                    out += "<a href='#{c2[0]}'>UP</a><br/>"
+                    out = """
+                    <h1>Public Projects</h1>
+                    <a href='#{c2[0]}'>UP</a><br/><br/>
+                    Found #{result.rowCount}<br/><br/>
+                    """
                     for row in result.rows
                         pid = row.project_id
                         out += "<a href='#{pid}'>#{pid}</a><br/>"
