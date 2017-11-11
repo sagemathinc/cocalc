@@ -10,6 +10,8 @@ exports.get_listing = (dir, cb) ->
         if err
             cb(err)
             return
+        # filter hidden files
+        files = (fn for fn in files when fn.charAt(0) isnt '.')
         get_metadata = (file, cb) ->
             obj = {name:file}
             # use lstat instead of stat so it works on symlinks too
@@ -23,7 +25,7 @@ exports.get_listing = (dir, cb) ->
                         obj.size = stats.size
                     obj.mtime = Math.floor((stats.mtime - 0)/1000)
                 cb(undefined, obj)
-        async.map(files, get_metadata, cb)
+        async.mapLimit(files, 10, get_metadata, cb)
 
 exports.render_directory_listing = (data, info) ->
     s = ["<a href='..'>..</a>"]
