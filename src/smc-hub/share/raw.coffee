@@ -43,26 +43,49 @@ exports.raw_router = (opts) ->
 
     router.get '/', (req, res) ->
         # simple listing by first 2 characters in project_id
-        # CREATE INDEX IF NOT EXISTS project_id_2char ON public_paths (substring(project_id::text from 0 for 2));
-        links = ("<a href='#{l}'>#{l}...</a>" for l in HEXCHARS)
-        links = links.join('<br/>')
-        out = """
-        <h1>Public Projects</h1>
-        #{links}
-        """
-        res.send(out)
+        # CREATE INDEX IF NOT EXISTS project_id_2char ON public_paths (substring(project_id::text from 1 for 2));
+        # CREATE INDEX IF NOT EXISTS project_id_1char ON public_paths (substring(project_id::text from 1 for 1));
+
+        opts.database._query
+            query : '''
+                    SELECT DISTINCT(substring(project_id::text from 1 for 1)) AS prefix, COUNT(DISTINCT project_id) AS num FROM public_paths
+                    GROUP BY prefix
+                    ORDER BY prefix
+                    '''
+            cb    : (err, result) ->
+                if err
+                    res.send(JSON.stringify(err))
+                else
+                    out = """
+                    <h1>Public Projects</h1>
+                    """
+                    for row in result.rows
+                        out += "<a href='#{row.prefix}'>#{row.prefix}...</a> (#{row.num})<br/>"
+                    res.send(out)
 
     router.get /^\/[0-9a-z]$/, (req, res) ->
         # matches one uuid char
         c1 = req.path[1]
-        links = ("<a href='#{c1}#{l}'>#{c1}#{l}...</a>" for l in HEXCHARS)
-        links = links.join('<br/>')
-        out = """
-        <h1>Public Projects</h1>
-        <a href='./'>UP</a><br/><br/>
-        #{links}
-        """
-        res.send(out)
+
+        opts.database._query
+            query : '''
+                    SELECT DISTINCT(substring(project_id::text from 1 for 2)) AS prefix, COUNT(DISTINCT project_id) AS num FROM public_paths
+                    WHERE substring(project_id::text from 1 for 1) = $1::TEXT
+                    GROUP BY prefix
+                    ORDER BY prefix
+                    '''
+            params : [c1]
+            cb    : (err, result) ->
+                if err
+                    res.send(JSON.stringify(err))
+                else
+                    out = """
+                    <h1>Public Projects</h1>
+                    <a href='./'>UP</a><br/><br/>
+                    """
+                    for row in result.rows
+                        out += "<a href='#{row.prefix}'>#{row.prefix}...</a> (#{row.num})<br/>"
+                    res.send(out)
 
     router.get /^\/[0-9a-z]{2}$/, (req, res) ->
         # matches two uuid char
