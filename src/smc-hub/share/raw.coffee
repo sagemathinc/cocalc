@@ -17,6 +17,8 @@ misc         = require('smc-util/misc')
 
 listing = require('./listing')
 
+HEXCHARS = ("#{i}" for i in [0..9]).concat(String.fromCharCode(i) for i in [97..122])
+
 # redirect /[uuid] and /[uuid]?query=123 to /[uuid]/ and /[uuid]/?query=123
 redirect_to_directory = (req, res) ->
     query = req.url.slice(req.path.length)
@@ -40,7 +42,38 @@ exports.raw_router = (opts) ->
     router = express.Router()
 
     router.get '/', (req, res) ->
-        res.send("raw router")
+        # simple listing by first 2 characters in project_id
+        # CREATE INDEX IF NOT EXISTS project_id_2char ON public_paths (substring(project_id::text from 0 for 2));
+        links = ("<a href='#{l}'>#{l}...</a>" for l in HEXCHARS)
+        links = links.join('<br/>')
+        res.send(links)
+
+    router.get /^\/[0-9a-z]$/, (req, res) ->
+        # matches one uuid char
+        c1 = req.path[1]
+        links = ("<a href='#{c1}#{l}'>#{c1}#{l}...</a>" for l in HEXCHARS)
+        links = links.join('<br/>')
+        res.send(links)
+
+    router.get /^\/[0-9a-z]{2}$/, (req, res) ->
+        # matches two uuid char
+        c2 = req.path[1..2]
+        console.log(c2)
+        opts.database._query
+            query : 'SELECT project_id FROM public_paths'
+            where :
+                "substring(project_id::text from 1 for 2) = $::TEXT" : c2
+            order_by : 'project_id'
+            cb    : (err, result) ->
+                if err
+                    res.send(JSON.stringify(err))
+                else
+                    out = "Found #{result.rowCount}<br/>"
+                    out += "<a href='#{c2[0]}'>UP</a><br/>"
+                    for row in result.rows
+                        pid = row.project_id
+                        out += "<a href='#{pid}'>#{pid}</a><br/>"
+                    res.send(out)
 
     router.get '*', (req, res) ->
         project_id = req.path.slice(1,37)
