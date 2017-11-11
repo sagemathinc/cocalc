@@ -60,7 +60,7 @@ exports.raw_router = (opts) ->
                     <h1>Public Projects</h1>
                     """
                     for row in result.rows
-                        out += "<a href='#{row.prefix}'>#{row.prefix}...</a> (#{row.num})<br/>"
+                        out += "<code><a href='#{row.prefix}'>#{row.prefix}...</a></code> (#{row.num})<br/>"
                     res.send(out)
 
     router.get /^\/[0-9a-z]$/, (req, res) ->
@@ -80,11 +80,11 @@ exports.raw_router = (opts) ->
                     res.send(JSON.stringify(err))
                 else
                     out = """
-                    <h1>Public Projects</h1>
+                    <h1>Public Projects: <code>#{c1}...</code></h1>
                     <a href='./'>UP</a><br/><br/>
                     """
                     for row in result.rows
-                        out += "<a href='#{row.prefix}'>#{row.prefix}...</a> (#{row.num})<br/>"
+                        out += "<code><a href='#{row.prefix}'>#{row.prefix}...</a></code> (#{row.num})<br/>"
                     res.send(out)
 
     router.get /^\/[0-9a-z]{2}$/, (req, res) ->
@@ -101,13 +101,13 @@ exports.raw_router = (opts) ->
                     res.send(JSON.stringify(err))
                 else
                     out = """
-                    <h1>Public Projects</h1>
+                    <h1>Public Projects: <code>#{c2}...</code></h1>
                     <a href='#{c2[0]}'>UP</a><br/><br/>
                     Found #{result.rowCount}<br/><br/>
                     """
                     for row in result.rows
                         pid = row.project_id
-                        out += "<a href='#{pid}'>#{pid}</a><br/>"
+                        out += "<code><a href='#{pid}'>#{pid}</a></code><br/>"
                     res.send(out)
 
     router.get '*', (req, res) ->
@@ -145,7 +145,7 @@ exports.raw_router = (opts) ->
                     serve_raw_path(req, res, os_path.join(dir, path), info)
 
 serve_raw_path = (req, res, path, info) ->
-    if path.length > 0 and path[path.length - 1] == '/'
+    if path.length > 0 and req.path[req.path.length - 1] == '/'
         send_directory_listing(req, res, path, info)
         return
     fs.lstat path, (err, stats) ->
