@@ -189,6 +189,9 @@ schema.accounts =
         stripe_customer :
             type : 'map'
             desc : 'Information about customer from the point of view of stripe (exactly what is returned by stripe.customers.retrieve).'
+        coupon_history :
+            type : 'map'
+            desc : 'Information about which coupons the customer has used and the number of times'
         profile :
             type : 'map'
             desc : 'Information related to displaying this users location and presence in a document or chatroom.'
@@ -247,6 +250,7 @@ schema.accounts =
                     default_file_sort : 'time'
                     show_global_info2 : null
                     first_steps       : true
+                    newsletter        : true
                 first_name      : ''
                 last_name       : ''
                 terminal        :
@@ -260,6 +264,7 @@ schema.accounts =
                 groups          : []
                 last_active     : null
                 stripe_customer : null
+                coupon_history  : null
                 profile :
                     image       : undefined
                     color       : undefined
@@ -635,7 +640,7 @@ schema.project_log =
         get :
             pg_where     : 'projects'
             pg_changefeed: 'projects'
-            options   : [{order_by : '-time'}, {limit : 400}]
+            options   : [{order_by : '-time'}, {limit : 1000}]
             throttle_changes : 2000
             fields :
                 id          : null
@@ -694,13 +699,16 @@ schema.projects =
         last_edited :
             type : 'timestamp'
             desc : 'The last time some file was edited in this project.  This is the last time that the file_use table was updated for this project.'
+        last_started :
+            type : 'timestamp'
+            desc : 'The last time the project started running.'
         last_active :
             type : 'map'
             desc : "Map from account_id's to the timestamp of when the user with that account_id touched this project."
             date : 'all'
         created :
             type : 'timestamp'
-            desc : 'When the account was created.'
+            desc : 'When the project was created.'
         action_request :
             type : 'map'
             desc : "Request state change action for project: {action:['restart', 'stop', 'save', 'close'], started:timestamp, err:?, finished:timestamp}"
@@ -711,10 +719,10 @@ schema.projects =
             date : ['assigned', 'saved']
         last_backup :
             type : 'timestamp'
-            desc : "Timestamp of last off-disk successful backup using bup to Google cloud storage"
+            desc : "(DEPRECATED) Timestamp of last off-disk successful backup using bup to Google cloud storage"
         storage_request :
             type : 'map'
-            desc : "{action:['save', 'close', 'move', 'open'], requested:timestap, pid:?, target:?, started:timestamp, finished:timestamp, err:?}"
+            desc : "(DEPRECATED) {action:['save', 'close', 'move', 'open'], requested:timestap, pid:?, target:?, started:timestamp, finished:timestamp, err:?}"
             date : ['started', 'finished', 'requested']
         course :
             type : 'map'
@@ -722,10 +730,10 @@ schema.projects =
             date : ['pay']
         storage_server :
             type : 'integer'
-            desc : 'Number of the Kubernetes storage server with the data for this project: one of 0, 1, 2, ...'
+            desc : '(DEPRECATED) Number of the Kubernetes storage server with the data for this project: one of 0, 1, 2, ...'
         storage_ready :
             type : 'boolean'
-            desc : 'Whether storage is ready to be used on the storage server.  Do NOT try to start project until true; this gets set by storage daemon when it notices the that run is true.'
+            desc : '(DEPRECATED) Whether storage is ready to be used on the storage server.  Do NOT try to start project until true; this gets set by storage daemon when it notices the that run is true.'
         disk_size :
             type : 'integer'
             desc : 'Size in megabytes of the project disk.'
@@ -904,7 +912,7 @@ schema.public_paths =
             type : 'number'
             desc : 'the number of times this public path has been accessed'
 
-    pg_indexes : ['project_id']
+    pg_indexes : ['project_id', '(substring(project_id::text from 1 for 1))', '(substring(project_id::text from 1 for 2))']
 
     user_query:
         get :

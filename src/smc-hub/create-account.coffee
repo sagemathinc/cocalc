@@ -117,14 +117,17 @@ exports.create_account = (opts) ->
                         account_id = result
                         cb()
                         # log to db -- no need to make client wait for this:
+                        data =
+                            account_id    : account_id
+                            first_name    : opts.mesg.first_name
+                            last_name     : opts.mesg.last_name
+                            email_address : opts.mesg.email_address
+                            created_by    : opts.client.ip_address
+                        data.utm      = opts.mesg.utm      if opts.mesg.utm
+                        data.referrer = opts.mesg.referrer if opts.mesg.referrer
                         opts.database.log
                             event : 'create_account'
-                            value :
-                                account_id    : account_id
-                                first_name    : opts.mesg.first_name
-                                last_name     : opts.mesg.last_name
-                                email_address : opts.mesg.email_address
-                                created_by    : opts.client.ip_address
+                            value : data
         (cb) ->
             dbg("check for account creation actions")
             opts.database.do_account_creation_actions
@@ -145,6 +148,7 @@ exports.create_account = (opts) ->
             if not opts.sign_in
                 cb(); return
             dbg("send message back to user that they are logged in as the new user (in #{misc.walltime(tm)}seconds)")
+            # no utm/referrer info being logged, because it is already done in the create_account entry above.
             mesg1 = message.signed_in
                 id            : opts.mesg.id
                 account_id    : account_id

@@ -68,6 +68,8 @@ base_url   = require('./base-url')
 local_hub_connection = require('./local_hub_connection')
 hub_proxy            = require('./proxy')
 
+share_server         = require('./share/server')
+
 MetricsRecorder = require('./metrics-recorder')
 
 # express http server -- serves some static/dynamic endpoints
@@ -489,7 +491,7 @@ exports.start_server = start_server = (cb) ->
     fs.writeFileSync(path_module.join(SMC_ROOT, 'data', 'base_url'), BASE_URL)
 
     # the order of init below is important
-    winston.debug("port = #{program.port}, proxy_port=#{program.proxy_port}")
+    winston.debug("port = #{program.port}, proxy_port=#{program.proxy_port}, share_port=#{program.share_port}, raw_port=#{program.raw_port}")
     winston.info("using database #{program.keyspace}")
     hosts = program.database_nodes.split(',')
     http_server = express_router = undefined
@@ -563,6 +565,28 @@ exports.start_server = start_server = (cb) ->
             winston.debug("starting express webserver listening on #{program.host}:#{program.port}")
             http_server.listen(program.port, program.host, cb)
         (cb) ->
+            if not program.share_port
+                cb(); return
+            winston.debug("initializing the share server on port #{program.share_port}")
+            x = share_server.init
+                database       : database
+                base_url       : BASE_URL
+                share_path     : program.share_path
+                logger         : winston
+            winston.debug("starting share express webserver listening on #{program.share_host}:#{program.port}")
+            x.http_server.listen(program.share_port, program.host, cb)
+        (cb) ->
+            if not program.raw_port
+                cb(); return
+            winston.debug("initializing the raw server on port #{program.raw_port}")
+            x = share_server.init
+                database       : database
+                base_url       : BASE_URL
+                raw_path       : program.raw_path
+                logger         : winston
+            winston.debug("starting raw express webserver listening on #{program.raw_host}:#{program.port}")
+            x.http_server.listen(program.raw_port, program.host, cb)
+        (cb) ->
             if not program.port
                 cb(); return
             async.parallel([
@@ -600,7 +624,7 @@ exports.start_server = start_server = (cb) ->
                     port           : program.proxy_port
                     host           : program.host
 
-            if program.port
+            if program.port or program.share_port or program.proxy_port
                 # Register periodically with the database.
                 hub_register.start
                     database   : database
@@ -651,6 +675,10 @@ command_line = () ->
     program.usage('[start/stop/restart/status/nodaemon] [options]')
         .option('--port <n>', 'port to listen on (default: 5000; 0 -- do not start)', ((n)->parseInt(n)), 5000)
         .option('--proxy_port <n>', 'port that the proxy server listens on (default: 0 -- do not start)', ((n)->parseInt(n)), 0)
+        .option('--share_path [string]', 'path that the share server finds shared files at (default: "")', String, '')
+        .option('--share_port <n>', 'port that the share server listens on (default: 0 -- do not start)', ((n)->parseInt(n)), 0)
+        .option('--raw_path [string]', 'path that the raw server finds public files at (default: "")', String, '')
+        .option('--raw_port <n>', 'port that the public raw server listens on (default: 0 -- do not start)', ((n)->parseInt(n)), 0)
         .option('--log_level [level]', "log level (default: debug) useful options include INFO, WARNING and DEBUG", String, "debug")
         .option('--host [string]', 'host of interface to bind to (default: "127.0.0.1")', String, "127.0.0.1")
         .option('--pidfile [string]', 'store pid in this file (default: "data/pids/hub.pid")', String, "data/pids/hub.pid")
@@ -720,7 +748,7 @@ command_line = () ->
                      console.log("User added to project.")
                 process.exit()
         else
-            console.log("Running hub; pidfile=#{program.pidfile}, port=#{program.port}, proxy_port=#{program.proxy_port}")
+            console.log("Running hub; pidfile=#{program.pidfile}, port=#{program.port}, proxy_port=#{program.proxy_port}, share_port=#{program.share_port}")
             # logFile = /dev/null to prevent huge duplicated output that is already in program.logfile
             if program.foreground
                 start_server (err) ->

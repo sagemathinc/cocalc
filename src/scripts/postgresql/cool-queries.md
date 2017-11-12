@@ -14,6 +14,8 @@ Check on our SLO, namely number of projects that took 30s or more to start among
 
     select count(*) from project_log where event#>>'{event}'='start_project' and time >= now() - interval '1 day';
 
+    select now() - time, event#>>'{time}' from project_log where event#>>'{event}'='start_project' and time >= now() - interval '5 minutes' and time <= now() order by time desc;
+
     select * from (select now()-time as age, project_id,(event#>>'{time}')::INTEGER as t from project_log where event#>>'{event}'='start_project' and time >= now() - interval '1 hour' and time <= now() order by time desc) as foo where t > 20000 order by age;
 
 How long files are taking to open, as perceived by the user:
@@ -22,9 +24,9 @@ How long files are taking to open, as perceived by the user:
 
 Problems people are having right now:
 
-    select NOW() - time as timeago, left(account_id::VARCHAR,6), left(error,70) as error from client_error_log order by time desc limit 50;
+    select NOW() - time as timeago, left(account_id::VARCHAR,6), left(error,80) as error from client_error_log order by time desc limit 50;
 
-    select NOW() - time as timeago, left(account_id::VARCHAR,6), left(error,70) as error from client_error_log where error like 'Error saving%' order by time desc limit 50;
+    select NOW() - time as timeago, left(account_id::VARCHAR,6), left(error,80) as error from client_error_log where error like 'Error saving%' order by time desc limit 50;
 
 File access for a user with given email address:
 

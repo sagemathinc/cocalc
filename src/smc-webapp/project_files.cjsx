@@ -925,12 +925,17 @@ ProjectFilesActions = rclass
     render_currently_selected: ->
         checked = @props.checked_files?.size ? 0
         total = @props.listing.length
+        style =
+            color      : '#999'
+            height     : '22px'
+            fontWeight : '200'
+
         if checked is 0
-            <div style={color:'#999',height:'22px'}>
-                <span>{"#{total} #{misc.plural(total, 'item')}"}</span>
+            <div style={style}>
+                <span>{"#{total} #{misc.plural(total, 'item')}"} -- Check an entry below to see options.</span>
             </div>
         else
-            <div style={color:'#999',height:'22px'}>
+            <div style={style}>
                 <span>{"#{checked} of #{total} #{misc.plural(total, 'item')} selected"}</span>
                 <Space/>
                 {@render_select_entire_directory()}
@@ -1004,7 +1009,6 @@ ProjectFilesActions = rclass
                     <ButtonGroup>
                         {@render_check_all_button()}
                     </ButtonGroup>
-
                     {@render_action_buttons()}
                 </ButtonToolbar>
             </Col>
@@ -1760,7 +1764,7 @@ ProjectFilesSearch = rclass
                     # computation was cancelled -- ignore result.
                     return
                 if err
-                    @setState(error:err, state:'edit')
+                    @setState(error:JSON.stringify(err), state:'edit')
                 else
                     if output.stdout
                         # Find the current path

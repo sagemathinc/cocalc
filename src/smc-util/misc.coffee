@@ -2070,3 +2070,10 @@ exports.sanitize_html_attributes = ($, node) ->
         if attrName?.indexOf('on') == 0 or attrValue?.indexOf('javascript:') == 0
             $(node).removeAttr(attrName)
 
+# common UTM parameters
+# changes must also be done in webapp-lib/_inc_analytics.pug
+exports.utm_keys = ['source', 'medium', 'campaign', 'term', 'content']
+exports.utm_cookie_name = 'CC_UTM'
+
+# referrer
+exports.referrer_cookie_name = 'CC_REF'

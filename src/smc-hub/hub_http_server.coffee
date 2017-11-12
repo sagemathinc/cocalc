@@ -49,6 +49,9 @@ hub_proxy    = require('./proxy')
 hub_projects = require('./projects')
 MetricsRecorder  = require('./metrics-recorder')
 
+conf         = require('./conf')
+
+
 {http_message_api_v1} = require('./api/handler')
 
 # Rendering stripe invoice server side to PDF in memory
@@ -80,6 +83,7 @@ exports.init_express_http_server = (opts) ->
                                   labels: ['path', 'method', 'code']
                               )
 
+    # response time metrics
     router.use (req, res, next) ->
         res_finished_h = response_time_histogram.startTimer()
         original_end = res.end
@@ -88,6 +92,39 @@ exports.init_express_http_server = (opts) ->
             {dirname} = require('path')
             dir_path = dirname(req.path).split('/')[1] # for two levels: split('/')[1..2].join('/')
             res_finished_h({path:dir_path, method:req.method, code:res.statusCode})
+        next()
+
+    # save utm parameters and referrer in a (short lived) cookie or read it to fill in locals.utm
+    # webapp takes care of consuming it (see misc_page.get_utm)
+    router.use (req, res, next) ->
+        # quickly return in the usual case
+        if Object.keys(req.query).length == 0
+            next()
+            return
+        utm = {}
+
+        utm_cookie = req.cookies[misc.utm_cookie_name]
+        if utm_cookie
+            try
+                data = misc.from_json(window.decodeURIComponent(utm_cookie))
+                utm = misc.merge(utm, data)
+
+        for k, v of req.query
+            continue if not misc.startswith(k, 'utm_')
+            # untrusted input, limit the length of key and value
+            k = k[4...50]
+            utm[k] = v[...50] if k in misc.utm_keys
+
+        if Object.keys(utm).length
+            utm_data = encodeURIComponent(JSON.stringify(utm))
+            res.cookie(misc.utm_cookie_name, utm_data, {path: '/', maxAge: ms('1 day'), httpOnly: false})
+            res.locals.utm = utm
+
+        referrer_cookie = req.cookies[misc.referrer_cookie_name]
+        if referrer_cookie
+            res.locals.referrer = referrer_cookie
+
+        winston.debug("HTTP server: #{req.url} -- UTM: #{misc.to_json(res.locals.utm)}")
         next()
 
     app.enable('trust proxy') # see http://stackoverflow.com/questions/10849687/express-js-how-to-get-remote-client-address
@@ -105,10 +142,14 @@ exports.init_express_http_server = (opts) ->
         res.header('Cache-Control', 'private, no-cache, must-revalidate')
         res.write('''
                   User-agent: *
-                  Allow: /projects/487587b1-8b24-401a-92d9-a9b930edd53d/
                   Disallow: /projects/*
+                  Allow: /*/raw/*.html
+                  Allow: /*/raw/*.md
+                  Allow: /*/raw/*.tex
+                  Allow: /*/raw/*.pdf
                   Disallow: /*/raw/
                   Disallow: /*/port/
+                  Disallow: /haproxy
                   ''')
         res.end()
 
@@ -378,6 +419,9 @@ exports.init_express_http_server = (opts) ->
 
         # Also, ensure the raw server works
         dev_proxy_raw = (req, res) ->
+            # avoid XSS...
+            req.headers['cookie'] = hub_proxy.strip_remember_me_cookies(req.headers['cookie'])
+            #winston.debug("cookie=#{req.headers['cookie']}")
             req_url = req.url.slice(opts.base_url.length)
             {key, project_id} = hub_proxy.target_parse_req('', req_url)
             winston.debug("dev_proxy_raw", project_id)
@@ -411,6 +455,20 @@ exports.init_express_http_server = (opts) ->
         raw_regexp = '^' + opts.base_url + '\/[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}\/raw*'
         app.get( raw_regexp, dev_proxy_raw)
         app.post(raw_regexp, dev_proxy_raw)
+
+        # Also create and expose the share server
+        PROJECT_PATH = conf.project_path()
+        share_server = require('./share/server')
+        raw_router = share_server.raw_router
+            database : opts.database
+            path     : "#{PROJECT_PATH}/[project_id]"
+            logger   : winston
+        share_router = share_server.share_router
+            database : opts.database
+            path     : "#{PROJECT_PATH}/[project_id]"
+            logger   : winston
+        app.use(opts.base_url + '/raw',   raw_router)
+        app.use(opts.base_url + '/share', share_router)
 
     app.on 'upgrade', (req, socket, head) ->
         winston.debug("\n\n*** http_server websocket(#{req.url}) ***\n\n")

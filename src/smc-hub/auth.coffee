@@ -21,6 +21,34 @@
 
 ###
 Passport Authentication (oauth, etc.)
+
+Server-side setup
+-----------------
+
+In order to get this running, you have to manually setup each service.
+That requires to register with the authentication provider, telling them about CoCalc,
+the domain you use, the return path for the response, and adding the client identification
+and corresponding secret keys to the database.
+Then, the service is active and will be presented to the user on the sign up page.
+The following is an example for setting up google oauth.
+The other services are similar.
+
+1. background: https://developers.google.com/identity/sign-in/web/devconsole-project
+2. https://console.cloud.google.com/apis/credentials/consent
+3. https://console.developers.google.com/apis/credentials → create credentials → oauth, ...
+4. The return path for google is https://{DOMAIN_NAME}/auth/google/return
+5. When done, there should be an entry under "OAuth 2.0 client IDs"
+6. ... and you have your ID and secret!
+
+Now, connect to the database, where the setup is in the passports_settings table:
+
+1. there sould be a site_conf entry:
+```
+insert into passport_settings (strategy , conf ) VALUES ( 'site_conf', '{"auth": "https://[DOMAIN_NAME/auth"}'::JSONB );
+```
+2. insert into passport_settings (strategy , conf ) VALUES ( 'google', '{"clientID": "....apps.googleusercontent.com", "clientSecret": "..."}'::JSONB )
+
+Then restart the hubs.
 ###
 
 async   = require('async')
@@ -30,6 +58,7 @@ passport= require('passport')
 
 misc    = require('smc-util/misc')
 message = require('smc-util/message')     # message protocol between front-end and back-end
+sign_in = require('./sign-in')
 
 Cookies = require('cookies')
 
@@ -112,6 +141,8 @@ passport_login = (opts) ->
     has_valid_remember_me = false
     account_id    = undefined
     email_address = undefined
+    locals =
+        new_account_created : false
     async.series([
         (cb) ->
             dbg("check if user has a valid remember_me token, in which case we can trust who they are already")
@@ -205,6 +236,7 @@ passport_login = (opts) ->
                         passport_profile  : opts.profile
                         cb                : (err, _account_id) ->
                             account_id = _account_id
+                            locals.new_account_created = true
                             cb(err)
                 (cb) ->
                     if not email_address?
@@ -214,7 +246,36 @@ passport_login = (opts) ->
                             email_address : email_address
                             account_id    : account_id
                             cb            : cb
+
+                (cb) ->
+                    data =
+                        account_id    : account_id
+                        first_name    : opts.first_name
+                        last_name     : opts.last_name
+                        email_address : email_address ? null
+                        created_by    : opts.req.ip
+                    data.utm      = opts.res.locals.utm      if opts.res.locals.utm
+                    data.referrer = opts.res.locals.referrer if opts.res.locals.referrer
+                    opts.database.log
+                        event : 'create_account'
+                        value : data
+                    cb() # don't let client wait for this
             ], cb)
+
+        (cb) ->
+            if locals.new_account_created
+                cb(); return
+            dbg("record_sign_in: #{opts.req.url} -- res.locals.utm: #{misc.to_json(opts.res.locals.utm)}")
+            sign_in.record_sign_in
+                ip_address    : opts.req.ip
+                successful    : true
+                remember_me   : has_valid_remember_me
+                email_address : email_address
+                account_id    : account_id
+                utm           : opts.res.locals.utm
+                referrer      : opts.res.locals.referrer
+                database      : opts.database
+            cb() # don't let client wait for this
 
         (cb) ->
             target = BASE_URL + "/app#login"

@@ -1312,7 +1312,7 @@ class TaskList
         else
             @showing_done = @local_storage("showing_done")
         if not @showing_done?
-            @showing_done = true  # default to showing done
+            @showing_done = false  # default to NOT showing done -- right thing would be to show for a while...
         @set_showing_done(@showing_done)
         @element.find(".webapp-task-search-not-done").click(=> @set_showing_done(true))
         @element.find(".webapp-task-search-done").click(=> @set_showing_done(false))
