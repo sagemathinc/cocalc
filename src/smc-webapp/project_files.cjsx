@@ -432,7 +432,6 @@ FirstSteps = rclass
         redux   : rtypes.object
 
     get_first_steps: ->
-        {LIBRARY} = require('./project_store')
         @props.actions.copy_from_library(entry:'first_steps')
 
     dismiss_first_steps: ->
@@ -614,7 +613,7 @@ FileListing = rclass
         show_upload            : rtypes.bool
         shift_is_down          : rtypes.bool
         sort_by                : rtypes.func
-        first_steps_available  : rtypes.bool
+        library_available      : rtypes.object
         other_settings         : rtypes.immutable
         redux                  : rtypes.object
 
@@ -684,11 +683,12 @@ FileListing = rclass
                 create_file   = {@props.create_file} />
 
     render_first_steps: ->
-        return if not @props.first_steps_available
-        return if not (@props.other_settings?.get('first_steps') ? false)
+        name = 'first_steps'
+        return if not @props.library_available[name]
+        return if not (@props.other_settings?.get(name) ? false)
         return if @props.public_view
         return if @props.current_path isnt '' # only show in $HOME
-        return if @props.file_map['first-steps']?.isdir  # don't show if we have it ...
+        return if @props.file_map[name]?.isdir  # don't show if we have it ...
         return if @props.file_search[0] is TERM_MODE_CHAR
 
         <FirstSteps
@@ -1977,13 +1977,12 @@ exports.ProjectFiles = rclass ({name}) ->
             file_creation_error   : rtypes.string
             displayed_listing     : rtypes.object
             new_name              : rtypes.string
-            first_steps_available : rtypes.bool
+            library_available     : rtypes.object
 
     propTypes :
         project_id             : rtypes.string
         actions                : rtypes.object
         redux                  : rtypes.object
-        first_steps_available  : rtypes.bool
 
     getDefaultProps: ->
         page_number           : 0
@@ -2218,7 +2217,7 @@ exports.ProjectFiles = rclass ({name}) ->
                     shift_is_down          = {@state.shift_is_down}
                     sort_by                = {@props.actions.set_sorted_file_column}
                     other_settings         = {@props.other_settings}
-                    first_steps_available  = {@props.first_steps_available}
+                    library_available      = {@props.library_available}
                     redux                  = {@props.redux}
                     event_handlers
                 />

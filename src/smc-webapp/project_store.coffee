@@ -22,6 +22,7 @@
 async      = require('async')
 underscore = require('underscore')
 immutable  = require('immutable')
+os_path    = require('path')
 
 # At most this many of the most recent log messages for a project get loaded:
 # TODO: add a button to load the entire log or load more...
@@ -61,8 +62,8 @@ FROM_WEB_TIMEOUT_S = 45
 # start: open this file after copying the directory
 exports.LIBRARY = LIBRARY =
     first_steps :
-        src    : '/ext/library/first-steps'
-        start  : 'first-steps/first-steps.tasks'
+        src    : '/ext/library/first-steps/src'
+        start  : 'first-steps.tasks'
 
 QUERIES =
     project_log :
@@ -902,19 +903,29 @@ class ProjectActions extends Actions
                 return path
 
     # this is called once by the project initialization
-    check_first_steps: =>
-        cmd = "test -e #{LIBRARY.first_steps.src}"
-        webapp_client.exec
-            project_id      : @project_id
-            command         : cmd
-            bash            : true
-            timeout         : 30
-            network_timeout : 120
-            err_on_exit     : false
-            path            : '.'
-            cb              : (err, output) =>
-                if not err
-                    @setState(first_steps_available:(output.exit_code == 0))
+    check_library: =>
+        if DEBUG then console.log("check_library")
+        check = (v, k, cb) =>
+            if DEBUG then console.log("check_library.check", v, k)
+            store = @get_store()
+            return if not store?
+            if store.library_available?[k]?
+                return
+            src = v.src
+            cmd = "test -e #{src}"
+            webapp_client.exec
+                project_id      : @project_id
+                command         : cmd
+                bash            : true
+                timeout         : 30
+                network_timeout : 120
+                err_on_exit     : false
+                path            : '.'
+                cb              : (err, output) =>
+                    if not err
+                        @setState(library_available: {"#{k}" : (output.exit_code == 0)})
+                    cb(err)
+        setTimeout(async.eachOfSeries(LIBRARY, check), 1000)
 
     copy_from_library: (opts) =>
         opts = defaults opts,
@@ -930,10 +941,12 @@ class ProjectActions extends Actions
 
         # the rsync command purposely does not preserve the timestamps,
         # such that they look like "new files" and listed on top under default sorting
+        source = os_path.join(lib.src, '/')
+        target = os_path.join(opts.entry, '/')
         webapp_client.exec
             project_id      : @project_id
             command         : 'rsync'
-            args            : ['-rlDx'].concat(lib.src).concat(['.'])
+            args            : ['-rlDx', source, target]
             timeout         : 120   # how long rsync runs on client
             network_timeout : 120   # how long network call has until it must return something or get total error.
             err_on_exit     : true
@@ -941,7 +954,7 @@ class ProjectActions extends Actions
             cb              : (err, output) =>
                 (@_finish_exec(id))(err, output)
                 if not err
-                    @open_file(path: lib.start)
+                    @open_file(path: os_path.join(target, lib.start))
 
     copy_paths: (opts) =>
         opts = defaults opts,
@@ -1572,7 +1585,7 @@ create_project_store_def = (name, project_id) ->
         open_files_order       : immutable.List([])
         open_files             : immutable.Map({})
         num_ghost_file_tabs    : 0
-        first_steps_available  : false
+        library_available      : {}
 
     reduxState:
         account:
@@ -1609,7 +1622,7 @@ create_project_store_def = (name, project_id) ->
         selected_file_index    : rtypes.number     # Index on file listing to highlight starting at 0. undefined means none highlighted
         new_name               : rtypes.string
         most_recent_file_click : rtypes.string
-        first_steps_available  : rtypes.bool
+        library_available      : rtypes.object
 
         # Project Log
         project_log : rtypes.immutable
