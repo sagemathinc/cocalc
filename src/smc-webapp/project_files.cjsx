@@ -582,9 +582,9 @@ FileListing = rclass
         is_public = @props.file_map[name].is_public
         if checked
             if index % 2 == 0
-                color = 'rgb(250, 250, 209)'
+                color = '#a3d4ff'
             else
-                color = 'rgb(255, 255, 220)'
+                color = '#a3d4f0'
         else if index % 2 == 0
             color = '#eee'
         else
