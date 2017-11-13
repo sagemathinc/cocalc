@@ -926,10 +926,23 @@ class ProjectActions extends Actions
         id = opts.id ? misc.uuid()
         @set_activity(id:id, status:"Copying #{opts.src.length} #{misc.plural(opts.src.length, 'file')} to #{opts.dest}")
 
+        args = ['-rltgoDxH']
+
+        # We ensure the target copy is writable if *any* source path starts with .snapshots.
+        # See https://github.com/sagemathinc/cocalc/issues/2497
+        # This is a little lazy, but whatever.
+        for x in opts.src
+            if misc.startswith(x, '.snapshots')
+                args = args.concat(['--perms', '--chmod', 'u+w'])
+                break
+
+        args = args.concat(opts.src)
+        args = args.concat([opts.dest])
+
         webapp_client.exec
             project_id      : @project_id
             command         : 'rsync'  # don't use "a" option to rsync, since on snapshots results in destroying project access!
-            args            : ['-rltgoDxH'].concat(opts.src).concat([opts.dest])
+            args            : args
             timeout         : 120   # how long rsync runs on client
             network_timeout : 120   # how long network call has until it must return something or get total error.
             err_on_exit     : true
