@@ -144,6 +144,8 @@ exports.raw_router = (opts) ->
                     d("serve", path, "from", dir, info)
                     serve_raw_path(req, res, os_path.join(dir, path), info)
 
+    return router
+
 serve_raw_path = (req, res, path, info) ->
     if path.length > 0 and req.path[req.path.length - 1] == '/'
         send_directory_listing(req, res, path, info)
@@ -154,7 +156,7 @@ serve_raw_path = (req, res, path, info) ->
             res.sendStatus(404)
             return
         if stats.isDirectory()
-            # Actually a directorys
+            # Actually a directory
             redirect_to_directory(req, res)
         else
             res.sendFile(path)

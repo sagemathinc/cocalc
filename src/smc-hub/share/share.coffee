@@ -3,19 +3,7 @@ The share express server.
 
 ###
 
-express      = require('express')
+# Enable transparent server-side requiring of cjsx files.
+require('node-cjsx').transform()
 
-misc         = require('smc-util/misc')
-{defaults, required} = misc
-
-exports.share_router = (opts) ->
-    opts = defaults opts,
-        database : required
-        path     : required
-        logger   : undefined
-
-    router = express.Router()
-
-    router.get '/', (req, res) ->
-        res.send("share router")
-
+exports.share_router = require('./router.cjsx').share_router
