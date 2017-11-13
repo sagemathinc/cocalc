@@ -1069,7 +1069,7 @@ CouponList = rclass
         applied_coupons : rtypes.immutable.Map
 
     render: ->
-        [<CouponInfo key={coupon.id} coupon={coupon}/> for coupon from @props.applied_coupons.values()]
+        (<CouponInfo key={coupon.id} coupon={coupon}/> for coupon in @props.applied_coupons.values())
 
 CouponInfo = rclass
     displayName : 'CouponInfo'
