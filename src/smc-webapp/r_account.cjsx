@@ -198,7 +198,7 @@ NewsletterSetting = rclass
             onChange = {(e)=>@on_change(e.target.checked)}
         >
             <span>
-                Recieve periodic updates {@blog()}
+                Receive periodic updates {@blog()}
                 <br/>
                 (Changes take up to 24 hours to be effective.)
             </span>

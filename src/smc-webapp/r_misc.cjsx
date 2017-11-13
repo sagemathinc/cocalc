@@ -1352,7 +1352,7 @@ exports.NoUpgrades = NoUpgrades = rclass
 
 ###
  Takes current upgrades data and quota parameters and provides an interface for the user to update these parameters.
- submit_upgrade_quotas will recieve a javascript object in the same format as quota_params
+ submit_upgrade_quotas will receive a javascript object in the same format as quota_params
  cancel_upgrading takes no arguments and is called when the cancel button is hit.
 ###
 exports.UpgradeAdjustor = rclass
