@@ -108,7 +108,12 @@ EmailVerification = rclass
                         bsStyle    = 'success'
                         disabled   = {@state.disabled_button}
                     >
-                        Send verification email
+                        {
+                            if @state.disabled_button
+                                'Email sent'
+                            else
+                                'Send verification email'
+                        }
                     </Button>
                 ]
 
@@ -1573,6 +1578,7 @@ exports.AccountSettingsTop = rclass
             <Row>
                 <Col xs=12 md=6>
                     <AccountSettings
+                        account_id     = {@props.account_id}
                         first_name     = {@props.first_name}
                         last_name      = {@props.last_name}
                         email_address  = {@props.email_address}

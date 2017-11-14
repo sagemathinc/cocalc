@@ -151,7 +151,7 @@ schema.accounts =
         email_address_verified :
             type : 'map'
             desc : 'Verified email addresses as { "email@addre.ss" : <timestamp>, ... }'
-        email_address_token :
+        email_address_challenge :
             type : 'map'
             desc : 'Contains random token for verification of an address: {"email": "...", "token": <random>, "time" : <timestamp for timeout>}'
         passports       :

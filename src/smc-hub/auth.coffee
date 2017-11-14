@@ -372,10 +372,11 @@ exports.init_passport = (opts) ->
         res.header("Content-Type", "text/plain")
         res.header('Cache-Control', 'private, no-cache, must-revalidate')
         if not (req.query.token and req.query.email)
-            res.send("need email and corresponding token")
+            res.send("ERROR: I need email and corresponding token data")
             return
         email = decodeURIComponent(req.query.email)
-        token = req.query.token
+        # .toLowerCase() on purpose: some crazy MTAs transform everything to uppercase!
+        token = req.query.token.toLowerCase()
         database.verify_email_check_token
             email_address : email
             token         : token
@@ -828,10 +829,10 @@ exports.verify_email_send_token = (opts) ->
             opts.database.verify_email_create_token
                 account_id : opts.account_id
                 cb         : cb
-        (cb, token) =>
+        (token, email_address, cb) =>
             email = require('./email')
             email.welcome_email
-                to          : mesg.email_address
+                to          : email_address
                 token       : token
                 only_verify : opts.only_verify
                 cb          : cb

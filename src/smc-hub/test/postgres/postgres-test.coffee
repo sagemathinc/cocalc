@@ -58,7 +58,7 @@ describe 'email verification: ', ->
             (cb) ->
                 # and that the token is deleted
                 db._query
-                    query  : 'SELECT email_address_token FROM accounts'
+                    query  : 'SELECT email_address_challenge FROM accounts'
                     where  :
                         "account_id = $::UUID"       : locals.account_id
                     cb     : one_result (err, data) ->

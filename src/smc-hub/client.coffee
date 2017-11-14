@@ -775,7 +775,7 @@ class exports.Client extends EventEmitter
     mesg_send_verification_email: (mesg) =>
         auth = require('./auth')
         auth.verify_email_send_token
-            account_id : account_id
+            account_id : mesg.account_id
             database   : @database
             cb         : (err) =>
                 if err

@@ -610,12 +610,12 @@ class exports.PostgreSQL extends PostgreSQL
                 @_query
                     query  : "UPDATE accounts"
                     set    :
-                        'email_address_token::JSONB' : data
+                        'email_address_challenge::JSONB' : data
                     where  :
                         "account_id = $::UUID"       : opts.account_id
                     cb     : cb
         ], (err) ->
-            opts.cb?(err, locals.token)
+            opts.cb?(err, locals.token, locals.email_address)
         )
 
 
@@ -627,13 +627,13 @@ class exports.PostgreSQL extends PostgreSQL
 
         locals =
             account_id          : undefined
-            email_address_token : undefined
+            email_address_challenge : undefined
 
         async.series([
             (cb) =>
                 @get_account
                     email_address : opts.email_address
-                    columns       : ['account_id', 'email_address_token']
+                    columns       : ['account_id', 'email_address_challenge']
                     cb            : (err, x) =>
                         if err
                             cb(err)
@@ -641,10 +641,10 @@ class exports.PostgreSQL extends PostgreSQL
                             cb("no such email address")
                         else
                             locals.account_id          = x.account_id
-                            locals.email_address_token = x.email_address_token
+                            locals.email_address_challenge = x.email_address_challenge
                             cb()
             (cb) =>
-                if not locals.email_address_token?
+                if not locals.email_address_challenge?
                     @is_verified_email
                         email_address : opts.email_address
                         cb            : (err, verified) ->
@@ -653,14 +653,14 @@ class exports.PostgreSQL extends PostgreSQL
                             else
                                 cb("For this email address no account verification is setup.")
 
-                else if locals.email_address_token.email != opts.email_address
-                    cb("The account's email address does not match token's email address.")
+                else if locals.email_address_challenge.email != opts.email_address
+                    cb("The account's email address does not match the token's email address.")
 
-                else if locals.email_address_token.time < misc.hours_ago(1)
+                else if locals.email_address_challenge.time < misc.hours_ago(24)
                     cb("The account verification token is no longer valid. Get a new one!")
 
                 else
-                    if locals.email_address_token.token == opts.token
+                    if locals.email_address_challenge.token == opts.token
                         cb()
                     else
                         cb("Provided token does not match.")
@@ -671,16 +671,16 @@ class exports.PostgreSQL extends PostgreSQL
                     jsonb_set :
                         email_address_verified:
                             "#{opts.email_address}" : new Date()
-                    where  : "account_id = $::UUID"             : locals.account_id
+                    where  : "account_id = $::UUID" : locals.account_id
                     cb     : cb
             (cb) =>
                 # now delete the token
                 @_query
                     query  : 'UPDATE accounts'
                     set    :
-                        'email_address_token::JSONB' : null
+                        'email_address_challenge::JSONB' : null
                     where  :
-                        "account_id = $::UUID"       : locals.account_id
+                        "account_id = $::UUID" : locals.account_id
                     cb     : cb
         ], opts.cb)
 
