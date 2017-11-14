@@ -582,6 +582,129 @@ class exports.PostgreSQL extends PostgreSQL
                     else
                         opts.cb(err)
 
+    verify_email_create_token: (opts) =>
+        opts = defaults opts,
+            account_id    : required
+            cb            : undefined
+
+        locals =
+            email_address : undefined
+            token         : undefined
+
+        async.series([
+            (cb) =>
+                @_query
+                    query : "SELECT email_address FROM accounts"
+                    where : "account_id = $::UUID" : opts.account_id
+                    cb    : one_result 'email_address', (err, x) =>
+                        locals.email_address = x
+                        cb(err)
+            (cb) =>
+                {generate} = require("random-key")
+                locals.token = generate(16).toLowerCase()
+                data =
+                    email : locals.email_address
+                    token : locals.token
+                    time  : new Date()
+
+                @_query
+                    query  : "UPDATE accounts"
+                    set    :
+                        'email_address_token::JSONB' : data
+                    where  :
+                        "account_id = $::UUID"       : opts.account_id
+                    cb     : cb
+        ], (err) ->
+            opts.cb?(err, locals.token)
+        )
+
+
+    verify_email_check_token: (opts) =>
+        opts = defaults opts,
+            email_address : required
+            token         : required
+            cb            : undefined
+
+        locals =
+            account_id          : undefined
+            email_address_token : undefined
+
+        async.series([
+            (cb) =>
+                @get_account
+                    email_address : opts.email_address
+                    columns       : ['account_id', 'email_address_token']
+                    cb            : (err, x) =>
+                        if err
+                            cb(err)
+                        else if not x?
+                            cb("no such email address")
+                        else
+                            locals.account_id          = x.account_id
+                            locals.email_address_token = x.email_address_token
+                            cb()
+            (cb) =>
+                if not locals.email_address_token?
+                    cb("For this email address no account verification exists.")
+                    return
+                if locals.email_address_token.email != opts.email_address
+                    cb("The account's email address does not match token's email address.")
+                    return
+                if locals.email_address_token.time < misc.hours_ago(1)
+                    cb("The account verification token is no longer valid. Get a new one!")
+                    return
+                if locals.email_address_token.token == opts.token
+                    cb()
+                else
+                    cb("Provided token does not match.")
+            (cb) =>
+                # we're good, save it
+                @_query
+                    query  : "UPDATE accounts"
+                    jsonb_set :
+                        email_address_verified:
+                            "#{opts.email_address}" : new Date()
+                    where  : "account_id = $::UUID"             : locals.account_id
+                    cb     : cb
+            (cb) =>
+                # now delete the token
+                @_query
+                    query  : 'UPDATE accounts'
+                    set    :
+                        'email_address_token::JSONB' : null
+                    where  :
+                        "account_id = $::UUID"       : locals.account_id
+                    cb     : cb
+        ], opts.cb)
+
+    # returns a the email address and verified email address
+    verify_email_get: (opts) =>
+        opts = defaults opts,
+            account_id    : required
+            cb            : undefined
+        @_query
+            query : "SELECT email_address, email_address_verified FROM accounts"
+            where : "account_id = $::UUID" : opts.account_id
+            cb    : one_result (err, x) ->
+                opts.cb?(err, x)
+
+    # answers the question as cb(null, [true or false])
+    is_verified_email: (opts) =>
+        opts = defaults opts,
+            email_address : required
+            cb            : required
+        @get_account
+            email_address : opts.email_address
+            columns       : ['email_address_verified']
+            cb            : (err, x) =>
+                if err
+                    opts.cb(err)
+                else if not x?
+                    opts.cb("no such email address")
+                else
+                    verified = opts.email_address in misc.keys(x.email_address_verified)
+                    opts.cb(null, verified)
+
     ###
     Stripe support for accounts
     ###
@@ -636,7 +759,7 @@ class exports.PostgreSQL extends PostgreSQL
             (cb) =>
                 if opts.customer_id? and not opts.stripe?
                     @get_server_setting
-                        name : 'stripe_secret_key'
+                            name : 'stripe_secret_key'
                         cb   : (err, secret) =>
                             if err
                                 cb(err)
