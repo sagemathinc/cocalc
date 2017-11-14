@@ -759,7 +759,7 @@ class exports.PostgreSQL extends PostgreSQL
             (cb) =>
                 if opts.customer_id? and not opts.stripe?
                     @get_server_setting
-                            name : 'stripe_secret_key'
+                        name : 'stripe_secret_key'
                         cb   : (err, secret) =>
                             if err
                                 cb(err)

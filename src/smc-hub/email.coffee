@@ -39,7 +39,7 @@ sendgrid     = require("sendgrid")
 misc         = require('smc-util/misc')
 {defaults, required} = misc
 
-{SENDGRID_TEMPLATE_ID, SENDGRID_ASM_NEWSLETTER, COMPANY_NAME, COMPANY_EMAIL} = require('smc-util/theme')
+{SENDGRID_TEMPLATE_ID, SENDGRID_ASM_NEWSLETTER, COMPANY_NAME, COMPANY_EMAIL, DOMAIN_NAME, SITE_NAME} = require('smc-util/theme')
 
 email_server = undefined
 
@@ -226,5 +226,36 @@ exports.mass_email = (opts) ->
     ], (err) ->
         opts.cb?(err, success)
     )
+
+
+exports.welcome_email = (opts) ->
+    opts = defaults opts,
+        to        : required
+        token     : required    # the email verification token
+        cb        : undefined
+
+    token_query = encodeURI("email=#{opts.to}&token=#{opts.token}")
+    token_url = "#{DOMAIN_NAME}/auth/verify?#{token_query}"
+    token_html = """
+    <p style="font-size: 110%"; font-weight: bold;">
+    Please click here: <a href="#{token_url}">#{token_url}</a> to verify your email address!
+    </p>
+    """
+
+    body = """
+    <h1>Welcome to #{SITE_NAME}</h1>
+
+    #{token_html}
+    """
+
+    send_email
+        subject      : "Welcome to #{SITE_NAME}"
+        body         : body
+        fromname     : COMPANY_NAME
+        from         : COMPANY_EMAIL
+        to           : opts.to
+        cb           : opts.cb
+        category     : 'welcome'
+        asm_group    : 147985     # https://app.sendgrid.com/suppressions/advanced_suppression_manager
 
 

@@ -69,7 +69,6 @@ describe 'email verification: ', ->
             done(err)
         )
 
-
     it "has no idea about unkown accounts", (done) ->
         db.verify_email_check_token(email_address:"other-one@test.com", token:locals.token, cb: (err) ->
             expect(!!err).toBe(true)
