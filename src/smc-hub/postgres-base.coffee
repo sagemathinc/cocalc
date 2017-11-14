@@ -91,6 +91,7 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
         else
             @_host = opts.host
             @_port = 5432
+        @_pool_size = opts.pool_size
         @_concurrent_warn = opts.concurrent_warn
         @_user = opts.user
         @_database = opts.database
@@ -116,6 +117,10 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
             @_client.removeAllListeners()
             @_client.end()
             delete @_client
+        if @_transaction_pool?
+            @_transaction_pool.removeAllListeners()
+            @_transaction_pool.end()
+            delete @_transaction_pool
 
     engine: -> 'postgresql'
 
@@ -128,7 +133,7 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
             opts.cb?("closed")
             return
         dbg = @_dbg("connect")
-        if @_client?
+        if @_client? and @_transaction_pool?
             dbg("already connected")
             opts.cb?()
             return
@@ -160,15 +165,15 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
 
     disconnect: () =>
         @_client?.end()
+        @_transaction_pool?.end()
         delete @_client
+        delete @_transaction_pool
 
     _connect: (cb) =>
         dbg = @_dbg("_do_connect"); dbg()
         @_clear_listening_state()   # definitely not listening
-        if @_client?
-            @_client.end()
-            delete @_client
         client = undefined
+        pool   = undefined
         async.series([
             (cb) =>
                 @_concurrent_queries = 0
@@ -179,6 +184,9 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
                     dbg("assuming database exists")
                     cb()
             (cb) =>
+                if @_client?
+                    cb()
+                    return
                 dbg("create client and start connecting...")
                 client = new pg.Client
                     user     : 'smc'
@@ -195,6 +203,25 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
                     @connect()  # start trying to reconnect
                 client.connect(cb)
             (cb) =>
+                if @_transaction_pool?
+                    cb()
+                    return
+                dbg("create pool and start connecting...")
+                pool = new pg.Pool
+                    max      : @_pool_size
+                    user     : 'smc'
+                    host     : if @_host then @_host    # undefined if @_host=''
+                    port     : @_port
+                    password : @_password
+                    database : @_database
+                    idleTimeoutMillis : 0 # Disables auto idle removal
+                pool.on 'error', (err) =>
+                    dbg("error -- #{err}")
+                    pool?.end()
+                    delete @_transaction_pool
+                    @connect()  # start trying to reconnect
+                cb()
+            (cb) =>
                 # CRITICAL!  At scale, this query
                 #    SELECT * FROM file_use WHERE project_id = any(select project_id from projects where users ? '25e2cae4-05c7-4c28-ae22-1e6d3d2e8bb3') ORDER BY last_edited DESC limit 100;
                 # will take forever due to the query planner using a nestloop scan.  We thus
@@ -209,6 +236,7 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
                 cb?(err)
             else
                 @_client = client
+                @_transaction_pool = pool
                 dbg("connected!")
                 cb?(undefined, @)
         )
@@ -605,8 +633,11 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
             return
         async.series([
             (cb) =>
-                dbg("disconnect from db")
+                dbg("disconnect from db client")
                 @_client.end(cb)
+            (cb) =>
+                dbg("disconnect from db pool")
+                @_pool.end(cb)
             (cb) =>
                 misc_node.execute_code
                     command : 'dropdb'
