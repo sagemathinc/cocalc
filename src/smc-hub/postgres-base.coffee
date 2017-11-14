@@ -41,8 +41,6 @@ if not pg?
 #               syncstring system was breaking... until I switched to native.  Not sure.
 #pg      = require('pg')
 
-
-
 winston = require('winston')
 winston.remove(winston.transports.Console)
 winston.add(winston.transports.Console, {level: 'debug', timestamp:true, colorize:true})

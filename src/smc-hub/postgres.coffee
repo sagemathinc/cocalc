@@ -19,7 +19,7 @@ exports.PROJECT_COLUMNS = ['users'].concat(exports.PUBLIC_PROJECT_COLUMNS)
 # Add further functionality to PostgreSQL class -- must be at the bottom of this file.
 # Each of the following calls extends the PostgreSQL class with further important functionality.
 # Order matters.
-for module in ['base', 'server-queries', 'blobs', 'synctable', 'user-queries', 'ops']
+for module in ['base', 'server-queries', 'blobs', 'synctable', 'user-queries', 'ops', 'stripe']
     exports.PostgreSQL = require("./postgres-#{module}").PostgreSQL
 
 exports.db = (opts) ->

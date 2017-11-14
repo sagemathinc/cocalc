@@ -2308,7 +2308,6 @@ class exports.Client extends EventEmitter
                 @success_to_client(id:mesg.id)
         )
 
-
     mesg_api_key: (mesg) =>
         api_key_action
             database   : @database
