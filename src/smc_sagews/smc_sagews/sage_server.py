@@ -30,6 +30,32 @@ For debugging, this may help:
 # can import other files from there.
 import os, sys, time
 
+def unicode8(s):
+    # I evidently don't understand Python unicode...  Do the following for now:
+    # TODO: see http://stackoverflow.com/questions/21897664/why-does-unicodeu-passed-an-errors-parameter-raise-typeerror for how to fix.
+    try:
+        return unicode(s, 'utf8')
+    except:
+        try:
+             return unicode(s)
+        except:
+             return s
+
+LOGFILE = os.path.realpath(__file__)[:-3] + ".log"
+PID = os.getpid()
+from datetime import datetime
+def log(*args):
+    try:
+        debug_log = open(LOGFILE, 'a')
+        mesg = "%s (%s): %s\n"%(PID, datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S.%f')[:-3], ' '.join([unicode8(x) for x in args]))
+        debug_log.write(mesg)
+        debug_log.flush()
+    except Exception, err:
+        print("an error writing a log message (ignoring) -- %s"%err, args)
+
+log("logging to %s"%LOGFILE)
+
+
 # used for clearing pylab figure
 pylab = None
 
@@ -53,6 +79,14 @@ uuid = sage_salvus.uuid
 
 reload_attached_files_if_mod_smc_available = True
 def reload_attached_files_if_mod_smc():
+    # CRITICAL: do NOT impor sage.repl.attach!!  That will import IPython, wasting several seconds and
+    # killing the user experience for no reason.
+    try:
+        import sage.repl
+        sage.repl.attach
+    except:
+        # nothing to do -- attach has not been used and is not yet available.
+        return
     global reload_attached_files_if_mod_smc_available
     if not reload_attached_files_if_mod_smc_available:
         return
@@ -69,30 +103,6 @@ def reload_attached_files_if_mod_smc():
         log('reloading attached file {0} modified at {1}'.format(basename, timestr))
         from sage_salvus import load
         load(filename)
-
-def unicode8(s):
-    # I evidently don't understand Python unicode...  Do the following for now:
-    # TODO: see http://stackoverflow.com/questions/21897664/why-does-unicodeu-passed-an-errors-parameter-raise-typeerror for how to fix.
-    try:
-        return unicode(s, 'utf8')
-    except:
-        try:
-             return unicode(s)
-        except:
-             return s
-
-LOGFILE = os.path.realpath(__file__)[:-3] + ".log"
-PID = os.getpid()
-from datetime import datetime
-def log(*args):
-    #print("logging to %s"%LOGFILE)
-    try:
-        debug_log = open(LOGFILE, 'a')
-        mesg = "%s (%s): %s\n"%(PID, datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S.%f')[:-3], ' '.join([unicode8(x) for x in args]))
-        debug_log.write(mesg)
-        debug_log.flush()
-    except Exception, err:
-        print("an error writing a log message (ignoring) -- %s"%err, args)
 
 # Determine the info object, if available.  There's no good reason
 # it wouldn't be available, unless a user explicitly deleted it, but
@@ -951,9 +961,15 @@ class Salvus(object):
         blocks = sage_parsing.divide_into_blocks(code)
 
         try:
-            import sage.repl.interpreter as sage_repl_interpreter
+            import sage.repl
+            # CRITICAL -- we do NOT import sage.repl.interpreter!!!!!!!
+            # That would waste several seconds importing ipython and much more, which is just dumb.
+            # The only reason this is needed below is if the user has run preparser(False), which
+            # would cause sage.repl.interpreter to be imported at that point (as preparser is
+            # lazy imported.)
+            sage_repl_interpreter = sage.repl.interpreter
         except:
-            log("Error - unable to import sage.repl.interpreter")
+            pass  # expected behavior usually, since sage.repl.interpreter usually not imported (only used by command line...)
 
         import sage.misc.session
 
@@ -1777,16 +1793,21 @@ def serve(port, host, extra_imports=False):
         # Monkey patch the html command.
         try:
             # need the following for sage_server to start with sage-8.0
-            # or `import sage.interacts.library` will fail
+            # or `import sage.interacts.library` will fail (not really important below, as we don't do that).
             import sage.repl.user_globals
             sage.repl.user_globals.set_globals(globals())
             log("initialized user_globals")
         except RuntimeError:
             # may happen with sage version < 8.0
             log("user_globals.set_globals failed, continuing",sys.exc_info())
-        import sage.interacts.library
 
-        sage.all.html = sage.misc.html.html = sage.interacts.library.html = sage_salvus.html
+        sage.all.html = sage.misc.html.html = sage_salvus.html
+
+        # CRITICAL: look, we are just going to not do this, and have sage.interacts.library
+        # be broken.  It's **really slow** to do this, and I don't think sage.interacts.library
+        # ever ended up going anywhere!  People use wiki.sagemath.org/interact instead...
+        #import sage.interacts.library
+        #sage.interacts.library.html = sage_salvus.html
 
         # Set a useful figsize default; the matplotlib one is not notebook friendly.
         import sage.plot.graphics
@@ -1815,7 +1836,10 @@ def serve(port, host, extra_imports=False):
         log('imported sage library and other components in %s seconds'%(time.time() - tm))
 
         for k,v in sage_salvus.interact_functions.iteritems():
-            namespace[k] = sagenb.notebook.interact.__dict__[k] = v
+            namespace[k] = v
+            # See above -- not doing this, since it is REALLY SLOW to import.
+            # This does mean that some old code that tries to use interact might break (?).
+            #namespace[k] = sagenb.notebook.interact.__dict__[k] = v
 
         namespace['_salvus_parsing'] = sage_parsing
 
