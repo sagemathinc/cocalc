@@ -857,6 +857,15 @@ class exports.Connection extends EventEmitter
             error_event : true
             cb : opts.cb
 
+    send_verification_email: (opts) ->
+        opts = defaults opts,
+            account_id    : required
+            cb            : undefined
+        @call
+            message : message.send_verification_email
+                account_id : opts.account_id
+            cb : opts.cb
+
     # forgot password -- send forgot password request to server
     forgot_password: (opts) ->
         opts = defaults opts,

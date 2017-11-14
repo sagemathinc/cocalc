@@ -71,6 +71,54 @@ TextSetting = rclass
             </FormGroup>
         </LabeledRow>
 
+
+EmailVerification = rclass
+    displayName : 'Account-EmailVerification'
+
+    propTypes :
+        account_id             : rtypes.string
+        email_address          : rtypes.string
+        email_address_verified : rtypes.object
+
+    getInitialState: ->
+        disabled_button : false
+
+    verify : ->
+        webapp_client.send_verification_email
+            account_id         : @props.account_id
+            cb                 : (err, resp) =>
+                @setState(disabled_button: true)
+                if not err and resp.error?
+                    err = resp.error
+                if err
+                    console.log("TODO: error sending email verification: #{err}")
+
+    test : ->
+        if not (@props.email_address_verified? and @props.email_address?)
+            <span>Unkown</span>
+        else
+            if @props.email_address_verified[@props.email_address]?
+                <span style={color: 'green'}>Verified</span>
+            else
+                [
+                    <span key={1} style={color: 'red', paddingRight: '3em'}>Not Verified</span>
+                    <Button
+                        key        = {2}
+                        onClick    = {@verify}
+                        bsStyle    = 'success'
+                        disabled   = {@state.disabled_button}
+                    >
+                        Send verification email
+                    </Button>
+                ]
+
+    render : ->
+        <LabeledRow label='Email verification' style={marginBottom: '15px'}>
+            <div>
+                Status: {@test()}
+            </div>
+        </LabeledRow>
+
 EmailAddressSetting = rclass
     displayName : 'Account-EmailAddressSetting'
 
@@ -348,16 +396,18 @@ AccountSettings = rclass
     displayName : 'AccountSettings'
 
     propTypes :
-        first_name           : rtypes.string
-        last_name            : rtypes.string
-        email_address        : rtypes.string
-        passports            : rtypes.object
-        show_sign_out        : rtypes.bool
-        sign_out_error       : rtypes.string
-        everywhere           : rtypes.bool
-        redux                : rtypes.object
-        delete_account_error : rtypes.string
-        other_settings       : rtypes.object
+        account_id             : rtypes.string
+        first_name             : rtypes.string
+        last_name              : rtypes.string
+        email_address          : rtypes.string
+        email_address_verified : rtypes.object
+        passports              : rtypes.object
+        show_sign_out          : rtypes.bool
+        sign_out_error         : rtypes.string
+        everywhere             : rtypes.bool
+        redux                  : rtypes.object
+        delete_account_error   : rtypes.string
+        other_settings         : rtypes.object
 
     getInitialState: ->
         add_strategy_link      : undefined
@@ -521,6 +571,12 @@ AccountSettings = rclass
                 redux         = {@props.redux}
                 ref           = 'email_address'
                 maxLength     = 254
+                />
+            <EmailVerification
+                account_id             = {@props.account_id}
+                email_address          = {@props.email_address}
+                email_address_verified = {@props.email_address_verified}
+                ref                    = 'email_address_verified'
                 />
             <NewsletterSetting
                 redux          = {@props.redux}
@@ -1495,9 +1551,11 @@ exports.AccountSettingsTop = rclass
 
     propTypes :
         redux           : rtypes.object
+        account_id      : rtypes.string
         first_name      : rtypes.string
         last_name       : rtypes.string
         email_address   : rtypes.string
+        email_address_verified : rtypes.object
         passports       : rtypes.object
         show_sign_out   : rtypes.bool
         sign_out_error  : rtypes.string
@@ -1518,6 +1576,7 @@ exports.AccountSettingsTop = rclass
                         first_name     = {@props.first_name}
                         last_name      = {@props.last_name}
                         email_address  = {@props.email_address}
+                        email_address_verified = {@props.email_address_verified}
                         passports      = {@props.passports}
                         show_sign_out  = {@props.show_sign_out}
                         sign_out_error = {@props.sign_out_error}

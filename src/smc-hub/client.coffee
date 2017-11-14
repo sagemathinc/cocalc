@@ -772,6 +772,17 @@ class exports.Client extends EventEmitter
             cb         : (err) =>
                 @push_to_client(message.changed_email_address(id:mesg.id, error:err))
 
+    mesg_send_verification_email: (mesg) =>
+        auth = require('./auth')
+        auth.verify_email_send_token
+            account_id : account_id
+            database   : @database
+            cb         : (err) =>
+                if err
+                    @error_to_client(id:mesg.id, error:err)
+                else
+                    @success_to_client(id:mesg.id)
+
     mesg_unlink_passport: (mesg) =>
         if not @account_id?
             @error_to_client(id:mesg.id, error:"must be logged in")

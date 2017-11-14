@@ -231,9 +231,10 @@ exports.mass_email = (opts) ->
 
 exports.welcome_email = (opts) ->
     opts = defaults opts,
-        to        : required
-        token     : required    # the email verification token
-        cb        : undefined
+        to           : required
+        token        : required    # the email verification token
+        only_verify  : false       # TODO only send the verification token, for now this is good enough
+        cb           : undefined
 
     base_url    = require('./base-url').base_url()
     token_query = encodeURI("email=#{encodeURIComponent(opts.to)}&token=#{opts.token}")

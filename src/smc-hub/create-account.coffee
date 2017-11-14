@@ -166,25 +166,14 @@ exports.create_account = (opts) ->
             dbg("email verification?")
             if not opts.mesg.email_address?
                 cb(); return
-            async.series([
-                (cb) ->
-                    dbg("create token for verifying email address")
-                    opts.database.verify_email_create_token
-                        account_id : account_id
-                        cb         : (err, token) ->
-                            locals.token = token
-                            cb(err)
-                (cb) ->
-                    dbg("send welcome email with email verification token")
-                    {welcome_email} = require('./email')
-                    welcome_email
-                        to       : opts.mesg.email_address
-                        token    : locals.token
-                        cb       : cb
-            ], (err) ->
-                if err
-                    dbg("error during creating welcome email: #{err}")
-            )
+            auth = require('./auth')
+            auth.verify_email_send_token
+                account_id : account_id
+                database   : opts.database
+                cb         : (err) ->
+                    if err
+                        dbg("error during creating welcome email: #{err}")
+
             cb() # we return immediately, because there is no need for the user to wait for this.
     ], (reason) ->
         if reason

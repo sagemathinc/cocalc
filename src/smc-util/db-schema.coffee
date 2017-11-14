@@ -223,8 +223,9 @@ schema.accounts =
             throttle_changes : 500
             pg_where : ['account_id = $::UUID':'account_id']
             fields :
-                account_id      : null
-                email_address   : null
+                account_id             : null
+                email_address          : null
+                email_address_verified : null
                 editor_settings :
                     strip_trailing_whitespace : false
                     show_trailing_whitespace  : true

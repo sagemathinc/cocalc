@@ -816,3 +816,23 @@ exports.is_password_correct = (opts) ->
         opts.cb("One of password_hash, account_id, or email_address must be specified.")
 
 
+exports.verify_email_send_token = (opts) ->
+    opts = defaults opts,
+        database      : required
+        account_id    : required
+        only_verify   : false
+        cb            : undefined
+
+    async.waterfall([
+        (cb) =>
+            opts.database.verify_email_create_token
+                account_id : opts.account_id
+                cb         : cb
+        (cb, token) =>
+            email = require('./email')
+            email.welcome_email
+                to          : mesg.email_address
+                token       : token
+                only_verify : opts.only_verify
+                cb          : cb
+    ], opts.cb)
