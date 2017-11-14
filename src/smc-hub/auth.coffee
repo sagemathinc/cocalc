@@ -368,6 +368,9 @@ exports.init_passport = (opts) ->
     router.get '/auth/strategies', (req, res) ->
         res.json(strategies)
 
+    router.get '/auth/verify', (req, res) ->
+        res.send("email verification")
+
     # Set the site conf like this:
     #
     #  require 'c'; db()
@@ -376,6 +379,7 @@ exports.init_passport = (opts) ->
     #  or when doing development in a project  # TODO: far too brittle, especially the port/base_url stuff!
     #
     #  db.set_passport_settings(strategy:'site_conf', conf:{auth:'https://cocalc.com/project_uuid.../port/YYYYY/auth'}, cb:done())
+
 
 
     auth_url = undefined # gets set below
@@ -734,8 +738,15 @@ exports.init_passport = (opts) ->
             if not auth_url?
                 cb()
             else
-                async.parallel([init_local, init_google, init_github, init_facebook,
-                                init_dropbox, init_bitbucket, init_twitter], cb)
+                async.parallel([
+                    init_local,
+                    init_google,
+                    init_github,
+                    init_facebook,
+                    init_dropbox,
+                    init_bitbucket,
+                    init_twitter,
+                ], cb)
     ], (err) =>
         strategies.sort()
         strategies.unshift('email')

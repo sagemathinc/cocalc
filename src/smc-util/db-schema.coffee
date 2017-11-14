@@ -148,6 +148,12 @@ schema.accounts =
         email_address_before_delete :
             type : 'string'
             desc : 'The email address of the user before they deleted their account.'
+        email_address_verified :
+            type : 'map'
+            desc : 'Verified email addresses as { "email@addre.ss" : <timestamp>, ... }'
+        email_address_verification :
+            type : 'map'
+            desc : 'Contains random token for verification of an address: {"email": "...", "token": <random>, "time" : <timestamp for timeout>}'
         passports       :
             type : 'map'
             desc : 'Map from string ("[strategy]-[id]") derived from passport name and id to the corresponding profile'
