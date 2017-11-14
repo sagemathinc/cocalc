@@ -35,10 +35,43 @@ exports.Landing = rclass
             if project_ids[i]
                 @render_project_link(project_ids[i])
 
+    # this is ugly but at least it helps with development to have the styles available
+    inject_css: ->
+        {DOMAIN_NAME} = require('smc-util/theme')
+        code = {__html : """
+        var r = new XMLHttpRequest();
+        var d = null;
+        r.open('GET', '#{DOMAIN_NAME}/assets.json', true);
+        r.onreadystatechange = function() {
+            if (! (r.readyState === XMLHttpRequest.DONE && r.status === 200)) {return};
+            try {
+                d = JSON.parse(r.responseText);
+                console.log(d);
+                /* TODO too optimistic */
+                css_url = d['css']['js'];
+                var css_js = document.createElement('script');
+                css_js.type = 'text/javascript';
+                css_js.onload = function() {
+                    html = document.documentElement;
+                    html.className = html.className.replace(/\\bno-js\\b/, 'js');
+                };
+                css_js.src = '#{DOMAIN_NAME}/' + css_url;
+                document.getElementsByTagName('head')[0].appendChild(css_js);
+            } catch (e) {
+                console.log(e);
+            }
+        };
+        r.send();
+        """}
+        <script type='text/javascript' dangerouslySetInnerHTML={code} />
+
     render: ->
-        <html>
+        css = {__html : 'html.no-js{display : none;}'}
+        <html className="no-js">
             <head>
                 <title>CoCalc public shared files</title>
+                <style dangerouslySetInnerHTML={css} />
+                {@inject_css()}
             </head>
             <body>
                 <h1>CoCalc public shared files</h1>
