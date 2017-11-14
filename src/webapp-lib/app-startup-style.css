@@ -21,11 +21,11 @@
     color: #666;
     text-align: center;
     position: fixed;
-    bottom: 15px;
+    bottom: 0px;
     left: 0;
     right: 0;
     background-color: white;
-    padding: 15px;
+    padding: 20px;
     opacity: 0.85;
 }
 

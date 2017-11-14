@@ -22,6 +22,7 @@
 async      = require('async')
 underscore = require('underscore')
 immutable  = require('immutable')
+os_path    = require('path')
 
 # At most this many of the most recent log messages for a project get loaded:
 # TODO: add a button to load the entire log or load more...
@@ -56,6 +57,13 @@ BAD_LATEX_FILENAME_CHARACTERS = '\'"()"~%'
 BANNED_FILE_TYPES             = ['doc', 'docx', 'pdf', 'sws']
 
 FROM_WEB_TIMEOUT_S = 45
+
+# src: where the library files are
+# start: open this file after copying the directory
+exports.LIBRARY = LIBRARY =
+    first_steps :
+        src    : '/ext/library/first-steps/src'
+        start  : 'first-steps.tasks'
 
 QUERIES =
     project_log :
@@ -894,6 +902,60 @@ class ProjectActions extends Actions
             else
                 return path
 
+    # this is called once by the project initialization
+    check_library: =>
+        if DEBUG then console.log("check_library")
+        check = (v, k, cb) =>
+            if DEBUG then console.log("check_library.check", v, k)
+            store = @get_store()
+            return if not store?
+            if store.library_available?[k]?
+                return
+            src = v.src
+            cmd = "test -e #{src}"
+            webapp_client.exec
+                project_id      : @project_id
+                command         : cmd
+                bash            : true
+                timeout         : 30
+                network_timeout : 120
+                err_on_exit     : false
+                path            : '.'
+                cb              : (err, output) =>
+                    if not err
+                        @setState(library_available: {"#{k}" : (output.exit_code == 0)})
+                    cb(err)
+        setTimeout(async.eachOfSeries(LIBRARY, check), 1000)
+
+    copy_from_library: (opts) =>
+        opts = defaults opts,
+            entry : 'first_steps'
+
+        lib = LIBRARY[opts.entry]
+        if not lib?
+            @setState(error: "Library entry '#{opts.entry}' unknown")
+            return
+
+        id = opts.id ? misc.uuid()
+        @set_activity(id:id, status:"Copying files from library ...")
+
+        # the rsync command purposely does not preserve the timestamps,
+        # such that they look like "new files" and listed on top under default sorting
+        source = os_path.join(lib.src, '/')
+        target = os_path.join(opts.entry, '/')
+        webapp_client.exec
+            project_id      : @project_id
+            command         : 'rsync'
+            args            : ['-rlDx', source, target]
+            timeout         : 120   # how long rsync runs on client
+            network_timeout : 120   # how long network call has until it must return something or get total error.
+            err_on_exit     : true
+            path            : '.'
+            cb              : (err, output) =>
+                (@_finish_exec(id))(err, output)
+                if not err
+                    @open_file(path: os_path.join(target, lib.start))
+
     copy_paths: (opts) =>
         opts = defaults opts,
             src           : required     # Should be an array of source paths
@@ -1524,18 +1586,19 @@ create_project_store_def = (name, project_id) ->
             @redux.getActions('page').close_project_tab(@project_id)
 
     getInitialState: =>
-        current_path       : ''
-        history_path       : ''
-        show_hidden        : false
-        checked_files      : immutable.Set()
-        public_paths       : undefined
-        directory_listings : immutable.Map()
-        user_input         : ''
-        show_upload        : false
-        active_project_tab : 'files'
-        open_files_order   : immutable.List([])
-        open_files         : immutable.Map({})
-        num_ghost_file_tabs: 0
+        current_path           : ''
+        history_path           : ''
+        show_hidden            : false
+        checked_files          : immutable.Set()
+        public_paths           : undefined
+        directory_listings     : immutable.Map()
+        user_input             : ''
+        show_upload            : false
+        active_project_tab     : 'files'
+        open_files_order       : immutable.List([])
+        open_files             : immutable.Map({})
+        num_ghost_file_tabs    : 0
+        library_available      : {}
 
     reduxState:
         account:
@@ -1572,6 +1635,7 @@ create_project_store_def = (name, project_id) ->
         selected_file_index    : rtypes.number     # Index on file listing to highlight starting at 0. undefined means none highlighted
         new_name               : rtypes.string
         most_recent_file_click : rtypes.string
+        library_available      : rtypes.object
 
         # Project Log
         project_log : rtypes.immutable
