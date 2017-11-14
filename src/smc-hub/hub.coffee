@@ -375,17 +375,18 @@ database = undefined
 
 connect_to_database = (opts) ->
     opts = defaults opts,
-        error : undefined   # ignored
-        pool  : program.db_pool
-        cb    : required
+        error     : undefined   # ignored
+        pool_size : program.db_pool
+        cb        : required
     dbg = (m) -> winston.debug("connect_to_database (PostgreSQL): #{m}")
     if database? # already did this
         dbg("already done")
         opts.cb(); return
     dbg("connecting...")
     database = require('./postgres').db
-        host     : program.database_nodes.split(',')[0]  # postgres has only one master server
-        database : program.keyspace
+        pool_size       : opts.pool_size
+        host            : program.database_nodes.split(',')[0]  # postgres has only one master server
+        database        : program.keyspace
         concurrent_warn : program.db_concurrent_warn
     database.connect(cb:opts.cb)
 
@@ -442,7 +443,7 @@ delete_expired = (cb) ->
 blob_maintenance = (cb) ->
     async.series([
         (cb) ->
-            connect_to_database(error:99999, pool:5, cb:cb)
+            connect_to_database(error:99999, cb:cb)
         (cb) ->
             database.blob_maintenance(cb:cb)
     ], cb)
@@ -452,7 +453,7 @@ update_stats = (cb) ->
     # It's important that we call this periodically, because otherwise the /stats data is outdated.
     async.series([
         (cb) ->
-            connect_to_database(error:99999, pool:5, cb:cb)
+            connect_to_database(error:99999, cb:cb)
         (cb) ->
             database.get_stats(cb:cb)
     ], cb)
@@ -699,7 +700,7 @@ command_line = () ->
         .option('--kucalc', 'if given, assume running in the KuCalc kubernetes environment')
         .option('--dev', 'if given, then run in VERY UNSAFE single-user local dev mode')
         .option('--single', 'if given, then run in LESS SAFE single-machine mode')
-        .option('--db_pool <n>', 'number of db connections in pool (default: 1)', ((n)->parseInt(n)), 1)
+        .option('--db_pool <n>', 'number of additional db connections in a pool (default: 1)', ((n)->parseInt(n)), 1)
         .option('--db_concurrent_warn <n>', 'be very unhappy if number of concurrent db requests exceeds this (default: 300)', ((n)->parseInt(n)), 300)
         .parse(process.argv)
 
