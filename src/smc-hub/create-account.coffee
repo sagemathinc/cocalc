@@ -178,9 +178,9 @@ exports.create_account = (opts) ->
                     dbg("send welcome email with email verification token")
                     {welcome_email} = require('./email')
                     welcome_email
-                        to    : opts.mesg.email_address
-                        token : locals.token
-                        cb    : cb
+                        to       : opts.mesg.email_address
+                        token    : locals.token
+                        cb       : cb
             ], (err) ->
                 if err
                     dbg("error during creating welcome email: #{err}")

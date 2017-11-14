@@ -645,18 +645,25 @@ class exports.PostgreSQL extends PostgreSQL
                             cb()
             (cb) =>
                 if not locals.email_address_token?
-                    cb("For this email address no account verification exists.")
-                    return
-                if locals.email_address_token.email != opts.email_address
+                    @is_verified_email
+                        email_address : opts.email_address
+                        cb            : (err, verified) ->
+                            if not err and verified
+                                cb("This email address is already verified.")
+                            else
+                                cb("For this email address no account verification is setup.")
+
+                else if locals.email_address_token.email != opts.email_address
                     cb("The account's email address does not match token's email address.")
-                    return
-                if locals.email_address_token.time < misc.hours_ago(1)
+
+                else if locals.email_address_token.time < misc.hours_ago(1)
                     cb("The account verification token is no longer valid. Get a new one!")
-                    return
-                if locals.email_address_token.token == opts.token
-                    cb()
+
                 else
-                    cb("Provided token does not match.")
+                    if locals.email_address_token.token == opts.token
+                        cb()
+                    else
+                        cb("Provided token does not match.")
             (cb) =>
                 # we're good, save it
                 @_query

@@ -27,6 +27,7 @@ BANNED_DOMAINS = {'qq.com':true}
 
 
 fs           = require('fs')
+os_path      = require('path')
 async        = require('async')
 winston      = require('winston') # logging -- https://github.com/flatiron/winston
 
@@ -234,9 +235,11 @@ exports.welcome_email = (opts) ->
         token     : required    # the email verification token
         cb        : undefined
 
-    token_query = encodeURI("email=#{opts.to}&token=#{opts.token}")
-    token_url = "#{DOMAIN_NAME}/auth/verify?#{token_query}"
-    token_html = """
+    base_url    = require('./base-url').base_url()
+    token_query = encodeURI("email=#{encodeURIComponent(opts.to)}&token=#{opts.token}")
+    endpoint    = os_path.join('/', base_url, 'auth/verify')
+    token_url   = "#{DOMAIN_NAME}#{endpoint}?#{token_query}"
+    token_html  = """
     <p style="font-size: 110%"; font-weight: bold;">
     Please click here: <a href="#{token_url}">#{token_url}</a> to verify your email address!
     </p>

@@ -369,7 +369,26 @@ exports.init_passport = (opts) ->
         res.json(strategies)
 
     router.get '/auth/verify', (req, res) ->
-        res.send("email verification")
+        res.header("Content-Type", "text/plain")
+        res.header('Cache-Control', 'private, no-cache, must-revalidate')
+        if not (req.query.token and req.query.email)
+            res.send("need email and corresponding token")
+            return
+        email = decodeURIComponent(req.query.email)
+        token = req.query.token
+        database.verify_email_check_token
+            email_address : email
+            token         : token
+            cb            : (err) ->
+                if err and err.indexOf('This email address is already verified') == -1
+                    res.send("Problem verifying your email address: #{err}")
+                else
+                    #res.send("Email verified!")
+                    {DOMAIN_NAME} = require('smc-util/theme')
+                    base_url      = require('./base-url').base_url()
+                    path          = require('path').join('/', base_url, '/app')
+                    url           = "#{DOMAIN_NAME}#{path}"
+                    res.redirect(301, url)
 
     # Set the site conf like this:
     #
