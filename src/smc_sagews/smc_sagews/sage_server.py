@@ -53,9 +53,6 @@ def log(*args):
     except Exception, err:
         print("an error writing a log message (ignoring) -- %s"%err, args)
 
-log("logging to %s"%LOGFILE)
-
-
 # used for clearing pylab figure
 pylab = None
 
