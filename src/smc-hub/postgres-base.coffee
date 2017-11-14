@@ -297,10 +297,11 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
                                      # and also what is in val1.  Obviously field1[key1] had better have been an array or NULL.
             order_by    : undefined
             limit       : undefined
+            client      : @_client   # Reference to the client to execute the query. Expected to be from the pool if not @_client.
             safety_check: true
             cb          : undefined
 
-        if not @_client?
+        if opts.client == @_client and not @_client?
             dbg = @_dbg("_query")
             dbg("connecting first...")
             @connect
@@ -317,10 +318,8 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
 
     __do_query: (opts) =>
         dbg = @_dbg("_query('#{opts.query}')")
-        if not @_client?
-            # TODO: should also check that client is connected.
-            opts.cb?("client not yet initialized")
-            return
+        if not opts.client?
+            opts.cb("NO CLIENT DEFINED")
         if opts.params? and not misc.is_array(opts.params)
             opts.cb?("params must be an array")
             return
@@ -529,7 +528,7 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
         @concurrent_counter.labels('started').inc(1)
         try
             start = new Date()
-            @_client.query opts.query, opts.params, (err, result) =>
+            opts.client.query opts.query, opts.params, (err, result) =>
                 query_time_ms = new Date() - start
                 @_concurrent_queries -= 1
                 @query_time_histogram.observe({table:opts.table ? ''}, query_time_ms)
@@ -546,7 +545,11 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
                     dbg("QUERY_ALERT_THRESH: query_time_ms=#{query_time_ms}\nQUERY_ALERT_THRESH: query='#{opts.query}'\nQUERY_ALERT_THRESH: params='#{misc.to_json(opts.params)}'")
         catch e
             # this should never ever happen
-            dbg("EXCEPTION in @_client.query: #{e}")
+            if opts.client == @_client
+                location = "@_client"
+            else
+                location = "@_transaction_pool"
+            dbg("EXCEPTION in #{location}.query: #{e}")
             opts.cb?(e)
             @_concurrent_queries -= 1
             @concurrent_counter.labels('ended').inc(1)
