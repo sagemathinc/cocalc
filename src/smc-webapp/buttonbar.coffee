@@ -896,6 +896,10 @@ exports.commands =
             url: 'https://github.com/sagemathinc/cocalc/wiki/Keyboard-Shortcuts'
         sagesyntaxerrors:
             url: 'https://github.com/sagemathinc/cocalc/wiki/MathematicalSyntaxErrors'
+        cocalcwiki:
+            url: 'https://github.com/sagemathinc/cocalc/wiki/sagews'
+        sagequestion:
+            url: 'https://github.com/sagemathinc/cocalc/wiki/SageQuestion'
         help:
             wrap:
                 left  : "help("
@@ -1542,6 +1546,23 @@ initialize_sage_python_r_toolbar = () ->
     # -- modes (this isn't really code so weird to put here)
     system_bar = make_bar("webapp-editor-codeedit-buttonbar-system")
 
+    help_list = ["<i class='fa fa-question-circle'></i> Help", "Sage Worksheet Help",
+        [
+            ["SageMath Help"],
+            ["Overview", "#sagemathdoc"],
+            ["Tutorial", "#sagemathtutorial"],
+            ["Reference", "#sagemathreference"],
+            ["Keyboard Shortcuts", "#sagemathkeyboardshortcuts"],
+            ["Common Syntax Problems", "#sagesyntaxerrors"],
+            ["Sage Worksheet Commands"],
+            ["Worksheets in CoCalc", "#cocalcwiki"],
+            ["I have a question about Sage", "#sagequestion"],
+            ["General help", "#help"],
+            ["Mode commands", "#modes"],
+            ["Jupyter kernels", "#jupyterkernels"],
+        ]]
+    add_menu(system_bar, help_list)
+
     mode_list = ["Modes", "Sage Worksheet Modes",
         [
             ["General"],
@@ -1568,20 +1589,6 @@ initialize_sage_python_r_toolbar = () ->
         ]]
     add_menu(system_bar, mode_list)
 
-    help_list = ["<i class='fa fa-question-circle'></i> Help", "Sage Worksheet Help",
-        [
-            ["SageMath Help"],
-            ["Overview", "#sagemathdoc"],
-            ["Tutorial", "#sagemathtutorial"],
-            ["Reference", "#sagemathreference"],
-            ["Keyboard Shortcuts", "#sagemathkeyboardshortcuts"],
-            ["Common Syntax Problems", "#sagesyntaxerrors"],
-            ["Sage Worksheet Commands"],
-            ["General help", "#help"],
-            ["Mode commands", "#modes"],
-            ["Jupyter kernels", "#jupyterkernels"],
-        ]]
-    add_menu(system_bar, help_list)
     ## MAYBE ADD THESE in another menu:
     #axiom
     #capture
