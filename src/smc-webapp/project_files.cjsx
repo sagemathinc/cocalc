@@ -21,12 +21,13 @@
 
 {React, ReactDOM, rtypes, rclass, redux, Redux} = require('./smc-react')
 {Col, Row, ButtonToolbar, ButtonGroup, MenuItem, Button, Well, FormControl, FormGroup
- ButtonToolbar, Popover, OverlayTrigger, SplitButton, MenuItem, Alert, Checkbox, Breadcrumb} =  require('react-bootstrap')
+ ButtonToolbar, Popover, OverlayTrigger, SplitButton, MenuItem, Alert, Checkbox, Breadcrumb, Navbar} =  require('react-bootstrap')
 misc = require('smc-util/misc')
 {ActivityDisplay, DeletedProjectWarning, DirectoryInput, Icon, Loading, ProjectState, COLORS,
  SearchInput, TimeAgo, ErrorDisplay, Space, Tip, LoginLink, Footer, CourseProjectExtraHelp} = require('./r_misc')
 {SMC_Dropwrapper} = require('./smc-dropzone')
 {FileTypeSelector, NewFileButton} = require('./project_new')
+{SiteName} = require('./customize')
 
 {BillingPageLink, BillingPageForCourseRedux, PayCourseFee}     = require('./billing')
 {human_readable_size} = require('./misc_page')
@@ -423,6 +424,46 @@ TerminalModeDisplay = rclass
             </Col>
         </Row>
 
+FirstSteps = rclass
+    displayName : 'ProjectFiles-FirstSteps'
+
+    propTypes :
+        actions : rtypes.object.isRequired
+        redux   : rtypes.object
+
+    get_first_steps: ->
+        @props.actions.copy_from_library(entry:'first_steps')
+
+    dismiss_first_steps: ->
+        @props.redux.getTable('account').set(other_settings:{first_steps:false})
+
+    render: ->
+        <Row>
+            <Navbar>
+                <Navbar.Header style={marginTop:'10px'}>
+                    <Navbar.Brand>
+                        New to <SiteName/>?
+                    </Navbar.Brand>
+                    <Navbar.Toggle />
+                </Navbar.Header>
+                <Navbar.Collapse>
+                    <Navbar.Text>
+                        <Button
+                            onClick = {@get_first_steps}
+                            bsStyle = {'info'} >
+                                Start the <strong>First Steps</strong> guide!
+                        </Button>
+                    </Navbar.Text>
+                    <Navbar.Text>
+                        <Button
+                            onClick={@dismiss_first_steps}>
+                                Dismiss
+                        </Button>
+                    </Navbar.Text>
+                </Navbar.Collapse>
+            </Navbar>
+        </Row>
+
 NoFiles = rclass
     propTypes :
         actions       : rtypes.object.isRequired
@@ -555,27 +596,30 @@ FileListing = rclass
     displayName: 'ProjectFiles-FileListing'
 
     propTypes:
-        active_file_sort    : rtypes.object
-        listing             : rtypes.array.isRequired
-        file_map            : rtypes.object.isRequired
-        file_search         : rtypes.string
-        checked_files       : rtypes.object
-        current_path        : rtypes.string
-        page_number         : rtypes.number
-        page_size           : rtypes.number
-        public_view         : rtypes.bool
-        actions             : rtypes.object.isRequired
-        create_folder       : rtypes.func.isRequired
-        create_file         : rtypes.func.isRequired
-        selected_file_index : rtypes.number
-        project_id          : rtypes.string
-        show_upload         : rtypes.bool
-        shift_is_down       : rtypes.bool
-        sort_by             : rtypes.func
+        active_file_sort       : rtypes.object
+        listing                : rtypes.array.isRequired
+        file_map               : rtypes.object.isRequired
+        file_search            : rtypes.string
+        checked_files          : rtypes.object
+        current_path           : rtypes.string
+        page_number            : rtypes.number
+        page_size              : rtypes.number
+        public_view            : rtypes.bool
+        actions                : rtypes.object.isRequired
+        create_folder          : rtypes.func.isRequired
+        create_file            : rtypes.func.isRequired
+        selected_file_index    : rtypes.number
+        project_id             : rtypes.string
+        show_upload            : rtypes.bool
+        shift_is_down          : rtypes.bool
+        sort_by                : rtypes.func
+        library_available      : rtypes.object
+        other_settings         : rtypes.immutable
+        redux                  : rtypes.object
 
     getDefaultProps: ->
-        file_search : ''
-        show_upload : false
+        file_search           : ''
+        show_upload           : false
 
     render_row: (name, size, time, mask, isdir, display_name, public_data, index) ->
         checked = @props.checked_files.has(misc.path_to_file(@props.current_path, name))
@@ -638,6 +682,19 @@ FileListing = rclass
                 create_folder = {@props.create_folder}
                 create_file   = {@props.create_file} />
 
+    render_first_steps: ->
+        name = 'first_steps'
+        return if not @props.library_available[name]
+        return if not (@props.other_settings?.get(name) ? false)
+        return if @props.public_view
+        return if @props.current_path isnt '' # only show in $HOME
+        return if @props.file_map[name]?.isdir  # don't show if we have it ...
+        return if @props.file_search[0] is TERM_MODE_CHAR
+
+        <FirstSteps
+            actions         = {@props.actions}
+            redux           = {@props.redux} />
+
     render_terminal_mode: ->
         if @props.file_search[0] == TERM_MODE_CHAR
             <TerminalModeDisplay/>
@@ -645,6 +702,7 @@ FileListing = rclass
     render : ->
         <Col sm=12>
             {@render_terminal_mode() if not @props.public_view}
+            {@render_first_steps()}
             {<ListingHeader
                 active_file_sort = {@props.active_file_sort}
                 sort_by          = {@props.sort_by}
@@ -1905,32 +1963,33 @@ exports.ProjectFiles = rclass ({name}) ->
             customer      : rtypes.object
 
         "#{name}" :
-            active_file_sort    : rtypes.object
-            current_path        : rtypes.string
-            history_path        : rtypes.string
-            activity            : rtypes.object
-            page_number         : rtypes.number
-            file_action         : rtypes.string
-            file_search         : rtypes.string
-            show_hidden         : rtypes.bool
-            error               : rtypes.string
-            checked_files       : rtypes.immutable
-            selected_file_index : rtypes.number
-            file_creation_error : rtypes.string
-            displayed_listing   : rtypes.object
-            new_name            : rtypes.string
+            active_file_sort      : rtypes.object
+            current_path          : rtypes.string
+            history_path          : rtypes.string
+            activity              : rtypes.object
+            page_number           : rtypes.number
+            file_action           : rtypes.string
+            file_search           : rtypes.string
+            show_hidden           : rtypes.bool
+            error                 : rtypes.string
+            checked_files         : rtypes.immutable
+            selected_file_index   : rtypes.number
+            file_creation_error   : rtypes.string
+            displayed_listing     : rtypes.object
+            new_name              : rtypes.string
+            library_available     : rtypes.object
 
     propTypes :
-        project_id    : rtypes.string
-        actions       : rtypes.object
-        redux         : rtypes.object
+        project_id             : rtypes.string
+        actions                : rtypes.object
+        redux                  : rtypes.object
 
     getDefaultProps: ->
-        page_number : 0
-        file_search : ''
-        new_name    : ''
-        actions     : redux.getActions(name) # TODO: Do best practices way
-        redux       : redux
+        page_number           : 0
+        file_search           : ''
+        new_name              : ''
+        actions               : redux.getActions(name) # TODO: Do best practices way
+        redux                 : redux
 
     getInitialState: ->
         show_pay      : false
@@ -2141,22 +2200,25 @@ exports.ProjectFiles = rclass ({name}) ->
                 disabled       = {public_view}
             >
                 <FileListing
-                    active_file_sort    = {@props.active_file_sort}
-                    listing             = {listing}
-                    page_size           = {@file_listing_page_size()}
-                    page_number         = {@props.page_number}
-                    file_map            = {file_map}
-                    file_search         = {@props.file_search}
-                    checked_files       = {@props.checked_files}
-                    current_path        = {@props.current_path}
-                    public_view         = {public_view}
-                    actions             = {@props.actions}
-                    create_file         = {@create_file}
-                    create_folder       = {@create_folder}
-                    selected_file_index = {@props.selected_file_index}
-                    project_id          = {@props.project_id}
-                    shift_is_down       = {@state.shift_is_down}
-                    sort_by             = {@props.actions.set_sorted_file_column}
+                    active_file_sort       = {@props.active_file_sort}
+                    listing                = {listing}
+                    page_size              = {@file_listing_page_size()}
+                    page_number            = {@props.page_number}
+                    file_map               = {file_map}
+                    file_search            = {@props.file_search}
+                    checked_files          = {@props.checked_files}
+                    current_path           = {@props.current_path}
+                    public_view            = {public_view}
+                    actions                = {@props.actions}
+                    create_file            = {@create_file}
+                    create_folder          = {@create_folder}
+                    selected_file_index    = {@props.selected_file_index}
+                    project_id             = {@props.project_id}
+                    shift_is_down          = {@state.shift_is_down}
+                    sort_by                = {@props.actions.set_sorted_file_column}
+                    other_settings         = {@props.other_settings}
+                    library_available      = {@props.library_available}
+                    redux                  = {@props.redux}
                     event_handlers
                 />
             </SMC_Dropwrapper>
