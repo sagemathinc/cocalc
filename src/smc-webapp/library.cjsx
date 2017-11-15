@@ -19,6 +19,7 @@
 #
 ###############################################################################
 
+underscore = _ = require('underscore')
 misc = require('smc-util/misc')
 misc_page = require('./misc_page')
 
@@ -54,9 +55,15 @@ exports.Library = rclass ({name}) ->
         console.log(@props.library)
         if not @props.library?
             return null
-        <ListGroup>
+        list_style =
+            maxHeight  : '200px'
+            overflowX  : 'hidden'
+            overflowY  : 'scroll'
+
+        <ListGroup style={list_style}>
         {
-            for k, v of @props.library
+            for k in _.sortBy(misc.keys(@props.library), (k) => @props.library[k].name?.toLowerCase() ? k)
+                v = @props.library[k]
                 do (v, k) =>
                     <ListGroupItem
                         key     = {k}
