@@ -28,32 +28,17 @@ class PublicPaths extends EventEmitter
             cb : => @emit('ready')
         return
 
-    get: (project_id) =>
-        if project_id?
-            return @_map.get(project_id)
-        else
-            return @_map
-
-    _handle_change: (id, x) =>
-        x         ?= @_synctable.get(id)
-        if not x? # should never happen by our design, but just in case.
-            return
-        project_id = x.get('project_id')
-        cur        = @_map.get(project_id) ? immutable.Map()
-        @_map      = @_map.set(project_id, cur.set(x.get('path'), x))
+    get: (id) =>
+        return @_synctable.get(id)
 
     _init: (cb) =>
         @database.synctable
             table    : 'public_paths'
-            columns  : ['id', 'project_id', 'path', 'disabled', 'last_edited', 'last_saved']
+            columns  : ['project_id', 'path', 'description', 'created', 'last_edited', 'last_saved', 'counter']
+            where    : "disabled IS NOT TRUE"
             cb       : (err, synctable) =>
                 if err
                     cb(err)
                 else
                     @_synctable = synctable
-                    synctable.on('change', @_handle_change)
-                    @_map = immutable.Map()
-                    @_synctable.get().forEach (x, id) =>
-                        @_handle_change(id, x)
-                        return
                     cb()
