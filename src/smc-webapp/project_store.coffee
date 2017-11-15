@@ -899,10 +899,10 @@ class ProjectActions extends Actions
 
     # this is called once by the project initialization
     init_library: =>
-        if DEBUG then console.log("init_library")
+        #if DEBUG then console.log("init_library")
         # Deprecated: this only tests the existence
         check = (v, k, cb) =>
-            if DEBUG then console.log("init_library.check", v, k)
+            #if DEBUG then console.log("init_library.check", v, k)
             store = @get_store()
             return if not store?
             if store.library?[k]?
