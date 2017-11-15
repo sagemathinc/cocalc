@@ -32,6 +32,8 @@ Well, SplitButton, MenuItem, Alert} = require('react-bootstrap')
 {file_associations} = require('./editor')
 {special_filenames_with_no_extension} = require('./project_file')
 
+{Library} = require('./library')
+
 v = misc.keys(file_associations)
 v.sort()
 
@@ -407,6 +409,15 @@ exports.ProjectNew = rclass ({name}) ->
     render: ->
         <div style={padding:'15px'}>
             <ProjectNewForm project_id={@props.project_id} name={@props.name} actions={@actions(name)} />
+            <hr />
+            <Row>
+                <Col sm=3>
+                    <h4><Icon name='book' /> Library</h4>
+                </Col>
+                <Col sm=8>
+                    <Library project_id={@props.project_id} name={@props.name} actions={@actions(name)} />
+                </Col>
+            </Row>
             <hr />
             <FileUpload project_id={@props.project_id} name={@props.name} />
         </div>

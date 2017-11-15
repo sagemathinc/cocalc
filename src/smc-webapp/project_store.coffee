@@ -58,12 +58,7 @@ BANNED_FILE_TYPES             = ['doc', 'docx', 'pdf', 'sws']
 
 FROM_WEB_TIMEOUT_S = 45
 
-# src: where the library files are
-# start: open this file after copying the directory
-exports.LIBRARY = LIBRARY =
-    first_steps :
-        src    : '/ext/library/first-steps/src'
-        start  : 'first-steps.tasks'
+{LIBRARY} = require('./library')
 
 QUERIES =
     project_log :
@@ -903,13 +898,14 @@ class ProjectActions extends Actions
                 return path
 
     # this is called once by the project initialization
-    check_library: =>
-        if DEBUG then console.log("check_library")
+    init_library: =>
+        if DEBUG then console.log("init_library")
+        # Deprecated: this only tests the existence
         check = (v, k, cb) =>
-            if DEBUG then console.log("check_library.check", v, k)
+            if DEBUG then console.log("init_library.check", v, k)
             store = @get_store()
             return if not store?
-            if store.library_available?[k]?
+            if store.library?[k]?
                 return
             src = v.src
             cmd = "test -e #{src}"
@@ -923,9 +919,52 @@ class ProjectActions extends Actions
                 path            : '.'
                 cb              : (err, output) =>
                     if not err
-                        @setState(library_available: {"#{k}" : (output.exit_code == 0)})
+                        library = @get_store().library
+                        library = library.set(k, (output.exit_code == 0))
+                        @setState(library: library)
                     cb(err)
-        setTimeout(async.eachOfSeries(LIBRARY, check), 1000)
+
+        # reads the index file for the library (if it fails, we have no library)
+        index = (cb) =>
+            {webapp_client} = require('./webapp_client')
+            #index_json_url = webapp_client.read_file_from_project
+            #    project_id : @project_id
+            #    path       : '/ext/library/index.json'
+            #$.ajax(
+            #    url     : index_json_url
+            #    timeout : 30000
+            #    success : (content) ->
+            #        try
+            #            data = misc.from_json(content)
+            #            for k, v of data
+            #                ...
+            #        catch e
+            #            if DEBUG then console.log("init_library/index: error parsing: #{e}")
+            #        cb()
+            #    ).fail () ->
+            #        if DEBUG then console.log("init_library/index: error reading file: #{err}")
+            #        cb()
+
+            webapp_client.read_text_file_from_project
+                project_id : @project_id
+                path       : '/ext/library/index.json'
+                cb         : (err, response) =>
+                    if err
+                        console.log("init_library/index: error reading file: #{err}")
+                        cb(); return
+                    try
+                        data = misc.from_json(response.content)
+                        for k, v of data
+                            library = @get_store().library.set(k, v)
+                            @setState(library: library)
+                    catch e
+                        if DEBUG then console.log("init_library/index: error parsing: #{e}")
+                    cb()
+
+        async.series([
+            (cb) -> async.eachOfSeries(LIBRARY, check, cb)
+            (cb) -> index(cb)
+        ])
 
     copy_from_library: (opts) =>
         opts = defaults opts,
@@ -1598,7 +1637,7 @@ create_project_store_def = (name, project_id) ->
         open_files_order       : immutable.List([])
         open_files             : immutable.Map({})
         num_ghost_file_tabs    : 0
-        library_available      : {}
+        library                : {}
 
     reduxState:
         account:
@@ -1635,7 +1674,7 @@ create_project_store_def = (name, project_id) ->
         selected_file_index    : rtypes.number     # Index on file listing to highlight starting at 0. undefined means none highlighted
         new_name               : rtypes.string
         most_recent_file_click : rtypes.string
-        library_available      : rtypes.object
+        library                : rtypes.object
 
         # Project Log
         project_log : rtypes.immutable

@@ -613,7 +613,7 @@ FileListing = rclass
         show_upload            : rtypes.bool
         shift_is_down          : rtypes.bool
         sort_by                : rtypes.func
-        library_available      : rtypes.object
+        library                : rtypes.object
         other_settings         : rtypes.immutable
         redux                  : rtypes.object
 
@@ -684,7 +684,7 @@ FileListing = rclass
 
     render_first_steps: ->
         name = 'first_steps'
-        return if not @props.library_available[name]
+        return if not @props.library[name]
         return if not (@props.other_settings?.get(name) ? false)
         return if @props.public_view
         return if @props.current_path isnt '' # only show in $HOME
@@ -1977,7 +1977,7 @@ exports.ProjectFiles = rclass ({name}) ->
             file_creation_error   : rtypes.string
             displayed_listing     : rtypes.object
             new_name              : rtypes.string
-            library_available     : rtypes.object
+            library               : rtypes.object
 
     propTypes :
         project_id             : rtypes.string
@@ -2217,7 +2217,7 @@ exports.ProjectFiles = rclass ({name}) ->
                     shift_is_down          = {@state.shift_is_down}
                     sort_by                = {@props.actions.set_sorted_file_column}
                     other_settings         = {@props.other_settings}
-                    library_available      = {@props.library_available}
+                    library                = {@props.library}
                     redux                  = {@props.redux}
                     event_handlers
                 />
