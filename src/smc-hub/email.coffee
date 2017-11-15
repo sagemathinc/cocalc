@@ -40,7 +40,7 @@ sendgrid     = require("sendgrid")
 misc         = require('smc-util/misc')
 {defaults, required} = misc
 
-{SENDGRID_TEMPLATE_ID, SENDGRID_ASM_NEWSLETTER, COMPANY_NAME, COMPANY_EMAIL, DOMAIN_NAME, SITE_NAME} = require('smc-util/theme')
+{SENDGRID_TEMPLATE_ID, SENDGRID_ASM_NEWSLETTER, COMPANY_NAME, COMPANY_EMAIL, DOMAIN_NAME, SITE_NAME, DNS, HELP_EMAIL} = require('smc-util/theme')
 
 email_server = undefined
 
@@ -229,6 +229,106 @@ exports.mass_email = (opts) ->
     )
 
 
+# beware, this needs to be HTML which is compatible with email-clients!
+welcome_email_html = (token_url) -> """
+<h1>Welcome to #{SITE_NAME}</h1>
+
+<p style="margin-top:0;margin-bottom:10px;">
+<a href="#{DOMAIN_NAME}">#{SITE_NAME}</a> is sophisticated web service for collaborative computation.
+</p>
+
+<p style="margin-top:0;margin-bottom:20px;">
+You receive this email because an account with your email address was created.
+This was either initiated by you, a friend or colleague invited you, or you're a student as part of a course.
+</p>
+
+<p style="margin-top:0;margin-bottom:10px;">
+<strong>
+Please <a href="#{token_url}">click here</a> to verify your email address!
+If this link does not work, please copy/paste this URL into a new browser tab and open the link:
+</strong>
+</p>
+
+<pre style="margin-top:10px;margin-bottom:10px;font-size:11px;">
+#{token_url}
+</pre>
+
+<hr size="1"/>
+
+<h3>Explore #{SITE_NAME}</h3>
+<p style="margin-top:0;margin-bottom:10px;">
+Your work on #{SITE_NAME} happens inside <strong>private projects</strong>.
+They form your personal workspaces containing your files, computational worksheets, and data.
+You run your computations through the web interface, via interactive worksheets and notebooks, or by executing a program in a terminal.
+#{SITE_NAME} supports online editing of
+    <a href="http://jupyter.org/">Jupyter Notebooks</a>,
+    <a href="http://www.sagemath.org/">Sage Worksheets</a>,
+    <a href="https://en.wikibooks.org/wiki/LaTeX">Latex files</a>, etc.
+</p>
+
+<p><strong>Software:</strong>
+<ul>
+<li style="margin-top:0;margin-bottom:10px;">Mathematical calculation:
+    <a href="http://www.sagemath.org/">SageMath</a>,
+    <a href="https://www.sympy.org/">SymPy</a>, etc.
+</li>
+<li style="margin-top:0;margin-bottom:10px;">Statistical analysis:
+    <a href="https://www.r-project.org/">R project</a>,
+    <a href="http://pandas.pydata.org/">Pandas</a>,
+    <a href="http://www.statsmodels.org/">statsmodels</a>,
+    <a href="http://scikit-learn.org/">scikit-learn</a>,
+    <a href="http://www.nltk.org/">NLTK</a>, etc.
+</li>
+<li style="margin-top:0;margin-bottom:10px;">Various other computation:
+    <a href="https://www.tensorflow.org/">Tensorflow</a>,
+    <a href="https://www.gnu.org/software/octave/">Octave</a>,
+    <a href="https://julialang.org/">Julia</a>, etc.
+</li>
+</ul>
+
+<p style="margin-top:0;margin-bottom:20px;">
+Visit our <a href="https://cocalc.com/static/doc/software.html">Software overview page</a> for more details!
+</p>
+
+<p style="margin-top:0;margin-bottom:20px;">
+<strong>Collaboration:</strong>
+You can invite collaborators to work with you inside a project.
+Like you, they can edit the files in that project.
+Edits are visible in <strong>real time</strong> for everyone online.
+You can share your thoughts in a <strong>side chat</strong> next to each document.
+</p>
+
+<p style="margin-top:0;margin-bottom:10px;"><strong>More information:</strong> how to get from 0 to 100%!</p>
+
+<ul>
+<li style="margin-top:0;margin-bottom:10px;">
+    <a href="https://github.com/sagemathinc/cocalc/wiki">#{SITE_NAME} Wiki:</a> the entry-point to learn more about all the details.
+</li>
+<li style="margin-top:0;margin-bottom:10px;">
+    <a href="https://github.com/sagemathinc/cocalc/wiki/sagews">Working with SageMath Worksheets</a>
+</li>
+<li style="margin-top:0;margin-bottom:10px;">
+    <strong><a href="https://cocalc.com/policies/pricing.html">Subscriptions:</a></strong> make hosting more robust and increase project quotas
+</li>
+<li style="margin-top:0;margin-bottom:10px;">
+    <a href="https://tutorial.cocalc.com/">Sophisticated tools for teaching a class</a>.
+</li>
+<li style="margin-top:0;margin-bottom:10px;">
+    <a href="https://github.com/sagemathinc/cocalc/wiki/Troubleshooting">Troubleshooting connectivity issues</a>
+</li>
+<li style="margin-top:0;margin-bottom:10px;">
+    <a href="https://github.com/sagemathinc/cocalc/wiki/MathematicalSyntaxErrors">Common mathematical syntax errors:</a> look into this if you are new to working with a programming language!
+</li>
+</ul>
+
+<p style="margin-top:10px;margin-bottom:20px;">
+<strong>Questions?</strong>
+In case of problems, concerns why you received this email, or other questions please contact:
+<a href="mailto:#{HELP_EMAIL}">#{HELP_EMAIL}</a>.
+</p>
+
+"""
+
 exports.welcome_email = (opts) ->
     opts = defaults opts,
         to           : required
@@ -240,20 +340,11 @@ exports.welcome_email = (opts) ->
     token_query = encodeURI("email=#{encodeURIComponent(opts.to)}&token=#{opts.token}")
     endpoint    = os_path.join('/', base_url, 'auth/verify')
     token_url   = "#{DOMAIN_NAME}#{endpoint}?#{token_query}"
-    token_html  = """
-    <p style="font-size: 110%"; font-weight: bold;">
-    Please click here: <a href="#{token_url}">#{token_url}</a> to verify your email address!
-    </p>
-    """
 
-    body = """
-    <h1>Welcome to #{SITE_NAME}</h1>
-
-    #{token_html}
-    """
+    body = welcome_email_html(token_url)
 
     send_email
-        subject      : "Welcome to #{SITE_NAME}"
+        subject      : "Welcome to #{SITE_NAME} - #{DNS}"
         body         : body
         fromname     : COMPANY_NAME
         from         : COMPANY_EMAIL
