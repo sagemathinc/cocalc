@@ -39,7 +39,7 @@ markdown          = require('./markdown')
 
 {sagews_eval}     = require('./sagews-eval')
 
-{IS_MOBILE}       = require('./feature')
+{IS_TOUCH}       = require('./feature')
 
 templates           = $("#webapp-editor-templates")
 cell_start_template = templates.find(".sagews-input")
@@ -312,15 +312,20 @@ class SynchronizedWorksheet extends SynchronizedDocument2
             @focused_codemirror().focus()
             return false
 
-        if IS_MOBILE
+        if IS_TOUCH
             buttons.find("a[href=\"#tab\"]").click () =>
                 @editor.press_tab_key(@editor.codemirror_with_last_focus)
                 @focused_codemirror().focus()
                 return false
+            @element.find("a[href=\"#copy\"]").remove()
+            @element.find("a[href=\"#replace\"]").remove()
+            @element.find("a[href=\"#paste\"]").remove()
+            @element.find("a[href=\"#goto-line\"]").remove()
+            @element.find("a[href=\"#sagews2ipynb\"]").find("span").remove()
         else
-            @element.find("a[href=\"#tab\"]").hide()
-            @element.find("a[href=\"#undo\"]").hide()
-            @element.find("a[href=\"#redo\"]").hide()
+            @element.find("a[href=\"#tab\"]").remove()
+            @element.find("a[href=\"#undo\"]").remove()
+            @element.find("a[href=\"#redo\"]").remove()
 
         buttons.find("a[href=\"#new-html\"]").click () =>
             cm = @focused_codemirror()
@@ -518,7 +523,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
         # initialize the color control
         init_color_control = () =>
             elt   = button_bar.find(".sagews-output-editor-foreground-color-selector")
-            if IS_MOBILE
+            if IS_TOUCH
                 elt.hide()
                 return
             button_bar_input = elt.find("input").colorpicker()
@@ -550,7 +555,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
         # initialize the color control
         init_background_color_control = () =>
             elt   = button_bar.find(".sagews-output-editor-background-color-selector")
-            if IS_MOBILE
+            if IS_TOUCH
                 elt.hide()
                 return
             button_bar_input = elt.find("input").colorpicker()
@@ -871,7 +876,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
         @insert_new_cell(mark.find()?.from.line)
 
     _handle_input_cell_click: (e, mark) =>
-        if IS_MOBILE
+        if IS_TOUCH
             # It is way too easy to accidentally click on the insert new cell line on mobile.
             bootbox.confirm "Create new cell?", (result) =>
                 if result
@@ -1775,7 +1780,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                             execute : true
                             advance : false
 
-                if IS_MOBILE
+                if IS_TOUCH
                     # It is way too easy to accidentally click on the insert new cell line on mobile.
                     bootbox.confirm "Create new cell?", (result) =>
                         if result

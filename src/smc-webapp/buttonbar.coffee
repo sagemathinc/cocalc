@@ -1748,7 +1748,7 @@ initialize_sage_python_r_toolbar = () ->
                    ["2D Plot", "#graph_2dplot"],
                    ["3D Plot", "#graph_3dplot"]
                   ]]
-    sage_nt = ["Number Theory", "Number Theory",
+    sage_nt = ["Numbers", "Number Theory",
               [
                ["Binary Quadratic Form", "#binary_quadform", "Define a binary quadratic form"],
                ["Continued Fraction", "#contfrac", "Compute a continued fraction"],
