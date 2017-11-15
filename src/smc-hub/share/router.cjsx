@@ -5,6 +5,7 @@
 
 PAGE_SIZE            = 100
 
+
 os_path              = require('path')
 
 {React}              = require('smc-webapp/smc-react')
@@ -17,7 +18,9 @@ react_support        = require('./react')
 {PublicPathsBrowser} = require('smc-webapp/share/public-paths-browser')
 {Page}               = require('smc-webapp/share/page')
 {get_public_paths}   = require('./public_paths')
-{render_public_path, render_sub_public_path} = require('./render-public-path')
+{render_public_path} = require('./render-public-path')
+{render_static_path} = require('./render-static-path')
+
 
 react = (res, component) ->
     react_support.react(res, <Page>{component}</Page>)
@@ -74,38 +77,28 @@ exports.share_router = (opts) ->
                 page_size    = {PAGE_SIZE}
                 public_paths = {public_paths.get()} />
 
-    router.get '/raw/:id/:path', (req, res) ->
+    router.get '/:id/*?', (req, res) ->
         ready ->
             info = public_paths.get(req.params.id)
             if not info?
                 res.sendStatus(404)
-            else
-                dir = path_to_files(info.get('project_id'))
-                res.sendFile(os_path.join(dir, req.params.path))
-
-    router.get '/:id/:sub', (req, res) ->
-        ready ->
-            info = public_paths.get(req.params.id)
-            if not info?
-                res.sendStatus(404)
-            else
-                render_sub_public_path
-                    res  : res
-                    info : info
-                    path : req.params.sub
-                    dir  : path_to_files(info.get('project_id'))
-
-    router.get '/:id', (req, res) ->
-        ready ->
-            info = public_paths.get(req.params.id)
-            if not info?
-                res.sendStatus(404)
-            else
+                return
+            path = req.params[0]
+            dir = path_to_files(info.get('project_id'))
+            if req.query.viewer == 'share'
                 render_public_path
                     res   : res
                     info  : info
-                    dir   : path_to_files(info.get('project_id'))
+                    dir   : dir
+                    path  : path
                     react : react
+            else
+                render_static_path
+                    req   : req
+                    res   : res
+                    info  : info
+                    dir   : dir
+                    path  : path
 
     router.get '*', (req, res) ->
         res.send("unknown path='#{req.path}'")

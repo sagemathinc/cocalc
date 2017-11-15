@@ -30,7 +30,7 @@ exports.PublicPathsBrowser = rclass
         if not info?
             return
         <div key={id}>
-            <a href={"#{id}"}> {info.get('description')} [{info.get('path')}]</a>
+            <a href={"#{id}/#{info.get('path')}?viewer=share"}> {info.get('description')} [{info.get('path')}]</a>
             <br/>
         </div>
 
