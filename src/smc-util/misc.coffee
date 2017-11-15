@@ -185,8 +185,9 @@ exports.uuid = ->
         v = if c == 'x' then r else r & 0x3 | 0x8
         v.toString 16
 
+uuid_regexp = new RegExp(/[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}/i)
 exports.is_valid_uuid_string = (uuid) ->
-    return typeof(uuid) == "string" and uuid.length == 36 and /[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}/i.test(uuid)
+    return typeof(uuid) == "string" and uuid.length == 36 and uuid_regexp.test(uuid)
     # /[0-9a-f]{22}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i.test(uuid)
 
 exports.assert_uuid = (uuid) =>

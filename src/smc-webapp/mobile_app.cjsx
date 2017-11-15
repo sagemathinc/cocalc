@@ -101,8 +101,8 @@ Page = rclass
                 <NavTab
                     on_click       = {@close_menu}
                     name           = 'about'
-                    label          = 'About'
-                    icon           = 'question-circle'
+                    label          = 'CoCalc'
+                    icon           = 'info-circle'
                     actions        = {@actions('page')}
                     active_top_tab = {@props.active_top_tab}
                     style          = {width:'100%'}

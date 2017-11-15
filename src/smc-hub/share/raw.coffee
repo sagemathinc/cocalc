@@ -137,7 +137,8 @@ exports.raw_router = (opts) ->
                     res.send("error: ", err)
                 else if not is_public
                     d(path, 'not public')
-                    res.status(404).end()
+                    res.sendStatus(404)
+
                 else
                     dir = opts.path.replace('[project_id]', project_id)
                     info = {project_id: project_id, path:path}

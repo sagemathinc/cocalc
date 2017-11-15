@@ -151,7 +151,7 @@ Page = rclass
         <Nav id='smc-right-tabs-fixed' style={height:'40px', lineHeight:'20px', margin:'0', overflowY:'hidden'}>
             {@render_account_tab() if logged_in}
             {@render_sign_in_tab() if not logged_in}
-            <NavTab name='about' label='About' icon='question-circle' actions={@actions('page')} active_top_tab={@props.active_top_tab} />
+            <NavTab name='about' label='CoCalc' icon='info-circle' actions={@actions('page')} active_top_tab={@props.active_top_tab} />
             <NavItem className='divider-vertical hidden-xs' />
             {<NavTab
                 label='Help' icon='medkit'

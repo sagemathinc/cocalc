@@ -25,6 +25,6 @@ DataGeneric = rclass
         </div>
 
 require('../project_file').register_file_editor
-    ext       : ['fit']
+    ext       : ['fit', 'odt']
     icon      : 'table'
     component : DataGeneric
