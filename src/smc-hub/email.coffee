@@ -229,6 +229,19 @@ exports.mass_email = (opts) ->
     )
 
 
+verify_email_html = (token_url) -> """
+<p style="margin-top:0;margin-bottom:10px;">
+<strong>
+Please <a href="#{token_url}">click here</a> to verify your email address!
+If this link does not work, please copy/paste this URL into a new browser tab and open the link:
+</strong>
+</p>
+
+<pre style="margin-top:10px;margin-bottom:10px;font-size:11px;">
+#{token_url}
+</pre>
+"""
+
 # beware, this needs to be HTML which is compatible with email-clients!
 welcome_email_html = (token_url) -> """
 <h1>Welcome to #{SITE_NAME}</h1>
@@ -242,16 +255,7 @@ You receive this email because an account with your email address was created.
 This was either initiated by you, a friend or colleague invited you, or you're a student as part of a course.
 </p>
 
-<p style="margin-top:0;margin-bottom:10px;">
-<strong>
-Please <a href="#{token_url}">click here</a> to verify your email address!
-If this link does not work, please copy/paste this URL into a new browser tab and open the link:
-</strong>
-</p>
-
-<pre style="margin-top:10px;margin-bottom:10px;font-size:11px;">
-#{token_url}
-</pre>
+#{verify_email_html(token_url)}
 
 <hr size="1"/>
 
@@ -341,10 +345,15 @@ exports.welcome_email = (opts) ->
     endpoint    = os_path.join('/', base_url, 'auth/verify')
     token_url   = "#{DOMAIN_NAME}#{endpoint}?#{token_query}"
 
-    body = welcome_email_html(token_url)
+    if opts.only_verify
+        subject = "Verify your email address on #{SITE_NAME} (#{DNS})"
+        body    = verify_email_html(token_url)
+    else
+        subject = "Welcome to #{SITE_NAME} - #{DNS}"
+        body    = welcome_email_html(token_url)
 
     send_email
-        subject      : "Welcome to #{SITE_NAME} - #{DNS}"
+        subject      : subject
         body         : body
         fromname     : COMPANY_NAME
         from         : COMPANY_EMAIL

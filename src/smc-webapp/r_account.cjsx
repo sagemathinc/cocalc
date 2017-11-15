@@ -83,6 +83,10 @@ EmailVerification = rclass
     getInitialState: ->
         disabled_button : false
 
+    componentWillReceiveProps: (next) ->
+        if next.email_address != @props.email_address
+            @setState(disabled_button: false)
+
     verify : ->
         webapp_client.send_verification_email
             account_id         : @props.account_id
@@ -94,10 +98,11 @@ EmailVerification = rclass
                     console.log("TODO: error sending email verification: #{err}")
 
     test : ->
-        if not (@props.email_address_verified? and @props.email_address?)
+        if not @props.email_address?
             <span>Unkown</span>
         else
-            if @props.email_address_verified[@props.email_address]?
+            email_address_verified = @props.email_address_verified ? {}
+            if email_address_verified[@props.email_address]?
                 <span style={color: 'green'}>Verified</span>
             else
                 [

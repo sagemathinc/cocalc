@@ -860,10 +860,12 @@ class exports.Connection extends EventEmitter
     send_verification_email: (opts) ->
         opts = defaults opts,
             account_id    : required
+            only_verify   : true
             cb            : undefined
         @call
             message : message.send_verification_email
-                account_id : opts.account_id
+                only_verify : opts.only_verify
+                account_id  : opts.account_id
             cb : opts.cb
 
     # forgot password -- send forgot password request to server
