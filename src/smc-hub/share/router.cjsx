@@ -3,9 +3,9 @@
 
 """
 
-PAGE_SIZE            = 15
+PAGE_SIZE            = 100
 
-os_path              =require('path')
+os_path              = require('path')
 
 {React}              = require('smc-webapp/smc-react')
 express              = require('express')
@@ -15,9 +15,9 @@ misc                 = require('smc-util/misc')
 react_support        = require('./react')
 {Landing}            = require('smc-webapp/share/landing')
 {PublicPathsBrowser} = require('smc-webapp/share/public-paths-browser')
-{PublicPath}         = require('smc-webapp/share/public-path')
 {Page}               = require('smc-webapp/share/page')
 {get_public_paths}   = require('./public_paths')
+{render_public_path, render_sub_public_path} = require('./render-public-path')
 
 react = (res, component) ->
     react_support.react(res, <Page>{component}</Page>)
@@ -33,6 +33,13 @@ exports.share_router = (opts) ->
             opts.logger.debug("share_router: ", args...)
     else
         dbg = ->
+
+    if opts.path.indexOf('[project_id]') == -1
+        # VERY BAD
+        throw RuntimeError("opts.path must contain '[project_id]'")
+
+    path_to_files = (project_id) ->
+        return opts.path.replace('[project_id]', project_id)
 
     _ready_queue = []
     public_paths = undefined
@@ -60,38 +67,48 @@ exports.share_router = (opts) ->
         ready ->
             react res, <Landing public_paths = {public_paths.get()} />
 
-    router.get '/paths/', (req, res) ->
+    router.get '/paths', (req, res) ->
         ready ->
             react res, <PublicPathsBrowser
                 page_number  = {parseInt(req.query.page ? 0)}
                 page_size    = {PAGE_SIZE}
                 public_paths = {public_paths.get()} />
 
-    #router.get /^\/[a-fA-F0-9]{40}/i, (req, res) ->
-    router.get '/paths/:id/', (req, res) ->
+    router.get '/raw/:id/:path', (req, res) ->
         ready ->
-            id = req.params.id
-            dbg("got id='#{id}'")
-            path = public_paths.get(id)
-            if not path?
-                res.sendStatus(404)
-            else
-                react res, <PublicPath path={path} />
-
-    router.get '/paths/:id/:path', (req, res) ->
-        ready ->
-            id   = req.params.id
-            path = req.params.path
-            dbg("got id='#{id}', path='#{path}'")
-            info = public_paths.get(id)
+            info = public_paths.get(req.params.id)
             if not info?
                 res.sendStatus(404)
             else
-                dir = opts.path.replace('[project_id]', info.get('project_id'))
-                path_to_file = os_path.join(dir, path)
-                res.sendFile(path_to_file)
+                dir = path_to_files(info.get('project_id'))
+                res.sendFile(os_path.join(dir, req.params.path))
+
+    router.get '/:id/:sub', (req, res) ->
+        ready ->
+            info = public_paths.get(req.params.id)
+            if not info?
+                res.sendStatus(404)
+            else
+                render_sub_public_path
+                    res  : res
+                    info : info
+                    path : req.params.sub
+                    dir  : path_to_files(info.get('project_id'))
+
+    router.get '/:id', (req, res) ->
+        ready ->
+            info = public_paths.get(req.params.id)
+            if not info?
+                res.sendStatus(404)
+            else
+                render_public_path
+                    res   : res
+                    info  : info
+                    dir   : path_to_files(info.get('project_id'))
+                    react : react
 
     router.get '*', (req, res) ->
         res.send("unknown path='#{req.path}'")
 
     return router
+

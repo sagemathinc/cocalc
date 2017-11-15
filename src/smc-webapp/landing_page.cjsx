@@ -34,7 +34,7 @@ DESC_FONT = 'sans-serif'
 
 misc = require('smc-util/misc')
 {APP_TAGLINE} = require('smc-util/theme')
-{APP_BASE_URL, APP_ICON, APP_ICON_WHITE, APP_LOGO_NAME, APP_LOGO_NAME_WHITE} = require('./misc_page')
+{APP_BASE_URL, APP_ICON, APP_ICON_WHITE, APP_LOGO_NAME, APP_LOGO_NAME_WHITE} = require('./art')
 
 $.get window.app_base_url + "/registration", (obj, status) ->
     if status == 'success'

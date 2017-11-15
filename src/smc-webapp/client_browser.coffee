@@ -32,7 +32,7 @@ client = require('smc-util/client')
 
 misc_page = require('./misc_page')
 
-APP_LOGO_WHITE = misc_page.APP_LOGO_WHITE
+{APP_LOGO_WHITE} = require('./art')
 
 # these idle notifications were in misc_page, but importing it here failed
 
