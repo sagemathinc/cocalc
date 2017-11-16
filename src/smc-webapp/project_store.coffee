@@ -967,20 +967,27 @@ class ProjectActions extends Actions
 
     copy_from_library: (opts) =>
         opts = defaults opts,
-            entry : 'first_steps'
+            entry  : undefined
+            src    : undefined
+            target : undefined
+            start  : undefined
+            cb     : undefined
 
-        lib = LIBRARY[opts.entry]
-        if not lib?
-            @setState(error: "Library entry '#{opts.entry}' unknown")
-            return
+        if opts.entry?
+            lib = LIBRARY[opts.entry]
+            if not lib?
+                @setState(error: "Library entry '#{opts.entry}' unknown")
+                return
 
         id = opts.id ? misc.uuid()
         @set_activity(id:id, status:"Copying files from library ...")
 
         # the rsync command purposely does not preserve the timestamps,
         # such that they look like "new files" and listed on top under default sorting
-        source = os_path.join(lib.src, '/')
-        target = os_path.join(opts.entry, '/')
+        source = os_path.join((opts.src    ? lib.src), '/')
+        target = os_path.join((opts.target ? opts.entry), '/')
+        start  = opts.start ? lib?.start
+
         webapp_client.exec
             project_id      : @project_id
             command         : 'rsync'
@@ -991,8 +998,13 @@ class ProjectActions extends Actions
             path            : '.'
             cb              : (err, output) =>
                 (@_finish_exec(id))(err, output)
-                if not err
-                    @open_file(path: os_path.join(target, lib.start))
+                if not err and start?
+                    open_path = os_path.join(target, start)
+                    if open_path[open_path.length - 1] == '/'
+                        @open_directory(open_path)
+                    else
+                        @open_file(path: open_path)
+                opts.cb?(err)
 
     copy_paths: (opts) =>
         opts = defaults opts,

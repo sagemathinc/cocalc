@@ -22,6 +22,7 @@
 underscore = _ = require('underscore')
 misc = require('smc-util/misc')
 misc_page = require('./misc_page')
+os_path = require('path')
 
 {React, ReactDOM, Actions, Store, Table, rtypes, rclass, Redux}  = require('./smc-react')
 {Col, Row, Button, ButtonGroup, ButtonToolbar, FormControl, FormGroup, Panel, Input,
@@ -36,6 +37,8 @@ exports.LIBRARY = LIBRARY =
     first_steps :
         src    : '/ext/library/first-steps/src'
         start  : 'first-steps.tasks'
+
+HEIGHT = '200px'
 
 # https://github.com/sagemathinc/cocalc-examples
 exports.examples_path = ROOT = '/ext/library/cocalc-examples'
@@ -60,12 +63,35 @@ exports.Library = rclass ({name}) ->
         selected  : undefined
         copy      : false
 
+    target_path: ->
+        doc = @state.selected
+        src = doc.src
+        if doc.subdir
+            subdir = doc.subdir
+        else
+            # directory? cut of the trailing slash
+            if src[src.length - 1] == '/'
+                src = src[...-1]
+                # subdir in current path is the name of the directory
+                subdir = misc.path_split(src).tail
+            else    # otherwise, we're about to copy over a single file → no subdirectory!
+                subdir = ''
+        target = os_path.join(@props.current_path, subdir)
+        if DEBUG then console.log("copy from", doc.src, "to", target)
+        return target
+
     copy: (doc) ->
-        console.log("copy from", doc.src)
+        @setState(copy: true)
+        doc = @state.selected
+        @props.actions.copy_from_library
+            src    : doc.src
+            target : @target_path()
+            start  : doc?.start ? '/'
+            cb     : => @setState(copy: false)
 
     selector: ->
         list_style =
-            maxHeight  : '200px'
+            maxHeight  : HEIGHT
             overflowX  : 'hidden'
             overflowY  : 'scroll'
 
@@ -90,9 +116,13 @@ exports.Library = rclass ({name}) ->
         # {"title":"Data science Python notebooks","id":"doc-6","license":"a20",
         # "src":"/ext/library/cocalc-examples/data-science-ipython-notebooks/",
         # "description":"Data science Python notebooks: Deep learning ...\n"}
-        doc  = @state.selected
-        meta = @props.library.examples.metadata
-        <div>
+        doc   = @state.selected
+        meta  = @props.library.examples.metadata
+        style =
+            maxHeight  : HEIGHT
+            overflow   : 'auto'
+
+        <div style={style}>
             <p>
                 <strong>{doc.title ? doc.id}</strong>
                 {" by #{doc.author}" if doc.author?}
@@ -111,10 +141,17 @@ exports.Library = rclass ({name}) ->
             }
             <Button
                 bsStyle  = "success"
-                onClick  = {=> @copy(doc)}
+                onClick  = {=> @copy()}
+                disabled = {@state.copy}
             >
-                Get a Copy
+                {
+                    if @state.copy
+                        'Copying ...'
+                    else
+                        'Get a Copy'
+                }
             </Button>
+            {#<p style={color: '#666'}>copies <code>{@state.selected.src}</code> into <code>{@target_path()}</code></p>}
         </div>
 
     render: ->
