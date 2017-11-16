@@ -1,6 +1,6 @@
 require('node-cjsx').transform()
-require('./jquery-support.coffee')
+require('./jsdom-support.coffee')
 
-console.log("$.fn", $)
+require('smc-webapp/share/public-path.cjsx')
 
-a = require('smc-webapp/misc_page.coffee')
+

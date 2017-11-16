@@ -4,9 +4,13 @@ This is...
 
 misc = require('smc-util/misc')
 
-{rclass, React, ReactDOM, rtypes} = require('../smc-react')
+{rclass, Redux, React, ReactDOM, redux, rtypes} = require('../smc-react')
 
 r_misc = require('../r_misc')
+file_editors = require('../file-editors')
+
+# Register the Jupyter editor, so we can use it to render public ipynb
+require('../jupyter/register-nbviewer').register()
 
 exports.PublicPath = rclass
     displayName: "PublicPath"
@@ -14,6 +18,7 @@ exports.PublicPath = rclass
     propTypes :
         info    : rtypes.immutable.Map.isRequired
         content : rtypes.string
+        viewer  : rtypes.string.isRequired
 
     render_view: ->
         path = @props.info.get('path')
@@ -28,6 +33,16 @@ exports.PublicPath = rclass
             when 'md'
                 if @props.content?
                     return <r_misc.Markdown value={@props.content} />
+            when 'ipynb'
+                if @props.content?
+                    name   = file_editors.initialize(path, redux, @props.info.get('project_id'), true, @props.content)
+                    Viewer = file_editors.generate(path, redux, @props.info.get('project_id'), true)
+                    <Redux redux={redux}>
+                        <Viewer name={name} />
+                    </Redux>
+                    # TODO: need to call project_file.remove(path, redux, project_id, true) after
+                    # rendering is done!
+
             when 'html', 'htm'
                 if @props.content?
                     return <r_misc.HTML value={@props.content} />
@@ -37,6 +52,8 @@ exports.PublicPath = rclass
 
 
     render: ->
+        if @props.viewer == 'embed'
+            return <div>{@render_view()}</div>
         <div>
             <div>
                 <a href="..">Up</a>

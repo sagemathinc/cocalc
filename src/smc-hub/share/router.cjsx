@@ -85,13 +85,18 @@ exports.share_router = (opts) ->
                 return
             path = req.params[0]
             dir = path_to_files(info.get('project_id'))
-            if req.query.viewer == 'share'
+            if req.query.viewer?
+                if req.query.viewer == 'embed'
+                    r = react_support.react
+                else
+                    r = react
                 render_public_path
-                    res   : res
-                    info  : info
-                    dir   : dir
-                    path  : path
-                    react : react
+                    res    : res
+                    info   : info
+                    dir    : dir
+                    path   : path
+                    react  : r
+                    viewer : req.query.viewer
             else
                 render_static_path
                     req   : req

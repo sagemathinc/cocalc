@@ -45,7 +45,7 @@ exports.Page = rclass
         #css = {__html : 'html.no-js{display : none;}'}
         <html className="no-js">
             <head>
-                <title>CoCalc public shared files</title>
+                <title>CoCalc: shared files</title>
                 {# <style dangerouslySetInnerHTML={css} />}
                 {# @inject_css() }
                 <link
@@ -55,13 +55,11 @@ exports.Page = rclass
                     crossOrigin = "anonymous" />
             </head>
             <body>
-                <div key='top' className="well" style={margin:'30px'}>
-                    <h1>CoCalc public shared files</h1>
+                <div key='top' style={margin:'10px'}>
+                    CoCalc shared files
                 </div>
 
-                <hr />
-
-                <div key='index' className="well"  style={margin:'30px'}>
+                <div key='index' className="well"  style={margin:'20px'}>
                     {@props.children}
                 </div>
             </body>

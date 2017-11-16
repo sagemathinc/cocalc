@@ -14,11 +14,12 @@ misc                 = require('smc-util/misc')
 
 exports.render_public_path = (opts) ->
     opts = defaults opts,
-        res   : required   # html response object
-        info  : required   # immutable.js info about the public share
-        dir   : required   # directory on diskcontaining files for this path
-        react : required
-        path  : undefined
+        res    : required   # html response object
+        info   : required   # immutable.js info about the public share
+        dir    : required   # directory on diskcontaining files for this path
+        react  : required
+        path   : undefined
+        viewer : required
 
         locals =
             path_to_file: os_path.join(opts.dir, opts.info.get('path'))
@@ -48,5 +49,5 @@ exports.render_public_path = (opts) ->
                 if err
                     opts.res.sendStatus(404)
                     return
-                opts.react opts.res, <PublicPath info={opts.info} content={locals.content} />
+                opts.react opts.res, <PublicPath info={opts.info} content={locals.content} viewer={opts.viewer} />
 

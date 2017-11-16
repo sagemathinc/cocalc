@@ -904,9 +904,9 @@ class ProjectActions extends Actions
 
     # this is called once by the project initialization
     check_library: =>
-        if DEBUG then console.log("check_library")
+        #if DEBUG then console.log("check_library")
         check = (v, k, cb) =>
-            if DEBUG then console.log("check_library.check", v, k)
+            #if DEBUG then console.log("check_library.check", v, k)
             store = @get_store()
             return if not store?
             if store.library_available?[k]?
