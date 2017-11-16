@@ -231,7 +231,9 @@ class ProjectsActions extends Actions
         if opts.target?
             redux.getProjectActions(opts.project_id)?.load_target(opts.target, opts.switch_to)
         redux.getActions('page').save_session()
-        store.wait_until_project_is_open opts.project_id, 200, (err) =>
+        # init the library after project started.
+        # TODO write a generalized store function that does this in a more robust way
+        store.wait_until_project_is_open opts.project_id, 600, (err) ->
             if not err
                 project_actions.init_library()
 
