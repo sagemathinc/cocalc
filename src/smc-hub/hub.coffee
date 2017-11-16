@@ -68,8 +68,6 @@ base_url   = require('./base-url')
 local_hub_connection = require('./local_hub_connection')
 hub_proxy            = require('./proxy')
 
-share_server         = require('./share/server')
-
 MetricsRecorder = require('./metrics-recorder')
 
 # express http server -- serves some static/dynamic endpoints
@@ -568,7 +566,7 @@ exports.start_server = start_server = (cb) ->
             if not program.share_port
                 cb(); return
             winston.debug("initializing the share server on port #{program.share_port}")
-            x = share_server.init
+            x = require('./share/server').init
                 database       : database
                 base_url       : BASE_URL
                 share_path     : program.share_path
@@ -579,7 +577,7 @@ exports.start_server = start_server = (cb) ->
             if not program.raw_port
                 cb(); return
             winston.debug("initializing the raw server on port #{program.raw_port}")
-            x = share_server.init
+            x = require('./share/server').init
                 database       : database
                 base_url       : BASE_URL
                 raw_path       : program.raw_path
