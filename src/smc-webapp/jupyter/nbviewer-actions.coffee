@@ -11,15 +11,25 @@ util            = require('./util')
 {IPynbImporter} = require('./import-from-ipynb')
 
 class exports.NBViewerActions extends Actions
-    _init: (project_id, path, store, client) =>
+    _init: (project_id, path, store, client, content) =>
         @store  = store
+        if not client? and not content?
+            throw Error("@client or content must be defined")
         @client = client
         @setState
             project_id : project_id
             path       : path
             font_size  : @redux.getStore('account')?.get('font_size') ? 14
         @_state = 'ready'
-        @load_ipynb()
+        if content?  # optionally specify the pre-loaded content of the path directly.
+            try
+                ipynb = JSON.parse(content)
+            catch err
+                @setState(error: "Error parsing -- #{err}")
+                return
+            @set_from_ipynb(ipynb)
+        else
+            @load_ipynb()
 
     load_ipynb: =>
         if @store.get('loading')

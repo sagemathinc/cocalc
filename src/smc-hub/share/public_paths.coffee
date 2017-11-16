@@ -34,7 +34,7 @@ class PublicPaths extends EventEmitter
     _init: (cb) =>
         @database.synctable
             table    : 'public_paths'
-            columns  : ['project_id', 'path', 'description', 'created', 'last_edited', 'last_saved', 'counter']
+            columns  : ['id', 'project_id', 'path', 'description', 'created', 'last_edited', 'last_saved', 'counter']
             where    : "disabled IS NOT TRUE"
             cb       : (err, synctable) =>
                 if err

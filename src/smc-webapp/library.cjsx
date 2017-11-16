@@ -62,7 +62,7 @@ exports.Library = rclass ({name}) ->
 
         <ListGroup style={list_style}>
         {
-            for k in _.sortBy(misc.keys(@props.library), (k) => @props.library[k].name?.toLowerCase() ? k)
+            for k in _.sortBy(_.keys(@props.library), (k) => @props.library[k].name?.toLowerCase() ? k)
                 v = @props.library[k]
                 do (v, k) =>
                     <ListGroupItem
@@ -83,9 +83,11 @@ exports.Library = rclass ({name}) ->
 
     render: ->
         <Row>
-            <Col sm=6>
+            <Col sm=3>
                 {@selector()}
             </Col>
+            <Col smc=3>
+                {@selector()}
             <Col sm=6>
                 {@details()}
             </Col>

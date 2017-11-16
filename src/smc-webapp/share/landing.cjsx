@@ -12,5 +12,5 @@ exports.Landing = rclass
 
     render: ->
         <div>
-            There are <a href='paths/'>{@props.public_paths.size} public paths.</a>
+            There are <a href='share/paths'>{@props.public_paths.size} public paths.</a>
         </div>

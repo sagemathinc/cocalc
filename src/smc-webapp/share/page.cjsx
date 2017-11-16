@@ -45,18 +45,21 @@ exports.Page = rclass
         #css = {__html : 'html.no-js{display : none;}'}
         <html className="no-js">
             <head>
-                <title>CoCalc public shared files</title>
+                <title>CoCalc: shared files</title>
                 {# <style dangerouslySetInnerHTML={css} />}
                 {# @inject_css() }
+                <link
+                    rel         = "stylesheet"
+                    href        = "https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css"
+                    integrity   = "sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u"
+                    crossOrigin = "anonymous" />
             </head>
             <body>
-                <div key='top' className="well" style={margin:'30px'}>
-                    <h1>CoCalc public shared files</h1>
+                <div key='top' style={margin:'10px'}>
+                    CoCalc shared files
                 </div>
 
-                <hr />
-
-                <div key='index' className="well"  style={margin:'30px'}>
+                <div key='index' className="well"  style={margin:'20px'}>
                     {@props.children}
                 </div>
             </body>
