@@ -49,15 +49,15 @@ exports.Page = rclass
                 {# <style dangerouslySetInnerHTML={css} />}
                 {# @inject_css() }
 
-                {# temporary bootstrap CDN }
+                {# bootstrap CDN #}
                 <link
                     rel         = "stylesheet"
                     href        = "https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css"
                     integrity   = "sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u"
                     crossOrigin = "anonymous" />
 
-                {# very temporary codemirror cdn}
-                <link rel="stylesheet" href="http://esironal.github.io/cmtouch/lib/codemirror.css" />
+                {# codemirror CDN -- https://cdnjs.com/libraries/codemirror #}
+                <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.31.0/codemirror.min.css" />
 
             </head>
             <body>

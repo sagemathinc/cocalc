@@ -39,6 +39,8 @@ tasks   = require('./tasks')
 
 templates = $("#webapp-editor-templates")
 
+{file_associations} = require('./file-associations')
+
 class exports.HistoryEditor extends FileEditor
     constructor: (@project_id, @filename, content, opts) ->
         if window.smc?
@@ -472,8 +474,8 @@ class exports.HistoryEditor extends FileEditor
             return
         @length = @syncstring.all_versions().length
         @revision_num = @length - 1
-        if @ext != "" and require('./editor').file_associations[@ext]?.opts.mode?
-            @view_doc.codemirror?.setOption("mode", require('./editor').file_associations[@ext].opts.mode)
+        if @ext != "" and file_associations[@ext]?.opts.mode?
+            @view_doc.codemirror?.setOption("mode", file_associations[@ext].opts.mode)
 
         # debounce actually setting the document content just a little
         set_doc = underscore.debounce(((time)=>@set_doc(time)), 150)

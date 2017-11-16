@@ -12,6 +12,11 @@ misc                 = require('smc-util/misc')
 {React}              = require('smc-webapp/smc-react')
 {PublicPath}         = require('smc-webapp/share/public-path')
 
+
+extensions = require('smc-webapp/share/extensions')
+
+
+
 exports.render_public_path = (opts) ->
     opts = defaults opts,
         res    : required   # html response object
@@ -35,16 +40,16 @@ exports.render_public_path = (opts) ->
             # TODO: if too big... just show an error and direct raw download link
             get_content = (cb) ->
                 ext = misc.filename_extension(locals.path_to_file)?.toLowerCase()
-                switch ext
-                    when 'md', 'html', 'htm', 'sagews', 'ipynb'
-                        fs.readFile locals.path_to_file, (err, data) ->
-                            if err
-                                cb(err)
-                            else
-                                locals.content = data.toString()
-                                cb()
-                    else
+                if extensions.image[ext] or extensions.pdf[ext]
                         cb()
+                        return
+                else
+                    fs.readFile locals.path_to_file, (err, data) ->
+                        if err
+                            cb(err)
+                        else
+                            locals.content = data.toString()
+                            cb()
             get_content (err) ->
                 if err
                     opts.res.sendStatus(404)

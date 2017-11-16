@@ -67,6 +67,10 @@ exports.share_router = (opts) ->
     router = express.Router()
 
     router.get '/', (req, res) ->
+        if req.originalUrl.slice(-1) != '/'
+            # note: req.path already has the slash added.
+            res.redirect(301, req.baseUrl + req.path)
+            return
         ready ->
             react res, <Landing public_paths = {public_paths.get()} />
 

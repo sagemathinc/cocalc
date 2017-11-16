@@ -2,6 +2,8 @@
 This is...
 ###
 
+immutable = require('immutable')
+
 misc = require('smc-util/misc')
 
 {rclass, Redux, React, ReactDOM, redux, rtypes} = require('../smc-react')
@@ -9,12 +11,16 @@ misc = require('smc-util/misc')
 r_misc = require('../r_misc')
 file_editors = require('../file-editors')
 
-{Space} = r_misc
+{HTML, Space} = r_misc
 
 # Register the Jupyter editor, so we can use it to render public ipynb
 require('../jupyter/register-nbviewer').register()
 
 {PDF} = require('./pdf')
+
+extensions = require('./extensions')
+
+{CodeMirrorStatic} = require('../jupyter/codemirror-static')
 
 exports.PublicPath = rclass
     displayName: "PublicPath"
@@ -31,31 +37,33 @@ exports.PublicPath = rclass
             return
         ext = misc.filename_extension(path)?.toLowerCase()
         src = @props.info.get('path')
-        switch ext
-            when 'png', 'jpg', 'gif', 'svg'
-                return <img src={src} />
-            when 'md'
-                if @props.content?
-                    return <r_misc.Markdown value={@props.content} />
-            when 'ipynb'
-                if @props.content?
-                    name   = file_editors.initialize(path, redux, @props.info.get('project_id'), true, @props.content)
-                    Viewer = file_editors.generate(path, redux, @props.info.get('project_id'), true)
-                    <Redux redux={redux}>
-                        <Viewer name={name} />
-                    </Redux>
-                    # TODO: need to call project_file.remove(path, redux, project_id, true) after
-                    # rendering is done!
 
-            when 'pdf'
-                return <PDF src={src} />
+        if extensions.image[ext]
+            return <img src={src} />
+        else if extensions.pdf[ext]
+            return <PDF src={src} />
 
-            when 'html', 'htm'
-                if @props.content?
-                    return <r_misc.HTML value={@props.content} />
-            else
-                if @props.content?
-                    return <pre>{@props.content}</pre>
+        if not @props.content?
+            return
+
+        if ext == 'md'
+            return <r_misc.Markdown value={@props.content} />
+        else if ext == 'ipynb'
+            name   = file_editors.initialize(path, redux, @props.info.get('project_id'), true, @props.content)
+            Viewer = file_editors.generate(path, redux, @props.info.get('project_id'), true)
+            <Redux redux={redux}>
+                <Viewer name={name} />
+            </Redux>
+            # TODO: need to call project_file.remove(path, redux, project_id, true) after
+            # rendering is done!
+        else if extensions.html[ext]
+            return <HTML value={@props.content} />
+        else if extensions.codemirror[ext]
+            options = immutable.fromJS(extensions.codemirror[ext])
+            #options = options.set('lineNumbers', true)
+            return <CodeMirrorStatic value={@props.content} options={options} style={background:'white', padding:'10px'}/>
+        else
+            return <pre>{@props.content}</pre>
 
 
     render: ->
@@ -71,7 +79,7 @@ exports.PublicPath = rclass
                 Project_id: {@props.info.get('project_id')}
             </div>
             <br/>
-            <div style={border: '1px solid grey', padding: '10px', background: 'white', overflow:'auto', height:'100%'}>
+            <div style={border: '1px solid grey', padding: '10px', background: 'white', overflow:'auto'}>
                 {@render_view()}
             </div>
         </div>

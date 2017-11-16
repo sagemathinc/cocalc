@@ -12,6 +12,7 @@ $('body').append(html)
 {init_buttonbars} = require('./buttonbar')
 init_buttonbars()
 
+console.log 1
 # Load/initialize Redux-based react functionality
 {redux} = require('./smc-react')
 
@@ -23,9 +24,14 @@ require('./system_notifications')
 
 # Makes some things work. Like the save button
 require('./jquery_plugins')
+console.log 2
 
 # Initialize app stores, actions, etc.
 require('./init_app')
+
+# Initialize the account store.
+require('./account')
+
 require('./widget-markdown-input/main').init(redux)
 
 mobile = require('./mobile_app')
