@@ -48,19 +48,26 @@ exports.Page = rclass
                 <title>CoCalc: shared files</title>
                 {# <style dangerouslySetInnerHTML={css} />}
                 {# @inject_css() }
+
+                {# temporary bootstrap CDN }
                 <link
                     rel         = "stylesheet"
                     href        = "https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css"
                     integrity   = "sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u"
                     crossOrigin = "anonymous" />
+
+                {# very temporary codemirror cdn}
+                <link rel="stylesheet" href="http://esironal.github.io/cmtouch/lib/codemirror.css" />
+
             </head>
             <body>
-                <div key='top' style={margin:'10px'}>
-                    CoCalc shared files
-                </div>
-
-                <div key='index' className="well"  style={margin:'20px'}>
-                    {@props.children}
+                <div style={display: 'flex', flexDirection: 'column', height: '100vh', width: '100vw', overflow: 'hidden'}>
+                    <div key='top' style={margin:'5px 5px 0'}>
+                        CoCalc shared files
+                    </div>
+                    <div key='index' className="well"  style={margin:'5px 5px 0', display: 'flex', flexDirection: 'column'}>
+                        {@props.children}
+                    </div>
                 </div>
             </body>
         </html>

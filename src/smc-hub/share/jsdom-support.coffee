@@ -18,3 +18,4 @@ global.$         = global.jQuery = DOM.window.$ = jQuery
 global.CodeMirror = DOM.window.CodeMirror = require('codemirror')
 require('codemirror/addon/runmode/runmode.js')
 require('smc-webapp/codemirror/mode/python.js')
+
