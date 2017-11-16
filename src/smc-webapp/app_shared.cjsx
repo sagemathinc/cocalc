@@ -390,7 +390,7 @@ exports.AppLogo = rclass
     displayName : 'AppLogo'
 
     render: ->
-        {APP_ICON} = require('./misc_page')
+        {APP_ICON} = require('./art')
         styles =
             display         : 'inline-block'
             backgroundImage : "url('#{APP_ICON}')"
