@@ -947,16 +947,15 @@ class ProjectActions extends Actions
 
             webapp_client.read_text_file_from_project
                 project_id : @project_id
-                path       : '/ext/library/index.json'
+                path       : require('./library').examples_path + '/index.json'
                 cb         : (err, response) =>
                     if err
                         console.log("init_library/index: error reading file: #{err}")
                         cb(); return
                     try
                         data = misc.from_json(response.content)
-                        for k, v of data
-                            library = @get_store().library.set(k, v)
-                            @setState(library: library)
+                        library = @get_store().library.set('examples', data)
+                        @setState(library: library)
                     catch e
                         if DEBUG then console.log("init_library/index: error parsing: #{e}")
                     cb()

@@ -26,6 +26,7 @@ misc_page = require('./misc_page')
 {React, ReactDOM, Actions, Store, Table, rtypes, rclass, Redux}  = require('./smc-react')
 {Col, Row, Button, ButtonGroup, ButtonToolbar, FormControl, FormGroup, Panel, Input,
 Well, SplitButton, MenuItem, Alert, ListGroup, ListGroupItem} = require('react-bootstrap')
+{Icon, Markdown, ProjectState, Space, TimeAgo} = require('./r_misc')
 {ErrorDisplay, Icon, Loading, TimeAgo, Tip, ImmutablePureRenderMixin, Space} = require('./r_misc')
 {webapp_client} = require('./webapp_client')
 
@@ -36,6 +37,13 @@ exports.LIBRARY = LIBRARY =
         src    : '/ext/library/first-steps/src'
         start  : 'first-steps.tasks'
 
+# https://github.com/sagemathinc/cocalc-examples
+exports.examples_path = ROOT = '/ext/library/cocalc-examples'
+
+sortBy = (key) ->
+    (list) ->
+        _.sortBy(list, (k) -> k[key]?.toLowerCase() ? k)
+
 exports.Library = rclass ({name}) ->
     displayName : 'Library'
 
@@ -45,16 +53,17 @@ exports.Library = rclass ({name}) ->
             library             : rtypes.object
 
     propTypes :
-        actions : rtypes.object.isRequired
+        actions  : rtypes.object.isRequired
 
     getInitialState: ->
         lang      : 'python'
         selected  : undefined
+        copy      : false
+
+    copy: (doc) ->
+        console.log("copy from", doc.src)
 
     selector: ->
-        console.log(@props.library)
-        if not @props.library?
-            return null
         list_style =
             maxHeight  : '200px'
             overflowX  : 'hidden'
@@ -62,33 +71,61 @@ exports.Library = rclass ({name}) ->
 
         <ListGroup style={list_style}>
         {
-            for k in _.sortBy(_.keys(@props.library), (k) => @props.library[k].name?.toLowerCase() ? k)
-                v = @props.library[k]
-                do (v, k) =>
-                    <ListGroupItem
-                        key     = {k}
-                        active  = {k == @state.selected}
-                        onClick = {=> @setState(selected:k)}
-                        style   = {width:'100%'}
-                    >
-                        {v.name ? k}
-                    </ListGroupItem>
+            examples = @props.library.examples
+            sortBy('title')(examples.documents).map (doc) =>
+                <ListGroupItem
+                    key     = {doc.id}
+                    active  = {doc.id == @state.selected?.id}
+                    onClick = {=> @setState(selected:doc)}
+                    style   = {width:'100%', margin: '2px'}
+                    bsSize  = {'small'}
+                >
+                    {doc.title ? doc.id}
+                </ListGroupItem>
         }
         </ListGroup>
 
     details: ->
-        if not @state.selected?
-            return null
-        <span>selected: {misc.to_json(@props.library[@state.selected])}</span>
+        return null if (not @state.selected?)
+        # {"title":"Data science Python notebooks","id":"doc-6","license":"a20",
+        # "src":"/ext/library/cocalc-examples/data-science-ipython-notebooks/",
+        # "description":"Data science Python notebooks: Deep learning ...\n"}
+        doc  = @state.selected
+        meta = @props.library.examples.metadata
+        <div>
+            <p>
+                <strong>{doc.title ? doc.id}</strong>
+                {" by #{doc.author}" if doc.author?}
+            </p>
+            {
+                if doc.description?
+                    <p style={color: '#666'}>
+                        <Markdown value={doc.description} />
+                    </p>
+            }
+            {<p>License: {meta.licenses[doc.license] ? doc.license}</p> if doc.license?}
+            {
+                if doc.tags?
+                    tags = ((meta.tags[t] ? t) for t in doc.tags)
+                    <p>Tags: {tags.join(', ')}</p>
+            }
+            <Button
+                bsStyle  = "success"
+                onClick  = {=> @copy(doc)}
+            >
+                Get a Copy
+            </Button>
+        </div>
 
     render: ->
+        #if DEBUG then console.log('library/selector/library:', @props.library)
+        return <Loading /> if not @props.library?.examples?
+
         <Row>
-            <Col sm=3>
+            <Col sm=4>
                 {@selector()}
             </Col>
-            <Col smc=3>
-                {@selector()}
-            <Col sm=6>
+            <Col sm=8>
                 {@details()}
             </Col>
         </Row>
