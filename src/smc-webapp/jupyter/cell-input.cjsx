@@ -118,12 +118,13 @@ exports.CellInput = rclass
         return options
 
     render_codemirror: (type) ->
-        if @props.actions? and (@props.is_current or @props.is_focused or @props.cell.get('cursors'))
+        options = @options(type)
+        if @props.actions? and (@props.is_current or @props.is_focused or @props.cell.get('cursors') or options.get('lineNumbers'))
             # Not static public view *and* either the cell is focused or has
             # cursors on it, so we use the full slow editable codemirror rendering.
             <CodeMirror
                 value         = {@props.cell.get('input') ? ''}
-                options       = {@options(type)}
+                options       = {options}
                 actions       = {@props.actions}
                 id            = {@props.cell.get('id')}
                 is_focused    = {@props.is_focused}
@@ -134,7 +135,7 @@ exports.CellInput = rclass
             # Vastly faster renderer.
             <CodeMirrorStatic
                 value         = {@props.cell.get('input') ? ''}
-                options       = {@options(type)}
+                options       = {options}
                 actions       = {@props.actions}
                 id            = {@props.cell.get('id')}
                 font_size     = {@props.font_size}
