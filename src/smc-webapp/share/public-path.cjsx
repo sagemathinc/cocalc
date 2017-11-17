@@ -20,6 +20,9 @@ extensions = require('./extensions')
 
 {CodeMirrorStatic} = require('../jupyter/codemirror-static')
 
+SageWorksheet = require('../sagews/worksheet').Worksheet
+{parse_sagews}  = require('../sagews/parse-sagews')
+
 {PublicPathInfo} = require('./public-path-info')
 
 exports.PublicPath = rclass
@@ -54,6 +57,8 @@ exports.PublicPath = rclass
             </Redux>
             # TODO: need to call project_file.remove(path, redux, project_id, true) after
             # rendering is done!
+        else if ext == 'sagews'
+            <SageWorksheet  sagews={parse_sagews(@props.content)} />
         else if extensions.html[ext]
             return <HTML value={@props.content} />
         else if extensions.codemirror[ext]
