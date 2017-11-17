@@ -10,8 +10,8 @@ exports.get_listing = (dir, cb) ->
         if err
             cb(err)
             return
-        # filter hidden files
-        files = (fn for fn in files when fn.charAt(0) isnt '.')
+        # Do NOT filter hidden files (why would we? -- github doesn't)
+        ## files = (fn for fn in files when fn.charAt(0) isnt '.')
         get_metadata = (file, cb) ->
             obj = {name:file}
             # use lstat instead of stat so it works on symlinks too

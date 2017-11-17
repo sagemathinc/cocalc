@@ -17,12 +17,10 @@ misc         = require('smc-util/misc')
 
 listing = require('./listing')
 
-HEXCHARS = ("#{i}" for i in [0..9]).concat(String.fromCharCode(i) for i in [97..122])
+util    = require('./util')
 
-# redirect /[uuid] and /[uuid]?query=123 to /[uuid]/ and /[uuid]/?query=123
-redirect_to_directory = (req, res) ->
-    query = req.url.slice(req.path.length)
-    res.redirect(301, req.baseUrl + req.path + '/' + query)
+
+HEXCHARS = ("#{i}" for i in [0..9]).concat(String.fromCharCode(i) for i in [97..122])
 
 
 exports.raw_router = (opts) ->
@@ -118,7 +116,7 @@ exports.raw_router = (opts) ->
 
         # this must be /[uuid]
         if req.path.length == 37
-            redirect_to_directory(req, res)
+            util.redirect_to_directory(req, res)
             return
 
         d('project_id=', project_id)
@@ -158,7 +156,7 @@ serve_raw_path = (req, res, path, info) ->
             return
         if stats.isDirectory()
             # Actually a directory
-            redirect_to_directory(req, res)
+            util.redirect_to_directory(req, res)
         else
             res.sendFile(path)
 

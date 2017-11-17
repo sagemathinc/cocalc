@@ -11,30 +11,42 @@ misc                 = require('smc-util/misc')
 
 {React}              = require('smc-webapp/smc-react')
 {PublicPath}         = require('smc-webapp/share/public-path')
+{DirectoryListing}   = require('smc-webapp/share/directory-listing')
 
 
 extensions = require('smc-webapp/share/extensions')
 
+{get_listing}        = require('./listing')
+util                 = require('./util')
 
 
 exports.render_public_path = (opts) ->
     opts = defaults opts,
+        req    : required
         res    : required   # html response object
         info   : required   # immutable.js info about the public share
         dir    : required   # directory on diskcontaining files for this path
         react  : required
-        path   : undefined
+        path   : required
         viewer : required
 
         locals =
-            path_to_file: os_path.join(opts.dir, opts.info.get('path'))
+            path_to_file: os_path.join(opts.dir, opts.path)
         fs.lstat locals.path_to_file, (err, stats) ->
             if err
                 opts.res.sendStatus(404)
                 return
             if stats.isDirectory()
-                # TODO: show directory listing
-                opts.res.send("directory listing...")
+                if opts.path.slice(-1) != '/'
+                    util.redirect_to_directory(opts.req, opts.res)
+                    return
+
+                get_listing locals.path_to_file, (err, files) ->
+                    if err
+                        # TODO: show directory listing
+                        opts.res.send("Error getting directory listing -- #{err}")
+                    else
+                        opts.react opts.res, <DirectoryListing info={opts.info} files={files} viewer={opts.viewer} path={opts.path} />
                 return
             # stats.size
             # TODO: if too big... just show an error and direct raw download link
@@ -54,5 +66,5 @@ exports.render_public_path = (opts) ->
                 if err
                     opts.res.sendStatus(404)
                     return
-                opts.react opts.res, <PublicPath info={opts.info} content={locals.content} viewer={opts.viewer} />
+                opts.react opts.res, <PublicPath info={opts.info} content={locals.content} viewer={opts.viewer} path={opts.path} />
 
