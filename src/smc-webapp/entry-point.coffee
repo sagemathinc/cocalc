@@ -5,14 +5,13 @@ Explicitly set FULLY_REACT=true in src/webapp-smc.coffee to switch to this.
 ###
 
 # FUTURE: This is needed only for the old non-react editors; will go away.
-html = require('./console.html') + require('./editor.html') + require('./tasks.html') + require('./jupyter.html') + require('./interact.html') + require('./3d.html') + require('./d3.html')
+html = require('./console.html') + require('./editor.html') + require('./tasks.html') + require('./jupyter.html') + require('./sagews/interact.html') + require('./sagews/3d.html') + require('./sagews/d3.html')
 $('body').append(html)
 
 # deferred initialization of buttonbars until after global imports -- otherwise, the sagews sage mode bar might be blank
 {init_buttonbars} = require('./buttonbar')
 init_buttonbars()
 
-console.log 1
 # Load/initialize Redux-based react functionality
 {redux} = require('./smc-react')
 
@@ -24,7 +23,6 @@ require('./system_notifications')
 
 # Makes some things work. Like the save button
 require('./jquery_plugins')
-console.log 2
 
 # Initialize app stores, actions, etc.
 require('./init_app')

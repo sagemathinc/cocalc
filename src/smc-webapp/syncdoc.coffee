@@ -28,9 +28,6 @@ misc_page = require('./misc_page')
 message  = require('smc-util/message')
 markdown = require('./markdown')
 
-# Define interact jQuery plugins - used only by sage worksheets
-require('./interact')
-
 {webapp_client} = require('./webapp_client')
 {alert_message} = require('./alerts')
 

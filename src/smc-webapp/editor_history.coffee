@@ -32,7 +32,7 @@ misc = require('smc-util/misc')
 {redux} = require('./smc-react')
 {FileEditor, codemirror_session_editor} = require('./editor')
 
-sagews  = require('./sagews')
+sagews  = require('./sagews/sagews')
 jupyter = require('./editor_jupyter')
 {jupyter_history_viewer_jquery_shim} = require('./jupyter/history-viewer')
 tasks   = require('./tasks')

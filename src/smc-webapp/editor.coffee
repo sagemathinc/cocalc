@@ -63,7 +63,7 @@ require('./console')
  len, path_split, uuid} = require('smc-util/misc')
 
 syncdoc  = require('./syncdoc')
-sagews   = require('./sagews')
+sagews   = require('./sagews/sagews')
 printing = require('./printing')
 
 copypaste = require('./copy-paste-buffer')
