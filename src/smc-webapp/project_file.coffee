@@ -22,7 +22,7 @@ Supplies the interface for creating file editors in the webapp
 
 ###
 
-{file_associations} = require('./editor')
+{file_associations} = require('./file-associations')
 
 # I factored out the pure javascript code that doesnt require a bunch of very frontend-ish stuff
 # here, but still want this file to provide these as exports, so I don't have to change code

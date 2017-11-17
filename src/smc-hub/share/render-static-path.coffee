@@ -17,7 +17,7 @@ exports.render_static_path = (opts) ->
         res   : required
         req   : required
         info  : required   # immutable info about the public share
-        dir   : required   # directory on diskcontaining files for this path
+        dir   : required   # directory on disk containing files for this path
         path  : required
 
     s_static = serve_static(dir, {'index': ['index.html', 'index.htm']})

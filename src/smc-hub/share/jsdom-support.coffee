@@ -16,5 +16,8 @@ global.$         = global.jQuery = DOM.window.$ = jQuery
 
 # ensure the global variable window.CodeMirror is defined.
 global.CodeMirror = DOM.window.CodeMirror = require('codemirror')
-require('codemirror/addon/runmode/runmode.js')
-require('smc-webapp/codemirror/mode/python.js')
+require('codemirror/addon/runmode/runmode')
+require('smc-webapp/codemirror/mode/python')
+require('codemirror/mode/stex/stex')
+require('smc-webapp/codemirror/custom-modes')
+

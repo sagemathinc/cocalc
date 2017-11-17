@@ -3,7 +3,6 @@
 window.CodeMirror = CodeMirror = require('codemirror')
 
 
-require('codemirror/addon/mode/multiplex.js')
 require('codemirror/addon/mode/overlay.js')
 require('codemirror/addon/selection/active-line.js')
 require('codemirror/addon/comment/comment.js')

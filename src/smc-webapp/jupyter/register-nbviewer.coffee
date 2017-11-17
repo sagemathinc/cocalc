@@ -14,7 +14,6 @@ be used on the backend.
 {NBViewerActions}      = require('./nbviewer-actions')
 
 exports.register = (webapp_client) ->
-    console.log 'webapp_client =', webapp_client
     register_file_editor
         ext       : ['ipynb']
 

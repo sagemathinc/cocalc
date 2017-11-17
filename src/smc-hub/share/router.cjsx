@@ -14,7 +14,6 @@ misc                 = require('smc-util/misc')
 {defaults, required} = misc
 
 react_support        = require('./react')
-{Landing}            = require('smc-webapp/share/landing')
 {PublicPathsBrowser} = require('smc-webapp/share/public-paths-browser')
 {Page}               = require('smc-webapp/share/page')
 {get_public_paths}   = require('./public_paths')
@@ -22,8 +21,9 @@ react_support        = require('./react')
 {render_static_path} = require('./render-static-path')
 
 
-react = (res, component) ->
-    react_support.react(res, <Page>{component}</Page>)
+react_viewer = (path, project_id) ->
+    (res, component) ->
+        react_support.react(res, <Page path={path} project_id={project_id}>{component}</Page>)
 
 exports.share_router = (opts) ->
     opts = defaults opts,
@@ -67,12 +67,12 @@ exports.share_router = (opts) ->
     router = express.Router()
 
     router.get '/', (req, res) ->
+        if req.originalUrl.slice(-1) != '/'
+            # note: req.path already has the slash added.
+            res.redirect(301, req.baseUrl + req.path)
+            return
         ready ->
-            react res, <Landing public_paths = {public_paths.get()} />
-
-    router.get '/paths', (req, res) ->
-        ready ->
-            react res, <PublicPathsBrowser
+            react_viewer('/') res, <PublicPathsBrowser
                 page_number  = {parseInt(req.query.page ? 0)}
                 page_size    = {PAGE_SIZE}
                 public_paths = {public_paths.get()} />
@@ -84,13 +84,17 @@ exports.share_router = (opts) ->
                 res.sendStatus(404)
                 return
             path = req.params[0]
-            dir = path_to_files(info.get('project_id'))
+            if not path?
+                res.sendStatus(404)
+                return
+            dir  = path_to_files(info.get('project_id'))
             if req.query.viewer?
                 if req.query.viewer == 'embed'
                     r = react_support.react
                 else
-                    r = react
+                    r = react_viewer("/#{req.params.id}/#{path}", info.get('project_id'))
                 render_public_path
+                    req    : req
                     res    : res
                     info   : info
                     dir    : dir

@@ -31,6 +31,8 @@ immutable  = require('immutable')
 {file_action_buttons} = require('./project_files')
 {ProjectTitleAuto} = require('./projects')
 
+{file_associations} = require('./file-associations')
+
 
 LogMessage = rclass
     displayName : 'ProjectLog-LogMessage'
@@ -253,7 +255,7 @@ LogEntry = rclass
             when 'open_project'
                 return 'folder-open-o'
             when 'open' # open a file
-                x = require('./editor').file_associations[@props.event.type]?.icon
+                x = file_associations[@props.event.type]?.icon
                 if x?
                     if x.slice(0,3) == 'fa-'  # temporary -- until change code there?
                         x = x.slice(3)

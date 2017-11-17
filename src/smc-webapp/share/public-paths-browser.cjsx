@@ -4,6 +4,16 @@ Share server top-level landing page.
 
 {rclass, React, ReactDOM, rtypes} = require('../smc-react')
 
+{Space} = require('../r_misc')
+
+INDEX_STYLE =
+    margin     : '5px'
+    overflow   : 'auto'
+    height     : '100%'
+    border     : '1px solid black'
+    padding    : '15px'
+    background : 'white'
+
 exports.PublicPathsBrowser = rclass
     displayName: "PublicPathsBrowser"
 
@@ -40,20 +50,18 @@ exports.PublicPathsBrowser = rclass
         for i in [@props.page_size * @props.page_number ... @props.page_size * (@props.page_number + 1)]
             if ids[i]
                 @render_public_path_link(ids[i])
+
     render: ->
-        <div>
-            <div key='top' style={margin:'30px'}>
-                <h1>CoCalc public shared files browser</h1>
+        <div style={display:'flex', flexDirection:'column'}>
+            <div key='top'>
                 {@render_overview()}
-                <br/>
+                <Space />
                 {@render_prev_page()}
-                <br/>
+                <Space />
                 {@render_next_page()}
             </div>
 
-            <hr />
-
-            <div key='index' style={margin:'30px'}>
+            <div key='index' style={INDEX_STYLE}>
                 {@render_index()}
             </div>
         </div>

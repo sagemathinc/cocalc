@@ -41,7 +41,7 @@ Draggable = require('react-draggable')
 {DiskSpaceWarning, RamWarning} = require('./project_warnings')
 
 project_file = require('./project_file')
-{file_associations} = require('./editor')
+{file_associations} = require('./file-associations')
 
 {React, ReactDOM, rclass, redux, rtypes, Redux} = require('./smc-react')
 {Icon, Tip, COLORS, Loading, Space} = require('./r_misc')
