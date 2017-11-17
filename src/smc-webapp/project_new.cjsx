@@ -393,7 +393,7 @@ FileUpload = rclass ({name}) ->
             <Col sm=3>
                 <h4><Icon name='cloud-upload' /> Upload files from your computer</h4>
             </Col>
-            <Col sm=8>
+            <Col sm=9>
                 <SMC_Dropzone
                     dropzone_handler     = {{}}
                     project_id           = @props.project_id
@@ -414,7 +414,7 @@ exports.ProjectNew = rclass ({name}) ->
                 <Col sm=3>
                     <h4><Icon name='book' /> Library</h4>
                 </Col>
-                <Col sm=8>
+                <Col sm=9>
                     <Library project_id={@props.project_id} name={@props.name} actions={@actions(name)} />
                 </Col>
             </Row>

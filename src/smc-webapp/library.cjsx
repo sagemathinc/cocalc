@@ -38,7 +38,7 @@ exports.LIBRARY = LIBRARY =
         src    : '/ext/library/first-steps/src'
         start  : 'first-steps.tasks'
 
-HEIGHT = '200px'
+HEIGHT = '250px'
 
 # https://github.com/sagemathinc/cocalc-examples
 exports.examples_path = ROOT = '/ext/library/cocalc-examples'
@@ -52,6 +52,7 @@ exports.Library = rclass ({name}) ->
 
     reduxProps :
         "#{name}" :
+            project_id          : rtypes.string
             current_path        : rtypes.string
             library             : rtypes.object
 
@@ -59,9 +60,10 @@ exports.Library = rclass ({name}) ->
         actions  : rtypes.object.isRequired
 
     getInitialState: ->
-        lang      : 'python'
-        selected  : undefined
-        copy      : false
+        lang       : 'python'
+        selected   : undefined
+        copy       : false
+        show_thumb : false
 
     target_path: ->
         doc = @state.selected
@@ -102,7 +104,7 @@ exports.Library = rclass ({name}) ->
                 <ListGroupItem
                     key     = {doc.id}
                     active  = {doc.id == @state.selected?.id}
-                    onClick = {=> @setState(selected:doc)}
+                    onClick = {=> @setState(selected:doc, show_thumb:false)}
                     style   = {width:'100%', margin: '2px'}
                     bsSize  = {'small'}
                 >
@@ -111,8 +113,37 @@ exports.Library = rclass ({name}) ->
         }
         </ListGroup>
 
+    thumbnail: ->
+        return null if (not @state.selected.thumbnail?) or (not @props.project_id)
+
+        img_path = webapp_client.read_file_from_project
+            project_id : @props.project_id
+            path       : @state.selected.thumbnail
+
+        #div_style =
+            #padding   : '0px 5px 5px 5px'
+            #width     : '150px'
+            #textAlign : 'right'
+            #marginLeft: '15px'
+
+        img_style =
+            display   : if @state.show_thumb then 'block' else 'none'
+            maxHeight : '100%'
+            maxWidth  : '100%'
+            border    : '1px solid #666'
+            boxShadow : '3px 3px 1px #666'
+
+        #<div class="pull-right" style={div_style}>
+        #    
+        #</div>
+
+        return <img src={img_path} style={img_style} onLoad={=> @setState(show_thumb:true)} />
+
+        
+
     details: ->
         return null if (not @state.selected?)
+        # example:
         # {"title":"Data science Python notebooks","id":"doc-6","license":"a20",
         # "src":"/ext/library/cocalc-examples/data-science-ipython-notebooks/",
         # "description":"Data science Python notebooks: Deep learning ...\n"}
@@ -157,12 +188,10 @@ exports.Library = rclass ({name}) ->
     render: ->
         #if DEBUG then console.log('library/selector/library:', @props.library)
         return <Loading /> if not @props.library?.examples?
+        thumb = @state.selected?.thumbnail
 
         <Row>
-            <Col sm=4>
-                {@selector()}
-            </Col>
-            <Col sm=8>
-                {@details()}
-            </Col>
+            <Col sm=4>{@selector()}</Col>
+            <Col sm={if thumb then 6 else 8}>{@details()}</Col>
+            {<Col sm=2>{@thumbnail()}</Col> if thumb}
         </Row>
