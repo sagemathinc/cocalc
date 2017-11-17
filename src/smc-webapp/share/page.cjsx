@@ -6,6 +6,8 @@ Share server top-level landing page.
 
 {r_join, Space} = require('../r_misc')
 
+{SITE_NAME, BASE_URL} = require('smc-util/theme')
+
 CoCalcLogo = rclass
     render: ->
         # TODO, obviously
@@ -51,8 +53,8 @@ exports.Page = rclass
             if @props.project_id
                 i = @props.path.slice(1).indexOf('/')
                 proj_url = "#{top}/../projects/#{@props.project_id}/files/#{@props.path.slice(2+i)}?session=share"
-                project = <a target="_blank" href={proj_url} className='pull-right'>
-                    Open in CoCalc...
+                project = <a target="_blank" href={proj_url} className='pull-right' rel='nofollow'>
+                    {"Open in #{SITE_NAME}..."}
                 </a>
 
         <div key='top' style={fontSize:'12pt', borderBottom: '1px solid grey', padding: '5px', background:'#dfdfdf'}>
