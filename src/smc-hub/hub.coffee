@@ -590,7 +590,6 @@ exports.start_server = start_server = (cb) ->
             async.parallel([
                 (cb) ->
                     # init authentication via passport (requires database)
-                    console.log("INIT PASSPORTS")
                     auth.init_passport
                         router   : express_router
                         database : database
