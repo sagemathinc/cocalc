@@ -66,7 +66,12 @@ exports.PublicPath = rclass
 
     render: ->
         if @props.viewer == 'embed'
-            return <div>{@render_view()}</div>
+            embed = <html>
+                        <head><meta name="robots" content="noindex, nofollow" /></head>
+                        <body>{@render_view()}</body>
+                    </html>
+            return embed
+
         <div style={display: 'flex', flexDirection: 'column'}>
             <PublicPathInfo path={@props.path} info={@props.info} />
             <div style={padding: '10px', background: 'white', overflow:'auto'}>

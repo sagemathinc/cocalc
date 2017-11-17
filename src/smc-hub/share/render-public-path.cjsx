@@ -25,7 +25,7 @@ exports.render_public_path = (opts) ->
         req    : required
         res    : required   # html response object
         info   : required   # immutable.js info about the public share
-        dir    : required   # directory on diskcontaining files for this path
+        dir    : required   # directory on disk containing files for this path
         react  : required
         path   : required
         viewer : required
