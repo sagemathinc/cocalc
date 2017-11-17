@@ -372,7 +372,7 @@ exports.HelpPage = HelpPage = rclass
 
         {SmcWikiUrl}      = require('./customize')
         {ShowSupportLink} = require('./support')
-        {APP_LOGO}        = require('./misc_page')
+        {APP_LOGO}        = require('./art')
 
         <Row style={padding:'10px', margin:'0px', overflow:'auto'}>
             <Col sm=10 smOffset=1 md=8 mdOffset=2 xs=12>

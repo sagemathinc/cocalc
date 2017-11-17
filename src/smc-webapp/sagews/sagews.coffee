@@ -25,21 +25,25 @@ stringify = require('json-stable-stringify')
 
 {MARKERS, FLAGS, ACTION_FLAGS, ACTION_SESSION_FLAGS} = require('smc-util/sagews')
 
-{SynchronizedDocument2} = require('./syncdoc')
+{SynchronizedDocument2} = require('../syncdoc')
 
 misc                 = require('smc-util/misc')
 {defaults, required} = misc
 
-misc_page         = require('./misc_page')
+misc_page         = require('../misc_page')
 message           = require('smc-util/message')
-markdown          = require('./markdown')
-{webapp_client}   = require('./webapp_client')
-{redux}           = require('./smc-react')
-{alert_message}   = require('./alerts')
+markdown          = require('../markdown')
+{webapp_client}   = require('../webapp_client')
+{redux}           = require('../smc-react')
+{alert_message}   = require('../alerts')
 
 {sagews_eval}     = require('./sagews-eval')
 
-{IS_TOUCH}       = require('./feature')
+# Define interact jQuery plugins - used only by sage worksheets
+require('./interact')
+
+
+{IS_TOUCH}       = require('../feature')
 
 templates           = $("#webapp-editor-templates")
 cell_start_template = templates.find(".sagews-input")

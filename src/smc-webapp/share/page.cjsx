@@ -4,60 +4,90 @@ Share server top-level landing page.
 
 {rclass, React, ReactDOM, rtypes} = require('../smc-react')
 
+{r_join, Space} = require('../r_misc')
+
+{SITE_NAME, BASE_URL} = require('smc-util/theme')
+
+CoCalcLogo = rclass
+    render: ->
+        # TODO, obviously
+        <img style={height:'36px'} src="https://cocalc.com/static/22a44ebc294424c3ea218fba1cb7c8df.svg" />
+
+
 exports.Page = rclass
     displayName: "Page"
 
-    # this is ugly but at least it helps with development to have the styles available
-    inject_css: ->
-        {DOMAIN_NAME} = require('smc-util/theme')
-        code = {__html : """
-        var r = new XMLHttpRequest();
-        var d = null;
-        r.open('GET', '#{DOMAIN_NAME}/assets.json', true);
-        r.onreadystatechange = function() {
-            if (! (r.readyState === XMLHttpRequest.DONE && r.status === 200)) {return};
-            try {
-                d = JSON.parse(r.responseText);
-                console.log(d);
-                /* TODO too optimistic */
-                css_url = d['css']['js'];
-                var css_js = document.createElement('script');
-                css_js.type = 'text/javascript';
-                css_js.onload = function() {
-                    html = document.documentElement;
-                    html.className = html.className.replace(/\\bno-js\\b/, 'js');
-                };
-                css_js.src = '#{DOMAIN_NAME}/' + css_url;
-                console.log(css_js.src)
-                document.getElementsByTagName('head')[0].appendChild(css_js);
-            } catch (e) {
-                console.log(e);
-            }
-        };
-        r.send();
-        """}
-        <script type='text/javascript' dangerouslySetInnerHTML={code} />
+    propTypes :
+        path       : rtypes.string.isRequired   # the path with no base url to the currently displayed file, directory, etc.
+        project_id : rtypes.string              # only defined if we are viewing something in a project
+
+    render_topbar: ->
+        project = undefined
+        if @props.path == '/'
+            top = '.'
+            path = <span/>
+        else
+            v = @props.path.split('/').slice(2)
+            top = ('..' for x in v).join('/')
+            if v.length > 0 and v[v.length-1] == ''
+                v = v.slice(0, v.length-1)
+            segments = []
+            t = ''
+            v.reverse()
+            for s in v
+                href = "#{t}?viewer=share"
+                if t
+                    segments.push(<a key={t} href={href}>{s}</a>)
+                else
+                    segments.push(<span key={t}>{s}</span>)
+                if not t
+                    if @props.path.slice(-1) == '/'
+                        t = '..'
+                    else
+                        t = '.'
+                else
+                    t += '/..'
+            segments.reverse()
+            path = r_join(segments, <span style={margin:'0 5px'}> / </span>)
+
+            if @props.project_id
+                i = @props.path.slice(1).indexOf('/')
+                proj_url = "#{top}/../projects/#{@props.project_id}/files/#{@props.path.slice(2+i)}?session=share"
+                project = <a target="_blank" href={proj_url} className='pull-right' rel='nofollow'>
+                    {"Open in #{SITE_NAME}..."}
+                </a>
+
+        <div key='top' style={fontSize:'12pt', borderBottom: '1px solid grey', padding: '5px', background:'#dfdfdf'}>
+            <span style={marginRight:'10px'}>
+                <a href={top}><CoCalcLogo /> Shared</a>
+            </span>
+            <span style={paddingLeft: '15px', borderLeft: '1px solid black', marginLeft: '15px'}>
+                {path}
+            </span>
+            {project}
+        </div>
 
     render: ->
-        # I commented out the css stuff, because it causes a very annoying "flicker", and it isn't
-        # needed for this first rough draft to establish and figure out what the map/functionality of the site
-        # actually is...
-        #css = {__html : 'html.no-js{display : none;}'}
-        <html className="no-js">
+        <html>
             <head>
-                <title>CoCalc public shared files</title>
-                {# <style dangerouslySetInnerHTML={css} />}
-                {# @inject_css() }
+                <title>CoCalc shared files</title>
+                {# bootstrap CDN #}
+                <link
+                    rel         = "stylesheet"
+                    href        = "https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css"
+                    integrity   = "sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u"
+                    crossOrigin = "anonymous" />
+
+                {# codemirror CDN -- https://cdnjs.com/libraries/codemirror #}
+                <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.31.0/codemirror.min.css" />
+
             </head>
             <body>
-                <div key='top' className="well" style={margin:'30px'}>
-                    <h1>CoCalc public shared files</h1>
-                </div>
-
-                <hr />
-
-                <div key='index' className="well"  style={margin:'30px'}>
-                    {@props.children}
+                <div style={display: 'flex', flexDirection: 'column', height: '100vh', width: '100vw', overflow: 'hidden'}>
+                    {@render_topbar()}
+                    <div key='index' style={display: 'flex', flexDirection: 'column'}>
+                        {@props.children}
+                    </div>
                 </div>
             </body>
         </html>

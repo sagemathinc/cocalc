@@ -298,7 +298,7 @@ class ProjectsActions extends Actions
                     cb    : (err, resp) =>
                         if not err
                             title = resp?.query?[table]?.title
-                        title ?= "PRIVATE -- Admin req"
+                        title ?= "No Title"
                         @setState(public_project_titles : store.get('public_project_titles').set(project_id, title))
 
     # If something needs the store to fill in

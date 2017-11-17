@@ -1,5 +1,6 @@
 ###
-Temporary support for jupyter classic...  Only load this in the browser, obviously.
+Temporary support for jupyter classic...  Only load this in the browser, obviously,
+and **after** the account store.
 ###
 
 {redux} = require('../smc-react')
