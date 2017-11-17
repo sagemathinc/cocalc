@@ -709,8 +709,8 @@ class exports.PostgreSQL extends PostgreSQL
                 else if not x?
                     opts.cb("no such email address")
                 else
-                    verified = opts.email_address in misc.keys(x.email_address_verified)
-                    opts.cb(null, verified)
+                    verified = !!x.email_address_verified?[opts.email_address]
+                    opts.cb(undefined, verified)
 
     ###
     Stripe support for accounts

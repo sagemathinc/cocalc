@@ -251,7 +251,7 @@ welcome_email_html = (token_url) -> """
 </p>
 
 <p style="margin-top:0;margin-bottom:20px;">
-You receive this email because an account with your email address was created.
+You received this email because an account with your email address was created.
 This was either initiated by you, a friend or colleague invited you, or you're a student as part of a course.
 </p>
 
