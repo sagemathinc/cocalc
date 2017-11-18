@@ -26,7 +26,4 @@ exports.Worksheet = rclass
     render: ->
         <div>
             {@render_cells()}
-            <pre>
-                {JSON.stringify(@props.sagews, null, 2)}
-            </pre>
         </div>
