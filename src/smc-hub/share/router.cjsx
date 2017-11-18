@@ -30,6 +30,9 @@ exports.share_router = (opts) ->
         database : required
         path     : required
         logger   : undefined
+        base_url : undefined
+
+    global.window['app_base_url'] = opts.base_url
 
     if opts.logger?
         dbg = (args...) ->

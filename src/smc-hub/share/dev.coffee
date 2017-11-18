@@ -24,7 +24,7 @@ exports.init = (opts) ->
         raw_path       : undefined
         logger         : undefined
 
-    opts.logger?.debug("initializing server using share_path='#{opts.share_path}', raw_path='#{opts.raw_path}'")
+    opts.logger?.debug("initializing share dev server using share_path='#{opts.share_path}', raw_path='#{opts.raw_path}', base_url='#{opts.base_url}'")
 
     # Create an express application
     router = express.Router()
@@ -55,6 +55,7 @@ exports.init = (opts) ->
         app.use(opts.base_url, router)
         app.use(opts.base_url + '/raw',   raw_router)   if opts.raw_path
         app.use(opts.base_url + '/share', share_router) if opts.share_path
+        global.window?['app_base_url'] = opts.base_url
     else
         app.use(router)
         app.use('/raw',   raw_router)   if opts.raw_path

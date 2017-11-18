@@ -79,7 +79,7 @@ exports.PublicPath = rclass
 
         <div style={display: 'flex', flexDirection: 'column'}>
             <PublicPathInfo path={@props.path} info={@props.info} />
-            <div style={padding: '10px', background: 'white', overflow:'auto'}>
+            <div style={padding: '10px', background: 'white', overflow:'auto', margin:'10px 3%', border: '1px solid lightgrey'}>
                 {@render_view()}
             </div>
         </div>

@@ -1575,7 +1575,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
 
             if not val.show? or val.show
                 if val.url?
-                    target = val.url + "?nocache=#{Math.random()}"  # randomize to dis-allow caching, since frequently used for images with one name that change
+                    target = val.url + "?nocache=#{Math.random()}"  # randomize to dis-allow caching, since frequently used for images with one name that changes
                 else
                     target = "#{window.app_base_url}/blobs/#{misc.encode_path(val.filename)}?uuid=#{val.uuid}"
                 switch misc.filename_extension(val.filename).toLowerCase()

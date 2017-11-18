@@ -21,7 +21,7 @@ exports.CellInput = rclass
 
     render_input: ->
         <CodeMirrorStatic
-            value   = {@props.input}
+            value   = {@props.input ? ''}
             options = {options}
             style   = {background:'white', padding:'10px'}
         />
