@@ -21,9 +21,9 @@ react_support        = require('./react')
 {render_static_path} = require('./render-static-path')
 
 
-react_viewer = (path, project_id) ->
-    (res, component) ->
-        react_support.react(res, <Page path={path} project_id={project_id}>{component}</Page>)
+react_viewer = (path, project_id, notranslate) ->
+    (res, component, subtitle) ->
+        react_support.react(res, <Page path={path} project_id={project_id} subtitle={subtitle} notranslate={!!notranslate}>{component}</Page>)
 
 exports.share_router = (opts) ->
     opts = defaults opts,
@@ -75,11 +75,13 @@ exports.share_router = (opts) ->
             res.redirect(301, req.baseUrl + req.path)
             return
         ready ->
-            react_viewer('/') res, <PublicPathsBrowser
-                page_number  = {parseInt(req.query.page ? 1)}
+            page_number = parseInt(req.query.page ? 1)
+            page = <PublicPathsBrowser
+                page_number  = {page_number}
                 page_size    = {PAGE_SIZE}
                 paths_order  = {public_paths.order()}
                 public_paths = {public_paths.get()} />
+            react_viewer('/', undefined, true) res, page, "(#{page_number} of #{PAGE_SIZE})"
 
     router.get '/:id/*?', (req, res) ->
         ready ->
@@ -96,7 +98,7 @@ exports.share_router = (opts) ->
                 if req.query.viewer == 'embed'
                     r = react_support.react
                 else
-                    r = react_viewer("/#{req.params.id}/#{path}", info.get('project_id'))
+                    r = react_viewer("/#{req.params.id}/#{path}", info.get('project_id'), false)
                 render_public_path
                     req    : req
                     res    : res

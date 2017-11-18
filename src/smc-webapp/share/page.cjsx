@@ -20,6 +20,8 @@ exports.Page = rclass
     propTypes :
         path       : rtypes.string.isRequired   # the path with no base url to the currently displayed file, directory, etc.
         project_id : rtypes.string              # only defined if we are viewing something in a project
+        subtitle   : rtypes.string
+        notranslate: rtypes.bool
 
     render_topbar: ->
         project = undefined
@@ -57,7 +59,7 @@ exports.Page = rclass
                     {"Open in #{SITE_NAME}..."}
                 </a>
 
-        <div key='top' style={fontSize:'12pt', borderBottom: '1px solid grey', padding: '5px', background:'#dfdfdf'}>
+        <div key='top' style={fontSize:'12pt', borderBottom: '1px solid grey', padding: '5px', background:'#dfdfdf'} translate='no'>
             <span style={marginRight:'10px'}>
                 <a href={top}><CoCalcLogo /> Shared</a>
             </span>
@@ -67,10 +69,22 @@ exports.Page = rclass
             {project}
         </div>
 
+    title: ->
+        title = "#{SITE_NAME} shared files"
+        if @props.subtitle
+            title += " - #{@props.subtitle}"
+        <title>{title}</title>
+
+    notranslate: ->
+        # don't translate the index pages
+        return null if not @props.notranslate
+        <meta name="google" content="notranslate" />
+
     render: ->
-        <html>
+        <html lang="en">
             <head>
-                <title>CoCalc shared files</title>
+                {@title()}
+                {@notranslate()}
                 {# bootstrap CDN #}
                 <link
                     rel         = "stylesheet"
