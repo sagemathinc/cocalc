@@ -565,12 +565,15 @@ exports.start_server = start_server = (cb) ->
         (cb) ->
             if not program.share_port
                 cb(); return
+            t0 = new Date()
             winston.debug("initializing the share server on port #{program.share_port}")
+            winston.debug("...... (takes about 10 seconds) ......")
             x = require('./share/server').init
                 database       : database
                 base_url       : BASE_URL
                 share_path     : program.share_path
                 logger         : winston
+            winston.debug("Time to initialize share server (jsdom, etc.): #{(new Date() - t0)/1000} seconds")
             winston.debug("starting share express webserver listening on #{program.share_host}:#{program.port}")
             x.http_server.listen(program.share_port, program.host, cb)
         (cb) ->

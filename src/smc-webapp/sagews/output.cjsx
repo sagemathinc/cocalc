@@ -6,6 +6,8 @@ Rendering output part of a Sage worksheet cell
 
 misc = require('smc-util/misc')
 
+{FLAGS} = require('smc-util/sagews')
+
 exports.CellOutput = rclass
     displayName: "SageCell-Output"
 
@@ -26,6 +28,8 @@ exports.CellOutput = rclass
             @render_output_mesg(n)
 
     render: ->
+        if (@props.flags?.indexOf(FLAGS.hide_output) ? -1) != -1
+            return <span/>
         <pre>
             {@render_output()}
         </pre>
