@@ -31,6 +31,18 @@ class PublicPaths extends EventEmitter
     get: (id) =>
         return @_synctable.get(id)
 
+    # immutables List of ids that sorts the public_paths from newest (last edited) to oldest
+    order: =>
+        if @_order?
+            return @_order
+        v = []
+        @_synctable.get().forEach (val, id) =>
+            v.push([val.get('last_edited'), id])
+        v.sort((a,b) -> -misc.cmp(a[0] ? 0, b[0] ? 0))
+        ids = (x[1] for x in v)
+        @_order = immutable.fromJS(ids)
+        return @_order
+
     _init: (cb) =>
         @database.synctable
             table    : 'public_paths'
@@ -41,4 +53,7 @@ class PublicPaths extends EventEmitter
                     cb(err)
                 else
                     @_synctable = synctable
+                    @_synctable.on 'change', =>
+                        # just delete cached for now...; later could be more efficient...
+                        delete @_order
                     cb()

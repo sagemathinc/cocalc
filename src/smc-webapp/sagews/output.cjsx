@@ -134,7 +134,6 @@ process_messages = (output) ->
                 r[r.length-1] = {stderr: r[r.length-1].stderr + m.stderr}
                 continue
         r.push(m)
-    console.log r
     return r
 
 

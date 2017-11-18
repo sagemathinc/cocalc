@@ -3,7 +3,7 @@
 
 """
 
-PAGE_SIZE            = 100
+PAGE_SIZE            = 50
 
 
 os_path              = require('path')
@@ -70,14 +70,15 @@ exports.share_router = (opts) ->
     router = express.Router()
 
     router.get '/', (req, res) ->
-        if req.originalUrl.slice(-1) != '/'
+        if req.originalUrl.split('?')[0].slice(-1) != '/'
             # note: req.path already has the slash added.
             res.redirect(301, req.baseUrl + req.path)
             return
         ready ->
             react_viewer('/') res, <PublicPathsBrowser
-                page_number  = {parseInt(req.query.page ? 0)}
+                page_number  = {parseInt(req.query.page ? 1)}
                 page_size    = {PAGE_SIZE}
+                paths_order  = {public_paths.order()}
                 public_paths = {public_paths.get()} />
 
     router.get '/:id/*?', (req, res) ->
