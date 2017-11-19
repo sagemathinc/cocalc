@@ -14,7 +14,7 @@ exports.PublicPathInfo = rclass
     displayName: "PublicPathInfo"
 
     propTypes :
-        info : rtypes.immutable.Map.isRequired
+        info : rtypes.immutable.Map
         path : rtypes.string.isRequired
 
     render_external_links: ->
@@ -35,9 +35,11 @@ exports.PublicPathInfo = rclass
         </div>
 
     render_desc: ->
-        <div style={color:'#333', fontSize:'12pt', margin:'5px 10px'}>
-            {@props.info.get('description')}
-        </div>
+        desc = @props.info?.get('description')
+        if desc?
+            <div style={color:'#333', fontSize:'12pt', margin:'5px 10px'}>
+                {desc}
+            </div>
 
     render: ->
         <div style={background:"#ddd", borderBottom:'4px solid grey'}>

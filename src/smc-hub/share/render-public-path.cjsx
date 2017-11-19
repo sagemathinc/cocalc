@@ -24,7 +24,7 @@ exports.render_public_path = (opts) ->
     opts = defaults opts,
         req    : required
         res    : required   # html response object
-        info   : required   # immutable.js info about the public share
+        info   : undefined  # immutable.js info about the public share, if url starts with share id (as opposed to project_id)
         dir    : required   # directory on disk containing files for this path
         react  : required
         path   : required
@@ -34,6 +34,7 @@ exports.render_public_path = (opts) ->
             path_to_file: os_path.join(opts.dir, opts.path)
         fs.lstat locals.path_to_file, (err, stats) ->
             if err
+
                 opts.res.sendStatus(404)
                 return
             if stats.isDirectory()

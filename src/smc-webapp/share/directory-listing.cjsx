@@ -14,7 +14,7 @@ exports.DirectoryListing = rclass
     displayName: "DirectoryListing"
 
     propTypes :
-        info    : rtypes.immutable.Map.isRequired
+        info    : rtypes.immutable.Map
         files   : rtypes.array.isRequired
         viewer  : rtypes.string.isRequired
         path    : rtypes.string.isRequired

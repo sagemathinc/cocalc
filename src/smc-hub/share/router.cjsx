@@ -1,5 +1,5 @@
 """
-
+Router for public share server.
 
 """
 
@@ -99,20 +99,42 @@ exports.share_router = (opts) ->
 
     router.get '/:id/*?', (req, res) ->
         ready ->
-            info = public_paths.get(req.params.id)
-            if not info?
-                res.sendStatus(404)
-                return
+            if misc.is_valid_uuid_string(req.params.id)
+                # explicit project_id specified instead of sha1 hash id of share.
+                project_id = req.params.id
+                info = undefined
+            else
+                info = public_paths.get(req.params.id)
+                if not info?
+                    res.sendStatus(404)
+                    return
+                project_id = info.get('project_id')
+
             path = req.params[0]
             if not path?
                 res.sendStatus(404)
                 return
-            dir  = path_to_files(info.get('project_id'))
+
+            # Check that the requested path is definitely contained
+            # in a current valid non-disabled public path.  This is important so:
+            #   (a) if access is via public_path id and that path just got
+            #   revoked, but share server hasn't caught up and removed target,
+            #   then we want request to still be denied.
+            #   (b) when accessing by project_id, the only restriction would be
+            #   by what happens to be in the path to files.  So share server not having
+            #   updated yet is a problem, but ALSO, in some cases (dev server, docker personal)
+            #   that path is just to the live files in the project, so very dangerous.
+
+            if not public_paths.is_public(project_id, path)
+                res.sendStatus(404)
+                return
+
+            dir  = path_to_files(project_id)
             if req.query.viewer?
                 if req.query.viewer == 'embed'
                     r = react_support.react
                 else
-                    r = react_viewer(opts.base_url, "/#{req.params.id}/#{path}", info.get('project_id'), false)
+                    r = react_viewer(opts.base_url, "/#{req.params.id}/#{path}", project_id, false)
                 render_public_path
                     req    : req
                     res    : res
@@ -125,7 +147,6 @@ exports.share_router = (opts) ->
                 render_static_path
                     req   : req
                     res   : res
-                    info  : info
                     dir   : dir
                     path  : path
 

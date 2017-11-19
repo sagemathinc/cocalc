@@ -13,10 +13,9 @@ misc                 = require('smc-util/misc')
 # res = html response object
 # obj = immutable js data about this public path
 exports.render_static_path = (opts) ->
-    {req, res, info, dir, path} = defaults opts,
+    {req, res, dir, path} = defaults opts,
         res   : required
         req   : required
-        info  : required   # immutable info about the public share
         dir   : required   # directory on disk containing files for this path
         path  : required
 
