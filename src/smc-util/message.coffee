@@ -536,6 +536,12 @@ Example:
 ```
 """
 
+message
+    event         : 'send_verification_email'
+    id            : undefined
+    account_id    : required
+    only_verify   : undefined    # usually true, if false the full "welcome" email is sent
+
 # hub --> client
 # if error is true, that means the password was not changed; would
 # happen if password is wrong (message:'invalid password').

@@ -368,6 +368,29 @@ exports.init_passport = (opts) ->
     router.get '/auth/strategies', (req, res) ->
         res.json(strategies)
 
+    router.get '/auth/verify', (req, res) ->
+        res.header("Content-Type", "text/plain")
+        res.header('Cache-Control', 'private, no-cache, must-revalidate')
+        if not (req.query.token and req.query.email)
+            res.send("ERROR: I need email and corresponding token data")
+            return
+        email = decodeURIComponent(req.query.email)
+        # .toLowerCase() on purpose: some crazy MTAs transform everything to uppercase!
+        token = req.query.token.toLowerCase()
+        database.verify_email_check_token
+            email_address : email
+            token         : token
+            cb            : (err) ->
+                if err and err.indexOf('This email address is already verified') == -1
+                    res.send("Problem verifying your email address: #{err}")
+                else
+                    #res.send("Email verified!")
+                    {DOMAIN_NAME} = require('smc-util/theme')
+                    base_url      = require('./base-url').base_url()
+                    path          = require('path').join('/', base_url, '/app')
+                    url           = "#{DOMAIN_NAME}#{path}"
+                    res.redirect(301, url)
+
     # Set the site conf like this:
     #
     #  require 'c'; db()
@@ -376,6 +399,7 @@ exports.init_passport = (opts) ->
     #  or when doing development in a project  # TODO: far too brittle, especially the port/base_url stuff!
     #
     #  db.set_passport_settings(strategy:'site_conf', conf:{auth:'https://cocalc.com/project_uuid.../port/YYYYY/auth'}, cb:done())
+
 
 
     auth_url = undefined # gets set below
@@ -734,8 +758,15 @@ exports.init_passport = (opts) ->
             if not auth_url?
                 cb()
             else
-                async.parallel([init_local, init_google, init_github, init_facebook,
-                                init_dropbox, init_bitbucket, init_twitter], cb)
+                async.parallel([
+                    init_local,
+                    init_google,
+                    init_github,
+                    init_facebook,
+                    init_dropbox,
+                    init_bitbucket,
+                    init_twitter,
+                ], cb)
     ], (err) =>
         strategies.sort()
         strategies.unshift('email')
@@ -786,3 +817,23 @@ exports.is_password_correct = (opts) ->
         opts.cb("One of password_hash, account_id, or email_address must be specified.")
 
 
+exports.verify_email_send_token = (opts) ->
+    opts = defaults opts,
+        database      : required
+        account_id    : required
+        only_verify   : false
+        cb            : undefined
+
+    async.waterfall([
+        (cb) =>
+            opts.database.verify_email_create_token
+                account_id : opts.account_id
+                cb         : cb
+        (token, email_address, cb) =>
+            email = require('./email')
+            email.welcome_email
+                to          : email_address
+                token       : token
+                only_verify : opts.only_verify
+                cb          : cb
+    ], opts.cb)
