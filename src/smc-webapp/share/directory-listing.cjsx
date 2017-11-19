@@ -18,10 +18,13 @@ exports.DirectoryListing = rclass
         files   : rtypes.array.isRequired
         viewer  : rtypes.string.isRequired
         path    : rtypes.string.isRequired
+        hidden  : rtypes.bool  # if true, show hidden dot files (will be controlled by a query param)
 
     render_listing: ->
         i = 0
         for file in @props.files
+            if not @props.hidden and file.name[0] == '.'
+                continue
             if i % 2 == 0
                 style = {background: 'rgb(238, 238, 238)', padding:'5px 10px'}
             else

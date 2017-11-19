@@ -29,6 +29,7 @@ exports.render_public_path = (opts) ->
         react  : required
         path   : required
         viewer : required
+        hidden : false
 
         locals =
             path_to_file: os_path.join(opts.dir, opts.path)
@@ -47,7 +48,13 @@ exports.render_public_path = (opts) ->
                         # TODO: show directory listing
                         opts.res.send("Error getting directory listing -- #{err}")
                     else
-                        opts.react(opts.res, <DirectoryListing info={opts.info} files={files} viewer={opts.viewer} path={opts.path} />, opts.path)
+                        C = <DirectoryListing
+                                hidden = {opts.hidden}
+                                info   = {opts.info}
+                                files  = {files}
+                                viewer = {opts.viewer}
+                                path   = {opts.path} />
+                        opts.react(opts.res, C, opts.path)
                 return
             # stats.size
             # TODO: if too big... just show an error and direct raw download link

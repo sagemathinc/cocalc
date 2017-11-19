@@ -143,6 +143,7 @@ exports.share_router = (opts) ->
                     path   : path
                     react  : r
                     viewer : req.query.viewer
+                    hidden : req.query.hidden
             else
                 render_static_path
                     req   : req
