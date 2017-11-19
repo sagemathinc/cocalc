@@ -709,8 +709,9 @@ exports.HTML = rclass
         if not @_is_mounted  # see https://github.com/sagemathinc/cocalc/issues/1689
             cb()
             return
-        if @props.has_mathjax
-            $(ReactDOM.findDOMNode(@)).mathjax
+        node = $(ReactDOM.findDOMNode(@))
+        if @props.has_mathjax and node.mathjax?
+            node.mathjax
                 cb : () =>
                     # Awkward code, since cb may be called more than once if there
                     # where more than one node.
