@@ -27,8 +27,11 @@ exports.Page = rclass
         subtitle   : rtypes.string
         notranslate: rtypes.bool
         base_url   : rtypes.string.isRequired
+        viewer     : rtypes.string.isRequired   # 'share' or 'embed'
 
     render_topbar: ->
+        if @props.viewer == 'embed'
+            return
         project = undefined
         if @props.path == '/'
             top = '.'

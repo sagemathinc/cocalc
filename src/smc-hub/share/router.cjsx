@@ -21,14 +21,18 @@ react_support        = require('./react')
 {render_static_path} = require('./render-static-path')
 
 
-react_viewer = (base_url, path, project_id, notranslate) ->
-    (res, component, subtitle) ->
+react_viewer = (base_url, path, project_id, notranslate, viewer) ->
+    return (res, component, subtitle) ->
         the_page = <Page
             base_url    = {base_url}
             path        = {path}
             project_id  = {project_id}
             subtitle    = {subtitle}
-            notranslate = {!!notranslate}>{component}
+            notranslate = {!!notranslate}
+            viewer      = {viewer}>
+
+            {component}
+
         </Page>
         react_support.react(res, the_page)
 
@@ -95,7 +99,8 @@ exports.share_router = (opts) ->
                 page_size    = {PAGE_SIZE}
                 paths_order  = {public_paths.order()}
                 public_paths = {public_paths.get()} />
-            react_viewer(opts.base_url, '/', undefined, true) res, page, "#{page_number} of #{PAGE_SIZE}"
+            r = react_viewer(opts.base_url, '/', undefined, true, 'share')
+            r(res, page, "#{page_number} of #{PAGE_SIZE}")
 
     router.get '/:id/*?', (req, res) ->
         ready ->
@@ -130,19 +135,16 @@ exports.share_router = (opts) ->
                 return
 
             dir  = path_to_files(project_id)
-            if req.query.viewer?
-                if req.query.viewer == 'embed'
-                    r = react_support.react
-                else
-                    r = react_viewer(opts.base_url, "/#{req.params.id}/#{path}", project_id, false)
+            viewer = req.query.viewer
+            if viewer?
                 render_public_path
                     req    : req
                     res    : res
                     info   : info
                     dir    : dir
                     path   : path
-                    react  : r
-                    viewer : req.query.viewer
+                    react  : react_viewer(opts.base_url, "/#{req.params.id}/#{path}", project_id, false, viewer)
+                    viewer : viewer
                     hidden : req.query.hidden
                     sort   : req.query.sort ? '-mtime'
             else
