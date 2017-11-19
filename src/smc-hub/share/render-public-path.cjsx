@@ -30,6 +30,7 @@ exports.render_public_path = (opts) ->
         path   : required
         viewer : required
         hidden : false
+        sort   : required   # e.g., '-mtime' = sort files in reverse by timestamp
 
         locals =
             path_to_file: os_path.join(opts.dir, opts.path)
@@ -48,6 +49,15 @@ exports.render_public_path = (opts) ->
                         # TODO: show directory listing
                         opts.res.send("Error getting directory listing -- #{err}")
                     else
+                        if opts.sort[0] == '-'
+                            reverse = true
+                            sort = opts.sort.slice(1)
+                        else
+                            reverse = false
+                            sort = opts.sort
+                        files.sort(misc.field_cmp(sort))
+                        if reverse
+                            files.reverse()
                         C = <DirectoryListing
                                 hidden = {opts.hidden}
                                 info   = {opts.info}

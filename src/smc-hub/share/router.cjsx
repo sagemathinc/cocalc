@@ -144,6 +144,7 @@ exports.share_router = (opts) ->
                     react  : r
                     viewer : req.query.viewer
                     hidden : req.query.hidden
+                    sort   : req.query.sort ? '-mtime'
             else
                 render_static_path
                     req   : req
