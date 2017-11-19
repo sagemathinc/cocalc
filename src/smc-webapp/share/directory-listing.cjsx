@@ -35,6 +35,7 @@ exports.DirectoryListing = rclass
                 viewer = {@props.viewer}
                 path   = {@props.path}
                 style  = {style}
+                key    = {file.name}
                 />
 
     render: ->

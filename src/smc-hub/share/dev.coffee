@@ -50,6 +50,7 @@ exports.init = (opts) ->
             database : opts.database
             path     : opts.share_path
             logger   : opts.logger
+            base_url : opts.base_url
 
     if opts.base_url
         app.use(opts.base_url, router)

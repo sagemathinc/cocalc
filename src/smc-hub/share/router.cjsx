@@ -21,16 +21,23 @@ react_support        = require('./react')
 {render_static_path} = require('./render-static-path')
 
 
-react_viewer = (path, project_id, notranslate) ->
+react_viewer = (base_url, path, project_id, notranslate) ->
     (res, component, subtitle) ->
-        react_support.react(res, <Page path={path} project_id={project_id} subtitle={subtitle} notranslate={!!notranslate}>{component}</Page>)
+        the_page = <Page
+            base_url    = {base_url}
+            path        = {path}
+            project_id  = {project_id}
+            subtitle    = {subtitle}
+            notranslate = {!!notranslate}>{component}
+        </Page>
+        react_support.react(res, the_page)
 
 exports.share_router = (opts) ->
     opts = defaults opts,
         database : required
         path     : required
         logger   : undefined
-        base_url : undefined
+        base_url : ''
 
     global.window['app_base_url'] = opts.base_url
 
@@ -39,6 +46,9 @@ exports.share_router = (opts) ->
             opts.logger.debug("share_router: ", args...)
     else
         dbg = ->
+
+    dbg("base_url = ", opts.base_url)
+    dbg("path = ", opts.path)
 
     if opts.path.indexOf('[project_id]') == -1
         # VERY BAD
@@ -69,6 +79,10 @@ exports.share_router = (opts) ->
 
     router = express.Router()
 
+    for name in ['favicon-32x32.png', 'cocalc-icon.svg']
+        router.use "/#{name}", express.static(os_path.join(process.env.SMC_ROOT, "webapp-lib/#{name}"),
+                                    {immutable:true, maxAge:86000000})
+
     router.get '/', (req, res) ->
         if req.originalUrl.split('?')[0].slice(-1) != '/'
             # note: req.path already has the slash added.
@@ -81,7 +95,7 @@ exports.share_router = (opts) ->
                 page_size    = {PAGE_SIZE}
                 paths_order  = {public_paths.order()}
                 public_paths = {public_paths.get()} />
-            react_viewer('/', undefined, true) res, page, "(#{page_number} of #{PAGE_SIZE})"
+            react_viewer(opts.base_url, '/', undefined, true) res, page, "#{page_number} of #{PAGE_SIZE}"
 
     router.get '/:id/*?', (req, res) ->
         ready ->
@@ -98,7 +112,7 @@ exports.share_router = (opts) ->
                 if req.query.viewer == 'embed'
                     r = react_support.react
                 else
-                    r = react_viewer("/#{req.params.id}/#{path}", info.get('project_id'), false)
+                    r = react_viewer(opts.base_url, "/#{req.params.id}/#{path}", info.get('project_id'), false)
                 render_public_path
                     req    : req
                     res    : res

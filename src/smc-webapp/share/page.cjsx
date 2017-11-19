@@ -9,9 +9,13 @@ Share server top-level landing page.
 {SITE_NAME, BASE_URL} = require('smc-util/theme')
 
 CoCalcLogo = rclass
+
+    propTypes :
+        base_url : rtypes.string.isRequired
+
     render: ->
         # TODO, obviously
-        <img style={height:'36px'} src="https://cocalc.com/static/22a44ebc294424c3ea218fba1cb7c8df.svg" />
+        <img style={height:'36px', width:'36px'} src="#{@props.base_url}/share/cocalc-icon.svg" />
 
 
 exports.Page = rclass
@@ -22,6 +26,7 @@ exports.Page = rclass
         project_id : rtypes.string              # only defined if we are viewing something in a project
         subtitle   : rtypes.string
         notranslate: rtypes.bool
+        base_url   : rtypes.string.isRequired
 
     render_topbar: ->
         project = undefined
@@ -61,7 +66,7 @@ exports.Page = rclass
 
         <div key='top' style={fontSize:'12pt', borderBottom: '1px solid grey', padding: '5px', background:'#dfdfdf'} translate='no'>
             <span style={marginRight:'10px'}>
-                <a href={top}><CoCalcLogo /> Shared</a>
+                <a href={top}><CoCalcLogo base_url={@props.base_url} /> Shared</a>
             </span>
             <span style={paddingLeft: '15px', borderLeft: '1px solid black', marginLeft: '15px'}>
                 {path}
@@ -70,7 +75,7 @@ exports.Page = rclass
         </div>
 
     title: ->
-        title = "#{SITE_NAME} shared files"
+        title = "Shared"
         if @props.subtitle
             title += " - #{@props.subtitle}"
         <title>{title}</title>
@@ -81,6 +86,7 @@ exports.Page = rclass
         <meta name="google" content="notranslate" />
 
     render: ->
+        favicon = "#{@props.base_url}/share/favicon-32x32.png"
         <html lang="en">
             <head>
                 {@title()}
@@ -95,6 +101,7 @@ exports.Page = rclass
                 {# codemirror CDN -- https://cdnjs.com/libraries/codemirror #}
                 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.31.0/codemirror.min.css" />
 
+                <link rel="shortcut icon" href={favicon} type="image/png" />
             </head>
             <body>
                 <div style={display: 'flex', flexDirection: 'column', height: '100vh', width: '100vw', overflow: 'hidden'}>
