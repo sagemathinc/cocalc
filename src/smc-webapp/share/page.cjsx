@@ -64,11 +64,10 @@ exports.Page = rclass
                 i = @props.path.slice(1).indexOf('/')
                 proj_url = "#{top}/../projects/#{@props.project_id}/files/#{@props.path.slice(2+i)}?session=share"
                 project = <a target="_blank" href={proj_url} className='pull-right' rel='nofollow'>
-                    {"Open in
- #{SITE_NAME}..."}
+                    {SITE_NAME}
                 </a>
 
-        <div key='top' style={fontSize:'12pt', borderBottom: '1px solid grey', padding: '5px', background:'#dfdfdf'} translate='no'>
+        <div key='top' style={fontSize:'12pt', padding: '5px', background:'#dfdfdf'} translate='no'>
             <span style={marginRight:'10px'}>
                 <a href={top}><CoCalcLogo base_url={@props.base_url} /> Shared</a>
             </span>

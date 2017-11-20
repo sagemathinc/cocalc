@@ -47,27 +47,36 @@ exports.PublicPath = rclass
         if not @props.content?
             return
 
+        mathjax = false
         if ext == 'md'
-            return <Markdown value={@props.content} />
+            mathjax = true
+            elt = <Markdown value={@props.content} />
         else if ext == 'ipynb'
             name   = file_editors.initialize(path, redux, undefined, true, @props.content)
             Viewer = file_editors.generate(path, redux, undefined, true)
-            <Redux redux={redux}>
+            mathjax = true
+            elt = <Redux redux={redux}>
                 <Viewer name={name} />
             </Redux>
             # TODO: need to call project_file.remove(path, redux, project_id, true) after
             # rendering is done!
         else if ext == 'sagews'
-            <SageWorksheet  sagews={parse_sagews(@props.content)} />
+            mathjax = true
+            elt = <SageWorksheet sagews={parse_sagews(@props.content)} />
         else if extensions.html[ext]
-            return <HTML value={@props.content} />
+            mathjax = true
+            elt = <HTML value={@props.content} />
         else if extensions.codemirror[ext]
             options = immutable.fromJS(extensions.codemirror[ext])
             #options = options.set('lineNumbers', true)
-            return <CodeMirrorStatic value={@props.content} options={options} style={background:'white', padding:'10px'}/>
+            elt = <CodeMirrorStatic value={@props.content} options={options} style={background:'white', padding:'10px'}/>
         else
-            return <pre>{@props.content}</pre>
+            elt = <pre>{@props.content}</pre>
 
+        if mathjax
+            return <div className='cocalc-share-mathjax'>{elt}</div>
+        else
+            return elt
 
     render: ->
         if @props.viewer == 'embed'
@@ -79,7 +88,7 @@ exports.PublicPath = rclass
 
         <div style={display: 'flex', flexDirection: 'column'}>
             <PublicPathInfo path={@props.path} info={@props.info} />
-            <div style={padding: '10px', background: 'white', overflow:'auto', margin:'10px 3%', border: '1px solid lightgrey'}>
+            <div style={padding: '10px', background: 'white', overflow:'auto', margin:'10px 3%'}>
                 {@render_view()}
             </div>
         </div>

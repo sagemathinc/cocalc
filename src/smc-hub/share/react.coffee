@@ -10,8 +10,11 @@ require('./jsdom-support')
 {mathjax} = require('./mathjax-support')
 
 exports.react = (res, component) ->
-    html = ReactDOMServer.renderToStaticMarkup(component)
-    mathjax html, (err, html) ->
-        res.send('<!DOCTYPE html>' + html)
+    html = '<!DOCTYPE html>' + ReactDOMServer.renderToStaticMarkup(component)
+    if html.indexOf('cocalc-share-mathjax') != -1
+        mathjax html, (err, html) ->
+            res.send(html)
+    else
+        res.send(html)
 
 

@@ -28,10 +28,10 @@ exports.PublicPathInfo = rclass
             raw_rel = 'nofollow'
 
         <div className='pull-right' style={margin: '5px 10px', fontSize: '12pt'}>
-            <a href={href} target='_blank' rel={raw_rel}>Raw...</a>
+            <a href={href} target='_blank' rel={raw_rel}>Raw</a>
             <Space/>
             <Space/>
-            <a href={href + '?viewer=embed'} target='_blank' rel='nofollow'>Embed...</a>
+            <a href={href + '?viewer=embed'} target='_blank' rel='nofollow'>Embed</a>
         </div>
 
     render_desc: ->
@@ -42,7 +42,7 @@ exports.PublicPathInfo = rclass
             </div>
 
     render: ->
-        <div style={background:"#ddd", borderBottom:'4px solid grey'}>
+        <div style={background:"#ddd"}>
             {@render_external_links()}
             {@render_desc()}
         </div>
