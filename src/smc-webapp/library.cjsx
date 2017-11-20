@@ -1,4 +1,4 @@
-###############################################################################
+##############################################################################
 #
 #    CoCalc: Collaborative Calculation in the Cloud
 #
@@ -17,7 +17,7 @@
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
-###############################################################################
+##############################################################################
 
 underscore = _ = require('underscore')
 misc = require('smc-util/misc')
@@ -30,6 +30,7 @@ Well, SplitButton, MenuItem, Alert, ListGroup, ListGroupItem} = require('react-b
 {Icon, Markdown, ProjectState, Space, TimeAgo} = require('./r_misc')
 {ErrorDisplay, Icon, Loading, TimeAgo, Tip, ImmutablePureRenderMixin, Space} = require('./r_misc')
 {webapp_client} = require('./webapp_client')
+{COLORS} = require('smc-util/theme')
 
 # src: where the library files are
 # start: open this file after copying the directory
@@ -55,6 +56,8 @@ exports.Library = rclass ({name}) ->
             project_id          : rtypes.string
             current_path        : rtypes.string
             library             : rtypes.object
+        projects:
+            project_map         : rtypes.immutable
 
     propTypes :
         actions  : rtypes.object.isRequired
@@ -93,9 +96,10 @@ exports.Library = rclass ({name}) ->
 
     selector: ->
         list_style =
-            maxHeight  : HEIGHT
-            overflowX  : 'hidden'
-            overflowY  : 'scroll'
+            maxHeight    : HEIGHT
+            overflowX    : 'hidden'
+            overflowY    : 'scroll'
+            borderBottom : "1px solid #{COLORS.GRAY_LL}"
 
         <ListGroup style={list_style}>
         {
@@ -134,12 +138,10 @@ exports.Library = rclass ({name}) ->
             boxShadow : '3px 3px 1px #666'
 
         #<div class="pull-right" style={div_style}>
-        #    
         #</div>
 
         return <img src={img_path} style={img_style} onLoad={=> @setState(show_thumb:true)} />
 
-        
 
     details: ->
         return null if (not @state.selected?)
@@ -187,9 +189,16 @@ exports.Library = rclass ({name}) ->
 
     render: ->
         #if DEBUG then console.log('library/selector/library:', @props.library)
-        return <Loading /> if not @props.library?.examples?
-        thumb = @state.selected?.thumbnail
+        project = @props.project_map?.get(@props.project_id)
+        state   = project?.get('state')?.get('state')
 
+        if state and state != 'running'
+            return <span>Project not running</span>
+
+        if not @props.library?.examples?
+            return <Loading />
+
+        thumb = @state.selected?.thumbnail
         <Row>
             <Col sm=4>{@selector()}</Col>
             <Col sm={if thumb then 6 else 8}>{@details()}</Col>

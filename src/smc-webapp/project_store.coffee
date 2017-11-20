@@ -92,6 +92,7 @@ exports.redux_name = key = (project_id, name) ->
         s += "-#{name}"
     return s
 
+_init_library_index_ongoing = {}
 
 class ProjectActions extends Actions
     _ensure_project_is_open: (cb, switch_to) =>
@@ -962,8 +963,46 @@ class ProjectActions extends Actions
 
         async.series([
             (cb) -> async.eachOfSeries(LIBRARY, check, cb)
-            (cb) -> index(cb)
+            #(cb) -> index(cb)
         ])
+
+    init_library_index: ->
+        return if @_init_library_index_ongoing[@project_id]
+        @_init_library_index_ongoing[@project_id] = true
+
+        {webapp_client} = require('./webapp_client')
+
+        index_json_url = webapp_client.read_file_from_project
+            project_id : @project_id
+            path       : '/ext/library/cocalc-examples/index.json'
+
+        fetch = (cb) =>
+            $.ajax(
+                url     : index_json_url
+                timeout : 5000
+                success : (content) =>
+                    if DEBUG then console.log("init_library/content", content)
+                    try
+                        #data = misc.from_json(content)
+                        data = content
+                        #for k, v of content
+                        #    console.log("init_library/index k, v:", k, v)
+                        library = @get_store().library.set('examples', data)
+                        @setState(library: library)
+                        @_init_library_index_ongoing[@project_id] = false
+                        cb()
+                    catch e
+                        cb(e)
+                        if DEBUG
+                            console.log("init_library/index: error parsing: #{e}")
+                ).fail (err) ->
+                    if DEBUG then console.log("init_library/index: error reading file: #{misc.to_json(err)}")
+                    cb(err.statusText ? 'error')
+
+        misc.retry_until_success
+            f           : fetch
+            start_delay : 1000
+            max_delay   : 10000
 
     copy_from_library: (opts) =>
         opts = defaults opts,
