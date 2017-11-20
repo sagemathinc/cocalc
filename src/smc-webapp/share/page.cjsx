@@ -64,7 +64,8 @@ exports.Page = rclass
                 i = @props.path.slice(1).indexOf('/')
                 proj_url = "#{top}/../projects/#{@props.project_id}/files/#{@props.path.slice(2+i)}?session=share"
                 project = <a target="_blank" href={proj_url} className='pull-right' rel='nofollow'>
-                    {"Open in #{SITE_NAME}..."}
+                    {"Open in
+ #{SITE_NAME}..."}
                 </a>
 
         <div key='top' style={fontSize:'12pt', borderBottom: '1px solid grey', padding: '5px', background:'#dfdfdf'} translate='no'>
@@ -88,6 +89,10 @@ exports.Page = rclass
         return null if not @props.notranslate
         <meta name="google" content="notranslate" />
 
+    render_noindex: ->
+        if @props.viewer == 'share'  # we want share to be indexed
+            return
+
     render: ->
         favicon = "#{@props.base_url}/share/favicon-32x32.png"
         <html lang="en">
@@ -105,6 +110,8 @@ exports.Page = rclass
                 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.31.0/codemirror.min.css" />
 
                 <link rel="shortcut icon" href={favicon} type="image/png" />
+
+                {@render_noindex()}
             </head>
             <body>
                 <div style={display: 'flex', flexDirection: 'column', height: '100vh', width: '100vw', overflow: 'hidden'}>

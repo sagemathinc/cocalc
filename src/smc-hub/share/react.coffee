@@ -7,8 +7,11 @@ ReactDOMServer = require('react-dom/server')
 
 require('./jsdom-support')
 
-# why string addition? see this closed (wontfix) ticket https://github.com/facebook/react/issues/1035#issuecomment-112500182
+{mathjax} = require('./mathjax-support')
+
 exports.react = (res, component) ->
-    res.send('<!DOCTYPE html>' + ReactDOMServer.renderToStaticMarkup(component))
+    html = ReactDOMServer.renderToStaticMarkup(component)
+    mathjax html, (err, html) ->
+        res.send('<!DOCTYPE html>' + html)
 
 
