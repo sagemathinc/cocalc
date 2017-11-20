@@ -7,6 +7,8 @@ block vars
 
 block header
   meta(name="description" content=NAME + ' - ' + subtitle)
+  script(type="text/javascript")
+    include:coffee-script index.coffee
 
 block content
   - var free_quotas = htmlWebpackPlugin.options.SCHEMA.DEFAULT_QUOTAS
@@ -29,13 +31,14 @@ block content
         h1 Run Jupyter Notebooks Online
       div.col-sm-6
         div.
-          Jupyter in #{NAME}
+          Jupyter Notebook in #{NAME}
         img(src=require("webapp-lib/assets/cocalc-jupyter2-20170508.png")).fit
         //- div.youtube-video-container
         //-  iframe(src="..." frameborder="0" allowfullscreen)
       div.col-sm-6
         p.
-          #{NAME} is an online web service that can run #[a(href="http://jupyter.org/") Jupyter Notebooks] right inside your browser.
+          #{NAME} is an online web service where you can
+          #[strong run #[a(href="http://jupyter.org/") Jupyter Notebooks] right inside your browser].
         p.
           It handles all these details for you:
           You no longer have to install the Python environment,
@@ -54,52 +57,66 @@ block content
           #[a(href="http://www.r-project.org/") R Statistical Software], #[a(href="http://julialang.org") Julia] and many more.
           Consult the #[a(href="./doc/software.html") Software overview page] for more information.
 
+
   a.anchor#a-unique
   div.space#unique
     div.container
       div.row
         div.col-md-12.center
           h1 #[i.fa.fa-exclamation-circle] Unique Features
-        div.col-md-6
+        div.col-md-12
           h2 #[i.fa.fa-history] Time-Travel
-          div.
-            All your changes are recorded in fine detail.
-            You can go back and forth in time across hundreds of changes to recover your previous edits.
-          br/
+        div.col-md-6
           div
             +video-player
               source(src="https://storage.googleapis.com/cocalc-extra/cocalc-jupyter2-timetravel-20170515-3x.webm" type="video/webm; codecs=vp9")
               source(src="https://storage.googleapis.com/cocalc-extra/cocalc-jupyter2-timetravel-20170515-3x.mp4" type="video/mp4")
         div.col-md-6
-          h2 #[i.fa.fa-camera-retro] Backups
           div.
-            Every couple of minutes, all files are saved in consistent read-only snapshots.
-            This means you can always recover older versions of your files
-            in case they got corrupted or accidentally deleted.
-          br/
-          div
-            img(src=require("webapp-lib/assets/cocalc-backup-1.png")).fit
+            All your changes are recorded in fine detail.
+            You can go back and forth in time across hundreds of changes to recover your previous edits.
+          div.
+            This allows you to easily recover parts of previous versions of your file,
+            by copy/pasting the part you accidentally changed.
+          div.
+            It also helps you to discover how you arrived at a particular solution and see what you (or your student) tried before.
       div.row
-        div.col-md-6
+        div.col-md-12
           h2 #[i.fa.fa-comments-o] Chat
-          div.
+        div.col-md-6
+          img(src=require("webapp-lib/assets/cocalc-chat-jupyter-20171120-2.png")).fit
+        div.col-md-6.
             A #[strong side-by-side] chat for each Jupyter file
             gives you the ability to discuss the content with your collegues.
             Collaborators who are not online will be notified about new messages the next time they sign in.
             Chat supports markdown formatting and Latex formulas.
-          br/
-          div
-            img(src=require("webapp-lib/assets/cocalc-chat-jupyter-20171120-2.png")).fit
-        div.col-md-6
+      div.row
+        div.col-md-12
           h2 #[i.fa.fa-fw.cc-icon-jupyter] Native Jupyter Notebooks
+        div.col-md-6
+          img(src=require("webapp-lib/assets/cocalc-jupyter2-20170508.png")).fit
+        div.col-md-6
           div.
             #{NAME} offers a #[strong complete rewrite] of the classical #[a(href="http://jupyter.org/") Jupyter Notebook] interface.
             It is tightly integrated into #{NAME} and adds real-time collaboration,
             time-travel history and
             #[a(href="http://blog.sagemath.com/jupyter/2017/05/05/jupyter-rewrite-for-smc.html") much more].
-          br/
-          div
-            img(src=require("webapp-lib/assets/cocalc-jupyter2-20170508.png")).fit
+          div.
+            This rewrite does not change the underlying Jupyter Notebook file format.
+            Therefore, you can download your #[code *.ipynb] file at any time and continue working with it in any other environment.
+          div.
+            Despite that, there is also support for the "Classical Notebook".
+            This assures that you can still use all libraries relying on the specifics of that implementation.
+            #{NAME} does add collaborative editing and a chat, too.
+      div.row
+        div.col-md-12
+          h2 #[i.fa.fa-camera-retro] Backups
+        div.col-md-6
+          img(src=require("webapp-lib/assets/cocalc-backup-1.png")).fit
+        div.col-md-6.
+            Every couple of minutes, all files in your project are saved in consistent read-only snapshots.
+            This means you can always recover older versions of your files
+            in case they got corrupted or accidentally deleted.
 
   div
     div.container

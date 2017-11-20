@@ -85,7 +85,7 @@ init_video = ->
         over = vplayer.getElementsByClassName("video-overlay")[0]
         do (vplayer, vid) ->
             vplayer.onclick = (el) ->
-                console.log vplayer, over, vid
+                #console.log vplayer, over, vid
                 vplayer.removeChild(over)
                 vid.setAttribute("controls", "true")
                 vid.setAttribute("loop", "true")
@@ -119,6 +119,7 @@ init_magic_anchors = ->
             header.appendChild(marker)
 
 document.addEventListener "DOMContentLoaded", ->
-    get_stats()
+    if document.getElementById('statstable')?
+        get_stats()
     init_video()
     init_magic_anchors()
