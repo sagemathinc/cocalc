@@ -121,9 +121,9 @@ exports.send_email = send_email = (opts={}) ->
             personalization = new helper.Personalization()
             personalization.setSubject(opts.subject)
             personalization.addTo(to_email)
-            if opts.cc
+            if opts.cc?.length > 0
                 personalization.addCc(new helper.Email(opts.cc))
-            if opts.bcc
+            if opts.bcc?.length > 0
                 personalization.addBcc(new helper.Email(opts.bcc))
 
             # one or more strings to categorize the sent emails on sendgrid
