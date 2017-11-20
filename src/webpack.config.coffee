@@ -262,7 +262,7 @@ pug2app = new HtmlWebpackPlugin(
 # they only depend on the css chunk
 staticPages = []
 # in the root directory (doc/ and policies/ is below)
-for [fn_in, fn_out] in [['index.pug', 'index.html']]
+for [fn_in, fn_out] in [['index.pug', 'index.html'], ['jupyter-notebook.pug', 'jupyter-notebook.html']]
     staticPages.push(new HtmlWebpackPlugin(
                         date             : BUILD_DATE
                         title            : TITLE
