@@ -40,9 +40,9 @@ exports.PublicPath = rclass
         src = misc.path_split(path).tail
 
         if extensions.image[ext]
-            return <img src={src} />
+            return {elt: <img src={src} />}
         else if extensions.pdf[ext]
-            return <PDF src={src} />
+            return {elt: <PDF src={src} />}
 
         if not @props.content?
             return
@@ -73,10 +73,7 @@ exports.PublicPath = rclass
         else
             elt = <pre>{@props.content}</pre>
 
-        if mathjax
-            return <div className='cocalc-share-mathjax'>{elt}</div>
-        else
-            return elt
+        return {mathjax: mathjax, elt:elt}
 
     render: ->
         if @props.viewer == 'embed'
@@ -86,9 +83,15 @@ exports.PublicPath = rclass
                     </html>
             return embed
 
-        <div style={display: 'flex', flexDirection: 'column'}>
+        {elt, mathjax} = @render_view()
+        if mathjax
+            cls = 'cocalc-share-mathjax'
+        else
+            cls = undefined
+
+        <div style={display: 'flex', flexDirection: 'column', flex:1} className={cls}>
             <PublicPathInfo path={@props.path} info={@props.info} />
-            <div style={padding: '10px', background: 'white', overflow:'auto', margin:'10px 3%'}>
-                {@render_view()}
+            <div style={background: 'white', overflow:'auto', margin:'0 3%', flex:1}>
+                {elt}
             </div>
         </div>
