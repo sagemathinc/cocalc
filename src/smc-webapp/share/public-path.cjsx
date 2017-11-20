@@ -34,7 +34,7 @@ exports.PublicPath = rclass
         viewer  : rtypes.string.isRequired
         path    : rtypes.string.isRequired
 
-    render_view: ->
+    main_view: ->
         path = @props.path
         ext = misc.filename_extension(path)?.toLowerCase()
         src = misc.path_split(path).tail
@@ -50,7 +50,7 @@ exports.PublicPath = rclass
         mathjax = false
         if ext == 'md'
             mathjax = true
-            elt = <Markdown value={@props.content} />
+            elt = <Markdown value={@props.content} style={margin:'10px', display:'block'}/>
         else if ext == 'ipynb'
             name   = file_editors.initialize(path, redux, undefined, true, @props.content)
             Viewer = file_editors.generate(path, redux, undefined, true)
@@ -76,22 +76,22 @@ exports.PublicPath = rclass
         return {mathjax: mathjax, elt:elt}
 
     render: ->
-        if @props.viewer == 'embed'
-            embed = <html>
-                        <head><meta name="robots" content="noindex, nofollow" /></head>
-                        <body>{@render_view()}</body>
-                    </html>
-            return embed
-
-        {elt, mathjax} = @render_view()
+        {elt, mathjax} = @main_view()
         if mathjax
             cls = 'cocalc-share-mathjax'
         else
             cls = undefined
 
+        if @props.viewer == 'embed'
+            embed = <html>
+                        <head><meta name="robots" content="noindex, nofollow" /></head>
+                        <body className={cls}>{elt}</body>
+                    </html>
+            return embed
+
         <div style={display: 'flex', flexDirection: 'column', flex:1} className={cls}>
             <PublicPathInfo path={@props.path} info={@props.info} />
-            <div style={background: 'white', overflow:'auto', margin:'0 3%', flex:1}>
+            <div style={background: 'white', overflow:'auto', flex:1}>
                 {elt}
             </div>
         </div>

@@ -101,7 +101,7 @@ exports.CellOutput = rclass
     render: ->
         if (@props.flags?.indexOf(FLAGS.hide_output) ? -1) != -1
             return <span/>
-        <div>
+        <div style={margin:'15px'}>
             {@render_output()}
         </div>
 

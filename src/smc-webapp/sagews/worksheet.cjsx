@@ -24,6 +24,6 @@ exports.Worksheet = rclass
             @render_cell(cell)
 
     render: ->
-        <div>
+        <div style={margin:'10px'}>
             {@render_cells()}
         </div>
