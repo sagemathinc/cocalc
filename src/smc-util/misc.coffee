@@ -1154,22 +1154,33 @@ exports.path_is_in_public_paths = (path, paths) ->
 # returns a string in paths if path is public because of that string
 # Otherwise, returns undefined.
 # IMPORTANT: a possible returned string is "", which is falsey but defined!
+# paths can be an array or object (with keys the paths)
 exports.containing_public_path = (path, paths) ->
-    if paths.length == 0
-        return
-    if not path?
+    if not paths? or not path?
         return
     if path.indexOf('../') != -1
         # just deny any potentially trickiery involving relative path segments (TODO: maybe too restrictive?)
         return
-    for p in paths
-        if p == ""  # the whole project is public, which matches everything
-            return ""
-        if path == p
-            # exact match
-            return p
-        if path.slice(0,p.length+1) == p + '/'
-            return p
+    if is_array(paths)
+        for p in paths   # array so "in"
+            if p == ""  # the whole project is public, which matches everything
+                return ""
+            if path == p
+                # exact match
+                return p
+            if path.slice(0,p.length+1) == p + '/'
+                return p
+    else if is_object(paths)
+        for p of paths    # object and want keys, so *of*
+            if p == ""  # the whole project is public, which matches everything
+                return ""
+            if path == p
+                # exact match
+                return p
+            if path.slice(0,p.length+1) == p + '/'
+                return p
+    else
+        throw Error("paths must be undefined, an array, or a map")
     if exports.filename_extension(path) == "zip"
         # is path something_public.zip ?
         return exports.containing_public_path(path.slice(0,path.length-4), paths)
@@ -1599,8 +1610,6 @@ exports.map_mutate_out_undefined = (map) ->
     for k, v of map
         if not v?
             delete map[k]
-
-
 
 # foreground; otherwise, return false.
 exports.should_open_in_foreground = (e) ->

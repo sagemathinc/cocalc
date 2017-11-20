@@ -14,14 +14,17 @@ exports.DirectoryListing = rclass
     displayName: "DirectoryListing"
 
     propTypes :
-        info    : rtypes.immutable.Map.isRequired
+        info    : rtypes.immutable.Map
         files   : rtypes.array.isRequired
         viewer  : rtypes.string.isRequired
         path    : rtypes.string.isRequired
+        hidden  : rtypes.bool  # if true, show hidden dot files (will be controlled by a query param)
 
     render_listing: ->
         i = 0
         for file in @props.files
+            if not @props.hidden and file.name[0] == '.'
+                continue
             if i % 2 == 0
                 style = {background: 'rgb(238, 238, 238)', padding:'5px 10px'}
             else
@@ -35,6 +38,7 @@ exports.DirectoryListing = rclass
                 viewer = {@props.viewer}
                 path   = {@props.path}
                 style  = {style}
+                key    = {file.name}
                 />
 
     render: ->

@@ -18,12 +18,16 @@ def hub_args(server_id):
     else:
         if args.port:
             port = int(args.port)
-        else:
+        elif args.port == -1:
             port = 5000
+        else:
+            port = 0
         if args.proxy_port:
             proxy_port = int(args.proxy_port)
-        else:
+        elif args.proxy_port == -1:
             proxy_port = 5001
+        else:
+            proxy_port = 0
         if args.share_port:
             share_port = int(args.share_port)
         else:
@@ -119,11 +123,10 @@ if __name__ == "__main__":
 
     parser.add_argument('--update', help="update", dest='update', action="store_const", const=True, default=False)
 
-    parser.add_argument('--port', dest='port', type=int, default=0)
-
-    parser.add_argument('--proxy_port', dest='proxy_port', type=int, default=0)
-
+    parser.add_argument('--port', dest='port', type=int, default=-1)
+    parser.add_argument('--proxy_port', dest='proxy_port', type=int, default=-1)
     parser.add_argument('--share_port', dest='share_port', type=int, default=0)
+
     parser.add_argument('--share_path', dest='share_path', type=str, default='')
 
     parser.add_argument('--raw_port', dest='raw_port', type=int, default=0)

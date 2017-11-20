@@ -60,7 +60,7 @@ exports.NavTab = rclass
     displayName : "NavTab"
 
     propTypes :
-        label           : rtypes.string
+        label           : rtypes.oneOfType([rtypes.string, rtypes.object])
         icon            : rtypes.oneOfType([rtypes.string, rtypes.object])
         close           : rtypes.bool
         on_click        : rtypes.func
@@ -69,6 +69,12 @@ exports.NavTab = rclass
         style           : rtypes.object
         inner_style     : rtypes.object
         add_inner_style : rtypes.object
+
+    render_label: ->
+        if @props.label
+            <span style={marginLeft: 5}>
+                {@props.label}
+            </span>
 
     make_icon: ->
         if typeof(@props.icon) == 'string'
@@ -115,7 +121,7 @@ exports.NavTab = rclass
         >
             <div style={inner_style}>
                 {@make_icon()}
-                {<span style={marginLeft: 5}>{@props.label}</span> if @props.label?}
+                {@render_label()}
                 {@props.children}
             </div>
         </NavItem>

@@ -51,6 +51,7 @@ exports.CodeMirrorStatic = rclass
             # User is selected some text in the cell; if we switch to edit mode
             # then the selection would be cleared, which is annoying.  NOTE that
             # this makes the behavior slightly different than official Jupyter.
+            event.stopPropagation()
             return
         @props.actions.set_mode('edit')
         @props.actions.unselect_all_cells()
@@ -118,7 +119,7 @@ exports.CodeMirrorStatic = rclass
         <pre
             className = "CodeMirror cm-s-default CodeMirror-wrap"
             style     = {style}
-            onClick   = {@focus}>
+            onMouseUp = {@focus}>
             {@render_lines(width)}
             {@render_gutter(width)}
         </pre>

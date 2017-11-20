@@ -148,6 +148,12 @@ schema.accounts =
         email_address_before_delete :
             type : 'string'
             desc : 'The email address of the user before they deleted their account.'
+        email_address_verified :
+            type : 'map'
+            desc : 'Verified email addresses as { "email@addre.ss" : <timestamp>, ... }'
+        email_address_challenge :
+            type : 'map'
+            desc : 'Contains random token for verification of an address: {"email": "...", "token": <random>, "time" : <timestamp for timeout>}'
         passports       :
             type : 'map'
             desc : 'Map from string ("[strategy]-[id]") derived from passport name and id to the corresponding profile'
@@ -217,8 +223,9 @@ schema.accounts =
             throttle_changes : 500
             pg_where : ['account_id = $::UUID':'account_id']
             fields :
-                account_id      : null
-                email_address   : null
+                account_id             : null
+                email_address          : null
+                email_address_verified : null
                 editor_settings :
                     strip_trailing_whitespace : false
                     show_trailing_whitespace  : true

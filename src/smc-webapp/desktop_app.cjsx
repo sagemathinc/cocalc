@@ -113,7 +113,7 @@ Page = rclass
         return name
 
     render_account_tab: ->
-        if @props.account_id
+        if false and @props.account_id
             a = <Avatar
                     size       = {20}
                     account_id = {@props.account_id}
@@ -122,9 +122,10 @@ Page = rclass
                     />
         else
             a = 'cog'
+
         <NavTab
             name           = 'account'
-            label          = {'Account'}           # @account_name()
+            label          = {'Account'}
             icon           = {a}
             actions        = {@actions('page')}
             active_top_tab = {@props.active_top_tab}
@@ -146,6 +147,23 @@ Page = rclass
             add_inner_style = {color: 'black'}
         />
 
+    render_support: ->
+        if not require('./customize').commercial
+            return
+        <NavTab
+            label          = 'Help' icon='medkit'
+            actions        = {@actions('page')}
+            active_top_tab = {@props.active_top_tab}
+            on_click       = {=>redux.getActions('support').show(true)}
+        />
+
+    render_bell: ->
+        if not @props.is_logged_in()
+            return
+        <NotificationBell
+            count  = {@props.get_notify_count()}
+            active = {@props.show_file_use} />
+
     render_right_nav: ->
         logged_in = @props.is_logged_in()
         <Nav id='smc-right-tabs-fixed' style={height:'40px', lineHeight:'20px', margin:'0', overflowY:'hidden'}>
@@ -153,13 +171,8 @@ Page = rclass
             {@render_sign_in_tab() if not logged_in}
             <NavTab name='about' label='CoCalc' icon='info-circle' actions={@actions('page')} active_top_tab={@props.active_top_tab} />
             <NavItem className='divider-vertical hidden-xs' />
-            {<NavTab
-                label='Help' icon='medkit'
-                actions={@actions('page')}
-                active_top_tab={@props.active_top_tab}
-                on_click={=>redux.getActions('support').show(true)}
-            /> if require('./customize').commercial}
-            {<NotificationBell count={@props.get_notify_count()} active={@props.show_file_use} /> if @props.is_logged_in()}
+            {@render_support()}
+            {@render_bell()}
             <ConnectionIndicator actions={@actions('page')} />
         </Nav>
 

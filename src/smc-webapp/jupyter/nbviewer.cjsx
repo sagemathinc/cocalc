@@ -13,7 +13,7 @@ misc = require('smc-util/misc')
 exports.NBViewer = rclass ({name}) ->
     reduxProps :
         "#{name}" :
-            project_id : rtypes.string.isRequired
+            project_id : rtypes.string
             path       : rtypes.string.isRequired
             loading    : rtypes.object
             error      : rtypes.string

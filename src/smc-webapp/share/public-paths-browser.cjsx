@@ -4,7 +4,7 @@ Share server top-level landing page.
 
 {rclass, React, ReactDOM, rtypes} = require('../smc-react')
 
-{Space} = require('../r_misc')
+{Space, TimeAgo} = require('../r_misc')
 
 INDEX_STYLE =
     margin     : '5px'
@@ -19,37 +19,69 @@ exports.PublicPathsBrowser = rclass
 
     propTypes :
         public_paths : rtypes.immutable.Map.isRequired
+        paths_order  : rtypes.immutable.List.isRequired
         page_number  : rtypes.number.isRequired
         page_size    : rtypes.number.isRequired
 
     render_overview: ->
         <div>
-            Page {@props.page_number+1} of {Math.ceil(@props.public_paths.size / @props.page_size)}.
+            Page {@props.page_number} of {Math.ceil(@props.public_paths.size / @props.page_size)}.
         </div>
 
     render_prev_page: ->
-        if @props.page_number > 0
+        if @props.page_number > 1
             <a href="?page=#{@props.page_number-1}">Previous</a>
+        else
+            <span style={color:'#666'}>Previous</span>
 
     render_next_page: ->
-        if (@props.page_number+1)*@props.page_size < @props.public_paths.size
+        if @props.page_number*@props.page_size < @props.public_paths.size
             <a href="?page=#{@props.page_number+1}">Next</a>
+        else
+            <span style={color:'#666'}>Next</span>
 
-    render_public_path_link: (id) ->
-        info = @props.public_paths.get(id)
-        if not info?
-            return
-        <div key={id}>
-            <a href={"#{id}/#{info.get('path')}?viewer=share"}> {info.get('description')} [{info.get('path')}]</a>
+    render_description: (info) ->
+        <span key='desc'  style={display:'inline-block', width:'40%'}>
+            {info.get('description')}
+        </span>
+
+    render_path: (info) ->
+        <span key='path'  style={display:'inline-block', width:'30%'}>
+            {info.get('path')}
+        </span>
+
+    render_last_edited: (info) ->
+        last_edited = info.get('last_edited')
+        <span key='last'   style={display:'inline-block', width:'30%'}>
+            {<TimeAgo date={last_edited} live={false} /> if last_edited?}
+        </span>
+
+    render_public_path_link: (info, bgcolor) ->
+        id = info.get('id')
+        <div key={id} style={padding: '5px 10px', background:bgcolor}>
+            <a href={"#{id}/#{info.get('path')}?viewer=share"} style={display:'inline-block', width:'100%'}>
+                {@render_description(info)}
+                {@render_path(info)}
+                {@render_last_edited(info)}
+            </a>
             <br/>
         </div>
 
     render_index: ->
-        ids = @props.public_paths.keySeq().toJS()
-        ids.sort()
-        for i in [@props.page_size * @props.page_number ... @props.page_size * (@props.page_number + 1)]
-            if ids[i]
-                @render_public_path_link(ids[i])
+        j = 0
+        for i in [@props.page_size * (@props.page_number - 1)... @props.page_size * @props.page_number]
+            id = @props.paths_order.get(i)
+            if not id?
+                continue
+            info = @props.public_paths.get(id)
+            if not info?
+                continue
+            if j % 2 == 0
+                bgcolor = 'rgb(238, 238, 238)'
+            else
+                bgcolor = undefined
+            j += 1
+            @render_public_path_link(info, bgcolor)
 
     render: ->
         <div style={display:'flex', flexDirection:'column'}>

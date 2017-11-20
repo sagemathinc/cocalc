@@ -20,13 +20,16 @@ extensions = require('./extensions')
 
 {CodeMirrorStatic} = require('../jupyter/codemirror-static')
 
+SageWorksheet = require('../sagews/worksheet').Worksheet
+{parse_sagews}  = require('../sagews/parse-sagews')
+
 {PublicPathInfo} = require('./public-path-info')
 
 exports.PublicPath = rclass
     displayName: "PublicPath"
 
     propTypes :
-        info    : rtypes.immutable.Map.isRequired
+        info    : rtypes.immutable.Map
         content : rtypes.string
         viewer  : rtypes.string.isRequired
         path    : rtypes.string.isRequired
@@ -47,13 +50,15 @@ exports.PublicPath = rclass
         if ext == 'md'
             return <Markdown value={@props.content} />
         else if ext == 'ipynb'
-            name   = file_editors.initialize(path, redux, @props.info.get('project_id'), true, @props.content)
-            Viewer = file_editors.generate(path, redux, @props.info.get('project_id'), true)
+            name   = file_editors.initialize(path, redux, undefined, true, @props.content)
+            Viewer = file_editors.generate(path, redux, undefined, true)
             <Redux redux={redux}>
                 <Viewer name={name} />
             </Redux>
             # TODO: need to call project_file.remove(path, redux, project_id, true) after
             # rendering is done!
+        else if ext == 'sagews'
+            <SageWorksheet  sagews={parse_sagews(@props.content)} />
         else if extensions.html[ext]
             return <HTML value={@props.content} />
         else if extensions.codemirror[ext]
@@ -66,10 +71,15 @@ exports.PublicPath = rclass
 
     render: ->
         if @props.viewer == 'embed'
-            return <div>{@render_view()}</div>
+            embed = <html>
+                        <head><meta name="robots" content="noindex, nofollow" /></head>
+                        <body>{@render_view()}</body>
+                    </html>
+            return embed
+
         <div style={display: 'flex', flexDirection: 'column'}>
             <PublicPathInfo path={@props.path} info={@props.info} />
-            <div style={padding: '10px', background: 'white', overflow:'auto'}>
+            <div style={padding: '10px', background: 'white', overflow:'auto', margin:'10px 3%', border: '1px solid lightgrey'}>
                 {@render_view()}
             </div>
         </div>

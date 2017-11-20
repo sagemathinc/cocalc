@@ -5,16 +5,118 @@ COPYRIGHT : (c) 2017 SageMath, Inc.
 LICENSE   : AGPLv3
 ###
 
+# to run just this test, goto src/smc-hub/ and
+# SMC_DB_RESET=true SMC_TEST=true time node_modules/.bin/mocha --reporter ${REPORTER:-progress} test/postgres/postgres-test.coffee
+
 pgtest   = require('./pgtest')
 db       = undefined
 setup    = (cb) -> (pgtest.setup (err) -> db=pgtest.db; cb(err))
 teardown = pgtest.teardown
+{one_result, all_results, count_result} = require('../../postgres')
 
 async  = require('async')
 expect = require('expect')
 
 misc = require('smc-util/misc')
 {DOMAIN_NAME, SITE_NAME} = require('smc-util/theme')
+
+describe 'email verification: ', ->
+    @timeout(5000)
+    before(setup)
+    after(teardown)
+    locals =
+        token         : null
+        email_address : "test@test.com"
+        email_address2: "test2@test.com"
+        data          : null
+        account_id    : null
+
+    it "creates a random token", (done) ->
+        async.waterfall([
+            (cb) -> db.create_account(first_name:"A", last_name:"B", created_by:"1.2.3.4", email_address:locals.email_address, password_hash:"test", cb: cb)
+            (account_id, cb) ->
+                locals.account_id = account_id
+                db.verify_email_create_token(account_id: account_id, cb:cb)
+        ], (err, token) ->
+            expect(token.length > 5).toBe(true)
+            # only lowercase, because upper/lower case in links in emails can get mangled
+            for char in token
+                expect(char in '0123456789abcdefghijklmnopqrstuvwxyz').toBe(true)
+            locals.token = token
+            done(err)
+        )
+
+    it "correctly checks the token", (done) ->
+        async.series([
+            (cb) ->
+                db.verify_email_check_token(email_address:locals.email_address, token:locals.token, cb:cb)
+            (cb) ->
+                db._query
+                    query : "SELECT email_address_verified FROM accounts"
+                    where :
+                        "email_address = $::TEXT" : locals.email_address
+                    cb    : one_result 'email_address_verified', (err, data) ->
+                        locals.data = data
+                        cb(err)
+            (cb) ->
+                # and that the token is deleted
+                db._query
+                    query  : 'SELECT email_address_challenge FROM accounts'
+                    where  :
+                        "account_id = $::UUID"       : locals.account_id
+                    cb     : one_result (err, data) ->
+                        expect(Object.keys(data).length == 0).toBe(true)
+                        cb(err)
+        ], (err) ->
+            expect(locals.email_address in misc.keys(locals.data)).toBe(true)
+            done(err)
+        )
+
+    it "has no idea about unkown accounts", (done) ->
+        db.verify_email_check_token(email_address:"other-one@test.com", token:locals.token, cb: (err) ->
+            expect(!!err).toBe(true)
+            expect(err.indexOf('no such account') != -1).toBe(true)
+            done(undefined)  # suppress error
+        )
+
+    it "detects a wrong token", (done) ->
+        async.waterfall([
+            (cb) -> db.create_account(first_name:"C", last_name:"D", created_by:"1.2.3.4", email_address:locals.email_address2, password_hash:"test", cb: cb)
+            (account_id, cb) -> db.verify_email_create_token(account_id: account_id, cb:cb)
+            (token, email_address, cb) ->
+                expect(email_address).toBe(locals.email_address2)
+                db.verify_email_check_token
+                    email_address    : locals.email_address2
+                    token            : "X"   # a wrong one
+                    cb               : (err) ->
+                        expect(err.indexOf('token does not match') != -1).toBe(true)
+                        cb(undefined) # suppress error
+        ], done)
+
+    it "returns the verified email address", (done) ->
+        db.verify_email_get
+            account_id    : locals.account_id
+            cb            : (err, x) ->
+                verified = x.email_address in misc.keys(x.email_address_verified)
+                expect(verified).toBe(true)
+                done(err)
+
+    it "and also answers is_verified_email correctly", (done) ->
+        async.series([
+            (cb) ->
+                db.is_verified_email
+                    email_address : locals.email_address
+                    cb            : (err, verified) ->
+                        expect(verified).toBe(true)
+                        cb(err)
+
+            (cb) ->
+                db.is_verified_email
+                    email_address : locals.email_address2
+                    cb            : (err, verified) ->
+                        expect(verified).toBe(false)
+                        cb(err)
+        ], done)
 
 describe 'working with accounts: ', ->
     @timeout(5000)

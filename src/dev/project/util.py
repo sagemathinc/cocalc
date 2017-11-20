@@ -12,11 +12,17 @@ def cmd(s):
 def chdir():
     os.chdir(os.path.split(os.path.abspath(__file__))[0])
 
-def base_url():
+def base_url(port=None):
     info_file = join(os.environ['SMC'], 'info.json')
     info = json.loads(open(info_file).read())
-    base_url = "/{project_id}/port/{hub_port}".format(project_id=info['project_id'], hub_port=get_ports()['hub'])
-    open("../../data/base_url",'w').write(base_url)
+    if not port:
+        write_base_url = True
+        port = get_ports()['hub']
+    else:
+        write_base_url = False
+    base_url = "/{project_id}/port/{port}".format(project_id=info['project_id'], port=port)
+    if write_base_url:
+        open("../../data/base_url",'w').write(base_url)
     return base_url
 
 def get_open_port():    # http://stackoverflow.com/questions/2838244/get-open-tcp-port-in-python
@@ -32,7 +38,7 @@ def get_ports():
     path = join(P, 'ports')
     if not os.path.exists(path):
         os.mkdir(path)
-    ports = {'hub':0, 'hub-api':0, 'hub-share':0}
+    ports = {'hub':0, 'hub-api':0, 'hub-share':0, 'hub-share-2':0}
     for x in ports.keys():
         file = join(path, x)
         if os.path.exists(file):

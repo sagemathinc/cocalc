@@ -28,6 +28,8 @@ exports.create_account = (opts) ->
         sign_in  : false      # if true, the newly created user will also be signed in; only makes sense for browser clients!
         cb       : undefined
     id = opts.mesg.id
+    locals =
+        token  : null
     account_id = null
     dbg = (m) -> opts.logger?("create_account (#{opts.mesg.email_address}): #{m}")
     tm = misc.walltime()
@@ -160,6 +162,19 @@ exports.create_account = (opts) ->
             opts.client.signed_in(mesg1)
             opts.client.push_to_client(mesg1)
             cb()
+        (cb) ->
+            dbg("email verification?")
+            if not opts.mesg.email_address?
+                cb(); return
+            auth = require('./auth')
+            auth.verify_email_send_token
+                account_id : account_id
+                database   : opts.database
+                cb         : (err) ->
+                    if err
+                        dbg("error during creating welcome email: #{err}")
+
+            cb() # we return immediately, because there is no need for the user to wait for this.
     ], (reason) ->
         if reason
             dbg("send message to user that there was an error (in #{misc.walltime(tm)}seconds) -- #{misc.to_json(reason)}")
