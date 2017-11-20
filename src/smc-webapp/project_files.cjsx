@@ -158,16 +158,16 @@ FileRow = rclass
         no_select    : rtypes.bool
 
     shouldComponentUpdate: (next) ->
-        return @props.name != next.name          or
+        return @props.name  != next.name         or
         @props.display_name != next.display_name or
-        @props.size != next.size                 or
-        @props.time != next.time                 or
-        @props.checked != next.checked           or
-        @props.mask != next.mask                 or
-        @props.public_data != next.public_data   or
+        @props.size         != next.size         or
+        @props.time         != next.time         or
+        @props.checked      != next.checked      or
+        @props.mask         != next.mask         or
+        @props.public_data  != next.public_data  or
         @props.current_path != next.current_path or
-        @props.bordered != next.border           or
-        @props.no_select != next.no_select
+        @props.bordered     != next.bordered     or
+        @props.no_select    != next.no_select
 
     render_icon: ->
         # get the file_associations[ext] just like it is defined in the editor
@@ -255,6 +255,19 @@ FileRow = rclass
             path : @fullpath()
             log : true
 
+    render_timestamp: ->
+        <TimeAgo date={(new Date(@props.time * 1000)).toISOString()} style={color:'#666'}/>
+
+    render_download_button: (url_href) ->
+        <Button style   = {marginLeft: '1em', background:'transparent'}
+                bsStyle = 'default'
+                bsSize  = 'xsmall'
+                href    = "#{url_href}"
+                onClick = {@handle_download_click}>
+            <Icon name='cloud-download' style={color: '#666'} />
+        </Button>
+
+
     render: ->
         row_styles =
             cursor          : 'pointer'
@@ -286,16 +299,10 @@ FileRow = rclass
                 {@render_icon()}
             </Col>
             <Col sm=4 smPush=5 xs=6>
-                <TimeAgo date={(new Date(@props.time * 1000)).toISOString()} style={color:'#666'}/>
+                {@render_timestamp()}
                 <span className='pull-right' style={color:'#666'}>
                     {human_readable_size(@props.size)}
-                    <Button style   = {marginLeft: '1em', background:'transparent'}
-                            bsStyle = 'default'
-                            bsSize  = 'xsmall'
-                            href    = "#{url_href}"
-                            onClick = {@handle_download_click}>
-                        <Icon name='cloud-download' style={color: '#666'} />
-                    </Button>
+                    {@render_download_button(url_href)}
                 </span>
             </Col>
             <Col sm=5 smPull=4 xs=12>
@@ -319,6 +326,19 @@ DirectoryRow = rclass
         current_path : rtypes.string
         actions      : rtypes.object.isRequired
         no_select    : rtypes.bool
+
+    shouldComponentUpdate: (next) ->
+        return @props.name  != next.name         or
+        @props.display_name != next.display_name or
+        @props.checked      != next.checked      or
+        @props.color        != next.color        or
+        @props.bordered     != next.bordered     or
+        @props.time         != next.time         or
+        @props.mask         != next.mask         or
+        @props.public_data  != next.public_data  or
+        @props.is_public    != next.is_public    or
+        @props.current_path != next.current_path or
+        @props.no_select    != next.no_select
 
     handle_mouse_down: (e) ->
         @setState

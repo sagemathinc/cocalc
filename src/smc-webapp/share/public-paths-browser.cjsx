@@ -53,7 +53,7 @@ exports.PublicPathsBrowser = rclass
     render_last_edited: (info) ->
         last_edited = info.get('last_edited')
         <span key='last'   style={display:'inline-block', width:'30%'}>
-            {<TimeAgo date={last_edited} /> if last_edited?}
+            {<TimeAgo date={last_edited} live={false} /> if last_edited?}
         </span>
 
     render_public_path_link: (info, bgcolor) ->

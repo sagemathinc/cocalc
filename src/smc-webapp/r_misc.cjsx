@@ -519,6 +519,7 @@ timeago_formatter = (value, unit, suffix, date) ->
     return "#{value} #{unit} #{suffix}"
 
 TimeAgo = require('react-timeago').default
+
 exports.TimeAgo = rclass
     displayName : 'Misc-TimeAgo'
 
@@ -526,16 +527,24 @@ exports.TimeAgo = rclass
         popover   : rtypes.bool
         placement : rtypes.string
         tip       : rtypes.string     # optional body of the tip popover with title the original time.
+        live      : rtypes.bool       # whether or not to auto-update
 
     getDefaultProps: ->
         popover   : true
         minPeriod : 45    # "minPeriod and maxPeriod now accept seconds not milliseconds. This matches the documentation."
         placement : 'top'
         # critical to use minPeriod>>1000, or things will get really slow in the client!!
-        # Also, given our custom formatter, anything more than about 45s is pointless (since we don't show seconds)
+        # Also, given our custom formatter, anything more frequent than about 45s is pointless (since we don't show seconds)
 
     render_timeago: (d) ->
-        <TimeAgo title='' date={d} style={@props.style} formatter={timeago_formatter} minPeriod={@props.minPeriod} />
+        <TimeAgo
+            title     = ''
+            date      = {d}
+            style     = {@props.style}
+            formatter = {timeago_formatter}
+            minPeriod = {@props.minPeriod}
+            live      = {@props.live ? true}
+            />
 
     render: ->
         d = if misc.is_date(@props.date) then @props.date else new Date(@props.date)
