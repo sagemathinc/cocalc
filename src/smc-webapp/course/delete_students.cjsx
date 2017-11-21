@@ -31,7 +31,7 @@ exports.DeleteStudentsPanel = rclass
 
     render_confirm_delete_student_projects: ->
         <Well style={marginTop:'10px'}>
-            All student projects will be deleted and no longer accessible by the student. Are you absolutely sure?
+            All student projects will be deleted and are no longer accessible by the student. Are you absolutely sure?
             <ButtonToolbar style={marginTop:'10px'}>
                 <Button bsStyle='danger' onClick={=>@setState(delete_student_projects_confirm:false); @props.delete()}>YES, DELETE all Student Projects</Button>
                 <Button onClick={=>@setState(delete_student_projects_confirm:false)}>Cancel</Button>

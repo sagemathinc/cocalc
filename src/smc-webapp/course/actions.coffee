@@ -661,6 +661,8 @@ exports.CourseActions = class CourseActions extends Actions
         return if not store?
         student_project_id = store.getIn(['students', student_id, 'project_id'])
         if student_project_id?
+            student_account_id = store.getIn(['students', student_id, 'account_id'])
+            @redux.getActions('projects').remove_collaborator(student_project_id, student_account_id)
             @redux.getActions('projects').delete_project(student_project_id)
             @_set
                 create_project : null
@@ -690,9 +692,6 @@ exports.CourseActions = class CourseActions extends Actions
             return
         for student_id in store.get_student_ids(deleted:false)
             @delete_project(student_id)
-            student_project_id = store.getIn(['students', student_id, 'project_id'])
-            student_account_id = store.getIn(['students', student_id, 'account_id'])
-            @redux.getActions('projects').remove_collaborator(student_project_id, student_account_id)
         @set_activity(id:id)
 
     # upgrade_goal is a map from the quota type to the goal quota the instructor wishes
