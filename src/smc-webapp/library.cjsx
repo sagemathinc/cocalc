@@ -48,6 +48,7 @@ sortBy = (key) ->
     (list) ->
         _.sortBy(list, (k) -> k[key]?.toLowerCase() ? k)
 
+
 exports.Library = rclass ({name}) ->
     displayName : 'Library'
 
@@ -78,14 +79,16 @@ exports.Library = rclass ({name}) ->
         @scroll_into_view()
 
     componentWillMount: ->
-        #if next.library != @props.library
+        meta = @props.library.getIn(['examples'])?.metadata
         docs = @props.library.getIn(['examples'])?.documents
+
         if docs?
-            sdocs = sortBy('title')(docs)
+            sortfn = (doc) -> [meta.categories[doc.category], doc.title?.toLowerCase() ? doc.id]
+            sdocs  = _.sortBy(docs, sortfn)
             @setState
                 copy        : false
                 sorted_docs : sdocs
-                metadata    : @props.library.getIn(['examples'])?.metadata
+                metadata    : meta
 
     target_path: ->
         doc = @state.selected
@@ -129,10 +132,7 @@ exports.Library = rclass ({name}) ->
         evt.nativeEvent.stopImmediatePropagation()
         return false
 
-    select_docs: (list, tag, heading) ->
-        # "+tag" or "tag" for inclusion, "-tag" for exclusion
-
-        list.push(<li class="list-group-header" key={"header-#{heading}"}>{heading}</li>)
+    select_docs: (list) ->
 
         item_style =
             width        : '100%'
@@ -141,27 +141,27 @@ exports.Library = rclass ({name}) ->
             border       : 'none'
             textAlign    : 'left'
 
-        include = true
-        if tag[0] == '-'
-            include = false
-            tag = tag[1...]
-        else if tag[0] == '+'
-            tag = tag[1...]
+        list    = []
+        cur_cat = undefined
 
         @state.sorted_docs.map (doc) =>
-            tags = doc.tags ? []
-            if (include and (tag in tags)) or ((not include) and not (tag in tags))
-                list.push(
-                    <ListGroupItem
-                        key         = {doc.id}
-                        active      = {doc.id == @state.selected?.id}
-                        onClick     = {=> @setState(selected:doc, show_thumb:false)}
-                        style       = {item_style}
-                        bsSize      = {'small'}
-                    >
-                        {doc.title ? doc.id}
-                    </ListGroupItem>
-                )
+            if doc.category isnt cur_cat
+                cur_cat         = doc.category
+                cur_cat_title   = @state.metadata.categories[cur_cat]
+                list.push(<li class="list-group-header" key={"header-#{cur_cat}"}>{cur_cat_title}</li>)
+
+            list.push(
+                <ListGroupItem
+                    key         = {doc.id}
+                    active      = {doc.id == @state.selected?.id}
+                    onClick     = {=> @setState(selected:doc, show_thumb:false)}
+                    style       = {item_style}
+                    bsSize      = {'small'}
+                >
+                    {doc.title ? doc.id}
+                </ListGroupItem>
+            )
+        return list
 
     selector: ->
         list_style =
@@ -174,12 +174,8 @@ exports.Library = rclass ({name}) ->
             borderRadius : '5px'
             padding      : '5px'
 
-        list = []
-        @select_docs(list, '+intro', 'Introduction')
-        @select_docs(list, '-intro', 'Library')
-
         <ListGroup style={list_style} onKeyUp={@selector_keyup} ref='selector_list'>
-            {list}
+            {@select_docs()}
         </ListGroup>
 
     thumbnail: ->
@@ -212,7 +208,7 @@ exports.Library = rclass ({name}) ->
             overflow   : 'auto'
 
         <div style={style}>
-            <h5>
+            <h5 style={marginTop: '0px'}>
                 <strong>{doc.title ? doc.id}</strong>
                 {" by #{doc.author}" if doc.author?}
             </h5>
