@@ -254,7 +254,7 @@ SignIn = rclass
                             type      = "submit"
                             disabled  = {@props.signing_in}
                             bsStyle   = "default" style={height:34}
-                            className = 'pull-right'>Sign&nbsp;In
+                            className = 'pull-right'>Sign&nbsp;in
                         </Button>
                     </Row>
                     <Row className='form-inline pull-right' style={clear : "right"}>
@@ -268,12 +268,12 @@ SignIn = rclass
                 <Row>
                     <Col xs=5>
                         <FormGroup>
-                            <FormControl ref='email' type='email' placeholder='Email address' autoFocus={true} onChange={@remove_error} />
+                            <FormControl style={width:'100%'} ref='email' type='email' placeholder='Email address' autoFocus={true} onChange={@remove_error} />
                         </FormGroup>
                     </Col>
                     <Col xs=4>
                         <FormGroup>
-                            <FormControl ref='password' type='password' placeholder='Password' onChange={@remove_error} />
+                            <FormControl style={width:'100%'} ref='password' type='password' placeholder='Password' onChange={@remove_error} />
                         </FormGroup>
                     </Col>
                     <Col xs=3>
