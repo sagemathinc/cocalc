@@ -85,7 +85,6 @@ ERROR_STYLE =
     fontSize        : '125%'
     backgroundColor : 'red'
     border          : '1px solid lightgray'
-    borderRadius    : '4px'
     padding         : '15px'
     marginTop       : '5px'
     marginBottom    : '5px'

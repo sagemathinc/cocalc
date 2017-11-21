@@ -398,20 +398,20 @@ ProjectContentViewer = rclass
                     style = {position: 'absolute', height:'100%', width:'100%', display:'flex'}
                     ref   = 'editor_container'
                     >
-                    <div style={flex:1, border:'1px solid lightgrey', borderRadius:'4px', overflow:'hidden', height:'100%', width:'100%'}>
+                    <div style={flex:1, overflow:'hidden', height:'100%', width:'100%'}>
                         {editor}
                     </div>
                     {@render_drag_bar(@props.file_path)}
                     <div
                         ref = 'side_chat_container'
-                        style={flexBasis:"#{chat_width*100}%", border:'1px solid grey', borderRadius:'4px', position:'relative'}>
+                        style={flexBasis:"#{chat_width*100}%", border:'1px solid lightgrey', position:'relative'}>
                         {@render_side_chat(@props.file_path)}
                     </div>
                 </div>
         else
             # just the editor
             content =\
-                <div style={position: 'absolute', height:'100%', width:'100%', border:'1px solid lightgrey', borderRadius:'4px'}>
+                <div style={position: 'absolute', height:'100%', width:'100%', border:'1px solid lightgrey'}>
                     {editor}
                 </div>
 

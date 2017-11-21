@@ -355,7 +355,6 @@ ChatLog = rclass
 log_container_style =
     overflowY       : 'auto'
     flex            : 1
-    border          : '1px solid lightgrey'
     backgroundColor : '#fafafa'
 
 ChatRoom = rclass ({name}) ->
