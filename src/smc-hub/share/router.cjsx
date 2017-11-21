@@ -5,7 +5,6 @@ Router for public share server.
 
 PAGE_SIZE            = 50
 
-
 os_path              = require('path')
 
 {React}              = require('smc-webapp/smc-react')
@@ -22,6 +21,7 @@ react_support        = require('./react')
 
 
 react_viewer = (base_url, path, project_id, notranslate, viewer) ->
+    t0 = new Date()
     return (res, component, subtitle) ->
         the_page = <Page
             base_url    = {base_url}
@@ -35,6 +35,7 @@ react_viewer = (base_url, path, project_id, notranslate, viewer) ->
 
         </Page>
         react_support.react(res, the_page)
+        console.log("time to render '#{path}': #{new Date() - t0}ms")
 
 exports.share_router = (opts) ->
     opts = defaults opts,

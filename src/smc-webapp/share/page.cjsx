@@ -15,7 +15,7 @@ CoCalcLogo = rclass
 
     render: ->
         # TODO, obviously
-        <img style={height:'36px', width:'36px'} src="#{@props.base_url}/share/cocalc-icon.svg" />
+        <img style={height:'21px', width:'21px'} src="#{@props.base_url}/share/cocalc-icon.svg" />
 
 
 exports.Page = rclass
@@ -63,14 +63,13 @@ exports.Page = rclass
             if @props.project_id
                 i = @props.path.slice(1).indexOf('/')
                 proj_url = "#{top}/../projects/#{@props.project_id}/files/#{@props.path.slice(2+i)}?session=share"
-                project = <a target="_blank" href={proj_url} className='pull-right' rel='nofollow'>
-                    {"Open in
- #{SITE_NAME}..."}
+                project = <a target="_blank" href={proj_url} className='pull-right' rel='nofollow' style={textDecoration:'none'} >
+                    {SITE_NAME}
                 </a>
 
-        <div key='top' style={fontSize:'12pt', borderBottom: '1px solid grey', padding: '5px', background:'#dfdfdf'} translate='no'>
+        <div key='top' style={padding: '5px 5px 0px 5px', background:'#dfdfdf'} translate='no'>
             <span style={marginRight:'10px'}>
-                <a href={top}><CoCalcLogo base_url={@props.base_url} /> Shared</a>
+                <a href={top} style={textDecoration:'none'}><CoCalcLogo base_url={@props.base_url} /> Shared</a>
             </span>
             <span style={paddingLeft: '15px', borderLeft: '1px solid black', marginLeft: '15px'}>
                 {path}
@@ -116,7 +115,7 @@ exports.Page = rclass
             <body>
                 <div style={display: 'flex', flexDirection: 'column', height: '100vh', width: '100vw', overflow: 'hidden'}>
                     {@render_topbar()}
-                    <div key='index' style={display: 'flex', flexDirection: 'column'}>
+                    <div key='index' style={display: 'flex', flexDirection: 'column', flex:1}>
                         {@props.children}
                     </div>
                 </div>

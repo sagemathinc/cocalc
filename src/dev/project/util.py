@@ -15,7 +15,7 @@ def chdir():
 def base_url(port=None):
     info_file = join(os.environ['SMC'], 'info.json')
     info = json.loads(open(info_file).read())
-    if not port:
+    if port is None:
         write_base_url = True
         port = get_ports()['hub']
     else:

@@ -864,7 +864,7 @@ CollaboratorsPanel = rclass
         user_map : rtypes.object
 
     render: ->
-        <ProjectSettingsPanel title='Add People to Project' icon='user'>
+        <ProjectSettingsPanel title='Add people to project' icon='user'>
             <div key='mesg'>
                 <span style={color:'#333', fontSize:'12pt'}>
                     Who would you like to work with on this project?
@@ -911,7 +911,7 @@ SSHPanel = rclass
                 delete_key = {@delete_ssh_key}
             >
             <div>
-            <span>NOTE: If you want to use the same ssh key for all your projects, add a key using the "SSH Keys" tab under Account Settings. If you have done that, there is no need to configure an ssh key here.</span>
+            <span>NOTE: If you want to use the same ssh key for all your projects, add a key using the "SSH keys" tab under Account Settings. If you have done that, there is no need to configure an ssh key here.</span>
             </div>
                 <SSHKeyAdder
                     add_ssh_key  = {@add_ssh_key}

@@ -44,6 +44,8 @@ misc = require('smc-util/misc')
 {ProjectsNav} = require('./projects_nav')
 {ActiveAppContent, CookieWarning, GlobalInformationMessage, LocalStorageWarning, ConnectionIndicator, ConnectionInfo, FullscreenButton, NavTab, NotificationBell, AppLogo, VersionWarning} = require('./app_shared')
 
+nav_class = 'hidden-xs'
+
 FileUsePageWrapper = (props) ->
     styles =
         zIndex       : '10'
@@ -125,7 +127,7 @@ Page = rclass
 
         <NavTab
             name           = 'account'
-            label          = {'Account'}
+            label          = {<span className={nav_class}>Account</span>}
             icon           = {a}
             actions        = {@actions('page')}
             active_top_tab = {@props.active_top_tab}
@@ -151,7 +153,8 @@ Page = rclass
         if not require('./customize').commercial
             return
         <NavTab
-            label          = 'Help' icon='medkit'
+            label          = {<span className={nav_class}>Help</span>}
+            icon           = 'medkit'
             actions        = {@actions('page')}
             active_top_tab = {@props.active_top_tab}
             on_click       = {=>redux.getActions('support').show(true)}
@@ -169,7 +172,12 @@ Page = rclass
         <Nav id='smc-right-tabs-fixed' style={height:'40px', lineHeight:'20px', margin:'0', overflowY:'hidden'}>
             {@render_account_tab() if logged_in}
             {@render_sign_in_tab() if not logged_in}
-            <NavTab name='about' label='CoCalc' icon='info-circle' actions={@actions('page')} active_top_tab={@props.active_top_tab} />
+            <NavTab
+                name           = 'about'
+                label          = {<span className={nav_class}>CoCalc</span>}
+                icon           = 'info-circle'
+                actions        = {@actions('page')}
+                active_top_tab = {@props.active_top_tab} />
             <NavItem className='divider-vertical hidden-xs' />
             {@render_support()}
             {@render_bell()}
@@ -191,7 +199,7 @@ Page = rclass
                 active_top_tab = {@props.active_top_tab}
 
             >
-                <div style={projects_styles}>
+                <div style={projects_styles} className={nav_class}>
                     Projects
                 </div>
                 <AppLogo />

@@ -73,9 +73,9 @@ exports.TopMenubar = rclass ({name}) ->
             script_entry = '>nbconvert script'
 
         if @props.trust
-            trust = {name:"<trust notebook", display:"Trusted Notebook"}
+            trust = {name:"<trust notebook", display:"Trusted notebook"}
         else
-            trust = {name:"trust notebook", display:"Trust Notebook..."}
+            trust = {name:"trust notebook", display:"Trust notebook..."}
 
         save = 'save notebook'
         if not @props.has_unsaved_changes or @props.read_only
@@ -344,9 +344,9 @@ exports.TopMenubar = rclass ({name}) ->
             <Dropdown.Menu>
                 <MenuItem eventKey="help-about" onSelect = {=>@props.actions.show_about()} ><Icon name='question-circle'/>  About...</MenuItem>
                 <MenuItem divider />
-                <MenuItem eventKey="help-keyboard" onClick={@command("edit keyboard shortcuts")}><Icon name='keyboard-o'/>  Keyboard Shortcuts...</MenuItem>
+                <MenuItem eventKey="help-keyboard" onClick={@command("edit keyboard shortcuts")}><Icon name='keyboard-o'/>  Keyboard shortcuts...</MenuItem>
                 <MenuItem divider />
-                {external_link('Notebook Help', 'http://nbviewer.jupyter.org/github/ipython/ipython/blob/3.x/examples/Notebook/Index.ipynb')}
+                {external_link('Notebook help', 'http://nbviewer.jupyter.org/github/ipython/ipython/blob/3.x/examples/Notebook/Index.ipynb')}
                 {external_link('Jupyter in CoCalc','https://github.com/sagemathinc/cocalc/wiki/sagejupyter')}
                 {external_link('Markdown', 'https://help.github.com/articles/basic-writing-and-formatting-syntax')}
                 <MenuItem divider />

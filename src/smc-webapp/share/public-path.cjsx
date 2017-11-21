@@ -6,6 +6,8 @@ immutable = require('immutable')
 
 misc = require('smc-util/misc')
 
+{human_readable_size} = misc
+
 {rclass, Redux, React, ReactDOM, redux, rtypes} = require('../smc-react')
 
 {HTML, Markdown} = require('../r_misc')
@@ -29,57 +31,81 @@ exports.PublicPath = rclass
     displayName: "PublicPath"
 
     propTypes :
-        info    : rtypes.immutable.Map
-        content : rtypes.string
-        viewer  : rtypes.string.isRequired
-        path    : rtypes.string.isRequired
+        info     : rtypes.immutable.Map
+        content  : rtypes.string
+        viewer   : rtypes.string.isRequired
+        path     : rtypes.string.isRequired
+        size     : rtypes.number
+        max_size : rtypes.number
 
-    render_view: ->
+    render_too_big: ->
+        <div style={margin: '30px', color: '#333'}>
+            <h3>File too big to display</h3>
+            <br/>
+            {human_readable_size(@props.size)} is bigger than {human_readable_size(@props.max_size)}
+            <br/>
+            <br/>
+            You can download this file using the Raw link above.
+        </div>
+
+    main_view: ->
+        mathjax = false
         path = @props.path
         ext = misc.filename_extension(path)?.toLowerCase()
         src = misc.path_split(path).tail
 
         if extensions.image[ext]
-            return <img src={src} />
+            return {elt: <img src={src} />}
         else if extensions.pdf[ext]
-            return <PDF src={src} />
+            return {elt: <PDF src={src} />}
 
         if not @props.content?
-            return
-
-        if ext == 'md'
-            return <Markdown value={@props.content} />
+            # This happens if the file is too big
+            elt = @render_too_big()
+        else if ext == 'md'
+            mathjax = true
+            elt = <Markdown value={@props.content} style={margin:'10px', display:'block'}/>
         else if ext == 'ipynb'
             name   = file_editors.initialize(path, redux, undefined, true, @props.content)
             Viewer = file_editors.generate(path, redux, undefined, true)
-            <Redux redux={redux}>
+            mathjax = true
+            elt = <Redux redux={redux}>
                 <Viewer name={name} />
             </Redux>
             # TODO: need to call project_file.remove(path, redux, project_id, true) after
             # rendering is done!
         else if ext == 'sagews'
-            <SageWorksheet  sagews={parse_sagews(@props.content)} />
+            mathjax = true
+            elt = <SageWorksheet sagews={parse_sagews(@props.content)} style={margin:'30px'} />
         else if extensions.html[ext]
-            return <HTML value={@props.content} />
+            mathjax = true
+            elt = <HTML value={@props.content} />
         else if extensions.codemirror[ext]
             options = immutable.fromJS(extensions.codemirror[ext])
             #options = options.set('lineNumbers', true)
-            return <CodeMirrorStatic value={@props.content} options={options} style={background:'white', padding:'10px'}/>
+            elt = <CodeMirrorStatic value={@props.content} options={options} style={background:'white', padding:'10px'}/>
         else
-            return <pre>{@props.content}</pre>
+            elt = <pre>{@props.content}</pre>
 
+        return {mathjax: mathjax, elt:elt}
 
     render: ->
+        {elt, mathjax} = @main_view()
+        if mathjax
+            cls = 'cocalc-share-mathjax'
+        else
+            cls = undefined
+
         if @props.viewer == 'embed'
             embed = <html>
                         <head><meta name="robots" content="noindex, nofollow" /></head>
-                        <body>{@render_view()}</body>
+                        <body className={cls}>{elt}</body>
                     </html>
             return embed
 
-        <div style={display: 'flex', flexDirection: 'column'}>
+        <div style={display: 'flex', flexDirection: 'column', flex:1} className={cls}>
             <PublicPathInfo path={@props.path} info={@props.info} />
-            <div style={padding: '10px', background: 'white', overflow:'auto', margin:'10px 3%', border: '1px solid lightgrey'}>
-                {@render_view()}
+            <div style={background: 'white', overflow:'auto', flex:1}>
+                {elt}
             </div>
         </div>

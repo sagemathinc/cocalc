@@ -7,11 +7,9 @@ Share server top-level landing page.
 {Space, TimeAgo} = require('../r_misc')
 
 INDEX_STYLE =
-    margin     : '5px'
+    margin     : '15px 30px'
     overflow   : 'auto'
     height     : '100%'
-    border     : '1px solid black'
-    padding    : '15px'
     background : 'white'
 
 exports.PublicPathsBrowser = rclass
@@ -24,19 +22,19 @@ exports.PublicPathsBrowser = rclass
         page_size    : rtypes.number.isRequired
 
     render_overview: ->
-        <div>
+        <span style={color:'#333', paddingRight: '10px', borderRight: '1px solid black', marginRight: '10px'}>
             Page {@props.page_number} of {Math.ceil(@props.public_paths.size / @props.page_size)}.
-        </div>
+        </span>
 
     render_prev_page: ->
         if @props.page_number > 1
-            <a href="?page=#{@props.page_number-1}">Previous</a>
+            <a href="?page=#{@props.page_number-1}" style={textDecoration:'none'}>Previous</a>
         else
             <span style={color:'#666'}>Previous</span>
 
     render_next_page: ->
         if @props.page_number*@props.page_size < @props.public_paths.size
-            <a href="?page=#{@props.page_number+1}">Next</a>
+            <a href="?page=#{@props.page_number+1}" style={textDecoration:'none'}>Next</a>
         else
             <span style={color:'#666'}>Next</span>
 
@@ -85,7 +83,7 @@ exports.PublicPathsBrowser = rclass
 
     render: ->
         <div style={display:'flex', flexDirection:'column'}>
-            <div key='top'>
+            <div key='top' style={paddingLeft: '30px', background: '#dfdfdf'}>
                 {@render_overview()}
                 <Space />
                 {@render_prev_page()}

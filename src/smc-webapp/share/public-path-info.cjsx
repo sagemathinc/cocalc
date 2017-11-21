@@ -27,22 +27,23 @@ exports.PublicPathInfo = rclass
         else
             raw_rel = 'nofollow'
 
-        <div className='pull-right' style={margin: '5px 10px', fontSize: '12pt'}>
-            <a href={href} target='_blank' rel={raw_rel}>Raw...</a>
+        <div className='pull-right' style={marginRight: '5px'}>
+            <a href={href} target='_blank' rel={raw_rel} style={textDecoration:'none'}>Raw</a>
             <Space/>
             <Space/>
-            <a href={href + '?viewer=embed'} target='_blank' rel='nofollow'>Embed...</a>
+            <a href={href + '?viewer=embed'} target='_blank' rel='nofollow' style={textDecoration:'none'}>Embed</a>
         </div>
 
     render_desc: ->
         desc = @props.info?.get('description')
-        if desc?
-            <div style={color:'#333', fontSize:'12pt', margin:'5px 10px'}>
+        if desc
+            desc = desc[0].toUpperCase() + desc.slice(1)
+            <div style={color:'#444', marginLeft:'30px'}>
                 {desc}
             </div>
 
     render: ->
-        <div style={background:"#ddd", borderBottom:'4px solid grey'}>
+        <div style={background:"#ddd"}>
             {@render_external_links()}
             {@render_desc()}
         </div>

@@ -661,6 +661,8 @@ exports.CourseActions = class CourseActions extends Actions
         return if not store?
         student_project_id = store.getIn(['students', student_id, 'project_id'])
         if student_project_id?
+            student_account_id = store.getIn(['students', student_id, 'account_id'])
+            @redux.getActions('projects').remove_collaborator(student_project_id, student_account_id)
             @redux.getActions('projects').delete_project(student_project_id)
             @_set
                 create_project : null
@@ -681,7 +683,8 @@ exports.CourseActions = class CourseActions extends Actions
         @set_activity(id:id)
         @set_all_student_project_course_info()
 
-    delete_all_student_projects: () =>
+    # Deletes student projects and removes students from those projects
+    delete_all_student_projects: =>
         id = @set_activity(desc:"Deleting all student projects...")
         store = @get_store()
         if not store?

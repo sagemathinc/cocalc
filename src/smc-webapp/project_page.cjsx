@@ -201,16 +201,29 @@ FreeProjectWarning = rclass ({name}) ->
         if not @props.free_warning_extra_shown
             return null
         <div>
-            {<span>This project runs on a heavily loaded randomly rebooted free server that may be unavailable during peak hours. Please upgrade your project to run on a members-only server for more reliability and faster code execution.</span> if host}
+            {<span>This project runs on a heavily loaded server that may be unavailable during peak hours and is rebooted at least once a day.
+            <br/> Upgrade your project to run on a members-only server for more reliability and faster code execution.</span> if host}
 
-            {<span>This project does not have external network access, so you cannot use internet resources directly from this project; in particular, you cannot install software from the internet, download from sites like GitHub, or download data from public data portals.</span> if internet}
+            {<span><br/> This project does not have external network access, so you cannot install software or download data from external websites.</span> if internet}
             <ul>
-                <li>Learn about <a href="#{PolicyPricingPageUrl}" target='_blank'>Pricing and Subscriptions</a></li>
-                <li>Read the billing <a href="#{PolicyPricingPageUrl}#faq" target='_blank'>Frequently Asked Questions</a></li>
-                <li>Visit <a onClick={=>@actions('page').set_active_tab('account');@actions('account').set_active_tab('billing')}>Billing</a> to <em>subscribe</em> to a plan</li>
-                <li>Upgrade <em>this</em> project in <a onClick={=>@actions(project_id: @props.project_id).set_active_tab('settings')}>Project Settings</a></li>
+                <li style={lineHeight: '32px'}>Upgrade <em>this</em> project in <a style={cursor:'pointer'} onClick={=>@actions(project_id: @props.project_id).set_active_tab('settings')}>Project Settings</a></li>
+                <li style={lineHeight: '32px'}>Visit <a style={cursor:'pointer'} onClick={=>@actions('page').set_active_tab('account');@actions('account').set_active_tab('billing')}>Billing</a> to <em>subscribe</em> to a plan</li>
             </ul>
         </div>
+
+    render_dismiss: ->
+        return  # disabled
+        dismiss_styles =
+            cursor     : 'pointer'
+            display    : 'inline-block'
+            float      : 'right'
+            fontWeight : 700
+            top        : -4
+            fontSize   : '18pt'
+            color      : 'grey'
+            position   : 'relative'
+            height     : 0
+        <a style={dismiss_styles} onClick={@actions(project_id: @props.project_id).close_free_warning}>×</a>
 
     render: ->
         if not require('./customize').commercial
@@ -233,27 +246,20 @@ FreeProjectWarning = rclass ({name}) ->
             paddingRight : 7
             marginBottom : 0
             fontSize     : '13pt'
-        dismiss_styles =
-            cursor     : 'pointer'
-            display    : 'inline-block'
-            float      : 'right'
-            fontWeight : 700
-            top        : -4
-            fontSize   : '18pt'
-            color      : 'grey'
-            position   : 'relative'
-            height     : 0
 
+        ###
         if @props.free_compute_slowdown? and @props.free_compute_slowdown > 0.0
             pct = Math.round(@props.free_compute_slowdown)
-            slowdown = <span>and computations in this project could run up to <b>{pct}% faster after upgrading</b> to member server hosting.</span>
+            slowdown = <span>This project could run up to <b>{pct}% faster after upgrading</b> to member server hosting.</span>
         else
             slowdown = ''
+        ###
 
-        <Alert bsStyle='warning' style={styles}>
-            <Icon name='exclamation-triangle' /> WARNING: This project runs {<span>on a <b>free server</b></span> if host} {<span>without <b>internet access</b></span> if internet} {slowdown if host} &mdash;
+        <Alert bsStyle='danger' style={styles}>
+            <Icon name='exclamation-triangle' style={float:'right', marginTop: '3px'}/>
+            <Icon name='exclamation-triangle' /> Upgrade this project, since it is {<span>on a <b>free server</b></span> if host} {<span>without <b>internet access</b></span> if internet}. &mdash;
             <a onClick={=>@actions(project_id: @props.project_id).show_extra_free_warning()} style={cursor:'pointer'}> learn more...</a>
-            <a style={dismiss_styles} onClick={@actions(project_id: @props.project_id).close_free_warning}>×</a>
+            {@render_dismiss()}
             {@extra(host, internet)}
         </Alert>
 
@@ -392,20 +398,20 @@ ProjectContentViewer = rclass
                     style = {position: 'absolute', height:'100%', width:'100%', display:'flex'}
                     ref   = 'editor_container'
                     >
-                    <div style={flex:1, border:'1px solid lightgrey', borderRadius:'4px', overflow:'hidden', height:'100%', width:'100%'}>
+                    <div style={flex:1, overflow:'hidden', height:'100%', width:'100%'}>
                         {editor}
                     </div>
                     {@render_drag_bar(@props.file_path)}
                     <div
                         ref = 'side_chat_container'
-                        style={flexBasis:"#{chat_width*100}%", border:'1px solid grey', borderRadius:'4px', position:'relative'}>
+                        style={flexBasis:"#{chat_width*100}%", border:'1px solid lightgrey', position:'relative'}>
                         {@render_side_chat(@props.file_path)}
                     </div>
                 </div>
         else
             # just the editor
             content =\
-                <div style={position: 'absolute', height:'100%', width:'100%', border:'1px solid lightgrey', borderRadius:'4px'}>
+                <div style={position: 'absolute', height:'100%', width:'100%', border:'1px solid lightgrey'}>
                     {editor}
                 </div>
 
