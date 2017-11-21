@@ -65,6 +65,7 @@ exports.Library = rclass ({name}) ->
     getInitialState: ->
         lang        : 'python'
         selected    : undefined
+        hovered     : undefined
         copy        : false
         show_thumb  : false
         sorted_docs : undefined
@@ -128,6 +129,40 @@ exports.Library = rclass ({name}) ->
         evt.nativeEvent.stopImmediatePropagation()
         return false
 
+    select_docs: (list, tag, heading) ->
+        # "+tag" or "tag" for inclusion, "-tag" for exclusion
+
+        list.push(<li class="list-group-header" key={"header-#{heading}"}>{heading}</li>)
+
+        item_style =
+            width        : '100%'
+            margin       : '2px 0px'
+            padding      : '5px'
+            border       : 'none'
+            textAlign    : 'left'
+
+        include = true
+        if tag[0] == '-'
+            include = false
+            tag = tag[1...]
+        else if tag[0] == '+'
+            tag = tag[1...]
+
+        @state.sorted_docs.map (doc) =>
+            tags = doc.tags ? []
+            if (include and (tag in tags)) or ((not include) and not (tag in tags))
+                list.push(
+                    <ListGroupItem
+                        key         = {doc.id}
+                        active      = {doc.id == @state.selected?.id}
+                        onClick     = {=> @setState(selected:doc, show_thumb:false)}
+                        style       = {item_style}
+                        bsSize      = {'small'}
+                    >
+                        {doc.title ? doc.id}
+                    </ListGroupItem>
+                )
+
     selector: ->
         list_style =
             maxHeight    : HEIGHT
@@ -139,24 +174,12 @@ exports.Library = rclass ({name}) ->
             borderRadius : '5px'
             padding      : '5px'
 
-        item_style =
-            width        : '100%'
-            margin       : '2px 0px'
-            padding      : '5px'
+        list = []
+        @select_docs(list, '+intro', 'Introduction')
+        @select_docs(list, '-intro', 'Library')
 
         <ListGroup style={list_style} onKeyUp={@selector_keyup} ref='selector_list'>
-        {
-            @state.sorted_docs.map (doc) =>
-                <ListGroupItem
-                    key     = {doc.id}
-                    active  = {doc.id == @state.selected?.id}
-                    onClick = {=> @setState(selected:doc, show_thumb:false)}
-                    style   = {item_style}
-                    bsSize  = {'small'}
-                >
-                    {doc.title ? doc.id}
-                </ListGroupItem>
-        }
+            {list}
         </ListGroup>
 
     thumbnail: ->
