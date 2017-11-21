@@ -252,6 +252,8 @@ FreeProjectWarning = rclass ({name}) ->
             paddingRight : 7
             marginBottom : 0
             fontSize     : "#{font_size}pt"
+            color        : 'white'
+            background   : 'red'
 
         ###
         if @props.free_compute_slowdown? and @props.free_compute_slowdown > 0.0
@@ -264,7 +266,7 @@ FreeProjectWarning = rclass ({name}) ->
         <Alert bsStyle='danger' style={styles}>
             <Icon name='exclamation-triangle' style={float:'right', marginTop: '3px'}/>
             <Icon name='exclamation-triangle' /> Upgrade this project, since it is {<span>on a <b>free server</b></span> if host} {<span>without <b>internet access</b></span> if internet}. &mdash;
-            <a onClick={=>@actions(project_id: @props.project_id).show_extra_free_warning()} style={cursor:'pointer'}> learn more...</a>
+            <a onClick={=>@actions(project_id: @props.project_id).show_extra_free_warning()} style={color:'white', cursor:'pointer'}> learn more...</a>
             {@render_dismiss()}
             {@extra(host, internet)}
         </Alert>
