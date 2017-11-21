@@ -184,6 +184,10 @@ class PageActions extends Actions
         @setState(fullscreen : val)
         history.update_params()
 
+    set_fetch_apikey: (val) =>
+        @setState(fetch_apikey: val)
+        history.update_params()
+
     toggle_fullscreen: =>
         @set_fullscreen(if redux.getStore('page').get('fullscreen')? then undefined else 'default')
 
@@ -380,4 +384,9 @@ if fullscreen_query_value == 'kiosk'
     session = undefined
 
 redux.getActions('page').set_session(session)
+
+fetch_apikey_query_value = misc_page.get_query_param('fetch_apikey')
+if fetch_apikey_query_value
+    redux.getActions('page').set_fetch_apikey(fetch_apikey_query_value)
+
 
