@@ -186,15 +186,17 @@ FreeProjectWarning = rclass ({name}) ->
             free_warning_extra_shown : rtypes.bool
             free_warning_closed      : rtypes.bool
             free_compute_slowdown    : rtypes.number
+            project_log              : rtypes.immutable
 
     propTypes:
         project_id : rtypes.string
 
     shouldComponentUpdate: (nextProps) ->
-        return @props.free_warning_extra_shown != nextProps.free_warning_extra_shown or
-            @props.free_warning_closed != nextProps.free_warning_closed or
-            @props.free_compute_slowdown != nextProps.free_compute_slowdown or
-            @props.project_map?.get(@props.project_id)?.get('users') != nextProps.project_map?.get(@props.project_id)?.get('users')
+        return @props.free_warning_extra_shown != nextProps.free_warning_extra_shown or  \
+            @props.free_warning_closed != nextProps.free_warning_closed or   \
+            @props.free_compute_slowdown != nextProps.free_compute_slowdown or  \
+            @props.project_map?.get(@props.project_id)?.get('users') != nextProps.project_map?.get(@props.project_id)?.get('users') or \
+            not @props.project_log?
 
     extra: (host, internet) ->
         {PolicyPricingPageUrl} = require('./customize')
@@ -219,13 +221,15 @@ FreeProjectWarning = rclass ({name}) ->
             float      : 'right'
             fontWeight : 700
             top        : -4
-            fontSize   : '18pt'
+            fontSize   : "13pt"
             color      : 'grey'
             position   : 'relative'
             height     : 0
         <a style={dismiss_styles} onClick={@actions(project_id: @props.project_id).close_free_warning}>×</a>
 
     render: ->
+        if not @props.project_log?
+            return null
         if not require('./customize').commercial
             return null
         if @props.free_warning_closed
@@ -240,12 +244,14 @@ FreeProjectWarning = rclass ({name}) ->
         internet = not quotas.network
         if not host and not internet
             return null
+
+        font_size = Math.min(18, 12 + Math.round((@props.project_log?.size ? 0) / 30))
         styles =
             padding      : 3
             paddingLeft  : 7
             paddingRight : 7
             marginBottom : 0
-            fontSize     : '13pt'
+            fontSize     : "#{font_size}pt"
 
         ###
         if @props.free_compute_slowdown? and @props.free_compute_slowdown > 0.0
