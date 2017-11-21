@@ -3,6 +3,12 @@ Render the public path
 
 ###
 
+# Do not backend render any file beyond this size, instead showing
+# a download link.   This is to avoid a share server blocking for
+# a long time or using a lot of RAM.
+MAX_SIZE_MB          = 10
+MAX_SIZE             = 1000000*MAX_SIZE_MB # size in bytes
+
 os_path              = require('path')
 fs                   = require('fs')
 
@@ -66,9 +72,15 @@ exports.render_public_path = (opts) ->
                                 path   = {opts.path} />
                         opts.react(opts.res, C, opts.path)
                 return
+
             # stats.size
             # TODO: if too big... just show an error and direct raw download link
             get_content = (cb) ->
+                if stats.size > MAX_SIZE
+                    locals.content = undefined  # means -- too big to load.
+                    cb()
+                    return
+
                 ext = misc.filename_extension(locals.path_to_file)?.toLowerCase()
                 if extensions.image[ext] or extensions.pdf[ext]
                     cb()
@@ -84,5 +96,13 @@ exports.render_public_path = (opts) ->
                 if err
                     opts.res.sendStatus(404)
                     return
-                opts.react(opts.res, <PublicPath info={opts.info} content={locals.content} viewer={opts.viewer} path={opts.path} />, opts.path)
+                component = <PublicPath
+                    info     = {opts.info}
+                    content  = {locals.content}
+                    viewer   = {opts.viewer}
+                    path     = {opts.path}
+                    size     = {stats.size}
+                    max_size = {MAX_SIZE}
+                    />
+                opts.react(opts.res, component, opts.path)
 

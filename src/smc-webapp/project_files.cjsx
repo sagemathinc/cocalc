@@ -30,7 +30,7 @@ misc = require('smc-util/misc')
 {SiteName} = require('./customize')
 
 {BillingPageLink, BillingPageForCourseRedux, PayCourseFee}     = require('./billing')
-{human_readable_size} = require('./misc_page')
+{human_readable_size} = misc
 {MiniTerminal}        = require('./project_miniterm')
 {file_associations}   = require('./file-associations')
 account               = require('./account')

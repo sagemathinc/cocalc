@@ -13,6 +13,7 @@ exports.Worksheet = rclass
 
     propTypes :
         sagews : rtypes.array.isRequired
+        style  : rtypes.object
 
     render_cell: (cell) ->
         <Cell key={cell.id} input={cell.input} output={cell.output} flags={cell.flags} />
@@ -24,6 +25,6 @@ exports.Worksheet = rclass
             @render_cell(cell)
 
     render: ->
-        <div style={margin:'10px'}>
+        <div style={@props.style}>
             {@render_cells()}
         </div>

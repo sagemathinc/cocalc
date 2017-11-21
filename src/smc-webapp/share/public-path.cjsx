@@ -6,6 +6,8 @@ immutable = require('immutable')
 
 misc = require('smc-util/misc')
 
+{human_readable_size} = misc
+
 {rclass, Redux, React, ReactDOM, redux, rtypes} = require('../smc-react')
 
 {HTML, Markdown} = require('../r_misc')
@@ -29,12 +31,25 @@ exports.PublicPath = rclass
     displayName: "PublicPath"
 
     propTypes :
-        info    : rtypes.immutable.Map
-        content : rtypes.string
-        viewer  : rtypes.string.isRequired
-        path    : rtypes.string.isRequired
+        info     : rtypes.immutable.Map
+        content  : rtypes.string
+        viewer   : rtypes.string.isRequired
+        path     : rtypes.string.isRequired
+        size     : rtypes.number
+        max_size : rtypes.number
+
+    render_too_big: ->
+        <div style={margin: '30px', color: '#333'}>
+            <h3>File too big to display</h3>
+            <br/>
+            {human_readable_size(@props.size)} is bigger than {human_readable_size(@props.max_size)}
+            <br/>
+            <br/>
+            You can download this file using the Raw link above.
+        </div>
 
     main_view: ->
+        mathjax = false
         path = @props.path
         ext = misc.filename_extension(path)?.toLowerCase()
         src = misc.path_split(path).tail
@@ -45,10 +60,9 @@ exports.PublicPath = rclass
             return {elt: <PDF src={src} />}
 
         if not @props.content?
-            return
-
-        mathjax = false
-        if ext == 'md'
+            # This happens if the file is too big
+            elt = @render_too_big()
+        else if ext == 'md'
             mathjax = true
             elt = <Markdown value={@props.content} style={margin:'10px', display:'block'}/>
         else if ext == 'ipynb'
@@ -62,7 +76,7 @@ exports.PublicPath = rclass
             # rendering is done!
         else if ext == 'sagews'
             mathjax = true
-            elt = <SageWorksheet sagews={parse_sagews(@props.content)} />
+            elt = <SageWorksheet sagews={parse_sagews(@props.content)} style={margin:'30px'} />
         else if extensions.html[ext]
             mathjax = true
             elt = <HTML value={@props.content} />

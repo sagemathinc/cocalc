@@ -15,11 +15,11 @@ def chdir():
 def base_url(port=None):
     info_file = join(os.environ['SMC'], 'info.json')
     info = json.loads(open(info_file).read())
-    if not port:
+    if port is None:
+        write_base_url = False
+    else:
         write_base_url = True
         port = get_ports()['hub']
-    else:
-        write_base_url = False
     base_url = "/{project_id}/port/{port}".format(project_id=info['project_id'], port=port)
     if write_base_url:
         open("../../data/base_url",'w').write(base_url)
