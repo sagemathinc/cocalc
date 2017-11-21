@@ -67,6 +67,12 @@ exports.Library = rclass ({name}) ->
         selected   : undefined
         copy       : false
         show_thumb : false
+        #sorted_ids : undefined
+
+    #componentWillReceiveProps: (next) ->
+    #    if next.library != @props.library
+    #        IDs = sortBy('title')(@props.library.examples.documents).map((doc) => doc.id)
+    #        @setState(sorted_ids : IDs)
 
     target_path: ->
         doc = @state.selected
@@ -94,17 +100,38 @@ exports.Library = rclass ({name}) ->
             start  : doc?.start ? '/'
             cb     : => @setState(copy: false)
 
+    selector_keyup: (evt) ->
+        if @state.selected?
+            IDs = sortBy('title')(@props.library.examples.documents).map((doc) -> doc.id)
+            idx = IDs.indexOf(@state.selected.id)
+            switch evt.keyCode
+                when 38 # up
+                    idx =- 1
+                when 40 # down
+                    idx =+ 1
+
+            new_id = IDs[idx % IDs.length]
+            @setState(selected: @props.library.examples.documents[new_id])
+
+        evt.preventDefault()
+        evt.stopPropagation()
+        evt.nativeEvent.stopImmediatePropagation()
+        return false
+
     selector: ->
         list_style =
             maxHeight    : HEIGHT
             overflowX    : 'hidden'
             overflowY    : 'scroll'
+            borderTop    : "1px solid #{COLORS.GRAY_LL}"
             borderBottom : "1px solid #{COLORS.GRAY_LL}"
 
-        <ListGroup style={list_style}>
+        <ListGroup style={list_style} onKeyUp={@selector_keyup}>
         {
             examples = @props.library.examples
             sortBy('title')(examples.documents).map (doc) =>
+            #for doc_id in @state.sorted_ids
+                #doc = examples.documents[doc_id]
                 <ListGroupItem
                     key     = {doc.id}
                     active  = {doc.id == @state.selected?.id}
@@ -195,7 +222,7 @@ exports.Library = rclass ({name}) ->
         if state and state != 'running'
             return <span>Project not running</span>
 
-        if not @props.library?.examples?
+        if not @props.library?.examples?  # or not @state.sorted_ids?
             return <Loading />
 
         thumb = @state.selected?.thumbnail

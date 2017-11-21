@@ -967,8 +967,8 @@ class ProjectActions extends Actions
         ])
 
     init_library_index: ->
-        return if @_init_library_index_ongoing[@project_id]
-        @_init_library_index_ongoing[@project_id] = true
+        return if _init_library_index_ongoing[@project_id]
+        _init_library_index_ongoing[@project_id] = true
 
         {webapp_client} = require('./webapp_client')
 
@@ -989,7 +989,7 @@ class ProjectActions extends Actions
                         #    console.log("init_library/index k, v:", k, v)
                         library = @get_store().library.set('examples', data)
                         @setState(library: library)
-                        @_init_library_index_ongoing[@project_id] = false
+                        _init_library_index_ongoing[@project_id] = false
                         cb()
                     catch e
                         cb(e)
