@@ -227,6 +227,15 @@ FreeProjectWarning = rclass ({name}) ->
             height     : 0
         <a style={dismiss_styles} onClick={@actions(project_id: @props.project_id).close_free_warning}>×</a>
 
+    render_learn_more: ->
+        <a
+            href   = "https://github.com/sagemathinc/cocalc/wiki/FreeServerMessage" 
+            target = "_blank"
+            style  = {fontWeight : 'bold', color:'white', cursor:'pointer'}>
+            learn more...
+        </a>
+        #<a onClick={=>@actions(project_id: @props.project_id).show_extra_free_warning()} style={color:'white', cursor:'pointer'}> learn more...</a>
+
     render: ->
         if not @props.project_log?
             return null
@@ -266,7 +275,7 @@ FreeProjectWarning = rclass ({name}) ->
         <Alert bsStyle='danger' style={styles}>
             <Icon name='exclamation-triangle' style={float:'right', marginTop: '3px'}/>
             <Icon name='exclamation-triangle' /> Upgrade this project, since it is {<span>on a <b>free server</b></span> if host} {<span>without <b>internet access</b></span> if internet}. &mdash;
-            <a onClick={=>@actions(project_id: @props.project_id).show_extra_free_warning()} style={color:'white', cursor:'pointer'}> learn more...</a>
+            {@render_learn_more()}
             {@render_dismiss()}
             {@extra(host, internet)}
         </Alert>
