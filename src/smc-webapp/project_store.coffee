@@ -906,7 +906,7 @@ class ProjectActions extends Actions
             #if DEBUG then console.log("init_library.check", v, k)
             store = @get_store()
             return if not store?
-            if store.library?[k]?
+            if store.library?.get(k)?
                 return
             src = v.src
             cmd = "test -e #{src}"
@@ -928,30 +928,12 @@ class ProjectActions extends Actions
         # reads the index file for the library (if it fails, we have no library)
         index = (cb) =>
             {webapp_client} = require('./webapp_client')
-            #index_json_url = webapp_client.read_file_from_project
-            #    project_id : @project_id
-            #    path       : '/ext/library/index.json'
-            #$.ajax(
-            #    url     : index_json_url
-            #    timeout : 30000
-            #    success : (content) ->
-            #        try
-            #            data = misc.from_json(content)
-            #            for k, v of data
-            #                ...
-            #        catch e
-            #            if DEBUG then console.log("init_library/index: error parsing: #{e}")
-            #        cb()
-            #    ).fail () ->
-            #        if DEBUG then console.log("init_library/index: error reading file: #{err}")
-            #        cb()
 
             webapp_client.read_text_file_from_project
                 project_id : @project_id
                 path       : require('./library').examples_path + '/index.json'
                 cb         : (err, response) =>
                     if err
-                        console.log("init_library/index: error reading file: #{err}")
                         cb(); return
                     try
                         data = misc.from_json(response.content)
@@ -963,7 +945,6 @@ class ProjectActions extends Actions
 
         async.series([
             (cb) -> async.eachOfSeries(LIBRARY, check, cb)
-            #(cb) -> index(cb)
         ])
 
     init_library_index: ->
@@ -981,20 +962,16 @@ class ProjectActions extends Actions
                 url     : index_json_url
                 timeout : 5000
                 success : (content) =>
-                    if DEBUG then console.log("init_library/content", content)
+                    #if DEBUG then console.log("init_library/content", content)
                     try
                         #data = misc.from_json(content)
                         data = content
-                        #for k, v of content
-                        #    console.log("init_library/index k, v:", k, v)
                         library = @get_store().library.set('examples', data)
                         @setState(library: library)
-                        _init_library_index_ongoing[@project_id] = false
                         cb()
                     catch e
+                        if DEBUG then console.log("init_library/index: error parsing: #{e}")
                         cb(e)
-                        if DEBUG
-                            console.log("init_library/index: error parsing: #{e}")
                 ).fail (err) ->
                     if DEBUG then console.log("init_library/index: error reading file: #{misc.to_json(err)}")
                     cb(err.statusText ? 'error')
@@ -1003,6 +980,7 @@ class ProjectActions extends Actions
             f           : fetch
             start_delay : 1000
             max_delay   : 10000
+            #cb          : => _init_library_index_ongoing[@project_id] = false
 
     copy_from_library: (opts) =>
         opts = defaults opts,
@@ -1687,7 +1665,7 @@ create_project_store_def = (name, project_id) ->
         open_files_order       : immutable.List([])
         open_files             : immutable.Map({})
         num_ghost_file_tabs    : 0
-        library                : {}
+        library                : immutable.Map({})
 
     reduxState:
         account:
@@ -1724,7 +1702,7 @@ create_project_store_def = (name, project_id) ->
         selected_file_index    : rtypes.number     # Index on file listing to highlight starting at 0. undefined means none highlighted
         new_name               : rtypes.string
         most_recent_file_click : rtypes.string
-        library                : rtypes.object
+        library                : rtypes.immutable.Map
 
         # Project Log
         project_log : rtypes.immutable
