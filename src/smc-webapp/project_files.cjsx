@@ -597,7 +597,7 @@ NoFiles = rclass
             </Col>
             <Col sm=8>
                 <span style={fontSize:'20px'}>
-                    No Files Found
+                    No files found
                 </span>
                 <hr/>
                 {@render_create_button() if not @props.public_view}
