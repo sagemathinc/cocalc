@@ -582,131 +582,132 @@ exports.LandingPage = rclass
         has_account             : rtypes.bool
 
     render: ->
-        if not @props.remember_me
-            reset_key = reset_password_key()
-            if @props.has_remember_me
-                topbar =
-                  img_icon    : APP_ICON_WHITE
-                  img_name    : APP_LOGO_NAME_WHITE
-                  img_opacity : 1.0
-                  color       : 'white'
-                  bg_color    : COLORS.LANDING.LOGIN_BAR_BG
-                  border      : "5px solid #{COLORS.LANDING.LOGIN_BAR_BG}"
-            else
-                topbar =
-                  img_icon    : APP_ICON
-                  img_name    : APP_LOGO_NAME
-                  img_opacity : 0.6
-                  color       : COLORS.GRAY
-                  bg_color    : COLORS.GRAY_LL
-                  border      : "5px solid #{COLORS.GRAY}"
-
-            <div style={margin: UNIT}>
-                    {<ResetPassword
-                        reset_key={reset_key}
-                        reset_password_error={@props.reset_password_error}
-                    /> if reset_key}
-                    {<ForgotPassword
-                        forgot_password_error={@props.forgot_password_error}
-                        forgot_password_success={@props.forgot_password_success}
-                    /> if @props.show_forgot_password}
-                <Row style={fontSize: UNIT,\
-                            backgroundColor: COLORS.LANDING.LOGIN_BAR_BG,\
-                            padding: 5, margin: 0, borderRadius:4}
-                     className="visible-xs">
-                        <SignIn
-                            signing_in    = {@props.signing_in}
-                            sign_in_error = {@props.sign_in_error}
-                            has_account   = {@props.has_account}
-                            xs            = {true}
-                            color         = {topbar.color} />
-                        <div style={clear:'both'}></div>
-                </Row>
-                <Row style={backgroundColor : topbar.bg_color,\
-                            border          : topbar.border,\
-                            padding         : 5,\
-                            margin          : 0,\
-                            marginBottom    : 20,\
-                            borderRadius    : 5,\
-                            position        : 'relative',\
-                            whiteSpace      : 'nowrap'}
-                     className="hidden-xs">
-                      <div style={width    : 490,\
-                                  zIndex   : 10,\
-                                  position : "relative",\
-                                  top      : UNIT,\
-                                  right    : UNIT,\
-                                  fontSize : '11pt',\
-                                  float    : "right"}
-                          >
-                          <SignIn
-                              signing_in    = {@props.signing_in}
-                              sign_in_error = {@props.sign_in_error}
-                              has_account   = {@props.has_account}
-                              xs            = {false}
-                              color         = {topbar.color} />
-                      </div>
-                      <div style={ display          : 'inline-block', \
-                                   backgroundImage  : "url('#{topbar.img_icon}')", \
-                                   backgroundSize   : 'contain', \
-                                   height           : UNIT * 5, width: UNIT * 5, \
-                                   margin           : 5,\
-                                   verticalAlign    : 'center',\
-                                   backgroundRepeat : 'no-repeat'}>
-                      </div>
-                      <div className="hidden-sm"
-                          style={ display          : 'inline-block',\
-                                  fontFamily       : DESC_FONT,\
-                                  fontSize         : "28px",\
-                                  top              : UNIT,\
-                                  left             : UNIT * 7,\
-                                  width            : 250,\
-                                  height           : 55,\
-                                  position         : 'absolute',\
-                                  color            : topbar.color,\
-                                  opacity          : topbar.img_opacity,\
-                                  backgroundImage  : "url('#{topbar.img_name}')",\
-                                  backgroundSize   : 'contain',\
-                                  backgroundRepeat : 'no-repeat'}>
-                      </div>
-                      <div className="hidden-sm">
-                          <SiteDescription
-                              style={ fontWeight   : "700",\
-                                  fontSize     : "15px",\
-                                  fontFamily   : "sans-serif",\
-                                  bottom       : 10,\
-                                  left         : UNIT * 7,\
-                                  display      : 'inline-block',\
-                                  position     : "absolute",\
-                                  color        : topbar.color} />
-                      </div>
-                </Row>
-                <Row>
-                    <Col sm=6>
-                        <SignUp
-                            sign_up_error   = {@props.sign_up_error}
-                            strategies      = {@props.strategies}
-                            token           = {@props.token}
-                            has_remember_me = {@props.has_remember_me}
-                            signing_up      = {@props.signing_up}
-                            has_account     = {@props.has_account} />
-                    </Col>
-                    <Col sm=6>
-                        <div style={color:"#333", fontSize:'12pt', marginTop:'2em'}>
-                            Create a new account here or sign in with an existing account above.
-                            <br/>
-                            <br/>
-
-                            If you have any questions create a <ShowSupportLink />.
-
-                            <br/>
-                            <br/>
-                            <a href={APP_BASE_URL + "/"}>Learn more about CoCalc...</a>
-                        </div>
-                    </Col>
-                </Row>
-                <Footer/>
-            </div>
+        if @props.remember_me
+            # CSS of this looks like crap for a moment; worse than nothing. So disabling unless it can be fixed!!
+            #return <Connecting />
+            return <span/>
+        reset_key = reset_password_key()
+        if @props.has_remember_me
+            topbar =
+              img_icon    : APP_ICON_WHITE
+              img_name    : APP_LOGO_NAME_WHITE
+              img_opacity : 1.0
+              color       : 'white'
+              bg_color    : COLORS.LANDING.LOGIN_BAR_BG
+              border      : "5px solid #{COLORS.LANDING.LOGIN_BAR_BG}"
         else
-            <Connecting />
+            topbar =
+              img_icon    : APP_ICON
+              img_name    : APP_LOGO_NAME
+              img_opacity : 0.6
+              color       : COLORS.GRAY
+              bg_color    : COLORS.GRAY_LL
+              border      : "5px solid #{COLORS.GRAY}"
+
+        <div style={margin: UNIT}>
+                {<ResetPassword
+                    reset_key={reset_key}
+                    reset_password_error={@props.reset_password_error}
+                /> if reset_key}
+                {<ForgotPassword
+                    forgot_password_error={@props.forgot_password_error}
+                    forgot_password_success={@props.forgot_password_success}
+                /> if @props.show_forgot_password}
+            <Row style={fontSize: UNIT,\
+                        backgroundColor: COLORS.LANDING.LOGIN_BAR_BG,\
+                        padding: 5, margin: 0, borderRadius:4}
+                 className="visible-xs">
+                    <SignIn
+                        signing_in    = {@props.signing_in}
+                        sign_in_error = {@props.sign_in_error}
+                        has_account   = {@props.has_account}
+                        xs            = {true}
+                        color         = {topbar.color} />
+                    <div style={clear:'both'}></div>
+            </Row>
+            <Row style={backgroundColor : topbar.bg_color,\
+                        border          : topbar.border,\
+                        padding         : 5,\
+                        margin          : 0,\
+                        marginBottom    : 20,\
+                        borderRadius    : 5,\
+                        position        : 'relative',\
+                        whiteSpace      : 'nowrap'}
+                 className="hidden-xs">
+                  <div style={width    : 490,\
+                              zIndex   : 10,\
+                              position : "relative",\
+                              top      : UNIT,\
+                              right    : UNIT,\
+                              fontSize : '11pt',\
+                              float    : "right"}
+                      >
+                      <SignIn
+                          signing_in    = {@props.signing_in}
+                          sign_in_error = {@props.sign_in_error}
+                          has_account   = {@props.has_account}
+                          xs            = {false}
+                          color         = {topbar.color} />
+                  </div>
+                  <div style={ display          : 'inline-block', \
+                               backgroundImage  : "url('#{topbar.img_icon}')", \
+                               backgroundSize   : 'contain', \
+                               height           : UNIT * 5, width: UNIT * 5, \
+                               margin           : 5,\
+                               verticalAlign    : 'center',\
+                               backgroundRepeat : 'no-repeat'}>
+                  </div>
+                  <div className="hidden-sm"
+                      style={ display          : 'inline-block',\
+                              fontFamily       : DESC_FONT,\
+                              fontSize         : "28px",\
+                              top              : UNIT,\
+                              left             : UNIT * 7,\
+                              width            : 250,\
+                              height           : 55,\
+                              position         : 'absolute',\
+                              color            : topbar.color,\
+                              opacity          : topbar.img_opacity,\
+                              backgroundImage  : "url('#{topbar.img_name}')",\
+                              backgroundSize   : 'contain',\
+                              backgroundRepeat : 'no-repeat'}>
+                  </div>
+                  <div className="hidden-sm">
+                      <SiteDescription
+                          style={ fontWeight   : "700",\
+                              fontSize     : "15px",\
+                              fontFamily   : "sans-serif",\
+                              bottom       : 10,\
+                              left         : UNIT * 7,\
+                              display      : 'inline-block',\
+                              position     : "absolute",\
+                              color        : topbar.color} />
+                  </div>
+            </Row>
+            <Row>
+                <Col sm=6>
+                    <SignUp
+                        sign_up_error   = {@props.sign_up_error}
+                        strategies      = {@props.strategies}
+                        token           = {@props.token}
+                        has_remember_me = {@props.has_remember_me}
+                        signing_up      = {@props.signing_up}
+                        has_account     = {@props.has_account} />
+                </Col>
+                <Col sm=6>
+                    <div style={color:"#333", fontSize:'12pt', marginTop:'2em'}>
+                        Create a new account here or sign in with an existing account above.
+                        <br/>
+                        <br/>
+
+                        If you have any questions create a <ShowSupportLink />.
+
+                        <br/>
+                        <br/>
+                        <a href={APP_BASE_URL + "/"}>Learn more about CoCalc...</a>
+                    </div>
+                </Col>
+            </Row>
+            <Footer/>
+        </div>
 
