@@ -15,7 +15,7 @@ CoCalcLogo = rclass
 
     render: ->
         # TODO, obviously
-        <img style={height:'36px', width:'36px'} src="#{@props.base_url}/share/cocalc-icon.svg" />
+        <img style={height:'21px', width:'21px'} src="#{@props.base_url}/share/cocalc-icon.svg" />
 
 
 exports.Page = rclass
@@ -63,13 +63,13 @@ exports.Page = rclass
             if @props.project_id
                 i = @props.path.slice(1).indexOf('/')
                 proj_url = "#{top}/../projects/#{@props.project_id}/files/#{@props.path.slice(2+i)}?session=share"
-                project = <a target="_blank" href={proj_url} className='pull-right' rel='nofollow'>
+                project = <a target="_blank" href={proj_url} className='pull-right' rel='nofollow' style={textDecoration:'none'} >
                     {SITE_NAME}
                 </a>
 
-        <div key='top' style={fontSize:'12pt', padding: '5px', background:'#dfdfdf'} translate='no'>
+        <div key='top' style={padding: '5px 5px 0px 5px', background:'#dfdfdf'} translate='no'>
             <span style={marginRight:'10px'}>
-                <a href={top}><CoCalcLogo base_url={@props.base_url} /> Shared</a>
+                <a href={top} style={textDecoration:'none'}><CoCalcLogo base_url={@props.base_url} /> Shared</a>
             </span>
             <span style={paddingLeft: '15px', borderLeft: '1px solid black', marginLeft: '15px'}>
                 {path}
