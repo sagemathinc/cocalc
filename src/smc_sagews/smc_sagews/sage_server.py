@@ -1010,15 +1010,18 @@ class Salvus(object):
                 sys.stdout.flush()
                 sys.stderr.flush()
             except:
-                code_error = True
+                if ascii_warn:
+                    sys.stderr.write('\n\n***    WARNING: Code contains non-ascii characters    ***\n\n')
+                    for c in u'\u201c\u201d':
+                        if c in code:
+                             sys.stderr.write(u'Maybe the character < %s > should be replaced by < " > ?\n' % c)
+                    sys.stderr.write('\n\n')
                 sys.stdout.flush()
                 sys.stderr.write('Error in lines %s-%s\n'%(start+1, stop+1))
                 traceback.print_exc()
                 sys.stderr.flush()
                 break
-        if code_error and ascii_warn:
-            sys.stderr.write('*** WARNING: Code contains non-ascii characters ***\n')
-            sys.stderr.flush()
+
 
     def execute_with_code_decorators(self, code_decorators, code, preparse=True, namespace=None, locals=None):
         """
