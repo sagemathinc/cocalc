@@ -411,6 +411,15 @@ class CodeMirrorEditor extends FileEditor
         # not really needed due to highlighted tab; annoying.
         #@element.find(".webapp-editor-codemirror-filename").text(filename)
 
+        @show_exec_warning = redux.getStore('account').getIn(['editor_settings', 'show_exec_warning']) ? true
+        if @show_exec_warning and @ext in ['py', 'r', 'sage', 'f90']
+            msg = "<strong>INFO:</strong> you can only run <code>*.#{@ext}</code> files in a terminal or create a worksheet/notebook. <a href='#'>Dismiss</a>"
+            msg_el = @element.find('.webapp-editor-codemirror-message')
+            msg_el.html(msg)
+            msg_el.find('a').click ->
+                msg_el.hide()
+                redux.getTable('account').set(editor_settings:{show_exec_warning:false})
+
         @_video_is_on = @local_storage("video_is_on")
         if not @_video_is_on?
             @_video_is_on = false

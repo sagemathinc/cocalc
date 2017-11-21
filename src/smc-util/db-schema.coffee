@@ -249,6 +249,7 @@ schema.accounts =
                     theme                     : "default"
                     undo_depth                : 300
                     jupyter_classic           : false
+                    show_exec_warning         : true
                 other_settings  :
                     confirm_close     : false
                     mask_files        : true
