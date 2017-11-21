@@ -283,7 +283,7 @@ ProjectNewForm = rclass ({name}) ->
         if @props.get_total_project_quotas(@props.project_id)?.network
             return ''
         else
-            return ' (internet access blocked -- see project settings)'
+            return ' (access blocked -- see project settings)'
 
     create_folder: ->
         @props.actions.create_folder
