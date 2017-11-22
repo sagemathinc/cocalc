@@ -1311,8 +1311,8 @@ EditorFileInfoDropdown = rclass
                 'copy'     : 'files-o'
         else
             # dynamically create a map from 'key' to 'icon'
-            {file_action_buttons} = require('./project_files')
-            items = _.object(([k, v.icon] for k, v of file_action_buttons))
+            {file_actions} = require('./project_files')
+            items = _.object(([k, v.icon] for k, v of file_actions))
 
         for name, icon of items
             @render_menu_item(name, icon)

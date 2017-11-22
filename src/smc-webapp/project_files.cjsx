@@ -46,31 +46,39 @@ feature = require('./feature')
 Combobox = require('react-widgets/lib/Combobox') # TODO: delete this when the combobox is in r_misc
 TERM_MODE_CHAR = '/'
 
-exports.file_action_buttons = file_action_buttons =
-        compress :
-            name : 'Compress'
-            icon : 'compress'
-        delete   :
-            name : 'Delete'
-            icon : 'trash-o'
-        rename   :
-            name : 'Rename'
-            icon : 'pencil'
-        duplicate:
-            name : 'Duplicate'
-            icon : 'clone'
-        move     :
-            name : 'Move'
-            icon : 'arrows'
-        copy     :
-            name : 'Copy'
-            icon : 'files-o'
-        share    :
-            name : 'Share'
-            icon : 'share-square-o'
-        download :
-            name : 'Download'
-            icon : 'cloud-download'
+exports.file_actions = file_actions =
+        compress  :
+            name  : 'Compress'
+            icon  : 'compress'
+            allows_multiple_files : true
+        delete    :
+            name  : 'Delete'
+            icon  : 'trash-o'
+            allows_multiple_files : true
+        rename    :
+            name  : 'Rename'
+            icon  : 'pencil'
+            allows_multiple_files : false
+        duplicate :
+            name  : 'Duplicate'
+            icon  : 'clone'
+            allows_multiple_files : false
+        move      :
+            name  : 'Move'
+            icon  : 'arrows'
+            allows_multiple_files : true
+        copy      :
+            name  : 'Copy'
+            icon  : 'files-o'
+            allows_multiple_files : true
+        share     :
+            name  : 'Share'
+            icon  : 'share-square-o'
+            allows_multiple_files : false
+        download  :
+            name  : 'Download'
+            icon  : 'cloud-download'
+            allows_multiple_files : true
 
 FileCheckbox = rclass
     displayName : 'ProjectFiles-FileCheckbox'
@@ -995,7 +1003,7 @@ ProjectFilesActions = rclass
             </div>
 
     render_action_button: (name) ->
-        obj = file_action_buttons[name]
+        obj = file_actions[name]
         get_basename = =>
             misc.path_split(@props.checked_files?.first()).tail
         <Button
@@ -1746,7 +1754,7 @@ ProjectFilesActionBox = rclass
 
     render: ->
         action = @props.file_action
-        action_button = file_action_buttons[action]
+        action_button = file_actions[action]
         if not action_button?
             return <div>Undefined action</div>
         if not @props.file_map?
