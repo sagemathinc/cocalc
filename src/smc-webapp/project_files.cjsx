@@ -149,21 +149,15 @@ ListingHeader = rclass
 
 ShareButton = rclass
     propTypes:
-        id     : rtypes.string
-        type   : rtypes.string # directory or file
-        on_click : rtypes.func
-
-    share_item: (e) ->
-        e.preventDefault()
-        e.stopPropagation()
-        @props.on_click()
+        id       : rtypes.string
+        on_click : rtypes.func.isRequired
 
     render: ->
         <span><Space/>
             <Button
                 bsStyle = 'default'
                 bsSize  = 'xsmall'
-                onClick = {@share_item}
+                onClick = {@props.on_click}
             >
                 <Icon name='share-square-o' /> <span className='hidden-xs'>Share...</span>
             </Button>
@@ -171,33 +165,27 @@ ShareButton = rclass
 
 PublicButton = rclass
     propTypes:
-        id     : rtypes.string
-        data   : rtypes.object
-        type   : rtypes.string # directory or file
-
-    render_public_info_popover: ->
-        <Popover title={"This #{@props.type} is being shared publicly"} id={@props.id} >
-            <span style={wordWrap:'break-word'}>
-                Description: {@props.data.description}
-            </span>
-        </Popover>
+        id       : rtypes.string
+        on_click : rtypes.func.isRequired
 
     render: ->
         <span><Space/>
-            <OverlayTrigger
-                trigger   = 'click'
-                rootClose = {true}
-                overlay   = {@render_public_info_popover()}
+            <Button
+                bsStyle = 'info'
+                bsSize  = 'xsmall'
+                onClick = {@props.on_click}
             >
-                <Button
-                    bsStyle = 'info'
-                    bsSize  = 'xsmall'
-                    onClick = {(e)->e.stopPropagation()}
-                >
-                    <Icon name='bullhorn' /> <span className='hidden-xs'>Public...</span>
-                </Button>
-            </OverlayTrigger>
+                <Icon name='bullhorn' /> <span className='hidden-xs'>Public...</span>
+            </Button>
         </span>
+
+generate_on_share_click = (name, actions) =>
+    (e) =>
+        e.preventDefault()
+        e.stopPropagation()
+        actions.set_all_files_unchecked()
+        actions.set_file_checked(name, true)
+        actions.set_file_action('share')
 
 FileRow = rclass
     displayName : 'ProjectFiles-FileRow'
@@ -272,15 +260,13 @@ FileRow = rclass
     render_public_file_info: ->
         if @props.public_data? and @props.is_public
             <PublicButton
-                id     = {@props.name}
-                data   = {@props.public_data}
-                type   = 'file'
+                id       = {@props.name}
+                on_click = {generate_on_share_click(@props.name, @props.actions)}
             />
         else
             <ShareButton
                 id       = {@props.name}
-                on_click = {=> @props.actions.set_all_files_unchecked();@props.actions.set_file_checked(@props.name, true);@props.actions.set_file_action('share')}
-                type     = 'file'
+                on_click = {generate_on_share_click(@props.name, @props.actions)}
             />
 
     fullpath: ->
@@ -404,15 +390,14 @@ DirectoryRow = rclass
     render_public_directory_info: ->
         if @props.public_data? and @props.is_public
             <PublicButton
-                id     = {@props.name}
-                data   = {@props.public_data}
-                type   = 'folder'
+                id       = {@props.name}
+                on_click = {generate_on_share_click(@props.name, @props.actions)}
             />
         else
             <ShareButton
                 id       = {@props.name}
-                on_click = {=> @props.actions.set_all_files_unchecked();@props.actions.set_file_checked(@props.name, true);@props.actions.set_file_action('share')}
-                type     = 'folder'/>
+                on_click = {generate_on_share_click(@props.name, @props.actions)}
+            />
 
     render_time: ->
         if @props.time?
