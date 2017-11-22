@@ -782,19 +782,16 @@ class ProjectActions extends Actions
 
         @setState
             checked_files : checked_files
-            file_action   : undefined
 
     # check all files in the given file_list
     set_file_list_checked: (file_list) =>
         @setState
             checked_files : @get_store().checked_files.union(file_list)
-            file_action   : undefined
 
     # uncheck all files in the given file_list
     set_file_list_unchecked: (file_list) =>
         @setState
             checked_files : @get_store().checked_files.subtract(file_list)
-            file_action   : undefined
 
     # uncheck all files
     set_all_files_unchecked: =>
