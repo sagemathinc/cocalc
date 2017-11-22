@@ -97,7 +97,7 @@ exports.commands = (actions) ->
             actions.confirm_dialog
                 title   : 'Restart kernel?'
                 body    : 'Do you want to restart the current kernel?  All variables will be lost.'
-                choices : [{title:'Continue Running'}, {title:'Restart', style:'danger', default:true}]
+                choices : [{title:'Continue running'}, {title:'Restart', style:'danger', default:true}]
                 cb      : (choice) ->
                     if choice == 'Restart'
                         actions.signal('SIGKILL')
@@ -108,9 +108,9 @@ exports.commands = (actions) ->
             actions.confirm_dialog
                 title   : 'Restart kernel and clear all output?'
                 body    : 'Do you want to restart the current kernel and clear all output?  All variables and outputs will be lost, though most past output is always available in TimeTravel.'
-                choices : [{title:'Continue Running'}, {title:'Restart and Clear All Outputs', style:'danger', default:true}]
+                choices : [{title:'Continue running'}, {title:'Restart and clear all outputs', style:'danger', default:true}]
                 cb      : (choice) ->
-                    if choice == 'Restart and Clear All Outputs'
+                    if choice == 'Restart and clear all outputs'
                         actions.signal('SIGKILL')
                         actions.clear_all_outputs()
 
@@ -120,7 +120,7 @@ exports.commands = (actions) ->
             actions.confirm_dialog
                 title   : 'Restart kernel and re-run the whole notebook?'
                 body    : 'Are you sure you want to restart the current kernel and re-execute the whole notebook?  All variables and output will be lost, though most past output is always available in TimeTravel.'
-                choices : [{title:'Continue running'}, {title:'restart and run all cells', style:'danger', default:true}]
+                choices : [{title:'Continue running'}, {title:'Restart and run all cells', style:'danger', default:true}]
                 cb      : (choice) ->
                     if choice == 'Restart and run all cells'
                         actions.signal('SIGKILL')
