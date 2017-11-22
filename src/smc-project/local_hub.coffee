@@ -244,6 +244,9 @@ project, which will cause it to make another local_hub server, separate
 from the one you just started running.
 ###
 
+public_paths = require('./public-paths')
+public_paths_monitor = undefined
+
 start_tcp_server = (secret_token, port, cb) ->
     # port: either numeric or 'undefined'
     if not secret_token?
@@ -319,6 +322,7 @@ start_server = (tcp_port, raw_port, cb) ->
         if err
             winston.debug("ERROR starting server -- #{err}")
         else
+            public_paths_monitor = public_paths.monitor(hub_client) # monitor for changes to public paths
             winston.debug("Successfully started servers.")
         cb(err)
     )
