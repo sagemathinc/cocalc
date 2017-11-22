@@ -1022,9 +1022,9 @@ class Salvus(object):
                             break
                     sys.stderr.write('\n\n')
 
-                from exceptions import SyntaxError
+                from exceptions import SyntaxError,TypeError
                 exc_type, _, _ = sys.exc_info()
-                if exc_type is SyntaxError:
+                if exc_type in [SyntaxError,TypeError]:
                     implicit_mul = RE_POSSIBLE_IMPLICIT_MUL.findall(code)
                     if len(implicit_mul) > 0:
                         # we know there is a SyntaxError and there could be an implicit multiplication
