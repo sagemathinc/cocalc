@@ -1561,11 +1561,7 @@ ProjectFilesActionBox = rclass
         <div>
             <Row>
                 <Col sm=4 style={color:'#666'}>
-                    <h4>Share publicly</h4>
-                    {@render_selected_files_list()}
-                </Col>
-                <Col sm=4 style={color:'#666'}>
-                    <h4>Description of share (optional)</h4>
+                    <h4>Description</h4>
                     <FormGroup>
                         <FormControl
                             autoFocus     = {true}
@@ -1581,7 +1577,11 @@ ProjectFilesActionBox = rclass
                     {@render_share_warning() if parent_is_public}
                 </Col>
                 <Col sm=4 style={color:'#666'}>
-                    <h4>Public access link</h4>
+                    <h4>Sharing</h4>
+                    {@render_selected_files_list()}
+                </Col>
+                <Col sm=4 style={color:'#666'}>
+                    <h4>Public link</h4>
                     {@render_public_share_url(single_file)}
                 </Col>
             </Row>
