@@ -135,6 +135,7 @@ exports.Library = rclass ({name}) ->
         return false
 
     select_list: (list) ->
+        return null if not @state.sorted_docs?
 
         item_style =
             width        : '100%'
@@ -217,6 +218,14 @@ exports.Library = rclass ({name}) ->
                     <p style={color: '#666'}>
                         <Markdown value={doc.description} />
                     </p>
+            }
+            {
+                if doc.website?
+                    website_style =
+                        whiteSpace    : 'nowrap'
+                        overflow      : 'hidden'
+                        textOverflow  : 'ellipsis'
+                    <p>Website: <span style={website_style}><a href="{meta.web}">{meta.web}</a></span></p>
             }
             {<p>License: {meta.licenses[doc.license] ? doc.license}</p> if doc.license?}
             {
