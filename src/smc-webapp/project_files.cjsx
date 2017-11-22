@@ -935,11 +935,6 @@ ProjectFilesActions = rclass
             # user just clicked the "select entire directory" button, show the "clear" button
             @setState(select_entire_directory : 'clear')
 
-        else if not immutable.is(@props.checked_files, nextProps.checked_files)
-            # the checked selection changed, hide the "select entire directory" button
-            if @state.select_entire_directory isnt 'hidden'
-                @setState(select_entire_directory : 'hidden')
-
     clear_selection: ->
         @props.actions.set_all_files_unchecked()
         if @state.select_entire_directory isnt 'hidden'
@@ -947,9 +942,8 @@ ProjectFilesActions = rclass
 
     check_all_click_handler: ->
         if @props.checked_files.size == 0
-            files_on_page = @props.listing[@props.page_size * @props.page_number...@props.page_size * (@props.page_number + 1)]
+            files_on_page = @props.listing[(@props.page_size * @props.page_number)...(@props.page_size * (@props.page_number + 1))]
             @props.actions.set_file_list_checked(misc.path_to_file(@props.current_path, file.name) for file in files_on_page)
-
             if @props.listing.length > @props.page_size
                 # if there are more items than one page, show a button to select everything
                 @setState(select_entire_directory : 'check')
