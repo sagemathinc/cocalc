@@ -143,29 +143,22 @@ ShareButton = rclass
     propTypes:
         id     : rtypes.string
         type   : rtypes.string # directory or file
+        on_click : rtypes.func
 
-    render_share_popover: ->
-        <Popover title={"Share this #{@props.type} publicly?"} id={@props.id} >
-            <span style={wordWrap:'break-word'}>
-                TODO: ADD SHARE UI HERE. Baller.
-            </span>
-        </Popover>
+    share_item: (e) ->
+        e.preventDefault()
+        e.stopPropagation()
+        @props.on_click()
 
     render: ->
         <span><Space/>
-            <OverlayTrigger
-                trigger   = 'click'
-                rootClose = {true}
-                overlay   = {@render_share_popover()}
+            <Button
+                bsStyle = 'default'
+                bsSize  = 'xsmall'
+                onClick = {@share_item}
             >
-                <Button
-                    bsStyle = 'default'
-                    bsSize  = 'xsmall'
-                    onClick = {(e)->e.stopPropagation()}
-                >
-                    <Icon name='share-square-o' /> <span className='hidden-xs'>Share...</span>
-                </Button>
-            </OverlayTrigger>
+                <Icon name='share-square-o' /> <span className='hidden-xs'>Share...</span>
+            </Button>
         </span>
 
 PublicButton = rclass
@@ -277,8 +270,9 @@ FileRow = rclass
             />
         else
             <ShareButton
-                id     = {@props.name}
-                type   = 'file'
+                id       = {@props.name}
+                on_click = {=> @props.actions.set_all_files_unchecked();@props.actions.set_file_checked(@props.name, true);@props.actions.set_file_action('share')}
+                type     = 'file'
             />
 
     fullpath: ->
@@ -408,8 +402,9 @@ DirectoryRow = rclass
             />
         else
             <ShareButton
-                id     = {@props.name}
-                type   = 'folder'/>
+                id       = {@props.name}
+                on_click = {=> @props.actions.set_all_files_unchecked();@props.actions.set_file_checked(@props.name, true);@props.actions.set_file_action('share')}
+                type     = 'folder'/>
 
     render_time: ->
         if @props.time?
