@@ -76,18 +76,29 @@ class TestErr:
         code = ("x = " + unichr(295) + "\nx").encode('utf-8')
         m = conftest.message.execute_code(code = code, id = test_id)
         sagews.send_json(m)
-        # expect 3 messages from worksheet client, including final done:true
+        # expect 2 messages from worksheet client, including final done:true
         # 1 stderr Error in lines 1-1
         typ, mesg = sagews.recv()
         assert typ == 'json'
         assert mesg['id'] == test_id
         assert 'stderr' in mesg
         assert 'Error in lines 1-1' in mesg['stderr']
-        # 2 stderr WARNING: Code contains non-ascii characters
+        assert 'should be replaced by < " >' not in mesg['stderr']
+        # 2 done
+        conftest.recv_til_done(sagews, test_id)
+    def test_bad_quote(self, test_id, sagews):
+        # assign x to one of U+201C or U+201D to trigger bad quote warning
+        code = ("x = " + unichr(8220) + "\nx").encode('utf-8')
+        m = conftest.message.execute_code(code = code, id = test_id)
+        sagews.send_json(m)
+        # expect 2 messages from worksheet client, including final done:true
+        # 1 stderr Error in lines 1-1
         typ, mesg = sagews.recv()
         assert typ == 'json'
         assert mesg['id'] == test_id
         assert 'stderr' in mesg
-        assert 'WARNING: Code contains non-ascii characters' in mesg['stderr']
-        # 3 done
+        assert 'Error in lines 1-1' in mesg['stderr']
+        assert 'should be replaced by < " >' in mesg['stderr']
+        # 2 done
         conftest.recv_til_done(sagews, test_id)
+

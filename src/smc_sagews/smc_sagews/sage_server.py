@@ -1014,7 +1014,8 @@ class Salvus(object):
                     sys.stderr.write('\n\n***    WARNING: Code contains non-ascii characters    ***\n\n')
                     for c in u'\u201c\u201d':
                         if c in code:
-                             sys.stderr.write(u'Maybe the character < %s > should be replaced by < " > ?\n' % c)
+                            sys.stderr.write(u'Maybe the character < %s > should be replaced by < " > ?\n' % c)
+                            break
                     sys.stderr.write('\n\n')
                 sys.stdout.flush()
                 sys.stderr.write('Error in lines %s-%s\n'%(start+1, stop+1))
