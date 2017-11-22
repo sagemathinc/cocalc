@@ -740,6 +740,7 @@ class exports.Connection extends EventEmitter
             email_address  : required
             password       : required
             agreed_to_terms: required
+            get_apitoken   : undefined       # if given, will create/get api token in response message
             token          : undefined       # only required if an admin set the account creation token.
             utm            : undefined
             referrer       : undefined
@@ -766,6 +767,7 @@ class exports.Connection extends EventEmitter
                 token           : opts.token
                 utm             : opts.utm
                 referrer        : opts.referrer
+                get_apitoken    : opts.get_apitoken
             timeout : opts.timeout
             cb      : (err, resp) =>
                 setTimeout((() => delete @_create_account_lock), 1500)
@@ -802,6 +804,7 @@ class exports.Connection extends EventEmitter
             timeout       : 40
             utm           : undefined
             referrer      : undefined
+            get_apitoken  : undefined       # if given, will create/get api token in response message
 
         @call
             message : message.sign_in
@@ -810,6 +813,7 @@ class exports.Connection extends EventEmitter
                 remember_me   : opts.remember_me
                 utm           : opts.utm
                 referrer      : opts.referrer
+                get_apitoken  : opts.get_apitoken
             timeout : opts.timeout
             cb      : opts.cb
 

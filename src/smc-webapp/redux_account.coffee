@@ -34,6 +34,7 @@ class AccountActions extends Actions
             timeout       : 30
             utm           : get_utm()
             referrer      : get_referrer()
+            get_apitoken  : redux.getStore('page')?.get('get_apitoken')
             cb            : (error, mesg) =>
                 @setState(signing_in: false)
                 if error
@@ -62,6 +63,7 @@ class AccountActions extends Actions
             token           : token
             utm             : get_utm()
             referrer        : get_referrer()
+            get_apitoken    : redux.getStore('page')?.get('get_apitoken')
             cb              : (err, mesg) =>
                 @setState(signing_up: false)
                 if err?

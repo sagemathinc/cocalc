@@ -49,8 +49,6 @@ hub_proxy    = require('./proxy')
 hub_projects = require('./projects')
 MetricsRecorder  = require('./metrics-recorder')
 
-user_apikey  = require('./api/user-apikey')
-
 conf         = require('./conf')
 
 
@@ -484,9 +482,6 @@ exports.init_express_http_server = (opts) ->
         # this upgrade is never hit, since the main site (that is
         # proxying to this server) is already trying to do something.
         # I don't know if this sort of multi-level proxying is even possible.
-
-    # add support for getting api key
-    user_apikey.init_get_apikey_page(router)
 
     http_server = http.createServer(app)
     return {http_server:http_server, express_router:router}
