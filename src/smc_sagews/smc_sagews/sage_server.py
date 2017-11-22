@@ -68,7 +68,11 @@ MAX_OUTPUT = 150000
 
 # Standard imports.
 import json, resource, shutil, signal, socket, struct, \
-       tempfile, time, traceback, pwd
+       tempfile, time, traceback, pwd, re
+
+# for "3x^2 + 4xy - 5(1+x) - 3 abc4ok", this pattern matches "3x", "5(" and "4xy" but not "abc4ok"
+# to understand it, see https://regex101.com/ or https://www.debuggex.com/
+RE_POSSIBLE_IMPLICIT_MUL = re.compile(r'(?:(?<=[^a-zA-Z])|^)(\d+[a-zA-Z\(]+)')
 
 import sage_parsing, sage_salvus
 
@@ -1011,12 +1015,22 @@ class Salvus(object):
                 sys.stderr.flush()
             except:
                 if ascii_warn:
-                    sys.stderr.write('\n\n***    WARNING: Code contains non-ascii characters    ***\n\n')
+                    sys.stderr.write('\n\n*** WARNING: Code contains non-ascii characters    ***\n')
                     for c in u'\u201c\u201d':
                         if c in code:
-                            sys.stderr.write(u'Maybe the character < %s > should be replaced by < " > ?\n' % c)
+                            sys.stderr.write(u'*** Maybe the character < %s > should be replaced by < " > ? ***\n' % c)
                             break
                     sys.stderr.write('\n\n')
+
+                from exceptions import SyntaxError
+                exc_type, _, _ = sys.exc_info()
+                if exc_type is SyntaxError:
+                    implicit_mul = RE_POSSIBLE_IMPLICIT_MUL.findall(code)
+                    if len(implicit_mul) > 0:
+                        # we know there is a SyntaxError and there could be an implicit multiplication
+                        sys.stderr.write('\n\n*** WARNING: Code contains possible implicit multiplication    ***\n')
+                        sys.stderr.write('*** Check if %s need a "*" sign for multiplication, e.g. < 5x > should be < 5*x > ! ***\n\n' % implicit_mul)
+
                 sys.stdout.flush()
                 sys.stderr.write('Error in lines %s-%s\n'%(start+1, stop+1))
                 traceback.print_exc()
