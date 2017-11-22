@@ -170,11 +170,9 @@ exports.Library = rclass ({name}) ->
             maxHeight    : HEIGHT
             overflowX    : 'hidden'
             overflowY    : 'scroll'
-            borderTop    : "1px solid #{COLORS.GRAY_LL}"
-            borderLeft   : "1px solid #{COLORS.GRAY_LL}"
-            borderBottom : "1px solid #{COLORS.GRAY_LL}"
+            border       : "1px solid #{COLORS.GRAY_LL}"
             borderRadius : '5px'
-            padding      : '5px'
+            marginBottom : '0px'
 
         <ListGroup style={list_style} onKeyUp={@selector_keyup} ref='selector_list'>
             {@select_list()}
