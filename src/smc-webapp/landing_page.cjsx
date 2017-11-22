@@ -101,6 +101,10 @@ SignUp = rclass
         style           : rtypes.object
         has_remember_me : rtypes.bool
 
+    reduxProps:
+        page:
+            get_apikey : rtypes.string
+
     make_account: (e) ->
         e.preventDefault()
         first_name = ReactDOM.findDOMNode(@refs.first_name).value
@@ -129,7 +133,6 @@ SignUp = rclass
     render: ->
         well_style =
             marginTop      : '10px'
-            borderWidth    : 5
             borderColor    : COLORS.LANDING.LOGIN_BAR_BG
         well_class = ''
         if not @props.has_remember_me
@@ -139,6 +142,7 @@ SignUp = rclass
             well_class = 'webapp-landing-sign-up-highlight'
         <Well style=well_style className={well_class}>
             <TermsOfService style={fontWeight:'bold', textAlign: "center"} />
+            {<div>Get api key</div> if @props.get_apikey}
             <br />
             {@display_token_input()}
             {@display_error("token")}

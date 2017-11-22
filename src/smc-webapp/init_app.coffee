@@ -184,8 +184,8 @@ class PageActions extends Actions
         @setState(fullscreen : val)
         history.update_params()
 
-    set_fetch_apikey: (val) =>
-        @setState(fetch_apikey: val)
+    set_get_apikey: (val) =>
+        @setState(get_apikey: val)
         history.update_params()
 
     toggle_fullscreen: =>
@@ -258,6 +258,7 @@ redux.createStore
         local_storage_warning : rtypes.bool
         show_file_use         : rtypes.bool
         num_ghost_tabs        : rtypes.number
+        get_apikey            : rtypes.string
 
 recent_disconnects = []
 record_disconnect = () ->
@@ -385,8 +386,9 @@ if fullscreen_query_value == 'kiosk'
 
 redux.getActions('page').set_session(session)
 
-fetch_apikey_query_value = misc_page.get_query_param('fetch_apikey')
-if fetch_apikey_query_value
-    redux.getActions('page').set_fetch_apikey(fetch_apikey_query_value)
+get_apikey_query_value = misc_page.get_query_param('get_apikey')
+if get_apikey_query_value
+    redux.getActions('page').set_get_apikey(get_apikey_query_value)
+    redux.getActions('page').set_fullscreen('kiosk')
 
 
