@@ -96,7 +96,7 @@ exports.Library = rclass ({name}) ->
         if doc.subdir
             subdir = doc.subdir
         else
-            # directory? cut of the trailing slash
+            # directory? cut off the trailing slash
             if src[src.length - 1] == '/'
                 src = src[...-1]
                 # subdir in current path is the name of the directory
@@ -104,7 +104,7 @@ exports.Library = rclass ({name}) ->
             else    # otherwise, we're about to copy over a single file → no subdirectory!
                 subdir = ''
         target = os_path.join(@props.current_path, subdir)
-        if DEBUG then console.log("copy from", doc.src, "to", target)
+        #if DEBUG then console.log("copy from", doc.src, "to", target)
         return target
 
     copy: (doc) ->
@@ -113,6 +113,8 @@ exports.Library = rclass ({name}) ->
         @props.actions.copy_from_library
             src    : doc.src
             target : @target_path()
+            title  : doc.title
+            docid  : doc.id
             start  : doc?.start ? '/'
             # cb     : => if @isMounted() then @setState(copy: false)   # deprecated, hmm...
 
@@ -132,7 +134,7 @@ exports.Library = rclass ({name}) ->
         evt.nativeEvent.stopImmediatePropagation()
         return false
 
-    select_docs: (list) ->
+    select_list: (list) ->
 
         item_style =
             width        : '100%'
@@ -175,7 +177,7 @@ exports.Library = rclass ({name}) ->
             padding      : '5px'
 
         <ListGroup style={list_style} onKeyUp={@selector_keyup} ref='selector_list'>
-            {@select_docs()}
+            {@select_list()}
         </ListGroup>
 
     thumbnail: ->

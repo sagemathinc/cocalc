@@ -988,6 +988,8 @@ class ProjectActions extends Actions
             src    : undefined
             target : undefined
             start  : undefined
+            log    : undefined   # line in the project log
+            title  : undefined   # for the log
             cb     : undefined
 
         if opts.entry?
@@ -1021,6 +1023,13 @@ class ProjectActions extends Actions
                         @open_directory(open_path)
                     else
                         @open_file(path: open_path)
+                    @log
+                        event  : 'library'
+                        action : 'copy'
+                        docid  : opts.docid
+                        srouce : opts.src
+                        title  : opts.title
+                        target : target
                 opts.cb?(err)
 
     copy_paths: (opts) =>

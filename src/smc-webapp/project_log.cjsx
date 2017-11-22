@@ -190,6 +190,10 @@ LogEntry = rclass
                 set <a onClick={@click_set} style={if @props.cursor then selected_item} href=''>{content}</a>
             </span>
 
+    render_library: ->
+        return if not @props.event.target?
+        <span>copied "{@props.event.title}" from the library to {@file_link(@props.event.target, true, 0)}</span>
+
     render_upgrade: ->
         params = require('smc-util/schema').PROJECT_UPGRADES.params
         v = []
@@ -242,6 +246,8 @@ LogEntry = rclass
                 return @render_invite_nonuser()
             when 'open_project'  # not used anymore???
                 return <span>opened this project</span>
+            when 'library'
+                return @render_library()
             # ignore unknown -- would just look mangled to user...
             #else
             # FUTURE:
