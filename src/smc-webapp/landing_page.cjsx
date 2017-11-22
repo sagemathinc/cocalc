@@ -101,10 +101,6 @@ SignUp = rclass
         style           : rtypes.object
         has_remember_me : rtypes.bool
 
-    reduxProps:
-        page:
-            get_apikey : rtypes.string
-
     make_account: (e) ->
         e.preventDefault()
         first_name = ReactDOM.findDOMNode(@refs.first_name).value
@@ -142,7 +138,6 @@ SignUp = rclass
             well_class = 'webapp-landing-sign-up-highlight'
         <Well style=well_style className={well_class}>
             <TermsOfService style={fontWeight:'bold', textAlign: "center"} />
-            {<div>Get api key</div> if @props.get_apikey}
             <br />
             {@display_token_input()}
             {@display_error("token")}
@@ -584,12 +579,33 @@ exports.LandingPage = rclass
         has_remember_me         : rtypes.bool
         has_account             : rtypes.bool
 
-    render: ->
-        if @props.remember_me
+    reduxProps:
+        page:
+            get_apikey : rtypes.string
+
+    render_password_reset: ->
+        reset_key = reset_password_key()
+        if not reset_key
+            return
+        <ResetPassword
+            reset_key            = {reset_key}
+            reset_password_error = {@props.reset_password_error}
+        />
+
+    render_forgot_password: ->
+        if not @props.show_forgot_password
+            return
+        <ForgotPassword
+            forgot_password_error   = {@props.forgot_password_error}
+            forgot_password_success = {@props.forgot_password_success}
+        />
+
+    render_main_page: ->
+        if @props.remember_me and not @props.get_apikey
+            # Just assume user will be signing in.
             # CSS of this looks like crap for a moment; worse than nothing. So disabling unless it can be fixed!!
             #return <Connecting />
             return <span/>
-        reset_key = reset_password_key()
         if @props.has_remember_me
             topbar =
               img_icon    : APP_ICON_WHITE
@@ -608,14 +624,8 @@ exports.LandingPage = rclass
               border      : "5px solid #{COLORS.GRAY}"
 
         <div style={margin: UNIT}>
-                {<ResetPassword
-                    reset_key={reset_key}
-                    reset_password_error={@props.reset_password_error}
-                /> if reset_key}
-                {<ForgotPassword
-                    forgot_password_error={@props.forgot_password_error}
-                    forgot_password_success={@props.forgot_password_success}
-                /> if @props.show_forgot_password}
+            {@render_password_reset()}
+            {@render_forgot_password()}
             <Row style={fontSize: UNIT,\
                         backgroundColor: COLORS.LANDING.LOGIN_BAR_BG,\
                         padding: 5, margin: 0, borderRadius:4}
@@ -707,10 +717,35 @@ exports.LandingPage = rclass
 
                         <br/>
                         <br/>
-                        <a href={APP_BASE_URL + "/"}>Learn more about CoCalc...</a>
+                        {<a href={APP_BASE_URL + "/"}>Learn more about CoCalc...</a> if not @props.get_apikey}
                     </div>
                 </Col>
             </Row>
             <Footer/>
         </div>
+
+    render: ->
+        main_page = @render_main_page()
+        if not @props.get_apikey
+            return main_page
+        app = misc.capitalize(@props.get_apikey)
+        <div>
+            <div style={padding:'15px'}>
+                <h1>
+                    CoCalc API Key Access
+                </h1>
+                <div style={fontSize: '12pt', color: '#444'}>
+                    {app} would like your CoCalc API key.
+                    <br/>
+                    <br/>
+                    This grants <b>full access</b> to all of your CoCalc projects to {app}, until you explicitly revoke your API key in Account preferences.
+                    <br/>
+                    <br/>
+                    Please sign in or create an account below.
+                </div>
+            </div>
+            <hr/>
+            {main_page}
+        </div>
+
 
