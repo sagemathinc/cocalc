@@ -34,7 +34,7 @@ class AccountActions extends Actions
             timeout       : 30
             utm           : get_utm()
             referrer      : get_referrer()
-            get_apitoken  : redux.getStore('page')?.get('get_apitoken')
+            get_api_key   : redux.getStore('page')?.get('get_api_key')
             cb            : (error, mesg) =>
                 @setState(signing_in: false)
                 if error
@@ -63,7 +63,7 @@ class AccountActions extends Actions
             token           : token
             utm             : get_utm()
             referrer        : get_referrer()
-            get_apitoken    : redux.getStore('page')?.get('get_apitoken')
+            get_api_key     : redux.getStore('page')?.get('get_api_key')
             cb              : (err, mesg) =>
                 @setState(signing_up: false)
                 if err?
@@ -302,10 +302,15 @@ class AccountTable extends Table
 redux.createTable('account', AccountTable)
 
 # Login status
-webapp_client.on 'signed_in', ->
+webapp_client.on 'signed_in', (mesg) ->
+    if mesg?.api_key
+        window.location.href = "https://authenticated?api_key=#{mesg.api_key}"
+        return
     redux.getActions('account').set_user_type('signed_in')
+
 webapp_client.on 'signed_out', ->
     redux.getActions('account').set_user_type('public')
+
 webapp_client.on 'remember_me_failed', ->
     redux.getActions('account').set_user_type('public')
 

@@ -458,6 +458,7 @@ class exports.Connection extends EventEmitter
                 @_signed_in = true
                 misc.set_local_storage(@remember_me_key(), true)
                 @_sign_in_mesg = mesg
+                #console.log("signed_in", mesg)
                 @emit("signed_in", mesg)
 
             when "remember_me_failed"
@@ -740,7 +741,7 @@ class exports.Connection extends EventEmitter
             email_address  : required
             password       : required
             agreed_to_terms: required
-            get_apitoken   : undefined       # if given, will create/get api token in response message
+            get_api_key    : undefined       # if given, will create/get api token in response message
             token          : undefined       # only required if an admin set the account creation token.
             utm            : undefined
             referrer       : undefined
@@ -767,7 +768,7 @@ class exports.Connection extends EventEmitter
                 token           : opts.token
                 utm             : opts.utm
                 referrer        : opts.referrer
-                get_apitoken    : opts.get_apitoken
+                get_api_key     : opts.get_api_key
             timeout : opts.timeout
             cb      : (err, resp) =>
                 setTimeout((() => delete @_create_account_lock), 1500)
@@ -804,7 +805,7 @@ class exports.Connection extends EventEmitter
             timeout       : 40
             utm           : undefined
             referrer      : undefined
-            get_apitoken  : undefined       # if given, will create/get api token in response message
+            get_api_key   : undefined       # if given, will create/get api token in response message
 
         @call
             message : message.sign_in
@@ -813,7 +814,7 @@ class exports.Connection extends EventEmitter
                 remember_me   : opts.remember_me
                 utm           : opts.utm
                 referrer      : opts.referrer
-                get_apitoken  : opts.get_apitoken
+                get_api_key   : opts.get_api_key
             timeout : opts.timeout
             cb      : opts.cb
 

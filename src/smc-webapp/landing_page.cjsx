@@ -581,7 +581,7 @@ exports.LandingPage = rclass
 
     reduxProps:
         page:
-            get_apikey : rtypes.string
+            get_api_key : rtypes.string
 
     render_password_reset: ->
         reset_key = reset_password_key()
@@ -601,7 +601,7 @@ exports.LandingPage = rclass
         />
 
     render_main_page: ->
-        if @props.remember_me and not @props.get_apikey
+        if @props.remember_me and not @props.get_api_key
             # Just assume user will be signing in.
             # CSS of this looks like crap for a moment; worse than nothing. So disabling unless it can be fixed!!
             #return <Connecting />
@@ -717,7 +717,7 @@ exports.LandingPage = rclass
 
                         <br/>
                         <br/>
-                        {<a href={APP_BASE_URL + "/"}>Learn more about CoCalc...</a> if not @props.get_apikey}
+                        {<a href={APP_BASE_URL + "/"}>Learn more about CoCalc...</a> if not @props.get_api_key}
                     </div>
                 </Col>
             </Row>
@@ -726,9 +726,9 @@ exports.LandingPage = rclass
 
     render: ->
         main_page = @render_main_page()
-        if not @props.get_apikey
+        if not @props.get_api_key
             return main_page
-        app = misc.capitalize(@props.get_apikey)
+        app = misc.capitalize(@props.get_api_key)
         <div>
             <div style={padding:'15px'}>
                 <h1>
