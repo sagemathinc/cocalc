@@ -67,7 +67,7 @@ class AccountActions extends Actions
             cb              : (err, mesg) =>
                 @setState(signing_up: false)
                 if err?
-                    @setState('sign_up_error': err)
+                    @setState('sign_up_error': JSON.stringify(err))
                     return
                 switch mesg.event
                     when "account_creation_failed"

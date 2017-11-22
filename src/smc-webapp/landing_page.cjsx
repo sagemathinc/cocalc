@@ -94,7 +94,7 @@ SignUp = rclass
 
     propTypes :
         strategies      : rtypes.array
-        sign_up_error   : rtypes.object
+        sign_up_error   : rtypes.string
         token           : rtypes.bool
         has_account     : rtypes.bool
         signing_up      : rtypes.bool
@@ -732,7 +732,7 @@ exports.LandingPage = rclass
         <div>
             <div style={padding:'15px'}>
                 <h1>
-                    CoCalc API Key Access
+                    CoCalc API Key Access for {app}
                 </h1>
                 <div style={fontSize: '12pt', color: '#444'}>
                     {app} would like your CoCalc API key.
