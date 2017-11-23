@@ -179,12 +179,12 @@ PublicButton = rclass
             </Button>
         </span>
 
-generate_on_share_click = (name, actions) =>
+generate_on_share_click = (full_path, actions) =>
     (e) =>
         e.preventDefault()
         e.stopPropagation()
         actions.set_all_files_unchecked()
-        actions.set_file_checked(name, true)
+        actions.set_file_checked(full_path, true)
         actions.set_file_action('share')
 
 FileRow = rclass
@@ -261,15 +261,15 @@ FileRow = rclass
         if @props.public_data? and @props.is_public
             <PublicButton
                 id       = {@props.name}
-                on_click = {generate_on_share_click(@props.name, @props.actions)}
+                on_click = {generate_on_share_click(@full_path(), @props.actions)}
             />
         else
             <ShareButton
                 id       = {@props.name}
-                on_click = {generate_on_share_click(@props.name, @props.actions)}
+                on_click = {generate_on_share_click(@full_path(), @props.actions)}
             />
 
-    fullpath: ->
+    full_path: ->
         misc.path_to_file(@props.current_path, @props.name)
 
     handle_mouse_down: (e) ->
@@ -280,7 +280,7 @@ FileRow = rclass
         if window.getSelection().toString() == @state.selection_at_last_mouse_down
             foreground = misc.should_open_in_foreground(e)
             @props.actions.open_file
-                path       : @fullpath()
+                path       : @full_path()
                 foreground : foreground
             if foreground
                 @props.actions.set_file_search('')
@@ -289,7 +289,7 @@ FileRow = rclass
         e.preventDefault()
         e.stopPropagation()
         @props.actions.download_file
-            path : @fullpath()
+            path : @full_path()
             log : true
 
     render_timestamp: ->
@@ -315,7 +315,7 @@ FileRow = rclass
 
         # See https://github.com/sagemathinc/cocalc/issues/1020
         # support right-click → copy url for the download button
-        url_href = project_tasks(@props.actions.project_id).url_href(@fullpath())
+        url_href = project_tasks(@props.actions.project_id).url_href(@full_path())
 
         <Row
             style       = {row_styles}
@@ -383,21 +383,23 @@ DirectoryRow = rclass
 
     handle_click: (e) ->
         if window.getSelection().toString() == @state.selection_at_last_mouse_down
-            path = misc.path_to_file(@props.current_path, @props.name)
-            @props.actions.open_directory(path)
+            @props.actions.open_directory(@full_path())
             @props.actions.set_file_search('')
 
     render_public_directory_info: ->
         if @props.public_data? and @props.is_public
             <PublicButton
                 id       = {@props.name}
-                on_click = {generate_on_share_click(@props.name, @props.actions)}
+                on_click = {generate_on_share_click(@full_path(), @props.actions)}
             />
         else
             <ShareButton
                 id       = {@props.name}
-                on_click = {generate_on_share_click(@props.name, @props.actions)}
+                on_click = {generate_on_share_click(@full_path(), @props.actions)}
             />
+
+    full_path: ->
+        misc.path_to_file(@props.current_path, @props.name)
 
     render_time: ->
         if @props.time?
