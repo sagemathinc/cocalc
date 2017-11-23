@@ -111,7 +111,7 @@ class ProjectActions extends Actions
         return @redux.getStore(@name)
 
     get_state: (key) =>
-        return @get_store().get(key)
+        return @get_store()[key]
 
     clear_all_activity: =>
         @setState(activity:undefined)

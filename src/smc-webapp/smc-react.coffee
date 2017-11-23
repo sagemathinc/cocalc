@@ -77,6 +77,10 @@ class Actions
     setState: (obj, nothing_else) =>
         if nothing_else?
             throw Error("setState takes exactly one argument, which must be an object")
+        if DEBUG and @redux.getStore(@name).__converted
+            for key of obj
+                if not Object.getOwnPropertyDescriptor(@redux.getStore(@name), key)?.get?
+                    console.warn("`#{key}` is not declared in stateTypes of store name `#{@name}`")
         @redux._set_state({"#{@name}": obj})
         return
 
@@ -444,6 +448,10 @@ connect_component = (spec) =>
             for prop, type of info
                 if redux.getStore(store_name).__converted?
                     val = redux.getStore(store_name)[prop]
+                    if not Object.getOwnPropertyDescriptor(redux.getStore(store_name), prop)?.get?
+                        if DEBUG
+                            console.warn("Requested reduxProp `#{prop}` from store `#{store_name}` but it is not defined in its stateTypes nor reduxProps")
+                        val = state.getIn([store_name, prop])
                 else # TODOJ: remove when all stores are converted
                     val = state.getIn([store_name, prop])
                 if type.category == "IMMUTABLE"
