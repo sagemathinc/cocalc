@@ -228,7 +228,7 @@ exports.Library = rclass ({name}) ->
                         whiteSpace    : 'nowrap'
                         overflow      : 'hidden'
                         textOverflow  : 'ellipsis'
-                    <p>Website: <span style={website_style}><a href="{meta.web}">{meta.web}</a></span></p>
+                    <p>Website: <a style={website_style} target='_blank' href={doc.website}>{doc.website}</a></p>
             }
             {<p>License: {meta.licenses[doc.license] ? doc.license}</p> if doc.license?}
             {
@@ -268,3 +268,4 @@ exports.Library = rclass ({name}) ->
             <Col sm={if thumb then 6 else 8}>{@details()}</Col>
             {<Col sm=2>{@thumbnail()}</Col> if thumb}
         </Row>
+ 
