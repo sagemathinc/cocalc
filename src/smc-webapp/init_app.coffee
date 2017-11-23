@@ -254,6 +254,8 @@ redux.createStore
         local_storage_warning : rtypes.bool
         show_file_use         : rtypes.bool
         num_ghost_tabs        : rtypes.number
+        session               : rtypes.string # session query in the url bar
+        last_status_time      : rtypes.string
 
 recent_disconnects = []
 record_disconnect = () ->
