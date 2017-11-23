@@ -779,6 +779,8 @@ class ProjectActions extends Actions
         changes = {}
         if checked
             changes.checked_files = store.checked_files.add(file)
+            if store.file_action? and changes.checked_files.size > 1 and not file_actions[store.file_action].allows_multiple_files
+                changes.file_action = undefined
         else
             changes.checked_files = store.checked_files.delete(file)
             if changes.checked_files.size == 0
@@ -791,6 +793,8 @@ class ProjectActions extends Actions
         store = @get_store()
         changes =
             checked_files : store.checked_files.union(file_list)
+        if store.file_action? and changes.checked_files.size > 1 and not file_actions[store.file_action].allows_multiple_files
+            changes.file_action = undefined
 
         @setState(changes)
 
