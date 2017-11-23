@@ -113,7 +113,7 @@ exports.Page = rclass
                 {@render_noindex()}
             </head>
             <body>
-                <div style={display: 'flex', flexDirection: 'column', height: '100vh', width: '100vw', overflow: 'hidden'}>
+                <div style={display: 'flex', flexDirection: 'column', height: '100vh', width: '100vw', overflow: 'auto'}>
                     {@render_topbar()}
                     <div key='index' style={display: 'flex', flexDirection: 'column', flex:1}>
                         {@props.children}

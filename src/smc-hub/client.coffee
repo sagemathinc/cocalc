@@ -133,6 +133,7 @@ class exports.Client extends EventEmitter
         # Setup remember-me related cookie handling
         @cookies = {}
         c = new Cookies(@conn.request)
+        ##@dbg('init_conn')("cookies = '#{@conn.request.headers['cookie']}', #{base_url_lib.base_url() + 'remember_me'}, #{@_remember_me_value}")
         @_remember_me_value = c.get(base_url_lib.base_url() + 'remember_me')
 
         @check_for_remember_me()
@@ -724,7 +725,7 @@ class exports.Client extends EventEmitter
             return
 
         if mesg.everywhere
-            # invalidate all remeber_me cookies
+            # invalidate all remember_me cookies
             @database.invalidate_all_remember_me
                 account_id : @account_id
         @signed_out()  # deletes @account_id... so must be below database call above
