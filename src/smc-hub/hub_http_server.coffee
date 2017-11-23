@@ -142,11 +142,8 @@ exports.init_express_http_server = (opts) ->
         res.header('Cache-Control', 'private, no-cache, must-revalidate')
         res.write('''
                   User-agent: *
+                  Allow: /share
                   Disallow: /projects/*
-                  Allow: /*/raw/*.html
-                  Allow: /*/raw/*.md
-                  Allow: /*/raw/*.tex
-                  Allow: /*/raw/*.pdf
                   Disallow: /*/raw/
                   Disallow: /*/port/
                   Disallow: /haproxy
