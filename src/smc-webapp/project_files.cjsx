@@ -153,14 +153,13 @@ ShareButton = rclass
         on_click : rtypes.func.isRequired
 
     render: ->
-        <span><Space/>
-            <Button
-                bsStyle = 'default'
-                bsSize  = 'xsmall'
+        <span><Space/><Space/>
+            <div
                 onClick = {@props.on_click}
+                style   = {color:'rgb(102, 102, 102)', display:'inline'}
             >
-                <Icon name='share-square-o' /> <span className='hidden-xs'>Share...</span>
-            </Button>
+                Private
+            </div>
         </span>
 
 PublicButton = rclass
@@ -175,10 +174,24 @@ PublicButton = rclass
                 bsSize  = 'xsmall'
                 onClick = {@props.on_click}
             >
-                <Icon name='bullhorn' /> <span className='hidden-xs'>Public...</span>
+                <Icon name='bullhorn' /> <span className='hidden-xs'>Public</span>
             </Button>
         </span>
 
+CopyButton = rclass
+    propTypes:
+        on_click : rtypes.func.isRequired
+
+    render: ->
+        <span><Space/>
+            <Button
+                bsStyle = 'info'
+                bsSize  = 'xsmall'
+                onClick = {@props.on_click}
+            >
+                <Icon name='files-o' /> <span className='hidden-xs'>Copy</span>
+            </Button>
+        </span>
 generate_on_share_click = (full_path, actions) =>
     (e) =>
         e.preventDefault()
@@ -186,6 +199,13 @@ generate_on_share_click = (full_path, actions) =>
         actions.set_all_files_unchecked()
         actions.set_file_checked(full_path, true)
         actions.set_file_action('share')
+
+generate_on_copy_click = (full_path, actions) =>
+    (e) =>
+        e.preventDefault()
+        e.stopPropagation()
+        actions.set_file_checked(full_path, true)
+        actions.set_file_action('copy')
 
 FileRow = rclass
     displayName : 'ProjectFiles-FileRow'
@@ -204,6 +224,7 @@ FileRow = rclass
         current_path : rtypes.string
         actions      : rtypes.object.isRequired
         no_select    : rtypes.bool
+        public_view  : rtypes.bool
 
     shouldComponentUpdate: (next) ->
         return @props.name  != next.name         or
@@ -215,7 +236,8 @@ FileRow = rclass
         @props.public_data  != next.public_data  or
         @props.current_path != next.current_path or
         @props.bordered     != next.bordered     or
-        @props.no_select    != next.no_select
+        @props.no_select    != next.no_select    or
+        @props.public_view  != next.public_view
 
     render_icon: ->
         # get the file_associations[ext] just like it is defined in the editor
@@ -258,7 +280,11 @@ FileRow = rclass
 
 
     render_public_file_info: ->
-        if @props.public_data? and @props.is_public
+        if @props.public_view
+            <CopyButton
+                on_click = {generate_on_copy_click(@full_path(), @props.actions)}
+            />
+        else if @props.is_public
             <PublicButton
                 id       = {@props.name}
                 on_click = {generate_on_share_click(@full_path(), @props.actions)}
@@ -363,6 +389,7 @@ DirectoryRow = rclass
         current_path : rtypes.string
         actions      : rtypes.object.isRequired
         no_select    : rtypes.bool
+        public_view  : rtypes.bool
 
     shouldComponentUpdate: (next) ->
         return @props.name  != next.name         or
@@ -375,7 +402,8 @@ DirectoryRow = rclass
         @props.public_data  != next.public_data  or
         @props.is_public    != next.is_public    or
         @props.current_path != next.current_path or
-        @props.no_select    != next.no_select
+        @props.no_select    != next.no_select    or
+        @props.public_view  != next.public_view
 
     handle_mouse_down: (e) ->
         @setState
@@ -387,7 +415,11 @@ DirectoryRow = rclass
             @props.actions.set_file_search('')
 
     render_public_directory_info: ->
-        if @props.public_data? and @props.is_public
+        if @props.public_view
+            <CopyButton
+                on_click = {generate_on_copy_click(@full_path(), @props.actions)}
+            />
+        else if @props.is_public
             <PublicButton
                 id       = {@props.name}
                 on_click = {generate_on_share_click(@full_path(), @props.actions)}
@@ -703,6 +735,7 @@ FileListing = rclass
                 current_path = {@props.current_path}
                 actions      = {@props.actions}
                 no_select    = {@props.shift_is_down}
+                public_view  = {@props.public_view}
             />
         else
             return <FileRow
@@ -720,6 +753,7 @@ FileListing = rclass
                 current_path = {@props.current_path}
                 actions      = {@props.actions}
                 no_select    = {@props.shift_is_down}
+                public_view  = {@props.public_view}
             />
 
     render_rows: ->
