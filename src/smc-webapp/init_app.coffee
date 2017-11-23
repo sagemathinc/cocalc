@@ -184,6 +184,10 @@ class PageActions extends Actions
         @setState(fullscreen : val)
         history.update_params()
 
+    set_get_api_key: (val) =>
+        @setState(get_api_key: val)
+        history.update_params()
+
     toggle_fullscreen: =>
         @set_fullscreen(if redux.getStore('page').get('fullscreen')? then undefined else 'default')
 
@@ -256,6 +260,7 @@ redux.createStore
         num_ghost_tabs        : rtypes.number
         session               : rtypes.string # session query in the url bar
         last_status_time      : rtypes.string
+        get_api_key           : rtypes.string
 
 recent_disconnects = []
 record_disconnect = () ->
@@ -382,4 +387,10 @@ if fullscreen_query_value == 'kiosk'
     session = undefined
 
 redux.getActions('page').set_session(session)
+
+get_api_key_query_value = misc_page.get_query_param('get_api_key')
+if get_api_key_query_value
+    redux.getActions('page').set_get_api_key(get_api_key_query_value)
+    redux.getActions('page').set_fullscreen('kiosk')
+
 

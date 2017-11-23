@@ -66,6 +66,12 @@ express_session = require('express-session')
 
 {defaults, required} = misc
 
+api_key_cookie_name = (base_url) ->
+    return base_url + 'get_api_key'
+
+remember_me_cookie_name = (base_url) ->
+    return base_url + 'remember_me'
+
 ########################################
 # Password hashing
 ########################################
@@ -118,6 +124,25 @@ passport_login = (opts) ->
     BASE_URL = opts.base_url
 
     dbg(misc.to_json(opts.req.user))
+    locals =
+        new_account_created   : false
+        has_valid_remember_me : false
+        account_id            : undefined
+        email_address         : undefined
+        target                : BASE_URL + "/app#login"
+        cookies               : new Cookies(opts.req, opts.res)
+
+    ## dbg("cookies = '#{opts.req.headers['cookie']}'")  # DANGER -- do not uncomment except for debugging due to SECURITY
+    locals.remember_me_cookie = locals.cookies.get(remember_me_cookie_name(BASE_URL))
+    dbg("remember_me_cookie = '#{locals.remember_me_cookie}'")
+
+    # check if user is just trying to get an api key.
+    locals.get_api_key = locals.cookies.get(api_key_cookie_name(BASE_URL))
+    if locals.get_api_key
+        dbg("user is just trying to get api_key")
+        # Set with no value **deletes** the cookie when the response is set. It's very important
+        # to delete this cookie ASAP, since otherwise the user can't sign in normally.
+        locals.cookies.set(api_key_cookie_name(BASE_URL))
 
     if opts.full_name? and not opts.first_name? and not opts.last_name?
         name = opts.full_name
@@ -138,21 +163,17 @@ passport_login = (opts) ->
 
     opts.id = "#{opts.id}"  # convert to string (id is often a number)
 
-    has_valid_remember_me = false
-    account_id    = undefined
-    email_address = undefined
-    locals =
-        new_account_created : false
     async.series([
         (cb) ->
-            dbg("check if user has a valid remember_me token, in which case we can trust who they are already")
-            cookies = new Cookies(opts.req)
-            value = cookies.get(BASE_URL + 'remember_me')
-            if not value?
+            if not locals.remember_me_cookie
                 cb()
                 return
+
+            dbg("check if user has a valid remember_me cookie")
+            value = locals.remember_me_cookie
             x = value.split('$')
             if x.length != 4
+                dbg("badly formatted remember_me cookie")
                 cb()
                 return
             hash = generate_hash(x[0], x[1], x[2], x[3])
@@ -162,10 +183,12 @@ passport_login = (opts) ->
                     if err
                         cb(err)
                     else if signed_in_mesg?
-                        account_id = signed_in_mesg.account_id
-                        has_valid_remember_me = true
+                        dbg("user does have valid remember_me token")
+                        locals.account_id = signed_in_mesg.account_id
+                        locals.has_valid_remember_me = true
                         cb()
                     else
+                        dbg("no valid remember_me token")
                         cb()
         (cb) ->
             dbg("check to see if the passport already exists indexed by the given id -- in that case we will log user in")
@@ -176,90 +199,89 @@ passport_login = (opts) ->
                     if err
                         cb(err)
                     else
-                        if not _account_id and has_valid_remember_me
+                        if not _account_id and locals.has_valid_remember_me
                             dbg("passport doesn't exist, but user is authenticated (via remember_me), so we add this passport for them.")
                             opts.database.create_passport
-                                account_id : account_id
+                                account_id : locals.account_id
                                 strategy   : opts.strategy
                                 id         : opts.id
                                 profile    : opts.profile
                                 cb         : cb
                         else
-                            if has_valid_remember_me and account_id != _account_id
+                            if locals.has_valid_remember_me and locals.account_id != _account_id
                                 dbg("passport exists but is associated with another account already")
                                 cb("Your #{opts.strategy} account is already attached to another CoCalc account.  First sign into that account and unlink #{opts.strategy} in account settings if you want to instead associate it with this account.")
                             else
-                                if has_valid_remember_me
+                                if locals.has_valid_remember_me
                                     dbg("passport already exists and is associated to the currently logged into account")
                                 else
                                     dbg("passport exists and is already associated to a valid account, which we'll log user into")
-                                    account_id = _account_id
+                                    locals.account_id = _account_id
                                 cb()
         (cb) ->
-            if account_id or not opts.emails?
+            if locals.account_id or not opts.emails?
                 cb(); return
             dbg("passport doesn't exist and emails available, so check for existing account with a matching email -- if we find one it's an error")
             f = (email, cb) ->
-                if account_id
-                    dbg("already found a match with account_id=#{account_id} -- done")
+                if locals.account_id
+                    dbg("already found a match with account_id=#{locals.account_id} -- done")
                     cb()
                 else
                     dbg("checking for account with email #{email}...")
                     opts.database.account_exists
                         email_address : email.toLowerCase()
                         cb            : (err, _account_id) ->
-                            if account_id # already done, so ignore
-                                dbg("already found a match with account_id=#{account_id} -- done")
+                            if locals.account_id # already done, so ignore
+                                dbg("already found a match with account_id=#{locals.account_id} -- done")
                                 cb()
                             else if err or not _account_id
                                 cb(err)
                             else
-                                account_id    = _account_id
-                                email_address = email.toLowerCase()
-                                dbg("found matching account #{account_id} for email #{email_address}")
-                                cb("There is already an account with email address #{email_address}; please sign in using that email account, then link #{opts.strategy} to it in account settings.")
+                                locals.account_id    = _account_id
+                                locals.email_address = email.toLowerCase()
+                                dbg("found matching account #{locals.account_id} for email #{locals.email_address}")
+                                cb("There is already an account with email address #{locals.email_address}; please sign in using that email account, then link #{opts.strategy} to it in account settings.")
             async.map(opts.emails, f, cb)
         (cb) ->
-            if account_id
+            if locals.account_id   # account already made above
                 cb(); return
             dbg("no existing account to link, so create new account that can be accessed using this passport")
             if opts.emails?
-                email_address = opts.emails[0]
+                locals.email_address = opts.emails[0]
             async.series([
                 (cb) ->
                     opts.database.create_account
                         first_name        : opts.first_name
                         last_name         : opts.last_name
-                        email_address     : email_address
+                        email_address     : locals.email_address
                         passport_strategy : opts.strategy
                         passport_id       : opts.id
                         passport_profile  : opts.profile
                         cb                : (err, _account_id) ->
-                            account_id = _account_id
+                            locals.account_id = _account_id
                             locals.new_account_created = true
                             cb(err)
                 (cb) ->
-                    if not email_address?
+                    if not locals.email_address?
                         cb()
                     else
                         opts.database.do_account_creation_actions
-                            email_address : email_address
-                            account_id    : account_id
+                            email_address : locals.email_address
+                            account_id    : locals.account_id
                             cb            : cb
-
                 (cb) ->
                     data =
-                        account_id    : account_id
+                        account_id    : locals.account_id
                         first_name    : opts.first_name
                         last_name     : opts.last_name
-                        email_address : email_address ? null
+                        email_address : locals.email_address ? null
                         created_by    : opts.req.ip
                     data.utm      = opts.res.locals.utm      if opts.res.locals.utm
                     data.referrer = opts.res.locals.referrer if opts.res.locals.referrer
                     opts.database.log
                         event : 'create_account'
                         value : data
-                    cb() # don't let client wait for this
+                    cb() # don't let client wait for *logging* the fact that we created an account; failure wouldn't matter.
             ], cb)
 
         (cb) ->
@@ -269,57 +291,93 @@ passport_login = (opts) ->
             sign_in.record_sign_in
                 ip_address    : opts.req.ip
                 successful    : true
-                remember_me   : has_valid_remember_me
-                email_address : email_address
-                account_id    : account_id
+                remember_me   : locals.has_valid_remember_me
+                email_address : locals.email_address
+                account_id    : locals.account_id
                 utm           : opts.res.locals.utm
                 referrer      : opts.res.locals.referrer
                 database      : opts.database
-            cb() # don't let client wait for this
+            cb() # don't make client wait for this -- it's just a log message for us.
 
         (cb) ->
-            target = BASE_URL + "/app#login"
+            if not locals.get_api_key
+                cb(); return
+            # Just handle getting api key here.
+            {api_key_action} = require('./api/manage')   # here, rather than at beginnig of file, due to some circular references...
+            if locals.new_account_created
+                locals.action = 'regenerate'  # obvious
+            else
+                locals.action = 'get'
+            async.series([
+                (cb) ->
+                    api_key_action
+                        database   : opts.database
+                        account_id : locals.account_id
+                        passport   : true
+                        action     : locals.action
+                        cb       : (err, api_key) =>
+                            locals.api_key = api_key
+                            cb(err)
+                (cb) ->
+                    if locals.api_key # got it above
+                        cb(); return
+                    dbg("get_api_key -- must generate key, since don't already have it")
+                    api_key_action
+                        database   : opts.database
+                        account_id : locals.account_id
+                        passport   : true
+                        action     : 'regenerate'
+                        cb       : (err, api_key) =>
+                            locals.api_key = api_key
+                            cb(err)
+            ], (err) ->
+                if err
+                    cb(err)
+                else
+                    # NOTE: See also code to generate similar URL in smc-webapp/redux_account.coffee
+                    locals.target = "https://authenticated?api_key=#{locals.api_key}"
+                    cb()
+            )
 
-            if has_valid_remember_me
-                opts.res.redirect(target)
+        (cb) ->
+            if locals.has_valid_remember_me or locals.get_api_key
                 cb()
                 return
+
             dbg("passport created: set remember_me cookie, so user gets logged in")
+
             # create and set remember_me cookie, then redirect.
             # See the remember_me method of client for the algorithm we use.
             signed_in_mesg = message.signed_in
                 remember_me : true
                 hub         : opts.host
-                account_id  : account_id
+                account_id  : locals.account_id
                 first_name  : opts.first_name
                 last_name   : opts.last_name
 
             dbg("create remember_me cookie")
-            session_id = uuid.v4()
-            hash_session_id = password_hash(session_id)
-            ttl = 24*3600*30     # 30 days
-            x = hash_session_id.split('$')
+            session_id        = uuid.v4()
+            hash_session_id   = password_hash(session_id)
+            ttl               = 24*3600*30     # 30 days
+            x                 = hash_session_id.split('$')
             remember_me_value = [x[0], x[1], x[2], session_id].join('$')
+
             dbg("set remember_me cookies in client")
-            expires = new Date(new Date().getTime() + ttl*1000)
-            cookies = new Cookies(opts.req, opts.res)
-            cookies.set(BASE_URL + 'remember_me', remember_me_value, {expires:expires})
+            locals.cookies.set(remember_me_cookie_name(BASE_URL), remember_me_value, {maxAge: ttl*1000})
+
             dbg("set remember_me cookie in database")
             opts.database.save_remember_me
-                account_id : account_id
+                account_id : locals.account_id
                 hash       : hash_session_id
                 value      : signed_in_mesg
                 ttl        : ttl
-                cb         : (err) ->
-                    if err
-                        cb(err)
-                    else
-                        dbg("finally redirect the client to #{target}, who should auto login")
-                        opts.res.redirect(target)
-                        cb()
+                cb         : cb
     ], (err) ->
         if err
             opts.res.send("Error trying to login using #{opts.strategy} -- #{err}")
+        else
+            dbg("redirect the client")
+            opts.res.redirect(locals.target)
         opts.cb?(err)
     )
 
@@ -340,6 +398,18 @@ exports.init_passport = (opts) ->
     router.use(express_session({secret:misc.uuid()}))  # secret is totally random and per-hub session
     router.use(passport.initialize())
     router.use(passport.session())
+
+    # Define handler for api key cookie setting.
+    handle_get_api_key = (req, res, next) ->
+        dbg("handle_get_api_key")
+        if req.query.get_api_key
+            cookies = new Cookies(req, res)
+            # The maxAge is important -- it has to be long enough for the user to agree to
+            # the oauth.  However, if the user were to not complete the process, then try to
+            # do a normal login and the cookie were still there, it would take them
+            # to the api screen, so it's important that this expire.
+            cookies.set(api_key_cookie_name(base_url), req.query.get_api_key, {maxAge:60*1000})
+        next()
 
     # Define user serialization
     passport.serializeUser (user, done) ->
@@ -404,34 +474,6 @@ exports.init_passport = (opts) ->
 
     auth_url = undefined # gets set below
 
-    init_local = (cb) ->
-        dbg("init_local")
-        # Strategy: local email address / password login
-        PassportStrategy = require('passport-local').Strategy
-
-        verify = (username, password, done) ->
-            if username == 'a'
-                return done(null, false, { message: 'Incorrect password.' })
-            console.log("local strategy validating user #{username}")
-            done(null, {username:username})
-
-        passport.use(new PassportStrategy(verify))
-
-        router.get '/auth/local', (req, res) ->
-            res.send("""<form action="/auth/local" method="post">
-                            <label>Email</label>
-                            <input type="text" name="username">
-                            <label>Password</label>
-                            <input type="password" name="password">
-                            <button type="submit" value="Log In"/>Login</button>
-                        </form>""")
-
-        router.post '/auth/local', passport.authenticate('local'), (req, res) ->
-            console.log("authenticated... ")
-            res.json(req.user)
-
-        cb()
-
     init_google = (cb) ->
         dbg("init_google")
         # Strategy: Google OAuth 2 -- https://github.com/jaredhanson/passport-google-oauth
@@ -469,9 +511,9 @@ exports.init_passport = (opts) ->
             # didn't work.  To figure out that this was the problem, I had to grep the source code of the passport-google-oauth
             # library and put in print statements to see what the *REAL* errors were, since that
             # library hid the errors (**WHY**!!?).
-            router.get "/auth/#{strategy}", passport.authenticate(strategy, {'scope': 'openid email profile'})
+            router.get "/auth/#{strategy}", handle_get_api_key, passport.authenticate(strategy,{'scope': 'openid email profile'})
 
-            router.get "/auth/#{strategy}/return", passport.authenticate(strategy, {failureRedirect: '/auth/local'}), (req, res) ->
+            router.get "/auth/#{strategy}/return", passport.authenticate(strategy), (req, res) ->
                 profile = req.user.profile
                 passport_login
                     database   : database
@@ -511,9 +553,9 @@ exports.init_passport = (opts) ->
                 done(undefined, {profile:profile})
             passport.use(new PassportStrategy(opts, verify))
 
-            router.get "/auth/#{strategy}", passport.authenticate(strategy)
+            router.get "/auth/#{strategy}", handle_get_api_key, passport.authenticate(strategy)
 
-            router.get "/auth/#{strategy}/return", passport.authenticate(strategy, {failureRedirect: '/auth/local'}), (req, res) ->
+            router.get "/auth/#{strategy}/return", passport.authenticate(strategy), (req, res) ->
                 profile = req.user.profile
                 passport_login
                     database   : database
@@ -555,9 +597,9 @@ exports.init_passport = (opts) ->
                 done(undefined, {profile:profile})
             passport.use(new PassportStrategy(opts, verify))
 
-            router.get "/auth/#{strategy}", passport.authenticate(strategy)
+            router.get "/auth/#{strategy}", handle_get_api_key, passport.authenticate(strategy)
 
-            router.get "/auth/#{strategy}/return", passport.authenticate(strategy, {failureRedirect: '/auth/local'}), (req, res) ->
+            router.get "/auth/#{strategy}/return", passport.authenticate(strategy), (req, res) ->
                 profile = req.user.profile
                 passport_login
                     database   : database
@@ -571,137 +613,6 @@ exports.init_passport = (opts) ->
                     host       : host
 
             cb()
-
-    init_dropbox = (cb) ->
-        dbg("init_dropbox")
-        PassportStrategy = require('passport-dropbox-oauth2').Strategy
-        strategy = 'dropbox'
-        get_conf strategy, (err, conf) ->
-            if err or not conf?
-                cb(err)
-                return
-            # Get these by:
-            #   (1) creating a dropbox account, then going to this url: https://www.dropbox.com/developers/apps
-            #   (2) make a dropbox api app that only access the datastore (not user files -- for now, since we're just doing auth!).
-            #   (3) You'll see an "App key" and an "App secret".
-            #   (4) Add the redirect URL on the dropbox page as well, which will be like https://cloud.sagemath.com/auth/dropbox/return
-            # This might (or might not) be relevant when we support dropbox sync: https://github.com/dropbox/dropbox-js
-            #
-            # You must then put them in the database, via
-            #   db.set_passport_settings(strategy:'dropbox', conf:{clientID:'...',clientSecret:'...'}, cb:console.log)
-
-            opts =
-                clientID     : conf.clientID
-                clientSecret : conf.clientSecret
-                callbackURL  : "#{auth_url}/#{strategy}/return"
-
-            verify = (accessToken, refreshToken, profile, done) ->
-                done(undefined, {profile:profile})
-            passport.use(new PassportStrategy(opts, verify))
-
-            router.get "/auth/#{strategy}", passport.authenticate("dropbox-oauth2")
-
-            router.get "/auth/#{strategy}/return", passport.authenticate("dropbox-oauth2", {failureRedirect: '/auth/local'}), (req, res) ->
-                profile = req.user.profile
-                passport_login
-                    database   : database
-                    strategy   : strategy
-                    profile    : profile  # will just get saved in database
-                    id         : profile.id
-                    first_name : profile._json.name_details.familiar_name
-                    last_name  : profile._json.name_details.surname
-                    full_name  : profile.displayName
-                    req        : req
-                    res        : res
-                    base_url   : base_url
-                    host       : host
-
-            cb()
-
-    init_bitbucket = (cb) ->
-        dbg("init_bitbucket")
-        PassportStrategy = require('passport-bitbucket').Strategy
-        strategy = 'bitbucket'
-        get_conf strategy, (err, conf) ->
-            if err or not conf?
-                cb(err)
-                return
-            # Get these by:
-            #      (1) make a bitbucket account
-            #      (2) Go to https://bitbucket.org/account/user/[your username]/api
-            #      (3) Click add consumer and enter the URL of your CoCalc instance.
-            #
-            # You must then put them in the database, via
-            #   db.set_passport_settings(strategy:'bitbucket', conf:{clientID:'...',clientSecret:'...'}, cb:console.log)
-
-            opts =
-                consumerKey    : conf.clientID
-                consumerSecret : conf.clientSecret
-                callbackURL    : "#{auth_url}/#{strategy}/return"
-
-            verify = (accessToken, refreshToken, profile, done) ->
-                done(undefined, {profile:profile})
-            passport.use(new PassportStrategy(opts, verify))
-
-            router.get "/auth/#{strategy}", passport.authenticate(strategy)
-
-            router.get "/auth/#{strategy}/return", passport.authenticate(strategy, {failureRedirect: '/auth/local'}), (req, res) ->
-                profile = req.user.profile
-                #winston.debug("profile=#{misc.to_json(profile)}")
-                passport_login
-                    database   : database
-                    strategy   : strategy
-                    profile    : profile  # will just get saved in database
-                    id         : profile.username
-                    first_name : profile.name.givenName
-                    last_name  : profile.name.familyName
-                    req        : req
-                    res        : res
-                    base_url   : base_url
-                    host       : host
-
-            cb()
-
-    ###
-    init_wordpress = (cb) ->
-        dbg("init_wordpress")
-        PassportStrategy = require('passport-wordpress').Strategy
-        strategy = 'wordpress'
-        get_conf strategy, (err, conf) ->
-            if err or not conf?
-                cb(err)
-                return
-            # Get these by:
-            #    (1) Make a wordpress account
-            #    (2) Go to https://developer.wordpress.com/apps/
-            #    (3) Click "Create a New Application"
-            #    (4) Fill the form as usual and eventual get the id and secret.
-            #
-            # You must then put them in the database, via
-            #   db.set_passport_settings(strategy:'wordpress', conf:{clientID:'...',clientSecret:'...'}, cb:console.log)
-            opts =
-                clientID     : conf.clientID
-                clientSecret : conf.clientSecret
-                callbackURL  : "#{auth_url}/#{strategy}/return"
-            verify = (accessToken, refreshToken, profile, done) ->
-                done(undefined, {profile:profile})
-            passport.use(new PassportStrategy(opts, verify))
-            router.get "/auth/#{strategy}", passport.authenticate(strategy)
-            router.get "/auth/#{strategy}/return", passport.authenticate(strategy, {failureRedirect: '/auth/local'}), (req, res) ->
-                profile = req.user.profile
-                passport_login
-                    database   : database
-                    strategy   : strategy
-                    profile    : profile  # will just get saved in database
-                    id         : profile._json.ID
-                    emails     : [profile._json.email]
-                    full_name  : profile.displayName
-                    req        : req
-                    res        : res
-                    base_url   : base_url
-                    host       : host
-            cb()
-    ###
 
     init_twitter = (cb) ->
         dbg("init_twitter")
@@ -727,9 +638,9 @@ exports.init_passport = (opts) ->
                 done(undefined, {profile:profile})
             passport.use(new PassportStrategy(opts, verify))
 
-            router.get "/auth/#{strategy}", passport.authenticate(strategy)
+            router.get "/auth/#{strategy}", handle_get_api_key, passport.authenticate(strategy)
 
-            router.get "/auth/#{strategy}/return", passport.authenticate(strategy, {failureRedirect: '/auth/local'}), (req, res) ->
+            router.get "/auth/#{strategy}/return", passport.authenticate(strategy), (req, res) ->
                 profile = req.user.profile
                 passport_login
                     database   : database
@@ -759,13 +670,10 @@ exports.init_passport = (opts) ->
                 cb()
             else
                 async.parallel([
-                    init_local,
                     init_google,
                     init_github,
                     init_facebook,
-                    init_dropbox,
-                    init_bitbucket,
-                    init_twitter,
+                    init_twitter
                 ], cb)
     ], (err) =>
         strategies.sort()

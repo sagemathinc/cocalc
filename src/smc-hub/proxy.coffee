@@ -30,7 +30,6 @@ http_proxy = require('http-proxy')
 url     = require('url')
 http    = require('http')
 mime    = require('mime')
-Cookies = require('cookies')
 ms      = require('ms')
 
 misc    = require('smc-util/misc')
@@ -44,15 +43,20 @@ access = require('./access')
 
 DEBUG2 = false
 
-# In the interest of security and "XSS", we strip all cookies that contain "remembe_me" before
-# passing them along via the proxy.  Obviously, this could randomly break something that just
-# happens to put remember_me in a cookie name.  We could change the cookie name to cocalc_remembe_me
-# at some point to reduce the chances of that...
-exports.strip_remember_me_cookies = (cookie) ->
+# In the interest of security and "XSS", we strip the "remember_me" cookie from the header before
+# passing anything along via the proxy.
+exports.strip_remember_me_cookie = (cookie) ->
     if not cookie?
-        return cookie
+        return {cookie: cookie, remember_me:undefined}
     else
-        return (c for c in cookie.split(';') when c.toLowerCase().split('=')[0].indexOf('remember_me') == -1).join(';')
+        v = []
+        for c in cookie.split(';')
+            z = c.split('=')
+            if z[0].trim() == 'remember_me'
+                remember_me = z[1].trim()
+            else
+                v.push(c)
+        return {cookie: v.join(';'), remember_me:remember_me}
 
 exports.target_parse_req = target_parse_req = (remember_me, url) ->
     v          = url.split('/')
@@ -323,8 +327,13 @@ exports.init_http_proxy_server = (opts) ->
                 winston.debug("http_proxy_server(#{req_url}): #{m}")
         dbg('got request')
 
-        cookies = new Cookies(req, res)
-        remember_me = cookies.get(base_url + 'remember_me')
+        # Before doing anything further with the request on to the proxy, we remove **all** cookies whose
+        # name contains "remember_me", to prevent the project backend from getting at
+        # the user's session cookie, since one project shouldn't be able to get
+        # access to any user's account.
+        x = exports.strip_remember_me_cookie(req.headers['cookie'])
+        remember_me = x.remember_me
+        req.headers['cookie'] = x.cookie
 
         if not remember_me?
             # before giving an error, check on possibility that file is public
@@ -378,11 +387,6 @@ exports.init_http_proxy_server = (opts) ->
                     #proxy.on 'proxyRes', (res) ->
                     #    dbg("(mark: #{misc.walltime(tm)}) got response from the target")
 
-                # Before passing the request on to the proxy, we remove **all** cookies whose
-                # name contains "remember_me", to prevent the project backend from getting at
-                # the user's session cookie, since one project shouldn't be able to get
-                # access to any user's account.
-                req.headers['cookie'] = exports.strip_remember_me_cookies(req.headers['cookie'])
                 proxy.web(req, res)
 
     winston.debug("starting proxy server listening on #{opts.host}:#{opts.port}")
@@ -391,6 +395,10 @@ exports.init_http_proxy_server = (opts) ->
     # add websockets support
     _ws_proxy_servers = {}
     http_proxy_server.on 'upgrade', (req, socket, head) ->
+
+        # Strip remember_me cookie from req used for websocket upgrade.
+        req.headers['cookie'] = exports.strip_remember_me_cookie(req.headers['cookie']).cookie
+
         req_url = req.url.slice(base_url.length)  # strip base_url for purposes of determining project location/permissions
         dbg = (m) -> winston.debug("http_proxy_server websocket(#{req_url}): #{m}")
         target undefined, req_url, (err, location) ->
