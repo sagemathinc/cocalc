@@ -229,7 +229,7 @@ FreeProjectWarning = rclass ({name}) ->
 
     render_learn_more: ->
         <a
-            href   = "https://github.com/sagemathinc/cocalc/wiki/FreeServerMessage" 
+            href   = "https://github.com/sagemathinc/cocalc/wiki/FreeServerMessage"
             target = "_blank"
             style  = {fontWeight : 'bold', color:'white', cursor:'pointer'}>
             learn more...
