@@ -974,11 +974,11 @@ ProjectFilesActions = rclass
         style =
             color      : '#999'
             height     : '22px'
-            fontWeight : '200'
 
         if checked is 0
             <div style={style}>
-                <span>{"#{total} #{misc.plural(total, 'item')}"} -- Check an entry below to see options.</span>
+                <span>{"#{total} #{misc.plural(total, 'item')}"}</span>
+                <div style={fontWeight:'200', display:'inline'}> -- Check an entry below to see options.</div>
             </div>
         else
             <div style={style}>
