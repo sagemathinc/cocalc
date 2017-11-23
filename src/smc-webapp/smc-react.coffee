@@ -23,6 +23,10 @@
 # Question: can we use redux to implement the same API as r.cjsx exports (which was built on Flummox).
 ###############################################################################
 
+# Important: code below now assumes that a global variable called "DEBUG" is **defined**!
+if not DEBUG?
+    DEBUG = false
+
 {EventEmitter}   = require('events')
 async            = require('async')
 immutable        = require('immutable')
@@ -583,7 +587,7 @@ exports.Table    = Table
 exports.Store    = Store
 exports.ReactDOM = require('react-dom')
 
-if DEBUG? and DEBUG
+if DEBUG
     smc?.redux = redux  # for convenience in the browser (mainly for debugging)
 
 _internals =
