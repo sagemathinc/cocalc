@@ -50,13 +50,13 @@ sortBy = (key) ->
 
 
 exports.Library = rclass ({name}) ->
-    displayName : 'Library'
+    displayName : "Library-#{name}"
 
     reduxProps :
         "#{name}" :
-            project_id          : rtypes.string
             current_path        : rtypes.string
             library             : rtypes.immutable.Map
+            library_selected    : rtypes.object
         projects:
             project_map         : rtypes.immutable
 
@@ -65,8 +65,6 @@ exports.Library = rclass ({name}) ->
 
     getInitialState: ->
         lang        : 'python'
-        selected    : undefined
-        hovered     : undefined
         copy        : false
         show_thumb  : false
         sorted_docs : undefined
@@ -91,7 +89,7 @@ exports.Library = rclass ({name}) ->
                 metadata    : meta
 
     target_path: ->
-        doc = @state.selected
+        doc = @props.library_selected
         src = doc.src
         if doc.subdir
             subdir = doc.subdir
@@ -109,7 +107,7 @@ exports.Library = rclass ({name}) ->
 
     copy: (doc) ->
         @setState(copy: true)
-        doc = @state.selected
+        doc = @props.library_selected
         @props.actions.copy_from_library
             src    : doc.src
             target : @target_path()
@@ -119,20 +117,25 @@ exports.Library = rclass ({name}) ->
             # cb     : => if @isMounted() then @setState(copy: false)   # deprecated, hmm...
 
     selector_keyup: (evt) ->
-        return if not @state.selected?
+        return if not @props.library_selected?
         switch evt.keyCode
             when 38 # up
                 dx = -1
             when 40 # down
                 dx = 1
-        idx     = @state.sorted_docs.indexOf(@state.selected) + dx
+        ids     = (doc.id for doc in @state.sorted_docs)
+        idx     = ids.indexOf(@props.library_selected.id) + dx
         new_doc = @state.sorted_docs[idx %% @state.sorted_docs.length]
-        @setState(selected: new_doc)
+        @props.actions.setState(library_selected: new_doc)
 
         evt.preventDefault()
         evt.stopPropagation()
         evt.nativeEvent.stopImmediatePropagation()
         return false
+
+    select_list_click: (doc) ->
+        @setState(show_thumb:false)
+        @props.actions.setState(library_selected:doc)
 
     select_list: (list) ->
         return null if not @state.sorted_docs?
@@ -151,13 +154,13 @@ exports.Library = rclass ({name}) ->
             if doc.category isnt cur_cat
                 cur_cat         = doc.category
                 cur_cat_title   = @state.metadata.categories[cur_cat]
-                list.push(<li class="list-group-header" key={"header-#{cur_cat}"}>{cur_cat_title}</li>)
+                list.push(<li className="list-group-header" key={"header-#{cur_cat}"}>{cur_cat_title}</li>)
 
             list.push(
                 <ListGroupItem
                     key         = {doc.id}
-                    active      = {doc.id == @state.selected?.id}
-                    onClick     = {=> @setState(selected:doc, show_thumb:false)}
+                    active      = {doc.id == @props.library_selected?.id}
+                    onClick     = {=> @select_list_click(doc)}
                     style       = {item_style}
                     bsSize      = {'small'}
                 >
@@ -180,11 +183,11 @@ exports.Library = rclass ({name}) ->
         </ListGroup>
 
     thumbnail: ->
-        return null if (not @state.selected.thumbnail?) or (not @props.project_id)
+        return null if (not @props.library_selected.thumbnail?) or (not @props.project_id)
 
         img_path = webapp_client.read_file_from_project
             project_id : @props.project_id
-            path       : @state.selected.thumbnail
+            path       : @props.library_selected.thumbnail
 
         img_style =
             display   : if @state.show_thumb then 'block' else 'none'
@@ -197,12 +200,12 @@ exports.Library = rclass ({name}) ->
 
 
     details: ->
-        return null if (not @state.selected?)
+        return null if (not @props.library_selected?)
         # example:
         # {"title":"Data science Python notebooks","id":"doc-6","license":"a20",
         # "src":"/ext/library/cocalc-examples/data-science-ipython-notebooks/",
         # "description":"Data science Python notebooks: Deep learning ...\n"}
-        doc   = @state.selected
+        doc   = @props.library_selected
         meta  = @state.metadata
         style =
             maxHeight  : HEIGHT
@@ -245,7 +248,7 @@ exports.Library = rclass ({name}) ->
                         'Get a copy'
                 }
             </Button>
-            {#<p style={color: '#666'}>copies <code>{@state.selected.src}</code> into <code>{@target_path()}</code></p>}
+            {#<p style={color: '#666'}>copies <code>{@props.library_selected.src}</code> into <code>{@target_path()}</code></p>}
         </div>
 
     render: ->
@@ -256,10 +259,10 @@ exports.Library = rclass ({name}) ->
         if state and state != 'running'
             return <span>Project not running</span>
 
-        if (not @props.library?.get('examples')?) # or (not @state.sorted_docs?)
+        if (not @props.library?.get('examples')?)
             return <Loading />
 
-        thumb = @state.selected?.thumbnail
+        thumb = @props.library_selected?.thumbnail
         <Row>
             <Col sm=4>{@selector()}</Col>
             <Col sm={if thumb then 6 else 8}>{@details()}</Col>

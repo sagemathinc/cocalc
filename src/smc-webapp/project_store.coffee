@@ -93,6 +93,7 @@ exports.redux_name = key = (project_id, name) ->
     return s
 
 _init_library_index_ongoing = {}
+_init_library_index_cache   = {}
 
 class ProjectActions extends Actions
     _ensure_project_is_open: (cb, switch_to) =>
@@ -945,6 +946,12 @@ class ProjectActions extends Actions
         ])
 
     init_library_index: ->
+        if _init_library_index_cache[@project_id]?
+            data = _init_library_index_cache[@project_id]
+            library = @get_store().library.set('examples', data)
+            @setState(library: library)
+            return
+
         return if _init_library_index_ongoing[@project_id]
         _init_library_index_ongoing[@project_id] = true
 
@@ -958,26 +965,26 @@ class ProjectActions extends Actions
             $.ajax(
                 url     : index_json_url
                 timeout : 5000
-                success : (content) =>
+                success : (data) =>
                     #if DEBUG then console.log("init_library/content", content)
                     try
-                        #data = misc.from_json(content)
-                        data = content
                         library = @get_store().library.set('examples', data)
                         @setState(library: library)
+                        _init_library_index_cache[@project_id] = data
                         cb()
                     catch e
                         if DEBUG then console.log("init_library/index: error parsing: #{e}")
                         cb(e)
-                ).fail (err) ->
+                ).fail((err) ->
                     if DEBUG then console.log("init_library/index: error reading file: #{misc.to_json(err)}")
                     cb(err.statusText ? 'error')
+                )
 
         misc.retry_until_success
             f           : fetch
             start_delay : 1000
             max_delay   : 10000
-            #cb          : => _init_library_index_ongoing[@project_id] = false
+            cb          : => _init_library_index_ongoing[@project_id] = false
 
     copy_from_library: (opts) =>
         opts = defaults opts,
@@ -985,7 +992,7 @@ class ProjectActions extends Actions
             src    : undefined
             target : undefined
             start  : undefined
-            log    : undefined   # line in the project log
+            docid  : undefined   # for the log
             title  : undefined   # for the log
             cb     : undefined
 
@@ -1705,7 +1712,6 @@ create_project_store_def = (name, project_id) ->
         selected_file_index    : rtypes.number     # Index on file listing to highlight starting at 0. undefined means none highlighted
         new_name               : rtypes.string
         most_recent_file_click : rtypes.string
-        library                : rtypes.immutable.Map
 
         # Project Log
         project_log : rtypes.immutable
@@ -1715,6 +1721,8 @@ create_project_store_def = (name, project_id) ->
         # Project New
         default_filename    : rtypes.string
         file_creation_error : rtypes.string
+        library             : rtypes.immutable.Map
+        library_selected    : rtypes.object
 
         # Project Find
         user_input         : rtypes.string
