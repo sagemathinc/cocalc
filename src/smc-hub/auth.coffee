@@ -129,6 +129,7 @@ passport_login = (opts) ->
         has_valid_remember_me : false
         account_id            : undefined
         email_address         : undefined
+        target                : BASE_URL + "/app#login"
         cookies               : new Cookies(opts.req, opts.res)
 
     ## dbg("cookies = '#{opts.req.headers['cookie']}'")  # DANGER -- do not uncomment except for debugging due to SECURITY
@@ -344,7 +345,6 @@ passport_login = (opts) ->
                 return
 
             dbg("passport created: set remember_me cookie, so user gets logged in")
-            locals.target = BASE_URL + "/app#login"
 
             # create and set remember_me cookie, then redirect.
             # See the remember_me method of client for the algorithm we use.
@@ -375,11 +375,9 @@ passport_login = (opts) ->
     ], (err) ->
         if err
             opts.res.send("Error trying to login using #{opts.strategy} -- #{err}")
-        else if locals.target?
+        else
             dbg("redirect the client")
             opts.res.redirect(locals.target)
-        else
-            opts.res.send("signed in")
         opts.cb?(err)
     )
 
