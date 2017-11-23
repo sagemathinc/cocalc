@@ -72,8 +72,11 @@ exports.PublicPath = rclass
             elt = <Redux redux={redux}>
                 <Viewer name={name} />
             </Redux>
-            # TODO: need to call project_file.remove(path, redux, project_id, true) after
-            # rendering is done!
+            f = ->
+                file_editors.remove(path, redux, undefined, true)
+            # TODO: should really happen after render; however, don't know how yet... so just wait a bit and do it.
+            # This is critical to do; otherwise, when the ipynb is updated, we'll see the old version.
+            setTimeout(f, 10000)
         else if ext == 'sagews'
             mathjax = true
             elt = <SageWorksheet sagews={parse_sagews(@props.content)} style={margin:'30px'} />
