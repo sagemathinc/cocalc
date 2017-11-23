@@ -420,7 +420,8 @@ exports.init_express_http_server = (opts) ->
         # Also, ensure the raw server works
         dev_proxy_raw = (req, res) ->
             # avoid XSS...
-            req.headers['cookie'] = hub_proxy.strip_remember_me_cookies(req.headers['cookie'])
+            req.headers['cookie'] = hub_proxy.strip_remember_me_cookie(req.headers['cookie']).cookie
+
             #winston.debug("cookie=#{req.headers['cookie']}")
             req_url = req.url.slice(opts.base_url.length)
             {key, project_id} = hub_proxy.target_parse_req('', req_url)
