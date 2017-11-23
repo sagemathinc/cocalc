@@ -52,7 +52,7 @@ exports.strip_remember_me_cookie = (cookie) ->
         v = []
         for c in cookie.split(';')
             z = c.split('=')
-            if z[0] == 'remember_me'
+            if z[0].trim() == 'remember_me'
                 remember_me = z[1].trim()
             else
                 v.push(c)
