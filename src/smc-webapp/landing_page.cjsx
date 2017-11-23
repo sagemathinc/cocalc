@@ -44,7 +44,8 @@ Passports = rclass
     displayName : 'Passports'
 
     propTypes :
-        strategies : rtypes.array
+        strategies  : rtypes.array
+        get_api_key : rtypes.string
 
     styles :
         facebook :
@@ -64,6 +65,8 @@ Passports = rclass
         if name is 'email'
             return
         url = "#{window.app_base_url}/auth/#{name}"
+        if @props.get_api_key
+            url += "?get_api_key=#{@props.get_api_key}"
         <a href={url} key={name}>
             <Icon size='2x' name='stack' href={url}>
                 {<Icon name='circle' stack='2x' style={color: @styles[name].backgroundColor} /> if name isnt 'github'}
@@ -100,6 +103,7 @@ SignUp = rclass
         signing_up      : rtypes.bool
         style           : rtypes.object
         has_remember_me : rtypes.bool
+        get_api_key     : rtypes.string
 
     make_account: (e) ->
         e.preventDefault()
@@ -118,7 +122,7 @@ SignUp = rclass
         if not @props.strategies?
             return <Loading />
         if @props.strategies.length > 1
-            return <Passports strategies={@props.strategies} />
+            return <Passports strategies={@props.strategies} get_api_key={@props.get_api_key} />
 
     display_token_input: ->
         if @props.token
@@ -705,7 +709,9 @@ exports.LandingPage = rclass
                         token           = {@props.token}
                         has_remember_me = {@props.has_remember_me}
                         signing_up      = {@props.signing_up}
-                        has_account     = {@props.has_account} />
+                        has_account     = {@props.has_account}
+                        get_api_key     = {@props.get_api_key}
+                        />
                 </Col>
                 <Col sm=6>
                     <div style={color:"#333", fontSize:'12pt', marginTop:'2em'}>
