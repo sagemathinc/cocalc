@@ -259,6 +259,7 @@ schema.accounts =
                     show_global_info2 : null
                     first_steps       : true
                     newsletter        : true
+                    time_ago_absolute : false
                 first_name      : ''
                 last_name       : ''
                 terminal        :
