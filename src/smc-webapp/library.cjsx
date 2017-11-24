@@ -19,6 +19,7 @@
 #
 ##############################################################################
 
+$ = window.$
 underscore = _ = require('underscore')
 misc = require('smc-util/misc')
 misc_page = require('./misc_page')
@@ -71,7 +72,8 @@ exports.Library = rclass ({name}) ->
         metadata    : undefined
 
     componentDidMount: ->
-        @scroll_into_view = _.debounce((-> $(ReactDOM.findDOMNode(@refs.selector_list)).find('.active').scrollintoview()), 50)
+        # TODO this isn't working
+        #@scroll_into_view = _.debounce((=> $(ReactDOM.findDOMNode(@refs.selector_list)).find('.active').scrollintoview()), 50)
 
     componentDidUpdate: (props, state) ->
 
@@ -138,7 +140,8 @@ exports.Library = rclass ({name}) ->
         idx     = ids.indexOf(@props.library_selected.id) + dx
         new_doc = @state.sorted_docs[idx %% @state.sorted_docs.length]
         @props.actions.setState(library_selected: new_doc)
-        @scroll_into_view()
+        #@scroll_into_view()
+        $(ReactDOM.findDOMNode(@refs.selector_list)).find('.active').scrollintoview()
 
         evt.preventDefault()
         evt.stopPropagation()
