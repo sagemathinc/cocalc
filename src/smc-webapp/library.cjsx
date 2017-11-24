@@ -74,19 +74,30 @@ exports.Library = rclass ({name}) ->
         @scroll_into_view = _.debounce((-> $(ReactDOM.findDOMNode(@refs.selector_list)).find('.active').scrollintoview()), 50)
 
     componentDidUpdate: (props, state) ->
-        @scroll_into_view()
 
-    componentWillMount: ->
-        meta = @props.library.getIn(['examples'])?.metadata
-        docs = @props.library.getIn(['examples'])?.documents
+    init_state: (props) ->
+        meta = props.library.getIn(['examples'])?.metadata
+        docs = props.library.getIn(['examples'])?.documents
 
         if docs?
-            sortfn = (doc) -> [meta.categories[doc.category], doc.title?.toLowerCase() ? doc.id]
+            # sort by a triplet
+            sortfn = (doc) -> [
+                meta.category_sortweight[doc.category] ? 0
+                meta.categories[doc.category].toLowerCase()
+                doc.title?.toLowerCase() ? doc.id
+            ]
             sdocs  = _.sortBy(docs, sortfn)
             @setState
                 copy        : false
                 sorted_docs : sdocs
                 metadata    : meta
+
+    componentDidMount: ->
+        @init_state(@props)
+
+    componentWillReceiveProps: (next) ->
+        return if @props.library.get('examples')? and (@props.library.get('examples') == next.library.get('examples'))
+        @init_state(next)
 
     target_path: ->
         doc = @props.library_selected
@@ -127,6 +138,7 @@ exports.Library = rclass ({name}) ->
         idx     = ids.indexOf(@props.library_selected.id) + dx
         new_doc = @state.sorted_docs[idx %% @state.sorted_docs.length]
         @props.actions.setState(library_selected: new_doc)
+        @scroll_into_view()
 
         evt.preventDefault()
         evt.stopPropagation()
@@ -200,7 +212,7 @@ exports.Library = rclass ({name}) ->
 
 
     details: ->
-        return null if (not @props.library_selected?)
+        return null if (not @props.library_selected?) or (not @state.metadata?)
         # example:
         # {"title":"Data science Python notebooks","id":"doc-6","license":"a20",
         # "src":"/ext/library/cocalc-examples/data-science-ipython-notebooks/",
