@@ -92,9 +92,15 @@ exports.Page = rclass
         if @props.viewer == 'share'  # we want share to be indexed
             return
 
-    render: ->
-        favicon = "#{@props.base_url}/share/favicon-32x32.png"
+    render_css: ->
         css     = "#{@props.base_url}/share/share.css"
+        <link rel="stylesheet" href={css} />
+
+    render_favicon: ->
+        favicon = "#{@props.base_url}/share/favicon-32x32.png"
+        <link rel="shortcut icon" href={favicon} type="image/png" />
+
+    render: ->
         <html lang="en">
             <head>
                 {@title()}
@@ -109,9 +115,9 @@ exports.Page = rclass
                 {# codemirror CDN -- https://cdnjs.com/libraries/codemirror #}
                 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.31.0/codemirror.min.css" />
 
-                <link rel="shortcut icon" href={favicon} type="image/png" />
+                {@render_favicon()}
 
-                <link rel="stylesheet" href={css} />
+                {@render_css()}
 
                 {@render_noindex()}
             </head>
