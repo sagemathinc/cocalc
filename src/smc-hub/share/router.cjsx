@@ -3,7 +3,7 @@ Router for public share server.
 
 """
 
-PAGE_SIZE            = 50
+PAGE_SIZE            = 100
 
 os_path              = require('path')
 
