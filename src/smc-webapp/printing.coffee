@@ -323,26 +323,27 @@ class SagewsPrinter extends Printer
         return @_html_tmpl
 
     html_process_output_mesg: (mesg, mark) ->
-        out = null
+        # Note: each mesg could contain more than one output type
+        out = ''
         # console.log 'html_process_output_mesg', mesg, mark
         if mesg.stdout?
             # assertion: for stdout, `mark` might be undefined
-            out = "<div class='output stdout'>#{mesg.stdout}</div>"
-        else if mesg.stderr?
-            out = "<div class='output stderr'>#{mesg.stderr}</div>"
-        else if mesg.html?
+            out += "<div class='output stdout'>#{mesg.stdout}</div>"
+        if mesg.stderr?
+            out += "<div class='output stderr'>#{mesg.stderr}</div>"
+        if mesg.html?
             $html = $("<div>#{mesg.html}</div>")
             @editor.syncdoc.process_html_output($html)
-            out = "<div class='output html'>#{$html.html()}</div>"
-        else if mesg.md?
+            out += "<div class='output html'>#{$html.html()}</div>"
+        if mesg.md?
             x = markdown.markdown_to_html(mesg.md)
             $out = $("<div>")
             $out.html_noscript(x.s) # also, don't process mathjax!
             @editor.syncdoc.process_html_output($out)
-            out = "<div class='output md'>#{$out.html()}</div>"
-        else if mesg.interact?
-            out = "<div class='output interact'>#{mark.widgetNode.innerHTML}</div>"
-        else if mesg.file?
+            out += "<div class='output md'>#{$out.html()}</div>"
+        if mesg.interact?
+            out += "<div class='output interact'>#{mark.widgetNode.innerHTML}</div>"
+        if mesg.file?
             if mesg.file.show ? true
                 ext = misc.filename_extension(mesg.file.filename).toLowerCase()
                 if ext == 'sage3d'
@@ -357,7 +358,6 @@ class SagewsPrinter extends Printer
                         out ?= ''
                         out += "<div class='output sage3d'><img src='#{data_url}'></div>"
                 else if ext == 'webm'
-                    out ?= ''
                     # 'raw' url. later, embed_videos will be replace by the data-uri if there is no error
                     out += "<video src='#{mesg.file.url}' class='sagews-output-video' controls></video>"
                 else
@@ -367,22 +367,23 @@ class SagewsPrinter extends Printer
                         # console.log "output.file", mark, mesg
                         $images = $(mark.widgetNode)
                         for el in $images.find('.sagews-output-image')
-                            out ?= ''
                             # innerHTML should just be the <img ... > element
                             out += el.innerHTML
-                        out = "<div class='output image'>#{out}</div>"
-        else if mesg.code?  # what's that actually?
+                        out += "<div class='output image'>#{out}</div>"
+        if mesg.code?  # what's that actually?
             code = mesg.code.source
-            out = "<pre><code>#{code}</code></pre>"
-        else if mesg.javascript?
+            out += "<pre><code>#{code}</code></pre>"
+        if mesg.javascript?
             # mesg.javascript.coffeescript is true iff coffeescript
             $output = $(mark.replacedWith)
             $output.find('.sagews-output-container').remove() # TODO what's that?
-            out = "<div class='output javascript'>#{$output.html()}</div>"
-        else if mesg.done?
+            out += "<div class='output javascript'>#{$output.html()}</div>"
+        if mesg.done?
             # ignored
-        else
-            console.warn "ignored mesg", mesg
+            out += ' '
+
+        if out == ''
+            console.warn "sagews2html: encounted unknown mesg", mesg
         return @html_post_process(out)
 
     html_post_process: (html) ->
