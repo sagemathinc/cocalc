@@ -481,6 +481,11 @@ exports.init_express_http_server = (opts) ->
         # proxying to this server) is already trying to do something.
         # I don't know if this sort of multi-level proxying is even possible.
 
+    # Enable compression, as
+    # suggested by http://expressjs.com/en/advanced/best-practice-performance.html#use-gzip-compression
+    compression = require('compression')
+    app.use(compression())
+
     http_server = http.createServer(app)
     return {http_server:http_server, express_router:router}
 

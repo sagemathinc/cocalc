@@ -26,18 +26,20 @@ directory_listing_http_server = (base, router) ->
         # https://github.com/sagemathinc/cocalc/issues/2400
         path = decodeURIComponent(req.path.slice(base.length).trim())
         hidden = req.query.hidden
+        ###  # this is the far slower fork and use python version:
         exports.get_listing1 path, hidden, (err, listing) ->
             if err
                 res.json({error:err})
             else
                 res.json(listing)
         ###
-        exports.get_listing path, hidden, (err, info) ->
+
+        # Fast -- do directly in this process.
+        exports.get_listing0 path, hidden, (err, info) ->
             if err
                 res.json({error:err})
             else
                 res.json({files:info})
-        ###
 
     return router
 
@@ -46,8 +48,8 @@ HOME = process.env.SMC_LOCAL_HUB_HOME ? process.env.HOME
 
 misc_node = require('smc-util-node/misc_node')
 
-# We temporarily use the old cc-ls python script until the pure node get_listing0 below,
-# which is 100x faster, works in all cases: symlinks, bad timestamps, etc.
+# This exposes the old cc-ls python script. This is basically 100x slower, probably
+# due mainly to starting python, but works in all cases: symlinks, bad timestamps, etc.
 exports.get_listing1 = (path, hidden, cb) ->
     dir = HOME + '/' + path
     if hidden
@@ -73,12 +75,37 @@ exports.get_listing0 = (path, hidden, cb) ->
         if not hidden
             files = (file for file in files when file[0] != '.')
 
-        get_metadata = (file, cb) ->
+        try
+            JSON.stringify(files)
+        catch
+            # TODO: I don't actually know if this is **ever** a problem -- is there even a string in Node.js
+            # that cannot be dumped to JSON?  With python this was a problem, but I can't find the examples now.
+            # Throw away filenames that can't be json'd, since they can't be JSON'd below, which would totally
+            # lock user out of viewing directory listings in their project.  Users sometimes make weird filenames
+            # by accident, so...
+            v = []
+            for file in files
+                try
+                    JSON.stringify(file)
+                    v.push(file)
+                catch
+                    # pass
+            files = v
+
+        # We use stat first, then lstat if stat fails.  The reason is that we want to provide
+        # stat info on the *TARGET* of a symlink, if the symlink is not broken; otherwise, we
+        # provide it on the link itself.
+        get_metadata = (file, cb, stat='stat') ->
             obj = {name:file}
             # use lstat instead of stat so it works on symlinks too
-            fs.lstat dir + '/' + file, (err, stats) ->
+            fs[stat] dir + '/' + file, (err, stats) ->
                 if err
-                    obj.error = err
+                    if stat == 'stat'
+                        # probably broken symlink, so try lstat
+                        get_metadata(file, cb, 'lstat')
+                        return
+                    else
+                        obj.error = err
                 else
                     if stats.isDirectory()
                         obj.isdir = true
@@ -87,7 +114,7 @@ exports.get_listing0 = (path, hidden, cb) ->
                     obj.mtime = Math.floor((stats.mtime - 0)/1000)
                 cb(undefined, obj)
 
-        async.map(files, get_metadata, cb)
+        async.mapLimit(files, 20, get_metadata, cb)
 
 
 

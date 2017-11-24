@@ -5,6 +5,7 @@ Running MathJax on the backend.
 
 async   = require('async')
 
+console.log("loading mathjax-node...")
 mathjax = require('mathjax-node')
 
 # TODO: see
@@ -56,3 +57,5 @@ exports.mathjax = (html, cb) ->
 
     async.map [0...math.length], f, ->
         cb(undefined, replace_math(text, math))
+
+console.log("loaded mathjax.")
