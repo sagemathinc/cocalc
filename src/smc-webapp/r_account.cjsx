@@ -1114,7 +1114,7 @@ OtherSettings = rclass
             checked  = {@props.other_settings.time_ago_absolute}
             ref      = 'time_ago_absolute'
             onChange = {(e)=>@on_change('time_ago_absolute', e.target.checked)}>
-            Display timestamps as absolut points in time – otherwise they are relative to the current time.
+            Display timestamps as absolute points in time – otherwise they are relative to the current time.
         </Checkbox>
 
     render_confirm: ->

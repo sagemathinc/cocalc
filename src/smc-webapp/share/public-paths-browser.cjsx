@@ -4,7 +4,7 @@ Share server top-level landing page.
 
 {rclass, React, ReactDOM, rtypes} = require('../smc-react')
 
-{Space, TimeAgo} = require('../r_misc')
+{Space, TimeAgoElement} = require('../r_misc')
 
 INDEX_STYLE =
     margin     : '15px 30px'
@@ -51,7 +51,7 @@ exports.PublicPathsBrowser = rclass
     render_last_edited: (info) ->
         last_edited = info.get('last_edited')
         <span key='last'   style={display:'inline-block', width:'30%'}>
-            {<TimeAgo date={last_edited} live={false} /> if last_edited?}
+            {<TimeAgoElement date={last_edited} live={false} /> if last_edited?}
         </span>
 
     render_public_path_link: (info, bgcolor) ->
