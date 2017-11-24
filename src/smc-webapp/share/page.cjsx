@@ -94,6 +94,7 @@ exports.Page = rclass
 
     render: ->
         favicon = "#{@props.base_url}/share/favicon-32x32.png"
+        css     = "#{@props.base_url}/share/share.css"
         <html lang="en">
             <head>
                 {@title()}
@@ -109,6 +110,8 @@ exports.Page = rclass
                 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.31.0/codemirror.min.css" />
 
                 <link rel="shortcut icon" href={favicon} type="image/png" />
+
+                <link rel="stylesheet" href={css} />
 
                 {@render_noindex()}
             </head>
