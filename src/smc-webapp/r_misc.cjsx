@@ -20,7 +20,7 @@
 
 async = require('async')
 
-{React, ReactDOM, rclass, rtypes, is_redux, is_redux_actions, redux, Store, Actions} = require('./smc-react')
+{React, ReactDOM, rclass, rtypes, is_redux, is_redux_actions, redux, Store, Actions, Redux} = require('./smc-react')
 {Alert, Button, ButtonToolbar, Checkbox, Col, FormControl, FormGroup, ControlLabel, InputGroup, OverlayTrigger, Popover, Modal, Tooltip, Row, Well} = require('react-bootstrap')
 {HelpEmailLink, SiteName, CompanyName, PricingUrl, PolicyTOSPageUrl, PolicyIndexPageUrl, PolicyPricingPageUrl} = require('./customize')
 {UpgradeRestartWarning} = require('./upgrade_restart_warning')
@@ -520,8 +520,8 @@ timeago_formatter = (value, unit, suffix, date) ->
 
 TimeAgo = require('react-timeago').default
 
-exports.TimeAgo = rclass
-    displayName : 'Misc-TimeAgo'
+exports.TimeAgoElement = rclass
+    displayName : 'Misc-TimeAgoElement'
 
     propTypes :
         popover   : rtypes.bool
@@ -562,6 +562,54 @@ exports.TimeAgo = rclass
         else
             @render_timeago(d)
 
+TimeAgoWrapper = rclass
+    displayName : 'Misc-TimeAgo'
+
+    propTypes :
+        popover   : rtypes.bool
+        placement : rtypes.string
+        tip       : rtypes.string     # optional body of the tip popover with title the original time.
+        live      : rtypes.bool       # whether or not to auto-update
+
+    reduxProps :
+        account :
+            other_settings : rtypes.object
+
+    render: ->
+        if @props.other_settings.time_ago_absolute ? false
+            try
+                s = new Date(@props.date).toLocaleString()
+                <span>{s}</span>
+            catch
+                <span>Invalid Date</span>
+        else
+            <exports.TimeAgoElement
+                date      = {@props.date}
+                popover   = {@props.popover}
+                placement = {@props.placement}
+                tip       = {@props.tip}
+                live      = {@props.live}
+            />
+
+exports.TimeAgo = rclass
+    displayName : 'Misc-TimeAgo-redux'
+
+    propTypes :
+        popover   : rtypes.bool
+        placement : rtypes.string
+        tip       : rtypes.string     # optional body of the tip popover with title the original time.
+        live      : rtypes.bool       # whether or not to auto-update
+
+    render: ->
+        <Redux redux={redux}>
+            <TimeAgoWrapper
+                date      = {@props.date}
+                popover   = {@props.popover}
+                placement = {@props.placement}
+                tip       = {@props.tip}
+                live      = {@props.live}
+            />
+        </Redux>
 
 # Important:
 # widget can be controlled or uncontrolled -- use default_value for an *uncontrolled* widget

@@ -1109,6 +1109,14 @@ OtherSettings = rclass
             Offer to setup the "First Steps" guide (if available).
         </Checkbox>
 
+    render_time_ago_absolute: ->
+        <Checkbox
+            checked  = {@props.other_settings.time_ago_absolute}
+            ref      = 'time_ago_absolute'
+            onChange = {(e)=>@on_change('time_ago_absolute', e.target.checked)}>
+            Display timestamps as absolut points in time – otherwise they are relative to the current time.
+        </Checkbox>
+
     render_confirm: ->
         if not require('./feature').IS_MOBILE
             <Checkbox
@@ -1170,6 +1178,7 @@ OtherSettings = rclass
         <Panel header={<h2> <Icon name='gear' /> Other settings</h2>}>
             {@render_confirm()}
             {@render_first_steps()}
+            {@render_time_ago_absolute()}
             {@render_mask_files()}
             {@render_default_file_sort()}
             {@render_page_size()}
