@@ -111,9 +111,6 @@ class ProjectActions extends Actions
     get_store: =>
         return @redux.getStore(@name)
 
-    get_state: (key) =>
-        return @get_store().get(key)
-
     clear_all_activity: =>
         @setState(activity:undefined)
 
@@ -1199,9 +1196,6 @@ class ProjectActions extends Actions
 
     show_upload : (show) =>
         @setState(show_upload : show)
-
-    toggle_upload: =>
-        @show_upload(not @get_state('show_upload'))
 
     # Compute the absolute path to the file with given name but with the
     # given extension added to the file (e.g., "md") if the file doesn't have

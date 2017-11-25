@@ -249,6 +249,7 @@ schema.accounts =
                     theme                     : "default"
                     undo_depth                : 300
                     jupyter_classic           : false
+                    show_exec_warning         : true
                 other_settings  :
                     confirm_close     : false
                     mask_files        : true
@@ -258,6 +259,7 @@ schema.accounts =
                     show_global_info2 : null
                     first_steps       : true
                     newsletter        : true
+                    time_ago_absolute : false
                 first_name      : ''
                 last_name       : ''
                 terminal        :

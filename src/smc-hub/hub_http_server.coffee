@@ -142,11 +142,8 @@ exports.init_express_http_server = (opts) ->
         res.header('Cache-Control', 'private, no-cache, must-revalidate')
         res.write('''
                   User-agent: *
+                  Allow: /share
                   Disallow: /projects/*
-                  Allow: /*/raw/*.html
-                  Allow: /*/raw/*.md
-                  Allow: /*/raw/*.tex
-                  Allow: /*/raw/*.pdf
                   Disallow: /*/raw/
                   Disallow: /*/port/
                   Disallow: /haproxy
@@ -301,9 +298,9 @@ exports.init_express_http_server = (opts) ->
     router.get '/cookies', (req, res) ->
         if req.query.set
             # TODO: implement expires as part of query?  not needed for now.
-            expires = new Date(new Date().getTime() + 1000*24*3600*30*36) # 3 years -- this is fine now since we support "sign out everywhere"
+            maxAge = 1000*24*3600*30*6  # 6 months -- long is fine now since we support "sign out everywhere" ?
             cookies = new Cookies(req, res)
-            cookies.set(req.query.set, req.query.value, {expires:expires})
+            cookies.set(req.query.set, req.query.value, {maxAge:maxAge})
         res.end()
 
     # Used to determine whether or not a token is needed for
@@ -420,7 +417,8 @@ exports.init_express_http_server = (opts) ->
         # Also, ensure the raw server works
         dev_proxy_raw = (req, res) ->
             # avoid XSS...
-            req.headers['cookie'] = hub_proxy.strip_remember_me_cookies(req.headers['cookie'])
+            req.headers['cookie'] = hub_proxy.strip_remember_me_cookie(req.headers['cookie']).cookie
+
             #winston.debug("cookie=#{req.headers['cookie']}")
             req_url = req.url.slice(opts.base_url.length)
             {key, project_id} = hub_proxy.target_parse_req('', req_url)
@@ -482,6 +480,11 @@ exports.init_express_http_server = (opts) ->
         # this upgrade is never hit, since the main site (that is
         # proxying to this server) is already trying to do something.
         # I don't know if this sort of multi-level proxying is even possible.
+
+    # Enable compression, as
+    # suggested by http://expressjs.com/en/advanced/best-practice-performance.html#use-gzip-compression
+    compression = require('compression')
+    app.use(compression())
 
     http_server = http.createServer(app)
     return {http_server:http_server, express_router:router}

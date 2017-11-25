@@ -1,6 +1,6 @@
 ###
-Simple http server that serves both raw and share together, is used for local development (cc-in-cc),
-and maybe the Docker image someday (?).
+Simple http server that serves both raw and share together, is used for local
+development (cc-in-cc), and also the Docker image.
 ###
 
 express      = require('express')
@@ -29,6 +29,11 @@ exports.init = (opts) ->
     # Create an express application
     router = express.Router()
     app    = express()
+
+    # Enable gzip compression, as suggested by
+    # http://expressjs.com/en/advanced/best-practice-performance.html#use-gzip-compression
+    compression = require('compression')
+    app.use(compression())
 
     router.get '/alive', (req, res) ->
         if not hub_register.database_is_working()

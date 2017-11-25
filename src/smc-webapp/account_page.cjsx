@@ -159,7 +159,7 @@ exports.AccountPage = rclass
             {@render_upgrades() if @props.active_page == 'upgrades'}
         </Tab>
         if @props.kucalc is 'yes'
-            v.push <Tab key='ssh-keys' eventKey="ssh-keys" title={<span><Icon name='key'/> SSH Keys</span>}>
+            v.push <Tab key='ssh-keys' eventKey="ssh-keys" title={<span><Icon name='key'/> SSH keys</span>}>
                 {@render_ssh_keys_page() if @props.active_page == 'ssh-keys'}
             </Tab>
         v.push <Tab key='support' eventKey="support" title={<span><Icon name='medkit'/> Support</span>}>

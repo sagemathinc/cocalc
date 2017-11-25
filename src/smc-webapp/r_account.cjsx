@@ -866,6 +866,7 @@ EDITOR_SETTINGS_CHECKBOXES =
     show_trailing_whitespace  : 'show spaces at ends of lines'
     spaces_instead_of_tabs    : 'send 4 spaces when the tab key is pressed'
     extra_button_bar          : 'more editing functions (mainly in Sage worksheets)'
+    show_exec_warning         : 'warn that certain files are not directly executable'
     jupyter_classic           : <span>use classical Jupyter notebook <a href='https://github.com/sagemathinc/cocalc/wiki/JupyterClassicModern' target='_blank'>(DANGER: this can cause trouble...)</a></span>
 
 EditorSettingsCheckboxes = rclass
@@ -1108,6 +1109,14 @@ OtherSettings = rclass
             Offer to setup the "First Steps" guide (if available).
         </Checkbox>
 
+    render_time_ago_absolute: ->
+        <Checkbox
+            checked  = {@props.other_settings.time_ago_absolute}
+            ref      = 'time_ago_absolute'
+            onChange = {(e)=>@on_change('time_ago_absolute', e.target.checked)}>
+            Display timestamps as absolute points in time – otherwise they are relative to the current time. (This toggle does not yet work yet for some views, including TimeTravel and task lists.)
+        </Checkbox>
+
     render_confirm: ->
         if not require('./feature').IS_MOBILE
             <Checkbox
@@ -1169,6 +1178,7 @@ OtherSettings = rclass
         <Panel header={<h2> <Icon name='gear' /> Other settings</h2>}>
             {@render_confirm()}
             {@render_first_steps()}
+            {@render_time_ago_absolute()}
             {@render_mask_files()}
             {@render_default_file_sort()}
             {@render_page_size()}

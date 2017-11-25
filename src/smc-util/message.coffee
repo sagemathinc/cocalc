@@ -375,6 +375,9 @@ API message2
         token:
             init   : undefined   # only required when token is set.
             desc   : 'account creation token - see src/dev/docker/README.md'
+        get_api_key:
+            init   : undefined
+            desc   : 'if set to anything truth-ish, will create (if needed) and return api key with signed_in message'
     desc           : """
 Examples:
 
@@ -463,6 +466,7 @@ message
     remember_me    : false
     utm            : undefined
     referrer       : undefined
+    get_api_key    : undefined   # same as for create_account
 
 message
     id         : undefined
@@ -494,6 +498,7 @@ message
     last_name      : undefined
     utm            : undefined
     referrer       : undefined
+    api_key        : undefined     # user's api key, if requested in sign_in or create_account messages.
 
 # client --> hub
 message

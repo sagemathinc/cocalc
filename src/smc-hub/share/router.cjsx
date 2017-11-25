@@ -3,7 +3,7 @@ Router for public share server.
 
 """
 
-PAGE_SIZE            = 50
+PAGE_SIZE            = 100
 
 os_path              = require('path')
 
@@ -21,7 +21,6 @@ react_support        = require('./react')
 
 
 react_viewer = (base_url, path, project_id, notranslate, viewer) ->
-    t0 = new Date()
     return (res, component, subtitle) ->
         the_page = <Page
             base_url    = {base_url}
@@ -34,8 +33,8 @@ react_viewer = (base_url, path, project_id, notranslate, viewer) ->
             {component}
 
         </Page>
-        react_support.react(res, the_page)
-        console.log("time to render '#{path}': #{new Date() - t0}ms")
+        extra = {path:path, project_id:project_id}  # just used for log
+        react_support.react(res, the_page, extra)
 
 exports.share_router = (opts) ->
     opts = defaults opts,
@@ -87,6 +86,17 @@ exports.share_router = (opts) ->
     for name in ['favicon-32x32.png', 'cocalc-icon.svg']
         router.use "/#{name}", express.static(os_path.join(process.env.SMC_ROOT, "webapp-lib/#{name}"),
                                     {immutable:true, maxAge:86000000})
+
+    # TODO: serve from static file when/if it gets at all big; or from some refactor
+    # of our existing css.  That said, our aim for the share server is extreme cleanliness
+    # and simplicity, so what we want may be different from cocalc interactive.
+    router.get '/share.css', (req, res) ->
+        res.type("text/css")
+        res.send("""
+.cocalc-jupyter-anchor-link {
+  visibility : hidden
+};
+        """)
 
     router.get '/', (req, res) ->
         if req.originalUrl.split('?')[0].slice(-1) != '/'

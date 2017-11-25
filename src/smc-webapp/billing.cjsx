@@ -630,7 +630,7 @@ PaymentMethods = rclass
     render_header: ->
         <Row>
             <Col sm=6>
-                <Icon name='credit-card' /> Payment Methods
+                <Icon name='credit-card' /> Payment methods
             </Col>
             <Col sm=6>
                 {@render_add_payment_method_button()}
@@ -1233,7 +1233,7 @@ exports.ExplainResources = ExplainResources = rclass
 
     render_dedicated: ->
         <div>
-            <h4>Dedicated Resources</h4>
+            <h4>Dedicated resources</h4>
             You may also rent dedicated computers.
             Projects on such a machine of your choice get full use of the hard disk, CPU and RAM,
             and do <em>not</em> have to compete with other users for resources.
@@ -1745,7 +1745,7 @@ InvoiceHistory = rclass
 
     render_header: ->
         <span>
-            <Icon name="list-alt" /> Invoices and Receipts
+            <Icon name="list-alt" /> Invoices and receipts
         </span>
 
     render_invoices: ->

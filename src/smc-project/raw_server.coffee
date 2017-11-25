@@ -35,6 +35,10 @@ exports.start_raw_server = (opts) ->
     raw_port_file  = misc_node.abspath("#{data_path}/raw.port")
     raw_server     = express()
 
+    # suggested by http://expressjs.com/en/advanced/best-practice-performance.html#use-gzip-compression
+    compression = require('compression')
+    raw_server.use(compression())
+
     # Needed for POST file to custom path.
     raw_server.use(body_parser.urlencoded({ extended: true }))
 

@@ -63,7 +63,7 @@ exports.About = rclass
     render: ->
         <Modal show={@props.about} bsSize="large" onHide={@close} >
             <Modal.Header closeButton>
-                <Modal.Title><Icon name='question-circle'/> About CoCalc Jupyter Notebook</Modal.Title>
+                <Modal.Title><Icon name='question-circle'/> About CoCalc Jupyter notebook</Modal.Title>
             </Modal.Header>
             <Modal.Body>
 

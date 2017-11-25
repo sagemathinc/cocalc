@@ -1667,10 +1667,10 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                 if not CoffeeScript?
                     # DANGER: this is the only async code in process_output_mesg
                     misc_page.load_coffeescript_compiler () =>
-                        sagews_eval(CoffeeScript?.compile(code), @, opts.element, redux)
+                        sagews_eval(CoffeeScript?.compile(code), @, opts.element, undefined, obj, redux)
                 else
                     # DANGER: this is the only async code in process_output_mesg
-                    sagews_eval(CoffeeScript?.compile(code), @, opts.element, redux)
+                    sagews_eval(CoffeeScript?.compile(code), @, opts.element, undefined, obj, redux)
             else
                 # The eval below is an intentional cross-site scripting vulnerability
                 # in the fundamental design of SMC.

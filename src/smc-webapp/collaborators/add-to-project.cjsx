@@ -6,7 +6,7 @@ Add collaborators to a project
 
 {Alert, Button, ButtonToolbar, FormControl, FormGroup, Well, Checkbox} = require('react-bootstrap')
 
-{Icon, LabeledRow, Loading, MarkdownInput, SearchInput} = require('../r_misc')
+{Icon, LabeledRow, Loading, MarkdownInput, SearchInput, ErrorDisplay} = require('../r_misc')
 
 {webapp_client}      = require('../webapp_client')
 

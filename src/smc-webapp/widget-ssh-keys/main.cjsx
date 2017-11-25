@@ -96,7 +96,7 @@ exports.SSHKeyAdder = rclass
             @submit_form()
 
     render_panel: ->
-        <Panel header={<h2> <Icon name='plus-circle' /> Add an SSH Key</h2>} style={@props.style}>
+        <Panel header={<h2> <Icon name='plus-circle' /> Add an SSH key</h2>} style={@props.style}>
             {# TODO: Make a style mapper to the components if necessary}
             <form onSubmit={@submit_form}>
                 <FormGroup>
@@ -248,7 +248,7 @@ exports.SSHKeyList = rclass
 
     render_header: ->
         <h3>
-            <Icon name='list-ul' /> SSH Keys <Space/>
+            <Icon name='list-ul' /> SSH keys <Space/>
             {<HelpIcon title='Using SSH Keys'>
                 {@props.help}
             </HelpIcon> if @props.help?}

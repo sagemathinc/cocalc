@@ -147,14 +147,14 @@ exports.TopButtonbar = rclass ({name}) ->
         <Button
             title   = 'Switch to classical notebook'
             onClick = {=>@props.actions.switch_to_classical_notebook()}>
-            <Icon name='exchange'/> <span className = 'hidden-sm'>Classical Notebook...</span>
+            <Icon name='exchange'/> <span className = 'hidden-sm'>Classical notebook...</span>
         </Button>
 
     render_close_and_halt: ->
         obj =
             name     : 'close and halt'
             disabled : false
-            label    : 'Close and Halt'
+            label    : 'Close and halt'
         return @render_button('close and halt', obj)
 
     render_group_save_timetravel: ->

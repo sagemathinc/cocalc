@@ -30,6 +30,7 @@ exports.create_account = (opts) ->
     id = opts.mesg.id
     locals =
         token  : null
+        mesg1  : null
     account_id = null
     dbg = (m) -> opts.logger?("create_account (#{opts.mesg.email_address}): #{m}")
     tm = misc.walltime()
@@ -139,6 +140,8 @@ exports.create_account = (opts) ->
         (cb) ->
             if not opts.sign_in
                 cb(); return
+            if opts.mesg.get_api_key   # do not set remember me if just signing in to get api key.
+                cb(); return
             dbg("set remember_me cookie...")
             # so that proxy server will allow user to connect and
             # download images, etc., the very first time right after they make a new account.
@@ -147,11 +150,11 @@ exports.create_account = (opts) ->
                 account_id    : account_id
                 cb            : cb
         (cb) ->
-            if not opts.sign_in
+            if not opts.sign_in and not opts.mesg.get_api_key
                 cb(); return
             dbg("send message back to user that they are logged in as the new user (in #{misc.walltime(tm)}seconds)")
             # no utm/referrer info being logged, because it is already done in the create_account entry above.
-            mesg1 = message.signed_in
+            locals.mesg1 = message.signed_in
                 id            : opts.mesg.id
                 account_id    : account_id
                 email_address : opts.mesg.email_address
@@ -159,8 +162,7 @@ exports.create_account = (opts) ->
                 last_name     : opts.mesg.last_name
                 remember_me   : false
                 hub           : opts.host + ':' + opts.port
-            opts.client.signed_in(mesg1)
-            opts.client.push_to_client(mesg1)
+            opts.client.signed_in(locals.mesg1)   # records this creation in database...
             cb()
         (cb) ->
             dbg("email verification?")
@@ -173,14 +175,28 @@ exports.create_account = (opts) ->
                 cb         : (err) ->
                     if err
                         dbg("error during creating welcome email: #{err}")
-
             cb() # we return immediately, because there is no need for the user to wait for this.
+        (cb) ->
+            if not opts.mesg.get_api_key
+                cb(); return
+            dbg("get_api_key -- generate key and include")
+            {api_key_action} = require('./api/manage')
+            api_key_action
+                database   : opts.database
+                account_id : account_id
+                password   : opts.mesg.password
+                action     : 'regenerate'
+                cb       : (err, api_key) =>
+                    locals.mesg1.api_key = api_key
+                    cb(err)
     ], (reason) ->
         if reason
             dbg("send message to user that there was an error (in #{misc.walltime(tm)}seconds) -- #{misc.to_json(reason)}")
             opts.client.push_to_client(message.account_creation_failed(id:id, reason:reason))
             cb?("error creating account -- #{misc.to_json(reason)}")
         else
+            if locals.mesg1
+                opts.client.push_to_client(locals.mesg1)
             opts.client.push_to_client(message.account_created(id:id, account_id:account_id))
             cb?()
     )

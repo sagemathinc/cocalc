@@ -1548,13 +1548,13 @@ initialize_sage_python_r_toolbar = () ->
 
     help_list = ["<i class='fa fa-question-circle'></i> Help", "Sage Worksheet Help",
         [
-            ["SageMath Help"],
+            ["SageMath help"],
             ["Overview", "#sagemathdoc"],
             ["Tutorial", "#sagemathtutorial"],
             ["Reference", "#sagemathreference"],
-            ["Keyboard Shortcuts", "#sagemathkeyboardshortcuts"],
-            ["Common Syntax Problems", "#sagesyntaxerrors"],
-            ["Sage Worksheet Commands"],
+            ["Keyboard shortcuts", "#sagemathkeyboardshortcuts"],
+            ["Common syntax problems", "#sagesyntaxerrors"],
+            ["Sage worksheet commands"],
             ["Worksheets in CoCalc", "#cocalcwiki"],
             ["I have a question about Sage", "#sagequestion"],
             ["General help", "#help"],
@@ -1640,7 +1640,7 @@ initialize_sage_python_r_toolbar = () ->
            [["Construction"],
             ["Dictionary", "#dict"],
             ["List", "#list"],
-            ["List Comprehension", "#list_comprehension"],
+            ["List comprehension", "#list_comprehension"],
             ["Set", "#set"],
             ["Tuple", "#tuple"],
             ["Properties"],
@@ -1695,10 +1695,10 @@ initialize_sage_python_r_toolbar = () ->
 
     sage_calculus = ["Calculus", "Calculus",
                      [["&part; Differentiate", "#differentiate", "Differentiate a function"],
-                      ["&int; Numerical Integral",      "#nintegrate",     "Numerically integrate a function"]
+                      ["&int; Numerical integral",      "#nintegrate",     "Numerically integrate a function"]
                       ["$f(x,y) = \\cdots $ - Symbolic Function",      "#symbolic_function",     "Define a symbolic function"]
-                      ["&int; Symbolic Integral",      "#integrate",     "Integrate a function"],
-                      ["Interact Plots"],
+                      ["&int; Symbolic integral",      "#integrate",     "Integrate a function"],
+                      ["Interact plots"],
                       ["Interactive f(x)", "#interact_fx"]
                     ]]
     sage_linalg = ["Linear", "Linear Algebra",
@@ -1706,7 +1706,7 @@ initialize_sage_python_r_toolbar = () ->
                     ["Matrix $M$",      "#matrix", "Define a matrix"],
                     ["Vector $\\vec v$",  "#vector", "Define a vector"],
                     ["Functions"]
-                    ["Characteristic Polynomial", "#charpoly"]
+                    ["Characteristic polynomial", "#charpoly"]
                     ["Determinant", "#det"]
                     ["Eigenvectors", "#eigen", "Eigenvalues and eigenvectors of matrix"]
                     ["SVD", "#svd", "Singular value decomposition of matrix"]
@@ -1716,72 +1716,72 @@ initialize_sage_python_r_toolbar = () ->
                   ]]
     sage_plotting = ["Plots", "Plotting Graphics",
                      [
-                      ["2D Plotting"],
+                      ["2D plotting"],
                       ["Function", "#plot2d", "Plot f(x)"],
                       ["Line", "#plot_line", "Sequence of line segments"],
                       ["Parametric", "#plot_parametric", "Parematric plot"],
                       ["Points", "#plot_points", "Plot many points"],
                       ["Polygon", "#plot_polygon"],
-                      ["Random Walk", "#plot_random_walk", "A random walk"],
+                      ["Random walk", "#plot_random_walk", "A random walk"],
                       ["Text", "#plot_text", "Draw text"],
-                      ["3D Plotting"],
+                      ["3D plotting"],
                       ["Cube", "#cube", "Show a colored cube"],
                       ["Function", "#plot3d", "Plot f(x, y)"],
                       ["Icosahedron", "#icosahedron"],
-                      ["Implicit Plot", "#implicit_plot3d", "Create an implicit 3D plot"],
-                      ["Parametric Curve", "#parametric_curve3d"],
-                      ["Parametric Surface", "#parametric_surface"],
+                      ["Implicit plot", "#implicit_plot3d", "Create an implicit 3D plot"],
+                      ["Parametric curve", "#parametric_curve3d"],
+                      ["Parametric surface", "#parametric_surface"],
                       ["Polytope", "#polytope"],
-                      ["Random Walk", "#random_walk_3d", "A 3d Random Walk"],
+                      ["Random walk", "#random_walk_3d", "A 3d Random Walk"],
                       ["Tetrahedron", "#tetrahedron"],
                       ["Text", "#plot_text3d", "Draw text"],
                       ["Torus", "#plot_torus"]
                     ]]
-    sage_graphs = ["Graphs", "Graph Theory",
+    sage_graphs = ["Graphs", "Graph theory",
                   [["graphs.&lt;tab&gt;", "#graphs"],
-                   ["Petersen Graph", "#petersen", "Define the Peterson graph"]
-                   ["Random Graph", "#random_graph"]
+                   ["Petersen graph", "#petersen", "Define the Peterson graph"]
+                   ["Random graph", "#random_graph"]
                    ['Invariants'],
-                   ["Automorphism Group", "#auto_group_graph", "Automorphism group of a graph"]
-                   ["Chromatic Number", "#chromatic_number", "Chromatic number of a graph"],
+                   ["Automorphism group", "#auto_group_graph", "Automorphism group of a graph"]
+                   ["Chromatic number", "#chromatic_number", "Chromatic number of a graph"],
                    ['Visualization'],
-                   ["2D Plot", "#graph_2dplot"],
-                   ["3D Plot", "#graph_3dplot"]
+                   ["2D plot", "#graph_2dplot"],
+                   ["3D plot", "#graph_3dplot"]
                   ]]
-    sage_nt = ["Numbers", "Number Theory",
+    sage_nt = ["Numbers", "Number theory",
               [
-               ["Binary Quadratic Form", "#binary_quadform", "Define a binary quadratic form"],
-               ["Continued Fraction", "#contfrac", "Compute a continued fraction"],
-               ["Elliptic Curve", "#ellcurve", "Define an elliptic curve"],
+               ["Binary quadratic form", "#binary_quadform", "Define a binary quadratic form"],
+               ["Continued fraction", "#contfrac", "Compute a continued fraction"],
+               ["Elliptic curve", "#ellcurve", "Define an elliptic curve"],
                ["Factor", "#factor", "Factorization of something"],
                ["Mod $n$", "#mod", "Number modulo n"],
-               ["List Prime Numbers", "#primes", "Enumerate prime numbers"]
-               ["Count Prime Numbers", "#prime_pi", "Count prime numbers"]
+               ["List prime numbers", "#primes", "Enumerate prime numbers"]
+               ["Count prime numbers", "#prime_pi", "Count prime numbers"]
               ]]
 
-    sage_rings = ["Rings", "Rings and Fields",
+    sage_rings = ["Rings", "Rings and fields",
               [
-               ["$\\CC$ - Complex Numbers", "#ring_CC"],
-               ["$\\QQ$ - Rational Numbers", "#ring_QQ"],
-               ["$\\RR$ - Real Numbers", "#ring_RR"],
+               ["$\\CC$ - Complex numbers", "#ring_CC"],
+               ["$\\QQ$ - Rational numbers", "#ring_QQ"],
+               ["$\\RR$ - Real numbers", "#ring_RR"],
                ["$\\ZZ$ - Integers", "#ring_ZZ"],
-               ["Polynomial Rings"],
+               ["Polynomial rings"],
                ["$\\QQ[x, y, z]$", "#ring_QQxyz"],
                ["$\\QQ[x, y]/(y^2-x^3-x)$", "#ring_QQ_quo"],
                ["$\\ZZ[x_2, x_3, \\ldots, x_{97}]$", "#ring_ZZxp"],
-               ["Advanced Rings"],
-               ["$\\mathbb{A}$ - Algebraic Reals", "#ring_AA"],
-               ["$\\CDF$ - Complex Double", "#ring_CDF"],
-               ["$\\CC$ - Complex Interval", "#ring_CIF"],
-               ["$\\CLF$ - Complex Lazy", "#ring_CLF"],
-               ["$\\FF_p$ - Prime Finite Field", "#ring_FF_p"],
-               ["$\\FF_{p^r}$ - Finite Field", "#ring_FF_pr"],
-               ["$\\overline{\\QQ}$ - Algebraic Closure", "#ring_QQbar"],
-               ["$\\QQ_p$ - $p$-adic Numbers", "#ring_QQp"],
-               ["$\\RDF$ - Real Double", "#ring_RDF"],
-               ["$\\RR$ - Real Interval", "#ring_RIF"],
-               ["$\\RLF$ - Real Lazy", "#ring_RLF"],
-               ["$\\ZZ_p$ - $p$-adic Integers", "#ring_ZZp"],
+               ["Advanced rings"],
+               ["$\\mathbb{A}$ - Algebraic reals", "#ring_AA"],
+               ["$\\CDF$ - Complex double", "#ring_CDF"],
+               ["$\\CC$ - Complex interval", "#ring_CIF"],
+               ["$\\CLF$ - Complex lazy", "#ring_CLF"],
+               ["$\\FF_p$ - Prime finite field", "#ring_FF_p"],
+               ["$\\FF_{p^r}$ - finite field", "#ring_FF_pr"],
+               ["$\\overline{\\QQ}$ - Algebraic closure", "#ring_QQbar"],
+               ["$\\QQ_p$ - $p$-adic numbers", "#ring_QQp"],
+               ["$\\RDF$ - Real double", "#ring_RDF"],
+               ["$\\RR$ - Real interval", "#ring_RIF"],
+               ["$\\RLF$ - Real lazy", "#ring_RLF"],
+               ["$\\ZZ_p$ - $p$-adic integers", "#ring_ZZp"],
               ]]
 
     add_icon(sagebar, "$x$", "#var", "Define a symbolic variable", true)
@@ -1802,7 +1802,7 @@ initialize_sage_python_r_toolbar = () ->
     add_icon(r_basic, "$\\vec v$", "#vector", "Insert a vector")
 
     r_control = make_bar()
-    r_control_entries = ["Control", "Control Structures",
+    r_control_entries = ["Control", "Control structures",
                         [
                             ["Assignment", "#assign", "Give an object a (variable)name"],
                             ["For-Loop", "#forloop", "Insert a for loop"],
@@ -1817,19 +1817,19 @@ initialize_sage_python_r_toolbar = () ->
                         ["List, indexed", "#list1"],
                         ["List, associative", "#list2"],
                         ["Array selection", "#arrayselect"]
-                        ["Data Frame", "#dataframe"],
+                        ["Data frame", "#dataframe"],
                         ["Attach", "#attach"]
                      ]]
 
     r_funcs = make_bar()
     r_funcs_entries = ["Functions", "Some selected functions",
                        [
-                        ["Sequence Simple", "#seq"]
-                        ["Sequence Stepsize", "#seq_by"],
-                        ["Sequence Length", "#seq_length"],
+                        ["Sequence simple", "#seq"]
+                        ["Sequence stepsize", "#seq_by"],
+                        ["Sequence length", "#seq_length"],
                         ["Repetitions (times)", "rep1"],
                         ["Repetitions (each)", "rep2"],
-                        ["Character Vector", "#charvec"],
+                        ["Character vector", "#charvec"],
                         ["Matrix array", "#matrix"],
                         ["Matrix multipliation", "#matrixmult"]
                         ["Outer product", "#outer"],
@@ -1839,25 +1839,25 @@ initialize_sage_python_r_toolbar = () ->
                       ]]
 
     r_stats = make_bar()
-    r_stats_entries = ["Stats", "Basic Statistical Functions",
+    r_stats_entries = ["Stats", "Basic statistical functions",
                       [
                         ["Statistical summary", "#summary"],
                         ["Mean", "#mean"],
-                        ["Normal Distribution", "#normal"],
-                        ["Linear Model", "#lm"],
-                        ["Nonlinear Model", "#nlm"]
+                        ["Normal distribution", "#normal"],
+                        ["Linear model", "#lm"],
+                        ["Nonlinear model", "#nlm"]
                       ]]
     add_menu(r_stats, r_stats_entries)
 
     r_plot = make_bar()
-    r_plot_entries = ["Plots", "Basic Plots",
+    r_plot_entries = ["Plots", "Basic plots",
                      [
                         ["Plot x/y pairs", "#plot"],
-                        ["Stem Plot", "#stem"],
+                        ["Stem plot", "#stem"],
                         ["Histogram + Density + Rug", "#histdensity"],
                         ["QQ-Plot", "#qqplot", "Quantile-quantile plot"],
                         ["Boxplot", "#boxplot"],
-                        ["Contour Plot", "#contour"]
+                        ["Contour plot", "#contour"]
                         ["Change default plot size", "#defaultsize"]
                      ]]
     add_menu(r_plot, r_plot_entries)
@@ -1874,7 +1874,7 @@ initialize_sage_python_r_toolbar = () ->
     add_icon(julia_basic, "<i class='fa'>#</i>", "#comment", "Comment selected text")
 
     julia_control = make_bar()
-    julia_control_entries = ["Control", "Control Structures",
+    julia_control_entries = ["Control", "Control structures",
                         [
                             ["Assignment", "#assign", "Give an object a (variable)name"],
                             ["For-Loop", "#forloop", "Insert a for loop"],

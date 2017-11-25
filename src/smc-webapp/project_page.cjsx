@@ -186,33 +186,59 @@ FreeProjectWarning = rclass ({name}) ->
             free_warning_extra_shown : rtypes.bool
             free_warning_closed      : rtypes.bool
             free_compute_slowdown    : rtypes.number
+            project_log              : rtypes.immutable
 
     propTypes:
         project_id : rtypes.string
 
     shouldComponentUpdate: (nextProps) ->
-        return @props.free_warning_extra_shown != nextProps.free_warning_extra_shown or
-            @props.free_warning_closed != nextProps.free_warning_closed or
-            @props.free_compute_slowdown != nextProps.free_compute_slowdown or
-            @props.project_map?.get(@props.project_id)?.get('users') != nextProps.project_map?.get(@props.project_id)?.get('users')
+        return @props.free_warning_extra_shown != nextProps.free_warning_extra_shown or  \
+            @props.free_warning_closed != nextProps.free_warning_closed or   \
+            @props.free_compute_slowdown != nextProps.free_compute_slowdown or  \
+            @props.project_map?.get(@props.project_id)?.get('users') != nextProps.project_map?.get(@props.project_id)?.get('users') or \
+            not @props.project_log?
 
     extra: (host, internet) ->
         {PolicyPricingPageUrl} = require('./customize')
         if not @props.free_warning_extra_shown
             return null
         <div>
-            {<span>This project runs on a heavily loaded randomly rebooted free server that may be unavailable during peak hours. Please upgrade your project to run on a members-only server for more reliability and faster code execution.</span> if host}
+            {<span>This project runs on a heavily loaded server that may be unavailable during peak hours and is rebooted at least once a day.
+            <br/> Upgrade your project to run on a members-only server for more reliability and faster code execution.</span> if host}
 
-            {<span>This project does not have external network access, so you cannot use internet resources directly from this project; in particular, you cannot install software from the internet, download from sites like GitHub, or download data from public data portals.</span> if internet}
+            {<span><br/> This project does not have external network access, so you cannot install software or download data from external websites.</span> if internet}
             <ul>
-                <li>Learn about <a href="#{PolicyPricingPageUrl}" target='_blank'>Pricing and Subscriptions</a></li>
-                <li>Read the billing <a href="#{PolicyPricingPageUrl}#faq" target='_blank'>Frequently Asked Questions</a></li>
-                <li>Visit <a onClick={=>@actions('page').set_active_tab('account');@actions('account').set_active_tab('billing')}>Billing</a> to <em>subscribe</em> to a plan</li>
-                <li>Upgrade <em>this</em> project in <a onClick={=>@actions(project_id: @props.project_id).set_active_tab('settings')}>Project Settings</a></li>
+                <li style={lineHeight: '32px'}>Upgrade <em>this</em> project in <a style={cursor:'pointer'} onClick={=>@actions(project_id: @props.project_id).set_active_tab('settings')}>Project Settings</a></li>
+                <li style={lineHeight: '32px'}>Visit <a style={cursor:'pointer'} onClick={=>@actions('page').set_active_tab('account');@actions('account').set_active_tab('billing')}>Billing</a> to <em>subscribe</em> to a plan</li>
             </ul>
         </div>
 
+    render_dismiss: ->
+        return  # disabled
+        dismiss_styles =
+            cursor     : 'pointer'
+            display    : 'inline-block'
+            float      : 'right'
+            fontWeight : 700
+            top        : -4
+            fontSize   : "13pt"
+            color      : 'grey'
+            position   : 'relative'
+            height     : 0
+        <a style={dismiss_styles} onClick={@actions(project_id: @props.project_id).close_free_warning}>×</a>
+
+    render_learn_more: ->
+        <a
+            href   = "https://github.com/sagemathinc/cocalc/wiki/FreeServerMessage"
+            target = "_blank"
+            style  = {fontWeight : 'bold', color:'white', cursor:'pointer'}>
+            learn more...
+        </a>
+        #<a onClick={=>@actions(project_id: @props.project_id).show_extra_free_warning()} style={color:'white', cursor:'pointer'}> learn more...</a>
+
     render: ->
+        if not @props.project_log?
+            return null
         if not require('./customize').commercial
             return null
         if @props.free_warning_closed
@@ -227,33 +253,30 @@ FreeProjectWarning = rclass ({name}) ->
         internet = not quotas.network
         if not host and not internet
             return null
+
+        font_size = Math.min(18, 12 + Math.round((@props.project_log?.size ? 0) / 30))
         styles =
             padding      : 3
             paddingLeft  : 7
             paddingRight : 7
             marginBottom : 0
-            fontSize     : '13pt'
-        dismiss_styles =
-            cursor     : 'pointer'
-            display    : 'inline-block'
-            float      : 'right'
-            fontWeight : 700
-            top        : -4
-            fontSize   : '18pt'
-            color      : 'grey'
-            position   : 'relative'
-            height     : 0
+            fontSize     : "#{font_size}pt"
+            color        : 'white'
+            background   : 'red'
 
+        ###
         if @props.free_compute_slowdown? and @props.free_compute_slowdown > 0.0
             pct = Math.round(@props.free_compute_slowdown)
-            slowdown = <span>and computations in this project could run up to <b>{pct}% faster after upgrading</b> to member server hosting.</span>
+            slowdown = <span>This project could run up to <b>{pct}% faster after upgrading</b> to member server hosting.</span>
         else
             slowdown = ''
+        ###
 
-        <Alert bsStyle='warning' style={styles}>
-            <Icon name='exclamation-triangle' /> WARNING: This project runs {<span>on a <b>free server</b></span> if host} {<span>without <b>internet access</b></span> if internet} {slowdown if host} &mdash;
-            <a onClick={=>@actions(project_id: @props.project_id).show_extra_free_warning()} style={cursor:'pointer'}> learn more...</a>
-            <a style={dismiss_styles} onClick={@actions(project_id: @props.project_id).close_free_warning}>×</a>
+        <Alert bsStyle='danger' style={styles}>
+            <Icon name='exclamation-triangle' style={float:'right', marginTop: '3px'}/>
+            <Icon name='exclamation-triangle' /> Upgrade this project, since it is {<span>on a <b>free server</b></span> if host} {<span>without <b>internet access</b></span> if internet}. &mdash;
+            {@render_learn_more()}
+            {@render_dismiss()}
             {@extra(host, internet)}
         </Alert>
 
@@ -392,20 +415,20 @@ ProjectContentViewer = rclass
                     style = {position: 'absolute', height:'100%', width:'100%', display:'flex'}
                     ref   = 'editor_container'
                     >
-                    <div style={flex:1, border:'1px solid lightgrey', borderRadius:'4px', overflow:'hidden', height:'100%', width:'100%'}>
+                    <div style={flex:1, overflow:'hidden', height:'100%', width:'100%'}>
                         {editor}
                     </div>
                     {@render_drag_bar(@props.file_path)}
                     <div
                         ref = 'side_chat_container'
-                        style={flexBasis:"#{chat_width*100}%", border:'1px solid grey', borderRadius:'4px', position:'relative'}>
+                        style={flexBasis:"#{chat_width*100}%", border:'1px solid lightgrey', position:'relative'}>
                         {@render_side_chat(@props.file_path)}
                     </div>
                 </div>
         else
             # just the editor
             content =\
-                <div style={position: 'absolute', height:'100%', width:'100%', border:'1px solid lightgrey', borderRadius:'4px'}>
+                <div style={position: 'absolute', height:'100%', width:'100%', border:'1px solid lightgrey'}>
                     {editor}
                 </div>
 

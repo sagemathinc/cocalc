@@ -298,7 +298,10 @@ FileRow = rclass
             log : true
 
     render_timestamp: ->
-        <TimeAgo date={(new Date(@props.time * 1000)).toISOString()} style={color:'#666'}/>
+        try
+            <TimeAgo date={(new Date(@props.time * 1000)).toISOString()} style={color:'#666'}/>
+        catch
+            <div style={color:'#666', display:'inline'}>Invalid Date Time</div>
 
     render_download_button: (url_href) ->
         <Button style   = {marginLeft: '1em', background:'transparent'}
@@ -412,7 +415,11 @@ DirectoryRow = rclass
 
     render_time: ->
         if @props.time?
-            <TimeAgo date={(new Date(@props.time * 1000)).toISOString()} style={color:'#666'} />
+            try
+                <TimeAgo date={(new Date(@props.time * 1000)).toISOString()} style={color:'#666'} />
+            catch
+                <div style={color:'#666', display:'inline'}>Invalid Date Time</div>
+
 
     render_name_link: ->
         if (@props.display_name and @props.display_name isnt @props.name) or @props.name.length > 50
@@ -640,7 +647,7 @@ NoFiles = rclass
             </Col>
             <Col sm=8>
                 <span style={fontSize:'20px'}>
-                    No Files Found
+                    No files found
                 </span>
                 <hr/>
                 {@render_create_button() if not @props.public_view}
