@@ -1521,6 +1521,16 @@ ProjectFilesActionBox = rclass
             </a>
         </pre>
 
+    render_share_defn: ->
+        <div style={color:'#555'}>
+            You may share a file or directory publicly.  That file, or any files in that directory, will then
+            be <a href="https://cocalc.com/share" target="_blank"><b><i>visible to anybody.</i></b></a>
+
+            <br/>
+            Do not share content that you do not want to be publicly visible.
+            Also, you can easily stop sharing a file or directory at any time, and it will then no longer be visible.
+        </div>
+
     render_share: ->
         # currently only works for a single selected file
         single_file = @props.checked_files.first()
@@ -1534,12 +1544,17 @@ ProjectFilesActionBox = rclass
         show_social_media = require('./customize').commercial and single_file_data.is_public
         <div>
             <Row>
+                <Col sm=8 style={color:'#666', fontSize:'12pt'}>
+                    {@render_share_defn()}
+                </Col>
+            </Row>
+            <Row>
                 <Col sm=4 style={color:'#666'}>
-                    <h4>Share publicly</h4>
+                    <h4>Share this publicly</h4>
                     {@render_selected_files_list()}
                 </Col>
                 <Col sm=4 style={color:'#666'}>
-                    <h4>Description of share (optional)</h4>
+                    <h4>Description</h4>
                     <FormGroup>
                         <FormControl
                             autoFocus     = {true}
