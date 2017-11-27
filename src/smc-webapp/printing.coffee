@@ -512,6 +512,7 @@ class SagewsPrinter extends Printer
                             _
                         when MARKERS.output
                             # assume, all cells are evaluated and hence mark.rendered contains the html
+                            output_msgs = []
                             for mesg_ser in mark.rendered.split(MARKERS.output)
                                 if mesg_ser.length == 0
                                     continue
@@ -521,14 +522,23 @@ class SagewsPrinter extends Printer
                                     console.warn("invalid output message '#{m}' in line '#{line}'")
                                     continue
 
+                                if DEBUG then console.log 'sagews2html: output message', mesg
                                 if mesg.stdout?
                                     mesg_stdout.stdout += mesg.stdout
                                 else
-                                    process_collected_mesg_stdout()
-                                    # process the non-stdout mesg from this iteration
-                                    # console.log 'output message', mesg, mark
-                                    om = @html_process_output_mesg(mesg, mark)
-                                    _html.push(om) if om?
+                                    # add non-stdout mesg from this iteration
+                                    if mesg.clear
+                                        mesg_stdout = {stdout : ''}
+                                        output_msgs = []
+                                    else if mesg.delete_last
+                                        output_msgs.pop()
+                                    else
+                                        output_msgs.push(mesg)
+                                    #process_collected_mesg_stdout()
+                            # after for-loop over rendered output cells
+                            for mesg in output_msgs
+                                om = @html_process_output_mesg(mesg, mark)
+                                _html.push(om) if om?
 
                 process_collected_mesg_stdout()
                 line++
