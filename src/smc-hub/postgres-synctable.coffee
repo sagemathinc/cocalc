@@ -806,13 +806,16 @@ class SyncTable extends EventEmitter
             if err
                 cb?(err)
                 return
-            dbg("notify about anything that changed when we were disconnected")
-            before.map (v, k) =>
-                if not v.equals(@_value.get(k))
-                    @emit('change', k)
-            @_value.map (v, k) =>
-                if not before.has(k)
-                    @emit('change', k)
+            if @_value? and before?
+                # It's highly unlikely that before or @_value would not be defined, but it could happen (see #2527)
+                dbg("notify about anything that changed when we were disconnected")
+                before.map (v, k) =>
+                    if not v.equals(@_value.get(k))
+                        @emit('change', k)
+                @_value.map (v, k) =>
+                    if not before.has(k)
+                        @emit('change', k)
+            cb?()
 
     _process_results: (rows) =>
         if @_state == 'closed'
