@@ -340,7 +340,7 @@ passport_login = (opts) ->
             )
 
         (cb) ->
-            if locals.has_valid_remember_me or locals.get_api_key
+            if locals.has_valid_remember_me
                 cb()
                 return
 
