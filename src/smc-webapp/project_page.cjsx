@@ -227,12 +227,12 @@ FreeProjectWarning = rclass ({name}) ->
             height     : 0
         <a style={dismiss_styles} onClick={@actions(project_id: @props.project_id).close_free_warning}>×</a>
 
-    render_learn_more: ->
+    render_learn_more: (color) ->
         <a
             href   = "https://github.com/sagemathinc/cocalc/wiki/FreeServerMessage"
             target = "_blank"
-            style  = {fontWeight : 'bold', color:'white', cursor:'pointer'}>
-            learn more...
+            style  = {fontWeight : 'bold', color:color, cursor:'pointer'}>
+            <Space/> &mdash; learn more... <Space/>
         </a>
         #<a onClick={=>@actions(project_id: @props.project_id).show_extra_free_warning()} style={color:'white', cursor:'pointer'}> learn more...</a>
 
@@ -254,15 +254,17 @@ FreeProjectWarning = rclass ({name}) ->
         if not host and not internet
             return null
 
-        font_size = Math.min(18, 12 + Math.round((@props.project_log?.size ? 0) / 30))
+        font_size = Math.min(18, 12 + Math.round((@props.project_log?.size ? 0) / 60))
         styles =
             padding      : 3
             paddingLeft  : 7
             paddingRight : 7
             marginBottom : 0
             fontSize     : "#{font_size}pt"
-            color        : 'white'
-            background   : 'red'
+
+        if font_size > 14 # only get obnoxious after a while...
+            styles.color      = 'white'
+            styles.background = 'red'
 
         ###
         if @props.free_compute_slowdown? and @props.free_compute_slowdown > 0.0
@@ -272,10 +274,10 @@ FreeProjectWarning = rclass ({name}) ->
             slowdown = ''
         ###
 
-        <Alert bsStyle='danger' style={styles}>
+        <Alert bsStyle='warning' style={styles}>
             <Icon name='exclamation-triangle' style={float:'right', marginTop: '3px'}/>
-            <Icon name='exclamation-triangle' /> Upgrade this project, since it is {<span>on a <b>free server</b></span> if host} {<span>without <b>internet access</b></span> if internet}. &mdash;
-            {@render_learn_more()}
+            <Icon name='exclamation-triangle' /> Upgrade this project, since it is {<span>on a <b>free server</b></span> if host} {<span>without <b>network access</b></span> if internet}.
+            {@render_learn_more(styles.color)}
             {@render_dismiss()}
             {@extra(host, internet)}
         </Alert>

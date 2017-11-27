@@ -305,7 +305,6 @@ redux.createTable('account', AccountTable)
 webapp_client.on 'signed_in', (mesg) ->
     if mesg?.api_key
         window.location.href = "https://authenticated?api_key=#{mesg.api_key}"
-        return
     redux.getActions('account').set_user_type('signed_in')
 
 webapp_client.on 'signed_out', ->
