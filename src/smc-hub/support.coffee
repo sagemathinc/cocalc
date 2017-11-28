@@ -28,6 +28,8 @@ winston.remove(winston.transports.Console)
 SMC_TEST = process.env.SMC_TEST
 if not SMC_TEST
     winston.add(winston.transports.Console, {level: 'debug', timestamp:true, colorize:true})
+{WinstonMetrics} = require('./winston-metrics')
+winston.add(WinstonMetrics, {name: 'support'})
 
 zendesk_password_filename = ->
     return (process.env.SMC_ROOT ? '.') + '/data/secrets/zendesk'

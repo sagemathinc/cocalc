@@ -33,6 +33,8 @@ winston      = require('winston') # logging -- https://github.com/flatiron/winst
 
 winston.remove(winston.transports.Console)
 winston.add(winston.transports.Console, {level: 'debug', timestamp:true, colorize:true})
+{WinstonMetrics} = require('./winston-metrics')
+winston.add(WinstonMetrics, {name: 'email'})
 
 # sendgrid API: https://sendgrid.com/docs/API_Reference/Web_API/mail.html
 sendgrid     = require("sendgrid")

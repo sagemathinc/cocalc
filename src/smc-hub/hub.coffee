@@ -104,6 +104,8 @@ winston = require('winston')            # logging -- https://github.com/flatiron
 winston.remove(winston.transports.Console)
 if not process.env.SMC_TEST
     winston.add(winston.transports.Console, {level: 'debug', timestamp:true, colorize:true})
+{WinstonMetrics} = require('./winston-metrics')
+winston.add(WinstonMetrics, {name: 'hub'})
 
 # module scope variables:
 database           = null
