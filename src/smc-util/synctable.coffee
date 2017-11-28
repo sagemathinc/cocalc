@@ -309,11 +309,13 @@ class SyncTable extends EventEmitter
             cb      : (err, resp) =>
                 if err
                     cb?(err)
+                    cb = undefined
                     return
 
                 if @_state == 'closed'
                     # already closed so ignore anything else.
                     cb?('closed')
+                    cb = undefined
                     return
 
                 if first_resp
@@ -321,12 +323,16 @@ class SyncTable extends EventEmitter
                     first_resp = false
                     if @_state == 'closed'
                         cb?("closed")
+                        cb = undefined
                     else if resp?.event == 'query_cancel'
                         cb?("query-cancel")
+                        cb = undefined
                     else if err
                         cb?(err)
+                        cb = undefined
                     else if not resp?.query?[@_table]?
                         cb?("got no data")
+                        cb = undefined
                     else
                         # Successfully completed query
                         this_query_id = @_id = resp.id
@@ -334,9 +340,10 @@ class SyncTable extends EventEmitter
                         @_update_all(resp.query[@_table])
                         @emit("connected", resp.query[@_table])  # ready to use!
                         cb?()
+                        cb = undefined
                         # Do any pending saves
-                        for cb in @_connected_save_cbs ? []
-                            @save(cb)
+                        for cb0 in @_connected_save_cbs ? []
+                            @save(cb0)
                         delete @_connected_save_cbs
                 else
                     if @_state != 'connected'
