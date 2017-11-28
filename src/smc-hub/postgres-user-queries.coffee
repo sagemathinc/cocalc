@@ -1016,12 +1016,7 @@ class exports.PostgreSQL extends PostgreSQL
                                     subs[value] = user_query.project_id
                                     cb()
                                 else
-                                    f = ->
-                                        cb("FATAL: you do not have read access to this project")
-                                    # A basic anti-DOS measure, e.g,. against clients that have
-                                    # signed out and are still sitting their querying, or whatever.
-                                    # Obviously, this is inspired by something in the logs.
-                                    setTimeout(f, 1000)
+                                    cb("FATAL: you do not have read access to this project")
                 when 'project_id-public'
                     if not user_query.project_id?
                         cb("FATAL: must specify project_id")
