@@ -539,14 +539,24 @@ exports.TimeAgoElement = rclass
         # Also, given our custom formatter, anything more frequent than about 45s is pointless (since we don't show seconds)
         time_ago_absolute : false
 
+    click: (evt) ->
+        evt.stopPropagation()
+        redux.getTable('account').set(other_settings:{time_ago_absolute:not @props.time_ago_absolute})
+
+    style: (style) ->
+        style = misc.merge(style ? {}, @props.style ? {})
+        style.cursor = 'pointer'
+        return style
+
     render_timeago_element: (d) ->
         <TimeAgo
             title     = ''
             date      = {d}
-            style     = {@props.style}
+            style     = {@style()}
             formatter = {timeago_formatter}
             minPeriod = {@props.minPeriod}
             live      = {@props.live ? true}
+            onClick   = {@click}
         />
 
     render_timeago: (d) ->
@@ -559,7 +569,9 @@ exports.TimeAgoElement = rclass
             @render_timeago_element(d)
 
     render_absolute: (d) ->
-        <span style={color: '#666'}>{d.toLocaleString()}</span>
+        <span onClick={@click} style={@style()}>
+            {d.toLocaleString()}
+        </span>
 
     render: ->
         d = if misc.is_date(@props.date) then @props.date else new Date(@props.date)
