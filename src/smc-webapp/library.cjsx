@@ -84,8 +84,8 @@ exports.Library = rclass ({name}) ->
         if docs?
             # sort by a triplet
             sortfn = (doc) -> [
-                meta.category_sortweight[doc.category] ? 0
-                meta.categories[doc.category].toLowerCase()
+                meta.categories[doc.category].weight ? 0
+                meta.categories[doc.category].name.toLowerCase()
                 doc.title?.toLowerCase() ? doc.id
             ]
             sdocs  = _.sortBy(docs, sortfn)
@@ -166,9 +166,10 @@ exports.Library = rclass ({name}) ->
         cur_cat = undefined
 
         @state.sorted_docs.map (doc) =>
+            #new category? insert a header into the list ...
             if doc.category isnt cur_cat
                 cur_cat         = doc.category
-                cur_cat_title   = @state.metadata.categories[cur_cat]
+                cur_cat_title   = @state.metadata.categories[cur_cat].name
                 list.push(<li className="list-group-header" key={"header-#{cur_cat}"}>{cur_cat_title}</li>)
 
             list.push(
@@ -205,11 +206,12 @@ exports.Library = rclass ({name}) ->
             path       : @props.library_selected.thumbnail
 
         img_style =
-            display   : if @state.show_thumb then 'block' else 'none'
-            maxHeight : '100%'
-            maxWidth  : '100%'
-            border    : "1px solid #{COLORS.GRAY_LL}"
-            boxShadow : "3px 3px 1px #{COLORS.GRAY_LLL}"
+            display       : if @state.show_thumb then 'block' else 'none'
+            maxHeight     : '100%'
+            maxWidth      : '100%'
+            border        : "1px solid #{COLORS.GRAY_L}"
+            boxShadow     : "2px 2px 1px #{COLORS.GRAY_LL}"
+            borderRadius  : '5px'
 
         return <img src={img_path} style={img_style} onLoad={=> @setState(show_thumb:true)} />
 
@@ -225,6 +227,8 @@ exports.Library = rclass ({name}) ->
         style =
             maxHeight  : HEIGHT
             overflow   : 'auto'
+
+        category_extra_info = @state.metadata.categories[doc.category].info
 
         <div style={style}>
             <h5 style={marginTop: '0px'}>
@@ -248,7 +252,7 @@ exports.Library = rclass ({name}) ->
             {<p>License: {meta.licenses[doc.license] ? doc.license}</p> if doc.license?}
             {
                 if doc.tags?
-                    tags = ((meta.tags[t] ? t) for t in doc.tags)
+                    tags = ((meta.tags[t].name ? t) for t in doc.tags)
                     <p>Tags: {tags.join(', ')}</p>
             }
             <Button
@@ -264,6 +268,7 @@ exports.Library = rclass ({name}) ->
                 }
             </Button>
             {#<p style={color: '#666'}>copies <code>{@props.library_selected.src}</code> into <code>{@target_path()}</code></p>}
+            {<p style={color: COLORS.GRAY_L}>{category_extra_info}</p> if category_extra_info}
         </div>
 
     render: ->
