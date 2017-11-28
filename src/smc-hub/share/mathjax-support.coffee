@@ -8,8 +8,24 @@ async   = require('async')
 console.log("loading mathjax-node...")
 mathjax = require('mathjax-node')
 
-# TODO: see
-# mathjax.config(...)
+# Deriving MyMathJaxConfig from the webapp's MathJaxConfig
+# It's the same, execpt for the entries that reference additional .js files
+# Otherwise the rendered page wouldn't even show up, so I assume there is no support for that
+{MathJaxConfig} = require('smc-util/mathjax-config')
+MathJaxConfig = require('smc-util/misc').deep_copy(MathJaxConfig)
+delete MathJaxConfig.TeX.extensions
+
+MyMathJaxConfig =
+    tex2jax     : MathJaxConfig.tex2jax
+    #extensions  : MathJaxConfig.extensions   # commented on purpose, see above
+    TeX         : MathJaxConfig.TeX
+    "HTML-CSS"  : MathJaxConfig["HTML-CSS"]
+    SVG         : MathJaxConfig.SVG
+
+mathjax.config(
+    displayErrors: false
+    MathJax: MyMathJaxConfig
+)
 
 {remove_math} = require('smc-util/mathjax-utils')
 
@@ -33,8 +49,8 @@ replace_scripts = (html) ->
 
 exports.mathjax = (html, cb) ->
     html = replace_scripts(html)
-    [text, math] = remove_math(html)
 
+    [text, math] = remove_math(html)
     f = (i, cb) ->
         s = math[i]
         display = false

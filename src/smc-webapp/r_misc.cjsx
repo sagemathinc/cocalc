@@ -20,7 +20,7 @@
 
 async = require('async')
 
-{React, ReactDOM, rclass, rtypes, is_redux, is_redux_actions, redux, Store, Actions} = require('./smc-react')
+{React, ReactDOM, rclass, rtypes, is_redux, is_redux_actions, redux, Store, Actions, Redux} = require('./smc-react')
 {Alert, Button, ButtonToolbar, Checkbox, Col, FormControl, FormGroup, ControlLabel, InputGroup, OverlayTrigger, Popover, Modal, Tooltip, Row, Well} = require('react-bootstrap')
 {HelpEmailLink, SiteName, CompanyName, PricingUrl, PolicyTOSPageUrl, PolicyIndexPageUrl, PolicyPricingPageUrl} = require('./customize')
 {UpgradeRestartWarning} = require('./upgrade_restart_warning')
@@ -520,14 +520,16 @@ timeago_formatter = (value, unit, suffix, date) ->
 
 TimeAgo = require('react-timeago').default
 
-exports.TimeAgo = rclass
-    displayName : 'Misc-TimeAgo'
+# this "element" can also be used without being connected to a redux store - e.g. for the "shared" statically rendered pages
+exports.TimeAgoElement = rclass
+    displayName : 'Misc-TimeAgoElement'
 
     propTypes :
-        popover   : rtypes.bool
-        placement : rtypes.string
-        tip       : rtypes.string     # optional body of the tip popover with title the original time.
-        live      : rtypes.bool       # whether or not to auto-update
+        popover           : rtypes.bool
+        placement         : rtypes.string
+        tip               : rtypes.string     # optional body of the tip popover with title the original time.
+        live              : rtypes.bool       # whether or not to auto-update
+        time_ago_absolute : rtypes.bool
 
     getDefaultProps: ->
         popover   : true
@@ -535,8 +537,9 @@ exports.TimeAgo = rclass
         placement : 'top'
         # critical to use minPeriod>>1000, or things will get really slow in the client!!
         # Also, given our custom formatter, anything more frequent than about 45s is pointless (since we don't show seconds)
+        time_ago_absolute : false
 
-    render_timeago: (d) ->
+    render_timeago_element: (d) ->
         <TimeAgo
             title     = ''
             date      = {d}
@@ -544,7 +547,19 @@ exports.TimeAgo = rclass
             formatter = {timeago_formatter}
             minPeriod = {@props.minPeriod}
             live      = {@props.live ? true}
-            />
+        />
+
+    render_timeago: (d) ->
+        if @props.popover
+            s = d.toLocaleString()
+            <Tip title={s} tip={@props.tip} id={s} placement={@props.placement}>
+                {@render_timeago_element(d)}
+            </Tip>
+        else
+            @render_timeago_element(d)
+
+    render_absolute: (d) ->
+        <span style={color: '#666'}>{d.toLocaleString()}</span>
 
     render: ->
         d = if misc.is_date(@props.date) then @props.date else new Date(@props.date)
@@ -553,15 +568,56 @@ exports.TimeAgo = rclass
         catch
             # NOTE: Using isNaN might not work on all browsers, so we use try/except
             # See https://github.com/sagemathinc/cocalc/issues/2069
-            return <div>Invalid Date</div>
-        if @props.popover
-            s = d.toLocaleString()
-            <Tip title={s} tip={@props.tip} id={s} placement={@props.placement}>
-                {@render_timeago(d)}
-            </Tip>
+            return <span>Invalid Date</span>
+
+        if @props.time_ago_absolute
+            @render_absolute(d)
         else
             @render_timeago(d)
 
+TimeAgoWrapper = rclass
+    displayName : 'Misc-TimeAgoWrapper'
+
+    propTypes :
+        popover   : rtypes.bool
+        placement : rtypes.string
+        tip       : rtypes.string     # optional body of the tip popover with title the original time.
+        live      : rtypes.bool       # whether or not to auto-update
+
+    reduxProps :
+        account :
+            other_settings : rtypes.object
+
+    render: ->
+        <exports.TimeAgoElement
+            date              = {@props.date}
+            popover           = {@props.popover}
+            placement         = {@props.placement}
+            tip               = {@props.tip}
+            live              = {@props.live}
+            time_ago_absolute = {@props.other_settings?.time_ago_absolute ? false}
+        />
+
+# TODO is the wrapper above really necessary?
+exports.TimeAgo = rclass
+    displayName : 'Misc-TimeAgo-redux'
+
+    propTypes :
+        popover   : rtypes.bool
+        placement : rtypes.string
+        tip       : rtypes.string     # optional body of the tip popover with title the original time.
+        live      : rtypes.bool       # whether or not to auto-update
+
+    render: ->
+        <Redux redux={redux}>
+            <TimeAgoWrapper
+                date      = {@props.date}
+                popover   = {@props.popover}
+                placement = {@props.placement}
+                tip       = {@props.tip}
+                live      = {@props.live}
+            />
+        </Redux>
 
 # Important:
 # widget can be controlled or uncontrolled -- use default_value for an *uncontrolled* widget

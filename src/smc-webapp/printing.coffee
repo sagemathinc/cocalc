@@ -137,7 +137,7 @@ class SagewsPrinter extends Printer
     generate_html: (data) ->
         if not @_html_tmpl?
             # recycle our mathjax config from last.coffee
-            {MathJaxConfig} = require('./last')
+            {MathJaxConfig} = require('smc-util/mathjax-config')
             MathJaxConfig = _.clone(MathJaxConfig)
             MathJaxConfig.skipStartupTypeset = false
             MathJaxConfig.showProcessingMessages = true

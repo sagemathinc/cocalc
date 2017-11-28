@@ -4,7 +4,7 @@ Share server top-level landing page.
 
 {rclass, React, ReactDOM, rtypes} = require('../smc-react')
 
-{Space, TimeAgo} = require('../r_misc')
+{Space, TimeAgoElement} = require('../r_misc')
 
 INDEX_STYLE =
     margin     : '15px 30px'
@@ -51,15 +51,28 @@ exports.PublicPathsBrowser = rclass
     render_last_edited: (info) ->
         last_edited = info.get('last_edited')
         <span key='last'   style={display:'inline-block', width:'30%'}>
-            {<TimeAgo date={last_edited} live={false} /> if last_edited?}
+            {<TimeAgoElement date={last_edited} live={false} /> if last_edited?}
         </span>
+
+    render_headings: ->
+        <div key='headings' style={fontWeight:'bold', padding: '5px 10px', fontSize: '12pt', color: '#666'}>
+            <span key='path'  style={display:'inline-block', width:'30%'}>
+                Path
+            </span>
+            <span key='desc' style={display:'inline-block', width:'40%'}>
+                Description
+            </span>
+            <span key='last'   style={display:'inline-block', width:'30%'}>
+                Last Edited
+            </span>
+        </div>
 
     render_public_path_link: (info, bgcolor) ->
         id = info.get('id')
         <div key={id} style={padding: '5px 10px', background:bgcolor}>
             <a href={"#{id}/#{info.get('path')}?viewer=share"} style={display:'inline-block', width:'100%'}>
-                {@render_description(info)}
                 {@render_path(info)}
+                {@render_description(info)}
                 {@render_last_edited(info)}
             </a>
             <br/>
@@ -92,6 +105,7 @@ exports.PublicPathsBrowser = rclass
             </div>
 
             <div key='index' style={INDEX_STYLE}>
+                {@render_headings()}
                 {@render_index()}
             </div>
         </div>
