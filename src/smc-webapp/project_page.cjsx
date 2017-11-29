@@ -229,10 +229,10 @@ FreeProjectWarning = rclass ({name}) ->
 
     render_learn_more: (color) ->
         <a
-            href   = "https://github.com/sagemathinc/cocalc/wiki/FreeServerMessage"
+            href   = "https://github.com/sagemathinc/cocalc/wiki/TrialServer"
             target = "_blank"
             style  = {fontWeight : 'bold', color:color, cursor:'pointer'}>
-            <Space/> &mdash; learn more... <Space/>
+            <Space/> &mdash; Tell me more. <Space/>
         </a>
         #<a onClick={=>@actions(project_id: @props.project_id).show_extra_free_warning()} style={color:'white', cursor:'pointer'}> learn more...</a>
 
@@ -276,7 +276,7 @@ FreeProjectWarning = rclass ({name}) ->
 
         <Alert bsStyle='warning' style={styles}>
             <Icon name='exclamation-triangle' style={float:'right', marginTop: '3px'}/>
-            <Icon name='exclamation-triangle' /> Upgrade this project, since it is {<span>on a <b>free server</b></span> if host} {<span>without <b>network access</b></span> if internet}.
+            <Icon name='exclamation-triangle' /> Support CoCalc by upgrading this project.  It is {<span>on a <b>trial server</b></span> if host} {<span>without <b>network access</b></span> if internet}.
             {@render_learn_more(styles.color)}
             {@render_dismiss()}
             {@extra(host, internet)}
