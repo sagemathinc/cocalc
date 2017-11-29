@@ -1564,7 +1564,6 @@ ProjectFilesActionBox = rclass
         <div style={color:'#555'}>
             <br/>
             Shared items are <a href="https://cocalc.com/share" target="_blank"><b><i>visible to anybody.</i></b></a>
-            <Space/> You can stop sharing items at any time.
         </div>
 
     render_share: ->
@@ -1579,6 +1578,11 @@ ProjectFilesActionBox = rclass
                 parent_is_public = true
         show_social_media = require('./customize').commercial and single_file_data.is_public
         <div>
+            <Row>
+                <Col sm=8 style={color:'#666', fontSize:'12pt'}>
+                    {@render_share_defn()}
+                </Col>
+            </Row>
             <Row>
                 <Col sm=4 style={color:'#666'}>
                     <h4>Description</h4>
@@ -1624,11 +1628,6 @@ ProjectFilesActionBox = rclass
                     {<ButtonToolbar>
                         {@render_social_buttons(single_file)}
                     </ButtonToolbar> if show_social_media}
-                </Col>
-            </Row>
-            <Row>
-                <Col sm=8 style={color:'#666', fontSize:'12pt'}>
-                    {@render_share_defn()}
                 </Col>
             </Row>
         </div>
