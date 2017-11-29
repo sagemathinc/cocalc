@@ -173,8 +173,6 @@ exports.sign_in = (opts) ->
                 hub           : opts.host + ':' + opts.port
                 utm           : mesg.utm
                 referrer      : mesg.referrer
-            if mesg.get_api_key   # do not set remember me if just signing in to get api key.
-                cb(); return
             client.remember_me
                 account_id    : signed_in_mesg.account_id
                 email_address : signed_in_mesg.email_address

@@ -420,7 +420,14 @@ class ProjectAndUserTracker extends EventEmitter
     # return *set* of projects that this user is a collaborator on
     projects: (account_id) =>
         if not @_accounts[account_id]?
-            throw Error("account (='#{account_id}') must be registered")
+            # This should never happen, but very rarely it DOES.  I do not know why, having studied the
+            # code.  But when it does, just raising an exception blows up the server really badly.
+            # So for now we just async register the account, return that it is not a collaborator
+            # on anything.  Then some query will fail, get tried again, and work since registration will
+            # have finished.
+            #throw Error("account (='#{account_id}') must be registered")
+            @register(account_id:account_id, cb:->)
+            return {}
         return @_projects[account_id] ? {}
 
     # map from collabs of account_id to number of projects they collab on (account_id itself counted twice)
@@ -799,13 +806,16 @@ class SyncTable extends EventEmitter
             if err
                 cb?(err)
                 return
-            dbg("notify about anything that changed when we were disconnected")
-            before.map (v, k) =>
-                if not v.equals(@_value.get(k))
-                    @emit('change', k)
-            @_value.map (v, k) =>
-                if not before.has(k)
-                    @emit('change', k)
+            if @_value? and before?
+                # It's highly unlikely that before or @_value would not be defined, but it could happen (see #2527)
+                dbg("notify about anything that changed when we were disconnected")
+                before.map (v, k) =>
+                    if not v.equals(@_value.get(k))
+                        @emit('change', k)
+                @_value.map (v, k) =>
+                    if not before.has(k)
+                        @emit('change', k)
+            cb?()
 
     _process_results: (rows) =>
         if @_state == 'closed'

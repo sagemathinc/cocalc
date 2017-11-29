@@ -1560,6 +1560,13 @@ ProjectFilesActionBox = rclass
             </a>
         </pre>
 
+    render_share_defn: ->
+        <div style={color:'#555'}>
+            <br/>
+            Shared items are <a href="https://cocalc.com/share" target="_blank"><b><i>visible to anybody.</i></b></a>
+            <Space/> You can stop sharing items at any time.
+        </div>
+
     render_share: ->
         # currently only works for a single selected file
         single_file = @props.checked_files.first()
@@ -1590,7 +1597,7 @@ ProjectFilesActionBox = rclass
                     {@render_share_warning() if parent_is_public}
                 </Col>
                 <Col sm=4 style={color:'#666'}>
-                    <h4>Sharing</h4>
+                    <h4>Share this publicly</h4>
                     {@render_selected_files_list()}
                 </Col>
                 <Col sm=4 style={color:'#666'}>
@@ -1617,6 +1624,11 @@ ProjectFilesActionBox = rclass
                     {<ButtonToolbar>
                         {@render_social_buttons(single_file)}
                     </ButtonToolbar> if show_social_media}
+                </Col>
+            </Row>
+            <Row>
+                <Col sm=8 style={color:'#666', fontSize:'12pt'}>
+                    {@render_share_defn()}
                 </Col>
             </Row>
         </div>
