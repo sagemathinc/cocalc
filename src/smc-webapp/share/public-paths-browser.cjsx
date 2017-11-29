@@ -69,7 +69,8 @@ exports.PublicPathsBrowser = rclass
 
     render_public_path_link: (info, bgcolor) ->
         id         = info.get('id')
-        info_path  = encodeURIComponent(info.get('path'))
+        path_split = info.get('path').split('/')
+        info_path  = (encodeURIComponent(p) for p in path_split).join('/')
 
         <div key={id} style={padding: '5px 10px', background:bgcolor}>
             <a href={"#{id}/#{info_path}?viewer=share"} style={display:'inline-block', width:'100%'}>
