@@ -1109,7 +1109,7 @@ schema.site_settings =
 schema.stats =
     primary_key : 'id'
     durability  : 'soft' # ephemeral stats whose slight loss wouldn't matter much
-    anonymous   : true     # allow user read access, even if not signed in
+    anonymous   : false     # allow user read access, even if not signed in
     fields:
         id                  :
             type : 'uuid'
