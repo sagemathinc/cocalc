@@ -395,7 +395,7 @@ exports.HelpPage = HelpPage = rclass
                 </Row>
                 <Row style={marginTop:'20px'}>
                     <ThirdPartySoftware />
-                    {# <HelpPageUsageSection /> }
+                    <HelpPageUsageSection />
                 </Row>
                 <Row>
                     {<LinkList title='About' icon='info-circle' links={ABOUT_LINKS} width={12} /> if require('./customize').commercial}
