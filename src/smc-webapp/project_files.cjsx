@@ -1562,7 +1562,6 @@ ProjectFilesActionBox = rclass
 
     render_share_defn: ->
         <div style={color:'#555'}>
-            <br/>
             Shared items are <a href="https://cocalc.com/share" target="_blank"><b><i>visible to anybody.</i></b></a>
         </div>
 
