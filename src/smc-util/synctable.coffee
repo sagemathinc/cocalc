@@ -98,6 +98,9 @@ schema         = require('./schema')
 
 {defaults, required} = misc
 
+is_fatal = (err) ->
+    return typeof(err) == 'string' and err.slice(0,5) == 'FATAL'
+
 # We represent synchronized tables by an immutable.js mapping from the primary
 # key to the object.  Since PostgresQL primary keys can be compound (more than
 # just strings), e.g., they can be arrays, so we convert complicated keys to their
@@ -280,7 +283,7 @@ class SyncTable extends EventEmitter
                 # 2. Now actually do the changefeed query.
                 @_reconnect(cb)
         ], (err) =>
-            if err?.slice(0,5) == 'FATAL'
+            if is_fatal(err)
                 # This happens, e.g., when a user is no longer a collaborator on a project, or they are signed out
                 # but still have a bunch of tabs open.  It avoids a huge amount of back and forth traffic between
                 # the client and server.   WORRY: when they sign in, things will not just start working again...
@@ -511,7 +514,7 @@ class SyncTable extends EventEmitter
             @__is_saving = true
             @__save (err) =>
                 @__is_saving = false
-                if err?.slice(0,5) == 'FATAL'
+                if is_fatal(err)
                     @_fatal = true
                 cb?(err)
 
