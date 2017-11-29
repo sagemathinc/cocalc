@@ -1547,7 +1547,7 @@ ProjectFilesActionBox = rclass
     construct_public_share_url: (single_file) ->
         url = document.URL
         url = url[0...url.indexOf('/projects/')]
-        display_url = "#{url}/projects/#{@props.project_id}/files/#{misc.encode_path(single_file)}"
+        display_url = "#{url}/share/#{@props.project_id}/#{misc.encode_path(single_file)}?viewer=share"
         if @props.file_map[misc.path_split(single_file).tail]?.isdir
             display_url += '/'
         return display_url
