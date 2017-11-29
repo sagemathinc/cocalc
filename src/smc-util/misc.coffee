@@ -1187,6 +1187,7 @@ exports.containing_public_path = (path, paths) ->
     return undefined
 
 # encode a UNIX path, which might have # and % in it.
+# Maybe alternatively, (encodeURIComponent(p) for p in path.split('/')).join('/') ?
 exports.encode_path = (path) ->
     path = encodeURI(path)  # doesn't escape # and ?, since they are special for urls (but not unix paths)
     return path.replace(/#/g,'%23').replace(/\?/g,'%3F')

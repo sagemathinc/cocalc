@@ -3,7 +3,7 @@ Share server top-level landing page.
 ###
 
 {rclass, React, ReactDOM, rtypes} = require('../smc-react')
-
+misc = require('smc-util/misc')
 {Space, TimeAgoElement} = require('../r_misc')
 
 INDEX_STYLE =
@@ -69,8 +69,7 @@ exports.PublicPathsBrowser = rclass
 
     render_public_path_link: (info, bgcolor) ->
         id         = info.get('id')
-        path_split = info.get('path').split('/')
-        info_path  = (encodeURIComponent(p) for p in path_split).join('/')
+        info_path  = misc.encode_path(info.get('path'))
 
         <div key={id} style={padding: '5px 10px', background:bgcolor}>
             <a href={"#{id}/#{info_path}?viewer=share"} style={display:'inline-block', width:'100%'}>

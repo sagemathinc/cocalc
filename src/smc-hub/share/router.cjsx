@@ -127,7 +127,9 @@ exports.share_router = (opts) ->
                 project_id = info.get('project_id')
 
             path = req.params[0]
+            #dbg("router.get '/:id/*?': #{project_id} and #{path}: #{public_paths.is_public(project_id, path)}, info: #{misc.to_json(info)}, path: #{path}")
             if not path?
+                #dbg("no path → 404")
                 res.sendStatus(404)
                 return
 
@@ -140,6 +142,7 @@ exports.share_router = (opts) ->
             #   by what happens to be in the path to files.  So share server not having
             #   updated yet is a problem, but ALSO, in some cases (dev server, docker personal)
             #   that path is just to the live files in the project, so very dangerous.
+
 
             if not public_paths.is_public(project_id, path)
                 res.sendStatus(404)
