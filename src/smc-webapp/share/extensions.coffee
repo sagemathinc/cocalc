@@ -17,6 +17,10 @@ set = (v) ->
 # see https://developer.mozilla.org/en-US/docs/Web/HTML/Element/img
 exports.image = set(['png', 'jpg', 'gif', 'svg', 'jpeg', 'bmp', 'apng', 'ico'])
 
+# https://developer.mozilla.org/en-US/docs/Web/HTML/Element/video
+{VIDEO_EXTS} = require('smc-webapp/file-associations')
+exports.video = set(VIDEO_EXTS)
+
 exports.pdf = set(['pdf'])
 
 exports.html = set(['html', 'htm'])

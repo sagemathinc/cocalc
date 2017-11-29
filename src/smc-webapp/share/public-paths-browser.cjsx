@@ -68,9 +68,11 @@ exports.PublicPathsBrowser = rclass
         </div>
 
     render_public_path_link: (info, bgcolor) ->
-        id = info.get('id')
+        id         = info.get('id')
+        info_path  = encodeURIComponent(info.get('path'))
+
         <div key={id} style={padding: '5px 10px', background:bgcolor}>
-            <a href={"#{id}/#{info.get('path')}?viewer=share"} style={display:'inline-block', width:'100%'}>
+            <a href={"#{id}/#{info_path}?viewer=share"} style={display:'inline-block', width:'100%'}>
                 {@render_path(info)}
                 {@render_description(info)}
                 {@render_last_edited(info)}
