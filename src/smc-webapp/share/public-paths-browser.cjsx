@@ -7,7 +7,7 @@ misc = require('smc-util/misc')
 {Space, TimeAgoElement} = require('../r_misc')
 
 INDEX_STYLE =
-    margin     : '15px 30px'
+    margin     : '0px 30px 15px 30px'
     overflow   : 'auto'
     height     : '100%'
     background : 'white'
@@ -55,7 +55,7 @@ exports.PublicPathsBrowser = rclass
         </span>
 
     render_headings: ->
-        <div key='headings' style={fontWeight:'bold', padding: '5px 10px', fontSize: '12pt', color: '#666'}>
+        <div key='headings' style={fontWeight:'bold', padding: '5px', margin: '0px 30px', fontSize: '12pt', color: '#666', borderBottom:'1px solid lightgrey'}>
             <span key='path'  style={display:'inline-block', width:'30%'}>
                 Path
             </span>
@@ -105,9 +105,8 @@ exports.PublicPathsBrowser = rclass
                 <Space />
                 {@render_next_page()}
             </div>
-
+            {@render_headings()}
             <div key='index' style={INDEX_STYLE}>
-                {@render_headings()}
                 {@render_index()}
             </div>
         </div>
