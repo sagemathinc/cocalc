@@ -24,7 +24,7 @@
  ButtonToolbar, Popover, OverlayTrigger, SplitButton, MenuItem, Alert, Checkbox, Breadcrumb, Navbar} =  require('react-bootstrap')
 misc = require('smc-util/misc')
 {ActivityDisplay, DeletedProjectWarning, DirectoryInput, Icon, Loading, ProjectState, COLORS,
- SearchInput, TimeAgo, ErrorDisplay, Space, Tip, LoginLink, Footer, CourseProjectExtraHelp} = require('./r_misc')
+ SearchInput, TimeAgo, ErrorDisplay, Space, Tip, LoginLink, Footer, CourseProjectExtraHelp, CopyToClipBoard} = require('./r_misc')
 {SMC_Dropwrapper} = require('./smc-dropzone')
 {FileTypeSelector, NewFileButton} = require('./project_new')
 {SiteName} = require('./customize')
@@ -1554,11 +1554,9 @@ ProjectFilesActionBox = rclass
 
     render_public_share_url: (single_file) ->
         display_url = @construct_public_share_url(single_file)
-        <pre style={@pre_styles}>
-            <a href={display_url} target='_blank'>
-                {display_url}
-            </a>
-        </pre>
+        <CopyToClipBoard
+            value = display_url
+        />
 
     render_share_defn: ->
         <div style={color:'#555'}>
