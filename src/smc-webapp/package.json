@@ -20,6 +20,7 @@
     "coffee-script": "^1.11.1",
     "coffeelint": "^1.16.0",
     "coffeelint-cjsx": "git://github.com/sagemathinc/coffeelint-cjsx.git",
+    "copy-to-clipboard": "^3.0.8",
     "create-react-class": "^15.6.2",
     "d3": "^3.5.6",
     "delims": "^0.4.2",
