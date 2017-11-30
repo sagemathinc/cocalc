@@ -435,12 +435,12 @@ exports.VersionWarning = rclass
 
     render: ->
         styles =
+            fontSize        : '12pt'
             position        : 'fixed'
             left            : 12
             backgroundColor : 'red'
             color           : '#fff'
             top             : 20
-            opacity         : .75
             borderRadius    : 4
             padding         : 5
             zIndex          : 900
