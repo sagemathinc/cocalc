@@ -1552,11 +1552,16 @@ ProjectFilesActionBox = rclass
             display_url += '/'
         return display_url
 
-    render_public_share_url: (single_file) ->
-        display_url = @construct_public_share_url(single_file)
+    render_public_share_url: (url, copyable) ->
         <CopyToClipBoard
-            value = display_url
+            value = url
         />
+
+    render_public_link_header: (url, as_link) ->
+        if as_link
+            <h4><a href={url} target="_blank">Public link</a></h4>
+        else
+            <h4>Public link (not active)</h4>
 
     render_share_defn: ->
         <div style={color:'#555'}>
@@ -1574,6 +1579,7 @@ ProjectFilesActionBox = rclass
             if single_file_data.is_public and single_file_data.public?.path isnt single_file
                 parent_is_public = true
         show_social_media = require('./customize').commercial and single_file_data.is_public
+        url = @construct_public_share_url(single_file)
         <div>
             <Row>
                 <Col sm=8 style={color:'#666', fontSize:'12pt'}>
@@ -1602,8 +1608,8 @@ ProjectFilesActionBox = rclass
                     {@render_selected_files_list()}
                 </Col>
                 <Col sm=4 style={color:'#666'}>
-                    <h4>Public link</h4>
-                    {@render_public_share_url(single_file)}
+                    {@render_public_link_header(url, single_file_data.is_public)}
+                    {@render_public_share_url(url)}
                 </Col>
             </Row>
             <Row>
