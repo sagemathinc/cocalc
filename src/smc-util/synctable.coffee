@@ -174,6 +174,10 @@ class Plug
 
         # actually try to connect
         do_connect = =>
+            if not @_opts.no_sign_in
+                if not @_opts.client.is_signed_in()
+                    cb("not signed in but need to be")
+                    return
             if give_up_timer
                 clearInterval(give_up_timer)
             @_opts.connect (err) =>
@@ -262,6 +266,9 @@ class SyncTable extends EventEmitter
     _connect: (cb) =>
         dbg = @dbg("connect")
         dbg()
+        if @_fatal
+            cb?('fatal')
+            return
         if @_state == 'closed'
             cb?('closed')
             return
@@ -289,14 +296,17 @@ class SyncTable extends EventEmitter
                 # the client and server.   WORRY: when they sign in, things will not just start working again...
                 # but for now we need to defend ourselves.
                 dbg("FATAL error -- #{err}")
-                @close()
-                cb?("closed")
+                @_set_fatal(err)
+                cb?("fatal")
             else
                 cb?()
         )
 
     _reconnect: (cb) =>
         dbg = @dbg("_run")
+        if @_fatal
+            cb?('fatal')
+            return
         if @_state == 'closed'
             dbg("closed so don't do anything ever again")
             cb?()
@@ -318,6 +328,11 @@ class SyncTable extends EventEmitter
                 if @_state == 'closed'
                     # already closed so ignore anything else.
                     cb?('closed')
+                    cb = undefined
+                    return
+
+                if @_fatal
+                    cb?('fatal')
                     cb = undefined
                     return
 
@@ -515,7 +530,7 @@ class SyncTable extends EventEmitter
             @__save (err) =>
                 @__is_saving = false
                 if is_fatal(err)
-                    @_fatal = true
+                    @_set_fatal(err)
                 cb?(err)
 
     __save: (cb) =>
@@ -934,7 +949,27 @@ class SyncTable extends EventEmitter
 
         return new_val
 
+    # If we get a fatal error, then we wait a bit.  This could happen due to being signed out,
+    # or thinking we're signed in, but not being signed in (since we *just* are in the process of
+    # being signed out).  It's rare, but there are dozens of tables, so even a 1% chance can
+    # easily happen.
+    _set_fatal: (why) =>
+        if @_fatal
+            return
+        tm = 10000 + Math.random()*20000
+        #console.log("_set_fatal", @_query, tm, why)
+        @_fatal = true
+        @_fatal_interval = setTimeout(@_unset_fatal, tm)
+
+    _unset_fatal: =>
+        #console.log("_unset_fatal", @_query)
+        delete @_fatal
+        delete @_fatal_interval
+
     close: =>
+        if @_fatal_interval
+            clearTimeout(@_fatal_interval)
+            delete @_fatal_interval
         if @_state == 'closed'
             # already closed
             return
