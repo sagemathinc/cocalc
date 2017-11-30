@@ -12,13 +12,14 @@ exports.Page = rclass
     displayName: "Page"
 
     propTypes :
-        site_name  : rtypes.string
-        base_url   : rtypes.string.isRequired
-        path       : rtypes.string.isRequired   # the path with no base url to the currently displayed file, directory, etc.
-        viewer     : rtypes.string.isRequired   # 'share' or 'embed'
-        project_id : rtypes.string              # only defined if we are viewing something in a project
-        subtitle   : rtypes.string
-        notranslate: rtypes.bool
+        site_name        : rtypes.string
+        base_url         : rtypes.string.isRequired
+        path             : rtypes.string.isRequired   # the path with no base url to the currently displayed file, directory, etc.
+        viewer           : rtypes.string.isRequired   # 'share' or 'embed'
+        project_id       : rtypes.string              # only defined if we are viewing something in a project
+        subtitle         : rtypes.string
+        google_analytics : rtypes.string              # optional, and if set just the token
+        notranslate      : rtypes.bool
 
     getDefaultProps: ->
         base_url  : BASE_URL
@@ -47,6 +48,19 @@ exports.Page = rclass
         favicon = "#{@props.base_url}/share/favicon-32x32.png"
         <link rel="shortcut icon" href={favicon} type="image/png" />
 
+    render_google_analytics: ->
+        return null if not @props.google_analytics
+        ga = """
+             window.dataLayer = window.dataLayer || [];
+             function gtag(){dataLayer.push(arguments);}
+             gtag('js', new Date());
+             gtag('config', #{@props.google_analytics});
+             """
+        [
+            <script key={0} async={true} src={"https://www.googletagmanager.com/gtag/js?id=#{@props.google_analytics}"}></script>
+            <script key={1} dangerouslySetInnerHTML={{__html:ga}} />
+        ]
+
     render: ->
         <html lang="en">
             <head>
@@ -63,10 +77,9 @@ exports.Page = rclass
                 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.31.0/codemirror.min.css" />
 
                 {@render_favicon()}
-
                 {@render_css()}
-
                 {@render_noindex()}
+                {@render_google_analytics()}
             </head>
             <body>
                 <div style={display: 'flex', flexDirection: 'column', height: '100vh', width: '100vw', overflow: 'auto'}>

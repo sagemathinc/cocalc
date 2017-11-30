@@ -19,16 +19,19 @@ react_support        = require('./react')
 {render_public_path} = require('./render-public-path')
 {render_static_path} = require('./render-static-path')
 
+# this reads it from disk
+google_analytics     = require('./util').google_analytics_token()
 
 react_viewer = (base_url, path, project_id, notranslate, viewer) ->
     return (res, component, subtitle) ->
         the_page = <Page
-            base_url    = {base_url}
-            path        = {path}
-            project_id  = {project_id}
-            subtitle    = {subtitle}
-            notranslate = {!!notranslate}
-            viewer      = {viewer}>
+            base_url         = {base_url}
+            path             = {path}
+            project_id       = {project_id}
+            subtitle         = {subtitle}
+            notranslate      = {!!notranslate}
+            google_analytics = {google_analytics}
+            viewer           = {viewer}>
 
             {component}
 
