@@ -54,7 +54,7 @@ exports.Page = rclass
              window.dataLayer = window.dataLayer || [];
              function gtag(){dataLayer.push(arguments);}
              gtag('js', new Date());
-             gtag('config', #{@props.google_analytics});
+             gtag('config', '#{@props.google_analytics}');
              """
         [
             <script key={0} async={true} src={"https://www.googletagmanager.com/gtag/js?id=#{@props.google_analytics}"}></script>
