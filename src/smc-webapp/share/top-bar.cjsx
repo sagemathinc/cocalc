@@ -12,7 +12,7 @@ exports.TopBar = ({viewer, path, project_id, base_url, site_name}) ->
     project = undefined
     if path == '/'
         top = '.'
-        path = <span/>
+        path_component = <span/>
     else
         v = path.split('/').slice(2)
         top = ('..' for x in v).join('/')
@@ -35,7 +35,7 @@ exports.TopBar = ({viewer, path, project_id, base_url, site_name}) ->
             else
                 t += '/..'
         segments.reverse()
-        path = r_join(segments, <span style={margin:'0 5px'}> / </span>)
+        path_component = r_join(segments, <span style={margin:'0 5px'}> / </span>)
 
         if project_id
             i = path.slice(1).indexOf('/')
@@ -49,7 +49,7 @@ exports.TopBar = ({viewer, path, project_id, base_url, site_name}) ->
             <a href={top} style={textDecoration:'none'}><CoCalcLogo base_url={base_url} /> Shared</a>
         </span>
         <span style={paddingLeft: '15px', borderLeft: '1px solid black', marginLeft: '15px'}>
-            {path}
+            {path_component}
         </span>
         {project}
     </div>
