@@ -146,17 +146,6 @@ ListingHeader = rclass
                 {@render_sort_link("name", "Name")}
             </Col>
         </Row>
-ShareButton = ({on_click}) ->
-    <span><Space/>
-        <Button
-            bsSize  = 'xsmall'
-            onClick = {on_click}
-            style   = {color:'rgb(102, 102, 102)'}
-        >
-            <Icon name='share-o' /> <span className='hidden-xs'>Share...</span>
-        </Button>
-    </span>
-
 PublicButton = ({on_click}) ->
     <span><Space/>
         <Button
@@ -267,10 +256,6 @@ FileRow = rclass
             />
         else if @props.is_public
             <PublicButton
-                on_click = {generate_click_for('share', @full_path(), @props.actions)}
-            />
-        else
-            <ShareButton
                 on_click = {generate_click_for('share', @full_path(), @props.actions)}
             />
 
@@ -403,10 +388,6 @@ DirectoryRow = rclass
             />
         else if @props.is_public
             <PublicButton
-                on_click = {generate_click_for('share', @full_path(), @props.actions)}
-            />
-        else
-            <ShareButton
                 on_click = {generate_click_for('share', @full_path(), @props.actions)}
             />
 
