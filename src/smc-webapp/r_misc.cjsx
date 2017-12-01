@@ -1732,9 +1732,14 @@ exports.UpgradeAdjustor = rclass
                 </ButtonToolbar>
             </Alert>
 
+# Takes a value and makes it highlight on click
+# Has a copy to clipboard button by default on the end
+# See prop descriptions for more details
 exports.CopyToClipBoard = rclass
     propTypes:
-        value : rtypes.string
+        value         : rtypes.string
+        button_before : rtypes.element # Optional button to place before the copy text
+        hide_after    : rtypes.bool    # Hide the default after button
 
     getInitialState: ->
         show_tooltip : false
@@ -1748,9 +1753,29 @@ exports.CopyToClipBoard = rclass
         return if not @state.show_tooltip
         @setState(show_tooltip : false)
 
+    render_button_after: ->
+        <InputGroup.Button>
+            <Overlay
+                show      = {@state.show_tooltip}
+                target    = {() => ReactDOM.findDOMNode(@refs.clipboard_button)}
+                placement = 'bottom'
+            >
+                <Tooltip id='copied'>Copied!</Tooltip>
+            </Overlay>
+            <Button
+                ref     = "clipboard_button"
+                onClick = {@on_button_click}
+            >
+                <Icon name='clipboard'/>
+            </Button>
+        </InputGroup.Button>
+
     render: ->
         <FormGroup>
             <InputGroup>
+                {<InputGroup.Button>
+                    {@props.button_before}
+                </InputGroup.Button> if @props.button_before?}
                 <FormControl
                     type     = "text"
                     readOnly = {true}
@@ -1758,20 +1783,6 @@ exports.CopyToClipBoard = rclass
                     onClick  = {(e)=>e.target.select()}
                     value    = {@props.value}
                 />
-                <InputGroup.Button>
-                    <Overlay
-                        show      = {@state.show_tooltip}
-                        target    = {() => ReactDOM.findDOMNode(@refs.clipboard_button)}
-                        placement = 'bottom'
-                    >
-                        <Tooltip id='copied'>Copied!</Tooltip>
-                    </Overlay>
-                    <Button
-                        ref     = "clipboard_button"
-                        onClick = {@on_button_click}
-                    >
-                        <Icon name='clipboard'/>
-                    </Button>
-                </InputGroup.Button>
+                {@render_button_after() unless @props.hide_after}
             </InputGroup>
         </FormGroup>
