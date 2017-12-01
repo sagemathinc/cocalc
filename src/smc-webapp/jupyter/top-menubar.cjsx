@@ -82,7 +82,7 @@ exports.TopMenubar = rclass ({name}) ->
             save = '<' + save
 
         rename = 'rename notebook'
-        if not @props.has_unsaved_changes or @props.read_only
+        if @props.has_unsaved_changes or @props.read_only
             rename = '<' + rename
 
         close_and_halt = 'close and halt'

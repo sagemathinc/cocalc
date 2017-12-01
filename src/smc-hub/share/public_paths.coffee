@@ -7,6 +7,7 @@ the DB before returning results).  And, since we have everything in memory, we c
 things involving iterating over everything before writing proper queries.
 ###
 
+
 EventEmitter = require('events')
 
 immutable = require('immutable')

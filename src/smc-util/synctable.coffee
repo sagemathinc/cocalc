@@ -98,6 +98,9 @@ schema         = require('./schema')
 
 {defaults, required} = misc
 
+is_fatal = (err) ->
+    return typeof(err) == 'string' and err.slice(0,5) == 'FATAL'
+
 # We represent synchronized tables by an immutable.js mapping from the primary
 # key to the object.  Since PostgresQL primary keys can be compound (more than
 # just strings), e.g., they can be arrays, so we convert complicated keys to their
@@ -171,9 +174,17 @@ class Plug
 
         # actually try to connect
         do_connect = =>
+            if not @_opts.no_sign_in
+                if not @_opts.client.is_signed_in()
+                    cb("not signed in but need to be")
+                    return
             if give_up_timer
                 clearInterval(give_up_timer)
-            @_opts.connect(cb)
+            @_opts.connect (err) =>
+                if err == 'closed'
+                    cb()  # success = stop trying.
+                else
+                    cb(err)
 
         # Which event/condition has too be true before we even try to connect.
         if @_opts.no_sign_in
@@ -255,6 +266,9 @@ class SyncTable extends EventEmitter
     _connect: (cb) =>
         dbg = @dbg("connect")
         dbg()
+        if @_fatal
+            cb?('fatal')
+            return
         if @_state == 'closed'
             cb?('closed')
             return
@@ -275,10 +289,24 @@ class SyncTable extends EventEmitter
             (cb) =>
                 # 2. Now actually do the changefeed query.
                 @_reconnect(cb)
-        ], cb)
+        ], (err) =>
+            if is_fatal(err)
+                # This happens, e.g., when a user is no longer a collaborator on a project, or they are signed out
+                # but still have a bunch of tabs open.  It avoids a huge amount of back and forth traffic between
+                # the client and server.   WORRY: when they sign in, things will not just start working again...
+                # but for now we need to defend ourselves.
+                dbg("FATAL error -- #{err}")
+                @_set_fatal(err)
+                cb?("fatal")
+            else
+                cb?()
+        )
 
     _reconnect: (cb) =>
         dbg = @dbg("_run")
+        if @_fatal
+            cb?('fatal')
+            return
         if @_state == 'closed'
             dbg("closed so don't do anything ever again")
             cb?()
@@ -292,9 +320,20 @@ class SyncTable extends EventEmitter
             timeout : 30
             options : @_options
             cb      : (err, resp) =>
+                if err
+                    cb?(err)
+                    cb = undefined
+                    return
 
                 if @_state == 'closed'
                     # already closed so ignore anything else.
+                    cb?('closed')
+                    cb = undefined
+                    return
+
+                if @_fatal
+                    cb?('fatal')
+                    cb = undefined
                     return
 
                 if first_resp
@@ -302,12 +341,16 @@ class SyncTable extends EventEmitter
                     first_resp = false
                     if @_state == 'closed'
                         cb?("closed")
+                        cb = undefined
                     else if resp?.event == 'query_cancel'
                         cb?("query-cancel")
+                        cb = undefined
                     else if err
                         cb?(err)
+                        cb = undefined
                     else if not resp?.query?[@_table]?
                         cb?("got no data")
+                        cb = undefined
                     else
                         # Successfully completed query
                         this_query_id = @_id = resp.id
@@ -315,9 +358,10 @@ class SyncTable extends EventEmitter
                         @_update_all(resp.query[@_table])
                         @emit("connected", resp.query[@_table])  # ready to use!
                         cb?()
+                        cb = undefined
                         # Do any pending saves
-                        for cb in @_connected_save_cbs ? []
-                            @save(cb)
+                        for cb0 in @_connected_save_cbs ? []
+                            @save(cb0)
                         delete @_connected_save_cbs
                 else
                     if @_state != 'connected'
@@ -473,17 +517,28 @@ class SyncTable extends EventEmitter
         return changed
 
     _save: (cb) =>
+        if @_fatal
+            cb?()
+            return
+        if @_state == 'closed'
+            cb?("closed")
+            return
         if @__is_saving
             cb?("already saving")
         else
             @__is_saving = true
             @__save (err) =>
                 @__is_saving = false
+                if is_fatal(err)
+                    @_set_fatal(err)
                 cb?(err)
 
     __save: (cb) =>
         if @_state == 'closed'
             cb?("closed")
+            return
+        if @_fatal
+            cb?()
             return
         # console.log("_save('#{@_table}')")
         # Determine which records have changed and what their new values are.
@@ -584,6 +639,9 @@ class SyncTable extends EventEmitter
     save: (cb) =>
         if @_state == 'closed'
             cb?("closed")
+            return
+        if @_fatal
+            cb?()
             return
 
         if @_state != 'connected'
@@ -891,7 +949,27 @@ class SyncTable extends EventEmitter
 
         return new_val
 
+    # If we get a fatal error, then we wait a bit.  This could happen due to being signed out,
+    # or thinking we're signed in, but not being signed in (since we *just* are in the process of
+    # being signed out).  It's rare, but there are dozens of tables, so even a 1% chance can
+    # easily happen.
+    _set_fatal: (why) =>
+        if @_fatal
+            return
+        tm = 10000 + Math.random()*20000
+        #console.log("_set_fatal", @_query, tm, why)
+        @_fatal = true
+        @_fatal_interval = setTimeout(@_unset_fatal, tm)
+
+    _unset_fatal: =>
+        #console.log("_unset_fatal", @_query)
+        delete @_fatal
+        delete @_fatal_interval
+
     close: =>
+        if @_fatal_interval
+            clearTimeout(@_fatal_interval)
+            delete @_fatal_interval
         if @_state == 'closed'
             # already closed
             return

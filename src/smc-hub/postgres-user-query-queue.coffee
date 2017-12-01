@@ -28,7 +28,7 @@ TIME_HISTORY_LENGTH = 100
 # many global outstanding concurent **user queries**.  The point is that
 # if there's very little load, we should get queries done as fast
 # as possible for users.
-GLOBAL_LIMIT = 75
+GLOBAL_LIMIT = 100
 #GLOBAL_LIMIT = 4
 
 # setup metrics
