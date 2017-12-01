@@ -23,13 +23,15 @@ _       = require('underscore')
 {defaults, required} = misc
 
 winston    = require 'winston'
-winston.remove(winston.transports.Console)
-
+{WinstonMetrics} = require('./winston-metrics')
+transports = [new WinstonMetrics({name: 'support', level: 'debug'})]
 SMC_TEST = process.env.SMC_TEST
 if not SMC_TEST
-    winston.add(winston.transports.Console, {level: 'debug', timestamp:true, colorize:true})
-{WinstonMetrics} = require('./winston-metrics')
-winston.add(WinstonMetrics, {name: 'support', level: 'debug'})
+    transports.push(new winston.transports.Console({level: 'debug', timestamp:true, colorize:true}))
+winston = new (winston.Logger)(
+    transports: transports
+)
+
 
 zendesk_password_filename = ->
     return (process.env.SMC_ROOT ? '.') + '/data/secrets/zendesk'

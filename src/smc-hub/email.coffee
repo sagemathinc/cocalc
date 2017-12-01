@@ -31,10 +31,13 @@ os_path      = require('path')
 async        = require('async')
 winston      = require('winston') # logging -- https://github.com/flatiron/winston
 
-winston.remove(winston.transports.Console)
-winston.add(winston.transports.Console, {level: 'debug', timestamp:true, colorize:true})
 {WinstonMetrics} = require('./winston-metrics')
-winston.add(WinstonMetrics, {name: 'email', level: 'debug'})
+winston = new (winston.Logger)(
+    transports: [
+        new winston.transports.Console({level: 'debug', timestamp:true, colorize:true})
+        new WinstonMetrics({name: 'email', level: 'debug'})
+    ]
+)
 
 # sendgrid API: https://sendgrid.com/docs/API_Reference/Web_API/mail.html
 sendgrid     = require("sendgrid")

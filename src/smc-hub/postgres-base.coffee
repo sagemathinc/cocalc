@@ -44,10 +44,15 @@ if not pg?
 
 
 winston = require('winston')
-winston.remove(winston.transports.Console)
-winston.add(winston.transports.Console, {level: 'debug', timestamp:true, colorize:true})
+#winston.remove(winston.transports.Console)
+#winston.add(winston.transports.Console, {level: 'debug', timestamp:true, colorize:true})
 {WinstonMetrics} = require('./winston-metrics')
-winston.add(WinstonMetrics, {name: 'postgres', level: 'debug'})
+winston = new (winston.Logger)(
+    transports: [
+        new winston.transports.Console({level: 'debug', timestamp:true, colorize:true})
+        new WinstonMetrics({name: 'postgres', level: 'debug'})
+    ]
+)
 
 misc_node = require('smc-util-node/misc_node')
 

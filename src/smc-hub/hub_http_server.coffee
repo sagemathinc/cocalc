@@ -39,7 +39,12 @@ http         = require('http')
 winston      = require('winston')
 
 {WinstonMetrics} = require('./winston-metrics')
-winston.add(WinstonMetrics, {name: 'hub_http_server', level: 'debug'})
+winston = new (winston.Logger)(
+    transports: [
+        new winston.transports.Console({level: 'debug', timestamp:true, colorize:true})
+        new WinstonMetrics({name: 'hub_http_server', level: 'debug'})
+    ]
+)
 
 misc         = require('smc-util/misc')
 {defaults, required} = misc
