@@ -232,7 +232,7 @@ FreeProjectWarning = rclass ({name}) ->
             href   = "https://github.com/sagemathinc/cocalc/wiki/TrialServer"
             target = "_blank"
             style  = {fontWeight : 'bold', color:color, cursor:'pointer'}>
-            <Space/> &mdash; Tell me more. <Space/>
+            <Space/> &mdash; more info... <Space/>
         </a>
         #<a onClick={=>@actions(project_id: @props.project_id).show_extra_free_warning()} style={color:'white', cursor:'pointer'}> learn more...</a>
 
@@ -254,11 +254,9 @@ FreeProjectWarning = rclass ({name}) ->
         if not host and not internet
             return null
 
-        font_size = Math.min(18, 12 + Math.round((@props.project_log?.size ? 0) / 60))
+        font_size = Math.min(18, 12 + Math.round((@props.project_log?.size ? 0) / 50))
         styles =
-            padding      : 3
-            paddingLeft  : 7
-            paddingRight : 7
+            padding      : "5px 30px"
             marginBottom : 0
             fontSize     : "#{font_size}pt"
 
@@ -274,9 +272,16 @@ FreeProjectWarning = rclass ({name}) ->
             slowdown = ''
         ###
 
+        if host and internet
+            mesg = <span>Upgrade this project, since it is on a <b>trial server</b> and has no network access.</span>
+        else if host
+            mesg = <span>Upgrade this project, since it is on a <b>trial server</b>.</span>
+        else if internet
+            mesg = <span>WARNING: this project does not have network access.</span>
+
         <Alert bsStyle='warning' style={styles}>
             <Icon name='exclamation-triangle' style={float:'right', marginTop: '3px'}/>
-            <Icon name='exclamation-triangle' /> Support CoCalc by upgrading this project.  It is {<span>on a <b>trial server</b></span> if host} {<span>without <b>network access</b></span> if internet}.
+            <Icon name='exclamation-triangle' /> {mesg}
             {@render_learn_more(styles.color)}
             {@render_dismiss()}
             {@extra(host, internet)}
