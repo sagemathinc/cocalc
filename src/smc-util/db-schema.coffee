@@ -1134,21 +1134,6 @@ schema.stats =
             type : 'array'
             pg_type : 'JSONB[]'
     pg_indexes : ['time']
-    user_query:
-        get:
-            pg_where: ["time >= NOW() - INTERVAL '5 minutes'"]
-            pg_changefeed : 'five-minutes'
-            options : [{'order_by':'-time'}]
-            throttle_changes : 5000
-            fields :
-                id                  : null
-                time                : null
-                accounts            : 0
-                accounts_created    : null
-                projects            : 0
-                projects_created    : null
-                projects_edited     : null
-                hub_servers         : []
 
 schema.storage_servers =
     primary_key : 'host'
