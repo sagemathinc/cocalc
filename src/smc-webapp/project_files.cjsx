@@ -1557,7 +1557,7 @@ ProjectFilesActionBox = rclass
         show_social_media = require('./customize').commercial and single_file_data.is_public
         url = @construct_public_share_url(single_file)
         button_before =
-            <Button bsStyle='default' onClick={=>console.log "TODO OPEN"}>
+            <Button bsStyle='default' onClick={=>window.open(url, "_blank")}>
                 <Icon name='external-link' />
             </Button>
 
