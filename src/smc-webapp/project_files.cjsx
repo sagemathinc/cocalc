@@ -146,17 +146,6 @@ ListingHeader = rclass
                 {@render_sort_link("name", "Name")}
             </Col>
         </Row>
-ShareButton = ({on_click}) ->
-    <span><Space/>
-        <Button
-            bsSize  = 'xsmall'
-            onClick = {on_click}
-            style   = {color:'rgb(102, 102, 102)'}
-        >
-            <Icon name='share-o' /> <span className='hidden-xs'>Share...</span>
-        </Button>
-    </span>
-
 PublicButton = ({on_click}) ->
     <span><Space/>
         <Button
@@ -267,10 +256,6 @@ FileRow = rclass
             />
         else if @props.is_public
             <PublicButton
-                on_click = {generate_click_for('share', @full_path(), @props.actions)}
-            />
-        else
-            <ShareButton
                 on_click = {generate_click_for('share', @full_path(), @props.actions)}
             />
 
@@ -403,10 +388,6 @@ DirectoryRow = rclass
             />
         else if @props.is_public
             <PublicButton
-                on_click = {generate_click_for('share', @full_path(), @props.actions)}
-            />
-        else
-            <ShareButton
                 on_click = {generate_click_for('share', @full_path(), @props.actions)}
             />
 
@@ -1552,11 +1533,6 @@ ProjectFilesActionBox = rclass
             display_url += '/'
         return display_url
 
-    render_public_share_url: (url, copyable) ->
-        <CopyToClipBoard
-            value = url
-        />
-
     render_public_link_header: (url, as_link) ->
         if as_link
             <h4><a href={url} target="_blank">Public link</a></h4>
@@ -1580,6 +1556,11 @@ ProjectFilesActionBox = rclass
                 parent_is_public = true
         show_social_media = require('./customize').commercial and single_file_data.is_public
         url = @construct_public_share_url(single_file)
+        button_before =
+            <Button bsStyle='default' onClick={=>window.open(url, "_blank")}>
+                <Icon name='external-link' />
+            </Button>
+
         <div>
             <Row>
                 <Col sm=8 style={color:'#666', fontSize:'12pt'}>
@@ -1603,27 +1584,31 @@ ProjectFilesActionBox = rclass
                     </FormGroup>
                     {@render_share_warning() if parent_is_public}
                 </Col>
+                {<Col sm=4 style={color:'#666'}>
+                    <h4>Shared publicly</h4>
+                    <CopyToClipBoard
+                        value         = url
+                        button_before = {button_before}
+                        hide_after    = {true}
+                    />
+                </Col> if single_file_data.is_public}
                 <Col sm=4 style={color:'#666'}>
-                    <h4>Share this publicly</h4>
+                    <h4>Items</h4>
                     {@render_selected_files_list()}
-                </Col>
-                <Col sm=4 style={color:'#666'}>
-                    {@render_public_link_header(url, single_file_data.is_public)}
-                    {@render_public_share_url(url)}
                 </Col>
             </Row>
             <Row>
-                <Col sm=8>
+                <Col sm=4>
                     <ButtonToolbar>
                         <Button bsStyle='primary' onClick={@share_click} disabled={parent_is_public}>
                             <Icon name='share-square-o' /><Space/>
-                            {if single_file_data.is_public then 'Change description' else 'Make item public'}
+                            {if single_file_data.is_public then 'Update description' else 'Make item public'}
                         </Button>
                         <Button bsStyle='warning' onClick={@stop_sharing_click} disabled={not single_file_data.is_public or parent_is_public}>
-                            <Icon name='shield' /> Stop sharing item publicly
+                            <Icon name='shield' /> Make item private
                         </Button>
                         <Button onClick={@cancel_action}>
-                            Close
+                            Cancel
                         </Button>
                     </ButtonToolbar>
                 </Col>
