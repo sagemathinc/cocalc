@@ -35,7 +35,7 @@ class exports.WinstonMetrics extends winston.Transport
     constructor: (opts) ->
         opts ?= {}
         @name = opts.name ? new_name()
-        super()
+        super(level:opts.level)
 
 exports.WinstonMetrics::name = 'transport-metric'
 

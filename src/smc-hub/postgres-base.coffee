@@ -47,7 +47,7 @@ winston = require('winston')
 winston.remove(winston.transports.Console)
 winston.add(winston.transports.Console, {level: 'debug', timestamp:true, colorize:true})
 {WinstonMetrics} = require('./winston-metrics')
-winston.add(WinstonMetrics, {name: 'postgres'})
+winston.add(WinstonMetrics, {name: 'postgres', level: 'debug'})
 
 misc_node = require('smc-util-node/misc_node')
 

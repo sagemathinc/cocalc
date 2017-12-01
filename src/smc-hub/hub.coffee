@@ -105,7 +105,7 @@ winston.remove(winston.transports.Console)
 if not process.env.SMC_TEST
     winston.add(winston.transports.Console, {level: 'debug', timestamp:true, colorize:true})
 {WinstonMetrics} = require('./winston-metrics')
-winston.add(WinstonMetrics, {name: 'hub'})
+winston.add(WinstonMetrics, {name: 'hub', level: 'debug'})
 
 # module scope variables:
 database           = null
