@@ -38,13 +38,7 @@ http_proxy   = require('http-proxy')
 http         = require('http')
 winston      = require('winston')
 
-{WinstonMetrics} = require('./winston-metrics')
-winston = new (winston.Logger)(
-    transports: [
-        new winston.transports.Console({level: 'debug', timestamp:true, colorize:true})
-        new WinstonMetrics({name: 'hub_http_server', level: 'debug'})
-    ]
-)
+winston      = require('./winston-metrics').get_logger('hub_http_server')
 
 misc         = require('smc-util/misc')
 {defaults, required} = misc

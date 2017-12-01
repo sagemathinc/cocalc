@@ -29,15 +29,7 @@ BANNED_DOMAINS = {'qq.com':true}
 fs           = require('fs')
 os_path      = require('path')
 async        = require('async')
-winston      = require('winston') # logging -- https://github.com/flatiron/winston
-
-{WinstonMetrics} = require('./winston-metrics')
-winston = new (winston.Logger)(
-    transports: [
-        new winston.transports.Console({level: 'debug', timestamp:true, colorize:true})
-        new WinstonMetrics({name: 'email', level: 'debug'})
-    ]
-)
+winston      = require('./winston-metrics').get_logger('email')
 
 # sendgrid API: https://sendgrid.com/docs/API_Reference/Web_API/mail.html
 sendgrid     = require("sendgrid")

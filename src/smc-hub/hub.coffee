@@ -42,6 +42,7 @@ path_module    = require('path')
 underscore     = require('underscore')
 {EventEmitter} = require('events')
 mime           = require('mime')
+winston        = require('./winston-metrics').get_logger('hub')
 
 program = undefined  # defined below -- can't import with nodev6 at module level when hub.coffee used as a module.
 
@@ -98,19 +99,6 @@ async   = require("async")
 
 Cookies = require('cookies')            # https://github.com/jed/cookies
 
-winston = require('winston')            # logging -- https://github.com/flatiron/winston
-
-# Set the log level
-#winston.remove(winston.transports.Console)
-#if not process.env.SMC_TEST
-#    winston.add(winston.transports.Console, {level: 'debug', timestamp:true, colorize:true})
-{WinstonMetrics} = require('./winston-metrics')
-winston = new (winston.Logger)(
-    transports: [
-        new winston.transports.Console({level: 'debug', timestamp:true, colorize:true})
-        new WinstonMetrics({name: 'hub', level: 'debug'})
-    ]
-)
 
 # module scope variables:
 database           = null

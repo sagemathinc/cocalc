@@ -41,3 +41,13 @@ exports.WinstonMetrics::name = 'transport-metric'
 
 exports.WinstonMetrics::log = (level, msg) ->
     counter.labels(@name, "#{level}").inc(1)
+
+# just a convenience function, which does what we usually do for each component
+# it's a drop-in replacement, use it like: winston = require('...').get_logger(<name>)
+exports.get_logger = (name) ->
+    transports = [new exports.WinstonMetrics({name: name, level: 'debug'})]
+    SMC_TEST = process.env.SMC_TEST
+    if not SMC_TEST
+        transports.push(new winston.transports.Console({level: 'debug', timestamp:true, colorize:true}))
+    logger = new winston.Logger(transports:transports)
+    return logger
