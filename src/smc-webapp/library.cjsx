@@ -19,19 +19,17 @@
 #
 ##############################################################################
 
-$ = window.$
+$              = window.$
 underscore = _ = require('underscore')
-misc = require('smc-util/misc')
-misc_page = require('./misc_page')
-os_path = require('path')
+misc           = require('smc-util/misc')
+misc_page      = require('./misc_page')
+os_path        = require('path')
 
 {React, ReactDOM, Actions, Store, Table, rtypes, rclass, Redux}  = require('./smc-react')
-{Col, Row, Button, ButtonGroup, ButtonToolbar, FormControl, FormGroup, Panel, Input,
-Well, SplitButton, MenuItem, Alert, ListGroup, ListGroupItem} = require('react-bootstrap')
-{Icon, Markdown, ProjectState, Space, TimeAgo} = require('./r_misc')
-{ErrorDisplay, Icon, Loading, TimeAgo, Tip, ImmutablePureRenderMixin, Space} = require('./r_misc')
+{Col, Row, Button, ButtonGroup, ButtonToolbar, FormControl, FormGroup, Panel, Input, Well, SplitButton, MenuItem, Alert, ListGroup, ListGroupItem} = require('react-bootstrap')
+{Markdown, Space, TimeAgo, ErrorDisplay, Icon, Loading, TimeAgo, Tip, Space} = require('./r_misc')
 {webapp_client} = require('./webapp_client')
-{COLORS} = require('smc-util/theme')
+{COLORS}        = require('smc-util/theme')
 
 # src: where the library files are
 # start: open this file after copying the directory
@@ -40,7 +38,8 @@ exports.LIBRARY = LIBRARY =
         src    : '/ext/library/first-steps/src'
         start  : 'first-steps.tasks'
 
-HEIGHT = '250px'
+# used for some styles
+HEIGHT = '275px'
 
 # https://github.com/sagemathinc/cocalc-examples
 exports.examples_path = ROOT = '/ext/library/cocalc-examples'
@@ -49,7 +48,8 @@ sortBy = (key) ->
     (list) ->
         _.sortBy(list, (k) -> k[key]?.toLowerCase() ? k)
 
-
+# This is the main library component. It consists of a "selector" and a preview.
+# Later, we probably want to filter by tags, free-text search, ... but for now we just have the main categories
 exports.Library = rclass ({name}) ->
     displayName : "Library-#{name}"
 
@@ -82,7 +82,8 @@ exports.Library = rclass ({name}) ->
         docs = props.library.getIn(['examples'])?.documents
 
         if docs?
-            # sort by a triplet
+            # sort by a triplet: idea is to have the docs sorted by their category,
+            # where some categories have weights (e.g. "introduction" comes first, no matter what)
             sortfn = (doc) -> [
                 meta.categories[doc.category].weight ? 0
                 meta.categories[doc.category].name.toLowerCase()
@@ -101,6 +102,8 @@ exports.Library = rclass ({name}) ->
         return if @props.library.get('examples')? and (@props.library.get('examples') == next.library.get('examples'))
         @init_state(next)
 
+    # this might be better off in actions. the purpose is to prepare the target for the rsync operation.
+    # so far, this works well for all directories -- marked by a "/" at the end.
     target_path: ->
         doc = @props.library_selected
         src = doc.src
@@ -118,6 +121,8 @@ exports.Library = rclass ({name}) ->
         #if DEBUG then console.log("copy from", doc.src, "to", target)
         return target
 
+    # This is the core part of all this: copy over the directory (TODO: a single file)
+    # from the global read-only dir to the user's current directory
     copy: (doc) ->
         @setState(copy: true)
         doc = @props.library_selected
@@ -127,7 +132,7 @@ exports.Library = rclass ({name}) ->
             title  : doc.title
             docid  : doc.id
             start  : doc?.start ? '/'
-            # cb     : => if @isMounted() then @setState(copy: false)   # deprecated, hmm...
+            # cb     : => if @isMounted() then @setState(copy: false)   # deprecated, hmm... copy-state is reset anyways
 
     selector_keyup: (evt) ->
         return if not @props.library_selected?
@@ -140,7 +145,6 @@ exports.Library = rclass ({name}) ->
         idx     = ids.indexOf(@props.library_selected.id) + dx
         new_doc = @state.sorted_docs[idx %% @state.sorted_docs.length]
         @props.actions.setState(library_selected: new_doc)
-        #@scroll_into_view()
         $(ReactDOM.findDOMNode(@refs.selector_list)).find('.active').scrollintoview()
 
         evt.preventDefault()
@@ -148,9 +152,11 @@ exports.Library = rclass ({name}) ->
         evt.nativeEvent.stopImmediatePropagation()
         return false
 
+
     select_list_click: (doc) ->
-        @setState(show_thumb:false)
+        @setState(show_thumb:false)  # we control the visibility of the thumbnail, because it would show to the old one until the new one is loaded
         @props.actions.setState(library_selected:doc)
+
 
     select_list: (list) ->
         return null if not @state.sorted_docs?
@@ -172,6 +178,7 @@ exports.Library = rclass ({name}) ->
                 cur_cat_title   = @state.metadata.categories[cur_cat].name
                 list.push(<li className="list-group-header" key={"header-#{cur_cat}"}>{cur_cat_title}</li>)
 
+            # the entry for each available document
             list.push(
                 <ListGroupItem
                     key         = {doc.id}
@@ -185,6 +192,7 @@ exports.Library = rclass ({name}) ->
             )
         return list
 
+
     selector: ->
         list_style =
             maxHeight    : HEIGHT
@@ -197,6 +205,7 @@ exports.Library = rclass ({name}) ->
         <ListGroup style={list_style} onKeyUp={@selector_keyup} ref='selector_list'>
             {@select_list()}
         </ListGroup>
+
 
     thumbnail: ->
         return null if (not @props.library_selected.thumbnail?) or (not @props.project_id)
@@ -228,7 +237,11 @@ exports.Library = rclass ({name}) ->
             maxHeight  : HEIGHT
             overflow   : 'auto'
 
-        category_extra_info = @state.metadata.categories[doc.category].info
+        # this tells the user additional information for specific tags (like, pick the right kernel...)
+        tag_extra_info = []
+        for tag in doc.tags ? []
+            info = @state.metadata.tags[tag].info
+            tag_extra_info.push(info) if info
 
         <div style={style}>
             <h5 style={marginTop: '0px'}>
@@ -237,7 +250,7 @@ exports.Library = rclass ({name}) ->
             </h5>
             {
                 if doc.description?
-                    <p style={color: '#666'}>
+                    <p style={color: COLORS.GRAY_D}>
                         <Markdown value={doc.description} />
                     </p>
             }
@@ -247,13 +260,30 @@ exports.Library = rclass ({name}) ->
                         whiteSpace    : 'nowrap'
                         overflow      : 'hidden'
                         textOverflow  : 'ellipsis'
-                    <p>Website: <a style={website_style} target='_blank' href={doc.website}>{doc.website}</a></p>
+                    <p style={color: COLORS.GRAY_D}>
+                        Website: <a style={website_style} target='_blank' href={doc.website}>{doc.website}</a>
+                    </p>
             }
-            {<p>License: {meta.licenses[doc.license] ? doc.license}</p> if doc.license?}
+            {
+                if doc.license?
+                    <p style={color: COLORS.GRAY_D}>
+                        License: {meta.licenses[doc.license] ? doc.license}
+                    </p>
+            }
             {
                 if doc.tags?
                     tags = ((meta.tags[t].name ? t) for t in doc.tags)
-                    <p>Tags: {tags.join(', ')}</p>
+                    <p style={color: COLORS.GRAY_D}>
+                        Tags: {tags.join(', ')}
+                    </p>
+            }
+            {#<p style={color: '#666'}>copies <code>{@props.library_selected.src}</code> into <code>{@target_path()}</code></p>}
+            {
+                if tag_extra_info.length > 0
+                    info = tag_extra_info.join(' ')
+                    <p style={color: COLORS.GRAY_D}>
+                        <Icon name='exclamation-triangle' style={color:COLORS.YELL_L} /> {info}
+                    </p>
             }
             <Button
                 bsStyle  = "success"
@@ -262,13 +292,11 @@ exports.Library = rclass ({name}) ->
             >
                 {
                     if @state.copy
-                        'Copying ...'
+                        <span><Loading text='Copying ...' /></span>
                     else
-                        'Get a copy'
+                        <span><Icon name='files-o' /> Get a copy</span>
                 }
             </Button>
-            {#<p style={color: '#666'}>copies <code>{@props.library_selected.src}</code> into <code>{@target_path()}</code></p>}
-            {<p style={color: COLORS.GRAY_L}>{category_extra_info}</p> if category_extra_info}
         </div>
 
     render: ->
