@@ -28,7 +28,7 @@ immutable  = require('immutable')
 {Col, Row, Button, ButtonGroup, ButtonToolbar, FormControl, FormGroup, InputGroup, Panel, Well} = require('react-bootstrap')
 {Icon, Loading, TimeAgo, PathLink, r_join, SearchInput, Space, Tip} = require('./r_misc')
 {User} = require('./users')
-{file_action_buttons} = require('./project_files')
+{file_actions} = require('./project_files')
 {ProjectTitleAuto} = require('./projects')
 
 {file_associations} = require('./file-associations')
@@ -272,7 +272,7 @@ LogEntry = rclass
                 return 'wrench'
             when 'file_action'
                 icon = @file_action_icons[@props.event.action]
-                return file_action_buttons[icon]?.icon
+                return file_actions[icon]?.icon
             when 'upgrade'
                 return 'arrow-circle-up'
             when 'invite_user'

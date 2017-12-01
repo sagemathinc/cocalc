@@ -42,9 +42,9 @@ exports.render_public_path = (opts) ->
             path_to_file: os_path.join(opts.dir, opts.path)
         fs.lstat locals.path_to_file, (err, stats) ->
             if err
-
                 opts.res.sendStatus(404)
                 return
+
             if stats.isDirectory()
                 if opts.path.slice(-1) != '/'
                     util.redirect_to_directory(opts.req, opts.res)
@@ -82,7 +82,7 @@ exports.render_public_path = (opts) ->
                     return
 
                 ext = misc.filename_extension(locals.path_to_file)?.toLowerCase()
-                if extensions.image[ext] or extensions.pdf[ext]
+                if extensions.image[ext] or extensions.pdf[ext] or extensions.video[ext]
                     cb()
                     return
                 else
@@ -92,10 +92,12 @@ exports.render_public_path = (opts) ->
                         else
                             locals.content = data.toString()
                             cb()
+
             get_content (err) ->
                 if err
                     opts.res.sendStatus(404)
                     return
+
                 component = <PublicPath
                     info     = {opts.info}
                     content  = {locals.content}

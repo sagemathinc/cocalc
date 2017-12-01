@@ -58,6 +58,9 @@ exports.PublicPath = rclass
             return {elt: <img src={src} />}
         else if extensions.pdf[ext]
             return {elt: <PDF src={src} />}
+        else if extensions.video[ext]
+            video_style = {maxWidth: '100%', height: 'auto'}
+            return {elt: <video controls autoPlay loop style={video_style} src={src}/>}
 
         if not @props.content?
             # This happens if the file is too big

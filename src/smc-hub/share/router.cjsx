@@ -19,16 +19,19 @@ react_support        = require('./react')
 {render_public_path} = require('./render-public-path')
 {render_static_path} = require('./render-static-path')
 
+# this reads it from disk
+google_analytics     = require('./util').google_analytics_token()
 
 react_viewer = (base_url, path, project_id, notranslate, viewer) ->
     return (res, component, subtitle) ->
         the_page = <Page
-            base_url    = {base_url}
-            path        = {path}
-            project_id  = {project_id}
-            subtitle    = {subtitle}
-            notranslate = {!!notranslate}
-            viewer      = {viewer}>
+            base_url         = {base_url}
+            path             = {path}
+            project_id       = {project_id}
+            subtitle         = {subtitle}
+            notranslate      = {!!notranslate}
+            google_analytics = {google_analytics}
+            viewer           = {viewer}>
 
             {component}
 
@@ -127,7 +130,9 @@ exports.share_router = (opts) ->
                 project_id = info.get('project_id')
 
             path = req.params[0]
+            #dbg("router.get '/:id/*?': #{project_id} and #{path}: #{public_paths.is_public(project_id, path)}, info: #{misc.to_json(info)}, path: #{path}")
             if not path?
+                #dbg("no path → 404")
                 res.sendStatus(404)
                 return
 
@@ -140,6 +145,7 @@ exports.share_router = (opts) ->
             #   by what happens to be in the path to files.  So share server not having
             #   updated yet is a problem, but ALSO, in some cases (dev server, docker personal)
             #   that path is just to the live files in the project, so very dangerous.
+
 
             if not public_paths.is_public(project_id, path)
                 res.sendStatus(404)

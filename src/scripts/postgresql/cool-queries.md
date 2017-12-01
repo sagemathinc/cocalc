@@ -1,3 +1,14 @@
+Recently published paths:
+
+    select now()-created,project_id,path from public_paths where created >= now() - interval '1 day' and created <= now() order by created desc;
+
+    select count(*) from public_paths where created >= now() - interval '1 day' and created <= now();  select count(*) from public_paths where created >= now() - interval '2 day' and created <= now() - interval '1 day'; select count(*) from public_paths where created >= now() - interval '3 day' and created <= now() - interval '2 day';
+
+    select count(*) from public_paths where created >= now() - interval '1 day' and created <= now() and disabled;  select count(*) from public_paths where created >= now() - interval '2 day' and created <= now() - interval '1 day' and disabled; select count(*) from public_paths where created >= now() - interval '3 day' and created <= now() - interval '2 day' and disabled;
+
+select count(*) from project_log where time >= now() - interval '2 day' and time <= now() - interval '1 day' and event#>>'{event}' = 'invite_user';  select count(*) from project_log where time >= now() - interval '1 day' and time <= now() and event#>>'{event}' = 'invite_user';
+
+
 Recently added collaborators:
 
     select now()-time,project_id from project_log where time >= now() - interval '1 day' and time <= now() and event#>>'{event}' = 'invite_user' order by time desc;
