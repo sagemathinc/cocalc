@@ -242,6 +242,7 @@ action_set_state = (change) ->
     action =
         type   : 'SET_STATE'
         change : immutable.fromJS(change)   # guaranteed immutable.js all the way down
+        # Deeply nested objects need to be converted with fromJS before being put in the store
 
 action_remove_store = (name) ->
     action =
