@@ -8,6 +8,8 @@ async   = require('async')
 console.log("loading mathjax-node...")
 mathjax = require('mathjax-node')
 
+{defaults} = require('smc-util/misc')
+
 # Deriving MyMathJaxConfig from the webapp's MathJaxConfig
 # It's the same, execpt for the entries that reference additional .js files
 # Otherwise the rendered page wouldn't even show up, so I assume there is no support for that
@@ -47,7 +49,7 @@ replace_scripts = (html) ->
         html = html.slice(0, i) + '\n$$' + html.slice(i+SCRIPT.length, j) + '$$\n' + html.slice(j+'</script>'.length)
     return html
 
-exports.mathjax = (html, cb) ->
+process_using_mathjax = (html, cb) ->
     html = replace_scripts(html)
 
     [text, math] = remove_math(html)
@@ -73,5 +75,42 @@ exports.mathjax = (html, cb) ->
 
     async.map [0...math.length], f, ->
         cb(undefined, replace_math(text, math))
+
+
+$.fn.extend
+    mathjax: (opts={}) ->
+        opts = defaults opts,
+            tex                 : undefined
+            display             : false
+            inline              : false
+            hide_when_rendering : false         # ignored
+            cb                  : undefined     # if defined, gets called as cb(t) for *every* element t in the jquery set!
+        @each () ->
+            t = $(this)
+            if not opts.tex? and not opts.display and not opts.inline
+                # Doing this test is still much better than calling mathjax below, since I guess
+                # it doesn't do a simple test first... and mathjax is painful.
+                html = t.html().toLowerCase()
+                if html.indexOf('$') == -1 and html.indexOf('\\') == -1 and html.indexOf('math/tex') == -1
+                    opts.cb?()
+                    return t
+                # this is a common special case - the code below would work, but would be
+                # stupid, since it involves converting back and forth between html
+                element = t
+            else
+                if opts.tex?
+                    tex = opts.tex
+                else
+                    tex = t.html()
+                if opts.display
+                    tex = "$${#{tex}}$$"
+                else if opts.inline
+                    tex = "\\({#{tex}}\\)"
+                element = t.html(tex)
+            process_using_mathjax element.html(), (err, processed) ->
+                if not err
+                    element.html(processed)
+                opts.cb?(err)
+            return t
 
 console.log("loaded mathjax.")

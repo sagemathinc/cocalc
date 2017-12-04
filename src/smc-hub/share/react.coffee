@@ -7,14 +7,11 @@ ReactDOMServer = require('react-dom/server')
 
 require('./jsdom-support')
 
-{mathjax} = require('./mathjax-support')
-
 # Uncomment for cc-in-cc dev benchmarking purposes.  This variable is already set
 # by the Docker container when running in kubernetes.
 ## process.NODE_ENV="production"
 
-
-STREAMING = false
+STREAMING = true
 # Ned to implement more targetted mathjax before enabling streaming
 
 if STREAMING
@@ -32,9 +29,4 @@ else
     exports.react = (res, component, extra) ->
         t0 = new Date()
         html = '<!DOCTYPE html>' + ReactDOMServer.renderToStaticMarkup(component)
-        if html.indexOf('cocalc-share-mathjax') != -1
-            mathjax html, (err, html) ->
-                console.log("react: time to render and send: #{new Date() - t0}ms", extra)
-                res.send(html)
-        else
-            res.send(html)
+        res.send(html)
