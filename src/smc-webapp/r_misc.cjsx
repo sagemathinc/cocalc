@@ -188,12 +188,12 @@ exports.Loading = Loading = rclass
         style  : rtypes.object
         text   : rtypes.string
 
-    getInitialState : ->
-        text   : @props.text ? 'Loading...'
+    getDefaultProps : ->
+        text   : 'Loading...'
 
     render: ->
         <span style={@props.style}>
-            <span><Icon name='cc-icon-cocalc-ring' spin /> {@state.text}</span>
+            <span><Icon name='cc-icon-cocalc-ring' spin /> {@props.text}</span>
         </span>
 
 exports.Saving = Saving = rclass

@@ -65,25 +65,24 @@ exports.Library = rclass ({name}) ->
     getInitialState: ->
         lang        : 'python'
         show_thumb  : false
-        metadata    : undefined
         sorted_docs : undefined    # depends('library') ->
 
+    metadata: ->
+        @props.library?.getIn(['examples', 'metadata'])
+
     update_state_from: (props) ->
-        meta = props.library.getIn(['examples', 'metadata'])
         docs = props.library.getIn(['examples', 'documents'])
 
         if docs?
             # sort by a triplet: idea is to have the docs sorted by their category,
             # where some categories have weights (e.g. "introduction" comes first, no matter what)
-            sortfn = (doc) -> [
-                meta.getIn(['categories', doc.get('category'), 'weight']) ? 0
-                meta.getIn(['categories', doc.get('category'), 'name']).toLowerCase()
+            sortfn = (doc) => [
+                @metadata().getIn(['categories', doc.get('category'), 'weight']) ? 0
+                @metadata().getIn(['categories', doc.get('category'), 'name']).toLowerCase()
                 doc.get('title')?.toLowerCase() ? doc.get('id')
             ]
             sdocs  = docs.sortBy(sortfn)
-            @setState
-                sorted_docs : sdocs
-                metadata    : meta
+            @setState(sorted_docs : sdocs)
 
     componentDidMount: ->
         @update_state_from(@props)
@@ -165,7 +164,7 @@ exports.Library = rclass ({name}) ->
             #new category? insert a header into the list ...
             if doc.get('category') isnt cur_cat
                 cur_cat         = doc.get('category')
-                cur_cat_title   = @state.metadata.getIn(['categories', cur_cat, 'name'])
+                cur_cat_title   = @metadata().getIn(['categories', cur_cat, 'name'])
                 list.push(<li className="list-group-header" key={"header-#{cur_cat}"}>{cur_cat_title}</li>)
 
             # the entry for each available document
@@ -216,10 +215,9 @@ exports.Library = rclass ({name}) ->
 
 
     details: ->
-        return null if (not @props.library_selected?) or (not @state.metadata?)
+        return null if (not @props.library_selected?) or (not @metadata()?)
         # for doc and metadata examples see https://github.com/sagemathinc/cocalc-examples/blob/master/index.yaml
         doc   = @props.library_selected
-        meta  = @state.metadata
         style =
             maxHeight  : HEIGHT
             overflow   : 'auto'
@@ -227,7 +225,7 @@ exports.Library = rclass ({name}) ->
         # this tells the user additional information for specific tags (like, pick the right kernel...)
         tag_extra_info = []
         for tag in doc.get('tags') ? []
-            info = @state.metadata.getIn(['tags', tag, 'info'])
+            info = @metadata().getIn(['tags', tag, 'info'])
             tag_extra_info.push(info) if info
 
         <div style={style}>
@@ -254,12 +252,12 @@ exports.Library = rclass ({name}) ->
             {
                 if doc.get('license')?
                     <p style={color: COLORS.GRAY_D}>
-                        License: {meta.getIn(['licenses', doc.get('license')]) ? doc.get('license')}
+                        License: {@metadata().getIn(['licenses', doc.get('license')]) ? doc.get('license')}
                     </p>
             }
             {
                 if doc.get('tags')?
-                    tags = doc.get('tags').map(((t) -> meta.getIn(['tags', t, 'name']) ? t))
+                    tags = doc.get('tags').map(((t) => @metadata().getIn(['tags', t, 'name']) ? t))
                     <p style={color: COLORS.GRAY_D}>
                         Tags: {tags.join(', ')}
                     </p>

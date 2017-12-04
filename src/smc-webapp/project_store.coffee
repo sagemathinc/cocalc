@@ -935,24 +935,6 @@ class ProjectActions extends Actions
                         @setState(library: library)
                     cb(err)
 
-        # reads the index file for the library (if it fails, we have no library)
-        index = (cb) =>
-            {webapp_client} = require('./webapp_client')
-
-            webapp_client.read_text_file_from_project
-                project_id : @project_id
-                path       : require('./library').examples_path + '/index.json'
-                cb         : (err, response) =>
-                    if err
-                        cb(); return
-                    try
-                        data = misc.from_json(response.content)
-                        library = @get_store().library.set('examples', data)
-                        @setState(library: library)
-                    catch e
-                        if DEBUG then console.log("init_library/index: error parsing: #{e}")
-                    cb()
-
         async.series([
             (cb) -> async.eachOfSeries(LIBRARY, check, cb)
         ])
@@ -978,16 +960,12 @@ class ProjectActions extends Actions
                 url     : index_json_url
                 timeout : 5000
                 success : (data) =>
-                    #if DEBUG then console.log("init_library/content", content)
-                    try
-                        data = immutable.fromJS(data)
-                        library = @get_store().library.set('examples', data)
-                        @setState(library: library)
-                        _init_library_index_cache[@project_id] = data
-                        cb()
-                    catch e
-                        if DEBUG then console.log("init_library/index: error parsing: #{e}")
-                        cb(e)
+                    #if DEBUG then console.log("init_library/datadata
+                    data = immutable.fromJS(data)
+                    library = @get_store().library.set('examples', data)
+                    @setState(library: library)
+                    _init_library_index_cache[@project_id] = data
+                    cb()
                 ).fail((err) ->
                     if DEBUG then console.log("init_library/index: error reading file: #{misc.to_json(err)}")
                     cb(err.statusText ? 'error')
