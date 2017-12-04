@@ -44,9 +44,6 @@ HEIGHT = '275px'
 # https://github.com/sagemathinc/cocalc-examples
 exports.examples_path = ROOT = '/ext/library/cocalc-examples'
 
-sortBy = (key) ->
-    (list) ->
-        _.sortBy(list, (k) -> k[key]?.toLowerCase() ? k)
 
 # This is the main library component. It consists of a "selector" and a preview.
 # Later, we probably want to filter by tags, free-text search, ... but for now we just have the main categories
@@ -57,7 +54,8 @@ exports.Library = rclass ({name}) ->
         "#{name}" :
             current_path        : rtypes.string
             library             : rtypes.immutable.Map
-            library_selected    : rtypes.object
+            library_selected    : rtypes.immutable.Map
+            library_copy_active : rtypes.bool
         projects:
             project_map         : rtypes.immutable
 
@@ -66,49 +64,41 @@ exports.Library = rclass ({name}) ->
 
     getInitialState: ->
         lang        : 'python'
-        copy        : false
         show_thumb  : false
-        sorted_docs : undefined
         metadata    : undefined
+        sorted_docs : undefined    # depends('library') ->
 
-    componentDidMount: ->
-        # TODO this isn't working
-        #@scroll_into_view = _.debounce((=> $(ReactDOM.findDOMNode(@refs.selector_list)).find('.active').scrollintoview()), 50)
-
-    componentDidUpdate: (props, state) ->
-
-    init_state: (props) ->
-        meta = props.library.getIn(['examples'])?.metadata
-        docs = props.library.getIn(['examples'])?.documents
+    update_state_from: (props) ->
+        meta = props.library.getIn(['examples', 'metadata'])
+        docs = props.library.getIn(['examples', 'documents'])
 
         if docs?
             # sort by a triplet: idea is to have the docs sorted by their category,
             # where some categories have weights (e.g. "introduction" comes first, no matter what)
             sortfn = (doc) -> [
-                meta.categories[doc.category].weight ? 0
-                meta.categories[doc.category].name.toLowerCase()
-                doc.title?.toLowerCase() ? doc.id
+                meta.getIn(['categories', doc.get('category'), 'weight']) ? 0
+                meta.getIn(['categories', doc.get('category'), 'name']).toLowerCase()
+                doc.get('title')?.toLowerCase() ? doc.get('id')
             ]
-            sdocs  = _.sortBy(docs, sortfn)
+            sdocs  = docs.sortBy(sortfn)
             @setState
-                copy        : false
                 sorted_docs : sdocs
                 metadata    : meta
 
     componentDidMount: ->
-        @init_state(@props)
+        @update_state_from(@props)
 
     componentWillReceiveProps: (next) ->
         return if @props.library.get('examples')? and (@props.library.get('examples') == next.library.get('examples'))
-        @init_state(next)
+        @update_state_from(next)
 
     # this might be better off in actions. the purpose is to prepare the target for the rsync operation.
     # so far, this works well for all directories -- marked by a "/" at the end.
     target_path: ->
         doc = @props.library_selected
-        src = doc.src
-        if doc.subdir
-            subdir = doc.subdir
+        src = doc.get('src')
+        if doc.get('subdir')
+            subdir = doc.get('subdir')
         else
             # directory? cut off the trailing slash
             if src[src.length - 1] == '/'
@@ -124,15 +114,15 @@ exports.Library = rclass ({name}) ->
     # This is the core part of all this: copy over the directory (TODO: a single file)
     # from the global read-only dir to the user's current directory
     copy: (doc) ->
-        @setState(copy: true)
+        @props.actions.set_library_copy_active(false)
         doc = @props.library_selected
         @props.actions.copy_from_library
-            src    : doc.src
+            src    : doc.get('src')
             target : @target_path()
-            title  : doc.title
-            docid  : doc.id
-            start  : doc?.start ? '/'
-            # cb     : => if @isMounted() then @setState(copy: false)   # deprecated, hmm... copy-state is reset anyways
+            title  : doc.get('title')
+            docid  : doc.get('id')
+            start  : doc?.get('start') ? '/'
+            cb     : => @props.actions.set_library_copy_active(true)
 
     selector_keyup: (evt) ->
         return if not @props.library_selected?
@@ -141,9 +131,9 @@ exports.Library = rclass ({name}) ->
                 dx = -1
             when 40 # down
                 dx = 1
-        ids     = (doc.id for doc in @state.sorted_docs)
-        idx     = ids.indexOf(@props.library_selected.id) + dx
-        new_doc = @state.sorted_docs[idx %% @state.sorted_docs.length]
+        ids     = @state.sorted_docs.map((doc) -> doc.get('id'))
+        idx     = ids.indexOf(@props.library_selected.get('id')) + dx
+        new_doc = @state.sorted_docs.get(idx %% @state.sorted_docs.size)
         @props.actions.setState(library_selected: new_doc)
         $(ReactDOM.findDOMNode(@refs.selector_list)).find('.active').scrollintoview()
 
@@ -173,21 +163,21 @@ exports.Library = rclass ({name}) ->
 
         @state.sorted_docs.map (doc) =>
             #new category? insert a header into the list ...
-            if doc.category isnt cur_cat
-                cur_cat         = doc.category
-                cur_cat_title   = @state.metadata.categories[cur_cat].name
+            if doc.get('category') isnt cur_cat
+                cur_cat         = doc.get('category')
+                cur_cat_title   = @state.metadata.getIn(['categories', cur_cat, 'name'])
                 list.push(<li className="list-group-header" key={"header-#{cur_cat}"}>{cur_cat_title}</li>)
 
             # the entry for each available document
             list.push(
                 <ListGroupItem
-                    key         = {doc.id}
-                    active      = {doc.id == @props.library_selected?.id}
+                    key         = {doc.get('id')}
+                    active      = {doc.get('id') == @props.library_selected?.get('id')}
                     onClick     = {=> @select_list_click(doc)}
                     style       = {item_style}
                     bsSize      = {'small'}
                 >
-                    {doc.title ? doc.id}
+                    {doc.get('title') ? doc.get('id')}
                 </ListGroupItem>
             )
         return list
@@ -208,11 +198,11 @@ exports.Library = rclass ({name}) ->
 
 
     thumbnail: ->
-        return null if (not @props.library_selected.thumbnail?) or (not @props.project_id)
+        return null if (not @props.library_selected.get('thumbnail')?) or (not @props.project_id)
 
         img_path = webapp_client.read_file_from_project
             project_id : @props.project_id
-            path       : @props.library_selected.thumbnail
+            path       : @props.library_selected.get('thumbnail')
 
         img_style =
             display       : if @state.show_thumb then 'block' else 'none'
@@ -227,10 +217,7 @@ exports.Library = rclass ({name}) ->
 
     details: ->
         return null if (not @props.library_selected?) or (not @state.metadata?)
-        # example:
-        # {"title":"Data science Python notebooks","id":"doc-6","license":"a20",
-        # "src":"/ext/library/cocalc-examples/data-science-ipython-notebooks/",
-        # "description":"Data science Python notebooks: Deep learning ...\n"}
+        # for doc and metadata examples see https://github.com/sagemathinc/cocalc-examples/blob/master/index.yaml
         doc   = @props.library_selected
         meta  = @state.metadata
         style =
@@ -239,40 +226,40 @@ exports.Library = rclass ({name}) ->
 
         # this tells the user additional information for specific tags (like, pick the right kernel...)
         tag_extra_info = []
-        for tag in doc.tags ? []
-            info = @state.metadata.tags[tag].info
+        for tag in doc.get('tags') ? []
+            info = @state.metadata.getIn(['tags', tag, 'info'])
             tag_extra_info.push(info) if info
 
         <div style={style}>
             <h5 style={marginTop: '0px'}>
-                <strong>{doc.title ? doc.id}</strong>
-                {" by #{doc.author}" if doc.author?}
+                <strong>{doc.get('title') ? doc.get('id')}</strong>
+                {" by #{doc.get('author')}" if doc.get('author')?}
             </h5>
             {
-                if doc.description?
+                if doc.get('description')?
                     <p style={color: COLORS.GRAY_D}>
-                        <Markdown value={doc.description} />
+                        <Markdown value={doc.get('description')} />
                     </p>
             }
             {
-                if doc.website?
+                if doc.get('website')?
                     website_style =
                         whiteSpace    : 'nowrap'
                         overflow      : 'hidden'
                         textOverflow  : 'ellipsis'
                     <p style={color: COLORS.GRAY_D}>
-                        Website: <a style={website_style} target='_blank' href={doc.website}>{doc.website}</a>
+                        Website: <a style={website_style} target='_blank' href={doc.get('website')}>{doc.get('website')}</a>
                     </p>
             }
             {
-                if doc.license?
+                if doc.get('license')?
                     <p style={color: COLORS.GRAY_D}>
-                        License: {meta.licenses[doc.license] ? doc.license}
+                        License: {meta.getIn(['licenses', doc.get('license')]) ? doc.get('license')}
                     </p>
             }
             {
-                if doc.tags?
-                    tags = ((meta.tags[t].name ? t) for t in doc.tags)
+                if doc.get('tags')?
+                    tags = doc.get('tags').map(((t) -> meta.getIn(['tags', t, 'name']) ? t))
                     <p style={color: COLORS.GRAY_D}>
                         Tags: {tags.join(', ')}
                     </p>
@@ -288,10 +275,10 @@ exports.Library = rclass ({name}) ->
             <Button
                 bsStyle  = "success"
                 onClick  = {=> @copy()}
-                disabled = {@state.copy}
+                disabled = {not @props.library_copy_active}
             >
                 {
-                    if @state.copy
+                    if not @props.library_copy_active
                         <span><Loading text='Copying ...' /></span>
                     else
                         <span><Icon name='files-o' /> Get a copy</span>
@@ -310,7 +297,7 @@ exports.Library = rclass ({name}) ->
         if (not @props.library?.get('examples')?)
             return <Loading />
 
-        thumb = @props.library_selected?.thumbnail
+        thumb = @props.library_selected?.get('thumbnail')
         <Row>
             <Col sm=4>{@selector()}</Col>
             <Col sm={if thumb then 6 else 8}>{@details()}</Col>

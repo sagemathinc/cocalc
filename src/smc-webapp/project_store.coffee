@@ -980,6 +980,7 @@ class ProjectActions extends Actions
                 success : (data) =>
                     #if DEBUG then console.log("init_library/content", content)
                     try
+                        data = immutable.fromJS(data)
                         library = @get_store().library.set('examples', data)
                         @setState(library: library)
                         _init_library_index_cache[@project_id] = data
@@ -1047,6 +1048,9 @@ class ProjectActions extends Actions
                         title  : opts.title
                         target : target
                 opts.cb?(err)
+
+    set_library_copy_active: (status) =>
+        @setState(library_copy_active:status)
 
     copy_paths: (opts) =>
         opts = defaults opts,
@@ -1688,6 +1692,8 @@ create_project_store_def = (name, project_id) ->
         open_files             : immutable.Map({})
         num_ghost_file_tabs    : 0
         library                : immutable.Map({})
+        library_selected       : undefined
+        library_copy_active    : true
 
     reduxState:
         account:
@@ -1735,6 +1741,7 @@ create_project_store_def = (name, project_id) ->
         file_creation_error : rtypes.string
         library             : rtypes.immutable.Map
         library_selected    : rtypes.object
+        library_copy_active : rtypes.bool  # for copy button, active == not disabled
 
         # Project Find
         user_input         : rtypes.string
