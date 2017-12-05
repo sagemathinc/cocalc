@@ -8,7 +8,7 @@ CoCalcLogo = ({base_url}) ->
 
 exports.TopBar = ({viewer, path, project_id, base_url, site_name}) ->
     if viewer == 'embed'
-        return
+        return <span></span>
     project = undefined
     if path == '/'
         top = '.'

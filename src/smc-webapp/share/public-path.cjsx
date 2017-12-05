@@ -95,17 +95,20 @@ exports.PublicPath = rclass
 
         return {mathjax: mathjax, elt:elt}
 
+    render_embed: (elt, mathjax) ->
+        <div has_mathjax={if mathjax then "true"}>
+            {elt}
+        </div>
+
     render: ->
         {elt, mathjax} = @main_view()
 
-        if @props.viewer == 'embed'
-            embed = <html>
-                        <head><meta name="robots" content="noindex, nofollow" /></head>
-                        <body>{elt}</body>
-                    </html>
-            return embed
+        # TODO: has_mathjax doesn't work at all -- it always processes, which is slow.  Maybe because has_mathjax
+        # isn't a div prop?  It is ignored by the walker in mathjax-support...
 
-        # TODO: has_mathjax doesn't work at all -- it always processes, which is slow.  Maybe because has_mathjax isn't a div prop?  It is ignored by the walker in mathjax-support...
+        if @props.viewer == 'embed'
+            return @render_embed(elt, mathjax)
+
         <div style={display: 'flex', flexDirection: 'column', flex:1} has_mathjax={if mathjax then "true"}>
             <PublicPathInfo path={@props.path} info={@props.info} />
             <div style={background: 'white', overflow:'auto', flex:1}>
