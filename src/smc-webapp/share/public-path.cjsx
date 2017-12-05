@@ -89,7 +89,7 @@ exports.PublicPath = rclass
         else if extensions.codemirror[ext]
             options = immutable.fromJS(extensions.codemirror[ext])
             #options = options.set('lineNumbers', true)
-            elt = <CodeMirrorStatic value={@props.content} options={options} style={background:'white', padding:'10px'}/>
+            elt = <CodeMirrorStatic value={@props.content} options={options} style={background:'white', margin:'10px 20px'}/>
         else
             elt = <pre>{@props.content}</pre>
 
@@ -97,19 +97,16 @@ exports.PublicPath = rclass
 
     render: ->
         {elt, mathjax} = @main_view()
-        if mathjax
-            cls = 'cocalc-share-mathjax'
-        else
-            cls = undefined
 
         if @props.viewer == 'embed'
             embed = <html>
                         <head><meta name="robots" content="noindex, nofollow" /></head>
-                        <body className={cls}>{elt}</body>
+                        <body>{elt}</body>
                     </html>
             return embed
 
-        <div style={display: 'flex', flexDirection: 'column', flex:1} className={cls}>
+        # TODO: has_mathjax doesn't work at all -- it always processes, which is slow.  Maybe because has_mathjax isn't a div prop?  It is ignored by the walker in mathjax-support...
+        <div style={display: 'flex', flexDirection: 'column', flex:1} has_mathjax={if mathjax then "true"}>
             <PublicPathInfo path={@props.path} info={@props.info} />
             <div style={background: 'white', overflow:'auto', flex:1}>
                 {elt}

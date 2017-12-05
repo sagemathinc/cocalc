@@ -8,7 +8,7 @@ async   = require('async')
 console.log("loading mathjax-node...")
 mathjax = require('mathjax-node')
 
-{defaults} = require('smc-util/misc')
+{defaults, replace_all} = require('smc-util/misc')
 
 # Deriving MyMathJaxConfig from the webapp's MathJaxConfig
 # It's the same, execpt for the entries that reference additional .js files
@@ -21,12 +21,11 @@ MyMathJaxConfig =
     tex2jax     : MathJaxConfig.tex2jax
     #extensions  : MathJaxConfig.extensions   # commented on purpose, see above
     TeX         : MathJaxConfig.TeX
-    "HTML-CSS"  : MathJaxConfig["HTML-CSS"]
     SVG         : MathJaxConfig.SVG
 
 mathjax.config(
-    displayErrors: false
-    MathJax: MyMathJaxConfig
+    displayErrors : false
+    MathJax       : MyMathJaxConfig
 )
 
 {remove_math} = require('smc-util/mathjax-utils')
@@ -49,10 +48,11 @@ replace_scripts = (html) ->
         html = html.slice(0, i) + '\n$$' + html.slice(i+SCRIPT.length, j) + '$$\n' + html.slice(j+'</script>'.length)
     return html
 
+# NOTE: It is totally impossible to do mathjax synchronously, ever. -- https://github.com/mathjax/MathJax-node/issues/140
 process_using_mathjax = (html, cb) ->
     html = replace_scripts(html)
 
-    [text, math] = remove_math(html)
+    [text, math] = remove_math(html, true)
     f = (i, cb) ->
         s = math[i]
         display = false
@@ -67,50 +67,46 @@ process_using_mathjax = (html, cb) ->
         else if s.slice(0,6) == "\\begin"
             s = s.slice(s.indexOf('}')+1, s.lastIndexOf('\\end'))
             display = true
+        # change these HTML entities, since our input format is TeX, **not** HTML (which is not supported by mathjax-node)
+        s = replace_all(s, '&amp;', '&')
+        s = replace_all(s, '&lt;', '<')
+        s = replace_all(s, '&gt;', '>')
         mathjax.typeset {math:s, format:'TeX', svg:true}, (data) ->
             math[i] = data.svg
             if display
                 math[i] = '<div align=center>' + math[i] + '</div>'
             cb()
 
+    text = replace_all(text, '\\$', '$')   # make \$ not involved in math just be $.
+
     async.map [0...math.length], f, ->
         cb(undefined, replace_math(text, math))
 
+reactTreeWalker = require('react-tree-walker').default
+{set_rendered_mathjax} = require('smc-webapp/r_misc')
 
-$.fn.extend
-    mathjax: (opts={}) ->
-        opts = defaults opts,
-            tex                 : undefined
-            display             : false
-            inline              : false
-            hide_when_rendering : false         # ignored
-            cb                  : undefined     # if defined, gets called as cb(t) for *every* element t in the jquery set!
-        @each () ->
-            t = $(this)
-            if not opts.tex? and not opts.display and not opts.inline
-                # Doing this test is still much better than calling mathjax below, since I guess
-                # it doesn't do a simple test first... and mathjax is painful.
-                html = t.html().toLowerCase()
-                if html.indexOf('$') == -1 and html.indexOf('\\') == -1 and html.indexOf('math/tex') == -1
-                    opts.cb?()
-                    return t
-                # this is a common special case - the code below would work, but would be
-                # stupid, since it involves converting back and forth between html
-                element = t
-            else
-                if opts.tex?
-                    tex = opts.tex
-                else
-                    tex = t.html()
-                if opts.display
-                    tex = "$${#{tex}}$$"
-                else if opts.inline
-                    tex = "\\({#{tex}}\\)"
-                element = t.html(tex)
-            process_using_mathjax element.html(), (err, processed) ->
+exports.process_react_component = (component, cb) ->
+    work = []
+    visitor = (element, instance, context) ->
+        if element.props?.has_mathjax?
+            if not element.props.has_mathjax
+                return false
+            if element.type?.displayName == 'Misc-HTML' and element.props.value
+                work.push(element.props.value)
+                return false
+        return true
+
+    reactTreeWalker(component, visitor).then ->
+        f = (html, cb) ->
+            process_using_mathjax html, (err, html2) ->
                 if not err
-                    element.html(processed)
-                opts.cb?(err)
-            return t
+                    set_rendered_mathjax(html, html2)
+                cb()
+        async.map(work, f, cb)
+
+# Replace mathjax jQuery pluging by a no-op, in case anything were to call it (which would be a waste of time).
+$.fn.extend
+     mathjax: ->
+
 
 console.log("loaded mathjax.")
