@@ -144,7 +144,7 @@ TopBar = ({viewer, path, project_id, base_url, site_name}) ->
             i = path.slice(1).indexOf('/')
             proj_url = "#{top}/../projects/#{project_id}/files/#{path.slice(2+i)}?session=share"
             project = <a target="_blank" href={proj_url} className='pull-right' rel='nofollow' style={textDecoration:'none'} >
-                {site_name}
+                Open in {site_name}
             </a>
 
     <div key='top' style={padding: '5px 5px 0px 5px', background:'#dfdfdf'} translate='no'>
