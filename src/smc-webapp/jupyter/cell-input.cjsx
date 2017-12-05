@@ -131,7 +131,10 @@ exports.CellInput = rclass
     render_markdown: ->
         value = @props.cell.get('input')?.trim()
         if not value
-            value = 'Type *Markdown* and LaTeX: $\\alpha^2$'
+            if not @props.actions?
+                value = ''  # read only (no actions so can't do anything), so no need for instructions about how to edit.
+            else
+                value = 'Type *Markdown* and LaTeX: $\\alpha^2$'
         <div
             onDoubleClick = {@handle_md_double_click}
             style         = {width:'100%', wordWrap: 'break-word', overflow: 'auto'}

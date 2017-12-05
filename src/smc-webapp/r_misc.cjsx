@@ -739,8 +739,18 @@ exports.SearchInput = rclass
             </InputGroup>
         </FormGroup>
 
+# rendered_mathjax is used for backend pre-rendering of mathjax by the share server.
+rendered_mathjax = undefined
+exports.set_rendered_mathjax = (value, html) ->
+    rendered_mathjax ?= {}
+    if rendered_mathjax[value]?
+        rendered_mathjax[value].ref += 1
+    else
+        rendered_mathjax[value] = {html:html, ref:1}
+
+
 exports.HTML = rclass
-    displayName : 'Misc-HTML'
+    displayName : 'Misc-HTML'   # this name is assumed and USED in the smc-hub/share/mathjax-support to identify this component; do NOT change!
 
     propTypes :
         value          : rtypes.string
@@ -827,6 +837,14 @@ exports.HTML = rclass
 
     render_html: ->
         if @props.value
+            if @props.has_mathjax and rendered_mathjax?
+                x = rendered_mathjax?[@props.value]
+                if x?
+                    x.ref -= 1
+                    if x.ref <= 0
+                        delete rendered_mathjax?[@props.value]
+                    return {__html:x.html}
+
             if @props.safeHTML
                 html = require('./misc_page').sanitize_html_safe(@props.value, @props.post_hook)
             else
@@ -834,6 +852,7 @@ exports.HTML = rclass
             {__html: html}
         else
             {__html: ''}
+
 
     render: ->
         <span

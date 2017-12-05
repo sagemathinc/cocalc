@@ -13,11 +13,16 @@ misc                 = require('smc-util/misc')
 {defaults, required} = misc
 
 react_support        = require('./react')
+
 {PublicPathsBrowser} = require('smc-webapp/share/public-paths-browser')
 {Page}               = require('smc-webapp/share/page')
 {get_public_paths}   = require('./public_paths')
 {render_public_path} = require('./render-public-path')
 {render_static_path} = require('./render-static-path')
+
+# This MUST be loaded last, e.g,. it overwrites some of the jQuery plugins
+# (mathjax from misc_page) that are implicitly loaded by the above requires.
+require('./mathjax-support')
 
 # this reads it from disk
 google_analytics     = require('./util').google_analytics_token()
