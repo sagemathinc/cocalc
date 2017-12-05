@@ -63,7 +63,8 @@ $ = window.$
 $("#smc-startup-banner")?.remove()
 $('#smc-startup-banner-status')?.remove()
 $ ->
-    $(parent).trigger('initialize:frame')
+    try
+        $(parent).trigger('initialize:frame')
 
     # mathjax startup. config is set above, now we dynamically insert the mathjax script URL
     mjscript = document.createElement("script")

@@ -1608,7 +1608,7 @@ ProjectFilesActionBox = rclass
                             <Icon name='shield' /> Make item private
                         </Button>
                         <Button onClick={@cancel_action}>
-                            Cancel
+                            Close
                         </Button>
                     </ButtonToolbar>
                 </Col>
