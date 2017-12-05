@@ -54,6 +54,7 @@ exports.Library = rclass ({name}) ->
         "#{name}" :
             current_path        : rtypes.string
             library             : rtypes.immutable.Map
+            library_docs_sorted : rtypes.immutable.List
             library_selected    : rtypes.immutable.Map
             library_copy_active : rtypes.bool
         projects:
@@ -65,31 +66,10 @@ exports.Library = rclass ({name}) ->
     getInitialState: ->
         lang        : 'python'
         show_thumb  : false
-        sorted_docs : undefined    # depends('library') ->
+        # sorted_docs : undefined    # depends('library') ->
 
     metadata: ->
         @props.library?.getIn(['examples', 'metadata'])
-
-    update_state_from: (props) ->
-        docs = props.library.getIn(['examples', 'documents'])
-
-        if docs?
-            # sort by a triplet: idea is to have the docs sorted by their category,
-            # where some categories have weights (e.g. "introduction" comes first, no matter what)
-            sortfn = (doc) => [
-                @metadata().getIn(['categories', doc.get('category'), 'weight']) ? 0
-                @metadata().getIn(['categories', doc.get('category'), 'name']).toLowerCase()
-                doc.get('title')?.toLowerCase() ? doc.get('id')
-            ]
-            sdocs  = docs.sortBy(sortfn)
-            @setState(sorted_docs : sdocs)
-
-    componentDidMount: ->
-        @update_state_from(@props)
-
-    componentWillReceiveProps: (next) ->
-        return if @props.library.get('examples')? and (@props.library.get('examples') == next.library.get('examples'))
-        @update_state_from(next)
 
     # this might be better off in actions. the purpose is to prepare the target for the rsync operation.
     # so far, this works well for all directories -- marked by a "/" at the end.
@@ -130,9 +110,9 @@ exports.Library = rclass ({name}) ->
                 dx = -1
             when 40 # down
                 dx = 1
-        ids     = @state.sorted_docs.map((doc) -> doc.get('id'))
+        ids     = @props.library_docs_sorted.map((doc) -> doc.get('id'))
         idx     = ids.indexOf(@props.library_selected.get('id')) + dx
-        new_doc = @state.sorted_docs.get(idx %% @state.sorted_docs.size)
+        new_doc = @props.library_docs_sorted.get(idx %% @props.library_docs_sorted.size)
         @props.actions.setState(library_selected: new_doc)
         $(ReactDOM.findDOMNode(@refs.selector_list)).find('.active').scrollintoview()
 
@@ -148,7 +128,7 @@ exports.Library = rclass ({name}) ->
 
 
     select_list: (list) ->
-        return null if not @state.sorted_docs?
+        return null if not @props.library_docs_sorted?
 
         item_style =
             width        : '100%'
@@ -160,7 +140,7 @@ exports.Library = rclass ({name}) ->
         list    = []
         cur_cat = undefined
 
-        @state.sorted_docs.map (doc) =>
+        @props.library_docs_sorted.map (doc) =>
             #new category? insert a header into the list ...
             if doc.get('category') isnt cur_cat
                 cur_cat         = doc.get('category')

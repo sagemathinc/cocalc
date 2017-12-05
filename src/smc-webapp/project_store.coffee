@@ -977,6 +977,7 @@ class ProjectActions extends Actions
             max_delay   : 10000
             cb          : => _init_library_index_ongoing[@project_id] = false
 
+
     copy_from_library: (opts) =>
         opts = defaults opts,
             entry  : undefined
@@ -1720,6 +1721,7 @@ create_project_store_def = (name, project_id) ->
         library             : rtypes.immutable.Map
         library_selected    : rtypes.object
         library_copy_active : rtypes.bool  # for copy button, active == not disabled
+        library_docs_sorted : computed rtypes.immutable.List
 
         # Project Find
         user_input         : rtypes.string
@@ -1821,6 +1823,22 @@ create_project_store_def = (name, project_id) ->
     stripped_public_paths: depends('public_paths') ->
         if @public_paths?
             return immutable.fromJS(misc.copy_without(x,['id','project_id']) for _,x of @public_paths.toJS())
+
+
+    library_docs_sorted: depends('library') ->
+        docs     = @library.getIn(['examples', 'documents'])
+        metadata = @library.getIn(['examples', 'metadata'])
+
+        if docs?
+            # sort by a triplet: idea is to have the docs sorted by their category,
+            # where some categories have weights (e.g. "introduction" comes first, no matter what)
+            sortfn = (doc) -> [
+                metadata.getIn(['categories', doc.get('category'), 'weight']) ? 0
+                metadata.getIn(['categories', doc.get('category'), 'name']).toLowerCase()
+                doc.get('title')?.toLowerCase() ? doc.get('id')
+            ]
+            return docs.sortBy(sortfn)
+
 
     # Returns the cursor positions for the given project_id/path, if that
     # file is opened, and supports cursors.   Currently this only works
