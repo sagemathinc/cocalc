@@ -1,0 +1,35 @@
+
+
+html
+  body
+    script
+      :coffee-script
+
+        load_url = (url) ->
+          r = new XMLHttpRequest()
+          r.open("GET", url, true)
+          r.onreadystatechange = ->
+              if r.readyState == XMLHttpRequest.DONE or r.status != 200
+                # problem
+                status()
+                setTimeout(-> load_url(url), 2 * 1000)
+              if r.readyState == XMLHttpRequest.DONE and r.status == 200
+                # success
+                document.open()
+                document.write(r.responseText)
+                document.close()
+          r.send()
+
+        retry = 0
+        status = ->
+          retry += 1
+          msg = "Loading " + ('.' for i in [0...retry]).join('')
+          document.getElementById('status').innerHTML = msg
+        status()
+
+        # simply http://..../loading?encoded-url
+        url = decodeURIComponent(window.location.search.slice(1))
+        load_url(url)
+
+
+    <div id="status"></div>
