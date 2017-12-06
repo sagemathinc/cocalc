@@ -1,7 +1,14 @@
-
-
+doctype html
 html
-  body
+  head
+
+    style
+      :sass
+        body
+          font-family : sans-serif
+          font-size   : 120%
+          margin      : 3rem
+
     script
       :coffee-script
 
@@ -11,25 +18,35 @@ html
           r.onreadystatechange = ->
               if r.readyState == XMLHttpRequest.DONE or r.status != 200
                 # problem
-                status()
-                setTimeout(-> load_url(url), 2 * 1000)
+                status(url)
+                setTimeout((-> load_url(url)), 2 * 1000)
               if r.readyState == XMLHttpRequest.DONE and r.status == 200
                 # success
+                print('')
                 document.open()
                 document.write(r.responseText)
                 document.close()
           r.send()
 
         retry = 0
-        status = ->
+        status = (url) ->
           retry += 1
-          msg = "Loading " + ('.' for i in [0...retry]).join('')
-          document.getElementById('status').innerHTML = msg
-        status()
+          dots = ('.' for i in [0...retry]).join('')
+          msg  = "<b>Loading <code>#{url}</code>...#{dots}</b>"
+          print(msg)
 
-        # simply http://..../loading?encoded-url
-        url = decodeURIComponent(window.location.search.slice(1))
-        load_url(url)
+        print = (html) ->
+          # note, upon loading the element could be gone and empty
+          document.getElementById('status')?.innerHTML = html
 
+        window.onload = ->
+          # simply http://..../loading?encoded-url
+          url = decodeURIComponent(window.location.search.slice(1))
+          if url.length == 0
+            print('STOP: Nothing to load.')
+          else
+            status(url)
+            load_url(url)
 
-    <div id="status"></div>
+    body
+      <div id="status"></div>
