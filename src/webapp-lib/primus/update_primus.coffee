@@ -11,9 +11,11 @@ update = (base_url) ->
 
     console.log(opts)
 
-    primus = new require('primus')(require('http').createServer(), opts)
-
-    fs.writeFileSync('primus-engine.js', primus.library())
+    primus   = new require('primus')
+    server   = require('http').createServer()
+    instance = primus(server, opts)
+    lib      = instance.library()
+    fs.writeFile('primus-engine.js', lib, (-> process.exit()))
 
 
 

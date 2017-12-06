@@ -43,7 +43,7 @@
     "pdfkit": "^0.7.1",
     "pg": "^6.1.0",
     "pg-native": "^1.10.0",
-    "primus": "^4.0.1",
+    "primus": "^7",
     "prom-client": "^10.1.0",
     "prometheus-gc-stats": "^0.5.0",
     "random-key": "^0.3.2",
