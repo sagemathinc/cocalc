@@ -255,7 +255,7 @@ exports.init_http_proxy_server = (opts) ->
                                 cb()
             (cb) ->
                 #dbg("determine the port")
-                if type == 'port'
+                if type == 'port' or type == 'server'
                     if port_number == "jupyter"
                         dbg("determine jupyter_server_port")
                         jupyter_server_port
