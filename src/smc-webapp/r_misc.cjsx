@@ -787,6 +787,7 @@ exports.HTML = rclass
             return
         if @props.has_mathjax
             $(ReactDOM.findDOMNode(@)).mathjax
+                hide_when_rendering : true
                 cb : () =>
                     # Awkward code, since cb may be called more than once if there
                     # where more than one node.
