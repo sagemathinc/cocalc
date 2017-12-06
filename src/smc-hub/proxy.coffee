@@ -393,10 +393,7 @@ exports.init_http_proxy_server = (opts) ->
                     #    dbg("(mark: #{misc.walltime(tm)}) got response from the target")
 
                 if internal_url?
-                    dbg("changing req.url '#{internal_url}'")
                     req.url = internal_url
-                else
-                    dbg("leaving req.url unchanged")
                 proxy.web(req, res)
 
     winston.debug("starting proxy server listening on #{opts.host}:#{opts.port}")
@@ -411,7 +408,7 @@ exports.init_http_proxy_server = (opts) ->
 
         req_url = req.url.slice(base_url.length)  # strip base_url for purposes of determining project location/permissions
         dbg = (m) -> winston.debug("http_proxy_server websocket(#{req_url}): #{m}")
-        target undefined, req_url, (err, location) ->
+        target undefined, req_url, (err, location, internal_url) ->
             if err
                 dbg("websocket upgrade error -- #{err}")
             else
@@ -428,6 +425,8 @@ exports.init_http_proxy_server = (opts) ->
                     _ws_proxy_servers[t] = proxy
                 else
                     dbg("websocket upgrade -- using cache")
+                if internal_url?
+                    req.url = internal_url
                 proxy.ws(req, socket, head)
 
     public_raw_paths_cache = {}
