@@ -79,7 +79,7 @@ exports.init_express_http_server = (opts) ->
 
     # initialize metrics
     response_time_histogram = MetricsRecorder.new_histogram('http_histogram', 'http server'
-                                  buckets : [0.001, 0.01, 0.1, 1, 2, 10, 20]
+                                  buckets : [0.01, 0.1, 1, 2, 10, 20]
                                   labels: ['path', 'method', 'code']
                               )
 
@@ -89,8 +89,10 @@ exports.init_express_http_server = (opts) ->
         original_end = res.end
         res.end = ->
             original_end.apply(res, arguments)
-            {dirname} = require('path')
-            dir_path = dirname(req.path).split('/')[1] # for two levels: split('/')[1..2].join('/')
+            {dirname}   = require('path')
+            path_split  = dirname(req.path).split('/')
+            winston.debug('response_time_histogram/path_split:', path_split)
+            dir_path    = path_split[1] # for two levels: split('/')[1..2].join('/')
             res_finished_h({path:dir_path, method:req.method, code:res.statusCode})
         next()
 
