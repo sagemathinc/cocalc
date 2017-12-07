@@ -844,6 +844,16 @@ class ProjectActions extends Actions
                 @setState(new_name : misc.path_split(get_basename()).tail)
         @setState(file_action : action)
 
+    show_file_action_panel: (opts) =>
+        opts = defaults opts,
+            path   : required
+            action : required
+        path_splitted = misc.path_split(opts.path)
+        @open_directory(path_splitted.head)
+        @set_all_files_unchecked()
+        @set_file_checked(opts.path, true)
+        @set_file_action(opts.action, (-> path_splitted.tail))
+
     get_from_web: (opts) =>
         opts = defaults opts,
             url     : required
