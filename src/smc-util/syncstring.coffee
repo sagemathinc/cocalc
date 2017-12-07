@@ -1771,7 +1771,14 @@ class SyncDoc extends EventEmitter
             misc.retry_until_success
                 f         : f
                 max_tries : 5
-                cb        : cb
+                cb        : (err) =>
+                    if err
+                        # TODO: This should in theory never be necessary, and I've resisted adding
+                        # it for five years.  However, here it is:
+                        console.warn("'#{@_path}': failed to save to disk; initiating syncstring reconnect")
+                        @reconnect (err) =>
+                            console.warn("'#{@_path}': reconnect got ", err)
+                    cb(err)
 
     # Save this file to disk, if it is associated with a project and has a filename.
     # A user (web browsers) sets the save state to requested.
