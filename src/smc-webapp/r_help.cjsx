@@ -199,7 +199,7 @@ SUPPORT_LINKS =
 CONNECT_LINKS =
     share :
         bold : true
-        icon : 'users'
+        icon : 'bullhorn'
         href : "#{BASE_URL}/share"
         link : 'Shared public files'
     support_mailing_list :
