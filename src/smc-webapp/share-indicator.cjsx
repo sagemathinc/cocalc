@@ -37,8 +37,10 @@ exports.ShareIndicator = rclass ({name}) ->
             {label}
         </span>
 
-    show_share_control: -> # TODOO
-        console.log 'todo'
+    show_share_control: ->
+        @actions(name).show_file_action_panel
+            path   : @props.path
+            action : 'share'
 
     render_share_button: (is_public) ->
         if is_public
@@ -46,7 +48,7 @@ exports.ShareIndicator = rclass ({name}) ->
         else
             icon = 'share-square-o'
         <div style={cursor: 'pointer', color: COLOR.FG_BLUE, marginLeft:'5px', marginRight:'5px'} >
-            <span onClick={@show_share}>
+            <span onClick={@show_share_control}>
                 <Icon name={icon} />
                 {@render_label(is_public)}
             </span>

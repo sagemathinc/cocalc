@@ -1367,13 +1367,9 @@ EditorFileInfoDropdown = rclass
         is_public : false
 
     handle_click: (name) ->
-        path_splitted = misc.path_split(@props.filename)
-        get_basename = ->
-                path_splitted.tail
-        @props.actions.open_directory(path_splitted.head)
-        @props.actions.set_all_files_unchecked()
-        @props.actions.set_file_checked(@props.filename, true)
-        @props.actions.set_file_action(name, get_basename)
+        @props.actions.show_file_action_panel
+            path   : @props.filename
+            action : name
 
     render_menu_item: (name, icon) ->
         <MenuItem onSelect={=>@handle_click(name)} key={name} >
