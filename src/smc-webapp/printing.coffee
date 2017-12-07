@@ -325,10 +325,11 @@ class SagewsPrinter extends Printer
     html_process_output_mesg: (mesg, mark) ->
         # Note: each mesg could contain more than one output type
         out = ''
-        # console.log 'html_process_output_mesg', mesg, mark
-        if mesg.stdout?
+        # if DEBUG console.log 'html_process_output_mesg', mesg, mark
+        if mesg.stdout?.length > 0
             # assertion: for stdout, `mark` might be undefined
-            out += "<div class='output stdout'>#{mesg.stdout}</div>"
+            stdout = mesg.stdout.join('\n')
+            out += "<div class='output stdout'>#{stdout}</div>"
         if mesg.stderr?
             out += "<div class='output stderr'>#{mesg.stderr}</div>"
         if mesg.html?
@@ -361,10 +362,10 @@ class SagewsPrinter extends Printer
                     # 'raw' url. later, embed_videos will be replace by the data-uri if there is no error
                     out += "<video src='#{mesg.file.url}' class='sagews-output-video' controls></video>"
                 else
-                    # console.log 'msg.file', mark, mesg
+                    # if DEBUG then console.log 'msg.file', mark, mesg
                     if not @_output_ids[mark.id] # avoid duplicated outputs
                         @_output_ids[mark.id] = true
-                        # console.log "output.file", mark, mesg
+                        # if DEBUG then console.log "output.file", mark, mesg
                         $images = $(mark.widgetNode)
                         for el in $images.find('.sagews-output-image')
                             # innerHTML should just be the <img ... > element
@@ -485,14 +486,14 @@ class SagewsPrinter extends Printer
             input_lines_mode = null
 
         # stdout mesg can be split up into multiple parts -- this is a helper for collecting them
-        mesg_stdout = {stdout : ''}
+        mesg_stdout = {stdout : []}
         process_collected_mesg_stdout = =>
             # processing leftover stdout mesgs from previous iteration
             if mesg_stdout.stdout.length > 0
                 # it's ok to leave `mark` undefined
                 om = @html_process_output_mesg(mesg_stdout)
                 _html.push(om) if om?
-                mesg_stdout = {stdout : ''}
+                mesg_stdout = {stdout : []}
 
         process_lines = (cb) =>
             # process lines in an async loop to avoid blocking on large documents
@@ -522,19 +523,18 @@ class SagewsPrinter extends Printer
                                     console.warn("invalid output message '#{m}' in line '#{line}'")
                                     continue
 
-                                if DEBUG then console.log 'sagews2html: output message', mesg
+                                #if DEBUG then console.log 'sagews2html: output message', mesg
                                 if mesg.stdout?
-                                    mesg_stdout.stdout += mesg.stdout
+                                    mesg_stdout.stdout.push(mesg.stdout)
                                 else
                                     # add non-stdout mesg from this iteration
                                     if mesg.clear
-                                        mesg_stdout = {stdout : ''}
+                                        mesg_stdout = {stdout : []}
                                         output_msgs = []
                                     else if mesg.delete_last
-                                        output_msgs.pop()
+                                        mesg_stdout.stdout.pop()
                                     else
                                         output_msgs.push(mesg)
-                                    #process_collected_mesg_stdout()
                             # after for-loop over rendered output cells
                             for mesg in output_msgs
                                 om = @html_process_output_mesg(mesg, mark)
@@ -576,7 +576,7 @@ class SagewsPrinter extends Printer
             vids_num = 0
             vids_tot = vids.length
             vembed = (vid, cb) ->
-                # console.log "embedding #{vids_num}/#{vids_tot}", vid
+                # if DEBUG then console.log "embedding #{vids_num}/#{vids_tot}", vid
                 vids_num += 1
                 progress(.4 + (5 / 10) * (vids_num / vids_tot), "video #{vids_num}/#{vids_tot}")
                 xhr = new XMLHttpRequest()
@@ -588,7 +588,7 @@ class SagewsPrinter extends Printer
                             blob = this.response
                             reader = new FileReader()
                             reader.addEventListener "load", ->
-                                # console.log(reader.result[..100])
+                                # if DEBUG then console.log(reader.result[..100])
                                 vid.src = reader.result
                                 cb(null)
                             reader.readAsDataURL(blob)
