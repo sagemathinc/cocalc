@@ -55,6 +55,7 @@ HelpPageUsageSection = rclass
             accounts_created    : rtypes.object # {RECENT_TIMES.key → number, ...}
             projects_created    : rtypes.object # {RECENT_TIMES.key → number, ...}
             projects_edited     : rtypes.object # {RECENT_TIMES.key → number, ...}
+            files_opened        : rtypes.object
 
     displayName : 'HelpPage-HelpPageUsageSection'
 
@@ -83,6 +84,9 @@ HelpPageUsageSection = rclass
         n = @props.projects_edited?[RECENT_TIMES_KEY.active]
         <ProgressBar now={Math.max(n / 3, 60 / 2)} label={"#{n} projects being edited"} />
 
+    timespan_keys: ->
+        ['last_hour', 'last_day', 'last_week', 'last_month']
+
     recent_usage_stats_rows: ->
         stats = [
             ['Modified projects', @props.projects_edited],
@@ -92,18 +96,34 @@ HelpPageUsageSection = rclass
         for stat in stats
             <tr key={stat[0]}>
                 <th style={textAlign:'left'}>{stat[0]}</th>
-                <td>
-                    {stat[1]?[RECENT_TIMES_KEY.last_hour]}
-                </td>
-                <td>
-                    {stat[1]?[RECENT_TIMES_KEY.last_day]}
-                </td>
-                <td>
-                    {stat[1]?[RECENT_TIMES_KEY.last_week]}
-                </td>
-                <td>
-                    {stat[1]?[RECENT_TIMES_KEY.last_month]}
-                </td>
+                {
+                    for k in @timespan_keys()
+                        <td key={k}>
+                            {stat[1]?[RECENT_TIMES_KEY[k]]}
+                        </td>
+                }
+            </tr>
+
+    render_filetype_stats_rows: ->
+        stats = [
+            ['Sage Worksheets',   'sagews'],
+            ['Jupyter Notebooks', 'ipynb'],
+            ['LaTeX Documents',   'tex'],
+            ['Markdown Documents','md']
+        ]
+        if DEBUG then console.log('@props.files_opened', @props.files_opened)
+        for [name, ext] in stats
+            <tr key={name}>
+                <th style={textAlign:'left'}>{name}</th>
+                {
+                    for timespan in @timespan_keys()
+                        k        = RECENT_TIMES_KEY[timespan]
+                        total    = @props.files_opened?.total?[k]?[ext]    ? 0
+                        distinct = @props.files_opened?.distinct?[k]?[ext] ? 0
+                        <td key={k}>
+                            {total} ({distinct})
+                        </td>
+                }
             </tr>
 
     render_recent_usage_stats: ->
@@ -121,16 +141,14 @@ HelpPageUsageSection = rclass
             </thead>
             <tbody>
                 {@recent_usage_stats_rows()}
+                <tr><td colSpan=5></td></tr>
+                <tr>
+                    <th style={textAlign:'left'}>File activity</th>
+                    <td colSpan=4>total (and unique) opened or edited</td>
+                </tr>
+                {@render_filetype_stats_rows()}
             </tbody>
         </Table>
-
-    render_historical_metrics: ->
-        return  # disabled, due to being broken...
-        <li key='usage_metrics' style={li_style}>
-            <a target='_blank' href='https://cocalc.com/b97f6266-fe6f-4b40-bd88-9798994a04d1/raw/metrics/metrics.html'>
-                <Icon name='area-chart' fixedWidth />Historical system metrics
-            </a> &mdash; CPU usage, running projects and software instances, etc
-        </li>
 
     render_when_updated: ->
         if @props.time
@@ -153,10 +171,8 @@ HelpPageUsageSection = rclass
                 {@render_recent_usage_stats()}
                 <Icon name='line-chart' fixedWidth />{' '}
                 <a target='_blank' href='https://cocalc.com/7561f68d-3d97-4530-b97e-68af2fb4ed13/raw/stats.html'>
-                More data...
+                    More data...
                 </a>
-                <br/>
-                {@render_historical_metrics()}
             </div>
         </Col>
 
