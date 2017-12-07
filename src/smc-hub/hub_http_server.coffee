@@ -341,6 +341,7 @@ exports.init_express_http_server = (opts) ->
             return
         opts.database.get_stats
             update : false   # never update in hub b/c too slow. instead, run $ hub --update_stats via a cronjob every minute
+            ttl    : 30
             cb     : (err, stats) ->
                 res.header('Cache-Control', 'private, no-cache, no-store, must-revalidate')
                 if err
