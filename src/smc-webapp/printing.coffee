@@ -328,9 +328,8 @@ class SagewsPrinter extends Printer
         # if DEBUG console.log 'html_process_output_mesg', mesg, mark
         if mesg.stdout?.length > 0
             # assertion: for stdout, `mark` might be undefined
-            stdout = mesg.stdout.join('\n')
-            out += "<div class='output stdout'>#{stdout}</div>"
-        if mesg.stderr?
+            out += "<div class='output stdout'>#{mesg.stdout}</div>"
+        if mesg.stderr?.length > 0
             out += "<div class='output stderr'>#{mesg.stderr}</div>"
         if mesg.html?
             $html = $("<div>#{mesg.html}</div>")
@@ -383,8 +382,6 @@ class SagewsPrinter extends Printer
             # ignored
             out += ' '
 
-        if out == ''
-            console.warn "sagews2html: encounted unknown mesg", mesg
         return @html_post_process(out)
 
     html_post_process: (html) ->
@@ -485,18 +482,7 @@ class SagewsPrinter extends Printer
             input_lines      = []
             input_lines_mode = null
 
-        # stdout mesg can be split up into multiple parts -- this is a helper for collecting them
-        mesg_stdout = {stdout : []}
-        process_collected_mesg_stdout = =>
-            # processing leftover stdout mesgs from previous iteration
-            if mesg_stdout.stdout.length > 0
-                # it's ok to leave `mark` undefined
-                om = @html_process_output_mesg(mesg_stdout)
-                _html.push(om) if om?
-                mesg_stdout = {stdout : []}
-
         process_lines = (cb) =>
-            # process lines in an async loop to avoid blocking on large documents
             line = 0
             lines_total = cm.lineCount()
             while line < lines_total
@@ -524,23 +510,17 @@ class SagewsPrinter extends Printer
                                     continue
 
                                 #if DEBUG then console.log 'sagews2html: output message', mesg
-                                if mesg.stdout?
-                                    mesg_stdout.stdout.push(mesg.stdout)
+                                if mesg.clear
+                                    output_msgs = []
+                                else if mesg.delete_last
+                                    output_msgs.pop()
                                 else
-                                    # add non-stdout mesg from this iteration
-                                    if mesg.clear
-                                        mesg_stdout = {stdout : []}
-                                        output_msgs = []
-                                    else if mesg.delete_last
-                                        mesg_stdout.stdout.pop()
-                                    else
-                                        output_msgs.push(mesg)
+                                    output_msgs.push(mesg)
                             # after for-loop over rendered output cells
                             for mesg in output_msgs
                                 om = @html_process_output_mesg(mesg, mark)
                                 _html.push(om) if om?
 
-                process_collected_mesg_stdout()
                 line++
             input_lines_process(final = true)
             # combine all html snippets to one html block
