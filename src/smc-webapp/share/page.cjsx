@@ -8,6 +8,8 @@ Share server top-level landing page.
 
 {r_join, Space} = require('../r_misc')
 
+misc = require('smc-util/misc')
+
 exports.Page = rclass
     displayName: "Page"
 
@@ -20,6 +22,7 @@ exports.Page = rclass
         subtitle         : rtypes.string
         google_analytics : rtypes.string              # optional, and if set just the token
         notranslate      : rtypes.bool
+        public_paths     : rtypes.immutable.Map.isRequired
 
     getDefaultProps: ->
         base_url  : BASE_URL
@@ -84,11 +87,12 @@ exports.Page = rclass
             <body>
                 <div style={display: 'flex', flexDirection: 'column', height: '100vh', width: '100vw', overflow: 'auto'}>
                     <TopBar
-                        viewer     = @props.viewer
-                        path       = @props.path
-                        project_id = @props.project_id
-                        base_url   = @props.base_url
-                        site_name  = @props.site_name
+                        viewer       = @props.viewer
+                        path         = @props.path
+                        project_id   = @props.project_id
+                        base_url     = @props.base_url
+                        site_name    = @props.site_name
+                        public_paths = @props.public_paths
                     />
                     <div key='index' style={display: 'flex', flexDirection: 'column', flex:1}>
                         {@props.children}
@@ -103,13 +107,19 @@ CoCalcLogo = ({base_url}) ->
     <img style={height:'21px', width:'21px'} src="#{base_url}/share/cocalc-icon.svg" />
 
 TopBar_propTypes =
-    viewer     : rtypes.string
-    path       : rtypes.string
-    project_id : rtypes.string
-    base_url   : rtypes.string
-    site_name  : rtypes.string
+    viewer       : rtypes.string
+    path         : rtypes.string # The share url. Must have a leading `/`. {base_url}/share{path}
+    project_id   : rtypes.string
+    base_url     : rtypes.string
+    site_name    : rtypes.string
+    public_paths : rtypes.immutable.Map
 
-TopBar = ({viewer, path, project_id, base_url, site_name}) ->
+TopBar = ({viewer, path, project_id, base_url, site_name, public_paths}) ->
+    list_of_paths = public_paths
+        .valueSeq()
+        .filter((item) => not project_id or item.get('project_id') == project_id)
+        .map((item) => item.get('path'))
+
     if viewer == 'embed'
         return <span></span>
     project = undefined
@@ -123,13 +133,15 @@ TopBar = ({viewer, path, project_id, base_url, site_name}) ->
             v = v.slice(0, v.length-1)
         segments = []
         t = ''
+
         v.reverse()
-        for s in v
-            href = "#{t}?viewer=share"
-            if t
-                segments.push(<a key={t} href={href}>{s}</a>)
+        for val, i in v
+            path_of_segment = v.slice(i).reverse().join('/')
+            if t and misc.path_is_in_public_paths(path_of_segment, list_of_paths.toJS())
+                href = "#{t}?viewer=share"
+                segments.push(<a key={t} href={href}>{val}</a>)
             else
-                segments.push(<span key={t}>{s}</span>)
+                segments.push(<span key={t}>{val}</span>)
             if not t
                 if path.slice(-1) == '/'
                     t = '..'
@@ -137,7 +149,7 @@ TopBar = ({viewer, path, project_id, base_url, site_name}) ->
                     t = '.'
             else
                 t += '/..'
-        segments.reverse()
+        segments.reverse()g
         path_component = r_join(segments, <span style={margin:'0 5px'}> / </span>)
 
         if project_id
