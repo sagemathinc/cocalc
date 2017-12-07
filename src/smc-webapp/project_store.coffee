@@ -671,7 +671,11 @@ class ProjectActions extends Actions
         # that we know our relation to this project, namely so that
         # get_my_group is defined.
         id = misc.uuid()
-        @set_activity(id:id, status:"scanning '#{misc.trunc_middle(path,30)}'")
+        if path
+            status = "Loading file list - #{misc.trunc_middle(path,30)}"
+        else
+            status = "Loading file list"
+        @set_activity(id:id, status:status)
         my_group = undefined
         the_listing = undefined
         async.series([
