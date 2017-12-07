@@ -242,6 +242,7 @@ action_set_state = (change) ->
     action =
         type   : 'SET_STATE'
         change : immutable.fromJS(change)   # guaranteed immutable.js all the way down
+        # Deeply nested objects need to be converted with fromJS before being put in the store
 
 action_remove_store = (name) ->
     action =
@@ -574,6 +575,7 @@ exports.is_redux_actions = (obj) -> obj instanceof Actions
 # Canonical name to use for Redux store associated to a given project/path.
 # TODO: this code is also in many editors -- make them all just use this.
 exports.redux_name = (project_id, path) -> "editor-#{project_id}-#{path}"
+
 
 exports.rclass   = rclass    # use rclass instead of createReactClass to get access to reduxProps support
 exports.rtypes   = rtypes    # has extra rtypes.immutable, needed for reduxProps to leave value as immutable

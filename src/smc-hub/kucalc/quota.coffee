@@ -10,8 +10,8 @@ MIN_POSSIBLE_CPU =
 
 # Min possible **guaranteed** RAM.
 MIN_POSSIBLE_MEMORY =
-    member    : 200
-    nonmember : 100
+    member    : 300
+    nonmember : 200
 
 misc = require('smc-util/misc')
 

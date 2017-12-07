@@ -231,7 +231,13 @@ class Connection extends client.Connection
         conn = new Primus(url, opts)
         ###
 
-        conn = new Primus(url)
+        opts =
+            reconnect:
+                max     : 7000
+                min     : 1000
+                factor  : 1.25
+                retries : 1000000
+        conn = new Primus(url, opts)
 
         @_conn = conn
         conn.on 'open', () =>

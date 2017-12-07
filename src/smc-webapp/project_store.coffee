@@ -36,6 +36,7 @@ misc      = require('smc-util/misc')
 {types, defaults, required} = misc
 
 {Actions, rtypes, computed, depends, Table, register_project_store, redux}  = require('./smc-react')
+{file_actions} = require('./project_files')
 
 # Register this module with the redux module, so it can be used by the reset of SMC easily.
 register_project_store(exports)
@@ -772,26 +773,37 @@ class ProjectActions extends Actions
     # set the given file to the given checked state
     set_file_checked: (file, checked) =>
         store = @get_store()
+        changes = {}
         if checked
-            checked_files = store.checked_files.add(file)
+            changes.checked_files = store.checked_files.add(file)
+            if store.file_action? and changes.checked_files.size > 1 and not file_actions[store.file_action].allows_multiple_files
+                changes.file_action = undefined
         else
-            checked_files = store.checked_files.delete(file)
+            changes.checked_files = store.checked_files.delete(file)
+            if changes.checked_files.size == 0
+                changes.file_action = undefined
 
-        @setState
-            checked_files : checked_files
-            file_action   : undefined
+        @setState(changes)
 
     # check all files in the given file_list
     set_file_list_checked: (file_list) =>
-        @setState
-            checked_files : @get_store().checked_files.union(file_list)
-            file_action   : undefined
+        store = @get_store()
+        changes =
+            checked_files : store.checked_files.union(file_list)
+        if store.file_action? and changes.checked_files.size > 1 and not file_actions[store.file_action].allows_multiple_files
+            changes.file_action = undefined
+
+        @setState(changes)
+
 
     # uncheck all files in the given file_list
     set_file_list_unchecked: (file_list) =>
-        @setState
-            checked_files : @get_store().checked_files.subtract(file_list)
-            file_action   : undefined
+        changes = {checked_files : @get_store().checked_files.subtract(file_list)}
+
+        if changes.checked_files.size == 0
+            changes.file_action = undefined
+
+        @setState(changes)
 
     # uncheck all files
     set_all_files_unchecked: =>
@@ -831,6 +843,16 @@ class ProjectActions extends Actions
             when 'rename'
                 @setState(new_name : misc.path_split(get_basename()).tail)
         @setState(file_action : action)
+
+    show_file_action_panel: (opts) =>
+        opts = defaults opts,
+            path   : required
+            action : required
+        path_splitted = misc.path_split(opts.path)
+        @open_directory(path_splitted.head)
+        @set_all_files_unchecked()
+        @set_file_checked(opts.path, true)
+        @set_file_action(opts.action, (-> path_splitted.tail))
 
     get_from_web: (opts) =>
         opts = defaults opts,

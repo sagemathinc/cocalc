@@ -48,6 +48,8 @@ project_file = require('./project_file')
 
 {ChatIndicator} = require('./chat-indicator')
 
+{ShareIndicator} = require('./share-indicator')
+
 misc = require('misc')
 misc_page = require('./misc_page')
 
@@ -59,11 +61,10 @@ DEFAULT_FILE_TAB_STYLES =
     flexShrink   : '1'
     overflow     : 'hidden'
 
-CHAT_INDICATOR_STYLE =
+CHAT_INDICATOR_STYLE = SHARE_INDICATOR_STYLE =
     paddingTop  : '1px'
     overflow    : 'hidden'
     paddingLeft : '5px'
-    borderLeft  : '1px solid lightgrey'
     height      : '32px'
 
 FileTab = rclass
@@ -229,10 +230,10 @@ FreeProjectWarning = rclass ({name}) ->
 
     render_learn_more: (color) ->
         <a
-            href   = "https://github.com/sagemathinc/cocalc/wiki/FreeServerMessage"
+            href   = "https://github.com/sagemathinc/cocalc/wiki/TrialServer"
             target = "_blank"
             style  = {fontWeight : 'bold', color:color, cursor:'pointer'}>
-            <Space/> &mdash; learn more... <Space/>
+            <Space/> &mdash; more info... <Space/>
         </a>
         #<a onClick={=>@actions(project_id: @props.project_id).show_extra_free_warning()} style={color:'white', cursor:'pointer'}> learn more...</a>
 
@@ -254,11 +255,9 @@ FreeProjectWarning = rclass ({name}) ->
         if not host and not internet
             return null
 
-        font_size = Math.min(18, 12 + Math.round((@props.project_log?.size ? 0) / 60))
+        font_size = Math.min(18, 12 + Math.round((@props.project_log?.size ? 0) / 50))
         styles =
-            padding      : 3
-            paddingLeft  : 7
-            paddingRight : 7
+            padding      : "5px 30px"
             marginBottom : 0
             fontSize     : "#{font_size}pt"
 
@@ -274,9 +273,16 @@ FreeProjectWarning = rclass ({name}) ->
             slowdown = ''
         ###
 
+        if host and internet
+            mesg = <span>Upgrade this project, since it is on a <b>trial server</b> and has no network access.</span>
+        else if host
+            mesg = <span>Upgrade this project, since it is on a <b>trial server</b>.</span>
+        else if internet
+            mesg = <span>WARNING: this project does not have network access.</span>
+
         <Alert bsStyle='warning' style={styles}>
             <Icon name='exclamation-triangle' style={float:'right', marginTop: '3px'}/>
-            <Icon name='exclamation-triangle' /> Upgrade this project, since it is {<span>on a <b>free server</b></span> if host} {<span>without <b>network access</b></span> if internet}.
+            <Icon name='exclamation-triangle' /> {mesg}
             {@render_learn_more(styles.color)}
             {@render_dismiss()}
             {@extra(host, internet)}
@@ -473,6 +479,7 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
             open_files_order      : rtypes.immutable
             free_warning_closed   : rtypes.bool     # Makes bottom height update
             num_ghost_file_tabs   : rtypes.number
+            current_path          : rtypes.string
 
     propTypes :
         project_id : rtypes.string
@@ -530,6 +537,24 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
             />
         </div>
 
+    render_share_indicator: (shrink_fixed_tabs) ->
+        if @props.active_project_tab == 'files'
+            path = @props.current_path
+        else
+            path = misc.tab_to_path(@props.active_project_tab)
+        if not path? # nothing specifically to share
+            return
+        if path == ''  # sharing whole project not implemented
+            return
+        <div style = {SHARE_INDICATOR_STYLE}>
+            <ShareIndicator
+                name              = {name}
+                path              = {path}
+                project_id        = {@props.project_id}
+                shrink_fixed_tabs = {shrink_fixed_tabs}
+            />
+        </div>
+
     render_file_tabs: (is_public) ->
         shrink_fixed_tabs = $(window).width() < (376 + (@props.open_files_order.size + @props.num_ghost_file_tabs) * 250)
 
@@ -567,7 +592,10 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
                         {@file_tabs()}
                     </SortableNav>
                 </div>
-                {@render_chat_indicator(shrink_fixed_tabs) if not is_public}
+                <div style={borderLeft: '1px solid lightgrey',  display: 'inline-flex'}>
+                    {@render_share_indicator(shrink_fixed_tabs) if not is_public}
+                    {@render_chat_indicator(shrink_fixed_tabs) if not is_public}
+                </div>
             </div>
         </div>
 

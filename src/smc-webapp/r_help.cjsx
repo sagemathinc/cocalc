@@ -197,8 +197,12 @@ SUPPORT_LINKS =
         link :  <span><SiteName/> API</span>
 
 CONNECT_LINKS =
-    support_mailing_list :
+    share :
         bold : true
+        icon : 'bullhorn'
+        href : "#{BASE_URL}/share"
+        link : 'Shared public files'
+    support_mailing_list :
         icon : 'list-alt'
         href : 'https://groups.google.com/forum/?fromgroups#!forum/cocalc'
         link : <span>Mailing list</span>

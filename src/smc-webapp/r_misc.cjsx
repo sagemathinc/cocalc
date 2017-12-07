@@ -21,9 +21,10 @@
 async = require('async')
 
 {React, ReactDOM, rclass, rtypes, is_redux, is_redux_actions, redux, Store, Actions, Redux} = require('./smc-react')
-{Alert, Button, ButtonToolbar, Checkbox, Col, FormControl, FormGroup, ControlLabel, InputGroup, OverlayTrigger, Popover, Modal, Tooltip, Row, Well} = require('react-bootstrap')
+{Alert, Button, ButtonToolbar, Checkbox, Col, FormControl, FormGroup, ControlLabel, InputGroup, Overlay, OverlayTrigger, Popover, Modal, Tooltip, Row, Well} = require('react-bootstrap')
 {HelpEmailLink, SiteName, CompanyName, PricingUrl, PolicyTOSPageUrl, PolicyIndexPageUrl, PolicyPricingPageUrl} = require('./customize')
 {UpgradeRestartWarning} = require('./upgrade_restart_warning')
+copy_to_clipboard = require('copy-to-clipboard')
 
 # injected by webpack, but not for react-static renderings (ATTN don't assign to uppercase vars!)
 smc_version = SMC_VERSION ? 'N/A'
@@ -734,8 +735,18 @@ exports.SearchInput = rclass
             </InputGroup>
         </FormGroup>
 
+# rendered_mathjax is used for backend pre-rendering of mathjax by the share server.
+rendered_mathjax = undefined
+exports.set_rendered_mathjax = (value, html) ->
+    rendered_mathjax ?= {}
+    if rendered_mathjax[value]?
+        rendered_mathjax[value].ref += 1
+    else
+        rendered_mathjax[value] = {html:html, ref:1}
+
+
 exports.HTML = rclass
-    displayName : 'Misc-HTML'
+    displayName : 'Misc-HTML'   # this name is assumed and USED in the smc-hub/share/mathjax-support to identify this component; do NOT change!
 
     propTypes :
         value          : rtypes.string
@@ -776,6 +787,7 @@ exports.HTML = rclass
             return
         if @props.has_mathjax
             $(ReactDOM.findDOMNode(@)).mathjax
+                hide_when_rendering : true
                 cb : () =>
                     # Awkward code, since cb may be called more than once if there
                     # where more than one node.
@@ -822,6 +834,14 @@ exports.HTML = rclass
 
     render_html: ->
         if @props.value
+            if @props.has_mathjax and rendered_mathjax?
+                x = rendered_mathjax?[@props.value]
+                if x?
+                    x.ref -= 1
+                    if x.ref <= 0
+                        delete rendered_mathjax?[@props.value]
+                    return {__html:x.html}
+
             if @props.safeHTML
                 html = require('./misc_page').sanitize_html_safe(@props.value, @props.post_hook)
             else
@@ -829,6 +849,7 @@ exports.HTML = rclass
             {__html: html}
         else
             {__html: ''}
+
 
     render: ->
         <span
@@ -1346,13 +1367,9 @@ EditorFileInfoDropdown = rclass
         is_public : false
 
     handle_click: (name) ->
-        path_splitted = misc.path_split(@props.filename)
-        get_basename = ->
-                path_splitted.tail
-        @props.actions.open_directory(path_splitted.head)
-        @props.actions.set_all_files_unchecked()
-        @props.actions.set_file_checked(@props.filename, true)
-        @props.actions.set_file_action(name, get_basename)
+        @props.actions.show_file_action_panel
+            path   : @props.filename
+            action : name
 
     render_menu_item: (name, icon) ->
         <MenuItem onSelect={=>@handle_click(name)} key={name} >
@@ -1367,8 +1384,8 @@ EditorFileInfoDropdown = rclass
                 'copy'     : 'files-o'
         else
             # dynamically create a map from 'key' to 'icon'
-            {file_action_buttons} = require('./project_files')
-            items = _.object(([k, v.icon] for k, v of file_action_buttons))
+            {file_actions} = require('./project_files')
+            items = _.object(([k, v.icon] for k, v of file_actions))
 
         for name, icon of items
             @render_menu_item(name, icon)
@@ -1730,3 +1747,58 @@ exports.UpgradeAdjustor = rclass
                     </Button>
                 </ButtonToolbar>
             </Alert>
+
+# Takes a value and makes it highlight on click
+# Has a copy to clipboard button by default on the end
+# See prop descriptions for more details
+exports.CopyToClipBoard = rclass
+    propTypes:
+        value         : rtypes.string
+        button_before : rtypes.element # Optional button to place before the copy text
+        hide_after    : rtypes.bool    # Hide the default after button
+
+    getInitialState: ->
+        show_tooltip : false
+
+    on_button_click: (e) ->
+        @setState(show_tooltip : true)
+        setTimeout(@close_tool_tip, 2000)
+        copy_to_clipboard(@props.value)
+
+    close_tool_tip: ->
+        return if not @state.show_tooltip
+        @setState(show_tooltip : false)
+
+    render_button_after: ->
+        <InputGroup.Button>
+            <Overlay
+                show      = {@state.show_tooltip}
+                target    = {() => ReactDOM.findDOMNode(@refs.clipboard_button)}
+                placement = 'bottom'
+            >
+                <Tooltip id='copied'>Copied!</Tooltip>
+            </Overlay>
+            <Button
+                ref     = "clipboard_button"
+                onClick = {@on_button_click}
+            >
+                <Icon name='clipboard'/>
+            </Button>
+        </InputGroup.Button>
+
+    render: ->
+        <FormGroup>
+            <InputGroup>
+                {<InputGroup.Button>
+                    {@props.button_before}
+                </InputGroup.Button> if @props.button_before?}
+                <FormControl
+                    type     = "text"
+                    readOnly = {true}
+                    style    = {cursor:"default"}
+                    onClick  = {(e)=>e.target.select()}
+                    value    = {@props.value}
+                />
+                {@render_button_after() unless @props.hide_after}
+            </InputGroup>
+        </FormGroup>

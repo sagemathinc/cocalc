@@ -65,6 +65,7 @@ DirectoryListingEntry = rclass
 
     get_href: ->
         href = @props.name
+        href = misc.encode_path(href)
         if @props.isdir
             href += '/'
         if @props.viewer
