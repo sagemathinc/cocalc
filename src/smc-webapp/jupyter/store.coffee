@@ -116,7 +116,6 @@ class exports.JupyterStore extends Store
     get_cm_mode: =>
         metadata = @get('backend_kernel_info') ? @get('metadata')
         metadata = metadata?.toJS()
-        console.log('metadata =', metadata)
 
         if metadata?.language_info?.codemirror_mode?
             mode = metadata?.language_info?.codemirror_mode
@@ -130,7 +129,6 @@ class exports.JupyterStore extends Store
         if typeof(mode) == 'string'
             mode = {name:mode}  # some kernels send a string back for the mode; others an object
 
-        console.log 'mode=', mode
         return mode
 
     get_more_output: (id) =>
