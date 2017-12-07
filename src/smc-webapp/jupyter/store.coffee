@@ -113,6 +113,26 @@ class exports.JupyterStore extends Store
     get_language_info: =>
         return @getIn(['backend_kernel_info','language_info']) ? @getIn(['metadata', 'language_info'])
 
+    get_cm_mode: =>
+        metadata = @get('backend_kernel_info') ? @get('metadata')
+        metadata = metadata?.toJS()
+        console.log('metadata =', metadata)
+
+        if metadata?.language_info?.codemirror_mode?
+            mode = metadata?.language_info?.codemirror_mode
+        else if metadata?.language_info?.name?
+            mode = metadata?.language_info?.name
+        else if metadata?.kernelspec?.language?
+            mode = metadata?.kernelspec?.language?.toLowerCase()
+        else
+            mode = @get('kernel')   # may be better than nothing...; e.g., octave kernel has no mode.
+
+        if typeof(mode) == 'string'
+            mode = {name:mode}  # some kernels send a string back for the mode; others an object
+
+        console.log 'mode=', mode
+        return mode
+
     get_more_output: (id) =>
         if @_is_project
             # This is ONLY used by the backend project for storing extra output.
