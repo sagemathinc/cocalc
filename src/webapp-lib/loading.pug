@@ -9,44 +9,8 @@ html
           font-size   : 120%
           margin      : 3rem
 
-    script
-      :coffee-script
+    script(type="text/javascript")
+      include:coffee-script loading.coffee
 
-        load_url = (url) ->
-          r = new XMLHttpRequest()
-          r.open("GET", url, true)
-          r.onreadystatechange = ->
-              if r.readyState == XMLHttpRequest.DONE or r.status != 200
-                # problem
-                status(url)
-                setTimeout((-> load_url(url)), 2 * 1000)
-              if r.readyState == XMLHttpRequest.DONE and r.status == 200
-                # success
-                print('')
-                document.open()
-                document.write(r.responseText)
-                document.close()
-          r.send()
-
-        retry = 0
-        status = (url) ->
-          retry += 1
-          dots = ('.' for i in [0...retry]).join('')
-          msg  = "<b>Loading <code>#{url}</code>...#{dots}</b>"
-          print(msg)
-
-        print = (html) ->
-          # note, upon loading the element could be gone and empty
-          document.getElementById('status')?.innerHTML = html
-
-        window.onload = ->
-          # simply http://..../loading?encoded-url
-          url = decodeURIComponent(window.location.search.slice(1))
-          if url.length == 0
-            print('STOP: Nothing to load.')
-          else
-            status(url)
-            load_url(url)
-
-    body
-      <div id="status"></div>
+  body
+    <div id="status"></div>
