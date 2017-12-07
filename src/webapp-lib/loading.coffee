@@ -16,7 +16,7 @@ load_target = ->
         if r.readyState == XMLHttpRequest.DONE
             if r.status >= 500 and r.status < 600
                 # problem
-                status(state.target)
+                status()
                 setTimeout(load_target, 2 * 1000)
             if r.status == 200
                 # success
@@ -25,11 +25,14 @@ load_target = ->
                 document.write(r.responseText)
                 document.close()
                 setTimeout(update_history, 1)
-    r.send()
+    try
+        r.send()
+    catch e
+        console.log("Exception in r.send:", e)
 
 status = ->
     status.retry += 1
-    dots = ('.' for i in [0...status.retry]).join('')
+    dots = ('.' for i in [0...state.retry]).join('')
     msg  = "<b>Loading <code>#{state.target}</code>..#{dots}</b>"
     print(msg)
 
