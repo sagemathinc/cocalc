@@ -27,7 +27,7 @@ require('./mathjax-support')
 # this reads it from disk
 google_analytics     = require('./util').google_analytics_token()
 
-react_viewer = (base_url, path, project_id, notranslate, viewer, public_paths) ->
+react_viewer = (base_url, path, project_id, notranslate, viewer, is_public) ->
     return (res, component, subtitle) ->
         the_page = <Page
             base_url         = {base_url}
@@ -37,7 +37,7 @@ react_viewer = (base_url, path, project_id, notranslate, viewer, public_paths) -
             notranslate      = {!!notranslate}
             google_analytics = {google_analytics}
             viewer           = {viewer}
-            public_paths     = {public_paths}>
+            is_public        = {is_public}>
 
             {component}
 
@@ -119,7 +119,7 @@ exports.share_router = (opts) ->
                 page_size    = {PAGE_SIZE}
                 paths_order  = {public_paths.order()}
                 public_paths = {public_paths.get()} />
-            r = react_viewer(opts.base_url, '/', undefined, true, 'share', public_paths.get())
+            r = react_viewer(opts.base_url, '/', undefined, true, 'share', public_paths.is_public)
             r(res, page, "#{page_number} of #{PAGE_SIZE}")
 
     router.get '/:id/*?', (req, res) ->
@@ -166,7 +166,7 @@ exports.share_router = (opts) ->
                     info   : info
                     dir    : dir
                     path   : path
-                    react  : react_viewer(opts.base_url, "/#{req.params.id}/#{path}", project_id, false, viewer, public_paths.get())
+                    react  : react_viewer(opts.base_url, "/#{req.params.id}/#{path}", project_id, false, viewer, public_paths.is_public)
                     viewer : viewer
                     hidden : req.query.hidden
                     sort   : req.query.sort ? '-mtime'

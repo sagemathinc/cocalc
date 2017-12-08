@@ -22,7 +22,7 @@ exports.Page = rclass
         subtitle         : rtypes.string
         google_analytics : rtypes.string              # optional, and if set just the token
         notranslate      : rtypes.bool
-        public_paths     : rtypes.immutable.Map.isRequired
+        is_public        : rtypes.func.isRequired
 
     getDefaultProps: ->
         base_url  : BASE_URL
@@ -92,7 +92,7 @@ exports.Page = rclass
                         project_id   = @props.project_id
                         base_url     = @props.base_url
                         site_name    = @props.site_name
-                        public_paths = @props.public_paths
+                        is_public    = @props.is_public
                     />
                     <div key='index' style={display: 'flex', flexDirection: 'column', flex:1}>
                         {@props.children}
@@ -112,17 +112,13 @@ TopBar_propTypes =
     project_id   : rtypes.string
     base_url     : rtypes.string
     site_name    : rtypes.string
-    public_paths : rtypes.immutable.Map
+    is_public    : rtypes.func
 
-TopBar = ({viewer, path, project_id, base_url, site_name, public_paths}) ->
-    list_of_paths = public_paths
-        .valueSeq()
-        .filter((item) => not project_id or item.get('project_id') == project_id)
-        .map((item) => item.get('path'))
+TopBar = ({viewer, path, project_id, base_url, site_name, is_public}) ->
 
     if viewer == 'embed'
         return <span></span>
-    project = undefined
+    project_link = undefined
     if path == '/'
         top = '.'
         path_component = <span/>
@@ -136,8 +132,8 @@ TopBar = ({viewer, path, project_id, base_url, site_name, public_paths}) ->
 
         v.reverse()
         for val, i in v
-            path_of_segment = v.slice(i).reverse().join('/')
-            if t and misc.path_is_in_public_paths(path_of_segment, list_of_paths.toJS())
+            segment_path = v.slice(i).reverse().join('/')
+            if t and (not project_id or is_public(project_id, segment_path))
                 href = "#{t}?viewer=share"
                 segments.push(<a key={t} href={href}>{val}</a>)
             else
@@ -149,13 +145,13 @@ TopBar = ({viewer, path, project_id, base_url, site_name, public_paths}) ->
                     t = '.'
             else
                 t += '/..'
-        segments.reverse()g
+        segments.reverse()
         path_component = r_join(segments, <span style={margin:'0 5px'}> / </span>)
 
         if project_id
             i = path.slice(1).indexOf('/')
             proj_url = "#{top}/../projects/#{project_id}/files/#{path.slice(2+i)}?session=share"
-            project = <a target="_blank" href={proj_url} className='pull-right' rel='nofollow' style={textDecoration:'none'} >
+            project_link = <a target="_blank" href={proj_url} className='pull-right' rel='nofollow' style={textDecoration:'none'} >
                 Open in {site_name}
             </a>
 
@@ -166,7 +162,7 @@ TopBar = ({viewer, path, project_id, base_url, site_name, public_paths}) ->
         <span style={paddingLeft: '15px', borderLeft: '1px solid black', marginLeft: '15px'}>
             {path_component}
         </span>
-        {project}
+        {project_link}
     </div>
 
 TopBar.propTypes = TopBar_propTypes
