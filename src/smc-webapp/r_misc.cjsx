@@ -1385,7 +1385,7 @@ EditorFileInfoDropdown = rclass
         else
             # dynamically create a map from 'key' to 'icon'
             {file_actions} = require('./project_files')
-            items = _.object(([k, v.icon] for k, v of file_actions))
+            items = underscore.object(([k, v.icon] for k, v of file_actions))
 
         for name, icon of items
             @render_menu_item(name, icon)
