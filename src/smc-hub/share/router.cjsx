@@ -43,7 +43,7 @@ react_viewer = (base_url, path, project_id, notranslate, viewer, is_public) ->
 
         </Page>
         extra = {path:path, project_id:project_id}  # just used for log
-        react_support.react(res, the_page, extra)
+        react_support.react(res, the_page, extra, viewer)
 
 exports.share_router = (opts) ->
     opts = defaults opts,

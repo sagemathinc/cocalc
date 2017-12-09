@@ -1,5 +1,10 @@
 ###
-Running MathJax on the backend.
+Processing React component tree before feeding it to the streaming render.
+
+This involves:
+
+  - Running MathJax on HTML components
+  - Changing internal links.
 
 ###
 
@@ -30,6 +35,8 @@ mathjax.config(
 
 {remove_math} = require('smc-util/mathjax-utils')
 
+{process_internal_links} = require('./process-internal-links')
+
 replace_math = (text, math) ->
     math_group_process = (match, n) -> math[n]
     return text.replace(/@@(\d+)@@/g, math_group_process)
@@ -49,7 +56,8 @@ replace_scripts = (html) ->
     return html
 
 # NOTE: It is totally impossible to do mathjax synchronously, ever. -- https://github.com/mathjax/MathJax-node/issues/140
-process_using_mathjax = (html, cb) ->
+process = (html, viewer, cb) ->
+    html = process_internal_links(html, viewer)  # has nothing to do with mathjax; putting here for now...
     html = replace_scripts(html)
 
     [text, math] = remove_math(html, true)
@@ -85,7 +93,7 @@ process_using_mathjax = (html, cb) ->
 reactTreeWalker = require('react-tree-walker').default
 {set_rendered_mathjax} = require('smc-webapp/r_misc')
 
-exports.process_react_component = (component, cb) ->
+exports.process_react_component = (component, viewer, cb) ->
     work = []
     visitor = (element, instance, context) ->
         if element.props?.has_mathjax?
@@ -98,7 +106,7 @@ exports.process_react_component = (component, cb) ->
 
     reactTreeWalker(component, visitor).then ->
         f = (html, cb) ->
-            process_using_mathjax html, (err, html2) ->
+            process html, viewer, (err, html2) ->
                 if not err
                     set_rendered_mathjax(html, html2)
                 cb()

@@ -14,7 +14,7 @@ mathjax = require('./mathjax-support')
 # by the Docker container when running in kubernetes.
 ## process.NODE_ENV="production"
 
-exports.react = (res, component, extra) ->
+exports.react = (res, component, extra, viewer) ->
     res.type('html')
     # we will definitely want to disable mathjax someday for any filetypes that don't need it,
     # since it can be slow, even if nothing gets processed.
@@ -25,7 +25,7 @@ exports.react = (res, component, extra) ->
                 cb()
                 return
             t0 = new Date()
-            mathjax.process_react_component component, ->
+            mathjax.process_react_component component, viewer, ->
                 console.log("react: time to process mathjax: #{new Date() - t0}ms", extra)
                 cb()
         (cb) ->
