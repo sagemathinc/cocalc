@@ -22,7 +22,7 @@ react_support        = require('./react')
 
 # This MUST be loaded last, e.g,. it overwrites some of the jQuery plugins
 # (mathjax from misc_page) that are implicitly loaded by the above requires.
-require('./mathjax-support')
+require('./process-react')
 
 # this reads it from disk
 google_analytics     = require('./util').google_analytics_token()

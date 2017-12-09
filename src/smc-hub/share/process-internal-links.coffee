@@ -31,7 +31,7 @@ $.fn.process_internal_links = (opts={}) ->
         return e
 
 exports.process_internal_links = (html, viewer) ->
-    console.log "before '#{html}'"
+    #console.log "before '#{html}'"
     elt = $("<div>")
     elt.html(html)
     elt.process_internal_links
@@ -39,5 +39,5 @@ exports.process_internal_links = (html, viewer) ->
             href += "?viewer=#{viewer}"
             return href
     html = elt.html()
-    console.log "after '#{html}'"
+    #console.log "after '#{html}'"
     return html

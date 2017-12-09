@@ -8,7 +8,7 @@ async = require('async')
 ReactDOMServer = require('react-dom/server')
 
 require('./jsdom-support')
-mathjax = require('./mathjax-support')
+{process_react_component} = require('./process-react')
 
 # Uncomment for cc-in-cc dev benchmarking purposes.  This variable is already set
 # by the Docker container when running in kubernetes.
@@ -25,7 +25,7 @@ exports.react = (res, component, extra, viewer) ->
                 cb()
                 return
             t0 = new Date()
-            mathjax.process_react_component component, viewer, ->
+            process_react_component component, viewer, ->
                 console.log("react: time to process mathjax: #{new Date() - t0}ms", extra)
                 cb()
         (cb) ->
