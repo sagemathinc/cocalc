@@ -11,14 +11,15 @@ $.fn.process_internal_links = (opts={}) ->
         a = e.find('a')
         for x in a
             y = $(x)
-            href = y.attr('href')?.toLowerCase()
+            href = y.attr('href')
             if href?
                 if href[0] == '#'
                     # CASE: internal link on same document - do not touch (e.g., sections in jupyter/sagews)
                     continue
-                if misc.startswith(href, 'mailto:')
+                href_lower = href.toLowerCase()
+                if misc.startswith(href_lower, 'mailto:')
                     continue
-                if misc.startswith(href, 'http://') or misc.startswith(href, 'https://')
+                if misc.startswith(href_lower, 'http://') or misc.startswith(href_lower, 'https://')
                     # for now at least, just leave all such links alone, except make them
                     # open in a new tab (rather than replacing this)
                     y.attr("target","_blank")
