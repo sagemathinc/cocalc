@@ -456,21 +456,15 @@ exports.init_express_http_server = (opts) ->
         app.post(raw_regexp, dev_proxy_raw)
 
         # Also create and expose the share server
-        PROJECT_PATH = conf.project_path()
-        share_server = require('./share/server')
-        share_router = share_server.share_router
-            database : opts.database
-            path     : "#{PROJECT_PATH}/[project_id]"
-            base_url : opts.base_url
-            logger   : winston
-        app.use(opts.base_url + '/share', share_router)
-        ### -- delete
-        raw_router = share_server.raw_router
-            database : opts.database
-            path     : "#{PROJECT_PATH}/[project_id]"
-            logger   : winston
-        app.use(opts.base_url + '/raw',   raw_router)
-        ###
+        if false
+            PROJECT_PATH = conf.project_path()
+            share_server = require('./share/server')
+            share_router = share_server.share_router
+                database : opts.database
+                path     : "#{PROJECT_PATH}/[project_id]"
+                base_url : opts.base_url
+                logger   : winston
+            app.use(opts.base_url + '/share', share_router)
 
 
     app.on 'upgrade', (req, socket, head) ->
