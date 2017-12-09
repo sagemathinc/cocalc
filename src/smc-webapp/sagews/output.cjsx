@@ -80,8 +80,11 @@ exports.CellOutput = rclass
         />
 
     render_tex: (value, key) ->
+        html = "$#{value.tex}$"
+        if value.display
+            html = "$#{html}$"
         <div key={key}>
-            tex render not yet implemented
+            <HTML value={html} />
         </div>
 
     render_raw_input: (value, key) ->
