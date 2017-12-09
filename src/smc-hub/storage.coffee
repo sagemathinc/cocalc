@@ -49,7 +49,7 @@ os          = require('os')
 
 async       = require('async')
 rmdir       = require('rimraf')
-winston     = require('winston')
+winston     = require('./winston-metrics').get_logger('storage')
 
 misc_node   = require('smc-util-node/misc_node')
 
@@ -60,10 +60,6 @@ postgres = require('./postgres')
 
 process.env['PGHOST'] = 'postgres0'   # just hardcode this since all this storage stuff is going away anyways
 
-
-# Set the log level
-winston.remove(winston.transports.Console)
-winston.add(winston.transports.Console, {level: 'debug', timestamp:true, colorize:true})
 
 exclude = () ->
     return ("--exclude=#{x}" for x in misc.split('.sage/cache .sage/temp .trash .Trash .sagemathcloud .smc .node-gyp .cache .forever .snapshots *.sage-backup'))
