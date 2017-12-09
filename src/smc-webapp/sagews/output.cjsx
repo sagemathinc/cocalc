@@ -88,8 +88,16 @@ exports.CellOutput = rclass
         </div>
 
     render_raw_input: (value, key) ->
+        {prompt, value} = value
         <div key={key}>
-            raw input render not yet implemented
+            <b>{prompt}</b>
+            <input
+                style       = {padding: '0em 0.25em', margin: '0em 0.25em'}
+                type        = 'text'
+                size        = {Math.max(47, value.length + 10)}
+                readOnly    = {true}
+                value       = {value}
+            />
         </div>
 
     render_output_mesg: (elts, mesg) ->
