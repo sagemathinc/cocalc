@@ -81,7 +81,7 @@ exports.init_express_http_server = (opts) ->
 
     # initialize metrics
     response_time_histogram = MetricsRecorder.new_histogram('http_histogram', 'http server'
-                                  buckets : [0.001, 0.01, 0.1, 1, 2, 10, 20]
+                                  buckets : [0.01, 0.1, 1, 2, 10, 20]
                                   labels: ['path', 'method', 'code']
                               )
 
@@ -91,8 +91,17 @@ exports.init_express_http_server = (opts) ->
         original_end = res.end
         res.end = ->
             original_end.apply(res, arguments)
-            {dirname} = require('path')
-            dir_path = dirname(req.path).split('/')[1] # for two levels: split('/')[1..2].join('/')
+            {dirname}   = require('path')
+            path_split  = req.path.split('/')
+            # for API paths, we want to have data for each endpoint
+            path_tail   = path_split[path_split.length-3 ..]
+            is_api      = path_tail[0] == 'api' and path_tail[1] == 'v1'
+            if is_api
+                dir_path = path_tail.join('/')
+            else
+                # for regular paths, we ignore the file
+                dir_path = dirname(req.path).split('/')[..1].join('/')
+            #winston.debug('response timing/path_split:', path_tail, is_api, dir_path)
             res_finished_h({path:dir_path, method:req.method, code:res.statusCode})
         next()
 
