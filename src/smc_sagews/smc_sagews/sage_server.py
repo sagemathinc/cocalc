@@ -1025,11 +1025,14 @@ class Salvus(object):
                 from exceptions import SyntaxError,TypeError
                 exc_type, _, _ = sys.exc_info()
                 if exc_type in [SyntaxError,TypeError]:
-                    implicit_mul = RE_POSSIBLE_IMPLICIT_MUL.findall(code)
+                    from sage_parsing import strip_string_literals
+                    code0, _, _ = strip_string_literals(code)
+                    implicit_mul = RE_POSSIBLE_IMPLICIT_MUL.findall(code0)
                     if len(implicit_mul) > 0:
+                        implicit_mul_list = ', '.join(str(_) for _ in implicit_mul)
                         # we know there is a SyntaxError and there could be an implicit multiplication
                         sys.stderr.write('\n\n*** WARNING: Code contains possible implicit multiplication    ***\n')
-                        sys.stderr.write('*** Check if %s need a "*" sign for multiplication, e.g. < 5x > should be < 5*x > ! ***\n\n' % implicit_mul)
+                        sys.stderr.write('*** Check if any of [ %s ] need a "*" sign for multiplication, e.g. 5x should be 5*x ! ***\n\n' % implicit_mul_list)
 
                 sys.stdout.flush()
                 sys.stderr.write('Error in lines %s-%s\n'%(start+1, stop+1))
