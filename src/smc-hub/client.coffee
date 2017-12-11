@@ -1161,6 +1161,8 @@ class exports.Client extends EventEmitter
 
     mesg_invite_collaborator: (mesg) =>
         @touch()
+        #dbg = @dbg('mesg_invite_collaborator')
+        #dbg("mesg: #{misc.to_json(mesg)}")
         @get_project mesg, 'write', (err, project) =>
             if err
                 return

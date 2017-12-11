@@ -342,7 +342,7 @@ class ProjectsActions extends Actions
                     alert_message(type:'error', message:err)
 
     # this is for inviting existing users, the email is only known by the back-end
-    invite_collaborator: (project_id, account_id, body, subject, silent, replyto,  replyto_name) =>
+    invite_collaborator: (project_id, account_id, body, subject, silent, replyto, replyto_name) =>
         @redux.getProjectActions(project_id).log
             event    : 'invite_user'
             invitee_account_id : account_id
@@ -359,8 +359,8 @@ class ProjectsActions extends Actions
         body = markdown.markdown_to_html(body).s
 
         webapp_client.project_invite_collaborator
-            project_id : project_id
-            account_id : account_id
+            project_id   : project_id
+            account_id   : account_id
             title        : title
             link2proj    : link2proj
             replyto      : replyto

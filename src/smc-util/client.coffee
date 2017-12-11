@@ -1332,7 +1332,8 @@ class exports.Connection extends EventEmitter
             replyto_name : undefined
             email        : undefined
             subject      : undefined
-            cb         : (err) =>
+            cb           : (err) =>
+
         @call
             message : message.invite_collaborator(
                 project_id   : opts.project_id
@@ -1340,8 +1341,8 @@ class exports.Connection extends EventEmitter
                 title        : opts.title
                 link2proj    : opts.link2pr
                 replyto      : opts.replyto
-                replyto_name : opts.replyto
-                email        : opts.body
+                replyto_name : opts.replyto_name
+                email        : opts.email
                 subject      : opts.subject
             )
             cb      : (err, result) =>
