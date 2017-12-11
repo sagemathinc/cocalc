@@ -1226,6 +1226,24 @@ API message2
         account_id:
             init  : required
             desc  : 'account_id of invited user'
+        title        :
+            init  : undefined
+            desc  : 'Title of the project'
+        link2proj    :
+            init  : undefined
+            desc  : 'The full URL link to the project'
+        replyto      :
+            init  : undefined
+            desc  : 'Email address of user who is inviting someone'
+        replyto_name :
+            init  : undefined
+            desc  : 'Name of user who is inviting someone'
+        email        :
+            init  : undefined
+            desc  : 'Body of email user is sending (plain text or HTML)'
+        subject      :
+            init  : undefined
+            desc  : 'Subject line of invitiation email'
     desc       : """
 Invite a user who already has a CoCalc account to
 become a collaborator on a project. You must be owner

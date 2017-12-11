@@ -1571,11 +1571,13 @@ class exports.PostgreSQL extends PostgreSQL
 
     add_user_to_project: (opts) =>
         opts = defaults opts,
-            project_id : required
-            account_id : required
-            group      : 'collaborator'  # see misc.PROJECT_GROUPS above
-            cb         : required  # cb(err)
+            project_id   : required
+            account_id   : required
+            group        : 'collaborator'  # see misc.PROJECT_GROUPS above
+            cb           : required  # cb(err)
+
         if not @_validate_opts(opts) then return
+
         @_query
             query       : 'UPDATE projects'
             jsonb_merge :
