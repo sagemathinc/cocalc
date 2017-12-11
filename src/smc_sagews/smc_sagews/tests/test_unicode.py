@@ -115,4 +115,32 @@ class TestErr:
         assert 'implicit multiplication' in mesg['stderr']
         # 2 done
         conftest.recv_til_done(sagews, test_id)
+    def test_no_bad_mult1(self, test_id, sagews):
+        # avoid false positive in quotes
+        code = ("x='1+3x'\ny=")
+        m = conftest.message.execute_code(code = code, id = test_id)
+        sagews.send_json(m)
+        # expect 2 messages from worksheet client
+        # 1 stderr
+        typ, mesg = sagews.recv()
+        assert typ == 'json'
+        assert mesg['id'] == test_id
+        assert 'stderr' in mesg
+        assert 'implicit multiplication' not in mesg['stderr']
+        # 2 done
+        conftest.recv_til_done(sagews, test_id)
+    def test_bad_mult2(self, test_id, sagews):
+        # avoid false positive in comment
+        code = ("x=1 # x=3y\ny=")
+        m = conftest.message.execute_code(code = code, id = test_id)
+        sagews.send_json(m)
+        # expect 2 messages from worksheet client
+        # 1 stderr
+        typ, mesg = sagews.recv()
+        assert typ == 'json'
+        assert mesg['id'] == test_id
+        assert 'stderr' in mesg
+        assert 'implicit multiplication' not in mesg['stderr']
+        # 2 done
+        conftest.recv_til_done(sagews, test_id)
 
