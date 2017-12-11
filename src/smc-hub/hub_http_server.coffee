@@ -92,9 +92,16 @@ exports.init_express_http_server = (opts) ->
         res.end = ->
             original_end.apply(res, arguments)
             {dirname}   = require('path')
-            path_split  = dirname(req.path).split('/')
-            winston.debug('response_time_histogram/path_split:', path_split)
-            dir_path    = path_split[1] # for two levels: split('/')[1..2].join('/')
+            path_split  = req.path.split('/')
+            # for API paths, we want to have data for each endpoint
+            path_tail   = path_split[path_split.length-3 ..]
+            is_api      = path_tail[0] == 'api' and path_tail[1] == 'v1'
+            if is_api
+                dir_path = path_tail.join('/')
+            else
+                # for regular paths, we ignore the file
+                dir_path = dirname(req.path).split('/')[..1].join('/')
+            #winston.debug('response timing/path_split:', path_tail, is_api, dir_path)
             res_finished_h({path:dir_path, method:req.method, code:res.statusCode})
         next()
 
