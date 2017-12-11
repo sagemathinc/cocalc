@@ -14,6 +14,8 @@ misc = require('smc-util/misc')
 
 {fromJS} = require('immutable')
 
+{CodeMirrorStatic} = require('../jupyter/codemirror-static')
+
 exports.CellOutput = rclass
     displayName: "SageCell-Output"
 
@@ -69,20 +71,34 @@ exports.CellOutput = rclass
                 return <a key={key} href={target} target='_blank'>{text}</a>
 
     render_code: (value, key) ->
-        <div key={key}>
-            code render not yet implemented
-        </div>
+        options = fromJS({mode:{name:value.mode}})
+        <CodeMirrorStatic
+            key     = {key}
+            value   = {value.source ? ''}
+            options = {options}
+            style   = {background:'white', padding:'10px'}
+        />
 
     render_tex: (value, key) ->
+        html = "$#{value.tex}$"
+        if value.display
+            html = "$#{html}$"
         <div key={key}>
-            tex render not yet implemented
+            <HTML value={html} />
         </div>
 
     render_raw_input: (value, key) ->
+        {prompt, value} = value
         <div key={key}>
-            raw input render not yet implemented
+            <b>{prompt}</b>
+            <input
+                style       = {padding: '0em 0.25em', margin: '0em 0.25em'}
+                type        = 'text'
+                size        = {Math.max(47, value.length + 10)}
+                readOnly    = {true}
+                value       = {value}
+            />
         </div>
-
 
     render_output_mesg: (elts, mesg) ->
         for type, value of mesg

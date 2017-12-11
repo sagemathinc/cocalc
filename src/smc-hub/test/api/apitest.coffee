@@ -25,11 +25,7 @@ exports.db = exports.account_id = exports.api_key = exports.compute_server = und
 
 {http_message_api_v1} = require('../../api/handler')
 
-winston = require('winston')
-try
-    winston.remove(winston.transports.Console)
-catch
-    # exception if already removed.
+winston      = require('./../../winston-metrics').get_logger('api_test')
 
 exports.setup = (cb) ->
     async.series([

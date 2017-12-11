@@ -654,7 +654,7 @@ class SyncDoc extends EventEmitter
 
     # Used for internal debug logging
     dbg: (f) ->
-        return @_client.dbg("SyncString.#{f}:")
+        return @_client.dbg("SyncString(path='#{@_path}').#{f}:")
 
     # Version of the document at a given point in time; if no
     # time specified, gives the version right now.
@@ -759,10 +759,11 @@ class SyncDoc extends EventEmitter
 
     # Make it so the local hub project will automatically save the file to disk periodically.
     init_project_autosave: () =>
-        if not LOCAL_HUB_AUTOSAVE_S or not @_client.is_project() or @_project_autosave?
+        # Do not autosave sagews until https://github.com/sagemathinc/cocalc/issues/974 is resolved.
+        if not LOCAL_HUB_AUTOSAVE_S or not @_client.is_project() or @_project_autosave? or misc.endswith(@_path, '.sagews')
             return
-        #dbg = @dbg("autosave")
-        #dbg("initializing")
+        dbg = @dbg("autosave")
+        dbg("initializing")
         f = () =>
             #dbg('checking')
             if @hash_of_saved_version()? and @has_unsaved_changes()
@@ -1771,7 +1772,14 @@ class SyncDoc extends EventEmitter
             misc.retry_until_success
                 f         : f
                 max_tries : 5
-                cb        : cb
+                cb        : (err) =>
+                    if err
+                        # TODO: This should in theory never be necessary, and I've resisted adding
+                        # it for five years.  However, here it is:
+                        console.warn("'#{@_path}': failed to save to disk; initiating syncstring reconnect")
+                        @reconnect (err) =>
+                            console.warn("'#{@_path}': reconnect got ", err)
+                    cb(err)
 
     # Save this file to disk, if it is associated with a project and has a filename.
     # A user (web browsers) sets the save state to requested.

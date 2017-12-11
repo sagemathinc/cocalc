@@ -1879,7 +1879,7 @@ BillingPage = rclass
         billing :
             customer        : rtypes.object
             invoices        : rtypes.object
-            error           : rtypes.string
+            error           : rtypes.oneOfType([rtypes.string, rtypes.object])
             action          : rtypes.string
             loaded          : rtypes.bool
             no_stripe       : rtypes.bool     # if true, stripe definitely isn't configured on the server

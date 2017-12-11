@@ -15,7 +15,7 @@ os.environ['PGHOST']=os.path.join(path, 'postgres_data/socket')
 util.chdir()
 
 ports    = util.get_ports()
-base_url = util.base_url(ports['hub-share-2'])
+base_url = util.base_url(ports['hub-share-2'], write=False)
 
 print('''\n\nBASE URL: {}\n\n'''.format(base_url))
 

@@ -32,6 +32,7 @@ misc = require('smc-util/misc')
 CHAT_INDICATOR_STYLE =
     fontSize     : '14pt'
     borderRadius : '3px'
+    marginTop    : '3px'
 
 USERS_VIEWING_STYLE =
     maxWidth:"120px"

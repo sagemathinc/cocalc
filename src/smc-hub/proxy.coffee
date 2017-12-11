@@ -25,7 +25,7 @@ servers running on project vm's
 ###
 
 async   = require('async')
-winston = require('winston')
+winston = require('./winston-metrics').get_logger('proxy')
 http_proxy = require('http-proxy')
 url     = require('url')
 http    = require('http')

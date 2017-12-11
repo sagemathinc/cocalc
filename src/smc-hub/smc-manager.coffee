@@ -1,7 +1,5 @@
 async   = require('async')
-winston = require('winston')
-winston.remove(winston.transports.Console)
-winston.add(winston.transports.Console, {level: 'debug', timestamp:true, colorize:true})
+winston = require('./winston-metrics').get_logger('smc-manager')
 
 misc = require('smc-util/misc')
 {defaults, required} = misc

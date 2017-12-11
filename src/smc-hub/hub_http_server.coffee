@@ -38,6 +38,8 @@ http_proxy   = require('http-proxy')
 http         = require('http')
 winston      = require('winston')
 
+winston      = require('./winston-metrics').get_logger('hub_http_server')
+
 misc         = require('smc-util/misc')
 {defaults, required} = misc
 
@@ -343,6 +345,7 @@ exports.init_express_http_server = (opts) ->
             return
         opts.database.get_stats
             update : false   # never update in hub b/c too slow. instead, run $ hub --update_stats via a cronjob every minute
+            ttl    : 30
             cb     : (err, stats) ->
                 res.header('Cache-Control', 'private, no-cache, no-store, must-revalidate')
                 if err
@@ -457,21 +460,15 @@ exports.init_express_http_server = (opts) ->
         app.post(raw_regexp, dev_proxy_raw)
 
         # Also create and expose the share server
-        PROJECT_PATH = conf.project_path()
-        share_server = require('./share/server')
-        share_router = share_server.share_router
-            database : opts.database
-            path     : "#{PROJECT_PATH}/[project_id]"
-            base_url : opts.base_url
-            logger   : winston
-        app.use(opts.base_url + '/share', share_router)
-        ### -- delete
-        raw_router = share_server.raw_router
-            database : opts.database
-            path     : "#{PROJECT_PATH}/[project_id]"
-            logger   : winston
-        app.use(opts.base_url + '/raw',   raw_router)
-        ###
+        if false
+            PROJECT_PATH = conf.project_path()
+            share_server = require('./share/server')
+            share_router = share_server.share_router
+                database : opts.database
+                path     : "#{PROJECT_PATH}/[project_id]"
+                base_url : opts.base_url
+                logger   : winston
+            app.use(opts.base_url + '/share', share_router)
 
 
     app.on 'upgrade', (req, socket, head) ->

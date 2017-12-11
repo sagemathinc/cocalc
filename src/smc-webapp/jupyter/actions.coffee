@@ -1430,13 +1430,7 @@ class exports.JupyterActions extends Actions
             @setState(more_output : more_output.delete(id))
 
     set_cm_options: =>
-        mode = @store.get_language_info()?.get('codemirror_mode')
-        if typeof(mode) == 'string'
-            mode = {name:mode}  # some kernels send a string back for the mode; others an object
-        else if mode?.toJS?
-            mode = mode.toJS()
-        else if not mode?
-            mode = @store.get('kernel')   # may be better than nothing...; e.g., octave kernel has no mode.
+        mode = @store.get_cm_mode()
         editor_settings  = @redux.getStore('account')?.get('editor_settings')?.toJS?()
         line_numbers = @store.get_local_storage('line_numbers')
         read_only = @store.get('read_only')
