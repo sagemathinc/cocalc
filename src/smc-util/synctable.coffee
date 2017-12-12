@@ -112,10 +112,13 @@ schema         = require('./schema')
 
 {defaults, required} = misc
 
+is_fatal = (err) ->
+    return typeof(err) == 'string' and err.slice(0,5) == 'FATAL'
+
 cb_fatal = (err, cb) ->
     if not cb?
         return
-    if typeof(err) == 'string' and err.slice(0,5) == 'FATAL'
+    if is_fatal(err)
         # throw in an arbitrary pause to wait for proper connection or
         # give the backend time to breath
         setTimeout((->cb(err)), 5000 + Math.random()*5000)
@@ -328,7 +331,17 @@ class SyncTable extends EventEmitter
             options : @_options
             cb      : (err, resp) =>
                 if err
-                    cb?(err)
+                    if first_resp and is_fatal(err)
+                        cb_fatal(err, cb)
+                    else
+                        # CRITICAL: any other error means we need to consider this changefeed as
+                        # totally broken, and commence starting to reconnect.  There's definitely
+                        # no guarantee that whatever connects to us will cleanly disconnect via
+                        # a 'query_cancel' mesg.   E.g., if numerous hubs connect to a single project,
+                        # and one hub is violently killed, then it does not cancel its changefeeds.
+                        # However, the project isn't disconnected due to the other hubs.
+                        @_disconnected("err=#{err}")
+                        cb?(err)
                     cb = undefined
                     return
 
@@ -371,7 +384,7 @@ class SyncTable extends EventEmitter
                         if this_query_id?
                             @_client.query_cancel(id:this_query_id)
                         return
-                    if err or resp?.event == 'query_cancel'
+                    if resp?.event == 'query_cancel'
                         @_disconnected("err=#{err}, resp?.event=#{resp?.event}")
                     else
                         # Handle the update
