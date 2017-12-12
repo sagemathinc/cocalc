@@ -92,7 +92,8 @@ exports.TopMenubar = rclass ({name}) ->
         names = [
                 'new notebook', 'open file', close_and_halt, '', \
                 'duplicate notebook', rename, save, 'time travel', '', \
-                'print preview', '<Download as...', '>nbconvert ipynb',  script_entry, '>nbconvert html', '>nbconvert markdown', '>nbconvert rst', '>nbconvert tex', '>nbconvert pdf',  '>nbconvert sagews', '', '>nbconvert slides', '>nbconvert asciidoc', '', \
+                'print preview', 'nbconvert slides', \
+                '<Download as...', '>nbconvert ipynb',  script_entry, '>nbconvert html', '>nbconvert markdown', '>nbconvert rst', '>nbconvert tex', '>nbconvert pdf',  '>nbconvert sagews', '>nbconvert asciidoc', '', \
                 trust]
         if @props.fullscreen != 'kiosk'
             names.push('')
@@ -164,7 +165,8 @@ exports.TopMenubar = rclass ({name}) ->
                 '>toggle all cells output collapsed', '>toggle all cells output scrolled', '>clear all cells output'
             ]
 
-    # TODO: upper case kernel names, descriptions... and make it a new component for efficiency so don't re-render if not change
+    # TODO: upper case kernel names, descriptions... and make it a new component for
+    # efficiency so don't re-render if not change
     render_kernel_item: (kernel) ->
         style = {marginLeft:'4ex'}
         if kernel.name == @props.kernel
