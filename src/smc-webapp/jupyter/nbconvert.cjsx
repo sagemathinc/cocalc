@@ -68,6 +68,7 @@ exports.NBConvert = rclass
     propTypes :
         actions             : rtypes.object.isRequired
         path                : rtypes.string.isRequired
+        project_id          : rtypes.string.isRequired
         nbconvert           : rtypes.immutable.Map
         nbconvert_dialog    : rtypes.immutable.Map
         backend_kernel_info : rtypes.immutable.Map
@@ -208,7 +209,42 @@ exports.NBConvert = rclass
         else
             return ''
 
+    slides_command: ->
+        return "jupyter nbconvert --to slides --ServePostProcessor.port=18080 --ServePostProcessor.ip='*' --ServePostProcessor.open_in_browser=False ~/'#{@props.path}' --post serve"
+
+    slides_url: ->
+        project_id = "45f4aab5-7698-4ac8-9f63-9fd307401ad7"
+        return "https://cocalc.com/#{@props.project_id}/server/18080/slides.slides.html#/"
+
+    render_slides_workaround: ->
+        # workaround until #2569 is fixed.
+        <Modal show={@props.nbconvert_dialog?} bsSize="large" onHide={@close} >
+            <Modal.Header closeButton>
+                <Modal.Title><Icon name='slideshare'/> Jupyter Slideshow</Modal.Title>
+            </Modal.Header>
+            <Modal.Body>
+                Completely automated display of slideshows is not yet implemented. However,
+                you can start a slideshow by copying and pasting this command in a terminal in
+                CoCalc (+New-->Terminal)
+                <pre>
+                {@slides_command()}
+                </pre>
+                then viewing your slides at <a href={@slides_url()} target="_blank">{@slides_url()}</a>.
+
+                <br/>
+                <hr/>
+
+                See <a target="_blank" href="https://github.com/sagemathinc/cocalc/issues/2569#issuecomment-350940928">the Github issue</a> for more details and status.
+
+            </Modal.Body>
+            <Modal.Footer>
+                <Button onClick={@close}>Close</Button>
+            </Modal.Footer>
+        </Modal>
+
     render: ->
+        if @props.nbconvert_dialog?.get('to') == 'slides'
+            return @render_slides_workaround()
         <Modal show={@props.nbconvert_dialog?} bsSize="large" onHide={@close} >
             <Modal.Header closeButton>
                 <Modal.Title>Download</Modal.Title>
