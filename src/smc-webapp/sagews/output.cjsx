@@ -58,9 +58,7 @@ exports.CellOutput = rclass
             when 'svg', 'png', 'gif', 'jpg', 'jpeg'
                 return <img key={key} src={target} />
             when 'sage3d'
-                return <div key={key}>
-                    3D renderer not yet implemented
-                </div>
+                return @render_3d(value.filename, key)
             when 'webm'
                 return <video key={key} src={target} controls></video>
             else
@@ -69,6 +67,11 @@ exports.CellOutput = rclass
                 else
                     text = value.filename
                 return <a key={key} href={target} target='_blank'>{text}</a>
+
+    render_3d: (filename, key) ->
+        return <div key={key}>
+            3D rendering not yet implemented
+        </div>
 
     render_code: (value, key) ->
         options = fromJS({mode:{name:value.mode}})

@@ -112,10 +112,13 @@ schema         = require('./schema')
 
 {defaults, required} = misc
 
+is_fatal = (err) ->
+    return typeof(err) == 'string' and err.slice(0,5) == 'FATAL'
+
 cb_fatal = (err, cb) ->
     if not cb?
         return
-    if typeof(err) == 'string' and err.slice(0,5) == 'FATAL'
+    if is_fatal(err)
         # throw in an arbitrary pause to wait for proper connection or
         # give the backend time to breath
         setTimeout((->cb(err)), 5000 + Math.random()*5000)
@@ -327,15 +330,8 @@ class SyncTable extends EventEmitter
             timeout : 30
             options : @_options
             cb      : (err, resp) =>
-                if err
-                    cb?(err)
-                    cb = undefined
-                    return
-
                 if @_state == 'closed'
                     # already closed so ignore anything else.
-                    cb?('closed')
-                    cb = undefined
                     return
 
                 if first_resp
@@ -343,16 +339,12 @@ class SyncTable extends EventEmitter
                     first_resp = false
                     if @_state == 'closed'
                         cb?("closed")
-                        cb = undefined
                     else if resp?.event == 'query_cancel'
                         cb?("query-cancel")
-                        cb = undefined
                     else if err
-                        cb?(err)
-                        cb = undefined
+                        cb_fatal(err, cb)
                     else if not resp?.query?[@_table]?
                         cb?("got no data")
-                        cb = undefined
                     else
                         # Successfully completed query
                         this_query_id = @_id = resp.id
@@ -360,10 +352,9 @@ class SyncTable extends EventEmitter
                         @_update_all(resp.query[@_table])
                         @emit("connected", resp.query[@_table])  # ready to use!
                         cb?()
-                        cb = undefined
                         # Do any pending saves
-                        for cb0 in @_connected_save_cbs ? []
-                            @save(cb0)
+                        for cb in @_connected_save_cbs ? []
+                            @save(cb)
                         delete @_connected_save_cbs
                 else
                     if @_state != 'connected'

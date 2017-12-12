@@ -1684,7 +1684,7 @@ class exports.Connection extends EventEmitter
         opts = defaults opts,
             account_id    : undefined    # one of account_id or email_address must be given
             email_address : undefined
-            amount        : undefined    # in US dollars -- if amount/description not given, then merely ensures user has stripe account
+            amount        : undefined    # in US dollars -- if amount/description *not* given, then merely ensures user has stripe account and updats info about them
             description   : undefined
             cb            : required
         @call
