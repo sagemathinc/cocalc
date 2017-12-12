@@ -22,9 +22,11 @@
 async      = require('async')
 underscore = require('underscore')
 immutable  = require('immutable')
+os_path    = require('path')
 
 # At most this many of the most recent log messages for a project get loaded:
-MAX_PROJECT_LOG_ENTRIES = 5000
+# TODO: add a button to load the entire log or load more...
+MAX_PROJECT_LOG_ENTRIES = 1000
 
 misc      = require('smc-util/misc')
 {MARKERS} = require('smc-util/sagews')
@@ -34,6 +36,7 @@ misc      = require('smc-util/misc')
 {types, defaults, required} = misc
 
 {Actions, rtypes, computed, depends, Table, register_project_store, redux}  = require('./smc-react')
+{file_actions} = require('./project_files')
 
 # Register this module with the redux module, so it can be used by the reset of SMC easily.
 register_project_store(exports)
@@ -56,6 +59,13 @@ BANNED_FILE_TYPES             = ['doc', 'docx', 'pdf', 'sws']
 
 FROM_WEB_TIMEOUT_S = 45
 
+# src: where the library files are
+# start: open this file after copying the directory
+exports.LIBRARY = LIBRARY =
+    first_steps :
+        src    : '/ext/library/first-steps/src'
+        start  : 'first-steps.tasks'
+
 QUERIES =
     project_log :
         query :
@@ -72,6 +82,10 @@ QUERIES =
             path        : null
             description : null
             disabled    : null
+            created     : null
+            last_edited : null
+            last_saved  : null
+            counter     : null
 
 must_define = (redux) ->
     if not redux?
@@ -96,9 +110,6 @@ class ProjectActions extends Actions
 
     get_store: =>
         return @redux.getStore(@name)
-
-    get_state: (key) =>
-        return @get_store().get(key)
 
     clear_all_activity: =>
         @setState(activity:undefined)
@@ -130,6 +141,8 @@ class ProjectActions extends Actions
         temp_list = x.delete(old_index)
         new_list = temp_list.splice(new_index, 0, item)
         @setState(open_files_order:new_list)
+        @redux.getActions('page').save_session()
+
 
     # Closes a file tab
     # Also closes file references.
@@ -214,7 +227,7 @@ class ProjectActions extends Actions
         x = store.activity?.toJS()
         if not x?
             x = {}
-        # Actual implemenation of above specified API is VERY minimal for
+        # Actual implementyation of above specified API is VERY minimal for
         # now -- just enough to display something to user.
         if opts.status?
             x[opts.id] = opts.status
@@ -233,24 +246,45 @@ class ProjectActions extends Actions
         return
 
     # report a log event to the backend -- will indirectly result in a new entry in the store...
-    log: (event) =>
+    # Returns the random log entry uuid. If called later with that id, then the time isn't
+    # changed and the event is merely updated.
+    log: (event, id) =>
         if @redux.getStore('projects').get_my_group(@project_id) in ['public', 'admin']
             # Ignore log events for *both* admin and public.
             # Admin gets to be secretive (also their account_id --> name likely wouldn't be known to users).
             # Public users don't log anything.
             return # ignore log events
+        obj =
+            event      : event
+            project_id : @project_id
+        if not id
+            # new log entry
+            id       = misc.uuid()
+            obj.time = misc.server_time()
+        obj.id = id
         require('./webapp_client').webapp_client.query
-            query :
-                project_log :
-                    project_id : @project_id
-                    time       : new Date()
-                    event      : event
-            cb : (err) =>
+            query : {project_log : obj}
+            cb    : (err) =>
                 if err
                     # TODO: what do we want to do if a log doesn't get recorded?
                     # (It *should* keep trying and store that in localStorage, and try next time, etc...
                     #  of course done in a systematic way across everything.)
                     console.warn('error recording a log entry: ', err, event)
+        return id
+
+    log_opened_time: (path) =>
+        # Call log_opened with a path to update the log with the fact that
+        # this file successfully opened and rendered so that the user can
+        # actually see it.  This is used to get a sense for how long things
+        # are taking...
+        data = @_log_open_time?[path]
+        if not data?
+            # never setup log event recording the start of open (this would get set in @open_file)
+            return
+        {id, start} = data
+        # do not allow recording the time more than once, which would be weird.
+        delete @_log_open_time[path]
+        @log({time: misc.server_time() - start}, id)
 
     # Save the given file in this project (if it is open) to disk.
     save_file: (opts) =>
@@ -336,10 +370,19 @@ class ProjectActions extends Actions
                         if not is_public
                             # the ? is because if the user is anonymous they don't have a file_use Actions (yet)
                             @redux.getActions('file_use')?.mark_file(@project_id, opts.path, 'open')
-                            @log
+                            event =
                                 event     : 'open'
                                 action    : 'open'
                                 filename  : opts.path
+                            id = @log(event)
+
+                            # Save the log entry id, so it is possible to optionally
+                            # record how long it took for the file to open.  This
+                            # may happen via a call from random places in our codebase,
+                            # since the idea of "finishing opening and rendering" is
+                            # not simple to define.
+                            @_log_open_time ?= {}
+                            @_log_open_time[opts.path] = {id:id, start:misc.server_time()}
 
                             # grab chat state from local storage
                             local_storage = require('./editor').local_storage
@@ -384,13 +427,15 @@ class ProjectActions extends Actions
                             open_files = open_files.setIn([opts.path, 'chat_width'], opts.chat_width)
                             index = open_files_order.indexOf(opts.path)
                             if opts.chat
-                                require('./editor_chat').init_redux(misc.meta_file(opts.path, 'chat'), @redux, @project_id)
+                                require('./chat/register').init(misc.meta_file(opts.path, 'chat'), @redux, @project_id)
+                                # Closed by require('./project_file').remove
 
                             if index == -1
                                 index = open_files_order.size
                             @setState
                                 open_files       : open_files
                                 open_files_order : open_files_order.set(index, opts.path)
+                            @redux.getActions('page').save_session()
 
                         if opts.foreground
                             @foreground_project()
@@ -427,7 +472,7 @@ class ProjectActions extends Actions
         opts = defaults opts,
             path : required
         @_set_chat_state(opts.path, true)
-        require('./editor_chat').init_redux(misc.meta_file(opts.path, 'chat'), @redux, @project_id)
+        require('./chat/register').init(misc.meta_file(opts.path, 'chat'), @redux, @project_id)
         require('./editor').local_storage?(@project_id, opts.path, 'is_chat_open', true)
 
     # Close side chat for the given file, assuming the file itself is open
@@ -539,6 +584,7 @@ class ProjectActions extends Actions
                 open_files_order : x.delete(index)
                 open_files       : open_files.delete(path)
             project_file.remove(path, @redux, @project_id, is_public)
+            @redux.getActions('page').save_session()
 
     # Makes this project the active project tab
     foreground_project: =>
@@ -578,8 +624,13 @@ class ProjectActions extends Actions
             throw Error("Current path should be a string. Revieved arguments are available in window.cpath_args")
         # Set the current path for this project. path is either a string or array of segments.
 
+        history_path = @get_store()?.history_path ? ''
+        if (!history_path.startsWith(path)) or (path.length > history_path.length)
+            history_path = path
+
         @setState
             current_path           : path
+            history_path           : history_path
             page_number            : 0
             most_recent_file_click : undefined
 
@@ -597,35 +648,46 @@ class ProjectActions extends Actions
     # Use current path if path not provided
     fetch_directory_listing: (opts) =>
         # This ? below is NEEDED!  -- there's no guarantee the store is defined yet.
-        {path} = defaults opts,
+        opts = defaults opts,
             path         : @get_store()?.current_path
             finish_cb    : undefined # WARNING: THINK VERY HARD BEFORE YOU USE THIS
             # In the vast majority of cases, you just want to look at the data.
             # Very rarely should you need something to execute exactly after this
-
+        path = opts.path
+        #if DEBUG then console.log('ProjectStore::fetch_directory_listing, opts:', opts, opts.finish_cb)
         if not path?
             # nothing to do if path isn't defined -- there is no current path -- see https://github.com/sagemathinc/cocalc/issues/818
             return
 
-        if not @_set_directory_files_lock?
-            @_set_directory_files_lock = {}
+        @_set_directory_files_lock ?= {}
         _key = "#{path}"
-        if @_set_directory_files_lock[_key]  # currently doing it already
+        # this makes sure finish_cb is being called, even when there are concurrent requests
+        if @_set_directory_files_lock[_key]?  # currently doing it already
+            @_set_directory_files_lock[_key].push(opts.finish_cb) if opts.finish_cb?
+            #if DEBUG then console.log('ProjectStore::fetch_directory_listing aborting:', _key, opts)
             return
-        @_set_directory_files_lock[_key] = true
+        @_set_directory_files_lock[_key] = []
         # Wait until user is logged in, project store is loaded enough
         # that we know our relation to this project, namely so that
         # get_my_group is defined.
         id = misc.uuid()
-        @set_activity(id:id, status:"getting file listing for #{misc.trunc_middle(path,30)}...")
-        async.waterfall([
+        if path
+            status = "Loading file list - #{misc.trunc_middle(path,30)}"
+        else
+            status = "Loading file list"
+        @set_activity(id:id, status:status)
+        my_group = undefined
+        the_listing = undefined
+        async.series([
             (cb) =>
                 # make sure that our relationship to this project is known.
                 @redux.getStore('projects').wait
                     until   : (s) => s.get_my_group(@project_id)
                     timeout : 30
-                    cb      : cb
-            (group, cb) =>
+                    cb      : (err, group) =>
+                        my_group = group
+                        cb(err)
+            (cb) =>
                 store = @get_store()
                 if not store?
                     cb("store no longer defined"); return
@@ -634,19 +696,30 @@ class ProjectActions extends Actions
                     project_id : @project_id
                     path       : path
                     hidden     : true
-                    max_time_s : 120  # keep trying for up to 2 minutes
-                    group      : group
-                    cb         : cb
-        ], (err, listing) =>
+                    max_time_s : 15*60  # keep trying for up to 15 minutes
+                    group      : my_group
+                    cb         : (err, listing) =>
+                        the_listing = listing
+                        cb(err)
+        ], (err) =>
             @set_activity(id:id, stop:'')
             # Update the path component of the immutable directory listings map:
             store = @get_store()
+            #if DEBUG then console.log('ProjectStore::fetch_directory_listing done', store, listing)
             if not store?
                 return
-            map = store.directory_listings.set(path, if err then misc.to_json(err) else immutable.fromJS(listing.files))
+            if err and not misc.is_string(err)
+                err = misc.to_json(err)
+            map = store.directory_listings.set(path, if err then err else immutable.fromJS(the_listing.files))
             @setState(directory_listings : map)
-            delete @_set_directory_files_lock[_key] # done!
-            opts?.finish_cb?()
+            # done! releasing lock, then executing callback(s)
+            cbs = @_set_directory_files_lock[_key]
+            delete @_set_directory_files_lock[_key]
+            for cb in cbs ? []
+                #if DEBUG then console.log('ProjectStore::fetch_directory_listing cb from lock', cb)
+                cb?()
+            #if DEBUG then console.log('ProjectStore::fetch_directory_listing cb', opts, opts.finish_cb)
+            opts.finish_cb?()
         )
 
     # Sets the active file_sort to next_column_name
@@ -704,26 +777,37 @@ class ProjectActions extends Actions
     # set the given file to the given checked state
     set_file_checked: (file, checked) =>
         store = @get_store()
+        changes = {}
         if checked
-            checked_files = store.checked_files.add(file)
+            changes.checked_files = store.checked_files.add(file)
+            if store.file_action? and changes.checked_files.size > 1 and not file_actions[store.file_action].allows_multiple_files
+                changes.file_action = undefined
         else
-            checked_files = store.checked_files.delete(file)
+            changes.checked_files = store.checked_files.delete(file)
+            if changes.checked_files.size == 0
+                changes.file_action = undefined
 
-        @setState
-            checked_files : checked_files
-            file_action   : undefined
+        @setState(changes)
 
     # check all files in the given file_list
     set_file_list_checked: (file_list) =>
-        @setState
-            checked_files : @get_store().checked_files.union(file_list)
-            file_action   : undefined
+        store = @get_store()
+        changes =
+            checked_files : store.checked_files.union(file_list)
+        if store.file_action? and changes.checked_files.size > 1 and not file_actions[store.file_action].allows_multiple_files
+            changes.file_action = undefined
+
+        @setState(changes)
+
 
     # uncheck all files in the given file_list
     set_file_list_unchecked: (file_list) =>
-        @setState
-            checked_files : @get_store().checked_files.subtract(file_list)
-            file_action   : undefined
+        changes = {checked_files : @get_store().checked_files.subtract(file_list)}
+
+        if changes.checked_files.size == 0
+            changes.file_action = undefined
+
+        @setState(changes)
 
     # uncheck all files
     set_all_files_unchecked: =>
@@ -763,6 +847,16 @@ class ProjectActions extends Actions
             when 'rename'
                 @setState(new_name : misc.path_split(get_basename()).tail)
         @setState(file_action : action)
+
+    show_file_action_panel: (opts) =>
+        opts = defaults opts,
+            path   : required
+            action : required
+        path_splitted = misc.path_split(opts.path)
+        @open_directory(path_splitted.head)
+        @set_all_files_unchecked()
+        @set_file_checked(opts.path, true)
+        @set_file_action(opts.action, (-> path_splitted.tail))
 
     get_from_web: (opts) =>
         opts = defaults opts,
@@ -806,9 +900,11 @@ class ProjectActions extends Actions
             zip_args : undefined
             path     : undefined   # default to root of project
             id       : undefined
-        id = opts.id ? misc.uuid()
-        @set_activity(id:id, status:"Creating #{opts.dest} from #{opts.src.length} #{misc.plural(opts.src.length, 'file')}")
+            cb       : undefined
         args = (opts.zip_args ? []).concat(['-rq'], [opts.dest], opts.src)
+        if not opts.cb?
+            id = opts.id ? misc.uuid()
+            @set_activity(id:id, status:"Creating #{opts.dest} from #{opts.src.length} #{misc.plural(opts.src.length, 'file')}")
         webapp_client.exec
             project_id      : @project_id
             command         : 'zip'
@@ -817,7 +913,7 @@ class ProjectActions extends Actions
             network_timeout : 60
             err_on_exit     : true    # this should fail if exit_code != 0
             path            : opts.path
-            cb              : @_finish_exec(id)
+            cb              : opts.cb ? @_finish_exec(id)
 
     # DANGER: ASSUMES PATH IS IN THE DISPLAYED LISTING
     _convert_to_displayed_path: (path) =>
@@ -828,6 +924,60 @@ class ProjectActions extends Actions
                 return path + '/'
             else
                 return path
+
+    # this is called once by the project initialization
+    check_library: =>
+        #if DEBUG then console.log("check_library")
+        check = (v, k, cb) =>
+            #if DEBUG then console.log("check_library.check", v, k)
+            store = @get_store()
+            return if not store?
+            if store.library_available?[k]?
+                return
+            src = v.src
+            cmd = "test -e #{src}"
+            webapp_client.exec
+                project_id      : @project_id
+                command         : cmd
+                bash            : true
+                timeout         : 30
+                network_timeout : 120
+                err_on_exit     : false
+                path            : '.'
+                cb              : (err, output) =>
+                    if not err
+                        @setState(library_available: {"#{k}" : (output.exit_code == 0)})
+                    cb(err)
+        setTimeout(async.eachOfSeries(LIBRARY, check), 1000)
+
+    copy_from_library: (opts) =>
+        opts = defaults opts,
+            entry : 'first_steps'
+
+        lib = LIBRARY[opts.entry]
+        if not lib?
+            @setState(error: "Library entry '#{opts.entry}' unknown")
+            return
+
+        id = opts.id ? misc.uuid()
+        @set_activity(id:id, status:"Copying files from library ...")
+
+        # the rsync command purposely does not preserve the timestamps,
+        # such that they look like "new files" and listed on top under default sorting
+        source = os_path.join(lib.src, '/')
+        target = os_path.join(opts.entry, '/')
+        webapp_client.exec
+            project_id      : @project_id
+            command         : 'rsync'
+            args            : ['-rlDx', source, target]
+            timeout         : 120   # how long rsync runs on client
+            network_timeout : 120   # how long network call has until it must return something or get total error.
+            err_on_exit     : true
+            path            : '.'
+            cb              : (err, output) =>
+                (@_finish_exec(id))(err, output)
+                if not err
+                    @open_file(path: os_path.join(target, lib.start))
 
     copy_paths: (opts) =>
         opts = defaults opts,
@@ -861,10 +1011,23 @@ class ProjectActions extends Actions
         id = opts.id ? misc.uuid()
         @set_activity(id:id, status:"Copying #{opts.src.length} #{misc.plural(opts.src.length, 'file')} to #{opts.dest}")
 
+        args = ['-rltgoDxH']
+
+        # We ensure the target copy is writable if *any* source path starts with .snapshots.
+        # See https://github.com/sagemathinc/cocalc/issues/2497
+        # This is a little lazy, but whatever.
+        for x in opts.src
+            if misc.startswith(x, '.snapshots')
+                args = args.concat(['--perms', '--chmod', 'u+w'])
+                break
+
+        args = args.concat(opts.src)
+        args = args.concat([opts.dest])
+
         webapp_client.exec
             project_id      : @project_id
             command         : 'rsync'  # don't use "a" option to rsync, since on snapshots results in destroying project access!
-            args            : ['-rltgoDxH'].concat(opts.src).concat([opts.dest])
+            args            : args
             timeout         : 120   # how long rsync runs on client
             network_timeout : 120   # how long network call has until it must return something or get total error.
             err_on_exit     : true
@@ -1048,9 +1211,6 @@ class ProjectActions extends Actions
     show_upload : (show) =>
         @setState(show_upload : show)
 
-    toggle_upload: =>
-        @show_upload(not @get_state('show_upload'))
-
     # Compute the absolute path to the file with given name but with the
     # given extension added to the file (e.g., "md") if the file doesn't have
     # that extension.  Throws an Error if the path name is invalid.
@@ -1098,7 +1258,7 @@ class ProjectActions extends Actions
         if (name == ".." or name == ".") and not opts.ext?
             @setState(file_creation_error: "Cannot create a file named . or ..")
             return
-        if name.indexOf('://') != -1 or misc.startswith(name, 'git@github.com')
+        if misc.is_only_downloadable(name)
             @new_file_from_web(name, opts.current_path)
             return
         if name[name.length - 1] == '/'
@@ -1156,17 +1316,102 @@ class ProjectActions extends Actions
                 @set_activity(id: id, stop:'')
                 cb?(err)
 
+    # slowdown is an estimate how much longer computations take -- unit is percent
+    # After initialization, updated every 30 seconds if the store exists
+    # Requires the store to be initialized
+    init_free_compute_slowdown: =>
+        return if not @get_store()? or @get_store().free_compute_slowdown?
+        @setState(free_compute_slowdown : 0.0)
+        {webapp_client} = require('./webapp_client')
+        ncpu = undefined
+
+        # Comment out f() at the bottom of init_free_compute_slowdown to use f_test
+        # Expect load to increase by 1% every second while load should be displayed
+        # Console logs should stop when project is closed
+        # Projects should have independent load values
+        # test_load = 0
+        # f_test = =>
+        #     proj_store = @redux.getStore('projects')
+        #     quotas = proj_store.get_total_project_quotas(@project_id)
+        #     state  = proj_store.getIn(['project_map', @project_id, 'state', 'state'])
+        #     if state == 'running' and (quotas?) and (not quotas.member_host)
+        #         test_load = test_load + 1
+        #         @setState(free_compute_slowdown : test_load)
+        #     else
+        #         @setState(free_compute_slowdown : 0.0)
+        #     console.log "test load for", @project_id, "is", test_load
+        #     setTimeout(f_test, 1000) if @get_store()?
+        # f_test()
+
+        f = =>
+            proj_store = @redux.getStore('projects')
+            quotas = proj_store.get_total_project_quotas(@project_id)
+            state  = proj_store.getIn(['project_map', @project_id, 'state', 'state'])
+            # project running and not on a members host
+            if state == 'running' and (quotas?) and (not quotas.member_host)
+                webapp_client.exec
+                    project_id   : @project_id
+                    command      : '/bin/cat'
+                    args         : ['/proc/loadavg']
+                    bash         : false
+                    err_on_exit  : true
+                    cb           : (err, output) =>
+                        try
+                            [l1, l5, l15, ...] = output.stdout.split(' ')
+                            l5 = window.parseFloat(l5)
+                            #l5 = 4.2 if DEBUG             # testing only
+                            #quotas.cores = 0.75  if DEBUG # testing only
+                            # normalized load 5 bounded by 1
+                            n5 = Math.max(1, l5 / ncpu)
+                            slowdown = (100 * n5 * (1 / Math.min(quotas.cores ? 1, 1))) - 100
+                            #slowdown = 42 if DEBUG        # testing only
+                            #if DEBUG then console.log('updating free_compute_slowdown: n5 =', n5)
+                            if isFinite(slowdown) and not isNaN(slowdown)
+                                @setState(free_compute_slowdown : Math.max(0.0, slowdown))
+                            else
+                                @setState(free_compute_slowdown : 0.0)
+                        setTimeout(f, 30 * 1000) if @get_store()?
+            else
+                # otherwise, check again later ...
+                @setState(free_compute_slowdown : 0.0)
+                setTimeout(f, 120 * 1000) if @get_store()?
+
+        # get the number of cpus, which is constant
+        webapp_client.exec
+            project_id   : @project_id
+            bash         : true
+            command      : 'grep process /proc/cpuinfo | wc -l'
+            err_on_exit  : true
+            cb           : (err, output) =>
+                if err
+                    return
+                try
+                    ncpu = window.parseInt(output.stdout)
+                    f()
+
     ###
     # Actions for PUBLIC PATHS
     ###
     set_public_path: (path, description) =>
-        obj = {project_id:@project_id, path:path, disabled:false}
-        if description?
-            obj.description = description
+        obj =
+            project_id  : @project_id
+            path        : path
+            description : description
+            disabled    : false
+        obj.last_edited = obj.created = now = misc.server_time()
+        # only set created if this obj is new; have to just linearly search through paths right now...
+        @get_store()?.public_paths?.map (v, k) ->
+            if v.get('path') == path
+                delete obj.created
+                return false
         @redux.getProjectTable(@project_id, 'public_paths').set(obj)
 
     disable_public_path: (path) =>
-        @redux.getProjectTable(@project_id, 'public_paths').set(project_id:@project_id, path:path, disabled:true)
+        @redux.getProjectTable(@project_id, 'public_paths').set
+            project_id  : @project_id
+            path        : path
+            disabled    : true
+            last_edited : misc.server_time()
 
 
     ###
@@ -1281,7 +1526,9 @@ class ProjectActions extends Actions
         last = segments.slice(-1).join()
         switch segments[0]
             when 'files'
+                #if DEBUG then console.log("ProjectStore::load_target", segments, full_path, parent_path ,last)
                 if target[target.length-1] == '/' or full_path == ''
+                    #if DEBUG then console.log("ProjectStore::load_target → open_directory", parent_path)
                     @open_directory(parent_path)
                 else
                     # TODOJ: Change when directory listing is synchronized. Just have to query client state then.
@@ -1289,15 +1536,19 @@ class ProjectActions extends Actions
                     async.waterfall [
                         (cb) =>
                             {item, err} = @get_store().get_item_in_path(last, parent_path)
+                            #if DEBUG then console.log("ProjectStore::load_target → waterfall1", item, err)
                             cb(err, item)
                         (item, cb) => # Fetch if error or nothing found
                             if not item?
+                                #if DEBUG then console.log("ProjectStore::load_target → fetch_directory_listing", parent_path)
                                 @fetch_directory_listing
                                     path         : parent_path
                                     finish_cb    : =>
                                         {item, err} = @get_store().get_item_in_path(last, parent_path)
+                                        #if DEBUG then console.log("ProjectStore::load_target → waterfall2/1", item, err)
                                         cb(err, item)
                             else
+                                #if DEBUG then console.log("ProjectStore::load_target → waterfall2/2", item)
                                 cb(undefined, item)
                     ], (err, item) =>
                         if err?
@@ -1308,6 +1559,7 @@ class ProjectActions extends Actions
                         if item?.get('isdir')
                             @open_directory(full_path)
                         else
+                            #if DEBUG then console.log("ProjectStore::load_target → open_file", full_path, foreground)
                             @open_file
                                 path       : full_path
                                 foreground : foreground
@@ -1354,17 +1606,19 @@ create_project_store_def = (name, project_id) ->
             @redux.getActions('page').close_project_tab(@project_id)
 
     getInitialState: =>
-        current_path       : ''
-        show_hidden        : false
-        checked_files      : immutable.Set()
-        public_paths       : undefined
-        directory_listings : immutable.Map()
-        user_input         : ''
-        show_upload        : false
-        active_project_tab : 'files'
-        open_files_order   : immutable.List([])
-        open_files         : immutable.Map({})
-        num_ghost_file_tabs: 0
+        current_path           : ''
+        history_path           : ''
+        show_hidden            : false
+        checked_files          : immutable.Set()
+        public_paths           : undefined
+        directory_listings     : immutable.Map()
+        user_input             : ''
+        show_upload            : false
+        active_project_tab     : 'files'
+        open_files_order       : immutable.List([])
+        open_files             : immutable.Map({})
+        num_ghost_file_tabs    : 0
+        library_available      : {}
 
     reduxState:
         account:
@@ -1373,6 +1627,7 @@ create_project_store_def = (name, project_id) ->
     stateTypes:
         # Shared
         current_path       : rtypes.string
+        history_path       : rtypes.string
         open_files         : rtypes.immutable.Map
         open_files_order   : rtypes.immutable.List
         public_paths       : rtypes.immutable.List
@@ -1386,6 +1641,7 @@ create_project_store_def = (name, project_id) ->
         free_warning_closed      : rtypes.bool     # Makes bottom height update
         free_warning_extra_shown : rtypes.bool
         num_ghost_file_tabs      : rtypes.number
+        free_compute_slowdown    : rtypes.number
 
         # Project Files
         activity               : rtypes.immutable
@@ -1399,6 +1655,7 @@ create_project_store_def = (name, project_id) ->
         selected_file_index    : rtypes.number     # Index on file listing to highlight starting at 0. undefined means none highlighted
         new_name               : rtypes.string
         most_recent_file_click : rtypes.string
+        library_available      : rtypes.object
 
         # Project Log
         project_log : rtypes.immutable
@@ -1446,7 +1703,7 @@ create_project_store_def = (name, project_id) ->
 
     # cached pre-processed file listing, which should always be up to date when
     # called, and properly depends on dependencies.
-    displayed_listing: depends('active_file_sort', 'current_path', 'directory_listings', 'stripped_public_paths', 'file_search', 'other_settings', 'show_hidden') ->
+    displayed_listing: depends('active_file_sort', 'current_path', 'history_path', 'directory_listings', 'stripped_public_paths', 'file_search', 'other_settings', 'show_hidden') ->
         search_escape_char = '/'
         listing = @directory_listings.get(@current_path)
         if typeof(listing) == 'string'
@@ -1622,6 +1879,7 @@ exports.getStore = getStore = (project_id, redux) ->
     actions = redux.createActions(name, ProjectActions)
     actions.project_id = project_id  # so actions can assume this is available on the object
     store = redux.createStore(create_project_store_def(name, project_id))
+    actions.init_free_compute_slowdown()
 
     queries = misc.deep_copy(QUERIES)
     create_table = (table_name, q) ->
@@ -1665,6 +1923,12 @@ exports.deleteStoreActionsTable = (project_id, redux) ->
         redux.removeTable(key(project_id, table))
     redux.removeStore(name)
 
+prom_client = require('./prom-client')
+if prom_client.enabled
+    prom_get_dir_listing_h = prom_client.new_histogram(
+        'get_dir_listing_seconds', 'get_directory_listing time',
+         {buckets : [1, 2, 5, 7, 10, 15, 20, 30, 50], labels: ['public', 'state', 'err']})
+
 get_directory_listing = (opts) ->
     opts = defaults opts,
         project_id : required
@@ -1674,33 +1938,74 @@ get_directory_listing = (opts) ->
         group      : required
         cb         : required
     {webapp_client} = require('./webapp_client')
+
+    if prom_client.enabled
+        prom_dir_listing_start = misc.server_time()
+        prom_labels = {public: false}
+
     if opts.group in ['owner', 'collaborator', 'admin']
         method = webapp_client.project_directory_listing
+        # Also, make sure project starts running, in case it isn't.
+        state = redux.getStore('projects').getIn(['project_map', opts.project_id, 'state', 'state'])
+        if prom_client.enabled
+            prom_labels.state = state
+        if state != 'running'
+            timeout = .5
+            time0 = misc.server_time()
+            redux.getActions('projects').start_project(opts.project_id)
+        else
+            timeout = 1
     else
-        method = webapp_client.public_project_directory_listing
+        state = time0 = undefined
+        method  = webapp_client.public_project_directory_listing
+        timeout = 15
+        if prom_client.enabled
+            prom_labels.public = true
+
     listing     = undefined
     listing_err = undefined
     f = (cb) ->
+        #console.log 'get_directory_listing.f ', opts.path
         method
             project_id : opts.project_id
             path       : opts.path
             hidden     : opts.hidden
-            timeout    : 15
+            timeout    : timeout
             cb         : (err, x) ->
-                if typeof(err) == 'string' and err.indexOf('error: no such path') != -1
-                    # In this case, the call itself is successful, even when it returns an error; it told
-                    # us there is no such file.
-                    listing_err = err
-                    listing = x
-                    cb()
-                else
-                    listing = x
+                #console.log("f ", err, x)
+                if err
+                    if timeout < 5
+                        timeout *= 1.3
                     cb(err)
+                else
+                    if x?.error
+                        if x.error.code == 'ENOENT'
+                            listing_err = 'no_dir'
+                        else if x.error.code == 'ENOTDIR'
+                            listing_err = 'not_a_dir'
+                        else
+                            listing_err = x.error
+                        cb()
+                    else
+                        listing = x
+                        cb()
 
     misc.retry_until_success
-        f        : f
-        max_time : opts.max_time_s * 1000
-        #log      : console.log
-        cb       : (err) ->
+        f           : f
+        max_time    : opts.max_time_s * 1000
+        start_delay : 100
+        max_delay   : 1000
+        #log         : console.log
+        cb          : (err) ->
+            #console.log opts.path, 'get_directory_listing.success or timeout', err
+            if prom_client.enabled
+                prom_labels.err = !!err
+                prom_get_dir_listing_h?.observe(prom_labels, (misc.server_time() - prom_dir_listing_start) / 1000)
+
             opts.cb(err ? listing_err, listing)
+            if time0 and state != 'running' and not err
+                # successfully opened, started, and got directory listing
+                redux.getProjectActions(opts.project_id).log
+                    event : 'start_project'
+                    time  : misc.server_time() - time0
 

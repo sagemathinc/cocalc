@@ -20,7 +20,7 @@ Ansi = require('ansi-to-react')
 {javascript_eval} = require('./javascript-eval')
 
 OUT_STYLE =
-    whiteSpace    : 'pre-line'
+    whiteSpace    : 'pre-wrap'
     wordWrap      : 'break-word'
     fontFamily    : 'monospace'
     paddingTop    : '5px'
@@ -32,7 +32,7 @@ STDOUT_STYLE    = OUT_STYLE
 STDERR_STYLE    = misc.merge({backgroundColor:'#fdd'}, STDOUT_STYLE)
 TRACEBACK_STYLE = misc.merge({backgroundColor: '#f9f2f4'}, OUT_STYLE)
 
-Stdout = rclass
+exports.Stdout = Stdout = rclass
     propTypes :
         message : rtypes.immutable.Map.isRequired
 
@@ -51,7 +51,7 @@ Stdout = rclass
                 <span>{value}</span>
             </div>
 
-Stderr = rclass
+exports.Stderr = Stderr = rclass
     propTypes :
         message : rtypes.immutable.Map.isRequired
 
@@ -119,9 +119,8 @@ TextPlain = rclass
 
     render: ->
         <div style={STDOUT_STYLE}>
-            <span>  {# span?  what? -- See https://github.com/sagemathinc/cocalc/issues/1958 }
-                {@props.value}
-            </span>
+            {# span?  what? -- See https://github.com/sagemathinc/cocalc/issues/1958 }
+            <span>{@props.value}</span>
         </div>
 
 UntrustedJavascript = rclass
@@ -449,13 +448,17 @@ exports.CellOutputMessages = rclass
         v = []
         k = 0
         # TODO: use caching to make this more efficient...
-        # combine stdout and stderr messages...
         for n in [0...@props.output.size]
             mesg = @props.output.get("#{n}")
-            if not mesg?
+            # Make this renderer robust against any possible weird shap of the actual
+            # output object, e.g., undefined or not immmutable js.
+            # Also, we're checking that get is defined --
+            #   see https://github.com/sagemathinc/cocalc/issues/2404
+            if not mesg?.get?
                 continue
             name = mesg.get('name')
             if k > 0 and (name == 'stdout' or name == 'stderr') and v[k-1].get('name') == name
+                # combine adjacent stdout / stderr messages...
                 v[k-1] = v[k-1].set('text', v[k-1].get('text') + mesg.get('text'))
             else
                 v[k] = mesg

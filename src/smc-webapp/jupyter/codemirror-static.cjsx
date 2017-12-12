@@ -11,10 +11,6 @@ misc_page     = require('../misc_page')
 
 misc = require('smc-util/misc')
 
-#{FormGroup, ControlLabel, FormControl, } = require('react-bootstrap')
-{Dropdown, MenuItem} = require('react-bootstrap')
-
-
 BLURRED_STYLE =
     width         : '100%'
     overflowX     : 'hidden'
@@ -31,17 +27,20 @@ BLURRED_STYLE =
     paddingLeft   : '4px'
 
 exports.CodeMirrorStatic = rclass
+    displayName : 'CodeMirrorStatic'
+
     propTypes:
-        actions          : rtypes.object
-        id               : rtypes.string.isRequired
-        options          : rtypes.immutable.Map.isRequired
         value            : rtypes.string.isRequired
+        actions          : rtypes.object
+        id               : rtypes.string
+        options          : rtypes.immutable.Map
         font_size        : rtypes.number
         complete         : rtypes.immutable.Map
         set_click_coords : rtypes.func
+        style            : rtypes.object   # optional style that is merged into BLURRED_STYLE
 
     focus: (event) ->
-        if not @props.actions?  # read only
+        if not @props.actions?  or not @props.id? # read only
             return
         if event.shiftKey
             misc_page.clear_selection()
@@ -52,10 +51,11 @@ exports.CodeMirrorStatic = rclass
             # User is selected some text in the cell; if we switch to edit mode
             # then the selection would be cleared, which is annoying.  NOTE that
             # this makes the behavior slightly different than official Jupyter.
+            event.stopPropagation()
             return
-        @props.actions.set_mode('edit')
         @props.actions.unselect_all_cells()
         @props.actions.set_cur_id(@props.id)
+        @props.actions.set_mode('edit')  # important to set this *AFTER* setting the current id - see issue #2547
         @props.set_click_coords?({left:event.clientX, top:event.clientY})
 
     line_number: (key, line, width) ->
@@ -66,9 +66,9 @@ exports.CodeMirrorStatic = rclass
         </div>
 
     render_lines: (width) ->
-        mode = @props.options.getIn(['mode', 'name']) ? 'python'
+        mode = @props.options?.getIn(['mode', 'name']) ? 'python'
         v = []
-        line_numbers = !!@props.options.get('lineNumbers')
+        line_numbers = !!@props.options?.get('lineNumbers')
         line = 1
         if line_numbers
             append_line_number = =>
@@ -97,7 +97,7 @@ exports.CodeMirrorStatic = rclass
         # look and layout, but there is trouble with copying, which copies the line numbers too.
         # This can be fixed via a standard trick of having an invisible text area or div
         # in front with the same content... but that's a speed optimization for later.
-        if @props.options.get('lineNumbers')
+        if @props.options?.get('lineNumbers')
             num_lines = @props.value.split('\n').length
             if num_lines < 100
                 width = 30
@@ -107,21 +107,25 @@ exports.CodeMirrorStatic = rclass
                 width = 49
             else # nobody better do this...
                 width = 59
-            style = misc.merge(misc.copy(BLURRED_STYLE), {paddingLeft: "#{width+4}px"})
+            style = misc.merge({paddingLeft: "#{width+4}px"}, BLURRED_STYLE)
+            if @props.style?
+                style = misc.merge(style, @props.style)
         else
             width = 0
             style = BLURRED_STYLE
+            if @props.style?
+                style = misc.merge(misc.copy(style), @props.style)
 
         <pre
             className = "CodeMirror cm-s-default CodeMirror-wrap"
             style     = {style}
-            onClick   = {@focus}>
+            onMouseUp = {@focus}>
             {@render_lines(width)}
             {@render_gutter(width)}
         </pre>
 
     render_gutter: (width) ->
-        if @props.options.get('lineNumbers')
+        if @props.options?.get('lineNumbers')
             <div className="CodeMirror-gutters">
                 <div className="CodeMirror-gutter CodeMirror-linenumbers" style={width:"#{width-1}px"}>
                 </div>

@@ -18,16 +18,33 @@ def hub_args(server_id):
     else:
         if args.port:
             port = int(args.port)
-        else:
+        elif args.port == -1:
             port = 5000
+        else:
+            port = 0
         if args.proxy_port:
             proxy_port = int(args.proxy_port)
-        else:
+        elif args.proxy_port == -1:
             proxy_port = 5001
+        else:
+            proxy_port = 0
+        if args.share_port:
+            share_port = int(args.share_port)
+        else:
+            share_port = 0
+        if args.raw_port:
+            raw_port = int(args.raw_port)
+        else:
+            raw_port = 0
 
-    s = "--host={hostname} --port {port} --proxy_port {proxy_port} --base_url={base_url}".format(
+
+    s = "--host={hostname} --port {port} --proxy_port {proxy_port} --share_port {share_port} --share_path {share_path} --raw_port {raw_port} --raw_path {raw_path} --base_url={base_url}".format(
         hostname=args.hostname, server_id=server_id, port=port, proxy_port=proxy_port,
+        share_port=share_port, raw_port=raw_port, share_path=args.share_path, raw_path=args.raw_path,
         base_url=args.base_url)
+
+    if args.kucalc:
+        s += ' --kucalc '
 
     if args.dev:
         s += ' --dev '
@@ -101,13 +118,19 @@ if __name__ == "__main__":
     parser.add_argument('--foreground', help="foreground", dest='foreground', action="store_const", const=True, default=False)
 
     parser.add_argument('--dev', help="dev", dest='dev', action="store_const", const=True, default=False)
+    parser.add_argument('--kucalc', help="kucalc", dest='kucalc', action="store_const", const=True, default=False)
     parser.add_argument('--single', help="single", dest='single', action="store_const", const=True, default=False)
 
     parser.add_argument('--update', help="update", dest='update', action="store_const", const=True, default=False)
 
-    parser.add_argument('--port', dest='port', default='')
+    parser.add_argument('--port', dest='port', type=int, default=-1)
+    parser.add_argument('--proxy_port', dest='proxy_port', type=int, default=-1)
+    parser.add_argument('--share_port', dest='share_port', type=int, default=0)
 
-    parser.add_argument('--proxy_port', dest='proxy_port', default='')
+    parser.add_argument('--share_path', dest='share_path', type=str, default='')
+
+    parser.add_argument('--raw_port', dest='raw_port', type=int, default=0)
+    parser.add_argument('--raw_path', dest='raw_path', type=str, default='')
 
     parser.add_argument("--hostname", help="hostname to listen on [default: hostname of computer]", dest="hostname", default=socket.gethostname(), type=str)
     parser.add_argument("--gap", help="time (in seconds) to wait before restarting each hub [default: 10]", dest="gap", default=10, type=int)

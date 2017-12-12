@@ -148,6 +148,12 @@ schema.accounts =
         email_address_before_delete :
             type : 'string'
             desc : 'The email address of the user before they deleted their account.'
+        email_address_verified :
+            type : 'map'
+            desc : 'Verified email addresses as { "email@addre.ss" : <timestamp>, ... }'
+        email_address_challenge :
+            type : 'map'
+            desc : 'Contains random token for verification of an address: {"email": "...", "token": <random>, "time" : <timestamp for timeout>}'
         passports       :
             type : 'map'
             desc : 'Map from string ("[strategy]-[id]") derived from passport name and id to the corresponding profile'
@@ -189,6 +195,9 @@ schema.accounts =
         stripe_customer :
             type : 'map'
             desc : 'Information about customer from the point of view of stripe (exactly what is returned by stripe.customers.retrieve).'
+        coupon_history :
+            type : 'map'
+            desc : 'Information about which coupons the customer has used and the number of times'
         profile :
             type : 'map'
             desc : 'Information related to displaying this users location and presence in a document or chatroom.'
@@ -196,6 +205,9 @@ schema.accounts =
             type : 'array'
             pg_type : 'TEXT[]'
             desc : "Array of groups that this user belongs to; usually empty.  The only group right now is 'admin', which grants admin rights."
+        ssh_keys :
+            type : 'map'
+            desc : 'Map from ssh key fingerprints to ssh key objects.'
         api_key :
             type : 'string'
             desc : "Optional API key that grants full API access to anything this account can access. Key is of the form 'sk_9QabcrqJFy7JIhvAGih5c6Nb', where the random part is 24 characters (base 62)."
@@ -211,8 +223,9 @@ schema.accounts =
             throttle_changes : 500
             pg_where : ['account_id = $::UUID':'account_id']
             fields :
-                account_id      : null
-                email_address   : null
+                account_id             : null
+                email_address          : null
+                email_address_verified : null
                 editor_settings :
                     strip_trailing_whitespace : false
                     show_trailing_whitespace  : true
@@ -235,13 +248,18 @@ schema.accounts =
                     bindings                  : "standard"
                     theme                     : "default"
                     undo_depth                : 300
+                    jupyter_classic           : false
+                    show_exec_warning         : true
                 other_settings  :
-                    confirm_close     : true
+                    confirm_close     : false
                     mask_files        : true
                     page_size         : 50
                     standby_timeout_m : 10
                     default_file_sort : 'time'
-                    show_global_info  : true
+                    show_global_info2 : null
+                    first_steps       : true
+                    newsletter        : true
+                    time_ago_absolute : false
                 first_name      : ''
                 last_name       : ''
                 terminal        :
@@ -255,9 +273,11 @@ schema.accounts =
                 groups          : []
                 last_active     : null
                 stripe_customer : null
+                coupon_history  : null
                 profile :
                     image       : undefined
                     color       : undefined
+                ssh_keys        : {}
         set :
             fields :
                 account_id      : 'account_id'
@@ -270,6 +290,7 @@ schema.accounts =
                 evaluate_key    : true
                 font_size       : true
                 profile         : true
+                ssh_keys        : true
             check_hook : (db, obj, account_id, project_id, cb) ->
                 # Hook to truncate some text fields to at most 254 characters, to avoid
                 # further trouble down the line.
@@ -490,7 +511,7 @@ schema.file_use =
         get :
             pg_where : ['projects', 'last_edited IS NOT NULL']
             pg_changefeed: 'projects'
-            options : [{order_by : '-last_edited'}, {limit : 200}]  # limit is kind of arbitrary; not sure what to do.
+            options : [{order_by : '-last_edited'}, {limit : 100}]  # limit is kind of arbitrary; not sure what to do; I benchmarked 100 vs 200 on myself, and 100 is much faster.
             throttle_changes : 3000
             fields :
                 id          : null
@@ -628,7 +649,7 @@ schema.project_log =
         get :
             pg_where     : 'projects'
             pg_changefeed: 'projects'
-            options   : [{order_by : '-time'}, {limit : 400}]
+            options   : [{order_by : '-time'}, {limit : 1000}]
             throttle_changes : 2000
             fields :
                 id          : null
@@ -658,7 +679,7 @@ schema.projects =
             desc : 'A longer textual description of the project.  This can include hashtags and should be formatted using markdown.'  # markdown rendering possibly not implemented
         users       :
             type : 'map'
-            desc : "This is a map from account_id's to {hide:bool, group:['owner',...], upgrades:{memory:1000, ...}}."
+            desc : "This is a map from account_id's to {hide:bool, group:['owner',...], upgrades:{memory:1000, ...}, ssh:{...}}."
         invite      :
             type : 'map'
             desc : "Map from email addresses to {time:when invite sent, error:error message if there was one}"
@@ -687,13 +708,16 @@ schema.projects =
         last_edited :
             type : 'timestamp'
             desc : 'The last time some file was edited in this project.  This is the last time that the file_use table was updated for this project.'
+        last_started :
+            type : 'timestamp'
+            desc : 'The last time the project started running.'
         last_active :
             type : 'map'
             desc : "Map from account_id's to the timestamp of when the user with that account_id touched this project."
             date : 'all'
         created :
             type : 'timestamp'
-            desc : 'When the account was created.'
+            desc : 'When the project was created.'
         action_request :
             type : 'map'
             desc : "Request state change action for project: {action:['restart', 'stop', 'save', 'close'], started:timestamp, err:?, finished:timestamp}"
@@ -704,24 +728,21 @@ schema.projects =
             date : ['assigned', 'saved']
         last_backup :
             type : 'timestamp'
-            desc : "Timestamp of last off-disk successful backup using bup to Google cloud storage"
+            desc : "(DEPRECATED) Timestamp of last off-disk successful backup using bup to Google cloud storage"
         storage_request :
             type : 'map'
-            desc : "{action:['save', 'close', 'move', 'open'], requested:timestap, pid:?, target:?, started:timestamp, finished:timestamp, err:?}"
+            desc : "(DEPRECATED) {action:['save', 'close', 'move', 'open'], requested:timestap, pid:?, target:?, started:timestamp, finished:timestamp, err:?}"
             date : ['started', 'finished', 'requested']
         course :
             type : 'map'
             desc : '{project_id:[id of project that contains .course file], path:[path to .course file], pay:?, email_address:[optional email address of student -- used if account_id not known], account_id:[account id of student]}, where pay is either not set (or equals falseish) or is a timestamp by which the students must move the project to a members only server.'
             date : ['pay']
-        run :
-            type : 'boolean'
-            desc : 'If true, we try to run this project on kubernetes; if false, we delete it from running on kubernetes.'
         storage_server :
             type : 'integer'
-            desc : 'Number of the Kubernetes storage server with the data for this project: one of 0, 1, 2, ...'
+            desc : '(DEPRECATED) Number of the Kubernetes storage server with the data for this project: one of 0, 1, 2, ...'
         storage_ready :
             type : 'boolean'
-            desc : 'Whether storage is ready to be used on the storage server.  Do NOT try to start project until true; this gets set by storage daemon when it notices the that run is true.'
+            desc : '(DEPRECATED) Whether storage is ready to be used on the storage server.  Do NOT try to start project until true; this gets set by storage daemon when it notices the that run is true.'
         disk_size :
             type : 'integer'
             desc : 'Size in megabytes of the project disk.'
@@ -734,6 +755,9 @@ schema.projects =
         idle_timeout :
             type : 'integer'
             desc : 'If given and nonzero, project will be killed if it is idle for this many **minutes**, where idle *means* that last_edited has not been updated.'
+        run_quota :
+            type : 'map'
+            desc : 'If project is running, this is the quota that it is running with.'
 
     pg_indexes : [
         'last_edited',
@@ -785,11 +809,13 @@ schema.projects =
                 project_id     : null
                 title          : null
                 description    : null
+                status         : null
         set :
             fields :
                 project_id     : 'project_id'
                 title          : true
                 description    : true
+                status         : true
 
 # Table that enables set queries to the course field of a project.  Only
 # project owners are allowed to use this table.  The point is that this makes
@@ -882,7 +908,21 @@ schema.public_paths =
         disabled    :
             type : 'boolean'
             desc : 'if true then disabled'
-    pg_indexes : ['project_id']
+        created :
+            type : 'timestamp'
+            desc : 'when this path was created'
+        last_edited :
+            type : 'timestamp'
+            desc : 'when this path was last edited'
+        last_saved :
+            type : 'timestamp'
+            desc : 'when this path was last saved (or deleted if disabled) by manage-storage'
+        counter :
+            type : 'number'
+            desc : 'the number of times this public path has been accessed'
+
+    pg_indexes : ['project_id', '(substring(project_id::text from 1 for 1))', '(substring(project_id::text from 1 for 2))']
+
     user_query:
         get :
             pg_where : ["project_id = $::UUID": 'project_id']
@@ -893,6 +933,10 @@ schema.public_paths =
                 path        : null
                 description : null
                 disabled    : null   # if true then disabled
+                last_edited : null
+                created     : null
+                last_saved  : null
+                counter     : null
         set :
             fields :
                 id          : (obj, db) -> db.sha1(obj.project_id, obj.path)
@@ -900,10 +944,71 @@ schema.public_paths =
                 path        : true
                 description : true
                 disabled    : true
+                last_edited : true
+                created     : true
             required_fields :
                 id          : true
                 project_id  : true
                 path        : true
+
+
+schema.public_paths.project_query = misc.deep_copy(schema.public_paths.user_query)
+
+###
+Requests and status related to copying files between projects.
+###
+schema.copy_paths =
+    primary_key : 'id'
+    fields:
+        id                 :
+            type : 'uuid'
+            desc : 'random unique id assigned to this copy request'
+        time               :
+            type : 'timestamp'
+            desc : 'when this request was made'
+        source_project_id  :
+            type : 'uuid'
+            desc : 'the project_id of the source project'
+        source_path        :
+            type : 'string'
+            desc : 'the path of the source file or directory'
+        target_project_id  :
+            type : 'uuid'
+            desc : 'the project_id of the target project'
+        target_path        :
+            type : 'string'
+            desc : 'the path of the target file or directory'
+        overwrite_newer    :
+            type : 'boolean'
+            desc : 'if new, overwrite newer files in destination'
+        delete_missing     :
+            type : 'boolean'
+            desc : "if true, delete files in the target that aren't in the source path"
+        backup             :
+            type : 'boolean'
+            desc : 'if true, make backup of files before overwriting'
+        bwlimit            :
+            type : 'string'
+            desc : 'optional limit on the bandwidth dedicated to this copy (passed to rsync)'
+        timeout            :
+            type : 'number'
+            desc : 'fail if the transfer itself takes longer than this number of seconds (passed to rsync)'
+        started :
+            type : 'timestamp'
+            desc : 'when the copy request actually started running'
+        finished :
+            type : 'timestamp'
+            desc : 'when the copy request finished'
+        error :
+            type : 'string'
+            desc : 'if the copy failed or output any errors, they are put here.'
+    pg_indexes : ['time']
+    # TODO: for now there are no user queries -- this is used entirely by backend servers,
+    # actually only in kucalc; later that may change, so the user can make copy
+    # requests this way, check on their status, show all current copies they are
+    # causing in a page (that is persistent over browser refreshes, etc.).
+    # That's for later.
+
 
 schema.remember_me =
     primary_key : 'hash'
@@ -973,6 +1078,10 @@ exports.site_settings_conf =
         name    : "Commercial UI elements ('yes' or 'no')"
         desc    : "Whether or not to include user interface elements related to for-pay upgrades and features.  Set to 'yes' to include these elements."
         default : "no"
+    kucalc:
+        name    : "KuCalc UI elements ('yes' or 'no')"
+        desc    : "Whether to show UI elements adapted to what the KuCalc backend provides"
+        default : "no"  # TODO -- this will *default* to yes when run from kucalc; but site admin can set it either way anywhere for testing.
 
 
 site_settings_fields = misc.keys(exports.site_settings_conf)
@@ -1000,7 +1109,7 @@ schema.site_settings =
 schema.stats =
     primary_key : 'id'
     durability  : 'soft' # ephemeral stats whose slight loss wouldn't matter much
-    anonymous   : true     # allow user read access, even if not signed in
+    anonymous   : false     # allow user read access, even if not signed in
     fields:
         id                  :
             type : 'uuid'
@@ -1025,21 +1134,6 @@ schema.stats =
             type : 'array'
             pg_type : 'JSONB[]'
     pg_indexes : ['time']
-    user_query:
-        get:
-            pg_where: ["time >= NOW() - INTERVAL '1 hour'"]
-            pg_changefeed : 'one-hour'
-            options : [{'order_by':'-time'}]
-            throttle_changes : 5000
-            fields :
-                id                  : null
-                time                : null
-                accounts            : 0
-                accounts_created    : null
-                projects            : 0
-                projects_created    : null
-                projects_edited     : null
-                hub_servers         : []
 
 schema.storage_servers =
     primary_key : 'host'

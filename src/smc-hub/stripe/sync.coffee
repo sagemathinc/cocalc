@@ -15,12 +15,13 @@ exports.stripe_sync = (opts) ->
         dump_only : false
         logger    : undefined
         database  : required
+        target    : undefined
         cb        : undefined
 
     dbg = (m) -> opts.logger?.debug("stripe_sync: #{m}")
     dbg()
     users  = undefined
-    target = undefined
+    target = opts.target
 
     async.series([
         (cb) ->
@@ -38,6 +39,9 @@ exports.stripe_sync = (opts) ->
                     cb(err)
         (cb) ->
             dbg("dump stripe_customer data to file for statistical analysis")
+            if target?
+                cb()
+                return
             target = "#{process.env.HOME}/stripe/"
             fs.exists target, (exists) ->
                 if not exists

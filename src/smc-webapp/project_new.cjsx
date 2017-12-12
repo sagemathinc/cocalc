@@ -29,7 +29,7 @@ Well, SplitButton, MenuItem, Alert} = require('react-bootstrap')
 {ErrorDisplay, Icon, Loading, TimeAgo, Tip, ImmutablePureRenderMixin, Space} = require('./r_misc')
 {User} = require('./users')
 {webapp_client} = require('./webapp_client')
-{file_associations} = require('./editor')
+{file_associations} = require('./file-associations')
 {special_filenames_with_no_extension} = require('./project_file')
 
 v = misc.keys(file_associations)
@@ -151,11 +151,11 @@ exports.FileTypeSelector = FileTypeSelector = rclass
         <div>
             <Row style={row_style}>
                 <Col sm=6>
-                    <Tip icon='file-code-o' title='Sage Worksheet' tip='Create an interactive worksheet for using the SageMath mathematical software, R, and many other systems.  Do sophisticated mathematics, draw plots, compute integrals, work with matrices, etc.'>
-                        <NewFileButton icon='file-code-o' name='Sage Worksheet' on_click={@props.create_file} ext='sagews' />
+                    <Tip icon='file-code-o' title='Sage worksheet' tip='Create an interactive worksheet for using the SageMath mathematical software, R, and many other systems.  Do sophisticated mathematics, draw plots, compute integrals, work with matrices, etc.'>
+                        <NewFileButton icon='file-code-o' name='Sage worksheet' on_click={@props.create_file} ext='sagews' />
                     </Tip>
-                    <Tip icon='file-code-o' title='Jupyter Notebook' tip='Create an interactive notebook for using Python, Julia, R and more.'>
-                        <NewFileButton icon='file-code-o' name='Jupyter Notebook' on_click={@props.create_file} ext={'ipynb'}} />
+                    <Tip icon='file-code-o' title='Jupyter notebook' tip='Create an interactive notebook for using Python, Julia, R and more.'>
+                        <NewFileButton icon='file-code-o' name='Jupyter notebook' on_click={@props.create_file} ext={'ipynb'}} />
                     </Tip>
                 </Col>
                 <Col sm=6>
@@ -174,23 +174,31 @@ exports.FileTypeSelector = FileTypeSelector = rclass
             </Row>
             <Row style={row_style}>
                 <Col sm=6>
-                    <Tip title='LaTeX Document'   icon='file-excel-o'
+                    <Tip title='Markdown File'   icon='cc-icon-markdown'
+                        tip='Create a Markdown formatted document with real-time preview.'>
+                        <NewFileButton icon='cc-icon-markdown' name='Markdown' on_click={@props.create_file} ext='md' />
+                    </Tip>
+                    <Tip title='LaTeX Document'   icon='cc-icon-tex-file'
                         tip='Create a professional quality technical paper that contains sophisticated mathematical formulas.'>
-                        <NewFileButton icon='file-excel-o' name='LaTeX Document' on_click={@props.create_file} ext='tex' />
+                        <NewFileButton icon='cc-icon-tex-file' name='LaTeX' on_click={@props.create_file} ext='tex' />
                     </Tip>
                     <Tip title='Terminal'  icon='terminal'
                         tip="Create a command line terminal.  CoCalc includes a full interactive Linux command line console and color xterm.  Run command line software, vim, emacs and more.">
                         <NewFileButton icon='terminal' name='Terminal' on_click={@props.create_file} ext='term' />
                     </Tip>
-                    <Tip title='Task List'   icon='tasks'
+                    <Tip title='Task list'   icon='tasks'
                         tip='Create a todo list to keep track of everything you are doing on a project.  Put #hashtags in the item descriptions and set due dates.'>
-                        <NewFileButton icon='tasks' name='Task List' on_click={@props.create_file} ext='tasks' />
+                        <NewFileButton icon='tasks' name='Task list' on_click={@props.create_file} ext='tasks' />
+                    </Tip>
+                    <Tip title='Stopwatch'   icon='clock-o'
+                        tip='Create a collaborative stopwatch to keep track how long it takes to do something.'>
+                        <NewFileButton icon='clock-o' name='Stopwatch' on_click={@props.create_file} ext='time' />
                     </Tip>
                 </Col>
                 <Col sm=6>
-                    <Tip title='Manage a Course'  placement='left'  icon='graduation-cap'
+                    <Tip title='Manage a course'  placement='left'  icon='graduation-cap'
                         tip='If you are a teacher, click here to create a new course.  This is a file that you can add students and assignments to, and use to automatically create projects for everybody, send assignments to students, collect them, grade them, etc.'>
-                        <NewFileButton icon='graduation-cap' name='Manage a Course' on_click={@props.create_file} ext='course' />
+                        <NewFileButton icon='graduation-cap' name='Manage a course' on_click={@props.create_file} ext='course' />
                     </Tip>
                 </Col>
             </Row>
@@ -246,7 +254,7 @@ ProjectNewForm = rclass ({name}) ->
             @create_file(ext)
         else if @state.filename[@state.filename.length - 1] == '/'
             @create_folder()
-        else if misc.filename_extension(@state.filename)
+        else if misc.filename_extension(@state.filename) or misc.is_only_downloadable(@state.filename)
             @create_file()
         else
             @setState(extension_warning : true)
@@ -275,7 +283,7 @@ ProjectNewForm = rclass ({name}) ->
         if @props.get_total_project_quotas(@props.project_id)?.network
             return ''
         else
-            return ' (internet access blocked -- see project settings)'
+            return ' (access blocked -- see project settings)'
 
     create_folder: ->
         @props.actions.create_folder
@@ -333,9 +341,9 @@ ProjectNewForm = rclass ({name}) ->
                                 </Tip>
                             </Col>
                             <Col sm=6>
-                                <Tip title='Create a Chatroom'  placement='left'  icon='comment'
+                                <Tip title='Create a chatroom'  placement='left'  icon='comment'
                                     tip='Create a chatroom for chatting with other collaborators on this project.'>
-                                    <NewFileButton icon='comment' name='Create a Chatroom' on_click={@create_file} ext='sage-chat' />
+                                    <NewFileButton icon='comment' name='Create a chatroom' on_click={@create_file} ext='sage-chat' />
                                 </Tip>
                             </Col>
                         </Row>

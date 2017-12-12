@@ -3,7 +3,7 @@ Modal for editing cell metadata that are attached to any cell
 ###
 
 {React, ReactDOM, rclass, rtypes}  = require('../smc-react')
-{Icon} = require('../r_misc')
+{Icon, Space} = require('../r_misc')
 {Button, Modal} = require('react-bootstrap')
 
 {JSONEditor} = require('./json-editor')
@@ -27,9 +27,18 @@ exports.EditCellMetadata = rclass
 
     render_directions: ->
         <span color='#666'>
-            Manually edit the JSON below to manipulate the metadata for this cell.
+            Manually edit the JSON below to manipulate the custom metadata for this cell.
             The JSON is automatically saved as long as it is valid.
         </span>
+
+    render_note: ->
+        <span color='#888'>
+            NOTE: The metadata fields "collapsed", "scrolled", "slideshow", and "tags"
+            are not visible above, and
+            should only be edited through their own toolbar, the UI or via
+            'View -> Show Notebook as Raw'.
+        </span>
+
 
     on_change: (value) ->
         if not @props.id?
@@ -56,6 +65,7 @@ exports.EditCellMetadata = rclass
             <Modal.Body>
                 {@render_directions()}
                 {@render_editor()}
+                {@render_note()}
             </Modal.Body>
             <Modal.Footer>
                 <Button onClick={@close}>Close</Button>

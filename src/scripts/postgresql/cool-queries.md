@@ -1,9 +1,43 @@
+Recently published paths:
+
+    select now()-created,project_id,path from public_paths where created >= now() - interval '1 day' and created <= now() order by created desc;
+
+    select count(*) from public_paths where created >= now() - interval '1 day' and created <= now();  select count(*) from public_paths where created >= now() - interval '2 day' and created <= now() - interval '1 day'; select count(*) from public_paths where created >= now() - interval '3 day' and created <= now() - interval '2 day';
+
+    select count(*) from public_paths where created >= now() - interval '1 day' and created <= now() and disabled;  select count(*) from public_paths where created >= now() - interval '2 day' and created <= now() - interval '1 day' and disabled; select count(*) from public_paths where created >= now() - interval '3 day' and created <= now() - interval '2 day' and disabled;
+
+select count(*) from project_log where time >= now() - interval '2 day' and time <= now() - interval '1 day' and event#>>'{event}' = 'invite_user';  select count(*) from project_log where time >= now() - interval '1 day' and time <= now() and event#>>'{event}' = 'invite_user';
+
+
+Recently added collaborators:
+
+    select now()-time,project_id from project_log where time >= now() - interval '1 day' and time <= now() and event#>>'{event}' = 'invite_user' order by time desc;
+
+    select count(*) from project_log where time >= now() - interval '2 day' and time <= now() - interval '1 day' and event#>>'{event}' = 'invite_user';  select count(*) from project_log where time >= now() - interval '1 day' and time <= now() and event#>>'{event}' = 'invite_user';
+
+Exclude course projects:
+
+    select now()-a.time,a.project_id from project_log as a, projects as b where a.time >= now() - interval '1 day' and a.time <= now() and a.event#>>'{event}' = 'invite_user'  and a.project_id = b.project_id and b.course is null order by a.time desc;
+
+    select count(*) from project_log as a, projects as b where a.time >= now() - interval '1 day' and a.time <= now() and a.event#>>'{event}' = 'invite_user'  and a.project_id = b.project_id and b.course is null;  select count(*) from project_log as a, projects as b where a.time >= now() - interval '2 day' and a.time <= now() - interval '1 day' and a.event#>>'{event}' = 'invite_user'  and a.project_id = b.project_id and b.course is null;    select count(*) from project_log as a, projects as b where a.time >= now() - interval '3 day' and a.time <= now() - interval '2 day' and a.event#>>'{event}' = 'invite_user'  and a.project_id = b.project_id and b.course is null;
+
+Check on our SLO, namely number of projects that took 30s or more to start among the last 100 projects started.
+
+    select count(*) from project_log where event#>>'{event}'='start_project' and time >= now() - interval '1 day';
+
+    select now() - time, event#>>'{time}' from project_log where event#>>'{event}'='start_project' and time >= now() - interval '5 minutes' and time <= now() order by time desc;
+
+    select * from (select now()-time as age, project_id,(event#>>'{time}')::INTEGER as t from project_log where event#>>'{event}'='start_project' and time >= now() - interval '1 hour' and time <= now() order by time desc) as foo where t > 20000 order by age;
+
+How long files are taking to open, as perceived by the user:
+
+    select event#>>'{time}' as time_ms, left(event#>>'{filename}',70) as filename, project_id from project_log where time >= now() - interval '1 hour' and time <= now() and event#>>'{time}' is not null and event#>>'{action}'='open' order by time desc limit 100;
 
 Problems people are having right now:
 
-    select NOW() - time as timeago, left(account_id::VARCHAR,6), left(error,70) as error from client_error_log order by time desc limit 50;
+    select NOW() - time as timeago, left(account_id::VARCHAR,6), left(error,80) as error from client_error_log order by time desc limit 50;
 
-    select NOW() - time as timeago, left(account_id::VARCHAR,6), left(error,70) as error from client_error_log where error like 'Error saving%' order by time desc limit 50;
+    select NOW() - time as timeago, left(account_id::VARCHAR,6), left(error,80) as error from client_error_log where error like 'Error saving%' order by time desc limit 50;
 
 File access for a user with given email address:
 
@@ -32,6 +66,8 @@ Active projects:
 Uncaught exceptions that got reported to the DB (so from storage, hubs, etc.):
 
     select time, NOW() - time as timeago, event, left(value#>>'{error}',80) from central_log where event = 'uncaught_exception' order by time desc limit 50;
+
+    select * from central_log where event = 'uncaught_exception' order by time desc limit 1;
 
 The syncstring (hence project_id, etc.) for a file with a given path somewhere... (you'll see this in the problems).  This can be kind of slow since there is no index.
 
@@ -120,3 +156,10 @@ Hourly (or 10minute blocks) active users
     FROM file_access_log
     WHERE time >= NOW() - '2 week'::interval
     GROUP BY day, hour -- , min10
+
+## Stripe
+
+```
+smc=# select stripe_customer#>'{subscriptions}' from accounts where stripe_customer is not null limit 1;
+
+```

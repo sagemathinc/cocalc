@@ -299,12 +299,19 @@ Assignment = rclass
         else
             width = 3
         buttons = []
+        insert_skip_button = =>
+            b2 = @render_skip_grading_button(status)
+            buttons.push(<Col md={width} key='skip_grading'>{b2}</Col>)
+
         for name in STEPS(peer)
             b = @["render_#{name}_button"](status)
+            # squeeze in the skip grading button (don't add it to STEPS!)
+            if !peer and name == 'return_graded'
+                insert_skip_button()
             if b?
-                if name == 'return_graded'
-                    buttons.push(<Col md={width} key='filler'></Col>)
                 buttons.push(<Col md={width} key={name}>{b}</Col>)
+                if peer and name == 'peer_collect'
+                    insert_skip_button()
 
         v.push <Row key='header-control'>
             <Col md=10 mdOffset=2 key='buttons'>
@@ -412,7 +419,7 @@ Assignment = rclass
     copy_confirm_all_caution: (step) ->
         switch step
             when 'assignment'
-                return "This will recopy all of the files to them.  CAUTION: if you update a file that a student has also worked on, their work will get copied to a backup file ending in a tilde, or possibly only be available in snapshots."
+                return <span>This will recopy all of the files to them.  CAUTION: if you update a file that a student has also worked on, their work will get copied to a backup file ending in a tilde, or possibly only be available in snapshots <a target='_blank' href='https://github.com/sagemathinc/cocalc/wiki/CourseCopy'>(more details)</a>.</span>
             when 'collect'
                 return "This will recollect all of the homework from them.  CAUTION: if you have graded/edited a file that a student has updated, your work will get copied to a backup file ending in a tilde, or possibly only be available in snapshots."
             when 'return_graded'
@@ -548,6 +555,19 @@ Assignment = rclass
         # Assign assignment to all (non-deleted) students.
         @props.redux.getActions(@props.name).return_assignment_to_all_students(@props.assignment)
 
+    render_skip_grading_button: (status) ->
+        if status.collect == 0
+            # No button if nothing collected.
+            return
+        if @props.assignment.get('skip_grading') ? false
+            icon = 'check-square-o'
+        else
+            icon = 'square-o'
+        <Button
+            onClick={=>@actions(@props.name).toggle_skip_grading(@props.assignment.get('assignment_id'))}>
+            <Icon name={icon} /> Skip Grading
+        </Button>
+
     render_return_graded_button: (status) ->
         if status.collect == 0
             # No button if nothing collected.
@@ -555,7 +575,8 @@ Assignment = rclass
         if status.peer_collect? and status.peer_collect == 0
             # Peer grading enabled, but we didn't collect anything yet
             return
-        if status.not_return_graded == 0 and status.return_graded == 0
+        skip_grading = @props.assignment.get('skip_grading') ? false
+        if (!skip_grading) and (status.not_return_graded == 0 and status.return_graded == 0)
             # Nothing unreturned and ungraded yet and also nothing returned yet
             return
         if status.return_graded > 0
@@ -756,13 +777,14 @@ StudentListForAssignment = rclass
     render_student_info: (student_id) ->
         store = @props.redux.getStore(@props.name)
         <StudentAssignmentInfo
-              key     = {student_id}
-              title   = {misc.trunc_middle(store.get_student_name(student_id), 40)}
-              name    = {@props.name}
-              student = {student_id}
+              key        = {student_id}
+              title      = {misc.trunc_middle(store.get_student_name(student_id), 40)}
+              name       = {@props.name}
+              student    = {student_id}
               assignment = {@props.assignment}
-              grade   = {store.get_grade(@props.assignment, student_id)}
-              info    = {store.student_assignment_info(student_id, @props.assignment)} />
+              grade      = {store.get_grade(@props.assignment, student_id)}
+              comments   = {store.get_comments(@props.assignment, student_id)}
+              info       = {store.student_assignment_info(student_id, @props.assignment)} />
 
     render_students: ->
         v = util.parse_students(@props.students, @props.user_map, @props.redux)

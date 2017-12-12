@@ -286,6 +286,12 @@ def get_sage_server_info(log_file = default_log_file):
 secret_token = None
 secret_token_path = os.path.join(os.environ['SMC'], 'secret_token')
 
+if 'COCALC_SECRET_TOKEN' in os.environ:
+    secret_token_path = os.environ['COCALC_SECRET_TOKEN']
+else:
+    secret_token_path = os.path.join(os.environ['SMC'], 'secret_token')
+
+
 def client_unlock_connection(sock):
     secret_token = open(secret_token_path).read().strip()
     sock.sendall(secret_token)
@@ -462,7 +468,7 @@ def exec2(request, sagews, test_id):
             assert 'stdout' in mesg
             mout = mesg['stdout']
             if output is not None:
-                assert output in mout
+                assert output.strip() in mout
             elif pattern is not None:
                 assert re.search(pattern, mout) is not None
         elif html_pattern:
@@ -577,8 +583,8 @@ def sagews(request):
     print("host %s  port %s"%(host, port))
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.connect((host, port))
-    # jupyter kernels can take over 10 seconds to start
-    sock.settimeout(45)
+    # scala jupyter kernel can take over 45 seconds to start
+    sock.settimeout(50)
     print("connected to socket")
 
     # unlock

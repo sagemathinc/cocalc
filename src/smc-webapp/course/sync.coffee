@@ -1,6 +1,6 @@
 ##############################################################################
 #
-# SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
+#    CoCalc: Collaborative Calculation in the Cloud
 #
 #    Copyright (C) 2016, Sagemath Inc.
 #
@@ -86,5 +86,7 @@ exports.create_sync_db = (redux, actions, store) =>
                 # Also
                 projects_store.on 'change', actions.handle_projects_store_update
                 actions.handle_projects_store_update(projects_store)  # initialize
+
+        redux.getProjectActions(store.get('course_project_id'))?.log_opened_time(store.get('course_filename'))
 
     return syncdb

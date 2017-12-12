@@ -29,14 +29,20 @@ exports.TopButtonbar = rclass ({name}) ->
             sel_ids                 : rtypes.immutable.Set   # set of selected cells
             has_unsaved_changes     : rtypes.bool
             has_uncommitted_changes : rtypes.bool
+            read_only               : rtypes.bool
             kernel_state            : rtypes.string
+            kernel_usage            : rtypes.immutable.Map
+        "page" :
+            fullscreen : rtypes.string
 
     shouldComponentUpdate: (next) ->
         return next.cur_id != @props.cur_id or \
             next.cells?.getIn([@props.cur_id, 'cell_type']) != @props.cells?.getIn([@props.cur_id, 'cell_type']) or \
             next.has_unsaved_changes != @props.has_unsaved_changes or \
+            next.read_only != @props.read_only or \
             next.has_uncommitted_changes != @props.has_uncommitted_changes or \
-            next.kernel_state != @props.kernel_state
+            next.kernel_state != @props.kernel_state or \
+            next.kernel_usage != @props.kernel_usage
 
     command: (name, focus) ->
         return =>
@@ -49,13 +55,23 @@ exports.TopButtonbar = rclass ({name}) ->
 
     render_button: (key, name) ->
         if typeof(name) == 'object'
-            {name, disabled} = name
+            {name, disabled, style, label} = name
+        style    ?= undefined
+        disabled ?= false
+        label    ?= ''
+        if @props.read_only  # all buttons disabled in read-only mode
+            disabled = true
         obj = @props.actions._commands?[name]
         if not obj?
             return
         focus = not misc.endswith(obj.m, '...')
-        <Button key={key} onClick={@command(name, focus)} title={obj.m} disabled={disabled} >
-            <Icon name={obj.i}/>
+        <Button
+            key      = {key}
+            onClick  = {@command(name, focus)}
+            title    = {obj.m}
+            disabled = {disabled}
+            style    = {style} >
+            <Icon name={obj.i}/> {label}
         </Button>
 
     render_buttons: (names) ->
@@ -77,7 +93,11 @@ exports.TopButtonbar = rclass ({name}) ->
         @render_button_group(['move cell up', 'move cell down'], true)
 
     render_group_run: ->
-        @render_button_group(['run cell and select next', {name:'interrupt kernel', disabled:@props.kernel_state != 'busy'}])
+        if (@props.kernel_usage?.get('cpu') ? 0) >= 50
+            stop_style = {backgroundColor:'rgb(92,184,92)', color:'white'}
+        else
+            stop_style = undefined
+        @render_button_group(['run cell and select next', {name:'interrupt kernel', style:stop_style}, 'tab key'])
 
     cell_select_type: (event) ->
         @props.actions.set_selected_cell_type(event.target.value)
@@ -94,6 +114,7 @@ exports.TopButtonbar = rclass ({name}) ->
             onChange       = {@cell_select_type}
             className      = 'hidden-xs'
             style          = {maxWidth: '8em'}
+            disabled       = {@props.read_only}
             value          = {cell_type ? 'code'}>
             <option value="code"          >Code</option>
             <option value="markdown"      >Markdown</option>
@@ -121,13 +142,20 @@ exports.TopButtonbar = rclass ({name}) ->
         <UncommittedChanges has_uncommitted_changes={@props.has_uncommitted_changes} />
 
     render_switch_button: ->
-        if $.browser.firefox
+        if @props.fullscreen == 'kiosk' or $.browser.firefox
             return
         <Button
             title   = 'Switch to classical notebook'
             onClick = {=>@props.actions.switch_to_classical_notebook()}>
-            <Icon name='exchange'/> <span className = 'hidden-sm'>Classical Notebook...</span>
+            <Icon name='exchange'/> <span className = 'hidden-sm'>Classical notebook...</span>
         </Button>
+
+    render_close_and_halt: ->
+        obj =
+            name     : 'close and halt'
+            disabled : false
+            label    : 'Close and halt'
+        return @render_button('close and halt', obj)
 
     render_group_save_timetravel: ->
         <ButtonGroup className = 'hidden-xs'>
@@ -135,8 +163,8 @@ exports.TopButtonbar = rclass ({name}) ->
                 title    = 'Save file to disk'
                 bsStyle  = "success"
                 onClick  = {=>@props.actions.save(); @focus()}
-                disabled = {not @props.has_unsaved_changes}>
-                <Icon name='save'/> <span className = 'hidden-sm'>Save</span>
+                disabled = {not @props.has_unsaved_changes or @props.read_only}>
+                <Icon name='save'/> <span className = 'hidden-sm'>{if @props.read_only then 'Readonly' else 'Save'}</span>
                 {@render_uncommitted()}
             </Button>
             <Button
@@ -145,7 +173,8 @@ exports.TopButtonbar = rclass ({name}) ->
                 onClick = {=>@props.actions.show_history_viewer()}>
                 <Icon name='history'/> <span className = 'hidden-sm'>TimeTravel</span>
             </Button>
-            {@render_switch_button()}
+            {@render_close_and_halt()}
+            {# @render_switch_button()}
         </ButtonGroup>
 
     render: ->

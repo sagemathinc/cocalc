@@ -36,12 +36,15 @@
 {AccountPage}  = require('./account_page') # SMELL: Not used but gets around a webpack error..
 {FileUsePage}  = require('./file_use')
 {Support}      = require('./support')
+{Avatar}       = require('./other-users')
 
 # CoCalc Libraries
 misc = require('smc-util/misc')
 
 {ProjectsNav} = require('./projects_nav')
 {ActiveAppContent, CookieWarning, GlobalInformationMessage, LocalStorageWarning, ConnectionIndicator, ConnectionInfo, FullscreenButton, NavTab, NotificationBell, AppLogo, VersionWarning} = require('./app_shared')
+
+nav_class = 'hidden-xs'
 
 FileUsePageWrapper = (props) ->
     styles =
@@ -78,7 +81,7 @@ Page = rclass
             avgping           : rtypes.number
             connection_status : rtypes.string
             new_version       : rtypes.object
-            fullscreen        : rtypes.bool
+            fullscreen        : rtypes.oneOf(['default', 'kiosk'])
             cookie_warning    : rtypes.bool
             local_storage_warning : rtypes.bool
             show_file_use     : rtypes.bool
@@ -86,12 +89,14 @@ Page = rclass
             file_use         : rtypes.immutable.Map
             get_notify_count : rtypes.func
         account :
+            account_id   : rtypes.string
             first_name   : rtypes.string # Necessary for get_fullname
             last_name    : rtypes.string # Necessary for get_fullname
             get_fullname : rtypes.func
             user_type    : rtypes.string # Necessary for is_logged_in
             is_logged_in : rtypes.func
             other_settings : rtypes.object
+            is_global_info_visible : rtypes.func
         support :
             show : rtypes.bool
 
@@ -107,14 +112,23 @@ Page = rclass
             name = misc.trunc_middle(@props.get_fullname(), 32)
         if not name.trim()
             name = "Account"
-
         return name
 
     render_account_tab: ->
+        if false and @props.account_id
+            a = <Avatar
+                    size       = {20}
+                    account_id = {@props.account_id}
+                    no_tooltip = {true}
+                    no_loading = {true}
+                    />
+        else
+            a = 'cog'
+
         <NavTab
             name           = 'account'
-            label          = {@account_name()}
-            icon           = 'cog'
+            label          = {<span className={nav_class}>Account</span>}
+            icon           = {a}
             actions        = {@actions('page')}
             active_top_tab = {@props.active_top_tab}
         />
@@ -135,20 +149,38 @@ Page = rclass
             add_inner_style = {color: 'black'}
         />
 
+    render_support: ->
+        if not require('./customize').commercial
+            return
+        <NavTab
+            label          = {<span className={nav_class}>Help</span>}
+            icon           = 'medkit'
+            actions        = {@actions('page')}
+            active_top_tab = {@props.active_top_tab}
+            on_click       = {=>redux.getActions('support').show(true)}
+        />
+
+    render_bell: ->
+        if not @props.is_logged_in()
+            return
+        <NotificationBell
+            count  = {@props.get_notify_count()}
+            active = {@props.show_file_use} />
+
     render_right_nav: ->
         logged_in = @props.is_logged_in()
         <Nav id='smc-right-tabs-fixed' style={height:'40px', lineHeight:'20px', margin:'0', overflowY:'hidden'}>
             {@render_account_tab() if logged_in}
             {@render_sign_in_tab() if not logged_in}
-            <NavTab name='about' label='About' icon='question-circle' actions={@actions('page')} active_top_tab={@props.active_top_tab} />
+            <NavTab
+                name           = 'about'
+                label          = {<span className={nav_class}>CoCalc</span>}
+                icon           = 'info-circle'
+                actions        = {@actions('page')}
+                active_top_tab = {@props.active_top_tab} />
             <NavItem className='divider-vertical hidden-xs' />
-            {<NavTab
-                label='Help' icon='medkit'
-                actions={@actions('page')}
-                active_top_tab={@props.active_top_tab}
-                on_click={=>redux.getActions('support').show(true)}
-            /> if require('./customize').commercial}
-            {<NotificationBell count={@props.get_notify_count()} active={@props.show_file_use} /> if @props.is_logged_in()}
+            {@render_support()}
+            {@render_bell()}
             <ConnectionIndicator actions={@actions('page')} />
         </Nav>
 
@@ -167,7 +199,7 @@ Page = rclass
                 active_top_tab = {@props.active_top_tab}
 
             >
-                <div style={projects_styles}>
+                <div style={projects_styles} className={nav_class}>
                     Projects
                 </div>
                 <AppLogo />
@@ -197,7 +229,7 @@ Page = rclass
             width         : '100vw'
             overflow      : 'hidden'
 
-        show_global_info = (@props.other_settings.show_global_info ? false) and (not @props.fullscreen) and @props.is_logged_in()
+        show_global_info = @props.is_global_info_visible() and (not @props.fullscreen) and @props.is_logged_in()
 
         style_top_bar =
             display       : 'flex'
@@ -226,7 +258,7 @@ Page = rclass
                 {@render_right_nav()}
             </Navbar> if not @props.fullscreen}
             {<div className="smc-sticky-position-hack" style={minHeight:positionHackHeight}> </div>if not @props.fullscreen}
-            <FullscreenButton />
+            {<FullscreenButton /> if (@props.fullscreen != 'kiosk')}
             {# Children must define their own padding from navbar and screen borders}
             {# Note that the parent is a flex container}
             <ActiveAppContent active_top_tab={@props.active_top_tab}/>

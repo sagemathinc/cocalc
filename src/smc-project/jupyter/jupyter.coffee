@@ -3,13 +3,29 @@ Jupyter Backend
 
 For interactive testing:
 
-coffee> k = require('./jupyter').kernel(name:'sagemath', path:'a.ipynb'); k.execute_code(all:true, cb:console.log, code:'2+3')
+$ source smc-env
+$ coffee
+j = require('./smc-project/jupyter/jupyter')
+k = j.kernel(name:'python3', path:'x.ipynb')
+k.execute_code(all:true, cb:((x) -> console.log(JSON.stringify(x))), code:'2+3')
+
+Interactive testing at the command prompt involving stdin:
+
+echo=(content, cb) -> cb(undefined, '389'+content.prompt)
+k.execute_code(all:true, stdin:echo, cb:((x) -> console.log(JSON.stringify(x))), code:'input("a")')
+
+k.execute_code(all:true, stdin:echo, cb:((x) -> console.log(JSON.stringify(x))), code:'[input("-"+str(i)) for i in range(100)]')
+
+echo=(content, cb) -> setTimeout((->cb(undefined, '389'+content.prompt)), 1000)
+
 ###
 
 {EventEmitter} = require('events')
-async = require('async')
-kernelspecs = require('kernelspecs')
-fs = require('fs')
+async          = require('async')
+kernelspecs    = require('kernelspecs')
+fs             = require('fs')
+pidusage       = require('pidusage')
+
 misc = require('smc-util/misc')
 {defaults, required} = misc
 {key_value_store} = require('smc-util/key-value-store')
@@ -64,9 +80,10 @@ exports.kernel = (opts) ->
         verbose   : true
         path      : required   # filename of the ipynb corresponding to this kernel (doesn't have to actually exist)
         actions   : undefined  # optional redux actions object
+        usage     : true       # monitor memory/cpu usage and report via 'usage' event.∑
     if not opts.client?
         opts.client = new Client()
-    return new Kernel(opts.name, (if opts.verbose then opts.client?.dbg), opts.path, opts.actions)
+    return new Kernel(opts.name, (if opts.verbose then opts.client?.dbg), opts.path, opts.actions, opts.usage)
 
 ###
 Jupyter Kernel interface.
@@ -83,7 +100,7 @@ node_cleanup =>
 
 logger = undefined
 class Kernel extends EventEmitter
-    constructor : (@name, @_dbg, @_path, @_actions) ->
+    constructor : (@name, @_dbg, @_path, @_actions, usage) ->
         @store = key_value_store()
         {head, tail} = misc.path_split(@_path)
         @_directory = head
@@ -96,6 +113,8 @@ class Kernel extends EventEmitter
         dbg()
         logger = @dbg
         process.on('exit', @close)
+        if usage
+            @_init_usage_monitor()
         @setMaxListeners(100)
 
     _set_state: (state) =>
@@ -162,7 +181,7 @@ class Kernel extends EventEmitter
                 start_delay : 500
                 max_delay   : 5000
                 factor      : 1.4
-                max_time    : 45000
+                max_time    : 2*60000  # long in case of starting many at once -- we don't want them to all fail and start again and fail ad infinitum!
                 f : (cb) =>
                     @kernel_info(cb : =>)
                     cb(@_state == 'starting')
@@ -192,10 +211,48 @@ class Kernel extends EventEmitter
             catch err
                 dbg("error: #{err}")
 
+    # Get memory/cpu usage...
+    #   cb(err, { cpu: 1.154401154402318, memory: 482050048 })
+    usage: (cb) =>
+        # Do *NOT* put any logging in here, since it gets called a lot by the usage monitor.
+        pid = @_kernel?.spawn?.pid
+        if pid
+            pidusage.stat(pid, cb)
+        else
+            # not running = no usage
+            cb(undefined, {cpu:0, memory:0})
+
+    # Start a monitor that calls usage periodically.
+    # When the usage changes by a certain threshhold from the
+    # previous usage, emits a 'usage' event with new values.
+    _init_usage_monitor: =>
+        if @_usage_interval?
+            clearInterval(@_usage_interval)
+        locals =
+            last_usage : {cpu:0, memory:0}
+            thresh     : 0.2 # report any change of at least thresh percent (we always report cpu dropping to 0)
+            interval   : 5000  # frequently should be OK, since it just reads /proc filesystem
+        @emit('usage', locals.last_usage)
+        dbg = @dbg("usage_monitor")
+        update_usage = =>
+            @usage (err, usage) =>
+                if err
+                    dbg("err", err, " -- skip")
+                    return
+                for x in ['cpu', 'memory']
+                    if usage[x] > locals.last_usage[x]*(1+locals.thresh) or usage[x] < locals.last_usage[x]*(1-locals.thresh) or usage[x] == 0 and locals.last_usage[x] > 0
+                        locals.last_usage = usage
+                        @emit('usage', usage)
+                        break
+        @_usage_interval = setInterval(update_usage, locals.interval)
+
     close: =>
         @dbg("close")()
         if @_state == 'closed'
             return
+        if @_usage_interval?
+            clearInterval(@_usage_interval)
+            delete @_usage_interval
         @store.close(); delete @store
         @_set_state('closed')
         if _jupyter_kernels[@_path]?._identity == @_identity
@@ -375,22 +432,26 @@ class Kernel extends EventEmitter
 
         if opts.stdin?
             g = (mesg) =>
-                dbg("got STDIN message -- #{JSON.stringify(mesg)}")
+                dbg("STDIN kernel --> server: #{JSON.stringify(mesg)}")
                 if mesg.parent_header.msg_id != message.header.msg_id
+                    dbg("STDIN msg_id mismatch: #{mesg.parent_header.msg_id}!=#{message.header.msg_id}")
                     return
 
                 opts.stdin mesg.content, (err, response) =>
+                    dbg("STDIN client --> server #{err}, #{JSON.stringify(response)}")
                     if err
                         response = "ERROR -- #{err}"
                     m =
+                        parent_header : message.header
                         header :
-                            msg_id   : message.header.msg_id
+                            msg_id   : misc.uuid() # message.header.msg_id
                             username : ''
                             session  : ''
                             msg_type : 'input_reply'
-                            version  : '5.0'
+                            version  : '5.2'
                         content :
                             value: response
+                    dbg("STDIN server --> kernel: #{JSON.stringify(m)}")
                     @_channels.stdin.next(m)
 
             @on('stdin', g)
@@ -489,6 +550,9 @@ class Kernel extends EventEmitter
                 @_call(opts)
 
     _call: (opts) =>
+        if not @_channels?
+            opts.cb('not running (no channels defined)')
+            return
         message =
             header:
                 msg_id   : misc.uuid()
@@ -588,6 +652,7 @@ class Kernel extends EventEmitter
             return
         @_nbconvert_lock = true
         args = misc.copy(opts.args)
+        args.push('--')
         args.push(@_filename)
         nbconvert.nbconvert
             args      : args

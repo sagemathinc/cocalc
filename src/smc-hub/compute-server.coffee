@@ -52,6 +52,8 @@ misc        = require('smc-util/misc')
 
 sqlite      = require('smc-util-node/sqlite')
 
+conf        = require('./conf')
+
 
 # Set the log level
 try
@@ -89,9 +91,9 @@ smc_compute = (opts) =>
         cb      : required
     if DEV
         winston.debug("dev_smc_compute: running #{misc.to_json(opts.args)}")
-        path = require('path')
-        command = path.join(process.env.SALVUS_ROOT, 'smc_pyutil/smc_pyutil/smc_compute.py')
-        PROJECT_PATH = process.env.COCALC_PROJECT_PATH ? path.join(process.env.SALVUS_ROOT, 'data', 'projects')
+        os_path = require('path')
+        command = os_path.join(process.env.SALVUS_ROOT, 'smc_pyutil/smc_pyutil/smc_compute.py')
+        PROJECT_PATH = conf.project_path()
         v = ['--dev', "--projects", PROJECT_PATH]
     else
         winston.debug("smc_compute: running #{misc.to_safe_str(opts.args)}")

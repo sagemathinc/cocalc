@@ -9,6 +9,8 @@ fs = require('fs')
 # 2. during the "webpack" step, this component is included into a full html page via includes
 # look into policies/pricing.html, there is <%= require('html?conservativeCollapse!./_static_pricing_page.html') %>
 
+global['BACKEND'] = true
+
 # there is a global window object, which is undefined in node.js' world -- we mock it and hope for the best.
 global['window'] = {}
 # webpack's injected DEBUG flag, we set it to false

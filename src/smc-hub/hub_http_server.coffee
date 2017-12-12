@@ -38,6 +38,8 @@ http_proxy   = require('http-proxy')
 http         = require('http')
 winston      = require('winston')
 
+winston      = require('./winston-metrics').get_logger('hub_http_server')
+
 misc         = require('smc-util/misc')
 {defaults, required} = misc
 
@@ -48,6 +50,9 @@ access       = require('./access')
 hub_proxy    = require('./proxy')
 hub_projects = require('./projects')
 MetricsRecorder  = require('./metrics-recorder')
+
+conf         = require('./conf')
+
 
 {http_message_api_v1} = require('./api/handler')
 
@@ -75,25 +80,62 @@ exports.init_express_http_server = (opts) ->
     router.use(body_parser.urlencoded({ extended: true }))
 
     # initialize metrics
-    response_time_quantile = MetricsRecorder.new_quantile('http_quantile', 'http server',
-                                  percentiles : [0, 0.5, 0.75, 0.9, 0.99, 1]
-                                  labels: ['path', 'method', 'code']
-                             )
     response_time_histogram = MetricsRecorder.new_histogram('http_histogram', 'http server'
-                                  buckets : [0.0001, 0.0005, 0.001, 0.002, 0.005, 0.01, 0.1, 0.5, 1, 5, 10]
+                                  buckets : [0.01, 0.1, 1, 2, 10, 20]
                                   labels: ['path', 'method', 'code']
                               )
 
+    # response time metrics
     router.use (req, res, next) ->
-        res_finished_q = response_time_quantile.startTimer()
         res_finished_h = response_time_histogram.startTimer()
         original_end = res.end
         res.end = ->
             original_end.apply(res, arguments)
-            {dirname} = require('path')
-            dir_path = dirname(req.path).split('/')[1] # for two levels: split('/')[1..2].join('/')
-            res_finished_q({path:dir_path, method:req.method, code:res.statusCode})
+            {dirname}   = require('path')
+            path_split  = req.path.split('/')
+            # for API paths, we want to have data for each endpoint
+            path_tail   = path_split[path_split.length-3 ..]
+            is_api      = path_tail[0] == 'api' and path_tail[1] == 'v1'
+            if is_api
+                dir_path = path_tail.join('/')
+            else
+                # for regular paths, we ignore the file
+                dir_path = dirname(req.path).split('/')[..1].join('/')
+            #winston.debug('response timing/path_split:', path_tail, is_api, dir_path)
             res_finished_h({path:dir_path, method:req.method, code:res.statusCode})
+        next()
+
+    # save utm parameters and referrer in a (short lived) cookie or read it to fill in locals.utm
+    # webapp takes care of consuming it (see misc_page.get_utm)
+    router.use (req, res, next) ->
+        # quickly return in the usual case
+        if Object.keys(req.query).length == 0
+            next()
+            return
+        utm = {}
+
+        utm_cookie = req.cookies[misc.utm_cookie_name]
+        if utm_cookie
+            try
+                data = misc.from_json(window.decodeURIComponent(utm_cookie))
+                utm = misc.merge(utm, data)
+
+        for k, v of req.query
+            continue if not misc.startswith(k, 'utm_')
+            # untrusted input, limit the length of key and value
+            k = k[4...50]
+            utm[k] = v[...50] if k in misc.utm_keys
+
+        if Object.keys(utm).length
+            utm_data = encodeURIComponent(JSON.stringify(utm))
+            res.cookie(misc.utm_cookie_name, utm_data, {path: '/', maxAge: ms('1 day'), httpOnly: false})
+            res.locals.utm = utm
+
+        referrer_cookie = req.cookies[misc.referrer_cookie_name]
+        if referrer_cookie
+            res.locals.referrer = referrer_cookie
+
+        winston.debug("HTTP server: #{req.url} -- UTM: #{misc.to_json(res.locals.utm)}")
         next()
 
     app.enable('trust proxy') # see http://stackoverflow.com/questions/10849687/express-js-how-to-get-remote-client-address
@@ -104,6 +146,20 @@ exports.init_express_http_server = (opts) ->
             timeout = ms('100 days') # more than a year would be invalid
             res.setHeader('Cache-Control', "public, max-age='#{timeout}'")
             res.setHeader('Expires', new Date(Date.now() + timeout).toUTCString());
+
+    # robots.txt: disable indexing for published subdirectories, in particular to avoid a lot of 500/404 errors
+    router.use '/robots.txt', (req, res) ->
+        res.header("Content-Type", "text/plain")
+        res.header('Cache-Control', 'private, no-cache, must-revalidate')
+        res.write('''
+                  User-agent: *
+                  Allow: /share
+                  Disallow: /projects/*
+                  Disallow: /*/raw/
+                  Disallow: /*/port/
+                  Disallow: /haproxy
+                  ''')
+        res.end()
 
     # The /static content
     router.use '/static',
@@ -253,9 +309,9 @@ exports.init_express_http_server = (opts) ->
     router.get '/cookies', (req, res) ->
         if req.query.set
             # TODO: implement expires as part of query?  not needed for now.
-            expires = new Date(new Date().getTime() + 1000*24*3600*30*36) # 3 years -- this is fine now since we support "sign out everywhere"
+            maxAge = 1000*24*3600*30*6  # 6 months -- long is fine now since we support "sign out everywhere" ?
             cookies = new Cookies(req, res)
-            cookies.set(req.query.set, req.query.value, {expires:expires})
+            cookies.set(req.query.set, req.query.value, {maxAge:maxAge})
         res.end()
 
     # Used to determine whether or not a token is needed for
@@ -295,8 +351,9 @@ exports.init_express_http_server = (opts) ->
             res.json({error:"not connected to database"})
             return
         opts.database.get_stats
-            ttl: 3600*24*180   # basically never update in hub -- too slow
-            cb : (err, stats) ->
+            update : false   # never update in hub b/c too slow. instead, run $ hub --update_stats via a cronjob every minute
+            ttl    : 30
+            cb     : (err, stats) ->
                 res.header('Cache-Control', 'private, no-cache, no-store, must-revalidate')
                 if err
                     res.status(500).send("internal error: #{err}")
@@ -371,6 +428,10 @@ exports.init_express_http_server = (opts) ->
 
         # Also, ensure the raw server works
         dev_proxy_raw = (req, res) ->
+            # avoid XSS...
+            req.headers['cookie'] = hub_proxy.strip_remember_me_cookie(req.headers['cookie']).cookie
+
+            #winston.debug("cookie=#{req.headers['cookie']}")
             req_url = req.url.slice(opts.base_url.length)
             {key, project_id} = hub_proxy.target_parse_req('', req_url)
             winston.debug("dev_proxy_raw", project_id)
@@ -398,12 +459,24 @@ exports.init_express_http_server = (opts) ->
                                     # when connection dies, clear from cache
                                     proxy.on("error", -> delete proxy_cache[key])
                                     proxy.web(req, res)
-                                    # also delete after a few seconds
-                                    setTimeout((-> delete proxy_cache[key]), 10000)
+                                    # also delete eventually (1 hour)
+                                    setTimeout((-> delete proxy_cache[key]), 1000*60*60)
 
         raw_regexp = '^' + opts.base_url + '\/[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}\/raw*'
         app.get( raw_regexp, dev_proxy_raw)
         app.post(raw_regexp, dev_proxy_raw)
+
+        # Also create and expose the share server
+        if false
+            PROJECT_PATH = conf.project_path()
+            share_server = require('./share/server')
+            share_router = share_server.share_router
+                database : opts.database
+                path     : "#{PROJECT_PATH}/[project_id]"
+                base_url : opts.base_url
+                logger   : winston
+            app.use(opts.base_url + '/share', share_router)
+
 
     app.on 'upgrade', (req, socket, head) ->
         winston.debug("\n\n*** http_server websocket(#{req.url}) ***\n\n")
@@ -413,6 +486,11 @@ exports.init_express_http_server = (opts) ->
         # this upgrade is never hit, since the main site (that is
         # proxying to this server) is already trying to do something.
         # I don't know if this sort of multi-level proxying is even possible.
+
+    # Enable compression, as
+    # suggested by http://expressjs.com/en/advanced/best-practice-performance.html#use-gzip-compression
+    compression = require('compression')
+    app.use(compression())
 
     http_server = http.createServer(app)
     return {http_server:http_server, express_router:router}

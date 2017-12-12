@@ -23,10 +23,17 @@
 {webapp_client}         = require('./webapp_client')
 misc                    = require('smc-util/misc')
 
-{set_url}               = require('./history')
+history                 = require('./history')
 {set_window_title}      = require('./browser')
 
 {alert_message}         = require('./alerts')
+
+# Ephemeral websockets mean a browser that kills the websocket whenever
+# the page is backgrounded.  So far, it seems that maybe all mobile devices
+# do this.  The only impact is we don't show a certain error message for
+# such devices.
+
+EPHEMERAL_WEBSOCKETS    = require('./feature').isMobile.any()
 
 ###
 # Page Redux
@@ -102,21 +109,22 @@ class PageActions extends Actions
 
         # TODO: The functionality below should perhaps here and not in the projects actions (?).
         redux.getActions('projects').set_project_closed(project_id)
+        @save_session()
 
     set_active_tab: (key) =>
         @setState(active_top_tab : key)
         switch key
             when 'projects'
-                set_url('/projects')
+                history.set_url('/projects')
                 set_window_title('Projects')
             when 'account'
                 redux.getActions('account').push_state()
                 set_window_title('Account')
             when 'about'
-                set_url('/help')
+                history.set_url('/help')
                 set_window_title('Help')
             when 'file-use'
-                set_url('/file-use')
+                history.set_url('/file-use')
                 set_window_title('File Usage')
             when undefined
                 return
@@ -170,10 +178,38 @@ class PageActions extends Actions
         @setState(new_version : version)
 
     set_fullscreen: (val) =>
+        # if kiosk is ever set, disable toggling back
+        if redux.getStore('page').get('fullscreen') == 'kiosk'
+            return
         @setState(fullscreen : val)
+        history.update_params()
+
+    set_get_api_key: (val) =>
+        @setState(get_api_key: val)
+        history.update_params()
 
     toggle_fullscreen: =>
-        @setState(fullscreen : not redux.getStore('page').get('fullscreen'))
+        @set_fullscreen(if redux.getStore('page').get('fullscreen')? then undefined else 'default')
+
+    set_session: (val) =>
+        # If existing different session, close it.
+        if val != redux.getStore('page')?.get('session')
+            @_session_manager?.close()
+            delete @_session_manager
+
+        # Save state and update URL.
+        @setState(session : val)
+        history.update_params()
+
+        # Make new session manager if necessary
+        if val
+            @_session_manager ?= require('./session').session_manager(val, redux)
+
+    save_session: =>
+        @_session_manager?.save()
+
+    restore_session: =>
+        @_session_manager?.restore()
 
     show_cookie_warning: =>
         @setState(cookie_warning : true)
@@ -217,11 +253,14 @@ redux.createStore
         avgping               : rtypes.number
         connection_status     : rtypes.string
         new_version           : rtypes.object
-        fullscreen            : rtypes.bool
+        fullscreen            : rtypes.oneOf(['default', 'kiosk'])
         cookie_warning        : rtypes.bool
         local_storage_warning : rtypes.bool
         show_file_use         : rtypes.bool
         num_ghost_tabs        : rtypes.number
+        session               : rtypes.string # session query in the url bar
+        last_status_time      : rtypes.string
+        get_api_key           : rtypes.string
 
 recent_disconnects = []
 record_disconnect = () ->
@@ -259,6 +298,12 @@ if DEBUG
         recent_wakeup_from_standby : recent_wakeup_from_standby
         num_recent_disconnects     : num_recent_disconnects
 
+prom_client = require('./prom-client')
+if prom_client.enabled
+    prom_ping_time = prom_client.new_histogram('ping_ms', 'ping time',
+         {buckets : [50, 100, 150, 200, 300, 500, 1000, 2000, 5000]})
+    prom_ping_time_last = prom_client.new_gauge('ping_last_ms', 'last reported ping time')
+
 webapp_client.on "ping", (ping_time) ->
     ping_time_smooth = redux.getStore('page').get('avgping') ? ping_time
     # reset outside 3x
@@ -268,6 +313,10 @@ webapp_client.on "ping", (ping_time) ->
         decay = 1 - Math.exp(-1)
         ping_time_smooth = decay * ping_time_smooth + (1-decay) * ping_time
     redux.getActions('page').set_ping(ping_time, Math.round(ping_time_smooth))
+
+    if prom_client.enabled
+        prom_ping_time.observe(ping_time)
+        prom_ping_time_last.set(ping_time)
 
 webapp_client.on "connected", () ->
     redux.getActions('page').set_connection_status('connected', new Date())
@@ -294,8 +343,12 @@ webapp_client.on "connecting", () ->
         # remove one extra reconnect added by the call above
         setTimeout((-> recent_disconnects.pop()), 500)
 
-    console.log "attempt: #{attempt} and num_recent_disconnects: #{num_recent_disconnects()}"
-    if num_recent_disconnects() >= 2 or (attempt >= 10)
+    console.log("attempt: #{attempt} and num_recent_disconnects: #{num_recent_disconnects()}")
+    # NOTE: On mobile devices the websocket is disconnected every time one backgrounds
+    # the application.  This normal and expected behavior, which does not indicate anything
+    # bad about the user's actual network connection.  Thus displaying this error in the case
+    # of mobile is likely wrong.  (It could also be right, of course.)
+    if not EPHEMERAL_WEBSOCKETS and (num_recent_disconnects() >= 2 or (attempt >= 10))
         # this event fires several times, limit displaying the message and calling reconnect() too often
         {SITE_NAME} = require('smc-util/theme')
         SiteName = redux.getStore('customize').site_name ? SITE_NAME
@@ -316,8 +369,28 @@ webapp_client.on "connecting", () ->
 webapp_client.on 'new_version', (ver) ->
     redux.getActions('page').set_new_version(ver)
 
-# enable fullscreen mode upon a URL like /app?fullscreen
+# enable fullscreen mode upon a URL like /app?fullscreen and additionally kiosk-mode upon /app?fullscreen=kiosk
 misc_page = require('./misc_page')
-if misc_page.get_query_param('fullscreen')
-    redux.getActions('page').set_fullscreen(true)
+fullscreen_query_value = misc_page.get_query_param('fullscreen')
+if fullscreen_query_value
+    if fullscreen_query_value == 'kiosk'
+        redux.getActions('page').set_fullscreen('kiosk')
+    else
+        redux.getActions('page').set_fullscreen('default')
+
+# configure the session
+# This makes it so the default session is 'default' and there is no
+# way to NOT have a session.
+session = misc_page.get_query_param('session') ? 'default'
+if fullscreen_query_value == 'kiosk'
+    # never have a session in kiosk mode, since you can't access the other files.
+    session = undefined
+
+redux.getActions('page').set_session(session)
+
+get_api_key_query_value = misc_page.get_query_param('get_api_key')
+if get_api_key_query_value
+    redux.getActions('page').set_get_api_key(get_api_key_query_value)
+    redux.getActions('page').set_fullscreen('kiosk')
+
 

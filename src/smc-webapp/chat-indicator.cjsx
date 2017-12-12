@@ -32,6 +32,7 @@ misc = require('smc-util/misc')
 CHAT_INDICATOR_STYLE =
     fontSize     : '14pt'
     borderRadius : '3px'
+    marginTop    : '3px'
 
 USERS_VIEWING_STYLE =
     maxWidth:"120px"
@@ -50,12 +51,13 @@ exports.ChatIndicator = rclass
         file_use :
             file_use : rtypes.immutable
         page :
-            fullscreen : rtypes.bool
+            fullscreen : rtypes.oneOf(['default', 'kiosk'])
 
     propTypes :
-        project_id   : rtypes.string.isRequired
-        path         : rtypes.string.isRequired
-        is_chat_open : rtypes.bool
+        project_id        : rtypes.string.isRequired
+        path              : rtypes.string.isRequired
+        is_chat_open      : rtypes.bool
+        shrink_fixed_tabs : rtypes.bool
 
 
     componentWillMount: ->
@@ -87,6 +89,13 @@ exports.ChatIndicator = rclass
             />
         </span>
 
+    render_chat_label: ->
+        if @props.shrink_fixed_tabs
+            return
+        <span style={fontSize:'10.5pt', marginLeft:'5px'}>
+            Chat
+        </span>
+
     render_chat_button: ->
         if misc.filename_extension(@props.path) == 'sage-chat'
             # Special case: do not show side chat for chatrooms
@@ -111,6 +120,7 @@ exports.ChatIndicator = rclass
                     <Icon name="caret-#{dir}" />
                     <Space />
                     <Icon name='comment' />
+                    {@render_chat_label()}
                 </span>
             </Tip>
         </div>

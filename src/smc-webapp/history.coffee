@@ -77,8 +77,35 @@ The URI schema is as follows:
 ###
 
 {redux} = require('./smc-react')
+
+# Determine query params based on state of the project store
+params = ->
+    page = redux.getStore('page')
+    if not page?  # unknown for now
+        return ''
+    v = []
+    for param in ['fullscreen', 'session', 'get_api_key']
+        val = page.get(param)
+        if val?
+            v.push("#{param}=#{encodeURIComponent(val)}")
+    if v.length > 0
+        return '?' + v.join('&')
+    else
+        return ''
+
+# The last explicitly set url.
+last_url = undefined
+
+# Update what params are set to in the URL based on state of project store,
+# leaving the rest of the URL the same.
+exports.update_params = ->
+    if last_url?
+        exports.set_url(last_url)
+
 exports.set_url = (url) ->
-    window.history.pushState("", "", window.app_base_url + url)
+    last_url = url
+    full_url = window.app_base_url + url + params()
+    window.history.pushState("", "", full_url)
     {analytics_pageview} = require('./misc_page')
     analytics_pageview(window.location.pathname)
 
@@ -110,6 +137,8 @@ exports.load_target = load_target = (target) ->
                 redux.getActions('account').set_active_tab('upgrades')
             if segments[1] == 'support'
                 redux.getActions('account').set_active_tab('support')
+            if segments[1] == 'ssh-keys'
+                redux.getActions('account').set_active_tab('ssh-keys')
         when 'file-use'
             if not logged_in
                 return

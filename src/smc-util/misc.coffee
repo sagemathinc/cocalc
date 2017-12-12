@@ -60,7 +60,10 @@ exports.RUNNING_IN_NODE = process?.title == 'node'
 exports.required = required; exports.defaults = defaults; exports.types = types
 
 # startswith(s, x) is true if s starts with the string x or any of the strings in x.
+# It is false if s is not a string.
 exports.startswith = (s, x) ->
+    if typeof(s) != 'string'
+        return false
     if typeof(x) == "string"
         return s?.indexOf(x) == 0
     else
@@ -130,6 +133,8 @@ exports.search_split = (search) ->
 # s = lower case string
 # v = array of terms as output by search_split above
 exports.search_match = (s, v) ->
+    if not s?
+        return false
     for x in v
         if s.indexOf(x) == -1
             return false
@@ -180,8 +185,9 @@ exports.uuid = ->
         v = if c == 'x' then r else r & 0x3 | 0x8
         v.toString 16
 
+uuid_regexp = new RegExp(/[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}/i)
 exports.is_valid_uuid_string = (uuid) ->
-    return typeof(uuid) == "string" and uuid.length == 36 and /[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}/i.test(uuid)
+    return typeof(uuid) == "string" and uuid.length == 36 and uuid_regexp.test(uuid)
     # /[0-9a-f]{22}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i.test(uuid)
 
 exports.assert_uuid = (uuid) =>
@@ -741,15 +747,15 @@ exports.retry_until_success = (opts) ->
                     opts.cb?("not_public")
                     return
                 if err and opts.warn?
-                    opts.warn("retry_until_success(#{opts.name}) -- err=#{err}")
+                    opts.warn("retry_until_success(#{opts.name}) -- err=#{JSON.stringify(err)}")
                 if opts.log?
-                    opts.log("retry_until_success(#{opts.name}) -- err=#{err}")
+                    opts.log("retry_until_success(#{opts.name}) -- err=#{JSON.stringify(err)}")
                 if opts.max_tries? and opts.max_tries <= tries
-                    opts.cb?("maximum tries (=#{opts.max_tries}) exceeded - last error #{err}")
+                    opts.cb?("maximum tries (=#{opts.max_tries}) exceeded - last error #{JSON.stringify(err)}")
                     return
                 delta = Math.min(opts.max_delay, opts.factor * delta)
                 if opts.max_time? and (new Date() - start_time) + delta > opts.max_time
-                    opts.cb?("maximum time (=#{opts.max_time}ms) exceeded - last error #{err}")
+                    opts.cb?("maximum time (=#{opts.max_time}ms) exceeded - last error #{JSON.stringify(err)}")
                     return
                 setTimeout(g, delta)
             else
@@ -1148,32 +1154,43 @@ exports.path_is_in_public_paths = (path, paths) ->
 # returns a string in paths if path is public because of that string
 # Otherwise, returns undefined.
 # IMPORTANT: a possible returned string is "", which is falsey but defined!
+# paths can be an array or object (with keys the paths)
 exports.containing_public_path = (path, paths) ->
-    if paths.length == 0
-        return
-    if not path?
+    if not paths? or not path?
         return
     if path.indexOf('../') != -1
         # just deny any potentially trickiery involving relative path segments (TODO: maybe too restrictive?)
         return
-    for p in paths
-        if p == ""  # the whole project is public, which matches everything
-            return ""
-        if path == p
-            # exact match
-            return p
-        if path.slice(0,p.length+1) == p + '/'
-            return p
+    if is_array(paths)
+        for p in paths   # array so "in"
+            if p == ""  # the whole project is public, which matches everything
+                return ""
+            if path == p
+                # exact match
+                return p
+            if path.slice(0,p.length+1) == p + '/'
+                return p
+    else if is_object(paths)
+        for p of paths    # object and want keys, so *of*
+            if p == ""  # the whole project is public, which matches everything
+                return ""
+            if path == p
+                # exact match
+                return p
+            if path.slice(0,p.length+1) == p + '/'
+                return p
+    else
+        throw Error("paths must be undefined, an array, or a map")
     if exports.filename_extension(path) == "zip"
         # is path something_public.zip ?
         return exports.containing_public_path(path.slice(0,path.length-4), paths)
     return undefined
 
 # encode a UNIX path, which might have # and % in it.
+# Maybe alternatively, (encodeURIComponent(p) for p in path.split('/')).join('/') ?
 exports.encode_path = (path) ->
     path = encodeURI(path)  # doesn't escape # and ?, since they are special for urls (but not unix paths)
     return path.replace(/#/g,'%23').replace(/\?/g,'%3F')
-
 
 # This adds a method _call_with_lock to obj, which makes it so it's easy to make it so only
 # one method can be called at a time of an object -- all calls until completion
@@ -1455,16 +1472,31 @@ exports.round2 = round2 = (num) ->
     # padding to fix floating point issue (see http://stackoverflow.com/questions/11832914/round-to-at-most-2-decimal-places-in-javascript)
     Math.round((num + 0.00001) * 100) / 100
 
-exports.seconds2hms = seconds2hms = (secs) ->
-    s = round2(secs % 60)
+exports.seconds2hms = seconds2hms = (secs, longform) ->
+    longform ?= false
+    if secs < 10
+        s = round2(secs % 60)
+    else if secs < 60
+        s = round1(secs % 60)
+    else
+        s = Math.round(secs % 60)
     m = Math.floor(secs / 60) % 60
     h = Math.floor(secs / 60 / 60)
     if h == 0 and m == 0
-        return "#{s}s"
+        if longform
+            return "#{s} #{exports.plural(s, 'second')}"
+        else
+            return "#{s}s"
     if h > 0
-        return "#{h}h#{m}m#{s}s"
+        if longform
+            return "#{h} #{exports.plural(h, 'hour')} #{m} #{exports.plural(m, 'minute')}"
+        else
+            return "#{h}h#{m}m#{s}s"
     if m > 0
-        return "#{m}m#{s}s"
+        if longform
+            return "#{m} #{exports.plural(m, 'minute')} #{s} #{exports.plural(s, 'second')}"
+        else
+            return "#{m}m#{s}s"
 
 # returns the number parsed from the input text, or undefined if invalid
 # rounds to the nearest 0.01 if round_number is true (default : true)
@@ -1579,8 +1611,6 @@ exports.map_mutate_out_undefined = (map) ->
     for k, v of map
         if not v?
             delete map[k]
-
-
 
 # foreground; otherwise, return false.
 exports.should_open_in_foreground = (e) ->
@@ -1773,10 +1803,13 @@ exports.peer_grading_demo = (S = 10, N = 2) ->
 exports.ticket_id_to_ticket_url = (tid) ->
     return "https://sagemathcloud.zendesk.com/requests/#{tid}"
 
+# Checks if the string only makes sense (heuristically) as downloadable url
+exports.is_only_downloadable = (string) ->
+    string.indexOf('://') != -1 or exports.startswith(string, 'git@github.com')
+
 # Apply various transformations to url's before downloading a file using the "+ New" from web thing:
 # This is useful, since people often post a link to a page that *hosts* raw content, but isn't raw
 # content, e.g., ipython nbviewer, trac patches, github source files (or repos?), etc.
-
 exports.transform_get_url = (url) ->  # returns something like {command:'wget', args:['http://...']}
     URL_TRANSFORMS =
         'http://trac.sagemath.org/attachment/ticket/'  :'http://trac.sagemath.org/raw-attachment/ticket/'
@@ -2047,4 +2080,26 @@ exports.sanitize_html_attributes = ($, node) ->
         # remove attribute value start with "javascript:" pseudo protocol, possible unsafe, e.g. href="javascript:alert(1)"
         if attrName?.indexOf('on') == 0 or attrValue?.indexOf('javascript:') == 0
             $(node).removeAttr(attrName)
+
+# common UTM parameters
+# changes must also be done in webapp-lib/_inc_analytics.pug
+exports.utm_keys = ['source', 'medium', 'campaign', 'term', 'content']
+exports.utm_cookie_name = 'CC_UTM'
+
+# referrer
+exports.referrer_cookie_name = 'CC_REF'
+
+
+exports.human_readable_size = (bytes) ->
+    if bytes < 1000
+        return "#{bytes} bytes"
+    if bytes < 1000000
+        b = Math.floor(bytes/100)
+        return "#{b/10} KB"
+    if bytes < 1000000000
+        b = Math.floor(bytes/100000)
+        return "#{b/10} MB"
+    b = Math.floor(bytes/100000000)
+    return "#{b/10} GB"
+
 

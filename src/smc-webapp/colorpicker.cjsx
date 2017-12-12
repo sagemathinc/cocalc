@@ -9,9 +9,7 @@
 #    - Travis Scholl
 #    - Vivek Venkatachalam
 ###
-
-React = require "react"
-ReactDOM = require('react-dom')
+{rclass, rtypes, React, ReactDOM} = require('./smc-react')
 
 percent_to_color = (x) ->
   switch
@@ -21,13 +19,13 @@ percent_to_color = (x) ->
     when x<0.8 then [0,Math.floor(255*(1-(x-0.6)/0.2)),255]
     else [Math.floor(255*(x-0.8)/0.2),0,255]
 
-exports.ColorPicker = React.createClass
+exports.ColorPicker = rclass
   displayName: 'ColorPicker'
 
   propTypes:
-      onChange: React.PropTypes.func
-      color: React.PropTypes.string
-      style: React.PropTypes.object
+      onChange: rtypes.func
+      color: rtypes.string
+      style: rtypes.object
 
   getDefaultProps: ->
       color: "#aaa"

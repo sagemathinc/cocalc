@@ -28,9 +28,6 @@ misc_page = require('./misc_page')
 message  = require('smc-util/message')
 markdown = require('./markdown')
 
-# Define interact jQuery plugins - used only by sage worksheets
-require('./interact')
-
 {webapp_client} = require('./webapp_client')
 {alert_message} = require('./alerts')
 
@@ -202,6 +199,7 @@ class SynchronizedDocument2 extends SynchronizedDocument
         @editor.show_startup_message("Loading...", 'info')
         @codemirror.setOption('readOnly', true)
         @codemirror1.setOption('readOnly', true)
+        @codemirror.setValue('Loading...')
 
         if @filename[0] == '/'
             # uses symlink to '/', which is created by start_smc
@@ -252,6 +250,8 @@ class SynchronizedDocument2 extends SynchronizedDocument
 
                 @_init_cursor_activity()
 
+                redux.getProjectActions(@project_id)?.log_opened_time(@filename)
+
                 @_syncstring.on 'change', =>
                     if @_closed
                         return
@@ -293,7 +293,7 @@ class SynchronizedDocument2 extends SynchronizedDocument
                             @on_redo?(instance, changeObj)
                         if changeObj.origin != 'setValue'
                             @_last_change_time = new Date()
-                            @save_state_debounce()
+                            @save_state_debounce?()
                             @_syncstring.exit_undo_mode()
                     update_unsaved_uncommitted_changes()
 
@@ -363,7 +363,7 @@ class SynchronizedDocument2 extends SynchronizedDocument
             @_set_syncstring_to_codemirror()
         value = @_syncstring.undo().to_str()
         cm.setValueNoJump(value, true)
-        @save_state_debounce()
+        @save_state_debounce?()
         @_last_change_time = new Date()
 
     # per-session sync-aware redo
@@ -381,7 +381,7 @@ class SynchronizedDocument2 extends SynchronizedDocument
             throw Error("doc must have a to_str method, but is doc='#{doc}', typeof(doc)='#{typeof(doc)}'")
         value = doc.to_str()
         @focused_codemirror().setValueNoJump(value, true)
-        @save_state_debounce()
+        @save_state_debounce?()
         @_last_change_time = new Date()
 
     _connect: (cb) =>

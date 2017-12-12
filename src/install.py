@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import argparse, os, sys, time
+import argparse, os, sys, time, urllib
 
 SRC = os.path.split(os.path.realpath(__file__))[0]
 
@@ -28,6 +28,15 @@ def cmd(s):
         sys.exit(1)
     print "TOTAL TIME: %.1f seconds"%(time.time() - t0)
 
+def thread_map(callable, inputs, nb_threads=None):
+    if len(inputs) == 0:
+        return []
+    from multiprocessing.pool import ThreadPool
+    if not nb_threads:
+        nb_threads = min(50, len(inputs))
+    tp = ThreadPool(nb_threads)
+    return tp.map(callable, inputs)
+
 def pull():
     cmd("git pull")
 
@@ -41,11 +50,16 @@ def install_sagews():
 
 def install_project():
     # unsafe-perm below is needed so can build C code as root
-    for m in './smc-util ./smc-util-node ./smc-project ./smc-webapp coffee-script forever'.split():
+    def f(m):
         cmd(SUDO+"npm --loglevel=warn --unsafe-perm=true install --upgrade %s -g"%m)
+    thread_map(f, './smc-util ./smc-util-node ./smc-project ./smc-webapp coffee-script forever'.split())
 
     # UGLY; hard codes the path -- TODO: fix at some point.
     cmd("cd /usr/lib/node_modules/smc-project/jupyter && %s npm --loglevel=warn install --unsafe-perm=true --upgrade"%SUDO)
+
+    # Pre-compile everything to Javascript, so that loading is much faster and more efficient.
+    # This can easily save more than 2 seconds, given how big things have got.
+    cmd("cd /usr/lib/node_modules && coffee -c smc-util smc-util-node smc-webapp smc-project smc-project/jupyter smc-webapp/jupyter")
 
 def install_hub():
     for path in ['.', 'smc-util', 'smc-util-node', 'smc-hub']:
@@ -57,17 +71,43 @@ def install_webapp(*args):
     nothing = True
 
     if 'build' in action:
-        cmd("cd wizard && make")
+        cmd("cd examples && make")
         for path in ['.', 'smc-util', 'smc-util-node', 'smc-webapp', 'smc-webapp/jupyter']:
             cmd("cd %s; npm --loglevel=warn install"%path)
+
+        # In some contexts (e.g., kubernetes) the postinstall hook doesnot work; so we just
+        # run it again here. :-(
+        cmd("cd smc-webapp; node_modules/.bin/babel --presets=env  node_modules/prom-client -d node_modules/prom-client-js")
+
         # react static step must come *before* webpack step
         cmd("update_react_static")
+
+        # download compute environment information
+        # TOOD python 3: https://docs.python.org/3.5/library/urllib.request.html#urllib.request.urlretrieve
+        if os.environ.get('CC_COMP_ENV') == 'true':
+            print("Downloading compute environment information, because 'CC_COMP_ENV' is true")
+            try:
+                host = 'https://storage.googleapis.com/cocalc-compute-environment/'
+                for fn in ['compute-inventory.json', 'compute-components.json']:
+                    out = os.path.join(SRC, 'webapp-lib', fn)
+                    urllib.urlretrieve(host + fn, out)
+            except Exception as ex:
+                print("WARNING: problem while downloading the compute environment information")
+                print(ex)
+
         # update primus - so client has it.
         install_primus()
         # update term.js
         cmd("cd webapp-lib/term; ./compile")
-        print("Building production webpack -- grab a coffee, this will take about 5 minutes")
-        cmd("npm --loglevel=warn run webpack-production")
+        wtype = 'debug' if args[0].debug else 'production'
+        if args[0].debug:
+            wtype = 'debug'
+            est   = 1
+        else:
+            wtype = 'production'
+            est   = 5
+        print("Building {wtype} webpack -- this should take up to {est} minutes".format(wtype=wtype, est=est))
+        cmd("npm --loglevel=warn run webpack-{wtype}".format(wtype=wtype))
         nothing = False
 
     if 'pull' == action:
@@ -112,6 +152,7 @@ def main():
 
     parser_webapp = subparsers.add_parser('webapp', help='install/update any node.js dependencies for smc-[util*/webapp] and use webpack to build production js (takes several minutes!)')
     parser_webapp.add_argument('action', help='either "build" the webapp or "pull/push" compiled files from a repository -- see scripts/webapp-control.sh how this works', choices=['build', 'pull', 'push', 'build-push', 'clean'])
+    parser_webapp.add_argument("--debug", action="store_true", help="if set, build debug version of code (rather than production)")
     parser_webapp.set_defaults(func = install_webapp)
 
     parser_primus = subparsers.add_parser('primus', help='update client-side primus websocket code')

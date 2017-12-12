@@ -21,7 +21,7 @@
 
 # standard non-CoCalc libraries
 immutable = require('immutable')
-{IS_MOBILE} = require('./feature')
+{IS_MOBILE, IS_TOUCH} = require('./feature')
 underscore = require('underscore')
 
 # CoCalc libraries
@@ -42,6 +42,9 @@ misc_page = require('./misc_page')
 editor_chat = require('./editor_chat')
 
 {redux_name, init_redux, newest_content, sender_is_viewer, show_user_name, is_editing, blank_column, render_markdown, render_history_title, render_history_footer, render_history, get_user_name, send_chat, clear_input, is_at_bottom, scroll_to_bottom, scroll_to_position} = require('./editor_chat')
+
+{ProjectUsers} = require('./projects/project-users')
+{AddCollaborators} = require('./collaborators/add-to-project')
 
 Message = rclass
     displayName: "Message"
@@ -160,11 +163,11 @@ Message = rclass
         else
             <span className="small">
                 {text}
+                {<Button onClick={@save_edit} bsStyle='success' style={marginLeft:'10px',marginTop:'-5px'} className='small'>Save</Button> if is_editing(@props.message, @props.account_id)}
             </span>
 
     edit_message: ->
         @props.actions.set_editing(@props.message, true)
-        @props.close_input(@props.date, @props.account_id, @props.saved_mesg)
 
     on_keydown: (e) ->
         if e.keyCode == 27 # ESC
@@ -173,11 +176,14 @@ Message = rclass
                 edited_message : newest_content(@props.message)
             @props.actions.set_editing(@props.message, false)
         else if e.keyCode==13 and e.shiftKey # shift+enter
-            mesg = ReactDOM.findDOMNode(@refs.editedMessage).value
-            if mesg != newest_content(@props.message)
-                @props.actions.send_edit(@props.message, mesg)
-            else
-                @props.actions.set_editing(@props.message, false)
+            @save_edit()
+
+    save_edit: ->
+        mesg = ReactDOM.findDOMNode(@refs.editedMessage).value
+        if mesg != newest_content(@props.message)
+            @props.actions.send_edit(@props.message, mesg)
+        else
+            @props.actions.set_editing(@props.message, false)
 
     # All the columns
     content_column: ->
@@ -218,7 +224,7 @@ Message = rclass
             {show_user_name(@props.sender_name) if not @props.is_prev_sender and not sender_is_viewer(@props.account_id, @props.message)}
             <Well style={message_style} bsSize="small" className="smc-chat-message"  onDoubleClick = {@edit_message}>
                 <span style={lighten}>
-                    {editor_chat.render_timeago(@props.message)}
+                    {editor_chat.render_timeago(@props.message, @edit_message)}
                 </span>
                 {render_markdown(value, @props.project_id, @props.file_path, message_class) if not is_editing(@props.message, @props.account_id)}
                 {@render_input() if is_editing(@props.message, @props.account_id)}
@@ -349,7 +355,6 @@ ChatLog = rclass
 log_container_style =
     overflowY       : 'auto'
     flex            : 1
-    border          : '1px solid lightgrey'
     backgroundColor : '#fafafa'
 
 ChatRoom = rclass ({name}) ->
@@ -364,6 +369,7 @@ ChatRoom = rclass ({name}) ->
             offset             : rtypes.number
             saved_mesg         : rtypes.string
             use_saved_position : rtypes.bool
+            add_collab         : rtypes.bool
         users :
             user_map : rtypes.immutable
         account :
@@ -371,6 +377,8 @@ ChatRoom = rclass ({name}) ->
             font_size  : rtypes.number
         file_use :
             file_use : rtypes.immutable
+        projects :
+            project_map : rtypes.immutable.Map
 
     propTypes:
         redux       : rtypes.object.isRequired
@@ -418,6 +426,61 @@ ChatRoom = rclass ({name}) ->
         if not @props.use_saved_position
             scroll_to_bottom(@refs.log_container, @props.actions)
 
+    render_collab_caret: ->
+        if @props.add_collab
+            icon = <Icon name='caret-down'/>
+        else
+            icon = <Icon name='caret-right'/>
+        <div
+            style   = {fontSize:'15pt', width:'16px', display:'inline-block', cursor:'pointer'}
+        >
+            {icon}
+        </div>
+
+    render_add_collab: ->
+        if not @props.add_collab
+            return
+        project = @props.project_map?.get(@props.project_id)
+        if not project?
+            return
+        <div>
+            <div style={margin:'10px 0px'}>
+                Who else would you like to work with?
+            </div>
+            <AddCollaborators
+                project = {project}
+                inline  = {true}
+            />
+            <span style={color:'#666'}>
+                NOTE: Anybody you add can work with you on any file in this project. Remove people in settings.
+            </span>
+        </div>
+
+    render_collab_list: ->
+        project = @props.project_map?.get(@props.project_id)
+        if not project?
+            return
+        style = undefined
+        if not @props.add_collab
+            style =
+                maxHeight    : '1.7em'
+                whiteSpace   : 'nowrap'
+                overflow     : 'hidden'
+                textOverflow : 'ellipsis'
+        <div style   = {style}
+             onClick = {=>@props.actions.setState(add_collab:not @props.add_collab)}>
+            {@render_collab_caret()}
+            <span style={color:'#777', fontSize:'10pt'}>
+                <ProjectUsers project={project} none={<span>Add people to work with...</span>}/>
+            </span>
+        </div>
+
+    render_project_users: ->
+        <div style={margin:'5px 15px'}>
+            {@render_collab_list()}
+            {@render_add_collab()}
+        </div>
+
     render: ->
         if not @props.messages? or not @props.redux?
             return <Loading/>
@@ -428,6 +491,7 @@ ChatRoom = rclass ({name}) ->
 
         <div style       = {height:'100%', width:'100%', position:'absolute', display:'flex', flexDirection:'column', backgroundColor:'#efefef'}
              onMouseMove = {mark_as_read}>
+            {@render_project_users()}
             <div style   = {log_container_style}
                  ref     = 'log_container'
                  onScroll= {@on_scroll}>

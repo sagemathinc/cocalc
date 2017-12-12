@@ -279,11 +279,11 @@ class ProjectAndUserTracker extends EventEmitter
 
     # add and remove user from a project, maintaining our data structures (@_accounts, @_projects, @_collabs)
     _add_user_to_project: (account_id, project_id) =>
-        if not account_id? or not project_id?
-            # nothing to do -- better than crashing the server...
-            return
+        dbg = @_dbg('_add_user_to_project')
         if account_id?.length != 36 or project_id?.length != 36
-            throw Error("invalid account_id (='#{account_id}') or project_id (='#{project_id}')")
+            # nothing to do -- better than crashing the server...
+            dbg("WARNING: invalid account_id (='#{account_id}') or project_id (='#{project_id}')")
+            return
         if @_projects[account_id]?[project_id]
             return
         @emit 'add_user_to_project', {account_id:account_id, project_id:project_id}
@@ -420,7 +420,14 @@ class ProjectAndUserTracker extends EventEmitter
     # return *set* of projects that this user is a collaborator on
     projects: (account_id) =>
         if not @_accounts[account_id]?
-            throw Error("account (='#{account_id}') must be registered")
+            # This should never happen, but very rarely it DOES.  I do not know why, having studied the
+            # code.  But when it does, just raising an exception blows up the server really badly.
+            # So for now we just async register the account, return that it is not a collaborator
+            # on anything.  Then some query will fail, get tried again, and work since registration will
+            # have finished.
+            #throw Error("account (='#{account_id}') must be registered")
+            @register(account_id:account_id, cb:->)
+            return {}
         return @_projects[account_id] ? {}
 
     # map from collabs of account_id to number of projects they collab on (account_id itself counted twice)
@@ -799,13 +806,16 @@ class SyncTable extends EventEmitter
             if err
                 cb?(err)
                 return
-            dbg("notify about anything that changed when we were disconnected")
-            before.map (v, k) =>
-                if not v.equals(@_value.get(k))
-                    @emit('change', k)
-            @_value.map (v, k) =>
-                if not before.has(k)
-                    @emit('change', k)
+            if @_value? and before?
+                # It's highly unlikely that before or @_value would not be defined, but it could happen (see #2527)
+                dbg("notify about anything that changed when we were disconnected")
+                before.map (v, k) =>
+                    if not v.equals(@_value.get(k))
+                        @emit('change', k)
+                @_value.map (v, k) =>
+                    if not before.has(k)
+                        @emit('change', k)
+            cb?()
 
     _process_results: (rows) =>
         if @_state == 'closed'
@@ -816,6 +826,19 @@ class SyncTable extends EventEmitter
             if not v.equals(@_value.get(k))
                 @_value = @_value.set(k, v)
                 if @_state == 'ready'   # only send out change notifications after ready.
+                    process.nextTick(=>@emit('change', k))
+
+    # Remove from synctable anything that no longer matches the where criterion.
+    _process_deleted: (rows, changed) =>
+        kept = {}
+        for x in rows
+            kept[x[@_primary_key]] = true
+        for k of changed
+            if not kept[k] and @_value.has(k)
+                # The record with primary_key k no longer matches the where criterion
+                # so we delete it from our synctable.
+                @_value = @_value.delete(k)
+                if @_state == 'ready'
                     process.nextTick(=>@emit('change', k))
 
     # Grab any entries from table about which we have been notified of changes.
@@ -833,7 +856,7 @@ class SyncTable extends EventEmitter
         # Have to query to get actual changed data.
         @_db._query
             query : @_select_query
-            where : misc.merge("#{@_primary_key} = ANY($)" : misc.keys(changed), @_where)
+            where : [{"#{@_primary_key} = ANY($)" : misc.keys(changed)}, @_where]
             cb    : (err, result) =>
                 if err
                     @_dbg("update")("error #{err}")
@@ -841,16 +864,17 @@ class SyncTable extends EventEmitter
                         @_changed[k] = true   # will try again later
                 else
                     @_process_results(result.rows)
+                    @_process_deleted(result.rows, changed)
                 cb?()
 
     get: (key) =>
-        return if key? then @_value.get(key) else @_value
+        return if key? then @_value?.get(key) else @_value
 
     getIn: (x) =>
-        return @_value.getIn(x)
+        return @_value?.getIn(x)
 
     has: (key) =>
-        return @_value.has(key)
+        return @_value?.has(key)
 
     # wait until some function of this synctable is truthy
     wait: (opts) =>

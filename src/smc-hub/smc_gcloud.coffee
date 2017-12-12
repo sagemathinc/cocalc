@@ -12,6 +12,12 @@ https://github.com/GoogleCloudPlatform/gcloud-node
 
 npm install --save gcloud
 
+or maybe
+
+npm install --save google-cloud
+
+these days...
+
 TODO:
 
 - [ ] increase the boot disk size of a vm

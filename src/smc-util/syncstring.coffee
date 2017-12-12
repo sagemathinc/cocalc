@@ -20,15 +20,7 @@
 ###############################################################################
 
 ###
-
-
-
-
-
-
 Database-backed time-log database-based synchronized editing
-
-[TODO: High level description of algorithm here, or link to article.]
 ###
 
 # How big of files we allow users to open using syncstrings.
@@ -601,7 +593,7 @@ class SyncDoc extends EventEmitter
             window.syncstrings[@_path] = @
         ###
 
-        # window.s = @
+        ## window?.s = @
 
         #dbg = @dbg("constructor(path='#{@_path}')")
         #dbg('connecting...')
@@ -662,7 +654,7 @@ class SyncDoc extends EventEmitter
 
     # Used for internal debug logging
     dbg: (f) ->
-        return @_client.dbg("SyncString.#{f}:")
+        return @_client.dbg("SyncString(path='#{@_path}').#{f}:")
 
     # Version of the document at a given point in time; if no
     # time specified, gives the version right now.
@@ -767,10 +759,11 @@ class SyncDoc extends EventEmitter
 
     # Make it so the local hub project will automatically save the file to disk periodically.
     init_project_autosave: () =>
-        if not LOCAL_HUB_AUTOSAVE_S or not @_client.is_project() or @_project_autosave?
+        # Do not autosave sagews until https://github.com/sagemathinc/cocalc/issues/974 is resolved.
+        if not LOCAL_HUB_AUTOSAVE_S or not @_client.is_project() or @_project_autosave? or misc.endswith(@_path, '.sagews')
             return
-        #dbg = @dbg("autosave")
-        #dbg("initializing")
+        dbg = @dbg("autosave")
+        dbg("initializing")
         f = () =>
             #dbg('checking')
             if @hash_of_saved_version()? and @has_unsaved_changes()
@@ -824,8 +817,8 @@ class SyncDoc extends EventEmitter
     # The project calls this once it has checked for the file on disk; this
     # way the frontend knows that the syncstring has been initialized in
     # the database, and also if there was an error doing the check.
-    _set_initialized: (error, cb) =>
-        init = {time: misc.server_time()}
+    _set_initialized: (error, is_read_only, size, cb) =>
+        init = {time: misc.server_time(), size:size}
         if error
             init.error = "error - #{JSON.stringify(error)}"  # must be a string!
         else
@@ -837,6 +830,7 @@ class SyncDoc extends EventEmitter
                     project_id : @_project_id
                     path       : @_path
                     init       : init
+                    read_only  : is_read_only
             cb : cb
 
     # List of timestamps of the versions of this string in the sync
@@ -946,7 +940,23 @@ class SyncDoc extends EventEmitter
                 @_syncstring_table.wait
                     until : (t) => t.get_one()?.get('init')
                     cb    : (err, init) =>
-                        @emit('init', err ? init.toJS().error)
+                        if err
+                            @emit('init', err)
+                            return
+                        init = init.toJS()
+                        err  = init.error
+                        if err
+                            @emit('init', err)
+                            return
+                        if @_client.is_user() and @_patch_list.count() == 0 and (init.size ? 0) > 0
+                            # wait for a change -- i.e., project loading the file from
+                            # disk and making available...  Because init.size > 0, we know that
+                            # there must be SOMETHING in the patches table once initialization is done.
+                            # This is the root cause of https://github.com/sagemathinc/cocalc/issues/2382
+                            @_patches_table.once 'change', =>
+                                @emit('init')
+                        else
+                            @emit('init')
                 if err
                     cb(err)
                 else
@@ -984,33 +994,36 @@ class SyncDoc extends EventEmitter
                     cb : cb
         ], (err)=>cb?(err))
 
-    _update_if_file_is_read_only: (cb) =>
+    _file_is_read_only: (cb) =>
         @_client.path_access
             path : @_path
             mode : 'w'
             cb   : (err) =>
-                @_set_read_only(!!err)
+                cb(undefined, !!err)
+
+    _update_if_file_is_read_only: (cb) =>
+        @_file_is_read_only (err, is_read_only) =>
+                @_set_read_only(is_read_only)
                 cb?()
 
     _load_from_disk_if_newer: (cb) =>
         tm     = @last_changed()
         dbg    = @_client.dbg("syncstring._load_from_disk_if_newer('#{@_path}')")
-        exists = undefined
-        async.series([
+        locals = {exists: false, is_read_only: false, size:0}
+        async.series([
             (cb) =>
                 dbg("check if path exists")
                 @_client.path_exists
                     path : @_path
-                    cb   : (err, _exists) =>
+                    cb   : (err, exists) =>
                         if err
                             cb(err)
                         else
-                            exists = _exists
+                            locals.exists = exists
                             cb()
             (cb) =>
-                if not exists
+                if not locals.exists
                     dbg("file does NOT exist")
-                    @_set_read_only(false)
                     cb()
                     return
                 if tm?
@@ -1022,24 +1035,30 @@ class SyncDoc extends EventEmitter
                                 cb(err)
                             else if stats.ctime > tm
                                 dbg("disk file changed more recently than edits, so loading")
-                                @_load_from_disk(cb)
+                                @_load_from_disk (err, size) =>
+                                    locals.size = size
+                                    cb(err)
                             else
                                 dbg("stick with database version")
                                 cb()
                 else
                     dbg("never edited before")
-                    if exists
+                    if locals.exists
                         dbg("path exists, so load from disk")
-                        @_load_from_disk(cb)
+                        @_load_from_disk (err, size) =>
+                            locals.size = size
+                            cb(err)
                     else
                         cb()
             (cb) =>
-                if exists
-                    @_update_if_file_is_read_only(cb)
+                if locals.exists
+                    @_file_is_read_only (err, is_read_only) ->
+                        locals.is_read_only = is_read_only
+                        cb(err)
                 else
                     cb()
         ], (err) =>
-            @_set_initialized(err, cb)
+            @_set_initialized(err, locals.is_read_only, locals.size, cb)
         )
 
     _patch_table_query: (cutoff) =>
@@ -1571,18 +1590,34 @@ class SyncDoc extends EventEmitter
             (cb) =>
                 dbg("now requesting to watch file")
                 @_file_watcher = @_client.watch_file(path:path)
-                @_file_watcher.on 'change', =>
-                    dbg("event change")
+                @_file_watcher.on 'change', (ctime) =>
+                    ctime ?= new Date()
+                    ctime = ctime - 0
+                    dbg("file_watcher: change, ctime=#{ctime}, @_save_to_disk_start_ctime=#{@_save_to_disk_start_ctime}, @_save_to_disk_end_ctime=#{@_save_to_disk_end_ctime}")
                     if @_closed
                         @_file_watcher.close()
                         return
-                    if @_save_to_disk_just_happened
-                        dbg("@_save_to_disk_just_happened")
-                        @_save_to_disk_just_happened = false
-                    else
-                        dbg("_load_from_disk")
+                    if ctime - (@_save_to_disk_start_ctime ? 0) >= 15*1000
+                        # last attempt to save was at least 15s ago, so definitely
+                        # this change event was not caused by it.
+                        dbg("_load_from_disk: no recent save")
                         @_load_from_disk()
+                        return
+                    if not @_save_to_disk_end_ctime?
+                        # save event started less than 15s and isn't done.
+                        # ignore this load.
+                        dbg("_load_from_disk: unfinished @_save_to_disk just happened, so ignoring file change")
+                        return
+                    if @_save_to_disk_start_ctime <= ctime and ctime <= @_save_to_disk_end_ctime
+                        # changed triggered during the save
+                        dbg("_load_from_disk: change happened during @_save_to_disk , so ignoring file change")
+                        return
+                    # Changed happened near to when there was a save, but not in window, so
+                    # we do it..
+                    dbg("_load_from_disk: despite a recent save")
+                    @_load_from_disk()
                     return
+
                 @_file_watcher.on 'delete', =>
                     dbg("event delete")
                     if @_closed
@@ -1600,7 +1635,7 @@ class SyncDoc extends EventEmitter
                 cb()
         ], (err) => cb?(err))
 
-    _load_from_disk: (cb) =>
+    _load_from_disk: (cb) =>   # cb(err, size)
         path = @get_path()
         dbg = @_client.dbg("syncstring._load_from_disk('#{path}')")
         dbg()
@@ -1608,24 +1643,24 @@ class SyncDoc extends EventEmitter
             cb?('lock')
             return
         @_load_from_disk_lock = true
-        exists = undefined
+        locals = {exists: undefined, size:0}
         async.series([
             (cb) =>
                 @_client.path_exists
                     path : path
-                    cb   : (err, x) =>
-                        exists = x
+                    cb   : (err, exists) =>
+                        locals.exists = exists
                         if not exists
                             dbg("file no longer exists")
                             @from_str('')
                         cb(err)
             (cb) =>
-                if exists
+                if locals.exists
                     @_update_if_file_is_read_only(cb)
                 else
                     cb()
             (cb) =>
-                if not exists
+                if not locals.exists
                     cb()
                     return
                 @_client.path_read
@@ -1636,7 +1671,8 @@ class SyncDoc extends EventEmitter
                             dbg("failed -- #{err}")
                             cb(err)
                         else
-                            dbg("got it -- length=#{data?.length}")
+                            locals.size = data?.length ? 0
+                            dbg("got it -- length=#{locals.size}")
                             @from_str(data)
                             # we also know that this is the version on disk, so we update the hash
                             @_set_save(state:'done', error:false, hash:misc.hash_string(data))
@@ -1646,7 +1682,7 @@ class SyncDoc extends EventEmitter
                 @_save(cb)
         ], (err) =>
             @_load_from_disk_lock = false
-            cb?(err)
+            cb?(err, locals.size)
         )
 
     _set_save: (x) =>
@@ -1704,6 +1740,11 @@ class SyncDoc extends EventEmitter
             cb?()
             return
 
+        if @get_read_only()
+            # save should fail if file is read only
+            cb?('readonly')
+            return
+
         @_save_to_disk()
         if not @_syncstring_table?
             cb("@_syncstring_table must be defined")
@@ -1731,7 +1772,14 @@ class SyncDoc extends EventEmitter
             misc.retry_until_success
                 f         : f
                 max_tries : 5
-                cb        : cb
+                cb        : (err) =>
+                    if err
+                        # TODO: This should in theory never be necessary, and I've resisted adding
+                        # it for five years.  However, here it is:
+                        console.warn("'#{@_path}': failed to save to disk; initiating syncstring reconnect")
+                        @reconnect (err) =>
+                            console.warn("'#{@_path}': reconnect got ", err)
+                    cb(err)
 
     # Save this file to disk, if it is associated with a project and has a filename.
     # A user (web browsers) sets the save state to requested.
@@ -1794,18 +1842,31 @@ class SyncDoc extends EventEmitter
             return
 
         #dbg("project - write to disk file")
-        @_save_to_disk_just_happened = true
-        @_client.write_file
-            path : path
-            data : data
-            cb   : (err) =>
-                #dbg("returned from write_file: #{err}")
-                if err
-                    @_set_save(state:'done', error:err)
-                else
-                    @_set_save(state:'done', error:false, hash:misc.hash_string(data))
-                cb(err)
-
+        # set window to slightly earlier to account for clock imprecision.
+        # Over an sshfs mount, all stats info is **rounded down to the nearest second**,
+        # which this also takes care of.
+        @_save_to_disk_start_ctime = new Date() - 1500
+        @_save_to_disk_end_ctime = undefined
+        async.series([
+            (cb) =>
+                @_client.write_file
+                    path : path
+                    data : data
+                    cb   : cb
+            (cb) =>
+                @_client.path_stat
+                    path : path
+                    cb   : (err, stat) =>
+                        @_save_to_disk_end_ctime = stat?.ctime - 0
+                        cb(err)
+        ], (err) =>
+            #dbg("returned from write_file: #{err}")
+            if err
+                @_set_save(state:'done', error:JSON.stringify(err))
+            else
+                @_set_save(state:'done', error:false, hash:misc.hash_string(data))
+            cb(err)
+        )
 
     ###
     # When the underlying synctable that defines the state of the document changes

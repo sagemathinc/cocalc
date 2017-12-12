@@ -57,7 +57,7 @@ editing   : immutable.Map
 
 # standard non-CoCalc libraries
 immutable = require('immutable')
-{IS_MOBILE, isMobile} = require('./feature')
+{IS_MOBILE, isMobile, IS_TOUCH} = require('./feature')
 underscore = require('underscore')
 
 # CoCalc libraries
@@ -78,193 +78,6 @@ misc_page = require('./misc_page')
 exports.redux_name = redux_name = (project_id, path) ->
     return "editor-#{project_id}-#{path}"
 
-class ChatActions extends Actions
-    _init: () =>
-        ## window.a = @  # for debugging
-        # be explicit about exactly what state is in the store
-        @setState
-            height             : 0          # 0 means not rendered; otherwise is the height of the chat editor
-            input              : ''         # content of the input box
-            is_preview         : undefined  # currently displaying preview of the main input chat
-            last_sent          : undefined  # last sent message
-            messages           : undefined  # immutablejs map of all messages
-            offset             : undefined  # information about where on screen the chat editor is located
-            position           : undefined  # more info about where chat editor is located
-            saved_mesg         : undefined  # I'm not sure yet (has something to do with saving an edited message)
-            use_saved_position : undefined  # whether or not to maintain last saved scroll position (used when unmounting then remounting, e.g., due to tab change)
-
-    _process_syncdb_obj: (x) =>
-        if x.event != 'chat'
-            # Event used to be used for video chat, etc...; but we have a better approach now, so
-            # all events we care about are chat.
-            return
-        if x.video_chat?.is_video_chat
-            # discard/ignore anything else related to the old old video chat approach
-            return
-        x.date = new Date(x.date)
-        if x.history?.length > 0
-            # nontrivial history -- nothing to do
-        else if x.payload?
-            # for old chats with payload: content (2014-2016)... plus the script @hsy wrote in the work project ;-(
-            x.history = []
-            x.history.push
-                content   : x.payload.content
-                author_id : x.sender_id
-                date      : new Date(x.date)
-            delete x.payload
-        else if x.mesg?
-            # for old chats with mesg: content (up to 2014)
-            x.history = []
-            x.history.push
-                content   : x.mesg.content
-                author_id : x.sender_id
-                date      : new Date(x.date)
-            delete x.mesg
-        x.history ?= []
-        if not x.editing
-            x.editing = {}
-        return x
-
-    # Initialize the state of the store from the contents of the syncdb.
-    init_from_syncdb: () =>
-        v = {}
-        for x in @syncdb.get().toJS()
-            x = @_process_syncdb_obj(x)
-            if x?
-                v[x.date - 0] = x
-
-        @setState
-            messages : immutable.fromJS(v)
-
-    _syncdb_change: (changes) =>
-        messages_before = messages = @store.get('messages')
-        if not messages?
-            # Messages need not be defined when changes appear in case of problems or race.
-            return
-        changes.map (obj) =>
-            obj.date = new Date(obj.date)
-            record = @syncdb.get_one(obj)
-            x = record?.toJS()
-            if not x?
-                # delete
-                messages = messages.delete(obj.date - 0)
-            else
-                # TODO/OPTIMIZATION: make into custom conversion to immutable (when rewrite)
-                x = @_process_syncdb_obj(x)
-                if x?
-                    messages = messages.set("#{x.date - 0}", immutable.fromJS(x))
-        if not messages_before.equals(messages)
-            @setState(messages: messages)
-
-    send_chat: (mesg) =>
-        if not @syncdb?
-            # WARNING: give an error or try again later?
-            return
-        sender_id = @redux.getStore('account').get_account_id()
-        time_stamp = webapp_client.server_time().toISOString()
-        @syncdb.set
-            sender_id : sender_id
-            event     : "chat"
-            history   : [{author_id: sender_id, content:mesg, date:time_stamp}]
-            date      : time_stamp
-        @syncdb.save()
-        @setState(last_sent: mesg)
-
-    set_editing: (message, is_editing) =>
-        if not @syncdb?
-            # WARNING: give an error or try again later?
-            return
-        author_id = @redux.getStore('account').get_account_id()
-
-        if is_editing
-            # FUTURE: Save edit changes
-            editing = message.get('editing').set(author_id, 'FUTURE')
-        else
-            editing = message.get('editing').set(author_id, null)
-
-        # console.log("Currently Editing:", editing.toJS())
-        @syncdb.set
-            history : message.get('history').toJS()
-            editing : editing.toJS()
-            date    : message.get('date').toISOString()
-
-    # Used to edit sent messages.
-    # **Extremely** shockingly inefficient. Assumes number of edits is small.
-    send_edit: (message, mesg) =>
-        if not @syncdb?
-            # WARNING: give an error or try again later?
-            return
-        author_id = @redux.getStore('account').get_account_id()
-        # OPTIMIZATION: send less data over the network?
-        time_stamp = webapp_client.server_time().toISOString()
-
-        @syncdb.set
-            history : [{author_id: author_id, content:mesg, date:time_stamp}].concat(message.get('history').toJS())
-            editing : message.get('editing').set(author_id, null).toJS()
-            date    : message.get('date').toISOString()
-        @syncdb.save()
-
-    set_to_last_input: =>
-        @setState(input:@store.get('last_sent'))
-
-    set_input: (input) =>
-        @setState(input:input)
-
-    saved_message: (saved_mesg) =>
-        @setState(saved_mesg:saved_mesg)
-
-    set_is_preview: (is_preview) =>
-        @setState(is_preview:is_preview)
-
-    set_use_saved_position: (use_saved_position) =>
-        @setState(use_saved_position:use_saved_position)
-
-    save_scroll_state: (position, height, offset) =>
-        # height == 0 means chat room is not rendered
-        if height != 0
-            @setState(saved_position:position, height:height, offset:offset)
-
-
-# Set up actions, stores, syncdb, etc.  init_redux returns the name of the redux actions/store associated to this chatroom
-exports.init_redux = (path, redux, project_id) ->
-    name = redux_name(project_id, path)
-    if redux.getActions(name)?
-        return name  # already initialized
-
-    actions = redux.createActions(name, ChatActions)
-    store   = redux.createStore(name)
-
-    actions._init()
-
-    syncdb = webapp_client.sync_db
-        project_id   : project_id
-        path         : path
-        primary_keys : ['date']
-    syncdb.once 'init', (err) =>
-        if err
-            mesg = "Error opening '#{path}' -- #{err}"
-            console.warn(mesg)
-            alert_message(type:"error", message:mesg)
-            return
-        actions.syncdb = syncdb
-        actions.store = store
-        actions.init_from_syncdb()
-        syncdb.on('change', actions._syncdb_change)
-    return name
-
-exports.remove_redux = (path, redux, project_id) ->
-    name = redux_name(project_id, path)
-    actions = redux.getActions(name)
-    actions?.syncdb?.close()
-    store = redux.getStore(name)
-    if not store?
-        return
-    delete store.state
-    # It is *critical* to first unmount the store, then the actions,
-    # or there will be a huge memory leak.
-    redux.removeStore(name)
-    redux.removeActions(name)
-    return name
 
 ### Message Methods ###
 exports.newest_content = newest_content = (message) ->
@@ -279,8 +92,15 @@ exports.message_colors = (account_id, message) ->
     else
         return {background: '#efefef', color: '#000', lighten:{color:'#888'}}
 
-exports.render_timeago = (message) ->
+exports.render_timeago = (message, edit) ->
+    # NOTE: we make click on the timestamp edit the chat since onDoubleClick is completely
+    # ignored on mobile touch devices...
+    if IS_TOUCH and edit?
+        f = edit
+    else
+        f = undefined
     <span
+        onClick   = {f}
         className = "pull-right small"
         style     = {maxWidth:'20%', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'}
         >
@@ -385,11 +205,11 @@ exports.scroll_to_bottom = scroll_to_bottom = (log_container, actions) ->
         actions.save_scroll_state(node.scrollTop, node.scrollHeight, node.offsetHeight)
         actions.set_use_saved_position(false)
 
-exports.scroll_to_position = scroll_to_position = (log_container, saved_position, offset, height, use_saved_position, actions) ->
+exports.scroll_to_position = (log_container, saved_position, offset, height, use_saved_position, actions) ->
     if log_container?
         actions.set_use_saved_position(not is_at_bottom(saved_position, offset, height))
-        node = ReactDOM.findDOMNode(log_container)
         if use_saved_position
+            node = ReactDOM.findDOMNode(log_container)
             node.scrollTop = saved_position
         else
             scroll_to_bottom(log_container, actions)

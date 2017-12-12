@@ -31,21 +31,24 @@ feature = require('./feature')
 Draggable = require('react-draggable')
 
 # SMC Libraries
-{SideChat}        = require('./side_chat')
-{ProjectFiles}    = require('./project_files')
-{ProjectNew}      = require('./project_new')
-{ProjectLog}      = require('./project_log')
-{ProjectSearch}   = require('./project_search')
-{ProjectSettings} = require('./project_settings')
-{ProjectStore}    = require('./project_store')
+{SideChat}         = require('./side_chat')
+{ProjectFiles}     = require('./project_files')
+{ProjectNew}       = require('./project_new')
+{ProjectLog}       = require('./project_log')
+{ProjectSearch}    = require('./project_search')
+{ProjectSettings}  = require('./project_settings')
+{ProjectStore}     = require('./project_store')
+{DiskSpaceWarning, RamWarning} = require('./project_warnings')
 
 project_file = require('./project_file')
-{file_associations} = require('./editor')
+{file_associations} = require('./file-associations')
 
 {React, ReactDOM, rclass, redux, rtypes, Redux} = require('./smc-react')
 {Icon, Tip, COLORS, Loading, Space} = require('./r_misc')
 
 {ChatIndicator} = require('./chat-indicator')
+
+{ShareIndicator} = require('./share-indicator')
 
 misc = require('misc')
 misc_page = require('./misc_page')
@@ -58,11 +61,10 @@ DEFAULT_FILE_TAB_STYLES =
     flexShrink   : '1'
     overflow     : 'hidden'
 
-CHAT_INDICATOR_STYLE =
+CHAT_INDICATOR_STYLE = SHARE_INDICATOR_STYLE =
     paddingTop  : '1px'
     overflow    : 'hidden'
     paddingLeft : '5px'
-    borderLeft  : '1px solid lightgrey'
     height      : '32px'
 
 FileTab = rclass
@@ -174,7 +176,7 @@ SortableNav = SortableContainer(NavWrapper)
 FreeProjectWarning = rclass ({name}) ->
     displayName : 'FreeProjectWarning'
 
-    reduxProps :
+    reduxProps:
         projects :
             # get_total_project_quotas relys on this data
             # Will be removed by #1084
@@ -184,32 +186,60 @@ FreeProjectWarning = rclass ({name}) ->
         "#{name}" :
             free_warning_extra_shown : rtypes.bool
             free_warning_closed      : rtypes.bool
+            free_compute_slowdown    : rtypes.number
+            project_log              : rtypes.immutable
 
-    propTypes :
+    propTypes:
         project_id : rtypes.string
 
-    shouldComponentUpdate : (nextProps) ->
-        return @props.free_warning_extra_shown != nextProps.free_warning_extra_shown or
-            @props.free_warning_closed != nextProps.free_warning_closed or
-            @props.project_map?.get(@props.project_id)?.get('users') != nextProps.project_map?.get(@props.project_id)?.get('users')
+    shouldComponentUpdate: (nextProps) ->
+        return @props.free_warning_extra_shown != nextProps.free_warning_extra_shown or  \
+            @props.free_warning_closed != nextProps.free_warning_closed or   \
+            @props.free_compute_slowdown != nextProps.free_compute_slowdown or  \
+            @props.project_map?.get(@props.project_id)?.get('users') != nextProps.project_map?.get(@props.project_id)?.get('users') or \
+            not @props.project_log?
 
-    extra : (host, internet) ->
+    extra: (host, internet) ->
         {PolicyPricingPageUrl} = require('./customize')
         if not @props.free_warning_extra_shown
             return null
         <div>
-            {<span>This project runs on a heavily loaded randomly rebooted free server that may be unavailable during peak hours. Please upgrade your project to run on a members-only server for more reliability and faster code execution.</span> if host}
+            {<span>This project runs on a heavily loaded server that may be unavailable during peak hours and is rebooted at least once a day.
+            <br/> Upgrade your project to run on a members-only server for more reliability and faster code execution.</span> if host}
 
-            {<span>This project does not have external network access, so you cannot use internet resources directly from this project; in particular, you cannot install software from the internet, download from sites like GitHub, or download data from public data portals.</span> if internet}
+            {<span><br/> This project does not have external network access, so you cannot install software or download data from external websites.</span> if internet}
             <ul>
-                <li>Learn about <a href="#{PolicyPricingPageUrl}" target='_blank'>Pricing and Subscriptions</a></li>
-                <li>Read the billing <a href="#{PolicyPricingPageUrl}#faq" target='_blank'>Frequently Asked Questions</a></li>
-                <li>Visit <a onClick={=>@actions('page').set_active_tab('account');@actions('account').set_active_tab('billing')}>Billing</a> to <em>subscribe</em> to a plan</li>
-                <li>Upgrade <em>this</em> project in <a onClick={=>@actions(project_id: @props.project_id).set_active_tab('settings')}>Project Settings</a></li>
+                <li style={lineHeight: '32px'}>Upgrade <em>this</em> project in <a style={cursor:'pointer'} onClick={=>@actions(project_id: @props.project_id).set_active_tab('settings')}>Project Settings</a></li>
+                <li style={lineHeight: '32px'}>Visit <a style={cursor:'pointer'} onClick={=>@actions('page').set_active_tab('account');@actions('account').set_active_tab('billing')}>Billing</a> to <em>subscribe</em> to a plan</li>
             </ul>
         </div>
 
-    render : ->
+    render_dismiss: ->
+        return  # disabled
+        dismiss_styles =
+            cursor     : 'pointer'
+            display    : 'inline-block'
+            float      : 'right'
+            fontWeight : 700
+            top        : -4
+            fontSize   : "13pt"
+            color      : 'grey'
+            position   : 'relative'
+            height     : 0
+        <a style={dismiss_styles} onClick={@actions(project_id: @props.project_id).close_free_warning}>×</a>
+
+    render_learn_more: (color) ->
+        <a
+            href   = "https://github.com/sagemathinc/cocalc/wiki/TrialServer"
+            target = "_blank"
+            style  = {fontWeight : 'bold', color:color, cursor:'pointer'}>
+            <Space/> &mdash; more info... <Space/>
+        </a>
+        #<a onClick={=>@actions(project_id: @props.project_id).show_extra_free_warning()} style={color:'white', cursor:'pointer'}> learn more...</a>
+
+    render: ->
+        if not @props.project_log?
+            return null
         if not require('./customize').commercial
             return null
         if @props.free_warning_closed
@@ -224,26 +254,37 @@ FreeProjectWarning = rclass ({name}) ->
         internet = not quotas.network
         if not host and not internet
             return null
+
+        font_size = Math.min(18, 12 + Math.round((@props.project_log?.size ? 0) / 50))
         styles =
-            padding      : 3
-            paddingLeft  : 7
-            paddingRight : 7
+            padding      : "5px 30px"
             marginBottom : 0
-            fontSize     : '13pt'
-        dismiss_styles =
-            cursor     : 'pointer'
-            display    : 'inline-block'
-            float      : 'right'
-            fontWeight : 700
-            top        : -4
-            fontSize   : '18pt'
-            color      : 'grey'
-            position   : 'relative'
-            height     : 0
+            fontSize     : "#{font_size}pt"
+
+        if font_size > 14 # only get obnoxious after a while...
+            styles.color      = 'white'
+            styles.background = 'red'
+
+        ###
+        if @props.free_compute_slowdown? and @props.free_compute_slowdown > 0.0
+            pct = Math.round(@props.free_compute_slowdown)
+            slowdown = <span>This project could run up to <b>{pct}% faster after upgrading</b> to member server hosting.</span>
+        else
+            slowdown = ''
+        ###
+
+        if host and internet
+            mesg = <span>Upgrade this project, since it is on a <b>trial server</b> and has no network access.</span>
+        else if host
+            mesg = <span>Upgrade this project, since it is on a <b>trial server</b>.</span>
+        else if internet
+            mesg = <span>WARNING: this project does not have network access.</span>
+
         <Alert bsStyle='warning' style={styles}>
-            <Icon name='exclamation-triangle' /> WARNING: This project runs {<span>on a <b>free server (which may be unavailable during peak hours)</b></span> if host} {<span>without <b>internet access</b></span> if internet} &mdash;
-            <a onClick={=>@actions(project_id: @props.project_id).show_extra_free_warning()} style={cursor:'pointer'}> learn more...</a>
-            <a style={dismiss_styles} onClick={@actions(project_id: @props.project_id).close_free_warning}>×</a>
+            <Icon name='exclamation-triangle' style={float:'right', marginTop: '3px'}/>
+            <Icon name='exclamation-triangle' /> {mesg}
+            {@render_learn_more(styles.color)}
+            {@render_dismiss()}
             {@extra(host, internet)}
         </Alert>
 
@@ -345,29 +386,23 @@ ProjectContentViewer = rclass
             @refs.draggable.state.x = 0
             $(ReactDOM.findDOMNode(@refs.draggable)).css('transform','')
 
-        handle_drag_bar_stop = (data) =>
+        handle_drag_bar_stop = (evt, ui) =>
+            clientX = ui.node.offsetLeft + ui.x + $(ui.node).width() + 2
             misc_page.drag_stop_iframe_enable()
-            # TODO: rewrite to not use jQuery?
             elt = $(ReactDOM.findDOMNode(@refs.editor_container))
-            width = 1 - (data.clientX - elt.offset().left) / elt.width()
+            width = 1 - (clientX - elt.offset().left) / elt.width()
             reset()
             redux.getProjectActions(@props.project_id).set_chat_width({path:path, width:width})
-
-        handle_drag_bar_drag = (data) =>
-            elt = $(ReactDOM.findDOMNode(@refs.editor_container))
-            width = 1 - (data.clientX - elt.offset().left) / elt.width()
-            $(ReactDOM.findDOMNode(@refs.side_chat_container)).css('flex-basis', "#{width*100}%")
-            reset(); setTimeout(reset, 0)
 
         <Draggable
             ref    = 'draggable'
             axis   = "x"
             onStop = {handle_drag_bar_stop}
-            onDrag = {handle_drag_bar_drag}
             onStart = {misc_page.drag_start_iframe_disable}
             >
-            <div className="smc-vertical-drag-bar"> </div>
+            <div className="smc-vertical-drag-bar" style={if feature.IS_TOUCH then {width:'12px'}}> </div>
         </Draggable>
+
 
     render_editor_tab: ->
         if feature.IS_MOBILE
@@ -388,20 +423,20 @@ ProjectContentViewer = rclass
                     style = {position: 'absolute', height:'100%', width:'100%', display:'flex'}
                     ref   = 'editor_container'
                     >
-                    <div style={flex:1, border:'1px solid lightgrey', borderRadius:'4px', overflow:'hidden', height:'100%', width:'100%'}>
+                    <div style={flex:1, overflow:'hidden', height:'100%', width:'100%'}>
                         {editor}
                     </div>
                     {@render_drag_bar(@props.file_path)}
                     <div
                         ref = 'side_chat_container'
-                        style={flexBasis:"#{chat_width*100}%", border:'1px solid grey', borderRadius:'4px', position:'relative'}>
+                        style={flexBasis:"#{chat_width*100}%", border:'1px solid lightgrey', position:'relative'}>
                         {@render_side_chat(@props.file_path)}
                     </div>
                 </div>
         else
             # just the editor
             content =\
-                <div style={position: 'absolute', height:'100%', width:'100%', border:'1px solid lightgrey', borderRadius:'4px'}>
+                <div style={position: 'absolute', height:'100%', width:'100%', border:'1px solid lightgrey'}>
                     {editor}
                 </div>
 
@@ -437,13 +472,14 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
             project_map  : rtypes.immutable
             get_my_group : rtypes.func
         page :
-            fullscreen : rtypes.bool
+            fullscreen : rtypes.oneOf(['default', 'kiosk'])
         "#{name}" :
-            active_project_tab  : rtypes.string
-            open_files          : rtypes.immutable
-            open_files_order    : rtypes.immutable
-            free_warning_closed : rtypes.bool     # Makes bottom height update
-            num_ghost_file_tabs : rtypes.number
+            active_project_tab    : rtypes.string
+            open_files            : rtypes.immutable
+            open_files_order      : rtypes.immutable
+            free_warning_closed   : rtypes.bool     # Makes bottom height update
+            num_ghost_file_tabs   : rtypes.number
+            current_path          : rtypes.string
 
     propTypes :
         project_id : rtypes.string
@@ -485,7 +521,7 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
             is_active    = {@props.active_project_tab == misc.path_to_tab(path)}
         />
 
-    render_chat_indicator: ->
+    render_chat_indicator: (shrink_fixed_tabs) ->
         if @props.active_project_tab?.slice(0,7) != 'editor-'
             # TODO: This is the case where we would support project-wide side chat, or side chats
             # for each individual Files/Search, etc. page (not clear!)
@@ -494,9 +530,28 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
         is_chat_open = @props.open_files.getIn([path, 'is_chat_open'])
         <div style = {CHAT_INDICATOR_STYLE}>
             <ChatIndicator
-                project_id   = {@props.project_id}
-                path         = {path}
-                is_chat_open = {is_chat_open}
+                project_id        = {@props.project_id}
+                path              = {path}
+                is_chat_open      = {is_chat_open}
+                shrink_fixed_tabs = {shrink_fixed_tabs}
+            />
+        </div>
+
+    render_share_indicator: (shrink_fixed_tabs) ->
+        if @props.active_project_tab == 'files'
+            path = @props.current_path
+        else
+            path = misc.tab_to_path(@props.active_project_tab)
+        if not path? # nothing specifically to share
+            return
+        if path == ''  # sharing whole project not implemented
+            return
+        <div style = {SHARE_INDICATOR_STYLE}>
+            <ShareIndicator
+                name              = {name}
+                path              = {path}
+                project_id        = {@props.project_id}
+                shrink_fixed_tabs = {shrink_fixed_tabs}
             />
         </div>
 
@@ -505,7 +560,7 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
 
         <div className="smc-file-tabs" ref="projectNav" style={width:'100%', height:'32px'}>
             <div style={display:'flex'}>
-                <Nav
+                {<Nav
                     bsStyle   = "pills"
                     className = "smc-file-tabs-fixed-desktop"
                     style     = {overflow:'hidden', float:'left'} >
@@ -518,7 +573,7 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
                         is_active  = {@props.active_project_tab == k}
                         shrink     = {shrink_fixed_tabs}
                     /> for k, v of fixed_project_pages when ((is_public and v.is_public) or (not is_public))]}
-                </Nav>
+                </Nav> if (@props.fullscreen != 'kiosk')}
                 <div
                     style = {display:'flex', overflow:'hidden', flex: 1}
                 >
@@ -537,7 +592,10 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
                         {@file_tabs()}
                     </SortableNav>
                 </div>
-                {@render_chat_indicator() if not is_public}
+                <div style={borderLeft: '1px solid lightgrey',  display: 'inline-flex'}>
+                    {@render_share_indicator(shrink_fixed_tabs) if not is_public}
+                    {@render_chat_indicator(shrink_fixed_tabs) if not is_public}
+                </div>
             </div>
         </div>
 
@@ -546,8 +604,16 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
             return <Loading />
         group = @props.get_my_group(@props.project_id)
         active_path = misc.tab_to_path(@props.active_project_tab)
-
-        <div className='container-content' style={display: 'flex', flexDirection: 'column', flex: 1, paddingTop: '5px', overflow:'auto'}>
+        style =
+            display       : 'flex'
+            flexDirection : 'column'
+            flex          : 1
+            overflow      : 'auto'
+        if not @props.fullscreen
+            style.paddingTop = '5px'
+        <div className='container-content' style={style}>
+            <DiskSpaceWarning project_id={@props.project_id} />
+            <RamWarning project_id={@props.project_id} />
             <FreeProjectWarning project_id={@props.project_id} name={name} />
             {@render_file_tabs(group == 'public') if not @props.fullscreen}
             <ProjectContentViewer
@@ -569,7 +635,7 @@ exports.MobileProjectPage = rclass ({name}) ->
             project_map  : rtypes.immutable
             get_my_group : rtypes.func
         page :
-            fullscreen : rtypes.bool
+            fullscreen : rtypes.oneOf(['default', 'kiosk'])
         "#{name}" :
             active_project_tab  : rtypes.string
             open_files          : rtypes.immutable
@@ -663,6 +729,7 @@ exports.MobileProjectPage = rclass ({name}) ->
         active_path = misc.tab_to_path(@props.active_project_tab)
 
         <div className='container-content' style={display: 'flex', flexDirection: 'column', flex: 1, overflow:'auto'}>
+            <DiskSpaceWarning project_id={@props.project_id} />
             <FreeProjectWarning project_id={@props.project_id} name={name} />
             {<div className="smc-file-tabs" ref="projectNav" style={width:"100%", height:"37px"}>
                 <Nav bsStyle="pills" className="smc-file-tabs-fixed-mobile" style={float:'left'}>

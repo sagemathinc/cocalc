@@ -3,12 +3,16 @@
 ###
 
 async = require('async')
+immutable = require('immutable')
 
 {Actions, Store, Table, redux}  = require('./smc-react')
 
 {alert_message} = require('./alerts')
 
 misc = require('smc-util/misc')
+{defaults, required} = misc
+
+{get_utm, get_referrer} = require('./misc_page')
 
 help = ->
     return redux.getStore('customize').get('help_email')
@@ -28,6 +32,9 @@ class AccountActions extends Actions
             password      : password
             remember_me   : true
             timeout       : 30
+            utm           : get_utm()
+            referrer      : get_referrer()
+            get_api_key   : redux.getStore('page')?.get('get_api_key')
             cb            : (error, mesg) =>
                 @setState(signing_in: false)
                 if error
@@ -37,7 +44,7 @@ class AccountActions extends Actions
                     when 'sign_in_failed'
                         @setState(sign_in_error : mesg.reason)
                     when 'signed_in'
-                        redux.getActions('page').set_active_tab('projects')
+                        #redux.getActions('page').set_active_tab('projects')
                         break
                     when 'error'
                         @setState(sign_in_error : mesg.reason)
@@ -54,18 +61,22 @@ class AccountActions extends Actions
             password        : password
             agreed_to_terms : true
             token           : token
+            utm             : get_utm()
+            referrer        : get_referrer()
+            get_api_key     : redux.getStore('page')?.get('get_api_key')
             cb              : (err, mesg) =>
                 @setState(signing_up: false)
                 if err?
-                    @setState('sign_up_error': err)
+                    @setState('sign_up_error': JSON.stringify(err))
                     return
                 switch mesg.event
                     when "account_creation_failed"
                         @setState('sign_up_error': mesg.reason)
                     when "signed_in"
-                        {analytics_event} = require('./misc_page')
-                        analytics_event('account', 'create_account') # user created an account
                         redux.getActions('page').set_active_tab('projects')
+                        {analytics_event, track_conversion} = require('./misc_page')
+                        analytics_event('account', 'create_account') # user created an account
+                        track_conversion('create_account')
                     else
                         # should never ever happen
                         # alert_message(type:"error", message: "The server responded with invalid message to account creation request: #{JSON.stringify(mesg)}")
@@ -179,6 +190,25 @@ class AccountActions extends Actions
     set_active_tab: (tab) =>
         @setState(active_page : tab)
 
+    # Add an ssh key for this user, with the given fingerprint, title, and value
+    add_ssh_key: (opts) =>
+        opts = defaults opts,
+            fingerprint : required
+            title       : required
+            value       : required
+        @redux.getTable('account').set
+            ssh_keys :
+                "#{opts.fingerprint}" :
+                    title          : opts.title
+                    value          : opts.value
+                    creation_date  : new Date() - 0
+
+    # Delete the ssh key with given fingerprint for this user.
+    delete_ssh_key: (fingerprint) =>
+        @redux.getTable('account').set
+            ssh_keys :
+                "#{fingerprint}" : null   # null is how to tell the backend/synctable to delete this...
+
 # Register account actions
 actions = redux.createActions('account', AccountActions)
 
@@ -236,11 +266,27 @@ class AccountStore extends Store
     get_page_size: =>
         return @getIn(['other_settings', 'page_size']) ? 50  # at least have a valid value if loading...
 
+    is_global_info_visible: =>
+        # TODO when there is more time, rewrite this to be tied to announcements of a specific type (and use their timestamps)
+        # for now, we use the existence of a timestamp value to indicate that the banner is not shown
+        sgi2 = @getIn(['other_settings', 'show_global_info2'])
+        if sgi2 == 'loading'   # unknown state, right after opening the application
+            return false
+        if not sgi2?           # not set means there is no timestamp → show banner
+            return false  # true ## change to true, if reimplemnted.
+        sgi2_dt = new Date(sgi2)
+        ## idea behind this: show the banner only if its start_dt timetstamp is earlier than now
+        ## *and* when the last "dismiss time" by the user is prior to it. I.e. also change the
+        ## fallback in case there is no timestamp back to true.
+        # start_dt = new Date('2017-08-25T19:00:00.000Z')
+        # return start_dt < webapp_client.server_time() and sgi2_dt < start_dt
+        return false
+
 # Register account store
 # Use the database defaults for all account info until this gets set after they login
 init = misc.deep_copy(require('smc-util/schema').SCHEMA.accounts.user_query.get.fields)
-# ... except for show_global_info
-init.other_settings.show_global_info = false
+# ... except for show_global_info2 (null or a timestamp)
+init.other_settings.show_global_info2 = 'loading' # indicates it is starting up
 init.user_type = if misc.get_local_storage(remember_me) then 'signing_in' else 'public'  # default
 redux.createStore('account', AccountStore, init)
 
@@ -256,10 +302,17 @@ class AccountTable extends Table
 redux.createTable('account', AccountTable)
 
 # Login status
-webapp_client.on 'signed_in', ->
+webapp_client.on 'signed_in', (mesg) ->
+    if mesg?.api_key
+        # wait for sign in to finish and cookie to get set, then redirect
+        f = ->
+            window.location.href = "https://authenticated?api_key=#{mesg.api_key}"
+        setTimeout(f, 2000)
     redux.getActions('account').set_user_type('signed_in')
+
 webapp_client.on 'signed_out', ->
     redux.getActions('account').set_user_type('public')
+
 webapp_client.on 'remember_me_failed', ->
     redux.getActions('account').set_user_type('public')
 
@@ -297,10 +350,4 @@ account_store.on 'change', ->
         last_set_standby_timeout_m = x
         webapp_client.set_standby_timeout_m(x)
 
-account_store.on 'change', ->
-    x = account_store.getIn(['editor_settings', 'jupyter_classic'])
-    if x?
-        if x
-            require('./editor').switch_to_ipynb_classic()
-        else
-            require('./jupyter/register').register()
+

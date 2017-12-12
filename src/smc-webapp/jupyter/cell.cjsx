@@ -122,7 +122,7 @@ exports.Cell = rclass
         # Note that the cell id is used for the cell-list.cjsx scroll functionality.
         <div
             style   = {style}
-            onClick = {@click_on_cell}
+            onMouseUp = {@click_on_cell}
             id      = {@props.id}
             >
             {@render_hook()}

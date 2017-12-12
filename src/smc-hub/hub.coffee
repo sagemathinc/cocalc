@@ -42,6 +42,7 @@ path_module    = require('path')
 underscore     = require('underscore')
 {EventEmitter} = require('events')
 mime           = require('mime')
+winston        = require('./winston-metrics').get_logger('hub')
 
 program = undefined  # defined below -- can't import with nodev6 at module level when hub.coffee used as a module.
 
@@ -98,12 +99,6 @@ async   = require("async")
 
 Cookies = require('cookies')            # https://github.com/jed/cookies
 
-winston = require('winston')            # logging -- https://github.com/flatiron/winston
-
-# Set the log level
-winston.remove(winston.transports.Console)
-if not process.env.SMC_TEST
-    winston.add(winston.transports.Console, {level: 'debug', timestamp:true, colorize:true})
 
 # module scope variables:
 database           = null
@@ -348,43 +343,15 @@ push_to_clients = (opts) ->
 
 
 reset_password = (email_address, cb) ->
-    read = require('read')
-    passwd0 = passwd1 = undefined
-    account_id = undefined
     async.series([
         (cb) ->
             connect_to_database
                 pool : 1
                 cb   : cb
         (cb) ->
-            database.get_account
+            database.reset_password
                 email_address : email_address
-                columns       : ['account_id']
-                cb            : (err, data) ->
-                    if err
-                        cb(err)
-                    else
-                        account_id = data.account_id
-                        cb()
-        (cb) ->
-            read {prompt:'Password: ', silent:true}, (err, passwd) ->
-                passwd0 = passwd; cb(err)
-        (cb) ->
-            read {prompt:'Retype password: ', silent:true}, (err, passwd) ->
-                if err
-                    cb(err)
-                else
-                    passwd1 = passwd
-                    if passwd1 != passwd0
-                        cb("Passwords do not match.")
-                    else
-                        cb()
-        (cb) ->
-            # change the user's password in the database.
-            database.change_password
-                account_id    : account_id
-                password_hash : auth.password_hash(passwd0)
-                cb            : cb
+                cb : cb
     ], (err) ->
         if err
             winston.debug("Error -- #{err}")
@@ -416,29 +383,36 @@ connect_to_database = (opts) ->
     database.connect(cb:opts.cb)
 
 # client for compute servers
+# The name "compute_server" below is CONFUSING; this is really a client for a
+# remote server.
 compute_server = undefined
 init_compute_server = (cb) ->
     winston.debug("init_compute_server: creating compute_server client")
-    require('./compute-client.coffee').compute_server
-        database : database
-        dev      : program.dev
-        single   : program.single
-        base_url : BASE_URL
-        cb       : (err, x) ->
-            if not err
-                winston.debug("compute server created")
-            else
-                winston.debug("FATAL ERROR creating compute server -- #{err}")
-            compute_server = x
-            database.compute_server = compute_server
-            # This is used by the database when handling certain writes to make sure
-            # that the there is a connection to the corresponding project, so that
-            # the project can respond.
-            database.ensure_connection_to_project = (project_id) ->
-                local_hub_connection.connect_to_project(project_id, database, compute_server)
-
+    f = (err, x) ->
+        if not err
+            winston.debug("compute server created")
+        else
+            winston.debug("FATAL ERROR creating compute server -- #{err}")
             cb?(err)
+            return
+        compute_server = x
+        database.compute_server = compute_server
+        # This is used by the database when handling certain writes to make sure
+        # that the there is a connection to the corresponding project, so that
+        # the project can respond.
+        database.ensure_connection_to_project = (project_id) ->
+            local_hub_connection.connect_to_project(project_id, database, compute_server)
+        cb?()
 
+    if program.kucalc
+        f(undefined, require('./kucalc/compute-client').compute_client(database, winston))
+    else
+        require('./compute-client').compute_server
+            database : database
+            dev      : program.dev
+            single   : program.single
+            base_url : BASE_URL
+            cb       : f
 
 update_primus = (cb) ->
     misc_node.execute_code
@@ -497,6 +471,7 @@ stripe_sync = (dump_only, cb) ->
 #############################################
 BASE_URL = ''
 metric_blocked  = undefined
+uncaught_exception_total = undefined
 
 exports.start_server = start_server = (cb) ->
     winston.debug("start_server")
@@ -509,7 +484,7 @@ exports.start_server = start_server = (cb) ->
     fs.writeFileSync(path_module.join(SMC_ROOT, 'data', 'base_url'), BASE_URL)
 
     # the order of init below is important
-    winston.debug("port = #{program.port}, proxy_port=#{program.proxy_port}")
+    winston.debug("port = #{program.port}, proxy_port=#{program.proxy_port}, share_port=#{program.share_port}, raw_port=#{program.raw_port}")
     winston.info("using database #{program.keyspace}")
     hosts = program.database_nodes.split(',')
     http_server = express_router = undefined
@@ -534,6 +509,7 @@ exports.start_server = start_server = (cb) ->
                     cb(err)
                 else
                     metric_blocked = MetricsRecorder.new_counter('blocked_ms_total', 'accumulates the "blocked" time in the hub [ms]')
+                    uncaught_exception_total =  MetricsRecorder.new_counter('uncaught_exception_total', 'counts "BUG"s')
                     cb()
             )
         (cb) ->
@@ -582,6 +558,31 @@ exports.start_server = start_server = (cb) ->
             winston.debug("starting express webserver listening on #{program.host}:#{program.port}")
             http_server.listen(program.port, program.host, cb)
         (cb) ->
+            if not program.share_port
+                cb(); return
+            t0 = new Date()
+            winston.debug("initializing the share server on port #{program.share_port}")
+            winston.debug("...... (takes about 10 seconds) ......")
+            x = require('./share/server').init
+                database       : database
+                base_url       : BASE_URL
+                share_path     : program.share_path
+                logger         : winston
+            winston.debug("Time to initialize share server (jsdom, etc.): #{(new Date() - t0)/1000} seconds")
+            winston.debug("starting share express webserver listening on #{program.share_host}:#{program.port}")
+            x.http_server.listen(program.share_port, program.host, cb)
+        (cb) ->
+            if not program.raw_port
+                cb(); return
+            winston.debug("initializing the raw server on port #{program.raw_port}")
+            x = require('./share/server').init
+                database       : database
+                base_url       : BASE_URL
+                raw_path       : program.raw_path
+                logger         : winston
+            winston.debug("starting raw express webserver listening on #{program.raw_host}:#{program.port}")
+            x.http_server.listen(program.raw_port, program.host, cb)
+        (cb) ->
             if not program.port
                 cb(); return
             async.parallel([
@@ -594,7 +595,7 @@ exports.start_server = start_server = (cb) ->
                         host     : program.host
                         cb       : cb
                 (cb) ->
-                    if program.dev or program.update
+                    if (program.dev or program.update) and not program.kucalc
                         update_primus(cb)
                     else
                         cb()
@@ -619,7 +620,7 @@ exports.start_server = start_server = (cb) ->
                     port           : program.proxy_port
                     host           : program.host
 
-            if program.port
+            if program.port or program.share_port or program.proxy_port
                 # Register periodically with the database.
                 hub_register.start
                     database   : database
@@ -670,11 +671,14 @@ command_line = () ->
     program.usage('[start/stop/restart/status/nodaemon] [options]')
         .option('--port <n>', 'port to listen on (default: 5000; 0 -- do not start)', ((n)->parseInt(n)), 5000)
         .option('--proxy_port <n>', 'port that the proxy server listens on (default: 0 -- do not start)', ((n)->parseInt(n)), 0)
+        .option('--share_path [string]', 'path that the share server finds shared files at (default: "")', String, '')
+        .option('--share_port <n>', 'port that the share server listens on (default: 0 -- do not start)', ((n)->parseInt(n)), 0)
+        .option('--raw_path [string]', 'path that the raw server finds public files at (default: "")', String, '')
+        .option('--raw_port <n>', 'port that the public raw server listens on (default: 0 -- do not start)', ((n)->parseInt(n)), 0)
         .option('--log_level [level]', "log level (default: debug) useful options include INFO, WARNING and DEBUG", String, "debug")
         .option('--host [string]', 'host of interface to bind to (default: "127.0.0.1")', String, "127.0.0.1")
         .option('--pidfile [string]', 'store pid in this file (default: "data/pids/hub.pid")', String, "data/pids/hub.pid")
         .option('--logfile [string]', 'write log to this file (default: "data/logs/hub.log")', String, "data/logs/hub.log")
-        .option('--statsfile [string]', 'if set, this file contains periodically updated metrics (default: null, suggest value: "data/logs/stats.json")', String, null)
         .option('--database_nodes <string,string,...>', "database address (default: '#{default_db}')", String, default_db)
         .option('--keyspace [string]', 'Database name to use (default: "smc")', String, 'smc')
         .option('--passwd [email_address]', 'Reset password of given user', String, '')
@@ -688,6 +692,7 @@ command_line = () ->
         .option('--base_url [string]', 'Base url, so https://sitenamebase_url/', String, '')  # '' or string that starts with /
         .option('--local', 'If option is specified, then *all* projects run locally as the same user as the server and store state in .sagemathcloud-local instead of .sagemathcloud; also do not kill all processes on project restart -- for development use (default: false, since not given)', Boolean, false)
         .option('--foreground', 'If specified, do not run as a deamon')
+        .option('--kucalc', 'if given, assume running in the KuCalc kubernetes environment')
         .option('--dev', 'if given, then run in VERY UNSAFE single-user local dev mode')
         .option('--single', 'if given, then run in LESS SAFE single-machine mode')
         .option('--db_pool <n>', 'number of db connections in pool (default: 1)', ((n)->parseInt(n)), 1)
@@ -706,6 +711,7 @@ command_line = () ->
             winston.debug(err.stack)
             winston.debug("BUG ****************************************************************************")
             database?.uncaught_exception(err)
+            uncaught_exception_total?.inc(1)
 
         if program.passwd
             winston.debug("Resetting password")
@@ -738,7 +744,7 @@ command_line = () ->
                      console.log("User added to project.")
                 process.exit()
         else
-            console.log("Running hub; pidfile=#{program.pidfile}, port=#{program.port}, proxy_port=#{program.proxy_port}")
+            console.log("Running hub; pidfile=#{program.pidfile}, port=#{program.port}, proxy_port=#{program.proxy_port}, share_port=#{program.share_port}")
             # logFile = /dev/null to prevent huge duplicated output that is already in program.logfile
             if program.foreground
                 start_server (err) ->

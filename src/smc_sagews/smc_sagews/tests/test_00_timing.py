@@ -18,7 +18,8 @@ class TestSageTiming:
     """
     def test_basic_timing(self):
         start = time.time()
-        os.system('sleep 1')
+        result = os.system('sleep 1')
+        assert result == 0
         tick = time.time()
         elapsed = tick - start
         assert 1.0 == pytest.approx(elapsed, abs = 0.1)
@@ -26,25 +27,33 @@ class TestSageTiming:
     def test_load_sage(self):
         start = time.time()
         # maybe put first load into fixture
-        os.system("echo '2+2' | /usr/local/bin/sage -python")
+        result = os.system("echo '2+2' | sage -python")
+        assert result == 0
         tick = time.time()
         elapsed = tick - start
         print("elapsed 1: %s"%elapsed)
         # second load after things are cached
         start = time.time()
-        os.system("echo '2+2' | /usr/local/bin/sage -python")
+        result = os.system("echo '2+2' | sage -python")
+        assert result == 0
         tick = time.time()
         elapsed = tick - start
         print("elapsed 2: %s"%elapsed)
-        assert elapsed < 2.0
+        assert elapsed < 4.0
 
     def test_import_sage_server(self):
         start = time.time()
-        os.system("echo 'import sage_server' | /usr/local/bin/sage -python")
+        code = ';'.join([
+            "import sys",
+            "sys.path.extend(['/cocalc/lib/python2.7/site-packages/'])",
+            "from smc_sagews import sage_server"
+        ])
+        result = os.system("echo \"{}\" | sage -python".format(code))
+        assert result == 0
         tick = time.time()
         elapsed = tick - start
         print("elapsed %s"%elapsed)
-        assert elapsed < 10.0
+        assert elapsed < 20.0
 
 class TestStartSageServer:
     def test_2plus2_timing(self, test_id):

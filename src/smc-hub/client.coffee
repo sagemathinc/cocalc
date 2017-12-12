@@ -38,9 +38,12 @@ REQUIRE_ACCOUNT_TO_EXECUTE_CODE = false
 # (this even includes keystrokes when using the terminal)
 MESG_QUEUE_INTERVAL_MS  = 0
 # If a client sends a massive burst of messages, we discard all but the most recent this many of them:
-#MESG_QUEUE_MAX_COUNT    = 25
+# The client *should* be implemented in a way so that this never happens, and when that is
+# the case -- according to our loging -- we might switch to immediately banning clients that
+# hit these limits...
 MESG_QUEUE_MAX_COUNT    = 300
 MESG_QUEUE_MAX_WARN    = 50
+
 # Any messages larger than this is dropped (it could take a long time to handle, by a de-JSON'ing attack, etc.).
 MESG_QUEUE_MAX_SIZE_MB  = 10
 
@@ -56,25 +59,27 @@ CLIENT_DESTROY_TIMER_S = 60*10  # 10 minutes
 
 CLIENT_MIN_ACTIVE_S = 45  # ??? is this a good choice?  No idea.
 
+# How frequently we tell the browser clients to report metrics back to us.
+# Set to 0 to completely disable metrics collection from clients.
+CLIENT_METRICS_INTERVAL_S = 60*2
 
 # recording metrics and statistics
-MetricsRecorder = require('./metrics-recorder')
+metrics_recorder = require('./metrics-recorder')
 
 # setting up client metrics
-mesg_from_client_total         = MetricsRecorder.new_counter('mesg_from_client_total',
-                                     'counts Client::handle_json_message_from_client invocations', ['type', 'event'])
-push_to_client_stats_h         = MetricsRecorder.new_histogram('push_to_client_histo_ms', 'Client: push_to_client',
+mesg_from_client_total         = metrics_recorder.new_counter('mesg_from_client_total',
+                                     'counts Client::handle_json_message_from_client invocations', ['event'])
+push_to_client_stats_h         = metrics_recorder.new_histogram('push_to_client_histo_ms', 'Client: push_to_client',
                                      buckets : [1, 10, 50, 100, 200, 500, 1000, 2000, 5000, 10000]
                                      labels: ['event']
                                  )
-push_to_client_stats_q         = MetricsRecorder.new_quantile('push_to_client_quant_ms', 'Client: push_to_client',
-                                     percentiles : [0, 0.25, 0.5, 0.75, 0.9, 0.99, 1]
-                                     labels: ['event']
-                                 )
-push_to_client_to_json_summary = MetricsRecorder.new_summary('push_to_client_to_json',
-                                     'summary stats for Client::push_to_client/to_json', labels: ['event'])
 
-uncaught_exception_total       =  MetricsRecorder.new_counter('uncaught_exception_total', 'counts "BUG"s')
+# All known metrics from connected clients.  (Map from id to metrics.)
+# id is deleted from this when client disconnects.
+client_metrics = metrics_recorder.client_metrics
+
+if not misc.is_object(client_metrics)
+    throw Error("metrics_recorder must have a client_metrics attribute map")
 
 class exports.Client extends EventEmitter
     constructor: (opts) ->
@@ -128,6 +133,7 @@ class exports.Client extends EventEmitter
         # Setup remember-me related cookie handling
         @cookies = {}
         c = new Cookies(@conn.request)
+        ##@dbg('init_conn')("cookies = '#{@conn.request.headers['cookie']}', #{base_url_lib.base_url() + 'remember_me'}, #{@_remember_me_value}")
         @_remember_me_value = c.get(base_url_lib.base_url() + 'remember_me')
 
         @check_for_remember_me()
@@ -136,6 +142,9 @@ class exports.Client extends EventEmitter
         # cookie used for login is still valid.  If the cookie is gone
         # and this fails, user gets a message, and see that they must sign in.
         @_remember_me_interval = setInterval(@check_for_remember_me, 1000*60*5)
+
+        if CLIENT_METRICS_INTERVAL_S
+            @push_to_client(message.start_metrics(interval_s:CLIENT_METRICS_INTERVAL_S))
 
     touch: (opts={}) =>
         if not @account_id  # not logged in
@@ -174,28 +183,38 @@ class exports.Client extends EventEmitter
         @conn.on "end", () =>
             dbg("connection: hub <--> client(id=#{@id}, address=#{@ip_address})  -- CLOSED")
             @destroy()
+            ###
+            # I don't think this destroy_timer is of any real value at all unless
+            # we were to fully maintain client state while they are gone.  Doing this
+            # is a serious liability, e.g., in a load-spike situation.
             # CRITICAL -- of course we need to cancel all changefeeds when user disconnects,
             # even temporarily, since messages could be dropped otherwise. (The alternative is to
             # cache all messages in the hub, which has serious memory implications.)
-            #@query_cancel_all_changefeeds()
+            @query_cancel_all_changefeeds()
             # Actually destroy Client in a few minutes, unless user reconnects
             # to this session.  Often the user may have a temporary network drop,
             # and we keep everything waiting for them for short time
             # in case this happens.
-            #@_destroy_timer = setTimeout(@destroy, 1000*CLIENT_DESTROY_TIMER_S)
-            #
+            @_destroy_timer = setTimeout(@destroy, 1000*CLIENT_DESTROY_TIMER_S)
+            ###
 
         dbg("connection: hub <--> client(id=#{@id}, address=#{@ip_address})  ESTABLISHED")
 
     dbg: (desc) =>
         if @logger?.debug
-            return (m...) => @logger.debug("Client(#{@id}).#{desc}: #{JSON.stringify(m...)}")
+            return (m...) => @logger.debug("Client(#{@id}).#{desc}: #{JSON.stringify(m)}")
         else
             return ->
 
     destroy: () =>
         dbg = @dbg('destroy')
         dbg("destroy connection: hub <--> client(id=#{@id}, address=#{@ip_address})  -- CLOSED")
+
+        if @id
+            # cancel any outstanding queries.
+            @database.cancel_user_queries(client_id:@id)
+
+        delete client_metrics[@id]
         clearInterval(@_remember_me_interval)
         @query_cancel_all_changefeeds()
         @closed = true
@@ -277,7 +296,6 @@ class exports.Client extends EventEmitter
                 @_messages.count += 1
                 avg = Math.round(@_messages.total_time / @_messages.count)
                 dbg("[#{time_taken} mesg_time_ms]  [#{avg} mesg_avg_ms] -- mesg.id=#{mesg.id}")
-                push_to_client_stats_q.observe({event:mesg.event}, time_taken)
                 push_to_client_stats_h.observe({event:mesg.event}, time_taken)
 
         # If cb *is* given and mesg.id is *not* defined, then
@@ -340,6 +358,8 @@ class exports.Client extends EventEmitter
             remember_me   : signed_in_mesg.remember_me    # True if sign in accomplished via rememember me token.
             email_address : signed_in_mesg.email_address
             account_id    : signed_in_mesg.account_id
+            utm           : signed_in_mesg.utm
+            referrer      : signed_in_mesg.referrer
             database      : @database
 
         # Get user's group from database.
@@ -532,7 +552,10 @@ class exports.Client extends EventEmitter
             if @_handle_data_queue.length > MESG_QUEUE_MAX_COUNT
                 dbg("MESG_QUEUE_MAX_COUNT(=#{MESG_QUEUE_MAX_COUNT}) exceeded (=#{@_handle_data_queue.length}) -- drop oldest messages")
                 while @_handle_data_queue.length > MESG_QUEUE_MAX_COUNT
-                    @_handle_data_queue.shift()
+                    discarded_mesg = @_handle_data_queue.shift()
+                    data = discarded_mesg?[1]
+                    dbg("discarded_mesg='#{misc.trunc(data?.toString?(),1000)}'")
+
 
             # get task
             task = @_handle_data_queue.shift()
@@ -598,6 +621,7 @@ class exports.Client extends EventEmitter
         handler = @["mesg_#{mesg.event}"]
         if handler?
             handler(mesg)
+            mesg_from_client_total.labels("#{mesg.event}").inc(1)
         else
             @push_to_client(message.error(error:"Hub does not know how to handle a '#{mesg.event}' event.", id:mesg.id))
             if mesg.event == 'get_all_activity'
@@ -701,7 +725,7 @@ class exports.Client extends EventEmitter
             return
 
         if mesg.everywhere
-            # invalidate all remeber_me cookies
+            # invalidate all remember_me cookies
             @database.invalidate_all_remember_me
                 account_id : @account_id
         @signed_out()  # deletes @account_id... so must be below database call above
@@ -749,6 +773,18 @@ class exports.Client extends EventEmitter
             cb         : (err) =>
                 @push_to_client(message.changed_email_address(id:mesg.id, error:err))
 
+    mesg_send_verification_email: (mesg) =>
+        auth = require('./auth')
+        auth.verify_email_send_token
+            account_id  : mesg.account_id
+            only_verify : mesg.only_verify ? true
+            database    : @database
+            cb          : (err) =>
+                if err
+                    @error_to_client(id:mesg.id, error:err)
+                else
+                    @success_to_client(id:mesg.id)
+
     mesg_unlink_passport: (mesg) =>
         if not @account_id?
             @error_to_client(id:mesg.id, error:"must be logged in")
@@ -790,6 +826,13 @@ class exports.Client extends EventEmitter
             event      : mesg.type
             error      : mesg.error
             account_id : @account_id
+            cb         : (err) =>
+                if not mesg.id?
+                    return
+                if err
+                    @error_to_client(id:mesg.id, error:err)
+                else
+                    @success_to_client(id:mesg.id)
 
     mesg_webapp_error: (mesg) =>
         @dbg('mesg_webapp_error')(mesg.msg)
@@ -1385,8 +1428,10 @@ class exports.Client extends EventEmitter
                     opts.cb("path '#{opts.path}' of project with id '#{opts.project_id}' is not public")
 
     mesg_public_get_directory_listing: (mesg) =>
+        dbg = @dbg('mesg_public_get_directory_listing')
         for k in ['path', 'project_id']
             if not mesg[k]?
+                dbg("missing stuff in message")
                 @error_to_client(id:mesg.id, error:"must specify #{k}")
                 return
 
@@ -1397,23 +1442,28 @@ class exports.Client extends EventEmitter
         listing  = undefined
         async.series([
             (cb) =>
+                dbg("checking for public path")
                 @database.has_public_path
                     project_id : mesg.project_id
                     cb         : (err, is_public) =>
                         if err
+                            dbg("error checking -- #{err}")
                             cb(err)
                         else if not is_public
+                            dbg("no public paths at all -- deny all listings")
                             cb("not_public") # be careful about changing this. This is a specific error we're giving now when a directory is not public.
                             # Client figures out context and gives more detailed error message. Right now we use it in src/smc-webapp/project_files.cjsx
                             # to provide user with helpful context based error about why they can't access a given directory
                         else
                             cb()
             (cb) =>
+                dbg("get the project")
                 @compute_server.project
                     project_id : mesg.project_id
                     cb         : (err, x) =>
                         project = x; cb(err)
             (cb) =>
+                dbg("get the directory listing")
                 project.directory_listing
                     path    : mesg.path
                     hidden  : mesg.hidden
@@ -1423,6 +1473,7 @@ class exports.Client extends EventEmitter
                     cb      : (err, x) =>
                         listing = x; cb(err)
             (cb) =>
+                dbg("filtering out public paths from listing")
                 @database.filter_public_paths
                     project_id : mesg.project_id
                     path       : mesg.path
@@ -1431,8 +1482,10 @@ class exports.Client extends EventEmitter
                         listing = x; cb(err)
         ], (err) =>
             if err
+                dbg("something went wrong -- #{err}")
                 @error_to_client(id:mesg.id, error:err)
             else
+                dbg("it worked; telling client")
                 @push_to_client(message.public_directory_listing(id:mesg.id, result:listing))
         )
 
@@ -1454,8 +1507,9 @@ class exports.Client extends EventEmitter
                         if err
                             @error_to_client(id:mesg.id, error:err)
                         else
-                            # since this is get_text_file
-                            data = data.toString('utf-8')
+                            # since this maybe be a Buffer... (depending on backend)
+                            if Buffer.isBuffer(data)
+                                data = data.toString('utf-8')
                             @push_to_client(message.public_text_file_contents(id:mesg.id, data:data))
 
     mesg_copy_public_path_between_projects: (mesg) =>
@@ -1527,11 +1581,14 @@ class exports.Client extends EventEmitter
             @_query_changefeeds[mesg.id] = true
         mesg_id = mesg.id
         @database.user_query
+            client_id  : @id
             account_id : @account_id
             query      : query
             options    : mesg.options
             changes    : if mesg.changes then mesg_id
             cb         : (err, result) =>
+                if @closed  # connection closed, so nothing further to do with this
+                    return
                 if result?.action == 'close'
                     err = 'close'
                 if err
@@ -1539,8 +1596,8 @@ class exports.Client extends EventEmitter
                     if @_query_changefeeds?[mesg_id]
                         delete @_query_changefeeds[mesg_id]
                     @error_to_client(id:mesg_id, error:err)
-                    if mesg.changes and not first
-                        # also, assume changefeed got messed up, so cancel it.
+                    if mesg.changes and not first and @_query_changefeeds?[mesg_id]?
+                        dbg("changefeed got messed up, so cancel it:")
                         @database.user_query_cancel_changefeed(id : mesg_id)
                 else
                     if mesg.changes and not first
@@ -1554,14 +1611,17 @@ class exports.Client extends EventEmitter
                     @push_to_client(resp)
 
     query_cancel_all_changefeeds: (cb) =>
-        if not @_query_changefeeds? or misc.len(@_query_changefeeds) == 0
+        if not @_query_changefeeds?
+            cb?(); return
+        cnt = misc.len(@_query_changefeeds)
+        if cnt == 0
             cb?(); return
         dbg = @dbg("query_cancel_all_changefeeds")
         v = @_query_changefeeds
-        dbg("canceling #{v.length} changefeeds")
+        dbg("cancel #{cnt} changefeeds")
         delete @_query_changefeeds
         f = (id, cb) =>
-            dbg("canceling id=#{id}")
+            dbg("cancel id=#{id}")
             @database.user_query_cancel_changefeed
                 id : id
                 cb : (err) =>
@@ -1573,10 +1633,13 @@ class exports.Client extends EventEmitter
         async.map(misc.keys(v), f, (err) => cb?(err))
 
     mesg_query_cancel: (mesg) =>
-        if not @_query_changefeeds?
-            # no changefeeds
+        if not @_query_changefeeds?[mesg.id]?
+            # no such changefeed
             @success_to_client(id:mesg.id)
         else
+            # actualy cancel it.
+            if @_query_changefeeds?
+                delete @_query_changefeeds[mesg.id]
             @database.user_query_cancel_changefeed
                 id : mesg.id
                 cb : (err, resp) =>
@@ -1585,7 +1648,6 @@ class exports.Client extends EventEmitter
                     else
                         mesg.resp = resp
                         @push_to_client(mesg)
-                        delete @_query_changefeeds?[mesg.id]
 
     mesg_query_get_changefeed_ids: (mesg) =>
         mesg.changefeed_ids = @_query_changefeeds ? {}
@@ -1696,6 +1758,13 @@ class exports.Client extends EventEmitter
                                 cb(undefined, customer_id)
                         delete @_stripe_customer_id_cbs
 
+                        # Log that the user is requesting this info, which means
+                        # they are billing the subscription page.  This is
+                        # potentially useful to record.
+                        @database.log
+                            event : 'billing'
+                            value : {account_id: @account_id}
+
     stripe_need_customer_id: (id, cb) =>
         # Like stripe_get_customer_id, except sends an error to the
         # user if they aren't registered yet, instead of returning undefined.
@@ -1709,6 +1778,7 @@ class exports.Client extends EventEmitter
                 cb(err); return
             cb(undefined, customer_id)
 
+    # id : user's CoCalc account id
     stripe_get_customer: (id, cb) =>
         dbg = @dbg("stripe_get_customer")
         dbg("getting id")
@@ -1947,7 +2017,7 @@ class exports.Client extends EventEmitter
             options =
                 plan     : mesg.plan
                 quantity : mesg.quantity
-                coupon   : mesg.coupon
+                coupon   : mesg.coupon_id
 
             subscription = undefined
             tax_rate = undefined
@@ -1965,6 +2035,20 @@ class exports.Client extends EventEmitter
                                 #    "Error: Invalid decimal: 8.799999999999999; must contain at maximum two decimal places."
                                 options.tax_percent = Math.round(tax_rate*100*100)/100
                             cb(err)
+                (cb) =>
+                    if options.coupon
+                        dbg("add coupon to customer history")
+                        @validate_coupon options.coupon, (err, coupon, coupon_history) =>
+                            if err
+                                cb(err)
+                                return
+                            coupon_history[coupon.id] += 1
+                            @database.update_coupon_history
+                                account_id     : @account_id
+                                coupon_history : coupon_history
+                                cb             : cb
+                    else
+                        cb()
                 (cb) =>
                     dbg("add customer subscription to stripe")
                     @_stripe.customers.createSubscription customer_id, options, (err, s) =>
@@ -2029,11 +2113,22 @@ class exports.Client extends EventEmitter
             subscription = undefined
             async.series([
                 (cb) =>
+                    if mesg.coupon_id
+                        @validate_coupon mesg.coupon_id, (err, coupon, coupon_history) =>
+                            if err
+                                cb(err)
+                                return
+                            coupon_history[coupon.id] += 1
+                            @database.update_coupon_history
+                                account_id     : @account_id
+                                coupon_history : coupon_history
+                                cb             : cb
+                (cb) =>
                     dbg("Update the subscription.")
                     changes =
                         quantity : mesg.quantity
                         plan     : mesg.plan
-                        coupon   : mesg.coupon
+                        coupon   : mesg.coupon_id
                     @_stripe.customers.updateSubscription(customer_id, subscription_id, changes, cb)
                 (cb) =>
                     @database.stripe_update_customer(account_id : @account_id, stripe : @_stripe, customer_id : customer_id, cb: cb)
@@ -2059,6 +2154,52 @@ class exports.Client extends EventEmitter
                     @stripe_error_to_client(id:mesg.id, error:err)
                 else
                     @push_to_client(message.stripe_subscriptions(id:mesg.id, subscriptions:subscriptions))
+
+    mesg_stripe_get_coupon: (mesg) =>
+        dbg = @dbg("mesg_stripe_get_coupon")
+        dbg("get the coupon with id == #{mesg.coupon_id}")
+        if not @ensure_fields(mesg, 'coupon_id')
+            dbg("missing field coupon_id")
+            return
+        @validate_coupon mesg.coupon_id, (err, coupon) =>
+            if err
+                @stripe_error_to_client(id:mesg.id, error:err)
+            else
+                @push_to_client(message.stripe_coupon(id:mesg.id, coupon:coupon))
+
+    # Checks these coupon criteria:
+    # - Exists
+    # - Is valid
+    # - Used by this account less than the max per account (hard coded default is 1)
+    # Calls cb(err, coupon, coupon_history)
+    validate_coupon: (coupon_id, cb) =>
+        dbg = @dbg("validate_coupon")
+        @_stripe = get_stripe()
+        async.series([
+            (local_cb) =>
+                dbg("retrieve the coupon")
+                @_stripe.coupons.retrieve(coupon_id, local_cb)
+            (local_cb) =>
+                dbg("check account coupon_history")
+                @database.get_coupon_history
+                    account_id : @account_id
+                    cb         : local_cb
+        ], (err, [coupon, coupon_history]) =>
+            if err
+                cb(err)
+                return
+            if not coupon.valid
+                cb("Sorry! This coupon has expired.")
+                return
+            coupon_history ?= {}
+            times_used = coupon_history[coupon.id] ? 0
+            if times_used >= (coupon.metadata.max_per_account ? 1)
+                cb("You've already used this coupon.")
+                return
+
+            coupon_history[coupon.id] = times_used
+            cb(err, coupon, coupon_history)
+        )
 
     mesg_stripe_get_charges: (mesg) =>
         dbg = @dbg("mesg_stripe_get_charges")
@@ -2099,6 +2240,12 @@ class exports.Client extends EventEmitter
             @error_to_client(id:mesg.id, error:"must be logged in and a member of the admin group to create invoice items")
             return
         dbg = @dbg("mesg_stripe_admin_create_invoice_item")
+        @_stripe = get_stripe()
+        if not @_stripe?
+            err = "stripe billing not configured"
+            dbg(err)
+            @error_to_client(id:id, error:err)
+            return
         customer_id = undefined
         description = undefined
         email       = undefined
@@ -2212,3 +2359,27 @@ class exports.Client extends EventEmitter
                     @error_to_client(id:mesg.id, error:err)
                 else
                     @push_to_client(message.success(id:mesg.id))
+
+    # Receive and store in memory the latest metrics status from the client.
+    mesg_metrics: (mesg) =>
+        dbg = @dbg('mesg_metrics')
+        dbg()
+        if not mesg?.metrics
+            return
+        metrics = mesg.metrics
+        #dbg('GOT: ', misc.to_json(metrics))
+        if not misc.is_array(metrics)
+            # client is messing with us...?
+            return
+        for metric in metrics
+            if not misc.is_array(metric?.values)
+                # what?
+                return
+            for v in metric.values
+                if not misc.is_object(v?.labels)
+                    # what?
+                    return
+                v.labels.client_id  = @id
+                v.labels.account_id = @account_id
+        client_metrics[@id] = metrics
+        #dbg('RECORDED: ', misc.to_json(client_metrics[@id]))

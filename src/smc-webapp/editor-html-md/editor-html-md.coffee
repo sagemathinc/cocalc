@@ -33,7 +33,7 @@ editor          = require('../editor')
 
 {alert_message} = require('../alerts')
 {webapp_client} = require('../webapp_client')
-{IS_MOBILE}     = require('../feature')
+{IS_TOUCH, IS_MOBILE} = require('../feature')
 
 {redux}         = require('../smc-react')
 printing        = require('../printing')
@@ -83,8 +83,14 @@ class exports.HTML_MD_Editor extends editor.FileEditor
 
         @preview = @element.find(".webapp-editor-html-md-preview")
         @preview_content = @preview.find(".webapp-editor-html-md-preview-content")
-        @preview.on 'scroll', =>
+
+        save_scroll_pos =  =>
             @preview_scroll_position = @preview.scrollTop()
+        # DO not throttle, since the _show() below, which restores position, can get
+        # called at any time and often, e.g., right when scrolling and if we throttle,
+        # then the scroll position jumps back.
+        #@preview.on('scroll', _.throttle(save_scroll_pos, 1000))
+        @preview.on('scroll', save_scroll_pos)
 
         # initialize the codemirror editor
         @source_editor = editor.codemirror_session_editor(@project_id, @filename, @opts)
@@ -121,7 +127,7 @@ class exports.HTML_MD_Editor extends editor.FileEditor
             underline : 'Cmd-U Ctrl-U'
             comment   : 'Shift-Ctrl-3'
             strikethrough : 'Shift-Cmd-X Shift-Ctrl-X'
-            justifycenter : "Cmd-E Ctrl-E"
+            #justifycenter : "Cmd-E Ctrl-E" # no need to create "div" element in markdown file
             #justifyright  : "Cmd-R Ctrl-R"  # messes up page reload
             subscript     : "Cmd-= Ctrl-="
             superscript   : "Shift-Cmd-= Shift-Ctrl-="
@@ -139,6 +145,8 @@ class exports.HTML_MD_Editor extends editor.FileEditor
     init_draggable_split: () =>
         @_split_pos = @local_storage("split_pos")
         @_dragbar = dragbar = @element.find(".webapp-editor-html-md-resize-bar")
+        if IS_TOUCH
+            dragbar.width('12px')
         elt = @element.find(".webapp-editor-html-md-content")
         @set_split_pos(@local_storage('split_pos'))
         dragbar.draggable
@@ -582,6 +590,7 @@ class exports.HTML_MD_Editor extends editor.FileEditor
         @source_editor._set(content)
 
     _show: =>
+        @preview?.scrollTop(@preview_scroll_position)
         if $.browser.safari  # safari flex bug: https://github.com/philipwalton/flexbugs/issues/132
             @element.make_height_defined()
         return

@@ -4,6 +4,33 @@ Scripts for doing development of SMC inside of an SMC project.
 
 **Requirement:** 1.5GB RAM and 1GB disk space
 
+## Initial check
+
+Things you might want to check when starting a new cocalc dev task. Use a .term for these.
+
+- If you think your project has state left over from previous development, you might want to remove or move aside:
+  - ~/.local (but see below about installing `forever` command)
+  - ~/.smc
+  - ~/.npm
+  - any files in ~/bin that override system commands
+
+- It also helps to restart your project before starting a new dev task, to kill leftover processes and environment settings.
+
+## Setup
+
+Run `npm run make` inside the `src/` subdirectory.
+This will install all the dependencies and does some additional setup.
+
+If you ever need to update dependencies or think there is a problem with them,
+just run `npm run clean` to get rid of them and run `npm run make` again.
+
+If, after running `npm run clean`, `which forever` produces empty output, do
+```
+npm install --prefix=~/.local -g forever
+```
+before running `npm run make`.
+
+
 ## The servers
 
 Explicitly start each of the following scripts in their own terminal session (they will run in the foreground).  Make sure to set the environment with `source smc-env` first:
@@ -14,9 +41,6 @@ Explicitly start each of the following scripts in their own terminal session (th
 
 - `./start_hub.py`
 
-## Docker-only special instructions
-
-If you're using the [CoCalc Docker image](https://github.com/sagemathinc/cocalc/blob/master/src/dev/docker/README.md), run the script `./start_hub_in_docker.py` instead.  This is the same except that it listens on localhost instead.  (It's also critical that you're using Docker via https, not http.)
 
 ## Information
 
@@ -29,11 +53,6 @@ If you want, you can start several different services at once
     ./tmux-start-all
 
 to create a single tmux session with each of the servers running.
-
-## Important -- shared ports
-
-In case one of the ports you're using gets **stolen by some other user**, one of the above servers will fail to start.  You can fix this by typing `rm ports/*` then restarting all of the above servers.  This will assign them new random available ports.  Type `./info.py` to find out where your SMC server moved to.
-
 
 ## Changing the web frontend
 

@@ -32,12 +32,14 @@ misc = require('smc-util/misc')
 {redux} = require('./smc-react')
 {FileEditor, codemirror_session_editor} = require('./editor')
 
-sagews  = require('./sagews')
+sagews  = require('./sagews/sagews')
 jupyter = require('./editor_jupyter')
 {jupyter_history_viewer_jquery_shim} = require('./jupyter/history-viewer')
 tasks   = require('./tasks')
 
 templates = $("#webapp-editor-templates")
+
+{file_associations} = require('./file-associations')
 
 class exports.HistoryEditor extends FileEditor
     constructor: (@project_id, @filename, content, opts) ->
@@ -207,6 +209,12 @@ class exports.HistoryEditor extends FileEditor
             redux.getProjectActions(@project_id).open_file
                 path       : @_open_file_path
                 foreground : true
+
+        open_snapshots = () =>
+            redux.getProjectActions(@project_id).open_directory(".snapshots")
+
+        @element.find("a[href=\"#snapshots\"]").click () =>
+            open_snapshots()
 
         @element.find("a[href=\"#file\"]").click(open_file)
 
@@ -466,8 +474,8 @@ class exports.HistoryEditor extends FileEditor
             return
         @length = @syncstring.all_versions().length
         @revision_num = @length - 1
-        if @ext != "" and require('./editor').file_associations[@ext]?.opts.mode?
-            @view_doc.codemirror?.setOption("mode", require('./editor').file_associations[@ext].opts.mode)
+        if @ext != "" and file_associations[@ext]?.opts.mode?
+            @view_doc.codemirror?.setOption("mode", file_associations[@ext].opts.mode)
 
         # debounce actually setting the document content just a little
         set_doc = underscore.debounce(((time)=>@set_doc(time)), 150)

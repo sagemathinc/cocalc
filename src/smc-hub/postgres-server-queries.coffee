@@ -582,6 +582,136 @@ class exports.PostgreSQL extends PostgreSQL
                     else
                         opts.cb(err)
 
+    verify_email_create_token: (opts) =>
+        opts = defaults opts,
+            account_id    : required
+            cb            : undefined
+
+        locals =
+            email_address : undefined
+            token         : undefined
+
+        async.series([
+            (cb) =>
+                @_query
+                    query : "SELECT email_address FROM accounts"
+                    where : "account_id = $::UUID" : opts.account_id
+                    cb    : one_result 'email_address', (err, x) =>
+                        locals.email_address = x
+                        cb(err)
+            (cb) =>
+                {generate} = require("random-key")
+                locals.token = generate(16).toLowerCase()
+                data =
+                    email : locals.email_address
+                    token : locals.token
+                    time  : new Date()
+
+                @_query
+                    query  : "UPDATE accounts"
+                    set    :
+                        'email_address_challenge::JSONB' : data
+                    where  :
+                        "account_id = $::UUID"       : opts.account_id
+                    cb     : cb
+        ], (err) ->
+            opts.cb?(err, locals.token, locals.email_address)
+        )
+
+
+    verify_email_check_token: (opts) =>
+        opts = defaults opts,
+            email_address : required
+            token         : required
+            cb            : undefined
+
+        locals =
+            account_id          : undefined
+            email_address_challenge : undefined
+
+        async.series([
+            (cb) =>
+                @get_account
+                    email_address : opts.email_address
+                    columns       : ['account_id', 'email_address_challenge']
+                    cb            : (err, x) =>
+                        if err
+                            cb(err)
+                        else if not x?
+                            cb("no such email address")
+                        else
+                            locals.account_id          = x.account_id
+                            locals.email_address_challenge = x.email_address_challenge
+                            cb()
+            (cb) =>
+                if not locals.email_address_challenge?
+                    @is_verified_email
+                        email_address : opts.email_address
+                        cb            : (err, verified) ->
+                            if not err and verified
+                                cb("This email address is already verified.")
+                            else
+                                cb("For this email address no account verification is setup.")
+
+                else if locals.email_address_challenge.email != opts.email_address
+                    cb("The account's email address does not match the token's email address.")
+
+                else if locals.email_address_challenge.time < misc.hours_ago(24)
+                    cb("The account verification token is no longer valid. Get a new one!")
+
+                else
+                    if locals.email_address_challenge.token == opts.token
+                        cb()
+                    else
+                        cb("Provided token does not match.")
+            (cb) =>
+                # we're good, save it
+                @_query
+                    query  : "UPDATE accounts"
+                    jsonb_set :
+                        email_address_verified:
+                            "#{opts.email_address}" : new Date()
+                    where  : "account_id = $::UUID" : locals.account_id
+                    cb     : cb
+            (cb) =>
+                # now delete the token
+                @_query
+                    query  : 'UPDATE accounts'
+                    set    :
+                        'email_address_challenge::JSONB' : null
+                    where  :
+                        "account_id = $::UUID" : locals.account_id
+                    cb     : cb
+        ], opts.cb)
+
+    # returns a the email address and verified email address
+    verify_email_get: (opts) =>
+        opts = defaults opts,
+            account_id    : required
+            cb            : undefined
+        @_query
+            query : "SELECT email_address, email_address_verified FROM accounts"
+            where : "account_id = $::UUID" : opts.account_id
+            cb    : one_result (err, x) ->
+                opts.cb?(err, x)
+
+    # answers the question as cb(null, [true or false])
+    is_verified_email: (opts) =>
+        opts = defaults opts,
+            email_address : required
+            cb            : required
+        @get_account
+            email_address : opts.email_address
+            columns       : ['email_address_verified']
+            cb            : (err, x) =>
+                if err
+                    opts.cb(err)
+                else if not x?
+                    opts.cb("no such email address")
+                else
+                    verified = !!x.email_address_verified?[opts.email_address]
+                    opts.cb(undefined, verified)
+
     ###
     Stripe support for accounts
     ###
@@ -664,6 +794,31 @@ class exports.PostgreSQL extends PostgreSQL
                 else
                     cb()
         ], opts.cb)
+
+    ###
+    Auxillary billing related queries
+    ###
+    get_coupon_history: (opts) =>
+        opts = defaults opts,
+            account_id : required
+            cb         : undefined
+        @_dbg("Getting coupon history")
+        @_query
+            query : "SELECT coupon_history FROM accounts"
+            where : 'account_id = $::UUID' : opts.account_id
+            cb    : one_result("coupon_history", opts.cb)
+
+    update_coupon_history: (opts) =>
+        opts = defaults opts,
+            account_id     : required
+            coupon_history : required
+            cb             : undefined
+        @_dbg("Setting to #{opts.coupon_history}")
+        @_query
+            query : 'UPDATE accounts'
+            set   : 'coupon_history::JSONB' : opts.coupon_history
+            where : 'account_id = $::UUID'  : opts.account_id
+            cb    : opts.cb
 
     ###
     Querying for searchable information about accounts.
@@ -1039,6 +1194,67 @@ class exports.PostgreSQL extends PostgreSQL
                 else
                     cb()
         ], opts.cb)
+
+    # Reset Password MEANT FOR INTERACTIVE USE -- if password is not given, will prompt for it.
+    reset_password: (opts) =>
+        opts = defaults opts,
+            email_address : undefined
+            account_id    : undefined
+            password      : undefined
+            random        : true      # if true (the default), will generate and print a random password.
+            cb            : undefined
+        dbg = @_dbg("reset_password")
+        read = require('read')
+        async.series([
+            (cb) =>
+                if opts.account_id?
+                    cb()
+                    return
+                @get_account
+                    email_address : opts.email_address
+                    columns       : ['account_id']
+                    cb            : (err, data) =>
+                        opts.account_id = data?.account_id
+                        cb(err)
+            (cb) =>
+                if opts.password?
+                    cb()
+                    return
+                if opts.random
+                    require('crypto').randomBytes 16, (err, buffer) =>
+                        opts.password = buffer.toString('hex')
+                        cb()
+                    return
+                read {prompt:'Password: ', silent:true}, (err, passwd) =>
+                    opts.passwd0 = passwd; cb(err)
+            (cb) =>
+                if opts.password?
+                    cb()
+                    return
+                read {prompt:'Retype password: ', silent:true}, (err, passwd1) =>
+                    if err
+                        cb(err)
+                    else
+                        if passwd1 != opts.passwd0
+                            cb("Passwords do not match.")
+                        else
+                            opts.password = passwd1
+                            cb()
+            (cb) =>
+                # change the user's password in the database.
+                @change_password
+                    account_id    : opts.account_id
+                    password_hash : require('./auth').password_hash(opts.password)
+                    cb            : cb
+        ], (err) =>
+            if err
+                console.warn("Error -- #{err}")
+            else
+                console.log("Password changed for #{opts.email_address}")
+                if opts.random
+                    console.log("Random Password:\n\n\t\t#{opts.password}\n\n")
+            opts.cb?(err)
+        )
 
     # Change the email address, unless the email_address we're changing to is already taken.
     change_email_address: (opts={}) =>
@@ -1499,8 +1715,13 @@ class exports.PostgreSQL extends PostgreSQL
                     # some files in the listing might not be public, since the containing path isn't public, so we filter
                     # WARNING: this is kind of stupid since misc.path_is_in_public_paths is badly implemented, especially
                     # for this sort of iteration.  TODO: make this faster.  This could matter since is done on server.
-                    listing.files = (x for x in listing.files when \
-                        misc.path_is_in_public_paths(misc.path_to_file(opts.path, x.name), public_paths))
+                    try
+                        # we use try/catch here since there is no telling what is in the listing object; the user
+                        # could pass in anything...
+                        listing.files = (x for x in listing.files when \
+                            misc.path_is_in_public_paths(misc.path_to_file(opts.path, x.name), public_paths))
+                    catch
+                        listing.files = []
                 opts.cb(undefined, listing)
 
     # Set last_edited for this project to right now, and possibly update its size.
@@ -1611,7 +1832,7 @@ class exports.PostgreSQL extends PostgreSQL
             cb         : required
         if not @_validate_opts(opts) then return
         @_query
-            query : "SELECT invite#>'{#{opts.to}}' AS to FROM projects"
+            query : "SELECT invite#>'{\"#{opts.to}\"}' AS to FROM projects"
             where : 'project_id :: UUID = $' : opts.project_id
             cb    : one_result 'to', (err, y) =>
                 opts.cb(err, if not y? or y.error or not y.time then 0 else new Date(y.time))
@@ -1817,12 +2038,14 @@ class exports.PostgreSQL extends PostgreSQL
     # Ensure that all upgrades applied by the given user to projects are consistent,
     # truncating any that exceed their allotment.  NOTE: Unless there is a bug,
     # the only way the quotas should ever exceed their allotment would be if the
-    # user is trying to cheat.
+    # user is trying to cheat... *OR* a subscription was cancelled or ended.
     ensure_user_project_upgrades_are_valid: (opts) =>
         opts = defaults opts,
             account_id : required
-            fix        : true       # if true, will fix projects in database whose quotas exceed the alloted amount; it is the caller's responsibility to say actually change them.
+            fix        : true       # if true, will fix projects in database whose quotas exceed the alloted amount; it is the caller's responsibility to actually change them.
             cb         : required   # cb(err, excess)
+        dbg = @_dbg("ensure_user_project_upgrades_are_valid(account_id='#{opts.account_id}')")
+        dbg()
         excess = stripe_data = project_upgrades = undefined
         async.series([
             (cb) =>
@@ -1845,6 +2068,7 @@ class exports.PostgreSQL extends PostgreSQL
                 excess = require('smc-util/upgrades').available_upgrades(stripe_data, project_upgrades).excess
                 if opts.fix
                     fix = (project_id, cb) =>
+                        dbg("fixing project_id='#{project_id}' with excess #{JSON.stringify(excess[project_id])}")
                         upgrades = undefined
                         async.series([
                             (cb) =>
@@ -1873,6 +2097,39 @@ class exports.PostgreSQL extends PostgreSQL
         ], (err) =>
             opts.cb(err, excess)
         )
+
+    # Loop through every user of cocalc that is connected with stripe (so may have a subscription),
+    # and ensure that any upgrades that have applied to projects are valid.  It is important to
+    # run this periodically or there is a really natural common case where users can cheat:
+    #    (1) they apply upgrades to a project
+    #    (2) their subscription expires
+    #    (3) they do NOT touch upgrades on any projects again.
+    ensure_all_user_project_upgrades_are_valid: (opts) =>
+        opts = defaults opts,
+            cb : required
+        dbg = @_dbg("ensure_all_user_project_upgrades_are_valid")
+        locals = {}
+        async.series([
+            (cb) =>
+                @_query
+                    query : "SELECT account_id FROM accounts"
+                    where : "stripe_customer_id IS NOT NULL"
+                    cb    : all_results 'account_id', (err, account_ids) =>
+                        locals.account_ids = account_ids
+                        cb(err)
+            (cb) =>
+                m = 0
+                n = locals.account_ids.length
+                dbg("got #{n} accounts with stripe")
+                f = (account_id, cb) =>
+                    m += 1
+                    dbg("#{m}/#{n}")
+                    @ensure_user_project_upgrades_are_valid
+                        account_id : account_id
+                        cb         : cb
+                # We only do 1 at a time, since there is no hurry.
+                async.mapLimit(locals.account_ids, 1, f, cb)
+        ], opts.cb)
 
     # Return the sum total of all user upgrades to a particular project
     get_project_upgrades: (opts) =>
@@ -2023,32 +2280,49 @@ class exports.PostgreSQL extends PostgreSQL
     # in cache for ttl seconds.
     get_stats: (opts) =>
         opts = defaults opts,
-            ttl : 120         # how long cached version lives (in seconds)
-            cb  : undefined
+            ttl_dt : 15       # 15 secs subtracted from ttl to compensate for computation duration when called via a cronjob
+            ttl    : 5*60     # how long cached version lives (in seconds)
+            ttl_db : 30       # how long a valid result from a db query is cached in any case
+            update : true     # true: recalculate if older than ttl; false: don't recalculate and pick it from the DB (locally cached for ttl secs)
+            cb     : undefined
         stats   = undefined
         start_t = process.hrtime()
         dbg     = @_dbg('get_stats')
         async.series([
             (cb) =>
                 dbg("using cached stats?")
-                if @_stats_cached? and @_stats_cached.time > misc.seconds_ago(opts.ttl)
-                    stats = @_stats_cached
-                    dbg("using locally cached stats from #{(new Date() - stats.time) / 1000} secs ago.")
-                    cb(); return
+                if @_stats_cached?
+                    # decide if cache should be used -- tighten interval if we are allowed to update
+                    offset_dt = if opts.update then opts.ttl_dt else 0
+                    is_cache_recent = @_stats_cached.time > misc.seconds_ago(opts.ttl - offset_dt)
+                    # in case we aren't allowed to update and the cache is outdated, do not query db too often
+                    did_query_recently = @_stats_cached_db_query > misc.seconds_ago(opts.ttl_db)
+                    if is_cache_recent or did_query_recently
+                        stats = @_stats_cached
+                        dbg("using locally cached stats from #{(new Date() - stats.time) / 1000} secs ago.")
+                        cb(); return
                 @_query
                     query : "SELECT * FROM stats ORDER BY time DESC LIMIT 1"
                     cb    : one_result (err, x) =>
-                        if err or not x? or (x? and x.time < misc.seconds_ago(opts.ttl))
-                            dbg("not using cache")
-                            cb(err)
+                        if err or not x?
+                            dbg("problem with query -- no stats in db?")
+                            cb(err); return
+                        # query successful, since x exists
+                        @_stats_cached_db_query = new Date()
+                        if opts.update and x.time < misc.seconds_ago(opts.ttl - opts.ttl_dt)
+                            dbg("cache outdated -- will update stats")
+                            cb()
                         else
-                            dbg("using db cached stats from #{(new Date() - x.time) / 1000} secs ago.")
+                            dbg("using db stats from #{(new Date() - x.time) / 1000} secs ago.")
                             stats = x
                             # storing still valid result in local cache
                             @_stats_cached = misc.deep_copy(stats)
                             cb()
             (cb) =>
                 if stats?
+                    cb(); return
+                else if not opts.update
+                    dbg("warning: no recent stats but not allowed to update")
                     cb(); return
                 dbg("querying all stats from the DB")
                 stats =
@@ -2104,6 +2378,7 @@ class exports.PostgreSQL extends PostgreSQL
                             cb     : cb
                 )
         ], (err) =>
+            dbg("get_stats final CB: (#{misc.to_json(err)}, #{misc.to_json(stats)})")
             opts.cb?(err, stats)
         )
 

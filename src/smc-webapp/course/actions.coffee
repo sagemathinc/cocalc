@@ -314,7 +314,7 @@ exports.CourseActions = class CourseActions extends Actions
 
     # Takes an item_name and the id of the time
     # item_name should be one of
-    # ['student', 'assignment', 'peer_config', handout']
+    # ['student', 'assignment', 'peer_config', handout', 'skip_grading']
     toggle_item_expansion: (item_name, item_id) =>
         store = @get_store()
         return if not store?
@@ -486,14 +486,14 @@ exports.CourseActions = class CourseActions extends Actions
         @redux.getStore('projects').wait_until_project_created token, 30, (err, project_id) =>
             @clear_activity(id)
             if err
-                @set_error("error creating student project -- #{err}")
+                @set_error("error creating student project for #{store.get_student_name(student_id)} -- #{err}")
             else
                 @_set
                     create_project : null
                     project_id     : project_id
                     table          : 'students'
                     student_id     : student_id
-                @configure_project(student_id)
+                @configure_project(student_id, undefined, project_id)
             delete @_creating_student_project
             queue.shift()
             if queue.length > 0
@@ -512,6 +512,8 @@ exports.CourseActions = class CourseActions extends Actions
         s = @get_store()
         if not s?
             return
+        {SITE_NAME} = require('smc-util/theme')
+        SiteName = @redux.getStore('customize').site_name ? SITE_NAME
         body = s.get_email_invite()
         invite = (x) =>
             account_store = @redux.getStore('account')
@@ -520,7 +522,7 @@ exports.CourseActions = class CourseActions extends Actions
             if '@' in x
                 if not do_not_invite_student_by_email
                     title   = s.getIn(['settings', 'title'])
-                    subject = "SageMathCloud Invitation to Course #{title}"
+                    subject = "#{SiteName} Invitation to Course #{title}"
                     body    = body.replace(/{title}/g, title).replace(/{name}/g, name)
                     body    = markdownlib.markdown_to_html(body).s
                     @redux.getActions('projects').invite_collaborators_by_email(student_project_id, x, body, subject, true, replyto, name)
@@ -636,7 +638,8 @@ exports.CourseActions = class CourseActions extends Actions
                 @redux.getActions('projects').set_project_course_info(student_project_id,
                         store.get('course_project_id'), store.get('course_filename'), pay, student_account_id, student_email_address)
 
-    configure_project: (student_id, do_not_invite_student_by_email) =>
+    configure_project: (student_id, do_not_invite_student_by_email, student_project_id) =>
+        # student_project_id is optional. Will be used instead of from student_id store if provided.
         # Configure project for the given student so that it has the right title,
         # description, and collaborators for belonging to the indicated student.
         # - Add student and collaborators on project containing this course to the new project.
@@ -644,7 +647,7 @@ exports.CourseActions = class CourseActions extends Actions
         # - Set the title to [Student name] + [course title] and description to course description.
         store = @get_store()
         return if not store?
-        student_project_id = store.getIn(['students', student_id, 'project_id'])
+        student_project_id = student_project_id ? store.getIn(['students', student_id, 'project_id'])
         if not student_project_id?
             @create_student_project(student_id)
         else
@@ -658,6 +661,8 @@ exports.CourseActions = class CourseActions extends Actions
         return if not store?
         student_project_id = store.getIn(['students', student_id, 'project_id'])
         if student_project_id?
+            student_account_id = store.getIn(['students', student_id, 'account_id'])
+            @redux.getActions('projects').remove_collaborator(student_project_id, student_account_id)
             @redux.getActions('projects').delete_project(student_project_id)
             @_set
                 create_project : null
@@ -678,7 +683,8 @@ exports.CourseActions = class CourseActions extends Actions
         @set_activity(id:id)
         @set_all_student_project_course_info()
 
-    delete_all_student_projects: () =>
+    # Deletes student projects and removes students from those projects
+    delete_all_student_projects: =>
         id = @set_activity(desc:"Deleting all student projects...")
         store = @get_store()
         if not store?
@@ -798,6 +804,17 @@ exports.CourseActions = class CourseActions extends Actions
         obj.grades = grades
         @_set(obj)
 
+    set_comments: (assignment, student, comments) =>
+        store = @get_store()
+        return if not store?
+        assignment    = store.get_assignment(assignment)
+        student       = store.get_student(student)
+        obj           = {table:'assignments', assignment_id:assignment.get('assignment_id')}
+        comments_map = @_get_one(obj).comments ? {}
+        comments_map[student.get('student_id')] = comments
+        obj.comments = comments_map
+        @_set(obj)
+
     set_active_assignment_sort: (column_name) =>
         store = @get_store()
         if not store?
@@ -831,6 +848,13 @@ exports.CourseActions = class CourseActions extends Actions
         for k, v of config
             cur[k] = v
         @_set_assignment_field(assignment, 'peer_grade', cur)
+
+    toggle_skip_grading: (assignment_id) =>
+        store = @get_store()
+        return if not store?
+        assignment = store.get_assignment(assignment_id)
+        cur = assignment.get('skip_grading') ? false
+        @_set_assignment_field(assignment_id, 'skip_grading', !cur)
 
     # Synchronous function that makes the peer grading map for the given
     # assignment, if it hasn't already been made.
@@ -920,12 +944,19 @@ exports.CourseActions = class CourseActions extends Actions
         if not store? or not @_store_is_initialized()
             return finish("store not yet initialized")
         grade = store.get_grade(assignment, student)
+        comments = store.get_comments(assignment, student)
         if not student = store.get_student(student)
             return finish("no student")
         if not assignment = store.get_assignment(assignment)
             return finish("no assignment")
         student_name = store.get_student_name(student)
         student_project_id = student.get('project_id')
+
+        # if skip_grading is true, this means there *might* no be a "grade" given,
+        # but instead some grading inside the files or an external tool is used.
+        # therefore, only create the grade file if this is false.
+        skip_grading = assignment.get('skip_grading') ? false
+
         if not student_project_id?
             # nothing to do
             @clear_activity(id)
@@ -940,10 +971,24 @@ exports.CourseActions = class CourseActions extends Actions
             src_path += '/' + student.get('student_id')
             async.series([
                 (cb) =>
+                    if skip_grading and not peer_graded
+                        content = 'Your instructor is doing grading outside CoCalc, or there is no grading for this assignment.'
+                    else
+                        if grade? or peer_graded
+                            content = "Your grade on this assignment:"
+                        else
+                            content = ''
                     # write their grade to a file
-                    content = "Your grade on this assignment:\n\n    #{grade}"
+                    if grade?   # likely undefined when skip_grading true & peer_graded true
+                        content += "\n\n    #{grade}"
+                        if comments?
+                            content += "\n\nInstructor comments:\n\n    #{comments}"
                     if peer_graded
-                        content += "\n\n\nPEER GRADED:\n\nYour assignment was peer graded by other students.\nYou can find the comments they made in the folders below."
+                        content += """
+                                   \n\n\nPEER GRADED:\n
+                                   Your assignment was peer graded by other students.
+                                   You can find the comments they made in the folders below.
+                                   """
                     webapp_client.write_text_file_to_project
                         project_id : store.get('course_project_id')
                         path       : src_path + '/GRADE.txt'
@@ -970,8 +1015,8 @@ exports.CourseActions = class CourseActions extends Actions
                             bash       : true
                             path       : assignment.get('graded_path')
                             cb         : cb
-                      else
-                          cb(null)
+                    else
+                        cb(null)
             ], finish)
 
     # Copy the given assignment to all non-deleted students, doing several copies in parallel at once.
@@ -983,19 +1028,22 @@ exports.CourseActions = class CourseActions extends Actions
         store = @get_store()
         if not store? or not @_store_is_initialized()
             return error("store not yet initialized")
-        if not assignment = store.get_assignment(assignment)  # correct use of "=" sign!
+        assignment = store.get_assignment(assignment)
+        if not assignment
             return error("no assignment")
         errors = ''
         peer = assignment.get('peer_grade')?.get('enabled')
+        skip_grading = assignment.get('skip_grading') ? false
         f = (student_id, cb) =>
             if not store.last_copied(previous_step('return_graded', peer), assignment, student_id, true)
                 # we never collected the assignment from this student
                 cb(); return
-            if not store.has_grade(assignment, student_id)
-                # we collected but didn't grade it yet
+            has_grade = store.has_grade(assignment, student_id)
+            if (not skip_grading) and (not has_grade)
+                # we collected and do grade, but didn't grade it yet
                 cb(); return
             if new_only
-                if store.last_copied('return_graded', assignment, student_id, true) and store.has_grade(assignment, student_id)
+                if store.last_copied('return_graded', assignment, student_id, true) and (skip_grading or has_grade)
                     # it was already returned
                     cb(); return
             n = misc.mswalltime()
@@ -1289,7 +1337,7 @@ exports.CourseActions = class CourseActions extends Actions
             cb         : (err) =>
                 if not err
                     # now copy actual stuff to grade
-                    async.map(peers, f, finish)
+                    async.mapLimit(peers, PARALLEL_LIMIT, f, finish)
                 else
                     finish(err)
 
@@ -1361,7 +1409,7 @@ exports.CourseActions = class CourseActions extends Actions
                         cb         : cb
             ], cb)
 
-        async.map(peers, f, finish)
+        async.mapLimit(peers, PARALLEL_LIMIT, f, finish)
 
     # This doesn't really stop it yet, since that's not supported by the backend.
     # It does stop the spinner and let the user try to restart the copy.
@@ -1497,16 +1545,16 @@ exports.CourseActions = class CourseActions extends Actions
             student = store.get_student(student)
             handout = store.get_handout(handout)
             obj = {table:'handouts', handout_id:handout.get('handout_id')}
-            status_map = @_get_one(obj)?.status_map
-            if not status_map?
+            status = @_get_one(obj)?.status
+            if not status?
                 return
-            student_status = (status_map[student.get('student_id')])
+            student_status = (status[student.get('student_id')])
             if not student_status?
                 return
             if student_status.start?
                 delete student_status.start
-                status_map[student.get('student_id')] = student_status
-                obj.status_map = status_map
+                status[student.get('student_id')] = student_status
+                obj.status = status
                 @_set(obj)
 
     # Copy the files for the given handout to the given student. If

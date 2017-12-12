@@ -39,10 +39,11 @@ net            = require('net')
 child_process  = require('child_process')
 winston        = require('winston')
 assert         = require('assert')
+program        = require('commander')
 
 message        = require('smc-util/message')
 misc_node      = require('smc-util-node/misc_node')
-{secret_token_filename} = require('./common.coffee')
+{secret_token_filename} = require('./common')
 
 port_manager = require('./port_manager')
 misc = require('smc-util/misc')
@@ -80,11 +81,11 @@ secret_token = undefined
 
 read_token = (cb) ->
     f = (cb) ->
-        fs.exists secret_token_filename, (exists) ->
+        fs.exists secret_token_filename(), (exists) ->
             if not exists
                 cb("secret token file does not exist")
             else
-                secret_token = fs.readFileSync(secret_token_filename).toString()
+                secret_token = fs.readFileSync(secret_token_filename()).toString()
                 cb()
     misc.retry_until_success
         f        : f
@@ -124,8 +125,16 @@ start_session = (socket, mesg) ->
     async.series([
         (cb) ->
             # Fork off a child process that does all further work to
-            # handle a connection.
-            child = child_process.fork(__dirname + '/console_server_child.coffee', [])
+            # handle a connection.  We prefer the .js file if it is there,
+            # e.g., in kucalc, but can also work purely with .coffee, e.g.,
+            # for smc-in-smc development.  NOTE: things will break if
+            # just console_server_child.js exists, but not all other .js files.
+            module = __dirname + '/console_server_child'
+            if fs.existsSync(module + '.js')
+                module += '.js'
+            else
+                module += '.coffee'
+            child = child_process.fork(module, [])
 
             # Send the pid of the child to the client (the connected hub)
             socket.write_mesg('json', message.session_description(pid:child.pid))
@@ -186,8 +195,8 @@ start_server = (cb) ->
             # read the secret token
             read_token(cb)
         (cb) ->
-            # start listening for incoming connections
-            server.listen(0, '127.0.0.1', cb)
+            # start listening for incoming connections on localhost only.
+            server.listen(program.port ? 0, '127.0.0.1', cb)
         (cb) ->
             # write port that we are listening on to port file
             fs.writeFile(port_manager.port_file('console'), server.address().port, cb)
@@ -198,6 +207,14 @@ start_server = (cb) ->
             winston.info("listening on port #{server.address().port}")
             cb()
     )
+
+program.usage('[?] [options]')
+    .option('--port <n>', 'TCP server port to listen on (default: 0 = os assigned)', ((n)->parseInt(n)), 0)
+    .option('--kucalc', "Running in the kucalc environment")
+    .parse(process.argv)
+
+if program.kucalc
+    require('./kucalc').IN_KUCALC = true
 
 start_server (err) ->
     if err

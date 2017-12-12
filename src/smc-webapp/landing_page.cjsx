@@ -26,29 +26,26 @@ The Landing Page
 {Alert, Button, ButtonToolbar, Col, Modal, Grid, Row, FormControl, FormGroup, Well, ClearFix} = require('react-bootstrap')
 {ErrorDisplay, Icon, Loading, ImmutablePureRenderMixin, Footer, UNIT, COLORS, ExampleBox} = require('./r_misc')
 {HelpEmailLink, SiteName, SiteDescription, TermsOfService, AccountCreationEmailInstructions} = require('./customize')
-{HelpPageUsageSection, ThirdPartySoftware} = require('./r_help')
+
 DESC_FONT = 'sans-serif'
+
+{ShowSupportLink} = require('./support')
+{reset_password_key} = require('./password-reset')
 
 misc = require('smc-util/misc')
 {APP_TAGLINE} = require('smc-util/theme')
-{APP_ICON, APP_ICON_WHITE, APP_LOGO_NAME, APP_LOGO_NAME_WHITE} = require('./misc_page')
+{APP_BASE_URL, APP_ICON, APP_ICON_WHITE, APP_LOGO_NAME, APP_LOGO_NAME_WHITE} = require('./art')
 
 $.get window.app_base_url + "/registration", (obj, status) ->
     if status == 'success'
         redux.getActions('account').setState(token : obj.token)
 
-reset_password_key = () ->
-    url_args = window.location.href.split("#")
-    # toLowerCase is important since some mail transport agents will uppercase the URL -- see https://github.com/sagemathinc/cocalc/issues/294
-    if url_args.length == 2 and url_args[1].slice(0, 6).toLowerCase() == 'forgot'
-        return url_args[1].slice(7, 7+36).toLowerCase()
-    return undefined
-
 Passports = rclass
     displayName : 'Passports'
 
     propTypes :
-        strategies : rtypes.array
+        strategies  : rtypes.array
+        get_api_key : rtypes.string
 
     styles :
         facebook :
@@ -68,6 +65,8 @@ Passports = rclass
         if name is 'email'
             return
         url = "#{window.app_base_url}/auth/#{name}"
+        if @props.get_api_key
+            url += "?get_api_key=#{@props.get_api_key}"
         <a href={url} key={name}>
             <Icon size='2x' name='stack' href={url}>
                 {<Icon name='circle' stack='2x' style={color: @styles[name].backgroundColor} /> if name isnt 'github'}
@@ -89,7 +88,6 @@ ERROR_STYLE =
     fontSize        : '125%'
     backgroundColor : 'red'
     border          : '1px solid lightgray'
-    borderRadius    : '4px'
     padding         : '15px'
     marginTop       : '5px'
     marginBottom    : '5px'
@@ -99,12 +97,13 @@ SignUp = rclass
 
     propTypes :
         strategies      : rtypes.array
-        sign_up_error   : rtypes.object
+        sign_up_error   : rtypes.string
         token           : rtypes.bool
         has_account     : rtypes.bool
         signing_up      : rtypes.bool
         style           : rtypes.object
         has_remember_me : rtypes.bool
+        get_api_key     : rtypes.string
 
     make_account: (e) ->
         e.preventDefault()
@@ -123,7 +122,7 @@ SignUp = rclass
         if not @props.strategies?
             return <Loading />
         if @props.strategies.length > 1
-            return <Passports strategies={@props.strategies} />
+            return <Passports strategies={@props.strategies} get_api_key={@props.get_api_key} />
 
     display_token_input: ->
         if @props.token
@@ -134,7 +133,6 @@ SignUp = rclass
     render: ->
         well_style =
             marginTop      : '10px'
-            borderWidth    : 5
             borderColor    : COLORS.LANDING.LOGIN_BAR_BG
         well_class = ''
         if not @props.has_remember_me
@@ -258,7 +256,7 @@ SignIn = rclass
                             type      = "submit"
                             disabled  = {@props.signing_in}
                             bsStyle   = "default" style={height:34}
-                            className = 'pull-right'>Sign&nbsp;In
+                            className = 'pull-right'>Sign&nbsp;in
                         </Button>
                     </Row>
                     <Row className='form-inline pull-right' style={clear : "right"}>
@@ -272,12 +270,12 @@ SignIn = rclass
                 <Row>
                     <Col xs=5>
                         <FormGroup>
-                            <FormControl ref='email' type='email' placeholder='Email address' autoFocus={true} onChange={@remove_error} />
+                            <FormControl style={width:'100%'} ref='email' type='email' placeholder='Email address' autoFocus={true} onChange={@remove_error} />
                         </FormGroup>
                     </Col>
                     <Col xs=4>
                         <FormGroup>
-                            <FormControl ref='password' type='password' placeholder='Password' onChange={@remove_error} />
+                            <FormControl style={width:'100%'} ref='password' type='password' placeholder='Password' onChange={@remove_error} />
                         </FormGroup>
                     </Col>
                     <Col xs=3>
@@ -476,34 +474,6 @@ LANDING_PAGE_CONTENT =
         heading : 'LaTeX Editor'
         text : 'Write beautiful documents using LaTeX.'
 
-SMC_Commercial = ->
-    <iframe
-        width       = "100%"
-        height      = "284"
-        src         = "https://www.youtube.com/embed/AEKOjac9obk"
-        frameBorder = "0"
-        allowFullScreen>
-    </iframe>
-
-SMC_Quote = ->
-    {DOMAIN_NAME} = require('smc-util/theme')
-    <div style={marginTop:'15px'}>
-        <a href="https://www.youtube.com/watch?v=ZcxUNemJfZw" target="_blank"  style={'width':'104px','height':'104px','float':'right'} title="Will Conley heads UCLA's massive use of CoCalc in the Mathematics for Life Scientists">
-            <img className='img-rounded' src={require('will_conley.jpg')} style={'height':'102px'} />
-        </a>
-        <p className='lighten'>"CoCalc provides a user-friendly interface. Students don’t need to install any software at all.
-        They just open up a web browser and go to {DOMAIN_NAME} and that’s it. They just type code directly
-        in, hit shift+enter and it runs, and they can see if it works. It provides immediate feedback.
-        The <a href='https://tutorial.cocalc.com/' target='_blank'>course
-        management features</a> work really well." - Will Conley, Math professor, University of California at Los Angeles
-        </p>
-        <p style={marginBottom:0} >
-            <a href="https://github.com/sagemathinc/cocalc/wiki/Quotes" target="_blank">What users are saying</a> {' | '}
-            <a href="https://github.com/sagemathinc/cocalc/wiki/Teaching" target="_blank">Courses using CoCalc</a> {' | '}
-            <a href="https://github.com/sagemathinc/cocalc/wiki/SMC-for-Students-and-Teachers" target="_blank">Unique Advantages</a>
-        </p>
-    </div>
-
 LandingPageContent = rclass
     displayName : 'LandingPageContent'
 
@@ -613,142 +583,175 @@ exports.LandingPage = rclass
         has_remember_me         : rtypes.bool
         has_account             : rtypes.bool
 
-    render: ->
-        if not @props.remember_me
-            reset_key = reset_password_key()
+    reduxProps:
+        page:
+            get_api_key : rtypes.string
 
-            if @props.has_remember_me
-                topbar =
-                  img_icon    : APP_ICON_WHITE
-                  img_name    : APP_LOGO_NAME_WHITE
-                  img_opacity : 1.0
-                  color       : 'white'
-                  bg_color    : COLORS.LANDING.LOGIN_BAR_BG
-                  border      : "5px solid #{COLORS.LANDING.LOGIN_BAR_BG}"
-            else
-                topbar =
-                  img_icon    : APP_ICON
-                  img_name    : APP_LOGO_NAME
-                  img_opacity : 0.6
-                  color       : COLORS.GRAY
-                  bg_color    : COLORS.GRAY_LL
-                  border      : "5px solid #{COLORS.GRAY}"
+    render_password_reset: ->
+        reset_key = reset_password_key()
+        if not reset_key
+            return
+        <ResetPassword
+            reset_key            = {reset_key}
+            reset_password_error = {@props.reset_password_error}
+        />
 
-            <div style={margin: UNIT}>
-                    {<ResetPassword
-                        reset_key={reset_key}
-                        reset_password_error={@props.reset_password_error}
-                    /> if reset_key}
-                    {<ForgotPassword
-                        forgot_password_error={@props.forgot_password_error}
-                        forgot_password_success={@props.forgot_password_success}
-                    /> if @props.show_forgot_password}
-                <Row style={fontSize: UNIT,\
-                            backgroundColor: COLORS.LANDING.LOGIN_BAR_BG,\
-                            padding: 5, margin: 0, borderRadius:4}
-                     className="visible-xs">
-                        <SignIn
-                            signing_in    = {@props.signing_in}
-                            sign_in_error = {@props.sign_in_error}
-                            has_account   = {@props.has_account}
-                            xs            = {true}
-                            color         = {topbar.color} />
-                        <div style={clear:'both'}></div>
-                </Row>
-                <Row style={backgroundColor : topbar.bg_color,\
-                            border          : topbar.border,\
-                            padding         : 5,\
-                            margin          : 0,\
-                            marginBottom    : 20,\
-                            borderRadius    : 5,\
-                            position        : 'relative',\
-                            whiteSpace      : 'nowrap'}
-                     className="hidden-xs">
-                      <div style={width    : 490,\
-                                  zIndex   : 10,\
-                                  position : "relative",\
-                                  top      : UNIT,\
-                                  right    : UNIT,\
-                                  fontSize : '11pt',\
-                                  float    : "right"}
-                          >
-                          <SignIn
-                              signing_in    = {@props.signing_in}
-                              sign_in_error = {@props.sign_in_error}
-                              has_account   = {@props.has_account}
-                              xs            = {false}
-                              color         = {topbar.color} />
-                      </div>
-                      <div style={ display          : 'inline-block', \
-                                   backgroundImage  : "url('#{topbar.img_icon}')", \
-                                   backgroundSize   : 'contain', \
-                                   height           : UNIT * 5, width: UNIT * 5, \
-                                   margin           : 5,\
-                                   verticalAlign    : 'center',\
-                                   backgroundRepeat : 'no-repeat'}>
-                      </div>
-                      <div className="hidden-sm"
-                          style={ display          : 'inline-block',\
-                                  fontFamily       : DESC_FONT,\
-                                  fontSize         : "28px",\
-                                  top              : UNIT,\
-                                  left             : UNIT * 7,\
-                                  width            : 250,\
-                                  height           : 55,\
-                                  position         : 'absolute',\
-                                  color            : topbar.color,\
-                                  opacity          : topbar.img_opacity,\
-                                  backgroundImage  : "url('#{topbar.img_name}')",\
-                                  backgroundSize   : 'contain',\
-                                  backgroundRepeat : 'no-repeat'}>
-                      </div>
-                      <div className="hidden-sm">
-                          <SiteDescription
-                              style={ fontWeight   : "700",\
-                                  fontSize     : "15px",\
-                                  fontFamily   : "sans-serif",\
-                                  bottom       : 10,\
-                                  left         : UNIT * 7,\
-                                  display      : 'inline-block',\
-                                  position     : "absolute",\
-                                  color        : topbar.color} />
-                      </div>
-                </Row>
-                <Row>
-                    <Col sm=5>
-                        <SignUp
-                            sign_up_error   = {@props.sign_up_error}
-                            strategies      = {@props.strategies}
-                            token           = {@props.token}
-                            has_remember_me = {@props.has_remember_me}
-                            signing_up      = {@props.signing_up}
-                            has_account     = {@props.has_account} />
-                    </Col>
-                    <Col sm=7 className="hidden-xs" style={marginTop:'10px'}>
-                        <Well style={'float':'right', marginBottom:'15px'} className="lighten">
-                            <h3 style={marginTop: 0}>For professors teaching courses using open source software</h3>
-                            <p style={marginBottom:'15px'}>
-                            <SiteName /> is the easiest way to get your class up and running.  We eliminate installation
-                            problems, and the limitations of the Mathematica and ShareLaTeX cloud offerings.
-                            Our collaborative environment includes LaTeX, R, Jupyter, Python, SageMath,
-                            Octave, Julia, and much more.</p>
-                            <SMC_Commercial />
-                            <br />
-                            <SMC_Quote />
-                        </Well>
-                    </Col>
-                </Row>
-                <Row className='hidden-xs' style={marginBottom: 20}>
-                    <ThirdPartySoftware />
-                    <HelpPageUsageSection />
-                </Row>
-                <Row>
-                    <Col sm=12 className='hidden-xs'>
-                        <LandingPageContent />
-                    </Col>
-                </Row>
-                <SagePreview />
-                <Footer/>
-            </div>
+    render_forgot_password: ->
+        if not @props.show_forgot_password
+            return
+        <ForgotPassword
+            forgot_password_error   = {@props.forgot_password_error}
+            forgot_password_success = {@props.forgot_password_success}
+        />
+
+    render_main_page: ->
+        if @props.remember_me and not @props.get_api_key
+            # Just assume user will be signing in.
+            # CSS of this looks like crap for a moment; worse than nothing. So disabling unless it can be fixed!!
+            #return <Connecting />
+            return <span/>
+        if @props.has_remember_me
+            topbar =
+              img_icon    : APP_ICON_WHITE
+              img_name    : APP_LOGO_NAME_WHITE
+              img_opacity : 1.0
+              color       : 'white'
+              bg_color    : COLORS.LANDING.LOGIN_BAR_BG
+              border      : "5px solid #{COLORS.LANDING.LOGIN_BAR_BG}"
         else
-            <Connecting />
+            topbar =
+              img_icon    : APP_ICON
+              img_name    : APP_LOGO_NAME
+              img_opacity : 0.6
+              color       : COLORS.GRAY
+              bg_color    : COLORS.GRAY_LL
+              border      : "5px solid #{COLORS.GRAY}"
+
+        <div style={margin: UNIT}>
+            {@render_password_reset()}
+            {@render_forgot_password()}
+            <Row style={fontSize: UNIT,\
+                        backgroundColor: COLORS.LANDING.LOGIN_BAR_BG,\
+                        padding: 5, margin: 0, borderRadius:4}
+                 className="visible-xs">
+                    <SignIn
+                        signing_in    = {@props.signing_in}
+                        sign_in_error = {@props.sign_in_error}
+                        has_account   = {@props.has_account}
+                        xs            = {true}
+                        color         = {topbar.color} />
+                    <div style={clear:'both'}></div>
+            </Row>
+            <Row style={backgroundColor : topbar.bg_color,\
+                        border          : topbar.border,\
+                        padding         : 5,\
+                        margin          : 0,\
+                        marginBottom    : 20,\
+                        borderRadius    : 5,\
+                        position        : 'relative',\
+                        whiteSpace      : 'nowrap'}
+                 className="hidden-xs">
+                  <div style={width    : 490,\
+                              zIndex   : 10,\
+                              position : "relative",\
+                              top      : UNIT,\
+                              right    : UNIT,\
+                              fontSize : '11pt',\
+                              float    : "right"}
+                      >
+                      <SignIn
+                          signing_in    = {@props.signing_in}
+                          sign_in_error = {@props.sign_in_error}
+                          has_account   = {@props.has_account}
+                          xs            = {false}
+                          color         = {topbar.color} />
+                  </div>
+                  <div style={ display          : 'inline-block', \
+                               backgroundImage  : "url('#{topbar.img_icon}')", \
+                               backgroundSize   : 'contain', \
+                               height           : UNIT * 5, width: UNIT * 5, \
+                               margin           : 5,\
+                               verticalAlign    : 'center',\
+                               backgroundRepeat : 'no-repeat'}>
+                  </div>
+                  <div className="hidden-sm"
+                      style={ display          : 'inline-block',\
+                              fontFamily       : DESC_FONT,\
+                              fontSize         : "28px",\
+                              top              : UNIT,\
+                              left             : UNIT * 7,\
+                              width            : 250,\
+                              height           : 55,\
+                              position         : 'absolute',\
+                              color            : topbar.color,\
+                              opacity          : topbar.img_opacity,\
+                              backgroundImage  : "url('#{topbar.img_name}')",\
+                              backgroundSize   : 'contain',\
+                              backgroundRepeat : 'no-repeat'}>
+                  </div>
+                  <div className="hidden-sm">
+                      <SiteDescription
+                          style={ fontWeight   : "700",\
+                              fontSize     : "15px",\
+                              fontFamily   : "sans-serif",\
+                              bottom       : 10,\
+                              left         : UNIT * 7,\
+                              display      : 'inline-block',\
+                              position     : "absolute",\
+                              color        : topbar.color} />
+                  </div>
+            </Row>
+            <Row>
+                <Col sm=6>
+                    <SignUp
+                        sign_up_error   = {@props.sign_up_error}
+                        strategies      = {@props.strategies}
+                        token           = {@props.token}
+                        has_remember_me = {@props.has_remember_me}
+                        signing_up      = {@props.signing_up}
+                        has_account     = {@props.has_account}
+                        get_api_key     = {@props.get_api_key}
+                        />
+                </Col>
+                <Col sm=6>
+                    <div style={color:"#333", fontSize:'12pt', marginTop:'2em'}>
+                        Create a new account here or sign in with an existing account above.
+                        <br/>
+                        <br/>
+
+                        If you have any questions create a <ShowSupportLink />.
+
+                        <br/>
+                        <br/>
+                        {<a href={APP_BASE_URL + "/"}>Learn more about CoCalc...</a> if not @props.get_api_key}
+                    </div>
+                </Col>
+            </Row>
+            <Footer/>
+        </div>
+
+    render: ->
+        main_page = @render_main_page()
+        if not @props.get_api_key
+            return main_page
+        app = misc.capitalize(@props.get_api_key)
+        <div>
+            <div style={padding:'15px'}>
+                <h1>
+                    CoCalc API Key Access for {app}
+                </h1>
+                <div style={fontSize: '12pt', color: '#444'}>
+                    {app} would like your CoCalc API key.
+                    <br/>
+                    <br/>
+                    This grants <b>full access</b> to all of your CoCalc projects to {app}, until you explicitly revoke your API key in Account preferences.
+                    <br/>
+                    <br/>
+                    Please sign in or create an account below.
+                </div>
+            </div>
+            <hr/>
+            {main_page}
+        </div>
+
+

@@ -8,7 +8,7 @@ extends _base.pug
 
 mixin start_button
   p
-    a.btn.btn-success.btn-xlg(href="app") Start #{NAME} For Free
+    a.btn.btn-success.btn-lg.cc-create-account-btn(href="app") Create Your Free #{NAME} Account!
   p or #[a(href="app") sign in] with your account
 
 block vars
@@ -32,10 +32,10 @@ block content
   a.anchor#a-top
   div.container
     div.row.intro#top
-      div.col-sm-12.center.alert.alert-info(role="alert").
-        Looking for #[strong SageMathCloud]? #{NAME} is a rebranding.
-        Your old account and projects are still there.
-        #[a(href="app") Sign in] with your existing account and you're ready to go.
+      //- div.col-sm-12.center.alert.alert-info(role="alert").
+      //-   Looking for #[strong SageMathCloud]? #{NAME} is a rebranding.
+      //-   Your old account and projects are still there.
+      //-   #[a(href="app") Sign in] with your existing account and you're ready to go.
       div.col-sm-4.col-sm-offset-4.center
         a(href="app")
           img(src=require('!url-loader?mimetype=image/svg+xml!cocalc-logo.svg'))
@@ -48,7 +48,11 @@ block content
       div.col-md-12.center
         h1 Online computing environment
       div.col-sm-6
-        img(src=require('!file-loader!sagepreview/01-worksheet.png'))
+        //- img(src=require('!file-loader!sagepreview/01-worksheet.png'))
+        div.
+          Intro to CoCalc (credits: Mark Quinn, University of Sheffield)
+        div.youtube-video-container
+          iframe(src="https://www.youtube.com/embed/fHr0LFjE8Uk?rel=0" frameborder="0" allowfullscreen)
       div.col-sm-6
         p #{NAME} is a #[strong sophisticated web service] for online computation:
         ul
@@ -66,7 +70,9 @@ block content
           ol
             li First, create your personal #[strong account].
             li Then, create a #[strong project] to instantiate your own private workspace.
-            li Finally, create a #[strong worksheet] or upload your own files: #{NAME} supports Sage Worksheets, Jupyter Notebooks, Latex files, etc.
+            li.
+              Finally, create a #[strong worksheet] or upload your own files:
+              #{NAME} supports online editing of #[a(href="http://jupyter.org/") Jupyter Notebooks], Sage Worksheets, Latex files, etc.
         p #[strong Collaborative Environment]
         p
           ul
@@ -101,10 +107,13 @@ block content
         div.col-md-3.col-sm-6
           h3 #[i.fa.fa-graduation-cap] Teaching
           div.
-            #{htmlWebpackPlugin.options.title} offers sophisticated tools for teaching.
+            #{htmlWebpackPlugin.options.title}
+            #[a(href="https://tutorial.cocalc.com/" target="_blank") offers sophisticated tools for teaching].
             Start by creating a #[strong course], add your students, create assignments and distribute them to all students.
             While students work on it, you can assist them by jumping right into their files where they're working.
             Later, collect, grade and re-distribute the files.
+          div.
+            #[a(href="https://github.com/sagemathinc/cocalc/wiki/Teaching" target="_blank") Courses using #{htmlWebpackPlugin.options.title}]
         div.col-md-3.col-sm-6
           h3 #[i.fa.fa-file-text-o] Authoring
           div.
@@ -141,6 +150,10 @@ block content
             li Consistent and immutable #[strong Backups] make losing files impossible.
             li #[strong Integrated Chat] allows your to guide students directly where they work or discuss collected files with your teaching assistents.
             li The project's #[strong Activity Log] records exactly when a file is accessed and by which user.
+          p More information
+          ul
+            li #[a(href="https://tutorial.cocalc.com/" target="_blank") Tutorial for Teaching]
+            li #[a(href="https://github.com/sagemathinc/cocalc/wiki/Teaching" target="_blank") Courses using #{htmlWebpackPlugin.options.title}]
 
   a.anchor#a-testimonials
   div#testimonials
@@ -210,7 +223,7 @@ block content
         div.col-md-6
           h2 #[i.fa.fa-fw.cc-icon-jupyter] Native Jupyter Notebooks
           div.
-            This is a fully compatible #[strong complete rewrite] of the classical Jupyter Notebook.
+            This is a fully compatible #[strong complete rewrite] of the classical #[a(href="http://jupyter.org/") Jupyter Notebook].
             It is tightly integrated into #{NAME} and adds real-time collaboration,
             time-travel history and
             #[a(href="http://blog.sagemath.com/jupyter/2017/05/05/jupyter-rewrite-for-smc.html") much more].
@@ -254,6 +267,8 @@ block content
             Out of the box hundreds of open-source tools are available for you.
             Here is a short list of a selected few:
           include _static_third_party_software.html
+          if htmlWebpackPlugin.options.COMP_ENV
+            a.btn.btn-default(href="doc/software.html" role="button") Software environment details &raquo
         a.anchor#a-stats
         div.col-md-6#stats
           h2 #[i.fa.fa-line-chart] Statistics

@@ -9,6 +9,49 @@ mixin video-player
     video(loop).fit
       block
 
+mixin software-environment-table(lang)
+  -
+    var components = htmlWebpackPlugin.options.components[lang] || {}
+    var inventory  = htmlWebpackPlugin.options.inventory[lang] || {}
+    var envs       = htmlWebpackPlugin.options.inventory['language_exes'] || {}
+
+  div.container
+    div.row#software-env-top
+      ul
+        for env, idx in envs
+          if env.lang == lang
+            li
+              b
+                a(href=env.url)= env.name
+                = ': '
+              = env.doc
+
+    div.row
+      table.table
+        tr
+          th
+          each val, iidx in inventory
+            th.software= envs[iidx].name
+        each cval, cidx in components
+          tr
+            td
+              if cval
+                b
+                  if cval.url
+                    a(href=cval.url)= cval.name
+                  else
+                    = cval.name
+                br/
+                span= cval.summary
+              else
+                b= cidx
+            each ival, iidx in inventory
+              td.version
+                if inventory[iidx][cidx]
+                  = inventory[iidx][cidx]
+                else
+                  = ''
+
 doctype html
 
 -
@@ -18,6 +61,14 @@ doctype html
   var COMPANY_EMAIL = htmlWebpackPlugin.options.theme.COMPANY_EMAIL;
   var PREFIX        = htmlWebpackPlugin.options.PREFIX;
   var subtitle      = null;
+  var navbar_active = null;
+  function navbar_highlight(what) {
+    if (navbar_active == what) {
+      return 'active';
+    } else {
+      return '';
+    }
+  };
 
 block vars
 
@@ -30,6 +81,10 @@ html.no-js(lang="en")
     include _inc_head.pug
     title= fulltitle
     block header
+    style
+      :sass
+        html.no-js
+          display : none
 
   body
 
@@ -43,12 +98,21 @@ html.no-js(lang="en")
           ul.nav.navbar-nav.navbar-right
             //- li
             //-   a(href=PREFIX + "#a-explore") Explore
-            li
+
+            li(class=navbar_highlight("policies"))
               a(href=PREFIX + "policies/index.html") Policies
-            li
+
+            if htmlWebpackPlugin.options.COMP_ENV
+              li(class=navbar_highlight('software'))
+                a(href=PREFIX + "doc/software.html") Software
+
+            li(class=navbar_highlight('pricing'))
               a(href=PREFIX + "policies/pricing.html") Pricing
+
+            li(class=navbar_highlight('api'))
+              a(href=PREFIX + "doc/api.html") API
             li
-              a.get-started(href=PREFIX + "app") Get Started
+              a.get-started(href=PREFIX + "app") Sign In
 
     block content
 
@@ -57,8 +121,6 @@ html.no-js(lang="en")
     style
       :sass
         @import "smc-webapp/_colors.sass"
-        html.no-js
-          display          : none
         nav.navbar.navbar-default
           border-bottom    : 2px solid $COL_GRAY
           background-color : $COL_GRAY_LL
@@ -75,8 +137,11 @@ html.no-js(lang="en")
               height       : 3rem
               width        : auto
               margin-right : 2rem
-          .navbar-nav>li>a
-            font-size      : 2rem
+          .navbar-nav>li
+            >a
+              font-size      : 2rem
+            &.active>a
+              font-weight  : bold
         div.jumbotron
           padding-top      : 10rem
           background-color : $COL_GRAY_LL
@@ -91,8 +156,14 @@ html.no-js(lang="en")
         .fit
           width          : 100%
           heigh          : auto
-        body > div.container > footer
-          margin-top     : 6rem
+        body
+          div.container
+            > footer
+              margin-top     : 6rem
+            > div.row#top
+              margin         : 5rem 0 0 0
+            > div#software-env-top
+              margin         : 2rem 0 5rem 0
         /* used for a.anchor#a-name with an offset to compensate for the static navbar on top */
         a.anchor
           display        : block
@@ -101,9 +172,16 @@ html.no-js(lang="en")
           visibility     : hidden
         blockquote.blockquote
           font-size      : inherit
+        th.software
+          white-space      : nowrap
+        td.version
+          font-size        : 120%
+          font-weight      : bold
         .btn-xlg
           font-size        : 24px
           line-height      : 1.5
+          font-weight      : bold
+        .cc-create-account-btn
           font-weight      : bold
         .video-player
           position         : relative
@@ -135,12 +213,22 @@ html.no-js(lang="en")
             visibility     : visible
             &:hover
               color        : $COL_GRAY
+        .youtube-video-container
+          width            : 100%
+          height           : 0
+          padding-bottom   : 56.25%
+          overflow         : hidden
 
+          iframe, object, embed
+            position   : absolute
+            width      : 95%
+            height     : 95%
 
     script
       :coffee-script
         html = document.documentElement
-        html.className = html.className.replace(/\bno-js\b/, 'js')
+        window.onload = ->
+          html.className = html.className.replace(/\bno-js\b/, 'js')
     noscript
       style.
         html.no-js { display: block; }

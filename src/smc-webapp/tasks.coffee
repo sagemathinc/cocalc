@@ -44,7 +44,7 @@ markdown          = require('./markdown')
 
 underscore = require('underscore')
 
-{IS_MOBILE} = require('./feature')
+{IS_TOUCH} = require('./feature')
 
 misc_page = require('./misc_page')
 templates = $(".webapp-tasks-templates")
@@ -136,6 +136,7 @@ class TaskList
             if err
                 cb?(err)
                 return
+            redux.getProjectActions(@project_id)?.log_opened_time(@filename)
             @readonly = @db.is_read_only()
             if @readonly
                 @save_button.find("span").text("Readonly")
@@ -938,8 +939,11 @@ class TaskList
         e = task.element
         if not e?
             return
-        if e.hasClass('webapp-task-editing-desc') and e.data('cm')?
-            e.data('cm').focus()
+        cm = e.data('cm')
+        if e.hasClass('webapp-task-editing-desc') and cm?
+            cm.focus()
+            cm.refresh()
+            currently_focused_editor = cm
             return
         e.find(".webapp-task-desc").addClass('webapp-task-desc-editing')
         e.find(".webapp-task-toggle-icons").hide()
@@ -950,6 +954,7 @@ class TaskList
         if elt.length > 0
             elt.show()
             cm = e.data('cm')
+            currently_focused_editor = cm
             cm.focus()
             e.addClass('webapp-task-editing-desc')
             # apply any changes
@@ -961,7 +966,8 @@ class TaskList
 
         finished = false
         stop_editing = () =>
-            currently_focused_editor = undefined
+            if currently_focused_editor?.task_id == task.task_id
+                currently_focused_editor = undefined
             finished = true
             e.removeClass('webapp-task-editing-desc')
             e.find(".webapp-task-desc").removeClass('webapp-task-desc-editing')
@@ -979,6 +985,10 @@ class TaskList
 
         if editor_settings.bindings != 'vim'  # this escape binding below would be a major problem for vim!
             extraKeys["Esc"] = stop_editing
+
+        if IS_TOUCH
+            {extra_alt_keys} = require('mobile/codemirror')
+            extra_alt_keys(extraKeys, @, editor_settings)
 
         opts =
             mode                : 'gfm2'
@@ -1004,6 +1014,7 @@ class TaskList
 
         cm = CodeMirror.fromTextArea(elt.find("textarea")[0], opts)
         cm.save = @save
+        cm.task_id = task.task_id
         if editor_settings.bindings == 'vim'
             cm.setOption("vimMode", true)
 
@@ -1043,13 +1054,17 @@ class TaskList
         # (unless there are incoming sync updates to process).
         cm.on 'changes', underscore.debounce(sync_desc, 2000)
 
+        # NOTE: calling cm.focus() does NOT cause this 'focus' below to get called always, at least
+        # not on ipad.  So... that's why we explicitly set currently_focused_editor in various
+        # places above too.
         cm.on 'focus', () ->
             currently_focused_editor = cm
             $(cm.getWrapperElement()).addClass('webapp-new-task-cm-editor-focus')
 
         cm.on 'blur', () ->
             $(cm.getWrapperElement()).removeClass('webapp-new-task-cm-editor-focus')
-            currently_focused_editor = undefined
+            if currently_focused_editor?.task_id == task.task_id
+                currently_focused_editor = undefined
 
         cm.focus()
         if cursor_at_end
@@ -1297,7 +1312,7 @@ class TaskList
         else
             @showing_done = @local_storage("showing_done")
         if not @showing_done?
-            @showing_done = true  # default to showing done
+            @showing_done = false  # default to NOT showing done -- right thing would be to show for a while...
         @set_showing_done(@showing_done)
         @element.find(".webapp-task-search-not-done").click(=> @set_showing_done(true))
         @element.find(".webapp-task-search-done").click(=> @set_showing_done(false))

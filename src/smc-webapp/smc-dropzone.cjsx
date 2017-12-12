@@ -2,9 +2,9 @@
 Drag'n'Drop dropzone area
 ###
 
-ReactDOMServer = require('react-dom/server')   # for dropzone below
-Dropzone       = require('dropzone')
-DropComponent  = require('react-dropzone-component')
+ReactDOMServer      = require('react-dom/server')   # for dropzone below
+Dropzone            = require('dropzone')
+{DropzoneComponent} = require('react-dropzone-component')
 
 misc           = require('smc-util/misc')
 
@@ -28,7 +28,7 @@ render_header = ->
         placement = 'bottom'
         tip       = 'Drag and drop files from your computer into the box below to upload them into your project.'>
         <h4 style={color:"#666"}>
-            Drag and drop files.
+            Drag and drop files
         </h4>
     </Tip>
 
@@ -75,7 +75,7 @@ exports.SMC_Dropzone = rclass
             {@render_close_button() if @props.close_button_onclick?}
             {render_header()}
             <div style={DROPSTYLE}>
-                <DropComponent
+                <DropzoneComponent
                     config        = {postUrl: @postUrl()}
                     eventHandlers = {@props.dropzone_handler}
                     djsConfig     = {previewTemplate: ReactDOMServer.renderToStaticMarkup(@dropzone_template())} />
@@ -87,18 +87,19 @@ exports.SMC_Dropwrapper = rclass
     displayName: 'dropzone-wrapper'
 
     propTypes:
-        project_id     : rtypes.string.isRequired    # The project to upload files to
-        dest_path      : rtypes.string.isRequired    # The path for files to be sent
-        config         : rtypes.object               # All supported dropzone.js config options
-        event_handlers : rtypes.object
-        show_upload    : rtypes.bool
-        on_close       : rtypes.func
-        disabled       : rtypes.bool
+        project_id       : rtypes.string.isRequired    # The project to upload files to
+        dest_path        : rtypes.string.isRequired    # The path for files to be sent
+        config           : rtypes.object               # All supported dropzone.js config options
+        event_handlers   : rtypes.object
+        preview_template : rtypes.func                 # See http://www.dropzonejs.com/#layout
+        show_upload      : rtypes.bool                 # Whether or not to show upload area
+        on_close         : rtypes.func
+        disabled         : rtypes.bool
 
     getDefaultProps: ->
         config         : {}
-        hide_previewer : false
         disabled       : false
+        show_upload    : true
 
     getInitialState: ->
         files : []
@@ -161,6 +162,9 @@ exports.SMC_Dropwrapper = rclass
                 @dropzone.options = $.extend(true, {}, @dropzone.options, @get_djs_config())
 
     preview_template: ->
+        if @props.preview_template?
+            return @props.preview_template()
+
         <div className='dz-preview dz-file-preview'>
             <div className='dz-details'>
                 <div className='dz-filename'><span data-dz-name></span></div>
@@ -178,7 +182,7 @@ exports.SMC_Dropwrapper = rclass
         @setState(files : [])
 
     render_preview: ->
-        if not @props.show_upload and @state.files.length == 0
+        if not @props.show_upload or @state.files.length == 0
             style = display : 'none'
         box_style =
             border       : '2px solid #ccc'
@@ -193,7 +197,7 @@ exports.SMC_Dropwrapper = rclass
                 <span
                     onClick   = {@close_preview}
                     className = 'close-button-x'
-                    style     = {cursor: 'pointer', fontSize: '18px', color:'gray'}
+                    style     = {cursor: 'pointer', fontSize: '18px', color:'gray', marginRight: '20px'}
                 >
                     <i className="fa fa-times"></i>
                 </span>

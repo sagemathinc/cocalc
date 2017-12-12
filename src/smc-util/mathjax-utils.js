@@ -20,11 +20,14 @@ regex_split = require('./regex-split').regex_split;
 //  Clear the current math positions and store the index of the
 //    math, then push the math string onto the storage array.
 //  The preProcess function is called on all blocks if it has been passed in
-var process_math = function (i, j, pre_process, math, blocks) {
-    var block = blocks.slice(i, j + 1).join("").replace(/&/g, "&amp;") // use HTML entity for &
-    .replace(/</g, "&lt;") // use HTML entity for <
-    .replace(/>/g, "&gt;") // use HTML entity for >
-    ;
+var process_math = function (i, j, pre_process, math, blocks, is_html) {
+    var block = blocks.slice(i, j + 1).join("")
+    if(!is_html) { /* only do these for markdown, not HTML */
+        block = block.replace(/&/g, "&amp;") // use HTML entity for &
+        .replace(/</g, "&lt;") // use HTML entity for <
+        .replace(/>/g, "&gt;") // use HTML entity for >
+        ;
+    }
     if (typeof($) !== "undefined" && $.browser.ie) {
         block = block.replace(/(%[^\n]*)\n/g, "$1<br/>\n");
     }
@@ -46,7 +49,7 @@ var process_math = function (i, j, pre_process, math, blocks) {
 //  Don't allow math to pass through a double linebreak
 //    (which will be a paragraph).
 //
-exports.remove_math = function (text) {
+exports.remove_math = function (text, is_html) {
     var math = []; // stores math strings for later
     var start;
     var end;
@@ -57,7 +60,7 @@ exports.remove_math = function (text) {
     // source that will later be turned into code spans. While MathJax will not TeXify code spans,
     // we still have to consider them at this point; the following issue has happened several times:
     //
-    //     `$foo` and `$bar` are varibales.  -->  <code>$foo ` and `$bar</code> are variables.
+    //     `$foo` and `$bar` are variables.  -->  <code>$foo ` and `$bar</code> are variables.
 
     var hasCodeSpans = /`/.test(text),
         de_tilde;
@@ -97,7 +100,7 @@ exports.remove_math = function (text) {
                     last = i;
                 }
                 else {
-                    blocks = process_math(start, i, de_tilde, math, blocks);
+                    blocks = process_math(start, i, de_tilde, math, blocks, is_html);
                     start  = null;
                     end    = null;
                     last   = null;
@@ -106,7 +109,7 @@ exports.remove_math = function (text) {
             else if (block.match(/\n.*\n/)) {
                 if (last) {
                     i = last;
-                    blocks = process_math(start, i, de_tilde, math, blocks);
+                    blocks = process_math(start, i, de_tilde, math, blocks, is_html);
                 }
                 start = null;
                 end = null;
@@ -143,7 +146,7 @@ exports.remove_math = function (text) {
         }
     }
     if (last) {
-        blocks = process_math(start, last, de_tilde, math, blocks);
+        blocks = process_math(start, last, de_tilde, math, blocks, is_html);
         start  = null;
         end    = null;
         last   = null;

@@ -74,13 +74,6 @@ exports.is_enter       = (e) -> e.which is 13 and not e.shiftKey
 exports.is_ctrl_enter  = (e) -> e.which is 13 and e.ctrlKey
 exports.is_escape      = (e) -> e.which is 27
 
-exports.APP_ICON               = require('!file-loader!webapp-lib/cocalc-icon.svg')
-exports.APP_ICON_WHITE         = require('!file-loader!webapp-lib/cocalc-icon-white.svg')
-exports.APP_LOGO               = require('!file-loader!webapp-lib/cocalc-logo.svg')
-exports.APP_LOGO_WHITE         = require('!file-loader!webapp-lib/cocalc-icon-white-transparent.svg')
-exports.APP_LOGO_NAME          = require('!file-loader!webapp-lib/cocalc-font-black.svg')
-exports.APP_LOGO_NAME_WHITE    = require('!file-loader!webapp-lib/cocalc-font-white.svg')
-
 {join} = require('path')
 exports.APP_BASE_URL = window?.app_base_url ? ''
 exports.BASE_URL = if window? then "#{window.location.protocol}//#{join(window.location.hostname, window.app_base_url ? '')}" else theme.DOMAIN_NAME
@@ -118,19 +111,6 @@ local_diff = exports.local_diff = (before, after) ->
 exports.scroll_top = () ->
     # Scroll smoothly to the top of the page.
     $("html, body").animate({ scrollTop: 0 })
-
-
-exports.human_readable_size = (bytes) ->
-    if bytes < 1000
-        return "#{bytes} bytes"
-    if bytes < 1000000
-        b = Math.floor(bytes/100)
-        return "#{b/10} KB"
-    if bytes < 1000000000
-        b = Math.floor(bytes/100000)
-        return "#{b/10} MB"
-    b = Math.floor(bytes/100000000)
-    return "#{b/10} GB"
 
 
 #############################################
@@ -1762,6 +1742,28 @@ exports.analytics_pageview = (args...) ->
 exports.analytics_event = (args...) ->
     exports.analytics('event', args...)
 
+# conversion tracking (commercial only)
+exports.track_conversion = (type, amount) ->
+    return if not require('./customize').commercial
+    return if DEBUG
+
+    theme = require('smc-util/theme')
+    if type == 'create_account'
+        tag = theme.sign_up_id
+        amount = 1 # that's not true
+    else if type == 'subscription'
+        tag = theme.conversion_id
+    else
+        console.warn("unknown conversion type: #{type}")
+        return
+
+    window.gtag?('event', 'conversion',
+        send_to     : "#{theme.gtag_id}/#{tag}"
+        value       : amount
+        currency    : 'USD'
+    )
+
+
 # These are used to disable pointer events for iframes when dragging something that may move over an iframe.
 # See http://stackoverflow.com/questions/3627217/jquery-draggable-and-resizeable-over-iframes-solution
 exports.drag_start_iframe_disable = ->
@@ -1795,6 +1797,17 @@ exports.get_cookie = (name) ->
     parts = value.split("; " + name + "=")
     return parts.pop().split(";").shift() if (parts.length == 2)
 
+exports.delete_cookie = (name) ->
+    document.cookie = name + '=; expires=Thu, 01 Jan 1970 00:00:01 GMT; path=/'
+
+exports.set_cookie = (name, value, days) ->
+    expires = ''
+    if days
+        date = new Date()
+        date.setTime(date.getTime() + (days*24*60*60*1000))
+        expires = "; expires=" + date.toUTCString()
+    document.cookie = name + "=" + value + expires + "; path=/"
+
 # see http://stackoverflow.com/questions/3169786/clear-text-selection-with-javascript
 exports.clear_selection = ->
     if window.getSelection?().empty?
@@ -1808,11 +1821,14 @@ exports.clear_selection = ->
 # based on: https://stackoverflow.com/a/4656873/54236
 # the main difference is that multiple identical keys are collected in an array
 # test: check that /app?fullscreen&a=1&a=4 gives {fullscreen : true, a : [1, 4]}
+# NOTE: the comments on that stackoverflow are very critical of this; in particular,
+# there's no URI decoding, so I added that below...
 exports.get_query_params = ->
     vars = {}
     href = window.location.href
     for part in href.slice(href.indexOf('?') + 1).split('&')
         [k, v] = part.split('=')
+        v = decodeURIComponent(v)
         if vars[k]?
             if not Array.isArray(vars[k])
                 vars[k] = [vars[k]]
@@ -1823,3 +1839,45 @@ exports.get_query_params = ->
 
 exports.get_query_param = (p) ->
     return exports.get_query_params()[p]
+
+# If there is UTM information in the known cookie, extract and return it
+# Then, delete this cookie.
+# Reference: https://en.wikipedia.org/wiki/UTM_parameters
+#
+# Parameter                 Purpose/Example
+# utm_source (required)     Identifies which site sent the traffic, and is a required parameter.
+#                           utm_source=Google
+#
+# utm_medium                Identifies what type of link was used,
+#                           such as cost per click or email.
+#                           utm_medium=cpc
+#
+# utm_campaign              Identifies a specific product promotion or strategic campaign.
+#                           utm_campaign=spring_sale
+#
+# utm_term                  Identifies search terms.
+#                           utm_term=running+shoes
+#
+# utm_content               Identifies what specifically was clicked to bring the user to the site,
+#                           such as a banner ad or a text link. It is often used for A/B testing
+#                           and content-targeted ads.
+#                           utm_content=logolink or utm_content=textlink
+
+
+# get eventually available information form the utm cookie
+# delete it afterwards
+exports.get_utm = ->
+    c = exports.get_cookie(misc.utm_cookie_name)
+    return if not c
+    try
+        data = misc.from_json(window.decodeURIComponent(c))
+        if DEBUG then console.log("get_utm cookie data", data)
+        exports.delete_cookie(misc.utm_cookie_name)
+        return data
+
+# get referrer information
+exports.get_referrer = ->
+    c = exports.get_cookie(misc.referrer_cookie_name)
+    return if not c
+    exports.delete_cookie(misc.referrer_cookie_name)
+    return c

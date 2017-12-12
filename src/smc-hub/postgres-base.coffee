@@ -43,9 +43,7 @@ if not pg?
 
 
 
-winston = require('winston')
-winston.remove(winston.transports.Console)
-winston.add(winston.transports.Console, {level: 'debug', timestamp:true, colorize:true})
+winston      = require('./winston-metrics').get_logger('postgres')
 
 misc_node = require('smc-util-node/misc_node')
 
@@ -79,9 +77,11 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
                                  # identical permission checks in a single user query.
             cache_size   : 100   # cache this many queries; use @_query(cache:true, ...) to cache result
             concurrent_warn : 500
+            ensure_exists : true # ensure database exists on startup (runs psql in a shell)
         @setMaxListeners(10000)  # because of a potentially large number of changefeeds
         @_state = 'init'
         @_debug = opts.debug
+        @_ensure_exists = opts.ensure_exists
         dbg = @_dbg("constructor")  # must be after setting @_debug above
         dbg(opts)
         i = opts.host.indexOf(':')
@@ -172,8 +172,12 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
         async.series([
             (cb) =>
                 @_concurrent_queries = 0
-                dbg("first make sure db exists")
-                @_ensure_database_exists(cb)
+                if @_ensure_exists
+                    dbg("first make sure db exists")
+                    @_ensure_database_exists(cb)
+                else
+                    dbg("assuming database exists")
+                    cb()
             (cb) =>
                 dbg("create client and start connecting...")
                 client = new pg.Client
@@ -218,10 +222,6 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
     _init_metrics: =>
         # initialize metrics
         MetricsRecorder  = require('./metrics-recorder')
-        @query_time_quantile = MetricsRecorder.new_quantile('db_query_ms_quantile', 'db queries',
-            percentiles : [0, 0.25, 0.5, 0.75, 0.9, 0.99, 1]
-            labels: ['table']
-        )
         @query_time_histogram = MetricsRecorder.new_histogram('db_query_ms_histogram', 'db queries'
             buckets : [1, 5, 10, 20, 50, 100, 200, 500, 1000, 5000, 10000]
             labels: ['table']
@@ -504,7 +504,6 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
             @_client.query opts.query, opts.params, (err, result) =>
                 query_time_ms = new Date() - start
                 @_concurrent_queries -= 1
-                @query_time_quantile.observe({table:opts.table ? ''}, query_time_ms)
                 @query_time_histogram.observe({table:opts.table ? ''}, query_time_ms)
                 @concurrent_counter.labels('ended').inc(1)
                 if err

@@ -29,6 +29,7 @@ html(lang="en")
         script(type="text/javascript" src="base_url.js")
 
     script(type="text/javascript").
+        window.webapp_initial_start_time = (new Date()).getTime();
         function smcLoadStatus(msg) {
         try { document.getElementById("smc-startup-banner-status").innerHTML = msg; } catch(e) {}}
 

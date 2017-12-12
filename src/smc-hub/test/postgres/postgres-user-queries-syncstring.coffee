@@ -127,7 +127,7 @@ describe 'basic use of syncstring table from user -- ', ->
             account_id : accounts[0]
             query      : {syncstrings:{path:path, read_only:true}}
             cb         : (err) ->
-                expect(err).toEqual('project_id must be a valid uuid')
+                expect(err).toEqual("project_id (='undefined') must be a valid uuid")
                 done()
 
     it 'confirms that path does NOT have to be given (this would be the project-wide syncstring)', (done) ->
@@ -141,7 +141,7 @@ describe 'basic use of syncstring table from user -- ', ->
             account_id : accounts[0]
             query      : {syncstrings:{path:path, read_only:null}}
             cb         : (err) ->
-                expect(err).toEqual('project_id must be a valid uuid')
+                expect(err).toEqual("project_id (='undefined') must be a valid uuid")
                 done()
 
     it 'confirms that path does NOT have to be given in get query either', (done) ->
@@ -312,7 +312,7 @@ describe 'basic use of syncstring table from project -- ', ->
             project_id : projects[1]
             query      : {syncstrings:{path:path, read_only:true}}
             cb         : (err) ->
-                expect(err).toEqual('project_id must be a valid uuid')
+                expect(err).toEqual("project_id (='undefined') must be a valid uuid")
                 done()
 
     it 'confirms that path does NOT have to be given (this would be the project-wide syncstring)', (done) ->
@@ -326,7 +326,7 @@ describe 'basic use of syncstring table from project -- ', ->
             project_id : projects[1]
             query      : {syncstrings:{path:path, read_only:null}}
             cb         : (err) ->
-                expect(err).toEqual('project_id must be a valid uuid')
+                expect(err).toEqual("project_id (='undefined') must be a valid uuid")
                 done()
 
     it 'confirms that path does NOT have to be given in get query either', (done) ->

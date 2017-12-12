@@ -108,12 +108,12 @@ OUTPUT        = path.resolve(__dirname, misc_node.OUTPUT_DIR)
 DEVEL         = "development"
 NODE_ENV      = process.env.NODE_ENV || DEVEL
 PRODMODE      = NODE_ENV != DEVEL
+COMP_ENV      = (process.env.CC_COMP_ENV || PRODMODE) and (fs.existsSync('webapp-lib/compute-components.json'))
 CDN_BASE_URL  = process.env.CDN_BASE_URL    # CDN_BASE_URL must have a trailing slash
 DEVMODE       = not PRODMODE
 MINIFY        = !! process.env.WP_MINIFY
 DEBUG         = '--debug' in process.argv
 SOURCE_MAP    = !! process.env.SOURCE_MAP
-QUICK_BUILD   = !! process.env.SMC_WEBPACK_QUICK
 STATICPAGES   = !! process.env.CC_STATICPAGES  # special mode where just the landing page is built
 date          = new Date()
 BUILD_DATE    = date.toISOString()
@@ -135,6 +135,7 @@ else
 console.log "SMC_VERSION      = #{SMC_VERSION}"
 console.log "SMC_GIT_REV      = #{GIT_REV}"
 console.log "NODE_ENV         = #{NODE_ENV}"
+console.log "COMP_ENV         = #{COMP_ENV}"
 console.log "BASE_URL         = #{BASE_URL}"
 console.log "CDN_BASE_URL     = #{CDN_BASE_URL}"
 console.log "DEBUG            = #{DEBUG}"
@@ -154,6 +155,12 @@ MATHJAX_LIB     = misc_node.MATHJAX_LIB  # where the symlink points to
 console.log "MATHJAX_URL      = #{MATHJAX_URL}"
 console.log "MATHJAX_ROOT     = #{MATHJAX_ROOT}"
 console.log "MATHJAX_LIB      = #{MATHJAX_LIB}"
+
+# fallback case: if COMP_ENV is false (default) we still need empty json files to satisfy the webpack dependencies
+if not COMP_ENV
+    for fn in ['webapp-lib/compute-components.json', 'webapp-lib/compute-inventory.json']
+        continue if fs.existsSync(fn)
+        fs.writeFileSync(fn, '{}')
 
 # adds a banner to each compiled and minified source .js file
 # webpack2: https://webpack.js.org/guides/migrating/#bannerplugin-breaking-change
@@ -240,6 +247,9 @@ pug2app = new HtmlWebpackPlugin(
                         description      : DESCRIPTION
                         BASE_URL         : base_url_html
                         theme            : theme
+                        COMP_ENV         : COMP_ENV
+                        components       : {}   # no data needed, empty is fine
+                        inventory        : {}   # no data needed, empty is fine
                         git_rev          : GIT_REV
                         mathjax          : MATHJAX_URL
                         filename         : 'app.html'
@@ -262,6 +272,9 @@ for [fn_in, fn_out] in [['index.pug', 'index.html']]
                         description      : DESCRIPTION
                         BASE_URL         : base_url_html
                         theme            : theme
+                        COMP_ENV         : COMP_ENV
+                        components       : {}   # no data needed, empty is fine
+                        inventory        : {}   # no data needed, empty is fine
                         git_rev          : GIT_REV
                         mathjax          : MATHJAX_URL
                         filename         : fn_out
@@ -271,7 +284,6 @@ for [fn_in, fn_out] in [['index.pug', 'index.html']]
                         template         : path.join(INPUT, fn_in)
                         minify           : htmlMinifyOpts
                         GOOGLE_ANALYTICS : GOOGLE_ANALYTICS
-                        PREFIX           : ''
                         SCHEMA           : require('smc-util/schema')
                         PREFIX           : if fn_in == 'index.pug' then '' else '../'
     ))
@@ -284,6 +296,9 @@ for dp in (x for x in glob.sync('webapp-lib/doc/*.pug') when path.basename(x)[0]
                         date             : BUILD_DATE
                         title            : TITLE
                         theme            : theme
+                        COMP_ENV         : COMP_ENV
+                        components       : {}   # no data needed, empty is fine
+                        inventory        : {}   # no data needed, empty is fine
                         template         : dp
                         chunks           : ['css']
                         inject           : 'head'
@@ -302,6 +317,9 @@ for pp in (x for x in glob.sync('webapp-lib/policies/*.pug') when path.basename(
                         date             : BUILD_DATE
                         title            : TITLE
                         theme            : theme
+                        COMP_ENV         : COMP_ENV
+                        components       : {}   # no data needed, empty is fine
+                        inventory        : {}   # no data needed, empty is fine
                         template         : pp
                         chunks           : ['css']
                         inject           : 'head'
@@ -311,6 +329,52 @@ for pp in (x for x in glob.sync('webapp-lib/policies/*.pug') when path.basename(
                         BASE_URL         : base_url_html
                         PREFIX           : '../'
     ))
+
+# build pages for compute environment
+if COMP_ENV
+    components = JSON.parse(fs.readFileSync('webapp-lib/compute-components.json', 'utf8'))
+    #console.log(JSON.stringify(Object.keys(components)))
+    inventory  = JSON.parse(fs.readFileSync('webapp-lib/compute-inventory.json', 'utf8'))
+
+    staticPages.push(new HtmlWebpackPlugin(
+                        filename         : "doc/software.html"
+                        date             : BUILD_DATE
+                        title            : TITLE
+                        theme            : theme
+                        COMP_ENV         : COMP_ENV
+                        components       : components
+                        inventory        : inventory
+                        template         : 'webapp-lib/doc/software.pug'
+                        chunks           : ['css']
+                        inject           : 'head'
+                        minify           : htmlMinifyOpts
+                        GOOGLE_ANALYTICS : GOOGLE_ANALYTICS
+                        hash             : PRODMODE
+                        BASE_URL         : base_url_html
+                        PREFIX           : '../'
+    ))
+
+    for infn in glob.sync('webapp-lib/doc/software-*.pug')
+        sw_env = path.basename(infn).split('-')[1].split('.')[0]
+        output_fn = "doc/software-#{sw_env}.html"
+        staticPages.push(new HtmlWebpackPlugin(
+                        filename         : output_fn
+                        date             : BUILD_DATE
+                        title            : TITLE
+                        theme            : theme
+                        COMP_ENV         : COMP_ENV
+                        components       : components
+                        inventory        : inventory
+                        sw_env           : sw_env
+                        template         : infn
+                        chunks           : ['css']
+                        inject           : 'head'
+                        minify           : htmlMinifyOpts
+                        GOOGLE_ANALYTICS : GOOGLE_ANALYTICS
+                        hash             : PRODMODE
+                        BASE_URL         : base_url_html
+                        PREFIX           : '../'
+        ))
 
 #video chat is done differently, this is kept for reference.
 ## video chat: not possible to render to html, while at the same time also supporting query parameters for files in the url
@@ -380,17 +444,18 @@ copyWebpackPlugin = new CopyWebpackPlugin []
 ###
 
 # this is like C's #ifdef for the source code. It is particularly useful in the
-# source code of SMC, such that it knows about itself's version and where
+# source code of CoCalc's webapp, such that it knows about itself's version and where
 # mathjax is. The version&date is shown in the hover-title in the footer (year).
 setNODE_ENV         = new webpack.DefinePlugin
-                                'process.env' :
-                                   'NODE_ENV' : JSON.stringify(NODE_ENV)
-                                'MATHJAX_URL' : JSON.stringify(MATHJAX_URL)
-                                'SMC_VERSION' : JSON.stringify(SMC_VERSION)
-                                'SMC_GIT_REV' : JSON.stringify(GIT_REV)
-                                'BUILD_DATE'  : JSON.stringify(BUILD_DATE)
-                                'BUILD_TS'    : JSON.stringify(BUILD_TS)
-                                'DEBUG'       : JSON.stringify(DEBUG)
+                                'process.env'     :
+                                   'NODE_ENV'       : JSON.stringify(NODE_ENV)
+                                'MATHJAX_URL'     : JSON.stringify(MATHJAX_URL)
+                                'SMC_VERSION'     : JSON.stringify(SMC_VERSION)
+                                'SMC_GIT_REV'     : JSON.stringify(GIT_REV)
+                                'KUCALC_COMP_ENV' : "#{COMP_ENV}"   # true or false, no need to special encode
+                                'BUILD_DATE'      : JSON.stringify(BUILD_DATE)
+                                'BUILD_TS'        : JSON.stringify(BUILD_TS)
+                                'DEBUG'           : JSON.stringify(DEBUG)
 
 # This is not used, but maybe in the future.
 # Writes a JSON file containing the main webpack-assets and their filenames.
@@ -467,10 +532,9 @@ else
         #linkFilesIntoTargetPlugin,
     ])
 
-if not QUICK_BUILD or PRODMODE
-    plugins = plugins.concat(staticPages)
-    plugins = plugins.concat([assetsPlugin, statsWriterPlugin])
-    # video chat plugins would be added here
+plugins = plugins.concat(staticPages)
+plugins = plugins.concat([assetsPlugin, statsWriterPlugin])
+# video chat plugins would be added here
 
 if PRODMODE
     console.log "production mode: enabling compression"
