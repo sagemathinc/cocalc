@@ -65,9 +65,9 @@ def install_hub():
     for path in ['.', 'smc-util', 'smc-util-node', 'smc-hub']:
         cmd("cd %s; npm --loglevel=warn install"%path)
 
-def install_webapp(*args):
+def install_webapp(args):
     nice()
-    action = args[0].action if args else 'build'
+    action = args.action
     nothing = True
 
     if 'build' in action:
@@ -99,8 +99,8 @@ def install_webapp(*args):
         install_primus()
         # update term.js
         cmd("cd webapp-lib/term; ./compile")
-        wtype = 'debug' if args[0].debug else 'production'
-        if args[0].debug:
+        wtype = 'debug' if args.debug else 'production'
+        if args.debug:
             wtype = 'debug'
             est   = 1
         else:
@@ -130,7 +130,9 @@ def install_primus():
     # The rm works around a bug in npm...
     cmd("cd smc-hub && rm -rf node_modules/primus node_modules/engine.io  && npm --loglevel=warn install primus engine.io && cd .. && webapp-lib/primus/update_primus")
 
-def install_all(compute=False, web=False):
+def install_all(args):
+    compute=args.compute
+    web=args.web
     if compute or web:
         install_hub()  # also contains compute server right now (will refactor later)
     if compute:
@@ -138,7 +140,7 @@ def install_all(compute=False, web=False):
         install_sagews()
         install_project()
     if web:
-        install_webapp()
+        install_webapp(args)
 
 def main():
     parser = argparse.ArgumentParser(description="Install components of CoCalc into the system")
@@ -171,7 +173,10 @@ def main():
     parser_all = subparsers.add_parser('all', help='install all code that makes sense for the selected classes of servers; use "./install.py all --compute" for compute node and "./install.py all --web" for a web node')
     parser_all.add_argument("--compute", default=False, action="store_const", const=True)
     parser_all.add_argument("--web", default=False, action="store_const", const=True)
-    parser_all.set_defaults(func = lambda args: install_all(compute=args.compute, web=args.web))
+    # add argument '--action'(just a flag) and '--debug' to uniformly deal with 'install.py webapp ***' and 'install.py all --web ***' for install_webapp 
+    parser_all.add_argument('--action', default='build')
+    parser_all.add_argument("--debug", action="store_true", help="if set and, build debug version of code (rather than production) for webapp")
+    parser_all.set_defaults(func = lambda args: install_all(args))
 
     args = parser.parse_args()
     args.func(args)
