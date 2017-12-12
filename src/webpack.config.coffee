@@ -618,14 +618,14 @@ module.exports =
         hashFunction  : 'sha256'
 
     module:
-        loaders: [
-            { test: /pnotify.*\.js$/, loader: "imports?define=>false,global=>window" },
-            { test: /\.cjsx$/,   loaders: ['coffee-loader', 'cjsx-loader'] },
+        rules: [
+            { test: /pnotify.*\.js$/, use: "imports?define=>false,global=>window" },
+            { test: /\.cjsx$/,   use: ['coffee-loader', 'cjsx-loader'] },
             { test: /\.coffee$/, loader: 'coffee-loader' },
-            { test: /\.less$/,   loaders: ["style-loader", "css-loader", "less-loader?#{cssConfig}"]}, #loader : extractTextLess }, #
-            { test: /\.scss$/,   loaders: ["style-loader", "css-loader", "sass-loader?#{cssConfig}"]}, #loader : extractTextScss }, #
-            { test: /\.sass$/,   loaders: ["style-loader", "css-loader", "sass-loader?#{cssConfig}&indentedSyntax"]}, # ,loader : extractTextSass }, #
-            { test: /\.json$/,   loaders: ['json-loader'] },
+            { test: /\.less$/,   use: ["style-loader", "css-loader", "less-loader?#{cssConfig}"]}, #loader : extractTextLess }, #
+            { test: /\.scss$/,   use: ["style-loader", "css-loader", "sass-loader?#{cssConfig}"]}, #loader : extractTextScss }, #
+            { test: /\.sass$/,   use: ["style-loader", "css-loader", "sass-loader?#{cssConfig}&indentedSyntax"]}, # ,loader : extractTextSass }, #
+            { test: /\.json$/,   use: ['json-loader'] },
             { test: /\.png$/,    loader: "file-loader?#{pngconfig}" },
             { test: /\.ico$/,    loader: "file-loader?#{icoconfig}" },
             { test: /\.svg(\?[a-z0-9\.-=]+)?$/,    loader: "url-loader?#{svgconfig}" },
@@ -641,7 +641,7 @@ module.exports =
             { test: /\.ttf(\?[a-z0-9\.-=]+)?$/, loader: "url-loader?limit=10000&mimetype=application/octet-stream" },
             { test: /\.eot(\?[a-z0-9\.-=]+)?$/, loader: "file-loader?name=#{hashname}" },
             # ---
-            { test: /\.css$/, loaders: ["style-loader", "css-loader?#{cssConfig}"]}, # loader: extractTextCss }, #
+            { test: /\.css$/, use: ["style-loader", "css-loader?#{cssConfig}"]}, # loader: extractTextCss }, #
             { test: /\.pug$/, loader: 'pug-loader' },
         ]
 
