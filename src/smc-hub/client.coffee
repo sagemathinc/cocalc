@@ -1223,7 +1223,10 @@ class exports.Client extends EventEmitter
                     # send an email to the user -- async, not blocking user.
                     # TODO: this can take a while -- we need to take some action
                     # if it fails, e.g., change a setting in the projects table!
-                    subject  = "CoCalc Collaboration for Project '#{mesg.title}'"
+                    if mesg.replyto_name?
+                        subject = "#{mesg.replyto_name} invited you to collaborate on CoCalc in project '#{mesg.title}'"
+                    else
+                        subject = "Invitation to CoCalc for collaborating in project '#{mesg.title}'"
                     # override subject if explicitly given
                     if mesg.subject?
                         subject  = mesg.subject
@@ -1236,6 +1239,18 @@ class exports.Client extends EventEmitter
                         base_url = 'https://cocalc.com/'
                         direct_link = ''
 
+                    email_body = (mesg.email ? '') + """
+                        <br/><br/>
+                        <b>To accept the invitation, please open
+                        <a href='#{base_url}'>#{base_url}</a>
+                        and sign in using your email address '#{locals.email_address}'.
+                        #{direct_link}</b><br/>
+                        """
+
+                    # The following is only for backwards compatibility with outdated webapp clients during the transition period
+                    if not mesg.title?
+                        subject = "Invitation to CoCalc for collaborating on a project"
+
                     # asm_group: 699 is for invites https://app.sendgrid.com/suppressions/advanced_suppression_manager
                     opts =
                         to           : locals.email_address
@@ -1247,11 +1262,7 @@ class exports.Client extends EventEmitter
                         subject      : subject
                         category     : "invite"
                         asm_group    : 699
-                        body         : mesg.email + """<br/><br/>
-                                       <b>To accept the invitation, please open
-                                       <a href='#{base_url}'>#{base_url}</a>
-                                       and sign in using your email address '#{locals.email_address}'.
-                                       #{direct_link}</b><br/>"""
+                        body         : email_body
                         cb           : (err) =>
                             if err
                                 dbg("FAILED to send email to #{locals.email_address}  -- err={misc.to_json(err)}")
