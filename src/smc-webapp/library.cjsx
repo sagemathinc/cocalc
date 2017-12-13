@@ -56,7 +56,7 @@ exports.Library = rclass ({name}) ->
             library             : rtypes.immutable.Map
             library_docs_sorted : rtypes.immutable.List
             library_selected    : rtypes.immutable.Map
-            library_copy_active : rtypes.bool
+            library_is_copying  : rtypes.bool            # for the copy button, to signal an ongoing copy process
         projects:
             project_map         : rtypes.immutable
 
@@ -93,7 +93,7 @@ exports.Library = rclass ({name}) ->
     # This is the core part of all this: copy over the directory (TODO: a single file)
     # from the global read-only dir to the user's current directory
     copy: (doc) ->
-        @props.actions.set_library_copy_active(false)
+        @props.actions.set_library_is_copying(true)
         doc = @props.library_selected
         @props.actions.copy_from_library
             src    : doc.get('src')
@@ -101,7 +101,7 @@ exports.Library = rclass ({name}) ->
             title  : doc.get('title')
             docid  : doc.get('id')
             start  : doc?.get('start') ? '/'
-            cb     : => @props.actions.set_library_copy_active(true)
+            cb     : => @props.actions.set_library_is_copying(false)
 
     selector_keyup: (evt) ->
         return if not @props.library_selected?
@@ -253,10 +253,10 @@ exports.Library = rclass ({name}) ->
             <Button
                 bsStyle  = "success"
                 onClick  = {=> @copy()}
-                disabled = {not @props.library_copy_active}
+                disabled = {@props.library_is_copying}
             >
                 {
-                    if not @props.library_copy_active
+                    if @props.library_is_copying
                         <span><Loading text='Copying ...' /></span>
                     else
                         <span><Icon name='files-o' /> Get a copy</span>

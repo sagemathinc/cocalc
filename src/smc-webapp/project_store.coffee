@@ -1042,8 +1042,8 @@ class ProjectActions extends Actions
                         target : target
                 opts.cb?(err)
 
-    set_library_copy_active: (status) =>
-        @setState(library_copy_active:status)
+    set_library_is_copying: (status) =>
+        @setState(library_is_copying:status)
 
     copy_paths: (opts) =>
         opts = defaults opts,
@@ -1686,7 +1686,7 @@ create_project_store_def = (name, project_id) ->
         num_ghost_file_tabs    : 0
         library                : immutable.Map({})
         library_selected       : undefined
-        library_copy_active    : true
+        library_is_copying     : false
 
     reduxState:
         account:
@@ -1734,7 +1734,7 @@ create_project_store_def = (name, project_id) ->
         file_creation_error : rtypes.string
         library             : rtypes.immutable.Map
         library_selected    : rtypes.object
-        library_copy_active : rtypes.bool  # for copy button, active == not disabled
+        library_is_copying  : rtypes.bool  # for the copy button, to signal an ongoing copy process
         library_docs_sorted : computed rtypes.immutable.List
 
         # Project Find
