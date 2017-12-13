@@ -73,9 +73,15 @@ class exports.NBViewerActions extends Actions
 
         cells      = immutable.fromJS(importer.cells())
         cell_list  = cell_utils.sorted_cell_list(cells)
+        if ipynb.metadata?.language_info?.codemirror_mode?
+            mode = ipynb.metadata?.language_info?.codemirror_mode
+        else if ipynb.metadata?.language_info?.name?
+            mode = ipynb.metadata?.language_info?.name
+        else
+            mode = ipynb.metadata?.kernelspec?.language?.toLowerCase()
         options = immutable.fromJS
             markdown : undefined
-            options  : cm_options()   # TODO
+            options  : cm_options(mode)
         @setState
             cells      : cells
             cell_list  : cell_list

@@ -314,7 +314,7 @@ exports.commands = (actions) ->
         f : -> actions.show_nbconvert_dialog('rst')
 
     'nbconvert slides' :
-        m : "Slides (.slides.html)..."
+        m : "Slideshow..."
         f : -> actions.show_nbconvert_dialog('slides')
 
     'nbconvert tex' :

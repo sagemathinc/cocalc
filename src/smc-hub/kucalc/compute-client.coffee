@@ -562,8 +562,12 @@ class Project extends EventEmitter
                     dbg("running, but no quotas changed")
                     opts.cb()
                 else
+                    opts.cb()
                     dbg('running and a quota changed; restart')
-                    @restart(cb:opts.cb)
+                    # CRITICAL: do NOT wait on this before returning!  The set_all_quotas call must
+                    # complete quickly (in an HTTP requrest), whereas restart can easily take 20s,
+                    # and there is no reason to wait on this.
+                    @restart()
 
 
 

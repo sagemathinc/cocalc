@@ -184,6 +184,9 @@ handle_mesg = (socket, mesg, handler) ->
         return
 
     switch mesg.event
+        when 'heartbeat'
+            winston.debug("received heartbeat on socket '#{socket.id}'")
+            socket.heartbeat = new Date()
         when 'connect_to_session', 'start_session'
             # These sessions completely take over this connection, so we stop listening
             # for further control messages on this connection.
@@ -264,6 +267,7 @@ start_tcp_server = (secret_token, port, cb) ->
                 winston.debug(err)
             else
                 socket.id = uuid.v4()
+                socket.heartbeat = new Date()  # obviously working now
                 misc_node.enable_mesg(socket)
 
                 handler = (type, mesg) ->

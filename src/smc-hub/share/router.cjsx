@@ -22,12 +22,12 @@ react_support        = require('./react')
 
 # This MUST be loaded last, e.g,. it overwrites some of the jQuery plugins
 # (mathjax from misc_page) that are implicitly loaded by the above requires.
-require('./mathjax-support')
+require('./process-react')
 
 # this reads it from disk
 google_analytics     = require('./util').google_analytics_token()
 
-react_viewer = (base_url, path, project_id, notranslate, viewer) ->
+react_viewer = (base_url, path, project_id, notranslate, viewer, is_public) ->
     return (res, component, subtitle) ->
         the_page = <Page
             base_url         = {base_url}
@@ -36,13 +36,14 @@ react_viewer = (base_url, path, project_id, notranslate, viewer) ->
             subtitle         = {subtitle}
             notranslate      = {!!notranslate}
             google_analytics = {google_analytics}
-            viewer           = {viewer}>
+            viewer           = {viewer}
+            is_public        = {is_public}>
 
             {component}
 
         </Page>
         extra = {path:path, project_id:project_id}  # just used for log
-        react_support.react(res, the_page, extra)
+        react_support.react(res, the_page, extra, viewer)
 
 exports.share_router = (opts) ->
     opts = defaults opts,
@@ -118,7 +119,7 @@ exports.share_router = (opts) ->
                 page_size    = {PAGE_SIZE}
                 paths_order  = {public_paths.order()}
                 public_paths = {public_paths.get()} />
-            r = react_viewer(opts.base_url, '/', undefined, true, 'share')
+            r = react_viewer(opts.base_url, '/', undefined, true, 'share', public_paths.is_public)
             r(res, page, "#{page_number} of #{PAGE_SIZE}")
 
     router.get '/:id/*?', (req, res) ->
@@ -165,7 +166,7 @@ exports.share_router = (opts) ->
                     info   : info
                     dir    : dir
                     path   : path
-                    react  : react_viewer(opts.base_url, "/#{req.params.id}/#{path}", project_id, false, viewer)
+                    react  : react_viewer(opts.base_url, "/#{req.params.id}/#{path}", project_id, false, viewer, public_paths.is_public)
                     viewer : viewer
                     hidden : req.query.hidden
                     sort   : req.query.sort ? '-mtime'

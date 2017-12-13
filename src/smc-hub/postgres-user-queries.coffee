@@ -1514,7 +1514,7 @@ class exports.PostgreSQL extends PostgreSQL
             cb("FATAL: only users and projects can access syncstrings")
 
 _last_awaken_time = {}
-awaken_project = (db, project_id) ->
+awaken_project = (db, project_id, cb) ->
     # throttle so that this gets called *for a given project* at most once every 30s.
     now = new Date()
     if _last_awaken_time[project_id]? and now - _last_awaken_time[project_id] < 30000
@@ -1525,23 +1525,39 @@ awaken_project = (db, project_id) ->
         dbg("skipping since no compute_server defined")
         return
     dbg("doing it...")
-    db.compute_server.project
-        project_id : project_id
-        cb         : (err, project) =>
-            if err
-                dbg("err = #{err}")
-            else
-                dbg("requesting whole-project save")
-                project.save()  # this causes saves of all files to storage machines to happen periodically
-                project.ensure_running
-                    cb : (err) =>
-                        if err
-                            dbg("failed to ensure running")
-                        else
-                            dbg("also make sure there is a connection from hub to project")
-                            # This is so the project can find out that the user wants to save a file (etc.)
-                            db.ensure_connection_to_project?(project_id)
-
+    locals =
+        project : undefined
+    async.series([
+        (cb) ->
+            db.compute_server.project
+                project_id : project_id
+                cb         : (err, project) =>
+                    if err
+                        cb("error getting project = #{err}")
+                    else
+                        locals.project = project
+                        cb()
+        (cb) ->
+            locals.project.ensure_running
+                cb : (err) =>
+                    if err
+                        cb("failed to ensure project running -- #{err}")
+                    else
+                        cb()
+        (cb) ->
+            if not db.ensure_connection_to_project?
+                cb()
+                return
+            dbg("also make sure there is a connection from hub to project")
+            # This is so the project can find out that the user wants to save a file (etc.)
+            db.ensure_connection_to_project(project_id, cb)
+    ], (err) ->
+        if err
+            dbg("awaken project error -- #{err}")
+        else
+            dbg("success awakening project")
+        cb?(err)
+    )
 ###
 Note about opts.changes.cb:
 

@@ -68,6 +68,9 @@ exports.PublicPath = rclass
         else if ext == 'md'
             mathjax = true
             elt = <Markdown value={@props.content} style={margin:'10px', display:'block'}/>
+        else if extensions.html[ext]
+            mathjax = true
+            elt = <HTML value={@props.content} style={margin:'10px', display:'block'}/>
         else if ext == 'ipynb'
             name   = file_editors.initialize(path, redux, undefined, true, @props.content)
             Viewer = file_editors.generate(path, redux, undefined, true)
@@ -83,9 +86,6 @@ exports.PublicPath = rclass
         else if ext == 'sagews'
             mathjax = true
             elt = <SageWorksheet sagews={parse_sagews(@props.content)} style={margin:'30px'} />
-        else if extensions.html[ext]
-            mathjax = true
-            elt = <HTML value={@props.content} />
         else if extensions.codemirror[ext]
             options = immutable.fromJS(extensions.codemirror[ext])
             #options = options.set('lineNumbers', true)

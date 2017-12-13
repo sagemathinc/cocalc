@@ -12,7 +12,8 @@ https://github.com/blakmatrix/node-zendesk
 ###
 
 # if true, no real tickets are created
-DEBUG   = process.env.SMC_TEST_ZENDESK ? false
+DEBUG    = process.env.SMC_TEST_ZENDESK ? false
+SMC_TEST = process.env.SMC_TEST
 
 async   = require('async')
 fs      = require('fs')
@@ -22,12 +23,8 @@ theme   = require('smc-util/theme')
 _       = require('underscore')
 {defaults, required} = misc
 
-winston    = require 'winston'
-winston.remove(winston.transports.Console)
+winston      = require('./winston-metrics').get_logger('support')
 
-SMC_TEST = process.env.SMC_TEST
-if not SMC_TEST
-    winston.add(winston.transports.Console, {level: 'debug', timestamp:true, colorize:true})
 
 zendesk_password_filename = ->
     return (process.env.SMC_ROOT ? '.') + '/data/secrets/zendesk'

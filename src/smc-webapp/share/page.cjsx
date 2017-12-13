@@ -6,7 +6,9 @@ Share server top-level landing page.
 
 {SITE_NAME, BASE_URL} = require('smc-util/theme')
 
-{TopBar} = require('./top-bar')
+{r_join, Space} = require('../r_misc')
+
+misc = require('smc-util/misc')
 
 exports.Page = rclass
     displayName: "Page"
@@ -20,6 +22,7 @@ exports.Page = rclass
         subtitle         : rtypes.string
         google_analytics : rtypes.string              # optional, and if set just the token
         notranslate      : rtypes.bool
+        is_public        : rtypes.func.isRequired
 
     getDefaultProps: ->
         base_url  : BASE_URL
@@ -84,11 +87,12 @@ exports.Page = rclass
             <body>
                 <div style={display: 'flex', flexDirection: 'column', height: '100vh', width: '100vw', overflow: 'auto'}>
                     <TopBar
-                        viewer     = @props.viewer
-                        path       = @props.path
-                        project_id = @props.project_id
-                        base_url   = @props.base_url
-                        site_name  = @props.site_name
+                        viewer       = @props.viewer
+                        path         = @props.path
+                        project_id   = @props.project_id
+                        base_url     = @props.base_url
+                        site_name    = @props.site_name
+                        is_public    = @props.is_public
                     />
                     <div key='index' style={display: 'flex', flexDirection: 'column', flex:1}>
                         {@props.children}
@@ -96,3 +100,69 @@ exports.Page = rclass
                 </div>
             </body>
         </html>
+
+
+CoCalcLogo = ({base_url}) ->
+    # TODO, obviously
+    <img style={height:'21px', width:'21px'} src="#{base_url}/share/cocalc-icon.svg" />
+
+TopBar_propTypes =
+    viewer       : rtypes.string
+    path         : rtypes.string # The share url. Must have a leading `/`. {base_url}/share{path}
+    project_id   : rtypes.string
+    base_url     : rtypes.string
+    site_name    : rtypes.string
+    is_public    : rtypes.func
+
+TopBar = ({viewer, path, project_id, base_url, site_name, is_public}) ->
+
+    if viewer == 'embed'
+        return <span></span>
+    project_link = undefined
+    if path == '/'
+        top = '.'
+        path_component = <span/>
+    else
+        v = path.split('/').slice(2)
+        top = ('..' for x in v).join('/')
+        if v.length > 0 and v[v.length-1] == ''
+            v = v.slice(0, v.length-1)
+        segments = []
+        t = ''
+
+        v.reverse()
+        for val, i in v
+            segment_path = v.slice(i).reverse().join('/')
+            if t and (not project_id or is_public(project_id, segment_path))
+                href = "#{t}?viewer=share"
+                segments.push(<a key={t} href={href}>{val}</a>)
+            else
+                segments.push(<span key={t}>{val}</span>)
+            if not t
+                if path.slice(-1) == '/'
+                    t = '..'
+                else
+                    t = '.'
+            else
+                t += '/..'
+        segments.reverse()
+        path_component = r_join(segments, <span style={margin:'0 5px'}> / </span>)
+
+        if project_id
+            i = path.slice(1).indexOf('/')
+            proj_url = "#{top}/../projects/#{project_id}/files/#{path.slice(2+i)}?session=share"
+            project_link = <a target="_blank" href={proj_url} className='pull-right' rel='nofollow' style={textDecoration:'none'} >
+                Open in {site_name}
+            </a>
+
+    <div key='top' style={padding: '5px 5px 0px 5px', background:'#dfdfdf'} translate='no'>
+        <span style={marginRight:'10px'}>
+            <a href={top} style={textDecoration:'none'}><CoCalcLogo base_url={base_url} /> Shared</a>
+        </span>
+        <span style={paddingLeft: '15px', borderLeft: '1px solid black', marginLeft: '15px'}>
+            {path_component}
+        </span>
+        {project_link}
+    </div>
+
+TopBar.propTypes = TopBar_propTypes

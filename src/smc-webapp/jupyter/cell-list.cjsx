@@ -46,9 +46,21 @@ exports.CellList = rclass
             @props.actions.disable_key_handler()
 
     componentDidMount: ->
-        # restore scroll state
+
         if @props.scrollTop?
-            ReactDOM.findDOMNode(@refs.cell_list)?.scrollTop = @props.scrollTop
+            # restore scroll state -- as rendering happens dynamically and asynchronously, and I have no idea how to know
+            # when we are done, we can't just do this once.  Instead, we keep resetting scrollTop until scrollHeight
+            # stops changing or 2s elapses.
+            locals =
+                scrollTop    : @props.scrollTop
+                scrollHeight : 0
+            f = =>
+                elt = ReactDOM.findDOMNode(@refs?.cell_list)
+                if elt? and elt.scrollHeight != locals.scrollHeight  # dynamically rendering actually changed something
+                    elt.scrollTop = locals.scrollTop
+                    locals.scrollHeight = elt.scrollHeight
+            for tm in [0, 250, 750, 1500, 2000]
+                setTimeout(f, tm)
 
         if @props.actions?
             # Enable keyboard handler if necessary

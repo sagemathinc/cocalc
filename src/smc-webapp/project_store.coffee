@@ -668,7 +668,11 @@ class ProjectActions extends Actions
         # that we know our relation to this project, namely so that
         # get_my_group is defined.
         id = misc.uuid()
-        @set_activity(id:id, status:"scanning '#{misc.trunc_middle(path,30)}'")
+        if path
+            status = "Loading file list - #{misc.trunc_middle(path,30)}"
+        else
+            status = "Loading file list"
+        @set_activity(id:id, status:status)
         my_group = undefined
         the_listing = undefined
         async.series([
@@ -840,6 +844,16 @@ class ProjectActions extends Actions
             when 'rename'
                 @setState(new_name : misc.path_split(get_basename()).tail)
         @setState(file_action : action)
+
+    show_file_action_panel: (opts) =>
+        opts = defaults opts,
+            path   : required
+            action : required
+        path_splitted = misc.path_split(opts.path)
+        @open_directory(path_splitted.head)
+        @set_all_files_unchecked()
+        @set_file_checked(opts.path, true)
+        @set_file_action(opts.action, (-> path_splitted.tail))
 
     get_from_web: (opts) =>
         opts = defaults opts,

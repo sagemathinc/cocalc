@@ -11,6 +11,12 @@ immutable = require('immutable')
 exports.cm_options = (mode, editor_settings, line_numbers, read_only) ->
     editor_settings ?= {}
     mode ?= {name:'python'}
+    if typeof(mode) == 'string'
+        mode = {name:mode}
+    if mode.name == 'gp'  # TODO; more substitutions?
+        mode.name = 'pari'
+    if mode.name == 'singular'
+        mode.name = 'clike'  # better than nothing
 
     options =
         mode                    : mode

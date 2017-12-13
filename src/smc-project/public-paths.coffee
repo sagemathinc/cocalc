@@ -67,7 +67,8 @@ class MonitorPublicPaths
 
     _update_path: (opts, cb) =>
         {id, path, last_edited} = opts
-        d = @dbg("_update_path('#{path}')")
+        #d = @dbg("_update_path('#{path}')")
+        d = ->  # too verbose...
         # If any file in the given path was modified after last_edited, update last_edited to
         # when the path was modified.
         locals =

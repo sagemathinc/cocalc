@@ -38,6 +38,8 @@ http_proxy   = require('http-proxy')
 http         = require('http')
 winston      = require('winston')
 
+winston      = require('./winston-metrics').get_logger('hub_http_server')
+
 misc         = require('smc-util/misc')
 {defaults, required} = misc
 
@@ -79,7 +81,7 @@ exports.init_express_http_server = (opts) ->
 
     # initialize metrics
     response_time_histogram = MetricsRecorder.new_histogram('http_histogram', 'http server'
-                                  buckets : [0.001, 0.01, 0.1, 1, 2, 10, 20]
+                                  buckets : [0.01, 0.1, 1, 2, 10, 20]
                                   labels: ['path', 'method', 'code']
                               )
 
@@ -89,8 +91,17 @@ exports.init_express_http_server = (opts) ->
         original_end = res.end
         res.end = ->
             original_end.apply(res, arguments)
-            {dirname} = require('path')
-            dir_path = dirname(req.path).split('/')[1] # for two levels: split('/')[1..2].join('/')
+            {dirname}   = require('path')
+            path_split  = req.path.split('/')
+            # for API paths, we want to have data for each endpoint
+            path_tail   = path_split[path_split.length-3 ..]
+            is_api      = path_tail[0] == 'api' and path_tail[1] == 'v1'
+            if is_api
+                dir_path = path_tail.join('/')
+            else
+                # for regular paths, we ignore the file
+                dir_path = dirname(req.path).split('/')[..1].join('/')
+            #winston.debug('response timing/path_split:', path_tail, is_api, dir_path)
             res_finished_h({path:dir_path, method:req.method, code:res.statusCode})
         next()
 
@@ -341,6 +352,7 @@ exports.init_express_http_server = (opts) ->
             return
         opts.database.get_stats
             update : false   # never update in hub b/c too slow. instead, run $ hub --update_stats via a cronjob every minute
+            ttl    : 30
             cb     : (err, stats) ->
                 res.header('Cache-Control', 'private, no-cache, no-store, must-revalidate')
                 if err
@@ -455,21 +467,15 @@ exports.init_express_http_server = (opts) ->
         app.post(raw_regexp, dev_proxy_raw)
 
         # Also create and expose the share server
-        PROJECT_PATH = conf.project_path()
-        share_server = require('./share/server')
-        share_router = share_server.share_router
-            database : opts.database
-            path     : "#{PROJECT_PATH}/[project_id]"
-            base_url : opts.base_url
-            logger   : winston
-        app.use(opts.base_url + '/share', share_router)
-        ### -- delete
-        raw_router = share_server.raw_router
-            database : opts.database
-            path     : "#{PROJECT_PATH}/[project_id]"
-            logger   : winston
-        app.use(opts.base_url + '/raw',   raw_router)
-        ###
+        if false
+            PROJECT_PATH = conf.project_path()
+            share_server = require('./share/server')
+            share_router = share_server.share_router
+                database : opts.database
+                path     : "#{PROJECT_PATH}/[project_id]"
+                base_url : opts.base_url
+                logger   : winston
+            app.use(opts.base_url + '/share', share_router)
 
 
     app.on 'upgrade', (req, socket, head) ->

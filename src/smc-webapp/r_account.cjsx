@@ -1297,10 +1297,10 @@ StripeKeys = rclass
             when 'view', 'saved'
                 <div>
                     {"stripe keys saved!" if @state.state == 'saved'}
-                    <Button bsStyle='warning' onClick={@edit}>Change stripe keys...</Button>
+                    <Button bsStyle='warning' onClick={@edit}>Change Stripe keys...</Button>
                 </div>
             when 'save'
-                <div>Saving stripe keys...</div>
+                <div>Saving Stripe keys...</div>
             when 'edit'
                 <Well>
                     <LabeledRow label='Secret key'>
@@ -1316,7 +1316,7 @@ StripeKeys = rclass
                         </FormGroup>
                     </LabeledRow>
                     <ButtonToolbar>
-                        <Button bsStyle='success' onClick={@save}>Save stripe keys...</Button>
+                        <Button bsStyle='success' onClick={@save}>Save Stripe keys...</Button>
                         <Button onClick={@cancel}>Cancel</Button>
                     </ButtonToolbar>
                 </Well>
@@ -1491,34 +1491,34 @@ AddStripeUser = rclass
             # nothing to do -- shouldn't happen since button should be disabled.
             return false
 
-        @status_mesg("Adding #{email}...")
+        @status_mesg("Adding/updating #{email}...")
         @setState(email: '')
         webapp_client.stripe_admin_create_customer
-            email_address : email
+            email_address : email.trim()
             cb            : (err, mesg) =>
                 if err
                     @status_mesg("Error: #{misc.to_json(err)}")
                 else
-                    @status_mesg("Successfully added #{email}")
+                    @status_mesg("Successfully added/updated #{email}")
 
         return false
 
     render_form: ->
-        <form onSubmit={(e)=>e.preventDefault();@add_stripe_user()}>
+        <form onSubmit={(e)=>e.preventDefault();if misc.is_valid_email_address(@state.email.trim()) then @add_stripe_user()}>
             <Row>
                 <Col md=6>
                     <FormGroup>
                         <FormControl
-                            ref   = 'input'
-                            type  = 'text'
-                            value = {@state.email}
+                            ref         = 'input'
+                            type        = 'text'
+                            value       = {@state.email}
                             placeholder = "Email address"
                             onChange    = {=>@setState(email:ReactDOM.findDOMNode(@refs.input).value)}
                         />
                     </FormGroup>
                 </Col>
                 <Col md=6>
-                    <Button bsStyle='warning' disabled={not misc.is_valid_email_address(@state.email)} onClick={@add_stripe_user}>Add User to Stripe</Button>
+                    <Button bsStyle='warning' disabled={not misc.is_valid_email_address(@state.email.trim())} onClick={@add_stripe_user}>Add/Update Stripe Info</Button>
                 </Col>
             </Row>
         </form>
@@ -1545,7 +1545,7 @@ AdminSettings = rclass
         if not @props.groups? or 'admin' not in @props.groups
             return <span />
 
-        add_stripe_label = <Tip title="Add Stripe User" tip="Make it so the SMC user with the given email address has a corresponding stripe identity, even if they have never entered a credit card.  You'll need this if you want to directly create a plan for them in Stripe.">Add Stripe Users</Tip>
+        add_stripe_label = <Tip title="Add/Update Stripe User" tip="Make it so the SMC user with the given email address has a corresponding stripe identity, even if they have never entered a credit card.  You'll need this if you want to directly create a plan for them in Stripe.">Add/Update Stripe Users</Tip>
 
         <Panel header={<h2> <Icon name='users' /> Administrative server settings</h2>}>
             <LabeledRow label='Account Creation Token'>

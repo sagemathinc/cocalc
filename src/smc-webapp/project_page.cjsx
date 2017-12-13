@@ -48,6 +48,8 @@ project_file = require('./project_file')
 
 {ChatIndicator} = require('./chat-indicator')
 
+{ShareIndicator} = require('./share-indicator')
+
 misc = require('misc')
 misc_page = require('./misc_page')
 
@@ -59,11 +61,10 @@ DEFAULT_FILE_TAB_STYLES =
     flexShrink   : '1'
     overflow     : 'hidden'
 
-CHAT_INDICATOR_STYLE =
+CHAT_INDICATOR_STYLE = SHARE_INDICATOR_STYLE =
     paddingTop  : '1px'
     overflow    : 'hidden'
     paddingLeft : '5px'
-    borderLeft  : '1px solid lightgrey'
     height      : '32px'
 
 FileTab = rclass
@@ -478,6 +479,7 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
             open_files_order      : rtypes.immutable
             free_warning_closed   : rtypes.bool     # Makes bottom height update
             num_ghost_file_tabs   : rtypes.number
+            current_path          : rtypes.string
 
     propTypes :
         project_id : rtypes.string
@@ -535,6 +537,24 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
             />
         </div>
 
+    render_share_indicator: (shrink_fixed_tabs) ->
+        if @props.active_project_tab == 'files'
+            path = @props.current_path
+        else
+            path = misc.tab_to_path(@props.active_project_tab)
+        if not path? # nothing specifically to share
+            return
+        if path == ''  # sharing whole project not implemented
+            return
+        <div style = {SHARE_INDICATOR_STYLE}>
+            <ShareIndicator
+                name              = {name}
+                path              = {path}
+                project_id        = {@props.project_id}
+                shrink_fixed_tabs = {shrink_fixed_tabs}
+            />
+        </div>
+
     render_file_tabs: (is_public) ->
         shrink_fixed_tabs = $(window).width() < (376 + (@props.open_files_order.size + @props.num_ghost_file_tabs) * 250)
 
@@ -572,7 +592,10 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
                         {@file_tabs()}
                     </SortableNav>
                 </div>
-                {@render_chat_indicator(shrink_fixed_tabs) if not is_public}
+                <div style={borderLeft: '1px solid lightgrey',  display: 'inline-flex'}>
+                    {@render_share_indicator(shrink_fixed_tabs) if not is_public}
+                    {@render_chat_indicator(shrink_fixed_tabs) if not is_public}
+                </div>
             </div>
         </div>
 
