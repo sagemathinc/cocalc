@@ -596,7 +596,7 @@ woffconfig  = "name=#{hashname}&mimetype=application/font-woff"
 if CDN_BASE_URL?
     publicPath = CDN_BASE_URL
 else
-    publicPath = path.join(BASE_URL, OUTPUT) + '/'
+    publicPath = path.join(BASE_URL, misc_node.OUTPUT_DIR) + '/'
 
 # TODO webpack2: the module.loaders syntax changed, but this here isn't deprecated
 # https://webpack.js.org/guides/migrating/#module-loaders-is-now-module-rules
