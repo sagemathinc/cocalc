@@ -540,7 +540,6 @@ if PRODMODE
     console.log "production mode: enabling compression"
     # https://webpack.github.io/docs/list-of-plugins.html#commonschunkplugin
     # plugins.push new webpack.optimize.CommonsChunkPlugin(name: "lib")
-    plugins.push new webpack.optimize.DedupePlugin()
     # configuration for the number of chunks and their minimum size
     plugins.push new webpack.optimize.LimitChunkCountPlugin(maxChunks: 5)
     plugins.push new webpack.optimize.MinChunkSizePlugin(minChunkSize: 30000)
@@ -616,6 +615,9 @@ module.exports =
         filename      : if PRODMODE then '[name]-[hash].cacheme.js' else '[name].nocache.js'
         chunkFilename : if PRODMODE then '[id]-[hash].cacheme.js'   else '[id].nocache.js'
         hashFunction  : 'sha256'
+
+    resolveLoader: # Not reccommended. TODO: Track down missing -loader instances
+        moduleExtensions: ["-loader"]
 
     module:
         rules: [
