@@ -203,7 +203,8 @@ cleanWebpackPlugin = new CleanWebpackPlugin [OUTPUT],
 # assets.json file
 AssetsPlugin = require('assets-webpack-plugin')
 assetsPlugin = new AssetsPlugin
-                        filename   : path.join(OUTPUT, 'assets.json')
+                        path       : OUTPUT
+                        filename   : 'assets.json'
                         fullPath   : no
                         prettyPrint: true
                         metadata:
