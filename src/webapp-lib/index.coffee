@@ -77,7 +77,7 @@ get_stats = ->
             console.log e
     r.send()
     # tail recursive callback
-    setTimeout(get_stats, 10 * 1000)
+    setTimeout(get_stats, 90 * 1000)
 
 init_video = ->
     for vplayer in document.getElementsByClassName("video-player")

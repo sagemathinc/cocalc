@@ -213,7 +213,7 @@ CourseEditor = rclass ({name}) ->
             return <Loading />
 
     render: ->
-        <div style={padding:"7px 7px 7px 7px", borderTop: '1px solid rgb(170, 170, 170)'}>
+        <div style={padding:"7px 7px 7px 7px"}>
             {@render_save_button() if @props.show_save_button}
             {@render_error() if @props.error}
             {@render_activity() if @props.activity?}

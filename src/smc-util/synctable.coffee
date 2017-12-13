@@ -80,6 +80,20 @@ a laptop, then resume?  The changes may get saved... a month later.  For some th
 this could be fine.  However, on reconnect, the first thing is that complete upstream state of
 table is set on server version of table, so reconnecting user only sends its changes if upstream
 hasn't changed anything in that same record.
+
+
+SERIOUS UNFINISHED ISSUE:
+1. Non-admin user is a collab on a project
+2. They open and edit a file
+3. They have some offline changes
+4. They are removed from that project as collab before those changes are saved
+5. There will be changes (and updates to file_use) that are denied, with
+   the error "FATAL: user must be an admin".  The client will just keep
+   retrying those forever, until the client refreshes their browser.
+6. Solving this is pretty tricky, e.g., the file_use table would have to selectively
+   have entries removed from it.  This just isn't solved.  The cb_fatal below
+   is just a workaround to reduce the impact of this problem, while hopefully
+   not breaking things too badly.
 ###
 
 # if true, will log to the console a huge amount of info about every get/set
@@ -97,6 +111,20 @@ misc           = require('./misc')
 schema         = require('./schema')
 
 {defaults, required} = misc
+
+is_fatal = (err) ->
+    return typeof(err) == 'string' and err.slice(0,5) == 'FATAL'
+
+cb_fatal = (err, cb) ->
+    if not cb?
+        return
+    if is_fatal(err)
+        # throw in an arbitrary pause to wait for proper connection or
+        # give the backend time to breath
+        setTimeout((->cb(err)), 5000 + Math.random()*5000)
+    else
+        # cb as usual
+        cb(err)
 
 # We represent synchronized tables by an immutable.js mapping from the primary
 # key to the object.  Since PostgresQL primary keys can be compound (more than
@@ -171,9 +199,17 @@ class Plug
 
         # actually try to connect
         do_connect = =>
+            if not @_opts.no_sign_in
+                if not @_opts.client.is_signed_in()
+                    cb("not signed in but need to be")
+                    return
             if give_up_timer
                 clearInterval(give_up_timer)
-            @_opts.connect(cb)
+            @_opts.connect (err) =>
+                if err == 'closed'
+                    cb()  # success = stop trying.
+                else
+                    cb(err)
 
         # Which event/condition has too be true before we even try to connect.
         if @_opts.no_sign_in
@@ -275,7 +311,9 @@ class SyncTable extends EventEmitter
             (cb) =>
                 # 2. Now actually do the changefeed query.
                 @_reconnect(cb)
-        ], cb)
+        ], (err) =>
+            cb?(err)
+        )
 
     _reconnect: (cb) =>
         dbg = @dbg("_run")
@@ -292,7 +330,6 @@ class SyncTable extends EventEmitter
             timeout : 30
             options : @_options
             cb      : (err, resp) =>
-
                 if @_state == 'closed'
                     # already closed so ignore anything else.
                     return
@@ -305,7 +342,7 @@ class SyncTable extends EventEmitter
                     else if resp?.event == 'query_cancel'
                         cb?("query-cancel")
                     else if err
-                        cb?(err)
+                        cb_fatal(err, cb)
                     else if not resp?.query?[@_table]?
                         cb?("got no data")
                     else
@@ -473,6 +510,9 @@ class SyncTable extends EventEmitter
         return changed
 
     _save: (cb) =>
+        if @_state == 'closed'
+            cb?("closed")
+            return
         if @__is_saving
             cb?("already saving")
         else
@@ -585,7 +625,6 @@ class SyncTable extends EventEmitter
         if @_state == 'closed'
             cb?("closed")
             return
-
         if @_state != 'connected'
             cb?("not connected")    # do not change this error message; it is assumed elsewhere.
             return

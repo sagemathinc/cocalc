@@ -419,7 +419,7 @@ SupportInfo = rclass
                 </li>
             </ul>
 
-            <h2>Create a Support Ticket</h2>
+            <h2>Create a support ticket</h2>
 
             {what}
             <p>

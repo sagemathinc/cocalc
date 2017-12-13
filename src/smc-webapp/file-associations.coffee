@@ -215,7 +215,7 @@ for ext in ['png', 'jpg', 'jpeg', 'gif', 'svg']
         binary : true
         exclude_from_menu : true
 
-exports.VIDEO_EXTS = VIDEO_EXTS = ['webm', 'mp4', 'avi', 'mkv']
+exports.VIDEO_EXTS = VIDEO_EXTS = ['webm', 'mp4', 'avi', 'mkv', 'ogv', 'ogm']
 for ext in VIDEO_EXTS
     file_associations[ext] =
         editor : 'media'

@@ -90,8 +90,9 @@ exports.remove = (path, redux, project_id, is_public) ->
     remove = (file_editors[is_public][ext]?.remove) ? (file_editors[is_public]['']?.remove)
     remove?(path, redux, project_id)
 
-    # Also free the corresponding side chat, if it was created.
-    require('./chat/register').remove(misc.meta_file(path, 'chat'), redux, project_id)
+    if not is_public
+        # Also free the corresponding side chat, if it was created.
+        require('./chat/register').remove(misc.meta_file(path, 'chat'), redux, project_id)
 
 # The save function may be called to request to save contents to disk.
 # It does not take a callback.  It's a non-op if no save function is registered

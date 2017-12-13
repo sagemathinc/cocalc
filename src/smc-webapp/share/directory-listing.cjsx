@@ -46,7 +46,7 @@ exports.DirectoryListing = rclass
             return <div>{@render_listing()}</div>
         <div style={display: 'flex', flexDirection: 'column'}>
             <PublicPathInfo path={@props.path} info={@props.info} />
-            <div style={margin: '10px', background: 'white', overflow:'auto'}>
+            <div style={margin: '15px 30px', background: 'white', overflow:'auto'}>
                 {@render_listing()}
             </div>
         </div>
@@ -65,6 +65,7 @@ DirectoryListingEntry = rclass
 
     get_href: ->
         href = @props.name
+        href = misc.encode_path(href)
         if @props.isdir
             href += '/'
         if @props.viewer
@@ -73,7 +74,7 @@ DirectoryListingEntry = rclass
 
     render: ->
         href = @get_href()
-        <a href={href} style={fontWeight:'bold', fontSize:'14px'}>
+        <a href={href} style={fontSize:'14px'}>
             <div style={@props.style} key={@props.name}>
                 {@props.name}{if @props.isdir then '/' else ''}
             </div>

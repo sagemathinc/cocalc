@@ -306,7 +306,7 @@ def active_courses(days=7, json=False):
                 t = dict(t)
                 t["email_address"] = t.get("email_address", "None")
                 addr = '<a href="mailto:{email_address}">{first_name} {last_name}</a> &lt;{email_address}&gt'.format(**t)
-                bg = 'yellow' if p["users"][t["account_id"]]['group'] == 'owner' else ''
+                bg = 'yellow' if p["users"][t["account_id"]].get('group', '') == 'owner' else ''
                 print("<li><span style='background:{bg};'>{addr}</span></li>".format(bg = bg, addr=addr))
             print("</ul></div>")
         print("<hr/>")

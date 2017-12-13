@@ -86,13 +86,13 @@ class exports.PostgreSQL extends PostgreSQL
 
         v = misc.keys(opts.query)
         if v.length > 1
-            opts.cb?('must specify exactly one key in the query')
+            opts.cb?('FATAL: must specify exactly one key in the query')
             return
         table = v[0]
         query = opts.query[table]
         if misc.is_array(query)
             if query.length > 1
-                opts.cb?("array of length > 1 not yet implemented")
+                opts.cb?("FATAL: array of length > 1 not yet implemented")
                 return
             multi = true
             query = query[0]
@@ -101,7 +101,7 @@ class exports.PostgreSQL extends PostgreSQL
         is_set_query = undefined
         if opts.options?
             if not misc.is_array(opts.options)
-                opts.cb?("options (=#{misc.to_json(opts.options)}) must be an array")
+                opts.cb?("FATAL: options (=#{misc.to_json(opts.options)}) must be an array")
                 return
             for x in opts.options
                 if x.set?
@@ -118,10 +118,10 @@ class exports.PostgreSQL extends PostgreSQL
             if is_set_query
                 # do a set query
                 if changes
-                    opts.cb?("changefeeds only for read queries")
+                    opts.cb?("FATAL: changefeeds only for read queries")
                     return
                 if not opts.account_id? and not opts.project_id?
-                    opts.cb?("no anonymous set queries")
+                    opts.cb?("FATAL: no anonymous set queries")
                     return
                 @user_set_query
                     account_id : opts.account_id
@@ -134,7 +134,7 @@ class exports.PostgreSQL extends PostgreSQL
             else
                 # do a get query
                 if changes and not multi
-                    opts.cb?("changefeeds only implemented for multi-document queries")
+                    opts.cb?("FATAL: changefeeds only implemented for multi-document queries")
                     return
 
                 if changes
@@ -158,7 +158,7 @@ class exports.PostgreSQL extends PostgreSQL
                             @_dec_changefeed_count(changes.id, table)
                         opts.cb?(err, if not err then {"#{table}":x})
         else
-            opts.cb?("invalid user_query of '#{table}' -- query must be an object")
+            opts.cb?("FATAL: invalid user_query of '#{table}' -- query must be an object")
 
     ###
     TRACK CHANGEFEED COUNTS
@@ -195,7 +195,7 @@ class exports.PostgreSQL extends PostgreSQL
     # Handle user_query when opts.query is an array.  opts below are as for user_query.
     _user_query_array: (opts) =>
         if opts.changes and opts.query.length > 1
-            opts.cb("changefeeds only implemented for single table")
+            opts.cb("FATAL: changefeeds only implemented for single table")
             return
         result = []
         f = (query, cb) =>
@@ -237,7 +237,7 @@ class exports.PostgreSQL extends PostgreSQL
 
     _require_is_admin: (account_id, cb) =>
         if not account_id?
-            cb("user must be an admin")
+            cb("FATAL: user must be an admin")
             return
         @is_admin
             account_id : account_id
@@ -245,7 +245,7 @@ class exports.PostgreSQL extends PostgreSQL
                 if err
                     cb(err)
                 else if not is_admin
-                    cb("user must be an admin")
+                    cb("FATAL: user must be an admin")
                 else
                     cb()
 
@@ -270,7 +270,7 @@ class exports.PostgreSQL extends PostgreSQL
                     # If any of the project_ids don't exist, reject the query.
                     for project_id in project_ids
                         if not known_project_ids[project_id]
-                            cb("unknown project_id '#{misc.trunc(project_id,100)}'")
+                            cb("FATAL: unknown project_id '#{misc.trunc(project_id,100)}'")
                             return
                     if require_admin
                         @_require_is_admin(account_id, cb)
@@ -310,10 +310,10 @@ class exports.PostgreSQL extends PostgreSQL
         else if opts.account_id?
             dbg = r.dbg = @_dbg("user_set_query(account_id='#{opts.account_id}', table='#{opts.table}')")
         else
-            return {err:"account_id or project_id must be specified"}
+            return {err:"FATAL: account_id or project_id must be specified"}
 
         if not SCHEMA[opts.table]?
-            return {err:"table '#{opts.table}' does not exist"}
+            return {err:"FATAL: table '#{opts.table}' does not exist"}
 
         dbg(misc.to_json(opts.query))
 
@@ -334,7 +334,7 @@ class exports.PostgreSQL extends PostgreSQL
             r.client_query = s?.project_query
 
         if not r.client_query?.set?.fields?
-            return {err:"user set queries not allowed for table '#{opts.table}'"}
+            return {err:"FATAL: user set queries not allowed for table '#{opts.table}'"}
 
         if not @_mod_fields(opts.query, r.client_query)
             dbg("shortcut -- no fields will be modified, so nothing to do")
@@ -342,32 +342,32 @@ class exports.PostgreSQL extends PostgreSQL
 
         for field in misc.keys(r.client_query.set.fields)
             if r.client_query.set.fields[field] == undefined
-                return {err: "user set query not allowed for #{opts.table}.#{field}"}
+                return {err: "FATAL: user set query not allowed for #{opts.table}.#{field}"}
             val = r.client_query.set.fields[field]
             if typeof(val) == 'function'
                 try
                     r.query[field] = val(r.query, @)
                 catch err
-                    return {err:"error setting '#{field}' -- #{err}"}
+                    return {err:"FATAL: error setting '#{field}' -- #{err}"}
             else
                 switch val
                     when 'account_id'
                         if not r.account_id?
-                            return {err: "account_id must be specified"}
+                            return {err: "FATAL: account_id must be specified"}
                         r.query[field] = r.account_id
                     when 'project_id'
                         if not r.project_id?
-                            return {err: "project_id must be specified"}
+                            return {err: "FATAL: project_id must be specified"}
                         r.query[field] = r.project_id
                     when 'time_id'
                         r.query[field] = uuid.v1()
                     when 'project_write'
                         if not r.query[field]?
-                            return {err: "must specify #{opts.table}.#{field}"}
+                            return {err: "FATAL: must specify #{opts.table}.#{field}"}
                         r.require_project_ids_write_access = [r.query[field]]
                     when 'project_owner'
                         if not r.query[field]?
-                            return {err:"must specify #{opts.table}.#{field}"}
+                            return {err:"FATAL: must specify #{opts.table}.#{field}"}
                         r.require_project_ids_owner = [r.query[field]]
 
         if r.client_query.set.admin
@@ -385,7 +385,7 @@ class exports.PostgreSQL extends PostgreSQL
             if s.admin_query?.set?.fields?[k] != undefined
                 r.require_admin = true
                 continue
-            return {err: "changing #{r.table}.#{k} not allowed"}
+            return {err: "FATAL: changing #{r.table}.#{k} not allowed"}
 
         # HOOKS which allow for running arbitrary code in response to
         # user set queries.  In each case, new_val below is only the part
@@ -435,7 +435,7 @@ class exports.PostgreSQL extends PostgreSQL
 
         if r.options.delete and not r.client_query.set.delete
             # delete option is set, but deletes aren't explicitly allowed on this table.  ERROR.
-            return {err: "delete from #{r.table} not allowed"}
+            return {err: "FATAL: delete from #{r.table} not allowed"}
 
         return r
 
@@ -452,7 +452,7 @@ class exports.PostgreSQL extends PostgreSQL
                         err = undefined
                         for x in r.require_project_ids_write_access
                             if x != r.project_id
-                                err = "can only query same project"
+                                err = "FATAL: can only query same project"
                                 break
                         cb(err)
                     else
@@ -497,7 +497,7 @@ class exports.PostgreSQL extends PostgreSQL
         if r.on_change_hook? or r.before_change_hook? or r.instead_of_change_hook?
             for primary_key in r.primary_keys
                 if not r.query[primary_key]?
-                    cb("query must specify (primary) key '#{primary_key}'")
+                    cb("FATAL: query must specify (primary) key '#{primary_key}'")
                     return
             # get the old value before changing it
             # TODO: optimization -- can we restrict columns below?
@@ -557,7 +557,7 @@ class exports.PostgreSQL extends PostgreSQL
         else if r.options.delete
             for primary_key in r.primary_keys
                 if not r.query[primary_key]?
-                    cb("delete query must set primary key")
+                    cb("FATAL: delete query must set primary key")
                     return
             r.dbg("delete based on primary key")
             @_user_query_set_delete(r, cb)
@@ -771,7 +771,7 @@ class exports.PostgreSQL extends PostgreSQL
                         project.close
                             cb           : cb
                     else
-                        cb("action '#{opts.action_request.action}' not implemented")
+                        cb("FATAL: action '#{opts.action_request.action}' not implemented")
         ], (err) =>
             if err
                 action_request.err = err
@@ -818,7 +818,7 @@ class exports.PostgreSQL extends PostgreSQL
             if account_id != id
                 # make sure user doesn't change anybody else's allocation
                 if not underscore.isEqual(old_val?[id]?.upgrades, new_val?[id]?.upgrades)
-                    err = "user '#{account_id}' tried to change user '#{id}' allocation toward a project"
+                    err = "FATAL: user '#{account_id}' tried to change user '#{id}' allocation toward a project"
                     dbg(err)
                     cb(err)
                     return
@@ -874,7 +874,7 @@ class exports.PostgreSQL extends PostgreSQL
 
     _parse_get_query_opts: (opts) =>
         if opts.changes? and not opts.changes.cb?
-            return {err: "user_get_query -- if opts.changes is specified, then opts.changes.cb must also be specified"}
+            return {err: "FATAL: user_get_query -- if opts.changes is specified, then opts.changes.cb must also be specified"}
 
         r = {}
         # get data about user queries on this table
@@ -884,10 +884,10 @@ class exports.PostgreSQL extends PostgreSQL
             r.client_query = SCHEMA[opts.table]?.user_query
 
         if not r.client_query?.get?
-            return {err: "get queries not allowed for table '#{opts.table}'"}
+            return {err: "FATAL: get queries not allowed for table '#{opts.table}'"}
 
         if not opts.account_id? and not opts.project_id? and not SCHEMA[opts.table].anonymous
-            return {err: "anonymous get queries not allowed for table '#{opts.table}'"}
+            return {err: "FATAL: anonymous get queries not allowed for table '#{opts.table}'"}
 
         r.table = SCHEMA[opts.table].virtual ? opts.table
 
@@ -899,7 +899,7 @@ class exports.PostgreSQL extends PostgreSQL
         # Verify that all requested fields may be read by users
         for field in misc.keys(opts.query)
             if r.client_query.get.fields?[field] == undefined
-                return {err: "user get query not allowed for #{opts.table}.#{field}"}
+                return {err: "FATAL: user get query not allowed for #{opts.table}.#{field}"}
 
         # Functional substitutions defined by schema
         @_user_get_query_functional_subs(opts.query, r.client_query.get?.fields)
@@ -910,7 +910,7 @@ class exports.PostgreSQL extends PostgreSQL
         # Make sure there is the query that gets only things in this table that this user
         # is allowed to see, or at least a check_hook.
         if not r.client_query.get.pg_where? and not r.client_query.get.check_hook?
-            return {err: "user get query not allowed for #{opts.table} (no getAll filter)"}
+            return {err: "FATAL: user get query not allowed for #{opts.table} (no getAll filter)"}
 
         # Apply default options to the get query (don't impact changefeed)
         # The user can overide these, e.g., if they were to want to explicitly increase a limit
@@ -965,7 +965,7 @@ class exports.PostgreSQL extends PostgreSQL
         if typeof(pg_where) == 'function'
             pg_where = pg_where(user_query, @)
         if not misc.is_array(pg_where)
-            cb("pg_where must be an array (of strings or objects)")
+            cb("FATAL: pg_where must be an array (of strings or objects)")
             return
 
         # Do NOT mutate the schema itself!
@@ -991,7 +991,7 @@ class exports.PostgreSQL extends PostgreSQL
             switch value
                 when 'account_id'
                     if not account_id?
-                        cb('account_id must be given')
+                        cb('FATAL: account_id must be given')
                         return
                     subs[value] = account_id
                     cb()
@@ -1000,7 +1000,7 @@ class exports.PostgreSQL extends PostgreSQL
                         subs[value] = project_id
                         cb()
                     else if not user_query.project_id
-                        cb("must specify project_id")
+                        cb("FATAL: must specify project_id")
                     else if SCHEMA[table].anonymous
                         subs[value] = user_query.project_id
                         cb()
@@ -1016,10 +1016,10 @@ class exports.PostgreSQL extends PostgreSQL
                                     subs[value] = user_query.project_id
                                     cb()
                                 else
-                                    cb("you do not have read access to this project")
+                                    cb("FATAL: you do not have read access to this project")
                 when 'project_id-public'
                     if not user_query.project_id?
-                        cb("must specify project_id")
+                        cb("FATAL: must specify project_id")
                     else
                         if SCHEMA[table].anonymous
                             @has_public_path
@@ -1033,7 +1033,7 @@ class exports.PostgreSQL extends PostgreSQL
                                         subs[value] = user_query.project_id
                                         cb()
                         else
-                            cb("table must allow anonymous queries")
+                            cb("FATAL: table must allow anonymous queries")
                 else
                     cb()
 
@@ -1163,17 +1163,17 @@ class exports.PostgreSQL extends PostgreSQL
         # WARNING: always call changes.cb!  Do not do something like f = changes.cb, then call f!!!!
         # This is because the value of changes.cb may be changed by the caller.
         if not misc.is_object(changes)
-            cb("changes must be an object with keys id and cb")
+            cb("FATAL: changes must be an object with keys id and cb")
             return
         if not misc.is_valid_uuid_string(changes.id)
-            cb("changes.id must be a uuid")
+            cb("FATAL: changes.id must be a uuid")
             return
         if typeof(changes.cb) != 'function'
-            cb("changes.cb must be a function")
+            cb("FATAL: changes.cb must be a function")
             return
         for primary_key in primary_keys
             if not user_query[primary_key]? and user_query[primary_key] != null
-                cb("changefeed MUST include primary key (='#{primary_key}') in query")
+                cb("FATAL: changefeed MUST include primary key (='#{primary_key}') in query")
                 return
         watch  = []
         select = {}
@@ -1251,7 +1251,7 @@ class exports.PostgreSQL extends PostgreSQL
 
                 else if pg_changefeed == 'collaborators'
                     if not account_id?
-                        cb("account_id must be given")
+                        cb("FATAL: account_id must be given")
                         return
                     pg_changefeed = (db, account_id) ->
                         shared_tracker = undefined
@@ -1311,7 +1311,7 @@ class exports.PostgreSQL extends PostgreSQL
                         # Any tracker error means this changefeed is now broken and
                         # has to be recreated.
                         tracker?.on 'error', (err) ->
-                            changes.cb("tracker error - #{err}")
+                            changes.cb("FATAL: tracker error - #{err}")
                         cb()
         ], cb)
 
@@ -1470,7 +1470,7 @@ class exports.PostgreSQL extends PostgreSQL
         # is that any user of a project can edit anything there.  In particular, the
         # synctable lets any user with write access to the project edit the users field.
         if string_id?.length != 40
-            cb("string_id (='#{string_id}') must be a string of length 40")
+            cb("FATAL: string_id (='#{string_id}') must be a string of length 40")
             return
         @_query
             query : "SELECT project_id FROM syncstrings"
@@ -1481,7 +1481,7 @@ class exports.PostgreSQL extends PostgreSQL
                     cb(err)
                 else if not x
                     # There is no such syncstring with this id -- fail
-                    cb("no such syncstring")
+                    cb("FATAL: no such syncstring")
                 else if account_id?
                     # Attempt to write by a user browser client
                     @_require_project_ids_in_groups(account_id, [x], ['owner', 'collaborator'], cb)
@@ -1490,7 +1490,7 @@ class exports.PostgreSQL extends PostgreSQL
                     if project_id == x
                         cb()
                     else
-                        cb("project not allowed to write to syncstring in different project")
+                        cb("FATAL: project not allowed to write to syncstring in different project")
 
 
     # Check permissions for querying for syncstrings in a project
@@ -1498,23 +1498,23 @@ class exports.PostgreSQL extends PostgreSQL
         #dbg = @dbg("_syncstrings_check")
         #dbg(misc.to_json([obj, account_id, project_id]))
         if not misc.is_valid_uuid_string(obj?.project_id)
-            cb("project_id (='#{obj?.project_id}') must be a valid uuid")
+            cb("FATAL: project_id (='#{obj?.project_id}') must be a valid uuid")
             return
         if project_id?
             if project_id == obj.project_id
                 # The project can access its own syncstrings
                 cb()
             else
-                cb("projects can only access their own syncstrings") # for now at least!
+                cb("FATAL: projects can only access their own syncstrings") # for now at least!
             return
         if account_id?
             # Access request by a client user
             @_require_project_ids_in_groups(account_id, [obj.project_id], ['owner', 'collaborator'], cb)
         else
-            cb("only users and projects can access syncstrings")
+            cb("FATAL: only users and projects can access syncstrings")
 
 _last_awaken_time = {}
-awaken_project = (db, project_id) ->
+awaken_project = (db, project_id, cb) ->
     # throttle so that this gets called *for a given project* at most once every 30s.
     now = new Date()
     if _last_awaken_time[project_id]? and now - _last_awaken_time[project_id] < 30000
@@ -1525,23 +1525,39 @@ awaken_project = (db, project_id) ->
         dbg("skipping since no compute_server defined")
         return
     dbg("doing it...")
-    db.compute_server.project
-        project_id : project_id
-        cb         : (err, project) =>
-            if err
-                dbg("err = #{err}")
-            else
-                dbg("requesting whole-project save")
-                project.save()  # this causes saves of all files to storage machines to happen periodically
-                project.ensure_running
-                    cb : (err) =>
-                        if err
-                            dbg("failed to ensure running")
-                        else
-                            dbg("also make sure there is a connection from hub to project")
-                            # This is so the project can find out that the user wants to save a file (etc.)
-                            db.ensure_connection_to_project?(project_id)
-
+    locals =
+        project : undefined
+    async.series([
+        (cb) ->
+            db.compute_server.project
+                project_id : project_id
+                cb         : (err, project) =>
+                    if err
+                        cb("error getting project = #{err}")
+                    else
+                        locals.project = project
+                        cb()
+        (cb) ->
+            locals.project.ensure_running
+                cb : (err) =>
+                    if err
+                        cb("failed to ensure project running -- #{err}")
+                    else
+                        cb()
+        (cb) ->
+            if not db.ensure_connection_to_project?
+                cb()
+                return
+            dbg("also make sure there is a connection from hub to project")
+            # This is so the project can find out that the user wants to save a file (etc.)
+            db.ensure_connection_to_project(project_id, cb)
+    ], (err) ->
+        if err
+            dbg("awaken project error -- #{err}")
+        else
+            dbg("success awakening project")
+        cb?(err)
+    )
 ###
 Note about opts.changes.cb:
 

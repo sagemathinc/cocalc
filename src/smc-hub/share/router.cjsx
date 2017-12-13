@@ -3,8 +3,7 @@ Router for public share server.
 
 """
 
-PAGE_SIZE            = 50
-
+PAGE_SIZE            = 100
 
 os_path              = require('path')
 
@@ -14,27 +13,37 @@ misc                 = require('smc-util/misc')
 {defaults, required} = misc
 
 react_support        = require('./react')
+
 {PublicPathsBrowser} = require('smc-webapp/share/public-paths-browser')
 {Page}               = require('smc-webapp/share/page')
 {get_public_paths}   = require('./public_paths')
 {render_public_path} = require('./render-public-path')
 {render_static_path} = require('./render-static-path')
 
+# This MUST be loaded last, e.g,. it overwrites some of the jQuery plugins
+# (mathjax from misc_page) that are implicitly loaded by the above requires.
+require('./process-react')
 
-react_viewer = (base_url, path, project_id, notranslate, viewer) ->
+# this reads it from disk
+google_analytics     = require('./util').google_analytics_token()
+
+react_viewer = (base_url, path, project_id, notranslate, viewer, is_public) ->
     return (res, component, subtitle) ->
         the_page = <Page
-            base_url    = {base_url}
-            path        = {path}
-            project_id  = {project_id}
-            subtitle    = {subtitle}
-            notranslate = {!!notranslate}
-            viewer      = {viewer}>
+            base_url         = {base_url}
+            path             = {path}
+            project_id       = {project_id}
+            subtitle         = {subtitle}
+            notranslate      = {!!notranslate}
+            google_analytics = {google_analytics}
+            viewer           = {viewer}
+            is_public        = {is_public}>
 
             {component}
 
         </Page>
-        react_support.react(res, the_page)
+        extra = {path:path, project_id:project_id}  # just used for log
+        react_support.react(res, the_page, extra, viewer)
 
 exports.share_router = (opts) ->
     opts = defaults opts,
@@ -87,6 +96,17 @@ exports.share_router = (opts) ->
         router.use "/#{name}", express.static(os_path.join(process.env.SMC_ROOT, "webapp-lib/#{name}"),
                                     {immutable:true, maxAge:86000000})
 
+    # TODO: serve from static file when/if it gets at all big; or from some refactor
+    # of our existing css.  That said, our aim for the share server is extreme cleanliness
+    # and simplicity, so what we want may be different from cocalc interactive.
+    router.get '/share.css', (req, res) ->
+        res.type("text/css")
+        res.send("""
+.cocalc-jupyter-anchor-link {
+  visibility : hidden
+};
+        """)
+
     router.get '/', (req, res) ->
         if req.originalUrl.split('?')[0].slice(-1) != '/'
             # note: req.path already has the slash added.
@@ -99,7 +119,7 @@ exports.share_router = (opts) ->
                 page_size    = {PAGE_SIZE}
                 paths_order  = {public_paths.order()}
                 public_paths = {public_paths.get()} />
-            r = react_viewer(opts.base_url, '/', undefined, true, 'share')
+            r = react_viewer(opts.base_url, '/', undefined, true, 'share', public_paths.is_public)
             r(res, page, "#{page_number} of #{PAGE_SIZE}")
 
     router.get '/:id/*?', (req, res) ->
@@ -116,7 +136,9 @@ exports.share_router = (opts) ->
                 project_id = info.get('project_id')
 
             path = req.params[0]
+            #dbg("router.get '/:id/*?': #{project_id} and #{path}: #{public_paths.is_public(project_id, path)}, info: #{misc.to_json(info)}, path: #{path}")
             if not path?
+                #dbg("no path → 404")
                 res.sendStatus(404)
                 return
 
@@ -129,6 +151,7 @@ exports.share_router = (opts) ->
             #   by what happens to be in the path to files.  So share server not having
             #   updated yet is a problem, but ALSO, in some cases (dev server, docker personal)
             #   that path is just to the live files in the project, so very dangerous.
+
 
             if not public_paths.is_public(project_id, path)
                 res.sendStatus(404)
@@ -143,7 +166,7 @@ exports.share_router = (opts) ->
                     info   : info
                     dir    : dir
                     path   : path
-                    react  : react_viewer(opts.base_url, "/#{req.params.id}/#{path}", project_id, false, viewer)
+                    react  : react_viewer(opts.base_url, "/#{req.params.id}/#{path}", project_id, false, viewer, public_paths.is_public)
                     viewer : viewer
                     hidden : req.query.hidden
                     sort   : req.query.sort ? '-mtime'

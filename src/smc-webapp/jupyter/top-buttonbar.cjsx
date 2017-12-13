@@ -97,7 +97,7 @@ exports.TopButtonbar = rclass ({name}) ->
             stop_style = {backgroundColor:'rgb(92,184,92)', color:'white'}
         else
             stop_style = undefined
-        @render_button_group(['run cell and select next', {name:'interrupt kernel', disabled:@props.kernel_state != 'busy', style:stop_style}, 'tab key'])
+        @render_button_group(['run cell and select next', {name:'interrupt kernel', style:stop_style}, 'tab key'])
 
     cell_select_type: (event) ->
         @props.actions.set_selected_cell_type(event.target.value)
@@ -147,14 +147,14 @@ exports.TopButtonbar = rclass ({name}) ->
         <Button
             title   = 'Switch to classical notebook'
             onClick = {=>@props.actions.switch_to_classical_notebook()}>
-            <Icon name='exchange'/> <span className = 'hidden-sm'>Classical Notebook...</span>
+            <Icon name='exchange'/> <span className = 'hidden-sm'>Classical notebook...</span>
         </Button>
 
     render_close_and_halt: ->
         obj =
             name     : 'close and halt'
             disabled : false
-            label    : 'Close and Halt'
+            label    : 'Close and halt'
         return @render_button('close and halt', obj)
 
     render_group_save_timetravel: ->

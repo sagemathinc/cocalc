@@ -153,7 +153,7 @@ AddCollaboratorsArea = rclass
 
     render: ->
         <div>
-            <h5>Add People</h5>
+            <h5>Add people</h5>
             <div style={color:'#666', marginBottom:'10px'}>
                 Who would you like to work with on this project?
             </div>

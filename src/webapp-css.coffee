@@ -26,4 +26,4 @@ require('webapp-lib/cocalc-icons-font/style.css')
 
 # info at the bottom about the next step in startup sequence
 if window.smcLoadStatus?
-    window.smcLoadStatus("Loading JavaScript libraries ...")
+    window.smcLoadStatus("Loading CoCalc...")

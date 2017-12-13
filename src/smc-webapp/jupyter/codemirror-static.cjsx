@@ -53,9 +53,9 @@ exports.CodeMirrorStatic = rclass
             # this makes the behavior slightly different than official Jupyter.
             event.stopPropagation()
             return
-        @props.actions.set_mode('edit')
         @props.actions.unselect_all_cells()
         @props.actions.set_cur_id(@props.id)
+        @props.actions.set_mode('edit')  # important to set this *AFTER* setting the current id - see issue #2547
         @props.set_click_coords?({left:event.clientX, top:event.clientY})
 
     line_number: (key, line, width) ->

@@ -8,10 +8,7 @@
 
 {join}      = require('path')
 
-winston     = require('winston')
-winston.remove(winston.transports.Console)
-winston.add(winston.transports.Console, {level: 'debug', timestamp:true, colorize:true})
-
+winston   = require('./winston-metrics').get_logger('smc-vm-manager')
 async     = require('async')
 misc_node = require('smc-util-node/misc_node')
 program   = require('commander')

@@ -13,8 +13,10 @@ BAR_STYLE =
     width        : '100%'
     display      : 'flex'
     background   : '#eee'
-    border       : '1px solid rgb(207, 207, 207)'
+    border       : '1px solid rgb(247, 247, 247)'
     borderRadius : '2px'
+    margin       : '2px 0px'
+    padding      : '2px'
 
 exports.CellToolbar = rclass
     propTypes :

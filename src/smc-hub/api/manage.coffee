@@ -17,21 +17,25 @@ exports.api_key_action = (opts) ->
         database   : required
         account_id : undefined
         password   : undefined
+        passport   : undefined
         action     : undefined    # 'get', 'delete', 'regenerate'
         cb         : required
-    if not opts.password?
-        opts.cb("password must be given")
+    if not opts.password? and not opts.passport
+        opts.cb("password must be given if passport is not true")
         return
     if not opts.action?
         opts.cb("action must be given")
         return
     if not opts.account_id?
-        opts.cb("account_id must be signed in")
+        opts.cb("must be signed in")
         return
 
     api_key = undefined
     async.series([
         (cb) ->
+            if opts.passport
+                # user already authenticated using passport.
+                cb(); return
             is_password_correct
                 database             : opts.database
                 password             : opts.password

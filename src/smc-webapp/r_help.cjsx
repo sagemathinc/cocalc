@@ -197,8 +197,12 @@ SUPPORT_LINKS =
         link :  <span><SiteName/> API</span>
 
 CONNECT_LINKS =
-    support_mailing_list :
+    share :
         bold : true
+        icon : 'bullhorn'
+        href : "#{BASE_URL}/share"
+        link : 'Shared public files'
+    support_mailing_list :
         icon : 'list-alt'
         href : 'https://groups.google.com/forum/?fromgroups#!forum/cocalc'
         link : <span>Mailing list</span>
@@ -390,7 +394,7 @@ exports.HelpPage = HelpPage = rclass
                 </div>
 
                 <Row>
-                    <LinkList title='Help & Support' icon='support' links={SUPPORT_LINKS} />
+                    <LinkList title='Help and support' icon='support' links={SUPPORT_LINKS} />
                     <LinkList title='Connect' icon='plug' links={CONNECT_LINKS} />
                 </Row>
                 <Row style={marginTop:'20px'}>

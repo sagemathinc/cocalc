@@ -249,6 +249,7 @@ schema.accounts =
                     theme                     : "default"
                     undo_depth                : 300
                     jupyter_classic           : false
+                    show_exec_warning         : true
                 other_settings  :
                     confirm_close     : false
                     mask_files        : true
@@ -258,6 +259,7 @@ schema.accounts =
                     show_global_info2 : null
                     first_steps       : true
                     newsletter        : true
+                    time_ago_absolute : false
                 first_name      : ''
                 last_name       : ''
                 terminal        :
@@ -1107,7 +1109,7 @@ schema.site_settings =
 schema.stats =
     primary_key : 'id'
     durability  : 'soft' # ephemeral stats whose slight loss wouldn't matter much
-    anonymous   : true     # allow user read access, even if not signed in
+    anonymous   : false     # allow user read access, even if not signed in
     fields:
         id                  :
             type : 'uuid'
@@ -1132,21 +1134,6 @@ schema.stats =
             type : 'array'
             pg_type : 'JSONB[]'
     pg_indexes : ['time']
-    user_query:
-        get:
-            pg_where: ["time >= NOW() - INTERVAL '5 minutes'"]
-            pg_changefeed : 'five-minutes'
-            options : [{'order_by':'-time'}]
-            throttle_changes : 5000
-            fields :
-                id                  : null
-                time                : null
-                accounts            : 0
-                accounts_created    : null
-                projects            : 0
-                projects_created    : null
-                projects_edited     : null
-                hub_servers         : []
 
 schema.storage_servers =
     primary_key : 'host'

@@ -306,7 +306,7 @@ exports.ConnectionInfo = rclass
         <div>
             {<Row>
                 <Col sm=3>
-                    <h4>Ping Time</h4>
+                    <h4>Ping time</h4>
                 </Col>
                 <Col sm=6>
                     <pre>{@props.avgping}ms (latest: {@props.ping}ms)</pre>
@@ -314,7 +314,7 @@ exports.ConnectionInfo = rclass
             </Row> if @props.ping}
             <Row>
                 <Col sm=3>
-                    <h4>Hub Server</h4>
+                    <h4>Hub server</h4>
                 </Col>
                 <Col sm=6>
                     <pre>{if @props.hub? then @props.hub else "Not signed in"}</pre>
@@ -435,12 +435,12 @@ exports.VersionWarning = rclass
 
     render: ->
         styles =
+            fontSize        : '12pt'
             position        : 'fixed'
             left            : 12
             backgroundColor : 'red'
             color           : '#fff'
             top             : 20
-            opacity         : .75
             borderRadius    : 4
             padding         : 5
             zIndex          : 900
