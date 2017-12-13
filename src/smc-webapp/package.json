@@ -6,6 +6,7 @@
   "directories": {},
   "dependencies": {
     "@zippytech/react-notify-resize": "^3.0.0",
+    "ansi-to-react": "^2.0.1",
     "async": "^2.0.0",
     "babel-cli": "^6.26.0",
     "babel-polyfill": "^6.26.0",
