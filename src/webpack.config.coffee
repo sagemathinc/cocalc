@@ -285,6 +285,16 @@ for [fn_in, fn_out] in [['index.pug', 'index.html']]
                         PREFIX           : if fn_in == 'index.pug' then '' else '../'
     ))
 
+# loading page, plain and minimal
+staticPages.push(new HtmlWebpackPlugin(
+    BASE_URL         : base_url_html
+    filename         : 'loading.html'
+    hash             : PRODMODE
+    template         : path.join(INPUT, 'loading.pug')
+    minify           : htmlMinifyOpts
+    chunks           : []
+))
+
 # doc pages
 for dp in (x for x in glob.sync('webapp-lib/doc/*.pug') when path.basename(x)[0] != '_')
     output_fn = "doc/#{misc.change_filename_extension(path.basename(dp), 'html')}"

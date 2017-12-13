@@ -44,6 +44,8 @@ misc                 = require('smc-util/misc')
 
 {AddCollaborators} = require('./collaborators/add-to-project')
 
+{COLORS} = require('smc-util/theme')
+
 URLBox = rclass
     displayName : 'URLBox'
 
@@ -162,7 +164,7 @@ QuotaConsole = rclass
             style = {borderBottom:'1px solid #ccc'}
             >
             {if @state.editing then quota.edit else quota.view}
-            <ul style={color:'#666'}>
+            <ul style={color:COLORS.GRAY_D}>
                 {upgrade_list}
             </ul>
         </LabeledRow>
@@ -403,7 +405,7 @@ UsagePanel = rclass
                 all_upgrades_to_this_project = {@props.all_upgrades_to_this_project}
                 actions                      = {@props.actions} />
             <hr />
-            <span style={color:'#666'}>If you have any questions about upgrading a project,
+            <span style={color:COLORS.GRAY_D}>If you have any questions about upgrading a project,
                 create a <ShowSupportLink />,
                 or email <HelpEmailLink /> and
                 include the following URL:
@@ -566,7 +568,7 @@ SageWorksheetPanel = rclass
             <Row>
                 <Col sm=8>
                     Restart this Sage Worksheet server. <br />
-                    <span style={color: '#666'}>
+                    <span style={color: COLORS.GRAY_D}>
                         Existing worksheet sessions are unaffected; restart this
                         server if you customize $HOME/bin/sage, so that restarted worksheets
                         will use the new version of Sage.
@@ -587,28 +589,31 @@ JupyterServerPanel = rclass
     propTypes :
         project_id : rtypes.string.isRequired
 
-    render_jupyter_link: ->
-        <a href="/#{@props.project_id}/port/jupyter/" target='_blank'>
-            Plain Jupyter Server
-        </a>
+    render_jupyter_button: ->
+        {APP_BASE_URL} = require('./misc_page')
+        target = encodeURIComponent("#{APP_BASE_URL}/#{@props.project_id}/port/jupyter/")
+        url = "#{APP_BASE_URL}/static/loading.html?target=#{target}"
+        <Button
+            style   = {fontSize:'12pt', margin: '15px'}
+            href    = "#{url}"
+            target  = '_blank'
+            bsStyle = 'default'
+            >
+                <Icon name='external-link'/> Classical Jupyter server
+        </Button>
 
     render: ->
-        <ProjectSettingsPanel title='Jupyter notebook server' icon='list-alt'>
-            <span style={color: '#666'}>
-                The Jupyter notebook server is a Python process that runs in your
-                project that provides backed support for Jupyter notebooks with
-                synchronized editing and TimeTravel.   You can also just
-                use your Jupyter notebook directly via the link below.
-                This does not support multiple users or TimeTravel.
-            </span>
-            <div style={textAlign:'center', fontSize:'14pt', margin: '15px'}>
-                {@render_jupyter_link()}
+        <ProjectSettingsPanel title='Jupyter notebook server' icon='cc-icon-jupyter'>
+            <div style={color: COLORS.GRAY_D}>
+                Click on this button to start and open up the classical Jupyter Notebook server,
+                as built by the Jupyter project.
+                {' '}<b>It does not support synchronized editing and TimeTravel!</b>{' '}
+                Only use it when you need to run extensions or specific libraries
+                depending on an unmodified Jupyter notebook server.
             </div>
-            <span style={color: '#666'}>
-                <b>
-                (The first time you click the above link it <i>will probably fail</i>; refresh and try again.)
-                </b>
-            </span>
+            <div style={textAlign: 'center'}>
+                {@render_jupyter_button()}
+            </div>
         </ProjectSettingsPanel>
 
 ProjectControlPanel = rclass
@@ -643,7 +648,7 @@ ProjectControlPanel = rclass
         if host?
             if @state.show_ssh
                 <div>
-                    SSH into your project: <span style={color:'#666'}>First add your public key to <a onClick={@open_authorized_keys} href=''>~/.ssh/authorized_keys</a>, then use the following username@host:</span>
+                    SSH into your project: <span style={color:COLORS.GRAY_D}>First add your public key to <a onClick={@open_authorized_keys} href=''>~/.ssh/authorized_keys</a>, then use the following username@host:</span>
                     {# WARNING: previous use of <FormControl> here completely breaks copy on Firefox.}
                     <pre>{"#{misc.replace_all(project_id, '-', '')}@#{host}.cocalc.com"} </pre>
                     <a href="https://github.com/sagemathinc/cocalc/wiki/AllAboutProjects#create-ssh-key" target="_blank">
@@ -659,7 +664,7 @@ ProjectControlPanel = rclass
                 </Row>
 
     render_state: ->
-        <span style={fontSize : '12pt', color: '#666'}>
+        <span style={fontSize : '12pt', color: COLORS.GRAY_D}>
             <ProjectState show_desc={true} state={@props.project.get('state')?.get('state')} />
         </span>
 
@@ -668,7 +673,7 @@ ProjectControlPanel = rclass
         date = redux.getStore('projects').get_idle_timeout_horizon(@props.project.get('project_id'))
         if not date  # e.g., viewing as admin...
             return
-        return <span style={color:'#666'}>
+        return <span style={color:COLORS.GRAY_D}>
             <Icon name='hourglass-half' /> <b>About <TimeAgo date={date}/></b> project will stop unless somebody actively edits.
         </span>
 
@@ -732,7 +737,7 @@ ProjectControlPanel = rclass
         delta_s = (misc.server_time().getTime() - start_ts) / 1000
         uptime_str = misc.seconds2hms(delta_s, true)
         <LabeledRow key='uptime' label='Uptime' style={@rowstyle()}>
-            <span style={color:'#666'}>
+            <span style={color:COLORS.GRAY_D}>
                  <Icon name='clock-o' /> <b>{uptime_str}</b> total runtime of this session
             </span>
         </LabeledRow>
@@ -743,7 +748,7 @@ ProjectControlPanel = rclass
         return if @props.project.getIn(['state', 'state']) != 'running'
         cpu_str = misc.seconds2hms(cpu, true)
         <LabeledRow key='cpu-usage' label='CPU Usage' style={@rowstyle(true)}>
-            <span style={color:'#666'}>
+            <span style={color:COLORS.GRAY_D}>
                 <Icon name='calculator' /> <b>{cpu_str}</b> of CPU time used during this session
             </span>
         </LabeledRow>
