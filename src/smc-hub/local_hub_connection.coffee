@@ -19,8 +19,10 @@
 #
 ###############################################################################
 
+{PROJECT_HUB_HEARTBEAT_INTERVAL_S} = require('smc-util/heartbeat')
+
 ###
-LocalHub
+Connection to a Project (="local hub", for historical reasons only.)
 ###
 
 async   = require('async')
@@ -108,6 +110,18 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
         @call_callbacks = {}
         @path = '.'    # should deprecate - *is* used by some random code elsewhere in this file
         @dbg("getting deployed running project")
+        @init_heartbeat()
+
+    init_heartbeat: =>
+        send_heartbeat = =>
+            @_socket?.write_mesg('json', message.heartbeat())
+        @_heartbeat_interval = setInterval(send_heartbeat, PROJECT_HUB_HEARTBEAT_INTERVAL_S*1000)
+
+    delete_heartbeat: =>
+        if @_heartbeat_interval?
+            clearInterval(@_heartbeat_interval)
+            delete @_heartbeat_interval
+
 
     project: (cb) =>
         @compute_server.project
@@ -174,6 +188,7 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
     free_resources: () =>
         @dbg("free_resources")
         @query_cancel_all_changefeeds()
+        @delete_heartbeat()
         delete @address  # so we don't continue trying to use old address
         delete @_status
         delete @smc_version  # so when client next connects we ignore version checks until they tell us their version
