@@ -733,7 +733,7 @@ ProjectControlPanel = rclass
         uptime_str = misc.seconds2hms(delta_s, true)
         <LabeledRow key='uptime' label='Uptime' style={@rowstyle()}>
             <span style={color:'#666'}>
-                 <Icon name='clock-o' /> <b>{uptime_str}</b> total runtime of this session
+                 <Icon name='clock-o' /> project started <b>{uptime_str}</b> ago
             </span>
         </LabeledRow>
 
@@ -744,7 +744,7 @@ ProjectControlPanel = rclass
         cpu_str = misc.seconds2hms(cpu, true)
         <LabeledRow key='cpu-usage' label='CPU Usage' style={@rowstyle(true)}>
             <span style={color:'#666'}>
-                <Icon name='calculator' /> <b>{cpu_str}</b> of CPU time used during this session
+                <Icon name='calculator' /> used <b>{cpu_str}</b> of CPU time since project started
             </span>
         </LabeledRow>
 
