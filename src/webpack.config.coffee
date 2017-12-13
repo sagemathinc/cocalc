@@ -634,7 +634,7 @@ module.exports =
             { test: /\.svg(\?[a-z0-9\.-=]+)?$/,    loader: "url-loader?#{svgconfig}" },
             { test: /\.(jpg|jpeg|gif)$/,    loader: "file-loader?name=#{hashname}"},
             # .html only for files in smc-webapp!
-            { test: /\.html$/, include: [path.resolve(__dirname, 'smc-webapp')], loader: "raw!html-minify?conservativeCollapse"},
+            { test: /\.html$/, include: [path.resolve(__dirname, 'smc-webapp')], use: ["raw-loader", "html-minify?conservativeCollapse"]},
             # { test: /\.html$/, include: [path.resolve(__dirname, 'webapp-lib')], loader: "html-loader"},
             { test: /\.hbs$/,    loader: "handlebars-loader" },
             { test: /\.woff(2)?(\?[a-z0-9\.-=]+)?$/, loader: "url-loader?#{woffconfig}" },
