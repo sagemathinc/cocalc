@@ -312,7 +312,7 @@ class SyncTable extends EventEmitter
                 # 2. Now actually do the changefeed query.
                 @_reconnect(cb)
         ], (err) =>
-            cb_fatal(err, cb)
+            cb?(err)
         )
 
     _reconnect: (cb) =>
@@ -518,10 +518,8 @@ class SyncTable extends EventEmitter
         else
             @__is_saving = true
             @__save (err) =>
-                cb_fatal err, (e) =>
-                    @__is_saving = false
-                    cb?(e)
-
+                @__is_saving = false
+                cb?(err)
 
     __save: (cb) =>
         if @_state == 'closed'
