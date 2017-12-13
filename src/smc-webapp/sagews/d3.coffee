@@ -2,9 +2,7 @@ $ = window.$
 misc = require('smc-util/misc')
 {defaults, required} = misc
 
-# load the npm install'd d3;  NOTE!: just doing require('d3') itself fails with webpack.
-# earlier, there was a d3/d3.js file, but after the latest major update, there is a minified version available
-d3 = require('d3/build/d3.min.js')
+d3 = require('d3')
 
 # Make d3 available to users in general.
 window?.d3 = d3
