@@ -81,9 +81,14 @@ exports.new_local_hub = (project_id, database, compute_server) ->
         _local_hub_cache[project_id] = H
     return H
 
-exports.connect_to_project = (project_id, database, compute_server) ->
+exports.connect_to_project = (project_id, database, compute_server, cb) ->
     hub = exports.new_local_hub(project_id, database, compute_server)
-    hub.local_hub_socket(()->)
+    hub.local_hub_socket (err) ->
+        if err
+            winston.debug("connect_to_project: error ensuring connection to #{project_id} -- #{err}")
+        else
+            winston.debug("connect_to_project: successfully ensured connection to #{project_id}")
+        cb?(err)
 
 exports.all_local_hubs = () ->
     v = []
@@ -110,18 +115,22 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
         @call_callbacks = {}
         @path = '.'    # should deprecate - *is* used by some random code elsewhere in this file
         @dbg("getting deployed running project")
-        @init_heartbeat()
 
     init_heartbeat: =>
+        @dbg("init_heartbeat")
+        if @_heartbeat_interval?  # already running
+            @dbg("init_heartbeat -- already running")
+            return
         send_heartbeat = =>
+            @dbg("init_heartbeat -- send")
             @_socket?.write_mesg('json', message.heartbeat())
         @_heartbeat_interval = setInterval(send_heartbeat, PROJECT_HUB_HEARTBEAT_INTERVAL_S*1000)
 
     delete_heartbeat: =>
         if @_heartbeat_interval?
+            @dbg("delete_heartbeat")
             clearInterval(@_heartbeat_interval)
             delete @_heartbeat_interval
-
 
     project: (cb) =>
         @compute_server.project
@@ -131,7 +140,7 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
     dbg: (m) =>
         ## only enable when debugging
         if DEBUG
-            winston.debug("local_hub(#{@project_id}: #{misc.to_json(m)}")
+            winston.debug("local_hub('#{@project_id}'): #{misc.to_json(m)}")
 
     move: (opts) =>
         opts = defaults opts,
@@ -467,7 +476,7 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
                         when 'json'
                             @handle_mesg(mesg, socket)
 
-                socket.on('end', @free_resources)
+                socket.on('end',   @free_resources)
                 socket.on('close', @free_resources)
                 socket.on('error', @free_resources)
 
@@ -480,6 +489,7 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
                 delete @_local_hub_socket_queue
 
                 @_socket = socket
+                @init_heartbeat()  # start sending heartbeat over this socket
 
                 # Finally, we wait a bit to see if the version gets sent from
                 # the client.  If not, we set it to 0, which will cause a restart,

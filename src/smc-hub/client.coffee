@@ -57,7 +57,7 @@ CACHE_PROJECT_AUTH_MS = 1000*60*15    # 15 minutes
 CLIENT_DESTROY_TIMER_S = 60*10  # 10 minutes
 #CLIENT_DESTROY_TIMER_S = 0.1    # instant -- for debugging
 
-CLIENT_MIN_ACTIVE_S = 45  # ??? is this a good choice?  No idea.
+CLIENT_MIN_ACTIVE_S = 45
 
 # How frequently we tell the browser clients to report metrics back to us.
 # Set to 0 to completely disable metrics collection from clients.
@@ -169,6 +169,7 @@ class exports.Client extends EventEmitter
         @_touch_lock[key] = true
         delete opts.force
         @database.touch(opts)
+
         setTimeout((()=>delete @_touch_lock[key]), CLIENT_MIN_ACTIVE_S*1000)
 
     install_conn_handlers: () =>

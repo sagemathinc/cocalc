@@ -267,6 +267,7 @@ start_tcp_server = (secret_token, port, cb) ->
                 winston.debug(err)
             else
                 socket.id = uuid.v4()
+                socket.heartbeat = new Date()  # obviously working now
                 misc_node.enable_mesg(socket)
 
                 handler = (type, mesg) ->
