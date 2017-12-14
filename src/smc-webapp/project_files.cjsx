@@ -23,7 +23,7 @@
 {Col, Row, ButtonToolbar, ButtonGroup, MenuItem, Button, Well, FormControl, FormGroup
  ButtonToolbar, Popover, OverlayTrigger, SplitButton, MenuItem, Alert, Checkbox, Breadcrumb, Navbar} =  require('react-bootstrap')
 misc = require('smc-util/misc')
-{ActivityDisplay, DeletedProjectWarning, DirectoryInput, Icon, Loading, ProjectState, COLORS,
+{ActivityDisplay, DirectoryInput, Icon, Loading, ProjectState, COLORS,
  SearchInput, TimeAgo, ErrorDisplay, Space, Tip, LoginLink, Footer, CourseProjectExtraHelp, CopyToClipBoard} = require('./r_misc')
 {SMC_Dropwrapper} = require('./smc-dropzone')
 {FileTypeSelector, NewFileButton} = require('./project_new')
@@ -2198,10 +2198,6 @@ exports.ProjectFiles = rclass ({name}) ->
             {@render_upgrade_in_place() if @state.show_pay}
         </Alert>
 
-    render_deleted: ->
-        if @props.project_map?.getIn([@props.project_id, 'deleted'])
-            <DeletedProjectWarning/>
-
     render_error: ->
         if @props.error
             <ErrorDisplay
@@ -2340,7 +2336,6 @@ exports.ProjectFiles = rclass ({name}) ->
 
         <div style={padding:'15px'}>
             {if pay? then @render_course_payment_warning(pay)}
-            {@render_deleted()}
             {@render_error()}
             {@render_activity()}
             <div style={display: 'flex', flexFlow: 'row wrap', justifyContent: 'space-between', alignItems: 'stretch'}>
