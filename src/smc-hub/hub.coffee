@@ -145,28 +145,6 @@ normalize_path = (path) ->
     #    path = undefined
     return {path:path, action:action}
 
-path_activity_cache = {}
-path_activity = (opts) ->
-    opts = defaults opts,
-        account_id : required
-        project_id : required
-        path       : required
-        client     : required
-        cb         : undefined
-
-    {path, action} = normalize_path(opts.path)
-    winston.debug("path_activity(#{opts.account_id},#{opts.project_id},#{path}): #{action}")
-    if not path?
-        opts.cb?()
-        return
-
-    opts.client.touch
-        project_id : opts.project_id
-        path       : path
-        action     : action
-        force      : action == 'chat'
-        cb         : opts.cb
-
 ##############################
 # Create the Primus realtime socket server
 ##############################
@@ -400,8 +378,9 @@ init_compute_server = (cb) ->
         # This is used by the database when handling certain writes to make sure
         # that the there is a connection to the corresponding project, so that
         # the project can respond.
-        database.ensure_connection_to_project = (project_id) ->
-            local_hub_connection.connect_to_project(project_id, database, compute_server)
+        database.ensure_connection_to_project = (project_id, cb) ->
+            winston.debug("ensure_connection_to_project -- project_id=#{project_id}")
+            local_hub_connection.connect_to_project(project_id, database, compute_server, cb)
         cb?()
 
     if program.kucalc

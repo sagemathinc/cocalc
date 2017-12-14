@@ -1513,6 +1513,11 @@ message
     id           : undefined
     path         : required
 
+###
+Heartbeat message for connection from hub to project.
+###
+message
+    event : 'heartbeat'
 
 ###
 Ping/pong -- used for clock sync, etc.

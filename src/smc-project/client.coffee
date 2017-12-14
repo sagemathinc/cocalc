@@ -24,6 +24,8 @@ as a result.
 SYNCSTRING_MAX_AGE_M = 20
 #SYNCSTRING_MAX_AGE_M = 1 # TESTING
 
+{PROJECT_HUB_HEARTBEAT_INTERVAL_S} = require('smc-util/heartbeat')
+
 # CRITICAL: The above SYNCSTRING_MAX_AGE_M idle timeout does *NOT* apply to Sage worksheet
 # syncstrings, since they also maintain the sage session, put output into the
 # syncstring, etc.  It's critical that those only close when the user explicitly
@@ -328,8 +330,14 @@ class exports.Client extends EventEmitter
         if not x?
             dbg()
             x = @_hub_client_sockets[socket.id] = {socket:socket, callbacks:{}, activity:new Date()}
-            socket.on 'end', =>
-                dbg("end")
+            locals =
+                heartbeat_interval : undefined
+            socket_end = =>
+                if not locals.heartbeat_interval?
+                    return
+                dbg("ending socket")
+                clearInterval(locals.heartbeat_interval)
+                locals.heartbeat_interval = undefined
                 if x.callbacks?
                     for id, cb of x.callbacks
                         cb?('socket closed')
@@ -340,6 +348,19 @@ class exports.Client extends EventEmitter
                     @_connected = false
                     dbg("lost all active sockets")
                     @emit('disconnected')
+                socket.end()
+
+            socket.on('end', socket_end)
+
+            check_heartbeat = =>
+                if not socket.heartbeat? or new Date() - socket.heartbeat >= 1.5*PROJECT_HUB_HEARTBEAT_INTERVAL_S*1000
+                    dbg("heartbeat failed")
+                    socket_end()
+                else
+                    dbg("heartbeat -- socket is working")
+
+            locals.heartbeat_interval = setInterval(check_heartbeat, 1.5*PROJECT_HUB_HEARTBEAT_INTERVAL_S*1000)
+
             if misc.len(@_hub_client_sockets) >= 1
                 dbg("CONNECTED!")
                 @_connected = true
