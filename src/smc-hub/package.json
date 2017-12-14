@@ -64,7 +64,7 @@
   },
   "devDependencies": {
     "coffee-coverage": "^0.6.2",
-    "coffee-script": "^1.9.3",
+    "coffeescript": "^1.12.7",
     "coffeelint": "^1.10.1",
     "coveralls": "^2.11.2",
     "expect": "^1.12.2",
