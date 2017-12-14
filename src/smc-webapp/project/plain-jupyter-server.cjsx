@@ -1,6 +1,12 @@
-{React, ReactDOM, rtypes, rclass}  = require('./smc-react')
+{React, rtypes, rclass}  = require('../smc-react')
 
-{ProjectSettingsPanel} = require('project-settings-support')
+{ProjectSettingsPanel} = require('./project-settings-support')
+
+{Icon} = require('../r_misc')
+
+{jupyter_server_url} = require('../editor_jupyter')
+
+{LinkRetryUntilSuccess} = require('../widgets-misc/link-retry')
 
 exports.JupyterServerPanel = rclass
     displayName : 'ProjectSettings-JupyterServer'
@@ -9,25 +15,25 @@ exports.JupyterServerPanel = rclass
         project_id : rtypes.string.isRequired
 
     render_jupyter_link: ->
-        <a href="/#{@props.project_id}/port/jupyter/" target='_blank'>
-            Plain Jupyter Server
-        </a>
+        url = jupyter_server_url(@props.project_id)
+        <LinkRetryUntilSuccess href={url} target='_blank'>
+            <Icon name='cc-icon-ipynb' /> Plain Jupyter Server
+        </LinkRetryUntilSuccess>
 
     render: ->
         <ProjectSettingsPanel title='Jupyter notebook server' icon='list-alt'>
-            <span style={color: '#666'}>
-                The Jupyter notebook server is a Python process that runs in your
-                project that provides backed support for Jupyter notebooks with
-                synchronized editing and TimeTravel.   You can also just
-                use your Jupyter notebook directly via the link below.
-                This does not support multiple users or TimeTravel.
+            <span style={color: '#444'}>
+                The Jupyter notebook server runs in your
+                project and provides support for classical Jupyter notebooks.
+                You can also use the plain classical Jupyter notebook server directly via the link below.
+                This does not support multiple users or TimeTravel, but fully supports all classical Jupyter
+                notebook features and extensions.
+
+                <br/><br/>
+                Click the link below to start your Jupyter notebook server and open it in a new browser tab.
             </span>
             <div style={textAlign:'center', fontSize:'14pt', margin: '15px'}>
                 {@render_jupyter_link()}
             </div>
-            <span style={color: '#666'}>
-                <b>
-                (The first time you click the above link it <i>will probably fail</i>; refresh and try again.)
-                </b>
-            </span>
         </ProjectSettingsPanel>
+

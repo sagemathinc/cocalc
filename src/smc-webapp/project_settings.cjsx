@@ -19,6 +19,11 @@
 #
 ###############################################################################
 
+###
+ATTENTION!  If you want to refactor this code before working on it (I hope you do!),
+put stuff in the new directory project/
+###
+
 immutable  = require('immutable')
 underscore = require('underscore')
 async      = require('async')
@@ -44,6 +49,10 @@ misc                 = require('smc-util/misc')
 
 {AddCollaborators} = require('./collaborators/add-to-project')
 
+{ProjectSettingsPanel} = require('./project/project-settings-support')
+{JupyterServerPanel}   = require('./project/plain-jupyter-server')
+
+
 URLBox = rclass
     displayName : 'URLBox'
 
@@ -54,21 +63,6 @@ URLBox = rclass
             url = url.slice(0,i)
         # note -- use of Input below is completely broken on Firefox! Do not naively change this back!!!!
         <pre style={fontSize:'11px'}>{url}</pre>
-
-ProjectSettingsPanel = rclass
-    displayName : 'ProjectSettingsPanel'
-
-    propTypes :
-        icon  : rtypes.string.isRequired
-        title : rtypes.string.isRequired
-
-    render_header: ->
-        <h3><Icon name={@props.icon} /> {@props.title}</h3>
-
-    render: ->
-        <Panel header={@render_header()}>
-            {@props.children}
-        </Panel>
 
 TitleDescriptionPanel = rclass
     displayName : 'ProjectSettings-TitleDescriptionPanel'
