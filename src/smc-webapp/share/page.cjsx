@@ -85,19 +85,15 @@ exports.Page = rclass
                 {@render_google_analytics()}
             </head>
             <body>
-                <div style={display: 'flex', flexDirection: 'column', height: '100vh', width: '100vw', overflow: 'auto'}>
-                    <TopBar
-                        viewer       = @props.viewer
-                        path         = @props.path
-                        project_id   = @props.project_id
-                        base_url     = @props.base_url
-                        site_name    = @props.site_name
-                        is_public    = @props.is_public
-                    />
-                    <div key='index' style={display: 'flex', flexDirection: 'column', flex:1}>
-                        {@props.children}
-                    </div>
-                </div>
+                <TopBar
+                    viewer       = @props.viewer
+                    path         = @props.path
+                    project_id   = @props.project_id
+                    base_url     = @props.base_url
+                    site_name    = @props.site_name
+                    is_public    = @props.is_public
+                />
+                {@props.children}
             </body>
         </html>
 
