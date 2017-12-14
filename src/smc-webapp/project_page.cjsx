@@ -604,6 +604,7 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
             return <Loading />
         group = @props.get_my_group(@props.project_id)
         active_path = misc.tab_to_path(@props.active_project_tab)
+        project = @props.project_map?.get(@props.project_id)
         style =
             display       : 'flex'
             flexDirection : 'column'
@@ -615,6 +616,7 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
             <DiskSpaceWarning project_id={@props.project_id} />
             <RamWarning project_id={@props.project_id} />
             <FreeProjectWarning project_id={@props.project_id} name={name} />
+            {<DeletedProjectWarning /> if project?.get('deleted')}
             {@render_file_tabs(group == 'public') if not @props.fullscreen}
             <ProjectContentViewer
                 project_id      = {@props.project_id}
@@ -727,10 +729,12 @@ exports.MobileProjectPage = rclass ({name}) ->
             return <Loading />
         group = @props.get_my_group(@props.project_id)
         active_path = misc.tab_to_path(@props.active_project_tab)
+        project = @props.project_map?.get(@props.project_id)
 
         <div className='container-content' style={display: 'flex', flexDirection: 'column', flex: 1, overflow:'auto'}>
             <DiskSpaceWarning project_id={@props.project_id} />
             <FreeProjectWarning project_id={@props.project_id} name={name} />
+            {<DeletedProjectWarning /> if project?.get('deleted')}
             {<div className="smc-file-tabs" ref="projectNav" style={width:"100%", height:"37px"}>
                 <Nav bsStyle="pills" className="smc-file-tabs-fixed-mobile" style={float:'left'}>
                     {[<FileTab
