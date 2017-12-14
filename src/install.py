@@ -99,8 +99,8 @@ def install_webapp(*args):
         install_primus()
         # update term.js
         cmd("cd webapp-lib/term; ./compile")
-        wtype = 'debug' if args[0].debug else 'production'
-        if args[0].debug:
+        wtype = 'debug' if (len(args) > 0 and args[0].debug) else 'production'
+        if len(args) > 0 and args[0].debug:
             wtype = 'debug'
             est   = 1
         else:
