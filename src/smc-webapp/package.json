@@ -18,7 +18,7 @@
     "codemirror": "^5.19.0",
     "coffee-react": "^5.0.0",
     "coffee-react-transform": "^5.0.0",
-    "coffeescript": "^1.12.7",
+    "coffee-script": "^1.12.7",
     "coffeelint": "^1.16.0",
     "coffeelint-cjsx": "git://github.com/sagemathinc/coffeelint-cjsx.git",
     "copy-to-clipboard": "^3.0.8",
@@ -81,7 +81,7 @@
   },
   "devDependencies": {
     "coffee-coverage": "^0.6.3",
-    "coffeescript": "^1.12.7",
+    "coffee-script": "^1.12.7",
     "coffeelint": "^1.16.0",
     "coffeelint-cjsx": "git://github.com/sagemathinc/coffeelint-cjsx.git",
     "expect": "^21.0.0",

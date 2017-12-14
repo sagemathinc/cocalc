@@ -14,7 +14,7 @@
     "async": "^1.4.2",
     "coffee-cache": "^1.0.2",
     "coffee-register-cache": "0.0.0",
-    "coffeescript": "^1.12.7",
+    "coffee-script": "^1.12.7",
     "jsdom": "^7.2.2",
     "shell-escape": "^0.2.0",
     "sqlite3": "^3.1.0",

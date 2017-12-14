@@ -14,7 +14,7 @@
     "coffee-loader": "^0.7.2",
     "coffee-react": "^5.0.0",
     "coffee-react-transform": "^4.0.0",
-    "coffeescript": "^1.12.7",
+    "coffee-script": "^1.12.7",
     "coffeelint": "^1.15.7",
     "coffeelint-cjsx": "2.0.2",
     "copy-webpack-plugin": "^4",
