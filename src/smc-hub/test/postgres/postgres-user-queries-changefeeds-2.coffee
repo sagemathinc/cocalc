@@ -331,7 +331,7 @@ describe 'test changefeed admin-only access to project', ->
             account_id : accounts[0]
             query      : {projects_admin:{project_id:project_id, title:"Better Title"}}
             cb         : (err) ->
-                expect(err).toEqual("user set queries not allowed for table 'projects_admin'")
+                expect(err).toEqual("FATAL: user set queries not allowed for table 'projects_admin'")
                 done()
 
     it 'tests project title changed properly (so reading as admin)', (done) ->
@@ -347,7 +347,7 @@ describe 'test changefeed admin-only access to project', ->
             account_id : accounts[1]
             query      : {projects:{project_id:project_id, title:"Even Better Title"}}
             cb         : (err) ->
-                expect(err).toEqual('user must be an admin')
+                expect(err).toEqual('FATAL: user must be an admin')
                 done()
 
     it 'tests reading from project as non-collab', (done) ->
@@ -355,14 +355,14 @@ describe 'test changefeed admin-only access to project', ->
             account_id : accounts[1]
             query      : {projects:{project_id:project_id, title:null}}
             cb         : (err) ->
-                expect(err).toEqual('you do not have read access to this project')
+                expect(err).toEqual('FATAL: you do not have read access to this project')
                 done()
 
     it 'tests writing to project as anonymous', (done) ->
         db.user_query
             query      : {projects:{project_id:project_id, title:null}}
             cb         : (err) ->
-                expect(err).toEqual("anonymous get queries not allowed for table 'projects'")
+                expect(err).toEqual("FATAL: anonymous get queries not allowed for table 'projects'")
                 done()
 
     it 'tests admin changefeed on projects_admin table', (done) ->
@@ -389,14 +389,14 @@ describe 'test changefeed admin-only access to project', ->
                     cb()
                 ], done)
 
-    it 'tests that user must be an admin to read from (or get changefeed on) projects_admin table', (done) ->
+    it 'tests that FATAL: user must be an admin to read from (or get changefeed on) projects_admin table', (done) ->
         changefeed_id = misc.uuid()
         db.user_query
             account_id : accounts[1]  # NOT admin
             query      : {projects_admin:[{project_id:project_id, title:null}]}
             changes    : changefeed_id
             cb         : (err) ->
-                expect(err).toEqual('user must be an admin')
+                expect(err).toEqual('FATAL: user must be an admin')
                 done()
 
 
@@ -458,7 +458,7 @@ describe 'test public_projects table -- ', ->
             account_id : accounts[0]
             query      : {public_projects:{project_id:null, title:null, description:null}}
             cb         : (err, x) ->
-                expect(err).toEqual('must specify project_id')
+                expect(err).toEqual('FATAL: must specify project_id')
                 done()
 
     tests = (account_id, done) ->
@@ -530,14 +530,14 @@ describe 'test public_paths table -- ', ->
             account_id : accounts[1]
             query      : {public_paths:{project_id:projects[0], path:"bar2.txt"}}
             cb         : (err) ->
-                expect(err).toEqual('user must be an admin')
+                expect(err).toEqual('FATAL: user must be an admin')
                 done()
 
     it 'fail to add a public path when not logged in', (done) ->
         db.user_query
             query      : {public_paths:{project_id:projects[0], path:'foo2.txt'}}
             cb         : (err) ->
-                expect(err).toEqual('no anonymous set queries')
+                expect(err).toEqual('FATAL: no anonymous set queries')
                 done()
 
     read_public_paths = (done) ->
@@ -561,7 +561,7 @@ describe 'test public_paths table -- ', ->
             query      : {public_paths:[{project_id:projects[0], path:null}]}
             changes    : misc.uuid()
             cb         : (err) =>
-                expect(err).toEqual("changefeed MUST include primary key (='id') in query")
+                expect(err).toEqual("FATAL: changefeed MUST include primary key (='id') in query")
                 done()
 
     changefeed_pub_paths = (done) ->
@@ -624,7 +624,7 @@ describe 'test site_settings table -- ', ->
             account_id : accounts[0]
             query : {site_settings:{site_name:'Hacker Site!'}}
             cb    : (err) ->
-                expect(err).toEqual("error setting 'name' -- Error: setting name='undefined' not allowed")
+                expect(err).toEqual("FATAL: error setting 'name' -- Error: setting name='undefined' not allowed")
                 done()
 
     it "check writing to not allowed row", (done) ->
@@ -632,21 +632,21 @@ describe 'test site_settings table -- ', ->
             account_id : accounts[0]
             query : {site_settings:{name:'foobar', value:'stuff'}}
             cb    : (err) ->
-                expect(err).toEqual("error setting 'name' -- Error: setting name='foobar' not allowed")
+                expect(err).toEqual("FATAL: error setting 'name' -- Error: setting name='foobar' not allowed")
                 done()
 
     it "check anon can't write", (done) ->
         db.user_query
             query : {site_settings:{name:'site_name', value:'Hacker Site!'}}
             cb    : (err) ->
-                expect(err).toEqual("no anonymous set queries")
+                expect(err).toEqual("FATAL: no anonymous set queries")
                 done()
 
     it "check anon can't read", (done) ->
         db.user_query
             query : {site_settings:{name:'site_name', value:null}}
             cb    : (err) ->
-                expect(err).toEqual("anonymous get queries not allowed for table 'site_settings'")
+                expect(err).toEqual("FATAL: anonymous get queries not allowed for table 'site_settings'")
                 done()
 
     it "check non-admin can't write", (done) ->
@@ -654,7 +654,7 @@ describe 'test site_settings table -- ', ->
             account_id : accounts[1]
             query : {site_settings:{name:'site_name', value:'Hacker Site!'}}
             cb    : (err) ->
-                expect(err).toEqual("user must be an admin")
+                expect(err).toEqual("FATAL: user must be an admin")
                 done()
 
     it "check non-admin can't read", (done) ->
@@ -662,7 +662,7 @@ describe 'test site_settings table -- ', ->
             account_id : accounts[1]
             query : {site_settings:{name:'site_name', value:null}}
             cb    : (err) ->
-                expect(err).toEqual("user must be an admin")
+                expect(err).toEqual("FATAL: user must be an admin")
                 done()
 
     it "check admin can write", (done) ->
@@ -739,16 +739,16 @@ describe 'test stats changefeed: ', ->
         db.user_query
             query : {stats:[obj]}
             cb    : (err, x) ->
-                expect(x).toEqual({ stats: [] })
-                done(err)
+                expect(err).toEqual("FATAL: get queries not allowed for table 'stats'")
+                done()
 
     it 'query the stats table as user (get nothing, no error)', (done) ->
         db.user_query
             account_id : account_id
             query      : {stats:[obj]}
             cb         : (err, x) ->
-                expect(x).toEqual({ stats: [] })
-                done(err)
+                expect(err).toEqual("FATAL: get queries not allowed for table 'stats'")
+                done()
 
     it 'insert some entries in the stats table', (done) ->
         db.get_stats(cb:done)
@@ -758,77 +758,15 @@ describe 'test stats changefeed: ', ->
             account_id : account_id
             query      : {stats:[obj]}
             cb         : (err, x) ->
-                expect(x).toEqual({ stats: [ { accounts: 1, accounts_created: { '1d': 1, '1h': 1, '30d': 1, '7d': 1 }, hub_servers: [], id:x.stats[0].id, projects: 0, projects_created: { '1d': 0, '1h': 0, '30d': 0, '7d': 0 }, projects_edited: { '1d': 0, '1h': 0, '30d': 0, '5min': 0, '7d': 0 }, time:x.stats[0].time } ] })
-                done(err)
+                expect(err).toEqual("FATAL: get queries not allowed for table 'stats'")
+                done()
 
     it 'query the stats table as anon and gets the one entry', (done) ->
         db.user_query
             query      : {stats:[obj]}
             cb         : (err, x) ->
-                expect(x).toEqual({ stats: [ { accounts: 1, accounts_created: { '1d': 1, '1h': 1, '30d': 1, '7d': 1 }, hub_servers: [], id:x.stats[0].id, projects: 0, projects_created: { '1d': 0, '1h': 0, '30d': 0, '7d': 0 }, projects_edited: { '1d': 0, '1h': 0, '30d': 0, '5min': 0, '7d': 0 }, time:x.stats[0].time } ] })
-                done(err)
-
-    it 'creates some more accounts and projects and add another stats entry', (done) ->
-        async.series([
-            (cb) ->
-                create_accounts 100, 1, (err, x) -> account_id=x[0]; cb(err)
-            (cb) ->
-                create_projects 100, account_id, cb
-            (cb) ->
-                db.get_stats(cb:cb, ttl:-1)
-            (cb) ->
-                db.user_query
-                    query      : {stats:[obj]}
-                    cb         : (err, x) ->
-                        expect(x.stats[0]).toEqual({ accounts: 101, accounts_created: { '1d': 101, '1h': 101, '30d': 101, '7d': 101 }, hub_servers: [], id:x.stats[0].id, projects: 100, projects_created: { '1d': 100, '1h': 100, '30d': 100, '7d': 100 }, projects_edited: { '1d': 100, '1h': 100, '30d': 100, '5min': 100, '7d': 100 }, time:x.stats[0].time })
-                        cb(err)
-        ], done)
-
-    it 'create anonymous changefeed on stats and see new entry appear', (done) ->
-        changefeed_id = misc.uuid()
-        remove_id = undefined
-        db.user_query
-            query      : {stats:[obj]}
-            changes    : changefeed_id
-            cb         : changefeed_series([
-                (x, cb) ->
-                    expect(x.stats.length).toEqual(2)
-                    async.series([
-                        (cb) ->
-                            create_projects(10, account_id, cb)
-                        (cb) ->
-                            db.get_stats(ttl:0, ttl_db:0, ttl_dt:0, cb:cb)
-                    ], cb)
-                (x, cb) ->
-                    expect(x).toEqual({ action: 'insert', new_val: { accounts: 101, accounts_created: { '1d': 101, '1h': 101, '30d': 101, '7d': 101 }, hub_servers: [], id:x.new_val.id, projects: 110, projects_created: { '1d': 110, '1h': 110, '30d': 110, '7d': 110 }, projects_edited: { '1d': 110, '1h': 110, '30d': 110, '5min': 110, '7d': 110 }, time: x.new_val.time } })
-
-                    db._query
-                        query : "UPDATE stats"
-                        set   : {projects:150}
-                        where : {id:x.new_val.id}
-                        cb    : cb
-
-                (x, cb) ->
-                    expect(x).toEqual({ action: 'update', new_val: { accounts: 101, accounts_created: { '1d': 101, '1h': 101, '30d': 101, '7d': 101 }, hub_servers: [], id:x.new_val.id, projects: 150, projects_created: { '1d': 110, '1h': 110, '30d': 110, '7d': 110 }, projects_edited: { '1d': 110, '1h': 110, '30d': 110, '5min': 110, '7d': 110 }, time: x.new_val.time } })
-
-                    # remove something from the changefeed by editing its timestamp to be old
-                    remove_id = x.new_val.id
-                    db._query
-                        query : "UPDATE stats"
-                        set   : {time:misc.hours_ago(2)}
-                        where : {id:remove_id}
-                        cb    : cb
-                (x, cb) ->
-                    expect(x.action).toEqual('delete')
-                    expect(x.old_val.id).toEqual(remove_id)
-                    expect(x.new_val).toEqual(undefined)
-
-                    db.user_query_cancel_changefeed(id:changefeed_id, cb:cb)
-                (x, cb) ->
-                    expect(x).toEqual({action:'close'})
-
-                    cb()
-            ], done)
+                expect(err).toEqual("FATAL: get queries not allowed for table 'stats'")
+                done()
 
 
 describe 'test system_notifications ', ->
@@ -865,7 +803,7 @@ describe 'test system_notifications ', ->
                 cb         : (err, result) ->
                     expect(err).toEqual(x.err)
                     cb()
-        async.map([{account_id:accounts[0]}, {account_id:accounts[1], err:'user must be an admin'}, {err:'no anonymous set queries'}], f, done)
+        async.map([{account_id:accounts[0]}, {account_id:accounts[1], err:'FATAL: user must be an admin'}, {err:'FATAL: no anonymous set queries'}], f, done)
 
     it 'reads non-empty table as admin, non-admin, and anon', (done) ->
         # fill in the defaults from the schema

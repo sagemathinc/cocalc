@@ -110,7 +110,7 @@ describe 'some basic testing of user_queries', ->
             account_id : account_id2
             query      : {projects:[{project_id:project_id, title:null, description:null}]}
             cb         : (err, projects) ->
-                expect(err).toEqual('you do not have read access to this project')
+                expect(err).toEqual('FATAL: you do not have read access to this project')
                 done()
 
     it 'queries the collaborators virtual table before there are any projects for the second user', (done) ->
@@ -236,7 +236,7 @@ describe 'testing file_use -- ', ->
                     path        : 'foo'
                     users       : null
             cb         : (err, result) ->
-                expect(err).toEqual('you do not have read access to this project')
+                expect(err).toEqual('FATAL: you do not have read access to this project')
                 done()
 
     it 'adds second user to first project, then reads and finds one file_use match', (done) ->
@@ -337,7 +337,7 @@ describe 'testing file_use -- ', ->
                     account_id : accounts[0]
                     query      : {file_use : obj}
                     cb         : (err) ->
-                        expect(err).toEqual('user must be an admin')
+                        expect(err).toEqual('FATAL: user must be an admin')
                         cb()
             (cb) ->
                 # now make account 0 an admin
@@ -442,7 +442,7 @@ describe 'test project_log table', ->
             query      :
                 project_log : [{project_id:projects[0], time:null, id:null}]
             cb         : (err, result) ->
-                expect(err).toEqual('you do not have read access to this project')
+                expect(err).toEqual('FATAL: you do not have read access to this project')
                 done()
 
     it 'make third user an admin and verify can read log of first project', (done) ->
@@ -533,7 +533,7 @@ describe 'nonexistent tables', ->
             account_id : account_id
             query      : {nonexistent_table: {foo:'bar'}}
             cb         : (err) ->
-                expect(err).toEqual("table 'nonexistent_table' does not exist")
+                expect(err).toEqual("FATAL: table 'nonexistent_table' does not exist")
                 done(not err)
 
     it 'read from non-existent table (single thing)', (done) ->
@@ -541,7 +541,7 @@ describe 'nonexistent tables', ->
             account_id : account_id
             query      : {nonexistent_table: {foo:null}}
             cb         : (err) ->
-                expect(err).toEqual("get queries not allowed for table 'nonexistent_table'")
+                expect(err).toEqual("FATAL: get queries not allowed for table 'nonexistent_table'")
                 done(not err)
 
     it 'read from non-existent table (multiple)', (done) ->
@@ -549,7 +549,7 @@ describe 'nonexistent tables', ->
             account_id : account_id
             query      : {nonexistent_table: [{foo:null}]}
             cb         : (err) ->
-                expect(err).toEqual("get queries not allowed for table 'nonexistent_table'")
+                expect(err).toEqual("FATAL: get queries not allowed for table 'nonexistent_table'")
                 done(not err)
 
 
