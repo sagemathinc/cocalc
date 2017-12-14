@@ -59,12 +59,7 @@ BANNED_FILE_TYPES             = ['doc', 'docx', 'pdf', 'sws']
 
 FROM_WEB_TIMEOUT_S = 45
 
-# src: where the library files are
-# start: open this file after copying the directory
-exports.LIBRARY = LIBRARY =
-    first_steps :
-        src    : '/ext/library/first-steps/src'
-        start  : 'first-steps.tasks'
+{LIBRARY} = require('./library')
 
 QUERIES =
     project_log :
@@ -98,6 +93,8 @@ exports.redux_name = key = (project_id, name) ->
         s += "-#{name}"
     return s
 
+_init_library_index_ongoing = {}
+_init_library_index_cache   = {}
 
 class ProjectActions extends Actions
     _ensure_project_is_open: (cb, switch_to) =>
@@ -926,13 +923,14 @@ class ProjectActions extends Actions
                 return path
 
     # this is called once by the project initialization
-    check_library: =>
-        #if DEBUG then console.log("check_library")
+    init_library: =>
+        #if DEBUG then console.log("init_library")
+        # Deprecated: this only tests the existence
         check = (v, k, cb) =>
-            #if DEBUG then console.log("check_library.check", v, k)
+            #if DEBUG then console.log("init_library.check", v, k)
             store = @get_store()
             return if not store?
-            if store.library_available?[k]?
+            if store.library?.get(k)?
                 return
             src = v.src
             cmd = "test -e #{src}"
@@ -946,26 +944,79 @@ class ProjectActions extends Actions
                 path            : '.'
                 cb              : (err, output) =>
                     if not err
-                        @setState(library_available: {"#{k}" : (output.exit_code == 0)})
+                        library = @get_store().library
+                        library = library.set(k, (output.exit_code == 0))
+                        @setState(library: library)
                     cb(err)
-        setTimeout(async.eachOfSeries(LIBRARY, check), 1000)
+
+        async.series([
+            (cb) -> async.eachOfSeries(LIBRARY, check, cb)
+        ])
+
+    init_library_index: ->
+        if _init_library_index_cache[@project_id]?
+            data = _init_library_index_cache[@project_id]
+            library = @get_store().library.set('examples', data)
+            @setState(library: library)
+            return
+
+        return if _init_library_index_ongoing[@project_id]
+        _init_library_index_ongoing[@project_id] = true
+
+        {webapp_client} = require('./webapp_client')
+
+        index_json_url = webapp_client.read_file_from_project
+            project_id : @project_id
+            path       : '/ext/library/cocalc-examples/index.json'
+
+        fetch = (cb) =>
+            $.ajax(
+                url     : index_json_url
+                timeout : 5000
+                success : (data) =>
+                    #if DEBUG then console.log("init_library/datadata
+                    data = immutable.fromJS(data)
+                    library = @get_store().library.set('examples', data)
+                    @setState(library: library)
+                    _init_library_index_cache[@project_id] = data
+                    cb()
+                ).fail((err) ->
+                    if DEBUG then console.log("init_library/index: error reading file: #{misc.to_json(err)}")
+                    cb(err.statusText ? 'error')
+                )
+
+        misc.retry_until_success
+            f           : fetch
+            start_delay : 1000
+            max_delay   : 10000
+            cb          : => _init_library_index_ongoing[@project_id] = false
+
 
     copy_from_library: (opts) =>
         opts = defaults opts,
-            entry : 'first_steps'
+            entry  : undefined
+            src    : undefined
+            target : undefined
+            start  : undefined
+            docid  : undefined   # for the log
+            title  : undefined   # for the log
+            cb     : undefined
 
-        lib = LIBRARY[opts.entry]
-        if not lib?
-            @setState(error: "Library entry '#{opts.entry}' unknown")
-            return
+        if opts.entry?
+            lib = LIBRARY[opts.entry]
+            if not lib?
+                @setState(error: "Library entry '#{opts.entry}' unknown")
+                return
 
         id = opts.id ? misc.uuid()
         @set_activity(id:id, status:"Copying files from library ...")
 
         # the rsync command purposely does not preserve the timestamps,
         # such that they look like "new files" and listed on top under default sorting
-        source = os_path.join(lib.src, '/')
-        target = os_path.join(opts.entry, '/')
+        source = os_path.join((opts.src    ? lib.src), '/')
+        target = os_path.join((opts.target ? opts.entry), '/')
+        start  = opts.start ? lib?.start
+
         webapp_client.exec
             project_id      : @project_id
             command         : 'rsync'
@@ -976,8 +1027,23 @@ class ProjectActions extends Actions
             path            : '.'
             cb              : (err, output) =>
                 (@_finish_exec(id))(err, output)
-                if not err
-                    @open_file(path: os_path.join(target, lib.start))
+                if not err and start?
+                    open_path = os_path.join(target, start)
+                    if open_path[open_path.length - 1] == '/'
+                        @open_directory(open_path)
+                    else
+                        @open_file(path: open_path)
+                    @log
+                        event  : 'library'
+                        action : 'copy'
+                        docid  : opts.docid
+                        srouce : opts.src
+                        title  : opts.title
+                        target : target
+                opts.cb?(err)
+
+    set_library_is_copying: (status) =>
+        @setState(library_is_copying:status)
 
     copy_paths: (opts) =>
         opts = defaults opts,
@@ -1618,7 +1684,9 @@ create_project_store_def = (name, project_id) ->
         open_files_order       : immutable.List([])
         open_files             : immutable.Map({})
         num_ghost_file_tabs    : 0
-        library_available      : {}
+        library                : immutable.Map({})
+        library_selected       : undefined
+        library_is_copying     : false
 
     reduxState:
         account:
@@ -1655,7 +1723,6 @@ create_project_store_def = (name, project_id) ->
         selected_file_index    : rtypes.number     # Index on file listing to highlight starting at 0. undefined means none highlighted
         new_name               : rtypes.string
         most_recent_file_click : rtypes.string
-        library_available      : rtypes.object
 
         # Project Log
         project_log : rtypes.immutable
@@ -1665,6 +1732,10 @@ create_project_store_def = (name, project_id) ->
         # Project New
         default_filename    : rtypes.string
         file_creation_error : rtypes.string
+        library             : rtypes.immutable.Map
+        library_selected    : rtypes.object
+        library_is_copying  : rtypes.bool  # for the copy button, to signal an ongoing copy process
+        library_docs_sorted : computed rtypes.immutable.List
 
         # Project Find
         user_input         : rtypes.string
@@ -1766,6 +1837,22 @@ create_project_store_def = (name, project_id) ->
     stripped_public_paths: depends('public_paths') ->
         if @public_paths?
             return immutable.fromJS(misc.copy_without(x,['id','project_id']) for _,x of @public_paths.toJS())
+
+
+    library_docs_sorted: depends('library') ->
+        docs     = @library.getIn(['examples', 'documents'])
+        metadata = @library.getIn(['examples', 'metadata'])
+
+        if docs?
+            # sort by a triplet: idea is to have the docs sorted by their category,
+            # where some categories have weights (e.g. "introduction" comes first, no matter what)
+            sortfn = (doc) -> [
+                metadata.getIn(['categories', doc.get('category'), 'weight']) ? 0
+                metadata.getIn(['categories', doc.get('category'), 'name']).toLowerCase()
+                doc.get('title')?.toLowerCase() ? doc.get('id')
+            ]
+            return docs.sortBy(sortfn)
+
 
     # Returns the cursor positions for the given project_id/path, if that
     # file is opened, and supports cursors.   Currently this only works
