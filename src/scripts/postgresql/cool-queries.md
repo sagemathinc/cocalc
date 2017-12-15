@@ -6,7 +6,7 @@ Recently published paths:
 
     select count(*) from public_paths where created >= now() - interval '1 day' and created <= now() and disabled;  select count(*) from public_paths where created >= now() - interval '2 day' and created <= now() - interval '1 day' and disabled; select count(*) from public_paths where created >= now() - interval '3 day' and created <= now() - interval '2 day' and disabled;
 
-select count(*) from project_log where time >= now() - interval '2 day' and time <= now() - interval '1 day' and event#>>'{event}' = 'invite_user';  select count(*) from project_log where time >= now() - interval '1 day' and time <= now() and event#>>'{event}' = 'invite_user';
+    select count(*) from project_log where time >= now() - interval '2 day' and time <= now() - interval '1 day' and event#>>'{event}' = 'invite_user';  select count(*) from project_log where time >= now() - interval '1 day' and time <= now() and event#>>'{event}' = 'invite_user';
 
 
 Recently added collaborators:
@@ -156,6 +156,16 @@ Hourly (or 10minute blocks) active users
     FROM file_access_log
     WHERE time >= NOW() - '2 week'::interval
     GROUP BY day, hour -- , min10
+
+Copied library entries .. timestamp is about when the feature was released
+
+    SELECT count(*), event ->> 'title' AS title, event ->> 'docid' AS docid
+    FROM project_log where event ->> 'event' = 'library'
+     AND event ->> 'title' IS NOT NULL
+     AND time >= '2017-12-12'::TIMESTAMP
+    GROUP BY title, docid
+    ORDER BY count DESC;
+
 
 ## Stripe
 
