@@ -1037,7 +1037,7 @@ class ProjectActions extends Actions
                         event  : 'library'
                         action : 'copy'
                         docid  : opts.docid
-                        srouce : opts.src
+                        source : opts.src
                         title  : opts.title
                         target : target
                 opts.cb?(err)
