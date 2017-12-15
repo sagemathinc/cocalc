@@ -44,7 +44,7 @@ project_file = require('./project_file')
 {file_associations} = require('./file-associations')
 
 {React, ReactDOM, rclass, redux, rtypes, Redux} = require('./smc-react')
-{Icon, Tip, COLORS, Loading, Space} = require('./r_misc')
+{DeletedProjectWarning, Icon, Tip, COLORS, Loading, Space} = require('./r_misc')
 
 {ChatIndicator} = require('./chat-indicator')
 
@@ -604,6 +604,7 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
             return <Loading />
         group = @props.get_my_group(@props.project_id)
         active_path = misc.tab_to_path(@props.active_project_tab)
+        project = @props.project_map?.get(@props.project_id)
         style =
             display       : 'flex'
             flexDirection : 'column'
@@ -616,6 +617,7 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
             <RamWarning project_id={@props.project_id} />
             <FreeProjectWarning project_id={@props.project_id} name={name} />
             {@render_file_tabs(group == 'public') if not @props.fullscreen}
+            {<DeletedProjectWarning /> if project?.get('deleted')}
             <ProjectContentViewer
                 project_id      = {@props.project_id}
                 project_name    = {@props.name}
@@ -727,8 +729,10 @@ exports.MobileProjectPage = rclass ({name}) ->
             return <Loading />
         group = @props.get_my_group(@props.project_id)
         active_path = misc.tab_to_path(@props.active_project_tab)
+        project = @props.project_map?.get(@props.project_id)
 
         <div className='container-content' style={display: 'flex', flexDirection: 'column', flex: 1, overflow:'auto'}>
+            {<DeletedProjectWarning /> if project?.get('deleted')}
             <DiskSpaceWarning project_id={@props.project_id} />
             <FreeProjectWarning project_id={@props.project_id} name={name} />
             {<div className="smc-file-tabs" ref="projectNav" style={width:"100%", height:"37px"}>

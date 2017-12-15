@@ -1477,7 +1477,7 @@ class TaskList
                 @set_clean()
             else
                 if err
-                    alert_message(type:"error", message:"Error saving #{@filename} -- #{to_json(err)} -- you may need to refresh your browser or restart your project.")
+                    alert_message(type:"error", message:"Error saving '#{@filename}' -- #{to_json(err)} -- you may need to refresh your browser or restart your project.")
 
     show: () =>
         @element.show()

@@ -1,4 +1,4 @@
-###############################################################################
+##############################################################################
 #
 #    CoCalc: Collaborative Calculation in the Cloud
 #
@@ -17,7 +17,12 @@
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
-###############################################################################
+##############################################################################
+
+###
+ATTENTION!  If you want to refactor this code before working on it (I hope you do!),
+put stuff in the new directory project/
+###
 
 immutable  = require('immutable')
 underscore = require('underscore')
@@ -44,6 +49,10 @@ misc                 = require('smc-util/misc')
 
 {AddCollaborators} = require('./collaborators/add-to-project')
 
+{ProjectSettingsPanel} = require('./project/project-settings-support')
+{JupyterServerPanel}   = require('./project/plain-jupyter-server')
+
+
 URLBox = rclass
     displayName : 'URLBox'
 
@@ -54,21 +63,6 @@ URLBox = rclass
             url = url.slice(0,i)
         # note -- use of Input below is completely broken on Firefox! Do not naively change this back!!!!
         <pre style={fontSize:'11px'}>{url}</pre>
-
-ProjectSettingsPanel = rclass
-    displayName : 'ProjectSettingsPanel'
-
-    propTypes :
-        icon  : rtypes.string.isRequired
-        title : rtypes.string.isRequired
-
-    render_header: ->
-        <h3><Icon name={@props.icon} /> {@props.title}</h3>
-
-    render: ->
-        <Panel header={@render_header()}>
-            {@props.children}
-        </Panel>
 
 TitleDescriptionPanel = rclass
     displayName : 'ProjectSettings-TitleDescriptionPanel'
@@ -581,35 +575,6 @@ SageWorksheetPanel = rclass
             {@render_message()}
         </ProjectSettingsPanel>
 
-JupyterServerPanel = rclass
-    displayName : 'ProjectSettings-JupyterServer'
-
-    propTypes :
-        project_id : rtypes.string.isRequired
-
-    render_jupyter_link: ->
-        <a href="/#{@props.project_id}/port/jupyter/" target='_blank'>
-            Plain Jupyter Server
-        </a>
-
-    render: ->
-        <ProjectSettingsPanel title='Jupyter notebook server' icon='list-alt'>
-            <span style={color: '#666'}>
-                The Jupyter notebook server is a Python process that runs in your
-                project that provides backed support for Jupyter notebooks with
-                synchronized editing and TimeTravel.   You can also just
-                use your Jupyter notebook directly via the link below.
-                This does not support multiple users or TimeTravel.
-            </span>
-            <div style={textAlign:'center', fontSize:'14pt', margin: '15px'}>
-                {@render_jupyter_link()}
-            </div>
-            <span style={color: '#666'}>
-                <b>
-                (The first time you click the above link it <i>will probably fail</i>; refresh and try again.)
-                </b>
-            </span>
-        </ProjectSettingsPanel>
 
 ProjectControlPanel = rclass
     displayName : 'ProjectSettings-ProjectControlPanel'
@@ -972,7 +937,6 @@ ProjectSettingsBody = rclass ({name}) ->
         <div>
             {if commercial and total_project_quotas? and not total_project_quotas.member_host then <NonMemberProjectWarning upgrade_type='member_host' upgrades_you_can_use={upgrades_you_can_use} upgrades_you_applied_to_all_projects={upgrades_you_applied_to_all_projects} course_info={course_info} account_id={webapp_client.account_id} email_address={@props.email_address} free_compute_slowdown={@props.free_compute_slowdown}/>}
             {if commercial and total_project_quotas? and not total_project_quotas.network then <NoNetworkProjectWarning upgrade_type='network' upgrades_you_can_use={upgrades_you_can_use} upgrades_you_applied_to_all_projects={upgrades_you_applied_to_all_projects} /> }
-            {if @props.project.get('deleted') then <DeletedProjectWarning />}
             <h1 style={marginTop:"0px"}><Icon name='wrench' /> Settings and configuration</h1>
             <Row>
                 <Col sm=6>

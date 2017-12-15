@@ -178,8 +178,12 @@ exports.SettingsPanel = rclass
         settings    : rtypes.immutable.Map.isRequired
         project_map : rtypes.immutable.Map.isRequired
 
+    shouldComponentUpdate: (next, next_state) ->
+        return next.settings != @props.settings or next.project_map != @props.project_map or \
+            next_state.show_students_pay_dialog != @stateshow_students_pay_dialog
+
     getInitialState: ->
-        show_students_pay_dialog        : false
+        show_students_pay_dialog : false
 
     ###
     # Editing title/description
@@ -296,7 +300,6 @@ exports.SettingsPanel = rclass
 
         content += 'students = [\n'
 
-        console.log "exporting py"
         for student in store.get_sorted_students()
             grades   = (("'#{store.get_grade(assignment, student) ? ''}'") for assignment in assignments).join(',')
             grades   = grades.replace(/\n/g, "\\n")
@@ -380,14 +383,14 @@ exports.SettingsPanel = rclass
         </Button>
 
     render_require_students_pay_desc: ->
-        date = @props.settings.get('pay')
+        date = new Date(@props.settings.get('pay'))
         if date > webapp_client.server_time()
             <span>
-                Your students will see a warning until <TimeAgo date={date} />.  They will then be required to upgrade for a one-time fee of $9.
+                <b>Your students will see a warning until <TimeAgo date={date} />.</b>  They will then be required to upgrade for a special discounted one-time fee of $9.
             </span>
         else
             <span>
-                Your students are required to upgrade their project.
+                <b>Your students are required to upgrade their project now to use it.</b>  If you want to give them more time to upgrade, move the date forward.
             </span>
 
     render_require_students_pay_when: ->
@@ -441,7 +444,7 @@ exports.SettingsPanel = rclass
         <Alert bsStyle='info'>
             <h3><Icon name='arrow-circle-up' /> Require students to upgrade</h3>
             <hr/>
-            <span>Click the following checkbox to require that all students in the course pay a <b>one-time $9</b> fee to move their projects to members-only computers and enable full internet access, for four months.  Members-only computers are not randomly rebooted constantly and have far fewer users. Student projects that are already on members-only hosts will not be impacted.  <em>You will not be charged.</em></span>
+            <span>Click the following checkbox to require that all students in the course pay a special discounted <b>one-time $9</b> fee to move their projects to members-only computers and enable full internet access, for four months.  Members-only computers are not randomly rebooted constantly and have far fewer users. Student projects that are already on members-only hosts will not be impacted.  <em>You will not be charged.</em></span>
 
             {@render_students_pay_checkbox()}
             {@render_require_students_pay_when() if @props.settings.get('pay')}
