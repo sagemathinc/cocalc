@@ -27,7 +27,7 @@ exports.TaskEditor = rclass ({name}) ->
         />
 
     render: ->
-        <div>
+        <div style={margin:'15px', border:'1px solid grey'}>
             <h1>Task List</h1>
             {@render_list()}
         </div>

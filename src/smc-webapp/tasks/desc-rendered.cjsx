@@ -4,6 +4,11 @@ Rendered view of the description of a single task
 
 {React, rclass, rtypes}  = require('../smc-react')
 
+{Markdown} = require('../r_misc')
+
 exports.DescriptionRendered = rclass
+    propTypes :
+        desc : rtypes.string
+
     render: ->
-        <span>Rendered Description of a task<span>
+        <Markdown value={@props.desc}/>
