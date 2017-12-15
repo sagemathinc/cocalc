@@ -11,7 +11,7 @@ misc                   = require('smc-util/misc')
 {redux_name}           = require('../smc-react')
 {webapp_client}        = require('../webapp_client')
 
-{TaskList}             = require('./task-list')
+{TaskEditor}           = require('./editor')
 {TaskActions}          = require('./actions')
 {TaskStore}            = require('./store')
 
@@ -23,7 +23,7 @@ exports.register = ->
 
         icon      : 'tasks'
 
-        component : TaskList
+        component : TaskEditor
 
         init      : (path, redux, project_id) ->
             name = redux_name(project_id, path)

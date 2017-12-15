@@ -2,9 +2,11 @@
 Top-level react component for task list
 ###
 
-{React, ReactDOM, rclass, rtypes}  = require('../smc-react')
+{React, rclass, rtypes}  = require('../smc-react')
 
-exports.TaskList = rclass ({name}) ->
+{TaskList} = require('./list')
+
+exports.TaskEditor = rclass ({name}) ->
     propTypes :
         actions : rtypes.object.isRequired
 
