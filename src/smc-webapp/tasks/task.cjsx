@@ -6,6 +6,9 @@ A single task
 
 {DescriptionRendered} = require('./desc-rendered')
 
+{Changed} = require('./changed')
+{DueDate} = require('./due')
+
 exports.Task = rclass
     propTypes :
         task : rtypes.immutable.Map.isRequired
@@ -21,11 +24,14 @@ exports.Task = rclass
         </div>
 
     render_last_edited: ->
-        <span>{@props.task.get('last_edited')}</span>
+        <Changed
+            last_edited = {@props.task.get('last_edited')}
+            />
 
     render_due_date: ->
-        <span>{@props.task.get('due_date')}</span>
-
+        <DueDate
+            due_date = {@props.task.get('due_date')}
+            />
 
     render: ->
         <div style={border:'1px solid grey'}>
