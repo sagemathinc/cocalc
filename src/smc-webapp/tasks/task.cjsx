@@ -4,13 +4,13 @@ A single task
 
 {React, rclass, rtypes}  = require('../smc-react')
 
-
 {MinToggle}           = require('./min-toggle')
 {DescriptionRendered} = require('./desc-rendered')
 {Changed}             = require('./changed')
 {DueDate}             = require('./due')
 {DragHandle}          = require('./drag')
 {DoneCheckbox}        = require('./done')
+{Undelete}            = require('./undelete')
 
 exports.Task = rclass
     propTypes :
@@ -20,6 +20,11 @@ exports.Task = rclass
 
     shouldComponentUpdate: (next) ->
         return @props.task != next.task or @props.is_current != next.is_current
+
+    render_undelete: ->
+        if not @props.task.get('deleted')
+            return
+        <Undelete onClick={=>@props.actions.undelete_task(@props.task.get('task_id'))} />
 
     render_drag_handle: ->
         <DragHandle />
@@ -58,7 +63,11 @@ exports.Task = rclass
             style.border = '1px solid blue'
         else
             style.border = '1px solid grey'
+        if @props.task.get('deleted')
+            style.background = 'red'
         <div style={style} onClick={@on_click}>
+            {@render_undelete()}
+            <br/>
             {@render_drag_handle()}
             <br/>
             {@render_done_checkbox()}

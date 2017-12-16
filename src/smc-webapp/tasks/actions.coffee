@@ -83,7 +83,27 @@ class exports.TaskActions extends Actions
         @set_editing(task.task_id)
 
 
-    delete_task: =>
+    delete_task: (task_id) =>
+        if not task_id?
+            return
+        @syncdb.set
+            task_id     : task_id
+            deleted     : true
+            last_edited : new Date() - 0
+
+    undelete_task: (task_id) =>
+        if not task_id?
+            return
+        @syncdb.set
+            task_id     : task_id
+            deleted     : false
+            last_edited : new Date() - 0
+
+    delete_current_task: =>
+        @delete_task(@store.get('current_task_id'))
+
+    undelete_current_task: =>
+        @undelete_task(@store.get('current_task_id'))
 
     move_task_to_top: =>
 

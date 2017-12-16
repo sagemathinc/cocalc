@@ -42,7 +42,7 @@ exports.ButtonBar = rclass
             <Button
                 key     = 'delete'
                 bsStyle = 'danger'
-                onClick = {@props.actions.delete_task} >
+                onClick = {@props.actions.delete_current_task} >
                 <Icon name='trash-o' /> Delete
             </Button>
         </ButtonGroup>
