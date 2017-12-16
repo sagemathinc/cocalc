@@ -42,4 +42,16 @@ class exports.TaskActions extends Actions
         @set_save_status()
 
     set_save_status: =>
-        # TODO
+        #
+
+    new_task: =>
+
+    delete_task: =>
+
+    move_task_to_top: =>
+
+    move_task_to_bottom: =>
+
+    time_travel: =>
+
+    help: =>
