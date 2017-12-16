@@ -1182,6 +1182,16 @@ class exports.Client extends EventEmitter
                         cb           : cb
 
                 (cb) =>
+                    # only send an email when there is an mesg.email body to send.
+                    # we want to make it explicit when they're sent, and implicitly disable it for API usage.
+                    if not mesg.email?
+                        locals.done = true
+                    cb()
+
+                (cb) =>
+                    if locals.done
+                        cb(); return
+
                     {one_result} = require('./postgres')
                     @database._query
                         query : "SELECT email_address FROM accounts"
@@ -1191,7 +1201,7 @@ class exports.Client extends EventEmitter
                             cb(err)
 
                 (cb) =>
-                    if (not locals.email_address)
+                    if (not locals.email_address) or locals.done
                         cb(); return
 
                     # INFO: for testing this, you have to reset the invite field each time you sent yourself an invitation
