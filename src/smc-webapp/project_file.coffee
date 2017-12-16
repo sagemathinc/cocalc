@@ -44,6 +44,7 @@ require('./course/main')
 require('./editor_pdf')
 require('./editor_time')
 require('./jupyter/register')
+require('./tasks/register')
 
 # Public editors
 require('./public/editor_image')
