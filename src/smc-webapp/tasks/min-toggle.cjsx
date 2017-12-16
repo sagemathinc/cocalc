@@ -6,4 +6,4 @@ Toggle to minimize display of a task (just show first part or everything)
 
 exports.MinToggle = rclass
     render: ->
-        <span>Task min toggle<span>
+        <pre>min toggle -> </pre>

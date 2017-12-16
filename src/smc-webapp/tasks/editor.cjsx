@@ -4,9 +4,11 @@ Top-level react component for task list
 
 {React, rclass, rtypes}  = require('../smc-react')
 
-{TaskList} = require('./list')
+{TaskList}  = require('./list')
 
 {ButtonBar} = require('./buttonbar')
+
+{Find}      = require('./find')
 
 exports.TaskEditor = rclass ({name}) ->
     propTypes :
@@ -19,6 +21,9 @@ exports.TaskEditor = rclass ({name}) ->
 
     shouldComponentUpdate: (next) ->
         return @props.tasks != next.tasks or @props.visible != next.visible
+
+    render_find: ->
+        <Find actions={@props.actions} />
 
     render_button_bar: ->
         <ButtonBar actions={@props.actions} />
@@ -33,7 +38,7 @@ exports.TaskEditor = rclass ({name}) ->
 
     render: ->
         <div style={margin:'15px', border:'1px solid grey'}>
-            <h1>Task List</h1>
+            {@render_find()}
             {@render_button_bar()}
             {@render_list()}
         </div>

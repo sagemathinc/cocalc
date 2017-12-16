@@ -6,6 +6,8 @@ List of Tasks
 
 {React, rclass, rtypes}  = require('../smc-react')
 
+{Headings} = require('./headings')
+
 exports.TaskList = rclass
     propTypes :
         tasks   : rtypes.immutable.Map.isRequired
@@ -20,6 +22,9 @@ exports.TaskList = rclass
             task = {@props.tasks.get(task_id)}
         />
 
+    render_headings: ->
+        <Headings />
+
     render_tasks: ->
         x = []
         @props.visible.forEach (task_id) =>
@@ -28,5 +33,6 @@ exports.TaskList = rclass
 
     render: ->
         <div>
+            {@render_headings()}
             {@render_tasks()}
         </div>

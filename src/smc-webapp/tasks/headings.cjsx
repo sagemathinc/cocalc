@@ -10,4 +10,4 @@ Headings of the task list:
 
 exports.Headings = rclass
     render: ->
-        <span>Custom Order | Due | Changed <span>
+        <pre>Custom Order | Due | Changed </pre>

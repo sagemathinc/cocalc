@@ -6,4 +6,4 @@ Searching for tasks by full text search and done/deleted status.
 
 exports.Find = rclass
     render: ->
-        <span>Custom Order | Due | Changed <span>
+        <pre>Find task...    Done   Deleted  Showing ... </pre>

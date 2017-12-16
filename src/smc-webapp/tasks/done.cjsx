@@ -4,6 +4,6 @@ Drag tasks handle (and other support)
 
 {React, rclass, rtypes}  = require('../smc-react')
 
-exports.TaskDragHandle = rclass
+exports.DoneCheckbox = rclass
     render: ->
-        <span>HandleDrag<span>
+        <span>Done [ ]</span>
