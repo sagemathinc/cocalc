@@ -1202,7 +1202,7 @@ class exports.Client extends EventEmitter
                         cb         : (err, when_sent) =>
                             if err
                                 cb(err)
-                            else if when_sent - 0 >= misc.days_ago(7) - 0 # successfully sent < one week ago -- don't again
+                            else if when_sent >= misc.days_ago(7)   # successfully sent < one week ago -- don't again
                                 locals.done = true
                                 cb()
                             else
@@ -1348,7 +1348,7 @@ class exports.Client extends EventEmitter
                                 cb         : (err, when_sent) =>
                                     if err
                                         cb(err)
-                                    else if when_sent - 0 >= misc.days_ago(7) - 0 # successfully sent < one week ago -- don't again
+                                    else if when_sent >= misc.days_ago(7)   # successfully sent < one week ago -- don't again
                                         done = true
                                         cb()
                                     else
