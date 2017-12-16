@@ -95,6 +95,7 @@ exports.render_public_path = (opts) ->
             else
                 fs.readFile locals.path_to_file, (err, data) ->
                     if err
+                        dbg("file read error")
                         cb(err)
                     else
                         locals.content = data.toString()
