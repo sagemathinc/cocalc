@@ -16,11 +16,13 @@ exports.TaskEditor = rclass ({name}) ->
 
     reduxProps :
         "#{name}" :
-            tasks   : rtypes.immutable.Map
-            visible : rtypes.immutable.List
+            tasks           : rtypes.immutable.Map
+            visible         : rtypes.immutable.List
+            current_task_id : rtypes.string
 
     shouldComponentUpdate: (next) ->
-        return @props.tasks != next.tasks or @props.visible != next.visible
+        return @props.tasks != next.tasks or @props.visible != next.visible or \
+               @props.current_task_id != next.current_task_id
 
     render_find: ->
         <Find actions={@props.actions} />
@@ -32,8 +34,10 @@ exports.TaskEditor = rclass ({name}) ->
         if not @props.tasks? or not @props.visible?
             return
         <TaskList
-            tasks   = {@props.tasks}
-            visible = {@props.visible}
+            actions         = {@props.actions}
+            tasks           = {@props.tasks}
+            visible         = {@props.visible}
+            current_task_id = {@props.current_task_id}
         />
 
     render: ->

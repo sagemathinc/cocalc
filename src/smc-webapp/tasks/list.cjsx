@@ -10,16 +10,21 @@ List of Tasks
 
 exports.TaskList = rclass
     propTypes :
-        tasks   : rtypes.immutable.Map.isRequired
-        visible : rtypes.immutable.List.isRequired
+        actions         : rtypes.object
+        tasks           : rtypes.immutable.Map.isRequired
+        visible         : rtypes.immutable.List.isRequired
+        current_task_id : rtypes.string
 
     shouldComponentUpdate: (next) ->
-        return @props.tasks != next.tasks or @props.visible != next.visible
+        return @props.tasks != next.tasks or @props.visible != next.visible or \
+               @props.current_task_id != next.current_task_id
 
     render_task: (task_id) ->
         <Task
-            key  = {task_id}
-            task = {@props.tasks.get(task_id)}
+            key        = {task_id}
+            actions    = {@props.actions}
+            task       = {@props.tasks.get(task_id)}
+            is_current = {@props.current_task_id == task_id}
         />
 
     render_headings: ->

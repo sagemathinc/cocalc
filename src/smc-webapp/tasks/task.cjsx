@@ -14,10 +14,12 @@ A single task
 
 exports.Task = rclass
     propTypes :
-        task : rtypes.immutable.Map.isRequired
+        actions    : rtypes.object
+        task       : rtypes.immutable.Map.isRequired
+        is_current : rtypes.bool
 
     shouldComponentUpdate: (next) ->
-        return @props.task != next.task
+        return @props.task != next.task or @props.is_current != next.is_current
 
     render_drag_handle: ->
         <DragHandle />
@@ -45,8 +47,18 @@ exports.Task = rclass
             due_date = {@props.task.get('due_date')}
             />
 
+    on_click: ->
+        @props.actions?.set_current_task(@props.task.get('task_id'))
+
     render: ->
-        <div style={border:'1px solid grey'}>
+        style =
+            padding : '10px'
+            margin  : '10px'
+        if @props.is_current
+            style.border = '1px solid blue'
+        else
+            style.border = '1px solid grey'
+        <div style={style} onClick={@on_click}>
             {@render_drag_handle()}
             <br/>
             {@render_done_checkbox()}

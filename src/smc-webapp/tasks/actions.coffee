@@ -35,9 +35,14 @@ class exports.TaskActions extends Actions
         v.sort (a,b) -> misc.cmp(a[0], b[0])
         visible = immutable.fromJS((x[1] for x in v))
 
+        current_task_id = @store.get('current_task_id')
+        if not current_task_id? and visible.size > 0
+            current_task_id = visible.get(0)
+
         @setState
-            tasks   : tasks
-            visible : visible
+            tasks           : tasks
+            visible         : visible
+            current_task_id : current_task_id
 
     save: =>
         @syncdb.save () =>
@@ -91,3 +96,4 @@ class exports.TaskActions extends Actions
     set_editing: (task_id) =>
 
     set_current_task: (task_id) =>
+        @setState(current_task_id : task_id)
