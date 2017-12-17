@@ -60,8 +60,6 @@ exports.Task = rclass
         if @props.task.get('deleted')
             style.background = 'red'
         <div style={style} onClick={@on_click}>
-            {@render_undelete()}
-            <br/>
             {@render_drag_handle()}
             <br/>
             {@render_done_checkbox()}
