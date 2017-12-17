@@ -2,7 +2,8 @@
 Task Actions
 ###
 
-immutable = require('immutable')
+immutable  = require('immutable')
+underscore = require('underscore')
 
 {Actions}  = require('../smc-react')
 
@@ -12,7 +13,31 @@ class exports.TaskActions extends Actions
     _init: (project_id, path, syncdb, store, client) =>
         @syncdb = syncdb
         @store  = store
+        @_init_has_unsaved_changes()
         @syncdb.on('change', @_syncdb_change)
+
+    close: =>
+        if @_state == 'closed'
+            return
+        @_state = 'closed'
+        @syncdb.close()
+        delete @syncdb
+        if @_key_handler?
+            @redux.getActions('page').erase_active_key_handler(@_key_handler)
+            delete @_key_handler
+
+    _init_has_unsaved_changes: => # basically copies from jupyter/actions.coffee -- opportunity to refactor
+        do_set = =>
+            @setState
+                has_unsaved_changes     : @syncdb?.has_unsaved_changes()
+                has_uncommitted_changes : @syncdb?.has_uncommitted_changes()
+        f = =>
+            do_set()
+            setTimeout(do_set, 3000)
+        @set_save_status = underscore.debounce(f, 1500)
+        @syncdb.on('metadata-change', @set_save_status)
+        @syncdb.on('connected',       @set_save_status)
+
 
     _syncdb_change: (changes) =>
         tasks = @store.get('tasks') ? immutable.Map()
@@ -44,13 +69,12 @@ class exports.TaskActions extends Actions
             visible         : visible
             current_task_id : current_task_id
 
+        @set_save_status?()
+
     save: =>
+        @setState(has_unsaved_changes:false)
         @syncdb.save () =>
             @set_save_status()
-        @set_save_status()
-
-    set_save_status: =>
-        #
 
     new_task: =>
         # create new task positioned after the current task
@@ -117,3 +141,9 @@ class exports.TaskActions extends Actions
 
     set_current_task: (task_id) =>
         @setState(current_task_id : task_id)
+
+    undo: =>
+        @syncdb?.undo()
+
+    redo: =>
+        @syncdb?.redo()

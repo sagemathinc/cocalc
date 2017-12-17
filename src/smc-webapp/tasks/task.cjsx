@@ -10,7 +10,6 @@ A single task
 {DueDate}             = require('./due')
 {DragHandle}          = require('./drag')
 {DoneCheckbox}        = require('./done')
-{Undelete}            = require('./undelete')
 
 exports.Task = rclass
     propTypes :
@@ -20,11 +19,6 @@ exports.Task = rclass
 
     shouldComponentUpdate: (next) ->
         return @props.task != next.task or @props.is_current != next.is_current
-
-    render_undelete: ->
-        if not @props.task.get('deleted')
-            return
-        <Undelete onClick={=>@props.actions.undelete_task(@props.task.get('task_id'))} />
 
     render_drag_handle: ->
         <DragHandle />
