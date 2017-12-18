@@ -934,12 +934,14 @@ class SyncDoc extends EventEmitter
                         cb()
             ], (err) =>
                 if @_closed
-                    # disconnected while connecting...
+                    # closed while connecting...
                     cb()
                     return
                 @_syncstring_table.wait
                     until : (t) => t.get_one()?.get('init')
                     cb    : (err, init) =>
+                        if @_closed # closed while waiting on condition (perfectly reasonable -- do nothing).
+                            return
                         if err
                             @emit('init', err)
                             return
