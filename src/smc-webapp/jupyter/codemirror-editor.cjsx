@@ -315,9 +315,6 @@ exports.CodeMirrorEditor = rclass
         # repositioned (see https://github.com/sagemathinc/cocalc/issues/2548).
         setTimeout((=>@cm?.refresh(); if @props.is_focused then @cm?.focus()),1)
 
-    componentDidMount: ->
-        @init_codemirror(@props.options, @props.value)
-
     componentWillReceiveProps: (next) ->
         if not @cm?
             @init_codemirror(next.options, next.value)

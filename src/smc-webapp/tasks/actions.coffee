@@ -204,3 +204,11 @@ class exports.TaskActions extends Actions
             task_id     : task_id
             due_date    : date
             last_edited : new Date() - 0
+
+
+    set_desc: (task_id, desc) =>
+        @syncdb.set
+            task_id     : task_id
+            desc        : desc
+            last_edited : new Date() - 0
+

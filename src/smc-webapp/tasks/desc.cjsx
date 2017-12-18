@@ -16,10 +16,12 @@ Task description:
 
 exports.Description = rclass
     propTypes :
-        actions  : rtypes.object
-        task_id  : rtypes.string.isRequired
-        desc     : rtypes.string
-        editing  : rtypes.bool
+        actions    : rtypes.object
+        path       : rtypes.string
+        project_id : rtypes.string
+        task_id    : rtypes.string.isRequired
+        desc       : rtypes.string
+        editing    : rtypes.bool
 
     shouldComponentUpdate: (next) ->
         return @props.desc     != next.desc or \
@@ -49,7 +51,11 @@ exports.Description = rclass
         </Button>
 
     render_desc: ->
-        <DescriptionRendered desc={@props.desc} />
+        <DescriptionRendered
+            path       = {@props.path}
+            project_id = {@props.project_id}
+            desc       = {@props.desc}
+            />
 
     render: ->
         if not @props.actions?  # read only

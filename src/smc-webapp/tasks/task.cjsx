@@ -14,6 +14,8 @@ A single task
 exports.Task = rclass
     propTypes :
         actions          : rtypes.object
+        path             : rtypes.string
+        project_id       : rtypes.string
         task             : rtypes.immutable.Map.isRequired
         is_current       : rtypes.bool
         editing_due_date : rtypes.bool
@@ -40,10 +42,12 @@ exports.Task = rclass
 
     render_desc: ->
         <Description
-            actions  = {@props.actions}
-            task_id  = {@props.task.get('task_id')}
-            desc     = {@props.task.get('desc')}
-            editing  = {@props.editing_desc}
+            actions    = {@props.actions}
+            path       = {@props.path}
+            project_id = {@props.project_id}
+            task_id    = {@props.task.get('task_id')}
+            desc       = {@props.task.get('desc')}
+            editing    = {@props.editing_desc}
             />
 
     render_last_edited: ->
@@ -67,12 +71,15 @@ exports.Task = rclass
             padding : '10px'
             margin  : '10px'
         if @props.is_current
-            style.border = '1px solid blue'
+            style.border       = '2px solid #08c'
+            style.borderRadius = '5px'
+            style.background   = "rgb(232, 242, 255)"
         else
-            style.border = '1px solid grey'
+            style.border = '2px solid white'
         if @props.task.get('deleted')
-            style.background = 'red'
-        if @props.task.get('done')
+            style.background = '#d9534f'
+            style.color      = 'white'
+        else if @props.task.get('done')
             style.color = '#888'
         <div style={style} onClick={@on_click}>
             {@render_drag_handle()}

@@ -14,7 +14,9 @@ Top-level react component for task list
 
 exports.TaskEditor = rclass ({name}) ->
     propTypes :
-        actions : rtypes.object.isRequired
+        actions    : rtypes.object.isRequired
+        path       : rtypes.string
+        project_id : rtypes.string
 
     reduxProps :
         "#{name}" :
@@ -59,6 +61,8 @@ exports.TaskEditor = rclass ({name}) ->
             return
         <TaskList
             actions          = {@props.actions}
+            path             = {@props.path}
+            project_id       = {@props.project_id}
             tasks            = {@props.tasks}
             visible          = {@props.visible}
             current_task_id  = {@props.current_task_id}
