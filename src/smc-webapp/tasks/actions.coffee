@@ -11,8 +11,10 @@ misc = require('smc-util/misc')
 
 class exports.TaskActions extends Actions
     _init: (project_id, path, syncdb, store, client) =>
-        @syncdb = syncdb
-        @store  = store
+        @project_id = project_id
+        @path       = path
+        @syncdb     = syncdb
+        @store      = store
         @_init_has_unsaved_changes()
         @syncdb.on('change', @_syncdb_change)
 
@@ -134,6 +136,9 @@ class exports.TaskActions extends Actions
     move_task_to_bottom: =>
 
     time_travel: =>
+        @redux.getProjectActions(@project_id).open_file
+            path       : misc.history_path(@path)
+            foreground : true
 
     help: =>
 
