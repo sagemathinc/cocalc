@@ -9,6 +9,8 @@ underscore = require('underscore')
 
 misc = require('smc-util/misc')
 
+WIKI_HELP_URL = "https://github.com/sagemathinc/cocalc/wiki/tasks"
+
 class exports.TaskActions extends Actions
     _init: (project_id, path, syncdb, store, client) =>
         @project_id = project_id
@@ -108,7 +110,6 @@ class exports.TaskActions extends Actions
         @set_current_task(task.task_id)
         @set_editing(task.task_id)
 
-
     delete_task: (task_id) =>
         if not task_id?
             return
@@ -141,6 +142,7 @@ class exports.TaskActions extends Actions
             foreground : true
 
     help: =>
+        window.open(WIKI_HELP_URL, "_blank").focus()
 
     set_editing: (task_id) =>
 
