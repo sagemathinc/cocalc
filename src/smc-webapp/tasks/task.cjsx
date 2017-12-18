@@ -13,12 +13,17 @@ A single task
 
 exports.Task = rclass
     propTypes :
-        actions    : rtypes.object
-        task       : rtypes.immutable.Map.isRequired
-        is_current : rtypes.bool
+        actions          : rtypes.object
+        task             : rtypes.immutable.Map.isRequired
+        is_current       : rtypes.bool
+        editing_due_date : rtypes.bool
+        editing_desc     : rtypes.bool
 
     shouldComponentUpdate: (next) ->
-        return @props.task != next.task or @props.is_current != next.is_current
+        return @props.task              != next.task or \
+               @props.is_current        != next.is_current or \
+               @props.editing_due_date  != next.editing_due_date or \
+               @props.editing_desc      != next.editing_desc
 
     render_drag_handle: ->
         <DragHandle />
@@ -47,7 +52,10 @@ exports.Task = rclass
 
     render_due_date: ->
         <DueDate
+            actions  = {@props.actions}
+            task_id  = {@props.task.get('task_id')}
             due_date = {@props.task.get('due_date')}
+            editing  = {@props.editing_due_date}
             />
 
     on_click: ->

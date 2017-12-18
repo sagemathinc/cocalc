@@ -17,6 +17,7 @@ class exports.TaskActions extends Actions
         @path       = path
         @syncdb     = syncdb
         @store      = store
+        @setState(local_task_state: immutable.Map())
         @_init_has_unsaved_changes()
         @syncdb.on('change', @_syncdb_change)
 
@@ -41,7 +42,6 @@ class exports.TaskActions extends Actions
         @set_save_status = underscore.debounce(f, 1500)
         @syncdb.on('metadata-change', @set_save_status)
         @syncdb.on('connected',       @set_save_status)
-
 
     _syncdb_change: (changes) =>
         tasks = @store.get('tasks') ? immutable.Map()
@@ -74,6 +74,18 @@ class exports.TaskActions extends Actions
             current_task_id : current_task_id
 
         @set_save_status?()
+
+    set_local_task_state: (obj) =>
+        # Set local state related to a specific task -- this is NOT sync'd between clients
+        local = @store.get('local_task_state')
+        x = local.get(obj.task_id)
+        if not x?
+            x = immutable.fromJS(obj)
+        else
+            for k, v of obj
+                x = x.set(k, immutable.fromJS(v))
+        @setState
+            local_task_state : local.set(obj.task_id, x)
 
     save: =>
         @setState(has_unsaved_changes:false)
@@ -167,3 +179,28 @@ class exports.TaskActions extends Actions
             done        : true
             last_edited : new Date() - 0
 
+    stop_editing_due_date: (task_id) =>
+        @set_local_task_state
+            task_id          : task_id
+            editing_due_date : false
+
+    edit_due_date: (task_id) =>
+        @set_local_task_state
+            task_id          : task_id
+            editing_due_date : true
+
+    stop_editing_desc: (task_id) =>
+        @set_local_task_state
+            task_id      : task_id
+            editing_desc : false
+
+    edit_desc: (task_id) =>
+        @set_local_task_state
+            task_id      : task_id
+            editing_desc : true
+
+    set_due_date: (task_id, date) =>
+        @syncdb.set
+            task_id     : task_id
+            due_date    : date
+            last_edited : new Date() - 0

@@ -10,21 +10,26 @@ List of Tasks
 
 exports.TaskList = rclass
     propTypes :
-        actions         : rtypes.object
-        tasks           : rtypes.immutable.Map.isRequired
-        visible         : rtypes.immutable.List.isRequired
-        current_task_id : rtypes.string
+        actions          : rtypes.object
+        tasks            : rtypes.immutable.Map.isRequired
+        visible          : rtypes.immutable.List.isRequired
+        current_task_id  : rtypes.string
+        local_task_state : rtypes.immutable.Map
 
     shouldComponentUpdate: (next) ->
-        return @props.tasks != next.tasks or @props.visible != next.visible or \
-               @props.current_task_id != next.current_task_id
+        return @props.tasks            != next.tasks or \
+               @props.visible          != next.visible or \
+               @props.current_task_id  != next.current_task_id or \
+               @props.local_task_state != next.local_task_state
 
     render_task: (task_id) ->
         <Task
-            key        = {task_id}
-            actions    = {@props.actions}
-            task       = {@props.tasks.get(task_id)}
-            is_current = {@props.current_task_id == task_id}
+            key              = {task_id}
+            actions          = {@props.actions}
+            task             = {@props.tasks.get(task_id)}
+            is_current       = {@props.current_task_id == task_id}
+            editing_due_date = {@props.local_task_state?.getIn([task_id, 'editing_due_date'])}
+            editing_desc     = {@props.local_task_state?.getIn([task_id, 'editing_desc'])}
         />
 
     render_headings: ->

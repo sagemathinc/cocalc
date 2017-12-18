@@ -23,13 +23,15 @@ exports.TaskEditor = rclass ({name}) ->
             current_task_id         : rtypes.string
             has_unsaved_changes     : rtypes.bool
             has_uncommitted_changes : rtypes.bool
+            local_task_state        : rtypes.immutable.Map
 
     shouldComponentUpdate: (next) ->
-        return @props.tasks != next.tasks or \
-               @props.visible != next.visible or \
-               @props.current_task_id != next.current_task_id or \
-               @props.has_unsaved_changes != next.has_unsaved_changes or \
-               @props.has_uncommitted_changes != next.has_uncommitted_changes
+        return @props.tasks                   != next.tasks or \
+               @props.visible                 != next.visible or \
+               @props.current_task_id         != next.current_task_id or \
+               @props.has_unsaved_changes     != next.has_unsaved_changes or \
+               @props.has_uncommitted_changes != next.has_uncommitted_changes or \
+               @props.local_task_state        != next.local_task_state
 
     render_uncommitted_changes: ->
         if not @props.has_uncommitted_changes
@@ -56,10 +58,11 @@ exports.TaskEditor = rclass ({name}) ->
         if not @props.tasks? or not @props.visible?
             return
         <TaskList
-            actions         = {@props.actions}
-            tasks           = {@props.tasks}
-            visible         = {@props.visible}
-            current_task_id = {@props.current_task_id}
+            actions          = {@props.actions}
+            tasks            = {@props.tasks}
+            visible          = {@props.visible}
+            current_task_id  = {@props.current_task_id}
+            local_task_state = {@props.local_task_state}
         />
 
     render: ->
