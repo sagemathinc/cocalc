@@ -1,4 +1,4 @@
-###############################################################################
+##############################################################################
 #
 #    CoCalc: Collaborative Calculation in the Cloud
 #
@@ -31,6 +31,7 @@ Well, SplitButton, MenuItem, Alert} = require('react-bootstrap')
 {webapp_client} = require('./webapp_client')
 {file_associations} = require('./file-associations')
 {special_filenames_with_no_extension} = require('./project_file')
+{Library} = require('./library')
 
 v = misc.keys(file_associations)
 v.sort()
@@ -391,7 +392,7 @@ FileUpload = rclass ({name}) ->
             <Col sm=3>
                 <h4><Icon name='cloud-upload' /> Upload files from your computer</h4>
             </Col>
-            <Col sm=8>
+            <Col sm=9>
                 <SMC_Dropzone
                     dropzone_handler     = {{}}
                     project_id           = @props.project_id
@@ -407,6 +408,15 @@ exports.ProjectNew = rclass ({name}) ->
     render: ->
         <div style={padding:'15px'}>
             <ProjectNewForm project_id={@props.project_id} name={@props.name} actions={@actions(name)} />
+            <hr />
+            <Row>
+                <Col sm=3>
+                    <h4><Icon name='book' /> Library</h4>
+                </Col>
+                <Col sm=9>
+                    <Library project_id={@props.project_id} name={@props.name} actions={@actions(name)} />
+                </Col>
+            </Row>
             <hr />
             <FileUpload project_id={@props.project_id} name={@props.name} />
         </div>

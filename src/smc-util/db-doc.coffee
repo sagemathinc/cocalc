@@ -660,9 +660,10 @@ class exports.SyncDB extends EventEmitter
     # change (or create) exactly *one* database entry that matches
     # the given where criterion.
     set: (obj, save=true) =>
-        if not @_doc?
+        doc = @_doc?.get_doc()
+        if not doc?   # see https://github.com/sagemathinc/cocalc/issues/2130
             return
-        @_doc.set_doc(new Doc(@_doc.get_doc()._db.set(obj)))
+        @_doc.set_doc(new Doc(doc._db.set(obj)))
         if save
             @_doc.save()
         @_on_change()

@@ -31,14 +31,14 @@ describe 'basic use of syncstring table from user -- ', ->
         db.user_query
             query : {syncstrings:{project_id:projects[0], path:path, users:accounts}}
             cb    : (err) ->
-                expect(err).toEqual("no anonymous set queries")
+                expect(err).toEqual("FATAL: no anonymous set queries")
                 done()
 
     it 'verifies anonymous get queries are not allowed', (done) ->
         db.user_query
             query : {syncstrings:{project_id:projects[0], path:path, users:null}}
             cb    : (err) ->
-                expect(err).toEqual("anonymous get queries not allowed for table 'syncstrings'")
+                expect(err).toEqual("FATAL: anonymous get queries not allowed for table 'syncstrings'")
                 done()
 
     it 'creates a syncstring entry', (done) ->
@@ -61,7 +61,7 @@ describe 'basic use of syncstring table from user -- ', ->
             account_id : accounts[1]
             query : {syncstrings:{project_id:projects[0], path:'b.txt'}}
             cb    : (err) ->
-                expect(err).toEqual('user must be an admin')
+                expect(err).toEqual('FATAL: user must be an admin')
                 done()
 
     it 'makes account1 an admin', (done) ->
@@ -127,7 +127,7 @@ describe 'basic use of syncstring table from user -- ', ->
             account_id : accounts[0]
             query      : {syncstrings:{path:path, read_only:true}}
             cb         : (err) ->
-                expect(err).toEqual("project_id (='undefined') must be a valid uuid")
+                expect(err).toEqual("FATAL: project_id (='undefined') must be a valid uuid")
                 done()
 
     it 'confirms that path does NOT have to be given (this would be the project-wide syncstring)', (done) ->
@@ -141,7 +141,7 @@ describe 'basic use of syncstring table from user -- ', ->
             account_id : accounts[0]
             query      : {syncstrings:{path:path, read_only:null}}
             cb         : (err) ->
-                expect(err).toEqual("project_id (='undefined') must be a valid uuid")
+                expect(err).toEqual("FATAL: project_id (='undefined') must be a valid uuid")
                 done()
 
     it 'confirms that path does NOT have to be given in get query either', (done) ->
@@ -257,7 +257,7 @@ describe 'basic use of syncstring table from project -- ', ->
             project_id : projects[1]
             query : {syncstrings:{project_id:projects[0], path:'b.txt'}}
             cb    : (err) ->
-                expect(err).toEqual('projects can only access their own syncstrings')
+                expect(err).toEqual('FATAL: projects can only access their own syncstrings')
                 done()
 
     ss_every = undefined
@@ -312,7 +312,7 @@ describe 'basic use of syncstring table from project -- ', ->
             project_id : projects[1]
             query      : {syncstrings:{path:path, read_only:true}}
             cb         : (err) ->
-                expect(err).toEqual("project_id (='undefined') must be a valid uuid")
+                expect(err).toEqual("FATAL: project_id (='undefined') must be a valid uuid")
                 done()
 
     it 'confirms that path does NOT have to be given (this would be the project-wide syncstring)', (done) ->
@@ -326,7 +326,7 @@ describe 'basic use of syncstring table from project -- ', ->
             project_id : projects[1]
             query      : {syncstrings:{path:path, read_only:null}}
             cb         : (err) ->
-                expect(err).toEqual("project_id (='undefined') must be a valid uuid")
+                expect(err).toEqual("FATAL: project_id (='undefined') must be a valid uuid")
                 done()
 
     it 'confirms that path does NOT have to be given in get query either', (done) ->
@@ -425,7 +425,7 @@ describe 'test syncstrings_delete -- ', ->
             account_id : accounts[0]
             query : {syncstrings_delete:{project_id:projects[0], path:path}}
             cb    : (err) ->
-                expect(err).toEqual('user must be an admin')
+                expect(err).toEqual('FATAL: user must be an admin')
                 done()
 
     it 'makes account an admin', (done) ->
@@ -460,14 +460,14 @@ describe 'test access roles for recent_syncstrings_in_project', ->
         db.user_query
             query : {recent_syncstrings_in_project:{project_id:projects[0], path:'foo.txt'}}
             cb    : (err) ->
-                expect(err).toEqual("no anonymous set queries")
+                expect(err).toEqual("FATAL: no anonymous set queries")
                 done()
 
     it 'verifies anonymous get queries are not allowed', (done) ->
         db.user_query
             query : {recent_syncstrings_in_project:{project_id:projects[0], max_age_m:15, string_id:null}}
             cb    : (err) ->
-                expect(err).toEqual("anonymous get queries not allowed for table 'recent_syncstrings_in_project'")
+                expect(err).toEqual("FATAL: anonymous get queries not allowed for table 'recent_syncstrings_in_project'")
                 done()
 
     it 'account do a valid get query and confirms no recent syncstrings', (done) ->
@@ -491,7 +491,7 @@ describe 'test access roles for recent_syncstrings_in_project', ->
             project_id : projects[1]
             query : {recent_syncstrings_in_project:{project_id:projects[0], max_age_m:15, string_id:null}}
             cb    : (err, result) ->
-                expect(err).toEqual('projects can only access their own syncstrings')
+                expect(err).toEqual('FATAL: projects can only access their own syncstrings')
                 done()
 
     it 'account do invalid get query and error', (done) ->
@@ -499,7 +499,7 @@ describe 'test access roles for recent_syncstrings_in_project', ->
             account_id : accounts[1]
             query : {recent_syncstrings_in_project:{project_id:projects[0], max_age_m:15, string_id:null}}
             cb    : (err, result) ->
-                expect(err).toEqual('user must be an admin')
+                expect(err).toEqual('FATAL: user must be an admin')
                 done()
 
     it 'makes account1 an admin', (done) ->

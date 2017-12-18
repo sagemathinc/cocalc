@@ -185,11 +185,15 @@ exports.Loading = Loading = rclass
     displayName : 'Misc-Loading'
 
     propTypes :
-        style : rtypes.object
+        style  : rtypes.object
+        text   : rtypes.string
+
+    getDefaultProps : ->
+        text   : 'Loading...'
 
     render: ->
         <span style={@props.style}>
-            <span><Icon name='cc-icon-cocalc-ring' spin /> Loading...</span>
+            <span><Icon name='cc-icon-cocalc-ring' spin /> {@props.text}</span>
         </span>
 
 exports.Saving = Saving = rclass
@@ -1702,7 +1706,8 @@ exports.UpgradeAdjustor = rclass
             <Alert bsStyle='warning'>
                 <h3><Icon name='arrow-circle-up' /> Adjust your project quota contributions</h3>
 
-                <span style={color:"#666"}>Adjust <i>your</i> contributions to the quotas on this project (disk space, memory, cores, etc.).  The total quotas for this project are the sum of the contributions of all collaborators and the free base quotas.</span>
+                <span style={color:"#666"}>Adjust <i>your</i> contributions to the quotas on this project (disk space, memory, cores, etc.).  The total quotas for this project are the sum of the contributions of all collaborators and the free base quotas.  Go to "Account --> Upgrades" to see how your upgrades are currently allocated.
+                </span>
                 <hr/>
                 <Row>
                     <Col md=2>
