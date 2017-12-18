@@ -4,12 +4,12 @@ A single task
 
 {React, rclass, rtypes}  = require('../smc-react')
 
-{MinToggle}           = require('./min-toggle')
-{DescriptionRendered} = require('./desc-rendered')
-{Changed}             = require('./changed')
-{DueDate}             = require('./due')
-{DragHandle}          = require('./drag')
-{DoneCheckbox}        = require('./done')
+{MinToggle}    = require('./min-toggle')
+{Description}  = require('./desc')
+{Changed}      = require('./changed')
+{DueDate}      = require('./due')
+{DragHandle}   = require('./drag')
+{DoneCheckbox} = require('./done')
 
 exports.Task = rclass
     propTypes :
@@ -39,11 +39,12 @@ exports.Task = rclass
         <MinToggle />
 
     render_desc: ->
-        <div style={padding:'10px'}>
-            <DescriptionRendered
-                desc = {@props.task.get('desc')}
+        <Description
+            actions  = {@props.actions}
+            task_id  = {@props.task.get('task_id')}
+            desc     = {@props.task.get('desc')}
+            editing  = {@props.editing_desc}
             />
-        </div>
 
     render_last_edited: ->
         <Changed

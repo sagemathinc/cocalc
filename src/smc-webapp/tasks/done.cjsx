@@ -23,7 +23,6 @@ exports.DoneCheckbox = rclass
         return <Icon name={name} />
 
     toggle_done: ->
-        console.log('toggle', @props.done)
         if @props.done
             @props.actions.set_task_not_done(@props.task_id)
         else
