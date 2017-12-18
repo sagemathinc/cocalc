@@ -67,6 +67,8 @@ exports.initialize = (path, redux, project_id, is_public, content) ->
 exports.generate = (path, redux, project_id, is_public) ->
     is_public = !!is_public
     ext = misc.filename_extension(path).toLowerCase()
+    if ext == ''
+        ext = "noext-#{misc.path_split(path).tail}"
     e = file_editors[is_public][ext] ? file_editors[is_public]['']
     generator = e?.generator
     if generator?
