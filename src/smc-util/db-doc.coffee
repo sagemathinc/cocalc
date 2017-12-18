@@ -488,6 +488,10 @@ class Doc
         return @_db.to_str()
 
     is_equal: (other) =>
+        if not other?
+            # Definitely not equal if not defined -- this should never get called, but other bugs could lead
+            # here, so we handle it sensibly here at least.  See, e.g., https://github.com/sagemathinc/cocalc/issues/2586
+            return false
         return @_db.equals(other._db)
 
     apply_patch: (patch) =>
