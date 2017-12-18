@@ -154,3 +154,16 @@ class exports.TaskActions extends Actions
 
     redo: =>
         @syncdb?.redo()
+
+    set_task_not_done: (task_id) =>
+        @syncdb.set
+            task_id     : task_id
+            done        : false
+            last_edited : new Date() - 0
+
+    set_task_done: (task_id) =>
+        @syncdb.set
+            task_id     : task_id
+            done        : true
+            last_edited : new Date() - 0
+

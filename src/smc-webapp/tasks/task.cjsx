@@ -24,7 +24,11 @@ exports.Task = rclass
         <DragHandle />
 
     render_done_checkbox: ->
-        <DoneCheckbox />
+        <DoneCheckbox
+            actions = {@props.actions}
+            done    = {@props.task.get('done')}
+            task_id = {@props.task.get('task_id')}
+        />
 
     render_min_toggle: ->
         <MinToggle />
@@ -59,6 +63,8 @@ exports.Task = rclass
             style.border = '1px solid grey'
         if @props.task.get('deleted')
             style.background = 'red'
+        if @props.task.get('done')
+            style.color = '#888'
         <div style={style} onClick={@on_click}>
             {@render_drag_handle()}
             <br/>
