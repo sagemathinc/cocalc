@@ -6,15 +6,19 @@ LICENSE   : AGPLv3
 ###
 
 api   = require('./apitest')
-{setup, teardown} = api
+{setup, teardown, reset} = api
 
 misc = require('smc-util/misc')
 
+email = require('../../email')
+
+async  = require('async')
 expect = require('expect')
 
 describe 'testing calls relating to creating user accounts -- ', ->
     before(setup)
     after(teardown)
+    beforeEach(reset)
 
     it "gets names for empty list of users", (done) ->
         api.call
@@ -68,6 +72,8 @@ describe 'testing calls relating to creating user accounts -- ', ->
             cb    : (err, resp) ->
                 expect(resp?.event).toBe('account_creation_failed')
                 expect(resp?.reason).toEqual({"email_address":"This e-mail address is already taken."})
+                opts0 = email.send_email.args[0][0]
+                expect(opts0.subject.indexOf('Welcome to CoCalc') == 0).toBe(true)
                 done(err)
 
     project_id = undefined
@@ -91,6 +97,43 @@ describe 'testing calls relating to creating user accounts -- ', ->
             cb    : (err, resp) ->
                 expect(resp?.event).toBe('success')
                 done(err)
+
+    project_id2 = undefined
+    it "inivtes a collaborator to a project with an email message", (done) ->
+        # create new account and then invite
+        async.series([
+            (cb) ->
+                api.call
+                    event : 'create_project'
+                    body  :
+                        title       : 'COLLABTEST2'
+                        description : 'Testing collaboration ops'
+                    cb    : (err, resp) ->
+                        project_id2 = resp.project_id
+                        done(err)
+            (cb) ->
+                api.call
+                    event : 'invite_collaborator'
+                    body  :
+                        account_id     : account_id2
+                        project_id     : project_id2
+                        title          : 'PROJECT_TITLE'
+                        link2proj      : 'https://link.to.project/'
+                        replyto        : 'cocalc+2@sagemath.com'
+                        replyto_name   : 'Sage2 CoCalc2'
+                        email          : 'BODY_OF_EMAIL'
+                        subject        : 'SUBJECT_OF_EMAIL'
+                    cb    : (err, resp) ->
+                        console.log("inivtes a collaborator to a project with an email message: #{misc.to_json(resp)}")
+                        setTimeout((-> cb(err)), 1000)
+        ], (err) ->
+            opts0 = email.send_email.args[0][0]
+            expect(opts0.subject).toBe('SUBJECT_OF_EMAIL')
+            expect(opts0.from).toBe('cocalc+2@sagemath.com')
+            expect(opts0.fromname).toBe('Sage2 CoCalc2')
+            expect(opts0.body.indexOf('BODY_OF_EMAIL') > 0).toBe(true)
+            done(err)
+        )
 
     it "lists project collaborators", (done) ->
         api.call
@@ -144,6 +187,7 @@ describe 'testing calls relating to creating user accounts -- ', ->
 describe 'testing invalid input to creating user accounts -- ', ->
     before(setup)
     after(teardown)
+    beforeEach(reset)
 
     it "leaves off the first name", (done) ->
         api.call
@@ -188,6 +232,7 @@ describe 'testing invalid input to creating user accounts -- ', ->
 describe 'testing user_search -- ', ->
     before(setup)
     after(teardown)
+    beforeEach(reset)
 
     it "searches by email", (done) ->
         api.call

@@ -15,6 +15,7 @@ auth = require('../../auth')
 describe 'test changing password -- ', ->
     before(setup)
     after(teardown)
+    beforeEach(reset)
 
     it 'changes the password', (done) ->
         api.call
@@ -114,6 +115,7 @@ describe 'test changing password -- ', ->
 describe 'test changing email address -- ', ->
     before(setup)
     after(teardown)
+    beforeEach(reset)
 
     it "changes it", (done) ->
         api.call
@@ -181,6 +183,7 @@ describe 'test changing email address -- ', ->
 describe 'tests sending a forgot password email --', ->
     before(setup)
     after(teardown)
+    beforeEach(reset)
 
     it 'sends a forgot password email for an address that does not exist', (done) ->
         api.call

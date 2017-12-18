@@ -50,7 +50,7 @@ exports.is_banned = is_banned = (address) ->
 
 # here's how I test this function:
 #    require('email').send_email(subject:'TEST MESSAGE', body:'body', to:'wstein@sagemath.com', cb:console.log)
-exports.send_email = send_email = (opts={}) ->
+exports.send_email = (opts={}) ->
     opts = defaults opts,
         subject      : required
         body         : required
@@ -203,7 +203,7 @@ exports.mass_email = (opts) ->
                 if n % 100 == 0
                     dbg("#{n}/#{recipients.length-1}")
                 n += 1
-                send_email
+                exports.send_email
                     subject  : opts.subject
                     body     : opts.body
                     from     : opts.from
@@ -349,7 +349,8 @@ exports.welcome_email = (opts) ->
         subject = "Welcome to #{SITE_NAME} - #{DNS}"
         body    = welcome_email_html(token_url)
 
-    send_email
+    # exports... because otherwise stubbing in the test suite of send_email would not work
+    exports.send_email
         subject      : subject
         body         : body
         fromname     : COMPANY_NAME
