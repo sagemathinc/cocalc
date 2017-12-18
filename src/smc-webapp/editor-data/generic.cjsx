@@ -18,6 +18,7 @@ INFO =
     odt  : 'Please download this file to your computer and open it using [OpenOffice Writer](https://www.openoffice.org/product/writer.html).'
     sobj : 'You can load an sobj file into **SageMath** by typing `load("filename.sobj")`.'
     'noext-octave-workspace' : 'This is a data file that contains the state of your Octave workspace.'
+    'noext-a.out' : 'This is a binary executable, which you can run in a Terminal by typing ./a.out.'
 
 DataGeneric = rclass
     displayName : "DataGeneric"
