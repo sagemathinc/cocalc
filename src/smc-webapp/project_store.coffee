@@ -1646,7 +1646,7 @@ class ProjectActions extends Actions
                                         if not store = @get_store()
                                             cb('no store')
                                         else
-                                            {item, err} = stofre.get_item_in_path(last, parent_path)
+                                            {item, err} = store.get_item_in_path(last, parent_path)
                                             #if DEBUG then console.log("ProjectStore::load_target → waterfall2/1", item, err)
                                             cb(err, item)
                             else
