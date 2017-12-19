@@ -46,6 +46,9 @@ exports.start_raw_server = (opts) ->
 
     async.series([
         (cb) ->
+            if kucalc.IN_KUCALC # no need, since this link is already created in the Docker image (and not creating it saves a little time)
+                cb()
+                return
             # create the root symbolic link, so that it is possible to
             # browse the entire filesystem, including tmp
             target = process.env.SMC + '/root'
@@ -60,13 +63,16 @@ exports.start_raw_server = (opts) ->
                             opts.logger?.debug("WARNING: error creating root symlink -- #{err}")
                         cb()
         (cb) ->
-            if port  # 0 or undefined
+            if port
                 cb()
             else
+                # 0 or undefined -- so generate one that is available
                 misc_node.free_port (err, _port) ->
-                    port = _port; cb(err)
-        (cb) ->
-            fs.writeFile(raw_port_file, port, cb)
+                    if err
+                        cb(err)
+                        return
+                    port = _port
+                    fs.writeFile(raw_port_file, port, cb) # since not specified, write it
         (cb) ->
             base = "#{base_url}/#{project_id}/raw/"
             opts.logger?.info("raw server: port=#{port}, host='#{host}', base='#{base}'")
@@ -97,9 +103,9 @@ exports.start_raw_server = (opts) ->
             raw_server.use(base, express_index(home,  {hidden:true, icons:true}))
             raw_server.use(base, express.static(home, {hidden:true}))
 
-
             # NOTE: It is critical to only listen on the host interface (not localhost),
-            # since otherwise other users on the same VM could listen in.
+            # since otherwise other users on the same VM could listen in.  Doesn't matter
+            # for the main site now due to Docker/Kubernetes/Firewall...
             # We also firewall connections from the other VM hosts above
             # port 1024, so this is safe without authentication.  TODO: should we add some sort of
             # auth (?) just in case?
