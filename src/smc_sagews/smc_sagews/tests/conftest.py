@@ -485,6 +485,42 @@ def exec2(request, sagews, test_id):
     return execfn
 
 @pytest.fixture()
+def execbuf(request, sagews, test_id):
+    r"""
+    Fixture function execbuf.
+    Inner function will execute code, then append messages received
+    from sage_server.
+    As messages are appended, the result is checked for either
+    an exact match, if `output` string is specified, or
+    pattern match, if `pattern` string is given.
+    Test fails if non-`stdout` message is received before
+    match or receive times out.
+    """
+    def execfn(code, output = None, pattern = None):
+        m = message.execute_code(code = code, id = test_id)
+        m['preparse'] = True
+        # send block of code to be executed
+        sagews.send_json(m)
+        outbuf = ''
+        while True:
+            typ, mesg = sagews.recv()
+            assert typ == 'json'
+            assert mesg['id'] == test_id
+            assert 'stdout' in mesg
+            outbuf += mesg['stdout']
+            if output is not None:
+                if output in outbuf:
+                    break
+            elif pattern is not None:
+                if re.search(pattern, outbuf) is not None:
+                    break
+    def fin():
+        recv_til_done(sagews, test_id)
+
+    request.addfinalizer(fin)
+    return execfn
+
+@pytest.fixture()
 def execinteract(request, sagews, test_id):
     def execfn(code):
         m = message.execute_code(code = code, id = test_id)
