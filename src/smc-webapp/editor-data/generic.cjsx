@@ -17,7 +17,10 @@ INFO =
     fit  : 'You may be able to use this file from Python using the [fitparse](https://github.com/dtcooper/python-fitparse) library.'
     odt  : 'Please download this file to your computer and open it using [OpenOffice Writer](https://www.openoffice.org/product/writer.html).'
     sobj : 'You can load an sobj file into **SageMath** by typing `load("filename.sobj")`.'
-    'noext-octave-workspace' : 'This is a data file that contains the state of your Octave workspace.'
+    'noext-octave-workspace' : '''
+                               This is a data file that contains the state of your Octave workspace.
+                               Read more: [Saving-Data-on-Unexpected-Exits](https://www.gnu.org/software/octave/doc/v4.2.1/Saving-Data-on-Unexpected-Exits.html).
+                               '''
     'noext-a.out' : 'This is a binary executable, which you can run in a Terminal by typing ./a.out.'
 
 DataGeneric = rclass
