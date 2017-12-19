@@ -20,7 +20,7 @@ exports.DoneCheckbox = rclass
             name = 'check-square-o'
         else
             name = 'square-o'
-        return <Icon name={name} />
+        return <Icon name={name} style={cursor:'pointer'} />
 
     toggle_done: ->
         if @props.done
