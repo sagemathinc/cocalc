@@ -206,6 +206,13 @@ file_associations['ipynb'] =
     opts   : {}
     name   : "Jupyter Notebook"
 
+file_associations['noext-octave-workspace'] =
+    editor : 'noext-octave-workspace'
+    opts   : {}
+    name   : 'Octave workspace'
+    binary : true
+    exclude_from_menu : true
+
 for ext in ['png', 'jpg', 'jpeg', 'gif', 'svg']
     file_associations[ext] =
         editor : 'media'
