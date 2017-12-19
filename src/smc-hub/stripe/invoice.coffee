@@ -96,6 +96,8 @@ render_invoice_to_pdf = (invoice, customer, charge, res, download, cb) ->
 
     if invoice.description
         doc.text("#{invoice.description}")
+    else
+        doc.text("#{SITE_NAME} compute resources")
 
     y += 130
     doc.fontSize(24).text("Items", c1, y)
