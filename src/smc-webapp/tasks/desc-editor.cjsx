@@ -30,15 +30,17 @@ CM_OPTIONS =
 
 exports.DescriptionEditor = rclass
     propTypes :
-        actions   : rtypes.object
-        task_id   : rtypes.string.isRequired
-        desc      : rtypes.string
-        font_size : rtypes.number  # used only to cause refresh
+        actions    : rtypes.object
+        task_id    : rtypes.string.isRequired
+        desc       : rtypes.string
+        is_current : rtypes.bool
+        font_size  : rtypes.number  # used only to cause refresh
 
     shouldComponentUpdate: (next) ->
-        return @props.task_id   != next.task_id   or \
-               @props.desc      != next.desc      or \
-               @props.font_size != next.font_size
+        return @props.task_id    != next.task_id   or \
+               @props.desc       != next.desc      or \
+               @props.font_size  != next.font_size or \
+               @props.is_current != next.is_current
 
     componentDidMount: ->
         @init_codemirror(@props.desc)
@@ -122,6 +124,8 @@ exports.DescriptionEditor = rclass
         # replace undo/redo by our sync aware versions
         @cm.undo = @_cm_undo
         @cm.redo = @_cm_redo
+
+        setTimeout((=>@cm?.refresh(); if @props.is_current then @cm?.focus()),1)
 
     render: ->
         <div style={STYLE}>

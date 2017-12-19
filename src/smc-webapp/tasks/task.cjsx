@@ -55,6 +55,7 @@ exports.Task = rclass
             desc       = {@props.task.get('desc')}
             editing    = {@props.editing_desc}
             minimize   = {@props.min_desc}
+            is_current = {@props.is_current}
         />
 
     render_last_edited: ->
