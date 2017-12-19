@@ -119,7 +119,7 @@ upgrades.params =
         input_type     : 'checkbox'
         desc           : 'Full internet access enables a project to connect to the computers outside of CoCalc, download software packages, etc.'
     member_host :
-        display        : 'Member hosting'
+        display        : 'Paid hosting'
         unit           : 'project'
         display_unit   : 'project'
         display_factor : 1
