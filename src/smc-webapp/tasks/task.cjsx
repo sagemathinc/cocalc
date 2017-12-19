@@ -20,25 +20,31 @@ exports.Task = rclass
         is_current       : rtypes.bool
         editing_due_date : rtypes.bool
         editing_desc     : rtypes.bool
+        min_desc         : rtypes.bool
 
     shouldComponentUpdate: (next) ->
-        return @props.task              != next.task or \
-               @props.is_current        != next.is_current or \
+        return @props.task              != next.task             or \
+               @props.is_current        != next.is_current       or \
                @props.editing_due_date  != next.editing_due_date or \
-               @props.editing_desc      != next.editing_desc
+               @props.editing_desc      != next.editing_desc     or \
+               @props.min_desc          != next.min_desc
 
     render_drag_handle: ->
         <DragHandle />
 
-    render_done_checkbox: ->
+    render_done_checkbox: ->  # cast of done to bool for backward compat
         <DoneCheckbox
             actions = {@props.actions}
-            done    = {@props.task.get('done')}
+            done    = {!!@props.task.get('done')}
             task_id = {@props.task.get('task_id')}
         />
 
     render_min_toggle: ->
-        <MinToggle />
+        <MinToggle
+            actions  = {@props.actions}
+            task_id  = {@props.task.get('task_id')}
+            minimize = {@props.min_desc}
+        />
 
     render_desc: ->
         <Description
@@ -48,7 +54,8 @@ exports.Task = rclass
             task_id    = {@props.task.get('task_id')}
             desc       = {@props.task.get('desc')}
             editing    = {@props.editing_desc}
-            />
+            minimize   = {@props.min_desc}
+        />
 
     render_last_edited: ->
         <Changed

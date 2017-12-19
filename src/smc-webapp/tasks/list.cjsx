@@ -34,6 +34,7 @@ exports.TaskList = rclass
             is_current       = {@props.current_task_id == task_id}
             editing_due_date = {@props.local_task_state?.getIn([task_id, 'editing_due_date'])}
             editing_desc     = {@props.local_task_state?.getIn([task_id, 'editing_desc'])}
+            min_desc         = {@props.local_task_state?.getIn([task_id, 'min_desc'])}
         />
 
     render_headings: ->

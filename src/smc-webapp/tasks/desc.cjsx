@@ -22,11 +22,13 @@ exports.Description = rclass
         task_id    : rtypes.string.isRequired
         desc       : rtypes.string
         editing    : rtypes.bool
+        minimize   : rtypes.bool
 
     shouldComponentUpdate: (next) ->
-        return @props.desc     != next.desc or \
-               @props.task_id  != next.task_id or \
-               @props.editing  != next.editing
+        return @props.desc     != next.desc     or \
+               @props.task_id  != next.task_id  or \
+               @props.editing  != next.editing  or \
+               @props.minimize != next.minimize
 
     edit: ->
         @props.actions.edit_desc(@props.task_id)
@@ -55,6 +57,7 @@ exports.Description = rclass
             path       = {@props.path}
             project_id = {@props.project_id}
             desc       = {@props.desc}
+            minimize   = {@props.minimize}
             />
 
     render: ->

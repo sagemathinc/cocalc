@@ -205,10 +205,19 @@ class exports.TaskActions extends Actions
             due_date    : date
             last_edited : new Date() - 0
 
-
     set_desc: (task_id, desc) =>
         @syncdb.set
             task_id     : task_id
             desc        : desc
             last_edited : new Date() - 0
+
+    minimize_desc: (task_id) =>
+        @set_local_task_state
+            task_id  : task_id
+            min_desc : true
+
+    maximize_desc: (task_id) =>
+        @set_local_task_state
+            task_id  : task_id
+            min_desc : false
 
