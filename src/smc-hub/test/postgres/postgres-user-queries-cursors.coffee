@@ -127,7 +127,7 @@ describe 'access control tests on cursors table -- ', ->
             project_id : projects[0]
             query      : {cursors:{string_id:string_id, user_id:0, time:t[0], locs:null}}
             cb         : (err, x) ->
-                expect(err).toEqual("get queries not allowed for table 'cursors'")
+                expect(err).toEqual("FATAL: get queries not allowed for table 'cursors'")
                 done()
 
     it 'fails to reads back as user not on project', (done) ->
@@ -135,21 +135,21 @@ describe 'access control tests on cursors table -- ', ->
             account_id : accounts[1]
             query      : {cursors:{string_id:string_id, user_id:0, time:t[0], locs:null}}
             cb         : (err, x) ->
-                expect(err).toEqual("user must be an admin")
+                expect(err).toEqual("FATAL: user must be an admin")
                 done()
 
     it 'tries to read as anon and fails', (done) ->
         db.user_query
             query : {cursors:{string_id:string_id, time:t[0], user_id:0, locs:null}}
             cb    : (err) ->
-                expect(err).toEqual("anonymous get queries not allowed for table 'cursors'")
+                expect(err).toEqual("FATAL: anonymous get queries not allowed for table 'cursors'")
                 done()
 
     it 'tries to write as anon and fails', (done) ->
         db.user_query
             query : {cursors:{string_id:string_id, time:new Date(), user_id:0, locs:[{x:1, y:2}]}}
             cb    : (err) ->
-                expect(err).toEqual("no anonymous set queries")
+                expect(err).toEqual("FATAL: no anonymous set queries")
                 done()
 
     it 'tries to write as user not on the project and fails', (done) ->
@@ -157,7 +157,7 @@ describe 'access control tests on cursors table -- ', ->
             account_id : accounts[1]
             query : {cursors:{string_id:string_id, time:t[1], user_id:0, locs:null}}
             cb    : (err) ->
-                expect(err).toEqual("user must be an admin")
+                expect(err).toEqual("FATAL: user must be an admin")
                 done()
 
     it 'tries to write as different project and fails', (done) ->
@@ -165,7 +165,7 @@ describe 'access control tests on cursors table -- ', ->
             project_id : projects[1]
             query : {cursors:{string_id:string_id, time:t[1], user_id:0, locs:[{x:5,y:10}]}}
             cb    : (err) ->
-                expect(err).toEqual("user set queries not allowed for table 'cursors'")
+                expect(err).toEqual("FATAL: user set queries not allowed for table 'cursors'")
                 done()
 
     it 'makes account1 an admin', (done) ->
@@ -203,7 +203,7 @@ describe 'access control tests on cursors table -- ', ->
             project_id : projects[0]
             query      : {cursors:{string_id:string_id, time:t[3], user_id:2, locs:[{x:20,y:25}]}}
             cb         : (err) ->
-                expect(err).toEqual("user set queries not allowed for table 'cursors'")
+                expect(err).toEqual("FATAL: user set queries not allowed for table 'cursors'")
                 done()
 
     it 'tries to write non-array locs and fail', (done) ->
@@ -219,7 +219,7 @@ describe 'access control tests on cursors table -- ', ->
             account_id : accounts[0]
             query : {cursors:{string_id:'sage', time:t[4], user_id:2, locs:[{x:20,y:25}]}}
             cb    : (err) ->
-                expect(err).toEqual("string_id (='sage') must be a string of length 40")
+                expect(err).toEqual("FATAL: string_id (='sage') must be a string of length 40")
                 done()
 
     it 'tries to write with missing locs and fail', (done) ->

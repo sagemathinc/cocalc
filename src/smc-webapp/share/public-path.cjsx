@@ -111,7 +111,7 @@ exports.PublicPath = rclass
 
         <div style={display: 'flex', flexDirection: 'column', flex:1} has_mathjax={if mathjax then "true"}>
             <PublicPathInfo path={@props.path} info={@props.info} />
-            <div style={background: 'white', overflow:'auto', flex:1}>
+            <div style={background: 'white', flex:1}>
                 {elt}
             </div>
         </div>

@@ -8,8 +8,6 @@ misc = require('smc-util/misc')
 
 INDEX_STYLE =
     margin     : '0px 30px 15px 30px'
-    overflow   : 'auto'
-    height     : '100%'
     background : 'white'
 
 exports.PublicPathsBrowser = rclass
@@ -97,7 +95,7 @@ exports.PublicPathsBrowser = rclass
             @render_public_path_link(info, bgcolor)
 
     render: ->
-        <div style={display:'flex', flexDirection:'column'}>
+        <div>
             <div key='top' style={paddingLeft: '30px', background: '#dfdfdf'}>
                 {@render_overview()}
                 <Space />

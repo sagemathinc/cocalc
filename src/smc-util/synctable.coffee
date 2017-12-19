@@ -973,7 +973,9 @@ class SyncTable extends EventEmitter
             x = opts.until(@)
             if x
                 @removeListener('change', f)
-                if fail_timer? then clearTimeout(fail_timer)
+                if fail_timer?
+                    clearTimeout(fail_timer)
+                    fail_timer = undefined
                 opts.cb(undefined, x)
         @on('change', f)
         if opts.timeout

@@ -7,7 +7,9 @@ Component that shows a warning message if has_uncommitted_changes is true for mo
 
 STYLE =
     backgroundColor : 'red'
-    padding         : '5px'
+    color           : 'white'
+    padding         : '10px'
+    fontWeight      : 'bold'
     marginLeft      : '5px'
     marginRight     : '-5px'
     borderRadius    : '3px'

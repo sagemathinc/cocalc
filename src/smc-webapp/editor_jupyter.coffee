@@ -801,6 +801,19 @@ class JupyterWrapper extends EventEmitter
 exports.jupyter_notebook = (parent, filename, opts) ->
     return (new JupyterNotebook(parent, filename, opts)).element
 
+exports.jupyter_server_url = (project_id) ->
+    # special case/hack for developing CoCalc-in-CoCalc
+    if window.app_base_url.indexOf('/port/') != -1
+        # Hack until we can figure out how to proxy websockets through a proxy
+        # (things just get too complicated)...
+        # Jupyter: assuming that CoCalc is being run from a project installed in the ~/smc directory
+        i = window.app_base_url.lastIndexOf('/')
+        return "#{window.app_base_url.slice(0,i)}/jupyter/notebooks/smc/src/data/projects/#{project_id}/"
+    else
+        # Jupyter is proxied via the following canonical URL:
+        return "#{window.app_base_url}/#{project_id}/port/jupyter/notebooks/"
+
+
 class JupyterNotebook extends EventEmitter
     constructor: (@parent, @filename, opts={}) ->
         opts = @opts = defaults opts,
@@ -822,16 +835,8 @@ class JupyterNotebook extends EventEmitter
 
         @_other_cursor_timeout_s = 30  # only show active other cursors for this long
 
-        # Jupyter is proxied via the following canonical URL:
-        @server_url = "#{window.app_base_url}/#{@project_id}/port/jupyter/notebooks/"
-
-        # special case/hack for developing CoCalc-in-CoCalc
-        if window.app_base_url.indexOf('/port/') != -1
-            # Hack until we can figure out how to proxy websockets through a proxy
-            # (things just get too complicated)...
-            console.warn("Jupyter: assuming that CoCalc is being run from a project installed in the ~/smc directory!!")
-            i = window.app_base_url.lastIndexOf('/')
-            @server_url = "#{window.app_base_url.slice(0,i)}/jupyter/notebooks/smc/src/data/projects/#{@project_id}/"
+        # Jupyter is proxied via the following URL
+        @server_url = exports.jupyter_server_url(@project_id)
 
         s = misc.path_split(@filename)
         @path = s.head

@@ -231,7 +231,10 @@ class ProjectsActions extends Actions
         if opts.target?
             redux.getProjectActions(opts.project_id)?.load_target(opts.target, opts.switch_to)
         redux.getActions('page').save_session()
-        project_actions.check_library()
+        # init the library after project started.
+        # TODO write a generalized store function that does this in a more robust way
+        project_actions.init_library()
+        project_actions.init_library_index()
 
     # Clearly should be in top.cjsx
     # tab at old_index taken out and then inserted into the resulting array's new index
