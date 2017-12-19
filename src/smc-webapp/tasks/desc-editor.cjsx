@@ -110,7 +110,7 @@ exports.DescriptionEditor = rclass
         options.extraKeys =
             "Shift-Enter" : @stop_editing
             Esc           : @stop_editing
-            Tab           : (-> @cm.tab_as_space())
+            Tab           : => @cm.tab_as_space()
 
         @cm = CodeMirror.fromTextArea(node, options)
         $(@cm.getWrapperElement()).css(height:'auto')
