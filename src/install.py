@@ -71,7 +71,7 @@ def install_webapp(*args):
     nothing = True
 
     if 'build' in action:
-        cmd("cd examples && make")
+        cmd("cd examples && env OUTDIR=../webapp-lib/examples make")
         for path in ['.', 'smc-util', 'smc-util-node', 'smc-webapp', 'smc-webapp/jupyter']:
             cmd("cd %s; npm --loglevel=warn install"%path)
 
