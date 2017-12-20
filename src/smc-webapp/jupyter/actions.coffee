@@ -1457,6 +1457,16 @@ class exports.JupyterActions extends Actions
         @setState(keyboard_shortcuts:undefined)
         @focus_unlock()
 
+    show_code_assistant: =>
+        @blur_lock()
+        assistant_actions = @store.get('assistant_actions')
+        assistant_actions.init(lang = @store.getIn(['kernel_info', 'language']))
+        assistant_actions.set(show:true, lang_select:false, handler:@code_assistant_handler)
+
+    code_assistant_handler: (data) =>
+        if DEBUG then console.log("assistant data:", data)
+        @focus_unlock()
+
     _keyboard_settings: =>
         if not @_account_change_editor_settings?
             console.warn("account settings not loaded")  # should not happen
@@ -1535,7 +1545,7 @@ class exports.JupyterActions extends Actions
             trust : !!trust  # case to bool
 
     insert_image: =>
-       @setState(insert_image: true)
+        @setState(insert_image: true)
 
     command: (name) =>
         f = @_commands?[name]?.f

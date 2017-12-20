@@ -40,6 +40,8 @@ misc_page = require('./misc_page')
 
 markdown = require('./markdown')
 
+exports.ICON_NAME = 'magic'
+
 # the json from the server, where the entries for the documents are
 # double-nested objects (two hiearchies of categories) mapping to title/code/description documents
 DATA = null
@@ -82,15 +84,18 @@ class ExamplesActions extends Actions
             search_sel : null
             submittable: false
             cat1_top   : ["Intro", "Tutorial", "Help"]
+            handler    : null
 
     hide: =>
         @set(show: false)
 
-    init: (lang='sage') ->
-        @reset()
-        @set(lang: lang)
-        @load_data()
-        @set(show: true)
+    init: (lang) ->
+        return if not lang?
+        if not @get('initialized')
+            @reset()
+            @set(lang: lang)
+            @load_data()
+        @set(show: true, initialized:true)
 
     init_data: (data) ->
         @set(data: data)
@@ -113,7 +118,7 @@ class ExamplesActions extends Actions
             code  : @get('code')
             lang  : @get('lang')
             descr : if descr then @get('descr') else null
-        cb(data)
+        (cb ? @get('handler'))?(data)
 
     load_data: () ->
         if not DATA?
@@ -313,7 +318,8 @@ ExamplesHeader = rclass
         actions     : rtypes.object
         nav_entries : rtypes.array
         search_str  : rtypes.string
-        lang        : rtypes.string.isRequired
+        lang        : rtypes.string
+        lang_select : rtypes.bool
 
     getDefaultProps: ->
         search_str : ''
@@ -358,10 +364,15 @@ ExamplesHeader = rclass
         </Nav>
 
     render: ->
+        return null if (not @props.lang?) or (not @props.lang_select?)
         <Row>
-            <Col sm={3}><h2><Icon name='magic' /> Examples</h2></Col>
+            <Col sm={3}>
+                <h2>
+                    <Icon name={exports.ICON_NAME} /> Assistant {<code>{@props.lang}</code> if not @props.lang_select}
+                </h2>
+            </Col>
             <Col sm={5}>
-                {@render_nav()}
+                {@render_nav() if @props.lang_select}
             </Col>
             <Col sm={3}>
                 <FormGroup>
@@ -382,7 +393,7 @@ ExamplesBody = rclass
     propTypes:
         actions    : rtypes.object
         data       : rtypes.object
-        lang       : rtypes.string.isRequired
+        lang       : rtypes.string
         code       : rtypes.string
         descr      : rtypes.string
         cat0       : rtypes.number
@@ -493,13 +504,14 @@ ExamplesBody = rclass
         </Modal.Body>
 
 
-RExamples = (name) -> rclass
+exports.RExamples = (name) -> rclass
     displayName : 'Examples'
 
     reduxProps :
         "#{name}" :
             show        : rtypes.bool
-            lang        : rtypes.string
+            lang        : rtypes.string      # the currently selected language
+            lang_select : rtypes.bool        # show buttons to allow selecting the language
             code        : rtypes.string
             descr       : rtypes.string
             data        : rtypes.object
@@ -521,7 +533,8 @@ RExamples = (name) -> rclass
         actions : rtypes.object.isRequired
 
     getInitialState: ->
-        search  : ''
+        search      : ''
+        lang_select : true
 
     close: ->
         @props.actions.hide()
@@ -565,6 +578,7 @@ RExamples = (name) -> rclass
                className="webapp-examples">
             <Modal.Header closeButton className='modal-header'>
                <ExamplesHeader actions     = {@props.actions}
+                               lang_select = {@props.lang_select}
                                lang        = {@props.lang}
                                search_str  = {@props.search_str}
                                nav_entries = {@props.nav_entries} />
@@ -592,13 +606,22 @@ RExamples = (name) -> rclass
             </Modal.Footer>
         </Modal>
 
-exports.render_examples_dialog = (target, project_id, path, lang = 'sage', cb = null) ->
+exports.instantiate_assistant = (project_id, path) ->
     name = redux_name(project_id, path)
     actions = redux.getActions(name)
     if not actions?
         actions = redux.createActions(name, ExamplesActions)
-        store   = redux.createStore(name)
+        store   = redux.createStore(name, ExamplesStore)
+    return [actions, store]
+
+exports.instantiate_component = (project_id, path, actions) ->
+    name = redux_name(project_id, path)
+    W = exports.RExamples(name)
+    return <Redux redux={redux}><W actions={actions}/></Redux>
+
+exports.render_examples_dialog = (target, project_id, path, lang = 'sage', cb = null) ->
+    [actions, store] = exports.instantiate_assistant(project_id, path)
     actions.init(lang=lang)
-    W = RExamples(name)
+    W = exports.RExamples(name)
     ReactDOM.render(<Redux redux={redux}><W cb={cb} actions={actions}/></Redux>, target)
     return actions

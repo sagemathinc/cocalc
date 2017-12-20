@@ -125,6 +125,9 @@ exports.TopButtonbar = rclass ({name}) ->
     render_keyboard: ->
         @render_button('0', 'show keyboard shortcuts')
 
+    render_assistant: ->
+        @render_button('assistant', 'show code assistant')
+
     render_group_undo_redo: ->
         @render_button_group(['global undo', 'global redo'])
 
@@ -195,6 +198,8 @@ exports.TopButtonbar = rclass ({name}) ->
                 {@render_select_cell_type()}
                 <span style={marginLeft:'5px'}/>
                 {@render_keyboard()}
+                <span style={marginLeft:'5px'}/>
+                {@render_assistant()}
                 <span style={marginLeft:'5px'}/>
                 {@render_group_save_timetravel()}
             </Form>

@@ -1,5 +1,5 @@
 ###
-Register the Jupyter Notebook editor and viwer with SMC
+Register the Jupyter Notebook editor and viewer with CoCalc
   - set the file extension, icon, react component,
     and how to init and remove the actions/store
 ###
@@ -32,6 +32,9 @@ exports.register = ->
 
             actions = redux.createActions(name, JupyterActions)
             store   = redux.createStore(name, JupyterStore)
+
+            [assistant_actions, assistant_store] = require('../examples').instantiate_assistant(project_id, path)
+            actions.setState(assistant_actions:assistant_actions)
 
             syncdb = webapp_client.sync_db
                 project_id      : project_id

@@ -471,6 +471,11 @@ exports.commands = (actions) ->
         k : [{"mode":"escape","which":72}]
         f : -> actions.show_keyboard_shortcuts()
 
+    'show code assistant':
+        i : require('smc-webapp/examples.cjsx').ICON_NAME
+        m : 'Show code assistant'
+        f : -> actions.show_code_assistant()
+
     'show toolbar':
         m : 'Show toolbar'
         f : -> actions.set_toolbar_state(true)

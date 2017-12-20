@@ -4,7 +4,7 @@ Top-level react component, which ties everything together
 
 {ErrorDisplay, Icon, Loading} = require('../r_misc')
 
-{React, ReactDOM, rclass, rtypes}  = require('../smc-react')
+{React, ReactDOM, rclass, rtypes, Redux, redux}  = require('../smc-react')
 
 # React components that implement parts of the Jupyter notebook.
 
@@ -21,6 +21,7 @@ Top-level react component, which ties everything together
 {FindAndReplace}    = require('./find-and-replace')
 {ConfirmDialog}     = require('./confirm-dialog')
 {KeyboardShortcuts} = require('./keyboard-shortcuts')
+{RExamples}         = require('../examples')
 {JSONView}          = require('./json-view')
 {RawEditor}         = require('./raw-editor')
 
@@ -75,6 +76,8 @@ exports.JupyterEditor = rclass ({name}) ->
             raw_ipynb           : rtypes.immutable.Map
             metadata            : rtypes.immutable.Map
             trust               : rtypes.bool
+            assistant_actions   : rtypes.object
+            assistant_handler   : rtypes.object
 
     render_error: ->
         if @props.error
@@ -208,19 +211,26 @@ exports.JupyterEditor = rclass ({name}) ->
             cur_id           = {@props.cur_id}
             cells            = {@props.cells}
             cell_list        = {@props.cell_list}
-            />
+        />
 
     render_confirm_dialog: ->
         <ConfirmDialog
             actions        = {@props.actions}
             confirm_dialog = {@props.confirm_dialog}
-            />
+        />
 
     render_keyboard_shortcuts: ->
         <KeyboardShortcuts
             actions            = {@props.actions}
             keyboard_shortcuts = {@props.keyboard_shortcuts}
         />
+
+    render_assistent_dialog: ->
+        {instantiate_component} = require('../examples')
+        project_id        = @props.actions.store.get('project_id')
+        path              = @props.actions.store.get('path')
+        assistant_actions = @props.actions.store.get('assistant_actions')
+        return instantiate_component(project_id, path, assistant_actions)
 
     render_json_viewer: ->
         <JSONView
@@ -263,6 +273,7 @@ exports.JupyterEditor = rclass ({name}) ->
             {@render_edit_cell_metadata()}
             {@render_find_and_replace()}
             {@render_keyboard_shortcuts()}
+            {@render_assistent_dialog()}
             {@render_confirm_dialog()}
             {@render_heading()}
             {@render_main_view()}
