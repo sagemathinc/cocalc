@@ -1,6 +1,6 @@
 //- jupyter landing page
 
-extends _base.pug
+extends ../_base.pug
 
 block vars
   - var subtitle = 'Run Jupyter Notebooks Online';
@@ -8,7 +8,7 @@ block vars
 block header
   meta(name="description" content=NAME + ' - ' + subtitle)
   script(type="text/javascript")
-    include:coffee-script index.coffee
+    include:coffee-script ../index.coffee
 
 block content
   - var free_quotas = htmlWebpackPlugin.options.SCHEMA.DEFAULT_QUOTAS

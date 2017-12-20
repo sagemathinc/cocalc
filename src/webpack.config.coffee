@@ -262,7 +262,7 @@ pug2app = new HtmlWebpackPlugin(
 # they only depend on the css chunk
 staticPages = []
 # in the root directory (doc/ and policies/ is below)
-for [fn_in, fn_out] in [['index.pug', 'index.html'], ['jupyter-notebook.pug', 'jupyter-notebook.html']]
+for [fn_in, fn_out] in [['index.pug', 'index.html']]
     staticPages.push(new HtmlWebpackPlugin(
                         date             : BUILD_DATE
                         title            : TITLE
@@ -286,7 +286,9 @@ for [fn_in, fn_out] in [['index.pug', 'index.html'], ['jupyter-notebook.pug', 'j
     ))
 
 # doc pages
-for dp in (x for x in glob.sync('webapp-lib/doc/*.pug') when path.basename(x)[0] != '_')
+for dp in glob.sync('webapp-lib/doc/*.pug')
+    continue if path.basename(dp)[0] == '_'
+    continue if (path.basename(dp).indexOf('software-') == 0) and (COMP_ENV)
     output_fn = "doc/#{misc.change_filename_extension(path.basename(dp), 'html')}"
     staticPages.push(new HtmlWebpackPlugin(
                         filename         : output_fn
@@ -301,6 +303,7 @@ for dp in (x for x in glob.sync('webapp-lib/doc/*.pug') when path.basename(x)[0]
                         inject           : 'head'
                         minify           : htmlMinifyOpts
                         GOOGLE_ANALYTICS : GOOGLE_ANALYTICS
+                        SCHEMA           : require('smc-util/schema')
                         hash             : PRODMODE
                         BASE_URL         : base_url_html
                         PREFIX           : '../'
