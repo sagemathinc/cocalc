@@ -62,7 +62,6 @@ exports.ButtonBar = rclass
     render_delete_button: ->
         <Button
             key      = 'delete'
-            bsStyle  = 'danger'
             disabled = {not @props.current_task_id}
             onClick  = {@props.actions.delete_current_task} >
             <Icon name='trash-o' /> Delete Task

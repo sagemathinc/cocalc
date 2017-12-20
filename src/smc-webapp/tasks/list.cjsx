@@ -11,6 +11,8 @@ List of Tasks
 exports.TaskList = rclass
     propTypes :
         actions          : rtypes.object
+        path             : rtypes.string
+        project_id       : rtypes.string
         tasks            : rtypes.immutable.Map.isRequired
         visible          : rtypes.immutable.List.isRequired
         current_task_id  : rtypes.string
@@ -26,10 +28,13 @@ exports.TaskList = rclass
         <Task
             key              = {task_id}
             actions          = {@props.actions}
+            path             = {@props.path}
+            project_id       = {@props.project_id}
             task             = {@props.tasks.get(task_id)}
             is_current       = {@props.current_task_id == task_id}
             editing_due_date = {@props.local_task_state?.getIn([task_id, 'editing_due_date'])}
             editing_desc     = {@props.local_task_state?.getIn([task_id, 'editing_desc'])}
+            min_desc         = {@props.local_task_state?.getIn([task_id, 'min_desc'])}
         />
 
     render_headings: ->

@@ -20,10 +20,9 @@ exports.DoneCheckbox = rclass
             name = 'check-square-o'
         else
             name = 'square-o'
-        return <Icon name={name} />
+        return <Icon name={name} style={cursor:'pointer'} />
 
     toggle_done: ->
-        console.log('toggle', @props.done)
         if @props.done
             @props.actions.set_task_not_done(@props.task_id)
         else

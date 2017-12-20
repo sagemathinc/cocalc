@@ -17,7 +17,11 @@ class exports.TaskActions extends Actions
         @path       = path
         @syncdb     = syncdb
         @store      = store
+
+        # TODO: these need to persist to localStorage
         @setState(local_task_state: immutable.Map())
+        @setState(local_view_state: immutable.fromJS(show_deleted:false, show_done:false))
+
         @_init_has_unsaved_changes()
         @syncdb.on('change', @_syncdb_change)
 
@@ -55,25 +59,40 @@ class exports.TaskActions extends Actions
                 # changed
                 tasks = tasks.set(task_id, t)
 
+        @setState(tasks : tasks)
+
+        @_update_visible()
+
+        @set_save_status?()
+
+    _update_visible: =>
+        tasks = @store.get('tasks')
+        view  = @store.get('local_view_state')
+        show_deleted = !!view.get('show_deleted')
+        show_done    = !!view.get('show_done')
+        current_task_id = @store.get('current_task_id')
+
         v = []
-        # TODO: need to restrict to only those that are visible here...
+        cutoff = misc.minutes_ago(5) - 0
         tasks.forEach (val, id) =>
+            if id != current_task_id
+                if not show_deleted and val.get('deleted') and (val.get('last_edited') ? 0) < cutoff
+                    return
+                if not show_done and val.get('done') and (val.get('last_edited') ? 0) < cutoff
+                    return
             # assuming sorting by position here...
             v.push([val.get('position'), id])
             return
         v.sort (a,b) -> misc.cmp(a[0], b[0])
         visible = immutable.fromJS((x[1] for x in v))
 
-        current_task_id = @store.get('current_task_id')
         if not current_task_id? and visible.size > 0
             current_task_id = visible.get(0)
 
         @setState
-            tasks           : tasks
             visible         : visible
             current_task_id : current_task_id
 
-        @set_save_status?()
 
     set_local_task_state: (obj) =>
         # Set local state related to a specific task -- this is NOT sync'd between clients
@@ -86,6 +105,13 @@ class exports.TaskActions extends Actions
                 x = x.set(k, immutable.fromJS(v))
         @setState
             local_task_state : local.set(obj.task_id, x)
+
+    set_local_view_state: (key, value) =>
+        # Set local state related to what we see/search for/etc.
+        local = @store.get('local_view_state')
+        @setState
+            local_view_state : local.set(key, immutable.fromJS(value))
+        @_update_visible()
 
     save: =>
         @setState(has_unsaved_changes:false)
@@ -204,3 +230,31 @@ class exports.TaskActions extends Actions
             task_id     : task_id
             due_date    : date
             last_edited : new Date() - 0
+
+    set_desc: (task_id, desc) =>
+        @syncdb.set
+            task_id     : task_id
+            desc        : desc
+            last_edited : new Date() - 0
+
+    minimize_desc: (task_id) =>
+        @set_local_task_state
+            task_id  : task_id
+            min_desc : true
+
+    maximize_desc: (task_id) =>
+        @set_local_task_state
+            task_id  : task_id
+            min_desc : false
+
+    show_deleted: =>
+        @set_local_view_state('show_deleted', true)
+
+    stop_showing_deleted: =>
+        @set_local_view_state('show_deleted', false)
+
+    show_done: =>
+        @set_local_view_state('show_done', true)
+
+    stop_showing_done: =>
+        @set_local_view_state('show_done', false)

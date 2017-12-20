@@ -14,7 +14,9 @@ Top-level react component for task list
 
 exports.TaskEditor = rclass ({name}) ->
     propTypes :
-        actions : rtypes.object.isRequired
+        actions    : rtypes.object.isRequired
+        path       : rtypes.string
+        project_id : rtypes.string
 
     reduxProps :
         "#{name}" :
@@ -24,6 +26,7 @@ exports.TaskEditor = rclass ({name}) ->
             has_unsaved_changes     : rtypes.bool
             has_uncommitted_changes : rtypes.bool
             local_task_state        : rtypes.immutable.Map
+            local_view_state        : rtypes.immutable.Map
 
     shouldComponentUpdate: (next) ->
         return @props.tasks                   != next.tasks or \
@@ -31,7 +34,8 @@ exports.TaskEditor = rclass ({name}) ->
                @props.current_task_id         != next.current_task_id or \
                @props.has_unsaved_changes     != next.has_unsaved_changes or \
                @props.has_uncommitted_changes != next.has_uncommitted_changes or \
-               @props.local_task_state        != next.local_task_state
+               @props.local_task_state        != next.local_task_state  or \
+               @props.local_view_state        != next.local_view_state
 
     render_uncommitted_changes: ->
         if not @props.has_uncommitted_changes
@@ -44,7 +48,10 @@ exports.TaskEditor = rclass ({name}) ->
         </div>
 
     render_find: ->
-        <Find actions={@props.actions} />
+        <Find
+            actions          = {@props.actions}
+            local_view_state = {@props.local_view_state}
+            />
 
     render_button_bar: ->
         <ButtonBar
@@ -59,6 +66,8 @@ exports.TaskEditor = rclass ({name}) ->
             return
         <TaskList
             actions          = {@props.actions}
+            path             = {@props.path}
+            project_id       = {@props.project_id}
             tasks            = {@props.tasks}
             visible          = {@props.visible}
             current_task_id  = {@props.current_task_id}
