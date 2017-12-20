@@ -46,9 +46,6 @@ exports.start_raw_server = (opts) ->
 
     async.series([
         (cb) ->
-            if kucalc.IN_KUCALC # no need, since this link is already created in the Docker image (and not creating it saves a little time)
-                cb()
-                return
             # create the root symbolic link, so that it is possible to
             # browse the entire filesystem, including tmp
             target = process.env.SMC + '/root'
