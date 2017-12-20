@@ -644,7 +644,7 @@ class exports.PostgreSQL extends PostgreSQL
                         else if not x?
                             cb("no such syncstring with id '#{opts.string_id}'")
                         else if x.archived
-                            cb("already archived")
+                            cb("string_id='#{opts.string_id}' already archived as blob id '#{x.archived}'")
                         else
                             project_id = x.project_id
                             last_active = x.last_active
