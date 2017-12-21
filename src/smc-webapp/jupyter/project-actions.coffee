@@ -549,7 +549,9 @@ class exports.JupyterActions extends actions.JupyterActions
                     # this just means the file doesn't exist.
                     cb?()
                 else
-                    file_is_newer = stats.ctime > last_changed
+                    # we do include "equality", because rsync operations round down to full seconds.
+                    # such rounding and strict inequality would make the file appear stale although it isn't.
+                    file_is_newer = stats.ctime >= last_changed
                     if file_is_newer
                         dbg("disk file changed more recently than edits, so loading")
                         @load_ipynb_file(cb)

@@ -427,7 +427,7 @@ class exports.PostgreSQL extends PostgreSQL
             map_limit : 1                  # copy this many at once.
             throttle  : 0                  # wait this many seconds between uploads
             repeat_until_done_s : 0        # if nonzero, waits this many seconds, then calls this function again until nothing gets uploaded.
-            errors    : {}                 # used to accumulate errors
+            errors    : undefined          # object: used to accumulate errors -- if not given, then everything will terminate on first error
             remove    : false
             cb        : required
         dbg = @_dbg("copy_all_blobs_to_gcloud")
@@ -457,13 +457,19 @@ class exports.PostgreSQL extends PostgreSQL
                             cb     : (err) =>
                                 dbg("**** #{k}/#{n}: finished -- #{err}; size #{x.size/1000}KB; time=#{new Date() - start}ms")
                                 if err
-                                    opts.errors[x.id] = err
+                                    if opts.error?
+                                        opts.errors[x.id] = err
+                                    else
+                                        cb(err)
                                 if opts.throttle
                                     setTimeout(cb, 1000*opts.throttle)
                                 else
                                     cb()
                     async.mapLimit v, opts.map_limit, f, (err) =>
                         dbg("finished this round -- #{err}")
+                        if err and not opts.errors?
+                            opts.cb(err)
+                            return
                         if opts.repeat_until_done_s and v.length > 0
                             dbg("repeat_until_done triggering another round")
                             setTimeout((=> @copy_all_blobs_to_gcloud(opts)), opts.repeat_until_done_s*1000)
@@ -638,7 +644,7 @@ class exports.PostgreSQL extends PostgreSQL
                         else if not x?
                             cb("no such syncstring with id '#{opts.string_id}'")
                         else if x.archived
-                            cb("already archived")
+                            cb("string_id='#{opts.string_id}' already archived as blob id '#{x.archived}'")
                         else
                             project_id = x.project_id
                             last_active = x.last_active
