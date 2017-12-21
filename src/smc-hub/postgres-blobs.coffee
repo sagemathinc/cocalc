@@ -264,20 +264,26 @@ class exports.PostgreSQL extends PostgreSQL
             force  : false      # if true, upload even if already uploaded
             remove : false      # if true, deletes blob from database after successful upload to gcloud (to free space)
             cb     : undefined  # cb(err)
+        dbg = @_dbg("copy_blob_to_gcloud(uuid='#{opts.uuid}')")
+        dbg()
         if not misc.is_valid_uuid_string(opts.uuid)
+            dbg("invalid uuid")
             opts.cb?("uuid is invalid")
             return
         if not opts.bucket
+            dbg("invalid bucket")
             opts.cb?("no blob store configured -- set the COCALC_BLOB_STORE env variable")
             return
-        x = undefined
+        locals =
+            x: undefined
         async.series([
             (cb) =>
+                dbg("get blob info from database")
                 @_query
                     query : "SELECT blob, gcloud FROM blobs"
                     where : "id = $::UUID" : opts.uuid
-                    cb    : one_result (err, _x) =>
-                        x = _x
+                    cb    : one_result (err, x) =>
+                        locals.x = x
                         if err
                             cb(err)
                         else if not x?
@@ -289,23 +295,36 @@ class exports.PostgreSQL extends PostgreSQL
                         else
                             cb()
             (cb) =>
-                if x.gcloud? and not opts.force
-                    # already uploaded -- don't need to do anything
-                    cb(); return
-                if not x.blob?
-                    # blob already deleted locally
+                if (locals.x.gcloud? and not opts.force) or not locals.x.blob?
+                    dbg("already uploaded -- don't need to do anything; or already deleted locally")
                     cb(); return
                 # upload to Google cloud storage
-                @blob_store(opts.bucket).write
+                locals.bucket = @blob_store(opts.bucket)
+                locals.bucket.write
                     name    : opts.uuid
-                    content : x.blob
+                    content : locals.x.blob
                     cb      : cb
             (cb) =>
-                if not x.blob?
+                if (locals.x.gcloud? and not opts.force) or not locals.x.blob?
+                    # already uploaded -- don't need to do anything; or already deleted locally
+                    cb(); return
+                dbg("read blob back and compare -- we do *NOT* trust GCS with such important data")
+                locals.bucket.read
+                    name : opts.uuid
+                    cb   : (err, data) =>
+                        if err
+                            cb(err)
+                        else if locals.x.blob != data
+                            dbg("FAILED!")
+                            cb("BLOB write to GCS failed check!")
+                        else
+                            cb()
+            (cb) =>
+                if not locals.x.blob?
                     # no blob in db; nothing further to do.
                     cb()
                 else
-                    # We successful upload to gcloud -- set x.gcloud
+                    # We successful upload to gcloud -- set locals.x.gcloud
                     set = {gcloud: opts.bucket}
                     if opts.remove
                         set.blob = null   # remove blob content from database to save space
