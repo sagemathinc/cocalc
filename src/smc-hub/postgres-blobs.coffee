@@ -314,7 +314,7 @@ class exports.PostgreSQL extends PostgreSQL
                     cb   : (err, data) =>
                         if err
                             cb(err)
-                        else if locals.x.blob != data
+                        else if not locals.x.blob.equals(data)
                             dbg("FAILED!")
                             cb("BLOB write to GCS failed check!")
                         else

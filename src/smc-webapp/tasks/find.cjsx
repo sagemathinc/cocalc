@@ -27,7 +27,7 @@ exports.Find = rclass
     render: ->
         if not @props.actions? or not @props.local_view_state?
             return <span />
-        <div>
+        <div style={float: 'right', padding: '10px'}>
             {@render_toggle('done')}
             {@render_toggle('deleted')}
         </div>
