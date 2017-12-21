@@ -436,10 +436,11 @@ class exports.PostgreSQL extends PostgreSQL
         # been copied to Google cloud storage.
         dbg("getting blob id's...")
         @_query
-            query : 'SELECT id, size FROM blobs'
-            where : "expire IS NULL AND gcloud IS NULL"
-            limit : opts.limit
-            cb    : all_results (err, v) =>
+            query    : 'SELECT id, size FROM blobs'
+            where    : "expire IS NULL AND gcloud IS NULL"
+            limit    : opts.limit
+            order_by : 'id'
+            cb       : all_results (err, v) =>
                 if err
                     dbg("fail: #{err}")
                     opts.cb(err)
@@ -590,10 +591,11 @@ class exports.PostgreSQL extends PostgreSQL
             (cb) =>
                 dbg("determine inactive syncstring ids")
                 @_query
-                    query : 'SELECT string_id FROM syncstrings'
-                    where : [{'last_active <= $::TIMESTAMP' : misc.days_ago(opts.age_days)}, 'archived IS NULL']
-                    limit : opts.limit
-                    cb    : all_results 'string_id', (err, v) =>
+                    query    : 'SELECT string_id FROM syncstrings'
+                    where    : [{'last_active <= $::TIMESTAMP' : misc.days_ago(opts.age_days)}, 'archived IS NULL']
+                    limit    : opts.limit
+                    order_by : 'string_id'
+                    cb       : all_results 'string_id', (err, v) =>
                         syncstrings = v
                         cb(err)
             (cb) =>
@@ -630,7 +632,7 @@ class exports.PostgreSQL extends PostgreSQL
             cutoff    : misc.minutes_ago(30)  # never touch anything this new
             cb        : undefined
         dbg = @_dbg("archive_patches(string_id='#{opts.string_id}')")
-        syncstring = patches = blob_uuid = project_id = last_active =undefined
+        syncstring = patches = blob_uuid = project_id = last_active = undefined
         where = {"string_id = $::CHAR(40)" : opts.string_id}
         async.series([
             (cb) =>
