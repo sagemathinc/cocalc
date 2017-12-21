@@ -28,7 +28,7 @@ exports.DescriptionRendered = rclass
         />
 
     render: ->
-        <div style={background:'#fff', padding:'0 10px'}>
+        <div style={padding:'0 10px'}>
             {@render_content()}
         </div>
 

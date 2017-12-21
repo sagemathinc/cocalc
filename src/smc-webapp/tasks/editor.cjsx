@@ -21,6 +21,7 @@ exports.TaskEditor = rclass ({name}) ->
     reduxProps :
         "#{name}" :
             tasks                   : rtypes.immutable.Map
+            counts                  : rtypes.immutable.Map
             visible                 : rtypes.immutable.List
             current_task_id         : rtypes.string
             has_unsaved_changes     : rtypes.bool
@@ -30,6 +31,7 @@ exports.TaskEditor = rclass ({name}) ->
 
     shouldComponentUpdate: (next) ->
         return @props.tasks                   != next.tasks or \
+               @props.counts                  != next.counts or \
                @props.visible                 != next.visible or \
                @props.current_task_id         != next.current_task_id or \
                @props.has_unsaved_changes     != next.has_unsaved_changes or \
@@ -51,6 +53,7 @@ exports.TaskEditor = rclass ({name}) ->
         <Find
             actions          = {@props.actions}
             local_view_state = {@props.local_view_state}
+            counts           = {@props.counts}
             />
 
     render_button_bar: ->

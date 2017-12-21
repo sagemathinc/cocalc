@@ -18,9 +18,11 @@ class exports.TaskActions extends Actions
         @syncdb     = syncdb
         @store      = store
 
-        # TODO: these need to persist to localStorage
-        @setState(local_task_state: immutable.Map())
-        @setState(local_view_state: immutable.fromJS(show_deleted:false, show_done:false))
+        # TODO: local_task_state and local_view_state need to persist to localStorage
+        @setState
+            local_task_state: immutable.Map()
+            local_view_state: immutable.fromJS(show_deleted:false, show_done:false)
+            counts          : immutable.fromJS(done:0, deleted:0)
 
         @_init_has_unsaved_changes()
         @syncdb.on('change', @_syncdb_change)
@@ -73,8 +75,15 @@ class exports.TaskActions extends Actions
         current_task_id = @store.get('current_task_id')
 
         v = []
-        cutoff = misc.minutes_ago(5) - 0
+        cutoff = misc.seconds_ago(15) - 0
+        counts =
+            done    : 0
+            deleted : 0
         tasks.forEach (val, id) =>
+            if val.get('done')
+                counts.done += 1
+            if val.get('deleted')
+                counts.deleted += 1
             if id != current_task_id
                 if not show_deleted and val.get('deleted') and (val.get('last_edited') ? 0) < cutoff
                     return
@@ -89,9 +98,15 @@ class exports.TaskActions extends Actions
         if not current_task_id? and visible.size > 0
             current_task_id = visible.get(0)
 
+        c = @store.get('counts')
+        if c.get('done') != counts.done
+            c = c.set('done', counts.done)
+        if c.get('deleted') != counts.deleted
+            c = c.set('deleted', counts.deleted)
         @setState
             visible         : visible
             current_task_id : current_task_id
+            counts          : c
 
 
     set_local_task_state: (obj) =>
