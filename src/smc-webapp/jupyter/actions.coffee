@@ -1346,7 +1346,7 @@ class exports.JupyterActions extends Actions
                 @_fetching_backend_kernel_info = false
 
     # Do a file action, e.g., 'compress', 'delete', 'rename', 'duplicate', 'move',
-    # 'copy', 'share', 'download', 'open_file', 'close_file'.
+    # 'copy', 'share', 'download', 'open_file', 'close_file', 'reopen_file'
     # Each just shows
     # the corresponding dialog in
     # the file manager, so gives a step to confirm, etc.
@@ -1354,6 +1354,14 @@ class exports.JupyterActions extends Actions
     file_action: (action_name, path) =>
         a = @redux.getProjectActions(@store.get('project_id'))
         path ?= @store.get('path')
+        if action_name == 'reopen_file'
+            a.close_file(path)
+            # ensure the side effects from changing registered
+            # editors in project_file.coffee finish happening
+            window.setTimeout =>
+                a.open_file(path: path)
+            , 0
+            return
         if action_name == 'close_file'
             a.close_file(path)
             return
@@ -1851,11 +1859,9 @@ class exports.JupyterActions extends Actions
             body    : 'If you are having trouble with the modern CoCalc Jupyter Notebook, you can switch to the Classical Jupyter Notebook.   You can always switch back to modern easily later from Jupyter or account settings (and please let us know what is missing so we can add it!).\n\n---\n\n**WARNING:** Multiple people simultaneously editing a notebook, with some using classical and some using the new mode, will NOT work!  Switching back and forth will likely also cause problems (use TimeTravel to recover).  *Please avoid using classical notebook mode if you possibly can!*\n\n[More info and the latest status...](https://github.com/sagemathinc/cocalc/wiki/JupyterClassicModern)'
             choices : [{title:'Switch to Classical Notebook', style:'warning'}, {title:'Continue using Modern Notebook', default:true}]
             cb      : (choice) =>
-                console.log 'choice', choice
                 if choice != 'Switch to Classical Notebook'
                     return
                 @redux.getTable('account').set(editor_settings: {jupyter_classic : true})
                 @save()
-                @file_action('close_file', @store.get('path'))
-                @file_action('open_file', @store.get('path'))
+                @file_action('reopen_file', @store.get('path'))
 
