@@ -308,7 +308,7 @@ class exports.PostgreSQL extends PostgreSQL
                 if (locals.x.gcloud? and not opts.force) or not locals.x.blob?
                     # already uploaded -- don't need to do anything; or already deleted locally
                     cb(); return
-                dbg("read blob back and compare -- we do *NOT* trust GCS with such important data")
+                dbg("read blob back and compare") # -- we do *NOT* trust GCS with such important data
                 locals.bucket.read
                     name : opts.uuid
                     cb   : (err, data) =>
@@ -318,6 +318,7 @@ class exports.PostgreSQL extends PostgreSQL
                             dbg("FAILED!")
                             cb("BLOB write to GCS failed check!")
                         else
+                            dbg("check succeeded")
                             cb()
             (cb) =>
                 if not locals.x.blob?
