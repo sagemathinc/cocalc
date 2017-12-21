@@ -86,7 +86,7 @@ exports.Task = rclass
             style.border = '2px solid white'
         if @props.task.get('deleted')
             style.background = '#d9534f'
-            style.color      = 'white'
+            style.color      = '#eee'
         else if @props.task.get('done')
             style.color = '#888'
         <div style={style} onClick={@on_click}>
