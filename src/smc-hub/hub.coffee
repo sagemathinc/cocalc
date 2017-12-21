@@ -43,6 +43,7 @@ underscore     = require('underscore')
 {EventEmitter} = require('events')
 mime           = require('mime')
 winston        = require('./winston-metrics').get_logger('hub')
+memory         = require('smc-util-node/memory')
 
 program = undefined  # defined below -- can't import with nodev6 at module level when hub.coffee used as a module.
 
@@ -475,6 +476,9 @@ exports.start_server = start_server = (cb) ->
             metric_blocked?.inc(ms)
         # record that something blocked for over 10ms
         winston.debug("BLOCKED for #{ms}ms")
+
+    # Log heap memory usage info
+    memory.init(winston.debug)
 
     init_smc_version()
 
