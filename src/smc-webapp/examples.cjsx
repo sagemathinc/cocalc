@@ -94,6 +94,8 @@ class ExamplesActions extends Actions
             @reset()
             @set(lang:lang)
             @load_data()
+        else if @get('lang') != lang
+            @select_lang(lang)
         @set(show: true, initialized:true)
 
     init_data: (data) ->
@@ -147,6 +149,10 @@ class ExamplesActions extends Actions
         @data_lang().getIn([k0, k1]).map((el) -> el.get(0)).toArray()
 
     select_lang: (lang) ->
+        if lang?
+            @set(lang:lang)
+        else
+            lang = @get('lang')
         @reset()
         data = @get('data')
         if data.has(lang)

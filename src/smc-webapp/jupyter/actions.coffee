@@ -1463,8 +1463,10 @@ class exports.JupyterActions extends Actions
 
     show_code_assistant: =>
         @blur_lock()
-        @assistant_actions.init(lang = @store.getIn(['kernel_info', 'language']))
-        @assistant_actions.set(show:true, lang_select:false, handler:@code_assistant_handler)
+        lang = @store.getIn(['kernel_info', 'language'])
+        if DEBUG then console.log("assistant lang:", lang)
+        @assistant_actions.init(lang = lang)
+        @assistant_actions.set(show:true, lang:lang, lang_select:false, handler:@code_assistant_handler)
 
     code_assistant_handler: (data) =>
         if DEBUG then console.log("assistant data:", data)
