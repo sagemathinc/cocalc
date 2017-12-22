@@ -111,14 +111,17 @@ class ExamplesActions extends Actions
         @set(nav_entries: nav_entries)
         @select_lang(@get('lang'))
 
-    insert: (cb, descr) ->
+    set_handler: (handler) ->
+        @set(handler:handler)
+
+    insert: (descr) ->
         # this is the essential task of the example dialog:
         # call the callback with the selected code snippet
         data =
             code  : @get('code')
             lang  : @get('lang')
             descr : if descr then @get('descr') else null
-        (cb ? @get('handler'))?(data)
+        @get('handler')?(data)
 
     load_data: () ->
         if not DATA?
@@ -619,9 +622,9 @@ exports.instantiate_component = (project_id, path, actions) ->
     W = exports.RExamples(name)
     return <Redux redux={redux}><W actions={actions}/></Redux>
 
-exports.render_examples_dialog = (target, project_id, path, lang = 'sage', cb = null) ->
+exports.render_examples_dialog = (target, project_id, path, lang = 'sage') ->
     [actions, store] = exports.instantiate_assistant(project_id, path)
     actions.init(lang=lang)
     W = exports.RExamples(name)
-    ReactDOM.render(<Redux redux={redux}><W cb={cb} actions={actions}/></Redux>, target)
+    ReactDOM.render(<Redux redux={redux}><W actions={actions}/></Redux>, target)
     return actions

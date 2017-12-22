@@ -67,8 +67,15 @@ exports.register = ->
             actions = redux.getActions(name)
             actions?.close()
             store = redux.getStore(name)
+            assistant_actions = store.get('assistant_actions')
             if not store?
                 return
+            # cleanup assistant
+            assistant_name = assistant_actions.name
+            delete redux.getStore(assistant_name).state
+            redux.removeStore(assistant_name)
+            redux.removeActions(assistant_name)
+            # cleanup main store/actions
             delete store.state
             redux.removeStore(name)
             redux.removeActions(name)
