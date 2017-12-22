@@ -33,9 +33,6 @@ exports.register = ->
             actions = redux.createActions(name, JupyterActions)
             store   = redux.createStore(name, JupyterStore)
 
-            [assistant_actions, assistant_store] = require('../examples').instantiate_assistant(project_id, path)
-            actions.setState(assistant_actions:assistant_actions)
-
             syncdb = webapp_client.sync_db
                 project_id      : project_id
                 path            : misc.meta_file(path, 'jupyter2')   # a.ipynb --> ".a.ipynb.sage-jupyter2"

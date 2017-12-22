@@ -72,6 +72,10 @@ class exports.JupyterActions extends Actions
         store._is_project = @_is_project
         @_account_id = client.client_id()   # project or account's id
 
+
+        [assistant_actions, assistant_store] = require('../examples').instantiate_assistant(project_id, path)
+        @assistant_actions = assistant_actions
+
         @setState
             view_mode           : 'normal'
             error               : undefined
@@ -1459,9 +1463,8 @@ class exports.JupyterActions extends Actions
 
     show_code_assistant: =>
         @blur_lock()
-        assistant_actions = @store.get('assistant_actions')
-        assistant_actions.init(lang = @store.getIn(['kernel_info', 'language']))
-        assistant_actions.set(show:true, lang_select:false, handler:@code_assistant_handler)
+        @assistant_actions.init(lang = @store.getIn(['kernel_info', 'language']))
+        @assistant_actions.set(show:true, lang_select:false, handler:@code_assistant_handler)
 
     code_assistant_handler: (data) =>
         if DEBUG then console.log("assistant data:", data)

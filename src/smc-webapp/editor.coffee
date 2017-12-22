@@ -1473,9 +1473,9 @@ class CodeMirrorEditor extends FileEditor
             $target = @mode_display.parent().find('.react-target')
             {render_examples_dialog} = require('./examples')
             @examples_dialog = render_examples_dialog($target[0], @project_id, @filename, lang = @_current_mode)
-            @examples_dialog.set_handler(@example_insert_handler)
         else
             @examples_dialog.show(lang = @_current_mode)
+        @examples_dialog.set_handler(@example_insert_handler)
 
     example_insert_handler: (insert) =>
         code = insert.code

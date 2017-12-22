@@ -25,11 +25,11 @@
 # {"code": "...", "lang" : "..."} via a given callback.
 #
 # Usage:
-# w = render_examples_dialog(target, project_id, filename, lang = mode, cb = cb)
+# w = render_examples_dialog(target, project_id, filename, lang = mode)
 #     * target: jquery dom object, where react is put into
 #     * project_id and filename to make state in redux unique
 #     * lang is the mode (sage, r, python, ...)
-#     * cb: the handler that's used for inserting the selected document
+# use 'w.set_handler' to set the handler that's used for inserting the selected document
 # API (implemented in ExamplesActions)
 # w.show([lang=lang]) -- show dialog again (same state!) and if
 #                        language given, a selection of it is triggered
@@ -84,7 +84,6 @@ class ExamplesActions extends Actions
             search_sel : null
             submittable: false
             cat1_top   : ["Intro", "Tutorial", "Help"]
-            handler    : null
 
     hide: =>
         @set(show: false)
@@ -93,7 +92,7 @@ class ExamplesActions extends Actions
         return if not lang?
         if not @get('initialized')
             @reset()
-            @set(lang: lang)
+            @set(lang:lang)
             @load_data()
         @set(show: true, initialized:true)
 
@@ -360,7 +359,8 @@ ExamplesHeader = rclass
         entries = @props.nav_entries
         entries ?= []
         <Nav bsStyle="pills" activeKey={@props.lang} ref='lang' onSelect={@langSelect}>
-            {entries.map (entry, idx) =>
+            {
+                entries.map (entry, idx) =>
                     [key, name] = entry
                     <NavItem key={key} eventKey={key} title={name}>{name}</NavItem>
             }
@@ -435,11 +435,12 @@ ExamplesBody = rclass
             list = []
         # don't use ListGroup & ListGroupItem with onClick, because then there are div/buttons (instead of ul/li) and layout is f'up
         <ul className='list-group' ref="list_#{level}">
-            {list.map (name, idx) =>
+        {
+            list.map (name, idx) =>
                 click  = @category_selection.bind(@, level, idx)
                 active = if idx == cat then 'active' else ''
                 <li className={"list-group-item " + active} onClick={click} key={idx}>{name}</li>
-            }
+        }
         </ul>
 
     search_result_selection: (idx) ->
@@ -448,7 +449,8 @@ ExamplesBody = rclass
     render_search_results: ->
         ss = @props.search_str
         <ul className='list-group' ref='search_results_list'>
-            {@props.hits.map (hit, idx) =>
+        {
+            @props.hits.map (hit, idx) =>
                 [lvl1, lvl2, lvl3, title, descr, inDescr] = hit
                 click = @search_result_selection.bind(@, idx)
                 title_hl = title.replace(new RegExp(ss, "gi"), "<span class='hl'>#{ss}</span>")
@@ -466,7 +468,7 @@ ExamplesBody = rclass
                     {lvl1} → {lvl2} → <span style={fontWeight: 'bold'} dangerouslySetInnerHTML={__html : title_hl}></span>
                     {' '}{<span className='snippet'} dangerouslySetInnerHTML={__html : snippet}></span> if snippet?.length > 0}
                 </li>
-            }
+        }
         </ul>
 
     render_top: ->
@@ -623,8 +625,13 @@ exports.instantiate_component = (project_id, path, actions) ->
     return <Redux redux={redux}><W actions={actions}/></Redux>
 
 exports.render_examples_dialog = (target, project_id, path, lang = 'sage') ->
-    [actions, store] = exports.instantiate_assistant(project_id, path)
+    name = redux_name(project_id, path)
+    actions = redux.getActions(name)
+    if not actions?
+        actions = redux.createActions(name, ExamplesActions)
+        store   = redux.createStore(name)
     actions.init(lang=lang)
+    actions.set(lang_select:true)
     W = exports.RExamples(name)
     ReactDOM.render(<Redux redux={redux}><W actions={actions}/></Redux>, target)
     return actions

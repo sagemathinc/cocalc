@@ -76,8 +76,6 @@ exports.JupyterEditor = rclass ({name}) ->
             raw_ipynb           : rtypes.immutable.Map
             metadata            : rtypes.immutable.Map
             trust               : rtypes.bool
-            assistant_actions   : rtypes.object
-            assistant_handler   : rtypes.object
 
     render_error: ->
         if @props.error
@@ -229,7 +227,7 @@ exports.JupyterEditor = rclass ({name}) ->
         {instantiate_component} = require('../examples')
         project_id        = @props.actions.store.get('project_id')
         path              = @props.actions.store.get('path')
-        assistant_actions = @props.actions.store.get('assistant_actions')
+        assistant_actions = @props.actions.assistant_actions
         return instantiate_component(project_id, path, assistant_actions)
 
     render_json_viewer: ->
