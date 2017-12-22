@@ -551,11 +551,11 @@ exports.RExamples = (name) -> rclass
         @props.actions.hide()
 
     insert_code: ->
-        @props.actions.insert(@props.cb, false)
+        @props.actions.insert(false)
         @close()
 
     insert_all: ->
-        @props.actions.insert(@props.cb, true)
+        @props.actions.insert(true)
         @close()
 
     handle_dialog_keyup: (evt) ->
