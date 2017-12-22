@@ -206,7 +206,7 @@ file_associations['ipynb'] =
     opts   : {}
     name   : "Jupyter Notebook"
 
-for ext in ['png', 'jpg', 'jpeg', 'gif', 'svg']
+for ext in ['png', 'jpg', 'jpeg', 'gif', 'svg', 'bmp']
     file_associations[ext] =
         editor : 'media'
         icon   : 'fa-file-image-o'
