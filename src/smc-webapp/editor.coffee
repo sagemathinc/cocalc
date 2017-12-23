@@ -2084,7 +2084,7 @@ exports.register_nonreact_editors = () ->
     register(false, HTML_MD_Editor,   html_md_exts)
     register(false, LatexEditor,      ['tex', 'rnw'])
     register(false, Terminal,         ['term', 'sage-term'])
-    register(false, Media,            ['png', 'jpg', 'jpeg', 'gif', 'svg'].concat(VIDEO_EXTS))
+    register(false, Media,            ['png', 'jpg', 'jpeg', 'gif', 'svg', 'bmp'].concat(VIDEO_EXTS))
 
     {HistoryEditor} = require('./editor_history')
     register(false, HistoryEditor,    ['sage-history'])

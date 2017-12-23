@@ -32,15 +32,11 @@ def hub_args(server_id):
             share_port = int(args.share_port)
         else:
             share_port = 0
-        if args.raw_port:
-            raw_port = int(args.raw_port)
-        else:
-            raw_port = 0
 
 
-    s = "--host={hostname} --port {port} --proxy_port {proxy_port} --share_port {share_port} --share_path {share_path} --raw_port {raw_port} --raw_path {raw_path} --base_url={base_url}".format(
+    s = "--host={hostname} --port {port} --proxy_port {proxy_port} --share_port {share_port} --share_path {share_path}  --base_url={base_url}".format(
         hostname=args.hostname, server_id=server_id, port=port, proxy_port=proxy_port,
-        share_port=share_port, raw_port=raw_port, share_path=args.share_path, raw_path=args.raw_path,
+        share_port=share_port, share_path=args.share_path,
         base_url=args.base_url)
 
     if args.kucalc:
@@ -128,9 +124,6 @@ if __name__ == "__main__":
     parser.add_argument('--share_port', dest='share_port', type=int, default=0)
 
     parser.add_argument('--share_path', dest='share_path', type=str, default='')
-
-    parser.add_argument('--raw_port', dest='raw_port', type=int, default=0)
-    parser.add_argument('--raw_path', dest='raw_path', type=str, default='')
 
     parser.add_argument("--hostname", help="hostname to listen on [default: hostname of computer]", dest="hostname", default=socket.gethostname(), type=str)
     parser.add_argument("--gap", help="time (in seconds) to wait before restarting each hub [default: 10]", dest="gap", default=10, type=int)
