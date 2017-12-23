@@ -1,6 +1,5 @@
 ###
-Render the public path
-
+Render a public path using a the official express static server.
 ###
 
 serve_static         = require('serve-static')
@@ -9,6 +8,20 @@ serve_index          = require('serve-index')
 
 misc                 = require('smc-util/misc')
 {defaults, required} = misc
+
+STATIC_OPTIONS =
+    index: ['index.html', 'index.htm']
+
+INDEX_OPTIONS =
+    icons: true
+
+_serve_static_cache = {}
+get_serve_static = (dir) ->
+    return _serve_static_cache[dir] ?= serve_static(dir, STATIC_OPTIONS)
+
+_serve_index_cache = {}
+get_serve_index = (dir) ->
+    return _serve_index_cache[dir] ?= serve_index(dir, INDEX_OPTIONS)
 
 # res = html response object
 # obj = immutable js data about this public path
@@ -19,11 +32,11 @@ exports.render_static_path = (opts) ->
         dir   : required   # directory on disk containing files for this path
         path  : required
 
-    s_static = serve_static(dir, {'index': ['index.html', 'index.htm']})
-    s_index  = serve_index(dir, {'icons': true})
-    req.url = path
-    if req.url == ''
-        req.url = '/'
+    s_static = get_serve_static(dir)
+    s_index  = get_serve_index(dir)
+    if path == ''
+        path = '/'
+    req.url  = path
     s_static req, res, (err) ->
         if err
             finalhandler(err)

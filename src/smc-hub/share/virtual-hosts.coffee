@@ -1,3 +1,7 @@
+###
+Support for virtual hosts.
+###
+
 os_path              = require('path')
 misc                 = require('smc-util/misc')
 {defaults, required} = misc
@@ -37,17 +41,16 @@ exports.virtual_hosts = (opts) ->
         #   - worry about public_paths not being defined at first by delaying response like in router.cjsx?
         #   - should we bother with is_public check?
         #   - what about HTTP auth?
-        #   - maybe faster to cache static path handler here?
         path = req.url
         if opts.base_url
-            path = path.slice(opts.base_url.length)  # todo -- too simple?
-        full_path = os_path.join(info.get('path'), path)
-        #dbg("host='#{host}', path='#{path}', full_path='#{full_path}'")
+            path = path.slice(opts.base_url.length)
+        dir = util.path_to_files(opts.share_path, os_path.join(info.get('project_id'), info.get('path')))
+        #dbg("host='#{host}', path='#{path}', dir='#{dir}'")
         render_static_path
             req  : req
             res  : res
-            dir  : util.path_to_files(opts.share_path, info.get('project_id'))
-            path : full_path
+            dir  : dir
+            path : path
 
     return middleware
 
