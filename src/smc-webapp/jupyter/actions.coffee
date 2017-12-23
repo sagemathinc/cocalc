@@ -72,9 +72,9 @@ class exports.JupyterActions extends Actions
         store._is_project = @_is_project
         @_account_id = client.client_id()   # project or account's id
 
-
-        [assistant_actions, assistant_store] = require('../examples').instantiate_assistant(project_id, path)
-        @assistant_actions = assistant_actions
+        {instantiate_assistant} = require('../examples')
+        assistant_actions = instantiate_assistant(project_id, path)
+        @setState(assistant_actions:assistant_actions)
 
         @setState
             view_mode           : 'normal'
@@ -1470,9 +1470,10 @@ class exports.JupyterActions extends Actions
         else
             lang = @store.getIn(['kernel_info', 'language'])
 
-        #if DEBUG then console.log("assistant lang:", lang)
-        @assistant_actions.init(lang = lang)
-        @assistant_actions.set(
+        if DEBUG then console.log("assistant lang:", lang)
+        assistant_actions = @store.get('assistant_actions')
+        assistant_actions.init(lang = lang)
+        assistant_actions.set(
             show            : true
             lang            : lang
             lang_select     : false

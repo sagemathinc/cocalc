@@ -225,9 +225,11 @@ exports.JupyterEditor = rclass ({name}) ->
 
     render_assistent_dialog: ->
         {instantiate_component} = require('../examples')
-        project_id        = @props.actions.store.get('project_id')
-        path              = @props.actions.store.get('path')
-        assistant_actions = @props.actions.assistant_actions
+        store             = @props.actions.store
+        return null if not store?
+        project_id        = store.get('project_id')
+        path              = store.get('path')
+        assistant_actions = store.get('assistant_actions')
         return instantiate_component(project_id, path, assistant_actions)
 
     render_json_viewer: ->

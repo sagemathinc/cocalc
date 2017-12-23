@@ -520,8 +520,10 @@ ExamplesBody = rclass
                     <Row>
                         <Col sm={12}>
                             Selected language <code>{@props.lang}</code> has no data.
-                            Please contribute more content at{' '}
-                            <a href="https://github.com/sagemathinc/cocalc-assistant">{'sagemathinc/cocalc-assistant'}</a>.
+                            You can help by contributing more content at{' '}
+                            <a href="https://github.com/sagemathinc/cocalc-assistant" target="_blank">
+                                {'sagemathinc/cocalc-assistant'}
+                            </a>.
                         </Col>
                     </Row>
                 else
@@ -640,8 +642,8 @@ exports.instantiate_assistant = (project_id, path) ->
     actions = redux.getActions(name)
     if not actions?
         actions = redux.createActions(name, ExamplesActions)
-        store   = redux.createStore(name, ExamplesStore)
-    return [actions, store]
+        store   = redux.createStore(name)
+    return actions
 
 exports.instantiate_component = (project_id, path, actions) ->
     name = redux_name(project_id, path)

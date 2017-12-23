@@ -1478,18 +1478,17 @@ class CodeMirrorEditor extends FileEditor
         @examples_dialog.set_handler(@example_insert_handler)
 
     example_insert_handler: (insert) =>
-        code = insert.code
-        lang = insert.lang
+        {code, lang} = insert
         cm = @focused_codemirror()
         line = cm.getCursor().line
-        # console.log "example insert:", lang, code, insert.descr
+        # ATTN: to make this work properly, code and descr need to have a newline at the end (stripped by default)
         if insert.descr?
             @syncdoc?.insert_new_cell(line)
-            cm.replaceRange("%md\n#{insert.descr}", {line : line+1, ch:0})
+            cm.replaceRange("%md\n#{insert.descr}\n", {line : line+1, ch:0})
             @action_key(execute: true, advance:false, split:false)
         line = cm.getCursor().line
         @syncdoc?.insert_new_cell(line)
-        cell = code
+        cell = "#{code}\n"
         if lang != @_current_mode
             cell = "%#{lang}\n#{cell}"
         cm.replaceRange(cell, {line : line+1, ch:0})
