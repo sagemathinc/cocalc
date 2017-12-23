@@ -71,19 +71,20 @@ class ExamplesActions extends Actions
 
     reset: ->
         @set
-            cat0       : null # idx integer
-            cat1       : null # idx integer
-            cat2       : null # idx integer
-            catlist0   : []
-            catlist1   : []
-            catlist2   : []
-            code       : ''
-            descr      : ''
-            hits       : []
-            search_str : null
-            search_sel : null
-            submittable: false
-            cat1_top   : ["Intro", "Tutorial", "Help"]
+            cat0           : null # idx integer
+            cat1           : null # idx integer
+            cat2           : null # idx integer
+            catlist0       : []
+            catlist1       : []
+            catlist2       : []
+            code           : ''
+            descr          : ''
+            hits           : []
+            search_str     : null
+            search_sel     : null
+            submittable    : false
+            cat1_top       : ["Intro", "Tutorial", "Help"]
+            unknown_lang   : false
 
     hide: =>
         @set(show: false)
@@ -149,20 +150,17 @@ class ExamplesActions extends Actions
         @data_lang().getIn([k0, k1]).map((el) -> el.get(0)).toArray()
 
     select_lang: (lang) ->
-        if lang?
-            @set(lang:lang)
-        else
-            lang = @get('lang')
+        lang ?= @get('lang')
         @reset()
         data = @get('data')
         if data.has(lang)
             @set(lang: lang)
+            catlist0 = @get_catlist0()
+            @set(catlist0 : catlist0)
+            if catlist0.length == 1
+                @set_selected_category(0, 0)
         else
-            @set(lang: data.keySeq().last())
-        catlist0 = @get_catlist0()
-        @set(catlist0 : catlist0)
-        if catlist0.length == 1
-            @set_selected_category(0, 0)
+            @set(unknown_lang:true)
 
     search: (search_str) ->
         @reset()
@@ -400,20 +398,21 @@ ExamplesBody = rclass
     displayName : 'ExamplesBody'
 
     propTypes:
-        actions    : rtypes.object
-        data       : rtypes.object
-        lang       : rtypes.string
-        code       : rtypes.string
-        descr      : rtypes.string
-        cat0       : rtypes.number
-        cat1       : rtypes.number
-        cat2       : rtypes.number
-        catlist0   : rtypes.arrayOf(rtypes.string)
-        catlist1   : rtypes.arrayOf(rtypes.string)
-        catlist2   : rtypes.arrayOf(rtypes.string)
-        search_str : rtypes.string
-        search_sel : rtypes.number
-        hits       : rtypes.arrayOf(rtypes.array)
+        actions       : rtypes.object
+        data          : rtypes.object
+        lang          : rtypes.string
+        code          : rtypes.string
+        descr         : rtypes.string
+        cat0          : rtypes.number
+        cat1          : rtypes.number
+        cat2          : rtypes.number
+        catlist0      : rtypes.arrayOf(rtypes.string)
+        catlist1      : rtypes.arrayOf(rtypes.string)
+        catlist2      : rtypes.arrayOf(rtypes.string)
+        search_str    : rtypes.string
+        search_sel    : rtypes.number
+        hits          : rtypes.arrayOf(rtypes.array)
+        unknown_lang  : rtypes.bool
 
     getDefaultProps: ->
         descr      : ''
@@ -480,7 +479,7 @@ ExamplesBody = rclass
     render_top: ->
         searching = @props.search_str?.length > 0
         if not @props.data?
-            <Row>
+            <Row key='top'>
                 <Col sm={8} smOffset={4}>
                     <ul className='list-group'>
                         <li></li><li></li>
@@ -489,20 +488,20 @@ ExamplesBody = rclass
                 </Col>
             </Row>
         else if searching
-            <Row>
+            <Row key='top'>
                 <Col sm={12}>{@render_search_results()}</Col>
             </Row>
         else
-            <Row>
+            <Row key='top'>
                 <Col sm={3}>{@category_list(0)}</Col>
                 <Col sm={3}>{@category_list(1)}</Col>
                 <Col sm={6}>{@category_list(2)}</Col>
             </Row>
 
-    render: ->
-        <Modal.Body className='modal-body'>
-            {@render_top()}
-            <Row>
+    render_body: ->
+        [
+            @render_top()
+            <Row key='bottom'>
                 <Col sm={6}>
                     <pre ref='code' className='code'>{@props.code}</pre>
                 </Col>
@@ -512,6 +511,22 @@ ExamplesBody = rclass
                     </Panel>
                 </Col>
             </Row>
+        ]
+
+    render: ->
+        <Modal.Body className='modal-body'>
+            {
+                if @props.unknown_lang
+                    <Row>
+                        <Col sm={12}>
+                            Selected language <code>{@props.lang}</code> has no data.
+                            Please contribute more content at{' '}
+                            <a href="https://github.com/sagemathinc/cocalc-assistant">{'sagemathinc/cocalc-assistant'}</a>.
+                        </Col>
+                    </Row>
+                else
+                    @render_body()
+            }
         </Modal.Body>
 
 
@@ -520,24 +535,25 @@ exports.RExamples = (name) -> rclass
 
     reduxProps :
         "#{name}" :
-            show        : rtypes.bool
-            lang        : rtypes.string      # the currently selected language
-            lang_select : rtypes.bool        # show buttons to allow selecting the language
-            code        : rtypes.string
-            descr       : rtypes.string
-            data        : rtypes.object
-            search      : rtypes.string
-            nav_entries : rtypes.arrayOf(rtypes.arrayOf(rtypes.string))
-            catlist0    : rtypes.arrayOf(rtypes.string)
-            catlist1    : rtypes.arrayOf(rtypes.string)
-            catlist2    : rtypes.arrayOf(rtypes.string)
-            cat0        : rtypes.number
-            cat1        : rtypes.number
-            cat2        : rtypes.number
-            search_str  : rtypes.string
-            search_sel  : rtypes.number
-            submittable : rtypes.bool
-            hits        : rtypes.arrayOf(rtypes.array)
+            show          : rtypes.bool
+            lang          : rtypes.string      # the currently selected language
+            lang_select   : rtypes.bool        # show buttons to allow selecting the language
+            code          : rtypes.string
+            descr         : rtypes.string
+            data          : rtypes.object
+            search        : rtypes.string
+            nav_entries   : rtypes.arrayOf(rtypes.arrayOf(rtypes.string))
+            catlist0      : rtypes.arrayOf(rtypes.string)
+            catlist1      : rtypes.arrayOf(rtypes.string)
+            catlist2      : rtypes.arrayOf(rtypes.string)
+            cat0          : rtypes.number
+            cat1          : rtypes.number
+            cat2          : rtypes.number
+            search_str    : rtypes.string
+            search_sel    : rtypes.number
+            submittable   : rtypes.bool
+            hits          : rtypes.arrayOf(rtypes.array)
+            unknown_lang  : rtypes.bool
 
     propTypes :
         cb      : rtypes.func
@@ -588,27 +604,29 @@ exports.RExamples = (name) -> rclass
                bsSize="large"
                className="webapp-examples">
             <Modal.Header closeButton className='modal-header'>
-               <ExamplesHeader actions     = {@props.actions}
-                               lang_select = {@props.lang_select}
-                               lang        = {@props.lang}
-                               search_str  = {@props.search_str}
-                               nav_entries = {@props.nav_entries} />
+               <ExamplesHeader actions      = {@props.actions}
+                               lang_select  = {@props.lang_select}
+                               unknown_lang = {@props.unknown_lang}
+                               lang         = {@props.lang}
+                               search_str   = {@props.search_str}
+                               nav_entries  = {@props.nav_entries} />
             </Modal.Header>
 
-            <ExamplesBody actions    = {@props.actions}
-                          lang       = {@props.lang}
-                          code       = {@props.code}
-                          descr      = {@props.descr}
-                          cat0       = {@props.cat0}
-                          cat1       = {@props.cat1}
-                          cat2       = {@props.cat2}
-                          catlist0   = {@props.catlist0}
-                          catlist1   = {@props.catlist1}
-                          catlist2   = {@props.catlist2}
-                          search_str = {@props.search_str}
-                          search_sel = {@props.search_sel}
-                          hits       = {@props.hits}
-                          data       = {@props.data} />
+            <ExamplesBody actions      = {@props.actions}
+                          lang         = {@props.lang}
+                          unknown_lang = {@props.unknown_lang}
+                          code         = {@props.code}
+                          descr        = {@props.descr}
+                          cat0         = {@props.cat0}
+                          cat1         = {@props.cat1}
+                          cat2         = {@props.cat2}
+                          catlist0     = {@props.catlist0}
+                          catlist1     = {@props.catlist1}
+                          catlist2     = {@props.catlist2}
+                          search_str   = {@props.search_str}
+                          search_sel   = {@props.search_sel}
+                          hits         = {@props.hits}
+                          data         = {@props.data} />
 
             <Modal.Footer>
                 <Button onClick={@insert_code} disabled={not @props.submittable} bsStyle='success'>Only Code</Button>

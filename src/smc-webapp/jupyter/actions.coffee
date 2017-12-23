@@ -1463,7 +1463,13 @@ class exports.JupyterActions extends Actions
 
     show_code_assistant: =>
         @blur_lock()
-        lang = @store.getIn(['kernel_info', 'language'])
+
+        # special case: sage is "python", but the assistant needs "sage"
+        if misc.startswith(@store.get('kernel'), 'sage')
+            lang = 'sage'
+        else
+            lang = @store.getIn(['kernel_info', 'language'])
+
         #if DEBUG then console.log("assistant lang:", lang)
         @assistant_actions.init(lang = lang)
         @assistant_actions.set(
@@ -1476,13 +1482,13 @@ class exports.JupyterActions extends Actions
     code_assistant_handler: (data) =>
         @focus_unlock()
         {code, descr} = data
-        if DEBUG then console.log("assistant data:", data, code, descr)
+        #if DEBUG then console.log("assistant data:", data, code, descr)
 
         if descr?
             descr_cell = @insert_cell(1)
             @set_cell_input(descr_cell, descr)
             @set_cell_type(descr_cell, cell_type='markdown')
-            @run_cell(descr_cell)
+            #@run_cell(descr_cell)
 
         code_cell = @insert_cell(1)
         @set_cell_input(code_cell, code)

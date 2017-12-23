@@ -45,8 +45,7 @@ exports.register = ->
 
             actions._init(project_id, path, syncdb, store, webapp_client)
 
-            ##if window.smc?
-            ##    window.a = actions # for DEBUGGING
+            ## if window.smc? then window.jupyter_actions = actions # for DEBUGGING
 
             syncdb.once 'init', (err) =>
                 if err
