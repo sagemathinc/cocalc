@@ -1616,7 +1616,8 @@ class CodeMirrorEditor extends FileEditor
                 textedit_only_show_known_buttons(name)
             set_mode_display(name)
 
-        mode_display.click(@examples_dialog_handler)
+        assistant_button = @element.find('a[href="#assistant"]')
+        assistant_button.click(@examples_dialog_handler)
 
         # The code below changes the bar at the top depending on where the cursor
         # is located.  We only change the edit bar if the cursor hasn't moved for
