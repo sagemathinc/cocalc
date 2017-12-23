@@ -464,7 +464,7 @@ exports.start_server = start_server = (cb) ->
     fs.writeFileSync(path_module.join(SMC_ROOT, 'data', 'base_url'), BASE_URL)
 
     # the order of init below is important
-    winston.debug("port = #{program.port}, proxy_port=#{program.proxy_port}, share_port=#{program.share_port}, raw_port=#{program.raw_port}")
+    winston.debug("port = #{program.port}, proxy_port=#{program.proxy_port}, share_port=#{program.share_port}")
     winston.info("using database #{program.keyspace}")
     hosts = program.database_nodes.split(',')
     http_server = express_router = undefined
@@ -554,17 +554,6 @@ exports.start_server = start_server = (cb) ->
             winston.debug("Time to initialize share server (jsdom, etc.): #{(new Date() - t0)/1000} seconds")
             winston.debug("starting share express webserver listening on #{program.share_host}:#{program.port}")
             x.http_server.listen(program.share_port, program.host, cb)
-        (cb) ->
-            if not program.raw_port
-                cb(); return
-            winston.debug("initializing the raw server on port #{program.raw_port}")
-            x = require('./share/server').init
-                database       : database
-                base_url       : BASE_URL
-                raw_path       : program.raw_path
-                logger         : winston
-            winston.debug("starting raw express webserver listening on #{program.raw_host}:#{program.port}")
-            x.http_server.listen(program.raw_port, program.host, cb)
         (cb) ->
             if not program.port
                 cb(); return
@@ -656,8 +645,6 @@ command_line = () ->
         .option('--proxy_port <n>', 'port that the proxy server listens on (default: 0 -- do not start)', ((n)->parseInt(n)), 0)
         .option('--share_path [string]', 'path that the share server finds shared files at (default: "")', String, '')
         .option('--share_port <n>', 'port that the share server listens on (default: 0 -- do not start)', ((n)->parseInt(n)), 0)
-        .option('--raw_path [string]', 'path that the raw server finds public files at (default: "")', String, '')
-        .option('--raw_port <n>', 'port that the public raw server listens on (default: 0 -- do not start)', ((n)->parseInt(n)), 0)
         .option('--log_level [level]', "log level (default: debug) useful options include INFO, WARNING and DEBUG", String, "debug")
         .option('--host [string]', 'host of interface to bind to (default: "127.0.0.1")', String, "127.0.0.1")
         .option('--pidfile [string]', 'store pid in this file (default: "data/pids/hub.pid")', String, "data/pids/hub.pid")

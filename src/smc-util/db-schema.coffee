@@ -920,6 +920,16 @@ schema.public_paths =
         counter :
             type : 'number'
             desc : 'the number of times this public path has been accessed'
+        vhost :  # For now, this will only be used *manually* for now; at some point users will be able to specify this,
+                 # though maybe they have to prove they own it.
+                 # For now we will only serve the vhost files statically with no special support, except we do support
+                 # basic http auth.   However, we will add
+                 # special server support for certain file types (e.g., math typesetting, markdown, sagews, ipynb, etc.)
+                 # so static websites can just be written in a mix of md, html, ipynb, etc. files with no javascript needed.
+                 # This could be a non-default option.
+            type : 'string'
+            desc : 'Request for the given host (which must not container "cocalc") will be served by this public share. Only one public path can have a given vhost.  The vhost field can be a comma-separated string for multiple vhosts.'
+            unique : true
 
     pg_indexes : ['project_id', '(substring(project_id::text from 1 for 1))', '(substring(project_id::text from 1 for 2))']
 
