@@ -33,9 +33,10 @@ exports.virtual_hosts = (opts) ->
 
     middleware = (req, res, next) ->
         host = req.headers.host?.toLowerCase()
-        ##dbg("host = ", host, 'req.url=', req.url)
+        dbg("host = ", host, 'req.url=', req.url)
         info = public_paths?.get_vhost(host)
         if not info?
+            dbg("not a virtual host path")
             return next()
         # TODO:
         #   - worry about public_paths not being defined at first by delaying response like in router.cjsx?
@@ -45,7 +46,7 @@ exports.virtual_hosts = (opts) ->
         if opts.base_url
             path = path.slice(opts.base_url.length)
         dir = util.path_to_files(opts.share_path, os_path.join(info.get('project_id'), info.get('path')))
-        #dbg("host='#{host}', path='#{path}', dir='#{dir}'")
+        dbg("is a virtual host path -- host='#{host}', path='#{path}', dir='#{dir}'")
         render_static_path
             req  : req
             res  : res
