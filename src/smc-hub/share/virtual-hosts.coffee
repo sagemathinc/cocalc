@@ -3,11 +3,15 @@ Support for virtual hosts.
 ###
 
 os_path              = require('path')
+
+
 misc                 = require('smc-util/misc')
 {defaults, required} = misc
 {get_public_paths}   = require('./public_paths')
 {render_static_path} = require('./render-static-path')
 util                 = require('./util')
+
+{is_authenticated}   = require('./authenticate')
 
 exports.virtual_hosts = (opts) ->
     opts = defaults opts,
@@ -44,6 +48,7 @@ exports.virtual_hosts = (opts) ->
         if not info?
             dbg("not a virtual host path")
             return next()
+
         # TODO:
         #   - worry about public_paths not being defined at first by delaying response like in router.cjsx?
         #   - should we bother with is_public check?
@@ -51,6 +56,18 @@ exports.virtual_hosts = (opts) ->
         path = req.url
         if opts.base_url
             path = path.slice(opts.base_url.length)
+
+        is_auth = is_authenticated
+            req    : req
+            res    : res
+            path   : path
+            auth   : info.get('auth')
+            logger : opts.logger
+
+        if not is_auth
+            dbg("not authenticated -- denying")
+            return
+
         dir = util.path_to_files(opts.share_path, os_path.join(info.get('project_id'), info.get('path')))
         dbg("is a virtual host path -- host='#{host}', path='#{path}', dir='#{dir}'")
         render_static_path

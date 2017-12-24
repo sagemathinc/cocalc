@@ -933,7 +933,7 @@ schema.public_paths =
             unique : true
         auth :
             type : 'map'
-            desc : 'Map from relative path inside the share to array of [{user:"?", password:"?"}, ...].  Used both by vhost and share server, but not user editable yet.  Later it will be user editable.'
+            desc : 'Map from relative path inside the share to array of {path:[{name:[string], pass:[password-hash]}, ...], ...}.  Used both by vhost and share server, but not user editable yet.  Later it will be user editable.  The password hash is from smc-hub/auth.password_hash (so 1000 iterations of sha512)'
 
     pg_indexes : ['project_id', '(substring(project_id::text from 1 for 1))', '(substring(project_id::text from 1 for 2))']
 

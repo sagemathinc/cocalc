@@ -6,6 +6,7 @@ Render a public path using a the official express static server.
 fs = require('fs')
 os_path              = require('path')
 
+url                  = require('url')
 serve_static         = require('serve-static')
 finalhandler         = require('finalhandler')
 serve_index          = require('serve-index')
@@ -44,6 +45,7 @@ exports.render_static_path = (opts) ->
     # messing with the express static server.  I don't know why, but for some
     # reason it hangs forever when fed an uknown path, which obviously leads
     # to a very bad experience for users!
+    opts.path = url.parse(opts.path).pathname  # see https://stackoverflow.com/questions/14166898/node-js-with-express-how-to-remove-the-query-string-from-the-url
     target = os_path.join(opts.dir, opts.path)
     fs.access target, fs.constants.R_OK, (err) ->
         if err
