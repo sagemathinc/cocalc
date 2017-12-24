@@ -85,7 +85,7 @@ exports.PublicPathsBrowser = rclass
             if not id?
                 continue
             info = @props.public_paths.get(id)
-            if not info?
+            if not info? or info.get('vhost')  # TODO: as in router.cjsx, we skip all public_paths with vhost info for now, until auth is implemented... (?)
                 continue
             if j % 2 == 0
                 bgcolor = 'rgb(238, 238, 238)'

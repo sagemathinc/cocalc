@@ -32,7 +32,13 @@ exports.virtual_hosts = (opts) ->
             dbg("got_public_paths - initialized")
 
     middleware = (req, res, next) ->
-        host = req.headers.host?.toLowerCase()
+        if req.query.host?
+            # used mainly for development to fake virtual hosts, since using a real
+            # one is impossible in cc-in-cc dev, since the HAproxy server sends
+            # them all straight to the share server!
+            host = req.query.host
+        else
+            host = req.headers.host?.toLowerCase()
         dbg("host = ", host, 'req.url=', req.url)
         info = public_paths?.get_vhost(host)
         if not info?

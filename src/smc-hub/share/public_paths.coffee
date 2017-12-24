@@ -82,7 +82,6 @@ class PublicPaths extends EventEmitter
                 @_add_vhost(info)
             @_last_public_paths = @_synctable.get()
 
-
     is_public: (project_id, path) =>
         paths = @_public_paths_in_project?[project_id]
         if not paths?
@@ -103,8 +102,8 @@ class PublicPaths extends EventEmitter
 
     _init: (cb) =>
         @database.synctable
-            table    : 'public_paths'
-            columns  : ['id', 'project_id', 'path', 'description', 'created', 'last_edited', 'last_saved', 'counter', 'vhost']
+            table    : 'public_paths',
+            columns  : ['id', 'project_id', 'path', 'description', 'created', 'last_edited', 'last_saved', 'counter', 'vhost', 'auth']
             where    : "disabled IS NOT TRUE"
             cb       : (err, synctable) =>
                 if err
