@@ -46,7 +46,7 @@ exports.render_static_path = (opts) ->
     # reason it hangs forever when fed an uknown path, which obviously leads
     # to a very bad experience for users!
     opts.path = url.parse(opts.path).pathname  # see https://stackoverflow.com/questions/14166898/node-js-with-express-how-to-remove-the-query-string-from-the-url
-    target = os_path.join(opts.dir, opts.path)
+    target = os_path.join(opts.dir, decodeURI(opts.path))
     fs.access target, fs.constants.R_OK, (err) ->
         if err
             res.sendStatus(404)

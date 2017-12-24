@@ -22,6 +22,10 @@ exports.is_authenticated = (opts) ->
     if not opts.auth?
         return true   # no authentication needed
 
+    # strip any /'s from beginning of opts.path  (auth path's are assumed relative)
+    while opts.path[0] == '/'
+        opts.path = opts.path.slice(1)
+
     auth_info = undefined
     opts.auth.forEach (info, path) ->
         if misc.startswith(opts.path, path)
