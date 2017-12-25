@@ -1,9 +1,17 @@
+###
+Support for virtual hosts.
+###
+
 os_path              = require('path')
+
+
 misc                 = require('smc-util/misc')
 {defaults, required} = misc
 {get_public_paths}   = require('./public_paths')
 {render_static_path} = require('./render-static-path')
 util                 = require('./util')
+
+{is_authenticated}   = require('./authenticate')
 
 exports.virtual_hosts = (opts) ->
     opts = defaults opts,
@@ -28,26 +36,45 @@ exports.virtual_hosts = (opts) ->
             dbg("got_public_paths - initialized")
 
     middleware = (req, res, next) ->
-        host = req.headers.host?.toLowerCase()
-        ##dbg("host = ", host, 'req.url=', req.url)
+        if req.query.host?
+            # used mainly for development to fake virtual hosts, since using a real
+            # one is impossible in cc-in-cc dev, since the HAproxy server sends
+            # them all straight to the share server!
+            host = req.query.host
+        else
+            host = req.headers.host?.toLowerCase()
+        dbg("host = ", host, 'req.url=', req.url)
         info = public_paths?.get_vhost(host)
         if not info?
+            dbg("not a virtual host path")
             return next()
+
         # TODO:
         #   - worry about public_paths not being defined at first by delaying response like in router.cjsx?
         #   - should we bother with is_public check?
         #   - what about HTTP auth?
-        #   - maybe faster to cache static path handler here?
         path = req.url
         if opts.base_url
-            path = path.slice(opts.base_url.length)  # todo -- too simple?
-        full_path = os_path.join(info.get('path'), path)
-        #dbg("host='#{host}', path='#{path}', full_path='#{full_path}'")
+            path = path.slice(opts.base_url.length)
+
+        is_auth = is_authenticated
+            req    : req
+            res    : res
+            path   : path
+            auth   : info.get('auth')
+            logger : opts.logger
+
+        if not is_auth
+            dbg("not authenticated -- denying")
+            return
+
+        dir = util.path_to_files(opts.share_path, os_path.join(info.get('project_id'), info.get('path')))
+        dbg("is a virtual host path -- host='#{host}', path='#{path}', dir='#{dir}'")
         render_static_path
             req  : req
             res  : res
-            dir  : util.path_to_files(opts.share_path, info.get('project_id'))
-            path : full_path
+            dir  : dir
+            path : path
 
     return middleware
 

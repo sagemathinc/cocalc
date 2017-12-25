@@ -131,7 +131,7 @@ exports.share_router = (opts) ->
                 info = undefined
             else
                 info = public_paths.get(req.params.id)
-                if not info?
+                if not info? or info.get('auth')   # TODO: For now, /share server does NOT make vhost visible at all if there is any auth info..
                     res.sendStatus(404)
                     return
                 project_id = info.get('project_id')
