@@ -6,8 +6,6 @@ List of Tasks
 
 {React, rclass, rtypes}  = require('../smc-react')
 
-{Headings} = require('./headings')
-
 exports.TaskList = rclass
     propTypes :
         actions          : rtypes.object
@@ -17,6 +15,7 @@ exports.TaskList = rclass
         visible          : rtypes.immutable.List.isRequired
         current_task_id  : rtypes.string
         local_task_state : rtypes.immutable.Map
+        style            : rtypes.object
 
     shouldComponentUpdate: (next) ->
         return @props.tasks            != next.tasks or \
@@ -37,9 +36,6 @@ exports.TaskList = rclass
             min_desc         = {@props.local_task_state?.getIn([task_id, 'min_desc'])}
         />
 
-    render_headings: ->
-        <Headings />
-
     render_tasks: ->
         x = []
         @props.visible.forEach (task_id) =>
@@ -47,7 +43,6 @@ exports.TaskList = rclass
         return x
 
     render: ->
-        <div>
-            {@render_headings()}
+        <div style={@props.style}>
             {@render_tasks()}
         </div>
