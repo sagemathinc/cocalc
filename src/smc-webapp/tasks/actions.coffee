@@ -28,6 +28,7 @@ class exports.TaskActions extends Actions
 
         @_init_has_unsaved_changes()
         @syncdb.on('change', @_syncdb_change)
+        @syncdb.once('change', @_ensure_positions_are_unique)
 
     close: =>
         if @_state == 'closed'
@@ -110,7 +111,37 @@ class exports.TaskActions extends Actions
             current_task_id : current_task_id
             counts          : c
 
+    _ensure_positions_are_unique: =>
+        tasks = @store.get('tasks')
+        if not tasks?
+            return
+        # iterate through tasks adding their (string) positions to a "set" (using a map)
+        s = {}
+        unique = true
+        tasks.forEach (task, id) =>
+            pos = task.get('position')
+            if s[pos]  # already got this position -- so they can't be unique
+                unique = false
+                return false
+            s[pos] = true
+            return
+        if unique
+            # positions turned out to all be unique - done
+            return
+        # positions are NOT unique - this could happen, e.g., due to merging offline changes.
+        # We fix this by simply spreading them all out to be 0 to n, arbitrarily breaking ties.
+        v = []
+        tasks.forEach (task, id) =>
+            v.push([task.get('position'), id])
+        v.sort (a,b) -> misc.cmp(a[0], b[0])
+        pos = 0
+        for x in v
+            @set_task(x[1], {position:pos})
+            pos += 1
+
     set_local_task_state: (task_id, obj) =>
+        if @_state == 'closed'
+            return
         # Set local state related to a specific task -- this is NOT sync'd between clients
         local = @store.get('local_task_state')
         obj.task_id = task_id
@@ -124,6 +155,8 @@ class exports.TaskActions extends Actions
             local_task_state : local.set(obj.task_id, x)
 
     set_local_view_state: (obj) =>
+        if @_state == 'closed'
+            return
         # Set local state related to what we see/search for/etc.
         local = @store.get('local_view_state')
         for key, value of obj
@@ -164,10 +197,10 @@ class exports.TaskActions extends Actions
         desc += @store.get("search") ? ''
         task_id = misc.uuid()
         @set_task(task_id, {desc:desc, position:position})
-        @set_current_task(task.task_id)
+        @set_current_task(task_id)
 
     set_task: (task_id, obj) =>
-        if not task_id? or not obj?
+        if not task_id? or not obj? or @_state == 'closed'
             return
         last_edited = @store.getIn(['tasks', task_id, 'last_edited']) ? 0
         now = new Date() - 0
@@ -175,6 +208,7 @@ class exports.TaskActions extends Actions
             obj.last_edited = now
         obj.task_id = task_id
         @syncdb.set(obj)
+        @syncdb.save()
 
     delete_task: (task_id) =>
         @set_task(task_id, {deleted: true})
