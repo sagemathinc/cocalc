@@ -2,6 +2,8 @@
 Task Actions
 ###
 
+LAST_EDITED_THRESH_S = 30
+
 immutable  = require('immutable')
 underscore = require('underscore')
 
@@ -108,10 +110,10 @@ class exports.TaskActions extends Actions
             current_task_id : current_task_id
             counts          : c
 
-
-    set_local_task_state: (obj) =>
+    set_local_task_state: (task_id, obj) =>
         # Set local state related to a specific task -- this is NOT sync'd between clients
         local = @store.get('local_task_state')
+        obj.task_id = task_id
         x = local.get(obj.task_id)
         if not x?
             x = immutable.fromJS(obj)
@@ -121,11 +123,13 @@ class exports.TaskActions extends Actions
         @setState
             local_task_state : local.set(obj.task_id, x)
 
-    set_local_view_state: (key, value) =>
+    set_local_view_state: (obj) =>
         # Set local state related to what we see/search for/etc.
         local = @store.get('local_view_state')
+        for key, value of obj
+            local = local.set(key, immutable.fromJS(value))
         @setState
-            local_view_state : local.set(key, immutable.fromJS(value))
+            local_view_state : local
         @_update_visible()
 
     save: =>
@@ -158,31 +162,25 @@ class exports.TaskActions extends Actions
         if desc.length > 0
             desc += "\n"
         desc += @store.get("search") ? ''
-        task =
-            task_id     : misc.uuid()
-            desc        : desc
-            position    : position
-            last_edited : new Date() - 0
-        @syncdb.set(task)
-
+        task_id = misc.uuid()
+        @set_task(task_id, {desc:desc, position:position})
         @set_current_task(task.task_id)
-        @set_editing(task.task_id)
+
+    set_task: (task_id, obj) =>
+        if not task_id? or not obj?
+            return
+        last_edited = @store.getIn(['tasks', task_id, 'last_edited']) ? 0
+        now = new Date() - 0
+        if now - last_edited >= LAST_EDITED_THRESH_S*1000
+            obj.last_edited = now
+        obj.task_id = task_id
+        @syncdb.set(obj)
 
     delete_task: (task_id) =>
-        if not task_id?
-            return
-        @syncdb.set
-            task_id     : task_id
-            deleted     : true
-            last_edited : new Date() - 0
+        @set_task(task_id, {deleted: true})
 
     undelete_task: (task_id) =>
-        if not task_id?
-            return
-        @syncdb.set
-            task_id     : task_id
-            deleted     : false
-            last_edited : new Date() - 0
+        @set_task(task_id, {deleted: false})
 
     delete_current_task: =>
         @delete_task(@store.get('current_task_id'))
@@ -191,8 +189,10 @@ class exports.TaskActions extends Actions
         @undelete_task(@store.get('current_task_id'))
 
     move_task_to_top: =>
+        @set_task(@store.get('current_task_id'), {position: @store.get_positions()[0] - 1})
 
     move_task_to_bottom: =>
+        @set_task(@store.get('current_task_id'), {position: @store.get_positions().slice(-1)[0] + 1})
 
     time_travel: =>
         @redux.getProjectActions(@project_id).open_file
@@ -201,8 +201,6 @@ class exports.TaskActions extends Actions
 
     help: =>
         window.open(WIKI_HELP_URL, "_blank").focus()
-
-    set_editing: (task_id) =>
 
     set_current_task: (task_id) =>
         @setState(current_task_id : task_id)
@@ -214,67 +212,43 @@ class exports.TaskActions extends Actions
         @syncdb?.redo()
 
     set_task_not_done: (task_id) =>
-        @syncdb.set
-            task_id     : task_id
-            done        : false
-            last_edited : new Date() - 0
+        @set_task(task_id, {done:false})
 
     set_task_done: (task_id) =>
-        @syncdb.set
-            task_id     : task_id
-            done        : true
-            last_edited : new Date() - 0
+        @set_task(task_id, {done:true})
 
     stop_editing_due_date: (task_id) =>
-        @set_local_task_state
-            task_id          : task_id
-            editing_due_date : false
+        @set_local_task_state(task_id, {editing_due_date : false})
 
     edit_due_date: (task_id) =>
-        @set_local_task_state
-            task_id          : task_id
-            editing_due_date : true
+        @set_local_task_state(task_id, {editing_due_date : true})
 
     stop_editing_desc: (task_id) =>
-        @set_local_task_state
-            task_id      : task_id
-            editing_desc : false
+        @set_local_task_state(task_id, {editing_desc : false})
 
     edit_desc: (task_id) =>
-        @set_local_task_state
-            task_id      : task_id
-            editing_desc : true
+        @set_local_task_state(task_id, {editing_desc : true})
 
     set_due_date: (task_id, date) =>
-        @syncdb.set
-            task_id     : task_id
-            due_date    : date
-            last_edited : new Date() - 0
+        @set_task(task_id, {due_date:date})
 
     set_desc: (task_id, desc) =>
-        @syncdb.set
-            task_id     : task_id
-            desc        : desc
-            last_edited : new Date() - 0
+        @set_task(task_id, {desc:desc})
 
     minimize_desc: (task_id) =>
-        @set_local_task_state
-            task_id  : task_id
-            min_desc : true
+        @set_local_task_state(task_id, {min_desc : true})
 
     maximize_desc: (task_id) =>
-        @set_local_task_state
-            task_id  : task_id
-            min_desc : false
+        @set_local_task_state(task_id, {min_desc : false})
 
     show_deleted: =>
-        @set_local_view_state('show_deleted', true)
+        @set_local_view_state(show_deleted: true)
 
     stop_showing_deleted: =>
-        @set_local_view_state('show_deleted', false)
+        @set_local_view_state(show_deleted: false)
 
     show_done: =>
-        @set_local_view_state('show_done', true)
+        @set_local_view_state(show_done: true)
 
     stop_showing_done: =>
-        @set_local_view_state('show_done', false)
+        @set_local_view_state(show_done: false)
