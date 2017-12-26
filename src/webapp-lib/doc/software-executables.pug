@@ -35,7 +35,7 @@ block content
   div.container
     div.row
       each idx in exec_keys
-        h3
+        h3(id=info[idx].name.replace(/ /g, '-'))
           = info[idx].name
           code.software= idx
         //- this also escapes the output, which is necessary because there are some strings that could be interpreted as html
