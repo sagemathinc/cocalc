@@ -34,7 +34,7 @@ exports.DescriptionRendered = rclass
 
 
 header_part = (s) ->
-    lines = s.split('\n')
+    lines = s.trim().split('\n')
     for i in [0...lines.length]
         if lines[i].trim() == ''
             if i == lines.length - 1
