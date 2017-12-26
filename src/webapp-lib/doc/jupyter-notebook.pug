@@ -61,6 +61,32 @@ block content
       div.row
         div.col-md-12.center
           h1 #[i.fa.fa-exclamation-circle] Feature overview
+        div.col-md-6.col-md-offset-3.
+          The following features are specific to Jupyter notebooks.
+          Learn more about the #[a(href=PREFIX) #{NAME} platform here].
+
+    a.anchor#a-realtimesync
+    div.container.space#realtimesync
+      div.row
+        div.col-md-12
+          h2 #[i.fa.fa-] Collaborative Editing
+        div.col-md-6
+          img(src=require("webapp-lib/assets/cocalc-real-time-jupyter.png")).fit
+        div.col-md-6
+          div.
+            You can share your Jupyter notebooks privately with project collaborators.
+            Modifications are #[strong synchronized in real time] with them.
+            Watch the cursors of others while they edit the document.
+            You are also notified about the presence of watching collaborators.
+          div.
+            Additionally, the status and results of all computations in the kernel are also synchronized,
+            because it is fully hosted on #{NAME}.
+          div.
+            Together, everyone involved experiences the document in exactly the same way.
+
+    a.anchor#a-timetravel
+    div.container.space#timetravel
+      div.row
         div.col-md-12
           h2 #[i.fa.fa-history] Time-Travel
         div.col-md-6
@@ -219,3 +245,5 @@ block content
               margin-bottom : 4rem
             > h2, h3
               margin-bottom : 2rem
+            > div
+              margin-bottom : 1rem
