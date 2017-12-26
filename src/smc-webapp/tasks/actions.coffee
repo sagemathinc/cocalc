@@ -207,10 +207,11 @@ class exports.TaskActions extends Actions
         desc = (@store.get('selected_hashtags')?.toJS() ? []).join(' ')
         if desc.length > 0
             desc += "\n"
-        desc += @store.get("search") ? ''
+        desc += @store.getIn(['local_view_state', 'search']) ? ''
         task_id = misc.uuid()
         @set_task(task_id, {desc:desc, position:position})
         @set_current_task(task_id)
+        @edit_desc(task_id)
 
     set_task: (task_id, obj) =>
         if not task_id? or not obj? or @_state == 'closed'
