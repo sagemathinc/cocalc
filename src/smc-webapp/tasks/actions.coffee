@@ -89,7 +89,7 @@ class exports.TaskActions extends Actions
                     return
                 if not show_done and val.get('done') and (val.get('last_edited') ? 0) < cutoff
                     return
-            # assuming sorting by position here...
+            # TODO: assuming sorting by position here...
             v.push([val.get('position'), id])
             return
         v.sort (a,b) -> misc.cmp(a[0], b[0])
@@ -137,17 +137,22 @@ class exports.TaskActions extends Actions
         # create new task positioned after the current task
         cur_pos = @store.getIn(['tasks', @store.get('current_task_id'), 'position'])
 
+        positions = @store.get_positions()
         if cur_pos?
-            # TODO!
-            position = 0
+            position = undefined
+            for i in [0...positions.length - 1]
+                if cur_pos >= positions[i] and cur_pos < positions[i+1]
+                    position = (positions[i] + positions[i+1]) / 2
+                    break
+            if not position?
+                position = positions[positions.length - 1] + 1
         else
-            # no current task, so just put new task at the very beginning
-            v = []
-            @store.get('tasks')?.forEach (task, id) =>
-                v.push(task.get('position'))
-                return
-            v.sort()
-            position = (v[0] ? 1) - 1
+            # There is no current task, so just put new task at the very beginning.
+            # Normally there is always a current task, unless there are no tasks at all.
+            if positions.length > 0
+                position = positions[0] - 1
+            else
+                position = 0
 
         desc = (@store.get('selected_hashtags')?.toJS() ? []).join(' ')
         if desc.length > 0
