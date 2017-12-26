@@ -11,6 +11,8 @@ underscore = require('underscore')
 
 misc = require('smc-util/misc')
 
+{search_matches} = require('./search')
+
 WIKI_HELP_URL = "https://github.com/sagemathinc/cocalc/wiki/tasks"
 
 class exports.TaskActions extends Actions
@@ -71,11 +73,20 @@ class exports.TaskActions extends Actions
         @set_save_status?()
 
     _update_visible: =>
-        tasks = @store.get('tasks')
-        view  = @store.get('local_view_state')
-        show_deleted = !!view.get('show_deleted')
-        show_done    = !!view.get('show_done')
+        tasks           = @store.get('tasks')
+        view            = @store.get('local_view_state')
+        show_deleted    = !!view.get('show_deleted')
+        show_done       = !!view.get('show_done')
         current_task_id = @store.get('current_task_id')
+        search0         = view.get('search')
+        if search0
+            search = []
+            for x in misc.search_split(search0.toLowerCase())
+                x = x.trim()
+                if x != '#'
+                    search.push(x)
+        else
+            search = undefined
 
         v = []
         cutoff = misc.seconds_ago(15) - 0
@@ -91,6 +102,8 @@ class exports.TaskActions extends Actions
                 if not show_deleted and val.get('deleted') and (val.get('last_edited') ? 0) < cutoff
                     return
                 if not show_done and val.get('done') and (val.get('last_edited') ? 0) < cutoff
+                    return
+                if not search_matches(search, val.get('desc'))
                     return
             # TODO: assuming sorting by position here...
             v.push([val.get('position'), id])

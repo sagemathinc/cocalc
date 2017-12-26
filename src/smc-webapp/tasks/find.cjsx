@@ -2,7 +2,9 @@
 Searching for tasks by full text search and done/deleted status.
 ###
 
-{React, rclass, rtypes}  = require('../smc-react')
+{React, ReactDOM, rclass, rtypes}  = require('../smc-react')
+
+{FormControl} = require('react-bootstrap')
 
 {ShowToggle} = require('./show-toggle')
 
@@ -24,10 +26,20 @@ exports.Find = rclass
             count   = {@props.counts.get(type)}
             />
 
+    render_search: ->
+        <FormControl
+            type           = 'text'
+            ref            = 'search'
+            componentClass = 'input'
+            value          = {@props.local_view_state.get('search') ? ''}
+            onChange       = {=>@props.actions.set_local_view_state(search: ReactDOM.findDOMNode(@refs.search).value)}
+        />
+
     render: ->
         if not @props.actions? or not @props.local_view_state?
             return <span />
         <div style={float: 'right', padding: '10px'}>
+            {@render_search()}
             {@render_toggle('done')}
             {@render_toggle('deleted')}
         </div>
