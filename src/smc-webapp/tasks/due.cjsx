@@ -53,7 +53,7 @@ exports.DueDate = rclass
     render_remove_due_date: ->
         if not @props.due_date
             return
-        <span>
+        <span style={color:'#888'}>
             <Space />
             <Icon
                 name    = 'times'
@@ -62,11 +62,15 @@ exports.DueDate = rclass
         </span>
 
     render_due_date: ->
+        style = undefined
         if @props.due_date
-            elt = <TimeAgo date = {new Date(@props.due_date)} />
+            date = new Date(@props.due_date)
+            if date <= new Date()
+                style = {color:'white', backgroundColor:'red', padding:'3px'}
+            elt = <TimeAgo date = {new Date(@props.due_date)}/>
         else
             elt = <span>none</span>
-        <span onClick={@toggle_edit}>
+        <span onClick={@toggle_edit} style={style} >
             {elt}
         </span>
 

@@ -12,6 +12,8 @@ Top-level react component for task list
 
 {Find}      = require('./find')
 
+{Headings}  = require('./headings')
+
 exports.TaskEditor = rclass ({name}) ->
     propTypes :
         actions    : rtypes.object.isRequired
@@ -75,12 +77,18 @@ exports.TaskEditor = rclass ({name}) ->
             visible          = {@props.visible}
             current_task_id  = {@props.current_task_id}
             local_task_state = {@props.local_task_state}
+            scroll           = {@props.local_view_state?.get('scroll')}
+            style            = {overflowY:'auto'}
         />
 
+    render_headings: ->
+        <Headings />
+
     render: ->
-        <div style={margin:'15px', border:'1px solid grey'}>
+        <div style={margin:'15px', border:'1px solid grey'} className='smc-vfill'>
             {@render_uncommitted_changes()}
             {@render_find()}
             {@render_button_bar()}
+            {@render_headings()}
             {@render_list()}
         </div>

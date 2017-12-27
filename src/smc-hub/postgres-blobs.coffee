@@ -449,6 +449,7 @@ class exports.PostgreSQL extends PostgreSQL
             repeat_until_done_s : 0        # if nonzero, waits this many seconds, then calls this function again until nothing gets uploaded.
             errors    : undefined          # object: used to accumulate errors -- if not given, then everything will terminate on first error
             remove    : false
+            cutoff    : '1 month'          # postgresql interval - only copy blobs to gcloud that haven't been accessed at least this long.
             cb        : required
         dbg = @_dbg("copy_all_blobs_to_gcloud")
         dbg()
@@ -457,7 +458,7 @@ class exports.PostgreSQL extends PostgreSQL
         dbg("getting blob id's...")
         @_query
             query    : 'SELECT id, size FROM blobs'
-            where    : "expire IS NULL AND gcloud IS NULL"
+            where    : "expire IS NULL AND gcloud IS NULL and (last_active <= NOW() - INTERVAL '#{opts.cutoff}' OR last_active IS NULL)"
             limit    : opts.limit
             order_by : 'id'
             cb       : all_results (err, v) =>

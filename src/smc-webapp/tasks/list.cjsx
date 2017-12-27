@@ -2,11 +2,13 @@
 List of Tasks
 ###
 
+{debounce} = require('underscore')
+
+misc = require('smc-util/misc')
+
 {Task} = require('./task')
 
-{React, rclass, rtypes}  = require('../smc-react')
-
-{Headings} = require('./headings')
+{React, ReactDOM, rclass, rtypes}  = require('../smc-react')
 
 exports.TaskList = rclass
     propTypes :
@@ -17,12 +19,21 @@ exports.TaskList = rclass
         visible          : rtypes.immutable.List.isRequired
         current_task_id  : rtypes.string
         local_task_state : rtypes.immutable.Map
+        scroll           : rtypes.immutable.Map  # scroll position -- only used when initially mounted, so is NOT in shouldComponentUpdate below.
+        style            : rtypes.object
 
     shouldComponentUpdate: (next) ->
         return @props.tasks            != next.tasks or \
                @props.visible          != next.visible or \
                @props.current_task_id  != next.current_task_id or \
                @props.local_task_state != next.local_task_state
+
+    componentDidMount: ->
+        if @props.scroll?
+            ReactDOM.findDOMNode(@refs.main_div)?.scrollTop = @props.scroll.get('scrollTop')
+
+    componentWillUnmount: ->
+        @save_scroll_position()
 
     render_task: (task_id) ->
         <Task
@@ -37,17 +48,20 @@ exports.TaskList = rclass
             min_desc         = {@props.local_task_state?.getIn([task_id, 'min_desc'])}
         />
 
-    render_headings: ->
-        <Headings />
-
     render_tasks: ->
         x = []
         @props.visible.forEach (task_id) =>
             x.push(@render_task(task_id))
         return x
 
+    save_scroll_position: ->
+        if not @props.actions?
+            return
+        node = ReactDOM.findDOMNode(@refs.main_div)
+        if node?
+            @props.actions.set_local_view_state(scroll: {scrollTop:node.scrollTop})
+
     render: ->
-        <div>
-            {@render_headings()}
+        <div style={@props.style} ref='main_div'>
             {@render_tasks()}
         </div>

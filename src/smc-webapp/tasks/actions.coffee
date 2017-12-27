@@ -2,12 +2,16 @@
 Task Actions
 ###
 
+LAST_EDITED_THRESH_S = 30
+
 immutable  = require('immutable')
 underscore = require('underscore')
 
 {Actions}  = require('../smc-react')
 
 misc = require('smc-util/misc')
+
+{search_matches} = require('./search')
 
 WIKI_HELP_URL = "https://github.com/sagemathinc/cocalc/wiki/tasks"
 
@@ -26,6 +30,7 @@ class exports.TaskActions extends Actions
 
         @_init_has_unsaved_changes()
         @syncdb.on('change', @_syncdb_change)
+        @syncdb.once('change', @_ensure_positions_are_unique)
 
     close: =>
         if @_state == 'closed'
@@ -68,11 +73,20 @@ class exports.TaskActions extends Actions
         @set_save_status?()
 
     _update_visible: =>
-        tasks = @store.get('tasks')
-        view  = @store.get('local_view_state')
-        show_deleted = !!view.get('show_deleted')
-        show_done    = !!view.get('show_done')
+        tasks           = @store.get('tasks')
+        view            = @store.get('local_view_state')
+        show_deleted    = !!view.get('show_deleted')
+        show_done       = !!view.get('show_done')
         current_task_id = @store.get('current_task_id')
+        search0         = view.get('search')
+        if search0
+            search = []
+            for x in misc.search_split(search0.toLowerCase())
+                x = x.trim()
+                if x != '#'
+                    search.push(x)
+        else
+            search = undefined
 
         v = []
         cutoff = misc.seconds_ago(15) - 0
@@ -89,7 +103,9 @@ class exports.TaskActions extends Actions
                     return
                 if not show_done and val.get('done') and (val.get('last_edited') ? 0) < cutoff
                     return
-            # assuming sorting by position here...
+                if not search_matches(search, val.get('desc'))
+                    return
+            # TODO: assuming sorting by position here...
             v.push([val.get('position'), id])
             return
         v.sort (a,b) -> misc.cmp(a[0], b[0])
@@ -108,10 +124,40 @@ class exports.TaskActions extends Actions
             current_task_id : current_task_id
             counts          : c
 
+    _ensure_positions_are_unique: =>
+        tasks = @store.get('tasks')
+        if not tasks?
+            return
+        # iterate through tasks adding their (string) positions to a "set" (using a map)
+        s = {}
+        unique = true
+        tasks.forEach (task, id) =>
+            pos = task.get('position')
+            if s[pos]  # already got this position -- so they can't be unique
+                unique = false
+                return false
+            s[pos] = true
+            return
+        if unique
+            # positions turned out to all be unique - done
+            return
+        # positions are NOT unique - this could happen, e.g., due to merging offline changes.
+        # We fix this by simply spreading them all out to be 0 to n, arbitrarily breaking ties.
+        v = []
+        tasks.forEach (task, id) =>
+            v.push([task.get('position'), id])
+        v.sort (a,b) -> misc.cmp(a[0], b[0])
+        pos = 0
+        for x in v
+            @set_task(x[1], {position:pos})
+            pos += 1
 
-    set_local_task_state: (obj) =>
+    set_local_task_state: (task_id, obj) =>
+        if @_state == 'closed'
+            return
         # Set local state related to a specific task -- this is NOT sync'd between clients
         local = @store.get('local_task_state')
+        obj.task_id = task_id
         x = local.get(obj.task_id)
         if not x?
             x = immutable.fromJS(obj)
@@ -121,11 +167,15 @@ class exports.TaskActions extends Actions
         @setState
             local_task_state : local.set(obj.task_id, x)
 
-    set_local_view_state: (key, value) =>
+    set_local_view_state: (obj) =>
+        if @_state == 'closed'
+            return
         # Set local state related to what we see/search for/etc.
         local = @store.get('local_view_state')
+        for key, value of obj
+            local = local.set(key, immutable.fromJS(value))
         @setState
-            local_view_state : local.set(key, immutable.fromJS(value))
+            local_view_state : local
         @_update_visible()
 
     save: =>
@@ -137,47 +187,48 @@ class exports.TaskActions extends Actions
         # create new task positioned after the current task
         cur_pos = @store.getIn(['tasks', @store.get('current_task_id'), 'position'])
 
+        positions = @store.get_positions()
         if cur_pos?
-            # TODO!
-            position = 0
+            position = undefined
+            for i in [0...positions.length - 1]
+                if cur_pos >= positions[i] and cur_pos < positions[i+1]
+                    position = (positions[i] + positions[i+1]) / 2
+                    break
+            if not position?
+                position = positions[positions.length - 1] + 1
         else
-            # no current task, so just put new task at the very beginning
-            v = []
-            @store.get('tasks')?.forEach (task, id) =>
-                v.push(task.get('position'))
-                return
-            v.sort()
-            position = (v[0] ? 1) - 1
+            # There is no current task, so just put new task at the very beginning.
+            # Normally there is always a current task, unless there are no tasks at all.
+            if positions.length > 0
+                position = positions[0] - 1
+            else
+                position = 0
 
         desc = (@store.get('selected_hashtags')?.toJS() ? []).join(' ')
         if desc.length > 0
             desc += "\n"
-        desc += @store.get("search") ? ''
-        task =
-            task_id     : misc.uuid()
-            desc        : desc
-            position    : position
-            last_edited : new Date() - 0
-        @syncdb.set(task)
+        desc += @store.getIn(['local_view_state', 'search']) ? ''
+        task_id = misc.uuid()
+        @set_task(task_id, {desc:desc, position:position})
+        @set_current_task(task_id)
+        @edit_desc(task_id)
 
-        @set_current_task(task.task_id)
-        @set_editing(task.task_id)
+    set_task: (task_id, obj) =>
+        if not task_id? or not obj? or @_state == 'closed'
+            return
+        last_edited = @store.getIn(['tasks', task_id, 'last_edited']) ? 0
+        now = new Date() - 0
+        if now - last_edited >= LAST_EDITED_THRESH_S*1000
+            obj.last_edited = now
+        obj.task_id = task_id
+        @syncdb.set(obj)
+        @syncdb.save()
 
     delete_task: (task_id) =>
-        if not task_id?
-            return
-        @syncdb.set
-            task_id     : task_id
-            deleted     : true
-            last_edited : new Date() - 0
+        @set_task(task_id, {deleted: true})
 
     undelete_task: (task_id) =>
-        if not task_id?
-            return
-        @syncdb.set
-            task_id     : task_id
-            deleted     : false
-            last_edited : new Date() - 0
+        @set_task(task_id, {deleted: false})
 
     delete_current_task: =>
         @delete_task(@store.get('current_task_id'))
@@ -186,8 +237,10 @@ class exports.TaskActions extends Actions
         @undelete_task(@store.get('current_task_id'))
 
     move_task_to_top: =>
+        @set_task(@store.get('current_task_id'), {position: @store.get_positions()[0] - 1})
 
     move_task_to_bottom: =>
+        @set_task(@store.get('current_task_id'), {position: @store.get_positions().slice(-1)[0] + 1})
 
     time_travel: =>
         @redux.getProjectActions(@project_id).open_file
@@ -196,8 +249,6 @@ class exports.TaskActions extends Actions
 
     help: =>
         window.open(WIKI_HELP_URL, "_blank").focus()
-
-    set_editing: (task_id) =>
 
     set_current_task: (task_id) =>
         @setState(current_task_id : task_id)
@@ -209,67 +260,43 @@ class exports.TaskActions extends Actions
         @syncdb?.redo()
 
     set_task_not_done: (task_id) =>
-        @syncdb.set
-            task_id     : task_id
-            done        : false
-            last_edited : new Date() - 0
+        @set_task(task_id, {done:false})
 
     set_task_done: (task_id) =>
-        @syncdb.set
-            task_id     : task_id
-            done        : true
-            last_edited : new Date() - 0
+        @set_task(task_id, {done:true})
 
     stop_editing_due_date: (task_id) =>
-        @set_local_task_state
-            task_id          : task_id
-            editing_due_date : false
+        @set_local_task_state(task_id, {editing_due_date : false})
 
     edit_due_date: (task_id) =>
-        @set_local_task_state
-            task_id          : task_id
-            editing_due_date : true
+        @set_local_task_state(task_id, {editing_due_date : true})
 
     stop_editing_desc: (task_id) =>
-        @set_local_task_state
-            task_id      : task_id
-            editing_desc : false
+        @set_local_task_state(task_id, {editing_desc : false})
 
     edit_desc: (task_id) =>
-        @set_local_task_state
-            task_id      : task_id
-            editing_desc : true
+        @set_local_task_state(task_id, {editing_desc : true})
 
     set_due_date: (task_id, date) =>
-        @syncdb.set
-            task_id     : task_id
-            due_date    : date
-            last_edited : new Date() - 0
+        @set_task(task_id, {due_date:date})
 
     set_desc: (task_id, desc) =>
-        @syncdb.set
-            task_id     : task_id
-            desc        : desc
-            last_edited : new Date() - 0
+        @set_task(task_id, {desc:desc})
 
     minimize_desc: (task_id) =>
-        @set_local_task_state
-            task_id  : task_id
-            min_desc : true
+        @set_local_task_state(task_id, {min_desc : true})
 
     maximize_desc: (task_id) =>
-        @set_local_task_state
-            task_id  : task_id
-            min_desc : false
+        @set_local_task_state(task_id, {min_desc : false})
 
     show_deleted: =>
-        @set_local_view_state('show_deleted', true)
+        @set_local_view_state(show_deleted: true)
 
     stop_showing_deleted: =>
-        @set_local_view_state('show_deleted', false)
+        @set_local_view_state(show_deleted: false)
 
     show_done: =>
-        @set_local_view_state('show_done', true)
+        @set_local_view_state(show_done: true)
 
     stop_showing_done: =>
-        @set_local_view_state('show_done', false)
+        @set_local_view_state(show_done: false)
