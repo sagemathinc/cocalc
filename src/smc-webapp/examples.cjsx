@@ -444,7 +444,9 @@ ExamplesBody = rclass
             list.map (name, idx) =>
                 click  = @category_selection.bind(@, level, idx)
                 active = if idx == cat then 'active' else ''
-                <li className={"list-group-item " + active} onClick={click} key={idx}>{name}</li>
+                <li className={"list-group-item " + active} onClick={click} key={idx}>
+                    <Markdown value={name} />
+                </li>
         }
         </ul>
 

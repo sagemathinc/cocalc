@@ -140,6 +140,13 @@ def install_all(compute=False, web=False):
     if web:
         install_webapp()
 
+def update_examples():
+    '''
+    This is only used during development to update the examples.
+    '''
+    cmd('git submodule foreach "git fetch origin; git checkout master; git reset --hard origin/master"')
+    cmd('env OUTDIR=../webapp-lib/examples make -C examples/')
+
 def main():
     parser = argparse.ArgumentParser(description="Install components of CoCalc into the system")
     subparsers = parser.add_subparsers(help='sub-command help')
@@ -167,6 +174,9 @@ def main():
 
     parser_project = subparsers.add_parser('project', help='install project server code system-wide')
     parser_project.set_defaults(func = lambda *args: install_project())
+
+    parser_examples = subparsers.add_parser('examples', help='update the examples submodule')
+    parser_examples.set_defaults(func = lambda *args : update_examples())
 
     parser_all = subparsers.add_parser('all', help='install all code that makes sense for the selected classes of servers; use "./install.py all --compute" for compute node and "./install.py all --web" for a web node')
     parser_all.add_argument("--compute", default=False, action="store_const", const=True)
