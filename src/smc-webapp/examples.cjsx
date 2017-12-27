@@ -2,7 +2,7 @@
 #
 #    CoCalc: Collaborative Calculation in the Cloud
 #
-#    Copyright (C) 2015, SageMath, Inc.
+#    Copyright (C) 2015 -- 2017, SageMath, Inc.
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -35,7 +35,7 @@
 #                        language given, a selection of it is triggered
 
 _ = require("underscore")
-{defaults, required, optional} = require('smc-util/misc')
+{defaults, required, optional} = misc = require('smc-util/misc')
 misc_page = require('./misc_page')
 
 markdown = require('./markdown')
@@ -53,6 +53,17 @@ DATA = null
 
 redux_name = (project_id, path) ->
     return "examples-#{project_id}-#{path}"
+
+# convert a language like "python" or "r" (usually short and lowercase) to a canonical name
+lang2name = (lang) ->
+    if lang == 'python'
+        return 'Python'
+    else if lang == 'gap'
+        return 'GAP'
+    else if lang == 'sage' or misc.startswith(lang, 'sage-')
+        return 'SageMath'
+    else
+        return lang.charAt(0).toUpperCase() + lang[1..]
 
 class ExamplesStore extends Store
 
@@ -103,13 +114,8 @@ class ExamplesActions extends Actions
         @set(data: data)
         nav_entries = []
         for key in _.keys(data)
-            entry = switch key
-                        when 'gap'
-                            ['gap', 'GAP']
-                        else
-                            [key, key[0].toUpperCase() + key[1..]]
             if _.keys(data[key]).length > 0
-                nav_entries.push(entry)
+                nav_entries.push(key)
         @set(nav_entries: nav_entries)
         @select_lang(@get('lang'))
 
@@ -187,8 +193,7 @@ class ExamplesActions extends Actions
         catch ex
             if ex isnt EnoughResultsException
                 throw ex
-        @set
-            hits: hits
+        @set(hits: hits)
 
     search_selected: (idx) ->
         [lvl1, lvl2, lvl3, title, descr, inDescr] = @get('hits').get(idx).toArray()
@@ -289,6 +294,7 @@ class ExamplesActions extends Actions
         switch level
             when 0, 1
                 @set(code: '', descr: '', cat2 : null, submittable: false)
+
         switch level
             when 0
                 @set(cat0: if idx == -1 then @get('catlist0').size - 1 else idx)
@@ -300,6 +306,7 @@ class ExamplesActions extends Actions
                     catlist2 : []
                 if catlist1.length == 1
                     @set_selected_category(1, 0)
+
             when 1
                 cat0     = @get('cat0')
                 @set(cat1 : if idx == -1 then @get('catlist1').size - 1 else idx)
@@ -309,6 +316,7 @@ class ExamplesActions extends Actions
                     catlist2 : catlist2
                 if catlist2.length == 1
                     @set_selected_category(2, 0)
+
             when 2
                 k0 = @get('catlist0').get(@get('cat0'))
                 k1 = @get('catlist1').get(@get('cat1'))
@@ -321,11 +329,12 @@ ExamplesHeader = rclass
     displayName : 'ExamplesHeader'
 
     propTypes:
-        actions     : rtypes.object
-        nav_entries : rtypes.array
-        search_str  : rtypes.string
-        lang        : rtypes.string
-        lang_select : rtypes.bool
+        actions      : rtypes.object
+        nav_entries  : rtypes.array
+        search_str   : rtypes.string
+        lang         : rtypes.string
+        lang_select  : rtypes.bool
+        unknown_lang : rtypes.bool
 
     getDefaultProps: ->
         search_str : ''
@@ -360,12 +369,11 @@ ExamplesHeader = rclass
         return false
 
     render_nav: ->
-        entries = @props.nav_entries
-        entries ?= []
+        entries = @props.nav_entries ? []
         <Nav bsStyle="pills" activeKey={@props.lang} ref='lang' onSelect={@langSelect}>
             {
-                entries.map (entry, idx) =>
-                    [key, name] = entry
+                entries.map (key) ->
+                    name = lang2name(key)
                     <NavItem key={key} eventKey={key} title={name}>{name}</NavItem>
             }
         </Nav>
@@ -375,22 +383,25 @@ ExamplesHeader = rclass
         <Row>
             <Col sm={3}>
                 <h2>
-                    <Icon name={exports.ICON_NAME} /> Assistant {<code>{@props.lang}</code> if not @props.lang_select}
+                    <Icon name={exports.ICON_NAME} />{' '}
+                    {lang2name(@props.lang) if not @props.lang_select} Assistant
                 </h2>
             </Col>
             <Col sm={5}>
-                {@render_nav() if @props.lang_select}
+                {@render_nav() if @props.lang_select and not @props.unknown_lang}
             </Col>
             <Col sm={3}>
-                <FormGroup>
-                    <FormControl ref='search'
-                       type='text'
-                       className='webapp-examples-search'
-                       placeholder='Search'
-                       value={@props.search_str ? ''}
-                       onKeyUp={@handle_search_keyup}
-                       onChange={@search}  />
-                </FormGroup>
+                {<FormGroup>
+                    <FormControl
+                        ref         = 'search'
+                        type        = 'text'
+                        className   = 'webapp-examples-search'
+                        placeholder = 'Search'
+                        value       = {@props.search_str ? ''}
+                        onKeyUp     = {@handle_search_keyup}
+                        onChange    = {@search}
+                    />
+                </FormGroup> if not @props.unknown_lang}
             </Col>
         </Row>
 
@@ -459,7 +470,7 @@ ExamplesBody = rclass
         {
             @props.hits.map (hit, idx) =>
                 [lvl1, lvl2, lvl3, title, descr, inDescr] = hit
-                click = @search_result_selection.bind(@, idx)
+                click    = @search_result_selection.bind(@, idx)
                 title_hl = title.replace(new RegExp(ss, "gi"), "<span class='hl'>#{ss}</span>")
                 if inDescr != -1
                     i = Math.max(0, inDescr-30)
@@ -471,7 +482,11 @@ ExamplesBody = rclass
                     if j < descr.length
                         snippet = snippet + '...'
                 active = if @props.search_sel == idx then 'active' else ''
-                <li className={"list-group-item " + active} onClick={click} key={idx}>
+                <li
+                    key          = {idx}
+                    className    = {"list-group-item " + active}
+                    onClick      = {click}
+                >
                     {lvl1} → {lvl2} → <span style={fontWeight: 'bold'} dangerouslySetInnerHTML={__html : title_hl}></span>
                     {' '}{<span className='snippet'} dangerouslySetInnerHTML={__html : snippet}></span> if snippet?.length > 0}
                 </li>
@@ -500,19 +515,22 @@ ExamplesBody = rclass
                 <Col sm={6}>{@category_list(2)}</Col>
             </Row>
 
+    render_bottom: ->
+        <Row key='bottom'>
+            <Col sm={6}>
+                <pre ref='code' className='code'>{@props.code}</pre>
+            </Col>
+            <Col sm={6}>
+                <Panel ref='descr' className='webapp-examples-descr'>
+                    <Markdown value={@props.descr} />
+                </Panel>
+            </Col>
+        </Row>
+
     render_body: ->
         [
             @render_top()
-            <Row key='bottom'>
-                <Col sm={6}>
-                    <pre ref='code' className='code'>{@props.code}</pre>
-                </Col>
-                <Col sm={6}>
-                    <Panel ref='descr' className='webapp-examples-descr'>
-                        <Markdown value={@props.descr} />
-                    </Panel>
-                </Col>
-            </Row>
+            @render_bottom()
         ]
 
     render: ->

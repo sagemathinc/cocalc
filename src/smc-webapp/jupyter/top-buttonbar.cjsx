@@ -55,10 +55,11 @@ exports.TopButtonbar = rclass ({name}) ->
 
     render_button: (key, name) ->
         if typeof(name) == 'object'
-            {name, disabled, style, label} = name
-        style    ?= undefined
-        disabled ?= false
-        label    ?= ''
+            {name, disabled, style, label, className} = name
+        style     ?= undefined
+        disabled  ?= false
+        label     ?= ''
+        className ?= undefined
         if @props.read_only  # all buttons disabled in read-only mode
             disabled = true
         obj = @props.actions._commands?[name]
@@ -66,11 +67,12 @@ exports.TopButtonbar = rclass ({name}) ->
             return
         focus = not misc.endswith(obj.m, '...')
         <Button
-            key      = {key}
-            onClick  = {@command(name, focus)}
-            title    = {obj.m}
-            disabled = {disabled}
-            style    = {style} >
+            className = {className}
+            key       = {key}
+            onClick   = {@command(name, focus)}
+            title     = {obj.m}
+            disabled  = {disabled}
+            style     = {style} >
             <Icon name={obj.i}/> {label}
         </Button>
 
@@ -126,7 +128,7 @@ exports.TopButtonbar = rclass ({name}) ->
         @render_button('0', 'show keyboard shortcuts')
 
     render_assistant: ->
-        @render_button('assistant', 'show code assistant')
+        @render_button('assistant', {name:'show code assistant', label: 'Assistant', className:'pull-right', style: {marginRight: '10px'}})
 
     render_group_undo_redo: ->
         @render_button_group(['global undo', 'global redo'])
@@ -199,8 +201,7 @@ exports.TopButtonbar = rclass ({name}) ->
                 <span style={marginLeft:'5px'}/>
                 {@render_keyboard()}
                 <span style={marginLeft:'5px'}/>
-                {@render_assistant()}
-                <span style={marginLeft:'5px'}/>
                 {@render_group_save_timetravel()}
+                {@render_assistant()}
             </Form>
         </div>
