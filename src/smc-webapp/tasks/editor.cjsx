@@ -14,6 +14,8 @@ Top-level react component for task list
 
 {Headings}  = require('./headings')
 
+{DescVisible} = require('./desc-visible')
+
 exports.TaskEditor = rclass ({name}) ->
     propTypes :
         actions    : rtypes.object.isRequired
@@ -58,6 +60,13 @@ exports.TaskEditor = rclass ({name}) ->
             counts           = {@props.counts}
             />
 
+    render_desc_visible: ->
+        <DescVisible
+            num_visible      = {@props.visible?.size}
+            num_tasks        = {@props.tasks?.size}
+            local_view_state = {@props.local_view_state}
+        />
+
     render_button_bar: ->
         <ButtonBar
             actions                 = {@props.actions}
@@ -88,6 +97,7 @@ exports.TaskEditor = rclass ({name}) ->
         <div style={margin:'15px', border:'1px solid grey'} className='smc-vfill'>
             {@render_uncommitted_changes()}
             {@render_find()}
+            {@render_desc_visible()}
             {@render_button_bar()}
             {@render_headings()}
             {@render_list()}
