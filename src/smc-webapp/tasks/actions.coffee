@@ -93,26 +93,30 @@ class exports.TaskActions extends Actions
         counts =
             done    : 0
             deleted : 0
+        current_is_visible = false
         tasks.forEach (val, id) =>
             if val.get('done')
                 counts.done += 1
             if val.get('deleted')
                 counts.deleted += 1
-            if id != current_task_id
-                if not show_deleted and val.get('deleted') and (val.get('last_edited') ? 0) < cutoff
-                    return
-                if not show_done and val.get('done') and (val.get('last_edited') ? 0) < cutoff
-                    return
-                if not search_matches(search, val.get('desc'))
-                    return
+            if not show_deleted and val.get('deleted') and (val.get('last_edited') ? 0) < cutoff
+                return
+            if not show_done and val.get('done') and (val.get('last_edited') ? 0) < cutoff
+                return
+            if not search_matches(search, val.get('desc'))
+                return
+            if id == current_task_id
+                current_is_visible = true
             # TODO: assuming sorting by position here...
             v.push([val.get('position'), id])
             return
         v.sort (a,b) -> misc.cmp(a[0], b[0])
         visible = immutable.fromJS((x[1] for x in v))
 
-        if not current_task_id? and visible.size > 0
+        if (not current_task_id? or not current_is_visible) and visible.size > 0
             current_task_id = visible.get(0)
+        else if not current_is_visible and visible.size == 0
+            current_task_id = undefined
 
         c = @store.get('counts')
         if c.get('done') != counts.done
