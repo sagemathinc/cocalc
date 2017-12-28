@@ -36,12 +36,15 @@ exports.TaskList = rclass
         @save_scroll_position()
 
     render_task: (task_id) ->
+        task = @props.tasks.get(task_id)
+        if not task?  # task deletion and visible list might not quite immediately be in sync/consistent
+            return
         <Task
             key              = {task_id}
             actions          = {@props.actions}
             path             = {@props.path}
             project_id       = {@props.project_id}
-            task             = {@props.tasks.get(task_id)}
+            task             = {task}
             is_current       = {@props.current_task_id == task_id}
             editing_due_date = {@props.local_task_state?.getIn([task_id, 'editing_due_date'])}
             editing_desc     = {@props.local_task_state?.getIn([task_id, 'editing_desc'])}

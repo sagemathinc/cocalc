@@ -89,7 +89,6 @@ class exports.TaskActions extends Actions
             search = undefined
 
         v = []
-        cutoff = misc.seconds_ago(15) - 0
         counts =
             done    : 0
             deleted : 0
@@ -99,9 +98,9 @@ class exports.TaskActions extends Actions
                 counts.done += 1
             if val.get('deleted')
                 counts.deleted += 1
-            if not show_deleted and val.get('deleted') and (val.get('last_edited') ? 0) < cutoff
+            if not show_deleted and val.get('deleted')
                 return
-            if not show_done and val.get('done') and (val.get('last_edited') ? 0) < cutoff
+            if not show_done and val.get('done')
                 return
             if not search_matches(search, val.get('desc'))
                 return
@@ -304,3 +303,9 @@ class exports.TaskActions extends Actions
 
     stop_showing_done: =>
         @set_local_view_state(show_done: false)
+
+    empty_trash: =>
+        @store.get('tasks')?.forEach (task, id) =>
+            @syncdb.delete(task_id: id)
+            return
+
