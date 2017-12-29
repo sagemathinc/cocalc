@@ -21,13 +21,15 @@ exports.Task = rclass
         editing_due_date : rtypes.bool
         editing_desc     : rtypes.bool
         min_desc         : rtypes.bool
+        font_size        : rtypes.number
 
     shouldComponentUpdate: (next) ->
         return @props.task              != next.task             or \
                @props.is_current        != next.is_current       or \
                @props.editing_due_date  != next.editing_due_date or \
                @props.editing_desc      != next.editing_desc     or \
-               @props.min_desc          != next.min_desc
+               @props.min_desc          != next.min_desc         or \
+               @props.font_size         != next.font_size
 
     render_drag_handle: ->
         <DragHandle />
@@ -56,6 +58,7 @@ exports.Task = rclass
             editing    = {@props.editing_desc}
             minimize   = {@props.min_desc}
             is_current = {@props.is_current}
+            font_size  = {@props.font_size}
         />
 
     render_last_edited: ->
@@ -89,6 +92,8 @@ exports.Task = rclass
             style.color      = '#eee'
         else if @props.task.get('done')
             style.color = '#888'
+        if @props.font_size?
+            style.fontSize = "#{@props.font_size}px"
         <div style={style} onClick={@on_click}>
             {@render_drag_handle()}
             <br/>

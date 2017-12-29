@@ -304,6 +304,9 @@ class exports.TaskActions extends Actions
     stop_showing_done: =>
         @set_local_view_state(show_done: false)
 
+    set_font_size: (size) =>
+        @set_local_view_state(font_size: size)
+
     empty_trash: =>
         @store.get('tasks')?.forEach (task, id) =>
             @syncdb.delete(task_id: id)

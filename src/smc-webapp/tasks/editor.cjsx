@@ -87,6 +87,7 @@ exports.TaskEditor = rclass ({name}) ->
             current_task_id  = {@props.current_task_id}
             local_task_state = {@props.local_task_state}
             scroll           = {@props.local_view_state?.get('scroll')}
+            font_size        = {@props.local_view_state?.get('font_size')}
             style            = {overflowY:'auto'}
         />
 
