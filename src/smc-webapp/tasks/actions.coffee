@@ -106,22 +106,32 @@ class exports.TaskActions extends Actions
             done    : 0
             deleted : 0
         current_is_visible = false
-        tasks.forEach (val, id) =>
-            if val.get('done')
+        hashtags = {}
+        tasks.forEach (task, id) =>
+            if task.get('done')
                 counts.done += 1
-            if val.get('deleted')
+            if task.get('deleted')
                 counts.deleted += 1
-            if not show_deleted and val.get('deleted')
+            if not show_deleted and task.get('deleted')
                 return
-            if not show_done and val.get('done')
+            if not show_done and task.get('done')
                 return
-            if not search_matches(search, val.get('desc'))
-                return
-            if id == current_task_id
-                current_is_visible = true
-            # TODO: assuming sorting by position here...
-            v.push([val.get('position'), id])
+
+            desc = task.get('desc')
+            if search_matches(search, desc)
+                visible = 1
+                if id == current_task_id
+                    current_is_visible = true
+                # TODO: assuming sorting by position here...
+                v.push([task.get('position'), id])
+            else
+                visible = 0
+
+            for x in misc.parse_hashtags(desc)
+                tag = desc.slice(x[0]+1, x[1]).toLowerCase()
+                hashtags[tag] = Math.max(hashtags[tag] ? 0, visible)
             return
+
         v.sort (a,b) -> misc.cmp(a[0], b[0])
         visible = immutable.fromJS((x[1] for x in v))
 
@@ -135,10 +145,12 @@ class exports.TaskActions extends Actions
             c = c.set('done', counts.done)
         if c.get('deleted') != counts.deleted
             c = c.set('deleted', counts.deleted)
+
         @setState
             visible         : visible
             current_task_id : current_task_id
             counts          : c
+            hashtags        : immutable.fromJS(hashtags)
 
     _ensure_positions_are_unique: =>
         tasks = @store.get('tasks')
