@@ -23,25 +23,37 @@ class exports.TaskActions extends Actions
         @store      = store
 
         # TODO: local_task_state and local_view_state need to persist to localStorage
-        font_size = @redux.getStore('account')?.get('font_size') ? 14
+        x = localStorage[@name]
+        if x?
+            local_view_state = immutable.fromJS(JSON.parse(x))
+        else
+            font_size = @redux.getStore('account')?.get('font_size') ? 14
+            local_view_state = immutable.fromJS(show_deleted:false, show_done:false, font_size:font_size)
         @setState
-            local_task_state: immutable.Map()
-            local_view_state: immutable.fromJS(show_deleted:false, show_done:false, font_size:font_size)
-            counts          : immutable.fromJS(done:0, deleted:0)
+            local_task_state : immutable.Map()
+            local_view_state : local_view_state
+            counts           : immutable.fromJS(done:0, deleted:0)
 
         @_init_has_unsaved_changes()
         @syncdb.on('change', @_syncdb_change)
         @syncdb.once('change', @_ensure_positions_are_unique)
+        @_save_local_view_state = underscore.debounce(@__save_local_view_state, 3000)
 
     close: =>
         if @_state == 'closed'
             return
         @_state = 'closed'
+        @__save_local_view_state()
         @syncdb.close()
         delete @syncdb
         if @_key_handler?
             @redux.getActions('page').erase_active_key_handler(@_key_handler)
             delete @_key_handler
+
+    __save_local_view_state: =>
+        local_view_state = @store.get('local_view_state')
+        if local_view_state and localStorage?
+            localStorage[@name] = JSON.stringify(local_view_state)
 
     _init_has_unsaved_changes: => # basically copies from jupyter/actions.coffee -- opportunity to refactor
         do_set = =>
@@ -181,6 +193,7 @@ class exports.TaskActions extends Actions
         @setState
             local_view_state : local
         @_update_visible()
+        @_save_local_view_state()
 
     save: =>
         @setState(has_unsaved_changes:false)
