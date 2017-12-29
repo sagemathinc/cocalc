@@ -23,9 +23,10 @@ class exports.TaskActions extends Actions
         @store      = store
 
         # TODO: local_task_state and local_view_state need to persist to localStorage
+        font_size = @redux.getStore('account')?.get('font_size') ? 14
         @setState
             local_task_state: immutable.Map()
-            local_view_state: immutable.fromJS(show_deleted:false, show_done:false)
+            local_view_state: immutable.fromJS(show_deleted:false, show_done:false, font_size:font_size)
             counts          : immutable.fromJS(done:0, deleted:0)
 
         @_init_has_unsaved_changes()
@@ -306,6 +307,14 @@ class exports.TaskActions extends Actions
 
     set_font_size: (size) =>
         @set_local_view_state(font_size: size)
+
+    increase_font_size: =>
+        size = @store.getIn(['local_view_state', 'font_size'])
+        @set_local_view_state(font_size: size+1)
+
+    decrease_font_size: =>
+        size = @store.getIn(['local_view_state', 'font_size'])
+        @set_local_view_state(font_size: size-1)
 
     empty_trash: =>
         @store.get('tasks')?.forEach (task, id) =>
