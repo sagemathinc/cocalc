@@ -835,13 +835,15 @@ class exports.Connection extends EventEmitter
 
     change_password: (opts) ->
         opts = defaults opts,
-            email_address : required
             old_password  : ""
             new_password  : required
             cb            : undefined
+        if not @account_id?
+            opts.cb?("must be signed in")
+            return
         @call
             message : message.change_password
-                email_address : opts.email_address
+                account_id    : @account_id
                 old_password  : opts.old_password
                 new_password  : opts.new_password
             cb : opts.cb
