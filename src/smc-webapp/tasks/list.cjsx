@@ -21,12 +21,14 @@ exports.TaskList = rclass
         local_task_state : rtypes.immutable.Map
         scroll           : rtypes.immutable.Map  # scroll position -- only used when initially mounted, so is NOT in shouldComponentUpdate below.
         style            : rtypes.object
+        font_size        : rtypes.number
 
     shouldComponentUpdate: (next) ->
         return @props.tasks            != next.tasks or \
                @props.visible          != next.visible or \
                @props.current_task_id  != next.current_task_id or \
-               @props.local_task_state != next.local_task_state
+               @props.local_task_state != next.local_task_state or \
+               @props.font_size        != next.font_size
 
     componentDidMount: ->
         if @props.scroll?
@@ -36,16 +38,20 @@ exports.TaskList = rclass
         @save_scroll_position()
 
     render_task: (task_id) ->
+        task = @props.tasks.get(task_id)
+        if not task?  # task deletion and visible list might not quite immediately be in sync/consistent
+            return
         <Task
             key              = {task_id}
             actions          = {@props.actions}
             path             = {@props.path}
             project_id       = {@props.project_id}
-            task             = {@props.tasks.get(task_id)}
+            task             = {task}
             is_current       = {@props.current_task_id == task_id}
             editing_due_date = {@props.local_task_state?.getIn([task_id, 'editing_due_date'])}
             editing_desc     = {@props.local_task_state?.getIn([task_id, 'editing_desc'])}
             min_desc         = {@props.local_task_state?.getIn([task_id, 'min_desc'])}
+            font_size        = {@props.font_size}
         />
 
     render_tasks: ->

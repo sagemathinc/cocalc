@@ -8,6 +8,8 @@ Searching for tasks by full text search and done/deleted status.
 
 {ShowToggle} = require('./show-toggle')
 
+{EmptyTrash} = require('./empty-trash')
+
 exports.Find = rclass
     propTypes:
         actions          : rtypes.object
@@ -19,12 +21,22 @@ exports.Find = rclass
                @props.counts           != next.counts
 
     render_toggle: (type) ->
-        <ShowToggle
+        count = @props.counts.get(type)
+        show  = @props.local_view_state.get("show_#{type}")
+        toggle = <ShowToggle
             actions = {@props.actions}
             type    = type
-            show    = {@props.local_view_state.get("show_#{type}")}
-            count   = {@props.counts.get(type)}
+            show    = {show}
+            count   = {count}
             />
+        if show and type == 'deleted' and count > 0
+            extra = <EmptyTrash actions={@props.actions} count={count} />
+        else
+            extra = undefined
+        <div>
+            {toggle}
+            {extra}
+        </div>
 
     render_search: ->
         <FormControl

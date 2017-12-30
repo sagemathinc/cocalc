@@ -37,10 +37,11 @@ exports.DescriptionEditor = rclass
         font_size  : rtypes.number  # used only to cause refresh
 
     shouldComponentUpdate: (next) ->
-        return @props.task_id    != next.task_id   or \
-               @props.desc       != next.desc      or \
-               @props.font_size  != next.font_size or \
-               @props.is_current != next.is_current
+        return @props.task_id    != next.task_id    or \
+               @props.desc       != next.desc       or \
+               @props.font_size  != next.font_size  or \
+               @props.is_current != next.is_current or \
+               @props.font_size  != next.font_size
 
     componentDidMount: ->
         @init_codemirror(@props.desc)
@@ -50,9 +51,13 @@ exports.DescriptionEditor = rclass
             @init_codemirror(next.desc)
             return
         if @props.font_size != next.font_size
-            @cm.refresh()
+            @cm_refresh()
         if next.desc != @props.desc
             @_cm_merge_remote(next.desc)
+
+    cm_refresh: ->
+        @cm?.refresh()
+        setTimeout((=>@cm?.refresh()), 30)
 
     componentWillUnmount: ->
         if @cm?
@@ -125,7 +130,7 @@ exports.DescriptionEditor = rclass
         @cm.undo = @_cm_undo
         @cm.redo = @_cm_redo
 
-        setTimeout((=>@cm?.refresh(); if @props.is_current then @cm?.focus()),1)
+        setTimeout((=>@cm_refresh(); if @props.is_current then @cm?.focus()),1)
 
     render: ->
         <div style={STYLE}>

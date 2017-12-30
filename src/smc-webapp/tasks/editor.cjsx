@@ -5,14 +5,12 @@ Top-level react component for task list
 {React, rclass, rtypes}  = require('../smc-react')
 
 {UncommittedChanges} = require('../jupyter/uncommitted-changes')
-
-{TaskList}  = require('./list')
-
-{ButtonBar} = require('./buttonbar')
-
-{Find}      = require('./find')
-
-{Headings}  = require('./headings')
+{TaskList}           = require('./list')
+{ButtonBar}          = require('./buttonbar')
+{Find}               = require('./find')
+{Headings}           = require('./headings')
+{DescVisible}        = require('./desc-visible')
+{HashtagBar}         = require('./hashtag-bar')
 
 exports.TaskEditor = rclass ({name}) ->
     propTypes :
@@ -30,6 +28,7 @@ exports.TaskEditor = rclass ({name}) ->
             has_uncommitted_changes : rtypes.bool
             local_task_state        : rtypes.immutable.Map
             local_view_state        : rtypes.immutable.Map
+            hashtags                : rtypes.immutable.Map
 
     shouldComponentUpdate: (next) ->
         return @props.tasks                   != next.tasks or \
@@ -39,7 +38,8 @@ exports.TaskEditor = rclass ({name}) ->
                @props.has_unsaved_changes     != next.has_unsaved_changes or \
                @props.has_uncommitted_changes != next.has_uncommitted_changes or \
                @props.local_task_state        != next.local_task_state  or \
-               @props.local_view_state        != next.local_view_state
+               @props.local_view_state        != next.local_view_state or \
+               @props.hashtags                != next.hashtags
 
     render_uncommitted_changes: ->
         if not @props.has_uncommitted_changes
@@ -51,12 +51,27 @@ exports.TaskEditor = rclass ({name}) ->
                 />
         </div>
 
+    render_hashtag_bar: ->
+        if not @props.hashtags?
+            return
+        <HashtagBar
+            actions  = {@props.actions}
+            hashtags = {@props.hashtags}
+            />
+
     render_find: ->
         <Find
             actions          = {@props.actions}
             local_view_state = {@props.local_view_state}
             counts           = {@props.counts}
             />
+
+    render_desc_visible: ->
+        <DescVisible
+            num_visible      = {@props.visible?.size}
+            num_tasks        = {@props.tasks?.size}
+            local_view_state = {@props.local_view_state}
+        />
 
     render_button_bar: ->
         <ButtonBar
@@ -78,6 +93,7 @@ exports.TaskEditor = rclass ({name}) ->
             current_task_id  = {@props.current_task_id}
             local_task_state = {@props.local_task_state}
             scroll           = {@props.local_view_state?.get('scroll')}
+            font_size        = {@props.local_view_state?.get('font_size')}
             style            = {overflowY:'auto'}
         />
 
@@ -87,7 +103,9 @@ exports.TaskEditor = rclass ({name}) ->
     render: ->
         <div style={margin:'15px', border:'1px solid grey'} className='smc-vfill'>
             {@render_uncommitted_changes()}
+            {@render_hashtag_bar()}
             {@render_find()}
+            {@render_desc_visible()}
             {@render_button_bar()}
             {@render_headings()}
             {@render_list()}

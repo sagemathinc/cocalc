@@ -23,24 +23,37 @@ class exports.TaskActions extends Actions
         @store      = store
 
         # TODO: local_task_state and local_view_state need to persist to localStorage
+        x = localStorage[@name]
+        if x?
+            local_view_state = immutable.fromJS(JSON.parse(x))
+        else
+            font_size = @redux.getStore('account')?.get('font_size') ? 14
+            local_view_state = immutable.fromJS(show_deleted:false, show_done:false, font_size:font_size)
         @setState
-            local_task_state: immutable.Map()
-            local_view_state: immutable.fromJS(show_deleted:false, show_done:false)
-            counts          : immutable.fromJS(done:0, deleted:0)
+            local_task_state : immutable.Map()
+            local_view_state : local_view_state
+            counts           : immutable.fromJS(done:0, deleted:0)
 
         @_init_has_unsaved_changes()
         @syncdb.on('change', @_syncdb_change)
         @syncdb.once('change', @_ensure_positions_are_unique)
+        @_save_local_view_state = underscore.debounce(@__save_local_view_state, 3000)
 
     close: =>
         if @_state == 'closed'
             return
         @_state = 'closed'
+        @__save_local_view_state()
         @syncdb.close()
         delete @syncdb
         if @_key_handler?
             @redux.getActions('page').erase_active_key_handler(@_key_handler)
             delete @_key_handler
+
+    __save_local_view_state: =>
+        local_view_state = @store.get('local_view_state')
+        if local_view_state and localStorage?
+            localStorage[@name] = JSON.stringify(local_view_state)
 
     _init_has_unsaved_changes: => # basically copies from jupyter/actions.coffee -- opportunity to refactor
         do_set = =>
@@ -89,40 +102,55 @@ class exports.TaskActions extends Actions
             search = undefined
 
         v = []
-        cutoff = misc.seconds_ago(15) - 0
         counts =
             done    : 0
             deleted : 0
-        tasks.forEach (val, id) =>
-            if val.get('done')
+        current_is_visible = false
+        hashtags = {}
+        tasks.forEach (task, id) =>
+            if task.get('done')
                 counts.done += 1
-            if val.get('deleted')
+            if task.get('deleted')
                 counts.deleted += 1
-            if id != current_task_id
-                if not show_deleted and val.get('deleted') and (val.get('last_edited') ? 0) < cutoff
-                    return
-                if not show_done and val.get('done') and (val.get('last_edited') ? 0) < cutoff
-                    return
-                if not search_matches(search, val.get('desc'))
-                    return
-            # TODO: assuming sorting by position here...
-            v.push([val.get('position'), id])
+            if not show_deleted and task.get('deleted')
+                return
+            if not show_done and task.get('done')
+                return
+
+            desc = task.get('desc')
+            if search_matches(search, desc)
+                visible = 1
+                if id == current_task_id
+                    current_is_visible = true
+                # TODO: assuming sorting by position here...
+                v.push([task.get('position'), id])
+            else
+                visible = 0
+
+            for x in misc.parse_hashtags(desc)
+                tag = desc.slice(x[0]+1, x[1]).toLowerCase()
+                hashtags[tag] = Math.max(hashtags[tag] ? 0, visible)
             return
+
         v.sort (a,b) -> misc.cmp(a[0], b[0])
         visible = immutable.fromJS((x[1] for x in v))
 
-        if not current_task_id? and visible.size > 0
+        if (not current_task_id? or not current_is_visible) and visible.size > 0
             current_task_id = visible.get(0)
+        else if not current_is_visible and visible.size == 0
+            current_task_id = undefined
 
         c = @store.get('counts')
         if c.get('done') != counts.done
             c = c.set('done', counts.done)
         if c.get('deleted') != counts.deleted
             c = c.set('deleted', counts.deleted)
+
         @setState
             visible         : visible
             current_task_id : current_task_id
             counts          : c
+            hashtags        : immutable.fromJS(hashtags)
 
     _ensure_positions_are_unique: =>
         tasks = @store.get('tasks')
@@ -177,6 +205,7 @@ class exports.TaskActions extends Actions
         @setState
             local_view_state : local
         @_update_visible()
+        @_save_local_view_state()
 
     save: =>
         @setState(has_unsaved_changes:false)
@@ -300,3 +329,20 @@ class exports.TaskActions extends Actions
 
     stop_showing_done: =>
         @set_local_view_state(show_done: false)
+
+    set_font_size: (size) =>
+        @set_local_view_state(font_size: size)
+
+    increase_font_size: =>
+        size = @store.getIn(['local_view_state', 'font_size'])
+        @set_local_view_state(font_size: size+1)
+
+    decrease_font_size: =>
+        size = @store.getIn(['local_view_state', 'font_size'])
+        @set_local_view_state(font_size: size-1)
+
+    empty_trash: =>
+        @store.get('tasks')?.forEach (task, id) =>
+            @syncdb.delete(task_id: id)
+            return
+

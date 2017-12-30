@@ -231,6 +231,10 @@ class exports.Connection extends EventEmitter
 
         @on 'connected', @send_version
 
+        # Any outstanding calls made before connecting happened can't possibly succeed,
+        # so we clear all outstanding messages.
+        @on 'connected', @_clear_call_queue
+
         # IMPORTANT! Connection is an abstract base class.  Derived classes must
         # implement a method called _connect that takes a URL and a callback, and connects to
         # the Primus websocket server with that url, then creates the following event emitters:
@@ -626,12 +630,11 @@ class exports.Connection extends EventEmitter
             @send(opts.message)
             setTimeout(cb, 150)
             return
-
         id = opts.message.id ?= misc.uuid()
 
         @call_callbacks[id] =
             cb          : (args...) =>
-                if cb?
+                if cb? and @call_callbacks[id]?
                     cb()
                     cb = undefined
                 opts.cb(args...)
@@ -657,12 +660,11 @@ class exports.Connection extends EventEmitter
             # in case opts.timeout isn't set but opts.cb is, but user disconnects,
             # then cb would never get called, which throws off our call counter.
             # Note that the input to cb doesn't matter.
-            f = ->
-                if cb?
+            f = =>
+                if cb? and @call_callbacks[id]?
                     cb()
                     cb = undefined
             setTimeout(f, 120*1000)
-
 
     call: (opts={}) =>
         # This function:
@@ -706,6 +708,11 @@ class exports.Connection extends EventEmitter
             @_emit_mesg_info()
             #console.log('count (done):', @_call.count)
             @_update_calls()
+
+    _clear_call_queue: =>
+        for id, obj of @call_callbacks
+            obj.cb('disconnect')
+            delete @call_callbacks[id]
 
     call_local_hub: (opts) =>
         opts = defaults opts,
@@ -835,13 +842,15 @@ class exports.Connection extends EventEmitter
 
     change_password: (opts) ->
         opts = defaults opts,
-            email_address : required
             old_password  : ""
             new_password  : required
             cb            : undefined
+        if not @account_id?
+            opts.cb?("must be signed in")
+            return
         @call
             message : message.change_password
-                email_address : opts.email_address
+                account_id    : @account_id
                 old_password  : opts.old_password
                 new_password  : opts.new_password
             cb : opts.cb

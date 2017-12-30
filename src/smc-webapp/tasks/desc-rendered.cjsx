@@ -41,3 +41,4 @@ header_part = (s) ->
                 return s
             else
                 return lines.slice(0,i).join('\n')
+    return s
