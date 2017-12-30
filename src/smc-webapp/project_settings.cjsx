@@ -832,7 +832,8 @@ CollaboratorsPanel = rclass
         <ProjectSettingsPanel title='Add people to project' icon='user'>
             <div key='mesg'>
                 <span style={color:'#333', fontSize:'12pt'}>
-                    Who would you like to work with on this project?
+                    Who would you like to work with on this project?  Anybody listed here can simultaneously work with you
+                    on any notebooks and terminals in this project, and add other people to this project.
                 </span>
             </div>
             <hr />

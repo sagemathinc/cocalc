@@ -1541,7 +1541,7 @@ ProjectFilesActionBox = rclass
 
     render_share_defn: ->
         <div style={color:'#555'}>
-            Shared items are <a href="https://cocalc.com/share" target="_blank"><b><i>visible to anybody.</i></b></a>
+            Use sharing to make a file or directory <a href="https://cocalc.com/share" target="_blank"><b><i>visible to the world.</i></b></a>  If you would like to collaborate and chat with other people on documents in this project, go the project Settings tab and "Add people to project".
         </div>
 
     render_share: ->
