@@ -13,6 +13,8 @@ TODO:
 {CodeMirrorEditor} = require('./codemirror-editor')
 {CodeMirrorStatic} = require('./codemirror-static')
 
+{IS_TOUCH} = require('../feature')
+
 exports.CodeMirror = rclass
     propTypes:
         actions      : rtypes.object
@@ -52,7 +54,9 @@ exports.CodeMirror = rclass
             next.complete     != @props.complete
 
     render: ->
-        if @props.actions? and (@props.is_focused or @props.options.get('lineNumbers') or @props.cursors?.size > 0)
+        # Regarding IS_TOUCH, see https://github.com/sagemathinc/cocalc/issues/2584 -- fix that properly and then
+        # we can remove this use of the slower non-static fallback...
+        if @props.actions? and (IS_TOUCH or @props.is_focused or @props.options.get('lineNumbers') or @props.cursors?.size > 0)
             <CodeMirrorEditor
                 actions          = {@props.actions}
                 id               = {@props.id}

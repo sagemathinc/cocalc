@@ -4,6 +4,8 @@ Insert a cell
 
 {React, ReactDOM, rclass, rtypes}  = require('../smc-react')
 
+{IS_TOUCH} = require('../feature')
+
 exports.InsertCell = rclass
     propTypes:
         actions  : rtypes.object.isRequired
@@ -25,6 +27,8 @@ exports.InsertCell = rclass
 
     render: ->
         style = {height:'6px'}
+        if IS_TOUCH  # this whole approach makes no sense for a touch device, since no notion of hover, and is just confusing.
+            return <div style={style}></div>
         if @state.hover
             style.backgroundColor = '#428bca'
         <div
