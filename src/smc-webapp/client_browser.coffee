@@ -119,6 +119,13 @@ class Connection extends client.Connection
         window.smc.idle_trigger        = => @emit('idle', 'away')
         window.smc.prom_client         = prom_client
 
+        if require('./feature').IS_TOUCH
+            # Debug mode and on a touch device -- e.g., iPad -- so make it possible to get a
+            # devel console via https://github.com/liriliri/eruda
+            # This pulls eruda from a CDN.
+            document.write('<script src="//cdn.jsdelivr.net/npm/eruda"></script>')
+            document.write('<script>eruda.init();</script>')
+
 
         # Client-side testing code -- we use require.ensure so this stuff only
         # ever gets loaded by the browser if actually used.
