@@ -119,13 +119,13 @@ class exports.TaskActions extends Actions
 
             desc = task.get('desc')
             if search_matches(search, desc)
-                visible = 1
+                visible = 1  # tag of a currently visible task
                 if id == current_task_id
                     current_is_visible = true
                 # TODO: assuming sorting by position here...
                 v.push([task.get('position'), id])
             else
-                visible = 0
+                visible = 0  # not a tag of any currently visible task
 
             for x in misc.parse_hashtags(desc)
                 tag = desc.slice(x[0]+1, x[1]).toLowerCase()
@@ -345,4 +345,17 @@ class exports.TaskActions extends Actions
         @store.get('tasks')?.forEach (task, id) =>
             @syncdb.delete(task_id: id)
             return
+
+    # state = undefined/false-ish = not selected
+    # state = 1 = selected
+    # state = -1 = negated
+    set_hashtag_state: (tag, state) =>
+        if not tag?
+            return
+        selected_hashtags = @store.getIn(['local_view_state', 'selected_hashtags']) ? immutable.Map()
+        if not state
+            selected_hashtags = selected_hashtags.delete(tag)
+        else
+            selected_hashtags = selected_hashtags.set(tag, state)
+        @set_local_view_state(selected_hashtags : selected_hashtags)
 

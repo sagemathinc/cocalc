@@ -57,6 +57,7 @@ exports.TaskEditor = rclass ({name}) ->
         <HashtagBar
             actions  = {@props.actions}
             hashtags = {@props.hashtags}
+            selected = {@props.local_view_state?.get('selected_hashtags')}
             />
 
     render_find: ->
