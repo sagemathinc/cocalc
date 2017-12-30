@@ -9,7 +9,6 @@ exports.LinkRetryUntilSuccess = rclass
 
     propTypes :
         href   : rtypes.string.isRequired
-        target : rtypes.string.isRequired
 
     getInitialState: ->
         working : false
@@ -17,12 +16,9 @@ exports.LinkRetryUntilSuccess = rclass
         error   : false
 
     open: ->
-        w = window.open(@props.href, @props.target)
-        # see https://github.com/sagemathinc/cocalc/issues/2599
-        # Sometimes randomly w isn't defined -- so waiting a little and
-        # failing gracefully if not seems reasonable; user can always manually
-        # switch to the new tab/window.
-        setTimeout((->w?.focus()), 250)
+        # open_new_tab takes care of blocked popups -- https://github.com/sagemathinc/cocalc/issues/2599
+        {open_new_tab} = require('smc-webapp/misc_page')
+        open_new_tab(@props.href)
 
     start: ->
         @setState(loading:true, error:false)

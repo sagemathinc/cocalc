@@ -250,8 +250,8 @@ exports.SupportPage = rclass
 
     open: (ticket_id) ->
         url = misc.ticket_id_to_ticket_url(ticket_id)
-        tab = window.open(url, '_blank')
-        tab.focus()
+        {open_new_tab} = require('smc-webapp/misc_page')
+        open_new_tab(url, '_blank')
 
     render_body: ->
         for i, ticket of @props.support_tickets
