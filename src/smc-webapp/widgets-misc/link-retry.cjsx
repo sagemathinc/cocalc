@@ -17,7 +17,12 @@ exports.LinkRetryUntilSuccess = rclass
         error   : false
 
     open: ->
-        window.open(@props.href, @props.target).focus()
+        w = window.open(@props.href, @props.target)
+        # see https://github.com/sagemathinc/cocalc/issues/2599
+        # Sometimes randomly w isn't defined -- so waiting a little and
+        # failing gracefully if not seems reasonable; user can always manually
+        # switch to the new tab/window.
+        setTimeout((->w?.focus()), 250)
 
     start: ->
         @setState(loading:true, error:false)
