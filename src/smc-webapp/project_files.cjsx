@@ -1555,9 +1555,11 @@ ProjectFilesActionBox = rclass
             if single_file_data.is_public and single_file_data.public?.path isnt single_file
                 parent_is_public = true
         show_social_media = require('./customize').commercial and single_file_data.is_public
+
         url = @construct_public_share_url(single_file)
+        {open_new_tab} = require('smc-webapp/misc_page')
         button_before =
-            <Button bsStyle='default' onClick={=>window.open(url, "_blank")}>
+            <Button bsStyle='default' onClick={=>open_new_tab(url)}>
                 <Icon name='external-link' />
             </Button>
 
