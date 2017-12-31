@@ -81,7 +81,11 @@ render_invoice_to_pdf = (invoice, customer, charge, res, download, cb) ->
     if invoice.paid
         doc.text("Card charged")
 
+    if invoice.description
+        doc.text("Description:")
+
     doc.fillColor('black')
+
     doc.text(misc.stripe_date(invoice.date), c2, y)
     #doc.text(invoice.id.slice(invoice.id.length-6).toLowerCase())
     doc.text("#{invoice.date}")
@@ -90,7 +94,12 @@ render_invoice_to_pdf = (invoice, customer, charge, res, download, cb) ->
     if invoice.paid and charge?.source?
         doc.text("#{charge.source.brand} ending #{charge.source.last4}")
 
-    y += 120
+    if invoice.description
+        doc.text("#{invoice.description}")
+    else
+        doc.text("#{SITE_NAME} compute resources")
+
+    y += 130
     doc.fontSize(24).text("Items", c1, y)
 
     y += 40
