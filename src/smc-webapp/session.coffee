@@ -32,9 +32,10 @@ class SessionManager
             timeout : 0
             cb      : =>
                 @restore()
+                @_initialized = true
 
     save: =>
-        if @_ignore
+        if @_ignore or not @_initialized
             return
         @_state = get_session_state(@redux)
         @_save_to_local_storage()
