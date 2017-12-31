@@ -11,7 +11,7 @@ exports.DescVisible = rclass
         num_visible      : rtypes.number
         num_tasks        : rtypes.number
         local_view_state : rtypes.immutable.Map
-        search_desc      : rtypes.strings
+        search_desc      : rtypes.string
 
     shouldComponentUpdate: (next) ->
         return @props.num_visible      != next.num_visible or \
