@@ -118,6 +118,7 @@ class Connection extends client.Connection
         window.smc.synctable_debug     = require('smc-util/synctable').set_debug
         window.smc.idle_trigger        = => @emit('idle', 'away')
         window.smc.prom_client         = prom_client
+        window.smc.redux               = require('./smc-react').redux
 
         if require('./feature').IS_TOUCH
             # Debug mode and on a touch device -- e.g., iPad -- so make it possible to get a
@@ -278,7 +279,7 @@ class Connection extends client.Connection
 
         conn.on 'offline', (evt) =>
             log("offline")
-            @_connected = false
+            @_connected = @_signed_in = false
             @emit("disconnected", "offline")
 
         conn.on 'online', (evt) =>
@@ -295,7 +296,7 @@ class Connection extends client.Connection
 
         conn.on 'close', () =>
             log("closed")
-            @_connected = false
+            @_connected = @_signed_in = false
             @emit("disconnected", "close")
 
         conn.on 'end', =>
