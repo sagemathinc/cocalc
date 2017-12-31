@@ -1470,7 +1470,6 @@ class exports.JupyterActions extends Actions
         else
             lang = @store.getIn(['kernel_info', 'language'])
 
-        if DEBUG then console.log("assistant lang:", lang)
         assistant_actions = @store.get('assistant_actions')
         assistant_actions.init(lang = lang)
         assistant_actions.set(

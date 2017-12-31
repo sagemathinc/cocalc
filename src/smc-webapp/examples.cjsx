@@ -94,7 +94,7 @@ class ExamplesActions extends Actions
             search_str     : null
             search_sel     : null
             submittable    : false
-            cat1_top       : ["Intro", "Tutorial", "Help"]
+            cat1_top       : ["Introduction", "Tutorial", "Help"]
             unknown_lang   : false
 
     hide: =>
@@ -144,16 +144,28 @@ class ExamplesActions extends Actions
         @get('data').get(@get('lang'))
 
     get_catlist0: () ->
-        @data_lang().keySeq().toArray().sort(@cat_sort)
+        cat0 = @data_lang().keySeq().toArray()
+        top = @get('cat1_top')
+        cat0ordering = (el) ->
+            i = - top.reverse().indexOf(el)
+            return [i, el]
+        return _.sortBy(cat0, cat0ordering)
 
     get_catlist1: () ->
         k0 = @get_catlist0()[@get('cat0')]
-        @data_lang().get(k0).keySeq().toArray().sort(@cat_sort)
+        cat1data = @data_lang().get(k0)
+        cat1 = cat1data.keySeq().toArray()
+        top = @get('cat1_top')
+        cat1ordering = (el) ->
+            so = cat1data?.getIn([el, 'sortweight']) ? 0.0
+            i = - top.reverse().indexOf(el)
+            return [so, i, el]
+        return _.sortBy(cat1, cat1ordering)
 
     get_catlist2: () ->
         k0 = @get_catlist0()[@get('cat0')]
         k1 = @get_catlist1()[@get('cat1')]
-        @data_lang().getIn([k0, k1]).map((el) -> el.get(0)).toArray()
+        return @data_lang().getIn([k0, k1, 'entries']).map((el) -> el.get(0)).toArray()
 
     select_lang: (lang) ->
         lang ?= @get('lang')
@@ -225,15 +237,6 @@ class ExamplesActions extends Actions
             code        : doc.getIn([1, 0])
             descr       : doc.getIn([1, 1])
             submittable : true
-
-    cat_sort: (a, b) =>
-        # ordering operator, such that some entries are in front
-        top = @get('cat1_top')
-        ord = (el) ->
-            i = top.reverse().indexOf(el)
-            return 1 - i
-        return ord(a) - ord(b) or a > b
-
 
     select_cursor: (dir) ->
         # dir: only 1 or -1!
@@ -321,7 +324,7 @@ class ExamplesActions extends Actions
                 k0 = @get('catlist0').get(@get('cat0'))
                 k1 = @get('catlist1').get(@get('cat1'))
                 idx = if idx == -1 then @get('catlist2').size - 1 else idx
-                doc = lang.getIn([k0, k1, idx])
+                doc = lang.getIn([k0, k1, 'entries']).get(idx)
                 @set(cat2 : idx)
                 @show_doc(doc)
 
@@ -330,7 +333,7 @@ ExamplesHeader = rclass
 
     propTypes:
         actions      : rtypes.object
-        nav_entries  : rtypes.array
+        nav_entries  : rtypes.arrayOf(rtypes.string)
         search_str   : rtypes.string
         lang         : rtypes.string
         lang_select  : rtypes.bool
@@ -564,7 +567,7 @@ exports.RExamples = (name) -> rclass
             descr         : rtypes.string
             data          : rtypes.object
             search        : rtypes.string
-            nav_entries   : rtypes.arrayOf(rtypes.arrayOf(rtypes.string))
+            nav_entries   : rtypes.arrayOf(rtypes.string)
             catlist0      : rtypes.arrayOf(rtypes.string)
             catlist1      : rtypes.arrayOf(rtypes.string)
             catlist2      : rtypes.arrayOf(rtypes.string)
