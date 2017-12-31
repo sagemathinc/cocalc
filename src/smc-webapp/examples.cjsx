@@ -48,7 +48,7 @@ DATA = null
 
 # react examples dialog
 {React, ReactDOM, redux, Redux, Actions, Store, rtypes, rclass} = require('./smc-react')
-{Col, Row, Panel, Button, FormGroup, FormControl, Well, Alert, Modal, Table, Nav, NavItem, ListGroup, ListGroupItem} = require('react-bootstrap')
+{Col, Row, Panel, Button, FormGroup, FormControl, Well, Alert, Modal, Table, Nav, NavItem, ListGroup, ListGroupItem, InputGroup} = require('react-bootstrap')
 {Loading, Icon, Markdown} = require('./r_misc')
 
 redux_name = (project_id, path) ->
@@ -193,9 +193,9 @@ class ExamplesActions extends Actions
         try
             data_lang.forEach (data1, lvl1) ->
                 data1.forEach (data2, lvl2) ->
-                    data2.forEach (entry, lvl3) ->
-                        title = entry.get(0)
-                        descr = entry.getIn([1, 1])
+                    data2.get('entries').forEach (doc, lvl3) ->
+                        title = doc.get(0)
+                        descr = doc.getIn([1, 1])
                         inTitle = title.toLowerCase().indexOf(str)
                         inDescr = descr.toLowerCase().indexOf(str)
                         if inTitle != -1 or inDescr != -1
@@ -209,7 +209,7 @@ class ExamplesActions extends Actions
 
     search_selected: (idx) ->
         [lvl1, lvl2, lvl3, title, descr, inDescr] = @get('hits').get(idx).toArray()
-        doc = @data_lang().getIn([lvl1, lvl2, lvl3])
+        doc = @data_lang().getIn([lvl1, lvl2, 'entries', lvl3])
         @show_doc(doc)
         @set(search_sel : idx)
 
@@ -324,7 +324,7 @@ class ExamplesActions extends Actions
                 k0 = @get('catlist0').get(@get('cat0'))
                 k1 = @get('catlist1').get(@get('cat1'))
                 idx = if idx == -1 then @get('catlist2').size - 1 else idx
-                doc = lang.getIn([k0, k1, 'entries']).get(idx)
+                doc = lang.getIn([k0, k1, 'entries', idx])
                 @set(cat2 : idx)
                 @show_doc(doc)
 
@@ -371,6 +371,9 @@ ExamplesHeader = rclass
         evt.nativeEvent.stopImmediatePropagation() # what ?!
         return false
 
+    search_clear: ->
+        @props.actions.search('')
+
     render_nav: ->
         entries = @props.nav_entries ? []
         <Nav bsStyle="pills" activeKey={@props.lang} ref='lang' onSelect={@langSelect}>
@@ -380,6 +383,7 @@ ExamplesHeader = rclass
                     <NavItem key={key} eventKey={key} title={name}>{name}</NavItem>
             }
         </Nav>
+
 
     render: ->
         return null if (not @props.lang?) or (not @props.lang_select?)
@@ -395,15 +399,21 @@ ExamplesHeader = rclass
             </Col>
             <Col sm={3}>
                 {<FormGroup>
-                    <FormControl
-                        ref         = 'search'
-                        type        = 'text'
-                        className   = 'webapp-examples-search'
-                        placeholder = 'Search'
-                        value       = {@props.search_str ? ''}
-                        onKeyUp     = {@handle_search_keyup}
-                        onChange    = {@search}
-                    />
+                    <InputGroup className = 'webapp-examples-search'>
+                        <FormControl
+                            ref         = 'search'
+                            type        = 'text'
+                            placeholder = 'Search'
+                            value       = {@props.search_str ? ''}
+                            onKeyUp     = {@handle_search_keyup}
+                            onChange    = {@search}
+                        />
+                        <InputGroup.Button>
+                            <Button onClick={@search_clear}>
+                                <Icon name='times-circle' />
+                            </Button>
+                        </InputGroup.Button>
+                    </InputGroup>
                 </FormGroup> if not @props.unknown_lang}
             </Col>
         </Row>
