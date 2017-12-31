@@ -24,7 +24,14 @@ class SessionManager
         {APP_BASE_URL} = require('misc_page')
         prefix = if APP_BASE_URL then ".#{APP_BASE_URL}" else ''
         @_local_storage_name = "session#{prefix}.#{webapp_client.account_id}.#{@name}"
-        @restore()
+
+        # Wait until projects is defined (loaded from db) before trying to restore open projects and their files.
+        # Otherwise things will randomly fail.
+        @redux.getStore('projects').wait
+            until   : (store) -> store.get('project_map')?
+            timeout : 0
+            cb      : =>
+                @restore()
 
     save: =>
         if @_ignore
@@ -69,7 +76,6 @@ get_session_state = (redux) ->
 restore_session_state = (redux, state) ->
     if not state?
         return
-
     page = redux.getActions('page')
     for project_id in redux.getStore('projects').get('open_projects')?.toJS() ? []
         page.close_project_tab(project_id)

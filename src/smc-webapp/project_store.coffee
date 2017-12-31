@@ -2060,6 +2060,7 @@ get_directory_listing = (opts) ->
         max_time_s : required
         group      : required
         cb         : required
+
     {webapp_client} = require('./webapp_client')
 
     if prom_client.enabled
