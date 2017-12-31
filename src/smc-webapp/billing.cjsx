@@ -32,6 +32,8 @@ _             = require('underscore')
 
 {PROJECT_UPGRADES} = require('smc-util/schema')
 
+STUDENT_COURSE_PRICE = require('smc-util/upgrade-spec').upgrades.membership.student_course.price.month4
+
 load_stripe = (cb) ->
     if Stripe?
         cb()
@@ -1285,7 +1287,7 @@ exports.ExplainPlan = ExplainPlan = rclass
                 <p>
                 Paying is optional, but will ensure that your students have a better
                 experience, network access, and receive priority support.  The cost
-                is <b>between $4 and $9 per student</b>, depending on class size and whether
+                is <b>between $4 and ${STUDENT_COURSE_PRICE} per student</b>, depending on class size and whether
                 you or your students pay.  <b>Start right now:</b> <i>you can fully setup your class
                 and add students immediately before you pay us anything!</i>
 
@@ -1297,7 +1299,7 @@ exports.ExplainPlan = ExplainPlan = rclass
 
                 <h4>Students pay</h4>
                 In the settings tab of your course, you require that all students
-                pay a one-time $9 fee to move their
+                pay a one-time ${STUDENT_COURSE_PRICE} fee to move their
                 projects to members only hosts and enable full internet access.
 
                 <br/>
@@ -1799,11 +1801,11 @@ exports.PayCourseFee = PayCourseFee = rclass
     render_buy_button: ->
         if @props.redux.getStore('billing').get(@key())
             <Button bsStyle='primary' disabled={true}>
-                <Icon name="cc-icon-cocalc-ring" spin /> Paying the one-time $9 fee for this course...
+                <Icon name="cc-icon-cocalc-ring" spin /> Paying the one-time ${STUDENT_COURSE_PRICE} fee for this course...
             </Button>
         else
             <Button onClick={=>@setState(confirm:true)} disabled={@state.confirm} bsStyle='primary'>
-                Pay the one-time $9 fee for this course...
+                Pay the one-time ${STUDENT_COURSE_PRICE} fee for this course...
             </Button>
 
     render_confirm_button: ->
@@ -1811,12 +1813,12 @@ exports.PayCourseFee = PayCourseFee = rclass
             if @props.redux.getStore('account').get_total_upgrades().network > 0
                 network = " and full internet access enabled"
             <Well style={marginTop:'1em'}>
-                You will be charged a one-time $9 fee to move your project to a
+                You will be charged a one-time ${STUDENT_COURSE_PRICE} fee to move your project to a
                 members-only server and enable full internet access.
                 <br/><br/>
                 <ButtonToolbar>
                     <Button onClick={@buy_subscription} bsStyle='primary'>
-                        Pay $9 fee
+                        Pay ${STUDENT_COURSE_PRICE} fee
                     </Button>
                     <Button onClick={=>@setState(confirm:false)}>Cancel</Button>
                 </ButtonToolbar>
