@@ -176,6 +176,7 @@ ProjectSearchBody = rclass ({name}) ->
             case_sensitive     : rtypes.bool
             hidden_files       : rtypes.bool
             info_visible       : rtypes.bool
+            git_grep           : rtypes.bool
 
     propTypes :
         actions : rtypes.object.isRequired
@@ -242,6 +243,11 @@ ProjectSearchBody = rclass ({name}) ->
                         checked  = {@props.hidden_files}
                         onChange = {@props.actions.toggle_search_checkbox_hidden_files}>
                         Include hidden files
+                    </Checkbox>
+                    <Checkbox
+                        checked  = {@props.git_grep}
+                        onChange = {@props.actions.toggle_search_checkbox_git_grep}>
+                        Only search files in GIT repo (if in a repo)
                     </Checkbox>
                 </Col>
             </Row>
