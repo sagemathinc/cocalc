@@ -11,6 +11,13 @@ exports.DescVisible = rclass
         num_visible      : rtypes.number
         num_tasks        : rtypes.number
         local_view_state : rtypes.immutable.Map
+        search_desc      : rtypes.strings
+
+    shouldComponentUpdate: (next) ->
+        return @props.num_visible      != next.num_visible or \
+               @props.num_tasks        != next.num_tasks   or \
+               @props.local_view_state != next.local_view_state or \
+               @props.search_desc      != next.search_desc
 
     render_visible: ->
         <span style={color:'#666'}>
@@ -18,11 +25,10 @@ exports.DescVisible = rclass
         </span>
 
     render_search: ->
-        search = @props.local_view_state.get('search')
-        if not search
+        if not @props.search_desc
             return
         <span style={color:'#666', marginLeft:'10px'}>
-            Showing tasks that contain <b><i>{search}</i></b>.
+            Showing tasks that match <b><i>{@props.search_desc}</i></b>.
         </span>
 
     render_checked: ->

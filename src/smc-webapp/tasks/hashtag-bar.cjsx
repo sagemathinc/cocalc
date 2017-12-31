@@ -35,8 +35,9 @@ Hashtag = rclass
                 bsStyle = 'danger'
             else
                 bsStyle = 'info'
-        <Button onClick={@click} disabled={not @props.visible} bsStyle={bsStyle} >
-            {@props.tag}
+        disabled = not @props.state? and not @props.visible  # only disable if nothing visible for that tag and NOT selected or negated
+        <Button onClick={@click} disabled={disabled} bsStyle={bsStyle} style={fontSize:'9pt'}>
+            #{@props.tag}
         </Button>
 
 exports.HashtagBar = rclass

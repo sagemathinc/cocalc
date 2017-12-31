@@ -29,6 +29,7 @@ exports.TaskEditor = rclass ({name}) ->
             local_task_state        : rtypes.immutable.Map
             local_view_state        : rtypes.immutable.Map
             hashtags                : rtypes.immutable.Map
+            search_desc             : rtypes.string
 
     shouldComponentUpdate: (next) ->
         return @props.tasks                   != next.tasks or \
@@ -39,7 +40,8 @@ exports.TaskEditor = rclass ({name}) ->
                @props.has_uncommitted_changes != next.has_uncommitted_changes or \
                @props.local_task_state        != next.local_task_state  or \
                @props.local_view_state        != next.local_view_state or \
-               @props.hashtags                != next.hashtags
+               @props.hashtags                != next.hashtags or \
+               @props.search                  != next.search
 
     render_uncommitted_changes: ->
         if not @props.has_uncommitted_changes
@@ -72,6 +74,7 @@ exports.TaskEditor = rclass ({name}) ->
             num_visible      = {@props.visible?.size}
             num_tasks        = {@props.tasks?.size}
             local_view_state = {@props.local_view_state}
+            search_desc      = {@props.search_desc}
         />
 
     render_button_bar: ->
