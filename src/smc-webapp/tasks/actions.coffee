@@ -11,7 +11,9 @@ underscore = require('underscore')
 
 misc = require('smc-util/misc')
 
-{search_matches} = require('./search')
+{search_matches, get_search} = require('./search')
+
+{HEADINGS, HEADING_DIRS} = require('./headings')
 
 WIKI_HELP_URL = "https://github.com/sagemathinc/cocalc/wiki/tasks"
 
@@ -26,9 +28,18 @@ class exports.TaskActions extends Actions
         x = localStorage[@name]
         if x?
             local_view_state = immutable.fromJS(JSON.parse(x))
-        else
+        local_view_state ?= immutable.Map()
+        if not local_view_state.has("show_deleted")
+            local_view_state = local_view_state.set('show_deleted', false)
+        if not local_view_state.has("show_done")
+            local_view_state = local_view_state.set('show_done', false)
+        if not local_view_state.has("font_size")
             font_size = @redux.getStore('account')?.get('font_size') ? 14
-            local_view_state = immutable.fromJS(show_deleted:false, show_done:false, font_size:font_size)
+            local_view_state = local_view_state.set('font_size', font_size)
+        if not local_view_state.has('sort')
+            sort = immutable.fromJS({column:HEADINGS[0], dir:HEADING_DIRS[0]})
+            local_view_state = local_view_state.set('sort', sort)
+
         @setState
             local_task_state : immutable.Map()
             local_view_state : local_view_state
@@ -91,25 +102,36 @@ class exports.TaskActions extends Actions
         show_deleted    = !!view.get('show_deleted')
         show_done       = !!view.get('show_done')
         current_task_id = @store.get('current_task_id')
-        search0         = view.get('search')
+
+        relevant_tags = {}
+        tasks.forEach (task, id) =>
+            if not show_deleted and task.get('deleted')
+                return
+            if not show_done and task.get('done')
+                return
+            desc = task.get('desc')
+            for x in misc.parse_hashtags(desc)
+                tag = desc.slice(x[0]+1, x[1]).toLowerCase()
+                relevant_tags[tag] = true
+
+        search0 = get_search(view, relevant_tags)
+        search = []
         if search0
-            search = []
             for x in misc.search_split(search0.toLowerCase())
                 x = x.trim()
-                if x != '#'
+                if x
                     search.push(x)
-        else
-            search = undefined
 
         v = []
         counts =
             done    : 0
             deleted : 0
         current_is_visible = false
+
         hashtags = {}
         tasks.forEach (task, id) =>
             if task.get('done')
-                counts.done += 1
+                counts.done    += 1
             if task.get('deleted')
                 counts.deleted += 1
             if not show_deleted and task.get('deleted')
@@ -119,13 +141,13 @@ class exports.TaskActions extends Actions
 
             desc = task.get('desc')
             if search_matches(search, desc)
-                visible = 1
+                visible = 1  # tag of a currently visible task
                 if id == current_task_id
                     current_is_visible = true
                 # TODO: assuming sorting by position here...
                 v.push([task.get('position'), id])
             else
-                visible = 0
+                visible = 0  # not a tag of any currently visible task
 
             for x in misc.parse_hashtags(desc)
                 tag = desc.slice(x[0]+1, x[1]).toLowerCase()
@@ -151,6 +173,7 @@ class exports.TaskActions extends Actions
             current_task_id : current_task_id
             counts          : c
             hashtags        : immutable.fromJS(hashtags)
+            search_desc     : search.join(' ')
 
     _ensure_positions_are_unique: =>
         tasks = @store.get('tasks')
@@ -213,21 +236,20 @@ class exports.TaskActions extends Actions
             @set_save_status()
 
     new_task: =>
-        # create new task positioned after the current task
+        # create new task positioned before the current task
         cur_pos = @store.getIn(['tasks', @store.get('current_task_id'), 'position'])
 
         positions = @store.get_positions()
-        if cur_pos?
+        if cur_pos? and positions?.length > 0
             position = undefined
-            for i in [0...positions.length - 1]
-                if cur_pos >= positions[i] and cur_pos < positions[i+1]
-                    position = (positions[i] + positions[i+1]) / 2
+            for i in [1...positions.length]
+                if cur_pos == positions[i]
+                    position = (positions[i-1] + positions[i]) / 2
                     break
             if not position?
-                position = positions[positions.length - 1] + 1
+                position = positions[0] - 1
         else
-            # There is no current task, so just put new task at the very beginning.
-            # Normally there is always a current task, unless there are no tasks at all.
+            # There is no current visible task, so just put new task at the very beginning.
             if positions.length > 0
                 position = positions[0] - 1
             else
@@ -236,7 +258,12 @@ class exports.TaskActions extends Actions
         desc = (@store.get('selected_hashtags')?.toJS() ? []).join(' ')
         if desc.length > 0
             desc += "\n"
-        desc += @store.getIn(['local_view_state', 'search']) ? ''
+
+        search = @store.get('search_desc')
+        # do not include any negations
+        search = (x for x in misc.search_split(search) when x[0] != '-').join(' ')
+        desc += search
+
         task_id = misc.uuid()
         @set_task(task_id, {desc:desc, position:position})
         @set_current_task(task_id)
@@ -346,3 +373,25 @@ class exports.TaskActions extends Actions
             @syncdb.delete(task_id: id)
             return
 
+    # state = undefined/false-ish = not selected
+    # state = 1 = selected
+    # state = -1 = negated
+    set_hashtag_state: (tag, state) =>
+        if not tag?
+            return
+        selected_hashtags = @store.getIn(['local_view_state', 'selected_hashtags']) ? immutable.Map()
+        if not state
+            selected_hashtags = selected_hashtags.delete(tag)
+        else
+            selected_hashtags = selected_hashtags.set(tag, state)
+        @set_local_view_state(selected_hashtags : selected_hashtags)
+
+    # dir = 'asc' or 'desc'
+    # columns are strings in headings.cjsx
+    set_sort_column: (column, dir) =>
+        view = @store.get('local_view_state')
+        sort = view.get('sort') ? immutable.Map()
+        sort = sort.set('column', column)
+        sort = sort.set('dir', dir)
+        view = view.set('sort', sort)
+        @setState(local_view_state: view)

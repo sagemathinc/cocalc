@@ -244,7 +244,7 @@ membership.small_course =
 membership.student_course =
     icon  : 'graduation-cap'
     price :
-        month4 : 9
+        month4 : 14
     cancel_at_period_end : true
     benefits :
         cores          : 0

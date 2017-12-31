@@ -107,15 +107,10 @@ webapp_client.on "remember_me_failed", () ->
                 alert_message(type:'info', message:'You might have to sign in again.', timeout:1000000)
         setTimeout(f, 15000)  # give it time to possibly resolve itself.  SMELL: confused about what is going on here...
 
-# check if user has a has_remember_me cookie (regardless if it is valid or not)
-# the "remember_me" is set to be http-only and hence not accessible from javascript (security)
+# Check if user has a has_remember_me cookie (regardless if it is valid or not)
+# the real "remember_me" is set to be http-only and hence not accessible from javascript (security).
 {get_cookie, APP_BASE_URL} = require('./misc_page')
-# for the initial month after the rebranding, we always set this to true to emphasize the sign in bar at the top
-# TODO the following is disabled -- https://github.com/sagemathinc/cocalc/issues/2051
-if false # misc.server_weeks_ago(4) > new Date("2017-05-20")
-    redux.getActions('account').setState(has_remember_me : get_cookie("#{APP_BASE_URL}has_remember_me") == 'true')
-else
-    redux.getActions('account').setState(has_remember_me : true)
+redux.getActions('account').setState(has_remember_me : get_cookie("#{APP_BASE_URL}has_remember_me") == 'true')
 
 # Return a default filename with the given ext (or not extension if ext not given)
 # FUTURE: make this configurable with different schemas.

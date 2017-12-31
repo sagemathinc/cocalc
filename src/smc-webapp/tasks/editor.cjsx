@@ -29,6 +29,7 @@ exports.TaskEditor = rclass ({name}) ->
             local_task_state        : rtypes.immutable.Map
             local_view_state        : rtypes.immutable.Map
             hashtags                : rtypes.immutable.Map
+            search_desc             : rtypes.string
 
     shouldComponentUpdate: (next) ->
         return @props.tasks                   != next.tasks or \
@@ -39,7 +40,8 @@ exports.TaskEditor = rclass ({name}) ->
                @props.has_uncommitted_changes != next.has_uncommitted_changes or \
                @props.local_task_state        != next.local_task_state  or \
                @props.local_view_state        != next.local_view_state or \
-               @props.hashtags                != next.hashtags
+               @props.hashtags                != next.hashtags or \
+               @props.search                  != next.search
 
     render_uncommitted_changes: ->
         if not @props.has_uncommitted_changes
@@ -57,6 +59,7 @@ exports.TaskEditor = rclass ({name}) ->
         <HashtagBar
             actions  = {@props.actions}
             hashtags = {@props.hashtags}
+            selected = {@props.local_view_state?.get('selected_hashtags')}
             />
 
     render_find: ->
@@ -71,6 +74,7 @@ exports.TaskEditor = rclass ({name}) ->
             num_visible      = {@props.visible?.size}
             num_tasks        = {@props.tasks?.size}
             local_view_state = {@props.local_view_state}
+            search_desc      = {@props.search_desc}
         />
 
     render_button_bar: ->
@@ -98,7 +102,10 @@ exports.TaskEditor = rclass ({name}) ->
         />
 
     render_headings: ->
-        <Headings />
+        <Headings
+            actions = {@props.actions}
+            sort    = {@props.local_view_state?.get('sort')}
+            />
 
     render: ->
         <div style={margin:'15px', border:'1px solid grey'} className='smc-vfill'>
