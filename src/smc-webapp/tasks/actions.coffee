@@ -13,6 +13,8 @@ misc = require('smc-util/misc')
 
 {search_matches, get_search} = require('./search')
 
+{HEADINGS, HEADING_DIRS} = require('./headings')
+
 WIKI_HELP_URL = "https://github.com/sagemathinc/cocalc/wiki/tasks"
 
 class exports.TaskActions extends Actions
@@ -26,9 +28,18 @@ class exports.TaskActions extends Actions
         x = localStorage[@name]
         if x?
             local_view_state = immutable.fromJS(JSON.parse(x))
-        else
+        local_view_state ?= immutable.Map()
+        if not local_view_state.has("show_deleted")
+            local_view_state = local_view_state.set('show_deleted', false)
+        if not local_view_state.has("show_done")
+            local_view_state = local_view_state.set('show_done', false)
+        if not local_view_state.has("font_size")
             font_size = @redux.getStore('account')?.get('font_size') ? 14
-            local_view_state = immutable.fromJS(show_deleted:false, show_done:false, font_size:font_size)
+            local_view_state = local_view_state.set('font_size', font_size)
+        if not local_view_state.has('sort')
+            sort = immutable.fromJS({column:HEADINGS[0], dir:HEADING_DIRS[0]})
+            local_view_state = local_view_state.set('sort', sort)
+
         @setState
             local_task_state : immutable.Map()
             local_view_state : local_view_state
@@ -375,3 +386,12 @@ class exports.TaskActions extends Actions
             selected_hashtags = selected_hashtags.set(tag, state)
         @set_local_view_state(selected_hashtags : selected_hashtags)
 
+    # dir = 'asc' or 'desc'
+    # columns are strings in headings.cjsx
+    set_sort_column: (column, dir) =>
+        view = @store.get('local_view_state')
+        sort = view.get('sort') ? immutable.Map()
+        sort = sort.set('column', column)
+        sort = sort.set('dir', dir)
+        view = view.set('sort', sort)
+        @setState(local_view_state: view)

@@ -102,7 +102,10 @@ exports.TaskEditor = rclass ({name}) ->
         />
 
     render_headings: ->
-        <Headings />
+        <Headings
+            actions = {@props.actions}
+            sort    = {@props.local_view_state?.get('sort')}
+            />
 
     render: ->
         <div style={margin:'15px', border:'1px solid grey'} className='smc-vfill'>
