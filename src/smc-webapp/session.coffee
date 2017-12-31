@@ -13,7 +13,7 @@ exports.session_manager = (name, redux) ->
 
 class SessionManager
     constructor: (@name, @redux) ->
-        if webapp_client.account_id
+        if webapp_client.is_signed_in()
             @init_local_storage()
         else
             webapp_client.once 'signed_in', =>
