@@ -13,12 +13,14 @@ misc = require('smc-util/misc')
 
 {search_matches, get_search} = require('./search')
 
-{HEADINGS, HEADING_DIRS} = require('./headings')
+{SORT_INFO, HEADINGS, HEADINGS_DIR} = require('./headings')
 
 WIKI_HELP_URL = "https://github.com/sagemathinc/cocalc/wiki/tasks"
 
 class exports.TaskActions extends Actions
     _init: (project_id, path, syncdb, store, client) =>
+        @_save_local_view_state = underscore.debounce(@__save_local_view_state, 3000)
+        @_update_visible = underscore.throttle(@__update_visible, 1000)
         @project_id = project_id
         @path       = path
         @syncdb     = syncdb
@@ -37,7 +39,7 @@ class exports.TaskActions extends Actions
             font_size = @redux.getStore('account')?.get('font_size') ? 14
             local_view_state = local_view_state.set('font_size', font_size)
         if not local_view_state.has('sort')
-            sort = immutable.fromJS({column:HEADINGS[0], dir:HEADING_DIRS[0]})
+            sort = immutable.fromJS({column:HEADINGS[0], dir:HEADINGS_DIR[0]})
             local_view_state = local_view_state.set('sort', sort)
 
         @setState
@@ -48,7 +50,6 @@ class exports.TaskActions extends Actions
         @_init_has_unsaved_changes()
         @syncdb.on('change', @_syncdb_change)
         @syncdb.once('change', @_ensure_positions_are_unique)
-        @_save_local_view_state = underscore.debounce(@__save_local_view_state, 3000)
 
     close: =>
         if @_state == 'closed'
@@ -61,7 +62,7 @@ class exports.TaskActions extends Actions
             @redux.getActions('page').erase_active_key_handler(@_key_handler)
             delete @_key_handler
 
-    __save_local_view_state: =>
+    _save_local_view_state: =>
         local_view_state = @store.get('local_view_state')
         if local_view_state and localStorage?
             localStorage[@name] = JSON.stringify(local_view_state)
@@ -96,7 +97,7 @@ class exports.TaskActions extends Actions
 
         @set_save_status?()
 
-    _update_visible: =>
+    __update_visible: =>
         tasks           = @store.get('tasks')
         view            = @store.get('local_view_state')
         show_deleted    = !!view.get('show_deleted')
@@ -128,6 +129,21 @@ class exports.TaskActions extends Actions
             deleted : 0
         current_is_visible = false
 
+        sort_column  = view.getIn(['sort', 'column'])
+        sort_info    = SORT_INFO[sort_column] ?= SORT_INFO[HEADINGS[0]]
+        sort_key     = sort_info.key
+        sort_dir     = view.getIn(['sort', 'dir']) ? HEADINGS_DIR[0]
+        if sort_info.reverse  # reverse sort order -- done for due date
+            if sort_dir == 'asc'
+                sort_dir = 'desc'
+            else
+                sort_dir = 'asc'
+        # undefined always gets pushed to the bottom (only applies to due date in practice)
+        if sort_dir == 'desc'
+            sort_default = -1e15
+        else
+            sort_default = 1e15
+
         hashtags = {}
         tasks.forEach (task, id) =>
             if task.get('done')
@@ -144,17 +160,21 @@ class exports.TaskActions extends Actions
                 visible = 1  # tag of a currently visible task
                 if id == current_task_id
                     current_is_visible = true
-                # TODO: assuming sorting by position here...
-                v.push([task.get('position'), id])
+                v.push([task.get(sort_key) ? sort_default, id])
             else
                 visible = 0  # not a tag of any currently visible task
 
             for x in misc.parse_hashtags(desc)
                 tag = desc.slice(x[0]+1, x[1]).toLowerCase()
-                hashtags[tag] = Math.max(hashtags[tag] ? 0, visible)
+                hashtags[tag] = Math.max(hashtags[tag], visible)
             return
 
-        v.sort (a,b) -> misc.cmp(a[0], b[0])
+        if sort_dir == 'desc'
+            v.sort (a,b) -> -misc.cmp(a[0], b[0])
+        else
+            v.sort (a,b) -> misc.cmp(a[0], b[0])
+
+        console.log v
         visible = immutable.fromJS((x[1] for x in v))
 
         if (not current_task_id? or not current_is_visible) and visible.size > 0
@@ -395,3 +415,4 @@ class exports.TaskActions extends Actions
         sort = sort.set('dir', dir)
         view = view.set('sort', sort)
         @setState(local_view_state: view)
+        @_update_visible()
