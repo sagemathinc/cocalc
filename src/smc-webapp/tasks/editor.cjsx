@@ -83,6 +83,7 @@ exports.TaskEditor = rclass ({name}) ->
             has_unsaved_changes     = {@props.has_unsaved_changes}
             current_task_id         = {@props.current_task_id}
             current_task_is_deleted = {@props.tasks?.get(@props.current_task_id)?.get('deleted')}
+            sort_column             = {@props.local_view_state?.getIn(['sort', 'column'])}
             />
 
     render_list: ->
