@@ -49,7 +49,7 @@ DATA = null
 # react examples dialog
 {React, ReactDOM, redux, Redux, Actions, Store, rtypes, rclass} = require('./smc-react')
 {Col, Row, Panel, Button, FormGroup, FormControl, Well, Alert, Modal, Table, Nav, NavItem, ListGroup, ListGroupItem, InputGroup} = require('react-bootstrap')
-{Loading, Icon, Markdown} = require('./r_misc')
+{Loading, Icon, Markdown, Space} = require('./r_misc')
 
 redux_name = (project_id, path) ->
     return "examples-#{project_id}-#{path}"
@@ -384,13 +384,32 @@ ExamplesHeader = rclass
             }
         </Nav>
 
+    render_search: ->
+        <FormGroup>
+            <InputGroup className = 'webapp-examples-search'>
+                <FormControl
+                    ref         = 'search'
+                    type        = 'text'
+                    placeholder = 'Search'
+                    value       = {@props.search_str ? ''}
+                    onKeyUp     = {@handle_search_keyup}
+                    onChange    = {@search}
+                />
+                <InputGroup.Button>
+                    <Button onClick={@search_clear}>
+                        <Icon name='times-circle' />
+                    </Button>
+                </InputGroup.Button>
+            </InputGroup>
+        </FormGroup>
 
     render: ->
         return null if (not @props.lang?) or (not @props.lang_select?)
         <Row>
             <Col sm={3}>
                 <h2>
-                    <Icon name={exports.ICON_NAME} />{' '}
+                    <Icon name={exports.ICON_NAME} />
+                    <Space/>
                     {lang2name(@props.lang) if not @props.lang_select} Assistant
                 </h2>
             </Col>
@@ -398,23 +417,7 @@ ExamplesHeader = rclass
                 {@render_nav() if @props.lang_select and not @props.unknown_lang}
             </Col>
             <Col sm={3}>
-                {<FormGroup>
-                    <InputGroup className = 'webapp-examples-search'>
-                        <FormControl
-                            ref         = 'search'
-                            type        = 'text'
-                            placeholder = 'Search'
-                            value       = {@props.search_str ? ''}
-                            onKeyUp     = {@handle_search_keyup}
-                            onChange    = {@search}
-                        />
-                        <InputGroup.Button>
-                            <Button onClick={@search_clear}>
-                                <Icon name='times-circle' />
-                            </Button>
-                        </InputGroup.Button>
-                    </InputGroup>
-                </FormGroup> if not @props.unknown_lang}
+                {@render_search() if not @props.unknown_lang}
             </Col>
         </Row>
 
