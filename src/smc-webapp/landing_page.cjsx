@@ -136,11 +136,12 @@ SignUp = rclass
             marginTop      : '10px'
             borderColor    : COLORS.LANDING.LOGIN_BAR_BG
         well_class = ''
-        if not @props.has_remember_me
-            # additional highlighting
-            well_style.backgroundColor = COLORS.LANDING.LOGIN_BAR_BG
-            well_style.color           = 'white'
-            well_class = 'webapp-landing-sign-up-highlight'
+        # Commenting this out -- the look is confusing and inconsistent.
+        #if not @props.has_remember_me
+        #    # additional highlighting
+        #    well_style.backgroundColor = COLORS.LANDING.LOGIN_BAR_BG
+        #    well_style.color           = 'white'
+        #    well_class = 'webapp-landing-sign-up-highlight'
         <Well style=well_style className={well_class}>
             <TermsOfService style={fontWeight:'bold', textAlign: "center"} />
             <br />
@@ -611,22 +612,13 @@ exports.LandingPage = rclass
             # CSS of this looks like crap for a moment; worse than nothing. So disabling unless it can be fixed!!
             #return <Connecting />
             return <span/>
-        if @props.has_remember_me
-            topbar =
-              img_icon    : APP_ICON_WHITE
-              img_name    : APP_LOGO_NAME_WHITE
-              img_opacity : 1.0
-              color       : 'white'
-              bg_color    : COLORS.LANDING.LOGIN_BAR_BG
-              border      : "5px solid #{COLORS.LANDING.LOGIN_BAR_BG}"
-        else
-            topbar =
-              img_icon    : APP_ICON
-              img_name    : APP_LOGO_NAME
-              img_opacity : 0.6
-              color       : COLORS.GRAY
-              bg_color    : COLORS.GRAY_LL
-              border      : "5px solid #{COLORS.GRAY}"
+        topbar =
+          img_icon    : APP_ICON_WHITE
+          img_name    : APP_LOGO_NAME_WHITE
+          img_opacity : 1.0
+          color       : 'white'
+          bg_color    : COLORS.LANDING.LOGIN_BAR_BG
+          border      : "5px solid #{COLORS.LANDING.LOGIN_BAR_BG}"
 
         <div style={margin: UNIT}>
             {@render_password_reset()}

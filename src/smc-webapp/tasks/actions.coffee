@@ -11,16 +11,16 @@ underscore = require('underscore')
 
 misc = require('smc-util/misc')
 
-{search_matches, get_search} = require('./search')
+{HEADINGS, HEADINGS_DIR} = require('./headings')
 
-{SORT_INFO, HEADINGS, HEADINGS_DIR} = require('./headings')
+{update_visible} = require('./update-visible')
 
 WIKI_HELP_URL = "https://github.com/sagemathinc/cocalc/wiki/tasks"
 
 class exports.TaskActions extends Actions
     _init: (project_id, path, syncdb, store, client) =>
         @_save_local_view_state = underscore.debounce(@__save_local_view_state, 3000)
-        @_update_visible = underscore.throttle(@__update_visible, 1000)
+        @_update_visible = underscore.throttle(@__update_visible, 500)
         @project_id = project_id
         @path       = path
         @syncdb     = syncdb
@@ -100,100 +100,14 @@ class exports.TaskActions extends Actions
     __update_visible: =>
         tasks           = @store.get('tasks')
         view            = @store.get('local_view_state')
-        show_deleted    = !!view.get('show_deleted')
-        show_done       = !!view.get('show_done')
         current_task_id = @store.get('current_task_id')
+        counts          = @store.get('counts')
 
-        relevant_tags = {}
-        tasks.forEach (task, id) =>
-            if not show_deleted and task.get('deleted')
-                return
-            if not show_done and task.get('done')
-                return
-            desc = task.get('desc')
-            for x in misc.parse_hashtags(desc)
-                tag = desc.slice(x[0]+1, x[1]).toLowerCase()
-                relevant_tags[tag] = true
-
-        search0 = get_search(view, relevant_tags)
-        search = []
-        if search0
-            for x in misc.search_split(search0.toLowerCase())
-                x = x.trim()
-                if x
-                    search.push(x)
-
-        v = []
-        counts =
-            done    : 0
-            deleted : 0
-        current_is_visible = false
-
-        sort_column  = view.getIn(['sort', 'column'])
-        sort_info    = SORT_INFO[sort_column] ?= SORT_INFO[HEADINGS[0]]
-        sort_key     = sort_info.key
-        sort_dir     = view.getIn(['sort', 'dir']) ? HEADINGS_DIR[0]
-        if sort_info.reverse  # reverse sort order -- done for due date
-            if sort_dir == 'asc'
-                sort_dir = 'desc'
-            else
-                sort_dir = 'asc'
-        # undefined always gets pushed to the bottom (only applies to due date in practice)
-        if sort_dir == 'desc'
-            sort_default = -1e15
-        else
-            sort_default = 1e15
-
-        hashtags = {}
-        tasks.forEach (task, id) =>
-            if task.get('done')
-                counts.done    += 1
-            if task.get('deleted')
-                counts.deleted += 1
-            if not show_deleted and task.get('deleted')
-                return
-            if not show_done and task.get('done')
-                return
-
-            desc = task.get('desc')
-            if search_matches(search, desc)
-                visible = 1  # tag of a currently visible task
-                if id == current_task_id
-                    current_is_visible = true
-                v.push([task.get(sort_key) ? sort_default, id])
-            else
-                visible = 0  # not a tag of any currently visible task
-
-            for x in misc.parse_hashtags(desc)
-                tag = desc.slice(x[0]+1, x[1]).toLowerCase()
-                hashtags[tag] = Math.max(hashtags[tag], visible)
-            return
-
-        if sort_dir == 'desc'
-            v.sort (a,b) -> -misc.cmp(a[0], b[0])
-        else
-            v.sort (a,b) -> misc.cmp(a[0], b[0])
-
-        console.log v
-        visible = immutable.fromJS((x[1] for x in v))
-
-        if (not current_task_id? or not current_is_visible) and visible.size > 0
-            current_task_id = visible.get(0)
-        else if not current_is_visible and visible.size == 0
-            current_task_id = undefined
-
-        c = @store.get('counts')
-        if c.get('done') != counts.done
-            c = c.set('done', counts.done)
-        if c.get('deleted') != counts.deleted
-            c = c.set('deleted', counts.deleted)
-
-        @setState
-            visible         : visible
-            current_task_id : current_task_id
-            counts          : c
-            hashtags        : immutable.fromJS(hashtags)
-            search_desc     : search.join(' ')
+        # obj explicit to avoid giving update_visible power to change anything about state...
+        obj = update_visible(tasks, view, counts, current_task_id)
+        obj = misc.copy_with(obj,
+                ['visible', 'current_task_id', 'counts', 'hashtags', 'search_desc'])
+        @setState(obj)
 
     _ensure_positions_are_unique: =>
         tasks = @store.get('tasks')
