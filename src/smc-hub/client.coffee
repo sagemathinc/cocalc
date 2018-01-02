@@ -1223,6 +1223,8 @@ class exports.Client extends EventEmitter
                     if locals.done or (not locals.email_address)
                         cb(); return
 
+                    cb()  # we return early, because there is no need to let someone wait for sending the email
+
                     # available message fields
                     # mesg.title            - title of project
                     # mesg.link2proj
