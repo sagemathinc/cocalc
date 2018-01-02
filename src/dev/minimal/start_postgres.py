@@ -1,8 +1,7 @@
 #!/usr/bin/env python
 
 """
-This is a script for starting postgres for development purposes
-in an SMC project.
+This is a script for starting postgres for development purposes on a laptop.
 """
 
 import os, sys, time, util

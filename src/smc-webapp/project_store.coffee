@@ -1523,6 +1523,10 @@ class ProjectActions extends Actions
         return if not store = @get_store()
         @setState(hidden_files : not store.hidden_files)
 
+    toggle_search_checkbox_git_grep: =>
+        return if not store = @get_store()
+        @setState(git_grep : not store.git_grep)
+
     process_results: (err, output, max_results, max_output, cmd) =>
         return if not store = @get_store()
         if (err and not output?) or (output? and not output.stdout?)
@@ -1575,16 +1579,24 @@ class ProjectActions extends Actions
         else
             ins = ' -i '
 
+        if store.git_grep
+            if store.subdirectories
+                max_depth = ''
+            else
+                max_depth = '--max-depth=0'
+            cmd = "git rev-parse --is-inside-work-tree && git grep -I -H #{ins} #{max_depth} #{search_query} || "
+        else
+            cmd = ''
         if store.subdirectories
             if store.hidden_files
-                cmd = "rgrep -I -H --exclude-dir=.smc --exclude-dir=.snapshots #{ins} #{search_query} -- *"
+                cmd += "rgrep -I -H --exclude-dir=.smc --exclude-dir=.snapshots #{ins} #{search_query} -- *"
             else
-                cmd = "rgrep -I -H --exclude-dir='.*' --exclude='.*' #{ins} #{search_query} -- *"
+                cmd += "rgrep -I -H --exclude-dir='.*' --exclude='.*' #{ins} #{search_query} -- *"
         else
             if store.hidden_files
-                cmd = "grep -I -H #{ins} #{search_query} -- .* *"
+                cmd += "grep -I -H #{ins} #{search_query} -- .* *"
             else
-                cmd = "grep -I -H #{ins} #{search_query} -- *"
+                cmd += "grep -I -H #{ins} #{search_query} -- *"
 
         cmd += " | grep -v #{MARKERS.cell}"
         max_results = 1000
@@ -1723,6 +1735,7 @@ create_project_store_def = (name, project_id) ->
         library                : immutable.Map({})
         library_selected       : undefined
         library_is_copying     : false
+        git_grep               : true
 
     reduxState:
         account:
@@ -1785,6 +1798,7 @@ create_project_store_def = (name, project_id) ->
         case_sensitive     : rtypes.bool
         hidden_files       : rtypes.bool
         info_visible       : rtypes.bool
+        git_grep           : rtypes.bool
 
         # Project Settings
         get_public_path_id : rtypes.func

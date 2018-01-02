@@ -24,13 +24,16 @@ exports.ButtonBar = rclass
         has_unsaved_changes     : rtypes.bool
         current_task_id         : rtypes.string
         current_task_is_deleted : rtypes.bool
+        sort_column             : rtypes.string
 
     shouldComponentUpdate: (next) ->
         return @props.has_unsaved_changes     != next.has_unsaved_changes or \
                @props.current_task_id         != next.current_task_id     or \
-               @props.current_task_is_deleted != next.current_task_is_deleted
+               @props.current_task_is_deleted != next.current_task_is_deleted or \
+               @props.sort_column             != next.sort_column
 
     render_task_group: ->
+        console.log @props.sort_column
         spacer = <span style={marginLeft:'5px'} />
         <span key='task'>
             <Button
@@ -57,14 +60,16 @@ exports.ButtonBar = rclass
             {spacer}
             <ButtonGroup>
                 <Button
-                    key     = 'up'
-                    onClick = {@props.actions.move_task_to_top}
+                    key      = 'up'
+                    onClick  = {@props.actions.move_task_to_top}
+                    disabled = {@props.sort_column != 'Custom Order'}
                     >
                     <Icon name='hand-o-up' /> Top
                 </Button>
                 <Button
-                    key     = 'down'
-                    onClick = {@props.actions.move_task_to_bottom}
+                    key      = 'down'
+                    onClick  = {@props.actions.move_task_to_bottom}
+                    disabled = {@props.sort_column != 'Custom Order'}
                     >
                     <Icon name='hand-o-down' /> Bottom
                 </Button>

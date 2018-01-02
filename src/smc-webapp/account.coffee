@@ -49,7 +49,9 @@ load_app = (cb) ->
         cb()
 
 webapp_client.on 'mesg_info', (info) ->
-    redux.getActions('account')?.setState(mesg_info: info)
+    f = -> redux.getActions('account')?.setState(mesg_info: info)
+    # must be scheduled separately, since this notification can be triggered during rendering
+    setTimeout(f, 1)
 
 signed_in = (mesg) ->
     {analytics_event} = require('./misc_page')
