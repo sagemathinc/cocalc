@@ -3,7 +3,7 @@ Testing password reset, change, email_address change, etc. related functionality
 ###
 
 api   = require('./apitest')
-{setup, teardown} = api
+{setup, teardown, reset} = api
 
 misc  = require('smc-util/misc')
 

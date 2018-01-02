@@ -6,7 +6,7 @@ LICENSE   : AGPLv3
 ###
 
 api   = require('./apitest')
-{setup, teardown, reset} = api
+{setup, teardown, reset, winston} = api
 
 misc = require('smc-util/misc')
 
@@ -16,6 +16,7 @@ async  = require('async')
 expect = require('expect')
 
 describe 'testing calls relating to creating user accounts -- ', ->
+    @timeout(15000)
     before(setup)
     after(teardown)
     beforeEach(reset)
@@ -110,6 +111,7 @@ describe 'testing calls relating to creating user accounts -- ', ->
                         description : 'Testing collaboration ops'
                     cb    : (err, resp) ->
                         project_id2 = resp.project_id
+                        winston.info("project_id2: #{project_id2}")
                         done(err)
             (cb) ->
                 api.call
@@ -121,17 +123,39 @@ describe 'testing calls relating to creating user accounts -- ', ->
                         link2proj      : 'https://link.to.project/'
                         replyto        : 'cocalc+2@sagemath.com'
                         replyto_name   : 'Sage2 CoCalc2'
-                        email          : 'BODY_OF_EMAIL'
-                        subject        : 'SUBJECT_OF_EMAIL'
+                        email          : 'BODY_OF_EMAIL_1'
+                        subject        : 'SUBJECT_OF_EMAIL_1'
                     cb    : (err, resp) ->
-                        console.log("inivtes a collaborator to a project with an email message: #{misc.to_json(resp)}")
-                        setTimeout((-> cb(err)), 1000)
+                        winston.info("inivtes a collaborator to a project with an email message: #{misc.to_json(resp)}")
+                        # possibly, actual email sending is async, hence we wait a bit...
+                        setTimeout((-> cb(err)), 100)
+
+            # there shouldn't be a second email (during a week or so) upon inviting again
+            (cb) ->
+                api.call
+                    event : 'invite_collaborator'
+                    body  :
+                        account_id     : account_id2
+                        project_id     : project_id2
+                        title          : 'PROJECT_TITLE'
+                        link2proj      : 'https://link.to.project/'
+                        replyto        : 'cocalc+2@sagemath.com'
+                        replyto_name   : 'Sage2 CoCalc2'
+                        email          : 'BODY_OF_EMAIL_2'
+                        subject        : 'SUBJECT_OF_EMAIL_2'
+                    cb    : (err, resp) ->
+                        # possibly, actual email sending is async, hence we wait a bit...
+                        setTimeout((-> cb(err)), 100)
+
         ], (err) ->
             opts0 = email.send_email.args[0][0]
-            expect(opts0.subject).toBe('SUBJECT_OF_EMAIL')
+            expect(opts0.subject).toBe('SUBJECT_OF_EMAIL_1')
             expect(opts0.from).toBe('cocalc+2@sagemath.com')
             expect(opts0.fromname).toBe('Sage2 CoCalc2')
-            expect(opts0.body.indexOf('BODY_OF_EMAIL') > 0).toBe(true)
+            expect(opts0.body.indexOf('BODY_OF_EMAIL_1') > 0).toBe(true)
+            # no second email
+            winston.info("email.send_email.args: #{misc.to_json(email.send_email.args)}")
+            expect(email.send_email.args.length).toBe(1)
             done(err)
         )
 
@@ -185,6 +209,7 @@ describe 'testing calls relating to creating user accounts -- ', ->
                 done(err)
 
 describe 'testing invalid input to creating user accounts -- ', ->
+    @timeout(15000)
     before(setup)
     after(teardown)
     beforeEach(reset)
@@ -230,6 +255,7 @@ describe 'testing invalid input to creating user accounts -- ', ->
                 done(err)
 
 describe 'testing user_search -- ', ->
+    @timeout(15000)
     before(setup)
     after(teardown)
     beforeEach(reset)
