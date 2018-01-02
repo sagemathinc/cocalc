@@ -100,7 +100,8 @@ describe 'testing calls relating to creating user accounts -- ', ->
                 done(err)
 
     project_id2 = undefined
-    it "inivtes a collaborator to a project with an email message", (done) ->
+    account_id3 = undefined
+    it "inivtes a collaborator to a project via an email message", (done) ->
         # create new account and then invite
         async.series([
             (cb) ->
@@ -110,19 +111,39 @@ describe 'testing calls relating to creating user accounts -- ', ->
                         title       : 'COLLABTEST2'
                         description : 'Testing collaboration ops'
                     cb    : (err, resp) ->
+                        expect(resp?.event).toBe('project_created')
                         project_id2 = resp.project_id
-                        winston.info("project_id2: #{project_id2}")
-                        done(err)
+                        expect(misc.is_valid_uuid_string(project_id2)).toBe(true)
+                        #winston.info("project_id2: #{project_id2}")
+                        cb(err)
+
+            (cb) ->
+                api.call
+                    event : 'create_account'
+                    body  :
+                        first_name      : "Sage3"
+                        last_name       : "CoCalc3"
+                        email_address   : "cocalc+3@sagemath.com"
+                        password        : "1234qwerty"
+                        agreed_to_terms : true
+                    cb    : (err, resp) ->
+                        expect(resp?.event).toBe('account_created')
+                        expect(misc.is_valid_uuid_string(resp?.account_id)).toBe(true)
+                        account_id3 = resp?.account_id
+                        expect(misc.is_valid_uuid_string(account_id3)).toBe(true)
+                        console.log("account created: #{account_id3}")
+                        cb(err)
+
             (cb) ->
                 api.call
                     event : 'invite_collaborator'
                     body  :
-                        account_id     : account_id2
+                        account_id     : account_id3
                         project_id     : project_id2
                         title          : 'PROJECT_TITLE'
                         link2proj      : 'https://link.to.project/'
-                        replyto        : 'cocalc+2@sagemath.com'
-                        replyto_name   : 'Sage2 CoCalc2'
+                        replyto        : 'cocalc+3@sagemath.com'
+                        replyto_name   : 'Sage3 CoCalc3'
                         email          : 'BODY_OF_EMAIL_1'
                         subject        : 'SUBJECT_OF_EMAIL_1'
                     cb    : (err, resp) ->
@@ -135,12 +156,12 @@ describe 'testing calls relating to creating user accounts -- ', ->
                 api.call
                     event : 'invite_collaborator'
                     body  :
-                        account_id     : account_id2
+                        account_id     : account_id3
                         project_id     : project_id2
                         title          : 'PROJECT_TITLE'
                         link2proj      : 'https://link.to.project/'
-                        replyto        : 'cocalc+2@sagemath.com'
-                        replyto_name   : 'Sage2 CoCalc2'
+                        replyto        : 'cocalc+3@sagemath.com'
+                        replyto_name   : 'Sage3 CoCalc3'
                         email          : 'BODY_OF_EMAIL_2'
                         subject        : 'SUBJECT_OF_EMAIL_2'
                     cb    : (err, resp) ->
@@ -148,10 +169,12 @@ describe 'testing calls relating to creating user accounts -- ', ->
                         setTimeout((-> cb(err)), 100)
 
         ], (err) ->
+            expect(err).toBe('')
+            expect(err?).toBe(false)
             opts0 = email.send_email.args[0][0]
             expect(opts0.subject).toBe('SUBJECT_OF_EMAIL_1')
-            expect(opts0.from).toBe('cocalc+2@sagemath.com')
-            expect(opts0.fromname).toBe('Sage2 CoCalc2')
+            expect(opts0.from).toBe('cocalc+3@sagemath.com')
+            expect(opts0.fromname).toBe('Sage3 CoCalc3')
             expect(opts0.body.indexOf('BODY_OF_EMAIL_1') > 0).toBe(true)
             # no second email
             winston.info("email.send_email.args: #{misc.to_json(email.send_email.args)}")
@@ -183,10 +206,14 @@ describe 'testing calls relating to creating user accounts -- ', ->
                 email      :  'Plese sign up and join this project.'
                 title      :  'Team Project'
                 link2proj  :  "#{base_url}/projects/#{project_id}"
-            cb    :  ->
-                #expect(resp?.event).toBe('invite_noncloud_collaborators_resp')
-                #expect(api.last_email?.subject).toBe('CoCalc Invitation')
-                done()
+            cb    :  (err, resp) ->
+                check = (err, resp) ->
+                    opts0 = email.send_email.args[0][0]
+                    expect(resp?.event).toBe('invite_noncloud_collaborators_resp')
+                    expect(opts0?.subject).toBe('CoCalc Invitation')
+                    done()
+                # sending email is probably async, wait a bit
+                setTimeout((-> check(err, resp)), 100)
 
 
     it "removes collaborator", (done) ->
