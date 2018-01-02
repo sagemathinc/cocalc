@@ -808,7 +808,7 @@ class SyncDoc extends EventEmitter
             return
         if min_age_m > 0
             # if min_age_m is 0 always do it immediately; if > 0 check what it was:
-            last_active = @_syncstring_table?.get_one().get('last_active')
+            last_active = @_syncstring_table?.get_one()?.get('last_active')
             # if not defined or not set recently, do it.
             if not (not last_active? or +last_active <= +misc.server_minutes_ago(min_age_m))
                 return
