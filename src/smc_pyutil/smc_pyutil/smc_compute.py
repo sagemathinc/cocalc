@@ -487,6 +487,7 @@ class Project(object):
         s['state'] = 'opened'
 
         if self._dev:
+            self.dev_env()
             if os.path.exists(self.smc_path):
                 try:
                     os.environ['HOME'] = self.project_path
@@ -555,6 +556,7 @@ class Project(object):
 
         s['state'] = 'opened'
         if self._dev:
+            self.dev_env()
             if os.path.exists(self.smc_path):
                 try:
                     os.environ['HOME'] = self.project_path
