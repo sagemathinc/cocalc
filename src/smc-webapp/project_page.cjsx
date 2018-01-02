@@ -255,7 +255,7 @@ FreeProjectWarning = rclass ({name}) ->
         if not host and not internet
             return null
 
-        font_size = Math.min(18, 12 + Math.round((@props.project_log?.size ? 0) / 50))
+        font_size = Math.min(18, 12 + Math.round((@props.project_log?.size ? 0) / 30))
         styles =
             padding      : "5px 30px"
             marginBottom : 0
@@ -274,9 +274,9 @@ FreeProjectWarning = rclass ({name}) ->
         ###
 
         if host and internet
-            mesg = <span>Upgrade this project, since it is on a <b>trial server</b> and has no network access.</span>
+            mesg = <span>Upgrade this project, since it is on an <b>unpaid trial server</b> and has no network access.</span>
         else if host
-            mesg = <span>Upgrade this project, since it is on a <b>trial server</b>.</span>
+            mesg = <span>Upgrade this project, since it is on an <b>unpaid trial server</b>.</span>
         else if internet
             mesg = <span>WARNING: this project does not have network access.</span>
 

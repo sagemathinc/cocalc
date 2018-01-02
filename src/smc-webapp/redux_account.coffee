@@ -176,7 +176,7 @@ class AccountActions extends Actions
                     $(window).off('beforeunload', redux.getActions('page').check_unload)
                     window.location.hash = ''
                     {APP_BASE_URL} = require('./misc_page')
-                    window.location = APP_BASE_URL + '/?signed_out' # redirect to base page
+                    window.location = APP_BASE_URL + '/app?signed_out' # redirect to sign in page
 
     push_state: (url) =>
         {set_url} = require('./history')

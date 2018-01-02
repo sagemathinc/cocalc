@@ -268,7 +268,7 @@ record_disconnect = () ->
     # avoid buffer overflow
     recent_disconnects = recent_disconnects[-100..]
 
-num_recent_disconnects = (minutes=10) ->
+num_recent_disconnects = (minutes=5) ->
     # note the "+", since we work with timestamps
     ago = +misc.minutes_ago(minutes)
     return (x for x in recent_disconnects when x > ago).length
@@ -353,7 +353,7 @@ webapp_client.on "connecting", () ->
         {SITE_NAME} = require('smc-util/theme')
         SiteName = redux.getStore('customize').site_name ? SITE_NAME
         if (reconnection_warning == null) or (reconnection_warning < (+misc.minutes_ago(1)))
-            if num_recent_disconnects() >= 5 or attempt >= 20
+            if num_recent_disconnects() >= 7 or attempt >= 20
                 reconnect
                     type: "error"
                     timeout: 10

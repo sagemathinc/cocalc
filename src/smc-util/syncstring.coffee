@@ -658,6 +658,7 @@ class SyncDoc extends EventEmitter
 
     # Version of the document at a given point in time; if no
     # time specified, gives the version right now.
+    # If not fully initialized, will return undefined
     version: (time) =>
         return @_patch_list?.value(time)
 
@@ -673,7 +674,7 @@ class SyncDoc extends EventEmitter
     # Undo/redo public api.
     #   Calling @undo and @redo returns the version of the document after
     #   the undo or redo operation, but does NOT otherwise change anything!
-    #   The caller can then what they please with that output (e.g., update the UI).
+    #   The caller can then do what they please with that output (e.g., update the UI).
     #   The one state change is that the first time calling @undo or @redo switches
     #   into undo/redo state in which additional calls to undo/redo
     #   move up and down the stack of changes made by this user during this session.
@@ -697,6 +698,11 @@ class SyncDoc extends EventEmitter
             # pointing at live state (e.g., happens on entering undo mode)
             value = @version()     # last saved version
             live  = @_doc
+            if not value?
+                # may be undefined if everything not fully loaded or being reconnected -- in this case, just skip
+                # doing the undo, which would be dangerous, e.g., value.make_patch(live) is not going to work.
+                # See https://github.com/sagemathinc/cocalc/issues/2586
+                return live
             if not live.is_equal(value)
                 # User had unsaved changes, so last undo is to revert to version without those.
                 state.final    = value.make_patch(live)                  # live redo if needed
@@ -730,8 +736,11 @@ class SyncDoc extends EventEmitter
             return @get_doc()
         else if state.pointer == state.my_times.length - 1
             # one back from live state, so apply unsaved patch to live version
+            value = @version()
+            if not value? # see remark in undo -- do nothing
+                return @get_doc()
             state.pointer += 1
-            return @version().apply_patch(state.final)
+            return value.apply_patch(state.final)
         else
             # at least two back from live state
             state.without.pop()
@@ -934,12 +943,14 @@ class SyncDoc extends EventEmitter
                         cb()
             ], (err) =>
                 if @_closed
-                    # disconnected while connecting...
+                    # closed while connecting...
                     cb()
                     return
                 @_syncstring_table.wait
                     until : (t) => t.get_one()?.get('init')
                     cb    : (err, init) =>
+                        if @_closed # closed while waiting on condition (perfectly reasonable -- do nothing).
+                            return
                         if err
                             @emit('init', err)
                             return
@@ -1745,6 +1756,11 @@ class SyncDoc extends EventEmitter
             cb?('readonly')
             return
 
+        if @_deleted
+            # nothing to do -- no need to attempt to save if file is already deleted
+            cb?()
+            return
+
         @_save_to_disk()
         if not @_syncstring_table?
             cb("@_syncstring_table must be defined")
@@ -1752,6 +1768,10 @@ class SyncDoc extends EventEmitter
         if cb?
             #dbg("waiting for save.state to change from '#{@_syncstring_table.get_one().getIn(['save','state'])}' to 'done'")
             f = (cb) =>
+                if @_deleted
+                    # if deleted, then save doesn't need to finish and is done successfully.
+                    cb()
+                    return
                 if not @_syncstring_table?
                     cb(true)
                     return

@@ -51,7 +51,7 @@ export PGHOST='%s'
     time.sleep(5)
 
     # Create the smc user with no password (not needed since we are using local file permissions)
-    util.cmd("createuser -h '%s' -sE smc"%socket_dir)
+    util.cmd("unset PGUSER; unset PGHOST; createuser -h '%s' -sE smc"%socket_dir)
 
     # Stop database daemon
     util.cmd("kill %s"%(open(os.path.join(PG_DATA, 'postmaster.pid')).read().split()[0]))

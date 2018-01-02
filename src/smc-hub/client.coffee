@@ -26,6 +26,7 @@ hub_projects         = require('./projects')
 {send_email}         = require('./email')
 {api_key_action}     = require('./api/manage')
 {create_account, delete_account} = require('./create-account')
+db_schema            = require('smc-util/db-schema')
 
 underscore = require('underscore')
 
@@ -1682,11 +1683,11 @@ class exports.Client extends EventEmitter
     Data Query
     ###
     mesg_query: (mesg) =>
+        dbg = @dbg("user_query")
         query = mesg.query
         if not query?
             @error_to_client(id:mesg.id, error:"malformed query")
             return
-        dbg = @dbg("user_query")
         # CRITICAL: don't enable this except for serious debugging, since it can result in HUGE output
         #dbg("account_id=#{@account_id} makes query='#{misc.to_json(query)}'")
         first = true
@@ -1707,6 +1708,12 @@ class exports.Client extends EventEmitter
                     err = 'close'
                 if err
                     dbg("user_query(query='#{misc.to_json(query)}') error:", err)
+                    if not @account_id? and misc.startswith("#{err}", "FATAL")
+                        # Tried to do a user_query before signing in.  Since we no longer have any anonymous user queries
+                        # there is absolutely no situation where a client should do this, unless it is buggy.
+                        dbg("immediately terminating buggy client trying to do FATAL user_query when not signed_in")
+                        @conn.end()
+                        return
                     if @_query_changefeeds?[mesg_id]
                         delete @_query_changefeeds[mesg_id]
                     @error_to_client(id:mesg_id, error:err)

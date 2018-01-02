@@ -6,11 +6,6 @@
 
 extends _base.pug
 
-mixin start_button
-  p
-    a.btn.btn-success.btn-lg.cc-create-account-btn(href="app") Create Your Free #{NAME} Account!
-  p or #[a(href="app") sign in] with your account
-
 block vars
   - var subtitle = htmlWebpackPlugin.options.description;
 
@@ -223,7 +218,7 @@ block content
         div.col-md-6
           h2 #[i.fa.fa-fw.cc-icon-jupyter] Native Jupyter Notebooks
           div.
-            This is a fully compatible #[strong complete rewrite] of the classical #[a(href="http://jupyter.org/") Jupyter Notebook].
+            This is a #[strong #[a(href="./doc/jupyter-notebook.html") fully compatible rewrite]] of the classical #[a(href="http://jupyter.org/") Jupyter Notebook].
             It is tightly integrated into #{NAME} and adds real-time collaboration,
             time-travel history and
             #[a(href="http://blog.sagemath.com/jupyter/2017/05/05/jupyter-rewrite-for-smc.html") much more].
