@@ -113,7 +113,7 @@ We are grateful to BrowserStack for providing infrastructure to test CoCalc.
 
 * node
 * Postgres
-* `pip install pyyaml`
+* `pip install pyyaml; pip3 install pyyaml`
 
 ## Installation
 
