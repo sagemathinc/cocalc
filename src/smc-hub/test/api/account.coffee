@@ -169,16 +169,23 @@ describe 'testing calls relating to creating user accounts -- ', ->
                         setTimeout((-> cb(err)), 100)
 
         ], (err) ->
-            expect(err).toBe('')
             expect(err?).toBe(false)
             opts0 = email.send_email.args[0][0]
-            expect(opts0.subject).toBe('SUBJECT_OF_EMAIL_1')
-            expect(opts0.from).toBe('cocalc+3@sagemath.com')
-            expect(opts0.fromname).toBe('Sage3 CoCalc3')
-            expect(opts0.body.indexOf('BODY_OF_EMAIL_1') > 0).toBe(true)
+            expect(opts0.subject.indexOf('Welcome to') >= 0).toBe(true)
+
+            opts1 = email.send_email.args[1][0]
+            #console.log(misc.to_json(opts1))
+            expect(opts1.subject).toBe('SUBJECT_OF_EMAIL_1')
+            expect(opts1.from).toBe('invites@sagemath.com')
+            expect(opts1.to).toBe('cocalc+3@sagemath.com')
+            expect(opts1.replyto_name).toBe('Sage3 CoCalc3')
+            expect(opts1.body.indexOf('BODY_OF_EMAIL_1') == 0).toBe(true)
             # no second email
             winston.info("email.send_email.args: #{misc.to_json(email.send_email.args)}")
-            expect(email.send_email.args.length).toBe(1)
+
+            opts2 = email.send_email.args[2][0]
+            #console.log("email3: #{misc.to_json(opts2)}")
+            expect(email.send_email.args.length).toBe(2) # TODO broken
             done(err)
         )
 
