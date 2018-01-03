@@ -291,7 +291,7 @@ membership.small_course2 =
         cores          : 25
         cpu_shares     : 0
         disk_quota     : 0
-        memory         : 48*1000
+        memory         : 25*1000
         mintime        : 48*3600
         memory_request : 0
         member_host    : 25
