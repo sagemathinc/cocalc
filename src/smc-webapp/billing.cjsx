@@ -799,8 +799,15 @@ PlanInfo = rclass
             </h3>
 
     render_plan_name: (plan_data) ->
+        if plan_data.desc?
+            name = plan_data.desc
+            if name.indexOf('\n')
+                v = name.split('\n')
+                name = <span>{v[0].trim()}<br/>{v[1].trim()}</span>
+        else
+            name = misc.capitalize(@props.plan).replace(/_/g,' ') + ' plan'
         <div style={paddingLeft:"10px"}>
-            <Icon name={plan_data.icon} /> <span style={fontWeight:'bold'}>{misc.capitalize(@props.plan).replace(/_/g,' ')} plan</span>
+            <Icon name={plan_data.icon} /> <span style={fontWeight:'bold'}>{name}</span>
         </div>
 
     render: ->

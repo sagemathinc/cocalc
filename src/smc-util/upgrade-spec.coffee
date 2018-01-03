@@ -135,7 +135,8 @@ upgrades.field_order = ['member_host', 'network', 'mintime', 'disk_quota',
 # live_subscriptions is an array of arrays.  Each array should have length a divisor of 12.
 # The subscriptions will be displayed one row at a time.
 upgrades.live_subscriptions = [['standard', 'premium', 'professional'],
-                               ['small_course', 'medium_course', 'large_course']]
+                               ['small_course', 'medium_course', 'large_course'],
+                               ['small_course2', 'medium_course2', 'large_course2']]
 
 upgrades.period_names =
     month  : 'month'
@@ -198,6 +199,7 @@ membership.standard =   # a user that has a standard membership
 
 membership.large_course =
     icon  : 'battery-full'
+    desc : 'Large course\n(250 students)'
     price :
         month4 : 999
         year1  : 2499
@@ -211,8 +213,27 @@ membership.large_course =
         member_host    : 250
         network        : 250
 
+
+membership.large_course2 =
+    icon  : 'battery-full'
+    desc : 'Large compute heavy course\n(250 students)'
+    price :
+        month4 : 1999
+        year1  : 4999
+    cancel_at_period_end : true
+    benefits :
+        cores          : 250
+        cpu_shares     : 0
+        disk_quota     : 0
+        memory         : 250*1000
+        mintime        : 264*7200  # multiple of days
+        memory_request : 0
+        member_host    : 250
+        network        : 250
+
 membership.medium_course =
     icon  : 'battery-three-quarters'
+    desc  : 'Medium course\n(70 students)'
     price :
         month4 : 399
         year1  : 999
@@ -226,8 +247,26 @@ membership.medium_course =
         member_host    : 70
         network        : 70
 
+membership.medium_course2 =
+    icon  : 'battery-three-quarters'
+    desc  : 'Medium compute heavy course\n(70 students)'
+    price :
+        month4 : 799
+        year1  : 1999
+    cancel_at_period_end : true
+    benefits :
+        cores          : 70
+        cpu_shares     : 0
+        disk_quota     : 0
+        memory         : 70*1000
+        mintime        : 72*7200
+        memory_request : 0
+        member_host    : 70
+        network        : 70
+
 membership.small_course =
     icon  : 'battery-quarter'
+    desc  : 'Small course\n(25 students)'
     price :
         month4 : 199
         year1  : 499
@@ -237,6 +276,23 @@ membership.small_course =
         cpu_shares     : 0
         disk_quota     : 0
         memory         : 0
+        memory_request : 0
+        member_host    : 25
+        network        : 25
+
+membership.small_course2 =
+    icon  : 'battery-quarter'
+    desc  : 'Small compute heavy course\n(25 students)'
+    price :
+        month4 : 399
+        year1  : 999
+    cancel_at_period_end : true
+    benefits :
+        cores          : 25
+        cpu_shares     : 0
+        disk_quota     : 0
+        memory         : 48*1000
+        mintime        : 48*3600
         memory_request : 0
         member_host    : 25
         network        : 25
@@ -252,5 +308,24 @@ membership.student_course =
         disk_quota     : 0
         memory         : 0
         memory_request : 0
-        member_host    : 1
-        network        : 1
+        member_host    : 2
+        mintime        : 7600
+        network        : 2
+
+###
+membership.student_course2 =
+    icon  : 'graduation-cap'
+    price :
+        month4 : 28
+    cancel_at_period_end : true
+    benefits :
+        cores          : 1
+        cpu_shares     : 0
+        disk_quota     : 0
+        memory         : 2000
+        memory_request : 0
+        member_host    : 2
+        mintime        : 7200
+        network        : 2
+###
+
