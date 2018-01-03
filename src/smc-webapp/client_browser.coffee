@@ -235,16 +235,16 @@ class Connection extends client.Connection
                 max      : 5000
                 min      : 1000
                 factor   : 1.25
-                retries  : 100000  # why ever stop trying if we're only trying once every 5 seconds?
+                retries  : 100000  # why ever stop trying...?
         conn = new Primus(url, opts)
         ###
 
         opts =
             reconnect:
-                max     : 7000
+                max     : 10000
                 min     : 1000
-                factor  : 1.25
-                retries : 1000000
+                factor  : 1.3
+                retries : 100000
         conn = new Primus(url, opts)
 
         @_conn = conn
@@ -305,9 +305,11 @@ class Connection extends client.Connection
         conn.on 'reconnect scheduled', (opts) =>
             @_num_attempts = opts.attempt
             @emit("disconnected", "close") # This just informs everybody that we *are* disconnected.
-            @emit("connecting")
             conn.removeAllListeners('data')
-            log("reconnect scheduled in #{opts.scheduled} ms  (attempt #{opts.attempt} out of #{opts.retries})")
+            log("reconnect scheduled (attempt #{opts.attempt} out of #{opts.retries})")
+
+        conn.on 'reconnect', =>
+            @emit("connecting")
 
         conn.on 'incoming::pong', (time) =>
             #log("pong latency=#{conn.latency}")

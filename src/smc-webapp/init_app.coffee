@@ -171,7 +171,7 @@ class PageActions extends Actions
         @setState(ping : ping, avgping : avgping)
 
     set_connection_status: (val, time) =>
-        if val != 'connecting' or time - (redux.getStore('page').get('last_status_time') ? 0) > 0
+        if time > (redux.getStore('page').get('last_status_time') ? 0)
             @setState(connection_status : val, last_status_time : time)
 
     set_new_version: (version) =>
@@ -321,16 +321,28 @@ webapp_client.on "ping", (ping_time) ->
 webapp_client.on "connected", () ->
     redux.getActions('page').set_connection_status('connected', new Date())
 
+DISCONNECTED_STATE_DELAY_MS = 5000
+
 webapp_client.on "disconnected", (state) ->
     record_disconnect()
-    redux.getActions('page').set_connection_status('disconnected', new Date())
+    date = new Date()
+    f = ->
+        redux.getActions('page').set_connection_status('disconnected', date)
+    if redux.getStore('page').get('connection_status') != 'connected'
+        f()
+    else
+        window.setTimeout(f, DISCONNECTED_STATE_DELAY_MS)
     redux.getActions('page').set_ping(undefined, undefined)
 
+CONNECTING_STATE_DELAY_MS = 3000
 webapp_client.on "connecting", () ->
     date = new Date()
     f = ->
         redux.getActions('page').set_connection_status('connecting', date)
-    window.setTimeout(f, 2000)
+    if redux.getStore('page').get('connection_status') != 'connected'
+        f()
+    else
+        window.setTimeout(f, CONNECTING_STATE_DELAY_MS)
     attempt = webapp_client._num_attempts ? 1
     reconnect = (msg) ->
         # reset recent disconnects, and hope that after the reconnection the situation will be better
