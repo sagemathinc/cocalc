@@ -144,6 +144,9 @@ def update_examples():
     '''
     This is only used during development to update the examples.
     '''
+    # doesn't hurt to run init/update in case the repo doesn't exist yet.
+    # if there are still files in it from before switching to submodules, they need to be deleted
+    cmd('git submodule init; git submodule update')
     cmd('git submodule foreach "git fetch origin; git checkout master; git reset --hard origin/master"')
     cmd('env OUTDIR=../webapp-lib/examples make -C examples/')
 
