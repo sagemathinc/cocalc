@@ -228,7 +228,7 @@ exports.ConnectionIndicator = rclass
                 connecting...
             </span>
         else if @props.connection_status == 'disconnected'
-            <span style={backgroundColor : 'darkred', color : 'white', padding : '1ex', 'zIndex': 100001}>
+            <span style={backgroundColor : '#FFA500', color : 'white', padding : '1ex', 'zIndex': 100001}>
                 disconnected
             </span>
 
