@@ -278,9 +278,6 @@ NewsletterSetting = rclass
 PasswordSetting = rclass
     displayName : 'Account-PasswordSetting'
 
-    propTypes :
-        email_address : rtypes.string
-
     getInitialState: ->
         state        : 'view'   # view --> edit --> saving --> view
         old_password : ''
@@ -309,7 +306,6 @@ PasswordSetting = rclass
         @setState
             state : 'saving'
         webapp_client.change_password
-            email_address : @props.email_address
             old_password  : @state.old_password
             new_password  : @state.new_password
             cb            : (err, resp) =>
@@ -594,7 +590,6 @@ AccountSettings = rclass
                 other_settings = {@props.other_settings}
                 />
             <PasswordSetting
-                email_address = {@props.email_address}
                 ref   = 'password'
                 maxLength = 64
                 />

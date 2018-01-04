@@ -19,6 +19,7 @@ react_support        = require('./react')
 {get_public_paths}   = require('./public_paths')
 {render_public_path} = require('./render-public-path')
 {render_static_path} = require('./render-static-path')
+util                 = require('./util')
 
 # This MUST be loaded last, e.g,. it overwrites some of the jQuery plugins
 # (mathjax from misc_page) that are implicitly loaded by the above requires.
@@ -68,7 +69,7 @@ exports.share_router = (opts) ->
         throw RuntimeError("opts.path must contain '[project_id]'")
 
     path_to_files = (project_id) ->
-        return opts.path.replace('[project_id]', project_id)
+        return util.path_to_files(opts.path, project_id)
 
     _ready_queue = []
     public_paths = undefined
@@ -130,7 +131,7 @@ exports.share_router = (opts) ->
                 info = undefined
             else
                 info = public_paths.get(req.params.id)
-                if not info?
+                if not info? or info.get('auth')   # TODO: For now, /share server does NOT make vhost visible at all if there is any auth info..
                     res.sendStatus(404)
                     return
                 project_id = info.get('project_id')

@@ -16,7 +16,7 @@ exports.JupyterServerPanel = rclass
 
     render_jupyter_link: ->
         url = jupyter_server_url(@props.project_id)
-        <LinkRetryUntilSuccess href={url} target='_blank'>
+        <LinkRetryUntilSuccess href={url}>
             <Icon name='cc-icon-ipynb' /> Plain Jupyter Server
         </LinkRetryUntilSuccess>
 

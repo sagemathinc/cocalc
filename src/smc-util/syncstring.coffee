@@ -808,7 +808,7 @@ class SyncDoc extends EventEmitter
             return
         if min_age_m > 0
             # if min_age_m is 0 always do it immediately; if > 0 check what it was:
-            last_active = @_syncstring_table?.get_one().get('last_active')
+            last_active = @_syncstring_table?.get_one()?.get('last_active')
             # if not defined or not set recently, do it.
             if not (not last_active? or +last_active <= +misc.server_minutes_ago(min_age_m))
                 return
@@ -1756,6 +1756,11 @@ class SyncDoc extends EventEmitter
             cb?('readonly')
             return
 
+        if @_deleted
+            # nothing to do -- no need to attempt to save if file is already deleted
+            cb?()
+            return
+
         @_save_to_disk()
         if not @_syncstring_table?
             cb("@_syncstring_table must be defined")
@@ -1763,6 +1768,10 @@ class SyncDoc extends EventEmitter
         if cb?
             #dbg("waiting for save.state to change from '#{@_syncstring_table.get_one().getIn(['save','state'])}' to 'done'")
             f = (cb) =>
+                if @_deleted
+                    # if deleted, then save doesn't need to finish and is done successfully.
+                    cb()
+                    return
                 if not @_syncstring_table?
                     cb(true)
                     return

@@ -518,9 +518,9 @@ API message2
         id:
             init  : undefined
             desc  : 'A unique UUID for the query'
-        email_address:
+        account_id:
             init  : required
-            desc  : 'email address for account whose password is changed'
+            desc  : 'account id of the account whose password is being changed'
         old_password:
             init  : ""
             desc  : ''

@@ -1779,7 +1779,7 @@ exports.open_popup_window = (url) ->
 exports.open_new_tab = (url, popup=false) ->
     # if popup=true, it opens a small overlay window instead of a new tab
     if popup
-        tab = window.open(url, '', 'menubar=no,toolbar=no,resizable=yes,scrollbars=yes,height=400,width=600')
+        tab = window.open(url, '', 'menubar=yes,toolbar=no,resizable=yes,scrollbars=yes,height=640,width=800')
     else
         tab = window.open(url)
     if(!tab || tab.closed || typeof tab.closed=='undefined')

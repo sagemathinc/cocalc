@@ -21,16 +21,21 @@ exports.Task = rclass
         editing_due_date : rtypes.bool
         editing_desc     : rtypes.bool
         min_desc         : rtypes.bool
+        font_size        : rtypes.number
+        sortable         : rtypes.bool
 
     shouldComponentUpdate: (next) ->
         return @props.task              != next.task             or \
                @props.is_current        != next.is_current       or \
                @props.editing_due_date  != next.editing_due_date or \
                @props.editing_desc      != next.editing_desc     or \
-               @props.min_desc          != next.min_desc
+               @props.min_desc          != next.min_desc         or \
+               @props.font_size         != next.font_size        or \
+               @props.sortable          != next.sortable
 
     render_drag_handle: ->
-        <DragHandle />
+        if @props.sortable
+            <DragHandle />
 
     render_done_checkbox: ->  # cast of done to bool for backward compat
         <DoneCheckbox
@@ -56,6 +61,7 @@ exports.Task = rclass
             editing    = {@props.editing_desc}
             minimize   = {@props.min_desc}
             is_current = {@props.is_current}
+            font_size  = {@props.font_size}
         />
 
     render_last_edited: ->
@@ -76,19 +82,22 @@ exports.Task = rclass
 
     render: ->
         style =
-            padding : '10px'
-            margin  : '10px'
+            padding      : '10px'
+            margin       : '10px'
+            borderRadius : '4px'
         if @props.is_current
             style.border       = '2px solid #08c'
-            style.borderRadius = '5px'
             style.background   = "rgb(232, 242, 255)"
         else
-            style.border = '2px solid white'
+            style.border = '2px solid lightgrey'
+            style.background = 'white'
         if @props.task.get('deleted')
             style.background = '#d9534f'
-            style.color      = 'white'
+            style.color      = '#eee'
         else if @props.task.get('done')
             style.color = '#888'
+        if @props.font_size?
+            style.fontSize = "#{@props.font_size}px"
         <div style={style} onClick={@on_click}>
             {@render_drag_handle()}
             <br/>

@@ -24,40 +24,71 @@ exports.ButtonBar = rclass
         has_unsaved_changes     : rtypes.bool
         current_task_id         : rtypes.string
         current_task_is_deleted : rtypes.bool
+        sort_column             : rtypes.string
 
     shouldComponentUpdate: (next) ->
         return @props.has_unsaved_changes     != next.has_unsaved_changes or \
                @props.current_task_id         != next.current_task_id     or \
-               @props.current_task_is_deleted != next.current_task_is_deleted
+               @props.current_task_is_deleted != next.current_task_is_deleted or \
+               @props.sort_column             != next.sort_column
 
     render_task_group: ->
-        <ButtonGroup key='task'>
+        spacer = <span style={marginLeft:'5px'} />
+        <span key='task'>
             <Button
                 key     = 'new'
-                onClick = {@props.actions.new_task} >
+                onClick = {@props.actions.new_task}
+                >
                 <Icon name='plus-circle' /> New
             </Button>
-            <Button
-                key     = 'undo'
-                onClick = {@props.actions.undo} >
-                <Icon name='undo' /> Undo
-            </Button>
-            <Button
-                key     = 'redo'
-                onClick = {@props.actions.redo} >
-                <Icon name='repeat' /> Redo
-            </Button>
-            <Button
-                key     = 'up'
-                onClick = {@props.actions.move_task_to_top} >
-                <Icon name='hand-o-up' /> Top
-            </Button>
-            <Button
-                key     = 'down'
-                onClick = {@props.actions.move_task_to_bottom} >
-                <Icon name='hand-o-down' /> Bottom
-            </Button>
-        </ButtonGroup>
+            {spacer}
+            <ButtonGroup>
+                <Button
+                    key     = 'undo'
+                    onClick = {@props.actions.undo}
+                    >
+                    <Icon name='undo' /> Undo
+                </Button>
+                <Button
+                    key     = 'redo'
+                    onClick = {@props.actions.redo}
+                    >
+                    <Icon name='repeat' /> Redo
+                </Button>
+            </ButtonGroup>
+            {spacer}
+            <ButtonGroup>
+                <Button
+                    key      = 'up'
+                    onClick  = {@props.actions.move_task_to_top}
+                    disabled = {@props.sort_column != 'Custom Order'}
+                    >
+                    <Icon name='hand-o-up' /> Top
+                </Button>
+                <Button
+                    key      = 'down'
+                    onClick  = {@props.actions.move_task_to_bottom}
+                    disabled = {@props.sort_column != 'Custom Order'}
+                    >
+                    <Icon name='hand-o-down' /> Bottom
+                </Button>
+            </ButtonGroup>
+            {spacer}
+            <ButtonGroup>
+                <Button
+                    key     = 'font-increase'
+                    onClick = {@props.actions.decrease_font_size}
+                    >
+                    <Icon style   = {fontSize:'7pt'} name='font' />
+                </Button>
+                <Button
+                    key     = 'font-decrease'
+                    onClick = {@props.actions.increase_font_size}
+                    >
+                    <Icon style   = {fontSize:'11pt'} name='font' />
+                </Button>
+            </ButtonGroup>
+        </span>
 
     render_delete_button: ->
         <Button

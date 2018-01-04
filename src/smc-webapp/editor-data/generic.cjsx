@@ -14,6 +14,8 @@ misc            = require('smc-util/misc')
 
 # ext: markdown string.
 INFO =
+    raw  : 'You may be able to use this file via a Python library or use it in some other way.'
+    tiff : 'You may be able to use this file via a Python image manipulation library or use it in some other way.'
     fit  : 'You may be able to use this file from Python using the [fitparse](https://github.com/dtcooper/python-fitparse) library.'
     odt  : 'Please download this file to your computer and open it using [OpenOffice Writer](https://www.openoffice.org/product/writer.html).'
     sobj : 'You can load an sobj file into **SageMath** by typing `load("filename.sobj")`.'

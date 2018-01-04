@@ -28,16 +28,17 @@ exports.DescriptionRendered = rclass
         />
 
     render: ->
-        <div style={background:'#fff', padding:'0 10px'}>
+        <div style={padding:'0 10px'}>
             {@render_content()}
         </div>
 
 
 header_part = (s) ->
-    lines = s.split('\n')
+    lines = s.trim().split('\n')
     for i in [0...lines.length]
         if lines[i].trim() == ''
             if i == lines.length - 1
                 return s
             else
                 return lines.slice(0,i).join('\n')
+    return s

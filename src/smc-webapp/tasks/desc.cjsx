@@ -24,13 +24,15 @@ exports.Description = rclass
         editing    : rtypes.bool
         minimize   : rtypes.bool
         is_current : rtypes.bool
+        font_size  : rtypes.number
 
     shouldComponentUpdate: (next) ->
         return @props.desc     != next.desc     or \
                @props.task_id  != next.task_id  or \
                @props.editing  != next.editing  or \
                @props.minimize != next.minimize or \
-               @props.is_current != next.is_current
+               @props.is_current != next.is_current or \
+               @props.font_size  != next.font_size
 
     edit: ->
         @props.actions.edit_desc(@props.task_id)
@@ -46,6 +48,7 @@ exports.Description = rclass
             task_id    = {@props.task_id}
             desc       = {@props.desc}
             is_current = {@props.is_current}
+            font_size  = {@props.font_size}
         />
 
     render_close_button: ->

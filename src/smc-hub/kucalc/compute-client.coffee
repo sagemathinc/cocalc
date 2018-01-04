@@ -542,7 +542,7 @@ class Project extends EventEmitter
         # 1. Get data about project from the database, namely:
         #     - is project currently running (if not, nothing to do)
         #     - if running, what quotas it was started with and what its quotas are now
-        # 2. If quotas differ, restarts project.
+        # 2. If quotas differ *AND* project is running, restarts project.
         @active()
         @database.get_project
             project_id : @project_id

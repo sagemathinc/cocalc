@@ -39,6 +39,8 @@ misc = require('smc-util/misc')
 {HelpBox} = require('./help_box')
 {DeleteStudentsPanel} = require('./delete_students')
 
+STUDENT_COURSE_PRICE = require('smc-util/upgrade-spec').upgrades.membership.student_course.price.month4
+
 StudentProjectsStartStopPanel = rclass ({name}) ->
     displayName : "CourseEditorSettings-StudentProjectsStartStopPanel"
 
@@ -386,7 +388,7 @@ exports.SettingsPanel = rclass
         date = new Date(@props.settings.get('pay'))
         if date > webapp_client.server_time()
             <span>
-                <b>Your students will see a warning until <TimeAgo date={date} />.</b>  They will then be required to upgrade for a special discounted one-time fee of $9.
+                <b>Your students will see a warning until <TimeAgo date={date} />.</b>  They will then be required to upgrade for a special discounted one-time fee of ${STUDENT_COURSE_PRICE}.
             </span>
         else
             <span>
@@ -444,7 +446,7 @@ exports.SettingsPanel = rclass
         <Alert bsStyle='info'>
             <h3><Icon name='arrow-circle-up' /> Require students to upgrade</h3>
             <hr/>
-            <span>Click the following checkbox to require that all students in the course pay a special discounted <b>one-time $9</b> fee to move their projects to members-only computers and enable full internet access, for four months.  Members-only computers are not randomly rebooted constantly and have far fewer users. Student projects that are already on members-only hosts will not be impacted.  <em>You will not be charged.</em></span>
+            <span>Click the following checkbox to require that all students in the course pay a special discounted <b>one-time ${STUDENT_COURSE_PRICE}</b> fee to move their projects from trial servers to members-only computers, enable full internet access, and do not see a large red warning message.  This lasts four months, and <em>you will not be charged (only students are charged).</em></span>
 
             {@render_students_pay_checkbox()}
             {@render_require_students_pay_when() if @props.settings.get('pay')}
@@ -455,7 +457,7 @@ exports.SettingsPanel = rclass
         if @props.settings.get('pay')
             <span><span style={fontSize:'18pt'}><Icon name="check"/></span> <Space />{@render_require_students_pay_desc()}</span>
         else
-            <span>Require that all students in the course pay a one-time $9 fee to move their projects to members only hosts and enable full internet access, for four months.  This is optional, but will ensure that your students have a better experience and receive priority support.</span>
+            <span>Require that all students in the course pay a one-time ${STUDENT_COURSE_PRICE} fee to move their projects off trial servers and enable full internet access, for four months.  This is strongly recommended, and ensures that your students have a better experience, and do not see a large <span style={color:'red'}>RED warning banner</span> all the time.</span>
 
 
     render_require_students_pay: ->

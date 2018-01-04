@@ -1541,7 +1541,7 @@ ProjectFilesActionBox = rclass
 
     render_share_defn: ->
         <div style={color:'#555'}>
-            Shared items are <a href="https://cocalc.com/share" target="_blank"><b><i>visible to anybody.</i></b></a>
+            Use sharing to make a file or directory <a href="https://cocalc.com/share" target="_blank"><b><i>visible to the world.</i></b></a>  If you would like to collaborate and chat with other people on documents in this project, go the project Settings tab and "Add people to project".
         </div>
 
     render_share: ->
@@ -1555,9 +1555,11 @@ ProjectFilesActionBox = rclass
             if single_file_data.is_public and single_file_data.public?.path isnt single_file
                 parent_is_public = true
         show_social_media = require('./customize').commercial and single_file_data.is_public
+
         url = @construct_public_share_url(single_file)
+        {open_new_tab} = require('smc-webapp/misc_page')
         button_before =
-            <Button bsStyle='default' onClick={=>window.open(url, "_blank")}>
+            <Button bsStyle='default' onClick={=>open_new_tab(url)}>
                 <Icon name='external-link' />
             </Button>
 

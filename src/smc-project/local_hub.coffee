@@ -52,6 +52,9 @@ misc        = require('smc-util/misc')
 smc_version = require('smc-util/smc-version')
 misc_node   = require('smc-util-node/misc_node')
 
+memory      = require('smc-util-node/memory')
+memory.init(winston.debug)
+
 {to_json, from_json, defaults, required}   = require('smc-util/misc')
 
 # Functionality special to the KuCalc environment.

@@ -8,7 +8,15 @@ Task due date
 
 {React, rclass, rtypes}  = require('../smc-react')
 
-{Calendar, Icon, Space, TimeAgo} = require('../r_misc')
+{DateTimePicker, Icon, Space, TimeAgo} = require('../r_misc')
+
+STYLE =
+    border       : '1px solid lightgrey'
+    background   : 'white'
+    borderRadius : '4px'
+    margin       : '5px'
+    width        : '400px'
+    boxShadow    : '0 6px 12px rgba(0,0,0,.175)'
 
 exports.DueDate = rclass
     propTypes :
@@ -38,10 +46,10 @@ exports.DueDate = rclass
             value = new Date(@props.due_date)
         else
             value = new Date()
-        <div style={border:'1px solid lightgrey', borderRadius:'4px', margin:'5px', width:'250px', boxShadow:'0 6px 12px rgba(0,0,0,.175)'}>
-            <Calendar
-                value     = {value}
-                on_change = {(date) => @set_due_date(date - 0)}
+        <div style={STYLE}>
+            <DateTimePicker
+                value        = {value}
+                on_change    = {(date) => @set_due_date(date - 0)}
             />
             <div style={textAlign:'right', margin:'2px'}>
                 <Button onClick={@toggle_edit}>
@@ -53,7 +61,7 @@ exports.DueDate = rclass
     render_remove_due_date: ->
         if not @props.due_date
             return
-        <span>
+        <span style={color:'#888'}>
             <Space />
             <Icon
                 name    = 'times'
@@ -62,11 +70,15 @@ exports.DueDate = rclass
         </span>
 
     render_due_date: ->
+        style = undefined
         if @props.due_date
-            elt = <TimeAgo date = {new Date(@props.due_date)} />
+            date = new Date(@props.due_date)
+            if date <= new Date()
+                style = {color:'white', backgroundColor:'red', padding:'3px'}
+            elt = <TimeAgo date = {new Date(@props.due_date)}/>
         else
             elt = <span>none</span>
-        <span onClick={@toggle_edit}>
+        <span onClick={@toggle_edit} style={style} >
             {elt}
         </span>
 
