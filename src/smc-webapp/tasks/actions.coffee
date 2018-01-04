@@ -55,7 +55,7 @@ class exports.TaskActions extends Actions
         if @_state == 'closed'
             return
         @_state = 'closed'
-        @__save_local_view_state()
+        @__save_local_view_state?()
         @syncdb.close()
         delete @syncdb
         if @_key_handler?

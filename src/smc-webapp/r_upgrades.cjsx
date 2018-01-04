@@ -1,3 +1,10 @@
+###
+The Upgrades Page
+
+###
+
+async = require('async')
+
 {React, rclass, rtypes}  = require('./smc-react')
 {Loading, r_join, Space, Footer} = require('./r_misc')
 misc = require('smc-util/misc')
@@ -160,19 +167,22 @@ exports.UpgradesPage = rclass
             @render_upgraded_project(project_id, upgrades, i%2==0)
 
     confirm_reset: (e) ->
-        upgraded_projects = @props.redux.getStore('projects').get_projects_upgraded_by()
-        # TODO: Make async in case of many many projects
-        for project_id, upgrades of upgraded_projects
-            @actions('projects').clear_project_upgrades(project_id)
-        @setState(expand_reset_all_projects:false)
+        upgraded_project_ids = misc.keys(@props.redux.getStore('projects').get_projects_upgraded_by())
+        project_actions = @actions('projects')
+        # We space out the clearing of upgrades a little, e.g., imagine if upgraded_project_ids had length 1000.
+        f = (project_id, cb) ->
+            project_actions.clear_project_upgrades(project_id)
+            setTimeout(cb, 100)
+        async.mapLimit upgraded_project_ids, 1, f, =>
+            @setState(expand_reset_all_projects:false)
 
     render_header: ->
         <div>
             <Row>
                 <Col sm=12 style={display:'flex'} >
                     <h4 style={flex:'1'} >Upgrades you have applied to projects</h4>
-                    <Button onClick={=>@setState(expand_reset_all_projects:true)} disabled={@state.expand_reset_all_projects}>
-                        Reset all project upgrades...
+                    <Button bsStyle='warning' onClick={=>@setState(expand_reset_all_projects:true)} disabled={@state.expand_reset_all_projects}>
+                        Remove all upgrades you have applied to projects...
                     </Button>
                 </Col>
             </Row>
@@ -216,13 +226,13 @@ exports.UpgradesPage = rclass
             </div>
 
 ResetProjectsConfirmation = ({on_confirm, on_cancel}) ->
-    <Well style={marginBottom:'0px', marginTop:'10px', textAlign:'center'}>
+    <Well style={marginBottom:'0px', marginTop:'10px', background:'white'}>
         Are you sure you want to remove all your upgrades from all projects?<br/>
         You will have all your upgrades available to use.<br/>
-        <UpgradeRestartWarning style={display:'inline-block', marginBottom:'5px'} />
+        <UpgradeRestartWarning style={display:'inline-block', margin:'15px 0'} />
         <ButtonToolbar>
             <Button bsStyle='warning' onClick={on_confirm}>
-                Yes, remove all upgrades.
+                Yes, remove all upgrades
             </Button>
             <Button onClick={on_cancel}>
                 Cancel

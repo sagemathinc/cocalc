@@ -8,5 +8,5 @@
 
 exports.UpgradeRestartWarning = ({style}) ->
     <Alert style={style}>
-        Adjustments to any project upgrades (except idle timeout) will restart the project. Running computations may be terminated.
+        Removing upgrades from runnings projects will restart those project, which will terminate any running computations.
     </Alert>

@@ -706,7 +706,8 @@ exports.CourseActions = class CourseActions extends Actions
             return
         id = @set_activity(desc:"Adjusting upgrades on #{misc.len(plan)} student projects...")
         for project_id, upgrades of plan
-            @redux.getActions('projects').apply_upgrades_to_project(project_id, upgrades, false)
+            if project_id?  # avoid race if projects are being created *right* when we try to upgrade them.
+                @redux.getActions('projects').apply_upgrades_to_project(project_id, upgrades, false)
         setTimeout((=>@set_activity(id:id)), 5000)
 
     # Do an admin upgrade to all student projects.  This changes the base quotas for every student
