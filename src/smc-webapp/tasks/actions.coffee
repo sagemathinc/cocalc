@@ -55,7 +55,7 @@ class exports.TaskActions extends Actions
         if @_state == 'closed'
             return
         @_state = 'closed'
-        @__save_local_view_state()
+        @__save_local_view_state?()
         @syncdb.close()
         delete @syncdb
         if @_key_handler?
@@ -203,7 +203,7 @@ class exports.TaskActions extends Actions
         @set_current_task(task_id)
         @edit_desc(task_id)
 
-    set_task: (task_id, obj) =>
+    set_task: (task_id, obj, setState) =>
         if not task_id? or not obj? or @_state == 'closed'
             return
         last_edited = @store.getIn(['tasks', task_id, 'last_edited']) ? 0
@@ -213,6 +213,16 @@ class exports.TaskActions extends Actions
         obj.task_id = task_id
         @syncdb.set(obj)
         @syncdb.save()
+        if setState
+            # also set state directly in the tasks object locally **immediately**; this would happen
+            # eventually as a result of the syncdb set above.
+            tasks = @store.get('tasks')
+            task = tasks.get(task_id)
+            for k, v of obj
+                task = task.set(k, immutable.fromJS(v))
+            tasks = tasks.set(task_id, task)
+            @setState(tasks: tasks)
+
 
     delete_task: (task_id) =>
         @set_task(task_id, {deleted: true})
@@ -330,3 +340,22 @@ class exports.TaskActions extends Actions
         view = view.set('sort', sort)
         @setState(local_view_state: view)
         @_update_visible()
+
+    reorder_tasks: (old_index, new_index) =>
+        if old_index == new_index
+            return
+        visible = @store.get('visible')
+        old_id = visible.get(old_index)
+        new_id = visible.get(new_index)
+        if not old_id? or not new_id?
+            return
+        old_pos = @store.getIn(['tasks', old_id, 'position'])
+        new_pos = @store.getIn(['tasks', new_id, 'position'])
+        if not old_pos? or not new_pos?
+            return
+        @set_task(old_id, {position:new_pos}, true)
+        @set_task(new_id, {position:old_pos}, true)
+        @__update_visible()
+
+
+

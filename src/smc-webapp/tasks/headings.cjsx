@@ -8,7 +8,7 @@ Headings of the task list:
 
 {React, rclass, rtypes}  = require('../smc-react')
 
-exports.HEADINGS     = HEADINGS = ['Custom Order',            'Due',            'Changed']
+exports.HEADINGS     = HEADINGS = ['Custom Order', 'Due', 'Changed']
 exports.HEADINGS_DIR = HEADINGS_DIR = ['asc', 'desc']
 exports.SORT_INFO =
     'Custom Order' :

@@ -74,12 +74,16 @@ get_session_state = (redux) ->
             "#{project_id}" : redux.getProjectStore(project_id).get('open_files_order')?.toJS()
     return state
 
-restore_session_state = (redux, state) ->
+# reset_first is currently not used.  If true, then you get *exactly* the
+# saved session; if not set (the default) the current state and the session are merged.
+restore_session_state = (redux, state, reset_first=false) ->
     if not state?
         return
     page = redux.getActions('page')
-    for project_id in redux.getStore('projects').get('open_projects')?.toJS() ? []
-        page.close_project_tab(project_id)
+
+    if reset_first
+        for project_id in redux.getStore('projects').get('open_projects')?.toJS() ? []
+            page.close_project_tab(project_id)
 
     projects = redux.getActions('projects')
     for x in state

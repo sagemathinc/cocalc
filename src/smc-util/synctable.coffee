@@ -121,7 +121,7 @@ cb_fatal = (err, cb) ->
     if is_fatal(err)
         # throw in an arbitrary pause to wait for proper connection or
         # give the backend time to breath
-        setTimeout((->cb(err)), 5000 + Math.random()*5000)
+        setTimeout((->cb(err)), 30000 + Math.random()*5000)
     else
         # cb as usual
         cb(err)

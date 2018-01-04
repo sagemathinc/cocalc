@@ -22,6 +22,7 @@ exports.Task = rclass
         editing_desc     : rtypes.bool
         min_desc         : rtypes.bool
         font_size        : rtypes.number
+        sortable         : rtypes.bool
 
     shouldComponentUpdate: (next) ->
         return @props.task              != next.task             or \
@@ -29,10 +30,12 @@ exports.Task = rclass
                @props.editing_due_date  != next.editing_due_date or \
                @props.editing_desc      != next.editing_desc     or \
                @props.min_desc          != next.min_desc         or \
-               @props.font_size         != next.font_size
+               @props.font_size         != next.font_size        or \
+               @props.sortable          != next.sortable
 
     render_drag_handle: ->
-        <DragHandle />
+        if @props.sortable
+            <DragHandle />
 
     render_done_checkbox: ->  # cast of done to bool for backward compat
         <DoneCheckbox
@@ -79,14 +82,15 @@ exports.Task = rclass
 
     render: ->
         style =
-            padding : '10px'
-            margin  : '10px'
+            padding      : '10px'
+            margin       : '10px'
+            borderRadius : '4px'
         if @props.is_current
             style.border       = '2px solid #08c'
-            style.borderRadius = '5px'
             style.background   = "rgb(232, 242, 255)"
         else
             style.border = '2px solid lightgrey'
+            style.background = 'white'
         if @props.task.get('deleted')
             style.background = '#d9534f'
             style.color      = '#eee'
