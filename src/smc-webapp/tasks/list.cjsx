@@ -6,11 +6,14 @@ List of Tasks
 
 misc = require('smc-util/misc')
 
-{Task} = require('./task')
-
 {React, ReactDOM, rclass, rtypes}  = require('../smc-react')
 
-exports.TaskList = rclass
+{SortableContainer, SortableElement} = require('react-sortable-hoc')
+
+{Task} = require('./task')
+Task = SortableElement(Task)
+
+exports.TaskList = SortableContainer rclass
     propTypes :
         actions          : rtypes.object
         path             : rtypes.string
@@ -22,13 +25,15 @@ exports.TaskList = rclass
         scroll           : rtypes.immutable.Map  # scroll position -- only used when initially mounted, so is NOT in shouldComponentUpdate below.
         style            : rtypes.object
         font_size        : rtypes.number
+        sortable         : rtypes.bool
 
     shouldComponentUpdate: (next) ->
         return @props.tasks            != next.tasks or \
                @props.visible          != next.visible or \
                @props.current_task_id  != next.current_task_id or \
                @props.local_task_state != next.local_task_state or \
-               @props.font_size        != next.font_size
+               @props.font_size        != next.font_size or \
+               @props.sortable         != next.sortable
 
     componentDidMount: ->
         if @props.scroll?
@@ -37,12 +42,13 @@ exports.TaskList = rclass
     componentWillUnmount: ->
         @save_scroll_position()
 
-    render_task: (task_id) ->
+    render_task: (index, task_id) ->
         task = @props.tasks.get(task_id)
         if not task?  # task deletion and visible list might not quite immediately be in sync/consistent
             return
         <Task
             key              = {task_id}
+            index            = {index}
             actions          = {@props.actions}
             path             = {@props.path}
             project_id       = {@props.project_id}
@@ -52,12 +58,16 @@ exports.TaskList = rclass
             editing_desc     = {@props.local_task_state?.getIn([task_id, 'editing_desc'])}
             min_desc         = {@props.local_task_state?.getIn([task_id, 'min_desc'])}
             font_size        = {@props.font_size}
+            sortable         = {@props.sortable}
         />
 
     render_tasks: ->
         x = []
+        index = 0
         @props.visible.forEach (task_id) =>
-            x.push(@render_task(task_id))
+            x.push(@render_task(index, task_id))
+            index += 1
+            return
         return x
 
     save_scroll_position: ->

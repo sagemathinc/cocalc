@@ -86,6 +86,9 @@ exports.TaskEditor = rclass ({name}) ->
             sort_column             = {@props.local_view_state?.getIn(['sort', 'column'])}
             />
 
+    on_sort_end: ({oldIndex, newIndex}) ->
+        @props.actions?.reorder_tasks(oldIndex, newIndex)
+
     render_list: ->
         if not @props.tasks? or not @props.visible?
             return
@@ -100,6 +103,11 @@ exports.TaskEditor = rclass ({name}) ->
             scroll           = {@props.local_view_state?.get('scroll')}
             font_size        = {@props.local_view_state?.get('font_size')}
             style            = {overflowY:'auto'}
+            sortable         = {@props.local_view_state?.getIn(['sort', 'column']) == 'Custom Order'}
+            onSortEnd        = {@on_sort_end}
+            useDragHandle    = {true}
+            lockAxis         = {'y'}
+            lockToContainerEdges = {true}
         />
 
     render_headings: ->
