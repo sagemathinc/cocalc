@@ -1633,7 +1633,7 @@ exports.load_coffeescript_compiler = (cb) ->
     else
         require.ensure [], =>
             # this should define window.CoffeeScript as the compiler instance.
-            require("script!coffeescript/coffee-script.js")
+            require("script!coffeescript/coffeescript.js")
             console.log("loaded CoffeeScript via require.ensure")
             cb?()
 

@@ -1,4 +1,4 @@
---require coffee-script/register
+--require coffeescript
 --reporter spec
 --recursive
 --exit

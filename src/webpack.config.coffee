@@ -626,7 +626,7 @@ module.exports =
     module:
         rules: [
             { test: /pnotify.*\.js$/, use: "imports?define=>false,global=>window" },
-            { test: /\.cjsx$/,   use: ['coffee-loader', 'cjsx-loader'] },
+            { test: /\.cjsx$/,   loader: 'coffee-loader' },
             { test: /\.coffee$/, loader: 'coffee-loader' },
             { test: /\.less$/,   use: ["style-loader", "css-loader", "less-loader?#{cssConfig}"]}, #loader : extractTextLess }, #
             { test: /\.scss$/,   use: ["style-loader", "css-loader", "sass-loader?#{cssConfig}"]}, #loader : extractTextScss }, #
