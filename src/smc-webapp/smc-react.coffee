@@ -114,7 +114,10 @@ Note: you cannot name a property "state" or "props"
 ###
 class Store extends EventEmitter
     # TODOJ: remove @name when fully switched over
-    constructor: (@name, @redux, store_def) ->
+    constructor: (name, redux, store_def) ->
+        super()
+        @name = name
+        @redux = redux
         @setMaxListeners(150)
         if not store_def?
             return

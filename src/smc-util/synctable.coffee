@@ -231,7 +231,15 @@ class Plug
             timer = setTimeout(give_up, 5000+Math.random()*10000)
 
 class SyncTable extends EventEmitter
-    constructor: (@_query, @_options, @_client, @_debounce_interval, @_throttle_changes, @_cache_key) ->
+    constructor: (_query, _options, _client, _debounce_interval, _throttle_changes, _cache_key) ->
+        super()
+        @_query = _query
+        @_options = _options
+        @_client = _client
+        @_debounce_interval = _debounce_interval
+        @_throttle_changes = _throttle_changes
+        @_cache_key = _cache_key
+
         @_init_query()
         # The value of this query locally.
         @_value_local = undefined

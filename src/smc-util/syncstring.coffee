@@ -211,7 +211,9 @@ class PatchValueCache
 
 # Sorted list of patches applied to a string
 class SortedPatchList extends EventEmitter
-    constructor: (@_from_str) ->
+    constructor: (_from_str) ->
+        super()
+        @_from_str = _from_str
         @_patches = []
         @_times = {}
         @_cache = new PatchValueCache()
@@ -556,6 +558,7 @@ STATES:
 
 class SyncDoc extends EventEmitter
     constructor: (opts) ->
+        super()
         @_opts = opts = defaults opts,
             save_interval     : 1500
             cursor_interval   : 2000
@@ -1990,7 +1993,10 @@ Used for testing
 ###
 synctable = require('./synctable')
 class exports.TestBrowserClient1 extends synctable.TestBrowserClient1
-    constructor: (@_client_id, @_debounce_interval=0) ->
+    constructor: (_client_id, _debounce_interval=0) ->
+        super()
+        @_client_id = _client_id
+        @_debounce_interval = _debounce_interval
 
     is_user: =>
         return true

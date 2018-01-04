@@ -43,10 +43,10 @@ templates = $("#webapp-editor-templates")
 {file_associations} = require('./file-associations')
 
 class exports.HistoryEditor extends FileEditor
-    constructor: (@project_id, @filename, content, opts) ->
+    constructor: (project_id, filename, content, opts) ->
+        super(project_id, filename)
         if window.smc?
             window.h = @ # for debugging
-        super(@project_id, @filename)
         @init_paths()
         @element  = templates.find(".webapp-editor-history").clone()
         async.series([

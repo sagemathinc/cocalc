@@ -45,7 +45,8 @@ primary_key =
 # Requires a syncdb to be set later
 # Manages local and sync changes
 exports.CourseActions = class CourseActions extends Actions
-    constructor: (@name, @redux) ->
+    constructor: (name, redux) ->
+        super(name, redux)
         if not @name?
             throw Error("@name must be defined")
         if not @redux?

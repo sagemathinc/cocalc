@@ -79,6 +79,7 @@ underscore = require('underscore')
 
 class SynchronizedString extends AbstractSynchronizedDoc
     constructor: (opts) ->
+        super()
         @opts = defaults opts,
             project_id        : required
             filename          : required
@@ -173,7 +174,9 @@ class SynchronizedString extends AbstractSynchronizedDoc
         return @_syncstring.exit_undo_mode()
 
 class SynchronizedDocument2 extends SynchronizedDocument
-    constructor: (@editor, opts, cb) ->
+    constructor: (editor, opts, cb) ->
+        super()
+        @editor = editor
         @opts = defaults opts,
             cursor_interval : 1000   # ignored below right now
             sync_interval   : 2000   # never send sync messages upstream more often than this

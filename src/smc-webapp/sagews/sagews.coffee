@@ -73,7 +73,8 @@ folded_gutter_elt = $('<div class="CodeMirror-foldgutter-folded CodeMirror-gutte
 line_number_elt   = $("<div style='color:#88f'></div>")
 
 class SynchronizedWorksheet extends SynchronizedDocument2
-    constructor: (@editor, @opts) ->
+    constructor: (editor, opts) ->
+        super(editor, opts)
         # window.w = @
 
         # these two lines are assumed, at least by the history browser
