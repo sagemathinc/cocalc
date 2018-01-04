@@ -50,6 +50,8 @@ exports.DueDate = rclass
             <DateTimePicker
                 value        = {value}
                 on_change    = {(date) => @set_due_date(date - 0)}
+                on_focus  = {=>@props.actions.disable_key_handler()}
+                on_blur   = {=>@props.actions.enable_key_handler()}
             />
             <div style={textAlign:'right', margin:'2px'}>
                 <Button onClick={@toggle_edit}>

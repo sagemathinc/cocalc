@@ -8,9 +8,9 @@ Top-level react component for task list
 {TaskList}           = require('./list')
 {ButtonBar}          = require('./buttonbar')
 {Find}               = require('./find')
-{Headings}           = require('./headings')
 {DescVisible}        = require('./desc-visible')
 {HashtagBar}         = require('./hashtag-bar')
+{Headings, is_sortable} = require('./headings')
 
 exports.TaskEditor = rclass ({name}) ->
     propTypes :
@@ -42,6 +42,12 @@ exports.TaskEditor = rclass ({name}) ->
                @props.local_view_state        != next.local_view_state or \
                @props.hashtags                != next.hashtags or \
                @props.search                  != next.search
+
+    componentDidMount: ->
+        @props.actions.enable_key_handler()
+
+    componentWillUnmount: ->
+        @props.actions.disable_key_handler()
 
     render_uncommitted_changes: ->
         if not @props.has_uncommitted_changes
@@ -103,7 +109,7 @@ exports.TaskEditor = rclass ({name}) ->
             scroll           = {@props.local_view_state?.get('scroll')}
             font_size        = {@props.local_view_state?.get('font_size')}
             style            = {overflowY:'auto'}
-            sortable         = {@props.local_view_state?.getIn(['sort', 'column']) == 'Custom Order'}
+            sortable         = {is_sortable(@props.local_view_state?.getIn(['sort', 'column']))}
             onSortEnd        = {@on_sort_end}
             useDragHandle    = {true}
             lockAxis         = {'y'}

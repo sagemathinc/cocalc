@@ -4,6 +4,8 @@ Task Actions
 
 LAST_EDITED_THRESH_S = 30
 
+WIKI_HELP_URL = "https://github.com/sagemathinc/cocalc/wiki/tasks"
+
 immutable  = require('immutable')
 underscore = require('underscore')
 
@@ -15,7 +17,7 @@ misc = require('smc-util/misc')
 
 {update_visible} = require('./update-visible')
 
-WIKI_HELP_URL = "https://github.com/sagemathinc/cocalc/wiki/tasks"
+keyboard = require('./keyboard')
 
 class exports.TaskActions extends Actions
     _init: (project_id, path, syncdb, store, client) =>
@@ -62,6 +64,15 @@ class exports.TaskActions extends Actions
             @redux.getActions('page').erase_active_key_handler(@_key_handler)
             delete @_key_handler
 
+    enable_key_handler: =>
+        if @_state == 'closed'
+            return
+        @_key_handler ?= keyboard.create_key_handler(@)
+        @redux.getActions('page').set_active_key_handler(@_key_handler)
+
+    disable_key_handler: =>
+        @redux.getActions('page').erase_active_key_handler(@_key_handler)
+
     _save_local_view_state: =>
         local_view_state = @store.get('local_view_state')
         if local_view_state and localStorage?
@@ -75,7 +86,7 @@ class exports.TaskActions extends Actions
         f = =>
             do_set()
             setTimeout(do_set, 3000)
-        @set_save_status = underscore.debounce(f, 1500)
+        @set_save_status = underscore.debounce(f, 500)
         @syncdb.on('metadata-change', @set_save_status)
         @syncdb.on('connected',       @set_save_status)
 
@@ -140,6 +151,9 @@ class exports.TaskActions extends Actions
     set_local_task_state: (task_id, obj) =>
         if @_state == 'closed'
             return
+        task_id ?= @store.get('current_task_id')
+        if not task_id?
+            return
         # Set local state related to a specific task -- this is NOT sync'd between clients
         local = @store.get('local_task_state')
         obj.task_id = task_id
@@ -166,7 +180,7 @@ class exports.TaskActions extends Actions
 
     save: =>
         @setState(has_unsaved_changes:false)
-        @syncdb.save () =>
+        @syncdb.save =>
             @set_save_status()
 
     new_task: =>
@@ -204,7 +218,10 @@ class exports.TaskActions extends Actions
         @edit_desc(task_id)
 
     set_task: (task_id, obj, setState) =>
-        if not task_id? or not obj? or @_state == 'closed'
+        if not obj? or @_state == 'closed'
+            return
+        task_id ?= @store.get('current_task_id')
+        if not task_id?
             return
         last_edited = @store.getIn(['tasks', task_id, 'last_edited']) ? 0
         now = new Date() - 0
@@ -212,7 +229,6 @@ class exports.TaskActions extends Actions
             obj.last_edited = now
         obj.task_id = task_id
         @syncdb.set(obj)
-        @syncdb.save()
         if setState
             # also set state directly in the tasks object locally **immediately**; this would happen
             # eventually as a result of the syncdb set above.
@@ -242,6 +258,30 @@ class exports.TaskActions extends Actions
     move_task_to_bottom: =>
         @set_task(@store.get('current_task_id'), {position: @store.get_positions().slice(-1)[0] + 1})
 
+    # only deleta = 1 or -1 is supported!
+    move_task_delta: (delta) =>
+        console.log('move_current_task_delta', delta)
+        if delta != 1 and delta != -1
+            return
+        task_id = @store.get('current_task_id')
+        if not task_id?
+            return
+        visible = @store.get('visible')
+        if not visible?
+            return
+        i = visible.indexOf(task_id)
+        if i == -1
+            return
+        j = i + delta
+        if j < 0 or j >= visible.size
+            return
+        # swap positions for i and j
+        tasks = @store.get('tasks')
+        pos_i = tasks.getIn([task_id, 'position'])
+        pos_j = tasks.getIn([visible.get(j), 'position'])
+        @set_task(task_id,        {position:pos_j}, true)
+        @set_task(visible.get(j), {position:pos_i}, true)
+
     time_travel: =>
         @redux.getProjectActions(@project_id).open_file
             path       : misc.history_path(@path)
@@ -253,6 +293,25 @@ class exports.TaskActions extends Actions
     set_current_task: (task_id) =>
         @setState(current_task_id : task_id)
 
+    set_current_task_delta: (delta) =>
+        task_id = @store.get('current_task_id')
+        if not task_id?
+            return
+        visible = @store.get('visible')
+        if not visible?
+            return
+        i = visible.indexOf(task_id)
+        if i == -1
+            return
+        i += delta
+        if i < 0
+            i = 0
+        else if i >= visible.size
+            i = visible.size - 1
+        new_task_id = visible.get(i)
+        if new_task_id?
+            @set_current_task(new_task_id)
+
     undo: =>
         @syncdb?.undo()
 
@@ -260,10 +319,17 @@ class exports.TaskActions extends Actions
         @syncdb?.redo()
 
     set_task_not_done: (task_id) =>
+        task_id ?= @store.get('current_task_id')
         @set_task(task_id, {done:false})
 
     set_task_done: (task_id) =>
+        task_id ?= @store.get('current_task_id')
         @set_task(task_id, {done:true})
+
+    toggle_task_done: (task_id) =>
+        task_id ?= @store.get('current_task_id')
+        if task_id?
+            @set_task(task_id, {done:!@store.getIn(['tasks', task_id, 'done'])})
 
     stop_editing_due_date: (task_id) =>
         @set_local_task_state(task_id, {editing_due_date : false})
@@ -357,5 +423,5 @@ class exports.TaskActions extends Actions
         @set_task(new_id, {position:old_pos}, true)
         @__update_visible()
 
-
-
+    focus_find_box: =>
+        console.log 'TODO: focus_find_box'
