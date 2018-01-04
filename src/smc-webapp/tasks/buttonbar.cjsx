@@ -33,7 +33,6 @@ exports.ButtonBar = rclass
                @props.sort_column             != next.sort_column
 
     render_task_group: ->
-        console.log @props.sort_column
         spacer = <span style={marginLeft:'5px'} />
         <span key='task'>
             <Button

@@ -21,7 +21,11 @@ Hashtag = rclass
     click: ->
         switch @props.state
             when 1
-                @props.actions.set_hashtag_state(@props.tag, -1)
+                # this would switch to negation state; but that's annoying and confusing
+                # in that it is a change from current ui, so let's not do this for now.
+                # User *can* now type -#foo in search box at least.
+                #@props.actions.set_hashtag_state(@props.tag, -1)
+                @props.actions.set_hashtag_state(@props.tag)
             when -1
                 @props.actions.set_hashtag_state(@props.tag)
             else

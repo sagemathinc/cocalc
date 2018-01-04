@@ -8,7 +8,15 @@ Task due date
 
 {React, rclass, rtypes}  = require('../smc-react')
 
-{Calendar, Icon, Space, TimeAgo} = require('../r_misc')
+{DateTimePicker, Icon, Space, TimeAgo} = require('../r_misc')
+
+STYLE =
+    border       : '1px solid lightgrey'
+    background   : 'white'
+    borderRadius : '4px'
+    margin       : '5px'
+    width        : '400px'
+    boxShadow    : '0 6px 12px rgba(0,0,0,.175)'
 
 exports.DueDate = rclass
     propTypes :
@@ -38,10 +46,10 @@ exports.DueDate = rclass
             value = new Date(@props.due_date)
         else
             value = new Date()
-        <div style={border:'1px solid lightgrey', borderRadius:'4px', margin:'5px', width:'250px', boxShadow:'0 6px 12px rgba(0,0,0,.175)'}>
-            <Calendar
-                value     = {value}
-                on_change = {(date) => @set_due_date(date - 0)}
+        <div style={STYLE}>
+            <DateTimePicker
+                value        = {value}
+                on_change    = {(date) => @set_due_date(date - 0)}
             />
             <div style={textAlign:'right', margin:'2px'}>
                 <Button onClick={@toggle_edit}>

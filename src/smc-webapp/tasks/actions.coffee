@@ -19,8 +19,8 @@ WIKI_HELP_URL = "https://github.com/sagemathinc/cocalc/wiki/tasks"
 
 class exports.TaskActions extends Actions
     _init: (project_id, path, syncdb, store, client) =>
-        @_save_local_view_state = underscore.debounce(@__save_local_view_state, 3000)
-        @_update_visible = underscore.throttle(@__update_visible, 500)
+        @_save_local_view_state = underscore.debounce((=>@__save_local_view_state?()), 3000)
+        @_update_visible = underscore.throttle((=>@__update_visible?()), 500)
         @project_id = project_id
         @path       = path
         @syncdb     = syncdb
