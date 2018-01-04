@@ -1616,6 +1616,8 @@ class CodeMirrorEditor extends FileEditor
                 textedit_only_show_known_buttons(name)
             set_mode_display(name)
 
+        # show the assistant button to reveal the dialog for example selection
+        @element.find('.webapp-editor-codeedit-buttonbar-assistant').show()
         assistant_button = @element.find('a[href="#assistant"]')
         assistant_button.click(@examples_dialog_handler)
 

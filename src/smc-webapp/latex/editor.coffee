@@ -80,6 +80,7 @@ class exports.LatexEditor extends editor.FileEditor
         @_pages['latex_editor'] = @latex_editor
         @element.find(".webapp-editor-latex-latex_editor").append(@latex_editor.element)
         @element.find(".webapp-editor-codeedit-buttonbar-mode").remove()
+        @element.find(".webapp-editor-codeedit-buttonbar-assistant").remove()
 
         @latex_editor.action_key = @action_key
         @element.find(".webapp-editor-latex-buttons").show()

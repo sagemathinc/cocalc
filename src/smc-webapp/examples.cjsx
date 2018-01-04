@@ -42,6 +42,8 @@ markdown = require('./markdown')
 
 exports.ICON_NAME = 'magic'
 
+REPO_URL = 'https://github.com/sagemathinc/cocalc-assistant'
+
 # the json from the server, where the entries for the documents are
 # double-nested objects (two hiearchies of categories) mapping to title/code/description documents
 DATA = null
@@ -549,19 +551,22 @@ ExamplesBody = rclass
             @render_bottom()
         ]
 
+    render_unknown_lang: ->
+        <Row>
+            <Col sm={12}>
+                Selected language <code>{@props.lang}</code> has no data.
+                You can help by contributing more content at{' '}
+                <a href={REPO_URL} target="_blank">
+                    {'sagemathinc/cocalc-assistant'}
+                </a>.
+            </Col>
+        </Row>
+
     render: ->
         <Modal.Body className='modal-body'>
             {
                 if @props.unknown_lang
-                    <Row>
-                        <Col sm={12}>
-                            Selected language <code>{@props.lang}</code> has no data.
-                            You can help by contributing more content at{' '}
-                            <a href="https://github.com/sagemathinc/cocalc-assistant" target="_blank">
-                                {'sagemathinc/cocalc-assistant'}
-                            </a>.
-                        </Col>
-                    </Row>
+                    @render_unknown_lang()
                 else
                     @render_body()
             }
