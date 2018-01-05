@@ -116,7 +116,6 @@ exports.DescriptionEditor = rclass
         save_to_disk = => @props.actions.save()
         options.extraKeys =
             "Shift-Enter" : @stop_editing
-            "Ctrl-C"      : @stop_editing
             Esc           : @stop_editing
             Tab           : => @cm.tab_as_space()
             "Cmd-S"       : save_to_disk

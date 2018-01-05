@@ -424,4 +424,9 @@ class exports.TaskActions extends Actions
         @__update_visible()
 
     focus_find_box: =>
-        console.log 'TODO: focus_find_box'
+        @disable_key_handler()
+        @setState(focus_find_box:true)
+
+    blur_find_box: =>
+        @enable_key_handler()
+        @setState(focus_find_box:false)

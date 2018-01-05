@@ -30,6 +30,7 @@ exports.TaskEditor = rclass ({name}) ->
             local_view_state        : rtypes.immutable.Map
             hashtags                : rtypes.immutable.Map
             search_desc             : rtypes.string
+            focus_find_box          : rtypes.bool
 
     shouldComponentUpdate: (next) ->
         return @props.tasks                   != next.tasks or \
@@ -41,7 +42,8 @@ exports.TaskEditor = rclass ({name}) ->
                @props.local_task_state        != next.local_task_state  or \
                @props.local_view_state        != next.local_view_state or \
                @props.hashtags                != next.hashtags or \
-               @props.search                  != next.search
+               @props.search                  != next.search or \
+               !!next.focus_find_box and not @props.focus_find_box
 
     componentDidMount: ->
         @props.actions.enable_key_handler()
@@ -73,6 +75,7 @@ exports.TaskEditor = rclass ({name}) ->
             actions          = {@props.actions}
             local_view_state = {@props.local_view_state}
             counts           = {@props.counts}
+            focus_find_box   = {@props.focus_find_box}
             />
 
     render_desc_visible: ->
