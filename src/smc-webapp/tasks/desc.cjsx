@@ -60,6 +60,8 @@ exports.Description = rclass
 
     render_desc: ->
         <DescriptionRendered
+            actions    = {@props.actions}
+            task_id    = {@props.task_id}
             path       = {@props.path}
             project_id = {@props.project_id}
             desc       = {@props.desc}
