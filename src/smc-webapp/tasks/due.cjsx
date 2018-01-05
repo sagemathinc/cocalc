@@ -20,15 +20,17 @@ STYLE =
 
 exports.DueDate = rclass
     propTypes :
-        actions  : rtypes.object
-        task_id  : rtypes.string.isRequired
-        due_date : rtypes.number
-        editing  : rtypes.bool
+        actions   : rtypes.object
+        task_id   : rtypes.string.isRequired
+        due_date  : rtypes.number
+        editing   : rtypes.bool
+        read_only : rtypes.bool
 
     shouldComponentUpdate: (next) ->
-        return @props.due_date != next.due_date or \
-               @props.task_id  != next.task_id or \
-               @props.editing  != next.editing
+        return @props.due_date  != next.due_date or \
+               @props.task_id   != next.task_id  or \
+               @props.editing   != next.editing  or \
+               @props.read_only != next.read_only
 
     toggle_edit: ->
         if @props.editing
@@ -80,12 +82,12 @@ exports.DueDate = rclass
             elt = <TimeAgo date = {new Date(@props.due_date)}/>
         else
             elt = <span>none</span>
-        <span onClick={@toggle_edit} style={style} >
+        <span onClick={if not @props.read_only then @toggle_edit} style={style} >
             {elt}
         </span>
 
     render: ->
-        if not @props.actions?  # read only
+        if @props.read_only
             return @render_due_date()
         else
             <div style={cursor:'pointer'}>

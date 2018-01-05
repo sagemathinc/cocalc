@@ -31,6 +31,7 @@ exports.TaskEditor = rclass ({name}) ->
             hashtags                : rtypes.immutable.Map
             search_desc             : rtypes.string
             focus_find_box          : rtypes.bool
+            read_only               : rtypes.bool
 
     shouldComponentUpdate: (next) ->
         return @props.tasks                   != next.tasks or \
@@ -41,8 +42,9 @@ exports.TaskEditor = rclass ({name}) ->
                @props.has_uncommitted_changes != next.has_uncommitted_changes or \
                @props.local_task_state        != next.local_task_state  or \
                @props.local_view_state        != next.local_view_state or \
-               @props.hashtags                != next.hashtags or \
-               @props.search                  != next.search or \
+               @props.hashtags                != next.hashtags  or \
+               @props.read_only               != next.read_only or \
+               @props.search                  != next.search    or \
                !!next.focus_find_box and not @props.focus_find_box
 
     componentDidMount: ->
@@ -89,6 +91,7 @@ exports.TaskEditor = rclass ({name}) ->
     render_button_bar: ->
         <ButtonBar
             actions                 = {@props.actions}
+            read_only               = {@props.read_only}
             has_unsaved_changes     = {@props.has_unsaved_changes}
             current_task_id         = {@props.current_task_id}
             current_task_is_deleted = {@props.tasks?.get(@props.current_task_id)?.get('deleted')}
@@ -112,7 +115,8 @@ exports.TaskEditor = rclass ({name}) ->
             scroll           = {@props.local_view_state?.get('scroll')}
             font_size        = {@props.local_view_state?.get('font_size')}
             style            = {overflowY:'auto'}
-            sortable         = {is_sortable(@props.local_view_state?.getIn(['sort', 'column']))}
+            sortable         = {not @props.read_only and is_sortable(@props.local_view_state?.getIn(['sort', 'column']))}
+            read_only        = {@props.read_only}
             onSortEnd        = {@on_sort_end}
             useDragHandle    = {true}
             lockAxis         = {'y'}

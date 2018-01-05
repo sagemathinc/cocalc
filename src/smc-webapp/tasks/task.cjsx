@@ -23,6 +23,7 @@ exports.Task = rclass
         min_desc         : rtypes.bool
         font_size        : rtypes.number
         sortable         : rtypes.bool
+        read_only        : rtypes.bool
 
     shouldComponentUpdate: (next) ->
         return @props.task              != next.task             or \
@@ -31,7 +32,9 @@ exports.Task = rclass
                @props.editing_desc      != next.editing_desc     or \
                @props.min_desc          != next.min_desc         or \
                @props.font_size         != next.font_size        or \
-               @props.sortable          != next.sortable
+               @props.sortable          != next.sortable         or \
+               @props.read_only         != next.read_only
+
 
     render_drag_handle: ->
         if @props.sortable
@@ -39,9 +42,10 @@ exports.Task = rclass
 
     render_done_checkbox: ->  # cast of done to bool for backward compat
         <DoneCheckbox
-            actions = {@props.actions}
-            done    = {!!@props.task.get('done')}
-            task_id = {@props.task.get('task_id')}
+            actions   = {@props.actions}
+            read_only = {@props.read_only}
+            done      = {!!@props.task.get('done')}
+            task_id   = {@props.task.get('task_id')}
         />
 
     render_min_toggle: ->
@@ -62,6 +66,7 @@ exports.Task = rclass
             minimize   = {@props.min_desc}
             is_current = {@props.is_current}
             font_size  = {@props.font_size}
+            read_only  = {@props.read_only}
         />
 
     render_last_edited: ->
@@ -71,10 +76,11 @@ exports.Task = rclass
 
     render_due_date: ->
         <DueDate
-            actions  = {@props.actions}
-            task_id  = {@props.task.get('task_id')}
-            due_date = {@props.task.get('due_date')}
-            editing  = {@props.editing_due_date}
+            actions   = {@props.actions}
+            read_only = {@props.read_only}
+            task_id   = {@props.task.get('task_id')}
+            due_date  = {@props.task.get('due_date')}
+            editing   = {@props.editing_due_date}
             />
 
     on_click: ->

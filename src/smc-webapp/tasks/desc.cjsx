@@ -25,6 +25,7 @@ exports.Description = rclass
         minimize   : rtypes.bool
         is_current : rtypes.bool
         font_size  : rtypes.number
+        read_only  : rtypes.bool
 
     shouldComponentUpdate: (next) ->
         return @props.desc     != next.desc     or \
@@ -32,7 +33,8 @@ exports.Description = rclass
                @props.editing  != next.editing  or \
                @props.minimize != next.minimize or \
                @props.is_current != next.is_current or \
-               @props.font_size  != next.font_size
+               @props.font_size  != next.font_size  or \
+               @props.read_only  != next.read_only
 
     edit: ->
         @props.actions.edit_desc(@props.task_id)
@@ -66,10 +68,11 @@ exports.Description = rclass
             project_id = {@props.project_id}
             desc       = {@props.desc}
             minimize   = {@props.minimize}
+            read_only  = {@props.read_only}
             />
 
     render: ->
-        if not @props.actions?  # read only
+        if @props.read_only or not @props.actions?
             return @render_desc()
         <div>
             {@render_editor()}

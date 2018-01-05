@@ -27,6 +27,7 @@ exports.DescriptionRendered = rclass
         path       : rtypes.string
         project_id : rtypes.string
         minimize   : rtypes.bool
+        read_only  : rtypes.bool
 
     render_content: ->
         value = @props.desc
@@ -54,7 +55,7 @@ exports.DescriptionRendered = rclass
         @props.actions.set_desc(@props.task_id, desc)
 
     render: ->
-        <div style={padding:'0 10px'} onClick={if @props.actions? then @on_click}>
+        <div style={padding:'0 10px'} onClick={if not @props.read_only and @props.actions? then @on_click}>
             {@render_content()}
         </div>
 
