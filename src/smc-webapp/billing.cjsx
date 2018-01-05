@@ -1114,7 +1114,7 @@ exports.SubscriptionGrid = SubscriptionGrid = rclass
         is_static : false
 
     is_selected: (plan, period) ->
-        if @props.period is 'year'
+        if @props.period?.slice(0, 4) is 'year'
             return @props.selected_plan is "#{plan}-year"
         else
             return @props.selected_plan is plan
