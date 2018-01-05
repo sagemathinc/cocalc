@@ -904,7 +904,7 @@ AddSubscription = rclass
             length = PROJECT_UPGRADES.period_names[@state.selected_button]
             <p style={marginBottom:'1ex', marginTop:'1ex'}>
                 {<span>This subscription will <b>automatically renew</b> every {length}.  You can cancel automatic renewal at any time.</span> if renews}
-                {<span>You will be <b>charged only once</b> for the course package, which lasts {length}.  It does <b>not automatically renew</b>.</span> if not renews}
+                {<span>You will be <b>charged only once</b> for the course package, which lasts {if length == 'year' then 'a '}{length}.  It does <b>not automatically renew</b>.</span> if not renews}
             </p>
 
     render_subscription_grid: ->
@@ -928,12 +928,13 @@ AddSubscription = rclass
             {@render_dedicated_resources() if @state.selected_button is 'dedicated_resources'}
         ###
 
-    render_create_subscription_confirm: ->
+    render_create_subscription_confirm: (plan_data) ->
         if @is_recurring()
             subscription = " and you will be signed up for a recurring subscription"
+        name = plan_data.desc ? misc.capitalize(@props.selected_plan).replace(/_/g,' ') + ' plan'
         <Alert>
             <h4><Icon name='check' /> Confirm your selection </h4>
-            <p>You have selected the <span style={fontWeight:'bold'}>{misc.capitalize(@props.selected_plan).replace(/_/g,' ')} subscription</span>.</p>
+            <p>You have selected the <span style={fontWeight:'bold'}>{name} subscription</span>.</p>
             {@render_renewal_info()}
             <p>By clicking 'Add Subscription' your payment card will be immediately charged{subscription}.</p>
         </Alert>
@@ -959,11 +960,12 @@ AddSubscription = rclass
         </Row>
 
     render: ->
+        plan_data = PROJECT_UPGRADES.subscription[@props.selected_plan.split('-')[0]]
         <Row>
             <Col sm=10 smOffset=1>
                 <Well style={boxShadow:'5px 5px 5px lightgray', zIndex:1}>
                     {@render_create_subscription_options()}
-                    {@render_create_subscription_confirm() if @props.selected_plan isnt ''}
+                    {@render_create_subscription_confirm(plan_data) if @props.selected_plan isnt ''}
                     {<ConfirmPaymentMethod
                         is_recurring = {@is_recurring()}
                     /> if @props.selected_plan isnt ''}
