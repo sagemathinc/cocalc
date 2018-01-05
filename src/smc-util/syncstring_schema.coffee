@@ -76,7 +76,7 @@ schema.syncstrings =
             type : 'string'
             desc : "(optional) JSON string describing meaning of the patches (i.e., of this document0 -- e.g., {type:'db', opts:{primary_keys:['id'], string_cols:['name']}}"
 
-    pg_indexes : ['last_active', 'archived']
+    pg_indexes : ['last_active']
 
     user_query:
         get :
