@@ -254,7 +254,7 @@ class AccountStore extends Store
     get_confirm_close: =>
         return @getIn(['other_settings', 'confirm_close'])
 
-    # Total ugprades this user is paying for (sum of all upgrades from memberships)
+    # Total ugprades this user is paying for (sum of all upgrades from subscriptions)
     get_total_upgrades: =>
         require('upgrades').get_total_upgrades(@getIn(['stripe_customer','subscriptions', 'data'])?.toJS())
 
