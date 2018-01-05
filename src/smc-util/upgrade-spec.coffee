@@ -135,8 +135,8 @@ upgrades.field_order = ['member_host', 'network', 'mintime', 'disk_quota',
 # live_subscriptions is an array of arrays.  Each array should have length a divisor of 12.
 # The subscriptions will be displayed one row at a time.
 upgrades.live_subscriptions = [['standard', 'premium', 'professional'],
-                               ['small_course', 'medium_course', 'large_course'],
-                               ['small_course2', 'medium_course2', 'large_course2']]
+                               ['small_course2', 'medium_course2', 'large_course2'],
+                               ['small_course', 'medium_course', 'large_course']]
 
 upgrades.period_names =
     month  : 'month'
