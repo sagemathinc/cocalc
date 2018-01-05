@@ -197,7 +197,7 @@ subscription.standard =   # a user that has a standard subscription
 
 subscription.large_course =
     icon  : 'battery-full'
-    desc : 'Large course\n(250 students)'
+    desc : 'Basic large course\n(250 students)'
     price :
         month4 : 999
         year1  : 2499
@@ -214,7 +214,7 @@ subscription.large_course =
 
 subscription.large_course2 =
     icon  : 'battery-full'
-    desc : 'Large compute heavy course\n(250 students)'
+    desc : 'Standard large course\n(250 students)'
     price :
         month4 : 1999
         year1  : 4999
@@ -231,7 +231,7 @@ subscription.large_course2 =
 
 subscription.medium_course =
     icon  : 'battery-three-quarters'
-    desc  : 'Medium course\n(70 students)'
+    desc  : 'Basic medium course\n(70 students)'
     price :
         month4 : 399
         year1  : 999
@@ -247,7 +247,7 @@ subscription.medium_course =
 
 subscription.medium_course2 =
     icon  : 'battery-three-quarters'
-    desc  : 'Medium compute heavy course\n(70 students)'
+    desc  : 'Standard medium course\n(70 students)'
     price :
         month4 : 799
         year1  : 1999
@@ -264,7 +264,7 @@ subscription.medium_course2 =
 
 subscription.small_course =
     icon  : 'battery-quarter'
-    desc  : 'Small course\n(25 students)'
+    desc  : 'Basic small course\n(25 students)'
     price :
         month4 : 199
         year1  : 499
@@ -280,7 +280,7 @@ subscription.small_course =
 
 subscription.small_course2 =
     icon  : 'battery-quarter'
-    desc  : 'Small compute heavy course\n(25 students)'
+    desc  : 'Standard small course\n(25 students)'
     price :
         month4 : 399
         year1  : 999

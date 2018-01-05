@@ -1311,6 +1311,13 @@ exports.ExplainPlan = ExplainPlan = rclass
 
                 <br/>
 
+                <h4>Basic or Standard?</h4>
+                Our basic plans work well for cases where you are only doing
+                small computations or just need internet access and better hosting uptime.
+
+                However, we find that many data science and computational science courses
+                run much smoother with the additional RAM and CPU found in the standard plan.
+
                 <br/>
 
             </div>
