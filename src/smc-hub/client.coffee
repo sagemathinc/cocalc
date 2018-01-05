@@ -2124,7 +2124,7 @@ class exports.Client extends EventEmitter
             @stripe_error_to_client(id:mesg.id, error:"missing field 'plan'")
             return
 
-        schema = require('smc-util/schema').PROJECT_UPGRADES.membership[mesg.plan.split('-')[0]]
+        schema = require('smc-util/schema').PROJECT_UPGRADES.subscription[mesg.plan.split('-')[0]]
         if not schema?
             @stripe_error_to_client(id:mesg.id, error:"unknown plan -- '#{mesg.plan}'")
             return
