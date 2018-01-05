@@ -52,6 +52,8 @@ class exports.TaskActions extends Actions
         @_init_has_unsaved_changes()
         @syncdb.on('change', @_syncdb_change)
         @syncdb.once('change', @_ensure_positions_are_unique)
+        @syncdb.once('init', @_syncdb_metadata)
+        @syncdb.on('metadata-change', @_syncdb_metadata)
 
     close: =>
         if @_state == 'closed'
@@ -89,6 +91,11 @@ class exports.TaskActions extends Actions
         @set_save_status = underscore.debounce(f, 500)
         @syncdb.on('metadata-change', @set_save_status)
         @syncdb.on('connected',       @set_save_status)
+
+    _syncdb_metadata: =>
+        read_only = @syncdb.is_read_only()
+        if read_only != @store.get('read_only')
+            @setState(read_only: read_only)
 
     _syncdb_change: (changes) =>
         tasks = @store.get('tasks') ? immutable.Map()
