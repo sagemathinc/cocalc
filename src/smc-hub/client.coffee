@@ -1163,20 +1163,135 @@ class exports.Client extends EventEmitter
 
     mesg_invite_collaborator: (mesg) =>
         @touch()
+        #dbg = @dbg('mesg_invite_collaborator')
+        #dbg("mesg: #{misc.to_json(mesg)}")
         @get_project mesg, 'write', (err, project) =>
             if err
                 return
+            locals =
+                email_address : undefined
+                done          : false
+
             # SECURITY NOTE: mesg.project_id is valid and the client has write access, since otherwise,
             # the @get_project function above wouldn't have returned without err...
-            @database.add_user_to_project
-                project_id : mesg.project_id
-                account_id : mesg.account_id
-                group      : 'collaborator'  # in future will be "invite_collaborator", once implemented
-                cb         : (err) =>
-                    if err
-                        @error_to_client(id:mesg.id, error:err)
+            async.series([
+                (cb) =>
+                    @database.add_user_to_project
+                        project_id   : mesg.project_id
+                        account_id   : mesg.account_id
+                        group        : 'collaborator'  # in future will be "invite_collaborator", once implemented
+                        cb           : cb
+
+                (cb) =>
+                    # only send an email when there is an mesg.email body to send.
+                    # we want to make it explicit when they're sent, and implicitly disable it for API usage.
+                    if not mesg.email?
+                        locals.done = true
+                    cb()
+
+                (cb) =>
+                    if locals.done
+                        cb(); return
+
+                    {one_result} = require('./postgres')
+                    @database._query
+                        query : "SELECT email_address FROM accounts"
+                        where : "account_id = $::UUID" : mesg.account_id
+                        cb    : one_result 'email_address', (err, x) =>
+                            locals.email_address = x
+                            cb(err)
+
+                (cb) =>
+                    if (not locals.email_address) or locals.done
+                        cb(); return
+
+                    # INFO: for testing this, you have to reset the invite field each time you sent yourself an invitation
+                    # in psql: UPDATE projects SET invite = NULL WHERE project_id = '<UUID of your cc-in-cc dev project>';
+                    @database.when_sent_project_invite
+                        project_id : mesg.project_id
+                        to         : locals.email_address
+                        cb         : (err, when_sent) =>
+                            if err
+                                cb(err)
+                            else if when_sent >= misc.days_ago(7)   # successfully sent < one week ago -- don't again
+                                locals.done = true
+                                cb()
+                            else
+                                cb()
+
+                (cb) =>
+                    if locals.done or (not locals.email_address)
+                        cb(); return
+
+                    cb()  # we return early, because there is no need to let someone wait for sending the email
+
+                    # available message fields
+                    # mesg.title            - title of project
+                    # mesg.link2proj
+                    # mesg.replyto
+                    # mesg.replyto_name
+                    # mesg.email            - body of email
+                    # mesg.subject
+
+                    # send an email to the user -- async, not blocking user.
+                    # TODO: this can take a while -- we need to take some action
+                    # if it fails, e.g., change a setting in the projects table!
+                    if mesg.replyto_name?
+                        subject = "#{mesg.replyto_name} invited you to collaborate on CoCalc in project '#{mesg.title}'"
                     else
-                        @push_to_client(message.success(id:mesg.id))
+                        subject = "Invitation to CoCalc for collaborating in project '#{mesg.title}'"
+                    # override subject if explicitly given
+                    if mesg.subject?
+                        subject  = mesg.subject
+
+                    if mesg.link2proj? # make sure invitees know where to go
+                        base_url = mesg.link2proj.split("/")
+                        base_url = "#{base_url[0]}//#{base_url[2]}"
+                        direct_link = "Open <a href='#{mesg.link2proj}'>the project '#{mesg.title}'</a>."
+                    else # fallback for outdated clients
+                        base_url = 'https://cocalc.com/'
+                        direct_link = ''
+
+                    email_body = (mesg.email ? '') + """
+                        <br/><br/>
+                        <b>To accept the invitation, please open
+                        <a href='#{base_url}'>#{base_url}</a>
+                        and sign in using your email address '#{locals.email_address}'.
+                        #{direct_link}</b><br/>
+                        """
+
+                    # The following is only for backwards compatibility with outdated webapp clients during the transition period
+                    if not mesg.title?
+                        subject = "Invitation to CoCalc for collaborating on a project"
+
+                    # asm_group: 699 is for invites https://app.sendgrid.com/suppressions/advanced_suppression_manager
+                    opts =
+                        to           : locals.email_address
+                        bcc          : 'invites@sagemath.com'
+                        fromname     : 'CoCalc'
+                        from         : 'invites@sagemath.com'
+                        replyto      : mesg.replyto ? 'help@sagemath.com'
+                        replyto_name : mesg.replyto_name
+                        subject      : subject
+                        category     : "invite"
+                        asm_group    : 699
+                        body         : email_body
+                        cb           : (err) =>
+                            if err
+                                dbg("FAILED to send email to #{locals.email_address}  -- err={misc.to_json(err)}")
+                            @database.sent_project_invite
+                                project_id : mesg.project_id
+                                to         : locals.email_address
+                                error      : err
+                    send_email(opts)
+
+                ], (err) =>
+                        if err
+                            @error_to_client(id:mesg.id, error:err)
+                        else
+                            @push_to_client(message.success(id:mesg.id))
+                )
+
 
     mesg_invite_noncloud_collaborators: (mesg) =>
         dbg = @dbg('mesg_invite_noncloud_collaborators')
@@ -1246,7 +1361,7 @@ class exports.Client extends EventEmitter
                                 cb         : (err, when_sent) =>
                                     if err
                                         cb(err)
-                                    else if when_sent - 0 >= misc.days_ago(7) - 0 # successfully sent < one week ago -- don't again
+                                    else if when_sent >= misc.days_ago(7)   # successfully sent < one week ago -- don't again
                                         done = true
                                         cb()
                                     else
