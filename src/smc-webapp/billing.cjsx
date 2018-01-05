@@ -32,7 +32,7 @@ _             = require('underscore')
 
 {PROJECT_UPGRADES} = require('smc-util/schema')
 
-STUDENT_COURSE_PRICE = require('smc-util/upgrade-spec').upgrades.membership.student_course.price.month4
+STUDENT_COURSE_PRICE = require('smc-util/upgrade-spec').upgrades.subscription.student_course.price.month4
 
 load_stripe = (cb) ->
     if Stripe?
@@ -811,7 +811,7 @@ PlanInfo = rclass
         </div>
 
     render: ->
-        plan_data = PROJECT_UPGRADES.membership[@props.plan]
+        plan_data = PROJECT_UPGRADES.subscription[@props.plan]
         if not plan_data?
             return <div>Unknown plan type: {@props.plan}</div>
 
@@ -857,7 +857,7 @@ AddSubscription = rclass
         selected_button : 'month'
 
     is_recurring: ->
-        not PROJECT_UPGRADES.membership[@props.selected_plan.split('-')[0]].cancel_at_period_end
+        not PROJECT_UPGRADES.subscription[@props.selected_plan.split('-')[0]].cancel_at_period_end
 
     submit_create_subscription: ->
         plan = @props.selected_plan
@@ -900,7 +900,7 @@ AddSubscription = rclass
 
     render_renewal_info: ->
         if @props.selected_plan
-            renews = not PROJECT_UPGRADES.membership[@props.selected_plan.split('-')[0]].cancel_at_period_end
+            renews = not PROJECT_UPGRADES.subscription[@props.selected_plan.split('-')[0]].cancel_at_period_end
             length = PROJECT_UPGRADES.period_names[@state.selected_button]
             <p style={marginBottom:'1ex', marginTop:'1ex'}>
                 {<span>This subscription will <b>automatically renew</b> every {length}.  You can cancel automatic renewal at any time.</span> if renews}
@@ -1143,7 +1143,7 @@ exports.SubscriptionGrid = SubscriptionGrid = rclass
         for row in PROJECT_UPGRADES.live_subscriptions
             v = []
             for x in row
-                price_keys = _.keys(PROJECT_UPGRADES.membership[x].price)
+                price_keys = _.keys(PROJECT_UPGRADES.subscription[x].price)
                 if _.intersection(periods, price_keys).length > 0
                     v.push(x)
             if v.length > 0
@@ -1328,10 +1328,10 @@ exports.ExplainPlan = ExplainPlan = rclass
 # ~~~ FAQ START
 
 # some variables used in the text below
-faq_course_120 = 2 * PROJECT_UPGRADES.membership.medium_course.benefits.member_host
-faq_academic_students =  PROJECT_UPGRADES.membership.small_course.benefits.member_host
-faq_academic_nb_standard = Math.ceil(faq_academic_students / PROJECT_UPGRADES.membership.standard.benefits.member_host)
-faq_academic_full = faq_academic_nb_standard * 4 * PROJECT_UPGRADES.membership.standard.price.month
+faq_course_120 = 2 * PROJECT_UPGRADES.subscription.medium_course.benefits.member_host
+faq_academic_students =  PROJECT_UPGRADES.subscription.small_course.benefits.member_host
+faq_academic_nb_standard = Math.ceil(faq_academic_students / PROJECT_UPGRADES.subscription.standard.benefits.member_host)
+faq_academic_full = faq_academic_nb_standard * 4 * PROJECT_UPGRADES.subscription.standard.price.month
 faq_idle_time_free_h = require('smc-util/schema').DEFAULT_QUOTAS.mintime / 60 / 60
 
 # the structured react.js FAQ text

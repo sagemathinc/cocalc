@@ -184,7 +184,7 @@ class SupportActions extends Actions
         tags = []
 
         # all upgrades the user has available
-        # that's a sum of membership benefits (see schema.coffee)
+        # that's a sum of subscription benefits (see schema.coffee)
         upgrades = account.get_total_upgrades()
         if upgrades? and misc.sum(_.values(upgrades)) > 0
             tags.push('member')

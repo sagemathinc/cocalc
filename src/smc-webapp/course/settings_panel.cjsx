@@ -39,7 +39,7 @@ misc = require('smc-util/misc')
 {HelpBox} = require('./help_box')
 {DeleteStudentsPanel} = require('./delete_students')
 
-STUDENT_COURSE_PRICE = require('smc-util/upgrade-spec').upgrades.membership.student_course.price.month4
+STUDENT_COURSE_PRICE = require('smc-util/upgrade-spec').upgrades.subscription.student_course.price.month4
 
 StudentProjectsStartStopPanel = rclass ({name}) ->
     displayName : "CourseEditorSettings-StudentProjectsStartStopPanel"

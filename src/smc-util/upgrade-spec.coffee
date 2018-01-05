@@ -144,11 +144,9 @@ upgrades.period_names =
     month4 : '4 months'
     year1  : 'year'
 
-# TODO: change from "membership" to "subscription".
+subscription = upgrades.subscription = {}
 
-membership = upgrades.membership = {}
-
-membership.professional =    # a user that has a professional membership
+subscription.professional =    # a user that has a professional subscription
     icon  : 'battery-full'
     price :
         month  : 99
@@ -164,7 +162,7 @@ membership.professional =    # a user that has a professional membership
         mintime        : 24*3600*20
         network        : 10*20
 
-membership.premium =    # a user that has a premium membership
+subscription.premium =    # a user that has a premium subscription
     icon  : 'battery-three-quarters'
     price :
         month  : 49
@@ -180,7 +178,7 @@ membership.premium =    # a user that has a premium membership
         mintime        : 24*3600*8
         network        : 10*8
 
-membership.standard =   # a user that has a standard membership
+subscription.standard =   # a user that has a standard subscription
     icon  : 'battery-quarter'
     price :
         month  : 7
@@ -197,7 +195,7 @@ membership.standard =   # a user that has a standard membership
         network        : 20
 
 
-membership.large_course =
+subscription.large_course =
     icon  : 'battery-full'
     desc : 'Large course\n(250 students)'
     price :
@@ -214,7 +212,7 @@ membership.large_course =
         network        : 250
 
 
-membership.large_course2 =
+subscription.large_course2 =
     icon  : 'battery-full'
     desc : 'Large compute heavy course\n(250 students)'
     price :
@@ -231,7 +229,7 @@ membership.large_course2 =
         member_host    : 250
         network        : 250
 
-membership.medium_course =
+subscription.medium_course =
     icon  : 'battery-three-quarters'
     desc  : 'Medium course\n(70 students)'
     price :
@@ -247,7 +245,7 @@ membership.medium_course =
         member_host    : 70
         network        : 70
 
-membership.medium_course2 =
+subscription.medium_course2 =
     icon  : 'battery-three-quarters'
     desc  : 'Medium compute heavy course\n(70 students)'
     price :
@@ -264,7 +262,7 @@ membership.medium_course2 =
         member_host    : 70
         network        : 70
 
-membership.small_course =
+subscription.small_course =
     icon  : 'battery-quarter'
     desc  : 'Small course\n(25 students)'
     price :
@@ -280,7 +278,7 @@ membership.small_course =
         member_host    : 25
         network        : 25
 
-membership.small_course2 =
+subscription.small_course2 =
     icon  : 'battery-quarter'
     desc  : 'Small compute heavy course\n(25 students)'
     price :
@@ -297,7 +295,7 @@ membership.small_course2 =
         member_host    : 25
         network        : 25
 
-membership.student_course =
+subscription.student_course =
     icon  : 'graduation-cap'
     price :
         month4 : 14
@@ -313,7 +311,7 @@ membership.student_course =
         network        : 2
 
 ###
-membership.student_course2 =
+subscription.student_course2 =
     icon  : 'graduation-cap'
     price :
         month4 : 28
