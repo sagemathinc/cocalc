@@ -8,19 +8,22 @@ Drag tasks handle (and other support)
 
 exports.DoneCheckbox = rclass
     propTypes :
-        actions : rtypes.object
-        done    : rtypes.bool
-        task_id : rtypes.string
+        actions   : rtypes.object
+        done      : rtypes.bool
+        read_only : rtypes.bool
+        task_id   : rtypes.string
 
     shouldComponentUpdate: (next) ->
-        return @props.done != next.done or @props.task_id != next.task_id
+        return @props.done      != next.done      or \
+               @props.task_id   != next.task_id   or \
+               @props.read_only != next.read_only
 
     render_checkbox: ->
         if @props.done
             name = 'check-square-o'
         else
             name = 'square-o'
-        return <Icon name={name} style={cursor:'pointer'} />
+        return <Icon name={name} style={if not @props.read_only then {cursor:'pointer'}} />
 
     toggle_done: ->
         if @props.done
@@ -30,8 +33,6 @@ exports.DoneCheckbox = rclass
 
     render: ->
         checkbox = @render_checkbox()
-        if not @props.actions?  # read only or viewer
-            return checkbox
-        <div onClick={@toggle_done} style={fontSize:'17pt', color:'#666'}>
+        <div onClick={if not @props.read_only then @toggle_done} style={fontSize:'17pt', color:'#666'}>
             {checkbox}
         </div>

@@ -21,6 +21,8 @@ exports.SORT_INFO =
         key     : 'last_edited'
         reverse : true
 
+exports.is_sortable = (sort_column) ->
+    return sort_column == exports.HEADINGS[0]
 
 Heading = rclass
     propTypes :

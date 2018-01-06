@@ -1103,6 +1103,9 @@ exports.DateTimePicker = rclass
     propTypes :
         value     : rtypes.oneOfType([rtypes.string, rtypes.object])
         on_change : rtypes.func.isRequired
+        on_focus  : rtypes.func
+        on_blur   : rtypes.func
+
 
     render: ->
         <DateTimePicker
@@ -1111,6 +1114,8 @@ exports.DateTimePicker = rclass
             parse      = {DATETIME_PARSE_FORMATS}
             value      = {@props.value}
             onChange   = {@props.on_change}
+            onFocus    = {@props.on_focus}
+            onBlur     = {@props.on_blur}
         />
 
 Calendar = require('react-widgets/lib/Calendar')

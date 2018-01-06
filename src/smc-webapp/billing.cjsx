@@ -32,7 +32,7 @@ _             = require('underscore')
 
 {PROJECT_UPGRADES} = require('smc-util/schema')
 
-STUDENT_COURSE_PRICE = require('smc-util/upgrade-spec').upgrades.membership.student_course.price.month4
+STUDENT_COURSE_PRICE = require('smc-util/upgrade-spec').upgrades.subscription.student_course.price.month4
 
 load_stripe = (cb) ->
     if Stripe?
@@ -811,7 +811,7 @@ PlanInfo = rclass
         </div>
 
     render: ->
-        plan_data = PROJECT_UPGRADES.membership[@props.plan]
+        plan_data = PROJECT_UPGRADES.subscription[@props.plan]
         if not plan_data?
             return <div>Unknown plan type: {@props.plan}</div>
 
@@ -857,7 +857,7 @@ AddSubscription = rclass
         selected_button : 'month'
 
     is_recurring: ->
-        not PROJECT_UPGRADES.membership[@props.selected_plan.split('-')[0]].cancel_at_period_end
+        not PROJECT_UPGRADES.subscription[@props.selected_plan.split('-')[0]].cancel_at_period_end
 
     submit_create_subscription: ->
         plan = @props.selected_plan
@@ -900,11 +900,11 @@ AddSubscription = rclass
 
     render_renewal_info: ->
         if @props.selected_plan
-            renews = not PROJECT_UPGRADES.membership[@props.selected_plan.split('-')[0]].cancel_at_period_end
+            renews = not PROJECT_UPGRADES.subscription[@props.selected_plan.split('-')[0]].cancel_at_period_end
             length = PROJECT_UPGRADES.period_names[@state.selected_button]
             <p style={marginBottom:'1ex', marginTop:'1ex'}>
                 {<span>This subscription will <b>automatically renew</b> every {length}.  You can cancel automatic renewal at any time.</span> if renews}
-                {<span>You will be <b>charged only once</b> for the course package, which lasts {length}.  It does <b>not automatically renew</b>.</span> if not renews}
+                {<span>You will be <b>charged only once</b> for the course package, which lasts {if length == 'year' then 'a '}{length}.  It does <b>not automatically renew</b>.</span> if not renews}
             </p>
 
     render_subscription_grid: ->
@@ -928,12 +928,13 @@ AddSubscription = rclass
             {@render_dedicated_resources() if @state.selected_button is 'dedicated_resources'}
         ###
 
-    render_create_subscription_confirm: ->
+    render_create_subscription_confirm: (plan_data) ->
         if @is_recurring()
             subscription = " and you will be signed up for a recurring subscription"
+        name = plan_data.desc ? misc.capitalize(@props.selected_plan).replace(/_/g,' ') + ' plan'
         <Alert>
             <h4><Icon name='check' /> Confirm your selection </h4>
-            <p>You have selected the <span style={fontWeight:'bold'}>{misc.capitalize(@props.selected_plan).replace(/_/g,' ')} subscription</span>.</p>
+            <p>You have selected the <span style={fontWeight:'bold'}>{name} subscription</span>.</p>
             {@render_renewal_info()}
             <p>By clicking 'Add Subscription' your payment card will be immediately charged{subscription}.</p>
         </Alert>
@@ -959,11 +960,12 @@ AddSubscription = rclass
         </Row>
 
     render: ->
+        plan_data = PROJECT_UPGRADES.subscription[@props.selected_plan.split('-')[0]]
         <Row>
             <Col sm=10 smOffset=1>
                 <Well style={boxShadow:'5px 5px 5px lightgray', zIndex:1}>
                     {@render_create_subscription_options()}
-                    {@render_create_subscription_confirm() if @props.selected_plan isnt ''}
+                    {@render_create_subscription_confirm(plan_data) if @props.selected_plan isnt ''}
                     {<ConfirmPaymentMethod
                         is_recurring = {@is_recurring()}
                     /> if @props.selected_plan isnt ''}
@@ -1112,7 +1114,7 @@ exports.SubscriptionGrid = SubscriptionGrid = rclass
         is_static : false
 
     is_selected: (plan, period) ->
-        if @props.period is 'year'
+        if @props.period?.slice(0, 4) is 'year'
             return @props.selected_plan is "#{plan}-year"
         else
             return @props.selected_plan is plan
@@ -1143,7 +1145,7 @@ exports.SubscriptionGrid = SubscriptionGrid = rclass
         for row in PROJECT_UPGRADES.live_subscriptions
             v = []
             for x in row
-                price_keys = _.keys(PROJECT_UPGRADES.membership[x].price)
+                price_keys = _.keys(PROJECT_UPGRADES.subscription[x].price)
                 if _.intersection(periods, price_keys).length > 0
                     v.push(x)
             if v.length > 0
@@ -1311,6 +1313,13 @@ exports.ExplainPlan = ExplainPlan = rclass
 
                 <br/>
 
+                <h4>Basic or Standard?</h4>
+                Our basic plans work well for cases where you are only doing
+                small computations or just need internet access and better hosting uptime.
+
+                However, we find that many data science and computational science courses
+                run much smoother with the additional RAM and CPU found in the standard plan.
+
                 <br/>
 
             </div>
@@ -1328,10 +1337,10 @@ exports.ExplainPlan = ExplainPlan = rclass
 # ~~~ FAQ START
 
 # some variables used in the text below
-faq_course_120 = 2 * PROJECT_UPGRADES.membership.medium_course.benefits.member_host
-faq_academic_students =  PROJECT_UPGRADES.membership.small_course.benefits.member_host
-faq_academic_nb_standard = Math.ceil(faq_academic_students / PROJECT_UPGRADES.membership.standard.benefits.member_host)
-faq_academic_full = faq_academic_nb_standard * 4 * PROJECT_UPGRADES.membership.standard.price.month
+faq_course_120 = 2 * PROJECT_UPGRADES.subscription.medium_course.benefits.member_host
+faq_academic_students =  PROJECT_UPGRADES.subscription.small_course.benefits.member_host
+faq_academic_nb_standard = Math.ceil(faq_academic_students / PROJECT_UPGRADES.subscription.standard.benefits.member_host)
+faq_academic_full = faq_academic_nb_standard * 4 * PROJECT_UPGRADES.subscription.standard.price.month
 faq_idle_time_free_h = require('smc-util/schema').DEFAULT_QUOTAS.mintime / 60 / 60
 
 # the structured react.js FAQ text
