@@ -9,6 +9,9 @@ import hashlib
 import time
 from datetime import datetime
 
+# timeout for socket to sage_server in seconds
+default_timeout = 20
+
 ###
 # much of the code here is copied from sage_server.py
 # cut and paste was done because it takes over 30 sec to import sage_server
@@ -122,6 +125,9 @@ class ConnectionJSON(object):
         elif s[0] == 'b':
             return 'blob', s[1:]
         raise ValueError("unknown message type '%s'"%s[0])
+    def set_timeout(self, timeout):
+        "set socket timeout in seconds"
+        self._conn.settimeout(timeout)
 
 def truncate_text(s, max_size):
     if len(s) > max_size:
@@ -414,6 +420,9 @@ def exec2(request, sagews, test_id):
     If output & patterns are omitted, the cell is not expected to produce a
     stdout result. All arguments after 'code' are optional.
 
+    If argument `timeout` is provided, the default socket timeout
+    for connection to sage_server will be overridden to the value of `timeout` in seconds.
+
     - `` code `` -- string of code to run
 
     - `` output `` -- string or list of strings of output to be matched up to leading & trailing whitespace
@@ -421,6 +430,8 @@ def exec2(request, sagews, test_id):
     - `` pattern `` -- regex to match with expected stdout output
 
     - `` html_pattern `` -- regex to match with expected html output
+
+    - `` timeout `` -- socket timeout in seconds
 
     EXAMPLES:
 
@@ -447,9 +458,14 @@ def exec2(request, sagews, test_id):
         If `output` is a list of strings, `pattern` and `html_pattern` are ignored
 
     """
-    def execfn(code, output = None, pattern = None, html_pattern = None):
+    def execfn(code, output = None, pattern = None, html_pattern = None, timeout = default_timeout):
         m = message.execute_code(code = code, id = test_id)
         m['preparse'] = True
+
+        if timeout is not None:
+            print('overriding socket timeout to {}'.format(timeout))
+            sagews.set_timeout(timeout)
+
         # send block of code to be executed
         sagews.send_json(m)
 
@@ -619,8 +635,7 @@ def sagews(request):
     print("host %s  port %s"%(host, port))
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.connect((host, port))
-    # scala jupyter kernel can take over 45 seconds to start
-    sock.settimeout(50)
+    sock.settimeout(default_timeout)
     print("connected to socket")
 
     # unlock
