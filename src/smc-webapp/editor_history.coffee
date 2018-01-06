@@ -36,6 +36,7 @@ sagews  = require('./sagews/sagews')
 jupyter = require('./editor_jupyter')
 {jupyter_history_viewer_jquery_shim} = require('./jupyter/history-viewer')
 tasks   = require('./tasks')
+{tasks_history_viewer_jquery_shim} = require('./tasks/history-viewer')
 
 templates = $("#webapp-editor-templates")
 
@@ -126,17 +127,23 @@ class exports.HistoryEditor extends FileEditor
     init_view_doc: (opts, cb) =>
         opts.mode = ''
         opts.read_only = true
+        @_use_react = false
         switch @ext
             when 'ipynb'
                 if @jupyter_classic()
                     @view_doc = jupyter.jupyter_notebook(@, @_open_file_path, opts).data("jupyter_notebook")
                     @element.find("a[href=\"#show-diff\"]").hide()
                 else
+                    @_use_react = true
                     @view_doc = jupyter_history_viewer_jquery_shim(@syncstring)
                     @diff_doc = codemirror_session_editor(@project_id, @filename, opts)
             when 'tasks'
                 @view_doc = tasks.task_list(undefined, undefined, {viewer:true}).data('task_list')
                 @diff_doc = codemirror_session_editor(@project_id, @filename, opts)
+            when 'tasks2'
+                @view_doc = tasks_history_viewer_jquery_shim(@syncstring)
+                @diff_doc = codemirror_session_editor(@project_id, @filename, opts)
+                @_use_react = true
             else
                 @view_doc = codemirror_session_editor(@project_id, @filename, opts)
 
@@ -282,7 +289,7 @@ class exports.HistoryEditor extends FileEditor
     set_doc: (time) =>
         if not time?
             return
-        if @ext == 'ipynb' and not @jupyter_classic()
+        if @_use_react
             @view_doc.set_version(time)
         else
             val = @syncstring.version(time).to_str()
@@ -301,7 +308,7 @@ class exports.HistoryEditor extends FileEditor
             # nothing to do if syncstring isn't opened/initialized yet.
             return
         # Set the doc to show a diff from time0 to time1
-        if @ext == 'ipynb' and not @jupyter_classic()
+        if @_use_react
             v0 = @view_doc.to_str(time0)
             v1 = @view_doc.to_str(time1)
         else
