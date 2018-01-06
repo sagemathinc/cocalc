@@ -34,6 +34,7 @@ class AccountActions extends Actions
             timeout       : 30
             utm           : get_utm()
             referrer      : get_referrer()
+            get_api_key   : redux.getStore('page')?.get('get_api_key')
             cb            : (error, mesg) =>
                 @setState(signing_in: false)
                 if error
@@ -62,10 +63,11 @@ class AccountActions extends Actions
             token           : token
             utm             : get_utm()
             referrer        : get_referrer()
+            get_api_key     : redux.getStore('page')?.get('get_api_key')
             cb              : (err, mesg) =>
                 @setState(signing_up: false)
                 if err?
-                    @setState('sign_up_error': err)
+                    @setState('sign_up_error': JSON.stringify(err))
                     return
                 switch mesg.event
                     when "account_creation_failed"
@@ -174,7 +176,7 @@ class AccountActions extends Actions
                     $(window).off('beforeunload', redux.getActions('page').check_unload)
                     window.location.hash = ''
                     {APP_BASE_URL} = require('./misc_page')
-                    window.location = APP_BASE_URL + '/?signed_out' # redirect to base page
+                    window.location = APP_BASE_URL + '/app?signed_out' # redirect to sign in page
 
     push_state: (url) =>
         {set_url} = require('./history')
@@ -252,7 +254,7 @@ class AccountStore extends Store
     get_confirm_close: =>
         return @getIn(['other_settings', 'confirm_close'])
 
-    # Total ugprades this user is paying for (sum of all upgrades from memberships)
+    # Total ugprades this user is paying for (sum of all upgrades from subscriptions)
     get_total_upgrades: =>
         require('upgrades').get_total_upgrades(@getIn(['stripe_customer','subscriptions', 'data'])?.toJS())
 
@@ -300,10 +302,17 @@ class AccountTable extends Table
 redux.createTable('account', AccountTable)
 
 # Login status
-webapp_client.on 'signed_in', ->
+webapp_client.on 'signed_in', (mesg) ->
+    if mesg?.api_key
+        # wait for sign in to finish and cookie to get set, then redirect
+        f = ->
+            window.location.href = "https://authenticated?api_key=#{mesg.api_key}"
+        setTimeout(f, 2000)
     redux.getActions('account').set_user_type('signed_in')
+
 webapp_client.on 'signed_out', ->
     redux.getActions('account').set_user_type('public')
+
 webapp_client.on 'remember_me_failed', ->
     redux.getActions('account').set_user_type('public')
 

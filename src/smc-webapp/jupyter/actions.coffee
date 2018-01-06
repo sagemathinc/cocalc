@@ -35,7 +35,8 @@ jupyter_kernels = undefined
 
 {IPynbImporter} = require('./import-from-ipynb')
 
-DEFAULT_KERNEL = 'python2'
+#DEFAULT_KERNEL = 'python2'
+DEFAULT_KERNEL = 'anaconda3'
 
 syncstring    = require('smc-util/syncstring')
 
@@ -264,7 +265,8 @@ class exports.JupyterActions extends Actions
     clear_selected_outputs: =>
         cells = @store.get('cells')
         for id in @store.get_selected_cell_ids_list()
-            if cells.get(id).get('output')? or cell.get('exec_count')
+            cell = cells.get(id)
+            if cell.get('output')? or cell.get('exec_count')
                 @_set({type:'cell', id:id, output:null, exec_count:null}, false)
         @_sync()
 
@@ -1428,13 +1430,7 @@ class exports.JupyterActions extends Actions
             @setState(more_output : more_output.delete(id))
 
     set_cm_options: =>
-        mode = @store.get_language_info()?.get('codemirror_mode')
-        if typeof(mode) == 'string'
-            mode = {name:mode}  # some kernels send a string back for the mode; others an object
-        else if mode?.toJS?
-            mode = mode.toJS()
-        else if not mode?
-            mode = @store.get('kernel')   # may be better than nothing...; e.g., octave kernel has no mode.
+        mode = @store.get_cm_mode()
         editor_settings  = @redux.getStore('account')?.get('editor_settings')?.toJS?()
         line_numbers = @store.get_local_storage('line_numbers')
         read_only = @store.get('read_only')

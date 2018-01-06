@@ -55,9 +55,10 @@ exports.TopButtonbar = rclass ({name}) ->
 
     render_button: (key, name) ->
         if typeof(name) == 'object'
-            {name, disabled, style} = name
-        else
-            style = undefined
+            {name, disabled, style, label} = name
+        style    ?= undefined
+        disabled ?= false
+        label    ?= ''
         if @props.read_only  # all buttons disabled in read-only mode
             disabled = true
         obj = @props.actions._commands?[name]
@@ -70,7 +71,7 @@ exports.TopButtonbar = rclass ({name}) ->
             title    = {obj.m}
             disabled = {disabled}
             style    = {style} >
-            <Icon name={obj.i}/>
+            <Icon name={obj.i}/> {label}
         </Button>
 
     render_buttons: (names) ->
@@ -96,7 +97,7 @@ exports.TopButtonbar = rclass ({name}) ->
             stop_style = {backgroundColor:'rgb(92,184,92)', color:'white'}
         else
             stop_style = undefined
-        @render_button_group(['run cell and select next', {name:'interrupt kernel', disabled:@props.kernel_state != 'busy', style:stop_style}, 'tab key'])
+        @render_button_group(['run cell and select next', {name:'interrupt kernel', style:stop_style}, 'tab key'])
 
     cell_select_type: (event) ->
         @props.actions.set_selected_cell_type(event.target.value)
@@ -146,8 +147,15 @@ exports.TopButtonbar = rclass ({name}) ->
         <Button
             title   = 'Switch to classical notebook'
             onClick = {=>@props.actions.switch_to_classical_notebook()}>
-            <Icon name='exchange'/> <span className = 'hidden-sm'>Classical Notebook...</span>
+            <Icon name='exchange'/> <span className = 'hidden-sm'>Classical notebook...</span>
         </Button>
+
+    render_close_and_halt: ->
+        obj =
+            name     : 'close and halt'
+            disabled : false
+            label    : 'Close and halt'
+        return @render_button('close and halt', obj)
 
     render_group_save_timetravel: ->
         <ButtonGroup className = 'hidden-xs'>
@@ -165,7 +173,8 @@ exports.TopButtonbar = rclass ({name}) ->
                 onClick = {=>@props.actions.show_history_viewer()}>
                 <Icon name='history'/> <span className = 'hidden-sm'>TimeTravel</span>
             </Button>
-            {@render_switch_button()}
+            {@render_close_and_halt()}
+            {# @render_switch_button()}
         </ButtonGroup>
 
     render: ->

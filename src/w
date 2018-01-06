@@ -1,7 +1,10 @@
-#!/usr/bin/env bash
-cd $SALVUS_ROOT
+#!/usr/bin/env python
 
-. smc-env
+import os, time
 
-npm run webpack-watch
-
+s = "cd $SALVUS_ROOT; . smc-env; npm run webpack-watch"
+while True:
+    print(s)
+    os.system(s)
+    print("NOTE: if you have problems with webpack crashing, do 'vi `which webpack`' and change the first line to: '#!/usr/bin/node --max-old-space-size=4000'")
+    time.sleep(10)

@@ -231,6 +231,10 @@ class ProjectsActions extends Actions
         if opts.target?
             redux.getProjectActions(opts.project_id)?.load_target(opts.target, opts.switch_to)
         redux.getActions('page').save_session()
+        # init the library after project started.
+        # TODO write a generalized store function that does this in a more robust way
+        project_actions.init_library()
+        project_actions.init_library_index()
 
     # Clearly should be in top.cjsx
     # tab at old_index taken out and then inserted into the resulting array's new index
@@ -297,7 +301,7 @@ class ProjectsActions extends Actions
                     cb    : (err, resp) =>
                         if not err
                             title = resp?.query?[table]?.title
-                        title ?= "PRIVATE -- Admin req"
+                        title ?= "No Title"
                         @setState(public_project_titles : store.get('public_project_titles').set(project_id, title))
 
     # If something needs the store to fill in
@@ -340,22 +344,45 @@ class ProjectsActions extends Actions
                     err = "Error removing collaborator #{account_id} from #{project_id} -- #{err}"
                     alert_message(type:'error', message:err)
 
-    invite_collaborator: (project_id, account_id) =>
+    # this is for inviting existing users, the email is only known by the back-end
+    invite_collaborator: (project_id, account_id, body, subject, silent, replyto, replyto_name) =>
         @redux.getProjectActions(project_id).log
             event    : 'invite_user'
             invitee_account_id : account_id
-        webapp_client.project_invite_collaborator
-            project_id : project_id
-            account_id : account_id
-            cb         : (err, resp) =>
-                if err # TODO: -- set error in store for this project...
-                    err = "Error inviting collaborator #{account_id} from #{project_id} -- #{err}"
-                    alert_message(type:'error', message:err)
 
+        # TODO dedup code with what's in invite_collaborators_by_email below
+        title = @redux.getStore('projects').get_title(project_id)
+        if not body?
+            name  = @redux.getStore('account').get_fullname()
+            body  = "Please collaborate with me using CoCalc on '#{title}'.\n\n\n--\n#{name}"
+
+        link2proj = "https://#{window.location.hostname}/projects/#{project_id}/"
+
+        # convert body from markdown to html, which is what the backend expects
+        body = markdown.markdown_to_html(body).s
+
+        webapp_client.project_invite_collaborator
+            project_id   : project_id
+            account_id   : account_id
+            title        : title
+            link2proj    : link2proj
+            replyto      : replyto
+            replyto_name : replyto_name
+            email        : body
+            subject      : subject
+            cb         : (err, resp) =>
+                if not silent
+                    if err # TODO: -- set error in store for this project...
+                        err = "Error inviting collaborator #{account_id} from #{project_id} -- #{err}"
+                        alert_message(type:'error', message:err)
+
+    # this is for inviting non-existing users, email is set via the UI
     invite_collaborators_by_email: (project_id, to, body, subject, silent, replyto, replyto_name) =>
         @redux.getProjectActions(project_id).log
             event         : 'invite_nonuser'
             invitee_email : to
+
+        # TODO dedup code with what's in invite_collaborator above
         title = @redux.getStore('projects').get_title(project_id)
         if not body?
             name  = @redux.getStore('account').get_fullname()

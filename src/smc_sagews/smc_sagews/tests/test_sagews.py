@@ -29,7 +29,7 @@ class TestLex:
 class TestSageVersion:
     def test_sage_vsn(self, exec2):
         code = "sage.misc.banner.banner()"
-        patn = "version 8.0"
+        patn = "version 8.1"
         exec2(code, pattern = patn)
 
 class TestDecorators:
@@ -164,19 +164,19 @@ class TestBasic:
         456'
         """).lstrip())
 
-    def test_block_parser(self, exec2):
+    def test_block_parser(self, execbuf):
         """
         .. NOTE::
 
             This function supplies a list of expected outputs to `exec2`.
         """
-        exec2(dedent("""
+        execbuf(dedent("""
         pi.n().round()
         [x for x in [1,2,3] if x<3]
         for z in ['a','b']:
             z
         else:
-            z"""), ["3\n","[1, 2]\n","'a'\n'b'\n'b'\n"])
+            z"""), "3\n[1, 2]\n'a'\n'b'\n'b'\n")
 
 class TestIntrospect:
     # test names end with SMC issue number

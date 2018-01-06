@@ -31,7 +31,7 @@ exports.CodeMirrorEditor = rclass
         options          : rtypes.immutable.Map.isRequired
         value            : rtypes.string.isRequired
         font_size        : rtypes.number   # font_size not explicitly used, but it is critical
-                                       # to re-render on change so Codemirror recomputes itself!
+                                           # to re-render on change so Codemirror recomputes itself!
         cursors          : rtypes.immutable.Map
         set_click_coords : rtypes.func.isRequired
         click_coords     : rtypes.object  # coordinates if cell was just clicked on
@@ -296,9 +296,6 @@ exports.CodeMirrorEditor = rclass
                 tab_key     : @tab_key
             @props.actions.register_input_editor(@props.id, editor)
 
-        if @props.is_focused
-            @cm.focus()
-
         if @props.click_coords?
             # editor clicked on, so restore cursor to that position
             @cm.setCursor(@cm.coordsChar(@props.click_coords, 'window'))
@@ -313,10 +310,10 @@ exports.CodeMirrorEditor = rclass
         # Note that this also avoids a significant disturbing flicker delay
         # even for non-raw cells.  This obviously probably slows down initial
         # load or switch to of the page, unfortunately.  Such is life.
-        setTimeout((=>@cm?.refresh()),1)
-
-    componentDidMount: ->
-        @init_codemirror(@props.options, @props.value)
+        # CRITICAL: Also do the focus only after the refresh, or when
+        # switching from static to non-static, whole page gets badly
+        # repositioned (see https://github.com/sagemathinc/cocalc/issues/2548).
+        setTimeout((=>@cm?.refresh(); if @props.is_focused then @cm?.focus()),1)
 
     componentWillReceiveProps: (next) ->
         if not @cm?

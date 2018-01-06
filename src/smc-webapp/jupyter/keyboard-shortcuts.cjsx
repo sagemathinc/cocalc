@@ -333,7 +333,7 @@ exports.KeyboardShortcuts = rclass
     render: ->
         <Modal show={@props.keyboard_shortcuts?.get('show')} onHide={@close} bsSize="large" >
             <Modal.Header closeButton>
-                <Modal.Title><Icon name='keyboard-o'/> Commands and Keyboard Shortcuts</Modal.Title>
+                <Modal.Title><Icon name='keyboard-o'/> Commands and keyboard shortcuts</Modal.Title>
             </Modal.Header>
             <Modal.Body>
                 <SearchInput

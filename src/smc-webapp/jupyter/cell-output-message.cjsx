@@ -32,7 +32,7 @@ STDOUT_STYLE    = OUT_STYLE
 STDERR_STYLE    = misc.merge({backgroundColor:'#fdd'}, STDOUT_STYLE)
 TRACEBACK_STYLE = misc.merge({backgroundColor: '#f9f2f4'}, OUT_STYLE)
 
-Stdout = rclass
+exports.Stdout = Stdout = rclass
     propTypes :
         message : rtypes.immutable.Map.isRequired
 
@@ -51,7 +51,7 @@ Stdout = rclass
                 <span>{value}</span>
             </div>
 
-Stderr = rclass
+exports.Stderr = Stderr = rclass
     propTypes :
         message : rtypes.immutable.Map.isRequired
 

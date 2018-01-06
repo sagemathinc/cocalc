@@ -44,6 +44,8 @@ misc = require('smc-util/misc')
 {ProjectsNav} = require('./projects_nav')
 {ActiveAppContent, CookieWarning, GlobalInformationMessage, LocalStorageWarning, ConnectionIndicator, ConnectionInfo, FullscreenButton, NavTab, NotificationBell, AppLogo, VersionWarning} = require('./app_shared')
 
+nav_class = 'hidden-xs'
+
 FileUsePageWrapper = (props) ->
     styles =
         zIndex       : '10'
@@ -113,7 +115,7 @@ Page = rclass
         return name
 
     render_account_tab: ->
-        if @props.account_id
+        if false and @props.account_id
             a = <Avatar
                     size       = {20}
                     account_id = {@props.account_id}
@@ -122,9 +124,10 @@ Page = rclass
                     />
         else
             a = 'cog'
+
         <NavTab
             name           = 'account'
-            label          = {'Account'}           # @account_name()
+            label          = {<span className={nav_class}>Account</span>}
             icon           = {a}
             actions        = {@actions('page')}
             active_top_tab = {@props.active_top_tab}
@@ -146,20 +149,38 @@ Page = rclass
             add_inner_style = {color: 'black'}
         />
 
+    render_support: ->
+        if not require('./customize').commercial
+            return
+        <NavTab
+            label          = {<span className={nav_class}>Help</span>}
+            icon           = 'medkit'
+            actions        = {@actions('page')}
+            active_top_tab = {@props.active_top_tab}
+            on_click       = {=>redux.getActions('support').show(true)}
+        />
+
+    render_bell: ->
+        if not @props.is_logged_in()
+            return
+        <NotificationBell
+            count  = {@props.get_notify_count()}
+            active = {@props.show_file_use} />
+
     render_right_nav: ->
         logged_in = @props.is_logged_in()
         <Nav id='smc-right-tabs-fixed' style={height:'40px', lineHeight:'20px', margin:'0', overflowY:'hidden'}>
             {@render_account_tab() if logged_in}
             {@render_sign_in_tab() if not logged_in}
-            <NavTab name='about' label='About' icon='question-circle' actions={@actions('page')} active_top_tab={@props.active_top_tab} />
+            <NavTab
+                name           = 'about'
+                label          = {<span className={nav_class}>CoCalc</span>}
+                icon           = 'info-circle'
+                actions        = {@actions('page')}
+                active_top_tab = {@props.active_top_tab} />
             <NavItem className='divider-vertical hidden-xs' />
-            {<NavTab
-                label='Help' icon='medkit'
-                actions={@actions('page')}
-                active_top_tab={@props.active_top_tab}
-                on_click={=>redux.getActions('support').show(true)}
-            /> if require('./customize').commercial}
-            {<NotificationBell count={@props.get_notify_count()} active={@props.show_file_use} /> if @props.is_logged_in()}
+            {@render_support()}
+            {@render_bell()}
             <ConnectionIndicator actions={@actions('page')} />
         </Nav>
 
@@ -178,7 +199,7 @@ Page = rclass
                 active_top_tab = {@props.active_top_tab}
 
             >
-                <div style={projects_styles}>
+                <div style={projects_styles} className={nav_class}>
                     Projects
                 </div>
                 <AppLogo />

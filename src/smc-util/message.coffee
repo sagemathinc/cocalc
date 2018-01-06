@@ -375,6 +375,9 @@ API message2
         token:
             init   : undefined   # only required when token is set.
             desc   : 'account creation token - see src/dev/docker/README.md'
+        get_api_key:
+            init   : undefined
+            desc   : 'if set to anything truth-ish, will create (if needed) and return api key with signed_in message'
     desc           : """
 Examples:
 
@@ -463,6 +466,7 @@ message
     remember_me    : false
     utm            : undefined
     referrer       : undefined
+    get_api_key    : undefined   # same as for create_account
 
 message
     id         : undefined
@@ -494,6 +498,7 @@ message
     last_name      : undefined
     utm            : undefined
     referrer       : undefined
+    api_key        : undefined     # user's api key, if requested in sign_in or create_account messages.
 
 # client --> hub
 message
@@ -513,9 +518,9 @@ API message2
         id:
             init  : undefined
             desc  : 'A unique UUID for the query'
-        email_address:
+        account_id:
             init  : required
-            desc  : 'email address for account whose password is changed'
+            desc  : 'account id of the account whose password is being changed'
         old_password:
             init  : ""
             desc  : ''
@@ -535,6 +540,12 @@ Example:
   ==> {"event":"changed_password","id":"41ff89c3-348e-4361-ad1d-372b55e1544a"}
 ```
 """
+
+message
+    event         : 'send_verification_email'
+    id            : undefined
+    account_id    : required
+    only_verify   : undefined    # usually true, if false the full "welcome" email is sent
 
 # hub --> client
 # if error is true, that means the password was not changed; would
@@ -1215,6 +1226,24 @@ API message2
         account_id:
             init  : required
             desc  : 'account_id of invited user'
+        title        :
+            init  : undefined
+            desc  : 'Title of the project'
+        link2proj    :
+            init  : undefined
+            desc  : 'The full URL link to the project'
+        replyto      :
+            init  : undefined
+            desc  : 'Email address of user who is inviting someone'
+        replyto_name :
+            init  : undefined
+            desc  : 'Name of user who is inviting someone'
+        email        :
+            init  : undefined
+            desc  : 'Body of email user is sending (plain text or HTML)'
+        subject      :
+            init  : undefined
+            desc  : 'Subject line of invitiation email'
     desc       : """
 Invite a user who already has a CoCalc account to
 become a collaborator on a project. You must be owner
@@ -1502,6 +1531,11 @@ message
     id           : undefined
     path         : required
 
+###
+Heartbeat message for connection from hub to project.
+###
+message
+    event : 'heartbeat'
 
 ###
 Ping/pong -- used for clock sync, etc.
@@ -2246,20 +2280,15 @@ Make a path public (publish a file).
 Add an upgrade to a project. In the "get" example above showing project upgrades,
 change cpu upgrades from 3 to 4. The `users` object is returned as
 read, with `cpu_shares` increased to 1024 = 4 * 256.
+It is not necessary to specify the entire `upgrades` object
+if you are only setting the `cpu_shares` attribute because changes are merged in.
 
 ```
   curl -u sk_abcdefQWERTY090900000000: \\
     -H "Content-Type: application/json" \\
     -d '{"query":{"projects":{"project_id":"29163de6-b5b0-496f-b75d-24be9aa2aa1d", \\
                               "users":{"6c28c5f4-3235-46be-b025-166b4dcaac7e":{ \\
-                                           "group":"owner", \\
-                                           "upgrades": {"cores":1, \\
-                                                       "memory":3000, \\
-                                                       "mintime":86400, \\
-                                                       "network":1, \\
-                                                       "cpu_shares":1024, \\
-                                                       "disk_quota":27000, \\
-                                                       "member_host":1}}}}}}' \\
+                                           "upgrades": {"cpu_shares":1024}}}}}}' \\
     https://cocalc.com/api/v1/query
     ==> {"event":"query",
          "query":{},

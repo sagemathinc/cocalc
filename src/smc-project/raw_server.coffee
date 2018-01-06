@@ -35,6 +35,10 @@ exports.start_raw_server = (opts) ->
     raw_port_file  = misc_node.abspath("#{data_path}/raw.port")
     raw_server     = express()
 
+    # suggested by http://expressjs.com/en/advanced/best-practice-performance.html#use-gzip-compression
+    compression = require('compression')
+    raw_server.use(compression())
+
     # Needed for POST file to custom path.
     raw_server.use(body_parser.urlencoded({ extended: true }))
 
@@ -56,13 +60,16 @@ exports.start_raw_server = (opts) ->
                             opts.logger?.debug("WARNING: error creating root symlink -- #{err}")
                         cb()
         (cb) ->
-            if port  # 0 or undefined
+            if port
                 cb()
             else
+                # 0 or undefined -- so generate one that is available
                 misc_node.free_port (err, _port) ->
-                    port = _port; cb(err)
-        (cb) ->
-            fs.writeFile(raw_port_file, port, cb)
+                    if err
+                        cb(err)
+                        return
+                    port = _port
+                    fs.writeFile(raw_port_file, port, cb) # since not specified, write it
         (cb) ->
             base = "#{base_url}/#{project_id}/raw/"
             opts.logger?.info("raw server: port=#{port}, host='#{host}', base='#{base}'")
@@ -93,9 +100,9 @@ exports.start_raw_server = (opts) ->
             raw_server.use(base, express_index(home,  {hidden:true, icons:true}))
             raw_server.use(base, express.static(home, {hidden:true}))
 
-
             # NOTE: It is critical to only listen on the host interface (not localhost),
-            # since otherwise other users on the same VM could listen in.
+            # since otherwise other users on the same VM could listen in.  Doesn't matter
+            # for the main site now due to Docker/Kubernetes/Firewall...
             # We also firewall connections from the other VM hosts above
             # port 1024, so this is safe without authentication.  TODO: should we add some sort of
             # auth (?) just in case?

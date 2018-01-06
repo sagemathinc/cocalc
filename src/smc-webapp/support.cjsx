@@ -184,7 +184,7 @@ class SupportActions extends Actions
         tags = []
 
         # all upgrades the user has available
-        # that's a sum of membership benefits (see schema.coffee)
+        # that's a sum of subscription benefits (see schema.coffee)
         upgrades = account.get_total_upgrades()
         if upgrades? and misc.sum(_.values(upgrades)) > 0
             tags.push('member')
@@ -250,8 +250,8 @@ exports.SupportPage = rclass
 
     open: (ticket_id) ->
         url = misc.ticket_id_to_ticket_url(ticket_id)
-        tab = window.open(url, '_blank')
-        tab.focus()
+        {open_new_tab} = require('smc-webapp/misc_page')
+        open_new_tab(url, '_blank')
 
     render_body: ->
         for i, ticket of @props.support_tickets
@@ -391,23 +391,23 @@ SupportInfo = rclass
                     the <a href="#{SmcWikiUrl}" target="_blank">CoCalc documentation</a>.
                 </li>
                 <li>
-                    <b>Trying to sign out?</b>  Click on your name at the top, then click the
-                    "Sign out..." button in account settings.
+                    <b>Trying to sign out?</b>  Click on Account on the top right, then click
+                    "Sign out..." in Preferences.
                 </li>
                 <li>
-                    <a target="_blank" href="https://github.com/sagemathinc/cocalc/wiki/MySubscriptionDoesNotWork">You bought a subscription but it does not work...</a>
+                    <a target="_blank" href="https://github.com/sagemathinc/cocalc/wiki/MySubscriptionDoesNotWork">Bought a subscription but it does not work?</a>
                 </li>
                 <li>
-                    <a target="_blank" href="https://github.com/sagemathinc/cocalc/wiki/DeleteProject">All your files seem gone or you deleted your project...</a>
+                    <a target="_blank" href="https://github.com/sagemathinc/cocalc/wiki/DeleteProject">Files or project seem gone?</a>
                 </li>
                 <li>
-                    <a target="_blank" href="https://github.com/sagemathinc/cocalc/wiki/SageWorksheetWontRun">My Sage worksheet or Jupyter notebook is very slow or will not run...</a>
+                    <a target="_blank" href="https://github.com/sagemathinc/cocalc/wiki/SageWorksheetWontRun">Sage worksheet or Jupyter notebook is very slow or will not run?</a>
                 </li>
                 <li>
-                    <a target="_blank" href="https://github.com/sagemathinc/cocalc/wiki/KernelTerminated">My Jupyter notebook keeps crashing with "Kernel terminated"...</a>
+                    <a target="_blank" href="https://github.com/sagemathinc/cocalc/wiki/KernelTerminated">Jupyter notebook keeps crashing with "Kernel terminated"?</a>
                 </li>
                 <li>
-                    <a target="_blank" href="https://github.com/sagemathinc/cocalc/wiki/SageQuestion">I have a question about how to use Sage...</a>
+                    <a target="_blank" href="https://github.com/sagemathinc/cocalc/wiki/SageQuestion">Have a question about how to use Sage?</a>
                 </li>
                 <li>
                     <b>Requesting that we install software?</b> Fill out the form below and
@@ -419,7 +419,7 @@ SupportInfo = rclass
                 </li>
             </ul>
 
-            <h2>Create a Support Ticket</h2>
+            <h2>Create a support ticket</h2>
 
             {what}
             <p>

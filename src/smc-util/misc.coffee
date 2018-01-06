@@ -185,8 +185,9 @@ exports.uuid = ->
         v = if c == 'x' then r else r & 0x3 | 0x8
         v.toString 16
 
+uuid_regexp = new RegExp(/[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}/i)
 exports.is_valid_uuid_string = (uuid) ->
-    return typeof(uuid) == "string" and uuid.length == 36 and /[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}/i.test(uuid)
+    return typeof(uuid) == "string" and uuid.length == 36 and uuid_regexp.test(uuid)
     # /[0-9a-f]{22}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i.test(uuid)
 
 exports.assert_uuid = (uuid) =>
@@ -1153,28 +1154,40 @@ exports.path_is_in_public_paths = (path, paths) ->
 # returns a string in paths if path is public because of that string
 # Otherwise, returns undefined.
 # IMPORTANT: a possible returned string is "", which is falsey but defined!
+# paths can be an array or object (with keys the paths)
 exports.containing_public_path = (path, paths) ->
-    if paths.length == 0
-        return
-    if not path?
+    if not paths? or not path?
         return
     if path.indexOf('../') != -1
         # just deny any potentially trickiery involving relative path segments (TODO: maybe too restrictive?)
         return
-    for p in paths
-        if p == ""  # the whole project is public, which matches everything
-            return ""
-        if path == p
-            # exact match
-            return p
-        if path.slice(0,p.length+1) == p + '/'
-            return p
+    if is_array(paths)
+        for p in paths   # array so "in"
+            if p == ""  # the whole project is public, which matches everything
+                return ""
+            if path == p
+                # exact match
+                return p
+            if path.slice(0,p.length+1) == p + '/'
+                return p
+    else if is_object(paths)
+        for p of paths    # object and want keys, so *of*
+            if p == ""  # the whole project is public, which matches everything
+                return ""
+            if path == p
+                # exact match
+                return p
+            if path.slice(0,p.length+1) == p + '/'
+                return p
+    else
+        throw Error("paths must be undefined, an array, or a map")
     if exports.filename_extension(path) == "zip"
         # is path something_public.zip ?
         return exports.containing_public_path(path.slice(0,path.length-4), paths)
     return undefined
 
 # encode a UNIX path, which might have # and % in it.
+# Maybe alternatively, (encodeURIComponent(p) for p in path.split('/')).join('/') ?
 exports.encode_path = (path) ->
     path = encodeURI(path)  # doesn't escape # and ?, since they are special for urls (but not unix paths)
     return path.replace(/#/g,'%23').replace(/\?/g,'%3F')
@@ -1321,6 +1334,18 @@ exports.activity_log = (opts) -> new ActivityLog(opts)
 # see http://stackoverflow.com/questions/1144783/replacing-all-occurrences-of-a-string-in-javascript
 exports.replace_all = (string, search, replace) ->
     string.split(search).join(replace)
+
+# Similar to misc.replace_all, except it takes as input a function replace_f, which
+# returns what to replace the i-th copy of search in string with.
+exports.replace_all_function = (string, search, replace_f) ->
+    v = string.split(search)
+    w = []
+    for i in [0...v.length]
+        w.push(v[i])
+        if i < v.length - 1
+            w.push(replace_f(i))
+    return w.join('')
+
 
 exports.remove_c_comments = (s) ->
     while true
@@ -1598,8 +1623,6 @@ exports.map_mutate_out_undefined = (map) ->
     for k, v of map
         if not v?
             delete map[k]
-
-
 
 # foreground; otherwise, return false.
 exports.should_open_in_foreground = (e) ->
@@ -2077,3 +2100,18 @@ exports.utm_cookie_name = 'CC_UTM'
 
 # referrer
 exports.referrer_cookie_name = 'CC_REF'
+
+
+exports.human_readable_size = (bytes) ->
+    if bytes < 1000
+        return "#{bytes} bytes"
+    if bytes < 1000000
+        b = Math.floor(bytes/100)
+        return "#{b/10} KB"
+    if bytes < 1000000000
+        b = Math.floor(bytes/100000)
+        return "#{b/10} MB"
+    b = Math.floor(bytes/100000000)
+    return "#{b/10} GB"
+
+

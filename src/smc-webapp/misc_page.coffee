@@ -74,13 +74,6 @@ exports.is_enter       = (e) -> e.which is 13 and not e.shiftKey
 exports.is_ctrl_enter  = (e) -> e.which is 13 and e.ctrlKey
 exports.is_escape      = (e) -> e.which is 27
 
-exports.APP_ICON               = require('!file-loader!webapp-lib/cocalc-icon.svg')
-exports.APP_ICON_WHITE         = require('!file-loader!webapp-lib/cocalc-icon-white.svg')
-exports.APP_LOGO               = require('!file-loader!webapp-lib/cocalc-logo.svg')
-exports.APP_LOGO_WHITE         = require('!file-loader!webapp-lib/cocalc-icon-white-transparent.svg')
-exports.APP_LOGO_NAME          = require('!file-loader!webapp-lib/cocalc-font-black.svg')
-exports.APP_LOGO_NAME_WHITE    = require('!file-loader!webapp-lib/cocalc-font-white.svg')
-
 {join} = require('path')
 exports.APP_BASE_URL = window?.app_base_url ? ''
 exports.BASE_URL = if window? then "#{window.location.protocol}//#{join(window.location.hostname, window.app_base_url ? '')}" else theme.DOMAIN_NAME
@@ -118,19 +111,6 @@ local_diff = exports.local_diff = (before, after) ->
 exports.scroll_top = () ->
     # Scroll smoothly to the top of the page.
     $("html, body").animate({ scrollTop: 0 })
-
-
-exports.human_readable_size = (bytes) ->
-    if bytes < 1000
-        return "#{bytes} bytes"
-    if bytes < 1000000
-        b = Math.floor(bytes/100)
-        return "#{b/10} KB"
-    if bytes < 1000000000
-        b = Math.floor(bytes/100000)
-        return "#{b/10} MB"
-    b = Math.floor(bytes/100000000)
-    return "#{b/10} GB"
 
 
 #############################################
@@ -1799,7 +1779,7 @@ exports.open_popup_window = (url) ->
 exports.open_new_tab = (url, popup=false) ->
     # if popup=true, it opens a small overlay window instead of a new tab
     if popup
-        tab = window.open(url, '', 'menubar=no,toolbar=no,resizable=yes,scrollbars=yes,height=400,width=600')
+        tab = window.open(url, '', 'menubar=yes,toolbar=no,resizable=yes,scrollbars=yes,height=640,width=800')
     else
         tab = window.open(url)
     if(!tab || tab.closed || typeof tab.closed=='undefined')

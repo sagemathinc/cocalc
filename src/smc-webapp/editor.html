@@ -69,11 +69,10 @@ Editor for files in a project
 
 
                         <span class="btn-group webapp-editor-codemirror-worksheet-buttons hide">
-                            <a href="#execute" class="btn btn-success btn-lg"> <i class="fa fa-play"></i></a>
+                            <a href="#execute" class="btn btn-success btn-lg"> <i class="fa fa-play"></i> Run</a>
                             <a href="#interrupt" class="btn btn-warning btn-lg"> <i class="fa fa-stop"></i></a>
                             <a href="#kill" class="btn btn-warning btn-lg"><i class="fa fa-refresh"></i></a>
                             <a href="#tab" class="btn btn-info btn-lg"> <i class="fa fa-step-forward"></i></a>
-                            <a href="https://github.com/sagemathinc/cocalc/wiki/sagews" target="_blank" class="btn btn-info btn-lg" data-original-title="" title=""><i class="fa fa-question-circle"></i></a>
                         </span>
 
 
@@ -89,13 +88,10 @@ Editor for files in a project
                     <span class="hidden-xs">
                         <span class="webapp-editor-codemirror-worksheet-buttons hide">
                             <span class="btn-group webapp-editor-write-only">
-                                <a href="#execute" class="btn btn-default" data-toggle="tooltip" data-placement="bottom" title="Execute current or selected cells (unless input hidden)."><i class="fa fa-play"></i> &nbsp;<span class="hidden-sm"></span></a>
-                                <a href="#interrupt" class="btn btn-default" data-toggle="tooltip" data-placement="bottom" title="Stop the running calculation."><i class="fa fa-stop"></i> <span class="hidden-sm"></span></a>
-                                <a href="#kill" class="btn btn-default" data-toggle="tooltip" data-placement="bottom" title="Restart the running Sage process (all variables reset)."><i class="fa fa-refresh"></i> <span class="hidden-sm"></span></a>
-                                <a href="#tab" class="btn btn-default"  data-toggle="tooltip" data-placement="bottom" title="Tab completion."> <i class="fa fa-step-forward"></i><span class="hidden-sm"> Tab</span></a>
-                                <a href="https://github.com/sagemathinc/cocalc/wiki/sagews" target="_blank" class="btn btn-default" data-original-title="" title=""><i class="fa fa-question-circle"></i> </a>
-
-
+                                <a href="#execute" class="btn btn-success" data-toggle="tooltip" data-placement="bottom" title="Execute current or selected cells (unless input hidden)."><i class="fa fa-play"></i> &nbsp;Run</a>
+                                <a href="#tab" class="btn btn-default"  data-toggle="tooltip" data-placement="bottom" title="Tab completion."> <i class="fa fa-step-forward"></i> <span class="hidden-sm">Tab</span></a>
+                                <a href="#interrupt" class="btn btn-default" data-toggle="tooltip" data-placement="bottom" title="Stop the running calculation."><i class="fa fa-stop"></i> <span class="hidden-sm">Stop</span></a>
+                                <a href="#kill" class="btn btn-default" data-toggle="tooltip" data-placement="bottom" title="Restart the running Sage process (all variables reset)."><i class="fa fa-refresh"></i> <span class="hidden-sm">Restart</span></a>
                             </span>
                             <span class="btn-group webapp-editor-write-only">
                                 <a href="#toggle-input" class="btn btn-default" data-toggle="tooltip" data-placement="bottom" title="Toggle display of input of selected cells."><i class="fa fa-toggle-on"></i> in</a>
@@ -124,8 +120,8 @@ Editor for files in a project
                         <a href="#copy" class="btn btn-default btn-history webapp-editor-write-only" data-toggle="tooltip" data-placement="bottom" title="Copy"><i class="fa fa-copy"> </i> </a>
                         <a href="#paste" class="btn btn-default btn-history webapp-editor-write-only" data-toggle="tooltip" data-placement="bottom" title="Paste"><i class="fa fa-paste"> </i> </a>
                         <a href="#sagews2pdf" class="btn btn-default webapp-editor-write-only hide" data-toggle="tooltip" data-placement="bottom" title="Convert to PDF"><i class="fa fa-file-pdf-o"> </i> </a>
-                        <a href="#sagews2ipynb" class="btn btn-default webapp-editor-write-only hide" data-toggle="tooltip" data-placement="bottom" title="Convert to ipynb"><i class="fa cc-icon-ipynb"> </i> </a>
                         <a href="#print" class="btn btn-default webapp-editor-write-only hide" data-toggle="tooltip" data-placement="bottom" title="Print"><i class="fa fa-print"> </i> </a>
+                        <a href="#sagews2ipynb" class="btn btn-default webapp-editor-write-only hide" data-toggle="tooltip" data-placement="bottom" title="Convert to ipynb"><i class="fa cc-icon-ipynb"> </i> <span class="hidden-sm">Jupyter</span></a>
                     </span>
 
                     <span class="btn-group webapp-editor-read-only hide">
@@ -173,8 +169,8 @@ Editor for files in a project
                     </span>
 
 
-                    <span class="webapp-editor-codemirror-filename pull-right">
-                    </span>
+                    <span class="webapp-editor-codemirror-message"></span>
+                    <span class="webapp-editor-codemirror-filename pull-right"></span>
 
                 </div>
 
@@ -323,7 +319,11 @@ Editor for files in a project
             <a class="btn btn-default" href="#refresh"><i class="fa fa-refresh"></i>  Refresh</a>
         </span>
         <div class="hidden-xs webapp-editor-image-title pull-right"> The title </div>
-        <div class="webapp-editor-image-container"><img style="max-width:100%"><video controls autoplay loop></video><span>Loading...</span></div>
+        <div class="webapp-editor-image-container">
+            <img style="max-width:100%">
+            <video style="max-width:100%" controls autoplay loop></video>
+            <span>Loading...</span>
+        </div>
     </div>
 
     <!-- Static HTML viewer -->
@@ -391,7 +391,7 @@ Editor for files in a project
     <!-- Template for the LaTeX editor -->
     <div class="webapp-editor-latex smc-vfill">
         <div style="display:flex; flex-direction:row; height:100%" class="webapp-editor-latex-content">
-            <div class="webapp-editor-latex-latex_editor" style="flex-basis:60%; display: flex; flex-direction: column; border: 1px solid grey; border-radius: 4px;">
+            <div class="webapp-editor-latex-latex_editor" style="flex-basis:60%; display: flex; flex-direction: column">
             </div>
             <div class="webapp-editor-latex-resize-bar">
             </div>
@@ -487,7 +487,7 @@ Editor for files in a project
         <div class="webapp-editor-html-md-textedit-buttonbar">
         </div>
         <div style="display:flex; flex-direction:row; height:100%" class="webapp-editor-html-md-content">
-            <div class="webapp-editor-html-md-source-editor" style="flex-basis:70%; display: flex; flex-direction: column; border: 1px solid grey; border-radius: 4px;">
+            <div class="webapp-editor-html-md-source-editor" style="flex-basis:70%; display: flex; flex-direction: column">
             </div>
             <div class="webapp-editor-html-md-resize-bar">
             </div>
@@ -502,7 +502,7 @@ Editor for files in a project
 
 
     <div class="webapp-editor-history smc-vfill">
-        <div class="webapp-editor-history-controls" style="display:flex; padding-left: 10px; padding-right: 10px; border-bottom: 1px solid lightgrey; border-radius: 4px; background-color:#efefef">
+        <div class="webapp-editor-history-controls" style="display:flex; padding-left: 10px; padding-right: 10px; border-bottom: 1px solid lightgrey; background-color:#efefef">
             <span style="color:#666; font-size:14pt; font-weight: bold; margin-right:1em">
                 <i class="fa fa-history"></i>
                 TimeTravel

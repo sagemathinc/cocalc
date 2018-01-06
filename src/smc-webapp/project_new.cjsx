@@ -1,4 +1,4 @@
-###############################################################################
+##############################################################################
 #
 #    CoCalc: Collaborative Calculation in the Cloud
 #
@@ -29,8 +29,9 @@ Well, SplitButton, MenuItem, Alert} = require('react-bootstrap')
 {ErrorDisplay, Icon, Loading, TimeAgo, Tip, ImmutablePureRenderMixin, Space} = require('./r_misc')
 {User} = require('./users')
 {webapp_client} = require('./webapp_client')
-{file_associations} = require('./editor')
+{file_associations} = require('./file-associations')
 {special_filenames_with_no_extension} = require('./project_file')
+{Library} = require('./library')
 
 v = misc.keys(file_associations)
 v.sort()
@@ -151,11 +152,11 @@ exports.FileTypeSelector = FileTypeSelector = rclass
         <div>
             <Row style={row_style}>
                 <Col sm=6>
-                    <Tip icon='file-code-o' title='Sage Worksheet' tip='Create an interactive worksheet for using the SageMath mathematical software, R, and many other systems.  Do sophisticated mathematics, draw plots, compute integrals, work with matrices, etc.'>
-                        <NewFileButton icon='file-code-o' name='Sage Worksheet' on_click={@props.create_file} ext='sagews' />
+                    <Tip icon='file-code-o' title='Sage worksheet' tip='Create an interactive worksheet for using the SageMath mathematical software, R, and many other systems.  Do sophisticated mathematics, draw plots, compute integrals, work with matrices, etc.'>
+                        <NewFileButton icon='file-code-o' name='Sage worksheet' on_click={@props.create_file} ext='sagews' />
                     </Tip>
-                    <Tip icon='file-code-o' title='Jupyter Notebook' tip='Create an interactive notebook for using Python, Julia, R and more.'>
-                        <NewFileButton icon='file-code-o' name='Jupyter Notebook' on_click={@props.create_file} ext={'ipynb'}} />
+                    <Tip icon='file-code-o' title='Jupyter notebook' tip='Create an interactive notebook for using Python, Julia, R and more.'>
+                        <NewFileButton icon='file-code-o' name='Jupyter notebook' on_click={@props.create_file} ext={'ipynb'}} />
                     </Tip>
                 </Col>
                 <Col sm=6>
@@ -186,9 +187,9 @@ exports.FileTypeSelector = FileTypeSelector = rclass
                         tip="Create a command line terminal.  CoCalc includes a full interactive Linux command line console and color xterm.  Run command line software, vim, emacs and more.">
                         <NewFileButton icon='terminal' name='Terminal' on_click={@props.create_file} ext='term' />
                     </Tip>
-                    <Tip title='Task List'   icon='tasks'
+                    <Tip title='Task list'   icon='tasks'
                         tip='Create a todo list to keep track of everything you are doing on a project.  Put #hashtags in the item descriptions and set due dates.'>
-                        <NewFileButton icon='tasks' name='Task List' on_click={@props.create_file} ext='tasks' />
+                        <NewFileButton icon='tasks' name='Task list' on_click={@props.create_file} ext='tasks' />
                     </Tip>
                     <Tip title='Stopwatch'   icon='clock-o'
                         tip='Create a collaborative stopwatch to keep track how long it takes to do something.'>
@@ -196,9 +197,9 @@ exports.FileTypeSelector = FileTypeSelector = rclass
                     </Tip>
                 </Col>
                 <Col sm=6>
-                    <Tip title='Manage a Course'  placement='left'  icon='graduation-cap'
+                    <Tip title='Manage a course'  placement='left'  icon='graduation-cap'
                         tip='If you are a teacher, click here to create a new course.  This is a file that you can add students and assignments to, and use to automatically create projects for everybody, send assignments to students, collect them, grade them, etc.'>
-                        <NewFileButton icon='graduation-cap' name='Manage a Course' on_click={@props.create_file} ext='course' />
+                        <NewFileButton icon='graduation-cap' name='Manage a course' on_click={@props.create_file} ext='course' />
                     </Tip>
                 </Col>
             </Row>
@@ -283,7 +284,7 @@ ProjectNewForm = rclass ({name}) ->
         if @props.get_total_project_quotas(@props.project_id)?.network
             return ''
         else
-            return ' (internet access blocked -- see project settings)'
+            return ' (access blocked -- see project settings)'
 
     create_folder: ->
         @props.actions.create_folder
@@ -341,9 +342,9 @@ ProjectNewForm = rclass ({name}) ->
                                 </Tip>
                             </Col>
                             <Col sm=6>
-                                <Tip title='Create a Chatroom'  placement='left'  icon='comment'
+                                <Tip title='Create a chatroom'  placement='left'  icon='comment'
                                     tip='Create a chatroom for chatting with other collaborators on this project.'>
-                                    <NewFileButton icon='comment' name='Create a Chatroom' on_click={@create_file} ext='sage-chat' />
+                                    <NewFileButton icon='comment' name='Create a chatroom' on_click={@create_file} ext='sage-chat' />
                                 </Tip>
                             </Col>
                         </Row>
@@ -391,7 +392,7 @@ FileUpload = rclass ({name}) ->
             <Col sm=3>
                 <h4><Icon name='cloud-upload' /> Upload files from your computer</h4>
             </Col>
-            <Col sm=8>
+            <Col sm=9>
                 <SMC_Dropzone
                     dropzone_handler     = {{}}
                     project_id           = @props.project_id
@@ -407,6 +408,15 @@ exports.ProjectNew = rclass ({name}) ->
     render: ->
         <div style={padding:'15px'}>
             <ProjectNewForm project_id={@props.project_id} name={@props.name} actions={@actions(name)} />
+            <hr />
+            <Row>
+                <Col sm=3>
+                    <h4><Icon name='book' /> Library</h4>
+                </Col>
+                <Col sm=9>
+                    <Library project_id={@props.project_id} name={@props.name} actions={@actions(name)} />
+                </Col>
+            </Row>
             <hr />
             <FileUpload project_id={@props.project_id} name={@props.name} />
         </div>

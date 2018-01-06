@@ -9,7 +9,6 @@ misc = require('smc-util/misc')
 {Markdown} = require('../r_misc')
 
 {CodeMirror} = require('./codemirror')
-{CodeMirrorStatic} = require('./codemirror-static')
 
 {InputPrompt} = require('./prompt')
 
@@ -118,33 +117,24 @@ exports.CellInput = rclass
         return options
 
     render_codemirror: (type) ->
-        if @props.actions? and (@props.is_current or @props.is_focused or @props.cell.get('cursors'))
-            # Not static public view *and* either the cell is focused or has
-            # cursors on it, so we use the full slow editable codemirror rendering.
-            <CodeMirror
-                value         = {@props.cell.get('input') ? ''}
-                options       = {@options(type)}
-                actions       = {@props.actions}
-                id            = {@props.cell.get('id')}
-                is_focused    = {@props.is_focused}
-                font_size     = {@props.font_size}
-                cursors       = {@props.cell.get('cursors')}
-            />
-        else
-            # Vastly faster renderer.
-            <CodeMirrorStatic
-                value         = {@props.cell.get('input') ? ''}
-                options       = {@options(type)}
-                actions       = {@props.actions}
-                id            = {@props.cell.get('id')}
-                font_size     = {@props.font_size}
-            />
+        <CodeMirror
+            value         = {@props.cell.get('input') ? ''}
+            options       = {@options(type)}
+            actions       = {@props.actions}
+            id            = {@props.cell.get('id')}
+            is_focused    = {@props.is_focused}
+            font_size     = {@props.font_size}
+            cursors       = {@props.cell.get('cursors')}
+        />
 
 
     render_markdown: ->
         value = @props.cell.get('input')?.trim()
         if not value
-            value = 'Type *Markdown* and LaTeX: $\\alpha^2$'
+            if not @props.actions?
+                value = ''  # read only (no actions so can't do anything), so no need for instructions about how to edit.
+            else
+                value = 'Type *Markdown* and LaTeX: $\\alpha^2$'
         <div
             onDoubleClick = {@handle_md_double_click}
             style         = {width:'100%', wordWrap: 'break-word', overflow: 'auto'}

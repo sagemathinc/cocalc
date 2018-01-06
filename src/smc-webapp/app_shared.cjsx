@@ -60,7 +60,7 @@ exports.NavTab = rclass
     displayName : "NavTab"
 
     propTypes :
-        label           : rtypes.string
+        label           : rtypes.oneOfType([rtypes.string, rtypes.object])
         icon            : rtypes.oneOfType([rtypes.string, rtypes.object])
         close           : rtypes.bool
         on_click        : rtypes.func
@@ -69,6 +69,12 @@ exports.NavTab = rclass
         style           : rtypes.object
         inner_style     : rtypes.object
         add_inner_style : rtypes.object
+
+    render_label: ->
+        if @props.label
+            <span style={marginLeft: 5}>
+                {@props.label}
+            </span>
 
     make_icon: ->
         if typeof(@props.icon) == 'string'
@@ -115,7 +121,7 @@ exports.NavTab = rclass
         >
             <div style={inner_style}>
                 {@make_icon()}
-                {<span style={marginLeft: 5}>{@props.label}</span> if @props.label?}
+                {@render_label()}
                 {@props.children}
             </div>
         </NavItem>
@@ -222,7 +228,7 @@ exports.ConnectionIndicator = rclass
                 connecting...
             </span>
         else if @props.connection_status == 'disconnected'
-            <span style={backgroundColor : 'darkred', color : 'white', padding : '1ex', 'zIndex': 100001}>
+            <span style={backgroundColor : '#FFA500', color : 'white', padding : '1ex', 'zIndex': 100001}>
                 disconnected
             </span>
 
@@ -300,7 +306,7 @@ exports.ConnectionInfo = rclass
         <div>
             {<Row>
                 <Col sm=3>
-                    <h4>Ping Time</h4>
+                    <h4>Ping time</h4>
                 </Col>
                 <Col sm=6>
                     <pre>{@props.avgping}ms (latest: {@props.ping}ms)</pre>
@@ -308,7 +314,7 @@ exports.ConnectionInfo = rclass
             </Row> if @props.ping}
             <Row>
                 <Col sm=3>
-                    <h4>Hub Server</h4>
+                    <h4>Hub server</h4>
                 </Col>
                 <Col sm=6>
                     <pre>{if @props.hub? then @props.hub else "Not signed in"}</pre>
@@ -390,7 +396,7 @@ exports.AppLogo = rclass
     displayName : 'AppLogo'
 
     render: ->
-        {APP_ICON} = require('./misc_page')
+        {APP_ICON} = require('./art')
         styles =
             display         : 'inline-block'
             backgroundImage : "url('#{APP_ICON}')"
@@ -429,12 +435,12 @@ exports.VersionWarning = rclass
 
     render: ->
         styles =
+            fontSize        : '12pt'
             position        : 'fixed'
             left            : 12
             backgroundColor : 'red'
             color           : '#fff'
             top             : 20
-            opacity         : .75
             borderRadius    : 4
             padding         : 5
             zIndex          : 900

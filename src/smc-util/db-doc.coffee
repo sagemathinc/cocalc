@@ -488,6 +488,10 @@ class Doc
         return @_db.to_str()
 
     is_equal: (other) =>
+        if not other?
+            # Definitely not equal if not defined -- this should never get called, but other bugs could lead
+            # here, so we handle it sensibly here at least.  See, e.g., https://github.com/sagemathinc/cocalc/issues/2586
+            return false
         return @_db.equals(other._db)
 
     apply_patch: (patch) =>
@@ -660,9 +664,10 @@ class exports.SyncDB extends EventEmitter
     # change (or create) exactly *one* database entry that matches
     # the given where criterion.
     set: (obj, save=true) =>
-        if not @_doc?
+        doc = @_doc?.get_doc()
+        if not doc?   # see https://github.com/sagemathinc/cocalc/issues/2130
             return
-        @_doc.set_doc(new Doc(@_doc.get_doc()._db.set(obj)))
+        @_doc.set_doc(new Doc(doc._db.set(obj)))
         if save
             @_doc.save()
         @_on_change()

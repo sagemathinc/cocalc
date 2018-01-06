@@ -574,6 +574,15 @@ patchSynctex(\"#{@filename_tex}\");' | R --no-save"
                     cb      : (err, output) ->
                         cb(err)
 
+            # delete the copied PDF file, we no longer need it (might use up a lot of disk/memory space)
+            (cb) =>
+                @_exec
+                    command : 'rm'
+                    args    : [pdf]
+                    timeout : 15
+                    err_on_exit : true
+                    cb      : cb
+
             # get the new sha1 hashes
             (cb) =>
                 @_exec

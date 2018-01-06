@@ -11,7 +11,6 @@
   padding  : 0px
   margin   : 0px
   overflow : hidden
-  border   : 1px solid lightgrey
 
 .webapp-console-filename
   padding        : 10px
@@ -56,10 +55,6 @@
   overflow-y : scroll
   z-index    : 1          /* so terminal text doesn't appear visible when horizontally resizing */
 
-.webapp-console-cursor-blur
-  border        : 1px solid grey
-  border-radius : 3px
-
 .webapp-console-cursor-focus
   animation      : webapp-cursor-blink 1.3s linear 0s infinite
   background     : #fff
@@ -84,9 +79,10 @@
 
 .webapp-console-focus
   border        : 1px solid #77b6e8
-  border-radius : 4px
   box-shadow    : inset 0 0 4px #77b6e8
 
+/* Please do not delete this rule.  If you do, then whenever the console switches between blured and focused, all the
+   text MOVES, which is very annoying.  Proof it is wrong: try changing the chat box in this chatroom between
+   focused and blurred -- nothing moves.*/
 .webapp-console-blur
   border        : 1px solid lightgrey
-  border-radius : 4px

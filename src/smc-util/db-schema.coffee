@@ -148,6 +148,12 @@ schema.accounts =
         email_address_before_delete :
             type : 'string'
             desc : 'The email address of the user before they deleted their account.'
+        email_address_verified :
+            type : 'map'
+            desc : 'Verified email addresses as { "email@addre.ss" : <timestamp>, ... }'
+        email_address_challenge :
+            type : 'map'
+            desc : 'Contains random token for verification of an address: {"email": "...", "token": <random>, "time" : <timestamp for timeout>}'
         passports       :
             type : 'map'
             desc : 'Map from string ("[strategy]-[id]") derived from passport name and id to the corresponding profile'
@@ -217,8 +223,9 @@ schema.accounts =
             throttle_changes : 500
             pg_where : ['account_id = $::UUID':'account_id']
             fields :
-                account_id      : null
-                email_address   : null
+                account_id             : null
+                email_address          : null
+                email_address_verified : null
                 editor_settings :
                     strip_trailing_whitespace : false
                     show_trailing_whitespace  : true
@@ -242,6 +249,7 @@ schema.accounts =
                     theme                     : "default"
                     undo_depth                : 300
                     jupyter_classic           : false
+                    show_exec_warning         : true
                 other_settings  :
                     confirm_close     : false
                     mask_files        : true
@@ -249,6 +257,9 @@ schema.accounts =
                     standby_timeout_m : 10
                     default_file_sort : 'time'
                     show_global_info2 : null
+                    first_steps       : true
+                    newsletter        : true
+                    time_ago_absolute : false
                 first_name      : ''
                 last_name       : ''
                 terminal        :
@@ -638,7 +649,7 @@ schema.project_log =
         get :
             pg_where     : 'projects'
             pg_changefeed: 'projects'
-            options   : [{order_by : '-time'}, {limit : 400}]
+            options   : [{order_by : '-time'}, {limit : 1000}]
             throttle_changes : 2000
             fields :
                 id          : null
@@ -697,13 +708,16 @@ schema.projects =
         last_edited :
             type : 'timestamp'
             desc : 'The last time some file was edited in this project.  This is the last time that the file_use table was updated for this project.'
+        last_started :
+            type : 'timestamp'
+            desc : 'The last time the project started running.'
         last_active :
             type : 'map'
             desc : "Map from account_id's to the timestamp of when the user with that account_id touched this project."
             date : 'all'
         created :
             type : 'timestamp'
-            desc : 'When the account was created.'
+            desc : 'When the project was created.'
         action_request :
             type : 'map'
             desc : "Request state change action for project: {action:['restart', 'stop', 'save', 'close'], started:timestamp, err:?, finished:timestamp}"
@@ -714,10 +728,10 @@ schema.projects =
             date : ['assigned', 'saved']
         last_backup :
             type : 'timestamp'
-            desc : "Timestamp of last off-disk successful backup using bup to Google cloud storage"
+            desc : "(DEPRECATED) Timestamp of last off-disk successful backup using bup to Google cloud storage"
         storage_request :
             type : 'map'
-            desc : "{action:['save', 'close', 'move', 'open'], requested:timestap, pid:?, target:?, started:timestamp, finished:timestamp, err:?}"
+            desc : "(DEPRECATED) {action:['save', 'close', 'move', 'open'], requested:timestap, pid:?, target:?, started:timestamp, finished:timestamp, err:?}"
             date : ['started', 'finished', 'requested']
         course :
             type : 'map'
@@ -725,10 +739,10 @@ schema.projects =
             date : ['pay']
         storage_server :
             type : 'integer'
-            desc : 'Number of the Kubernetes storage server with the data for this project: one of 0, 1, 2, ...'
+            desc : '(DEPRECATED) Number of the Kubernetes storage server with the data for this project: one of 0, 1, 2, ...'
         storage_ready :
             type : 'boolean'
-            desc : 'Whether storage is ready to be used on the storage server.  Do NOT try to start project until true; this gets set by storage daemon when it notices the that run is true.'
+            desc : '(DEPRECATED) Whether storage is ready to be used on the storage server.  Do NOT try to start project until true; this gets set by storage daemon when it notices the that run is true.'
         disk_size :
             type : 'integer'
             desc : 'Size in megabytes of the project disk.'
@@ -906,8 +920,22 @@ schema.public_paths =
         counter :
             type : 'number'
             desc : 'the number of times this public path has been accessed'
+        vhost :  # For now, this will only be used *manually* for now; at some point users will be able to specify this,
+                 # though maybe they have to prove they own it.
+                 # For now we will only serve the vhost files statically with no special support, except we do support
+                 # basic http auth.   However, we will add
+                 # special server support for certain file types (e.g., math typesetting, markdown, sagews, ipynb, etc.)
+                 # so static websites can just be written in a mix of md, html, ipynb, etc. files with no javascript needed.
+                 # This could be a non-default option.
+                 # IMPORTANT: right now if vhost is set, then the share is not visible at all to the normal share server.
+            type : 'string'
+            desc : 'Request for the given host (which must not container "cocalc") will be served by this public share. Only one public path can have a given vhost.  The vhost field can be a comma-separated string for multiple vhosts.'
+            unique : true
+        auth :
+            type : 'map'
+            desc : 'Map from relative path inside the share to array of {path:[{name:[string], pass:[password-hash]}, ...], ...}.  Used both by vhost and share server, but not user editable yet.  Later it will be user editable.  The password hash is from smc-hub/auth.password_hash (so 1000 iterations of sha512)'
 
-    pg_indexes : ['project_id']
+    pg_indexes : ['project_id', '(substring(project_id::text from 1 for 1))', '(substring(project_id::text from 1 for 2))']
 
     user_query:
         get :
@@ -1095,7 +1123,7 @@ schema.site_settings =
 schema.stats =
     primary_key : 'id'
     durability  : 'soft' # ephemeral stats whose slight loss wouldn't matter much
-    anonymous   : true     # allow user read access, even if not signed in
+    anonymous   : false     # allow user read access, even if not signed in
     fields:
         id                  :
             type : 'uuid'
@@ -1120,21 +1148,6 @@ schema.stats =
             type : 'array'
             pg_type : 'JSONB[]'
     pg_indexes : ['time']
-    user_query:
-        get:
-            pg_where: ["time >= NOW() - INTERVAL '5 minutes'"]
-            pg_changefeed : 'five-minutes'
-            options : [{'order_by':'-time'}]
-            throttle_changes : 5000
-            fields :
-                id                  : null
-                time                : null
-                accounts            : 0
-                accounts_created    : null
-                projects            : 0
-                projects_created    : null
-                projects_edited     : null
-                hub_servers         : []
 
 schema.storage_servers =
     primary_key : 'host'

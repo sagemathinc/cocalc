@@ -33,7 +33,9 @@ VIDEO_CHAT_LIMIT         = 8       # imposed by free appear.in plan
 
 # The pop-up window for video chat
 video_window = (title, url, cb_closed) ->
-    w = window.open(url, null, "location=yes,resizable=yes,height=640,width=800")
+    {open_new_tab} = require('smc-webapp/misc_page')
+    return open_new_tab(url, popup=true)
+
     # disabled, see https://github.com/sagemathinc/cocalc/issues/1899
     #w.document.write """
     #<html>
@@ -46,7 +48,6 @@ video_window = (title, url, cb_closed) ->
     #    </body>
     #</html>
     #"""
-    return w
 
 video_windows = {}
 

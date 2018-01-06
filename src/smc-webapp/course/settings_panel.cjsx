@@ -39,6 +39,8 @@ misc = require('smc-util/misc')
 {HelpBox} = require('./help_box')
 {DeleteStudentsPanel} = require('./delete_students')
 
+STUDENT_COURSE_PRICE = require('smc-util/upgrade-spec').upgrades.subscription.student_course.price.month4
+
 StudentProjectsStartStopPanel = rclass ({name}) ->
     displayName : "CourseEditorSettings-StudentProjectsStartStopPanel"
 
@@ -178,8 +180,12 @@ exports.SettingsPanel = rclass
         settings    : rtypes.immutable.Map.isRequired
         project_map : rtypes.immutable.Map.isRequired
 
+    shouldComponentUpdate: (next, next_state) ->
+        return next.settings != @props.settings or next.project_map != @props.project_map or \
+            next_state.show_students_pay_dialog != @stateshow_students_pay_dialog
+
     getInitialState: ->
-        show_students_pay_dialog        : false
+        show_students_pay_dialog : false
 
     ###
     # Editing title/description
@@ -296,7 +302,6 @@ exports.SettingsPanel = rclass
 
         content += 'students = [\n'
 
-        console.log "exporting py"
         for student in store.get_sorted_students()
             grades   = (("'#{store.get_grade(assignment, student) ? ''}'") for assignment in assignments).join(',')
             grades   = grades.replace(/\n/g, "\\n")
@@ -380,14 +385,14 @@ exports.SettingsPanel = rclass
         </Button>
 
     render_require_students_pay_desc: ->
-        date = @props.settings.get('pay')
+        date = new Date(@props.settings.get('pay'))
         if date > webapp_client.server_time()
             <span>
-                Your students will see a warning until <TimeAgo date={date} />.  They will then be required to upgrade for a one-time fee of $9.
+                <b>Your students will see a warning until <TimeAgo date={date} />.</b>  They will then be required to upgrade for a special discounted one-time fee of ${STUDENT_COURSE_PRICE}.
             </span>
         else
             <span>
-                Your students are required to upgrade their project.
+                <b>Your students are required to upgrade their project now to use it.</b>  If you want to give them more time to upgrade, move the date forward.
             </span>
 
     render_require_students_pay_when: ->
@@ -441,7 +446,7 @@ exports.SettingsPanel = rclass
         <Alert bsStyle='info'>
             <h3><Icon name='arrow-circle-up' /> Require students to upgrade</h3>
             <hr/>
-            <span>Click the following checkbox to require that all students in the course pay a <b>one-time $9</b> fee to move their projects to members-only computers and enable full internet access, for four months.  Members-only computers are not randomly rebooted constantly and have far fewer users. Student projects that are already on members-only hosts will not be impacted.  <em>You will not be charged.</em></span>
+            <span>Click the following checkbox to require that all students in the course pay a special discounted <b>one-time ${STUDENT_COURSE_PRICE}</b> fee to move their projects from trial servers to members-only computers, enable full internet access, and do not see a large red warning message.  This lasts four months, and <em>you will not be charged (only students are charged).</em></span>
 
             {@render_students_pay_checkbox()}
             {@render_require_students_pay_when() if @props.settings.get('pay')}
@@ -452,7 +457,7 @@ exports.SettingsPanel = rclass
         if @props.settings.get('pay')
             <span><span style={fontSize:'18pt'}><Icon name="check"/></span> <Space />{@render_require_students_pay_desc()}</span>
         else
-            <span>Require that all students in the course pay a one-time $9 fee to move their projects to members only hosts and enable full internet access, for four months.  This is optional, but will ensure that your students have a better experience and receive priority support.</span>
+            <span>Require that all students in the course pay a one-time ${STUDENT_COURSE_PRICE} fee to move their projects off trial servers and enable full internet access, for four months.  This is strongly recommended, and ensures that your students have a better experience, and do not see a large <span style={color:'red'}>RED warning banner</span> all the time.</span>
 
 
     render_require_students_pay: ->

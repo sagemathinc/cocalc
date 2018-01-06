@@ -84,7 +84,7 @@ params = ->
     if not page?  # unknown for now
         return ''
     v = []
-    for param in ['fullscreen', 'session']
+    for param in ['fullscreen', 'session', 'get_api_key']
         val = page.get(param)
         if val?
             v.push("#{param}=#{encodeURIComponent(val)}")

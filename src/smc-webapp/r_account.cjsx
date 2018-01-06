@@ -71,6 +71,64 @@ TextSetting = rclass
             </FormGroup>
         </LabeledRow>
 
+
+EmailVerification = rclass
+    displayName : 'Account-EmailVerification'
+
+    propTypes :
+        account_id             : rtypes.string
+        email_address          : rtypes.string
+        email_address_verified : rtypes.object
+
+    getInitialState: ->
+        disabled_button : false
+
+    componentWillReceiveProps: (next) ->
+        if next.email_address != @props.email_address
+            @setState(disabled_button: false)
+
+    verify : ->
+        webapp_client.send_verification_email
+            account_id         : @props.account_id
+            cb                 : (err, resp) =>
+                @setState(disabled_button: true)
+                if not err and resp.error?
+                    err = resp.error
+                if err
+                    console.log("TODO: error sending email verification: #{err}")
+
+    test : ->
+        if not @props.email_address?
+            <span>Unkown</span>
+        else
+            email_address_verified = @props.email_address_verified ? {}
+            if email_address_verified[@props.email_address]?
+                <span style={color: 'green'}>Verified</span>
+            else
+                [
+                    <span key={1} style={color: 'red', paddingRight: '3em'}>Not Verified</span>
+                    <Button
+                        key        = {2}
+                        onClick    = {@verify}
+                        bsStyle    = 'success'
+                        disabled   = {@state.disabled_button}
+                    >
+                        {
+                            if @state.disabled_button
+                                'Email sent'
+                            else
+                                'Send verification email'
+                        }
+                    </Button>
+                ]
+
+    render : ->
+        <LabeledRow label='Email verification' style={marginBottom: '15px'}>
+            <div>
+                Status: {@test()}
+            </div>
+        </LabeledRow>
+
 EmailAddressSetting = rclass
     displayName : 'Account-EmailAddressSetting'
 
@@ -174,11 +232,51 @@ EmailAddressSetting = rclass
             {@render_edit() if @state.state != 'view'}
         </LabeledRow>
 
-PasswordSetting = rclass
-    displayName : 'Account-PasswordSetting'
+NewsletterSetting = rclass
+    displayName : 'Account-NewsletterSetting'
 
     propTypes :
-        email_address : rtypes.string
+        other_settings : rtypes.object
+        email_address  : rtypes.string
+        redux          : rtypes.object
+
+    on_change: (value) ->
+        @props.redux.getTable('account').set({"other_settings": {"newsletter" : value}})
+
+    blog: ->
+        {BLOG_URL} = require('smc-util/theme')
+        return if not BLOG_URL
+        return <span>(<a href={BLOG_URL} target="_blank">check out our blog</a>)</span>
+
+    render_checkbox: ->
+        <Checkbox
+            style    = {margin: '0'}
+            checked  = {@props.other_settings.newsletter}
+            ref      = 'newsletter'
+            onChange = {(e)=>@on_change(e.target.checked)}
+        >
+            <span>
+                Receive periodic updates {@blog()}
+                <br/>
+                (Changes take up to 24 hours to be effective.)
+            </span>
+        </Checkbox>
+
+    render: ->
+        has_email = @props.email_address?.length > 0
+        <LabeledRow label='Newsletter'  style={marginBottom: '15px'}>
+        {
+            if has_email
+                @render_checkbox()
+            else
+                <span style={fontWeight: 'bold'}>
+                    You need to enter an email address above!
+                </span>
+        }
+        </LabeledRow>
+
+PasswordSetting = rclass
+    displayName : 'Account-PasswordSetting'
 
     getInitialState: ->
         state        : 'view'   # view --> edit --> saving --> view
@@ -208,7 +306,6 @@ PasswordSetting = rclass
         @setState
             state : 'saving'
         webapp_client.change_password
-            email_address : @props.email_address
             old_password  : @state.old_password
             new_password  : @state.new_password
             cb            : (err, resp) =>
@@ -305,15 +402,18 @@ AccountSettings = rclass
     displayName : 'AccountSettings'
 
     propTypes :
-        first_name           : rtypes.string
-        last_name            : rtypes.string
-        email_address        : rtypes.string
-        passports            : rtypes.object
-        show_sign_out        : rtypes.bool
-        sign_out_error       : rtypes.string
-        everywhere           : rtypes.bool
-        redux                : rtypes.object
-        delete_account_error : rtypes.string
+        account_id             : rtypes.string
+        first_name             : rtypes.string
+        last_name              : rtypes.string
+        email_address          : rtypes.string
+        email_address_verified : rtypes.object
+        passports              : rtypes.object
+        show_sign_out          : rtypes.bool
+        sign_out_error         : rtypes.string
+        everywhere             : rtypes.bool
+        redux                  : rtypes.object
+        delete_account_error   : rtypes.string
+        other_settings         : rtypes.object
 
     getInitialState: ->
         add_strategy_link      : undefined
@@ -478,8 +578,18 @@ AccountSettings = rclass
                 ref           = 'email_address'
                 maxLength     = 254
                 />
+            <EmailVerification
+                account_id             = {@props.account_id}
+                email_address          = {@props.email_address}
+                email_address_verified = {@props.email_address_verified}
+                ref                    = 'email_address_verified'
+                />
+            <NewsletterSetting
+                redux          = {@props.redux}
+                email_address  = {@props.email_address}
+                other_settings = {@props.other_settings}
+                />
             <PasswordSetting
-                email_address = {@props.email_address}
                 ref   = 'password'
                 maxLength = 64
                 />
@@ -751,6 +861,7 @@ EDITOR_SETTINGS_CHECKBOXES =
     show_trailing_whitespace  : 'show spaces at ends of lines'
     spaces_instead_of_tabs    : 'send 4 spaces when the tab key is pressed'
     extra_button_bar          : 'more editing functions (mainly in Sage worksheets)'
+    show_exec_warning         : 'warn that certain files are not directly executable'
     jupyter_classic           : <span>use classical Jupyter notebook <a href='https://github.com/sagemathinc/cocalc/wiki/JupyterClassicModern' target='_blank'>(DANGER: this can cause trouble...)</a></span>
 
 EditorSettingsCheckboxes = rclass
@@ -985,6 +1096,22 @@ OtherSettings = rclass
     on_change: (name, value) ->
         @props.redux.getTable('account').set(other_settings:{"#{name}":value})
 
+    render_first_steps: ->
+        <Checkbox
+            checked  = {@props.other_settings.first_steps}
+            ref      = 'first_steps'
+            onChange = {(e)=>@on_change('first_steps', e.target.checked)}>
+            Offer to setup the "First Steps" guide (if available).
+        </Checkbox>
+
+    render_time_ago_absolute: ->
+        <Checkbox
+            checked  = {@props.other_settings.time_ago_absolute}
+            ref      = 'time_ago_absolute'
+            onChange = {(e)=>@on_change('time_ago_absolute', e.target.checked)}>
+            Display timestamps as absolute points in time – otherwise they are relative to the current time. (This toggle does not yet work yet for some views, including TimeTravel and task lists.)
+        </Checkbox>
+
     render_confirm: ->
         if not require('./feature').IS_MOBILE
             <Checkbox
@@ -1013,33 +1140,43 @@ OtherSettings = rclass
                 number    = {@props.other_settings.standby_timeout_m} />
         </LabeledRow>
 
+    render_mask_files: ->
+        <Checkbox
+            checked  = {@props.other_settings.mask_files}
+            ref      = 'mask_files'
+            onChange = {(e)=>@on_change('mask_files', e.target.checked)}
+        >
+            Mask files: grey-out files in the files viewer that you probably do not want to open
+        </Checkbox>
+
+    render_default_file_sort: ->
+        <LabeledRow label='Default file sort'>
+            <SelectorInput
+                selected  = {@props.other_settings.default_file_sort}
+                options   = {time:'Sort by time', name:'Sort by name'}
+                on_change = {(value)=>@on_change('default_file_sort', value)}
+            />
+        </LabeledRow>
+
+    render_page_size: ->
+        <LabeledRow label='Number of files per page'>
+            <NumberInput
+                    on_change = {(n)=>@on_change('page_size',n)}
+                    min       = 1
+                    max       = 1000000
+                    number    = {@props.other_settings.page_size} />
+        </LabeledRow>
 
     render: ->
         if not @props.other_settings
             return <Loading />
         <Panel header={<h2> <Icon name='gear' /> Other settings</h2>}>
             {@render_confirm()}
-            <Checkbox
-                checked  = {@props.other_settings.mask_files}
-                ref      = 'mask_files'
-                onChange = {(e)=>@on_change('mask_files', e.target.checked)}
-            >
-                Mask files: grey-out files in the files viewer that you probably do not want to open
-            </Checkbox>
-            <LabeledRow label='Default file sort'>
-                <SelectorInput
-                    selected  = {@props.other_settings.default_file_sort}
-                    options   = {time:'Sort by time', name:'Sort by name'}
-                    on_change = {(value)=>@on_change('default_file_sort', value)}
-                />
-            </LabeledRow>
-            <LabeledRow label='Number of files per page'>
-                <NumberInput
-                        on_change = {(n)=>@on_change('page_size',n)}
-                        min       = 1
-                        max       = 1000000
-                        number    = {@props.other_settings.page_size} />
-            </LabeledRow>
+            {@render_first_steps()}
+            {@render_time_ago_absolute()}
+            {@render_mask_files()}
+            {@render_default_file_sort()}
+            {@render_page_size()}
             {@render_standby_timeout()}
             {@render_page_size_warning()}
         </Panel>
@@ -1155,10 +1292,10 @@ StripeKeys = rclass
             when 'view', 'saved'
                 <div>
                     {"stripe keys saved!" if @state.state == 'saved'}
-                    <Button bsStyle='warning' onClick={@edit}>Change stripe keys...</Button>
+                    <Button bsStyle='warning' onClick={@edit}>Change Stripe keys...</Button>
                 </div>
             when 'save'
-                <div>Saving stripe keys...</div>
+                <div>Saving Stripe keys...</div>
             when 'edit'
                 <Well>
                     <LabeledRow label='Secret key'>
@@ -1174,7 +1311,7 @@ StripeKeys = rclass
                         </FormGroup>
                     </LabeledRow>
                     <ButtonToolbar>
-                        <Button bsStyle='success' onClick={@save}>Save stripe keys...</Button>
+                        <Button bsStyle='success' onClick={@save}>Save Stripe keys...</Button>
                         <Button onClick={@cancel}>Cancel</Button>
                     </ButtonToolbar>
                 </Well>
@@ -1349,34 +1486,34 @@ AddStripeUser = rclass
             # nothing to do -- shouldn't happen since button should be disabled.
             return false
 
-        @status_mesg("Adding #{email}...")
+        @status_mesg("Adding/updating #{email}...")
         @setState(email: '')
         webapp_client.stripe_admin_create_customer
-            email_address : email
+            email_address : email.trim()
             cb            : (err, mesg) =>
                 if err
                     @status_mesg("Error: #{misc.to_json(err)}")
                 else
-                    @status_mesg("Successfully added #{email}")
+                    @status_mesg("Successfully added/updated #{email}")
 
         return false
 
     render_form: ->
-        <form onSubmit={(e)=>e.preventDefault();@add_stripe_user()}>
+        <form onSubmit={(e)=>e.preventDefault();if misc.is_valid_email_address(@state.email.trim()) then @add_stripe_user()}>
             <Row>
                 <Col md=6>
                     <FormGroup>
                         <FormControl
-                            ref   = 'input'
-                            type  = 'text'
-                            value = {@state.email}
+                            ref         = 'input'
+                            type        = 'text'
+                            value       = {@state.email}
                             placeholder = "Email address"
                             onChange    = {=>@setState(email:ReactDOM.findDOMNode(@refs.input).value)}
                         />
                     </FormGroup>
                 </Col>
                 <Col md=6>
-                    <Button bsStyle='warning' disabled={not misc.is_valid_email_address(@state.email)} onClick={@add_stripe_user}>Add User to Stripe</Button>
+                    <Button bsStyle='warning' disabled={not misc.is_valid_email_address(@state.email.trim())} onClick={@add_stripe_user}>Add/Update Stripe Info</Button>
                 </Col>
             </Row>
         </form>
@@ -1403,7 +1540,7 @@ AdminSettings = rclass
         if not @props.groups? or 'admin' not in @props.groups
             return <span />
 
-        add_stripe_label = <Tip title="Add Stripe User" tip="Make it so the SMC user with the given email address has a corresponding stripe identity, even if they have never entered a credit card.  You'll need this if you want to directly create a plan for them in Stripe.">Add Stripe Users</Tip>
+        add_stripe_label = <Tip title="Add/Update Stripe User" tip="Make it so the SMC user with the given email address has a corresponding stripe identity, even if they have never entered a credit card.  You'll need this if you want to directly create a plan for them in Stripe.">Add/Update Stripe Users</Tip>
 
         <Panel header={<h2> <Icon name='users' /> Administrative server settings</h2>}>
             <LabeledRow label='Account Creation Token'>
@@ -1429,9 +1566,11 @@ exports.AccountSettingsTop = rclass
 
     propTypes :
         redux           : rtypes.object
+        account_id      : rtypes.string
         first_name      : rtypes.string
         last_name       : rtypes.string
         email_address   : rtypes.string
+        email_address_verified : rtypes.object
         passports       : rtypes.object
         show_sign_out   : rtypes.bool
         sign_out_error  : rtypes.string
@@ -1449,13 +1588,16 @@ exports.AccountSettingsTop = rclass
             <Row>
                 <Col xs=12 md=6>
                     <AccountSettings
+                        account_id     = {@props.account_id}
                         first_name     = {@props.first_name}
                         last_name      = {@props.last_name}
                         email_address  = {@props.email_address}
+                        email_address_verified = {@props.email_address_verified}
                         passports      = {@props.passports}
                         show_sign_out  = {@props.show_sign_out}
                         sign_out_error = {@props.sign_out_error}
                         everywhere     = {@props.everywhere}
+                        other_settings = {@props.other_settings}
                         redux          = {@props.redux} />
                     <TerminalSettings
                         terminal = {@props.terminal}

@@ -1,3 +1,14 @@
+Recently published paths:
+
+    select now()-created,project_id,path from public_paths where created >= now() - interval '1 day' and created <= now() order by created desc;
+
+    select count(*) from public_paths where created >= now() - interval '1 day' and created <= now();  select count(*) from public_paths where created >= now() - interval '2 day' and created <= now() - interval '1 day'; select count(*) from public_paths where created >= now() - interval '3 day' and created <= now() - interval '2 day';
+
+    select count(*) from public_paths where created >= now() - interval '1 day' and created <= now() and disabled;  select count(*) from public_paths where created >= now() - interval '2 day' and created <= now() - interval '1 day' and disabled; select count(*) from public_paths where created >= now() - interval '3 day' and created <= now() - interval '2 day' and disabled;
+
+    select count(*) from project_log where time >= now() - interval '2 day' and time <= now() - interval '1 day' and event#>>'{event}' = 'invite_user';  select count(*) from project_log where time >= now() - interval '1 day' and time <= now() and event#>>'{event}' = 'invite_user';
+
+
 Recently added collaborators:
 
     select now()-time,project_id from project_log where time >= now() - interval '1 day' and time <= now() and event#>>'{event}' = 'invite_user' order by time desc;
@@ -14,6 +25,8 @@ Check on our SLO, namely number of projects that took 30s or more to start among
 
     select count(*) from project_log where event#>>'{event}'='start_project' and time >= now() - interval '1 day';
 
+    select now() - time, event#>>'{time}' from project_log where event#>>'{event}'='start_project' and time >= now() - interval '5 minutes' and time <= now() order by time desc;
+
     select * from (select now()-time as age, project_id,(event#>>'{time}')::INTEGER as t from project_log where event#>>'{event}'='start_project' and time >= now() - interval '1 hour' and time <= now() order by time desc) as foo where t > 20000 order by age;
 
 How long files are taking to open, as perceived by the user:
@@ -22,9 +35,9 @@ How long files are taking to open, as perceived by the user:
 
 Problems people are having right now:
 
-    select NOW() - time as timeago, left(account_id::VARCHAR,6), left(error,70) as error from client_error_log order by time desc limit 50;
+    select NOW() - time as timeago, left(account_id::VARCHAR,6), left(error,80) as error from client_error_log order by time desc limit 50;
 
-    select NOW() - time as timeago, left(account_id::VARCHAR,6), left(error,70) as error from client_error_log where error like 'Error saving%' order by time desc limit 50;
+    select NOW() - time as timeago, left(account_id::VARCHAR,6), left(error,80) as error from client_error_log where error like 'Error saving%' order by time desc limit 50;
 
 File access for a user with given email address:
 
@@ -143,6 +156,16 @@ Hourly (or 10minute blocks) active users
     FROM file_access_log
     WHERE time >= NOW() - '2 week'::interval
     GROUP BY day, hour -- , min10
+
+Copied library entries .. timestamp is about when the feature was released
+
+    SELECT count(*), event ->> 'title' AS title, event ->> 'docid' AS docid
+    FROM project_log where event ->> 'event' = 'library'
+     AND event ->> 'title' IS NOT NULL
+     AND time >= '2017-12-12'::TIMESTAMP
+    GROUP BY title, docid
+    ORDER BY count DESC;
+
 
 ## Stripe
 

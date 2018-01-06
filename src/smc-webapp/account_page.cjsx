@@ -65,6 +65,7 @@ exports.AccountPage = rclass
             first_name              : rtypes.string
             last_name               : rtypes.string
             email_address           : rtypes.string
+            email_address_verified  : rtypes.object
             passports               : rtypes.object
             show_sign_out           : rtypes.bool
             sign_out_error          : rtypes.string
@@ -112,9 +113,11 @@ exports.AccountPage = rclass
     render_account_settings: ->
         <AccountSettingsTop
             redux           = {@props.redux}
+            account_id      = {@props.account_id}
             first_name      = {@props.first_name}
             last_name       = {@props.last_name}
             email_address   = {@props.email_address}
+            email_address_verified = {@props.email_address_verified}
             passports       = {@props.passports}
             show_sign_out   = {@props.show_sign_out}
             sign_out_error  = {@props.sign_out_error}
@@ -156,7 +159,7 @@ exports.AccountPage = rclass
             {@render_upgrades() if @props.active_page == 'upgrades'}
         </Tab>
         if @props.kucalc is 'yes'
-            v.push <Tab key='ssh-keys' eventKey="ssh-keys" title={<span><Icon name='key'/> SSH Keys</span>}>
+            v.push <Tab key='ssh-keys' eventKey="ssh-keys" title={<span><Icon name='key'/> SSH keys</span>}>
                 {@render_ssh_keys_page() if @props.active_page == 'ssh-keys'}
             </Tab>
         v.push <Tab key='support' eventKey="support" title={<span><Icon name='medkit'/> Support</span>}>

@@ -707,7 +707,7 @@ describe "retry_until_success", ->
 
     it "tests if calling the cb with an error is handled correctly", (done) =>
         # first, calls the cb with something != undefined
-        @fstub.onCall(0).callsArgWithAsync(0, new Error("just a test"))
+        @fstub.onCall(0).callsArgWithAsync(0, "just a test")
         # then calls the cb without anything
         @fstub.onCall(1).callsArgAsync(0)
 
@@ -715,7 +715,7 @@ describe "retry_until_success", ->
             f: @fstub
             cb: () =>
                 sinon.assert.calledTwice(@fstub)
-                @log.getCall(1).args[0].should.match /err=Error: just a test/
+                @log.getCall(1).args[0].should.match /err="just a test"/
                 @log.getCall(2).args[0].should.match /try 2/
                 done()
             start_delay : 1
@@ -723,14 +723,14 @@ describe "retry_until_success", ->
 
     it "fails after `max_retries`", (done) =>
         # always error
-        @fstub.callsArgWithAsync(0, new Error("just a test"))
+        @fstub.callsArgWithAsync(0, "just a test")
 
         misc.retry_until_success
             f: @fstub
             cb: () =>
                 @fstub.should.have.callCount 5
                 @log.should.have.callCount 10
-                @log.getCall(1).args[0].should.match /err=Error: just a test/
+                @log.getCall(1).args[0].should.match /err="just a test"/
                 @log.getCall(8).args[0].should.match /try 5\/5/
                 done()
             start_delay : 1

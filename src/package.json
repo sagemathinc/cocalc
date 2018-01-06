@@ -21,6 +21,7 @@
     "css-loader": "^0.23.1",
     "extract-text-webpack-plugin": "^1.0.1",
     "file-loader": "^0.8.4",
+    "forever": "^0.15.3",
     "handlebars": "^4.0.5",
     "handlebars-loader": "^1.1.4",
     "html-loader": "^0.4.2",
@@ -53,13 +54,13 @@
     "lint": "node_modules/.bin/coffeelint -f smc-util/coffeelint.json -c *.coffee && cd smc-hub && npm run lint && cd ../smc-webapp && npm run lint && cd ../smc-util && npm run lint && cd ../smc-util-node && npm run lint",
     "test": "export SMC_TEST=true&& cd smc-util && npm test && cd ../smc-util-node && npm test && cd ../smc-hub && npm test && cd ../smc-webapp && npm test && cd ../smc-project && npm test",
     "coverage": "cd smc-util && npm run coverage && cd ../smc-util-node && npm run coverage && cd ../smc-hub && npm run coverage && cd ../smc-webapp && npm run coverage",
-    "webpack-watch": "cd $SALVUS_ROOT; scripts/update_color_scheme.coffee; SOURCE_MAP=true webpack --debug --output-pathinfo --progress --colors --watch",
-    "webpack-debug": "cd $SALVUS_ROOT; scripts/update_color_scheme.coffee; SOURCE_MAP=true webpack --debug --progress --colors",
+    "webpack-watch": "cd $SALVUS_ROOT; scripts/update_color_scheme.coffee; SOURCE_MAP=true NODE_ENV=development webpack --debug --output-pathinfo --progress --colors --watch",
+    "webpack-debug": "cd $SALVUS_ROOT; scripts/update_color_scheme.coffee; SOURCE_MAP=true NODE_ENV=development webpack --debug --progress --colors",
     "webpack-production": "cd $SALVUS_ROOT; scripts/update_color_scheme.coffee; NODE_ENV=production webpack --progress --colors",
     "webpack-clean": "rm -rvf $SALVUS_ROOT/static/",
     "install-all": "scripts/smc-install-all",
     "make": "npm run install-all",
-    "clean": "find $SMC_ROOT -type d -name node_modules | xargs rm -rf; rm -rf $SMC_ROOT/static"
+    "clean": "find $SMC_ROOT -type d -name node_modules | xargs rm -rf; rm -rf $SMC_ROOT/static; npm cache clean"
   },
   "repository": {
     "type": "git",

@@ -231,6 +231,10 @@ class exports.Connection extends EventEmitter
 
         @on 'connected', @send_version
 
+        # Any outstanding calls made before connecting happened can't possibly succeed,
+        # so we clear all outstanding messages.
+        @on 'connected', @_clear_call_queue
+
         # IMPORTANT! Connection is an abstract base class.  Derived classes must
         # implement a method called _connect that takes a URL and a callback, and connects to
         # the Primus websocket server with that url, then creates the following event emitters:
@@ -458,6 +462,7 @@ class exports.Connection extends EventEmitter
                 @_signed_in = true
                 misc.set_local_storage(@remember_me_key(), true)
                 @_sign_in_mesg = mesg
+                #console.log("signed_in", mesg)
                 @emit("signed_in", mesg)
 
             when "remember_me_failed"
@@ -625,12 +630,11 @@ class exports.Connection extends EventEmitter
             @send(opts.message)
             setTimeout(cb, 150)
             return
-
         id = opts.message.id ?= misc.uuid()
 
         @call_callbacks[id] =
             cb          : (args...) =>
-                if cb?
+                if cb? and @call_callbacks[id]?
                     cb()
                     cb = undefined
                 opts.cb(args...)
@@ -656,12 +660,11 @@ class exports.Connection extends EventEmitter
             # in case opts.timeout isn't set but opts.cb is, but user disconnects,
             # then cb would never get called, which throws off our call counter.
             # Note that the input to cb doesn't matter.
-            f = ->
-                if cb?
+            f = =>
+                if cb? and @call_callbacks[id]?
                     cb()
                     cb = undefined
             setTimeout(f, 120*1000)
-
 
     call: (opts={}) =>
         # This function:
@@ -706,6 +709,11 @@ class exports.Connection extends EventEmitter
             #console.log('count (done):', @_call.count)
             @_update_calls()
 
+    _clear_call_queue: =>
+        for id, obj of @call_callbacks
+            obj.cb('disconnect')
+            delete @call_callbacks[id]
+
     call_local_hub: (opts) =>
         opts = defaults opts,
             project_id : required    # determines the destination local hub
@@ -740,6 +748,7 @@ class exports.Connection extends EventEmitter
             email_address  : required
             password       : required
             agreed_to_terms: required
+            get_api_key    : undefined       # if given, will create/get api token in response message
             token          : undefined       # only required if an admin set the account creation token.
             utm            : undefined
             referrer       : undefined
@@ -766,6 +775,7 @@ class exports.Connection extends EventEmitter
                 token           : opts.token
                 utm             : opts.utm
                 referrer        : opts.referrer
+                get_api_key     : opts.get_api_key
             timeout : opts.timeout
             cb      : (err, resp) =>
                 setTimeout((() => delete @_create_account_lock), 1500)
@@ -802,6 +812,7 @@ class exports.Connection extends EventEmitter
             timeout       : 40
             utm           : undefined
             referrer      : undefined
+            get_api_key   : undefined       # if given, will create/get api token in response message
 
         @call
             message : message.sign_in
@@ -810,6 +821,7 @@ class exports.Connection extends EventEmitter
                 remember_me   : opts.remember_me
                 utm           : opts.utm
                 referrer      : opts.referrer
+                get_api_key   : opts.get_api_key
             timeout : opts.timeout
             cb      : opts.cb
 
@@ -830,13 +842,15 @@ class exports.Connection extends EventEmitter
 
     change_password: (opts) ->
         opts = defaults opts,
-            email_address : required
             old_password  : ""
             new_password  : required
             cb            : undefined
+        if not @account_id?
+            opts.cb?("must be signed in")
+            return
         @call
             message : message.change_password
-                email_address : opts.email_address
+                account_id    : @account_id
                 old_password  : opts.old_password
                 new_password  : opts.new_password
             cb : opts.cb
@@ -855,6 +869,17 @@ class exports.Connection extends EventEmitter
                 new_email_address : opts.new_email_address
                 password          : opts.password
             error_event : true
+            cb : opts.cb
+
+    send_verification_email: (opts) ->
+        opts = defaults opts,
+            account_id    : required
+            only_verify   : true
+            cb            : undefined
+        @call
+            message : message.send_verification_email
+                only_verify : opts.only_verify
+                account_id  : opts.account_id
             cb : opts.cb
 
     # forgot password -- send forgot password request to server
@@ -1308,11 +1333,27 @@ class exports.Connection extends EventEmitter
 
     project_invite_collaborator: (opts) =>
         opts = defaults opts,
-            project_id : required
-            account_id : required
-            cb         : (err) =>
+            project_id   : required
+            account_id   : required
+            title        : undefined
+            link2proj    : undefined
+            replyto      : undefined
+            replyto_name : undefined
+            email        : undefined
+            subject      : undefined
+            cb           : (err) =>
+
         @call
-            message : message.invite_collaborator(project_id:opts.project_id, account_id:opts.account_id)
+            message : message.invite_collaborator(
+                project_id   : opts.project_id
+                account_id   : opts.account_id
+                title        : opts.title
+                link2proj    : opts.link2pr
+                replyto      : opts.replyto
+                replyto_name : opts.replyto_name
+                email        : opts.email
+                subject      : opts.subject
+            )
             cb      : (err, result) =>
                 if err
                     opts.cb(err)
@@ -1652,7 +1693,7 @@ class exports.Connection extends EventEmitter
         opts = defaults opts,
             account_id    : undefined    # one of account_id or email_address must be given
             email_address : undefined
-            amount        : undefined    # in US dollars -- if amount/description not given, then merely ensures user has stripe account
+            amount        : undefined    # in US dollars -- if amount/description *not* given, then merely ensures user has stripe account and updats info about them
             description   : undefined
             cb            : required
         @call

@@ -28,8 +28,10 @@ immutable  = require('immutable')
 {Col, Row, Button, ButtonGroup, ButtonToolbar, FormControl, FormGroup, InputGroup, Panel, Well} = require('react-bootstrap')
 {Icon, Loading, TimeAgo, PathLink, r_join, SearchInput, Space, Tip} = require('./r_misc')
 {User} = require('./users')
-{file_action_buttons} = require('./project_files')
+{file_actions} = require('./project_files')
 {ProjectTitleAuto} = require('./projects')
+
+{file_associations} = require('./file-associations')
 
 
 LogMessage = rclass
@@ -188,6 +190,10 @@ LogEntry = rclass
                 set <a onClick={@click_set} style={if @props.cursor then selected_item} href=''>{content}</a>
             </span>
 
+    render_library: ->
+        return if not @props.event.target?
+        <span>copied "{@props.event.title}" from the library to {@file_link(@props.event.target, true, 0)}</span>
+
     render_upgrade: ->
         params = require('smc-util/schema').PROJECT_UPGRADES.params
         v = []
@@ -240,6 +246,8 @@ LogEntry = rclass
                 return @render_invite_nonuser()
             when 'open_project'  # not used anymore???
                 return <span>opened this project</span>
+            when 'library'
+                return @render_library()
             # ignore unknown -- would just look mangled to user...
             #else
             # FUTURE:
@@ -253,7 +261,7 @@ LogEntry = rclass
             when 'open_project'
                 return 'folder-open-o'
             when 'open' # open a file
-                x = require('./editor').file_associations[@props.event.type]?.icon
+                x = file_associations[@props.event.type]?.icon
                 if x?
                     if x.slice(0,3) == 'fa-'  # temporary -- until change code there?
                         x = x.slice(3)
@@ -264,7 +272,7 @@ LogEntry = rclass
                 return 'wrench'
             when 'file_action'
                 icon = @file_action_icons[@props.event.action]
-                return file_action_buttons[icon]?.icon
+                return file_actions[icon]?.icon
             when 'upgrade'
                 return 'arrow-circle-up'
             when 'invite_user'

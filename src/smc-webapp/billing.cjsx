@@ -32,6 +32,8 @@ _             = require('underscore')
 
 {PROJECT_UPGRADES} = require('smc-util/schema')
 
+STUDENT_COURSE_PRICE = require('smc-util/upgrade-spec').upgrades.subscription.student_course.price.month4
+
 load_stripe = (cb) ->
     if Stripe?
         cb()
@@ -630,7 +632,7 @@ PaymentMethods = rclass
     render_header: ->
         <Row>
             <Col sm=6>
-                <Icon name='credit-card' /> Payment Methods
+                <Icon name='credit-card' /> Payment methods
             </Col>
             <Col sm=6>
                 {@render_add_payment_method_button()}
@@ -797,12 +799,19 @@ PlanInfo = rclass
             </h3>
 
     render_plan_name: (plan_data) ->
+        if plan_data.desc?
+            name = plan_data.desc
+            if name.indexOf('\n')
+                v = name.split('\n')
+                name = <span>{v[0].trim()}<br/>{v[1].trim()}</span>
+        else
+            name = misc.capitalize(@props.plan).replace(/_/g,' ') + ' plan'
         <div style={paddingLeft:"10px"}>
-            <Icon name={plan_data.icon} /> <span style={fontWeight:'bold'}>{misc.capitalize(@props.plan).replace(/_/g,' ')} plan</span>
+            <Icon name={plan_data.icon} /> <span style={fontWeight:'bold'}>{name}</span>
         </div>
 
     render: ->
-        plan_data = PROJECT_UPGRADES.membership[@props.plan]
+        plan_data = PROJECT_UPGRADES.subscription[@props.plan]
         if not plan_data?
             return <div>Unknown plan type: {@props.plan}</div>
 
@@ -848,7 +857,7 @@ AddSubscription = rclass
         selected_button : 'month'
 
     is_recurring: ->
-        not PROJECT_UPGRADES.membership[@props.selected_plan.split('-')[0]].cancel_at_period_end
+        not PROJECT_UPGRADES.subscription[@props.selected_plan.split('-')[0]].cancel_at_period_end
 
     submit_create_subscription: ->
         plan = @props.selected_plan
@@ -891,11 +900,11 @@ AddSubscription = rclass
 
     render_renewal_info: ->
         if @props.selected_plan
-            renews = not PROJECT_UPGRADES.membership[@props.selected_plan.split('-')[0]].cancel_at_period_end
+            renews = not PROJECT_UPGRADES.subscription[@props.selected_plan.split('-')[0]].cancel_at_period_end
             length = PROJECT_UPGRADES.period_names[@state.selected_button]
             <p style={marginBottom:'1ex', marginTop:'1ex'}>
                 {<span>This subscription will <b>automatically renew</b> every {length}.  You can cancel automatic renewal at any time.</span> if renews}
-                {<span>You will be <b>charged only once</b> for the course package, which lasts {length}.  It does <b>not automatically renew</b>.</span> if not renews}
+                {<span>You will be <b>charged only once</b> for the course package, which lasts {if length == 'year' then 'a '}{length}.  It does <b>not automatically renew</b>.</span> if not renews}
             </p>
 
     render_subscription_grid: ->
@@ -919,12 +928,13 @@ AddSubscription = rclass
             {@render_dedicated_resources() if @state.selected_button is 'dedicated_resources'}
         ###
 
-    render_create_subscription_confirm: ->
+    render_create_subscription_confirm: (plan_data) ->
         if @is_recurring()
             subscription = " and you will be signed up for a recurring subscription"
+        name = plan_data.desc ? misc.capitalize(@props.selected_plan).replace(/_/g,' ') + ' plan'
         <Alert>
             <h4><Icon name='check' /> Confirm your selection </h4>
-            <p>You have selected the <span style={fontWeight:'bold'}>{misc.capitalize(@props.selected_plan).replace(/_/g,' ')} subscription</span>.</p>
+            <p>You have selected the <span style={fontWeight:'bold'}>{name} subscription</span>.</p>
             {@render_renewal_info()}
             <p>By clicking 'Add Subscription' your payment card will be immediately charged{subscription}.</p>
         </Alert>
@@ -950,11 +960,12 @@ AddSubscription = rclass
         </Row>
 
     render: ->
+        plan_data = PROJECT_UPGRADES.subscription[@props.selected_plan.split('-')[0]]
         <Row>
             <Col sm=10 smOffset=1>
                 <Well style={boxShadow:'5px 5px 5px lightgray', zIndex:1}>
                     {@render_create_subscription_options()}
-                    {@render_create_subscription_confirm() if @props.selected_plan isnt ''}
+                    {@render_create_subscription_confirm(plan_data) if @props.selected_plan isnt ''}
                     {<ConfirmPaymentMethod
                         is_recurring = {@is_recurring()}
                     /> if @props.selected_plan isnt ''}
@@ -1069,7 +1080,9 @@ CouponList = rclass
         applied_coupons : rtypes.immutable.Map
 
     render: ->
-        [<CouponInfo key={coupon.id} coupon={coupon}/> for coupon from @props.applied_coupons.values()]
+        # TODO: Support multiple coupons
+        coupon = @props.applied_coupons.first()
+        <CouponInfo coupon={coupon}/>
 
 CouponInfo = rclass
     displayName : 'CouponInfo'
@@ -1101,7 +1114,7 @@ exports.SubscriptionGrid = SubscriptionGrid = rclass
         is_static : false
 
     is_selected: (plan, period) ->
-        if @props.period is 'year'
+        if @props.period?.slice(0, 4) is 'year'
             return @props.selected_plan is "#{plan}-year"
         else
             return @props.selected_plan is plan
@@ -1132,7 +1145,7 @@ exports.SubscriptionGrid = SubscriptionGrid = rclass
         for row in PROJECT_UPGRADES.live_subscriptions
             v = []
             for x in row
-                price_keys = _.keys(PROJECT_UPGRADES.membership[x].price)
+                price_keys = _.keys(PROJECT_UPGRADES.subscription[x].price)
                 if _.intersection(periods, price_keys).length > 0
                     v.push(x)
             if v.length > 0
@@ -1231,7 +1244,7 @@ exports.ExplainResources = ExplainResources = rclass
 
     render_dedicated: ->
         <div>
-            <h4>Dedicated Resources</h4>
+            <h4>Dedicated resources</h4>
             You may also rent dedicated computers.
             Projects on such a machine of your choice get full use of the hard disk, CPU and RAM,
             and do <em>not</em> have to compete with other users for resources.
@@ -1283,7 +1296,7 @@ exports.ExplainPlan = ExplainPlan = rclass
                 <p>
                 Paying is optional, but will ensure that your students have a better
                 experience, network access, and receive priority support.  The cost
-                is <b>between $4 and $9 per student</b>, depending on class size and whether
+                is <b>between $4 and ${STUDENT_COURSE_PRICE} per student</b>, depending on class size and whether
                 you or your students pay.  <b>Start right now:</b> <i>you can fully setup your class
                 and add students immediately before you pay us anything!</i>
 
@@ -1295,10 +1308,17 @@ exports.ExplainPlan = ExplainPlan = rclass
 
                 <h4>Students pay</h4>
                 In the settings tab of your course, you require that all students
-                pay a one-time $9 fee to move their
+                pay a one-time ${STUDENT_COURSE_PRICE} fee to move their
                 projects to members only hosts and enable full internet access.
 
                 <br/>
+
+                <h4>Basic or Standard?</h4>
+                Our basic plans work well for cases where you are only doing
+                small computations or just need internet access and better hosting uptime.
+
+                However, we find that many data science and computational science courses
+                run much smoother with the additional RAM and CPU found in the standard plan.
 
                 <br/>
 
@@ -1317,10 +1337,10 @@ exports.ExplainPlan = ExplainPlan = rclass
 # ~~~ FAQ START
 
 # some variables used in the text below
-faq_course_120 = 2 * PROJECT_UPGRADES.membership.medium_course.benefits.member_host
-faq_academic_students =  PROJECT_UPGRADES.membership.small_course.benefits.member_host
-faq_academic_nb_standard = Math.ceil(faq_academic_students / PROJECT_UPGRADES.membership.standard.benefits.member_host)
-faq_academic_full = faq_academic_nb_standard * 4 * PROJECT_UPGRADES.membership.standard.price.month
+faq_course_120 = 2 * PROJECT_UPGRADES.subscription.medium_course.benefits.member_host
+faq_academic_students =  PROJECT_UPGRADES.subscription.small_course.benefits.member_host
+faq_academic_nb_standard = Math.ceil(faq_academic_students / PROJECT_UPGRADES.subscription.standard.benefits.member_host)
+faq_academic_full = faq_academic_nb_standard * 4 * PROJECT_UPGRADES.subscription.standard.price.month
 faq_idle_time_free_h = require('smc-util/schema').DEFAULT_QUOTAS.mintime / 60 / 60
 
 # the structured react.js FAQ text
@@ -1743,7 +1763,7 @@ InvoiceHistory = rclass
 
     render_header: ->
         <span>
-            <Icon name="list-alt" /> Invoices and Receipts
+            <Icon name="list-alt" /> Invoices and receipts
         </span>
 
     render_invoices: ->
@@ -1797,11 +1817,11 @@ exports.PayCourseFee = PayCourseFee = rclass
     render_buy_button: ->
         if @props.redux.getStore('billing').get(@key())
             <Button bsStyle='primary' disabled={true}>
-                <Icon name="cc-icon-cocalc-ring" spin /> Paying the one-time $9 fee for this course...
+                <Icon name="cc-icon-cocalc-ring" spin /> Paying the one-time ${STUDENT_COURSE_PRICE} fee for this course...
             </Button>
         else
             <Button onClick={=>@setState(confirm:true)} disabled={@state.confirm} bsStyle='primary'>
-                Pay the one-time $9 fee for this course...
+                Pay the one-time ${STUDENT_COURSE_PRICE} fee for this course...
             </Button>
 
     render_confirm_button: ->
@@ -1809,12 +1829,12 @@ exports.PayCourseFee = PayCourseFee = rclass
             if @props.redux.getStore('account').get_total_upgrades().network > 0
                 network = " and full internet access enabled"
             <Well style={marginTop:'1em'}>
-                You will be charged a one-time $9 fee to move your project to a
+                You will be charged a one-time ${STUDENT_COURSE_PRICE} fee to move your project to a
                 members-only server and enable full internet access.
                 <br/><br/>
                 <ButtonToolbar>
                     <Button onClick={@buy_subscription} bsStyle='primary'>
-                        Pay $9 fee
+                        Pay ${STUDENT_COURSE_PRICE} fee
                     </Button>
                     <Button onClick={=>@setState(confirm:false)}>Cancel</Button>
                 </ButtonToolbar>
@@ -1877,7 +1897,7 @@ BillingPage = rclass
         billing :
             customer        : rtypes.object
             invoices        : rtypes.object
-            error           : rtypes.string
+            error           : rtypes.oneOfType([rtypes.string, rtypes.object])
             action          : rtypes.string
             loaded          : rtypes.bool
             no_stripe       : rtypes.bool     # if true, stripe definitely isn't configured on the server

@@ -17,11 +17,16 @@ marked.setOptions
     smartLists  : true
     smartypants : false
 
+checkboxes = (s) ->
+    s = misc.replace_all(s, '[ ]', "<i class='fa fa-square-o'></i>")
+    return misc.replace_all(s, '[x]', "<i class='fa fa-check-square-o'></i>")
+
 exports.markdown_to_html = markdown_to_html = (s) ->
     # See https://github.com/sagemathinc/cocalc/issues/1801
     [text, math] = remove_math(s)
     if math.length > 0
         has_mathjax = true
+    text = checkboxes(text)
     html = marked(text)
     s = replace_math(html, math)
     return {s:s, has_mathjax:has_mathjax}

@@ -162,6 +162,8 @@ exports.JupyterEditor = rclass ({name}) ->
             nbconvert           = {@props.nbconvert}
             nbconvert_dialog    = {@props.nbconvert_dialog}
             backend_kernel_info = {@props.backend_kernel_info}
+            path                = {@props.path}
+            project_id          = {@props.project_id}
             />
 
     render_insert_image: ->

@@ -2,7 +2,7 @@
 Projects
 ###
 
-winston = require('winston')
+winston  = require('./winston-metrics').get_logger('projects')
 
 postgres = require('./postgres')
 local_hub_connection = require('./local_hub_connection')

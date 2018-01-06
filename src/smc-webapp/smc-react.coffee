@@ -23,6 +23,10 @@
 # Question: can we use redux to implement the same API as r.cjsx exports (which was built on Flummox).
 ###############################################################################
 
+# Important: code below now assumes that a global variable called "DEBUG" is **defined**!
+if not DEBUG?
+    DEBUG = false
+
 {EventEmitter}   = require('events')
 async            = require('async')
 immutable        = require('immutable')
@@ -77,6 +81,10 @@ class Actions
     setState: (obj, nothing_else) =>
         if nothing_else?
             throw Error("setState takes exactly one argument, which must be an object")
+        if DEBUG and @redux.getStore(@name).__converted
+            for key of obj
+                if not Object.getOwnPropertyDescriptor(@redux.getStore(@name), key)?.get?
+                    console.warn("`#{key}` is not declared in stateTypes of store name `#{@name}`")
         @redux._set_state({"#{@name}": obj})
         return
 
@@ -234,6 +242,7 @@ action_set_state = (change) ->
     action =
         type   : 'SET_STATE'
         change : immutable.fromJS(change)   # guaranteed immutable.js all the way down
+        # Deeply nested objects need to be converted with fromJS before being put in the store
 
 action_remove_store = (name) ->
     action =
@@ -444,6 +453,10 @@ connect_component = (spec) =>
             for prop, type of info
                 if redux.getStore(store_name).__converted?
                     val = redux.getStore(store_name)[prop]
+                    if not Object.getOwnPropertyDescriptor(redux.getStore(store_name), prop)?.get?
+                        if DEBUG
+                            console.warn("Requested reduxProp `#{prop}` from store `#{store_name}` but it is not defined in its stateTypes nor reduxProps")
+                        val = state.getIn([store_name, prop])
                 else # TODOJ: remove when all stores are converted
                     val = state.getIn([store_name, prop])
                 if type.category == "IMMUTABLE"
@@ -563,6 +576,7 @@ exports.is_redux_actions = (obj) -> obj instanceof Actions
 # TODO: this code is also in many editors -- make them all just use this.
 exports.redux_name = (project_id, path) -> "editor-#{project_id}-#{path}"
 
+
 exports.rclass   = rclass    # use rclass instead of createReactClass to get access to reduxProps support
 exports.rtypes   = rtypes    # has extra rtypes.immutable, needed for reduxProps to leave value as immutable
 exports.computed = computed
@@ -575,9 +589,10 @@ exports.Table    = Table
 exports.Store    = Store
 exports.ReactDOM = require('react-dom')
 
-if DEBUG? and DEBUG
+if DEBUG
     smc?.redux = redux  # for convenience in the browser (mainly for debugging)
-    exports._internals =
+
+_internals =
         AppRedux                 : AppRedux
         harvest_import_functions : harvest_import_functions
         harvest_own_functions    : harvest_own_functions

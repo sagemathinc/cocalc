@@ -42,6 +42,8 @@ path_module    = require('path')
 underscore     = require('underscore')
 {EventEmitter} = require('events')
 mime           = require('mime')
+winston        = require('./winston-metrics').get_logger('hub')
+memory         = require('smc-util-node/memory')
 
 program = undefined  # defined below -- can't import with nodev6 at module level when hub.coffee used as a module.
 
@@ -67,8 +69,6 @@ base_url   = require('./base-url')
 
 local_hub_connection = require('./local_hub_connection')
 hub_proxy            = require('./proxy')
-
-share_server         = require('./share/server')
 
 MetricsRecorder = require('./metrics-recorder')
 
@@ -100,12 +100,6 @@ async   = require("async")
 
 Cookies = require('cookies')            # https://github.com/jed/cookies
 
-winston = require('winston')            # logging -- https://github.com/flatiron/winston
-
-# Set the log level
-winston.remove(winston.transports.Console)
-if not process.env.SMC_TEST
-    winston.add(winston.transports.Console, {level: 'debug', timestamp:true, colorize:true})
 
 # module scope variables:
 database           = null
@@ -151,28 +145,6 @@ normalize_path = (path) ->
     #else if ext == '.sagemathcloud.log'  # ignore for now
     #    path = undefined
     return {path:path, action:action}
-
-path_activity_cache = {}
-path_activity = (opts) ->
-    opts = defaults opts,
-        account_id : required
-        project_id : required
-        path       : required
-        client     : required
-        cb         : undefined
-
-    {path, action} = normalize_path(opts.path)
-    winston.debug("path_activity(#{opts.account_id},#{opts.project_id},#{path}): #{action}")
-    if not path?
-        opts.cb?()
-        return
-
-    opts.client.touch
-        project_id : opts.project_id
-        path       : path
-        action     : action
-        force      : action == 'chat'
-        cb         : opts.cb
 
 ##############################
 # Create the Primus realtime socket server
@@ -407,8 +379,9 @@ init_compute_server = (cb) ->
         # This is used by the database when handling certain writes to make sure
         # that the there is a connection to the corresponding project, so that
         # the project can respond.
-        database.ensure_connection_to_project = (project_id) ->
-            local_hub_connection.connect_to_project(project_id, database, compute_server)
+        database.ensure_connection_to_project = (project_id, cb) ->
+            winston.debug("ensure_connection_to_project -- project_id=#{project_id}")
+            local_hub_connection.connect_to_project(project_id, database, compute_server, cb)
         cb?()
 
     if program.kucalc
@@ -491,7 +464,7 @@ exports.start_server = start_server = (cb) ->
     fs.writeFileSync(path_module.join(SMC_ROOT, 'data', 'base_url'), BASE_URL)
 
     # the order of init below is important
-    winston.debug("port = #{program.port}, proxy_port=#{program.proxy_port}, share_port=#{program.share_port}, raw_port=#{program.raw_port}")
+    winston.debug("port = #{program.port}, proxy_port=#{program.proxy_port}, share_port=#{program.share_port}")
     winston.info("using database #{program.keyspace}")
     hosts = program.database_nodes.split(',')
     http_server = express_router = undefined
@@ -503,6 +476,9 @@ exports.start_server = start_server = (cb) ->
             metric_blocked?.inc(ms)
         # record that something blocked for over 10ms
         winston.debug("BLOCKED for #{ms}ms")
+
+    # Log heap memory usage info
+    memory.init(winston.debug)
 
     init_smc_version()
 
@@ -567,25 +543,17 @@ exports.start_server = start_server = (cb) ->
         (cb) ->
             if not program.share_port
                 cb(); return
+            t0 = new Date()
             winston.debug("initializing the share server on port #{program.share_port}")
-            x = share_server.init
+            winston.debug("...... (takes about 10 seconds) ......")
+            x = require('./share/server').init
                 database       : database
                 base_url       : BASE_URL
                 share_path     : program.share_path
                 logger         : winston
+            winston.debug("Time to initialize share server (jsdom, etc.): #{(new Date() - t0)/1000} seconds")
             winston.debug("starting share express webserver listening on #{program.share_host}:#{program.port}")
             x.http_server.listen(program.share_port, program.host, cb)
-        (cb) ->
-            if not program.raw_port
-                cb(); return
-            winston.debug("initializing the raw server on port #{program.raw_port}")
-            x = share_server.init
-                database       : database
-                base_url       : BASE_URL
-                raw_path       : program.raw_path
-                logger         : winston
-            winston.debug("starting raw express webserver listening on #{program.raw_host}:#{program.port}")
-            x.http_server.listen(program.raw_port, program.host, cb)
         (cb) ->
             if not program.port
                 cb(); return
@@ -677,8 +645,6 @@ command_line = () ->
         .option('--proxy_port <n>', 'port that the proxy server listens on (default: 0 -- do not start)', ((n)->parseInt(n)), 0)
         .option('--share_path [string]', 'path that the share server finds shared files at (default: "")', String, '')
         .option('--share_port <n>', 'port that the share server listens on (default: 0 -- do not start)', ((n)->parseInt(n)), 0)
-        .option('--raw_path [string]', 'path that the raw server finds public files at (default: "")', String, '')
-        .option('--raw_port <n>', 'port that the public raw server listens on (default: 0 -- do not start)', ((n)->parseInt(n)), 0)
         .option('--log_level [level]', "log level (default: debug) useful options include INFO, WARNING and DEBUG", String, "debug")
         .option('--host [string]', 'host of interface to bind to (default: "127.0.0.1")', String, "127.0.0.1")
         .option('--pidfile [string]', 'store pid in this file (default: "data/pids/hub.pid")', String, "data/pids/hub.pid")

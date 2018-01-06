@@ -661,6 +661,8 @@ exports.CourseActions = class CourseActions extends Actions
         return if not store?
         student_project_id = store.getIn(['students', student_id, 'project_id'])
         if student_project_id?
+            student_account_id = store.getIn(['students', student_id, 'account_id'])
+            @redux.getActions('projects').remove_collaborator(student_project_id, student_account_id)
             @redux.getActions('projects').delete_project(student_project_id)
             @_set
                 create_project : null
@@ -681,7 +683,8 @@ exports.CourseActions = class CourseActions extends Actions
         @set_activity(id:id)
         @set_all_student_project_course_info()
 
-    delete_all_student_projects: () =>
+    # Deletes student projects and removes students from those projects
+    delete_all_student_projects: =>
         id = @set_activity(desc:"Deleting all student projects...")
         store = @get_store()
         if not store?
@@ -703,7 +706,8 @@ exports.CourseActions = class CourseActions extends Actions
             return
         id = @set_activity(desc:"Adjusting upgrades on #{misc.len(plan)} student projects...")
         for project_id, upgrades of plan
-            @redux.getActions('projects').apply_upgrades_to_project(project_id, upgrades, false)
+            if project_id?  # avoid race if projects are being created *right* when we try to upgrade them.
+                @redux.getActions('projects').apply_upgrades_to_project(project_id, upgrades, false)
         setTimeout((=>@set_activity(id:id)), 5000)
 
     # Do an admin upgrade to all student projects.  This changes the base quotas for every student

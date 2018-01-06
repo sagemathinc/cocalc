@@ -37,7 +37,7 @@ cell_to_ipynb = (id, opts) ->
     metadata = {}
     obj =
         cell_type : cell.get('cell_type') ? 'code'
-        source    : diff_friendly(cell.get('input'))
+        source    : diff_friendly(cell.get('input') ? '')
         metadata  : metadata
 
     # Handle any extra metadata (mostly user defined) that we don't handle in a special

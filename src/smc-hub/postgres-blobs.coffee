@@ -264,20 +264,26 @@ class exports.PostgreSQL extends PostgreSQL
             force  : false      # if true, upload even if already uploaded
             remove : false      # if true, deletes blob from database after successful upload to gcloud (to free space)
             cb     : undefined  # cb(err)
+        dbg = @_dbg("copy_blob_to_gcloud(uuid='#{opts.uuid}')")
+        dbg()
         if not misc.is_valid_uuid_string(opts.uuid)
+            dbg("invalid uuid")
             opts.cb?("uuid is invalid")
             return
         if not opts.bucket
+            dbg("invalid bucket")
             opts.cb?("no blob store configured -- set the COCALC_BLOB_STORE env variable")
             return
-        x = undefined
+        locals =
+            x: undefined
         async.series([
             (cb) =>
+                dbg("get blob info from database")
                 @_query
                     query : "SELECT blob, gcloud FROM blobs"
                     where : "id = $::UUID" : opts.uuid
-                    cb    : one_result (err, _x) =>
-                        x = _x
+                    cb    : one_result (err, x) =>
+                        locals.x = x
                         if err
                             cb(err)
                         else if not x?
@@ -289,23 +295,37 @@ class exports.PostgreSQL extends PostgreSQL
                         else
                             cb()
             (cb) =>
-                if x.gcloud? and not opts.force
-                    # already uploaded -- don't need to do anything
-                    cb(); return
-                if not x.blob?
-                    # blob already deleted locally
+                if (locals.x.gcloud? and not opts.force) or not locals.x.blob?
+                    dbg("already uploaded -- don't need to do anything; or already deleted locally")
                     cb(); return
                 # upload to Google cloud storage
-                @blob_store(opts.bucket).write
+                locals.bucket = @blob_store(opts.bucket)
+                locals.bucket.write
                     name    : opts.uuid
-                    content : x.blob
+                    content : locals.x.blob
                     cb      : cb
             (cb) =>
-                if not x.blob?
+                if (locals.x.gcloud? and not opts.force) or not locals.x.blob?
+                    # already uploaded -- don't need to do anything; or already deleted locally
+                    cb(); return
+                dbg("read blob back and compare") # -- we do *NOT* trust GCS with such important data
+                locals.bucket.read
+                    name : opts.uuid
+                    cb   : (err, data) =>
+                        if err
+                            cb(err)
+                        else if not locals.x.blob.equals(data)
+                            dbg("FAILED!")
+                            cb("BLOB write to GCS failed check!")
+                        else
+                            dbg("check succeeded")
+                            cb()
+            (cb) =>
+                if not locals.x.blob?
                     # no blob in db; nothing further to do.
                     cb()
                 else
-                    # We successful upload to gcloud -- set x.gcloud
+                    # We successful upload to gcloud -- set locals.x.gcloud
                     set = {gcloud: opts.bucket}
                     if opts.remove
                         set.blob = null   # remove blob content from database to save space
@@ -427,8 +447,9 @@ class exports.PostgreSQL extends PostgreSQL
             map_limit : 1                  # copy this many at once.
             throttle  : 0                  # wait this many seconds between uploads
             repeat_until_done_s : 0        # if nonzero, waits this many seconds, then calls this function again until nothing gets uploaded.
-            errors    : {}                 # used to accumulate errors
+            errors    : undefined          # object: used to accumulate errors -- if not given, then everything will terminate on first error
             remove    : false
+            cutoff    : '1 month'          # postgresql interval - only copy blobs to gcloud that haven't been accessed at least this long.
             cb        : required
         dbg = @_dbg("copy_all_blobs_to_gcloud")
         dbg()
@@ -436,10 +457,11 @@ class exports.PostgreSQL extends PostgreSQL
         # been copied to Google cloud storage.
         dbg("getting blob id's...")
         @_query
-            query : 'SELECT id, size FROM blobs'
-            where : "expire IS NULL AND gcloud IS NULL"
-            limit : opts.limit
-            cb    : all_results (err, v) =>
+            query    : 'SELECT id, size FROM blobs'
+            where    : "expire IS NULL AND gcloud IS NULL and (last_active <= NOW() - INTERVAL '#{opts.cutoff}' OR last_active IS NULL)"
+            limit    : opts.limit
+            order_by : 'id'
+            cb       : all_results (err, v) =>
                 if err
                     dbg("fail: #{err}")
                     opts.cb(err)
@@ -457,13 +479,19 @@ class exports.PostgreSQL extends PostgreSQL
                             cb     : (err) =>
                                 dbg("**** #{k}/#{n}: finished -- #{err}; size #{x.size/1000}KB; time=#{new Date() - start}ms")
                                 if err
-                                    opts.errors[x.id] = err
+                                    if opts.error?
+                                        opts.errors[x.id] = err
+                                    else
+                                        cb(err)
                                 if opts.throttle
                                     setTimeout(cb, 1000*opts.throttle)
                                 else
                                     cb()
                     async.mapLimit v, opts.map_limit, f, (err) =>
                         dbg("finished this round -- #{err}")
+                        if err and not opts.errors?
+                            opts.cb(err)
+                            return
                         if opts.repeat_until_done_s and v.length > 0
                             dbg("repeat_until_done triggering another round")
                             setTimeout((=> @copy_all_blobs_to_gcloud(opts)), opts.repeat_until_done_s*1000)
@@ -584,10 +612,11 @@ class exports.PostgreSQL extends PostgreSQL
             (cb) =>
                 dbg("determine inactive syncstring ids")
                 @_query
-                    query : 'SELECT string_id FROM syncstrings'
-                    where : [{'last_active <= $::TIMESTAMP' : misc.days_ago(opts.age_days)}, 'archived IS NULL']
-                    limit : opts.limit
-                    cb    : all_results 'string_id', (err, v) =>
+                    query    : 'SELECT string_id FROM syncstrings'
+                    where    : [{'last_active <= $::TIMESTAMP' : misc.days_ago(opts.age_days)}, 'archived IS NULL']
+                    limit    : opts.limit
+                    order_by : 'string_id'
+                    cb       : all_results 'string_id', (err, v) =>
                         syncstrings = v
                         cb(err)
             (cb) =>
@@ -624,7 +653,7 @@ class exports.PostgreSQL extends PostgreSQL
             cutoff    : misc.minutes_ago(30)  # never touch anything this new
             cb        : undefined
         dbg = @_dbg("archive_patches(string_id='#{opts.string_id}')")
-        syncstring = patches = blob_uuid = project_id = last_active =undefined
+        syncstring = patches = blob_uuid = project_id = last_active = undefined
         where = {"string_id = $::CHAR(40)" : opts.string_id}
         async.series([
             (cb) =>
@@ -638,7 +667,7 @@ class exports.PostgreSQL extends PostgreSQL
                         else if not x?
                             cb("no such syncstring with id '#{opts.string_id}'")
                         else if x.archived
-                            cb("already archived")
+                            cb("string_id='#{opts.string_id}' already archived as blob id '#{x.archived}'")
                         else
                             project_id = x.project_id
                             last_active = x.last_active

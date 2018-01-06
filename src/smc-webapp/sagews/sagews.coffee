@@ -25,21 +25,25 @@ stringify = require('json-stable-stringify')
 
 {MARKERS, FLAGS, ACTION_FLAGS, ACTION_SESSION_FLAGS} = require('smc-util/sagews')
 
-{SynchronizedDocument2} = require('./syncdoc')
+{SynchronizedDocument2} = require('../syncdoc')
 
 misc                 = require('smc-util/misc')
 {defaults, required} = misc
 
-misc_page         = require('./misc_page')
+misc_page         = require('../misc_page')
 message           = require('smc-util/message')
-markdown          = require('./markdown')
-{webapp_client}   = require('./webapp_client')
-{redux}           = require('./smc-react')
-{alert_message}   = require('./alerts')
+markdown          = require('../markdown')
+{webapp_client}   = require('../webapp_client')
+{redux}           = require('../smc-react')
+{alert_message}   = require('../alerts')
 
 {sagews_eval}     = require('./sagews-eval')
 
-{IS_MOBILE}       = require('./feature')
+# Define interact jQuery plugins - used only by sage worksheets
+require('./interact')
+
+
+{IS_TOUCH}       = require('../feature')
 
 templates           = $("#webapp-editor-templates")
 cell_start_template = templates.find(".sagews-input")
@@ -312,15 +316,20 @@ class SynchronizedWorksheet extends SynchronizedDocument2
             @focused_codemirror().focus()
             return false
 
-        if IS_MOBILE
+        if IS_TOUCH
             buttons.find("a[href=\"#tab\"]").click () =>
                 @editor.press_tab_key(@editor.codemirror_with_last_focus)
                 @focused_codemirror().focus()
                 return false
+            @element.find("a[href=\"#copy\"]").remove()
+            @element.find("a[href=\"#replace\"]").remove()
+            @element.find("a[href=\"#paste\"]").remove()
+            @element.find("a[href=\"#goto-line\"]").remove()
+            @element.find("a[href=\"#sagews2ipynb\"]").find("span").remove()
         else
-            @element.find("a[href=\"#tab\"]").hide()
-            @element.find("a[href=\"#undo\"]").hide()
-            @element.find("a[href=\"#redo\"]").hide()
+            @element.find("a[href=\"#tab\"]").remove()
+            @element.find("a[href=\"#undo\"]").remove()
+            @element.find("a[href=\"#redo\"]").remove()
 
         buttons.find("a[href=\"#new-html\"]").click () =>
             cm = @focused_codemirror()
@@ -518,7 +527,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
         # initialize the color control
         init_color_control = () =>
             elt   = button_bar.find(".sagews-output-editor-foreground-color-selector")
-            if IS_MOBILE
+            if IS_TOUCH
                 elt.hide()
                 return
             button_bar_input = elt.find("input").colorpicker()
@@ -550,7 +559,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
         # initialize the color control
         init_background_color_control = () =>
             elt   = button_bar.find(".sagews-output-editor-background-color-selector")
-            if IS_MOBILE
+            if IS_TOUCH
                 elt.hide()
                 return
             button_bar_input = elt.find("input").colorpicker()
@@ -871,7 +880,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
         @insert_new_cell(mark.find()?.from.line)
 
     _handle_input_cell_click: (e, mark) =>
-        if IS_MOBILE
+        if IS_TOUCH
             # It is way too easy to accidentally click on the insert new cell line on mobile.
             bootbox.confirm "Create new cell?", (result) =>
                 if result
@@ -1566,7 +1575,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
 
             if not val.show? or val.show
                 if val.url?
-                    target = val.url + "?nocache=#{Math.random()}"  # randomize to dis-allow caching, since frequently used for images with one name that change
+                    target = val.url + "?nocache=#{Math.random()}"  # randomize to dis-allow caching, since frequently used for images with one name that changes
                 else
                     target = "#{window.app_base_url}/blobs/#{misc.encode_path(val.filename)}?uuid=#{val.uuid}"
                 switch misc.filename_extension(val.filename).toLowerCase()
@@ -1658,10 +1667,10 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                 if not CoffeeScript?
                     # DANGER: this is the only async code in process_output_mesg
                     misc_page.load_coffeescript_compiler () =>
-                        sagews_eval(CoffeeScript?.compile(code), @, opts.element, redux)
+                        sagews_eval(CoffeeScript?.compile(code), @, opts.element, undefined, obj, redux)
                 else
                     # DANGER: this is the only async code in process_output_mesg
-                    sagews_eval(CoffeeScript?.compile(code), @, opts.element, redux)
+                    sagews_eval(CoffeeScript?.compile(code), @, opts.element, undefined, obj, redux)
             else
                 # The eval below is an intentional cross-site scripting vulnerability
                 # in the fundamental design of SMC.
@@ -1775,7 +1784,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                             execute : true
                             advance : false
 
-                if IS_MOBILE
+                if IS_TOUCH
                     # It is way too easy to accidentally click on the insert new cell line on mobile.
                     bootbox.confirm "Create new cell?", (result) =>
                         if result

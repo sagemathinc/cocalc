@@ -542,7 +542,7 @@ class Project extends EventEmitter
         # 1. Get data about project from the database, namely:
         #     - is project currently running (if not, nothing to do)
         #     - if running, what quotas it was started with and what its quotas are now
-        # 2. If quotas differ, restarts project.
+        # 2. If quotas differ *AND* project is running, restarts project.
         @active()
         @database.get_project
             project_id : @project_id
@@ -562,8 +562,12 @@ class Project extends EventEmitter
                     dbg("running, but no quotas changed")
                     opts.cb()
                 else
+                    opts.cb()
                     dbg('running and a quota changed; restart')
-                    @restart(cb:opts.cb)
+                    # CRITICAL: do NOT wait on this before returning!  The set_all_quotas call must
+                    # complete quickly (in an HTTP requrest), whereas restart can easily take 20s,
+                    # and there is no reason to wait on this.
+                    @restart()
 
 
 

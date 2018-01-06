@@ -27,11 +27,9 @@ BANNED_DOMAINS = {'qq.com':true}
 
 
 fs           = require('fs')
+os_path      = require('path')
 async        = require('async')
-winston      = require('winston') # logging -- https://github.com/flatiron/winston
-
-winston.remove(winston.transports.Console)
-winston.add(winston.transports.Console, {level: 'debug', timestamp:true, colorize:true})
+winston      = require('./winston-metrics').get_logger('email')
 
 # sendgrid API: https://sendgrid.com/docs/API_Reference/Web_API/mail.html
 sendgrid     = require("sendgrid")
@@ -39,7 +37,7 @@ sendgrid     = require("sendgrid")
 misc         = require('smc-util/misc')
 {defaults, required} = misc
 
-{SENDGRID_TEMPLATE_ID, SENDGRID_ASM_NEWSLETTER, COMPANY_NAME, COMPANY_EMAIL} = require('smc-util/theme')
+{SENDGRID_TEMPLATE_ID, SENDGRID_ASM_NEWSLETTER, COMPANY_NAME, COMPANY_EMAIL, DOMAIN_NAME, SITE_NAME, DNS, HELP_EMAIL} = require('smc-util/theme')
 
 email_server = undefined
 
@@ -52,7 +50,7 @@ exports.is_banned = is_banned = (address) ->
 
 # here's how I test this function:
 #    require('email').send_email(subject:'TEST MESSAGE', body:'body', to:'wstein@sagemath.com', cb:console.log)
-exports.send_email = send_email = (opts={}) ->
+exports.send_email = (opts={}) ->
     opts = defaults opts,
         subject      : required
         body         : required
@@ -120,9 +118,9 @@ exports.send_email = send_email = (opts={}) ->
             personalization = new helper.Personalization()
             personalization.setSubject(opts.subject)
             personalization.addTo(to_email)
-            if opts.cc
+            if opts.cc?.length > 0
                 personalization.addCc(new helper.Email(opts.cc))
-            if opts.bcc
+            if opts.bcc?.length > 0
                 personalization.addBcc(new helper.Email(opts.bcc))
 
             # one or more strings to categorize the sent emails on sendgrid
@@ -205,7 +203,7 @@ exports.mass_email = (opts) ->
                 if n % 100 == 0
                     dbg("#{n}/#{recipients.length-1}")
                 n += 1
-                send_email
+                exports.send_email
                     subject  : opts.subject
                     body     : opts.body
                     from     : opts.from
@@ -226,5 +224,140 @@ exports.mass_email = (opts) ->
     ], (err) ->
         opts.cb?(err, success)
     )
+
+
+verify_email_html = (token_url) -> """
+<p style="margin-top:0;margin-bottom:10px;">
+<strong>
+Please <a href="#{token_url}">click here</a> to verify your email address!
+If this link does not work, please copy/paste this URL into a new browser tab and open the link:
+</strong>
+</p>
+
+<pre style="margin-top:10px;margin-bottom:10px;font-size:11px;">
+#{token_url}
+</pre>
+"""
+
+# beware, this needs to be HTML which is compatible with email-clients!
+welcome_email_html = (token_url) -> """
+<h1>Welcome to #{SITE_NAME}</h1>
+
+<p style="margin-top:0;margin-bottom:10px;">
+<a href="#{DOMAIN_NAME}">#{SITE_NAME}</a> is sophisticated web service for collaborative computation.
+</p>
+
+<p style="margin-top:0;margin-bottom:20px;">
+You received this email because an account with your email address was created.
+This was either initiated by you, a friend or colleague invited you, or you're a student as part of a course.
+</p>
+
+#{verify_email_html(token_url)}
+
+<hr size="1"/>
+
+<h3>Explore #{SITE_NAME}</h3>
+<p style="margin-top:0;margin-bottom:10px;">
+Your work on #{SITE_NAME} happens inside <strong>private projects</strong>.
+They form your personal workspaces containing your files, computational worksheets, and data.
+You run your computations through the web interface, via interactive worksheets and notebooks, or by executing a program in a terminal.
+#{SITE_NAME} supports online editing of
+    <a href="http://jupyter.org/">Jupyter Notebooks</a>,
+    <a href="http://www.sagemath.org/">Sage Worksheets</a>,
+    <a href="https://en.wikibooks.org/wiki/LaTeX">Latex files</a>, etc.
+</p>
+
+<p><strong>Software:</strong>
+<ul>
+<li style="margin-top:0;margin-bottom:10px;">Mathematical calculation:
+    <a href="http://www.sagemath.org/">SageMath</a>,
+    <a href="https://www.sympy.org/">SymPy</a>, etc.
+</li>
+<li style="margin-top:0;margin-bottom:10px;">Statistical analysis:
+    <a href="https://www.r-project.org/">R project</a>,
+    <a href="http://pandas.pydata.org/">Pandas</a>,
+    <a href="http://www.statsmodels.org/">statsmodels</a>,
+    <a href="http://scikit-learn.org/">scikit-learn</a>,
+    <a href="http://www.nltk.org/">NLTK</a>, etc.
+</li>
+<li style="margin-top:0;margin-bottom:10px;">Various other computation:
+    <a href="https://www.tensorflow.org/">Tensorflow</a>,
+    <a href="https://www.gnu.org/software/octave/">Octave</a>,
+    <a href="https://julialang.org/">Julia</a>, etc.
+</li>
+</ul>
+
+<p style="margin-top:0;margin-bottom:20px;">
+Visit our <a href="https://cocalc.com/static/doc/software.html">Software overview page</a> for more details!
+</p>
+
+<p style="margin-top:0;margin-bottom:20px;">
+<strong>Collaboration:</strong>
+You can invite collaborators to work with you inside a project.
+Like you, they can edit the files in that project.
+Edits are visible in <strong>real time</strong> for everyone online.
+You can share your thoughts in a <strong>side chat</strong> next to each document.
+</p>
+
+<p style="margin-top:0;margin-bottom:10px;"><strong>More information:</strong> how to get from 0 to 100%!</p>
+
+<ul>
+<li style="margin-top:0;margin-bottom:10px;">
+    <a href="https://github.com/sagemathinc/cocalc/wiki">#{SITE_NAME} Wiki:</a> the entry-point to learn more about all the details.
+</li>
+<li style="margin-top:0;margin-bottom:10px;">
+    <a href="https://github.com/sagemathinc/cocalc/wiki/sagews">Working with SageMath Worksheets</a>
+</li>
+<li style="margin-top:0;margin-bottom:10px;">
+    <strong><a href="https://cocalc.com/policies/pricing.html">Subscriptions:</a></strong> make hosting more robust and increase project quotas
+</li>
+<li style="margin-top:0;margin-bottom:10px;">
+    <a href="https://tutorial.cocalc.com/">Sophisticated tools for teaching a class</a>.
+</li>
+<li style="margin-top:0;margin-bottom:10px;">
+    <a href="https://github.com/sagemathinc/cocalc/wiki/Troubleshooting">Troubleshooting connectivity issues</a>
+</li>
+<li style="margin-top:0;margin-bottom:10px;">
+    <a href="https://github.com/sagemathinc/cocalc/wiki/MathematicalSyntaxErrors">Common mathematical syntax errors:</a> look into this if you are new to working with a programming language!
+</li>
+</ul>
+
+<p style="margin-top:10px;margin-bottom:20px;">
+<strong>Questions?</strong>
+In case of problems, concerns why you received this email, or other questions please contact:
+<a href="mailto:#{HELP_EMAIL}">#{HELP_EMAIL}</a>.
+</p>
+
+"""
+
+exports.welcome_email = (opts) ->
+    opts = defaults opts,
+        to           : required
+        token        : required    # the email verification token
+        only_verify  : false       # TODO only send the verification token, for now this is good enough
+        cb           : undefined
+
+    base_url    = require('./base-url').base_url()
+    token_query = encodeURI("email=#{encodeURIComponent(opts.to)}&token=#{opts.token}")
+    endpoint    = os_path.join('/', base_url, 'auth/verify')
+    token_url   = "#{DOMAIN_NAME}#{endpoint}?#{token_query}"
+
+    if opts.only_verify
+        subject = "Verify your email address on #{SITE_NAME} (#{DNS})"
+        body    = verify_email_html(token_url)
+    else
+        subject = "Welcome to #{SITE_NAME} - #{DNS}"
+        body    = welcome_email_html(token_url)
+
+    # exports... because otherwise stubbing in the test suite of send_email would not work
+    exports.send_email
+        subject      : subject
+        body         : body
+        fromname     : COMPANY_NAME
+        from         : COMPANY_EMAIL
+        to           : opts.to
+        cb           : opts.cb
+        category     : 'welcome'
+        asm_group    : 147985     # https://app.sendgrid.com/suppressions/advanced_suppression_manager
 
 

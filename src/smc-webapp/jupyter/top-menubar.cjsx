@@ -73,16 +73,16 @@ exports.TopMenubar = rclass ({name}) ->
             script_entry = '>nbconvert script'
 
         if @props.trust
-            trust = {name:"<trust notebook", display:"Trusted Notebook"}
+            trust = {name:"<trust notebook", display:"Trusted notebook"}
         else
-            trust = {name:"trust notebook", display:"Trust Notebook..."}
+            trust = {name:"trust notebook", display:"Trust notebook..."}
 
         save = 'save notebook'
         if not @props.has_unsaved_changes or @props.read_only
             save = '<' + save
 
         rename = 'rename notebook'
-        if not @props.has_unsaved_changes or @props.read_only
+        if @props.has_unsaved_changes or @props.read_only
             rename = '<' + rename
 
         close_and_halt = 'close and halt'
@@ -92,7 +92,8 @@ exports.TopMenubar = rclass ({name}) ->
         names = [
                 'new notebook', 'open file', close_and_halt, '', \
                 'duplicate notebook', rename, save, 'time travel', '', \
-                'print preview', '<Download as...', '>nbconvert ipynb',  script_entry, '>nbconvert html', '>nbconvert markdown', '>nbconvert rst', '>nbconvert tex', '>nbconvert pdf',  '>nbconvert sagews', '', '>nbconvert slides', '>nbconvert asciidoc', '', \
+                'print preview', 'nbconvert slides', \
+                '<Download as...', '>nbconvert ipynb',  script_entry, '>nbconvert html', '>nbconvert markdown', '>nbconvert rst', '>nbconvert tex', '>nbconvert pdf',  '>nbconvert sagews', '>nbconvert asciidoc', '', \
                 trust]
         if @props.fullscreen != 'kiosk'
             names.push('')
@@ -164,7 +165,8 @@ exports.TopMenubar = rclass ({name}) ->
                 '>toggle all cells output collapsed', '>toggle all cells output scrolled', '>clear all cells output'
             ]
 
-    # TODO: upper case kernel names, descriptions... and make it a new component for efficiency so don't re-render if not change
+    # TODO: upper case kernel names, descriptions... and make it a new component for
+    # efficiency so don't re-render if not change
     render_kernel_item: (kernel) ->
         style = {marginLeft:'4ex'}
         if kernel.name == @props.kernel
@@ -344,9 +346,9 @@ exports.TopMenubar = rclass ({name}) ->
             <Dropdown.Menu>
                 <MenuItem eventKey="help-about" onSelect = {=>@props.actions.show_about()} ><Icon name='question-circle'/>  About...</MenuItem>
                 <MenuItem divider />
-                <MenuItem eventKey="help-keyboard" onClick={@command("edit keyboard shortcuts")}><Icon name='keyboard-o'/>  Keyboard Shortcuts...</MenuItem>
+                <MenuItem eventKey="help-keyboard" onClick={@command("edit keyboard shortcuts")}><Icon name='keyboard-o'/>  Keyboard shortcuts...</MenuItem>
                 <MenuItem divider />
-                {external_link('Notebook Help', 'http://nbviewer.jupyter.org/github/ipython/ipython/blob/3.x/examples/Notebook/Index.ipynb')}
+                {external_link('Notebook help', 'http://nbviewer.jupyter.org/github/ipython/ipython/blob/3.x/examples/Notebook/Index.ipynb')}
                 {external_link('Jupyter in CoCalc','https://github.com/sagemathinc/cocalc/wiki/sagejupyter')}
                 {external_link('Markdown', 'https://help.github.com/articles/basic-writing-and-formatting-syntax')}
                 <MenuItem divider />
