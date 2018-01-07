@@ -444,13 +444,13 @@ FileUse = rclass
             misc.merge(style, {background: "#08c", color : 'white'})
         <div style={style} onClick={@open}>
             <Row>
-                <Col key='action' sm=1 style={fontSize:'14pt'}>
+                <Col key='action' sm={1} style={fontSize:'14pt'}>
                     {@render_action_icon()}
                 </Col>
-                <Col key='desc' sm=10>
+                <Col key='desc' sm={10}>
                     {@render_path()} in {@render_project()} {@render_what_is_happening()} {@render_users()}
                 </Col>
-                <Col key='type' sm=1 style={fontSize:'14pt'}>
+                <Col key='type' sm={1} style={fontSize:'14pt'}>
                     {@render_type_icon()}
                 </Col>
             </Row>
@@ -535,10 +535,10 @@ FileUseViewer = rclass
     render: ->
         <div className={"smc-file-use-viewer"}>
             <Row key='top'>
-                <Col sm=8>
+                <Col sm={8}>
                     {@render_search_box()}
                 </Col>
-                <Col sm=4>
+                <Col sm={4}>
                     <div style={float:'right'}>
                         {@render_mark_all_read_button()}
                     </div>

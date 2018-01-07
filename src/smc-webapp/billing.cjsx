@@ -719,7 +719,7 @@ exports.ProjectQuotaFreeTable = ProjectQuotaFreeTable = rclass
         </div>
 
     render_header: ->
-      <div style={paddingLeft:"10px"}>
+        <div style={paddingLeft:"10px"}>
             <Icon name='battery-empty' />{' '}
             <span style={fontWeight:'bold'}>Free plan</span>
         </div>

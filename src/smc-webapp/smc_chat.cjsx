@@ -291,7 +291,7 @@ Message = rclass
                 <FormControl
                     style     = {fontSize:@props.font_size}
                     autoFocus = {true}
-                    rows      = 4
+                    rows      = {4}
                     componentClass = 'textarea'
                     ref       = 'editedMessage'
                     onKeyDown = {@on_keydown}
@@ -500,10 +500,10 @@ exports.ChatRoom = rclass ({name}) ->
             setTimeout(fix_pos, tm)
 
     componentDidMount: ->
-        @_is_mounted = true
-        @fix_scroll_position_after_mount()
+        @_is_mounted = true
+        @fix_scroll_position_after_mount()
         if @props.is_preview
-            if is_at_bottom(@props.saved_position, @props.offset, @props.height)
+            if is_at_bottom(@props_saved_position, @props.offest, @props.height)
                 @debounce_bottom()
         else
             @props.actions.set_is_preview(false)
@@ -735,7 +735,7 @@ exports.ChatRoom = rclass ({name}) ->
                             saved_mesg   = {@props.saved_mesg}
                             search       = {@props.search}
                             set_scroll   = {@set_chat_log_state}
-                            show_heads   = true />
+                            show_heads   = {true} />
                         {@render_preview_message() if @props.input.length > 0 and @props.is_preview}
                     </Well>
                 </Col>
@@ -750,7 +750,7 @@ exports.ChatRoom = rclass ({name}) ->
                         <FormGroup>
                             <FormControl
                                 autoFocus   = {not IS_MOBILE or isMobile.Android()}
-                                rows        = 4
+                                rows        = {4}
                                 componentClass = 'textarea'
                                 ref         = 'input'
                                 onKeyDown   = {@keydown}

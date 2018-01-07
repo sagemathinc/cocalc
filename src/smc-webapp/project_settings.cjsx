@@ -84,7 +84,7 @@ TitleDescriptionPanel = rclass
             <LabeledRow label='Description'>
                 <TextInput
                     type      = 'textarea'
-                    rows      = 2
+                    rows      = {2}
                     text      = {@props.description}
                     on_change = {(desc)=>@props.actions.set_project_description(@props.project_id, desc)}
                 />
@@ -220,7 +220,7 @@ QuotaConsole = rclass
         if 'admin' in @props.account_groups
             if @state.editing
                 <Row>
-                    <Col sm=6 smOffset=6>
+                    <Col sm={6} smOffset={6}>
                         <ButtonToolbar style={float:'right'}>
                             <Button onClick={@save_admin_editing} bsStyle='warning' disabled={not @valid_admin_inputs()}>
                                 <Icon name='thumbs-up' /> Done
@@ -233,7 +233,7 @@ QuotaConsole = rclass
                 </Row>
             else
                 <Row>
-                    <Col sm=6 smOffset=6>
+                    <Col sm={6} smOffset={6}>
                         <Button onClick={@start_admin_editing} bsStyle='warning' style={float:'right'}>
                             <Icon name='pencil' /> Admin edit...
                         </Button>
@@ -260,7 +260,7 @@ QuotaConsole = rclass
         else
             # not using react component so the input stays inline
             <input
-                size     = 5
+                size     = {5}
                 type     = 'text'
                 ref      = {label}
                 value    = {@state[label]}
@@ -364,7 +364,7 @@ UsagePanel = rclass
 
     render_upgrades_button: ->
         <Row>
-            <Col sm=12>
+            <Col sm={12}>
                 <Button bsStyle='primary' disabled={@state.show_adjustor} onClick={=>@setState(show_adjustor : true)} style={float: 'right', marginBottom : '5px'}>
                     <Icon name='arrow-circle-up' /> Adjust your quotas...
                 </Button>
@@ -430,7 +430,7 @@ HideDeletePanel = rclass
     # account_id : String
     # project    : immutable.Map
     user_has_applied_upgrades: (account_id, project) ->
-         project.getIn(['users', account_id, 'upgrades'])?.some (val) => val > 0
+        project.getIn(['users', account_id, 'upgrades'])?.some (val) => val > 0
 
     delete_message: ->
         if @props.project.get('deleted')
@@ -495,10 +495,10 @@ HideDeletePanel = rclass
         hidden = user.get('hide')
         <ProjectSettingsPanel title='Hide or delete project' icon='warning'>
             <Row>
-                <Col sm=8>
+                <Col sm={8}>
                     {@hide_message()}
                 </Col>
-                <Col sm=4>
+                <Col sm={4}>
                     <Button bsStyle='warning' onClick={@toggle_hide_project} style={float: 'right'}>
                         <Icon name='eye-slash' /> {if hidden then 'Unhide' else 'Hide'} Project
                     </Button>
@@ -506,15 +506,15 @@ HideDeletePanel = rclass
             </Row>
             <hr />
             <Row>
-                <Col sm=8>
+                <Col sm={8}>
                     {@delete_message()}
                 </Col>
-                <Col sm=4>
+                <Col sm={4}>
                     {@render_delete_undelete_button(@props.project.get('deleted'), @state.show_delete_conf)}
                 </Col>
             </Row>
             {<Row style={marginTop:'10px'} >
-                <Col sm=12>
+                <Col sm={12}>
                     {@render_expanded_delete_info()}
                 </Col>
             </Row> if @state.show_delete_conf and not @props.project.get('deleted')}
@@ -558,7 +558,7 @@ SageWorksheetPanel = rclass
     render: ->
         <ProjectSettingsPanel title='Sage worksheet server' icon='refresh'>
             <Row>
-                <Col sm=8>
+                <Col sm={8}>
                     Restart this Sage Worksheet server. <br />
                     <span style={color: '#666'}>
                         Existing worksheet sessions are unaffected; restart this
@@ -566,7 +566,7 @@ SageWorksheetPanel = rclass
                         will use the new version of Sage.
                     </span>
                 </Col>
-                <Col sm=4>
+                <Col sm={4}>
                     <Button bsStyle='warning' disabled={@state.loading} onClick={@restart_worksheet}>
                         <Icon name='refresh' spin={@state.loading} /> Restart Sage Worksheet Server
                     </Button>
@@ -609,14 +609,14 @@ ProjectControlPanel = rclass
             if @state.show_ssh
                 <div>
                     SSH into your project: <span style={color:'#666'}>First add your public key to <a onClick={@open_authorized_keys} href=''>~/.ssh/authorized_keys</a>, then use the following username@host:</span>
-                    {# WARNING: previous use of <FormControl> here completely breaks copy on Firefox.}
+                    {### WARNING: previous use of <FormControl> here completely breaks copy on Firefox. ###}
                     <pre>{"#{misc.replace_all(project_id, '-', '')}@#{host}.cocalc.com"} </pre>
                     <a href="https://github.com/sagemathinc/cocalc/wiki/AllAboutProjects#create-ssh-key" target="_blank">
                     <Icon name='life-ring'/> How to create SSH keys</a>
                 </div>
             else
                 <Row>
-                    <Col sm=12>
+                    <Col sm={12}>
                         <Button bsStyle='info' onClick={=>@setState(show_ssh : true)} style={float:'right'}>
                             <Icon name='terminal' /> SSH into your project...
                         </Button>
@@ -798,11 +798,11 @@ exports.CollaboratorsList = CollaboratorsList = rclass
     render_user: (user) ->
         <div key={user.account_id}>
             <Row>
-                <Col sm=8>
+                <Col sm={8}>
                     <User account_id={user.account_id} user_map={@props.user_map} last_active={user.last_active} />
                     <span><Space/>({user.group})</span>
                 </Col>
-                <Col sm=4>
+                <Col sm={4}>
                     {@user_remove_button(user.account_id, user.group)}
                 </Col>
             </Row>
@@ -940,7 +940,7 @@ ProjectSettingsBody = rclass ({name}) ->
             {if commercial and total_project_quotas? and not total_project_quotas.network then <NoNetworkProjectWarning upgrade_type='network' upgrades_you_can_use={upgrades_you_can_use} upgrades_you_applied_to_all_projects={upgrades_you_applied_to_all_projects} /> }
             <h1 style={marginTop:"0px"}><Icon name='wrench' /> Settings and configuration</h1>
             <Row>
-                <Col sm=6>
+                <Col sm={6}>
                     <TitleDescriptionPanel
                         project_id    = {id}
                         project_title = {@props.project.get('title') ? ''}
@@ -962,7 +962,7 @@ ProjectSettingsBody = rclass ({name}) ->
                     {<SSHPanel key='ssh-keys' project={@props.project} user_map={@props.user_map} account_id={@props.account_id} /> if @props.kucalc == 'yes'}
 
                 </Col>
-                <Col sm=6>
+                <Col sm={6}>
                     <CollaboratorsPanel  project={@props.project} user_map={@props.user_map} />
                     <ProjectControlPanel key='control' project={@props.project} allow_ssh={@props.kucalc != 'yes'} />
                     <SageWorksheetPanel  key='worksheet' project={@props.project} />

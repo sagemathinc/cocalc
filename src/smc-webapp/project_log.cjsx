@@ -113,7 +113,7 @@ LogEntry = rclass
                 path       = {@props.event.filename}
                 full       = {true}
                 style      = {if @props.cursor then selected_item}
-                trunc      = 50
+                trunc      = {50}
                 project_id = {@props.project_id} />
             {@render_took()}
         </span>
@@ -142,7 +142,7 @@ LogEntry = rclass
             full       = {true}
             style      = {if @props.cursor then selected_item}
             key        = {i}
-            trunc      = 50
+            trunc      = {50}
             link       = {link}
             project_id = {project_id ? @props.project_id} />
 
@@ -285,10 +285,10 @@ LogEntry = rclass
     render: ->
         style = if @props.cursor then selected_item else @props.backgroundStyle
         <Row style={underscore.extend({borderBottom:'1px solid lightgrey'}, style)}>
-            <Col sm=1 style={textAlign:'center'}>
+            <Col sm={1} style={textAlign:'center'}>
                 <Icon name={@icon()} style={style} />
             </Col>
-            <Col sm=11>
+            <Col sm={11}>
                 {@render_user()}<Space/>
                 {@render_desc()}<Space/>
                 <TimeAgo style={style} date={@props.time} popover={true} />
@@ -504,7 +504,7 @@ exports.ProjectLog = rclass ({name}) ->
 
         <Panel>
             <Row>
-                <Col sm=4>
+                <Col sm={4}>
                     <LogSearch
                         actions          = {@actions(name)}
                         search           = {@props.search}
@@ -514,17 +514,17 @@ exports.ProjectLog = rclass ({name}) ->
                         reset_cursor     = {@reset_cursor}
                     />
                 </Col>
-                <Col sm=4>
+                <Col sm={4}>
                     {@render_paging_buttons(num_pages, @props.page)}
                 </Col>
             </Row>
             <Row>
-                <Col sm=12>
+                <Col sm={12}>
                     <LogMessages log={log} cursor={cursor} user_map={@props.user_map} project_id={@props.project_id} />
                 </Col>
             </Row>
             <Row>
-                <Col sm=4 style={marginTop:'15px'}>
+                <Col sm={4} style={marginTop:'15px'}>
                     {@render_paging_buttons(num_pages, @props.page)}
                 </Col>
             </Row>

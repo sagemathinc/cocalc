@@ -59,7 +59,7 @@ HelpPageUsageSection = rclass
     displayName : 'HelpPage-HelpPageUsageSection'
 
     getDefaultProps: ->
-       loading : true
+        loading : true
 
     number_of_active_users: ->
         if @props.hub_servers.length == 0
@@ -146,7 +146,7 @@ HelpPageUsageSection = rclass
             </h3>
             <div>
                 {@render_active_users_stats()}
-                {# @render_active_projects_stats()}
+                {### @render_active_projects_stats() ###}
                 <div style={marginTop: 20, textAlign:'center'}>
                     Recent user activity
                 </div>
@@ -379,7 +379,7 @@ exports.HelpPage = HelpPage = rclass
         {APP_LOGO}        = require('./art')
 
         <Row style={padding:'10px', margin:'0px', overflow:'auto'}>
-            <Col sm=10 smOffset=1 md=8 mdOffset=2 xs=12>
+            <Col sm={10} smOffset={1} md={8} mdOffset={2} xs={12}>
                 <h3 style={textAlign: 'center', marginBottom: '30px'}>
                 <img src="#{APP_LOGO}" style={width:'33%', height:'auto'} />
                 <br/>
@@ -406,8 +406,8 @@ exports.HelpPage = HelpPage = rclass
                 </Row>
                 {@render_compute_env() if KUCALC_COMP_ENV}
             </Col>
-            <Col sm=1 md=2 xsHidden></Col>
-            <Col xs=12 sm=12 md=12>
+            <Col sm={1} md={2} xsHidden></Col>
+            <Col xs={12} sm={12} md={12}>
                 <Footer/>
             </Col>
         </Row>

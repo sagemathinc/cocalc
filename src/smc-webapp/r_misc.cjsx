@@ -281,9 +281,9 @@ exports.Footer = rclass
             <Space/>
             <SiteName/> by <CompanyName/>
             {' '} &middot; {' '}
-            <a target="_blank" href=PolicyIndexPageUrl>Policies</a>
+            <a target="_blank" href={PolicyIndexPageUrl}>Policies</a>
             {' '} &middot; {' '}
-            <a target="_blank" href=PolicyTOSPageUrl>Terms of Service</a>
+            <a target="_blank" href={PolicyTOSPageUrl}>Terms of Service</a>
             {' '} &middot; {' '}
             <HelpEmailLink />
             {' '} &middot; {' '}
@@ -303,10 +303,10 @@ exports.MessageDisplay = MessageDisplay = rclass
 
     render: ->
         <Row style={backgroundColor:'white', margin:'1ex', padding:'1ex', border:'1px solid lightgray', dropShadow:'3px 3px 3px lightgray', borderRadius:'3px'}>
-            <Col md=8 xs=8>
+            <Col md={8} xs={8}>
                 <span style={color:'gray', marginRight:'1ex'}>{@props.message}</span>
             </Col>
-            <Col md=4 xs=4>
+            <Col md={4} xs={4}>
                 <Button className='pull-right' onClick={@props.onClose} bsSize='small'>
                     <Icon name='times' />
                 </Button>
@@ -431,7 +431,7 @@ exports.NumberInput = NumberInput = rclass
     render: ->
         unit = if @props.unit? then "#{@props.unit}" else ''
         <Row>
-            <Col xs=6>
+            <Col xs={6}>
                 <form onSubmit={@saveChange}>
                     <FormGroup>
                         <FormControl
@@ -446,7 +446,7 @@ exports.NumberInput = NumberInput = rclass
                     </FormGroup>
                 </form>
             </Col>
-            <Col xs=6 className="lighten">
+            <Col xs={6} className="lighten">
                 {unit}
             </Col>
         </Row>
@@ -1478,7 +1478,7 @@ exports.UpgradeAdjustor = rclass
 
         return state
 
-     get_quota_info : ->
+    get_quota_info : ->
         # how much upgrade you currently use on this one project
         current = @props.upgrades_you_applied_to_this_project
         # how much unused upgrade you have remaining
@@ -1488,7 +1488,6 @@ exports.UpgradeAdjustor = rclass
         # additionally, the limits are capped by the maximum per project
         maximum = require('smc-util/schema').PROJECT_UPGRADES.max_per_project
         limits = misc.map_limit(limits, maximum)
-
         limits    : limits
         remaining : remaining
         current   : current
@@ -1547,19 +1546,19 @@ exports.UpgradeAdjustor = rclass
             show_remaining = Math.max(show_remaining, 0)
 
             if not @is_upgrade_input_valid(val, limit)
-                label = <div style=UPGRADE_ERROR_STYLE>Uncheck this: you do not have enough upgrades</div>
+                label = <div style={UPGRADE_ERROR_STYLE}>Uncheck this: you do not have enough upgrades</div>
             else
                 label = if val == 0 then 'Enable' else 'Enabled'
 
             <Row key={name} style={marginTop:'5px'}>
-                <Col sm=6>
+                <Col sm={6}>
                     <Tip title={display} tip={desc}>
                         <strong>{display}</strong>
                     </Tip>
                     <br/>
                     You have {show_remaining} unallocated {misc.plural(show_remaining, display_unit)}
                 </Col>
-                <Col sm=6>
+                <Col sm={6}>
                     <form>
                         <Checkbox
                             ref      = {"upgrade_#{name}"}
@@ -1590,9 +1589,9 @@ exports.UpgradeAdjustor = rclass
             if not @is_upgrade_input_valid(val, limit)
                 bs_style = 'error'
                 if misc.parse_number_input(val)?
-                    label = <div style=UPGRADE_ERROR_STYLE>Value too high: not enough upgrades or exceeding limit</div>
+                    label = <div style={UPGRADE_ERROR_STYLE}>Value too high: not enough upgrades or exceeding limit</div>
                 else
-                    label = <div style=UPGRADE_ERROR_STYLE>Please enter a number</div>
+                    label = <div style={UPGRADE_ERROR_STYLE}>Please enter a number</div>
             else
                 label = <span></span>
 
@@ -1610,14 +1609,14 @@ exports.UpgradeAdjustor = rclass
                 remaining_note = <span>You have {remaining_all} unallocated {unit}</span>
 
             <Row key={name} style={marginTop:'5px'}>
-                <Col sm=6>
+                <Col sm={6}>
                     <Tip title={display} tip={desc}>
                         <strong>{display}</strong>
                     </Tip>
                     <br/>
                     {remaining_note}
                 </Col>
-                <Col sm=6>
+                <Col sm={6}>
                     <FormGroup>
                         <InputGroup>
                             <FormControl
@@ -1715,10 +1714,10 @@ exports.UpgradeAdjustor = rclass
                 </span>
                 <hr/>
                 <Row>
-                    <Col md=2>
+                    <Col md={2}>
                         <b style={fontSize:'12pt'}>Quota</b>
                     </Col>
-                    <Col md=4>
+                    <Col md={4}>
                         <Button
                             bsSize  = 'xsmall'
                             onClick = {@max_upgrades}
@@ -1735,7 +1734,7 @@ exports.UpgradeAdjustor = rclass
                             Remove all upgrades
                         </Button>
                     </Col>
-                    <Col md=6>
+                    <Col md={6}>
                         <b style={fontSize:'12pt'}>Your contribution</b>
                     </Col>
                 </Row>
