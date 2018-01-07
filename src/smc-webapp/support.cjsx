@@ -21,7 +21,7 @@
 $          = window.$
 underscore = _ = require('underscore')
 {React, ReactDOM, Actions, Store, rtypes, rclass, redux, COLOR}  = require('./smc-react')
-{Col, Row, Button, FormControl, FormGroup, Well, Alert, Modal, Table} = require('react-bootstrap')
+{Button, FormControl, FormGroup, Well, Alert, Modal, Table} = require('react-bootstrap')
 {Icon, Markdown, Loading, Space, ImmutablePureRenderMixin, Footer} = require('./r_misc')
 misc            = require('smc-util/misc')
 misc_page       = require('./misc_page')
@@ -298,7 +298,6 @@ exports.SupportPage = rclass
 
         if @props.support_tickets.length > 0
             <Table responsive style={borderCollapse: "separate", borderSpacing: "0 1em"}>
-                {# <thead>{@render_header()}</thead>}
                 <tbody>{@render_body()}</tbody>
             </Table>
         else
@@ -363,7 +362,7 @@ SupportInfo = rclass
           <Button
               bsStyle  = 'success'
               style    = {marginTop:'3em'}
-              tabIndex = 4
+              tabIndex = {4}
               onClick  = {@props.actions.new_ticket}>Create New Ticket</Button>
        </div>
 
@@ -453,7 +452,7 @@ SupportFooter = rclass
     render: ->
         if @props.show_form
             btn = <Button bsStyle  = 'primary'
-                          tabIndex = 4
+                          tabIndex = {4}
                           onClick  = {@props.submit}
                           disabled = {not @props.valid}>
                        <Icon name='medkit' /> Get Support
@@ -464,7 +463,7 @@ SupportFooter = rclass
         <Modal.Footer>
             {btn}
             <Button
-                tabIndex  = 5
+                tabIndex  = {5}
                 bsStyle   ='default'
                 onClick   = {@props.close}>Close</Button>
         </Modal.Footer>
@@ -509,7 +508,7 @@ SupportForm = rclass
                     label       = 'Your email address'
                     ref         = 'email'
                     type        = 'text'
-                    tabIndex    = 1
+                    tabIndex    = {1}
                     placeholder = 'your_email@address.com'
                     value       = {@props.email}
                     onChange    = {@email_change} />
@@ -521,7 +520,7 @@ SupportForm = rclass
                     ref         = 'subject'
                     autoFocus
                     type        = 'text'
-                    tabIndex    = 2
+                    tabIndex    = {2}
                     label       = 'Message'
                     placeholder = "Subject ..."
                     value       = {@props.subject}
@@ -536,9 +535,9 @@ SupportForm = rclass
                 <FormControl
                     componentClass = "textarea"
                     ref         = 'body'
-                    tabIndex    = 3
+                    tabIndex    = {3}
                     placeholder = 'Describe the problem ...'
-                    rows        = 6
+                    rows        = {6}
                     value       = {@props.body}
                     onChange    = {@data_change} />
             </FormGroup>

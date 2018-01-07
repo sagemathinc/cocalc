@@ -305,31 +305,31 @@ exports.ConnectionInfo = rclass
     connection_body: ->
         <div>
             {<Row>
-                <Col sm=3>
+                <Col sm={3}>
                     <h4>Ping time</h4>
                 </Col>
-                <Col sm=6>
+                <Col sm={6}>
                     <pre>{@props.avgping}ms (latest: {@props.ping}ms)</pre>
                 </Col>
             </Row> if @props.ping}
             <Row>
-                <Col sm=3>
+                <Col sm={3}>
                     <h4>Hub server</h4>
                 </Col>
-                <Col sm=6>
+                <Col sm={6}>
                     <pre>{if @props.hub? then @props.hub else "Not signed in"}</pre>
                 </Col>
-                <Col sm=2 smOffset=1>
+                <Col sm={2} smOffset={1}>
                     <Button bsStyle='warning' onClick={=>webapp_client._fix_connection(true)}>
                         <Icon name='repeat' spin={@props.status == 'connecting'} /> Reconnect
                     </Button>
                 </Col>
             </Row>
             <Row>
-                <Col sm=3>
+                <Col sm={3}>
                     <h4>Messages</h4>
                 </Col>
-                <Col sm=6>
+                <Col sm={6}>
                     <MessageInfo info={@props.mesg_info} />
                 </Col>
             </Row>

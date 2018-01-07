@@ -55,7 +55,7 @@ exports.UpgradesPage = rclass
         <div>
             <h3>Thank you for supporting <SiteName/></h3>
             <span style={color:"#666"}>
-                We offer many <a href=PolicyPricingPageUrl target='_blank'> pricing
+                We offer many <a href={PolicyPricingPageUrl} target='_blank'> pricing
                 and subscription options</a>, which you can subscribe to in the Billing tab.
                 Your upgrades are listed below, along with how you have
                 applied them to projects.  You can adjust your project upgrades from
@@ -70,23 +70,23 @@ exports.UpgradesPage = rclass
         u = round1(if used? then info.display_factor * used else 0)
         percent_used = Math.round(u/n*100)
         <Row key={param} style={backgroundColor:'#eee' if darker}>
-            <Col sm=2>
+            <Col sm={2}>
                 {info.display}
             </Col>
-            <Col sm=3>
+            <Col sm={3}>
                 <Row>
-                    <Col sm=5>
+                    <Col sm={5}>
                         {<span>{u} {misc.plural(u, info.display_unit)}</span> if u?}
                     </Col>
-                    <Col sm=7>
+                    <Col sm={7}>
                         <ProgressBar striped now={percent_used} style={marginBottom: '0px'}/>
                     </Col>
                 </Row>
             </Col>
-            <Col sm=2>
+            <Col sm={2}>
                 {<span>{n} {misc.plural(n, info.display_unit)}</span> if n?}
             </Col>
-            <Col sm=5 style={color:"#666"}>
+            <Col sm={5} style={color:"#666"}>
                 {info.desc}
             </Col>
         </Row>

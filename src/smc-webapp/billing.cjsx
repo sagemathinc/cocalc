@@ -248,10 +248,10 @@ AddPaymentMethod = rclass
         if field == 'State' and @state.new_payment_info.address_country != "United States"
             return
         <Row key={field}>
-            <Col sm=4>
+            <Col sm={4}>
                 {field}
             </Col>
-            <Col sm=8>
+            <Col sm={8}>
                 {control}
             </Col>
         </Row>
@@ -269,7 +269,7 @@ AddPaymentMethod = rclass
                 <FormControl
                     autoFocus
                     ref         = 'input_card_number'
-                    style       = @style('number')
+                    style       = {@style('number')}
                     type        = 'text'
                     size        = '20'
                     placeholder = '1234 5678 9012 3456'
@@ -289,7 +289,7 @@ AddPaymentMethod = rclass
                 ref         = 'input_cvc'
                 style       = {misc.merge({width:'5em'}, @style('cvc'))}
                 type        = 'text'
-                size        = 4
+                size        = '4'
                 placeholder = '···'
                 onChange    = {=>@set_input_info('cvc', 'input_cvc')}
                 disabled    = {@state.submitting}
@@ -306,8 +306,8 @@ AddPaymentMethod = rclass
 
     render_input_cvc: ->
         <Row>
-            <Col md=3>{@render_input_cvc_input()}</Col>
-            <Col md=9>{@render_input_cvc_help()}</Col>
+            <Col md={3}>{@render_input_cvc_input()}</Col>
+            <Col md={9}>{@render_input_cvc_help()}</Col>
         </Row>
 
     valid: (name) ->
@@ -422,7 +422,7 @@ AddPaymentMethod = rclass
 
     render_tax_notice: ->
         <Row>
-            <Col sm=12>
+            <Col sm={12}>
                 <Alert bsStyle='info'>
                     <h4><Icon name='exclamation-triangle' /> Notice </h4>
                     <p>Sales tax is applied in the state of Washington</p>
@@ -433,14 +433,14 @@ AddPaymentMethod = rclass
     render_input_state_zip: ->
         <div>
             <Row>
-                <Col sm=7>
+                <Col sm={7}>
                     <SelectorInput
                         options   = {STATES}
                         on_change = {(state)=>@set_input_info('address_state', '', state)}
                         disabled  = {@state.submitting}
                     />
                 </Col>
-                <Col sm=5>
+                <Col sm={5}>
                     {@render_input_zip()}
                 </Col>
             </Row>
@@ -463,10 +463,10 @@ AddPaymentMethod = rclass
     render_payment_method_buttons: ->
         <div>
             <Row>
-                <Col sm=4>
+                <Col sm={4}>
                     {powered_by_stripe()}
                 </Col>
-                <Col sm=8>
+                <Col sm={8}>
                     <ButtonToolbar className='pull-right'>
                         <Button
                             onClick  = {@submit_payment_method}
@@ -490,7 +490,7 @@ AddPaymentMethod = rclass
 
     render: ->
         <Row>
-            <Col sm=6 smOffset=3>
+            <Col sm={6} smOffset={3}>
                 <Well style={boxShadow:'5px 5px 5px lightgray', zIndex:2}>
                     {@render_error()}
                     {@render_payment_method_fields()}
@@ -522,13 +522,13 @@ PaymentMethod = rclass
     render_confirm_default: ->
         <Alert bsStyle='warning'>
             <Row>
-                <Col md=5 mdOffset=2>
+                <Col md={5} mdOffset={2}>
                     <p>Are you sure you want to set this payment card to be the default?</p>
                     <p>All future payments will be made with the card that is the default <b>at the time of renewal</b>.
                     Changing your default card right before a subscription renewal will cause the <Space/>
                     new default to be charged instead of the previous one.</p>
                 </Col>
-                <Col md=5>
+                <Col md={5}>
                     <ButtonToolbar>
                         <Button onClick={=>@setState(confirm_default:false)}>Cancel</Button>
                         <Button onClick={=>@setState(confirm_default:false);@props.set_as_default()} bsStyle='warning'>
@@ -542,10 +542,10 @@ PaymentMethod = rclass
     render_confirm_delete: ->
         <Alert bsStyle='danger'>
             <Row>
-                <Col md=5 mdOffset=2>
+                <Col md={5} mdOffset={2}>
                     Are you sure you want to delete this payment method?
                 </Col>
-                <Col md=5>
+                <Col md={5}>
                     <ButtonToolbar>
                         <Button onClick={=>@setState(confirm_delete:false)}>Cancel</Button>
                         <Button bsStyle='danger' onClick={=>@setState(confirm_delete:false);@props.delete_method()}>
@@ -558,22 +558,22 @@ PaymentMethod = rclass
 
     render_card: ->
         <Row>
-            <Col md=2>
+            <Col md={2}>
                 <Icon name={@icon_name()} /> {@props.source.brand}
             </Col>
-            <Col md=1>
+            <Col md={1}>
                 <em>····</em>{@props.source.last4}
             </Col>
-            <Col md=1>
+            <Col md={1}>
                 {@props.source.exp_month}/{@props.source.exp_year}
             </Col>
-            <Col md=2>
+            <Col md={2}>
                 {@props.source.name}
             </Col>
-            <Col md=1>
+            <Col md={1}>
                 {@props.source.country}
             </Col>
-            <Col md=2>
+            <Col md={2}>
                 {@props.source.address_state}
                 <Space/><Space/>
                 {@props.source.address_zip}
@@ -582,7 +582,7 @@ PaymentMethod = rclass
         </Row>
 
     render_action_buttons: ->
-        <Col md=3>
+        <Col md={3}>
             <ButtonToolbar style={float: "right"}>
                 {<Button
                     onClick  = {=>@setState(confirm_default:true)}
@@ -631,10 +631,10 @@ PaymentMethods = rclass
 
     render_header: ->
         <Row>
-            <Col sm=6>
+            <Col sm={6}>
                 <Icon name='credit-card' /> Payment methods
             </Col>
-            <Col sm=6>
+            <Col sm={6}>
                 {@render_add_payment_method_button()}
             </Col>
         </Row>
@@ -941,10 +941,10 @@ AddSubscription = rclass
 
     render_create_subscription_buttons: ->
         <Row>
-            <Col sm=4>
+            <Col sm={4}>
                 {powered_by_stripe()}
             </Col>
-            <Col sm=8>
+            <Col sm={8}>
                 <ButtonToolbar className='pull-right'>
                     <Button
                         bsStyle  = 'primary'
@@ -962,7 +962,7 @@ AddSubscription = rclass
     render: ->
         plan_data = PROJECT_UPGRADES.subscription[@props.selected_plan.split('-')[0]]
         <Row>
-            <Col sm=10 smOffset=1>
+            <Col sm={10} smOffset={1}>
                 <Well style={boxShadow:'5px 5px 5px lightgray', zIndex:1}>
                     {@render_create_subscription_options()}
                     {@render_create_subscription_confirm(plan_data) if @props.selected_plan isnt ''}
@@ -1068,7 +1068,7 @@ CouponAdder = rclass
                         </Button>
                     </InputGroup.Button>
                 </InputGroup>
-            </FormGroup> if @props.applied_coupons?.size == 0}{# TODO: Support multiple coupons}
+            </FormGroup> if @props.applied_coupons?.size == 0}
             {<SkinnyError error_text={@props.coupon_error} on_close={@actions('billing').clear_coupon_error} /> if @props.coupon_error}
             {<div style={color:'rgb(153, 153, 153)', fontWeight:'200'}>No coupons applied</div> if @props.applied_coupons?.size == 0}
         </Well>
@@ -1092,10 +1092,10 @@ CouponInfo = rclass
 
     render: ->
         <Row>
-            <Col md=4>
+            <Col md={4}>
                 {@props.coupon.id}
             </Col>
-            <Col md=8>
+            <Col md={8}>
                 {@props.coupon.metadata.description}
                 <CloseX on_close={=>@actions('billing').remove_coupon(@props.coupon.id)} />
             </Col>
@@ -1173,7 +1173,7 @@ exports.ExplainResources = ExplainResources = rclass
     render_shared: ->
         <div>
             <Row>
-                <Col md=8 sm=12>
+                <Col md={8} sm={12}>
                     <a name="projects"></a>
                     <h4>Projects</h4>
                     <div>
@@ -1229,12 +1229,12 @@ exports.ExplainResources = ExplainResources = rclass
                     </div>
                     <Space/>
                 </Col>
-                <Col md=4 sm=12>
+                <Col md={4} sm={12}>
                     <Row>
-                        <Col md=12 sm=6>
+                        <Col md={12} sm={6}>
                             <ProjectQuotaFreeTable/>
                         </Col>
-                        <Col md=12 sm=6>
+                        <Col md={12} sm={6}>
                             <ProjectQuotaBoundsTable/>
                         </Col>
                     </Row>
@@ -1468,8 +1468,8 @@ FAQS =
     private:
         q: <span>Which plan offers <b>"private" file storage</b>?</span>
         a: <span>All our plans (free and paid) host your files privately by default.
-            Please read our <a target="_blank" href=PolicyPrivacyPageUrl>Privacy Policy</a> and {" "}
-            <a target="_blank" href=PolicyCopyrightPageUrl>Copyright Notice</a>.
+            Please read our <a target="_blank" href={PolicyPrivacyPageUrl}>Privacy Policy</a> and {" "}
+            <a target="_blank" href={PolicyCopyrightPageUrl}>Copyright Notice</a>.
            </span>
     git:
         q: <span>Can I work with <b>Git</b> &mdash; including GitHub, Bitbucket, GitLab, etc.?</span>
@@ -1561,17 +1561,17 @@ Subscription = rclass
         sub = @props.subscription
         cancellable = not (sub.cancel_at_period_end or @state.cancelling or @state.confirm_cancel)
         <Row style={paddingBottom: '5px', paddingTop:'5px'}>
-            <Col md=4>
+            <Col md={4}>
                 {@quantity()} {sub.plan.name} ({misc.stripe_amount(sub.plan.amount, sub.plan.currency)} for {plan_interval(sub.plan)})
             </Col>
-            <Col md=2>
+            <Col md={2}>
                 {misc.capitalize(sub.status)}
             </Col>
-            <Col md=4 style={color:'#666'}>
+            <Col md={4} style={color:'#666'}>
                 {misc.stripe_date(sub.current_period_start)} – {misc.stripe_date(sub.current_period_end)} (start: {misc.stripe_date(sub.start)})
                 {@render_cancel_at_end()}
             </Col>
-            <Col md=2>
+            <Col md={2}>
                 {<Button style={float:'right'} onClick={=>@setState(confirm_cancel:true)}>Cancel...</Button> if cancellable}
             </Col>
         </Row>
@@ -1581,10 +1581,10 @@ Subscription = rclass
             return
         <Alert bsStyle='warning'>
             <Row style={borderBottom:'1px solid #999', paddingBottom:'15px', paddingTop:'15px'}>
-                <Col md=6>
+                <Col md={6}>
                     Are you sure you want to cancel this subscription?  If you cancel your subscription, it will run to the end of the subscription period, but will not be renewed when the current (already paid for) period ends; any upgrades provided by this subscription will be disabled.    If you need further clarification or need a refund, please email  <HelpEmailLink/>.
                 </Col>
-                <Col md=6>
+                <Col md={6}>
                     <Button onClick={=>@setState(confirm_cancel:false)}>Make no change</Button>
                     <div style={float:'right'}>
                         <Button bsStyle='danger' onClick={=>@setState(confirm_cancel:false);@cancel_subscription()}>CANCEL: do not auto-renew my subscription</Button>
@@ -1638,10 +1638,10 @@ Subscriptions = rclass
 
     render_header: ->
         <Row>
-            <Col sm=6>
+            <Col sm={6}>
                 <Icon name='list-alt' /> Subscriptions
             </Col>
-            <Col sm=6>
+            <Col sm={6}>
                 {@render_add_subscription_button()}
             </Col>
         </Row>
@@ -1696,25 +1696,25 @@ Invoice = rclass
 
     render_line_item: (line, n) ->
         <Row key={line.id} style={borderBottom:'1px solid #aaa'}>
-            <Col sm=1>
+            <Col sm={1}>
                 {n}.
             </Col>
-            <Col sm=9>
+            <Col sm={9}>
                 {@render_line_description(line)}
             </Col>
-            <Col sm=2>
+            <Col sm={2}>
                 {render_amount(line.amount, @props.invoice.currency)}
             </Col>
         </Row>
 
     render_tax: ->
         <Row key='tax' style={borderBottom:'1px solid #aaa'}>
-            <Col sm=1>
+            <Col sm={1}>
             </Col>
-            <Col sm=9>
+            <Col sm={9}>
                 WA State Sales Tax ({@props.invoice.tax_percent}%)
             </Col>
-            <Col sm=2>
+            <Col sm={2}>
                 {render_amount(@props.invoice.tax, @props.invoice.currency)}
             </Col>
         </Row>
@@ -1736,20 +1736,20 @@ Invoice = rclass
 
     render: ->
         <Row style={borderBottom:'1px solid #999'}>
-            <Col md=1>
+            <Col md={1}>
                 {render_amount(@props.invoice.amount_due, @props.invoice.currency)}
             </Col>
-            <Col md=1>
+            <Col md={1}>
                 {@render_paid_status()}
             </Col>
-            <Col md=3>
+            <Col md={3}>
                 {misc.stripe_date(@props.invoice.date)}
             </Col>
-            <Col md=6>
+            <Col md={6}>
                 {@render_description()}
                 {@render_line_items()}
             </Col>
-            <Col md=1>
+            <Col md={1}>
                 <a onClick={@download_invoice} href=""><Icon name="cloud-download" /></a>
             </Col>
         </Row>
@@ -1989,7 +1989,7 @@ BillingPage = rclass
 
     render_info_link: ->
         <div style={marginTop:'1em', marginBottom:'1em', color:"#666"}>
-            We offer many <a href=PolicyPricingPageUrl target='_blank'> pricing and subscription options</a>.
+            We offer many <a href={PolicyPricingPageUrl} target='_blank'> pricing and subscription options</a>.
             <Space/>
             {@render_suggested_next_step()}
         </div>
@@ -2092,7 +2092,6 @@ exports.render_static_pricing_page = () ->
         <hr/>
         <ExplainPlan type='personal'/>
         <SubscriptionGrid period='month year' is_static={true}/>
-        {# <Space/><ExplainResources type='dedicated'/> }
         <hr/>
         <ExplainPlan type='course'/>
         <SubscriptionGrid period='month4 year1' is_static={true}/>
