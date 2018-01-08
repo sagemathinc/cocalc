@@ -1342,9 +1342,9 @@ class JupyterNotebook extends EventEmitter
                 redux.getProjectActions(@project_id).set_public_path(html, "Jupyter html version of #{@filename}")
                 cb()
             ], (err) =>
-            status?("done", 100)
-            @publish_button.find("fa-refresh").hide()
-            cb?(err)
+                status?("done", 100)
+                @publish_button.find("fa-refresh").hide()
+                cb?(err)
         )
 
     refresh: (cb) =>

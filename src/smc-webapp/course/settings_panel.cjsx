@@ -71,7 +71,7 @@ StudentProjectsStartStopPanel = rclass ({name}) ->
                     return
                 bsStyle = 'info'
 
-        <Alert bsStyle=bsStyle>
+        <Alert bsStyle={bsStyle}>
             {misc.capitalize(state_name)} all projects... <Icon name='cc-icon-cocalc-ring' spin />
         </Alert>
 
@@ -111,12 +111,12 @@ StudentProjectsStartStopPanel = rclass ({name}) ->
         n = @props.num_students
         <Panel header={<h4><Icon name='flash'/> Student projects control</h4>}>
             <Row>
-                <Col md=9>
+                <Col md={9}>
                     {r} of {n} student projects currently running.
                 </Col>
             </Row>
             <Row style={marginTop:'10px'}>
-                <Col md=12>
+                <Col md={12}>
                     <ButtonToolbar>
                         <Button onClick={=>@setState(confirm_start_all_projects:true)}
                             disabled={n==0 or n==r or @state.confirm_start_all_projects or @props.action_all_projects_state == "starting"}
@@ -132,7 +132,7 @@ StudentProjectsStartStopPanel = rclass ({name}) ->
                 </Col>
             </Row>
             <Row style={marginTop:'10px'}>
-                <Col md=12>
+                <Col md={12}>
                     {@render_confirm_start_all_projects() if @state.confirm_start_all_projects}
                     {@render_confirm_stop_all_projects() if @state.confirm_stop_all_projects}
                     {@render_in_progress_action() if @props.action_all_projects_state != "any"}
@@ -209,7 +209,7 @@ exports.SettingsPanel = rclass
                 <MarkdownInput
                     persist_id    = {@props.name + "course-description"}
                     attach_to     = {@props.name}
-                    rows          = 6
+                    rows          = {6}
                     type          = "textarea"
                     default_value = {@props.settings.get('description')}
                     on_save       = {(desc)=>@actions(@props.name).set_description(desc)}
@@ -344,7 +344,7 @@ exports.SettingsPanel = rclass
                 <MarkdownInput
                     persist_id    = {@props.name + "email-invite-body"}
                     attach_to     = {@props.name}
-                    rows          = 6
+                    rows          = {6}
                     type          = "textarea"
                     default_value = {@props.redux.getStore(@props.name).get_email_invite()}
                     on_save       = {(body)=>@actions(@props.name).set_email_invite(body)}
@@ -472,7 +472,7 @@ exports.SettingsPanel = rclass
     render: ->
         <div>
             <Row>
-                <Col md=6>
+                <Col md={6}>
                     {@render_require_students_pay()}
                     <StudentProjectUpgrades name={@props.name} redux={@props.redux} upgrade_goal={@props.settings?.get('upgrade_goal')} />
                     {@render_save_grades()}
@@ -481,7 +481,7 @@ exports.SettingsPanel = rclass
                         delete = {@actions(@props.name).delete_all_student_projects}
                         />
                 </Col>
-                <Col md=6>
+                <Col md={6}>
                     <HelpBox/>
                     {@render_title_description()}
                     {@render_email_invite_body()}
@@ -495,7 +495,7 @@ exports.SettingsPanel = rclass
 
 exports.SettingsPanel.Header = rclass
     render: ->
-        <Tip delayShow=1300 title="Settings"
+        <Tip delayShow={1300} title="Settings"
              tip="Configure various things about your course here, including the title and description.  You can also export all grades in various formats from this page.">
             <span>
                 <Icon name="wrench"/> Settings

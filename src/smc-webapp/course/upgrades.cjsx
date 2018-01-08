@@ -64,11 +64,11 @@ exports.StudentProjectUpgrades = rclass
 
     render_upgrade_heading: (num_projects) ->
         <Row key="heading">
-            <Col md=5>
+            <Col md={5}>
                 <b style={fontSize:'11pt'}>Quota</b>
             </Col>
-            {# <Col md=2><b style={fontSize:'11pt'}>Current upgrades</b></Col> }
-            <Col md=7>
+            {### <Col md={2}><b style={fontSize:'11pt'}>Current upgrades</b></Col> ###}
+            <Col md={7}>
                 <b style={fontSize:'11pt'}>Distribute upgrades to your {num_projects} student {misc.plural(num_projects, 'project')} to get quota to the amount in this column (amounts may be decimals)</b>
             </Col>
         </Row>
@@ -92,9 +92,9 @@ exports.StudentProjectUpgrades = rclass
                 bs_style = 'error'
                 @_upgrade_is_invalid = true
                 if misc.parse_number_input(val)?
-                    label = <div style=UPGRADE_ERROR_STYLE>Reduce the above: you do not have enough upgrades</div>
+                    label = <div style={UPGRADE_ERROR_STYLE}>Reduce the above: you do not have enough upgrades</div>
                 else
-                    label = <div style=UPGRADE_ERROR_STYLE>Please enter a number</div>
+                    label = <div style={UPGRADE_ERROR_STYLE}>Please enter a number</div>
             else
                 label = <span></span>
             <FormGroup>
@@ -112,7 +112,7 @@ exports.StudentProjectUpgrades = rclass
             is_valid = @is_upgrade_input_valid(val, limit)
             if not is_valid
                 @_upgrade_is_invalid = true
-                label = <div style=UPGRADE_ERROR_STYLE>Uncheck this: you do not have enough upgrades</div>
+                label = <div style={UPGRADE_ERROR_STYLE}>Uncheck this: you do not have enough upgrades</div>
             else
                 label = if val == 0 then 'Enable' else 'Enabled'
             <form>
@@ -160,17 +160,17 @@ exports.StudentProjectUpgrades = rclass
                 cur = 'all'
 
         <Row key={quota}>
-            <Col md=5>
+            <Col md={5}>
                 <Tip title={display} tip={desc}>
                     <strong>{display}</strong>
                 </Tip>
                 <span style={marginLeft:'1ex'}>({remaining} {misc.plural(remaining, display_unit)} remaining)</span>
             </Col>
-            {# <Col md=2  style={marginTop: '8px'}>{cur}</Col> }
-            <Col md=5>
+            {### <Col md={2}  style={marginTop: '8px'}>{cur}</Col> ###}
+            <Col md={5}>
                 {@render_upgrade_row_input(quota, input_type, current, yours, num_projects, limit)}
             </Col>
-            <Col md=2 style={marginTop: '8px'}>
+            <Col md={2} style={marginTop: '8px'}>
                 &times; {num_projects}
             </Col>
         </Row>

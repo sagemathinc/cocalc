@@ -117,7 +117,7 @@ CourseEditor = rclass ({name}) ->
         path        : rtypes.string.isRequired
 
     render_activity: ->
-        <ActivityDisplay activity={misc.values(@props.activity)} trunc=80
+        <ActivityDisplay activity={misc.values(@props.activity)} trunc={80}
             on_clear={=>@props.redux.getActions(@props.name).clear_activity()} />
 
     render_error: ->

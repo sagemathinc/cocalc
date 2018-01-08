@@ -131,7 +131,7 @@ exports.AddCollaborators = rclass
                 <div style={border:'1px solid lightgrey', padding: '10px', borderRadius: '5px', backgroundColor: 'white', marginBottom: '15px'}>
                     <MarkdownInput
                         default_value = {@state.email_body}
-                        rows          = 8
+                        rows          = {8}
                         on_save       = {(value)=>@setState(email_body:value, email_body_editing:false)}
                         on_cancel     = {(value)=>@setState(email_body_editing:false)}
                         on_edit       = {=>@setState(email_body_editing:true)}

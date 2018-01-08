@@ -176,7 +176,7 @@ exports.HandoutsPanel.Header = rclass
         n : rtypes.number
 
     render: ->
-        <Tip delayShow=1300
+        <Tip delayShow={1300}
              title="Handouts"
              tip="This tab lists all of the handouts associated with your course.">
             <span>
@@ -216,16 +216,16 @@ Handout = rclass
 
     render_handout_notes: ->
         <Row key='note' style={styles.note}>
-            <Col xs=2>
+            <Col xs={2}>
                 <Tip title="Notes about this handout" tip="Record notes about this handout here. These notes are only visible to you, not to your students.  Put any instructions to students about handouts in a file in the directory that contains the handout.">
                     Private Handout Notes<br /><span style={color:"#666"}></span>
                 </Tip>
             </Col>
-            <Col xs=10>
+            <Col xs={10}>
                 <MarkdownInput
                     persist_id    = {@props.handout.get('path') + @props.handout.get('assignment_id') + "note"}
                     attach_to     = {@props.name}
-                    rows          = 6
+                    rows          = {6}
                     placeholder   = 'Private notes about this handout (not visible to students)'
                     default_value = {@props.handout.get('note')}
                     on_save       = {(value)=>@props.actions.set_handout_note(@props.handout, value)}
@@ -240,7 +240,7 @@ Handout = rclass
                 @render_copy_confirm(step, status)
 
     render_copy_confirm: (step, status) ->
-        <span key="copy_confirm_#{step}">
+        <span key={"copy_confirm_#{step}"}>
             {@render_copy_confirm_to_all(step, status) if status[step]==0}
             {@render_copy_confirm_to_all_or_new(step, status) if status[step]!=0}
         </span>
@@ -261,7 +261,7 @@ Handout = rclass
 
     render_copy_confirm_to_all: (step, status) ->
         n = status["not_#{step}"]
-        <Alert bsStyle='warning' key="#{step}_confirm_to_all", style={marginTop:'15px'}>
+        <Alert bsStyle='warning' key={"#{step}_confirm_to_all"} style={marginTop:'15px'}>
             <div style={marginBottom:'15px'}>
                 {misc.capitalize(step_verb(step))} this handout {step_direction(step)} the {n} student{if n>1 then "s" else ""}{step_ready(step, n)}?
             </div>
@@ -290,7 +290,7 @@ Handout = rclass
     render_copy_confirm_to_all_or_new: (step, status) ->
         n = status["not_#{step}"]
         m = n + status[step]
-        <Alert bsStyle='warning' key="#{step}_confirm_to_all_or_new" style={marginTop:'15px'}>
+        <Alert bsStyle='warning' key={"#{step}_confirm_to_all_or_new"} style={marginTop:'15px'}>
             <div style={marginBottom:'15px'}>
                 {misc.capitalize(step_verb(step))} this handout {step_direction(step)}...
             </div>
@@ -355,7 +355,7 @@ Handout = rclass
 
     render_more: ->
         <Row key='more'>
-            <Col sm=12>
+            <Col sm={12}>
                 <Panel header={@render_more_header()}>
                     <StudentListForHandout handout={@props.handout} students={@props.students}
                         user_map={@props.user_map} store_object={@props.store_object} actions={@props.actions}/>
@@ -372,9 +372,9 @@ Handout = rclass
     render: ->
         status = @props.store_object.get_handout_status(@props.handout)
         <Row style={if @props.is_expanded then styles.selected_entry else styles.entry}>
-            <Col xs=12>
+            <Col xs={12}>
                 <Row key='summary' style={backgroundColor:@props.backgroundColor}>
-                    <Col md=2 style={paddingRight:'0px'}>
+                    <Col md={2} style={paddingRight:'0px'}>
                         <h5>
                             <a href='' onClick={(e)=>e.preventDefault();@actions(@props.name).toggle_item_expansion('handout', @props.handout.get('handout_id'))}>
                                 <Icon style={marginRight:'10px', float:'left'}
@@ -386,7 +386,7 @@ Handout = rclass
                             </a>
                         </h5>
                     </Col>
-                    <Col md=6>
+                    <Col md={6}>
                         <Row style={marginLeft:'8px'}>
                             {@render_handout_button(status.handout)}
                             <span style={color:'#666', marginLeft:'5px'}>
@@ -397,7 +397,7 @@ Handout = rclass
                             {@render_copy_all(status)}
                         </Row>
                     </Col>
-                    <Col md=4>
+                    <Col md={4}>
                         <Row>
                             <span className='pull-right'>
                                 {@render_delete_button()}
@@ -485,12 +485,12 @@ StudentHandoutInfoHeader = rclass
 
     render: ->
         <Row style={borderBottom:'2px solid #aaa'} >
-            <Col md=2 key='title'>
+            <Col md={2} key='title'>
                 <Tip title={@props.title} tip={if @props.title=="Handout" then "This column gives the directory name of the handout." else "This column gives the name of the student."}>
                     <b>{@props.title}</b>
                 </Tip>
             </Col>
-            <Col md=10 key="rest">
+            <Col md={10} key="rest">
                 {@render_headers()}
             </Col>
         </Row>
@@ -602,10 +602,10 @@ StudentHandoutInfo = rclass
     render: ->
         width = 12
         <Row style={borderTop:'1px solid #aaa', paddingTop:'5px', paddingBottom: '5px'}>
-            <Col md=2 key="title">
+            <Col md={2} key="title">
                 {@props.title}
             </Col>
-            <Col md=10 key="rest">
+            <Col md={10} key="rest">
                 <Row>
                     <Col md={width} key='last_handout'>
                         {@render_last('Distribute', @props.info.status, @props.info, true,
