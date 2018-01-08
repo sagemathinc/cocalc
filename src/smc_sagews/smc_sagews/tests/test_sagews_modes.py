@@ -29,7 +29,7 @@ class TestSingularMode:
 
 class TestScalaMode:
     def test_scala_list(self, exec2):
-        exec2("%scala\nList(1,2,3)", html_pattern="res0.*List.*Int.*List.*1.*2.*3")
+        exec2("%scala\nList(1,2,3)", html_pattern="res0.*List.*Int.*List.*1.*2.*3", timeout = 80)
 
 class TestScala211Mode:
     # example from ScalaTour-1.6, p. 31, Pattern Matching
@@ -46,7 +46,7 @@ class TestScala211Mode:
           println(matchTest(3))
         }
         ''').strip()
-        exec2(code, html_pattern="defined.*object.*MatchTest1")
+        exec2(code, html_pattern="defined.*object.*MatchTest1", timeout = 80)
 
     def test_scala211_pat2(self, exec2):
         exec2("%scala211\nMatchTest1.main(Array())", pattern="many")
@@ -104,7 +104,6 @@ class TestPython3DefaultMode:
     def test_capture_p3d_02(self, exec2):
         exec2("%sage\nprint(output)", "99\n")
 
-@pytest.mark.skip(reason="sage-8.1")
 class TestShMode:
     def test_start_sh(self, exec2):
         code = "%sh\ndate +%Y-%m-%d"
@@ -143,7 +142,6 @@ class TestShMode:
     def test_bad_command(self, exec2):
         exec2("%sh xyz", pattern="command not found")
 
-@pytest.mark.skip(reason="sage-8.1")
 class TestShDefaultMode:
     def test_start_sh_dflt(self, exec2):
         exec2("%default_mode sh")
@@ -250,11 +248,10 @@ class TestAnaconda3Mode:
     def test_a3_error(self, exec2):
         exec2('%a3\nxyz*', html_pattern = 'span style.*color')
 
-@pytest.mark.skip(reason="sage-8.1")
 class TestJuliaMode:
     def test_julia_quadratic(self, exec2):
         exec2('%julia\nquadratic(a, sqr_term, b) = (-b + sqr_term) / 2a\nquadratic(2.0, -2.0, -12.0)', '2.5')
 
     def test_julia_version(self, exec2):
-        exec2("%julia\nVERSION", pattern='"0.6.0"')
+        exec2("%julia\nVERSION", pattern='"0.6.2"')
 

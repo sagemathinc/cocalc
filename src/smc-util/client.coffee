@@ -1333,11 +1333,27 @@ class exports.Connection extends EventEmitter
 
     project_invite_collaborator: (opts) =>
         opts = defaults opts,
-            project_id : required
-            account_id : required
-            cb         : (err) =>
+            project_id   : required
+            account_id   : required
+            title        : undefined
+            link2proj    : undefined
+            replyto      : undefined
+            replyto_name : undefined
+            email        : undefined
+            subject      : undefined
+            cb           : (err) =>
+
         @call
-            message : message.invite_collaborator(project_id:opts.project_id, account_id:opts.account_id)
+            message : message.invite_collaborator(
+                project_id   : opts.project_id
+                account_id   : opts.account_id
+                title        : opts.title
+                link2proj    : opts.link2pr
+                replyto      : opts.replyto
+                replyto_name : opts.replyto_name
+                email        : opts.email
+                subject      : opts.subject
+            )
             cb      : (err, result) =>
                 if err
                     opts.cb(err)

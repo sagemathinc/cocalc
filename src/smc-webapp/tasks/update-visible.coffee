@@ -76,7 +76,7 @@ exports.update_visible = (tasks, view, counts, current_task_id) ->
 
         for x in misc.parse_hashtags(desc)
             tag = desc.slice(x[0]+1, x[1]).toLowerCase()
-            hashtags[tag] = Math.max(hashtags[tag], visible)
+            hashtags[tag] = Math.max(hashtags[tag] ? 0, visible)
         return
 
     if sort_dir == 'desc'

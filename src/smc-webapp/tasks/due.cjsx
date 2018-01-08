@@ -8,19 +8,29 @@ Task due date
 
 {React, rclass, rtypes}  = require('../smc-react')
 
-{Calendar, Icon, Space, TimeAgo} = require('../r_misc')
+{DateTimePicker, Icon, Space, TimeAgo} = require('../r_misc')
+
+STYLE =
+    border       : '1px solid lightgrey'
+    background   : 'white'
+    borderRadius : '4px'
+    margin       : '5px'
+    width        : '400px'
+    boxShadow    : '0 6px 12px rgba(0,0,0,.175)'
 
 exports.DueDate = rclass
     propTypes :
-        actions  : rtypes.object
-        task_id  : rtypes.string.isRequired
-        due_date : rtypes.number
-        editing  : rtypes.bool
+        actions   : rtypes.object
+        task_id   : rtypes.string.isRequired
+        due_date  : rtypes.number
+        editing   : rtypes.bool
+        read_only : rtypes.bool
 
     shouldComponentUpdate: (next) ->
-        return @props.due_date != next.due_date or \
-               @props.task_id  != next.task_id or \
-               @props.editing  != next.editing
+        return @props.due_date  != next.due_date or \
+               @props.task_id   != next.task_id  or \
+               @props.editing   != next.editing  or \
+               @props.read_only != next.read_only
 
     toggle_edit: ->
         if @props.editing
@@ -38,10 +48,12 @@ exports.DueDate = rclass
             value = new Date(@props.due_date)
         else
             value = new Date()
-        <div style={border:'1px solid lightgrey', borderRadius:'4px', margin:'5px', width:'250px', boxShadow:'0 6px 12px rgba(0,0,0,.175)'}>
-            <Calendar
-                value     = {value}
-                on_change = {(date) => @set_due_date(date - 0)}
+        <div style={STYLE}>
+            <DateTimePicker
+                value        = {value}
+                on_change    = {(date) => @set_due_date(date - 0)}
+                on_focus  = {=>@props.actions.disable_key_handler()}
+                on_blur   = {=>@props.actions.enable_key_handler()}
             />
             <div style={textAlign:'right', margin:'2px'}>
                 <Button onClick={@toggle_edit}>
@@ -70,12 +82,12 @@ exports.DueDate = rclass
             elt = <TimeAgo date = {new Date(@props.due_date)}/>
         else
             elt = <span>none</span>
-        <span onClick={@toggle_edit} style={style} >
+        <span onClick={if not @props.read_only then @toggle_edit} style={style} >
             {elt}
         </span>
 
     render: ->
-        if not @props.actions?  # read only
+        if @props.read_only
             return @render_due_date()
         else
             <div style={cursor:'pointer'}>

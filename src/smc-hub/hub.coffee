@@ -62,7 +62,7 @@ misc    = require('smc-util/misc')
 {defaults, required} = misc
 message    = require('smc-util/message')     # message protocol between front-end and back-end
 client_lib = require('smc-util/client')
-{Client}   = require('./client')
+client     = require('./client')
 sage       = require('./sage')               # sage server
 auth       = require('./auth')
 base_url   = require('./base-url')
@@ -182,7 +182,7 @@ init_primus_server = (http_server) ->
                     # must recreate them all before continuing.
                     C.query_cancel_all_changefeeds()
 
-                    cookies = new Cookies(conn.request)
+                    cookies = new Cookies(conn.request, client.COOKIE_OPTIONS)
                     if C._remember_me_value == cookies.get(BASE_URL + 'remember_me')
                         old_id = C.conn.id
                         C.conn.removeAllListeners()
@@ -197,7 +197,7 @@ init_primus_server = (http_server) ->
             if not C?
                 winston.debug("primus_server: '#{id}' unknown, so making a new Client with id #{conn.id}")
                 conn.write(conn.id)
-                clients[conn.id] = new Client
+                clients[conn.id] = new client.Client
                     conn           : conn
                     logger         : winston
                     database       : database
@@ -457,6 +457,12 @@ exports.start_server = start_server = (cb) ->
     winston.debug("start_server")
 
     winston.debug("dev = #{program.dev}")
+    if program.dev
+        # So cookies work over http, which dev mode can allow (e.g., on localhost).
+        client.COOKIE_OPTIONS.secure = false
+    else
+        # Be very sure cookies do NOT work unless over https.  IMPORTANT.
+        client.COOKIE_OPTIONS.secure = true
 
     BASE_URL = base_url.init(program.base_url)
     winston.debug("base_url='#{BASE_URL}'")
@@ -537,6 +543,7 @@ exports.start_server = start_server = (cb) ->
                 dev            : program.dev
                 compute_server : compute_server
                 database       : database
+                cookie_options : client.COOKIE_OPTIONS
             {http_server, express_router} = x
             winston.debug("starting express webserver listening on #{program.host}:#{program.port}")
             http_server.listen(program.port, program.host, cb)

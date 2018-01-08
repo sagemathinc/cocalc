@@ -47,7 +47,8 @@ exports.AddCollaborators = rclass
             query : search
             limit : 50
             cb    : (err, select) =>
-                @setState(searching:false, err:err, select:select)
+                @write_email_invite(false)
+                @setState(searching:false, err:err, select:select, email_to:undefined)
 
     render_options: (select) ->
         for r in select
@@ -55,7 +56,22 @@ exports.AddCollaborators = rclass
             <option key={r.account_id} value={r.account_id} label={name}>{name}</option>
 
     invite_collaborator: (account_id) ->
-        @actions('projects').invite_collaborator(@props.project.get('project_id'), account_id)
+        # project_id, account_id, body, subject, silent, replyto,  replyto_name
+        replyto      = redux.getStore('account').get_email_address()
+        replyto_name = redux.getStore('account').get_fullname()
+        if replyto_name?
+            subject = "#{replyto_name} invites you to project #{@props.project.get('title')}"
+        else
+            subject = "CoCalc Invitation to project #{@props.project.get('title')}"
+        @actions('projects').invite_collaborator(
+            @props.project.get('project_id'),
+            account_id,
+            @state.email_body,
+            subject,
+            false,
+            replyto,
+            replyto_name
+        )
 
     add_selected: (select) ->
         @reset()
@@ -80,9 +96,12 @@ exports.AddCollaborators = rclass
         @setState(email_to: @state.search, email_body: body)
 
     send_email_invite: ->
-        subject      = "CoCalc Invitation to #{@props.project.get('title')}"
         replyto      = redux.getStore('account').get_email_address()
         replyto_name = redux.getStore('account').get_fullname()
+        if replyto_name?
+            subject = "#{replyto_name} invites you to project #{@props.project.get('title')}"
+        else
+            subject = "CoCalc Invitation to project #{@props.project.get('title')}"
         @actions('projects').invite_collaborators_by_email(@props.project.get('project_id'),
                                                                          @state.email_to,
                                                                          @state.email_body,
@@ -160,6 +179,15 @@ exports.AddCollaborators = rclass
                         {@render_options(select)}
                     </FormControl>
                 </FormGroup>
+                <div style={border:'1px solid lightgrey', padding: '10px', borderRadius: '5px', backgroundColor: 'white', marginBottom: '15px'}>
+                    <MarkdownInput
+                        default_value = {@state.email_body}
+                        rows          = 8
+                        on_save       = {(value)=>@setState(email_body:value, email_body_editing:false)}
+                        on_cancel     = {(value)=>@setState(email_body_editing:false)}
+                        on_edit       = {=>@setState(email_body_editing:true)}
+                        />
+                </div>
                 {@render_select_list_button(select)}
             </div>
 
@@ -174,7 +202,13 @@ exports.AddCollaborators = rclass
                 when 1 then "Invite selected user"
                 else "Invite #{nb_selected} users"
         disabled = select.length == 0 or (select.length >= 2 and nb_selected == 0)
-        <Button onClick={=>@add_selected(select)} disabled={disabled}><Icon name='user-plus' /> {btn_text}</Button>
+        <Button
+            onClick  = {=>@add_selected(select)}
+            disabled = {disabled}
+            bsStyle  = 'primary'
+        >
+            <Icon name='user-plus' /> {btn_text}
+        </Button>
 
     render_input_row: ->
         input =

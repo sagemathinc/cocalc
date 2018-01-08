@@ -21,6 +21,7 @@ Button bar:
 exports.ButtonBar = rclass
     propTypes :
         actions                 : rtypes.object.isRequired
+        read_only               : rtypes.bool
         has_unsaved_changes     : rtypes.bool
         current_task_id         : rtypes.string
         current_task_is_deleted : rtypes.bool
@@ -30,29 +31,32 @@ exports.ButtonBar = rclass
         return @props.has_unsaved_changes     != next.has_unsaved_changes or \
                @props.current_task_id         != next.current_task_id     or \
                @props.current_task_is_deleted != next.current_task_is_deleted or \
-               @props.sort_column             != next.sort_column
+               @props.sort_column             != next.sort_column         or \
+               @props.read_only               != next.read_only
 
     render_task_group: ->
-        console.log @props.sort_column
         spacer = <span style={marginLeft:'5px'} />
         <span key='task'>
             <Button
-                key     = 'new'
-                onClick = {@props.actions.new_task}
+                key      = 'new'
+                onClick  = {@props.actions.new_task}
+                disabled = {@props.read_only}
                 >
                 <Icon name='plus-circle' /> New
             </Button>
             {spacer}
             <ButtonGroup>
                 <Button
-                    key     = 'undo'
-                    onClick = {@props.actions.undo}
+                    key      = 'undo'
+                    onClick  = {@props.actions.undo}
+                    disabled = {@props.read_only}
                     >
                     <Icon name='undo' /> Undo
                 </Button>
                 <Button
-                    key     = 'redo'
-                    onClick = {@props.actions.redo}
+                    key      = 'redo'
+                    onClick  = {@props.actions.redo}
+                    disabled = {@props.read_only}
                     >
                     <Icon name='repeat' /> Redo
                 </Button>
@@ -62,14 +66,14 @@ exports.ButtonBar = rclass
                 <Button
                     key      = 'up'
                     onClick  = {@props.actions.move_task_to_top}
-                    disabled = {@props.sort_column != 'Custom Order'}
+                    disabled = {@props.sort_column != 'Custom Order' or @props.read_only}
                     >
                     <Icon name='hand-o-up' /> Top
                 </Button>
                 <Button
                     key      = 'down'
                     onClick  = {@props.actions.move_task_to_bottom}
-                    disabled = {@props.sort_column != 'Custom Order'}
+                    disabled = {@props.sort_column != 'Custom Order' or @props.read_only}
                     >
                     <Icon name='hand-o-down' /> Bottom
                 </Button>
@@ -94,7 +98,7 @@ exports.ButtonBar = rclass
     render_delete_button: ->
         <Button
             key      = 'delete'
-            disabled = {not @props.current_task_id}
+            disabled = {not @props.current_task_id  or @props.read_only}
             onClick  = {@props.actions.delete_current_task} >
             <Icon name='trash-o' /> Delete Task
         </Button>
@@ -103,7 +107,7 @@ exports.ButtonBar = rclass
         <Button
             key      = 'delete'
             bsStyle  = 'danger'
-            disabled = {not @props.current_task_id}
+            disabled = {not @props.current_task_id  or @props.read_only}
             onClick  = {@props.actions.undelete_current_task} >
             <Icon name='trash-o' /> Undelete Task
         </Button>
@@ -130,9 +134,9 @@ exports.ButtonBar = rclass
             <Button
                 key      = 'save'
                 bsStyle  = 'success'
-                disabled = {not @props.has_unsaved_changes}
+                disabled = {not @props.has_unsaved_changes or @props.read_only}
                 onClick  = {@props.actions.save} >
-                <Icon name='save' /> Save
+                <Icon name='save' /> {if @props.read_only then 'Readonly' else 'Save'}
             </Button>
             <Button
                 key     = 'timetravel'

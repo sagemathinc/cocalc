@@ -1335,6 +1335,18 @@ exports.activity_log = (opts) -> new ActivityLog(opts)
 exports.replace_all = (string, search, replace) ->
     string.split(search).join(replace)
 
+# Similar to misc.replace_all, except it takes as input a function replace_f, which
+# returns what to replace the i-th copy of search in string with.
+exports.replace_all_function = (string, search, replace_f) ->
+    v = string.split(search)
+    w = []
+    for i in [0...v.length]
+        w.push(v[i])
+        if i < v.length - 1
+            w.push(replace_f(i))
+    return w.join('')
+
+
 exports.remove_c_comments = (s) ->
     while true
         i = s.indexOf('/*')

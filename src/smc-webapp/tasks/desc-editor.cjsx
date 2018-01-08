@@ -30,7 +30,7 @@ CM_OPTIONS =
 
 exports.DescriptionEditor = rclass
     propTypes :
-        actions    : rtypes.object
+        actions    : rtypes.object.isRequired
         task_id    : rtypes.string.isRequired
         desc       : rtypes.string
         is_current : rtypes.bool
@@ -106,16 +106,21 @@ exports.DescriptionEditor = rclass
     stop_editing: ->
         @_cm_save()
         @props.actions.stop_editing_desc(@props.task_id)
+        return false
 
     init_codemirror: (value) ->
         node = $(ReactDOM.findDOMNode(@)).find("textarea")[0]
         if not node?
             return
         options = misc.deep_copy(CM_OPTIONS)
+        save_to_disk = => @props.actions.save()
         options.extraKeys =
             "Shift-Enter" : @stop_editing
             Esc           : @stop_editing
             Tab           : => @cm.tab_as_space()
+            "Cmd-S"       : save_to_disk
+            "Alt-S"       : save_to_disk
+            "Ctrl-S"      : save_to_disk
 
         @cm = CodeMirror.fromTextArea(node, options)
         $(@cm.getWrapperElement()).css(height:'auto')
@@ -125,12 +130,16 @@ exports.DescriptionEditor = rclass
 
         @_cm_change = debounce(@_cm_save, 1000)
         @cm.on('change', @_cm_change)
+        @cm.on('focus',=> @props.actions.disable_key_handler())
+        @cm.on('blur', => @props.actions.enable_key_handler())
 
         # replace undo/redo by our sync aware versions
         @cm.undo = @_cm_undo
         @cm.redo = @_cm_redo
 
-        setTimeout((=>@cm_refresh(); if @props.is_current then @cm?.focus()),1)
+        if @props.is_current
+            @cm?.focus()
+        setTimeout((=>@cm_refresh(); if @props.is_current then @cm?.focus()), 0)
 
     render: ->
         <div style={STYLE}>

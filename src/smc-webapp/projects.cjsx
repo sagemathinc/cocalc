@@ -344,22 +344,46 @@ class ProjectsActions extends Actions
                     err = "Error removing collaborator #{account_id} from #{project_id} -- #{err}"
                     alert_message(type:'error', message:err)
 
-    invite_collaborator: (project_id, account_id) =>
+    # this is for inviting existing users, the email is only known by the back-end
+    invite_collaborator: (project_id, account_id, body, subject, silent, replyto, replyto_name) =>
         @redux.getProjectActions(project_id).log
             event    : 'invite_user'
             invitee_account_id : account_id
-        webapp_client.project_invite_collaborator
-            project_id : project_id
-            account_id : account_id
-            cb         : (err, resp) =>
-                if err # TODO: -- set error in store for this project...
-                    err = "Error inviting collaborator #{account_id} from #{project_id} -- #{err}"
-                    alert_message(type:'error', message:err)
 
+        # TODO dedup code with what's in invite_collaborators_by_email below
+        title = @redux.getStore('projects').get_title(project_id)
+        #if not body?
+        #    name  = @redux.getStore('account').get_fullname()
+        #    body  = "Please collaborate with me using CoCalc on '#{title}'.\n\n\n--\n#{name}"
+
+        link2proj = "https://#{window.location.hostname}/projects/#{project_id}/"
+
+        # convert body from markdown to html, which is what the backend expects
+        if body?
+            body = markdown.markdown_to_html(body).s
+
+        webapp_client.project_invite_collaborator
+            project_id   : project_id
+            account_id   : account_id
+            title        : title
+            link2proj    : link2proj
+            replyto      : replyto
+            replyto_name : replyto_name
+            email        : body         # no body? no email will be sent
+            subject      : subject
+            cb         : (err, resp) =>
+                if not silent
+                    if err # TODO: -- set error in store for this project...
+                        err = "Error inviting collaborator #{account_id} from #{project_id} -- #{err}"
+                        alert_message(type:'error', message:err)
+
+    # this is for inviting non-existing users, email is set via the UI
     invite_collaborators_by_email: (project_id, to, body, subject, silent, replyto, replyto_name) =>
         @redux.getProjectActions(project_id).log
             event         : 'invite_nonuser'
             invitee_email : to
+
+        # TODO dedup code with what's in invite_collaborator above
         title = @redux.getStore('projects').get_title(project_id)
         if not body?
             name  = @redux.getStore('account').get_fullname()

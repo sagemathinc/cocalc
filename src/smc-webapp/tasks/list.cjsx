@@ -26,6 +26,7 @@ exports.TaskList = SortableContainer rclass
         style            : rtypes.object
         font_size        : rtypes.number
         sortable         : rtypes.bool
+        read_only        : rtypes.bool
 
     shouldComponentUpdate: (next) ->
         return @props.tasks            != next.tasks or \
@@ -33,7 +34,8 @@ exports.TaskList = SortableContainer rclass
                @props.current_task_id  != next.current_task_id or \
                @props.local_task_state != next.local_task_state or \
                @props.font_size        != next.font_size or \
-               @props.sortable         != next.sortable
+               @props.sortable         != next.sortable or \
+               @props.read_only        != next.read_only
 
     componentDidMount: ->
         if @props.scroll?
@@ -59,6 +61,7 @@ exports.TaskList = SortableContainer rclass
             min_desc         = {@props.local_task_state?.getIn([task_id, 'min_desc'])}
             font_size        = {@props.font_size}
             sortable         = {@props.sortable}
+            read_only        = {@props.read_only}
         />
 
     render_tasks: ->
