@@ -23,6 +23,7 @@ exports.TaskList = SortableContainer rclass
         current_task_id  : rtypes.string
         local_task_state : rtypes.immutable.Map
         scroll           : rtypes.immutable.Map  # scroll position -- only used when initially mounted, so is NOT in shouldComponentUpdate below.
+        scroll_into_view : rtypes.bool
         style            : rtypes.object
         font_size        : rtypes.number
         sortable         : rtypes.bool
@@ -43,6 +44,14 @@ exports.TaskList = SortableContainer rclass
 
     componentWillUnmount: ->
         @save_scroll_position()
+
+    componentWillReceiveProps: (next) ->
+        if next.scroll_into_view
+            @scroll_into_view()
+
+    scroll_into_view: ->
+        console.log 'scrolled current task into view'
+        @props.actions.scroll_into_view_done()
 
     render_task: (index, task_id) ->
         task = @props.tasks.get(task_id)

@@ -437,3 +437,9 @@ class exports.TaskActions extends Actions
     blur_find_box: =>
         @enable_key_handler()
         @setState(focus_find_box:false)
+
+    scroll_into_view: =>
+        @setState(scroll_into_view: true)
+
+    scroll_into_view_done: =>
+        @setState(scroll_into_view: false)        
