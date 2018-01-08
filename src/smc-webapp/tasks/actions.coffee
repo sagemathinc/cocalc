@@ -442,4 +442,4 @@ class exports.TaskActions extends Actions
         @setState(scroll_into_view: true)
 
     scroll_into_view_done: =>
-        @setState(scroll_into_view: false)        
+        @setState(scroll_into_view: false)
