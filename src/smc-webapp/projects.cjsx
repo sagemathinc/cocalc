@@ -551,6 +551,10 @@ class ProjectsStore extends Store
 
     # If a course payment is required for this project from the signed in user, returns time when
     # it will be required; otherwise, returns undefined.
+    # POLICY: payment is required from the the time set in the .course file until 3 months later.
+    # After the course is (nearly) over, payment is then **no longer** required, and this function
+    # again returns undefined.  This is so students have access to their work even after their
+    # subscription has expired.
     date_when_course_payment_required: (project_id) =>
         account = @redux.getStore('account')
         if not account?
