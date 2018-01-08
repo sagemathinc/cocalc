@@ -352,14 +352,15 @@ class ProjectsActions extends Actions
 
         # TODO dedup code with what's in invite_collaborators_by_email below
         title = @redux.getStore('projects').get_title(project_id)
-        if not body?
-            name  = @redux.getStore('account').get_fullname()
-            body  = "Please collaborate with me using CoCalc on '#{title}'.\n\n\n--\n#{name}"
+        #if not body?
+        #    name  = @redux.getStore('account').get_fullname()
+        #    body  = "Please collaborate with me using CoCalc on '#{title}'.\n\n\n--\n#{name}"
 
         link2proj = "https://#{window.location.hostname}/projects/#{project_id}/"
 
         # convert body from markdown to html, which is what the backend expects
-        body = markdown.markdown_to_html(body).s
+        if body?
+            body = markdown.markdown_to_html(body).s
 
         webapp_client.project_invite_collaborator
             project_id   : project_id
@@ -368,7 +369,7 @@ class ProjectsActions extends Actions
             link2proj    : link2proj
             replyto      : replyto
             replyto_name : replyto_name
-            email        : body
+            email        : body         # no body? no email will be sent
             subject      : subject
             cb         : (err, resp) =>
                 if not silent
