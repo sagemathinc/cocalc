@@ -68,6 +68,7 @@ exports.init_express_http_server = (opts) ->
         dev            : false       # if true, serve additional dev stuff, e.g., a proxyserver.
         database       : required
         compute_server : required
+        cookie_options : undefined
     winston.debug("initializing express http server")
     winston.debug("MATHJAX_URL = ", misc_node.MATHJAX_URL)
 
@@ -310,7 +311,7 @@ exports.init_express_http_server = (opts) ->
         if req.query.set
             # TODO: implement expires as part of query?  not needed for now.
             maxAge = 1000*24*3600*30*6  # 6 months -- long is fine now since we support "sign out everywhere" ?
-            cookies = new Cookies(req, res)
+            cookies = new Cookies(req, res, opts.cookie_options)
             cookies.set(req.query.set, req.query.value, {maxAge:maxAge})
         res.end()
 
