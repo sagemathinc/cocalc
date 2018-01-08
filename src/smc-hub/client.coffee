@@ -6,6 +6,9 @@ Client = a client that is connected via a persistent connection to the hub
 
 uuid                 = require('node-uuid')
 async                = require('async')
+
+exports.COOKIE_OPTIONS = COOKIE_OPTIONS = {secure:true}
+
 Cookies              = require('cookies')            # https://github.com/jed/cookies
 misc                 = require('smc-util/misc')
 {defaults, required, to_safe_str} = misc
@@ -133,7 +136,7 @@ class exports.Client extends EventEmitter
 
         # Setup remember-me related cookie handling
         @cookies = {}
-        c = new Cookies(@conn.request)
+        c = new Cookies(@conn.request, COOKIE_OPTIONS)
         ##@dbg('init_conn')("cookies = '#{@conn.request.headers['cookie']}', #{base_url_lib.base_url() + 'remember_me'}, #{@_remember_me_value}")
         @_remember_me_value = c.get(base_url_lib.base_url() + 'remember_me')
 
