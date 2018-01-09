@@ -101,7 +101,7 @@ describe 'testing calls relating to creating user accounts -- ', ->
 
     project_id2 = undefined
     account_id3 = undefined
-    it "inivtes a collaborator to a project via an email message", (done) ->
+    it "invites a collaborator to a project via an email message", (done) ->
         # create new account and then invite
         async.series([
             (cb) ->
@@ -147,7 +147,7 @@ describe 'testing calls relating to creating user accounts -- ', ->
                         email          : 'BODY_OF_EMAIL_1'
                         subject        : 'SUBJECT_OF_EMAIL_1'
                     cb    : (err, resp) ->
-                        winston.info("inivtes a collaborator to a project with an email message: #{misc.to_json(resp)}")
+                        winston.info("invites a collaborator to a project with an email message: #{misc.to_json(resp)}")
                         # possibly, actual email sending is async, hence we wait a bit...
                         setTimeout((-> cb(err)), 100)
 
