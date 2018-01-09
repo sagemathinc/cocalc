@@ -1020,11 +1020,11 @@ class SyncDoc extends EventEmitter
                 @_set_read_only(is_read_only)
                 cb?()
 
-    _load_from_disk_if_newer: (cb) =>
+    load_from_disk_if_newer: (cb) =>
         tm     = @last_changed()
         dbg    = @_client.dbg("syncstring._load_from_disk_if_newer('#{@_path}')")
-        locals = {exists: false, is_read_only: false, size:0}
-        async.series([
+        locals = {exists: false, is_read_only: false, size: 0}
+        async.series([
             (cb) =>
                 dbg("check if path exists")
                 @_client.path_exists

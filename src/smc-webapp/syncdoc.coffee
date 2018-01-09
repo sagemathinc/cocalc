@@ -174,7 +174,7 @@ class SynchronizedString extends AbstractSynchronizedDoc
         return @_syncstring.exit_undo_mode()
 
 class SynchronizedDocument2 extends SynchronizedDocument
-    constructor: (editor, opts, cb) ->
+    constructor: (editor, opts) ->
         super()
         @editor = editor
         @opts = defaults opts,
@@ -301,7 +301,7 @@ class SynchronizedDocument2 extends SynchronizedDocument
                     update_unsaved_uncommitted_changes()
 
                 @emit('connect')   # successful connection
-                cb?()  # done initializing document (this is used, e.g., in the SynchronizedWorksheet derived class).
+                @_init_cb?()  # done initializing document (this is used, e.g., in the SynchronizedWorksheet derived class).
 
     _set_syncstring_to_codemirror: =>
         @_last_val = val = @codemirror.getValue()

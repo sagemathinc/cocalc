@@ -1897,17 +1897,17 @@ class PublicCodeMirrorEditor extends CodeMirrorEditor
                 if err
                     content = "Error opening file -- #{err}"
                 @_set(content)
-                cb?(err)
+                cb?(err, @)
 
 class PublicSagews extends PublicCodeMirrorEditor
     constructor: (project_id, filename, content, opts) ->
         opts.allow_javascript_eval = false
-        super project_id, filename, content, opts, (err) =>
-            @element.find('a[href="#split-view"]').hide()  # disable split view
+        super project_id, filename, content, opts, (err, eventual_this) =>
+            eventual_this.element.find('a[href="#split-view"]').hide()  # disable split view
             if not err
-                @syncdoc = new (sagews.SynchronizedWorksheet)(@, {static_viewer:true})
-                @syncdoc.process_sage_updates()
-                @syncdoc.init_hide_show_gutter()
+                eventual_this.syncdoc = new (sagews.SynchronizedWorksheet)(eventual_this, {static_viewer:true})
+                eventual_this.syncdoc.process_sage_updates()
+                eventual_this.syncdoc.init_hide_show_gutter()
 
 class FileEditorWrapper extends FileEditor
     constructor: (project_id, filename, content, opts) ->

@@ -74,9 +74,20 @@ line_number_elt   = $("<div style='color:#88f'></div>")
 
 class SynchronizedWorksheet extends SynchronizedDocument2
     constructor: (editor, opts) ->
-        super(editor, opts)
-        # window.w = @
+        if opts.static_viewer
+            super(editor, opts)
+            @readonly   = true
+            @project_id = editor.project_id
+            @filename   = editor.filename
+            return
 
+        opts0 =
+            cursor_interval : opts.cursor_interval
+            sync_interval   : opts.sync_interval
+        super editor, opts0
+
+    # Since we can't use in super cbs, use _init_cb as the function which will be called by the parent
+    _init_cb: =>
         # these two lines are assumed, at least by the history browser
         @codemirror  = @editor.codemirror
         @codemirror1 = @editor.codemirror1
@@ -103,100 +114,89 @@ class SynchronizedWorksheet extends SynchronizedDocument2
         for cm in @codemirrors()
             cm.setOption('foldOptions', foldOptions)
 
-        if @opts.static_viewer
-            @readonly   = true
-            @project_id = @editor.project_id
-            @filename   = @editor.filename
-            return
+        @readonly = @_syncstring.get_read_only()  # TODO: harder problem -- if file state flips between read only and not, need to rerender everything...
 
-        opts0 =
-            cursor_interval : @opts.cursor_interval
-            sync_interval   : @opts.sync_interval
-        super @editor, opts0, () =>
+        @init_hide_show_gutter()  # must be after @readonly set
 
-            @readonly = @_syncstring.get_read_only()  # TODO: harder problem -- if file state flips between read only and not, need to rerender everything...
+        @process_sage_updates(caller:"constructor")   # MUST be after @readonly is set.
 
-            @init_hide_show_gutter()  # must be after @readonly set
+        if not @readonly
+            @status cb: (err, status) =>
+                if not status?.running
+                    @execute_auto_cells()
+                else
+                    # Kick the worksheet process into gear if it isn't running already
+                    @introspect_line
+                        line     : "return?"
+                        timeout  : 30
+                        preparse : false
+                        cb       : (err) =>
 
-            @process_sage_updates(caller:"constructor")   # MUST be after @readonly is set.
+        @on 'sync', () =>
+            #console.log("sync")
+            @process_sage_update_queue()
 
-            if not @readonly
-                @status cb: (err, status) =>
-                    if not status?.running
-                        @execute_auto_cells()
-                    else
-                        # Kick the worksheet process into gear if it isn't running already
-                        @introspect_line
-                            line     : "return?"
-                            timeout  : 30
-                            preparse : false
-                            cb       : (err) =>
+        @editor.on 'show', (height) =>
+            @set_all_output_line_classes()
 
-            @on 'sync', () =>
-                #console.log("sync")
+        @editor.on 'toggle-split-view', =>
+            @process_sage_updates(caller:"toggle-split-view")
+
+        @init_worksheet_buttons()
+
+        v = [@codemirror, @codemirror1]
+        for cm in v
+            cm.on 'beforeChange', (instance, changeObj) =>
+                #console.log("beforeChange (#{instance.name}): #{misc.to_json(changeObj)}")
+                # Set the evaluated flag to false for the cell that contains the text
+                # that just changed (if applicable)
+                if changeObj.origin == 'redo'
+                    return
+                if changeObj.origin == 'undo'
+                    return
+                if changeObj.origin? and changeObj.origin != 'setValue'
+                    @remove_this_session_flags_from_changeObj_range(changeObj)
+
+                if changeObj.origin == 'paste'
+                    changeObj.cancel()
+                    # WARNING: The Codemirror manual says "Note: you may not do anything
+                    # from a "beforeChange" handler that would cause changes to the
+                    # document or its visualization."  I think this is OK below though
+                    # since we just canceled the change.
+                    @remove_cell_flags_from_changeObj(changeObj, ACTION_SESSION_FLAGS)
+                    @_apply_changeObj(changeObj)
+                    @process_sage_updates(caller:"paste")
+                    @sync()
+
+            cm.on 'change', (instance, changeObj) =>
+                #console.log('changeObj=', changeObj)
+                if changeObj.origin == 'undo' or changeObj.origin == 'redo'
+                    return
+                start = changeObj.from.line
+                stop  = changeObj.to.line + changeObj.text.length + 1 # changeObj.text is an array of lines
+
+                if @editor.opts.line_numbers
+                    # If stop isn't at a marker, extend stop to include the rest of the input,
+                    # so relative line numbers for this cell get updated.
+                    x = cm.getLine(stop)?[0]
+                    if x != MARKERS.cell and x != MARKERS.output
+                        n = cm.lineCount() - 1
+                        while stop < n and x != MARKERS.output and x != MARKERS.cell
+                            stop += 1
+                            x = cm.getLine(stop)?[0]
+
+                    # Similar for start
+                    x = cm.getLine(start)?[0]
+                    if x != MARKERS.cell and x != MARKERS.output
+                        while start > 0 and x != MARKERS.cell and x != MARKERS.output
+                            start -= 1
+                            x = cm.getLine(start)?[0]
+
+                if not @_update_queue_start? or start < @_update_queue_start
+                    @_update_queue_start = start
+                if not @_update_queue_stop? or stop > @_update_queue_stop
+                    @_update_queue_stop = stop
                 @process_sage_update_queue()
-
-            @editor.on 'show', (height) =>
-                @set_all_output_line_classes()
-
-            @editor.on 'toggle-split-view', =>
-                @process_sage_updates(caller:"toggle-split-view")
-
-            @init_worksheet_buttons()
-
-            v = [@codemirror, @codemirror1]
-            for cm in v
-                cm.on 'beforeChange', (instance, changeObj) =>
-                    #console.log("beforeChange (#{instance.name}): #{misc.to_json(changeObj)}")
-                    # Set the evaluated flag to false for the cell that contains the text
-                    # that just changed (if applicable)
-                    if changeObj.origin == 'redo'
-                        return
-                    if changeObj.origin == 'undo'
-                        return
-                    if changeObj.origin? and changeObj.origin != 'setValue'
-                        @remove_this_session_flags_from_changeObj_range(changeObj)
-
-                    if changeObj.origin == 'paste'
-                        changeObj.cancel()
-                        # WARNING: The Codemirror manual says "Note: you may not do anything
-                        # from a "beforeChange" handler that would cause changes to the
-                        # document or its visualization."  I think this is OK below though
-                        # since we just canceled the change.
-                        @remove_cell_flags_from_changeObj(changeObj, ACTION_SESSION_FLAGS)
-                        @_apply_changeObj(changeObj)
-                        @process_sage_updates(caller:"paste")
-                        @sync()
-
-                cm.on 'change', (instance, changeObj) =>
-                    #console.log('changeObj=', changeObj)
-                    if changeObj.origin == 'undo' or changeObj.origin == 'redo'
-                        return
-                    start = changeObj.from.line
-                    stop  = changeObj.to.line + changeObj.text.length + 1 # changeObj.text is an array of lines
-
-                    if @editor.opts.line_numbers
-                        # If stop isn't at a marker, extend stop to include the rest of the input,
-                        # so relative line numbers for this cell get updated.
-                        x = cm.getLine(stop)?[0]
-                        if x != MARKERS.cell and x != MARKERS.output
-                            n = cm.lineCount() - 1
-                            while stop < n and x != MARKERS.output and x != MARKERS.cell
-                                stop += 1
-                                x = cm.getLine(stop)?[0]
-
-                        # Similar for start
-                        x = cm.getLine(start)?[0]
-                        if x != MARKERS.cell and x != MARKERS.output
-                            while start > 0 and x != MARKERS.cell and x != MARKERS.output
-                                start -= 1
-                                x = cm.getLine(start)?[0]
-
-                    if not @_update_queue_start? or start < @_update_queue_start
-                        @_update_queue_start = start
-                    if not @_update_queue_stop? or stop > @_update_queue_stop
-                        @_update_queue_stop = stop
-                    @process_sage_update_queue()
 
     close: =>
         @execution_queue?.close()

@@ -23,6 +23,6 @@ exports.EmptyTrash = rclass
         if not @props.actions?
             return <span />
         tasks = plural(@props.count, 'task')
-        <Button bsStyle='danger', onClick={@empty_trash} >
+        <Button bsStyle='danger' onClick={@empty_trash} >
             Permanently remove {@props.count} deleted {tasks}
         </Button>
