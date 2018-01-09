@@ -100,7 +100,7 @@ exports.SetIntervalMixin =
         @intervals.forEach clearInterval
 
 exports.Space = Space = ->
-    <span>&nbsp</span>
+    <span>&nbsp;</span>
 
 # Font Awesome component -- obviously TODO move to own file
 # Converted from https://github.com/andreypopp/react-fa

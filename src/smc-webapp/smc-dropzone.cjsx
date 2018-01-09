@@ -10,7 +10,7 @@ misc           = require('smc-util/misc')
 
 {React, ReactDOM, rclass, rtypes} = require('./smc-react')
 
-{Tip} = require('./r_misc')
+{Icon, Tip} = require('./r_misc')
 
 Dropzone.autoDiscover = false
 
