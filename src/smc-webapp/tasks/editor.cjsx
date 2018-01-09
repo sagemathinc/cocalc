@@ -2,15 +2,16 @@
 Top-level react component for task list
 ###
 
-{React, rclass, rtypes}  = require('../smc-react')
+{React, rclass, rtypes} = require('../smc-react')
 
-{UncommittedChanges} = require('../jupyter/uncommitted-changes')
-{TaskList}           = require('./list')
-{ButtonBar}          = require('./buttonbar')
-{Find}               = require('./find')
-{DescVisible}        = require('./desc-visible')
-{HashtagBar}         = require('./hashtag-bar')
+{UncommittedChanges}    = require('../jupyter/uncommitted-changes')
+{TaskList}              = require('./list')
+{ButtonBar}             = require('./buttonbar')
+{Find}                  = require('./find')
+{DescVisible}           = require('./desc-visible')
+{HashtagBar}            = require('./hashtag-bar')
 {Headings, is_sortable} = require('./headings')
+{Row, Col}              = require('react-bootstrap')
 
 exports.TaskEditor = rclass ({name}) ->
     propTypes :
@@ -32,6 +33,7 @@ exports.TaskEditor = rclass ({name}) ->
             search_desc             : rtypes.string
             focus_find_box          : rtypes.bool
             read_only               : rtypes.bool
+            scroll_into_view        : rtypes.bool
 
     shouldComponentUpdate: (next) ->
         return @props.tasks                   != next.tasks or \
@@ -45,6 +47,7 @@ exports.TaskEditor = rclass ({name}) ->
                @props.hashtags                != next.hashtags  or \
                @props.read_only               != next.read_only or \
                @props.search                  != next.search    or \
+               @props.scroll_into_view        != next.scroll_into_view or \
                !!next.focus_find_box and not @props.focus_find_box
 
     componentDidMount: ->
@@ -88,6 +91,16 @@ exports.TaskEditor = rclass ({name}) ->
             search_desc      = {@props.search_desc}
         />
 
+    render_find_bar: ->
+        <Row>
+            <Col md={8}>
+                {@render_find()}
+            </Col>
+            <Col md={4}>
+                {@render_desc_visible()}
+            </Col>
+        </Row>
+
     render_button_bar: ->
         <ButtonBar
             actions                 = {@props.actions}
@@ -113,6 +126,7 @@ exports.TaskEditor = rclass ({name}) ->
             current_task_id  = {@props.current_task_id}
             local_task_state = {@props.local_task_state}
             scroll           = {@props.local_view_state?.get('scroll')}
+            scroll_into_view = {@props.scroll_into_view}
             font_size        = {@props.local_view_state?.get('font_size')}
             style            = {overflowY:'auto'}
             sortable         = {not @props.read_only and is_sortable(@props.local_view_state?.getIn(['sort', 'column']))}
@@ -133,8 +147,7 @@ exports.TaskEditor = rclass ({name}) ->
         <div style={margin:'15px', border:'1px solid grey'} className='smc-vfill'>
             {@render_uncommitted_changes()}
             {@render_hashtag_bar()}
-            {@render_find()}
-            {@render_desc_visible()}
+            {@render_find_bar()}
             {@render_button_bar()}
             {@render_headings()}
             {@render_list()}
