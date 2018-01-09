@@ -73,6 +73,7 @@ describe 'testing calls relating to creating user accounts -- ', ->
             cb    : (err, resp) ->
                 expect(resp?.event).toBe('account_creation_failed')
                 expect(resp?.reason).toEqual({"email_address":"This e-mail address is already taken."})
+                console.log('EMAIL', email.send_email)
                 opts0 = email.send_email.args[0][0]
                 expect(opts0.subject.indexOf('Welcome to CoCalc') == 0).toBe(true)
                 done(err)
@@ -182,8 +183,6 @@ describe 'testing calls relating to creating user accounts -- ', ->
             expect(opts1.body.indexOf('BODY_OF_EMAIL_1') == 0).toBe(true)
             # no second email
             winston.info("email.send_email.args: #{misc.to_json(email.send_email.args)}")
-
-            opts2 = email.send_email.args[2][0]
             #console.log("email3: #{misc.to_json(opts2)}")
             expect(email.send_email.args.length).toBe(2) # TODO broken
             done(err)

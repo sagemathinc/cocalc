@@ -14,8 +14,7 @@ sinon  = require('sinon')
 email = require('../../email')
 exports.last_email = undefined
 email = require('../../email')
-email.send_email = (opts) ->
-    # console.log "MOCK send_email"
+sinon.stub(email, 'send_email').callsFake (opts) ->
     exports.last_email = opts
     opts.cb?()
 
@@ -34,7 +33,7 @@ exports.winston = require('./../../winston-metrics').get_logger('api_test')
 exports.reset = (done) ->
     async.series([
         (cb) ->
-            exports.last_email = undefined
+            email.send_email.resetHistory()
             cb()
     ], done)
 
