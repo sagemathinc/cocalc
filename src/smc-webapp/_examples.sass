@@ -1,10 +1,11 @@
-$selector-height: 175px
+$selector-height: 180px
+$code-height: 230px
 
 .webapp-examples
   +disable-user-select
 
   .modal-header
-    white-space : nowrap;
+    white-space : nowrap
     h2,
     .nav-pills,
     .webapp-examples-search
@@ -31,7 +32,7 @@ $selector-height: 175px
 
     div.webapp-examples-descr,
     pre.code
-      height : 200px
+      height : $code-height
       overflow : auto
       +enable-user-select
       .attr,
@@ -42,7 +43,10 @@ $selector-height: 175px
         text-align : right
 
   div.modal-footer
-    padding : 10px
+    padding    : 10px
+    text-align : left
+    > .contrib-link
+      color: $COL_GRAY
 
   span.badge
     background-color : #eee

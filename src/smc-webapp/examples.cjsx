@@ -399,7 +399,7 @@ ExamplesHeader = rclass
                 />
                 <InputGroup.Button>
                     <Button onClick={@search_clear}>
-                        <Icon name='times-circle' />
+                        <Icon name={'times-circle'} />
                     </Button>
                 </InputGroup.Button>
             </InputGroup>
@@ -672,9 +672,32 @@ exports.RExamples = (name) -> rclass
                           data         = {@props.data} />
 
             <Modal.Footer>
-                <Button onClick={@insert_code} disabled={not @props.submittable} bsStyle='success'>Only Code</Button>
-                <Button onClick={@insert_all} disabled={not @props.submittable} bsStyle='success'>Insert</Button>
-                <Button onClick={@props.actions.hide}>Close</Button>
+                <Button className={'contrib-link'} href={REPO_URL} target={'_blank'}>
+                    <Icon name={'code-fork'} /> Contribute
+                </Button>
+                <Button
+                    onClick={@props.actions.hide}
+                    className='pull-right'
+                >
+                    Close
+                </Button>
+                <Button
+                    onClick={@insert_code}
+                    disabled={not @props.submittable}
+                    bsStyle='success'
+                    className='pull-right'
+                >
+                    Only Code
+                </Button>
+                <Button
+                    onClick={@insert_all}
+                    disabled={not @props.submittable}
+                    bsStyle='success'
+                    className='pull-right'
+                    style={fontWeight:'bold'}
+                >
+                    Insert Example
+                </Button>
             </Modal.Footer>
         </Modal>
 
