@@ -33,6 +33,7 @@ exports.TaskEditor = rclass ({name}) ->
             search_desc             : rtypes.string
             focus_find_box          : rtypes.bool
             read_only               : rtypes.bool
+            scroll_into_view        : rtypes.bool
 
     shouldComponentUpdate: (next) ->
         return @props.tasks                   != next.tasks or \
@@ -46,6 +47,7 @@ exports.TaskEditor = rclass ({name}) ->
                @props.hashtags                != next.hashtags  or \
                @props.read_only               != next.read_only or \
                @props.search                  != next.search    or \
+               @props.scroll_into_view        != next.scroll_into_view or \
                !!next.focus_find_box and not @props.focus_find_box
 
     componentDidMount: ->
@@ -124,6 +126,7 @@ exports.TaskEditor = rclass ({name}) ->
             current_task_id  = {@props.current_task_id}
             local_task_state = {@props.local_task_state}
             scroll           = {@props.local_view_state?.get('scroll')}
+            scroll_into_view = {@props.scroll_into_view}
             font_size        = {@props.local_view_state?.get('font_size')}
             style            = {overflowY:'auto'}
             sortable         = {not @props.read_only and is_sortable(@props.local_view_state?.getIn(['sort', 'column']))}
