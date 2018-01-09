@@ -50,14 +50,26 @@ exports.TaskList = SortableContainer rclass
             @scroll_into_view()
 
     scroll_into_view: ->
-        console.log 'scrolled current task into view'
+        @_scroll_into_view()
         @props.actions.scroll_into_view_done()
+
+    _scroll_into_view: ->
+        if not @props.current_task_id?
+            return
+        elt = $(ReactDOM.findDOMNode(@refs.main_div))
+        cur = $(ReactDOM.findDOMNode(@refs[@props.current_task_id]))
+        if cur.length == 0
+            return
+        if cur.length > 0
+            # use jquery because it works!?
+            cur.scrollintoview(direction:'vertical', viewPadding: { y: 50 })
 
     render_task: (index, task_id) ->
         task = @props.tasks.get(task_id)
         if not task?  # task deletion and visible list might not quite immediately be in sync/consistent
             return
         <Task
+            ref              = {task_id}
             key              = {task_id}
             index            = {index}
             actions          = {@props.actions}

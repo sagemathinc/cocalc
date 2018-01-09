@@ -267,7 +267,6 @@ class exports.TaskActions extends Actions
 
     # only deleta = 1 or -1 is supported!
     move_task_delta: (delta) =>
-        console.log('move_current_task_delta', delta)
         if delta != 1 and delta != -1
             return
         task_id = @store.get('current_task_id')
@@ -288,6 +287,7 @@ class exports.TaskActions extends Actions
         pos_j = tasks.getIn([visible.get(j), 'position'])
         @set_task(task_id,        {position:pos_j}, true)
         @set_task(visible.get(j), {position:pos_i}, true)
+        @scroll_into_view()
 
     time_travel: =>
         @redux.getProjectActions(@project_id).open_file
@@ -299,6 +299,7 @@ class exports.TaskActions extends Actions
 
     set_current_task: (task_id) =>
         @setState(current_task_id : task_id)
+        @scroll_into_view()
 
     set_current_task_delta: (delta) =>
         task_id = @store.get('current_task_id')
@@ -439,7 +440,7 @@ class exports.TaskActions extends Actions
         @setState(focus_find_box:false)
 
     scroll_into_view: =>
-        @setState(scroll_into_view: true)
+        setTimeout((=>@setState(scroll_into_view: true)), 50)
 
     scroll_into_view_done: =>
         @setState(scroll_into_view: false)
