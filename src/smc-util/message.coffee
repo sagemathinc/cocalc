@@ -74,6 +74,7 @@ forums.
 
 ### Additional References
 
+- The [CoCalc API tutorial](https://cocalc.com/share/65f06a34-6690-407d-b95c-f51bbd5ee810/Public/README.md?viewer=share) illustrates API calls in Python.
 - The CoCalc PostgreSQL schema definition
 [src/smc-util/db-schema.coffee](https://github.com/sagemathinc/cocalc/blob/master/src/smc-util/db-schema.coffee)
 has information on tables and fields used with the API `query` request.
@@ -528,12 +529,12 @@ API message2
             init  : required
             desc  : 'must be between 6 and 64 characters in length'
     desc           : """
-Given email address and old password for an account, set a new password.
+Given account_id and old password for an account, set a new password.
 
 Example:
 ```
   curl -u sk_abcdefQWERTY090900000000: \\
-    -d email_address=... \\
+    -d account_id=... \\
     -d old_password=... \\
     -d new_password=... \\
     https://cocalc.com/api/v1/change_password
