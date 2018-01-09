@@ -378,11 +378,23 @@ ExamplesHeader = rclass
 
     render_nav: ->
         entries = @props.nav_entries ? []
-        <Nav bsStyle="pills" activeKey={@props.lang} ref='lang' onSelect={@langSelect}>
+        <Nav
+            bsStyle   = {'pills'}
+            style     = {marginLeft:'10px'}
+            activeKey = {@props.lang}
+            ref       = {'lang'}
+            onSelect  = {@langSelect}
+        >
             {
                 entries.map (key) ->
                     name = lang2name(key)
-                    <NavItem key={key} eventKey={key} title={name}>{name}</NavItem>
+                    <NavItem
+                        key      = {key}
+                        eventKey = {key}
+                        title    = {name}
+                    >
+                        {name}
+                    </NavItem>
             }
         </Nav>
 
@@ -390,9 +402,9 @@ ExamplesHeader = rclass
         <FormGroup>
             <InputGroup className = 'webapp-examples-search'>
                 <FormControl
-                    ref         = 'search'
-                    type        = 'text'
-                    placeholder = 'Search'
+                    ref         = {'search'}
+                    type        = {'text'}
+                    placeholder = {'Search'}
                     value       = {@props.search_str ? ''}
                     onKeyUp     = {@handle_search_keyup}
                     onChange    = {@search}
@@ -407,18 +419,19 @@ ExamplesHeader = rclass
 
     render: ->
         return null if (not @props.lang?) or (not @props.lang_select?)
+        show_lang_nav = @props.lang_select and not @props.unknown_lang
         <Row>
-            <Col sm={3}>
+            <Col sm={if show_lang_nav then 2 else 5}>
                 <h2>
                     <Icon name={exports.ICON_NAME} />
                     <Space/>
                     {lang2name(@props.lang) if not @props.lang_select} Assistant
                 </h2>
             </Col>
-            <Col sm={5}>
-                {@render_nav() if @props.lang_select and not @props.unknown_lang}
+            <Col sm={if show_lang_nav then 7 else 4}>
+                {@render_nav() if show_lang_nav}
             </Col>
-            <Col sm={3}>
+            <Col sm={2}>
                 {@render_search() if not @props.unknown_lang}
             </Col>
         </Row>
@@ -468,7 +481,7 @@ ExamplesBody = rclass
         if not list?
             list = []
         # don't use ListGroup & ListGroupItem with onClick, because then there are div/buttons (instead of ul/li) and layout is f'up
-        <ul className='list-group' ref="list_#{level}">
+        <ul className={'list-group'} ref={"list_#{level}"}>
         {
             list.map (name, idx) =>
                 click  = @category_selection.bind(@, level, idx)
@@ -484,7 +497,7 @@ ExamplesBody = rclass
 
     render_search_results: ->
         ss = @props.search_str
-        <ul className='list-group' ref='search_results_list'>
+        <ul className={'list-group'} ref={'search_results_list'}>
         {
             @props.hits.map (hit, idx) =>
                 [lvl1, lvl2, lvl3, title, descr, inDescr] = hit
@@ -506,7 +519,8 @@ ExamplesBody = rclass
                     onClick      = {click}
                 >
                     {lvl1} → {lvl2} → <span style={fontWeight: 'bold'} dangerouslySetInnerHTML={__html : title_hl}></span>
-                    {' '}{<span className='snippet'} dangerouslySetInnerHTML={__html : snippet}></span> if snippet?.length > 0}
+                    {' '}
+                    {<span className={'snippet'} dangerouslySetInnerHTML={__html : snippet}></span> if snippet?.length > 0}
                 </li>
         }
         </ul>
@@ -516,7 +530,7 @@ ExamplesBody = rclass
         if not @props.data?
             <Row key='top'>
                 <Col sm={8} smOffset={4}>
-                    <ul className='list-group'>
+                    <ul className={'list-group'}>
                         <li></li><li></li>
                         <li><Loading /></li>
                     </ul>
@@ -536,10 +550,10 @@ ExamplesBody = rclass
     render_bottom: ->
         <Row key='bottom'>
             <Col sm={6}>
-                <pre ref='code' className='code'>{@props.code}</pre>
+                <pre ref={'code'} className={'code'}>{@props.code}</pre>
             </Col>
             <Col sm={6}>
-                <Panel ref='descr' className='webapp-examples-descr'>
+                <Panel ref={'descr'} className={'webapp-examples-descr'}>
                     <Markdown value={@props.descr} />
                 </Panel>
             </Col>
@@ -556,7 +570,7 @@ ExamplesBody = rclass
             <Col sm={12}>
                 Selected language <code>{@props.lang}</code> has no data.
                 You can help by contributing more content at{' '}
-                <a href={REPO_URL} target="_blank">
+                <a href={REPO_URL} target={'_blank'}>
                     {'sagemathinc/cocalc-assistant'}
                 </a>.
             </Col>
