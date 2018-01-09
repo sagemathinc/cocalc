@@ -90,7 +90,7 @@ describe 'get input using the python2 kernel -- ', ->
         expect(kernel._channels).toBe(undefined)
 
 describe 'get input using the python3 kernel -- ', ->
-    @timeout(10000)
+    @timeout(30000)
 
     it 'do it', (done) ->
         kernel = common.kernel('python3')
@@ -109,7 +109,7 @@ describe 'get input using the python3 kernel -- ', ->
                     done()
 
 describe 'get input using the ir kernel -- ', ->
-    @timeout(15000)
+    @timeout(30000)
 
     it 'do it', (done) ->
         kernel = common.kernel('ir')
