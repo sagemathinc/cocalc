@@ -30,6 +30,8 @@
 {defaults, required, copy} = require('smc-util/misc')
 
 WrappedEditor = rclass ({project_name}) ->
+    displayName: 'NonReactWrapper'
+
     propTypes :
         editor : rtypes.object.isRequired
 
@@ -38,9 +40,16 @@ WrappedEditor = rclass ({project_name}) ->
         #   (Actually, see how editor_pdf and edtor_jupyter done for the right way to do this -- wstein)
         # http://stackoverflow.com/questions/8318264/how-to-move-an-iframe-in-the-dom-without-losing-its-state
         # SMELL: Tasks, Latex and PDF viewer also do this to save scroll position
-        span = $(ReactDOM.findDOMNode(@)).find(".smc-editor-react-wrapper")
-        if span.length > 0
-            span.replaceWith(@props.editor.element[0])
+        # HACK: I have no idea why setTimeout is necessary. 2017/12/23
+        # Removing it results in a bug when switching from modern Jupyter to Classic Jupyter where
+        # a Loading span (WITHOUT a spinner and not the Classic Jupyter Loading alert) displays and the
+        # dom element never updates until going to a new tab and returning. Waiting here until the end of the stack fixes this.
+        # Could not replicate in Chrome step through debugger
+        window.setTimeout =>
+            span = $(ReactDOM.findDOMNode(@)).find(".smc-editor-react-wrapper")
+            if span.length > 0
+                span.replaceWith(@props.editor.element[0])
+        , 0
 
         @props.editor.show()
         @props.editor.focus?()

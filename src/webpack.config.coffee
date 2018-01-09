@@ -104,7 +104,7 @@ SMC_REPO      = 'https://github.com/sagemathinc/cocalc'
 SMC_LICENSE   = 'AGPLv3'
 WEBAPP_LIB    = misc_node.WEBAPP_LIB
 INPUT         = path.resolve(__dirname, WEBAPP_LIB)
-OUTPUT        = misc_node.OUTPUT_DIR
+OUTPUT        = path.resolve(__dirname, misc_node.OUTPUT_DIR)
 DEVEL         = "development"
 NODE_ENV      = process.env.NODE_ENV || DEVEL
 PRODMODE      = NODE_ENV != DEVEL
@@ -163,12 +163,15 @@ if not COMP_ENV
         fs.writeFileSync(fn, '{}')
 
 # adds a banner to each compiled and minified source .js file
+# webpack2: https://webpack.js.org/guides/migrating/#bannerplugin-breaking-change
 banner = new webpack.BannerPlugin(
-                        """\
-                        This file is part of #{TITLE}.
-                        It was compiled #{BUILD_DATE} at revision #{GIT_REV} and version #{SMC_VERSION}.
-                        See #{SMC_REPO} for its #{SMC_LICENSE} code.
-                        """)
+    banner   : """\
+               This file is part of #{TITLE}.
+               It was compiled #{BUILD_DATE} at revision #{GIT_REV} and version #{SMC_VERSION}.
+               See #{SMC_REPO} for its #{SMC_LICENSE} code.
+               """
+    entryOnly: true
+)
 
 # webpack plugin to do the linking after it's "done"
 class MathjaxVersionedSymlink
@@ -200,7 +203,8 @@ cleanWebpackPlugin = new CleanWebpackPlugin [OUTPUT],
 # assets.json file
 AssetsPlugin = require('assets-webpack-plugin')
 assetsPlugin = new AssetsPlugin
-                        filename   : path.join(OUTPUT, 'assets.json')
+                        path       : OUTPUT
+                        filename   : 'assets.json'
                         fullPath   : no
                         prettyPrint: true
                         metadata:
@@ -393,7 +397,7 @@ if COMP_ENV
 #                        minify   : htmlMinifyOpts
 
 # global css loader configuration
-cssConfig = JSON.stringify(minimize: true, discardComments: {removeAll: true}, mergeLonghand: true, sourceMap: true)
+cssConfig = JSON.stringify(minimize: true, discardComments: {removeAll: true}, mergeLonghand: true, sourceMap: false)
 
 ###
 # ExtractText for CSS should work, but doesn't. Also not necessary for our purposes ...
@@ -485,12 +489,30 @@ class PrintChunksPlugin
                         includes: c.modules.map (m) ->  m.request
                 )
 
+# https://webpack.js.org/guides/migrating/#uglifyjsplugin-minimize-loaders
+loaderOptions = new webpack.LoaderOptionsPlugin(
+    minimize: true
+    options:
+        'html-minify-loader':
+            empty                : true   # KEEP empty attributes
+            cdata                : true   # KEEP CDATA from scripts
+            comments             : false
+            removeComments       : true
+            minifyJS             : true
+            minifyCSS            : true
+            collapseWhitespace   : true
+            conservativeCollapse : true   # absolutely necessary, also see above in module.loaders/.html
+        #sassLoader:
+        #    includePaths: [path.resolve(__dirname, 'src', 'scss')]
+        #context: '/'
+)
 
 plugins = [
     cleanWebpackPlugin,
     #provideGlobals,
     setNODE_ENV,
-    banner
+    banner,
+    loaderOptions
 ]
 
 if STATICPAGES
@@ -522,8 +544,6 @@ if PRODMODE
     console.log "production mode: enabling compression"
     # https://webpack.github.io/docs/list-of-plugins.html#commonschunkplugin
     # plugins.push new webpack.optimize.CommonsChunkPlugin(name: "lib")
-    plugins.push new webpack.optimize.DedupePlugin()
-    plugins.push new webpack.optimize.OccurenceOrderPlugin()
     # configuration for the number of chunks and their minimum size
     plugins.push new webpack.optimize.LimitChunkCountPlugin(maxChunks: 5)
     plugins.push new webpack.optimize.MinChunkSizePlugin(minChunkSize: 30000)
@@ -579,8 +599,10 @@ woffconfig  = "name=#{hashname}&mimetype=application/font-woff"
 if CDN_BASE_URL?
     publicPath = CDN_BASE_URL
 else
-    publicPath = path.join(BASE_URL, OUTPUT) + '/'
+    publicPath = path.join(BASE_URL, misc_node.OUTPUT_DIR) + '/'
 
+# TODO webpack2: the module.loaders syntax changed, but this here isn't deprecated
+# https://webpack.js.org/guides/migrating/#module-loaders-is-now-module-rules
 module.exports =
     cache: true
 
@@ -598,21 +620,24 @@ module.exports =
         chunkFilename : if PRODMODE then '[id]-[hash].cacheme.js'   else '[id].nocache.js'
         hashFunction  : 'sha256'
 
+    resolveLoader: # Not reccommended. TODO: Track down missing -loader instances
+        moduleExtensions: ["-loader"]
+
     module:
-        loaders: [
-            { test: /pnotify.*\.js$/, loader: "imports?define=>false,global=>window" },
-            { test: /\.cjsx$/,   loaders: ['coffee-loader', 'cjsx-loader'] },
+        rules: [
+            { test: /pnotify.*\.js$/, use: "imports?define=>false,global=>window" },
+            { test: /\.cjsx$/,   use: ['coffee-loader', 'cjsx-loader'] },
             { test: /\.coffee$/, loader: 'coffee-loader' },
-            { test: /\.less$/,   loaders: ["style-loader", "css-loader", "less?#{cssConfig}"]}, #loader : extractTextLess }, #
-            { test: /\.scss$/,   loaders: ["style-loader", "css-loader", "sass?#{cssConfig}"]}, #loader : extractTextScss }, #
-            { test: /\.sass$/,   loaders: ["style-loader", "css-loader", "sass?#{cssConfig}&indentedSyntax"]}, # ,loader : extractTextSass }, #
-            { test: /\.json$/,   loaders: ['json-loader'] },
+            { test: /\.less$/,   use: ["style-loader", "css-loader", "less-loader?#{cssConfig}"]}, #loader : extractTextLess }, #
+            { test: /\.scss$/,   use: ["style-loader", "css-loader", "sass-loader?#{cssConfig}"]}, #loader : extractTextScss }, #
+            { test: /\.sass$/,   use: ["style-loader", "css-loader", "sass-loader?#{cssConfig}&indentedSyntax"]}, # ,loader : extractTextSass }, #
+            { test: /\.json$/,   use: ['json-loader'] },
             { test: /\.png$/,    loader: "file-loader?#{pngconfig}" },
             { test: /\.ico$/,    loader: "file-loader?#{icoconfig}" },
             { test: /\.svg(\?[a-z0-9\.-=]+)?$/,    loader: "url-loader?#{svgconfig}" },
             { test: /\.(jpg|jpeg|gif)$/,    loader: "file-loader?name=#{hashname}"},
             # .html only for files in smc-webapp!
-            { test: /\.html$/, include: [path.resolve(__dirname, 'smc-webapp')], loader: "raw!html-minify?conservativeCollapse"},
+            { test: /\.html$/, include: [path.resolve(__dirname, 'smc-webapp')], use: ["raw-loader", "html-minify?conservativeCollapse"]},
             # { test: /\.html$/, include: [path.resolve(__dirname, 'webapp-lib')], loader: "html-loader"},
             { test: /\.hbs$/,    loader: "handlebars-loader" },
             { test: /\.woff(2)?(\?[a-z0-9\.-=]+)?$/, loader: "url-loader?#{woffconfig}" },
@@ -622,32 +647,22 @@ module.exports =
             { test: /\.ttf(\?[a-z0-9\.-=]+)?$/, loader: "url-loader?limit=10000&mimetype=application/octet-stream" },
             { test: /\.eot(\?[a-z0-9\.-=]+)?$/, loader: "file-loader?name=#{hashname}" },
             # ---
-            { test: /\.css$/, loaders: ["style-loader", "css-loader?#{cssConfig}"]}, # loader: extractTextCss }, #
+            { test: /\.css$/, use: ["style-loader", "css-loader?#{cssConfig}"]}, # loader: extractTextCss }, #
             { test: /\.pug$/, loader: 'pug-loader' },
         ]
 
     resolve:
         # So we can require('file') instead of require('file.coffee')
-        extensions : ['', '.js', '.json', '.coffee', '.cjsx', '.scss', '.sass']
-        root       : [path.resolve(__dirname),
+        extensions : ['.js', '.json', '.coffee', '.cjsx', '.scss', '.sass']
+        modules    : [path.resolve(__dirname),
                       path.resolve(__dirname, WEBAPP_LIB),
                       path.resolve(__dirname, 'smc-util'),
                       path.resolve(__dirname, 'smc-util/node_modules'),
                       path.resolve(__dirname, 'smc-webapp'),
-                      path.resolve(__dirname, 'smc-webapp/node_modules')]
+                      path.resolve(__dirname, 'smc-webapp/node_modules'),
+                      path.resolve(__dirname, 'node_modules')]
         #alias:
         #    "jquery-ui": "jquery-ui/jquery-ui.js", # bind version of jquery-ui
         #    modules: path.join(__dirname, "node_modules") # bind to modules;
 
     plugins: plugins
-
-    'html-minify-loader':
-        empty                : true   # KEEP empty attributes
-        cdata                : true   # KEEP CDATA from scripts
-        comments             : false
-        removeComments       : true
-        minifyJS             : true
-        minifyCSS            : true
-        collapseWhitespace   : true
-        conservativeCollapse : true   # absolutely necessary, also see above in module.loaders/.html
-

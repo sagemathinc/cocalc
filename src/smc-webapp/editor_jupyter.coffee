@@ -1188,7 +1188,12 @@ class JupyterNotebook extends EventEmitter
             a = redux.getProjectActions(@project_id)
             a.close_file(@filename)
             redux.getTable('account').set(editor_settings: {jupyter_classic : false})
-            a.open_file(path : @filename)
+            # ensure the side effects from changing registered
+            # editors in project_file.coffee finish happening
+            window.setTimeout =>
+                console.log "Opening #{@filename}"
+                a.open_file(path : @filename)
+            , 0
 
     info: () =>
         t = "<h3><i class='fa fa-question-circle'></i> About <a href='https://jupyter.org/' target='_blank'>Jupyter Notebook</a></h3>"

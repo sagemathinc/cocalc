@@ -319,6 +319,8 @@ fixed_project_pages =
 
 # Children must define their own padding from navbar and screen borders
 ProjectContentViewer = rclass
+    displayName: 'ProjectContentViewer'
+
     propTypes :
         project_id      : rtypes.string.isRequired
         project_name    : rtypes.string.isRequired
