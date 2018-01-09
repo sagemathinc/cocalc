@@ -41,7 +41,7 @@ exports.ShowToggle = rclass
             return toggle
         style = {cursor:'pointer'}
         if @props.count > 0  or @props.show
-            style.color = '#333'
+            style.color = '#666'
         else
             style.color = '#999'
         <div onClick={@toggle_state} style={style}>
@@ -50,6 +50,6 @@ exports.ShowToggle = rclass
             </span>
             <Space />
             <span>
-                Show {@props.type} ({@props.count})
+                Show {@props.type}{# ({@props.count})}
             </span>
         </div>

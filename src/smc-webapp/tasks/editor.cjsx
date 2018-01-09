@@ -2,15 +2,16 @@
 Top-level react component for task list
 ###
 
-{React, rclass, rtypes}  = require('../smc-react')
+{React, rclass, rtypes} = require('../smc-react')
 
-{UncommittedChanges} = require('../jupyter/uncommitted-changes')
-{TaskList}           = require('./list')
-{ButtonBar}          = require('./buttonbar')
-{Find}               = require('./find')
-{DescVisible}        = require('./desc-visible')
-{HashtagBar}         = require('./hashtag-bar')
+{UncommittedChanges}    = require('../jupyter/uncommitted-changes')
+{TaskList}              = require('./list')
+{ButtonBar}             = require('./buttonbar')
+{Find}                  = require('./find')
+{DescVisible}           = require('./desc-visible')
+{HashtagBar}            = require('./hashtag-bar')
 {Headings, is_sortable} = require('./headings')
+{Row, Col}              = require('react-bootstrap')
 
 exports.TaskEditor = rclass ({name}) ->
     propTypes :
@@ -88,6 +89,16 @@ exports.TaskEditor = rclass ({name}) ->
             search_desc      = {@props.search_desc}
         />
 
+    render_find_bar: ->
+        <Row>
+            <Col md={8}>
+                {@render_find()}
+            </Col>
+            <Col md={4}>
+                {@render_desc_visible()}
+            </Col>
+        </Row>
+
     render_button_bar: ->
         <ButtonBar
             actions                 = {@props.actions}
@@ -133,8 +144,7 @@ exports.TaskEditor = rclass ({name}) ->
         <div style={margin:'15px', border:'1px solid grey'} className='smc-vfill'>
             {@render_uncommitted_changes()}
             {@render_hashtag_bar()}
-            {@render_find()}
-            {@render_desc_visible()}
+            {@render_find_bar()}
             {@render_button_bar()}
             {@render_headings()}
             {@render_list()}
