@@ -14,8 +14,7 @@ sinon  = require('sinon')
 email = require('../../email')
 exports.last_email = undefined
 email = require('../../email')
-email.send_email = sinon.stub()
-email.send_email.callsFake (opts) ->
+sinon.stub(email, 'send_email').callsFake (opts) ->
     exports.last_email = opts
     opts.cb?()
 
@@ -34,7 +33,7 @@ winston = exports.winston = require('./../../winston-metrics').get_logger('api_t
 exports.reset = (done) ->
     async.series([
         (cb) ->
-            email.send_email.reset()
+            email.send_email.resetHistory()
             cb()
     ], done)
 

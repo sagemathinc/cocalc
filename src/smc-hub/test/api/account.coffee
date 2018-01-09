@@ -148,7 +148,7 @@ describe 'testing calls relating to creating user accounts -- ', ->
                         subject        : 'SUBJECT_OF_EMAIL_1'
                     cb    : (err, resp) ->
                         winston.info("inivtes a collaborator to a project with an email message: #{misc.to_json(resp)}")
-                        # possibly, actual email sending is async, hence we wait a bit...
+                        # maybe actual email is sent async, hence we wait a bit...
                         setTimeout((-> cb(err)), 100)
 
             # there shouldn't be a second email (during a week or so) upon inviting again
@@ -165,12 +165,13 @@ describe 'testing calls relating to creating user accounts -- ', ->
                         email          : 'BODY_OF_EMAIL_2'
                         subject        : 'SUBJECT_OF_EMAIL_2'
                     cb    : (err, resp) ->
-                        # possibly, actual email sending is async, hence we wait a bit...
+                        # maybe actual email is sent async, hence we wait a bit...
                         setTimeout((-> cb(err)), 100)
 
         ], (err) ->
             expect(err?).toBe(false)
             opts0 = email.send_email.args[0][0]
+            #console.log(misc.to_json(opts0))
             expect(opts0.subject.indexOf('Welcome to') >= 0).toBe(true)
 
             opts1 = email.send_email.args[1][0]
@@ -183,9 +184,8 @@ describe 'testing calls relating to creating user accounts -- ', ->
             # no second email
             winston.info("email.send_email.args: #{misc.to_json(email.send_email.args)}")
 
-            opts2 = email.send_email.args[2][0]
             #console.log("email3: #{misc.to_json(opts2)}")
-            expect(email.send_email.args.length).toBe(2) # TODO broken
+            expect(email.send_email.args.length).toBe(2) # only two, because the second invite is not going through in client/mesg_invite_collaborator
             done(err)
         )
 
