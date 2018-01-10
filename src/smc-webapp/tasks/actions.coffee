@@ -388,7 +388,8 @@ class exports.TaskActions extends Actions
 
     empty_trash: =>
         @store.get('tasks')?.forEach (task, id) =>
-            @syncdb.delete(task_id: id)
+            if task.get('deleted')
+                @syncdb.delete(task_id: id)
             return
 
     # state = undefined/false-ish = not selected

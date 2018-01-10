@@ -17,6 +17,7 @@ exports.EmptyTrash = rclass
         return @props.count != next.count
 
     empty_trash: ->
+        @props.actions.stop_showing_deleted()
         @props.actions.empty_trash()
 
     render: ->
