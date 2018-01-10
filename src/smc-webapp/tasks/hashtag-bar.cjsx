@@ -71,6 +71,6 @@ exports.HashtagBar = rclass
         return (x[1] for x in v)
 
     render: ->
-        <ButtonGroup>
+        <ButtonGroup style={padding:'5px'}>
             {@render_hashtags()}
         </ButtonGroup>

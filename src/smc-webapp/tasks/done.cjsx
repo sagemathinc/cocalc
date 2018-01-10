@@ -33,6 +33,6 @@ exports.DoneCheckbox = rclass
 
     render: ->
         checkbox = @render_checkbox()
-        <div onClick={if not @props.read_only then @toggle_done} style={fontSize:'17pt', color:'#666'}>
+        <div onClick={if not @props.read_only then @toggle_done} style={fontSize:'17pt', color:'#666', flex:1}>
             {checkbox}
         </div>

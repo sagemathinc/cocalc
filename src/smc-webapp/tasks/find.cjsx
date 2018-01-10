@@ -4,7 +4,9 @@ Searching for tasks by full text search and done/deleted status.
 
 {React, ReactDOM, rclass, rtypes}  = require('../smc-react')
 
-{Row, Col, FormControl} = require('react-bootstrap')
+{Icon} = require('../r_misc')
+
+{Button, Row, Col, FormControl, FormGroup, InputGroup} = require('react-bootstrap')
 
 {ShowToggle} = require('./show-toggle')
 
@@ -50,21 +52,34 @@ exports.Find = rclass
             ReactDOM.findDOMNode(@refs.search).blur()
             return false
 
+    clear_and_focus_search_input: ->
+        @props.actions.set_local_view_state(search: '')
+        ReactDOM.findDOMNode(@refs.search).focus()
+
     render_search: ->
-        <FormControl
-            type           = 'text'
-            ref            = 'search'
-            componentClass = 'input'
-            value          = {@props.local_view_state.get('search') ? ''}
-            onChange       = {=>@props.actions.set_local_view_state(search: ReactDOM.findDOMNode(@refs.search).value)}
-            onBlur         = {=>@props.actions.blur_find_box()}
-            onKeyDown      = {@key_down}
-        />
+        <FormGroup style={marginBottom:0}>
+            <InputGroup>
+                <FormControl
+                    type           = 'text'
+                    ref            = 'search'
+                    componentClass = 'input'
+                    value          = {@props.local_view_state.get('search') ? ''}
+                    onChange       = {=>@props.actions.set_local_view_state(search: ReactDOM.findDOMNode(@refs.search).value)}
+                    onBlur         = {=>@props.actions.blur_find_box()}
+                    onKeyDown      = {@key_down}
+                />
+                <InputGroup.Button>
+                    <Button onClick={@clear_and_focus_search_input}>
+                        <Icon name='times-circle' />
+                    </Button>
+                </InputGroup.Button>
+            </InputGroup>
+        </FormGroup>
 
     render: ->
         if not @props.actions? or not @props.local_view_state?
             return <span />
-        <Row style={padding: '0 10px'}>
+        <Row style={padding: '0 5px'}>
             <Col md={8}>
                 {@render_search()}
             </Col>

@@ -45,13 +45,18 @@ exports.Description = rclass
     render_editor: ->
         if not @props.editing
             return
-        <DescriptionEditor
-            actions    = {@props.actions}
-            task_id    = {@props.task_id}
-            desc       = {@props.desc}
-            is_current = {@props.is_current}
-            font_size  = {@props.font_size}
-        />
+        <div>
+            <DescriptionEditor
+                actions    = {@props.actions}
+                task_id    = {@props.task_id}
+                desc       = {@props.desc}
+                is_current = {@props.is_current}
+                font_size  = {@props.font_size}
+            />
+            <div style={color:'#666', paddingTop: '5px', float: 'right'}>
+                Use <a href='https://help.github.com/categories/writing-on-github/' target='_blank'>Markdown</a>, LaTeX and hashtags.
+            </div>
+        </div>
 
     render_close_button: ->
         if not @props.editing

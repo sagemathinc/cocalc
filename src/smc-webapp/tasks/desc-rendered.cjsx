@@ -55,7 +55,7 @@ exports.DescriptionRendered = rclass
         @props.actions.set_desc(@props.task_id, desc)
 
     render: ->
-        <div style={padding:'0 10px'} onClick={if not @props.read_only and @props.actions? then @on_click}>
+        <div style={paddingTop:'5px'} onClick={if not @props.read_only and @props.actions? then @on_click}>
             {@render_content()}
         </div>
 
