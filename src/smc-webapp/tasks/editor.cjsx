@@ -93,10 +93,10 @@ exports.TaskEditor = rclass ({name}) ->
 
     render_find_bar: ->
         <Row>
-            <Col md={8}>
+            <Col md={7}>
                 {@render_find()}
             </Col>
-            <Col md={4}>
+            <Col md={5}>
                 {@render_desc_visible()}
             </Col>
         </Row>
@@ -128,7 +128,7 @@ exports.TaskEditor = rclass ({name}) ->
             scroll           = {@props.local_view_state?.get('scroll')}
             scroll_into_view = {@props.scroll_into_view}
             font_size        = {@props.local_view_state?.get('font_size')}
-            style            = {overflowY:'auto'}
+            style            = {overflowX:'hidden', overflowY:'auto'}
             sortable         = {not @props.read_only and is_sortable(@props.local_view_state?.getIn(['sort', 'column']))}
             read_only        = {@props.read_only}
             onSortEnd        = {@on_sort_end}
@@ -144,7 +144,7 @@ exports.TaskEditor = rclass ({name}) ->
             />
 
     render: ->
-        <div style={margin:'15px', border:'1px solid grey'} className='smc-vfill'>
+        <div className='smc-vfill'>
             {@render_uncommitted_changes()}
             {@render_hashtag_bar()}
             {@render_find_bar()}

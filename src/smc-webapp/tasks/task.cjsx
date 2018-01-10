@@ -4,6 +4,9 @@ A single task
 
 {React, rclass, rtypes}  = require('../smc-react')
 
+{Row, Col} = require('react-bootstrap')
+
+
 {MinToggle}    = require('./min-toggle')
 {Description}  = require('./desc')
 {Changed}      = require('./changed')
@@ -35,10 +38,8 @@ exports.Task = rclass
                @props.sortable          != next.sortable         or \
                @props.read_only         != next.read_only
 
-
     render_drag_handle: ->
-        if @props.sortable
-            <DragHandle />
+        <DragHandle sortable={@props.sortable}/>
 
     render_done_checkbox: ->  # cast of done to bool for backward compat
         <DoneCheckbox
@@ -70,50 +71,58 @@ exports.Task = rclass
         />
 
     render_last_edited: ->
-        <Changed
-            last_edited = {@props.task.get('last_edited')}
-            />
+        <span style={fontSize: '10pt', color: '#666'}>
+            <Changed
+                last_edited = {@props.task.get('last_edited')}
+                />
+        </span>
 
     render_due_date: ->
-        <DueDate
-            actions   = {@props.actions}
-            read_only = {@props.read_only}
-            task_id   = {@props.task.get('task_id')}
-            due_date  = {@props.task.get('due_date')}
-            editing   = {@props.editing_due_date}
-            />
+        <span style={fontSize: '10pt', color: '#666'}>
+            <DueDate
+                actions   = {@props.actions}
+                read_only = {@props.read_only}
+                task_id   = {@props.task.get('task_id')}
+                due_date  = {@props.task.get('due_date')}
+                editing   = {@props.editing_due_date}
+                />
+        </span>
 
     on_click: ->
         @props.actions?.set_current_task(@props.task.get('task_id'))
 
     render: ->
         style =
-            padding      : '10px'
-            margin       : '10px'
+            padding      : '5px 5px 0 5px'
+            margin       : '5px'
             borderRadius : '4px'
+            background   : 'white'
         if @props.is_current
             style.border       = '2px solid #08c'
-            style.background   = "rgb(232, 242, 255)"
         else
             style.border = '2px solid lightgrey'
-            style.background = 'white'
         if @props.task.get('deleted')
             style.background = '#d9534f'
-            style.color      = '#eee'
+            style.color  = '#fff'
         else if @props.task.get('done')
             style.color = '#888'
         if @props.font_size?
             style.fontSize = "#{@props.font_size}px"
         <div style={style} onClick={@on_click}>
-            {@render_drag_handle()}
-            <br/>
-            {@render_done_checkbox()}
-            <br/>
-            {@render_min_toggle()}
-            <br/>
-            {@render_desc()}
-            <br/>
-            {@render_due_date()}
-            <br/>
-            {@render_last_edited()}
+            <Row>
+                <Col md={1} style={display: 'flex', flexDirection:'row'}>
+                    {@render_drag_handle()}
+                    {@render_done_checkbox()}
+                    {@render_min_toggle()}
+                </Col>
+                <Col md={9}>
+                    {@render_desc()}
+                </Col>
+                <Col md={1}>
+                    {@render_due_date()}
+                </Col>
+                <Col md={1}>
+                    {@render_last_edited()}
+                </Col>
+            </Row>
         </div>

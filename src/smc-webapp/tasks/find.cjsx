@@ -57,7 +57,7 @@ exports.Find = rclass
         ReactDOM.findDOMNode(@refs.search).focus()
 
     render_search: ->
-        <FormGroup>
+        <FormGroup style={marginBottom:0}>
             <InputGroup>
                 <FormControl
                     type           = 'text'
@@ -79,7 +79,7 @@ exports.Find = rclass
     render: ->
         if not @props.actions? or not @props.local_view_state?
             return <span />
-        <Row style={padding: '0 10px'}>
+        <Row style={padding: '0 5px'}>
             <Col md={8}>
                 {@render_search()}
             </Col>

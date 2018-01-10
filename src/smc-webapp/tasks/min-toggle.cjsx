@@ -4,7 +4,7 @@ Toggle to minimize display of a task (just show first part or everything)
 
 {React, rclass, rtypes}  = require('../smc-react')
 
-{Icon} = require('../r_misc')
+{Icon, Tip} = require('../r_misc')
 
 
 exports.MinToggle = rclass
@@ -33,6 +33,8 @@ exports.MinToggle = rclass
         toggle = @render_toggle()
         if not @props.actions?  # no support for toggling (e.g., history view)
             return toggle
-        <div onClick={@toggle_state} style={fontSize:'17pt', color:'#666'}>
-            {toggle}
-        </div>
+        <Tip title={'Toggle between showing first paragraph of task and complete task'} delayShow={1000}>
+            <div onClick={@toggle_state} style={fontSize:'17pt', color:'#666', flex:1}>
+                {toggle}
+            </div>
+        </Tip>
