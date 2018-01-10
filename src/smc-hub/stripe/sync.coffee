@@ -16,6 +16,7 @@ exports.stripe_sync = (opts) ->
         logger    : undefined
         database  : required
         target    : undefined
+        limit     : 3  # number at once
         cb        : undefined
 
     dbg = (m) -> opts.logger?.debug("stripe_sync: #{m}")
@@ -73,7 +74,7 @@ exports.stripe_sync = (opts) ->
                     stripe      : stripe
                     customer_id : x.stripe_customer_id
                     cb          : cb
-            async.mapLimit(users, 3, f, cb)
+            async.mapLimit(users, opts.limit, f, cb)
     ], (err) ->
         if err
             dbg("error updating customer info -- #{err}")
