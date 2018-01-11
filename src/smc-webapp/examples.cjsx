@@ -2,7 +2,7 @@
 #
 #    CoCalc: Collaborative Calculation in the Cloud
 #
-#    Copyright (C) 2015 -- 2017, SageMath, Inc.
+#    Copyright (C) 2015 -- 2018, SageMath, Inc.
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -48,7 +48,7 @@ REPO_URL = 'https://github.com/sagemathinc/cocalc-assistant'
 # double-nested objects (two hiearchies of categories) mapping to title/code/description documents
 DATA = null
 
-# react examples dialog
+# react elements
 {React, ReactDOM, redux, Redux, Actions, Store, rtypes, rclass} = require('./smc-react')
 {Col, Row, Panel, Button, FormGroup, FormControl, Well, Alert, Modal, Table, Nav, NavItem, ListGroup, ListGroupItem, InputGroup} = require('react-bootstrap')
 {Loading, Icon, Markdown, Space} = require('./r_misc')
@@ -57,6 +57,7 @@ redux_name = (project_id, path) ->
     return "examples-#{project_id}-#{path}"
 
 # convert a language like "python" or "r" (usually short and lowercase) to a canonical name
+# TODO this should probably be part of the "data", or a more global function somewhere in the webapp.
 lang2name = (lang) ->
     if lang == 'python'
         return 'Python'
@@ -66,6 +67,8 @@ lang2name = (lang) ->
         return 'SageMath'
     else
         return lang.charAt(0).toUpperCase() + lang[1..]
+
+# Redux stuff
 
 class ExamplesStore extends Store
 
@@ -83,6 +86,9 @@ class ExamplesActions extends Actions
             @set(show: true)
 
     reset: ->
+        # a better documentation of this is in the RExamples component at the bottom
+        # cat1_top: move certain categories to the top of the list -- see sort functions in @get_catlistN
+        # TODO this is something that should be part of the "data" itself, not hardcoded here at all
         @set
             cat0           : null # idx integer
             cat1           : null # idx integer
@@ -137,6 +143,8 @@ class ExamplesActions extends Actions
         if not DATA?
             require.ensure [], =>
                 # DATA is a global variable!
+                # this file is supposed to be in webapp-lib/examples/examples.json
+                # follow "./install.py examples" to see how the makefile is called during build
                 DATA = require('examples/examples.json')
                 @init_data(DATA)
         else
@@ -145,6 +153,7 @@ class ExamplesActions extends Actions
     data_lang: () ->
         @get('data').get(@get('lang'))
 
+    # First categories list, depends on selected language, sort order depends on cat1_top
     get_catlist0: () ->
         cat0 = @data_lang().keySeq().toArray()
         top = @get('cat1_top')
@@ -153,6 +162,8 @@ class ExamplesActions extends Actions
             return [i, el]
         return _.sortBy(cat0, cat0ordering)
 
+    # Second level categories list, depends on selected index of first level
+    # Sorted by cat1_top and a possible 'sortweight'
     get_catlist1: () ->
         k0 = @get_catlist0()[@get('cat0')]
         cat1data = @data_lang().get(k0)
@@ -164,11 +175,14 @@ class ExamplesActions extends Actions
             return [so, i, el]
         return _.sortBy(cat1, cat1ordering)
 
+    # The titles of the selected documents are exactly as they're in the original data (they're an array)
+    # That way, it's possible to create a coherent narrative from top to bottom
     get_catlist2: () ->
         k0 = @get_catlist0()[@get('cat0')]
         k1 = @get_catlist1()[@get('cat1')]
         return @data_lang().getIn([k0, k1, 'entries']).map((el) -> el.get(0)).toArray()
 
+    # when a language is selected, this resets the category selections
     select_lang: (lang) ->
         lang ?= @get('lang')
         @reset()
@@ -182,6 +196,7 @@ class ExamplesActions extends Actions
         else
             @set(unknown_lang:true)
 
+    # a search is performed. basically looks through the documents until it finds enough results ...
     search: (search_str) ->
         @reset()
         if not search_str? or search_str.length == 0
@@ -209,12 +224,14 @@ class ExamplesActions extends Actions
                 throw ex
         @set(hits: hits)
 
+    # a specific search result is selected and the corresponding document is set to be shown to the user
     search_selected: (idx) ->
         [lvl1, lvl2, lvl3, title, descr, inDescr] = @get('hits').get(idx).toArray()
         doc = @data_lang().getIn([lvl1, lvl2, 'entries', lvl3])
         @show_doc(doc)
         @set(search_sel : idx)
 
+    # keyboard handling for the search list
     search_cursor: (dir) ->
         # searching and then cursor-selecting search results
         # dir: +1 → downward / -1 → upward
@@ -234,12 +251,16 @@ class ExamplesActions extends Actions
         @set(search_sel : new_sel)
         @search_selected(new_sel)
 
+    # for a specific document, set the code and description box values.
     show_doc: (doc) ->
         @set
             code        : doc.getIn([1, 0])
             descr       : doc.getIn([1, 1])
             submittable : true
 
+    # key handling for the categories selection.
+    # there is also a "twist": it wraps around at the end of a category to the next higher category
+    # (similar to a counter with carry) but the lenght of the categories changes!
     select_cursor: (dir) ->
         # dir: only 1 or -1!
         # +1 → downward, higher idx number, first in list
@@ -294,6 +315,9 @@ class ExamplesActions extends Actions
                 @set_selected_category(1, cat1_next)
             @set_selected_category(2, cat2_next)
 
+    # this sets a selected category for a given level.
+    # it is able to handle negative indices (wraps around nicely) and it also expands
+    # subcategories, if there is only one choice.
     set_selected_category: (level, idx) ->
         lang = @data_lang()
         switch level
@@ -330,6 +354,7 @@ class ExamplesActions extends Actions
                 @set(cat2 : idx)
                 @show_doc(doc)
 
+# The top part of the dialog. Shows the Title (maybe with the Language), a selector for the language, and search
 ExamplesHeader = rclass
     displayName : 'ExamplesHeader'
 
@@ -376,6 +401,7 @@ ExamplesHeader = rclass
     search_clear: ->
         @props.actions.search('')
 
+    # a horizontal list of clickable language categories
     render_nav: ->
         entries = @props.nav_entries ? []
         <Nav
@@ -400,7 +426,7 @@ ExamplesHeader = rclass
 
     render_search: ->
         <FormGroup>
-            <InputGroup className = 'webapp-examples-search'>
+            <InputGroup className = {'webapp-examples-search'}>
                 <FormControl
                     ref         = {'search'}
                     type        = {'text'}
@@ -420,6 +446,7 @@ ExamplesHeader = rclass
     render: ->
         return null if (not @props.lang?) or (not @props.lang_select?)
         show_lang_nav = @props.lang_select and not @props.unknown_lang
+        # ATTN col's sm values should sum up to 11 in both cases
         <Row>
             <Col sm={if show_lang_nav then 2 else 5}>
                 <h2>
@@ -428,10 +455,10 @@ ExamplesHeader = rclass
                     {lang2name(@props.lang) if not @props.lang_select} Assistant
                 </h2>
             </Col>
-            <Col sm={if show_lang_nav then 7 else 4}>
+            <Col sm={if show_lang_nav then 7 else 2}>
                 {@render_nav() if show_lang_nav}
             </Col>
-            <Col sm={2}>
+            <Col sm={if show_lang_nav then 2 else 4}>
                 {@render_search() if not @props.unknown_lang}
             </Col>
         </Row>
@@ -454,10 +481,9 @@ ExamplesBody = rclass
         search_str    : rtypes.string
         search_sel    : rtypes.number
         hits          : rtypes.arrayOf(rtypes.array)
-        unknown_lang  : rtypes.bool
+        unknown_lang  : rtypes.bool   # if true, show info about contributing to the assistant
 
     getDefaultProps: ->
-        descr      : ''
         search_str : ''
 
     componentDidMount: ->
@@ -475,6 +501,7 @@ ExamplesBody = rclass
     category_selection: (level, idx) ->
         @props.actions.set_selected_category(level, idx)
 
+    # level could be 0, 1 or 2
     category_list: (level) ->
         cat  = @props["cat#{level}"]
         list = @props["catlist#{level}"]
@@ -502,7 +529,9 @@ ExamplesBody = rclass
             @props.hits.map (hit, idx) =>
                 [lvl1, lvl2, lvl3, title, descr, inDescr] = hit
                 click    = @search_result_selection.bind(@, idx)
+                # highlight the match in the title
                 title_hl = title.replace(new RegExp(ss, "gi"), "<span class='hl'>#{ss}</span>")
+                # if the hit is in the description, highlight it too
                 if inDescr != -1
                     i = Math.max(0, inDescr-30)
                     j = Math.min(descr.length, inDescr+30+ss.length)
@@ -528,7 +557,7 @@ ExamplesBody = rclass
     render_top: ->
         searching = @props.search_str?.length > 0
         if not @props.data?
-            <Row key='top'>
+            <Row key={'top'}>
                 <Col sm={8} smOffset={4}>
                     <ul className={'list-group'}>
                         <li></li><li></li>
@@ -537,18 +566,19 @@ ExamplesBody = rclass
                 </Col>
             </Row>
         else if searching
-            <Row key='top'>
+            <Row key={'top'}>
                 <Col sm={12}>{@render_search_results()}</Col>
             </Row>
         else
-            <Row key='top'>
+            <Row key={'top'}>
                 <Col sm={3}>{@category_list(0)}</Col>
                 <Col sm={3}>{@category_list(1)}</Col>
                 <Col sm={6}>{@category_list(2)}</Col>
             </Row>
 
     render_bottom: ->
-        <Row key='bottom'>
+        # TODO syntax highlighting
+        <Row key={'bottom'}>
             <Col sm={6}>
                 <pre ref={'code'} className={'code'}>{@props.code}</pre>
             </Col>
@@ -559,6 +589,7 @@ ExamplesBody = rclass
             </Col>
         </Row>
 
+    # top is the selector or search results list; bottom displays a selected document
     render_body: ->
         [
             @render_top()
@@ -577,7 +608,7 @@ ExamplesBody = rclass
         </Row>
 
     render: ->
-        <Modal.Body className='modal-body'>
+        <Modal.Body className={'modal-body'}>
             {
                 if @props.unknown_lang
                     @render_unknown_lang()
@@ -586,8 +617,8 @@ ExamplesBody = rclass
             }
         </Modal.Body>
 
-
-exports.RExamples = (name) -> rclass
+# The root element of the Assistant dialog.
+RExamples = (name) -> rclass
     displayName : 'Examples'
 
     reduxProps :
@@ -595,22 +626,21 @@ exports.RExamples = (name) -> rclass
             show          : rtypes.bool
             lang          : rtypes.string      # the currently selected language
             lang_select   : rtypes.bool        # show buttons to allow selecting the language
-            code          : rtypes.string
-            descr         : rtypes.string
-            data          : rtypes.object
-            search        : rtypes.string
-            nav_entries   : rtypes.arrayOf(rtypes.string)
-            catlist0      : rtypes.arrayOf(rtypes.string)
-            catlist1      : rtypes.arrayOf(rtypes.string)
-            catlist2      : rtypes.arrayOf(rtypes.string)
-            cat0          : rtypes.number
-            cat1          : rtypes.number
-            cat2          : rtypes.number
-            search_str    : rtypes.string
-            search_sel    : rtypes.number
-            submittable   : rtypes.bool
-            hits          : rtypes.arrayOf(rtypes.array)
-            unknown_lang  : rtypes.bool
+            code          : rtypes.string      # displayed content of selected document
+            descr         : rtypes.string      # markdown-formatted content of document description
+            data          : rtypes.immutable   # this is the processed "raw" data, see Actions::load_data
+            nav_entries   : rtypes.arrayOf(rtypes.string)  # languages at the top, iff lang_select is true
+            catlist0      : rtypes.arrayOf(rtypes.string)  # list of first category entries
+            catlist1      : rtypes.arrayOf(rtypes.string)  # list of second level categories
+            catlist2      : rtypes.arrayOf(rtypes.string)  # third level are the document titles
+            cat0          : rtypes.number      # index of selected first category (left)
+            cat1          : rtypes.number      # index of selected second category (second from left)
+            cat2          : rtypes.number      # index of selected third category (document titles)
+            search_str    : rtypes.string      # substring to search for -- or undefined
+            search_sel    : rtypes.number      # index of selected matched documents
+            submittable   : rtypes.bool        # if true, the buttons at the bottom are active
+            hits          : rtypes.arrayOf(rtypes.array)  # search results
+            unknown_lang  : rtypes.bool        # true if there is no known set of documents for the language
 
     propTypes :
         cb      : rtypes.func
@@ -655,12 +685,13 @@ exports.RExamples = (name) -> rclass
         return false
 
     render: ->
-        <Modal show={@props.show}
-               onKeyUp={@handle_dialog_keyup}
-               onHide={@close}
-               bsSize="large"
-               className="webapp-examples">
-            <Modal.Header closeButton className='modal-header'>
+        <Modal show      = {@props.show}
+               onKeyUp   = {@handle_dialog_keyup}
+               onHide    = {@close}
+               bsSize    = {'large'}
+               className = {'webapp-examples'}
+        >
+            <Modal.Header closeButton className={'modal-header'}>
                <ExamplesHeader actions      = {@props.actions}
                                lang_select  = {@props.lang_select}
                                unknown_lang = {@props.unknown_lang}
@@ -686,35 +717,42 @@ exports.RExamples = (name) -> rclass
                           data         = {@props.data} />
 
             <Modal.Footer>
-                <Button className={'contrib-link'} href={REPO_URL} target={'_blank'}>
-                    <Icon name={'code-fork'} /> Contribute
+                <Button
+                    className  = {'contrib-link'}
+                    href       = {REPO_URL}
+                    target     = {'_blank'}
+                >
+                    <Icon name = {'code-fork'} /> Contribute
                 </Button>
                 <Button
-                    onClick={@props.actions.hide}
-                    className='pull-right'
+                    onClick    = {@props.actions.hide}
+                    className  = {'pull-right'}
                 >
                     Close
                 </Button>
                 <Button
-                    onClick={@insert_code}
-                    disabled={not @props.submittable}
-                    bsStyle='success'
-                    className='pull-right'
+                    onClick    = {@insert_code}
+                    disabled   = {not @props.submittable}
+                    bsStyle    = {'success'}
+                    className  = {'pull-right'}
                 >
                     Only Code
                 </Button>
                 <Button
-                    onClick={@insert_all}
-                    disabled={not @props.submittable}
-                    bsStyle='success'
-                    className='pull-right'
-                    style={fontWeight:'bold'}
+                    onClick   = {@insert_all}
+                    disabled  = {not @props.submittable}
+                    bsStyle   = {'success'}
+                    className = {'pull-right'}
+                    style     = {fontWeight:'bold'}
                 >
                     Insert Example
                 </Button>
             </Modal.Footer>
         </Modal>
 
+### Public API ###
+
+# The following two exports are used in jupyter/main and ./register
 exports.instantiate_assistant = (project_id, path) ->
     name = redux_name(project_id, path)
     actions = redux.getActions(name)
@@ -725,9 +763,11 @@ exports.instantiate_assistant = (project_id, path) ->
 
 exports.instantiate_component = (project_id, path, actions) ->
     name = redux_name(project_id, path)
-    W = exports.RExamples(name)
+    W = RExamples(name)
     return <Redux redux={redux}><W actions={actions}/></Redux>
 
+# and this one below is used in editor.coffee for sagews worksheets.
+# "target" is a DOM element somewhere in the buttonbar of the editor's html
 exports.render_examples_dialog = (target, project_id, path, lang = 'sage') ->
     name = redux_name(project_id, path)
     actions = redux.getActions(name)
@@ -736,6 +776,6 @@ exports.render_examples_dialog = (target, project_id, path, lang = 'sage') ->
         store   = redux.createStore(name)
     actions.init(lang=lang)
     actions.set(lang_select:true)
-    W = exports.RExamples(name)
+    W = RExamples(name)
     ReactDOM.render(<Redux redux={redux}><W actions={actions}/></Redux>, target)
     return actions

@@ -21,7 +21,6 @@ Top-level react component, which ties everything together
 {FindAndReplace}    = require('./find-and-replace')
 {ConfirmDialog}     = require('./confirm-dialog')
 {KeyboardShortcuts} = require('./keyboard-shortcuts')
-{RExamples}         = require('../examples')
 {JSONView}          = require('./json-view')
 {RawEditor}         = require('./raw-editor')
 
