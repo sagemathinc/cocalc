@@ -49,22 +49,22 @@ exports.Task = rclass
             task_id   = {@props.task.get('task_id')}
         />
 
-    render_min_toggle: ->
+    render_min_toggle: (has_body) ->
         <MinToggle
             actions  = {@props.actions}
             task_id  = {@props.task.get('task_id')}
             minimize = {@props.min_desc}
+            has_body = {has_body}
         />
 
-    render_desc: ->
+    render_desc: (desc) ->
         <Description
             actions    = {@props.actions}
             path       = {@props.path}
             project_id = {@props.project_id}
             task_id    = {@props.task.get('task_id')}
-            desc       = {@props.task.get('desc')}
+            desc       = {desc}
             editing    = {@props.editing_desc}
-            minimize   = {@props.min_desc}
             is_current = {@props.is_current}
             font_size  = {@props.font_size}
             read_only  = {@props.read_only}
@@ -108,15 +108,20 @@ exports.Task = rclass
             style.color = '#888'
         if @props.font_size?
             style.fontSize = "#{@props.font_size}px"
+
+        desc = @props.task.get('desc')
+        {head, body} = parse_desc(desc)  # parse description into head, then body (sep by blank line)
+        if @props.min_desc
+            desc = head
         <div style={style} onClick={@on_click}>
             <Row>
                 <Col md={1} style={display: 'flex', flexDirection:'row'}>
                     {@render_drag_handle()}
                     {@render_done_checkbox()}
-                    {@render_min_toggle()}
+                    {@render_min_toggle(!!body)}
                 </Col>
                 <Col md={9}>
-                    {@render_desc()}
+                    {@render_desc(desc)}
                 </Col>
                 <Col md={1}>
                     {@render_due_date()}
@@ -126,3 +131,14 @@ exports.Task = rclass
                 </Col>
             </Row>
         </div>
+
+
+parse_desc = (s) ->
+    lines = s.trim().split('\n')
+    for i in [0...lines.length]
+        if lines[i].trim() == ''
+            if i == lines.length - 1
+                break  # all head
+            else
+                return {head:lines.slice(0,i).join('\n'), body: lines.slice(i).join('\n')}
+    return {head:s}

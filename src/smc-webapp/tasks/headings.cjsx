@@ -6,7 +6,11 @@ Headings of the task list:
   - Changed
 ###
 
+{Row, Col} = require('react-bootstrap')
+
 {React, rclass, rtypes}  = require('../smc-react')
+
+{Icon, Space} = require('../r_misc')
 
 exports.HEADINGS     = HEADINGS = ['Custom Order', 'Due', 'Changed']
 exports.HEADINGS_DIR = HEADINGS_DIR = ['asc', 'desc']
@@ -45,15 +49,13 @@ Heading = rclass
 
     render: ->
         if @props.dir?
-            sort = <span> {@props.dir}</span>
+            sort = <span><Space/><Icon name={"caret-#{if @props.dir == 'asc' then 'down' else 'up'}"} /></span>
         else
             sort = undefined
-        <span
-            style   = {marginRight: '20px', cursor:'pointer'}
-            onClick = {@click}>
+        <a onClick={@click} style={cursor:'pointer'}>
             {@props.heading}
             {sort}
-        </span>
+        </a>
 
 
 exports.Headings = rclass
@@ -64,24 +66,36 @@ exports.Headings = rclass
     shouldComponentUpdate: (next) ->
         return @props.sort != next.sort
 
-    render_heading: (heading, is_sort_heading, dir) ->
-        if is_sort_heading
-            sort = <span>{dir}</span>
-        else
-            sort = undefined
+    render_heading: (heading, dir) ->
+        <Heading
+            actions = {@props.actions}
+            key     = {heading}
+            heading = {heading}
+            dir     = {dir}
+        />
 
     render_headings: ->
         column = @props.sort?.get('column') ? HEADINGS[0]
         dir    = @props.sort?.get('dir')    ? HEADINGS_DIR[0]
-        for heading in HEADINGS
-            <Heading
-                actions = {@props.actions}
-                key     = {heading}
-                heading = {heading}
-                dir     = {if column == heading then dir}
-            />
+        <Row style={borderBottom:'1px solid lightgray'}>
+            <Col md={1} style={color:'#666', textAlign:'center'}>
+                Done
+            </Col>
+            <Col md={7} style={color:'#666'}>
+                Description
+            </Col>
+            <Col md={2}>
+                {@render_heading(HEADINGS[0], if column==HEADINGS[0] then dir)}
+            </Col>
+            <Col md={1}>
+                {@render_heading(HEADINGS[1], if column==HEADINGS[1] then dir)}
+            </Col>
+            <Col md={1}>
+                {@render_heading(HEADINGS[2], if column==HEADINGS[2] then dir)}
+            </Col>
+        </Row>
 
     render: ->
-        <div style={border:'1px solid lightgrey'}>
+        <div style={padding:'0 10px'}>
             {@render_headings()}
         </div>
