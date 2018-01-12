@@ -110,9 +110,14 @@ exports.Task = rclass
             style.fontSize = "#{@props.font_size}px"
 
         desc = @props.task.get('desc')
-        {head, body} = parse_desc(desc)  # parse description into head, then body (sep by blank line)
-        if @props.min_desc
-            desc = head
+        if @props.editing_desc
+            # while editing no min toggle
+            body = undefined
+        else
+            # not editing, so maybe a min toggle...
+            {head, body} = parse_desc(desc)  # parse description into head, then body (sep by blank line)
+            if @props.min_desc
+                desc = head
         <div style={style} onClick={@on_click}>
             <Row>
                 <Col md={1} style={display: 'flex', flexDirection:'row'}>

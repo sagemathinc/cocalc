@@ -66,15 +66,19 @@ exports.Description = rclass
         </Button>
 
     render_desc: ->
-        <DescriptionRendered
-            actions    = {@props.actions}
-            task_id    = {@props.task_id}
-            path       = {@props.path}
-            project_id = {@props.project_id}
-            desc       = {@props.desc}
-            minimize   = {@props.minimize}
-            read_only  = {@props.read_only}
-            />
+        if @props.editing
+            return
+        <div onClick={@edit}>
+            <DescriptionRendered
+                actions    = {@props.actions}
+                task_id    = {@props.task_id}
+                path       = {@props.path}
+                project_id = {@props.project_id}
+                desc       = {@props.desc}
+                minimize   = {@props.minimize}
+                read_only  = {@props.read_only}
+                />
+        </div>
 
     render: ->
         if @props.read_only or not @props.actions?
@@ -82,7 +86,5 @@ exports.Description = rclass
         <div>
             {@render_editor()}
             {@render_close_button()}
-            <div onClick={@edit}>
-                {@render_desc()}
-            </div>
+            {@render_desc()}
         </div>
