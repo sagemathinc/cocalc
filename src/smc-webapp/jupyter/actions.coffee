@@ -1481,7 +1481,7 @@ class exports.JupyterActions extends Actions
 
         assistant_actions = @store.get('assistant_actions')
         if assistant_actions?
-            assistant_actions.init(lang = lang)
+            assistant_actions.init(lang)
             assistant_actions.set(
                 show            : true
                 lang            : lang

@@ -25,13 +25,13 @@
 # {"code": "...", "lang" : "..."} via a given callback.
 #
 # Usage:
-# w = render_examples_dialog(target, project_id, filename, lang = mode)
+# w = render_examples_dialog(target, project_id, filename, lang)
 #     * target: jquery dom object, where react is put into
 #     * project_id and filename to make state in redux unique
 #     * lang is the mode (sage, r, python, ...)
 # use 'w.set_handler' to set the handler that's used for inserting the selected document
 # API (implemented in ExamplesActions)
-# w.show([lang=lang]) -- show dialog again (same state!) and if
+# w.show([lang]) -- show dialog again (same state!) and if
 #                        language given, a selection of it is triggered
 
 _ = require("underscore")
@@ -79,9 +79,10 @@ class ExamplesActions extends Actions
     set: (update) ->
         @setState(update)
 
-    show: (lang='sage') =>
+    show: (lang) =>
+        lang ?= 'sage'
         if lang != @get('lang')
-            @init(lang=lang)
+            @init(lang)
         else
             @set(show: true)
 
@@ -768,14 +769,19 @@ exports.instantiate_component = (project_id, path, actions) ->
 
 # and this one below is used in editor.coffee for sagews worksheets.
 # "target" is a DOM element somewhere in the buttonbar of the editor's html
-exports.render_examples_dialog = (target, project_id, path, lang = 'sage') ->
-    name = redux_name(project_id, path)
+exports.render_examples_dialog = (opts) ->
+    opts = defaults opts,
+        target     : required
+        project_id : required
+        path       : required
+        lang       : 'sage'
+    name = redux_name(opts.project_id, opts.path)
     actions = redux.getActions(name)
     if not actions?
         actions = redux.createActions(name, ExamplesActions)
         store   = redux.createStore(name)
-    actions.init(lang=lang)
+    actions.init(opts.lang)
     actions.set(lang_select:true)
     W = RExamples(name)
-    ReactDOM.render(<Redux redux={redux}><W actions={actions}/></Redux>, target)
+    ReactDOM.render(<Redux redux={redux}><W actions={actions}/></Redux>, opts.target)
     return actions
