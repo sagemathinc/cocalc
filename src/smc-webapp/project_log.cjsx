@@ -42,6 +42,20 @@ LogMessage = rclass
             This is a log message
         </div>
 
+# This is used for these cases, where `account_id` isn't set. This means, a back-end system process is responsible.
+# In the case of stopping a project, the name is recorded in the event.by field.
+SystemProcess = rclass
+    displayName : 'ProjectLog-SystemProcess'
+
+    propTypes :
+        event : rtypes.any
+
+    render: ->
+        if @props.event.by?
+            <span>System service <code>{@props.event.by}</code></span>
+        else
+            <span>A system service</span>
+
 LogSearch = rclass
     displayName : 'ProjectLog-LogSearch'
 
@@ -126,6 +140,9 @@ LogEntry = rclass
 
     render_project_stop_requested: ->
         <span>requested to stop this project</span>
+
+    render_project_stopped: ->
+        <span>stopped this project</span>
 
     render_miniterm_command: (cmd) ->
         if cmd.length > 50
@@ -237,6 +254,8 @@ LogEntry = rclass
                 return @render_project_stop_requested()
             when 'project_restart_requested'
                 return @render_project_restart_requested()
+            when 'project_stopped'
+                return @render_project_stopped()
             when 'open' # open a file
                 return @render_open_file()
             when 'set'
@@ -263,10 +282,16 @@ LogEntry = rclass
             #    return <span>{misc.to_json(@props.event)}</span>
 
     render_user: ->
-        <User user_map={@props.user_map} account_id={@props.account_id} />
+        if @props.account_id?
+            <User user_map={@props.user_map} account_id={@props.account_id} />
+        else
+            <SystemProcess event={@props.event} />
 
     icon: ->
-        switch @props.event?.event
+        if not @props.event?.event
+            return 'dot-circle-o'
+
+        switch @props.event.event
             when 'open_project'
                 return 'folder-open-o'
             when 'open' # open a file
@@ -288,8 +313,11 @@ LogEntry = rclass
                 return 'user'
             when 'invite_nonuser'
                 return 'user'
-            else
-                return 'dot-circle-o'
+
+        if @props.event.event.indexOf('project') != -1
+            return 'edit'
+        else
+            return 'dot-circle-o'
 
     render: ->
         style = if @props.cursor then selected_item else @props.backgroundStyle
