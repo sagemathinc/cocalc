@@ -119,8 +119,13 @@ LogEntry = rclass
         </span>
 
     render_start_project: ->
-        <span>started this project {@render_took()}
-        </span>
+        <span>started this project {@render_took()}</span>
+
+    render_project_restart_requested: ->
+        <span>requested to restart this project</span>
+
+    render_project_stop_requested: ->
+        <span>requested to stop this project</span>
 
     render_miniterm_command: (cmd) ->
         if cmd.length > 50
@@ -228,6 +233,10 @@ LogEntry = rclass
         switch @props.event?.event
             when 'start_project'
                 return @render_start_project()
+            when 'project_stop_requested'
+                return @render_project_stop_requested()
+            when 'project_restart_requested'
+                return @render_project_restart_requested()
             when 'open' # open a file
                 return @render_open_file()
             when 'set'
