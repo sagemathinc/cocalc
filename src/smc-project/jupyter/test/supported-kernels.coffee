@@ -11,7 +11,7 @@ common = require('./common')
 
 describe 'compute 4/3 using the python2 kernel -- ', ->
 
-    @timeout(20000)
+    @timeout(30000)
 
     kernel = undefined
     it 'evaluate 4/3', (done) ->
@@ -30,7 +30,7 @@ describe 'compute 4/3 using the python2 kernel -- ', ->
         kernel.close()
 
 describe 'test the bash kernel --', ->
-    @timeout(8000)
+    @timeout(15000)
     kernel = undefined
 
     it 'pwd', (done) ->
@@ -75,7 +75,7 @@ describe 'test the bash kernel --', ->
 
 
 describe 'test the python3 kernel --', ->
-    @timeout(20000)
+    @timeout(30000)
 
     kernel = undefined
     it 'evaluate 4/3', (done) ->
@@ -113,7 +113,7 @@ describe 'test the sage kernel --', ->
         kernel.close()
 
 describe 'test the octave kernel --', ->
-    @timeout(10000)
+    @timeout(30000)
     kernel = undefined
     it 'evaluate 4/3', (done) ->
         kernel = common.kernel('octave')
@@ -150,8 +150,8 @@ describe 'test the julia kernel --', ->
         kernel.close()
 
 
-describe 'test the non-sage R kernel --', ->
-    @timeout(30000)
+describe 'test the system-wide R kernel --', ->
+    @timeout(60000)
     kernel = undefined
     it 'evaluate sd(c(1,2,5))', (done) ->
         kernel = common.kernel('ir')
@@ -169,7 +169,7 @@ describe 'test the non-sage R kernel --', ->
         kernel.close()
 
 describe 'test the sage R kernel --', ->
-    @timeout(30000)
+    @timeout(60000)
     kernel = undefined
     it 'evaluate sd(c(1,2,5))', (done) ->
         kernel = common.kernel('ir-sage')
@@ -207,7 +207,7 @@ describe 'test the scala kernel --', ->
                 if err
                     done(err)
                 else
-                    expect(output(v)).toEqual({'text/plain': 'defined \x1b[32mobject \x1b[36mMatchTest1\x1b[0m'})
+                    expect(output(v)).toEqual({'text/plain': 'defined \x1b[32mobject\x1b[39m \x1b[36mMatchTest1\x1b[39m'})
                     done()
 
     it 'closes the kernel', ->

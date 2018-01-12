@@ -21,32 +21,16 @@ keyboard = require('./keyboard')
 
 class exports.TaskActions extends Actions
     _init: (project_id, path, syncdb, store, client) =>
-        @_save_local_view_state = underscore.debounce((=>@__save_local_view_state?()), 3000)
+        @_save_local_view_state = underscore.debounce((=>@__save_local_view_state?()), 1500)
         @_update_visible = underscore.throttle((=>@__update_visible?()), 500)
         @project_id = project_id
         @path       = path
         @syncdb     = syncdb
         @store      = store
 
-        # TODO: local_task_state and local_view_state need to persist to localStorage
-        x = localStorage[@name]
-        if x?
-            local_view_state = immutable.fromJS(JSON.parse(x))
-        local_view_state ?= immutable.Map()
-        if not local_view_state.has("show_deleted")
-            local_view_state = local_view_state.set('show_deleted', false)
-        if not local_view_state.has("show_done")
-            local_view_state = local_view_state.set('show_done', false)
-        if not local_view_state.has("font_size")
-            font_size = @redux.getStore('account')?.get('font_size') ? 14
-            local_view_state = local_view_state.set('font_size', font_size)
-        if not local_view_state.has('sort')
-            sort = immutable.fromJS({column:HEADINGS[0], dir:HEADINGS_DIR[0]})
-            local_view_state = local_view_state.set('sort', sort)
-
         @setState
             local_task_state : immutable.Map()
-            local_view_state : local_view_state
+            local_view_state : @_load_local_view_state()
             counts           : immutable.fromJS(done:0, deleted:0)
 
         @_init_has_unsaved_changes()
@@ -62,6 +46,8 @@ class exports.TaskActions extends Actions
         @__save_local_view_state?()
         @syncdb.close()
         delete @syncdb
+        delete @_save_local_view_state
+        delete @_update_visible
         if @_key_handler?
             @redux.getActions('page').erase_active_key_handler(@_key_handler)
             delete @_key_handler
@@ -75,10 +61,29 @@ class exports.TaskActions extends Actions
     disable_key_handler: =>
         @redux.getActions('page').erase_active_key_handler(@_key_handler)
 
-    _save_local_view_state: =>
+    __save_local_view_state: =>
         local_view_state = @store.get('local_view_state')
-        if local_view_state and localStorage?
+        if local_view_state? and localStorage?
             localStorage[@name] = JSON.stringify(local_view_state)
+
+    _load_local_view_state: =>
+        x = localStorage[@name]
+        if x?
+            local_view_state = immutable.fromJS(JSON.parse(x))
+        local_view_state ?= immutable.Map()
+        if not local_view_state.has("show_deleted")
+            local_view_state = local_view_state.set('show_deleted', false)
+        if not local_view_state.has("show_done")
+            local_view_state = local_view_state.set('show_done', false)
+        if not local_view_state.has("font_size")
+            font_size = @redux.getStore('account')?.get('font_size') ? 14
+            local_view_state = local_view_state.set('font_size', font_size)
+        if not local_view_state.has('sort')
+            sort = immutable.fromJS({column:HEADINGS[0], dir:HEADINGS_DIR[0]})
+            local_view_state = local_view_state.set('sort', sort)
+
+        return local_view_state
+
 
     _init_has_unsaved_changes: => # basically copies from jupyter/actions.coffee -- opportunity to refactor
         do_set = =>
@@ -267,7 +272,6 @@ class exports.TaskActions extends Actions
 
     # only deleta = 1 or -1 is supported!
     move_task_delta: (delta) =>
-        console.log('move_current_task_delta', delta)
         if delta != 1 and delta != -1
             return
         task_id = @store.get('current_task_id')
@@ -288,6 +292,7 @@ class exports.TaskActions extends Actions
         pos_j = tasks.getIn([visible.get(j), 'position'])
         @set_task(task_id,        {position:pos_j}, true)
         @set_task(visible.get(j), {position:pos_i}, true)
+        @scroll_into_view()
 
     time_travel: =>
         @redux.getProjectActions(@project_id).open_file
@@ -299,6 +304,7 @@ class exports.TaskActions extends Actions
 
     set_current_task: (task_id) =>
         @setState(current_task_id : task_id)
+        @scroll_into_view()
 
     set_current_task_delta: (delta) =>
         task_id = @store.get('current_task_id')
@@ -387,7 +393,8 @@ class exports.TaskActions extends Actions
 
     empty_trash: =>
         @store.get('tasks')?.forEach (task, id) =>
-            @syncdb.delete(task_id: id)
+            if task.get('deleted')
+                @syncdb.delete(task_id: id)
             return
 
     # state = undefined/false-ish = not selected
@@ -437,3 +444,9 @@ class exports.TaskActions extends Actions
     blur_find_box: =>
         @enable_key_handler()
         @setState(focus_find_box:false)
+
+    scroll_into_view: =>
+        setTimeout((=>@setState(scroll_into_view: true)), 50)
+
+    scroll_into_view_done: =>
+        @setState(scroll_into_view: false)

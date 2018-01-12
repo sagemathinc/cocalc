@@ -2108,7 +2108,8 @@ class exports.PostgreSQL extends PostgreSQL
     #    (3) they do NOT touch upgrades on any projects again.
     ensure_all_user_project_upgrades_are_valid: (opts) =>
         opts = defaults opts,
-            cb : required
+            limit : 1                   # We only default to 1 at a time, since there is no hurry.
+            cb    : required
         dbg = @_dbg("ensure_all_user_project_upgrades_are_valid")
         locals = {}
         async.series([
@@ -2129,8 +2130,7 @@ class exports.PostgreSQL extends PostgreSQL
                     @ensure_user_project_upgrades_are_valid
                         account_id : account_id
                         cb         : cb
-                # We only do 1 at a time, since there is no hurry.
-                async.mapLimit(locals.account_ids, 1, f, cb)
+                async.mapLimit(locals.account_ids, opts.limit, f, cb)
         ], opts.cb)
 
     # Return the sum total of all user upgrades to a particular project

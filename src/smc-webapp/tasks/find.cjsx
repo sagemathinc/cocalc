@@ -4,7 +4,9 @@ Searching for tasks by full text search and done/deleted status.
 
 {React, ReactDOM, rclass, rtypes}  = require('../smc-react')
 
-{FormControl} = require('react-bootstrap')
+{Icon} = require('../r_misc')
+
+{Button, Row, Col, FormControl, FormGroup, InputGroup} = require('react-bootstrap')
 
 {ShowToggle} = require('./show-toggle')
 
@@ -39,7 +41,7 @@ exports.Find = rclass
             extra = <EmptyTrash actions={@props.actions} count={count} />
         else
             extra = undefined
-        <div>
+        <div style={minWidth:'150px', padding:'2px 5px'}>
             {toggle}
             {extra}
         </div>
@@ -50,22 +52,41 @@ exports.Find = rclass
             ReactDOM.findDOMNode(@refs.search).blur()
             return false
 
+    clear_and_focus_search_input: ->
+        @props.actions.set_local_view_state(search: '')
+        ReactDOM.findDOMNode(@refs.search).focus()
+
     render_search: ->
-        <FormControl
-            type           = 'text'
-            ref            = 'search'
-            componentClass = 'input'
-            value          = {@props.local_view_state.get('search') ? ''}
-            onChange       = {=>@props.actions.set_local_view_state(search: ReactDOM.findDOMNode(@refs.search).value)}
-            onBlur         = {=>@props.actions.blur_find_box()}
-            onKeyDown      = {@key_down}
-        />
+        <FormGroup style={marginBottom:0}>
+            <InputGroup>
+                <FormControl
+                    type           = 'text'
+                    ref            = 'search'
+                    componentClass = 'input'
+                    value          = {@props.local_view_state.get('search') ? ''}
+                    onChange       = {=>@props.actions.set_local_view_state(search: ReactDOM.findDOMNode(@refs.search).value)}
+                    onBlur         = {=>@props.actions.blur_find_box()}
+                    onKeyDown      = {@key_down}
+                />
+                <InputGroup.Button>
+                    <Button onClick={@clear_and_focus_search_input}>
+                        <Icon name='times-circle' />
+                    </Button>
+                </InputGroup.Button>
+            </InputGroup>
+        </FormGroup>
 
     render: ->
         if not @props.actions? or not @props.local_view_state?
             return <span />
-        <div style={float: 'right', padding: '10px'}>
-            {@render_search()}
-            {@render_toggle('done')}
-            {@render_toggle('deleted')}
-        </div>
+        <Row style={padding: '0 5px'}>
+            <Col md={8}>
+                {@render_search()}
+            </Col>
+            <Col md={2}>
+                {@render_toggle('done')}
+            </Col>
+            <Col md={2}>
+                {@render_toggle('deleted')}
+            </Col>
+        </Row>

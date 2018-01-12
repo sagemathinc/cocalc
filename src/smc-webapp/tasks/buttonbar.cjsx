@@ -34,16 +34,37 @@ exports.ButtonBar = rclass
                @props.sort_column             != next.sort_column         or \
                @props.read_only               != next.read_only
 
+    render_top_button: ->  # not using this -- not sure it is a good/useful idea...
+        <ButtonGroup>
+            <Button
+                key      = 'up'
+                onClick  = {@props.actions.move_task_to_top}
+                disabled = {@props.sort_column != 'Custom Order' or @props.read_only}
+                >
+                <Icon name='hand-o-up' /> Top
+            </Button>
+            <Button
+                key      = 'down'
+                onClick  = {@props.actions.move_task_to_bottom}
+                disabled = {@props.sort_column != 'Custom Order' or @props.read_only}
+                >
+                <Icon name='hand-o-down' /> Bottom
+            </Button>
+        </ButtonGroup>
+
     render_task_group: ->
         spacer = <span style={marginLeft:'5px'} />
         <span key='task'>
-            <Button
-                key      = 'new'
-                onClick  = {@props.actions.new_task}
-                disabled = {@props.read_only}
-                >
-                <Icon name='plus-circle' /> New
-            </Button>
+            <ButtonGroup>
+                <Button
+                    key      = 'new'
+                    onClick  = {@props.actions.new_task}
+                    disabled = {@props.read_only}
+                    >
+                    <Icon name='plus-circle' /> New
+                </Button>
+                {@render_delete()}
+            </ButtonGroup>
             {spacer}
             <ButtonGroup>
                 <Button
@@ -62,23 +83,8 @@ exports.ButtonBar = rclass
                 </Button>
             </ButtonGroup>
             {spacer}
-            <ButtonGroup>
-                <Button
-                    key      = 'up'
-                    onClick  = {@props.actions.move_task_to_top}
-                    disabled = {@props.sort_column != 'Custom Order' or @props.read_only}
-                    >
-                    <Icon name='hand-o-up' /> Top
-                </Button>
-                <Button
-                    key      = 'down'
-                    onClick  = {@props.actions.move_task_to_bottom}
-                    disabled = {@props.sort_column != 'Custom Order' or @props.read_only}
-                    >
-                    <Icon name='hand-o-down' /> Bottom
-                </Button>
-            </ButtonGroup>
-            {spacer}
+            {### @render_top_buttom() ###}
+            {### spacer ###}
             <ButtonGroup>
                 <Button
                     key     = 'font-increase'
@@ -95,18 +101,9 @@ exports.ButtonBar = rclass
             </ButtonGroup>
         </span>
 
-    render_delete_button: ->
-        <Button
-            key      = 'delete'
-            disabled = {not @props.current_task_id  or @props.read_only}
-            onClick  = {@props.actions.delete_current_task} >
-            <Icon name='trash-o' /> Delete Task
-        </Button>
-
     render_undelete_button: ->
         <Button
             key      = 'delete'
-            bsStyle  = 'danger'
             disabled = {not @props.current_task_id  or @props.read_only}
             onClick  = {@props.actions.undelete_current_task} >
             <Icon name='trash-o' /> Undelete Task
@@ -114,12 +111,18 @@ exports.ButtonBar = rclass
 
     render_delete: ->
         if @props.current_task_is_deleted
-            button = @render_undelete_button()
+            return @render_undelete_button()
         else
-            button = @render_delete_button()
-        <div style={float:'right'}>
-            {button}
-        </div>
+            return @render_delete_button()
+
+    render_delete_button: ->
+        <Button
+            key      = 'delete'
+            disabled = {not @props.current_task_id  or @props.read_only}
+            onClick  = {@props.actions.delete_current_task} >
+            <Icon name='trash-o' /> Delete
+        </Button>
+
 
     render_help: ->
         <Button
@@ -147,12 +150,10 @@ exports.ButtonBar = rclass
         </ButtonGroup>
 
     render: ->
-        <div style={padding: '2px 5px'}>
+        <div style={padding: '0px 5px 5px'}>
             {@render_task_group()}
             <Space/>
             {@render_help()}
             <Space/>
             {@render_editor_group()}
-            <Space/>
-            {@render_delete()}
         </div>

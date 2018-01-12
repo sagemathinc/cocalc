@@ -515,6 +515,7 @@ plugins = [
     loaderOptions
 ]
 
+
 if STATICPAGES
     plugins = plugins.concat(staticPages)
     entries =
@@ -536,9 +537,17 @@ else
         #linkFilesIntoTargetPlugin,
     ])
 
-plugins = plugins.concat(staticPages)
+if DEVMODE
+    console.log "******************************************************"
+    console.log "WARNING! For dev you **must** explicitly visit"
+    console.log "     https://cocalc.com/[project_id]/port/[...]/app"
+    console.log "since the / static pages are currently disabled."
+    console.log "See https://github.com/sagemathinc/cocalc/issues/2629"
+    console.log "******************************************************"
+else
+    plugins = plugins.concat(staticPages)
+
 plugins = plugins.concat([assetsPlugin, statsWriterPlugin])
-# video chat plugins would be added here
 
 if PRODMODE
     console.log "production mode: enabling compression"

@@ -21,20 +21,23 @@ describe 'test changing password -- ', ->
         api.call
             event : 'change_password'
             body :
-                email_address     : "cocalc@sagemath.com"
-                old_password      : 'blah'
-                new_password      : 'new-blah'
+                account_id   : api.account_id
+                old_password : 'blah'
+                new_password : 'new-blah'
             cb    : (err, resp) ->
+                if err
+                    done(err)
+                    return
                 expect(resp?.event).toBe('changed_password')
-                done(err)
+                done()
 
     it "tries with invalid old password and fails (this also confirms that password was changed)", (done) ->
         api.call
             event : 'change_password'
             body :
-                email_address     : "cocalc@sagemath.com"
-                old_password      : 'blah'
-                new_password      : 'new2-blah'
+                account_id   : api.account_id
+                old_password : 'blah'
+                new_password : 'new2-blah'
             cb    : (err, resp) ->
                 expect(resp?.error).toBe('invalid old password')
                 done(err)
@@ -43,9 +46,9 @@ describe 'test changing password -- ', ->
         api.call
             event : 'change_password'
             body :
-                email_address     : "cocalc@sagemath.com"
-                old_password      : 'new-blah'
-                new_password      : 'blah'
+                account_id   : api.account_id
+                old_password : 'new-blah'
+                new_password : 'blah'
             cb    : (err, resp) ->
                 expect(resp?.event).toBe('changed_password')
                 done(err)
@@ -65,10 +68,10 @@ describe 'test changing password -- ', ->
         api.call
             event : 'change_password'
             body :
-                email_address     : "cocalc2@sagemath.com"
-                new_password      : 'blah'
+                account_id   : account_id2
+                new_password : 'blah'
             cb    : (err, resp) ->
-                expect(resp?.error).toEqual(other: 'invalid account_id')
+                expect(resp?.error).toEqual('invalid old password')  # invalid since not auth'd as them - a generic response
                 done(err)
 
     api_key2 = undefined
@@ -84,8 +87,8 @@ describe 'test changing password -- ', ->
             event : 'change_password'
             api_key : api_key2
             body :
-                email_address     : "cocalc2@sagemath.com"
-                new_password      : 'blah'
+                account_id   : account_id2
+                new_password : 'blah'
             cb    : (err, resp) ->
                 expect(resp?.error).toEqual(new_password: 'Password must be between 6 and 64 characters in length.')
                 done(err)
@@ -95,8 +98,8 @@ describe 'test changing password -- ', ->
             event : 'change_password'
             api_key : api_key2
             body :
-                email_address     : "cocalc2@sagemath.com"
-                new_password      : 'blahblahblahblahblahblahblahblahblahblahblahblahblahblahblahblahblahblahblahblahblahblahblahblahblahblahblahblahblahblahblahblahblahblahblahblahblahblahblahblahblahblahblahblahblahblahblahblahblahblahblahblahblahblahblahblahblahblahblahblahblahblahblahblahblahblah'
+                account_id   : account_id2
+                new_password : 'blahblahblahblahblahblahblahblahblahblahblahblahblahblahblahblahblahblahblahblahblahblahblahblahblahblahblahblahblahblahblahblahblahblahblahblahblahblahblahblahblahblahblahblahblahblahblahblahblahblahblahblahblahblahblahblahblahblahblahblahblahblahblahblahblahblah'
             cb    : (err, resp) ->
                 expect(resp?.error).toEqual(new_password: 'Password must be between 6 and 64 characters in length.')
                 done(err)
@@ -106,8 +109,8 @@ describe 'test changing password -- ', ->
             event : 'change_password'
             api_key : api_key2
             body :
-                email_address     : "cocalc2@sagemath.com"
-                new_password      : 'blahblah'
+                account_id   : account_id2
+                new_password : 'blahblah'
             cb    : (err, resp) ->
                 expect(resp?.error).toBe(undefined)
                 done(err)
@@ -199,7 +202,7 @@ describe 'tests sending a forgot password email --', ->
     it 'sends a forgot password email', (done) ->
         api.call
             event : 'forgot_password'
-            body :
+            body  :
                 email_address : 'cocalc@sagemath.com'
             cb : (err, resp) ->
                 expect(resp.error).toBe(false)

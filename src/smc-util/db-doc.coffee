@@ -354,7 +354,13 @@ class DBDoc
     to_str: =>
         if @_to_str_cache?  # save to cache since this is an immutable object
             return @_to_str_cache
-        return @_to_str_cache = (misc.to_json(x) for x in @to_obj()).join('\n')
+        v = (misc.to_json(x) for x in @to_obj())
+        # NOTE: It is *VERY* important to sort this!  Otherwise, the hash of this document, which is used by
+        # syncstring, isn't stable in terms of the value of the document.  This can in theory
+        # cause massive trouble with file saves, e.g., of jupyter notebooks, courses, etc. (They save fine, but
+        # they appear not to for the user...).
+        v.sort()
+        return @_to_str_cache = v.join('\n')
 
     # x = javascript object
     _primary_key_part: (x) =>

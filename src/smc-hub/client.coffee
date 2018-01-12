@@ -1214,6 +1214,7 @@ class exports.Client extends EventEmitter
                         project_id : mesg.project_id
                         to         : locals.email_address
                         cb         : (err, when_sent) =>
+                            #console.log("mesg_invite_collaborator email #{locals.email_address}, #{err}, #{when_sent}")
                             if err
                                 cb(err)
                             else if when_sent >= misc.days_ago(7)   # successfully sent < one week ago -- don't again

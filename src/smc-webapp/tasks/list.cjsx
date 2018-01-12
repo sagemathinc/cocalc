@@ -23,6 +23,7 @@ exports.TaskList = SortableContainer rclass
         current_task_id  : rtypes.string
         local_task_state : rtypes.immutable.Map
         scroll           : rtypes.immutable.Map  # scroll position -- only used when initially mounted, so is NOT in shouldComponentUpdate below.
+        scroll_into_view : rtypes.bool
         style            : rtypes.object
         font_size        : rtypes.number
         sortable         : rtypes.bool
@@ -44,11 +45,31 @@ exports.TaskList = SortableContainer rclass
     componentWillUnmount: ->
         @save_scroll_position()
 
+    componentWillReceiveProps: (next) ->
+        if next.scroll_into_view
+            @scroll_into_view()
+
+    scroll_into_view: ->
+        @_scroll_into_view()
+        @props.actions.scroll_into_view_done()
+
+    _scroll_into_view: ->
+        if not @props.current_task_id?
+            return
+        elt = $(ReactDOM.findDOMNode(@refs.main_div))
+        cur = $(ReactDOM.findDOMNode(@refs[@props.current_task_id]))
+        if cur.length == 0
+            return
+        if cur.length > 0
+            # use jquery because it works!?
+            cur.scrollintoview(direction:'vertical', viewPadding: { y: 50 })
+
     render_task: (index, task_id) ->
         task = @props.tasks.get(task_id)
         if not task?  # task deletion and visible list might not quite immediately be in sync/consistent
             return
         <Task
+            ref              = {task_id}
             key              = {task_id}
             index            = {index}
             actions          = {@props.actions}
