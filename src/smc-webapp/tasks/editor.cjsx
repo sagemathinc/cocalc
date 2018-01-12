@@ -4,7 +4,6 @@ Top-level react component for task list
 
 {React, rclass, rtypes} = require('../smc-react')
 
-{UncommittedChanges}    = require('../jupyter/uncommitted-changes')
 {TaskList}              = require('./list')
 {ButtonBar}             = require('./buttonbar')
 {Find}                  = require('./find')
@@ -56,16 +55,6 @@ exports.TaskEditor = rclass ({name}) ->
     componentWillUnmount: ->
         @props.actions.disable_key_handler()
 
-    render_uncommitted_changes: ->
-        if not @props.has_uncommitted_changes
-            return
-        <div style={margin:'10px', padding:'10px', fontSize:'12pt'}>
-            <UncommittedChanges
-                has_uncommitted_changes = {@props.has_uncommitted_changes}
-                delay_ms                = {10000}
-                />
-        </div>
-
     render_hashtag_bar: ->
         if not @props.hashtags?
             return
@@ -106,6 +95,7 @@ exports.TaskEditor = rclass ({name}) ->
             actions                 = {@props.actions}
             read_only               = {@props.read_only}
             has_unsaved_changes     = {@props.has_unsaved_changes}
+            has_uncommitted_changes = {@props.has_uncommitted_changes}
             current_task_id         = {@props.current_task_id}
             current_task_is_deleted = {@props.tasks?.get(@props.current_task_id)?.get('deleted')}
             sort_column             = {@props.local_view_state?.getIn(['sort', 'column'])}
@@ -145,7 +135,6 @@ exports.TaskEditor = rclass ({name}) ->
 
     render: ->
         <div className='smc-vfill'>
-            {@render_uncommitted_changes()}
             {@render_hashtag_bar()}
             {@render_find_bar()}
             {@render_button_bar()}

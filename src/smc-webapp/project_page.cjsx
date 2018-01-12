@@ -274,9 +274,9 @@ FreeProjectWarning = rclass ({name}) ->
         ###
 
         if host and internet
-            mesg = <span>Upgrade this project, since it is on an <b>unpaid trial server</b> and has no network access.</span>
+            mesg = <span>Time to upgrade this project, since it is on an <b>unpaid trial server</b> and has no network access.</span>
         else if host
-            mesg = <span>Upgrade this project, since it is on an <b>unpaid trial server</b>.</span>
+            mesg = <span>Time to upgrade this project, since it is on an <b>unpaid trial server</b>.</span>
         else if internet
             mesg = <span>WARNING: this project does not have network access.</span>
 

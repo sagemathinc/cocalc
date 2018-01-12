@@ -5,21 +5,21 @@ Component that shows a warning message if has_uncommitted_changes is true for mo
 
 {React, ReactDOM, rclass, rtypes}  = require('../smc-react')
 
+{Tip} = require('../r_misc')
+
 STYLE =
     backgroundColor : 'red'
     color           : 'white'
-    padding         : '10px'
+    padding         : '5px'
     fontWeight      : 'bold'
     marginLeft      : '5px'
     marginRight     : '-5px'
     borderRadius    : '3px'
 
-danger = 'DANGER: File NOT sent to server and not saved to disk.  You will lose work if you close this file.'
-
 exports.UncommittedChanges = rclass
     propTypes:
-        has_uncommitted_changes  : rtypes.bool
-        delay_ms                 : rtypes.number
+        has_uncommitted_changes : rtypes.bool
+        delay_ms                : rtypes.number
 
     getInitialState: ->
         counter : 0
@@ -34,7 +34,7 @@ exports.UncommittedChanges = rclass
             return true
         @_last_change = new Date()
         setTimeout(@_check, @props.delay_ms ? 5000 + 1)
-        return next.has_uncommitted_changes != @props.has_uncommitted_changes
+        return !!next.has_uncommitted_changes != !!@props.has_uncommitted_changes
 
     componentWillUnmount: ->
         @_mounted = false
@@ -45,11 +45,6 @@ exports.UncommittedChanges = rclass
     render: ->
         if not @props.has_uncommitted_changes or (new Date() - @_last_change < (@props.delay_ms ? 5000))
             return <span/>
-        # actually render it.
-        <span
-            style = {STYLE}
-            title = {danger}
-        >
+        <span style={STYLE}>
             NOT saved!
         </span>
-
