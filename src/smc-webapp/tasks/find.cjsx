@@ -66,6 +66,7 @@ exports.Find = rclass
                     value          = {@props.local_view_state.get('search') ? ''}
                     onChange       = {=>@props.actions.set_local_view_state(search: ReactDOM.findDOMNode(@refs.search).value)}
                     onBlur         = {=>@props.actions.blur_find_box()}
+                    onFocus        = {=>@props.actions.disable_key_handler()}
                     onKeyDown      = {@key_down}
                 />
                 <InputGroup.Button>
