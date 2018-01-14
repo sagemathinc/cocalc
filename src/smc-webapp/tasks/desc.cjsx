@@ -60,13 +60,6 @@ exports.Description = rclass
             </div>
         </div>
 
-    render_close_button: ->
-        if not @props.editing
-            return
-        <Button onClick={@stop_editing}>
-            Close
-        </Button>
-
     render_desc: ->
         if @props.editing
             return
@@ -88,6 +81,5 @@ exports.Description = rclass
             return @render_desc()
         <div>
             {@render_editor()}
-            {@render_close_button()}
             {@render_desc()}
         </div>

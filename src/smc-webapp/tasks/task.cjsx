@@ -101,9 +101,9 @@ exports.Task = rclass
             borderRadius : '4px'
             background   : 'white'
         if @props.is_current
-            style.border       = '2px solid #08c'
+            style.border       = '1px solid #08c'
         else
-            style.border = '2px solid lightgrey'
+            style.border = '1px solid #888'
         if @props.task.get('deleted')
             style.background = '#d9534f'
             style.color  = '#fff'

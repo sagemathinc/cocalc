@@ -131,7 +131,7 @@ exports.DescriptionEditor = rclass
         @_cm_change = debounce(@_cm_save, 1000)
         @cm.on('change', @_cm_change)
         @cm.on('focus',=> @props.actions.disable_key_handler())
-        @cm.on('blur', => @props.actions.enable_key_handler())
+        @cm.on('blur', => @props.actions.stop_editing_desc(@props.task_id); @props.actions.enable_key_handler())
 
         # replace undo/redo by our sync aware versions
         @cm.undo = @_cm_undo
