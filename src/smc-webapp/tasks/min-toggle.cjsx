@@ -24,7 +24,7 @@ exports.MinToggle = rclass
             name = 'caret-right'
         else
             name = 'caret-down'
-        return <Icon name={name} style={cursor:'pointer'} />
+        return <Icon name={name} />
 
     toggle_state: ->
         if @props.minimize

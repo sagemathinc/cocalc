@@ -14,7 +14,6 @@ misc         = require('smc-util/misc')
 SHOW_DONE_STYLE =
     fontSize     : '12pt'
     color        : '#666'
-    cursor       : 'pointer'
     padding      : '5px 15px'
     borderBottom : '1px solid lightgrey'
 
