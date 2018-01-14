@@ -27,6 +27,7 @@ exports.Task = rclass
         font_size        : rtypes.number
         sortable         : rtypes.bool
         read_only        : rtypes.bool
+        selected_hashtags: rtypes.immutable.Map
 
     shouldComponentUpdate: (next) ->
         return @props.task              != next.task             or \
@@ -36,7 +37,8 @@ exports.Task = rclass
                @props.min_desc          != next.min_desc         or \
                @props.font_size         != next.font_size        or \
                @props.sortable          != next.sortable         or \
-               @props.read_only         != next.read_only
+               @props.read_only         != next.read_only        or \
+               @props.selected_hashtags != next.selected_hashtags
 
     render_drag_handle: ->
         <DragHandle sortable={@props.sortable}/>
@@ -68,6 +70,7 @@ exports.Task = rclass
             is_current = {@props.is_current}
             font_size  = {@props.font_size}
             read_only  = {@props.read_only}
+            selected_hashtags = {@props.selected_hashtags}
         />
 
     render_last_edited: ->

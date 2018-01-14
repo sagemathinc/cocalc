@@ -28,15 +28,17 @@ exports.TaskList = SortableContainer rclass
         font_size        : rtypes.number
         sortable         : rtypes.bool
         read_only        : rtypes.bool
+        selected_hashtags : rtypes.immutable.Map
 
     shouldComponentUpdate: (next) ->
-        return @props.tasks            != next.tasks or \
-               @props.visible          != next.visible or \
-               @props.current_task_id  != next.current_task_id or \
-               @props.local_task_state != next.local_task_state or \
-               @props.font_size        != next.font_size or \
-               @props.sortable         != next.sortable or \
-               @props.read_only        != next.read_only
+        return @props.tasks             != next.tasks or \
+               @props.visible           != next.visible or \
+               @props.current_task_id   != next.current_task_id or \
+               @props.local_task_state  != next.local_task_state or \
+               @props.font_size         != next.font_size or \
+               @props.sortable          != next.sortable or \
+               @props.read_only         != next.read_only or \
+               @props.selected_hashtags != next.selected_hashtags
 
     componentDidMount: ->
         if @props.scroll?
@@ -83,6 +85,7 @@ exports.TaskList = SortableContainer rclass
             font_size        = {@props.font_size}
             sortable         = {@props.sortable}
             read_only        = {@props.read_only}
+            selected_hashtags= {@props.selected_hashtags}
         />
 
     render_tasks: ->

@@ -124,6 +124,7 @@ exports.TaskEditor = rclass ({name}) ->
             onSortEnd        = {@on_sort_end}
             useDragHandle    = {true}
             lockAxis         = {'y'}
+            selected_hashtags = {@props.local_view_state?.get('selected_hashtags')}
             lockToContainerEdges = {true}
         />
 
