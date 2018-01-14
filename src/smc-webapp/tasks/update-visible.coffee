@@ -10,7 +10,7 @@ misc = require('smc-util/misc')
 
 {SORT_INFO, HEADINGS, HEADINGS_DIR} = require('./headings')
 
-exports.update_visible = (tasks, view, counts, current_task_id) ->
+exports.update_visible = (tasks, local_tasks, view, counts, current_task_id) ->
     show_deleted    = !!view.get('show_deleted')
     show_done       = !!view.get('show_done')
 
@@ -60,13 +60,16 @@ exports.update_visible = (tasks, view, counts, current_task_id) ->
             new_counts.done    += 1
         if task.get('deleted')
             new_counts.deleted += 1
-        if not show_deleted and task.get('deleted')
-            return
-        if not show_done and task.get('done')
-            return
+
+        editing_desc = local_tasks.getIn([id, 'editing_desc'])
+        if not editing_desc
+            if not show_deleted and task.get('deleted')
+                return
+            if not show_done and task.get('done')
+                return
 
         desc = task.get('desc')
-        if search_matches(search, desc)
+        if search_matches(search, desc) or editing_desc
             visible = 1  # tag of a currently visible task
             if id == current_task_id
                 current_is_visible = true

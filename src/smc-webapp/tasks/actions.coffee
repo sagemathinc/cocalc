@@ -123,11 +123,12 @@ class exports.TaskActions extends Actions
     __update_visible: =>
         tasks           = @store.get('tasks')
         view            = @store.get('local_view_state')
+        local_tasks     = @store.get('local_task_state')
         current_task_id = @store.get('current_task_id')
         counts          = @store.get('counts')
 
         # obj explicit to avoid giving update_visible power to change anything about state...
-        obj = update_visible(tasks, view, counts, current_task_id)
+        obj = update_visible(tasks, local_tasks, view, counts, current_task_id)
         obj = misc.copy_with(obj,
                 ['visible', 'current_task_id', 'counts', 'hashtags', 'search_desc'])
         @setState(obj)
@@ -250,7 +251,6 @@ class exports.TaskActions extends Actions
                 task = task.set(k, immutable.fromJS(v))
             tasks = tasks.set(task_id, task)
             @setState(tasks: tasks)
-
 
     delete_task: (task_id) =>
         @set_task(task_id, {deleted: true})

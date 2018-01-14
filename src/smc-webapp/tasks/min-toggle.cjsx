@@ -24,7 +24,7 @@ exports.MinToggle = rclass
             name = 'caret-right'
         else
             name = 'caret-down'
-        return <Icon name={name} style={cursor:'pointer'} />
+        return <Icon name={name} />
 
     toggle_state: ->
         if @props.minimize
@@ -47,8 +47,4 @@ exports.MinToggle = rclass
                 </div>
             </Tip>
         else
-            <Tip title={'After first blank line can be hidden'} delayShow={1000}>
-                <div style={fontSize:'17pt', color:'#ddd', flex:1}>
-                    {toggle}
-                </div>
-            </Tip>
+            <span />
