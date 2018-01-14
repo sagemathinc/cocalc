@@ -23,7 +23,7 @@ exports.DoneCheckbox = rclass
             name = 'check-square-o'
         else
             name = 'square-o'
-        return <Icon name={name} style={if not @props.read_only then {cursor:'pointer'}} />
+        return <Icon name={name} />
 
     toggle_done: ->
         if @props.done
@@ -33,6 +33,6 @@ exports.DoneCheckbox = rclass
 
     render: ->
         checkbox = @render_checkbox()
-        <div onClick={if not @props.read_only then @toggle_done} style={fontSize:'17pt', color:'#666', flex:1}>
+        <div onClick={if not @props.read_only then @toggle_done} style={fontSize:'17pt', color:'#888', flex:1}>
             {checkbox}
         </div>

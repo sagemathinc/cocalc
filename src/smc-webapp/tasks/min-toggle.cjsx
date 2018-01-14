@@ -12,16 +12,19 @@ exports.MinToggle = rclass
         actions  : rtypes.object
         task_id  : rtypes.string
         minimize : rtypes.bool
+        has_body : rtypes.bool
 
     shouldComponentUpdate: (next) ->
-        return @props.minimize != next.minimize
+        return @props.minimize != next.minimize or @props.has_body != next.has_body
 
     render_toggle: ->
+        if not @props.has_body
+            return <Icon name={'caret-right'} />
         if @props.minimize
             name = 'caret-right'
         else
             name = 'caret-down'
-        return <Icon name={name} style={cursor:'pointer'} />
+        return <Icon name={name} />
 
     toggle_state: ->
         if @props.minimize
@@ -33,8 +36,15 @@ exports.MinToggle = rclass
         toggle = @render_toggle()
         if not @props.actions?  # no support for toggling (e.g., history view)
             return toggle
-        <Tip title={'Toggle between showing first paragraph of task and complete task'} delayShow={1000}>
-            <div onClick={@toggle_state} style={fontSize:'17pt', color:'#666', flex:1}>
-                {toggle}
-            </div>
-        </Tip>
+        if @props.has_body
+            if @props.minimize
+                title = 'Show full description'
+            else
+                title = 'Show only up to first blank line'
+            <Tip title={title} delayShow={1000}>
+                <div onClick={@toggle_state} style={fontSize:'17pt', color:'#888', flex:1}>
+                    {toggle}
+                </div>
+            </Tip>
+        else
+            <span />

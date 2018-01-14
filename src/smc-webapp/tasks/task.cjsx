@@ -27,6 +27,7 @@ exports.Task = rclass
         font_size        : rtypes.number
         sortable         : rtypes.bool
         read_only        : rtypes.bool
+        selected_hashtags: rtypes.immutable.Map
 
     shouldComponentUpdate: (next) ->
         return @props.task              != next.task             or \
@@ -36,7 +37,8 @@ exports.Task = rclass
                @props.min_desc          != next.min_desc         or \
                @props.font_size         != next.font_size        or \
                @props.sortable          != next.sortable         or \
-               @props.read_only         != next.read_only
+               @props.read_only         != next.read_only        or \
+               @props.selected_hashtags != next.selected_hashtags
 
     render_drag_handle: ->
         <DragHandle sortable={@props.sortable}/>
@@ -49,25 +51,26 @@ exports.Task = rclass
             task_id   = {@props.task.get('task_id')}
         />
 
-    render_min_toggle: ->
+    render_min_toggle: (has_body) ->
         <MinToggle
             actions  = {@props.actions}
             task_id  = {@props.task.get('task_id')}
             minimize = {@props.min_desc}
+            has_body = {has_body}
         />
 
-    render_desc: ->
+    render_desc: (desc) ->
         <Description
             actions    = {@props.actions}
             path       = {@props.path}
             project_id = {@props.project_id}
             task_id    = {@props.task.get('task_id')}
-            desc       = {@props.task.get('desc')}
+            desc       = {desc}
             editing    = {@props.editing_desc}
-            minimize   = {@props.min_desc}
             is_current = {@props.is_current}
             font_size  = {@props.font_size}
             read_only  = {@props.read_only}
+            selected_hashtags = {@props.selected_hashtags}
         />
 
     render_last_edited: ->
@@ -98,9 +101,11 @@ exports.Task = rclass
             borderRadius : '4px'
             background   : 'white'
         if @props.is_current
-            style.border       = '2px solid #08c'
+            style.border       = '1px solid #08c'
+            style.borderLeft   = '5px solid #08c'
         else
-            style.border = '2px solid lightgrey'
+            style.border       = '1px solid #888'
+            style.borderLeft   = '5px solid #888'
         if @props.task.get('deleted')
             style.background = '#d9534f'
             style.color  = '#fff'
@@ -108,15 +113,25 @@ exports.Task = rclass
             style.color = '#888'
         if @props.font_size?
             style.fontSize = "#{@props.font_size}px"
+
+        desc = @props.task.get('desc')
+        if @props.editing_desc
+            # while editing no min toggle
+            body = undefined
+        else
+            # not editing, so maybe a min toggle...
+            {head, body} = parse_desc(desc)  # parse description into head, then body (sep by blank line)
+            if @props.min_desc
+                desc = head
         <div style={style} onClick={@on_click}>
             <Row>
                 <Col md={1} style={display: 'flex', flexDirection:'row'}>
                     {@render_drag_handle()}
                     {@render_done_checkbox()}
-                    {@render_min_toggle()}
+                    {@render_min_toggle(!!body)}
                 </Col>
                 <Col md={9}>
-                    {@render_desc()}
+                    {@render_desc(desc)}
                 </Col>
                 <Col md={1}>
                     {@render_due_date()}
@@ -126,3 +141,14 @@ exports.Task = rclass
                 </Col>
             </Row>
         </div>
+
+
+parse_desc = (s) ->
+    lines = s.trim().split('\n')
+    for i in [0...lines.length]
+        if lines[i].trim() == ''
+            if i == lines.length - 1
+                break  # all head
+            else
+                return {head:lines.slice(0,i).join('\n'), body: lines.slice(i).join('\n')}
+    return {head:s}

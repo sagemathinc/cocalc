@@ -26,6 +26,7 @@ exports.Description = rclass
         is_current : rtypes.bool
         font_size  : rtypes.number
         read_only  : rtypes.bool
+        selected_hashtags : rtypes.immutable.Map
 
     shouldComponentUpdate: (next) ->
         return @props.desc     != next.desc     or \
@@ -34,7 +35,8 @@ exports.Description = rclass
                @props.minimize != next.minimize or \
                @props.is_current != next.is_current or \
                @props.font_size  != next.font_size  or \
-               @props.read_only  != next.read_only
+               @props.read_only  != next.read_only  or \
+               @props.selected_hashtags != next.selected_hashtags
 
     edit: ->
         @props.actions.edit_desc(@props.task_id)
@@ -58,31 +60,26 @@ exports.Description = rclass
             </div>
         </div>
 
-    render_close_button: ->
-        if not @props.editing
-            return
-        <Button onClick={@stop_editing}>
-            Close
-        </Button>
-
     render_desc: ->
-        <DescriptionRendered
-            actions    = {@props.actions}
-            task_id    = {@props.task_id}
-            path       = {@props.path}
-            project_id = {@props.project_id}
-            desc       = {@props.desc}
-            minimize   = {@props.minimize}
-            read_only  = {@props.read_only}
-            />
+        if @props.editing
+            return
+        <div onClick={@edit}>
+            <DescriptionRendered
+                actions           = {@props.actions}
+                task_id           = {@props.task_id}
+                path              = {@props.path}
+                project_id        = {@props.project_id}
+                desc              = {@props.desc}
+                minimize          = {@props.minimize}
+                read_only         = {@props.read_only}
+                selected_hashtags = {@props.selected_hashtags}
+                />
+        </div>
 
     render: ->
         if @props.read_only or not @props.actions?
             return @render_desc()
         <div>
             {@render_editor()}
-            {@render_close_button()}
-            <div onClick={@edit}>
-                {@render_desc()}
-            </div>
+            {@render_desc()}
         </div>

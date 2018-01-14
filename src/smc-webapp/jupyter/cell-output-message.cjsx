@@ -178,6 +178,26 @@ Data = rclass
 
     mixins: [ImmutablePureRenderMixin]
 
+    render_html: (value) ->
+        <div>
+            <HTML
+                value      = {value}
+                project_id = {@props.project_id}
+                file_path  = {@props.directory}
+                safeHTML   = {not @props.trust}
+            />
+        </div>
+
+    render_markdown: (value) ->
+        <div>
+            <Markdown
+                value          = {value}
+                project_id     = {@props.project_id}
+                file_path      = {@props.directory}
+                safeHTML       = {not @props.trust}
+            />
+        </div>
+
     render: ->
         type  = undefined
         value = undefined
@@ -196,19 +216,9 @@ Data = rclass
                             else
                                 return <TextPlain value={value}/>
                         when 'html', 'latex'  # put latex as HTML, since jupyter requires $'s anyways.
-                            return <HTML
-                                    value      = {value}
-                                    project_id = {@props.project_id}
-                                    file_path  = {@props.directory}
-                                    safeHTML   = {not @props.trust}
-                                   />
+                            return @render_html(value)
                         when 'markdown'
-                            return <Markdown
-                                    value          = {value}
-                                    project_id     = {@props.project_id}
-                                    file_path      = {@props.directory}
-                                    safeHTML       = {not @props.trust}
-                                />
+                            return @render_markdown(value)
                 when 'image'
                     height = width = undefined
                     @props.message.get('metadata')?.forEach? (value, key) =>

@@ -26,10 +26,10 @@ exports.DragHandle = rclass
 
     render: ->
         if @props.sortable
-            color = '#666'
+            color = '#888'
             Handle = SortableDragHandle
         else
-            color = '#ccc'
+            color = '#ddd'
             Handle = DisabledDragHandle
         <div style={fontSize:'17pt', color:color, flex:1}>
             <Handle />

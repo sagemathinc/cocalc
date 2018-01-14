@@ -1854,20 +1854,6 @@ class exports.Connection extends EventEmitter
             timeout     : 30
             cb          : opts.cb
 
-    query_get_changefeed_ids: (opts) =>
-        opts = defaults opts,
-            cb : required
-        @call
-            message     : message.query_get_changefeed_ids()
-            error_event : true
-            timeout     : 30
-            cb          : (err, resp) =>
-                if err
-                    opts.cb(err)
-                else
-                    @_changefeed_ids = resp.changefeed_ids
-                    opts.cb(undefined, resp.changefeed_ids)
-
     # Send metrics to the hub this client is connected to.
     # There is no confirmation or response.
     send_metrics: (metrics) =>

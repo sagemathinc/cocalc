@@ -11,24 +11,24 @@ Button bar:
  - Help       : Show help about the task editor (link to github wiki)
 ###
 
-{React, rclass, rtypes}  = require('../smc-react')
-
-{ButtonGroup, Button} = require('react-bootstrap')
-
-{Icon, Space} = require('../r_misc')
-
+{React, rclass, rtypes} = require('../smc-react')
+{ButtonGroup, Button}   = require('react-bootstrap')
+{Icon, Space}           = require('../r_misc')
+{UncommittedChanges}    = require('../jupyter/uncommitted-changes')
 
 exports.ButtonBar = rclass
     propTypes :
         actions                 : rtypes.object.isRequired
         read_only               : rtypes.bool
         has_unsaved_changes     : rtypes.bool
+        has_uncommitted_changes : rtypes.bool
         current_task_id         : rtypes.string
         current_task_is_deleted : rtypes.bool
         sort_column             : rtypes.string
 
     shouldComponentUpdate: (next) ->
         return @props.has_unsaved_changes     != next.has_unsaved_changes or \
+               @props.has_uncommitted_changes != next.has_uncommitted_changes or \
                @props.current_task_id         != next.current_task_id     or \
                @props.current_task_is_deleted != next.current_task_is_deleted or \
                @props.sort_column             != next.sort_column         or \
@@ -140,6 +140,7 @@ exports.ButtonBar = rclass
                 disabled = {not @props.has_unsaved_changes or @props.read_only}
                 onClick  = {@props.actions.save} >
                 <Icon name='save' /> {if @props.read_only then 'Readonly' else 'Save'}
+                <UncommittedChanges has_uncommitted_changes={@props.has_uncommitted_changes} />
             </Button>
             <Button
                 key     = 'timetravel'

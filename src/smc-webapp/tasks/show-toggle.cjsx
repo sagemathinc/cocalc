@@ -45,13 +45,12 @@ exports.ShowToggle = rclass
         toggle = @render_toggle()
         if not @props.actions?  # no support for toggling (e.g., history view)
             return toggle
-        style = {cursor:'pointer'}
         if @props.count > 0  or @props.show
-            style.color = '#666'
+            color = '#666'
         else
-            style.color = '#999'
+            color = '#999'
         # Debounce is to avoid accidental double clicks.
-        <div onClick={@toggle_state} style={style}>
+        <div onClick={@toggle_state} style={color:color}>
             <span style={fontSize:'17pt'}>
                 {toggle}
             </span>
