@@ -397,10 +397,6 @@ class exports.Client extends EventEmitter
         v.sort (a,b) -> misc.cmp(a.activity ? 0, b.activity ? 0)
         return v[v.length-1].socket
 
-    # Return a list of *all* the socket connections from hubs to this local_hub
-    get_all_hub_sockets = () =>
-        return (x.socket for x in misc.values(@_hub_client_sockets))
-
     # Send a message to some hub server and await a response (if cb defined).
     call: (opts) =>
         opts = defaults opts,
@@ -498,26 +494,6 @@ class exports.Client extends EventEmitter
                 timeout : 30
                 socket  : socket
                 cb      : opts.cb
-
-    # Get a list of the ids of changefeeds that remote hubs are pushing to this project.
-    # This just does its best and if there is an error/timeout trying to get ids from a hub,
-    # assumes that hub isn't working anymore.
-    query_get_changefeed_ids: (opts) =>
-        opts = defaults opts,
-            timeout : 30
-            cb      : required    # opts.cb(undefined, [ids...])
-        ids = []
-        f = (socket, cb) =>
-            @call  # getting a message back with this id cancels listening
-                message : message.query_get_changefeed_ids()
-                timeout : opts.timeout
-                socket  : socket
-                cb      : (err, resp) =>
-                    if not err
-                        ids = ids.concat(resp.changefeed_ids)
-                    cb()
-        async.map @get_all_hub_sockets(), f, () =>
-            opts.cb(undefined, ids)
 
     # Get the synchronized table defined by the given query.
     sync_table: (query, options, debounce_interval=2000, throttle_changes=undefined) =>

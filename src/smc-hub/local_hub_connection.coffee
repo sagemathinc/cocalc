@@ -287,10 +287,6 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
                         write_mesg(mesg)
                         delete @_query_changefeeds?[mesg.id]
 
-    mesg_query_get_changefeed_ids: (mesg, write_mesg) =>
-        mesg.changefeed_ids = if @_query_changefeeds? then misc.keys(@_query_changefeeds) else []
-        write_mesg(mesg)
-
     query_cancel_all_changefeeds: (cb) =>
         if not @_query_changefeeds? or @_query_changefeeds.length == 0
             cb?(); return
@@ -390,8 +386,6 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
                         @mesg_query(mesg, write_mesg)
                     when 'query_cancel'
                         @mesg_query_cancel(mesg, write_mesg)
-                    when 'query_get_changefeed_ids'
-                        @mesg_query_get_changefeed_ids(mesg, write_mesg)
                     when 'file_written_to_project'
                         # ignore -- don't care; this is going away
                         return

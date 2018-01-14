@@ -1776,10 +1776,6 @@ class exports.Client extends EventEmitter
                         mesg.resp = resp
                         @push_to_client(mesg)
 
-    mesg_query_get_changefeed_ids: (mesg) =>
-        mesg.changefeed_ids = @_query_changefeeds ? {}
-        @push_to_client(mesg)
-
     mesg_get_usernames: (mesg) =>
         if not @account_id?
             @error_to_client(id:mesg.id, error:"user must be signed in")

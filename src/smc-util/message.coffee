@@ -2344,12 +2344,6 @@ message
     event : 'query_cancel'
     id    : undefined
 
-# used to a get array of currently active change feed id's
-message
-    event          : 'query_get_changefeed_ids'
-    id             : undefined
-    changefeed_ids : undefined
-
 ###
 API Key management for an account
 ###
