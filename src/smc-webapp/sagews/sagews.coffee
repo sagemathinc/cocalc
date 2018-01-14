@@ -81,20 +81,6 @@ class SynchronizedWorksheet extends SynchronizedDocument2
             @filename   = editor.filename
             return
 
-        opts0 =
-            cursor_interval : opts.cursor_interval
-            sync_interval   : opts.sync_interval
-        super editor, opts0
-
-    # Since we can't use in super cbs, use _init_cb as the function which will be called by the parent
-    _init_cb: =>
-        # these two lines are assumed, at least by the history browser
-        @codemirror  = @editor.codemirror
-        @codemirror1 = @editor.codemirror1
-
-        # Code execution queue.
-        @execution_queue = new ExecutionQueue(@_execute_cell_server_side, @)
-
         # We set a custom rangeFinder that is output cell marker aware.
         # See https://github.com/sagemathinc/cocalc/issues/966
         foldOptions =
@@ -111,9 +97,18 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                             cur.to.ch = cm.getLine(i).length
                         return cur
 
-        for cm in @codemirrors()
-            cm.setOption('foldOptions', foldOptions)
+        opts0 =
+            cursor_interval : opts.cursor_interval
+            sync_interval   : opts.sync_interval
+            cm_foldOptions  : foldOptions
 
+        super editor, opts0
+
+        # Code execution queue.
+        @execution_queue = new ExecutionQueue(@_execute_cell_server_side, @)
+
+    # Since we can't use in super cbs, use _init_cb as the function which will be called by the parent
+    _init_cb: =>
         @readonly = @_syncstring.get_read_only()  # TODO: harder problem -- if file state flips between read only and not, need to rerender everything...
 
         @init_hide_show_gutter()  # must be after @readonly set

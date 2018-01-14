@@ -180,6 +180,11 @@ class SynchronizedDocument2 extends SynchronizedDocument
         @opts = defaults opts,
             cursor_interval : 1000   # ignored below right now
             sync_interval   : 2000   # never send sync messages upstream more often than this
+            cm_foldOptions  : undefined
+            static_viewer   : undefined # must be considered now due to es6 classes
+
+        if @opts.static_viewer?
+            return
 
         @project_id  = @editor.project_id
         @filename    = @editor.filename
@@ -188,6 +193,10 @@ class SynchronizedDocument2 extends SynchronizedDocument
         @codemirror  = @editor.codemirror
         @codemirror1 = @editor.codemirror1
         @element     = @editor.element
+
+        if @opts.cm_foldOptions?
+            for cm in @codemirrors()
+                cm.setOption('foldOptions', @opts.foldOptions)
 
         # window.w = @
         # replace undo/redo by sync-aware versions

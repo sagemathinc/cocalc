@@ -1020,7 +1020,7 @@ class SyncDoc extends EventEmitter
                 @_set_read_only(is_read_only)
                 cb?()
 
-    load_from_disk_if_newer: (cb) =>
+    _load_from_disk_if_newer: (cb) =>
         tm     = @last_changed()
         dbg    = @_client.dbg("syncstring._load_from_disk_if_newer('#{@_path}')")
         locals = {exists: false, is_read_only: false, size: 0}

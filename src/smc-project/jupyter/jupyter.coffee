@@ -100,7 +100,13 @@ node_cleanup =>
 
 logger = undefined
 class Kernel extends EventEmitter
-    constructor : (@name, @_dbg, @_path, @_actions, usage) ->
+    constructor : (name, _dbg, _path, _actions, usage) ->
+        super()
+        @name = name
+        @_dbg = _dbg
+        @_path = _path
+        @_actions = _actions
+
         @store = key_value_store()
         {head, tail} = misc.path_split(@_path)
         @_directory = head
