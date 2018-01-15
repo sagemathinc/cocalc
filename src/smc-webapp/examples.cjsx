@@ -122,8 +122,8 @@ class ExamplesActions extends Actions
     init_data: (data) ->
         @set(data: data)
         nav_entries = []
-        for key in _.keys(data)
-            if _.keys(data[key]).length > 0
+        for key, v of data
+            if _.keys(v).length > 0
                 nav_entries.push(key)
         @set(nav_entries: nav_entries)
         @select_lang(@get('lang'))
@@ -469,7 +469,7 @@ ExamplesBody = rclass
 
     propTypes:
         actions       : rtypes.object
-        data          : rtypes.object
+        data          : rtypes.immutable
         lang          : rtypes.string
         code          : rtypes.string
         descr         : rtypes.string
@@ -488,10 +488,10 @@ ExamplesBody = rclass
         search_str : ''
 
     componentDidMount: ->
-        @scrollTo0 = _.debounce (() -> $(ReactDOM.findDOMNode(@refs.list_0)).find('.active').scrollintoview()), 50
-        @scrollTo1 = _.debounce (() -> $(ReactDOM.findDOMNode(@refs.list_1)).find('.active').scrollintoview()), 50
-        @scrollTo2 = _.debounce (() -> $(ReactDOM.findDOMNode(@refs.list_2)).find('.active').scrollintoview()), 50
-        @scrollToS = _.debounce (() -> $(ReactDOM.findDOMNode(@refs.search_results_list)).find('.active').scrollintoview()), 50
+        @scrollTo0 = _.debounce((() -> $(ReactDOM.findDOMNode(@refs.list_0)).find('.active').scrollintoview()), 50)
+        @scrollTo1 = _.debounce((() -> $(ReactDOM.findDOMNode(@refs.list_1)).find('.active').scrollintoview()), 50)
+        @scrollTo2 = _.debounce((() -> $(ReactDOM.findDOMNode(@refs.list_2)).find('.active').scrollintoview()), 50)
+        @scrollToS = _.debounce((() -> $(ReactDOM.findDOMNode(@refs.search_results_list)).find('.active').scrollintoview()), 50)
 
     componentDidUpdate: (props, state) ->
         @scrollTo0()
@@ -506,8 +506,7 @@ ExamplesBody = rclass
     category_list: (level) ->
         cat  = @props["cat#{level}"]
         list = @props["catlist#{level}"]
-        if not list?
-            list = []
+        list ?= []
         # don't use ListGroup & ListGroupItem with onClick, because then there are div/buttons (instead of ul/li) and layout is f'up
         <ul className={'list-group'} ref={"list_#{level}"}>
         {
