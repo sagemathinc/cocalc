@@ -1105,17 +1105,21 @@ exports.DateTimePicker = rclass
         on_change : rtypes.func.isRequired
         on_focus  : rtypes.func
         on_blur   : rtypes.func
-
+        autoFocus : rtypes.bool
+        onKeyDown : rtypes.func
 
     render: ->
         <DateTimePicker
             step       = {60}
             editFormat = {'MMM d, yyyy h:mm tt'}
+            format     = {'MMM d, yyyy h:mm tt'}
             parse      = {DATETIME_PARSE_FORMATS}
             value      = {@props.value}
             onChange   = {@props.on_change}
             onFocus    = {@props.on_focus}
             onBlur     = {@props.on_blur}
+            autoFocus  = {@props.autoFocus}
+            defaultOpen = {'date'}
         />
 
 Calendar = require('react-widgets/lib/Calendar')

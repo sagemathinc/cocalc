@@ -11,11 +11,12 @@ Task due date
 {DateTimePicker, Icon, Space, TimeAgo} = require('../r_misc')
 
 STYLE =
+    zIndex       : 1
+    position     : 'absolute'
     border       : '1px solid lightgrey'
     background   : 'white'
     borderRadius : '4px'
-    margin       : '5px'
-    width        : '400px'
+    margin       : '-20px 0 0 -150px'  # we use a negative margin to adjust absolute position of calendar popover (hackish)
     boxShadow    : '0 6px 12px rgba(0,0,0,.175)'
 
 exports.DueDate = rclass
@@ -32,11 +33,12 @@ exports.DueDate = rclass
                @props.editing   != next.editing  or \
                @props.read_only != next.read_only
 
-    toggle_edit: ->
-        if @props.editing
-            @props.actions.stop_editing_due_date(@props.task_id)
-        else
-            @props.actions.edit_due_date(@props.task_id)
+    stop_editing: ->
+        @props.actions.stop_editing_due_date(@props.task_id)
+        @props.actions.enable_key_handler()
+
+    edit: ->
+        @props.actions.edit_due_date(@props.task_id)
 
     set_due_date: (date) ->
         @props.actions.set_due_date(@props.task_id, date)
@@ -50,16 +52,12 @@ exports.DueDate = rclass
             value = new Date()
         <div style={STYLE}>
             <DateTimePicker
-                value        = {value}
-                on_change    = {(date) => @set_due_date(date - 0)}
-                on_focus  = {=>@props.actions.disable_key_handler()}
-                on_blur   = {=>@props.actions.enable_key_handler()}
+                value     = {value}
+                on_change = {(date) => @set_due_date(date - 0)}
+                on_focus  = {@props.actions.disable_key_handler}
+                on_blur   = {@stop_editing}
+                autoFocus = {true}
             />
-            <div style={textAlign:'right', margin:'2px'}>
-                <Button onClick={@toggle_edit}>
-                    Close
-                </Button>
-            </div>
         </div>
 
     render_remove_due_date: ->
@@ -82,7 +80,7 @@ exports.DueDate = rclass
             elt = <TimeAgo date = {new Date(@props.due_date)}/>
         else
             elt = <span>none</span>
-        <span onClick={if not @props.read_only then @toggle_edit} style={style} >
+        <span onClick={if not @props.read_only then @edit} style={style} >
             {elt}
         </span>
 
