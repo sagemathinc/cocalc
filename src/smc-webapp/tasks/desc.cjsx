@@ -39,7 +39,16 @@ exports.Description = rclass
                @props.selected_hashtags != next.selected_hashtags
 
     edit: ->
+        cur_sel = window?.getSelection()?.toString()
+        if cur_sel and @_sel != cur_sel
+            # clicking to select something, so do NOT switch to edit.
+            # Do it via comparing selection, in case of clicking into a partial selection.
+            return
         @props.actions.edit_desc(@props.task_id)
+
+    mouse_down: ->
+        @_sel = window?.getSelection()?.toString()
+        console.log 'mouse down', @_sel
 
     stop_editing: ->
         @props.actions.stop_editing_desc(@props.task_id)
@@ -63,7 +72,10 @@ exports.Description = rclass
     render_desc: ->
         if @props.editing
             return
-        <div onClick={@edit}>
+        <div
+            onClick     = {@edit}
+            onMouseDown = {@mouse_down}
+        >
             <DescriptionRendered
                 actions           = {@props.actions}
                 task_id           = {@props.task_id}
