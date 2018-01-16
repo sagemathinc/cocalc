@@ -114,6 +114,7 @@ class Kernel extends EventEmitter
         @_set_state('off')
         @_identity = misc.uuid()
         @_start_time = new Date() - 0
+        @_execute_code_queue = []
         _jupyter_kernels[@_path] = @
         dbg = @dbg('constructor')
         dbg()
