@@ -861,7 +861,7 @@ exports.commands =
 
                     class C(A, B):
                         \"\"\"
-                        This is a class that inerits from classes A and B.
+                        This is a class that inherits from classes A and B.
                         \"\"\"
                         def __repr__(self):
                             return "instance of C"
