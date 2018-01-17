@@ -143,6 +143,11 @@ class exports.TaskActions extends Actions
         unique = true
         tasks.forEach (task, id) =>
             pos = task.get('position')
+            if not pos?
+                # no position set at all -- just arbitrarily set it to 0; it'll get
+                # fixed below, if this conflicts.
+                pos = 0
+                tasks = tasks.set(id, task.set('position', 0))
             if s[pos]  # already got this position -- so they can't be unique
                 unique = false
                 return false
