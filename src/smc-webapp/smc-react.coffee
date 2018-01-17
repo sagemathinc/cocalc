@@ -592,7 +592,7 @@ exports.ReactDOM = require('react-dom')
 if DEBUG
     smc?.redux = redux  # for convenience in the browser (mainly for debugging)
 
-exports._internals =
+_internals =
         AppRedux                 : AppRedux
         harvest_import_functions : harvest_import_functions
         harvest_own_functions    : harvest_own_functions
@@ -600,7 +600,5 @@ exports._internals =
         connect_component        : connect_component
         react_component          : react_component
 
-
-
-
-
+if process?.env?.SMC_TEST
+    exports._internals = _internals
