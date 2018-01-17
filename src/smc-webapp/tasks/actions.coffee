@@ -127,10 +127,11 @@ class exports.TaskActions extends Actions
         current_task_id = @store.get('current_task_id')
         counts          = @store.get('counts')
 
-        # obj explicit to avoid giving update_visible power to change anything about state...
         obj = update_visible(tasks, local_tasks, view, counts, current_task_id)
+        # We make obj explicit to avoid giving update_visible power to change anything about state...
+        # This is just "explicit is better than implicit".
         obj = misc.copy_with(obj,
-                ['visible', 'current_task_id', 'counts', 'hashtags', 'search_desc'])
+                ['visible', 'current_task_id', 'counts', 'hashtags', 'search_desc', 'search_terms'])
         @setState(obj)
 
     _ensure_positions_are_unique: =>

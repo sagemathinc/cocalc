@@ -28,6 +28,7 @@ exports.Task = rclass
         sortable         : rtypes.bool
         read_only        : rtypes.bool
         selected_hashtags: rtypes.immutable.Map
+        search_terms     : rtypes.immutable.Set
 
     shouldComponentUpdate: (next) ->
         return @props.task              != next.task             or \
@@ -38,7 +39,8 @@ exports.Task = rclass
                @props.font_size         != next.font_size        or \
                @props.sortable          != next.sortable         or \
                @props.read_only         != next.read_only        or \
-               @props.selected_hashtags != next.selected_hashtags
+               @props.selected_hashtags != next.selected_hashtags or \
+               @props.search_terms      != next.search_terms
 
     render_drag_handle: ->
         <DragHandle sortable={@props.sortable}/>
@@ -61,16 +63,17 @@ exports.Task = rclass
 
     render_desc: (desc) ->
         <Description
-            actions    = {@props.actions}
-            path       = {@props.path}
-            project_id = {@props.project_id}
-            task_id    = {@props.task.get('task_id')}
-            desc       = {desc}
-            editing    = {@props.editing_desc}
-            is_current = {@props.is_current}
-            font_size  = {@props.font_size}
-            read_only  = {@props.read_only}
+            actions           = {@props.actions}
+            path              = {@props.path}
+            project_id        = {@props.project_id}
+            task_id           = {@props.task.get('task_id')}
+            desc              = {desc}
+            editing           = {@props.editing_desc}
+            is_current        = {@props.is_current}
+            font_size         = {@props.font_size}
+            read_only         = {@props.read_only}
             selected_hashtags = {@props.selected_hashtags}
+            search_terms      = {@props.search_terms}
         />
 
     render_last_edited: ->

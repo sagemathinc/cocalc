@@ -105,4 +105,6 @@ exports.update_visible = (tasks, local_tasks, view, counts, current_task_id) ->
         counts          : counts
         hashtags        : immutable.fromJS(hashtags)
         search_desc     : search.join(' ')
+        search_terms    : immutable.Set((x for x in search when x[0] != '#' and x[0] != '-'))
+        nonhash_search  : immutable.List((x for x in search when x[0] != '#'))
     return obj

@@ -27,15 +27,17 @@ exports.Description = rclass
         font_size  : rtypes.number
         read_only  : rtypes.bool
         selected_hashtags : rtypes.immutable.Map
+        search_terms : rtypes.immutable.Set
 
     shouldComponentUpdate: (next) ->
-        return @props.desc     != next.desc     or \
-               @props.task_id  != next.task_id  or \
-               @props.editing  != next.editing  or \
-               @props.minimize != next.minimize or \
-               @props.is_current != next.is_current or \
-               @props.font_size  != next.font_size  or \
-               @props.read_only  != next.read_only  or \
+        return @props.desc              != next.desc     or \
+               @props.task_id           != next.task_id  or \
+               @props.editing           != next.editing  or \
+               @props.minimize          != next.minimize or \
+               @props.is_current        != next.is_current or \
+               @props.font_size         != next.font_size  or \
+               @props.read_only         != next.read_only  or \
+               @props.search_terms      != next.search_terms or \
                @props.selected_hashtags != next.selected_hashtags
 
     edit: ->
@@ -48,7 +50,6 @@ exports.Description = rclass
 
     mouse_down: ->
         @_sel = window?.getSelection()?.toString()
-        console.log 'mouse down', @_sel
 
     stop_editing: ->
         @props.actions.stop_editing_desc(@props.task_id)
@@ -58,11 +59,13 @@ exports.Description = rclass
             return
         <div>
             <DescriptionEditor
-                actions    = {@props.actions}
-                task_id    = {@props.task_id}
-                desc       = {@props.desc}
-                is_current = {@props.is_current}
-                font_size  = {@props.font_size}
+                actions           = {@props.actions}
+                task_id           = {@props.task_id}
+                desc              = {@props.desc}
+                is_current        = {@props.is_current}
+                font_size         = {@props.font_size}
+                selected_hashtags = {@props.selected_hashtags}
+                search_terms      = {@props.search_terms}
             />
             <div style={color:'#666', paddingTop: '5px', float: 'right'}>
                 Use <a href='https://help.github.com/categories/writing-on-github/' target='_blank'>Markdown</a>, LaTeX and hashtags.
@@ -85,6 +88,7 @@ exports.Description = rclass
                 minimize          = {@props.minimize}
                 read_only         = {@props.read_only}
                 selected_hashtags = {@props.selected_hashtags}
+                search_terms      = {@props.search_terms}
                 />
         </div>
 

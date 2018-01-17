@@ -15,20 +15,21 @@ Task = SortableElement(Task)
 
 exports.TaskList = SortableContainer rclass
     propTypes :
-        actions          : rtypes.object
-        path             : rtypes.string
-        project_id       : rtypes.string
-        tasks            : rtypes.immutable.Map.isRequired
-        visible          : rtypes.immutable.List.isRequired
-        current_task_id  : rtypes.string
-        local_task_state : rtypes.immutable.Map
-        scroll           : rtypes.immutable.Map  # scroll position -- only used when initially mounted, so is NOT in shouldComponentUpdate below.
-        scroll_into_view : rtypes.bool
-        style            : rtypes.object
-        font_size        : rtypes.number
-        sortable         : rtypes.bool
-        read_only        : rtypes.bool
+        actions           : rtypes.object
+        path              : rtypes.string
+        project_id        : rtypes.string
+        tasks             : rtypes.immutable.Map.isRequired
+        visible           : rtypes.immutable.List.isRequired
+        current_task_id   : rtypes.string
+        local_task_state  : rtypes.immutable.Map
+        scroll            : rtypes.immutable.Map  # scroll position -- only used when initially mounted, so is NOT in shouldComponentUpdate below.
+        scroll_into_view  : rtypes.bool
+        style             : rtypes.object
+        font_size         : rtypes.number
+        sortable          : rtypes.bool
+        read_only         : rtypes.bool
         selected_hashtags : rtypes.immutable.Map
+        search_terms      : rtypes.immutable.Set
 
     shouldComponentUpdate: (next) ->
         return @props.tasks             != next.tasks or \
@@ -38,7 +39,8 @@ exports.TaskList = SortableContainer rclass
                @props.font_size         != next.font_size or \
                @props.sortable          != next.sortable or \
                @props.read_only         != next.read_only or \
-               @props.selected_hashtags != next.selected_hashtags
+               @props.selected_hashtags != next.selected_hashtags or \
+               @props.search_terms      != next.search_terms
 
     componentDidMount: ->
         if @props.scroll?
@@ -86,6 +88,7 @@ exports.TaskList = SortableContainer rclass
             sortable         = {@props.sortable}
             read_only        = {@props.read_only}
             selected_hashtags= {@props.selected_hashtags}
+            search_terms     = {@props.search_terms}
         />
 
     render_tasks: ->
