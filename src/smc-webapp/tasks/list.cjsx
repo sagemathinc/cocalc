@@ -6,12 +6,19 @@ List of Tasks
 
 misc = require('smc-util/misc')
 
+{Button} = require('react-bootstrap')
+
+{Icon} = require('../r_misc')
+
 {React, ReactDOM, rclass, rtypes}  = require('../smc-react')
 
 {SortableContainer, SortableElement} = require('react-sortable-hoc')
 
 {Task} = require('./task')
-Task = SortableElement(Task)
+SortableTask = SortableElement(Task)
+
+MIN_SHOW = 25
+SHOW_INC = 50
 
 exports.TaskList = SortableContainer rclass
     propTypes :
@@ -30,6 +37,7 @@ exports.TaskList = SortableContainer rclass
         read_only         : rtypes.bool
         selected_hashtags : rtypes.immutable.Map
         search_terms      : rtypes.immutable.Set
+        show_max          : rtypes.number         # max number of tasks to show
 
     shouldComponentUpdate: (next) ->
         return @props.tasks             != next.tasks or \
@@ -40,7 +48,8 @@ exports.TaskList = SortableContainer rclass
                @props.sortable          != next.sortable or \
                @props.read_only         != next.read_only or \
                @props.selected_hashtags != next.selected_hashtags or \
-               @props.search_terms      != next.search_terms
+               @props.search_terms      != next.search_terms or \
+               @props.show_max          != next.show_max
 
     componentDidMount: ->
         if @props.scroll?
@@ -72,7 +81,11 @@ exports.TaskList = SortableContainer rclass
         task = @props.tasks.get(task_id)
         if not task?  # task deletion and visible list might not quite immediately be in sync/consistent
             return
-        <Task
+        if @props.sortable
+            T = SortableTask
+        else
+            T = Task
+        <T
             ref              = {task_id}
             key              = {task_id}
             index            = {index}
@@ -97,6 +110,8 @@ exports.TaskList = SortableContainer rclass
         @props.visible.forEach (task_id) =>
             x.push(@render_task(index, task_id))
             index += 1
+            if @props.show_max? and index >= @props.show_max
+                return false
             return
         return x
 
@@ -107,7 +122,45 @@ exports.TaskList = SortableContainer rclass
         if node?
             @props.actions.set_local_view_state(scroll: {scrollTop:node.scrollTop})
 
+    show_more: ->
+        @props.actions.set_show_max(@props.show_max + SHOW_INC)
+
+    show_less: ->
+        @props.actions.set_show_max(Math.max(MIN_SHOW, @props.show_max - SHOW_INC))
+
+    render_show_more: (num_hidden) ->
+        <div key={'more'} style={marginTop:'10px'}>
+            <Button style={minWidth:'150px'} onClick={@show_more}>
+                <Icon name={'plus'}/> Show {Math.min(num_hidden, SHOW_INC)} more
+            </Button>
+        </div>
+
+    render_show_less: ->
+        <div key={'less'} style={marginTop:'10px'}>
+            <Button style={minWidth:'150px'} onClick={@show_less}>
+                <Icon name={'minus'}/> Show {SHOW_INC} less
+            </Button>
+        </div>
+
+    render_show_more_less: ->
+        if not @props.show_max?
+            return
+        num_hidden = @props.visible.size - @props.show_max
+        v = []
+        if num_hidden > 0
+            v.push(<div key={'missing'}>Not showing {num_hidden} matching tasks.</div>)
+            if @props.actions?
+                v.push(@render_show_more(num_hidden))
+        if @props.actions? and @props.show_max >= MIN_SHOW + SHOW_INC
+            v.push(@render_show_less())
+        if v.length == 0
+            return
+        <div style={margin: '15px', color: '#666'}>
+            {v}
+        </div>
+
     render: ->
         <div style={@props.style} ref='main_div'>
             {@render_tasks()}
+            {@render_show_more_less()}
         </div>

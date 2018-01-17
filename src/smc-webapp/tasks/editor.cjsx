@@ -124,6 +124,7 @@ exports.TaskEditor = rclass ({name}) ->
             sortable             = {not @props.read_only and is_sortable(@props.local_view_state?.getIn(['sort', 'column']))}
             read_only            = {@props.read_only}
             selected_hashtags    = {@props.local_view_state?.get('selected_hashtags')}
+            show_max             = {@props.local_view_state?.get('show_max')}
             search_terms         = {@props.search_terms}
             onSortEnd            = {@on_sort_end}
             useDragHandle        = {true}
