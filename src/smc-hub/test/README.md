@@ -13,9 +13,10 @@ Use separate .term session to start postgresql in the foreground. This command a
 The api tests generate a lot of debug output, which can be filtered out as shown. Also shown is overriding the `progress` reporter.
 
 ```
-cd ~/cocalc/src/smc-hub
+cd ~/cocalc/src
 . smc-env
 . dev/project/postgres-env
+cd smc-hub
 REPORTER=spec BAIL=-b npm run testapi 2>&1 | egrep -v "(debug|deprec|  at )"
 ```
 
