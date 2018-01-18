@@ -382,6 +382,13 @@ class exports.TaskActions extends Actions
     maximize_desc: (task_id) =>
         @set_local_task_state(task_id, {min_desc : false})
 
+    toggle_min_desc: (task_id) =>
+        task_id ?= @store.get('current_task_id')
+        if not task_id?
+            return
+        min_desc = @store.getIn(['local_task_state', task_id, 'min_desc']) ? true
+        @set_local_task_state(task_id, {min_desc : not min_desc})
+
     show_deleted: =>
         @set_local_view_state(show_deleted: true)
 

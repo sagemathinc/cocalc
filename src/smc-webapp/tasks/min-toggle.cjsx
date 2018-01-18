@@ -32,9 +32,9 @@ exports.MinToggle = rclass
             @props.actions.minimize_desc(@props.task_id)
 
     render: ->
-        toggle = @render_toggle()
         if not @props.actions?  # no support for toggling (e.g., history view)
-            return toggle
+            return <span/>
+        toggle = @render_toggle()
         if @props.has_body
             if @props.minimize
                 title = 'Show full description'
