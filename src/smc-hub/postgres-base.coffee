@@ -88,6 +88,7 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
         @_debug = opts.debug
         @_timeout_ms = opts.timeout_ms
         @_ensure_exists = opts.ensure_exists
+        @_init_test_query()
         dbg = @_dbg("constructor")  # must be after setting @_debug above
         dbg(opts)
         i = opts.host.indexOf(':')
@@ -115,6 +116,7 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
     close: =>
         if @_state == 'closed'
             return  # nothing to do
+        @_close_test_query()
         @_state = 'closed'
         @emit('close')
         @removeAllListeners()
@@ -122,6 +124,29 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
             @_client.removeAllListeners()
             @_client.end()
             delete @_client
+
+    ###
+    If @_timeout_ms is set, then we periodically do a simple test query,
+    to ensure that the database connection is working and responding to queries.
+    If the query below times out, then the connection will get recreated.
+    ###
+    _do_test_query: =>
+        dbg = @_dbg('test_query')
+        dbg('starting')
+        @_query
+            query : 'SELECT NOW()'
+            cb    : (err, result) =>
+                dbg("finished", err, result)
+
+    _init_test_query: =>
+        if not @_timeout_ms
+            return
+        @_test_query = setInterval(@_do_test_query, @_timeout_ms)
+
+    _close_test_query: =>
+        if @_test_query?
+            clearInterval(@_test_query)
+            delete @_test_query
 
     engine: -> 'postgresql'
 
