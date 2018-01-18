@@ -35,7 +35,6 @@ misc = require('smc-util/misc')
 sagews  = require('./sagews/sagews')
 jupyter = require('./editor_jupyter')
 {jupyter_history_viewer_jquery_shim} = require('./jupyter/history-viewer')
-tasks   = require('./tasks')
 {tasks_history_viewer_jquery_shim} = require('./tasks/history-viewer')
 
 templates = $("#webapp-editor-templates")
@@ -138,9 +137,6 @@ class exports.HistoryEditor extends FileEditor
                     @view_doc = jupyter_history_viewer_jquery_shim(@syncstring)
                     @diff_doc = codemirror_session_editor(@project_id, @filename, opts)
             when 'tasks'
-                @view_doc = tasks.task_list(undefined, undefined, {viewer:true}).data('task_list')
-                @diff_doc = codemirror_session_editor(@project_id, @filename, opts)
-            when 'tasks2'
                 @view_doc = tasks_history_viewer_jquery_shim(@syncstring)
                 @diff_doc = codemirror_session_editor(@project_id, @filename, opts)
                 @_use_react = true

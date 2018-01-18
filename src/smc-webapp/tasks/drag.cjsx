@@ -31,6 +31,6 @@ exports.DragHandle = rclass
         else
             color = '#ddd'
             Handle = DisabledDragHandle
-        <div style={fontSize:'17pt', color:color, flex:1}>
+        <div style={fontSize:'17pt', color:color}>
             <Handle />
         </div>

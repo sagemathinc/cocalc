@@ -75,6 +75,8 @@ class exports.TaskActions extends Actions
             local_view_state = local_view_state.set('show_deleted', false)
         if not local_view_state.has("show_done")
             local_view_state = local_view_state.set('show_done', false)
+        if not local_view_state.has("show_max")
+            local_view_state = local_view_state.set('show_max', 50)
         if not local_view_state.has("font_size")
             font_size = @redux.getStore('account')?.get('font_size') ? 14
             local_view_state = local_view_state.set('font_size', font_size)
@@ -127,10 +129,11 @@ class exports.TaskActions extends Actions
         current_task_id = @store.get('current_task_id')
         counts          = @store.get('counts')
 
-        # obj explicit to avoid giving update_visible power to change anything about state...
         obj = update_visible(tasks, local_tasks, view, counts, current_task_id)
+        # We make obj explicit to avoid giving update_visible power to change anything about state...
+        # This is just "explicit is better than implicit".
         obj = misc.copy_with(obj,
-                ['visible', 'current_task_id', 'counts', 'hashtags', 'search_desc'])
+                ['visible', 'current_task_id', 'counts', 'hashtags', 'search_desc', 'search_terms'])
         @setState(obj)
 
     _ensure_positions_are_unique: =>
@@ -142,6 +145,11 @@ class exports.TaskActions extends Actions
         unique = true
         tasks.forEach (task, id) =>
             pos = task.get('position')
+            if not pos?
+                # no position set at all -- just arbitrarily set it to 0; it'll get
+                # fixed below, if this conflicts.
+                pos = 0
+                tasks = tasks.set(id, task.set('position', 0))
             if s[pos]  # already got this position -- so they can't be unique
                 unique = false
                 return false
@@ -179,7 +187,7 @@ class exports.TaskActions extends Actions
         @setState
             local_task_state : local.set(obj.task_id, x)
 
-    set_local_view_state: (obj) =>
+    set_local_view_state: (obj, update_visible=true) =>
         if @_state == 'closed'
             return
         # Set local state related to what we see/search for/etc.
@@ -188,8 +196,10 @@ class exports.TaskActions extends Actions
             local = local.set(key, immutable.fromJS(value))
         @setState
             local_view_state : local
-        @_update_visible()
+        if update_visible
+            @_update_visible()
         @_save_local_view_state()
+        return
 
     save: =>
         @setState(has_unsaved_changes:false)
@@ -236,10 +246,14 @@ class exports.TaskActions extends Actions
         task_id ?= @store.get('current_task_id')
         if not task_id?
             return
-        last_edited = @store.getIn(['tasks', task_id, 'last_edited']) ? 0
-        now = new Date() - 0
-        if now - last_edited >= LAST_EDITED_THRESH_S*1000
-            obj.last_edited = now
+        task = @store.getIn(['tasks', task_id])
+        # Update last_edited if desc or due date changes
+        if not task? or (obj.desc? and obj.desc != task.get('desc') or (obj.due_date? and obj.due_date != task.get('due_date')))
+            last_edited = @store.getIn(['tasks', task_id, 'last_edited']) ? 0
+            now = new Date() - 0
+            if now - last_edited >= LAST_EDITED_THRESH_S*1000
+                obj.last_edited = now
+
         obj.task_id = task_id
         @syncdb.set(obj)
         if setState
@@ -450,3 +464,6 @@ class exports.TaskActions extends Actions
 
     scroll_into_view_done: =>
         @setState(scroll_into_view: false)
+
+    set_show_max: (show_max) =>
+        @set_local_view_state({show_max: show_max}, false)

@@ -6,7 +6,6 @@ Toggle to minimize display of a task (just show first part or everything)
 
 {Icon, Tip} = require('../r_misc')
 
-
 exports.MinToggle = rclass
     propTypes :
         actions  : rtypes.object
@@ -42,7 +41,7 @@ exports.MinToggle = rclass
             else
                 title = 'Show only up to first blank line'
             <Tip title={title} delayShow={1000}>
-                <div onClick={@toggle_state} style={fontSize:'17pt', color:'#888', flex:1}>
+                <div onClick={@toggle_state} style={fontSize:'17pt', color:'#888'}>
                     {toggle}
                 </div>
             </Tip>

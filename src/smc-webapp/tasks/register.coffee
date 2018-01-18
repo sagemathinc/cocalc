@@ -17,7 +17,7 @@ misc                   = require('smc-util/misc')
 
 exports.register = ->
     register_file_editor
-        ext       : ['tasks2']   # temporary extension JUST for development
+        ext       : ['tasks']
 
         is_public : false
 
