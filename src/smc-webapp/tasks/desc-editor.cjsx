@@ -8,6 +8,8 @@ Edit description of a single task
 
 {debounce} = require('underscore')
 
+{cm_options} = require('../jupyter/cm_options')
+
 misc = require('smc-util/misc')
 
 STYLE =
@@ -36,6 +38,10 @@ exports.DescriptionEditor = rclass
         is_current : rtypes.bool
         font_size  : rtypes.number  # used only to cause refresh
 
+    reduxProps :
+        account :
+            editor_settings : rtypes.immutable.Map
+
     shouldComponentUpdate: (next) ->
         return @props.task_id    != next.task_id    or \
                @props.desc       != next.desc       or \
@@ -52,7 +58,7 @@ exports.DescriptionEditor = rclass
             return
         if @props.font_size != next.font_size
             @cm_refresh()
-        if next.desc != @props.desc
+        if @props.desc != next.desc
             @_cm_merge_remote(next.desc)
 
     cm_refresh: ->
@@ -112,15 +118,22 @@ exports.DescriptionEditor = rclass
         node = $(ReactDOM.findDOMNode(@)).find("textarea")[0]
         if not node?
             return
-        options = misc.deep_copy(CM_OPTIONS)
+
+        if @props.editor_settings?
+            options = cm_options({name:'gfm2'}, @props.editor_settings.toJS())
+            misc.merge(options, CM_OPTIONS)
+        else
+            options = misc.deep_copy(CM_OPTIONS)
         save_to_disk = => @props.actions.save()
-        options.extraKeys =
+        keys =
             "Shift-Enter" : @stop_editing
             Esc           : @stop_editing
             Tab           : => @cm.tab_as_space()
             "Cmd-S"       : save_to_disk
             "Alt-S"       : save_to_disk
             "Ctrl-S"      : save_to_disk
+        options.extraKeys ?= {}
+        misc.merge(options.extraKeys, keys)
 
         @cm = CodeMirror.fromTextArea(node, options)
         $(@cm.getWrapperElement()).css(height:'auto')
