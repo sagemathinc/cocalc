@@ -25,6 +25,10 @@ PostgreSQL -- basic queries and database interface
 
 exports.DEBUG = true
 
+# If database conection is non-responsive but no error raised directly
+# by db client, then we will know and fix, rather than just sitting there...
+DEFAULT_TIMEOUS_MS = 35000
+
 QUERY_ALERT_THRESH_MS=5000
 
 EventEmitter = require('events')
@@ -65,22 +69,24 @@ read_password_from_disk = ->
 class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whenever we successfully connect to the database.
     constructor: (opts) ->
         opts = defaults opts,
-            host         : process.env['PGHOST'] ? 'localhost'    # or 'hostname:port'
-            database     : process.env['SMC_DB'] ? 'smc'
-            user         : process.env['PGUSER'] ? 'smc'
-            debug        : exports.DEBUG
-            connect      : true
-            password     : undefined
-            pool         : undefined   # IGNORED for now.
-            cache_expiry : 3000  # expire cached queries after this many milliseconds
-                                 # keep this very short; it's just meant to reduce impact of a bunch of
-                                 # identical permission checks in a single user query.
-            cache_size   : 100   # cache this many queries; use @_query(cache:true, ...) to cache result
+            host            : process.env['PGHOST'] ? 'localhost'    # or 'hostname:port'
+            database        : process.env['SMC_DB'] ? 'smc'
+            user            : process.env['PGUSER'] ? 'smc'
+            debug           : exports.DEBUG
+            connect         : true
+            password        : undefined
+            pool            : undefined   # IGNORED for now.
+            cache_expiry    : 3000  # expire cached queries after this many milliseconds
+                                    # keep this very short; it's just meant to reduce impact of a bunch of
+                                    # identical permission checks in a single user query.
+            cache_size      : 100   # cache this many queries; use @_query(cache:true, ...) to cache result
             concurrent_warn : 500
-            ensure_exists : true # ensure database exists on startup (runs psql in a shell)
+            ensure_exists   : true  # ensure database exists on startup (runs psql in a shell)
+            timeout_ms      : DEFAULT_TIMEOUS_MS # **IMPORTANT: if *any* query takes this long, entire connection is terminated and recreated!**
         @setMaxListeners(10000)  # because of a potentially large number of changefeeds
         @_state = 'init'
         @_debug = opts.debug
+        @_timeout_ms = opts.timeout_ms
         @_ensure_exists = opts.ensure_exists
         dbg = @_dbg("constructor")  # must be after setting @_debug above
         dbg(opts)
@@ -288,7 +294,7 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
             @__do_query(opts)
 
     __do_query: (opts) =>
-        dbg = @_dbg("_query('#{opts.query}')")
+        dbg = @_dbg("_query('#{opts.query}',id='#{misc.uuid().slice(0,6)}')")
         if not @_client?
             # TODO: should also check that client is connected.
             opts.cb?("client not yet initialized")
@@ -501,7 +507,15 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
         @concurrent_counter.labels('started').inc(1)
         try
             start = new Date()
+            if @_timeout_ms
+                # Create a timer, so that if the query doesn't return within
+                # timeout_ms time, then the entire connection is destroyed.
+                # It then gets recreated automatically.  I tested
+                # and all outstanding queries also get an error when this happens.
+                timer = setTimeout((=>@_client?.emit('error', 'timeout')), @_timeout_ms)
             @_client.query opts.query, opts.params, (err, result) =>
+                if @_timeout_ms
+                    clearTimeout(timer)
                 query_time_ms = new Date() - start
                 @_concurrent_queries -= 1
                 @query_time_histogram.observe({table:opts.table ? ''}, query_time_ms)
