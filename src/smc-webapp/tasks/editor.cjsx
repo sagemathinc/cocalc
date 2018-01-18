@@ -4,6 +4,8 @@ Top-level react component for task list
 
 {React, rclass, rtypes} = require('../smc-react')
 
+{Loading}               = require('../r_misc')
+
 {TaskList}              = require('./list')
 {ButtonBar}             = require('./buttonbar')
 {Find}                  = require('./find')
@@ -106,9 +108,14 @@ exports.TaskEditor = rclass ({name}) ->
     on_sort_end: ({oldIndex, newIndex}) ->
         @props.actions?.reorder_tasks(oldIndex, newIndex)
 
+    render_loading: ->
+        <div style={fontSize: '40px', textAlign: 'center', padding: '15px', color: '#999'}>
+            <Loading />
+        </div>
+
     render_list: ->
         if not @props.tasks? or not @props.visible?
-            return
+            return @render_loading()
         <TaskList
             actions              = {@props.actions}
             path                 = {@props.path}
