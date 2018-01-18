@@ -112,6 +112,7 @@ exports.DescriptionEditor = rclass
     stop_editing: ->
         @_cm_save()
         @props.actions.stop_editing_desc(@props.task_id)
+        @props.actions.enable_key_handler()
         return false
 
     init_codemirror: (value) ->
@@ -132,6 +133,8 @@ exports.DescriptionEditor = rclass
             "Cmd-S"       : save_to_disk
             "Alt-S"       : save_to_disk
             "Ctrl-S"      : save_to_disk
+        if options.keyMap == 'vim'
+            delete keys.Esc
         options.extraKeys ?= {}
         misc.merge(options.extraKeys, keys)
 
@@ -144,7 +147,11 @@ exports.DescriptionEditor = rclass
         @_cm_change = debounce(@_cm_save, 1000)
         @cm.on('change', @_cm_change)
         @cm.on('focus',=> @props.actions.disable_key_handler())
-        @cm.on('blur', => @props.actions.stop_editing_desc(@props.task_id); @props.actions.enable_key_handler())
+
+        # NOTE: for vim, we have to deal with trickier vim mode, since editor looses focus
+        # when entering colon command... but we do NOT want to stop editing in this case.
+        if options.keyMap != 'vim'
+            @cm.on('blur', @stop_editing)
 
         # replace undo/redo by our sync aware versions
         @cm.undo = @_cm_undo

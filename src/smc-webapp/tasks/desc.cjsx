@@ -67,8 +67,8 @@ exports.Description = rclass
                 selected_hashtags = {@props.selected_hashtags}
                 search_terms      = {@props.search_terms}
             />
-            <div style={color:'#666', paddingTop: '5px', float: 'right'}>
-                Use <a href='https://help.github.com/categories/writing-on-github/' target='_blank'>Markdown</a>, LaTeX and hashtags.
+            <div style={color:'#666', padding: '5px 0', float: 'right'}>
+                Use <a href='https://help.github.com/categories/writing-on-github/' target='_blank'>Markdown</a>, LaTeX and #hashtags. Shift+Enter to close.
             </div>
         </div>
 
