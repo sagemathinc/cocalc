@@ -1120,12 +1120,16 @@ exports.DateTimePicker = rclass
     displayName : 'Misc-DateTimePicker'
 
     propTypes :
-        value     : rtypes.oneOfType([rtypes.string, rtypes.object])
-        on_change : rtypes.func.isRequired
-        on_focus  : rtypes.func
-        on_blur   : rtypes.func
-        autoFocus : rtypes.bool
-        onKeyDown : rtypes.func
+        value       : rtypes.oneOfType([rtypes.string, rtypes.object])
+        on_change   : rtypes.func.isRequired
+        on_focus    : rtypes.func
+        on_blur     : rtypes.func
+        autoFocus   : rtypes.bool
+        onKeyDown   : rtypes.func
+        defaultOpen : rtypes.string
+
+    getDefaultProps: ->
+        defaultOpen : 'date'
 
     render: ->
         <DateTimePicker
@@ -1138,7 +1142,7 @@ exports.DateTimePicker = rclass
             onFocus    = {@props.on_focus}
             onBlur     = {@props.on_blur}
             autoFocus  = {@props.autoFocus}
-            defaultOpen = {'date'}
+            defaultOpen = {@props.defaultOpen}
         />
 
 Calendar = require('react-widgets/lib/Calendar')

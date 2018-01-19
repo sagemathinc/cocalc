@@ -4,6 +4,8 @@ Top-level react component for task list
 
 {React, rclass, rtypes} = require('../smc-react')
 
+{Loading}               = require('../r_misc')
+
 {TaskList}              = require('./list')
 {ButtonBar}             = require('./buttonbar')
 {Find}                  = require('./find')
@@ -106,9 +108,21 @@ exports.TaskEditor = rclass ({name}) ->
     on_sort_end: ({oldIndex, newIndex}) ->
         @props.actions?.reorder_tasks(oldIndex, newIndex)
 
+    render_loading: ->
+        <div style={fontSize: '40px', textAlign: 'center', padding: '15px', color: '#999'}>
+            <Loading />
+        </div>
+
+    render_new_hint: ->
+        <div style={fontSize: '40px', textAlign: 'center', padding: '15px', color: '#999'}>
+            Click New to create a task.
+        </div>
+
     render_list: ->
         if not @props.tasks? or not @props.visible?
-            return
+            return @render_loading()
+        if @props.visible.size == 0 and @props.actions?
+            return @render_new_hint()
         <TaskList
             actions              = {@props.actions}
             path                 = {@props.path}
@@ -117,10 +131,11 @@ exports.TaskEditor = rclass ({name}) ->
             visible              = {@props.visible}
             current_task_id      = {@props.current_task_id}
             local_task_state     = {@props.local_task_state}
+            full_desc            = {@props.local_view_state?.get('full_desc')}
             scroll               = {@props.local_view_state?.get('scroll')}
             scroll_into_view     = {@props.scroll_into_view}
             font_size            = {@props.local_view_state?.get('font_size')}
-            style                = {overflowX:'hidden', overflowY:'auto', paddingBottom: '200px'}
+            style                = {overflowX:'hidden', overflowY:'auto', paddingBottom: '300px'}
             sortable             = {not @props.read_only and is_sortable(@props.local_view_state?.getIn(['sort', 'column']))}
             read_only            = {@props.read_only}
             selected_hashtags    = {@props.local_view_state?.get('selected_hashtags')}

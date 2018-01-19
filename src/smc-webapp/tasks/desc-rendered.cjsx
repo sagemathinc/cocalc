@@ -53,14 +53,14 @@ exports.DescriptionRendered = rclass
         desc              : rtypes.string
         path              : rtypes.string
         project_id        : rtypes.string
-        minimize          : rtypes.bool
+        full_desc         : rtypes.bool
         read_only         : rtypes.bool
         selected_hashtags : rtypes.immutable.Map
         search_terms      : rtypes.immutable.Set
 
     shouldComponentUpdate: (next) ->
         return @props.desc              != next.desc or \
-               @props.minimze           != next.minimize or \
+               @props.full_desc         != next.full_desc or \
                @props.read_only         != next.read_only or \
                @props.selected_hashtags != next.selected_hashtags or \
                @props.search_terms      != next.search_terms
@@ -69,7 +69,7 @@ exports.DescriptionRendered = rclass
         value = @props.desc
         if not value?.trim()
             return <span style={color:'#666'}>Enter a description...</span>
-        if @props.minimize
+        if not @props.full_desc
             value = header_part(value)
         value = process_hashtags(value, @props.selected_hashtags)
         if @props.actions?

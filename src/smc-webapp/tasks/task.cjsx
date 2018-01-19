@@ -23,7 +23,7 @@ exports.Task = rclass
         is_current       : rtypes.bool
         editing_due_date : rtypes.bool
         editing_desc     : rtypes.bool
-        min_desc         : rtypes.bool
+        full_desc        : rtypes.bool
         font_size        : rtypes.number
         sortable         : rtypes.bool
         read_only        : rtypes.bool
@@ -35,7 +35,7 @@ exports.Task = rclass
                @props.is_current        != next.is_current       or \
                @props.editing_due_date  != next.editing_due_date or \
                @props.editing_desc      != next.editing_desc     or \
-               @props.min_desc          != next.min_desc         or \
+               @props.full_desc         != next.full_desc        or \
                @props.font_size         != next.font_size        or \
                @props.sortable          != next.sortable         or \
                @props.read_only         != next.read_only        or \
@@ -55,10 +55,10 @@ exports.Task = rclass
 
     render_min_toggle: (has_body) ->
         <MinToggle
-            actions  = {@props.actions}
-            task_id  = {@props.task.get('task_id')}
-            minimize = {@props.min_desc}
-            has_body = {has_body}
+            actions   = {@props.actions}
+            task_id   = {@props.task.get('task_id')}
+            full_desc = {@props.full_desc}
+            has_body  = {has_body}
         />
 
     render_desc: (desc) ->
@@ -68,6 +68,7 @@ exports.Task = rclass
             project_id        = {@props.project_id}
             task_id           = {@props.task.get('task_id')}
             desc              = {desc}
+            full_desc         = {@props.full_desc}
             editing           = {@props.editing_desc}
             is_current        = {@props.is_current}
             font_size         = {@props.font_size}
@@ -101,14 +102,14 @@ exports.Task = rclass
         style =
             padding      : '5px 5px 0 5px'
             margin       : '5px'
-            borderRadius : '4px'
             background   : 'white'
         if @props.is_current
             style.border       = '1px solid #08c'
             style.borderLeft   = '5px solid #08c'
+            style.background   = '#e8e8e8'
         else
-            style.border       = '1px solid #888'
-            style.borderLeft   = '5px solid #888'
+            style.border       = '1px solid #ccc'
+            style.borderLeft   = '5px solid #ccc'
         if @props.task.get('deleted')
             style.background = '#d9534f'
             style.color  = '#fff'
@@ -124,7 +125,7 @@ exports.Task = rclass
         else
             # not editing, so maybe a min toggle...
             {head, body} = parse_desc(desc)  # parse description into head, then body (sep by blank line)
-            if @props.min_desc
+            if not @props.full_desc
                 desc = head
         <div style={style} onClick={@on_click}>
             <Row>

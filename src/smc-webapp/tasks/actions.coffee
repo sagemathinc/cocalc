@@ -83,6 +83,7 @@ class exports.TaskActions extends Actions
         if not local_view_state.has('sort')
             sort = immutable.fromJS({column:HEADINGS[0], dir:HEADINGS_DIR[0]})
             local_view_state = local_view_state.set('sort', sort)
+        local_view_state = local_view_state.set('full_desc', local_view_state.get("full_desc")?.toSet() ? immutable.Set())
 
         return local_view_state
 
@@ -376,11 +377,20 @@ class exports.TaskActions extends Actions
     set_desc: (task_id, desc) =>
         @set_task(task_id, {desc:desc})
 
-    minimize_desc: (task_id) =>
-        @set_local_task_state(task_id, {min_desc : true})
-
-    maximize_desc: (task_id) =>
-        @set_local_task_state(task_id, {min_desc : false})
+    toggle_full_desc: (task_id) =>
+        task_id ?= @store.get('current_task_id')
+        if not task_id?
+            return
+        view = @store.getIn('local_view_state')
+        full_desc = view.get('full_desc')
+        if full_desc.has(task_id)
+            view = view.set('full_desc', full_desc.remove(task_id))
+        else
+            view = view.set('full_desc', full_desc.add(task_id))
+        @setState
+            local_view_state : view
+        @_update_visible()
+        @_save_local_view_state()
 
     show_deleted: =>
         @set_local_view_state(show_deleted: true)
