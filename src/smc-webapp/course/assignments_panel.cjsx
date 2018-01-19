@@ -216,8 +216,10 @@ Assignment = rclass
             </Col>
             <Col xs=11>
                 <DateTimePicker
-                    value     = {@_due_date()}
-                    on_change = {@date_change}
+                    value       = {@_due_date()}
+                    on_change   = {@date_change}
+                    autoFocus   = {false}
+                    defaultOpen = {false}
                 />
             </Col>
         </Row>
@@ -660,8 +662,10 @@ Assignment = rclass
         </Tip>
         <LabeledRow label_cols=6 label={label}>
             <DateTimePicker
-                value     = {@_peer_due(config.due_date)}
-                on_change = {@peer_due_change}
+                value       = {@_peer_due(config.due_date)}
+                on_change   = {@peer_due_change}
+                autoFocus   = {false}
+                defaultOpen = {false}
             />
         </LabeledRow>
 
