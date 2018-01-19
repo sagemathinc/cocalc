@@ -457,7 +457,7 @@ exports.SettingsPanel = rclass
         if @props.settings.get('pay')
             <span><span style={fontSize:'18pt'}><Icon name="check"/></span> <Space />{@render_require_students_pay_desc()}</span>
         else
-            <span>Require that all students in the course pay a one-time ${STUDENT_COURSE_PRICE} fee to move their projects off trial servers and enable full internet access, for four months.  This is strongly recommended, and ensures that your students have a better experience, and do not see a large <span style={color:'red'}>RED warning banner</span> all the time.</span>
+            <span>Require that all students in the course pay a one-time ${STUDENT_COURSE_PRICE} fee to move their projects off trial servers and enable full internet access, for four months.  This is strongly recommended, and ensures that your students have a better experience, and do not see a large <span style={color:'red'}>RED warning banner</span> all the time.   Alternatively, you (or your university) can pay for all students at one for a significant discount -- see below.</span>
 
 
     render_require_students_pay: ->
