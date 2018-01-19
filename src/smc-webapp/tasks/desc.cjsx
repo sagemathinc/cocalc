@@ -22,7 +22,7 @@ exports.Description = rclass
         task_id    : rtypes.string.isRequired
         desc       : rtypes.string
         editing    : rtypes.bool
-        minimize   : rtypes.bool
+        full_desc  : rtypes.bool
         is_current : rtypes.bool
         font_size  : rtypes.number
         read_only  : rtypes.bool
@@ -33,7 +33,7 @@ exports.Description = rclass
         return @props.desc              != next.desc     or \
                @props.task_id           != next.task_id  or \
                @props.editing           != next.editing  or \
-               @props.minimize          != next.minimize or \
+               @props.full_desc         != next.full_desc or \
                @props.is_current        != next.is_current or \
                @props.font_size         != next.font_size  or \
                @props.read_only         != next.read_only  or \
@@ -85,7 +85,7 @@ exports.Description = rclass
                 path              = {@props.path}
                 project_id        = {@props.project_id}
                 desc              = {@props.desc}
-                minimize          = {@props.minimize}
+                full_desc         = {@props.full_desc}
                 read_only         = {@props.read_only}
                 selected_hashtags = {@props.selected_hashtags}
                 search_terms      = {@props.search_terms}

@@ -29,6 +29,7 @@ exports.TaskList = SortableContainer rclass
         visible           : rtypes.immutable.List.isRequired
         current_task_id   : rtypes.string
         local_task_state  : rtypes.immutable.Map
+        full_desc         : rtypes.immutable.Set  # id's of tasks for which show full description
         scroll            : rtypes.immutable.Map  # scroll position -- only used when initially mounted, so is NOT in shouldComponentUpdate below.
         scroll_into_view  : rtypes.bool
         style             : rtypes.object
@@ -44,6 +45,7 @@ exports.TaskList = SortableContainer rclass
                @props.visible           != next.visible or \
                @props.current_task_id   != next.current_task_id or \
                @props.local_task_state  != next.local_task_state or \
+               @props.full_desc         != next.full_desc or \
                @props.font_size         != next.font_size or \
                @props.sortable          != next.sortable or \
                @props.read_only         != next.read_only or \
@@ -85,14 +87,15 @@ exports.TaskList = SortableContainer rclass
             T = SortableTask
         else
             T = Task
-        state = @props.local_task_state?.get(task_id)
-        if state?
-            min_desc = state.get('min_desc') ? true
-            editing_due_date = state.get('editing_due_date')
-            editing_desc     = state.get('editing_desc')
+        if @props.actions?
+            state            = @props.local_task_state?.get(task_id)
+            full_desc        = @props.full_desc?.has(task_id)
+            editing_due_date = state?.get('editing_due_date')
+            editing_desc     = state?.get('editing_desc')
         else
-            # min_desc = false, since always expand, e.g., in (stateless) history viewer -- until we implement some state for it (?)
-            min_desc = editing_due_date = editing_desc = false
+            # full_desc = true since always expand, e.g., in (stateless) history viewer -- until we implement some state for it (?)
+            full_desc = true
+            editing_due_date = editing_desc = false
         <T
             ref              = {task_id}
             key              = {task_id}
@@ -104,7 +107,7 @@ exports.TaskList = SortableContainer rclass
             is_current       = {@props.current_task_id == task_id}
             editing_due_date = {editing_due_date}
             editing_desc     = {editing_desc}
-            min_desc         = {min_desc}
+            full_desc        = {full_desc}
             font_size        = {@props.font_size}
             sortable         = {@props.sortable}
             read_only        = {@props.read_only}
