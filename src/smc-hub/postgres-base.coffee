@@ -27,7 +27,11 @@ exports.DEBUG = true
 
 # If database conection is non-responsive but no error raised directly
 # by db client, then we will know and fix, rather than just sitting there...
-DEFAULT_TIMEOUS_MS = 35000
+DEFAULT_TIMEOUS_MS = 30000
+# Do not test for non-responsiveness until a while after initial connection
+# established, since things tend to work initially, *but* may also be much
+# slower, due to tons of clients simultaneously connecting to DB.
+DEFAULT_TIMEOUT_DELAY_MS = DEFAULT_TIMEOUS_MS * 4
 
 QUERY_ALERT_THRESH_MS=5000
 
@@ -83,10 +87,12 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
             concurrent_warn : 500
             ensure_exists   : true  # ensure database exists on startup (runs psql in a shell)
             timeout_ms      : DEFAULT_TIMEOUS_MS # **IMPORTANT: if *any* query takes this long, entire connection is terminated and recreated!**
+            timeout_delay_ms : DEFAULT_TIMEOUT_DELAY_MS # Only reconnect on timeout this many ms after connect.  Motivation: on initial startup queries may take much longer due to competition with other clients.
         @setMaxListeners(10000)  # because of a potentially large number of changefeeds
         @_state = 'init'
         @_debug = opts.debug
         @_timeout_ms = opts.timeout_ms
+        @_timeout_delay_ms = opts.timeout_delay_ms
         @_ensure_exists = opts.ensure_exists
         @_init_test_query()
         dbg = @_dbg("constructor")  # must be after setting @_debug above
@@ -200,6 +206,7 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
             @_client.end()
             delete @_client
         client = undefined
+        @_connect_time = 0
         async.series([
             (cb) =>
                 @_concurrent_queries = 0
@@ -222,6 +229,7 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
                 client.on 'error', (err) =>
                     dbg("error -- #{err}")
                     client?.end()
+                    client?.removeAllListeners()
                     delete @_client
                     @connect()  # start trying to reconnect
                 client.connect(cb)
@@ -230,6 +238,7 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
                 #    SELECT * FROM file_use WHERE project_id = any(select project_id from projects where users ? '25e2cae4-05c7-4c28-ae22-1e6d3d2e8bb3') ORDER BY last_edited DESC limit 100;
                 # will take forever due to the query planner using a nestloop scan.  We thus
                 # disable doing so!
+                @_connect_time = new Date()
                 dbg("now connected; disabling nestloop query planning.")
                 client.query("SET enable_nestloop TO off", cb)
         ], (err) =>
@@ -505,7 +514,6 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
         if opts.limit?
             opts.query += " LIMIT #{opts.limit} "
 
-        dbg("query='#{opts.query}'")
 
         if opts.safety_check
             safety_check = opts.query.toLowerCase()
@@ -529,10 +537,12 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
         #dbg("query='#{opts.query}', params=#{misc.to_json(opts.params)}")
 
         @_concurrent_queries += 1
+        dbg("query='#{opts.query} (concurrent=#{@_concurrent_queries})'")
+
         @concurrent_counter.labels('started').inc(1)
         try
             start = new Date()
-            if @_timeout_ms
+            if @_timeout_ms and @_timeout_delay_ms and @_connect_time and new Date() - @_connect_time > @_timeout_delay_ms
                 # Create a timer, so that if the query doesn't return within
                 # timeout_ms time, then the entire connection is destroyed.
                 # It then gets recreated automatically.  I tested
