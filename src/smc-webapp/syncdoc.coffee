@@ -310,7 +310,7 @@ class SynchronizedDocument2 extends SynchronizedDocument
 
         if @_last_val? and cur_val != @_last_val
             # We *MERGE* the changes in since, we made changes between when we last set
-            # the syncstrind and now.  This can perhaps sometimes happen in rare cases
+            # the syncstring and now.  This can perhaps sometimes happen in rare cases
             # due to async save debouncing.  (Honestly, I don't know how this case could
             # possibly happen.)
             patch = syncstring.dmp.patch_make(@_last_val, cur_val)
