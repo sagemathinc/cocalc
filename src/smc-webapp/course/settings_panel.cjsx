@@ -236,9 +236,11 @@ exports.SettingsPanel = rclass
         </h4>
 
     path: (ext) ->
-        p = @props.path
+        # make path more likely to be python-readable...
+        p = misc.replace_all(@props.path, '-', '_')
+        p = misc.split(p).join('_')
         i = p.lastIndexOf('.')
-        return p.slice(0,i) + '.' + ext
+        return 'export_' + p.slice(0,i) + '.' + ext
 
     open_file: (path) ->
         @actions(project_id : @props.project_id).open_file(path:path,foreground:true)
@@ -266,7 +268,7 @@ exports.SettingsPanel = rclass
         timestamp  = (webapp_client.server_time()).toISOString()
         content = "# Course '#{@props.settings.get('title')}'\n"
         content += "# exported #{timestamp}\n"
-        content += "Name,Email,"
+        content += "Name,Id,Email,"
         content += ("\"grade: #{assignment.get('path')}\"" for assignment in assignments).join(',') + ','
         content += ("\"comments: #{assignment.get('path')}\"" for assignment in assignments).join(',') + '\n'
         for student in store.get_sorted_students()
@@ -276,7 +278,8 @@ exports.SettingsPanel = rclass
             comments = comments.replace(/\n/g, "\\n")
             name     = "\"#{store.get_student_name(student)}\""
             email    = "\"#{store.get_student_email(student) ? ''}\""
-            line     = [name, email, grades, comments].join(',')
+            id       = "\"#{student.get('student_id')}\""
+            line     = [name, id, email, grades, comments].join(',')
             content += line + '\n'
         @write_file(@path('csv'), content)
 
@@ -310,7 +313,8 @@ exports.SettingsPanel = rclass
             name     = store.get_student_name(student)
             email    = store.get_student_email(student)
             email    = if email? then "'#{email}'" else 'None'
-            line     = "    {'name':'#{name}', 'email':#{email}, 'grades':[#{grades}], 'comments':[#{comments}]},"
+            id       = student.get('student_id')
+            line     = "    {'name':'#{name}', 'id':'#{id}', 'email':#{email}, 'grades':[#{grades}], 'comments':[#{comments}]},"
             content += line + '\n'
         content += ']\n'
         @write_file(@path('py'), content)
