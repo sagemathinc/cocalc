@@ -1865,3 +1865,11 @@ class exports.JupyterActions extends Actions
                 @save()
                 @file_action('reopen_file', @store.get('path'))
 
+    close_and_halt: =>
+        # Kill running session
+        @signal('SIGKILL')
+        # Display the main file listing page
+        @file_open()
+        # Start saving and on finish, close the file
+        @syncdb.save () =>
+            @file_action('close_file')

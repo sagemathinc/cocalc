@@ -80,10 +80,7 @@ exports.commands = (actions) ->
     'close and halt' :
         i : 'hand-stop-o'
         m : 'Close and halt'
-        f : ->
-            actions.signal('SIGKILL')
-            actions.file_open()
-            actions.file_action('close_file')
+        f : -> actions.close_and_halt()
 
     'close pager' :
         m : 'Close pager'
