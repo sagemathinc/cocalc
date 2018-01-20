@@ -50,6 +50,17 @@ class TestDecorators:
         f(2)""")
         exec2(code, "5\n")
 
+class TestSageCommands:
+    def test_reset(self, exec2):
+        "issue 2646 do not clear salvus fns with sage reset"
+        code = dedent(r"""
+        a = EllipticCurve('123a')
+        save(a, 'load-save-test.sobj')
+        reset()
+        b = load('load-save-test.sobj')
+        b == EllipticCurve('123a')""")
+        exec2(code, "True\n")
+
 class TestLinearAlgebra:
     def test_solve_right(self, exec2):
         code = dedent(r"""
