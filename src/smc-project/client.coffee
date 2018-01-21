@@ -392,7 +392,7 @@ class exports.Client extends EventEmitter
     # to get the same hub if you call this twice!  Returns undefined if there
     # are currently no connections from any hub to us (in which case, the project
     # must wait).
-    get_hub_socket: () =>
+    get_hub_socket: =>
         v = misc.values(@_hub_client_sockets)
         if v.length == 0
             return
@@ -693,26 +693,36 @@ class exports.Client extends EventEmitter
             sha1 : undefined
             uuid : undefined  # if given is uuid derived from sha1
             cb   : undefined  # (err, resp)
-        dbg = @dbg("save_blob")
-        dbg()
-        hub = @get_hub_socket()
-        if not hub?
-            opts.cb?('no global hubs are connected to the local hub, so nowhere to send file')
-            return
-        dbg("sending blob mesg to hub")
         if opts.uuid?
             uuid = opts.uuid
         else
             uuid = misc_node.uuidsha1(opts.blob, opts.sha1)
+        dbg = @dbg("save_blob(uuid='#{uuid}')")
+        hub = @get_hub_socket()
+        if not hub?
+            dbg("fail -- no global hubs")
+            opts.cb?('no global hubs are connected to the local hub, so nowhere to send file')
+            return
+        dbg("sending blob mesg")
         hub.write_mesg('blob', {uuid:uuid, blob:opts.blob})
+        dbg("waiting for response")
         blobs.receive_save_blob_message
             sha1 : uuid
             cb   : (resp) =>
                 if resp?.error
+                    dbg("fail -- '#{resp.error}'")
                     opts.cb?(resp.error, resp)
                 else
+                    dbg("success")
                     opts.cb?(undefined, resp)
 
-
-
+    get_blob: (opts) =>
+        opts = defaults opts,
+            blob : required   # Buffer of data
+            sha1 : undefined
+            uuid : undefined  # if given is uuid derived from sha1
+            cb   : undefined  # (err, resp)
+        dbg = @dbg("get_blob")
+        dbg(opts.sha1)
+        opts.cb?('get_blob: not implemented')
 
