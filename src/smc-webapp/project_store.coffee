@@ -303,10 +303,10 @@ class ProjectActions extends Actions
         if not group? or group == 'public'
             return # no point in saving if not open enough to even know our group or if our relationship to entire project is "public"
         return if not store = @get_store()
-        store.open_files.filter (val, path) =>
+        store.open_files.forEach (val, path) =>
             is_public = val.get('component')?.is_public  # might still in theory someday be true.
             project_file.save(path, @redux, @project_id, is_public)
-            return false
+            return
 
     # Open the given file in this project.
     open_file: (opts) =>

@@ -1768,6 +1768,10 @@ class SyncDoc extends EventEmitter
         if cb?
             #dbg("waiting for save.state to change from '#{@_syncstring_table.get_one().getIn(['save','state'])}' to 'done'")
             f = (cb) =>
+                if @_closed
+                    # closed during save
+                    cb()
+                    return
                 if @_deleted
                     # if deleted, then save doesn't need to finish and is done successfully.
                     cb()
@@ -1783,7 +1787,8 @@ class SyncDoc extends EventEmitter
                         if err
                             #dbg("got err waiting: #{err}")
                         else
-                            err = @_syncstring_table.get_one().getIn(['save', 'error'])
+                            # ? because @_syncstring_table could be undefined here, if saving and closing at the same time.
+                            err = @_syncstring_table?.get_one().getIn(['save', 'error'])
                             #if err
                             #    dbg("got result but there was an error: #{err}")
                         if err
@@ -1793,6 +1798,10 @@ class SyncDoc extends EventEmitter
                 f         : f
                 max_tries : 5
                 cb        : (err) =>
+                    if @_closed
+                        # closed during save
+                        cb()
+                        return
                     if err
                         # TODO: This should in theory never be necessary, and I've resisted adding
                         # it for five years.  However, here it is:

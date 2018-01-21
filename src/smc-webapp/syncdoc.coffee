@@ -393,7 +393,10 @@ class SynchronizedDocument2 extends SynchronizedDocument
             cb() # nothing to do -- not initialized/loaded yet...
             return
         @_set_syncstring_to_codemirror()
-        async.series [@_syncstring.save, @_syncstring.save_to_disk], (err) =>
+        # Do save_to_disk immediately, then -- if any unsaved to backend changes, save those.  Finally, save to disk again.
+        # We do this so we succeed at saving to disk, in case file is being **immediately** closed right when saving to disk,
+        # which happens on tab close.
+        async.series [@_syncstring.save_to_disk, @_syncstring.save, @_syncstring.save_to_disk], (err) =>
             @_update_unsaved_uncommitted_changes()
             if err
                 cb(err)
