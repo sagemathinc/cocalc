@@ -63,6 +63,8 @@ kucalc = require('./kucalc')
 
 {Watcher} = require('./watcher')
 
+blobs = require('./blobs')
+
 {defaults, required} = misc
 
 DEBUG = false
@@ -682,6 +684,35 @@ class exports.Client extends EventEmitter
         dbg = @dbg("watch_file(path='#{path}')")
         dbg("watching file '#{path}'")
         return new Watcher(path, opts.interval, opts.debounce)
+
+    # Save a blob to the central db blobstore.
+    # The sha1 is optional.
+    save_blob: (opts) =>
+        opts = defaults opts,
+            blob : required   # Buffer of data
+            sha1 : undefined
+            uuid : undefined  # if given is uuid derived from sha1
+            cb   : undefined  # (err, resp)
+        dbg = @dbg("save_blob")
+        dbg()
+        hub = @get_hub_socket()
+        if not hub?
+            opts.cb?('no global hubs are connected to the local hub, so nowhere to send file')
+            return
+        dbg("sending blob mesg to hub")
+        if opts.uuid?
+            uuid = opts.uuid
+        else
+            uuid = misc_node.uuidsha1(opts.blob, opts.sha1)
+        hub.write_mesg('blob', {uuid:uuid, blob:opts.blob})
+        blobs.receive_save_blob_message
+            sha1 : uuid
+            cb   : (resp) =>
+                if resp?.error
+                    opts.cb?(resp.error, resp)
+                else
+                    opts.cb?(undefined, resp)
+
 
 
 

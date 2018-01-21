@@ -27,6 +27,8 @@ class BlobStore
         x = @_blobs[sha1] ?= {ref:0, data:data, type:type}
         x.ref += 1
         x.ipynb = ipynb
+        if x.ref == 1
+            @_save_to_db(data, sha1)
         return sha1
 
     readFile: (path, type, cb) =>
@@ -38,6 +40,8 @@ class BlobStore
                 ext = misc.filename_extension(path)?.toLowerCase()
                 x = @_blobs[sha1] ?= {ref:0, data:data, type:type}
                 x.ref += 1
+                if x.ref == 1
+                    @_save_to_db(data, sha1)
                 cb(undefined, sha1)
 
     free: (sha1) =>
@@ -79,6 +83,18 @@ class BlobStore
             res.send(@get(sha1))
         return router
 
+    # Save the given data to the central blob store (not in project)
+    _save_to_db: (data, sha1) =>
+
+    # Try to load data with given sha1 hash from the central blob store (not in project).
+    # Data gets loaded into @_blobs, so can be got using the @get and @get_ipynb commands.
+    # Does nothing if already loaded locally
+    _get_from_db: (sha1, cb) =>
+        if @_blobs[sha1]?
+            cb?()
+            return
+        # TODO
+        cb?()
 
 exports.blob_store = new BlobStore()
 
