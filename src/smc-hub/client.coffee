@@ -1714,7 +1714,7 @@ class exports.Client extends EventEmitter
                     err = 'close'
                 if err
                     dbg("user_query(query='#{misc.to_json(query)}') error:", err)
-                    if not @account_id? and misc.startswith("#{err}", "FATAL")
+                    if @conn? and not @account_id? and misc.startswith("#{err}", "FATAL")
                         # Tried to do a user_query before signing in.  Since we no longer have any anonymous user queries
                         # there is absolutely no situation where a client should do this, unless it is buggy.
                         dbg("immediately terminating buggy client trying to do FATAL user_query when not signed_in")
