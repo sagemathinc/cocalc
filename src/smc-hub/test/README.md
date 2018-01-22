@@ -1,6 +1,15 @@
 # Running mocha tests in smc-hub:
 
-## 1. Start test db instance
+## 1. Development install
+
+Running mocha tests in any of the following directories requires development install, e.g. `cd smc-hub;npm install --only=dev`:
+- cocalc/src/smc-util
+- cocalc/src/smc-util-node
+- cocalc/src/smc-hub
+- cocalc/src/smc-project
+- cocalc/src/smc-webapp
+
+## 2. Start test db instance
 
 Use separate .term session to start postgresql in the foreground. This command also creates the file `postgres-env` used in next step:
 
@@ -8,7 +17,7 @@ Use separate .term session to start postgresql in the foreground. This command a
 ~/cocalc/src/dev/project/start_postgres.py
 ```
 
-### 2. Run the tests
+## 3. Run the tests
 
 The api tests generate a lot of debug output, which can be filtered out as shown. Also shown is overriding the `progress` reporter.
 
