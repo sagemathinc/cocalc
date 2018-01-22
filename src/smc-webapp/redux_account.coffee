@@ -107,6 +107,11 @@ class AccountActions extends Actions
         )
 
     forgot_password: (email) =>
+        # temporary hotfix while sendgrid is broken
+        @setState
+            forgot_password_error : "Automatic password reset is currently not available. Please email help@sagemath.com and request a manual password reset."
+        return
+
         webapp_client.forgot_password
             email_address : email
             cb : (err, mesg) =>
