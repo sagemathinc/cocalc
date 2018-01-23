@@ -289,7 +289,6 @@ exports.ConnectionInfo = rclass
 
     propTypes :
         actions : rtypes.object
-        hub     : rtypes.string
         ping    : rtypes.number
         avgping : rtypes.number
         status  : rtypes.string
