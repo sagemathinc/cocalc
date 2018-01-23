@@ -600,7 +600,5 @@ _internals =
         connect_component        : connect_component
         react_component          : react_component
 
-
-
-
-
+if process?.env?.SMC_TEST
+    exports._internals = _internals
