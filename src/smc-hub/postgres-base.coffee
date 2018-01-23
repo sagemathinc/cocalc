@@ -70,7 +70,7 @@ read_password_from_disk = ->
         # no password file
         return
 
-class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whenever we successfully connect to the database.
+class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whenever we successfully connect to the database and 'disconnect' when connection to postgres fails
     constructor: (opts) ->
         opts = defaults opts,
             host            : process.env['PGHOST'] ? 'localhost'    # or 'hostname:port'
@@ -227,6 +227,7 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
                 if @_notification?
                     client.on('notification', @_notification)
                 client.on 'error', (err) =>
+                    @emit('disconnect')
                     dbg("error -- #{err}")
                     client?.end()
                     client?.removeAllListeners()
