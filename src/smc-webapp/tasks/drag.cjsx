@@ -29,8 +29,8 @@ exports.DragHandle = rclass
             color = '#888'
             Handle = SortableDragHandle
         else
-            color = '#ddd'
+            color = '#eee'
             Handle = DisabledDragHandle
-        <div style={fontSize:'17pt', color:color}>
+        <span style={fontSize:'17pt', color:color, marginLeft:'15px'}>
             <Handle />
-        </div>
+        </span>

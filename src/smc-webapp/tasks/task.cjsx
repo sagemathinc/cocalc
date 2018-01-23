@@ -129,12 +129,11 @@ exports.Task = rclass
                 desc = head
         <div style={style} onClick={@on_click}>
             <Row>
-                <Col md={1} style={display: 'flex', flexDirection:'row'}>
+                <Col md={1}>
                     {@render_drag_handle()}
-                    {@render_done_checkbox()}
                     {@render_min_toggle(!!body)}
                 </Col>
-                <Col md={9}>
+                <Col md={8}>
                     {@render_desc(desc)}
                 </Col>
                 <Col md={1}>
@@ -142,6 +141,9 @@ exports.Task = rclass
                 </Col>
                 <Col md={1}>
                     {@render_last_edited()}
+                </Col>
+                <Col md={1}>
+                    {@render_done_checkbox()}
                 </Col>
             </Row>
         </div>
