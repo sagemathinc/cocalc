@@ -1,3 +1,8 @@
+Files being edited right now:
+
+
+    select account_id, project_id, right(filename,40), time from file_access_log where time >= now() - interval '1 minute' order by time desc;
+
 Recently published paths:
 
     select now()-created,project_id,path from public_paths where created >= now() - interval '1 day' and created <= now() order by created desc;
