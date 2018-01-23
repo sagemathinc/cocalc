@@ -81,7 +81,7 @@ exports.Headings = rclass
             <Col md={1} style={color:'#666', textAlign:'center'}>
 
             </Col>
-            <Col md={6} style={color:'#666'}>
+            <Col md={5} style={color:'#666'}>
                 Description
             </Col>
             <Col md={2}>
@@ -95,6 +95,9 @@ exports.Headings = rclass
             </Col>
             <Col md={1} style={color:'#666'}>
                 Done
+            </Col>
+            <Col md={1} style={color:'#666'}>
+                Timer
             </Col>
         </Row>
 

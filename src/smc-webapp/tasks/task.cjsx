@@ -53,6 +53,11 @@ exports.Task = rclass
             task_id   = {@props.task.get('task_id')}
         />
 
+    render_timer: ->
+        <span style={color:'#888'}>
+            none
+        </span>
+
     render_min_toggle: (has_body) ->
         <MinToggle
             actions   = {@props.actions}
@@ -133,7 +138,7 @@ exports.Task = rclass
                     {@render_drag_handle()}
                     {@render_min_toggle(!!body)}
                 </Col>
-                <Col md={8}>
+                <Col md={7}>
                     {@render_desc(desc)}
                 </Col>
                 <Col md={1}>
@@ -144,6 +149,9 @@ exports.Task = rclass
                 </Col>
                 <Col md={1}>
                     {@render_done_checkbox()}
+                </Col>
+                <Col md={1}>
+                    {@render_timer()}
                 </Col>
             </Row>
         </div>
