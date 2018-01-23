@@ -249,11 +249,13 @@ class exports.TaskActions extends Actions
             return
         task = @store.getIn(['tasks', task_id])
         # Update last_edited if desc or due date changes
-        if not task? or (obj.desc? and obj.desc != task.get('desc') or (obj.due_date? and obj.due_date != task.get('due_date')))
+        if not task? or (obj.desc? and obj.desc != task.get('desc') or (obj.due_date? and obj.due_date != task.get('due_date')) \
+                         or (obj.done? and obj.done != task.get('done')))
             last_edited = @store.getIn(['tasks', task_id, 'last_edited']) ? 0
             now = new Date() - 0
             if now - last_edited >= LAST_EDITED_THRESH_S*1000
                 obj.last_edited = now
+                console.log 'update last edited'
 
         obj.task_id = task_id
         @syncdb.set(obj)
@@ -357,7 +359,7 @@ class exports.TaskActions extends Actions
     toggle_task_done: (task_id) =>
         task_id ?= @store.get('current_task_id')
         if task_id?
-            @set_task(task_id, {done:!@store.getIn(['tasks', task_id, 'done'])})
+            @set_task(task_id, {done:!@store.getIn(['tasks', task_id, 'done'])}, true)
 
     stop_editing_due_date: (task_id) =>
         @set_local_task_state(task_id, {editing_due_date : false})
