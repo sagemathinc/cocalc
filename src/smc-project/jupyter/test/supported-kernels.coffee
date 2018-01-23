@@ -132,7 +132,7 @@ describe 'test the octave kernel --', ->
 
 
 describe 'test the julia kernel --', ->
-    @timeout(20000)
+    @timeout(90000)
     kernel = undefined
     it 'evaluate 4/3', (done) ->
         kernel = common.kernel('julia')
@@ -151,7 +151,7 @@ describe 'test the julia kernel --', ->
 
 
 describe 'test the system-wide R kernel --', ->
-    @timeout(60000)
+    @timeout(90000)
     kernel = undefined
     it 'evaluate sd(c(1,2,5))', (done) ->
         kernel = common.kernel('ir')
@@ -169,7 +169,7 @@ describe 'test the system-wide R kernel --', ->
         kernel.close()
 
 describe 'test the sage R kernel --', ->
-    @timeout(60000)
+    @timeout(90000)
     kernel = undefined
     it 'evaluate sd(c(1,2,5))', (done) ->
         kernel = common.kernel('ir-sage')
@@ -187,7 +187,7 @@ describe 'test the sage R kernel --', ->
         kernel.close()
 
 describe 'test the scala kernel --', ->
-    @timeout(30000)
+    @timeout(90000)
     kernel = undefined
     it 'matchTest', (done) ->
         kernel = common.kernel('scala211')
