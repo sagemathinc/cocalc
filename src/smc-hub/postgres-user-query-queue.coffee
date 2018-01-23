@@ -25,11 +25,10 @@ USER_QUERY_TIMEOUT_MS = 15000
 TIME_HISTORY_LENGTH = 100
 
 # Do not throttle queries at all unless there are at least this
-# many global outstanding concurent **user queries**.  The point is that
+# many global outstanding concurrent **user queries**.  The point is that
 # if there's very little load, we should get queries done as fast
 # as possible for users.
-GLOBAL_LIMIT = 100
-#GLOBAL_LIMIT = 4
+GLOBAL_LIMIT = 200
 
 # setup metrics
 metrics_recorder = require('./metrics-recorder')

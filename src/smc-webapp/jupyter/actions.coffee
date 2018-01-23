@@ -1368,7 +1368,8 @@ class exports.JupyterActions extends Actions
             , 0
             return
         if action_name == 'close_file'
-            a.close_file(path)
+            @syncdb.save () =>
+                a.close_file(path)
             return
         if action_name == 'open_file'
             a.open_file(path: path)
@@ -1905,3 +1906,10 @@ class exports.JupyterActions extends Actions
                 @save()
                 @file_action('reopen_file', @store.get('path'))
 
+    close_and_halt: =>
+        # Kill running session
+        @signal('SIGKILL')
+        # Display the main file listing page
+        @file_open()
+        # Close the file
+        @file_action('close_file')

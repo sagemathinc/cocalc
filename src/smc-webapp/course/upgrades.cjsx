@@ -319,6 +319,6 @@ exports.StudentProjectUpgrades = rclass
             {if @state.upgrade_quotas then @render_upgrade_quotas() else @render_upgrade_quotas_button()}
             <hr/>
             <div style={color:"#666"}>
-                <p>Add or remove upgrades to student projects associated to this course, augmenting what is provided for free and what students may have purchased.</p>
+                <p>Add or remove upgrades to student projects associated to this course, augmenting what is provided for free and what students may have purchased.  <a href="https://github.com/sagemathinc/cocalc/wiki/prof-pay" target="_blank">Help...</a></p>
             </div>
         </Panel>

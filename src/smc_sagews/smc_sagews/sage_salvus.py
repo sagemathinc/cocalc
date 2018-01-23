@@ -3102,7 +3102,8 @@ def reset(vars=None, attached=False):
     for k in G.keys():
         if k[0] != '_' and type(k) != T:
             try:
-                del G[k]
+                if k != 'salvus':
+                    del G[k]
             except KeyError:
                 pass
     restore()

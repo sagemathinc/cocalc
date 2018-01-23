@@ -34,11 +34,11 @@ TOUCH_INTERVAL_M = 10
 # How often the local hub will autosave this file to disk if it has it open and
 # there are unsaved changes.  This is very important since it ensures that a user that
 # edits a file but doesn't click "Save" and closes their browser (right after their edits
-# have gone to the databse), still has their file saved to disk soon.  This is important,
+# have gone to the database), still has their file saved to disk soon.  This is important,
 # e.g., for homework getting collected and not missing the last few changes.  It turns out
-# this is what people expect!
+# this is what people expect.
 # Set to 0 to disable. (But don't do that.)
-LOCAL_HUB_AUTOSAVE_S = 120
+LOCAL_HUB_AUTOSAVE_S = 45
 #LOCAL_HUB_AUTOSAVE_S = 5
 
 # If the client becomes disconnected from the backend for more than this long
@@ -1768,6 +1768,10 @@ class SyncDoc extends EventEmitter
         if cb?
             #dbg("waiting for save.state to change from '#{@_syncstring_table.get_one().getIn(['save','state'])}' to 'done'")
             f = (cb) =>
+                if @_closed
+                    # closed during save
+                    cb()
+                    return
                 if @_deleted
                     # if deleted, then save doesn't need to finish and is done successfully.
                     cb()
@@ -1783,7 +1787,8 @@ class SyncDoc extends EventEmitter
                         if err
                             #dbg("got err waiting: #{err}")
                         else
-                            err = @_syncstring_table.get_one().getIn(['save', 'error'])
+                            # ? because @_syncstring_table could be undefined here, if saving and closing at the same time.
+                            err = @_syncstring_table?.get_one().getIn(['save', 'error'])
                             #if err
                             #    dbg("got result but there was an error: #{err}")
                         if err
@@ -1793,6 +1798,10 @@ class SyncDoc extends EventEmitter
                 f         : f
                 max_tries : 5
                 cb        : (err) =>
+                    if @_closed
+                        # closed during save
+                        cb()
+                        return
                     if err
                         # TODO: This should in theory never be necessary, and I've resisted adding
                         # it for five years.  However, here it is:

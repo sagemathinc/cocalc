@@ -14,6 +14,8 @@ Top-level react component for task list
 {Headings, is_sortable} = require('./headings')
 {Row, Col}              = require('react-bootstrap')
 
+{IS_MOBILE} = require('../feature')
+
 exports.TaskEditor = rclass ({name}) ->
     propTypes :
         actions    : rtypes.object.isRequired
@@ -123,6 +125,11 @@ exports.TaskEditor = rclass ({name}) ->
             return @render_loading()
         if @props.visible.size == 0 and @props.actions?
             return @render_new_hint()
+
+        if IS_MOBILE # obviously, this is not going to dynamically change, but it at least makes mobile *usable*...
+            STYLE = {}
+        else
+            STYLE = {overflowX:'hidden', overflowY:'auto', paddingBottom: '300px'}
         <TaskList
             actions              = {@props.actions}
             path                 = {@props.path}
@@ -135,7 +142,7 @@ exports.TaskEditor = rclass ({name}) ->
             scroll               = {@props.local_view_state?.get('scroll')}
             scroll_into_view     = {@props.scroll_into_view}
             font_size            = {@props.local_view_state?.get('font_size')}
-            style                = {overflowX:'hidden', overflowY:'auto', paddingBottom: '300px'}
+            style                = {STYLE}
             sortable             = {not @props.read_only and is_sortable(@props.local_view_state?.getIn(['sort', 'column']))}
             read_only            = {@props.read_only}
             selected_hashtags    = {@props.local_view_state?.get('selected_hashtags')}
@@ -154,7 +161,11 @@ exports.TaskEditor = rclass ({name}) ->
             />
 
     render: ->
-        <div className='smc-vfill'>
+        if IS_MOBILE
+            className = undefined
+        else
+            className='smc-vfill'
+        <div className={className}>
             {@render_hashtag_bar()}
             {@render_find_bar()}
             {@render_button_bar()}
