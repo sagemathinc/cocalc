@@ -255,7 +255,6 @@ class exports.TaskActions extends Actions
             now = new Date() - 0
             if now - last_edited >= LAST_EDITED_THRESH_S*1000
                 obj.last_edited = now
-                console.log 'update last edited'
 
         obj.task_id = task_id
         @syncdb.set(obj)
@@ -479,3 +478,17 @@ class exports.TaskActions extends Actions
 
     set_show_max: (show_max) =>
         @set_local_view_state({show_max: show_max}, false)
+
+    start_timer: (task_id) =>
+        ###
+        task = @store.getIn(['tasks', task_id])
+        if not task?
+            return
+        timer = task.get('timer') ?
+        @set_task(task_id, {timer:{total:}})
+        ###
+
+    stop_timer: (task_id) =>
+
+    delete_timer: (task_id) =>
+

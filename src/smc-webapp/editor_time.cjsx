@@ -83,13 +83,14 @@ EditorTime = rclass ({name}) ->
         else
             <Loading/>
 
-Stopwatch = rclass
+exports.Stopwatch = Stopwatch = rclass
     propTypes:
         label        : rtypes.string.isRequired  # a text label
         total        : rtypes.number.isRequired  # total time accumulated before entering current state
         state        : rtypes.string.isRequired  # 'paused' or 'running' or 'stopped'
         time         : rtypes.number.isRequired  # when entered this state
         click_button : rtypes.func.isRequired
+        compact      : rtypes.bool
 
     mixins: [SetIntervalMixin]
 
@@ -97,18 +98,29 @@ Stopwatch = rclass
         @setInterval((=> @forceUpdate()), 1000)
 
     render_start_button: ->
-        <Button bsStyle='primary' onClick={=>@props.click_button('start')} style={width:'8em'}>
-            <Icon name='play'/> Start
+        <Button
+            bsStyle = {if not @props.compact then 'primary'}
+            onClick = {=>@props.click_button('start')}
+            style   = {if not @props.compact then {width:'8em'}}
+            bsSize  = {if @props.compact then "xsmall"} >
+            <Icon name='play'/> {if not @props.compact then 'Start'}
         </Button>
 
     render_stop_button: ->
-        <Button bsStyle='warning' onClick={=>@props.click_button('stop')}>
-            <Icon name='stop'/> Stop
+        <Button
+            bsStyle = {if not @props.compact then 'warning'}
+            onClick = {=>@props.click_button('stop')}
+            bsSize  = {if @props.compact then "xsmall"}>
+            <Icon name='stop'/> {if not @props.compact then 'Stop'}
         </Button>
 
     render_pause_button: ->
-        <Button bsStyle='info' onClick={=>@props.click_button('pause')} style={width:'8em'}>
-            <Icon name='pause'/> Pause
+        <Button
+            bsStyle = {if not @props.compact then 'info'}
+            onClick = {=>@props.click_button('pause')}
+            style   = {if not @props.compact then {width:'8em'}}
+            bsSize  = {if @props.compact then "xsmall"} >
+            <Icon name='pause'/> {if not @props.compact then 'Pause'}
         </Button>
 
     render_time: ->
@@ -122,28 +134,37 @@ Stopwatch = rclass
             else
                 return <div>Invalid state {@props.state}</div>
 
-        return <TimeAmount amount={amount} />
+        return <TimeAmount key={'time'} amount={amount} compact={@props.compact} />
 
     render_buttons: ->
         switch @props.state
             when 'stopped'
-                @render_start_button()
+                <span key={'buttons'}>
+                    {@render_start_button()}
+                </span>
             when 'paused'
-                <ButtonGroup>
+                <ButtonGroup key={'buttons'}>
                     {@render_start_button()}
                     {@render_stop_button()}
                 </ButtonGroup>
             when 'running'
-                <ButtonGroup>
+                <ButtonGroup key={'buttons'} >
                     {@render_pause_button()}
                     {@render_stop_button()}
                 </ButtonGroup>
 
+    content: ->
+        return [@render_time(), @render_buttons()]
+
     render: ->
-        <Well>
-            {@render_time()}
-            {@render_buttons()}
-        </Well>
+        if @props.compact
+            <div>
+                {@content()}
+            </div>
+        else
+            <Well>
+                {@content()}
+            </Well>
 
 zpad = (n) ->
     n = "#{n}"
@@ -153,7 +174,8 @@ zpad = (n) ->
 
 TimeAmount = rclass
     propTypes :
-        amount : rtypes.number.isRequired
+        amount  : rtypes.number.isRequired
+        compact : rtypes.bool
 
     render : ->
         t = Math.round(@props.amount / 1000)
@@ -162,7 +184,7 @@ TimeAmount = rclass
         minutes = Math.floor(t/60)
         t -= 60*minutes
         seconds = t
-        <div style={fontSize:'50pt', fontFamily:'courier'}>
+        <div style={fontSize:(if not @props.compact then '50pt'), fontFamily:'courier'}>
             {zpad(hours)}:{zpad(minutes)}:{zpad(seconds)}
         </div>
 

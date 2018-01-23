@@ -13,6 +13,7 @@ A single task
 {DueDate}      = require('./due')
 {DragHandle}   = require('./drag')
 {DoneCheckbox} = require('./done')
+{Timer}        = require('./timer')
 
 exports.Task = rclass
     propTypes :
@@ -54,9 +55,10 @@ exports.Task = rclass
         />
 
     render_timer: ->
-        <span style={color:'#888'}>
-            none
-        </span>
+        <Timer
+            actions = {@props.actions}
+            task_id = {@props.task.get('task_id')}
+        />
 
     render_min_toggle: (has_body) ->
         <MinToggle
@@ -138,7 +140,7 @@ exports.Task = rclass
                     {@render_drag_handle()}
                     {@render_min_toggle(!!body)}
                 </Col>
-                <Col md={7}>
+                <Col md={8}>
                     {@render_desc(desc)}
                 </Col>
                 <Col md={1}>
@@ -149,9 +151,6 @@ exports.Task = rclass
                 </Col>
                 <Col md={1}>
                     {@render_done_checkbox()}
-                </Col>
-                <Col md={1}>
-                    {@render_timer()}
                 </Col>
             </Row>
         </div>
