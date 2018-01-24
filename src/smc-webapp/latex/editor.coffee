@@ -91,13 +91,13 @@ class exports.LatexEditor extends editor.FileEditor
             saved_cb = =>
                 if @_current_page == 'pdf-preview'
                     @preview_embed?.update()
-            @update_preview(saved_cb)
+            @update_preview(cb:saved_cb)
             @spell_check()
 
         @latex_editor.syncdoc.on 'connect', () =>
             #if DEBUG then console.log("LatexEditor. syncdoc.on 'connect'")
             @preview.zoom_width = @load_conf().zoom_width ? 100
-            setTimeout((=> @update_preview(undefined, false, false)), 1000)
+            setTimeout((=> @update_preview()), 1000)
             @spell_check()
 
         @latex_editor.print = () =>
@@ -468,7 +468,7 @@ class exports.LatexEditor extends editor.FileEditor
                     @preview.pdflatex.trash_aux_files (err, _log) =>
                         cb(err)
                 (cb) =>
-                    @update_preview(cb, true, true)
+                    @update_preview(cb:cb, force:true, only_compile:true)
             ], (err) =>
                 run_recompile.icon_spin(false, disable=true)
             )
@@ -520,15 +520,17 @@ class exports.LatexEditor extends editor.FileEditor
         @latex_editor.save (err) =>
             cb?(err)
             if not err
-                sf =  =>
+                save_cb =  =>
                     if @_current_page == 'pdf-preview'
                         @preview_embed?.update()
-                @update_preview(sf, force)
+                @update_preview(cb:save_cb, force:force)
                 @spell_check()
 
-    update_preview: (cb, force, only_compile) =>
-        force        ?= false
-        only_compile ?= false
+    update_preview: (opts) =>
+        {cb, force, only_compile} = opts = defaults opts,
+            cb           : undefined
+            force        : false
+            only_compile : false
         # force: continue, even when content hasn't changed
         # only_compile: avoid the preview rendering
         # obvious TODO: untangle preview update and run_latex
@@ -581,14 +583,14 @@ class exports.LatexEditor extends editor.FileEditor
                 if @latex_editor.has_uncommitted_changes()
                     delete @_last_update_preview  # running latex on stale version
                     @get_rnw_concordance_error = false
-                #@dbg("update_preview(force=#{force}, only_compile=#{only_compile}): run_latex")
+                #@dbg("update_preview(#{misc.to_json(opts)}): run_latex")
                 @run_latex
                     command      : @load_conf_doc().latex_command
                     cb           : cb
             (cb) =>
                 if only_compile
                     cb(); return
-                #@dbg("update_preview(force=#{force}, only_compile=#{only_compile}): preview update")
+                #@dbg("update_preview(#{misc.to_json(opts)}): preview update")
                 preview_button.icon_spin(true, disable=true)
                 @preview.update
                     cb: cb
