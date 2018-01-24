@@ -254,21 +254,12 @@ class Connection extends client.Connection
         conn.on 'open', () =>
             @_connected = true
             @_connection_is_totally_dead = false
-            if @_conn_id?
-                conn.write(@_conn_id)
-            else
-                conn.write("XXXXXXXXXXXXXXXXXXXX")
             protocol = if window.WebSocket? then 'websocket' else 'polling'
             @emit("connected", protocol)
             log("connected; protocol='#{protocol}'")
             @_num_attempts = 0
 
             conn.removeAllListeners('data')
-            f = (data) =>
-                @_conn_id = data.toString()
-                conn.removeListener('data',f)
-                conn.on('data', ondata)
-            conn.on("data", f)
 
             if auth_token?
                 @sign_in_using_auth_token

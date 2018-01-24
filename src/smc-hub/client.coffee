@@ -207,7 +207,7 @@ class exports.Client extends EventEmitter
 
     dbg: (desc) =>
         if @logger?.debug
-            return (m...) => @logger.debug("Client(#{@id}).#{desc}: #{JSON.stringify(m)}")
+            return (args...) => @logger.debug("Client(#{@id}).#{desc}:", args...)
         else
             return ->
 
@@ -227,6 +227,7 @@ class exports.Client extends EventEmitter
         @compute_session_uuids = []
         c = clients[@id]
         delete clients[@id]
+        dbg("num_clients=#{misc.len(clients)}")
         if c? and c.call_callbacks?
             for id,f of c.call_callbacks
                 f("connection closed")
