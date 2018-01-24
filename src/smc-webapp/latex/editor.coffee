@@ -583,14 +583,14 @@ class exports.LatexEditor extends editor.FileEditor
                 if @latex_editor.has_uncommitted_changes()
                     delete @_last_update_preview  # running latex on stale version
                     @get_rnw_concordance_error = false
-                #@dbg("update_preview(#{misc.to_json(opts)}): run_latex")
+                #@dbg("update_preview(#{misc.to_json(force:force, only_compile:only_compile)}): run_latex")
                 @run_latex
                     command      : @load_conf_doc().latex_command
                     cb           : cb
             (cb) =>
                 if only_compile
                     cb(); return
-                #@dbg("update_preview(#{misc.to_json(opts)}): preview update")
+                #@dbg("update_preview(#{misc.to_json(force:force, only_compile:only_compile)}): preview update")
                 preview_button.icon_spin(true, disable=true)
                 @preview.update
                     cb: cb
