@@ -312,7 +312,7 @@ class SyncTable extends EventEmitter
 
                 if is_fatal(err)
                     console.warn('setting up changefeed', @_table, err)
-                    #@close(true)
+                    @close(true)
                     cb?(err)
                     return
 
@@ -574,7 +574,7 @@ class SyncTable extends EventEmitter
                 if err
                     if is_fatal(err)
                         console.warn('FATAL doing set', @_table, err)
-                        #@close(true)
+                        @close(true)
                         cb?(err)
                         return
 
