@@ -260,6 +260,7 @@ class Connection extends client.Connection
             @_num_attempts = 0
 
             conn.removeAllListeners('data')
+            conn.on("data", ondata)
 
             if auth_token?
                 @sign_in_using_auth_token
