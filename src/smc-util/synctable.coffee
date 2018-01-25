@@ -161,8 +161,8 @@ class Plug
         misc.retry_until_success
             f           : @__try_to_connect_once
             log         : dbg
-            start_delay : 4000
-            max_delay   : 20000
+            start_delay : 10000
+            max_delay   : 30000
             cb          : =>
                 delete @_is_connecting
                 dbg("success!")
@@ -312,7 +312,8 @@ class SyncTable extends EventEmitter
 
                 if is_fatal(err)
                     console.warn('setting up changefeed', @_table, err)
-                    @close(true)
+                    #@close(true)
+                    cb?(err)
                     return
 
                 if first_resp
@@ -572,8 +573,9 @@ class SyncTable extends EventEmitter
             cb      : (err) =>
                 if err
                     if is_fatal(err)
-                        console.warn('doing set', @_table, err)
-                        @close(true)
+                        console.warn('FATAL doing set', @_table, err)
+                        #@close(true)
+                        cb?(err)
                         return
 
                     console.warn("_save('#{@_table}') error:", err)
@@ -626,8 +628,8 @@ class SyncTable extends EventEmitter
             f        : (cb) =>
                 misc.retry_until_success
                     f         : @_save
-                    max_delay : 5000
-                    max_time  : 30000
+                    max_delay : 20000
+                    max_time  : 60000
                     cb        : cb
             interval : @_debounce_interval
             state    : @_save_debounce
