@@ -46,7 +46,6 @@ primary_key =
 # Manages local and sync changes
 exports.CourseActions = class CourseActions extends Actions
     constructor: (@name, @redux) ->
-        window.a = @
         if not @name?
             throw Error("@name must be defined")
         if not @redux?
