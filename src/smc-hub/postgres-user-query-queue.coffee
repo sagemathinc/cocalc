@@ -112,7 +112,9 @@ class exports.UserQueryQueue
             query_queue_exec.labels('timeout').inc()
             return
 
-        @_dbg("_do_one_query(client_id='#{opts.client_id}') -- doing the query")
+        id = misc.uuid().slice(0,6)
+        tm = new Date()
+        @_dbg("_do_one_query(client_id='#{opts.client_id}', query_id='#{id}') -- doing the query")
         # Actually do the query
         orig_cb = opts.cb
         # Remove the two properties from opts that @_do_query doesn't take
@@ -125,6 +127,7 @@ class exports.UserQueryQueue
         # it receives to the orig_cb, if there is one.
         opts.cb = (err, result) =>
             if cb?
+                @_dbg("_do_one_query(client_id='#{opts.client_id}', query_id='#{id}') -- done; time=#{new Date() - tm}ms")
                 cb()
                 cb = undefined
             if result?.action == 'close' or err
@@ -133,8 +136,9 @@ class exports.UserQueryQueue
                 delete opts.cb
             orig_cb?(err, result)
 
-        # Finally, do the query.
+        # Increment counter
         query_queue_exec.labels('sent').inc()
+        # Finally, do the query.
         @_do_query(opts)
 
     _update: (state) =>

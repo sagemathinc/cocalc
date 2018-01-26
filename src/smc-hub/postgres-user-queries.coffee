@@ -203,7 +203,7 @@ class exports.PostgreSQL extends PostgreSQL
     # Handle user_query when opts.query is an array.  opts below are as for user_query.
     _user_query_array: (opts) =>
         if opts.changes and opts.query.length > 1
-            opts.cb("FATAL: changefeeds only implemented for single table")
+            opts.cb?("FATAL: changefeeds only implemented for single table")
             return
         result = []
         f = (query, cb) =>
