@@ -388,12 +388,12 @@ Assignment = rclass
             @setState("copy_confirm_#{step}":false, "copy_confirm_all_#{step}":false, copy_confirm:false)
         <Button key='cancel' onClick={cancel}>Cancel</Button>
 
-    copy_assignment: (step, new_only) ->
+    copy_assignment: (step, new_only, overwrite) ->
         # assign assignment to all (non-deleted) students
         actions = @props.redux.getActions(@props.name)
         switch step
             when 'assignment'
-                actions.copy_assignment_to_all_students(@props.assignment, new_only)
+                actions.copy_assignment_to_all_students(@props.assignment, new_only, overwrite)
             when 'collect'
                 actions.copy_assignment_from_all_students(@props.assignment, new_only)
             when 'peer_assignment'
@@ -421,7 +421,13 @@ Assignment = rclass
     copy_confirm_all_caution: (step) ->
         switch step
             when 'assignment'
-                return <span>This will recopy all of the files to them.  CAUTION: if you update a file that a student has also worked on, their work will get copied to a backup file ending in a tilde, or possibly only be available in snapshots <a target='_blank' href='https://github.com/sagemathinc/cocalc/wiki/CourseCopy'>(more details)</a>.</span>
+                return <span>
+                            This will recopy all of the files to them.{' '}
+                            CAUTION: if you update a file that a student has also worked on, their work will get copied to a backup file ending in a tilde,{' '}
+                            or possibly only be available in snapshots.{' '}
+                            Select "Overwrite student files!" in case you do not want to keep any backups or other files in the assignment directory of their projects.{' '}
+                            <a target='_blank' href='https://github.com/sagemathinc/cocalc/wiki/CourseCopy'>(more details)</a>.
+                       </span>
             when 'collect'
                 return "This will recollect all of the homework from them.  CAUTION: if you have graded/edited a file that a student has updated, your work will get copied to a backup file ending in a tilde, or possibly only be available in snapshots."
             when 'return_graded'
@@ -438,6 +444,10 @@ Assignment = rclass
             </div>
             <ButtonToolbar>
                 <Button key='all' bsStyle='danger' onClick={=>@copy_assignment(step, false)}>Yes, do it</Button>
+                {
+                    if step == 'assignment'
+                        <Button key='all-overwrite' bsStyle='danger' onClick={=>@copy_assignment(step, false, true)}>Overwrite student files!</Button>
+                }
                 {@render_copy_cancel(step)}
             </ButtonToolbar>
         </div>
