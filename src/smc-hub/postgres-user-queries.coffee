@@ -70,8 +70,11 @@ class exports.PostgreSQL extends PostgreSQL
                                     #    for the table to explicitly allow deleting.
             changes    : undefined  # id of change feed
             cb         : undefined  # cb(err, result)  # WARNING -- this *will* get called multiple times when changes is true!
-        dbg = @_dbg("user_query(...)")
+        id = misc.uuid().slice(0,6)
+        dbg = @_dbg("user_query(id=#{id})")
+        dbg(misc.to_json(opts.query))
         if misc.is_array(opts.query)
+            dbg('array query instead')
             @_user_query_array(opts)
             return
 
@@ -87,12 +90,14 @@ class exports.PostgreSQL extends PostgreSQL
 
         v = misc.keys(opts.query)
         if v.length > 1
+            dbg('FATAL no key')
             opts.cb?('FATAL: must specify exactly one key in the query')
             return
         table = v[0]
         query = opts.query[table]
         if misc.is_array(query)
             if query.length > 1
+                dbg("FATAL not implemented")
                 opts.cb?("FATAL: array of length > 1 not yet implemented")
                 return
             multi = true
@@ -102,6 +107,7 @@ class exports.PostgreSQL extends PostgreSQL
         is_set_query = undefined
         if opts.options?
             if not misc.is_array(opts.options)
+                dbg("FATAL options")
                 opts.cb?("FATAL: options (=#{misc.to_json(opts.options)}) must be an array")
                 return
             for x in opts.options
@@ -117,13 +123,16 @@ class exports.PostgreSQL extends PostgreSQL
             if not is_set_query?
                 is_set_query = not misc.has_null_leaf(query)
             if is_set_query
-                # do a set query
+                dbg("do a set query")
                 if changes
+                    dbg("FATAL: changefeed")
                     opts.cb?("FATAL: changefeeds only for read queries")
                     return
                 if not opts.account_id? and not opts.project_id?
+                    dbg("FATAL: anon set")
                     opts.cb?("FATAL: no anonymous set queries")
                     return
+                dbg("user_set_query")
                 @user_set_query
                     account_id : opts.account_id
                     project_id : opts.project_id
@@ -131,19 +140,23 @@ class exports.PostgreSQL extends PostgreSQL
                     query      : query
                     options    : opts.options
                     cb         : (err, x) =>
+                        dbg("returned #{err}")
                         opts.cb?(err, {"#{table}":x})
             else
                 # do a get query
                 if changes and not multi
+                    dbg("FATAL: changefeed multi")
                     opts.cb?("FATAL: changefeeds only implemented for multi-document queries")
                     return
 
                 if changes
                     err = @_inc_changefeed_count(opts.account_id, opts.project_id, table, changes.id)
                     if err
+                        dbg("err changefeed count -- #{err}")
                         opts.cb?(err)
                         return
 
+                dbg("user_get_query")
                 @user_get_query
                     account_id : opts.account_id
                     project_id : opts.project_id
@@ -153,11 +166,13 @@ class exports.PostgreSQL extends PostgreSQL
                     multi      : multi
                     changes    : changes
                     cb         : (err, x) =>
+                        dbg("returned #{err}")
                         if err and changes
                             # didn't actually make the changefeed, so don't count it.
                             @_dec_changefeed_count(changes.id, table)
                         opts.cb?(err, if not err then {"#{table}":x})
         else
+            dbg("FATAL - invalid table")
             opts.cb?("FATAL: invalid user_query of '#{table}' -- query must be an object")
 
     ###
@@ -1349,16 +1364,19 @@ class exports.PostgreSQL extends PostgreSQL
         If no error in query, and changes is a given uuid, set up a change
         feed that calls opts.cb on changes as well.
         ###
-        dbg = @_dbg("user_get_query(table='#{opts.table}')")
+        id = misc.uuid().slice(0,6)
+        dbg = @_dbg("user_get_query(id=#{id})")
         dbg("account_id='#{opts.account_id}', project_id='#{opts.project_id}', query=#{misc.to_json(opts.query)}, multi=#{opts.multi}, options=#{misc.to_json(opts.options)}, changes=#{misc.to_json(opts.changes)}")
         {err, table, client_query, require_admin, delete_option, primary_keys, json_fields} = @_parse_get_query_opts(opts)
 
         if err
+            dbg("error parsing query opts -- #{err}")
             opts.cb(err)
             return
         if client_query.get.instead_of_query?
             # Custom version: instead of doing a full query, we instead
             # call a function and that's it.
+            dbg("do instead_of_query instead")
             client_query.get.instead_of_query(@, opts.query, opts.account_id, opts.cb)
             return
 
@@ -1369,11 +1387,13 @@ class exports.PostgreSQL extends PostgreSQL
         async.series([
             (cb) =>
                 if client_query.get.check_hook?
+                    dbg("do check hook")
                     client_query.get.check_hook(@, opts.query, opts.account_id, opts.project_id, cb)
                 else
                     cb()
             (cb) =>
                 if require_admin
+                    dbg('require admin')
                     @_require_is_admin(opts.account_id, cb)
                 else
                     cb()
@@ -1381,6 +1401,7 @@ class exports.PostgreSQL extends PostgreSQL
                 # NOTE: _user_get_query_where may mutate opts.query (for 'null' params)
                 # so it is important that this is called before @_user_get_query_query below.
                 # See the TODO in @_user_get_query_filter.
+                dbg("get_query_where")
                 @_user_get_query_where client_query, opts.account_id, opts.project_id, opts.query, opts.table, (err, where) =>
                     _query_opts.where = where
                     cb(err)
@@ -1388,6 +1409,7 @@ class exports.PostgreSQL extends PostgreSQL
                 _query_opts.query = @_user_get_query_query(delete_option, table, opts.query)
                 x = @_user_get_query_options(delete_option, opts.options, opts.multi, client_query.options)
                 if x.err
+                    dbg("error in get_query_options, #{x.err}")
                     cb(x.err)
                     return
                 misc.merge(_query_opts, x)
@@ -1398,12 +1420,14 @@ class exports.PostgreSQL extends PostgreSQL
                     # see note about why we do the following at the bottom of this file
                     opts.changes.cb = (err, obj) ->
                         locals.changes_queue.push({err:err, obj:obj})
+                    dbg("getting changefeed")
                     @_user_get_query_changefeed(opts.changes, table, primary_keys,
                                                 opts.query, _query_opts.where, json_fields,
                                                 opts.account_id, client_query, cb)
                 else
                     cb()
             (cb) =>
+                dbg("finally doing query")
                 @_user_get_query_do_query _query_opts, client_query, opts.query, opts.multi, json_fields, (err, result) =>
                     if err
                         cb(err)
@@ -1412,10 +1436,13 @@ class exports.PostgreSQL extends PostgreSQL
                     cb()
         ], (err) =>
             if err
+                dbg("series failed -- err=#{err}")
                 opts.cb(err)
                 return
+            dbg("series succeeded")
             opts.cb(undefined, locals.result)
             if opts.changes?
+                dbg("sending change queue")
                 opts.changes.cb = locals.changes_cb
                 ##dbg("sending queued #{JSON.stringify(locals.changes_queue)}")
                 for {err, obj} in locals.changes_queue

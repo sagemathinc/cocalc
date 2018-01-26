@@ -15,7 +15,7 @@ required = defaults.required
 # We do at most this many user queries **at once** to the database on behalf
 # of each connected client.  This only applies when the global limit has
 # been exceeded.
-USER_QUERY_LIMIT = 10
+USER_QUERY_LIMIT = 5
 
 # If we don't even start query by this long after we receive query, then we consider it failed
 USER_QUERY_TIMEOUT_MS = 15000
@@ -114,7 +114,8 @@ class exports.UserQueryQueue
 
         id = misc.uuid().slice(0,6)
         tm = new Date()
-        @_dbg("_do_one_query(client_id='#{opts.client_id}', query_id='#{id}') -- doing the query")
+        client_id = opts.client_id
+        @_dbg("_do_one_query(client_id='#{client_id}', query_id='#{id}') -- doing the query")
         # Actually do the query
         orig_cb = opts.cb
         # Remove the two properties from opts that @_do_query doesn't take
@@ -127,7 +128,7 @@ class exports.UserQueryQueue
         # it receives to the orig_cb, if there is one.
         opts.cb = (err, result) =>
             if cb?
-                @_dbg("_do_one_query(client_id='#{opts.client_id}', query_id='#{id}') -- done; time=#{new Date() - tm}ms")
+                @_dbg("_do_one_query(client_id='#{client_id}', query_id='#{id}') -- done; time=#{new Date() - tm}ms")
                 cb()
                 cb = undefined
             if result?.action == 'close' or err
