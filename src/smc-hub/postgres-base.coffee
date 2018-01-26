@@ -543,12 +543,19 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
         @concurrent_counter.labels('started').inc(1)
         try
             start = new Date()
-            if @_timeout_ms and @_timeout_delay_ms and @_connect_time and new Date() - @_connect_time > @_timeout_delay_ms
+            if @_timeout_ms and @_timeout_delay_ms
                 # Create a timer, so that if the query doesn't return within
                 # timeout_ms time, then the entire connection is destroyed.
                 # It then gets recreated automatically.  I tested
                 # and all outstanding queries also get an error when this happens.
-                timer = setTimeout((=>@_client?.emit('error', 'timeout')), @_timeout_ms)
+                timeout_error = =>
+                    # Only disconnect with timeout error if it has been sufficiently long
+                    # since connecting.   This way when an error is triggered, all the
+                    # outstanding timers at the moment of the error will just get ignored
+                    # when they fire (since @_connect_time is 0 or too recent).
+                    if @_connect_time and new Date() - @_connect_time > @_timeout_delay_ms
+                        @_client?.emit('error', 'timeout')
+                timer = setTimeout(timeout_error, @_timeout_ms)
             @_client.query opts.query, opts.params, (err, result) =>
                 if @_timeout_ms
                     clearTimeout(timer)
