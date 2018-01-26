@@ -1595,13 +1595,14 @@ exports.CourseActions = class CourseActions extends Actions
     # Copy the files for the given handout to the given student. If
     # the student project doesn't exist yet, it will be created.
     # You may also pass in an id for either the handout or student.
+    # "overwrite" (boolean, optional): if true, the copy operation will overwrite/delete remote files in student projects -- #1483
     # If the store is initialized and the student and handout both exist,
     # then calling this action will result in this getting set in the store:
     #
     #    handout.status[student_id] = {time:?, error:err}
     #
     # where time >= now is the current time in milliseconds.
-    copy_handout_to_student: (handout, student) =>
+    copy_handout_to_student: (handout, student, overwrite) =>
         if @_handout_start_copy(handout, student)
             return
         id = @set_activity(desc:"Copying handout to a student")
@@ -1646,9 +1647,9 @@ exports.CourseActions = class CourseActions extends Actions
                     src_path          : src_path
                     target_project_id : student_project_id
                     target_path       : handout.get('target_path')
-                    overwrite_newer   : false
-                    delete_missing    : false
-                    backup            : true
+                    overwrite_newer   : !!overwrite        # default is "false"
+                    delete_missing    : !!overwrite        # default is "false"
+                    backup            : not (!!overwrite)  # default is "true"
                     exclude_history   : true
                     cb                : cb
         ], (err) =>
@@ -1656,7 +1657,7 @@ exports.CourseActions = class CourseActions extends Actions
         )
 
     # Copy the given handout to all non-deleted students, doing several copies in parallel at once.
-    copy_handout_to_all_students: (handout, new_only) =>
+    copy_handout_to_all_students: (handout, new_only, overwrite) =>
         desc = "Copying handouts to all students #{if new_only then 'who have not already received it' else ''}"
         short_desc = "copy to student"
 
@@ -1675,7 +1676,7 @@ exports.CourseActions = class CourseActions extends Actions
             if new_only and store.handout_last_copied(handout, student_id, true)
                 cb(); return
             n = misc.mswalltime()
-            @copy_handout_to_student(handout, student_id)
+            @copy_handout_to_student(handout, student_id, overwrite)
             store.wait
                 timeout : 60*15
                 until   : => store.handout_last_copied(handout, student_id) >= n

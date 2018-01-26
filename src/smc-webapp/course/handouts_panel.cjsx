@@ -250,11 +250,11 @@ Handout = rclass
             @setState("copy_confirm_#{step}":false, "copy_confirm_all_#{step}":false, copy_confirm:false)
         <Button key='cancel' onClick={cancel}>Cancel</Button>
 
-    copy_handout: (step, new_only) ->
+    copy_handout: (step, new_only, overwrite) ->
         # handout to all (non-deleted) students
         switch step
             when 'handout'
-                @props.actions.copy_handout_to_all_students(@props.handout, new_only)
+                @props.actions.copy_handout_to_all_students(@props.handout, new_only, overwrite)
             else
                 console.log("BUG -- unknown step: #{step}")
         @setState("copy_confirm_#{step}":false, "copy_confirm_all_#{step}":false, copy_confirm:false)
@@ -274,7 +274,11 @@ Handout = rclass
     copy_confirm_all_caution: (step) ->
         switch step
             when 'handout'
-                return "This will recopy all of the files to them.  CAUTION: if you update a file that a student has also worked on, their work will get copied to a backup file ending in a tilde, or possibly only be available in snapshots."
+                return """
+                       This will recopy all of the files to them.
+                       CAUTION: if you update a file that a student has also worked on, their work will get copied to a backup file ending in a tilde, or possibly only be available in snapshots.
+                       Select "Overwrite student files!" in case you do not want to keep any backups or other files in the assignment directory of their projects.
+                       """
 
     render_copy_confirm_overwrite_all: (step, status) ->
         <div key="copy_confirm_overwrite_all" style={marginTop:'15px'}>
@@ -283,6 +287,7 @@ Handout = rclass
             </div>
             <ButtonToolbar>
                 <Button key='all' bsStyle='danger' onClick={=>@copy_handout(step, false)}>Yes, do it</Button>
+                <Button key='all-overwrite' bsStyle='danger' onClick={=>@copy_handout(step, false, true)}>Overwrite student files!</Button>
                 {@render_copy_cancel(step)}
             </ButtonToolbar>
         </div>
