@@ -314,6 +314,7 @@ class SyncTable extends EventEmitter
                     console.warn('setting up changefeed', @_table, err)
                     @close(true)
                     cb?(err)
+                    cb = undefined
                     return
 
                 if first_resp
@@ -576,6 +577,7 @@ class SyncTable extends EventEmitter
                         console.warn('FATAL doing set', @_table, err)
                         @close(true)
                         cb?(err)
+                        cb = undefined
                         return
 
                     console.warn("_save('#{@_table}') error:", err)
