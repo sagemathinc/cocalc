@@ -179,8 +179,8 @@ class Plug
                 if not @_opts.client.is_signed_in()
                     cb("not signed in but need to be")
                     return
-            if give_up_timer
-                clearInterval(give_up_timer)
+            if give_up_timer?
+                clearTimeout(give_up_timer)
             @_opts.connect (err) =>
                 if err == 'closed'
                     cb()  # success = stop trying.
@@ -204,7 +204,7 @@ class Plug
             give_up = =>
                 @_opts.client.removeListener(event, do_connect)
                 cb("timeout")
-            timer = setTimeout(give_up, 5000+Math.random()*10000)
+            give_up_timer = setTimeout(give_up, 5000+Math.random()*10000)
 
 class SyncTable extends EventEmitter
     constructor: (@_query, @_options, @_client, @_debounce_interval, @_throttle_changes, @_cache_key) ->
