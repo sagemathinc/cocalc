@@ -142,8 +142,38 @@ exports.CourseActions = class CourseActions extends Actions
             @configure_all_projects()
         @_last_collaborator_state = users
 
-    # PUBLIC API
+    _init_who_pay: =>
+        # pre-set either student_pay or institute_pay based on what the user has already done...?
+        # This is only here for transition, and can be deleted in say May 2018.
+        store = @get_store()
+        return if not store?
+        settings = store.get('settings')
+        if settings.get('student') or settings.get('institute')
+            # already done
+            return
+        @set_pay_choice('institute', false)
+        @set_pay_choice('student', false)
+        if settings.get('pay')
+            # evidence of student pay choice
+            @set_pay_choice('student', true)
+            return
+        # is any student project upgraded
+        projects_store = @redux.getStore('projects')
+        institute_pay = true
+        num = 0
+        store.get('students').forEach (student, sid) =>
+            if student.get('deleted')
+                return
+            p = student.get('project_id')
+            if not p? or not projects_store.get_total_project_quotas(p)?.member_host
+                institute_pay = false
+                return false
+            num += 1
+            return
+        if institute_pay and num > 0
+            @set_pay_choice('institute', true)
 
+    # PUBLIC API
     set_error: (error) =>
         if error == ''
             @setState(error:error)
@@ -188,6 +218,9 @@ exports.CourseActions = class CourseActions extends Actions
         @_set(description:description, table:'settings')
         @set_all_student_project_descriptions(description)
         @set_shared_project_description()
+
+    set_pay_choice: (type, value) =>
+        @_set("#{type}_pay":value, table:'settings')
 
     set_upgrade_goal: (upgrade_goal) =>
         @_set(upgrade_goal:upgrade_goal, table:'settings')

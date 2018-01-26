@@ -2,8 +2,9 @@
 The Task Store
 ###
 
-immutable         = require('immutable')
-{Store}           = require('../smc-react')
+immutable = require('immutable')
+{Store}   = require('../smc-react')
+misc      = require('smc-util/misc')
 
 class exports.TaskStore extends Store
     ###
@@ -15,7 +16,7 @@ class exports.TaskStore extends Store
         @get('tasks')?.forEach (task, id) =>
             v.push(task.get('position'))
             return
-        v.sort()
+        v.sort(misc.cmp)  # cmp by <, > instead of string!
         return v
 
 

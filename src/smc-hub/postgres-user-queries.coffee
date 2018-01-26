@@ -53,6 +53,7 @@ class exports.PostgreSQL extends PostgreSQL
             o =
                 do_query   : @_user_query
                 dbg        : @_dbg('user_query_queue')
+                concurrent : => return @_concurrent_queries
             @_user_query_queue ?= new UserQueryQueue(o)
 
         @_user_query_queue.user_query(opts)
@@ -138,9 +139,8 @@ class exports.PostgreSQL extends PostgreSQL
                     return
 
                 if changes
-                    try
-                        @_inc_changefeed_count(opts.account_id, opts.project_id, table, changes.id)
-                    catch err
+                    err = @_inc_changefeed_count(opts.account_id, opts.project_id, table, changes.id)
+                    if err
                         opts.cb?(err)
                         return
 
@@ -162,25 +162,33 @@ class exports.PostgreSQL extends PostgreSQL
 
     ###
     TRACK CHANGEFEED COUNTS
+
+    _inc and dec below are evidently broken, in that it's CRITICAL that they match up exactly, or users will be
+    locked out until they just happen to switch to another hub with different tracking, which is silly.
+
+    TODO: DISABLED FOR NOW!
     ###
 
     # Increment a count of the number of changefeeds by a given client so we can cap it.
     _inc_changefeed_count: (account_id, project_id, table, changefeed_id) =>
+        return
         client_name = "#{account_id}-#{project_id}"
         cnt = @_user_get_changefeed_counts ?= {}
         ids = @_user_get_changefeed_id_to_user ?= {}
         if not cnt[client_name]?
             cnt[client_name] = 1
         else if cnt[client_name] >= MAX_CHANGEFEEDS_PER_CLIENT
-            throw Error("user may create at most #{MAX_CHANGEFEEDS_PER_CLIENT} changefeeds; please close files, refresh browser, restart project")
+            return "user may create at most #{MAX_CHANGEFEEDS_PER_CLIENT} changefeeds; please close files, refresh browser, restart project"
         else
             # increment before successfully making get_query to prevent huge bursts causing trouble!
             cnt[client_name] += 1
         @_dbg("_inc_changefeed_count(table='#{table}')")("{#{client_name}:#{cnt[client_name]} ...}")
         ids[changefeed_id] = client_name
+        return false
 
     # Corresonding decrement of count of the number of changefeeds by a given client.
     _dec_changefeed_count: (id, table) =>
+        return
         client_name = @_user_get_changefeed_id_to_user[id]
         if client_name?
             @_user_get_changefeed_counts?[client_name] -= 1
@@ -195,7 +203,7 @@ class exports.PostgreSQL extends PostgreSQL
     # Handle user_query when opts.query is an array.  opts below are as for user_query.
     _user_query_array: (opts) =>
         if opts.changes and opts.query.length > 1
-            opts.cb("FATAL: changefeeds only implemented for single table")
+            opts.cb?("FATAL: changefeeds only implemented for single table")
             return
         result = []
         f = (query, cb) =>
@@ -1311,7 +1319,7 @@ class exports.PostgreSQL extends PostgreSQL
                         # Any tracker error means this changefeed is now broken and
                         # has to be recreated.
                         tracker?.on 'error', (err) ->
-                            changes.cb("FATAL: tracker error - #{err}")
+                            changes.cb("tracker error - #{err}")
                         cb()
         ], cb)
 

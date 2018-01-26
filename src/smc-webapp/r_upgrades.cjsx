@@ -20,7 +20,7 @@ exports.UpgradesPage = rclass
     propTypes :
         redux           : rtypes.object
         project_map     : rtypes.object
-        stripe_customer : rtypes.object
+        stripe_customer : rtypes.immutable.Map
 
     displayName : "UpgradesPage"
 
@@ -215,7 +215,7 @@ exports.UpgradesPage = rclass
     render: ->
         if not @props.redux? or not @props.project_map?
             return <Loading />
-        if not @props.stripe_customer?.subscriptions?.total_count
+        if not @props.stripe_customer?.getIn(['subscriptions', 'total_count'])
             @render_no_upgrades()
         else
             <div>

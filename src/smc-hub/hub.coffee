@@ -156,65 +156,20 @@ init_primus_server = (http_server) ->
     opts =
         pathname    : path_module.join(BASE_URL, '/hub')
     primus_server = new Primus(http_server, opts)
-    winston.debug("primus_server: listening on #{opts.pathname}")
+    dbg = (args...) -> winston.debug('primus_server:', args...)
+    dbg("listening on #{opts.pathname}")
 
     primus_server.on "connection", (conn) ->
         # Now handle the connection
-        winston.debug("primus_server: new connection from #{conn.address.ip} -- #{conn.id}")
-        primus_conn_sent_data = false
-        f = (data) ->
-            primus_conn_sent_data = true
-            id = data.toString()
-            winston.debug("primus_server: got id='#{id}'")
-            conn.removeListener('data',f)
-            C = clients[id]
-            #winston.debug("primus client ids=#{misc.to_json(misc.keys(clients))}")
-            if C?
-                if C.closed
-                    winston.debug("primus_server: '#{id}' matches expired Client -- deleting")
-                    delete clients[id]
-                    C = undefined
-                else
-                    winston.debug("primus_server: '#{id}' matches existing Client -- re-using")
-
-                    # In case the connection hadn't been officially ended yet the changefeeds might
-                    # have been left open sending messages that won't get through. So ensure the client
-                    # must recreate them all before continuing.
-                    C.query_cancel_all_changefeeds()
-
-                    cookies = new Cookies(conn.request, client.COOKIE_OPTIONS)
-                    if C._remember_me_value == cookies.get(BASE_URL + 'remember_me')
-                        old_id = C.conn.id
-                        C.conn.removeAllListeners()
-                        C.conn.end()
-                        C.conn = conn
-                        conn.id = id
-                        conn.write(conn.id)
-                        C.install_conn_handlers()
-                    else
-                        winston.debug("primus_server: '#{id}' matches but cookies do not match, so not re-using")
-                        C = undefined
-            if not C?
-                winston.debug("primus_server: '#{id}' unknown, so making a new Client with id #{conn.id}")
-                conn.write(conn.id)
-                clients[conn.id] = new client.Client
-                    conn           : conn
-                    logger         : winston
-                    database       : database
-                    compute_server : compute_server
-                    host           : program.host
-                    port           : program.port
-
-        conn.on("data",f)
-
-        # Given the client up to 15s to send info about itself.  If get nothing, just
-        # end the connection.
-        no_data = ->
-            if conn? and not primus_conn_sent_data
-                winston.debug("primus_server: #{conn.id} sent no data after 15s, so closing")
-                conn.end()
-        setTimeout(no_data, 15000)
-
+        dbg("new connection from #{conn.address.ip} -- #{conn.id}")
+        clients[conn.id] = new client.Client
+            conn           : conn
+            logger         : winston
+            database       : database
+            compute_server : compute_server
+            host           : program.host
+            port           : program.port
+        dbg("num_clients=#{misc.len(clients)}")
 
 #######################################################
 # Pushing a message to clients; querying for clients.

@@ -385,8 +385,21 @@ exports.SettingsPanel = rclass
 
     render_students_pay_button: ->
         <Button bsStyle='primary' onClick={@click_student_pay_button}>
-            <Icon name='arrow-circle-up' /> {if @state.students_pay then "Adjust settings" else "Require students to pay"}...
+            <Icon name='arrow-circle-up' /> {if @state.students_pay then "Adjust settings" else "Configure how students will pay"}...
         </Button>
+
+    render_student_pay_choice_checkbox: ->
+        <span>
+            <Checkbox
+                checked  = {!!@props.settings?.get('student_pay')}
+                onChange = {@handle_student_pay_choice}
+            >
+                Students will pay for this course
+            </Checkbox>
+        </span>
+
+    handle_student_pay_choice: (e) ->
+        @actions(@props.name).set_pay_choice('student', e.target.checked)
 
     render_require_students_pay_desc: ->
         date = new Date(@props.settings.get('pay'))
@@ -437,17 +450,16 @@ exports.SettingsPanel = rclass
 
     render_students_pay_checkbox: ->
         <span>
-            <Checkbox checked  = {!!@props.settings.get('pay')}
-                   key      = 'students_pay'
-                   ref      = 'student_pay'
-                   onChange = {@handle_students_pay_checkbox}
+            <Checkbox
+                checked  = {!!@props.settings.get('pay')}
+                onChange = {@handle_students_pay_checkbox}
             >
                 {@render_students_pay_checkbox_label()}
             </Checkbox>
         </span>
 
     render_students_pay_dialog: ->
-        <Alert bsStyle='info'>
+        <Alert bsStyle='warning'>
             <h3><Icon name='arrow-circle-up' /> Require students to upgrade</h3>
             <hr/>
             <span>Click the following checkbox to require that all students in the course pay a special discounted <b>one-time ${STUDENT_COURSE_PRICE}</b> fee to move their projects from trial servers to members-only computers, enable full internet access, and do not see a large red warning message.  This lasts four months, and <em>you will not be charged (only students are charged).</em></span>
@@ -463,22 +475,43 @@ exports.SettingsPanel = rclass
         else
             <span>Require that all students in the course pay a one-time ${STUDENT_COURSE_PRICE} fee to move their projects off trial servers and enable full internet access, for four months.  This is strongly recommended, and ensures that your students have a better experience, and do not see a large <span style={color:'red'}>RED warning banner</span> all the time.   Alternatively, you (or your university) can pay for all students at one for a significant discount -- see below.</span>
 
-
-    render_require_students_pay: ->
-        <Panel header={<h4><Icon name='dashboard' />  Require students to upgrade (students pay)</h4>}>
+    render_student_pay_details: ->
+        <div>
             {if @state.show_students_pay_dialog then @render_students_pay_dialog() else @render_students_pay_button()}
             <hr/>
             <div style={color:"#666"}>
                 {@render_student_pay_desc()}
             </div>
+        </div>
+
+    render_require_students_pay: ->
+        if @props.settings?.get('student_pay') or @props.settings?.get('institute_pay')
+            style = bg = undefined
+        else
+            style = {fontWeight:'bold'}
+            bg    = '#fcf8e3'
+        <Panel
+            style  = {background:bg}
+            header = {<h4 style={style}><Icon name='dashboard' />  Require students to upgrade (students pay)</h4>}>
+            {@render_student_pay_choice_checkbox()}
+            {@render_student_pay_details() if @props.settings?.get('student_pay')}
         </Panel>
+
+    render_require_institute_pay: ->
+        <StudentProjectUpgrades
+            name          = {@props.name}
+            redux         = {@props.redux}
+            upgrade_goal  = {@props.settings?.get('upgrade_goal')}
+            institute_pay = {@props.settings?.get('institute_pay')}
+            student_pay   = {@props.settings?.get('student_pay')}
+        />
 
     render: ->
         <div>
             <Row>
                 <Col md=6>
                     {@render_require_students_pay()}
-                    <StudentProjectUpgrades name={@props.name} redux={@props.redux} upgrade_goal={@props.settings?.get('upgrade_goal')} />
+                    {@render_require_institute_pay()}
                     {@render_save_grades()}
                     {@render_start_all_projects()}
                     <DeleteStudentsPanel

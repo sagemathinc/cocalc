@@ -260,6 +260,7 @@ schema.accounts =
                     first_steps       : true
                     newsletter        : true
                     time_ago_absolute : false
+                    no_free_warnings  : false   # if true, do not show warning when using non-member projects
                 first_name      : ''
                 last_name       : ''
                 terminal        :
