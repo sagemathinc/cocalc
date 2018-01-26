@@ -1319,7 +1319,7 @@ class exports.PostgreSQL extends PostgreSQL
                         # Any tracker error means this changefeed is now broken and
                         # has to be recreated.
                         tracker?.on 'error', (err) ->
-                            changes.cb("FATAL: tracker error - #{err}")
+                            changes.cb("tracker error - #{err}")
                         cb()
         ], cb)
 
