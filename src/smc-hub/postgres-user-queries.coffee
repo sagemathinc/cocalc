@@ -53,7 +53,7 @@ class exports.PostgreSQL extends PostgreSQL
             o =
                 do_query   : @_user_query
                 dbg        : @_dbg('user_query_queue')
-                concurrent : => return @_concurrent_queries
+                concurrent : @concurrent
             @_user_query_queue ?= new UserQueryQueue(o)
 
         @_user_query_queue.user_query(opts)

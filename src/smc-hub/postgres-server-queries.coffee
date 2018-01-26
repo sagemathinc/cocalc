@@ -1143,15 +1143,20 @@ class exports.PostgreSQL extends PostgreSQL
             cb       : opts.cb
 
     # Get remember me cookie with given hash.  If it has expired,
-    # get back undefined instead.  (Actually deleting expired)
+    # get back undefined instead.  (Actually deleting expired).
+    # We use retry_until_success, since an intermittent database
+    # reconnect can result in a cb error that will very soon
+    # work fine, and we don't to flat out sign the client out
+    # just because of this.
     get_remember_me: (opts) =>
         opts = defaults opts,
-            hash       : required
-            cb         : required   # cb(err, signed_in_message)
+            hash                : required
+            cb                  : required   # cb(err, signed_in_message)
         @_query
             query : 'SELECT value, expire FROM remember_me'
             where :
                 'hash = $::TEXT' : opts.hash.slice(0,127)
+            retry_until_success  : {max_time:60000, start_delay:3000}  # since we want this to be (more) robust to database connection failures.
             cb       : one_result('value', opts.cb)
 
     delete_remember_me: (opts) =>
