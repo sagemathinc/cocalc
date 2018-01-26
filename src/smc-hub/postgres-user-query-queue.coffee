@@ -15,7 +15,7 @@ required = defaults.required
 # We do at most this many user queries **at once** to the database on behalf
 # of each connected client.  This only applies when the global limit has
 # been exceeded.
-USER_QUERY_LIMIT = 5
+USER_QUERY_LIMIT = 1
 
 # If we don't even start query by this long after we receive query, then we consider it failed
 USER_QUERY_TIMEOUT_MS = 15000
@@ -28,7 +28,7 @@ TIME_HISTORY_LENGTH = 100
 # many global outstanding concurrent **user queries**.  The point is that
 # if there's very little load, we should get queries done as fast
 # as possible for users.
-GLOBAL_LIMIT = 200
+GLOBAL_LIMIT = 150
 
 # setup metrics
 metrics_recorder = require('./metrics-recorder')
