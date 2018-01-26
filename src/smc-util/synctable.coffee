@@ -100,7 +100,7 @@ schema         = require('./schema')
 {defaults, required} = misc
 
 is_fatal = (err) ->
-    return typeof(err) == 'string' and err.slice(0,5) == 'FATAL'
+    return typeof(err) == 'string' and err.slice(0,5) == 'FATAL' and err.indexOf('tracker') == -1  # TODO: tracker part is temporary workaround -- remove
 
 # We represent synchronized tables by an immutable.js mapping from the primary
 # key to the object.  Since PostgresQL primary keys can be compound (more than
