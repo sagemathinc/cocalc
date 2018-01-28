@@ -30,6 +30,10 @@ TIME_HISTORY_LENGTH = 100
 # as possible for users.
 GLOBAL_LIMIT = 250
 
+# Maximum queue size -- if user tries to do more queries than this
+# at once, then all old ones return an error.  They could then retry.
+MAX_QUEUE_SIZE = 150  # client isn't supposed to send more than around 25-50 at once.
+
 # setup metrics
 metrics_recorder = require('./metrics-recorder')
 query_queue_exec = metrics_recorder.new_counter('query_queue_executed_total',
@@ -143,13 +147,26 @@ class exports.UserQueryQueue
         @_do_query(opts)
 
     _update: (state) =>
-        while state.queue? and state.queue.length > 0 and (@_concurrent() < @_global_limit or state.count < @_limit)
+        if not state.queue? or state.queue.length == 0
+            return
+        # Discard all additional messages beyond outstanding and in queue.  The client is
+        # assumed to be smart enough to try again.
+        while state.queue.length + state.count > MAX_QUEUE_SIZE
+            @_discard_next_call(state)
+        # Now handle the remaining messages up to the limit.
+        while state.queue.length > 0 and (@_concurrent() < @_global_limit or state.count < @_limit)
             @_process_next_call(state)
 
-    _process_next_call: (state) =>
-        if not state.queue?
+    _discard_next_call: (state) =>
+        if not state.queue? or state.queue.length == 0
             return
-        if state.queue.length == 0
+        @_dbg("_discard_next_call -- discarding (queue size=#{state.queue.length})")
+        opts = state.queue.shift()
+        opts.cb("discarded")
+        @_info(state)
+
+    _process_next_call: (state) =>
+        if not state.queue? or state.queue.length == 0
             return
         state.count += 1
         global_count += 1

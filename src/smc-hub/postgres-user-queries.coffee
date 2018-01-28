@@ -1365,7 +1365,8 @@ class exports.PostgreSQL extends PostgreSQL
         feed that calls opts.cb on changes as well.
         ###
         id = misc.uuid().slice(0,6)
-        dbg = @_dbg("user_get_query(id=#{id})")
+        #dbg = @_dbg("user_get_query(id=#{id})")
+        dbg = -> # Logging below is just too verbose, and turns out to not be useful...
         dbg("account_id='#{opts.account_id}', project_id='#{opts.project_id}', query=#{misc.to_json(opts.query)}, multi=#{opts.multi}, options=#{misc.to_json(opts.options)}, changes=#{misc.to_json(opts.changes)}")
         {err, table, client_query, require_admin, delete_option, primary_keys, json_fields} = @_parse_get_query_opts(opts)
 
