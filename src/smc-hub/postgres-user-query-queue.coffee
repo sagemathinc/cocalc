@@ -28,7 +28,7 @@ TIME_HISTORY_LENGTH = 100
 # many global outstanding concurrent **user queries**.  The point is that
 # if there's very little load, we should get queries done as fast
 # as possible for users.
-GLOBAL_LIMIT = 100
+GLOBAL_LIMIT = 250
 
 # setup metrics
 metrics_recorder = require('./metrics-recorder')
