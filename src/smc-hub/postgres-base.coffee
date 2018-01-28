@@ -1126,6 +1126,8 @@ exports.pg_type = pg_type = (info) ->
             return 'UUID'
         when 'timestamp'
             return 'TIMESTAMP'
+        when 'date'
+            return 'DATE'
         when 'string', 'text'
             return 'TEXT'
         when 'boolean'
