@@ -43,8 +43,9 @@ templates = $("#webapp-editor-templates")
 
 class exports.HistoryEditor extends FileEditor
     constructor: (@project_id, @filename, content, opts) ->
-        if window.smc?
-            window.h = @ # for debugging
+        #if window.smc?
+        #    window.h = @ # for debugging
+        @_use_timeago = not redux.getStore('account').getIn(['other_settings', 'time_ago_absolute'])
         super(@project_id, @filename)
         @init_paths()
         @element  = templates.find(".webapp-editor-history").clone()
@@ -414,7 +415,7 @@ class exports.HistoryEditor extends FileEditor
         @slider.slider("option", "value", @revision_num)
         @update_buttons()
         t = time.toLocaleString()
-        @element.find(".webapp-editor-history-revision-time").text($.timeago(t)).attr('title', t)
+        @element.find(".webapp-editor-history-revision-time").text(if @_use_timeago then $.timeago(t) else t).attr('title', t)
         @element.find(".webapp-editor-history-revision-number").text(", revision #{num+1} (of #{@length})")
         account_id = @syncstring.account_id(time)
         time_sent  = @syncstring.time_sent(time)
@@ -462,9 +463,9 @@ class exports.HistoryEditor extends FileEditor
         @diff_slider.slider("option", "values", [num1, num2])
         @update_buttons()
         t1 = time1.toLocaleString()
-        @element.find(".webapp-editor-history-revision-time").text($.timeago(t1)).attr('title', t1)
+        @element.find(".webapp-editor-history-revision-time").text(if @_use_timeago then $.timeago(t1) else t1).attr('title', t1)
         t2 = time2.toLocaleString()
-        @element.find(".webapp-editor-history-revision-time2").text($.timeago(t2)).attr('title', t2)
+        @element.find(".webapp-editor-history-revision-time2").text(if @_use_timeago then $.timeago(t2) else t2).attr('title', t2)
         @element.find(".webapp-editor-history-revision-number").text(", revisions #{num1+1} to #{num2+1} (of #{@length})")
         return [time1, time2]
 

@@ -161,8 +161,8 @@ class Plug
         misc.retry_until_success
             f           : @__try_to_connect_once
             log         : dbg
-            start_delay : 10000
-            max_delay   : 30000
+            start_delay : 3000
+            max_delay   : 12000
             cb          : =>
                 delete @_is_connecting
                 dbg("success!")

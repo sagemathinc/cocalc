@@ -483,6 +483,27 @@ schema.file_access_log =
             type : 'timestamp'
     pg_indexes : ['project_id', 'account_id', 'filename', 'time']
 
+# This table is derived from file_access_log.  It's the image of the set file_access_log under
+# the non-injective function
+#
+#    (id,project_id,account_id,filename,time) |--> (project_id, account_id, date),
+#
+# where date is the day of the time. For reference, this query computes/update this table:
+#
+#   insert into usage_by_date (account_id, project_id, date) (select distinct account_id, project_id, time::date from file_access_log) ON CONFLICT DO NOTHING;
+#
+schema.usage_by_date =
+    primary_key : ['date', 'account_id', 'project_id']
+    durability : 'soft' # loss of some log data not serious, since used only for analytics
+    fields:
+        project_id :
+            type : 'uuid'
+        account_id :
+            type : 'uuid'
+        date     :
+            type : 'date'
+    pg_indexes : ['date', 'account_id', 'project_id']
+
 # TODO: for postgres rewrite after done we MIGHT completely redo file_use to eliminate
 # the id field, use project_id, path as a compound primary key, and maybe put users in
 # another table with a relation.  There is also expert discussion about this table in the
