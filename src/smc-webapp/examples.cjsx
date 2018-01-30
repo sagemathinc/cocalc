@@ -50,7 +50,7 @@ DATA = null
 
 # react elements
 {React, ReactDOM, redux, Redux, Actions, Store, rtypes, rclass} = require('./smc-react')
-{Col, Row, Panel, Button, FormGroup, FormControl, Well, Alert, Modal, Table, Nav, NavItem, ListGroup, ListGroupItem, InputGroup} = require('react-bootstrap')
+{Col, Row, Panel, Button, FormGroup, Checkbox, FormControl, Well, Alert, Modal, Table, Nav, NavItem, ListGroup, ListGroupItem, InputGroup} = require('react-bootstrap')
 {Loading, Icon, Markdown, Space} = require('./r_misc')
 
 redux_name = (project_id, path) ->
@@ -91,20 +91,21 @@ class ExamplesActions extends Actions
         # cat1_top: move certain categories to the top of the list -- see sort functions in @get_catlistN
         # TODO this is something that should be part of the "data" itself, not hardcoded here at all
         @set
-            cat0           : null # idx integer
-            cat1           : null # idx integer
-            cat2           : null # idx integer
-            catlist0       : []
-            catlist1       : []
-            catlist2       : []
-            code           : ''
-            descr          : ''
-            hits           : []
-            search_str     : null
-            search_sel     : null
-            submittable    : false
-            cat1_top       : ["Introduction", "Tutorial", "Help"]
-            unknown_lang   : false
+            cat0                : null # idx integer
+            cat1                : null # idx integer
+            cat2                : null # idx integer
+            catlist0            : []
+            catlist1            : []
+            catlist2            : []
+            code                : ''
+            setup_code          : undefined
+            descr               : ''
+            hits                : []
+            search_str          : null
+            search_sel          : null
+            submittable         : false
+            cat1_top            : ["Introduction", "Tutorial", "Help"]
+            unknown_lang        : false
 
     hide: =>
         @set(show: false)
@@ -117,7 +118,11 @@ class ExamplesActions extends Actions
             @load_data()
         else if @get('lang') != lang
             @select_lang(lang)
-        @set(show: true, initialized:true)
+        @set(
+            show                : true
+            initialized         : true
+            prepend_setup_code  : @get('prepend_setup_code') ? true
+        )
 
     init_data: (data) ->
         @set(data: data)
@@ -134,8 +139,13 @@ class ExamplesActions extends Actions
     insert: (descr) ->
         # this is the essential task of the example dialog:
         # call the callback with the selected code snippet
+        code               = @get('code')
+        setup_code         = @get('setup_code')
+        prepend_setup_code = @get('prepend_setup_code')
+        if setup_code?.length > 0 and prepend_setup_code
+            code = "#{setup_code}\n#{code}"
         data =
-            code  : @get('code')
+            code  : code
             lang  : @get('lang')
             descr : if descr then @get('descr') else null
         @get('handler')?(data)
@@ -323,17 +333,23 @@ class ExamplesActions extends Actions
         lang = @data_lang()
         switch level
             when 0, 1
-                @set(code: '', descr: '', cat2 : null, submittable: false)
+                @set(
+                    code        : ''
+                    descr       : ''
+                    cat2        : null
+                    submittable : false
+                    setup_code  : ''
+                )
 
         switch level
             when 0
                 @set(cat0: if idx == -1 then @get('catlist0').size - 1 else idx)
                 catlist1 = @get_catlist1()
                 @set
-                    cat1     : null
-                    cat2     : null
-                    catlist1 : catlist1
-                    catlist2 : []
+                    cat1       : null
+                    cat2       : null
+                    catlist1   : catlist1
+                    catlist2   : []
                 if catlist1.length == 1
                     @set_selected_category(1, 0)
 
@@ -342,17 +358,18 @@ class ExamplesActions extends Actions
                 @set(cat1 : if idx == -1 then @get('catlist1').size - 1 else idx)
                 catlist2 = @get_catlist2()
                 @set
-                    cat2     : null
-                    catlist2 : catlist2
+                    cat2       : undefined
+                    catlist2   : catlist2
                 if catlist2.length == 1
                     @set_selected_category(2, 0)
 
             when 2
-                k0 = @get('catlist0').get(@get('cat0'))
-                k1 = @get('catlist1').get(@get('cat1'))
-                idx = if idx == -1 then @get('catlist2').size - 1 else idx
-                doc = lang.getIn([k0, k1, 'entries', idx])
-                @set(cat2 : idx)
+                k0    = @get('catlist0').get(@get('cat0'))
+                k1    = @get('catlist1').get(@get('cat1'))
+                idx   = if idx == -1 then @get('catlist2').size - 1 else idx
+                doc   = lang.getIn([k0, k1, 'entries', idx])
+                setup = lang.getIn([k0, k1, 'setup'])
+                @set(cat2:idx, setup_code:setup)
                 @show_doc(doc)
 
 # The top part of the dialog. Shows the Title (maybe with the Language), a selector for the language, and search
@@ -468,21 +485,23 @@ ExamplesBody = rclass
     displayName : 'ExamplesBody'
 
     propTypes:
-        actions       : rtypes.object
-        data          : rtypes.immutable
-        lang          : rtypes.string
-        code          : rtypes.string
-        descr         : rtypes.string
-        cat0          : rtypes.number
-        cat1          : rtypes.number
-        cat2          : rtypes.number
-        catlist0      : rtypes.arrayOf(rtypes.string)
-        catlist1      : rtypes.arrayOf(rtypes.string)
-        catlist2      : rtypes.arrayOf(rtypes.string)
-        search_str    : rtypes.string
-        search_sel    : rtypes.number
-        hits          : rtypes.arrayOf(rtypes.array)
-        unknown_lang  : rtypes.bool   # if true, show info about contributing to the assistant
+        actions             : rtypes.object
+        data                : rtypes.immutable
+        lang                : rtypes.string
+        code                : rtypes.string
+        setup_code          : rtypes.string
+        prepend_setup_code  : rtypes.bool
+        descr               : rtypes.string
+        cat0                : rtypes.number
+        cat1                : rtypes.number
+        cat2                : rtypes.number
+        catlist0            : rtypes.arrayOf(rtypes.string)
+        catlist1            : rtypes.arrayOf(rtypes.string)
+        catlist2            : rtypes.arrayOf(rtypes.string)
+        search_str          : rtypes.string
+        search_sel          : rtypes.number
+        hits                : rtypes.arrayOf(rtypes.array)
+        unknown_lang        : rtypes.bool   # if true, show info about contributing to the assistant
 
     getDefaultProps: ->
         search_str : ''
@@ -578,9 +597,12 @@ ExamplesBody = rclass
 
     render_bottom: ->
         # TODO syntax highlighting
+        code = @props.code
+        if @props.setup_code?.length > 0 and @props.prepend_setup_code
+            code = "#{@props.setup_code}\n#{code}"
         <Row key={'bottom'}>
             <Col sm={6}>
-                <pre ref={'code'} className={'code'}>{@props.code}</pre>
+                <pre ref={'code'} className={'code'}>{code}</pre>
             </Col>
             <Col sm={6}>
                 <Panel ref={'descr'} className={'webapp-examples-descr'}>
@@ -623,24 +645,26 @@ RExamples = (name) -> rclass
 
     reduxProps :
         "#{name}" :
-            show          : rtypes.bool
-            lang          : rtypes.string      # the currently selected language
-            lang_select   : rtypes.bool        # show buttons to allow selecting the language
-            code          : rtypes.string      # displayed content of selected document
-            descr         : rtypes.string      # markdown-formatted content of document description
-            data          : rtypes.immutable   # this is the processed "raw" data, see Actions::load_data
-            nav_entries   : rtypes.arrayOf(rtypes.string)  # languages at the top, iff lang_select is true
-            catlist0      : rtypes.arrayOf(rtypes.string)  # list of first category entries
-            catlist1      : rtypes.arrayOf(rtypes.string)  # list of second level categories
-            catlist2      : rtypes.arrayOf(rtypes.string)  # third level are the document titles
-            cat0          : rtypes.number      # index of selected first category (left)
-            cat1          : rtypes.number      # index of selected second category (second from left)
-            cat2          : rtypes.number      # index of selected third category (document titles)
-            search_str    : rtypes.string      # substring to search for -- or undefined
-            search_sel    : rtypes.number      # index of selected matched documents
-            submittable   : rtypes.bool        # if true, the buttons at the bottom are active
-            hits          : rtypes.arrayOf(rtypes.array)  # search results
-            unknown_lang  : rtypes.bool        # true if there is no known set of documents for the language
+            show                : rtypes.bool
+            lang                : rtypes.string      # the currently selected language
+            lang_select         : rtypes.bool        # show buttons to allow selecting the language
+            code                : rtypes.string      # displayed content of selected document
+            setup_code          : rtypes.string      # optional, common code in the sub-category
+            prepend_setup_code  : rtypes.bool        # if true, setup code is prepended to code
+            descr               : rtypes.string      # markdown-formatted content of document description
+            data                : rtypes.immutable   # this is the processed "raw" data, see Actions::load_data
+            nav_entries         : rtypes.arrayOf(rtypes.string)  # languages at the top, iff lang_select is true
+            catlist0            : rtypes.arrayOf(rtypes.string)  # list of first category entries
+            catlist1            : rtypes.arrayOf(rtypes.string)  # list of second level categories
+            catlist2            : rtypes.arrayOf(rtypes.string)  # third level are the document titles
+            cat0                : rtypes.number      # index of selected first category (left)
+            cat1                : rtypes.number      # index of selected second category (second from left)
+            cat2                : rtypes.number      # index of selected third category (document titles)
+            search_str          : rtypes.string      # substring to search for -- or undefined
+            search_sel          : rtypes.number      # index of selected matched documents
+            submittable         : rtypes.bool        # if true, the buttons at the bottom are active
+            hits                : rtypes.arrayOf(rtypes.array)  # search results
+            unknown_lang        : rtypes.bool        # true if there is no known set of documents for the language
 
     propTypes :
         cb      : rtypes.func
@@ -684,6 +708,9 @@ RExamples = (name) -> rclass
         evt.nativeEvent.stopImmediatePropagation() # what ?!
         return false
 
+    handle_prepend_setup_code: (value) ->
+        @props.actions.set(prepend_setup_code:value)
+
     render: ->
         <Modal show      = {@props.show}
                onKeyUp   = {@handle_dialog_keyup}
@@ -700,21 +727,23 @@ RExamples = (name) -> rclass
                                nav_entries  = {@props.nav_entries} />
             </Modal.Header>
 
-            <ExamplesBody actions      = {@props.actions}
-                          lang         = {@props.lang}
-                          unknown_lang = {@props.unknown_lang}
-                          code         = {@props.code}
-                          descr        = {@props.descr}
-                          cat0         = {@props.cat0}
-                          cat1         = {@props.cat1}
-                          cat2         = {@props.cat2}
-                          catlist0     = {@props.catlist0}
-                          catlist1     = {@props.catlist1}
-                          catlist2     = {@props.catlist2}
-                          search_str   = {@props.search_str}
-                          search_sel   = {@props.search_sel}
-                          hits         = {@props.hits}
-                          data         = {@props.data} />
+            <ExamplesBody actions            = {@props.actions}
+                          lang               = {@props.lang}
+                          unknown_lang       = {@props.unknown_lang}
+                          code               = {@props.code}
+                          setup_code         = {@props.setup_code}
+                          prepend_setup_code = {@props.prepend_setup_code}
+                          descr              = {@props.descr}
+                          cat0               = {@props.cat0}
+                          cat1               = {@props.cat1}
+                          cat2               = {@props.cat2}
+                          catlist0           = {@props.catlist0}
+                          catlist1           = {@props.catlist1}
+                          catlist2           = {@props.catlist2}
+                          search_str         = {@props.search_str}
+                          search_sel         = {@props.search_sel}
+                          hits               = {@props.hits}
+                          data               = {@props.data} />
 
             <Modal.Footer>
                 <Button
@@ -747,6 +776,17 @@ RExamples = (name) -> rclass
                 >
                     Insert Example
                 </Button>
+                {
+                    if @props.setup_code?.length > 0
+                        <Checkbox
+                            className = {'pull-right'}
+                            style     = {margin: '10px', display: 'inline'}
+                            checked   = {@props.prepend_setup_code}
+                            onChange  = {(e)=>@handle_prepend_setup_code(e.target.checked)}
+                        >
+                            Setup code
+                        </Checkbox>
+                }
             </Modal.Footer>
         </Modal>
 
