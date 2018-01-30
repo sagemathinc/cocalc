@@ -164,9 +164,13 @@ block content
             li #[strong Integrated Chat] allows your to guide students directly where they work or discuss collected files with your teaching assistents.
             li The project's #[strong Activity Log] records exactly when a file is accessed and by which user.
           p More information
-          ul
-            li #[a(href="https://tutorial.cocalc.com/" target="_blank") Tutorial for Teaching]
-            li #[a(href="https://github.com/sagemathinc/cocalc/wiki/Teaching" target="_blank") Courses using #{htmlWebpackPlugin.options.title}]
+          div.row
+            div.col-md-6
+              ul
+                li #[a(href="https://tutorial.cocalc.com/" target="_blank") Tutorial for Teaching]
+                li #[a(href="https://github.com/sagemathinc/cocalc/wiki/Teaching" target="_blank") Courses using #{htmlWebpackPlugin.options.title}]
+            div.col-md-6
+              a.btn.btn-default.btn-lg.cc-create-account-btn(href=htmlWebpackPlugin.options.theme.LIVE_DEMO_REQUEST target="_blank") Request a live demo!
 
   a.anchor#a-testimonials
   div#testimonials
@@ -307,6 +311,11 @@ block content
       div.row
         div.col-sm-12.center(style="margin-top: 6rem")
           +start_button
+      div.row
+        div.col-sm-12.center(style="margin-top: 6rem")
+          p Do you have any further questions or want to see how #{NAME} helps you with teaching?
+          p
+            a.btn.btn-default.btn-lg.cc-create-account-btn(href=htmlWebpackPlugin.options.theme.LIVE_DEMO_REQUEST target="_blank") Request a live demo!
 
   //- CSS comes at the bottom: overwrites styles defined in the header
   style
