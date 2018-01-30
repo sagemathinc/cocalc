@@ -404,6 +404,16 @@ class SynchronizedDocument2 extends SynchronizedDocument
                 @_post_save_success?()  # hook so that derived classes can do things, e.g., make blobs permanent
                 cb()
 
+    delete_trailing_whitespace: =>
+        cm = @focused_codemirror()
+        omit_lines = {}
+        @_syncstring.get_cursors()?.map (x, _) =>
+            x.get('locs')?.map (loc) =>
+                y = loc.get('y')
+                if y?
+                    omit_lines[y] = true
+        cm.delete_trailing_whitespace(omit_lines:omit_lines)
+
     save: (cb) =>
         if @_closed
             cb?()
@@ -413,15 +423,6 @@ class SynchronizedDocument2 extends SynchronizedDocument
         # We then simply ensure the save state is valid 5s later (in case save fails, say).
         setTimeout(@_update_unsaved_uncommitted_changes, 5000)
 
-        cm = @focused_codemirror()
-        if @editor.opts.delete_trailing_whitespace
-            omit_lines = {}
-            @_syncstring.get_cursors()?.map (x, _) =>
-                x.get('locs')?.map (loc) =>
-                    y = loc.get('y')
-                    if y?
-                        omit_lines[y] = true
-            cm.delete_trailing_whitespace(omit_lines:omit_lines)
         misc.retry_until_success
             f           : @_save
             start_delay : 3000
