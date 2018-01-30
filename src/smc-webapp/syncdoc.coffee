@@ -187,6 +187,7 @@ class SynchronizedDocument2 extends SynchronizedDocument
         @element     = @editor.element
 
         # window.w = @
+
         # replace undo/redo by sync-aware versions
         for cm in [@codemirror, @codemirror1]
             cm.undo = @undo
@@ -277,15 +278,15 @@ class SynchronizedDocument2 extends SynchronizedDocument
                     redux.getProjectActions(@editor.project_id).close_tab(@filename)
 
                 save_state = () => @_sync()
-                # We debounce instead of throttle, because we want a single "diff/commit" to correspond
-                # a burst of activity, not a bunch of little pieces of that burst.  This is more
-                # consistent with how undo stacks work.
-                @save_state_debounce = underscore.debounce(save_state, @opts.sync_interval)
+                @save_state_throttle = underscore.throttle(save_state, @opts.sync_interval, {leading:false})
 
                 @codemirror.on 'change', (instance, changeObj) =>
                     if @_closed
                         return
-                    #console.log("change event when live='#{@live().string()}'")
+                    if not @_setting_from_syncstring
+                        # console.log 'user_action = true'
+                        @_user_action = true
+                    # console.log("change event - origin=", changeObj.origin)
                     if changeObj.origin?
                         if changeObj.origin == 'undo'
                             @on_undo?(instance, changeObj)
@@ -293,33 +294,29 @@ class SynchronizedDocument2 extends SynchronizedDocument
                             @on_redo?(instance, changeObj)
                         if changeObj.origin != 'setValue'
                             @_last_change_time = new Date()
-                            @save_state_debounce?()
+                            @save_state_throttle?()
                             @_syncstring.exit_undo_mode()
                     update_unsaved_uncommitted_changes()
 
                 @emit('connect')   # successful connection
                 cb?()  # done initializing document (this is used, e.g., in the SynchronizedWorksheet derived class).
 
+    # Set value of the syncstring to equal current value of the codemirror editor
     _set_syncstring_to_codemirror: =>
+        if not @_user_action
+            # console.log 'not setting due to no user action'
+            # user has not explicitly done anything, so there should be no changes.
+            return
+        # console.log 'user action so setting'
+        @_user_action = false
         @_last_val = val = @codemirror.getValue()
         @_syncstring.from_str(val)
 
+    # Set value of the codemirror editor to equal current value of the syncstring
     _set_codemirror_to_syncstring: =>
-        val     = @_syncstring.to_str()
-        cur_val = @codemirror.getValue()
-
-        if @_last_val? and cur_val != @_last_val
-            # We *MERGE* the changes in since, we made changes between when we last set
-            # the syncstring and now.  This can perhaps sometimes happen in rare cases
-            # due to async save debouncing.  (Honestly, I don't know how this case could
-            # possibly happen.)
-            patch = syncstring.dmp.patch_make(@_last_val, cur_val)
-            val = syncstring.dmp.patch_apply(patch, val)[0]
-        else
-            patch = undefined
-        @codemirror.setValueNoJump(val)
-        if patch?
-            @_set_syncstring_to_codemirror()
+        @_setting_from_syncstring = true
+        @codemirror.setValueNoJump(@_syncstring.to_str())
+        @_setting_from_syncstring = false
 
     has_unsaved_changes: =>
         if not @codemirror?
@@ -363,7 +360,7 @@ class SynchronizedDocument2 extends SynchronizedDocument
             @_set_syncstring_to_codemirror()
         value = @_syncstring.undo().to_str()
         cm.setValueNoJump(value, true)
-        @save_state_debounce?()
+        @save_state_throttle?()
         @_last_change_time = new Date()
 
     # per-session sync-aware redo
@@ -381,7 +378,7 @@ class SynchronizedDocument2 extends SynchronizedDocument
             throw Error("doc must have a to_str method, but is doc='#{doc}', typeof(doc)='#{typeof(doc)}'")
         value = doc.to_str()
         @focused_codemirror().setValueNoJump(value, true)
-        @save_state_debounce?()
+        @save_state_throttle?()
         @_last_change_time = new Date()
 
     _connect: (cb) =>
