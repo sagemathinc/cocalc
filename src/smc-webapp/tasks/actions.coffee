@@ -39,6 +39,8 @@ class exports.TaskActions extends Actions
         @syncdb.once('init', @_syncdb_metadata)
         @syncdb.on('metadata-change', @_syncdb_metadata)
 
+        @syncdb.once 'load-time-estimate', (est) => @setState(load_time_estimate: est)
+
     close: =>
         if @_state == 'closed'
             return

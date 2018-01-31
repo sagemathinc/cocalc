@@ -185,15 +185,25 @@ exports.Loading = Loading = rclass
     displayName : 'Misc-Loading'
 
     propTypes :
-        style  : rtypes.object
-        text   : rtypes.string
+        style    : rtypes.object
+        text     : rtypes.string
+        estimate : rtypes.immutable.Map  # {time:[time in seconds], type:['new', 'ready', 'archived']}
 
     getDefaultProps : ->
         text   : 'Loading...'
 
+    render_estimate: ->
+        if @props.estimate?
+            <div>
+                Loading '{@props.estimate.get('type')}' file.
+                <br/>
+                Estimated time: {@props.estimate.get('time')}s
+            </div>
+
     render: ->
         <span style={@props.style}>
             <span><Icon name='cc-icon-cocalc-ring' spin /> {@props.text}</span>
+            {@render_estimate()}
         </span>
 
 exports.Saving = Saving = rclass

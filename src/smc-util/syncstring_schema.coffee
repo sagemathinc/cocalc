@@ -94,13 +94,15 @@ schema.syncstrings =
                 read_only         : null
                 last_file_change  : null
                 doctype           : null
+                archived          : null
             required_fields :
                 path              : true
                 project_id        : true
             check_hook : (db, obj, account_id, project_id, cb) ->
                 db._syncstrings_check obj, account_id, project_id, (err) ->
                     if not err
-                        db.unarchive_patches(string_id: obj.string_id, cb:cb)
+                        db.unarchive_patches(string_id: obj.string_id)  # do NOT block on this - archived field changes when done, which notifies clients.
+                        cb()
                     else
                         cb(err)
 

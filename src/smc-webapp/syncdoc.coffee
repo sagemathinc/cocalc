@@ -186,7 +186,7 @@ class SynchronizedDocument2 extends SynchronizedDocument
         @codemirror1 = @editor.codemirror1
         @element     = @editor.element
 
-        # window.w = @
+        window.w = @
 
         # replace undo/redo by sync-aware versions
         for cm in [@codemirror, @codemirror1]
@@ -212,6 +212,9 @@ class SynchronizedDocument2 extends SynchronizedDocument
             project_id : @project_id
             path       : @filename
             cursors    : true
+
+        @_syncstring.once 'load-time-estimate', (est) ->
+            console.log 'load time estimate', est
 
         # This is important to debounce since above hash/getValue grows linearly in size of
         # document; also, we debounce instead of throttle, since we don't want to have this

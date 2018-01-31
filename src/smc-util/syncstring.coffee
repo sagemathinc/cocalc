@@ -921,6 +921,7 @@ class SyncDoc extends EventEmitter
                 read_only         : null
                 last_file_change  : null
                 doctype           : null
+                archived          : null
 
         @_syncstring_table = @_client.sync_table(query)
 
@@ -1490,6 +1491,7 @@ class SyncDoc extends EventEmitter
         # only string_id and last_active, and nothing else.
         if not x? or not x.users?
             # Brand new document
+            @emit('load-time-estimate', {type:'new', time:1})
             @_last_snapshot = undefined
             @_snapshot_interval = schema.SCHEMA.syncstrings.user_query.get.fields.snapshot_interval
             # brand new syncstring
@@ -1506,6 +1508,13 @@ class SyncDoc extends EventEmitter
             @_syncstring_table.set(obj)
             @emit('metadata-change')
         else
+            console.log('x = ', x)
+
+            if x.archived
+                @emit('load-time-estimate', {type:'archived', time:8})
+            else
+                @emit('load-time-estimate', {type:'ready', time:2})
+
             # TODO: handle doctype change here (?)
             @_last_snapshot     = x.last_snapshot
             @_snapshot_interval = x.snapshot_interval

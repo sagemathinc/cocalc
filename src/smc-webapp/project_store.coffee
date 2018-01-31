@@ -1004,7 +1004,7 @@ class ProjectActions extends Actions
                     _init_library_index_cache[@project_id] = data
                     cb()
                 ).fail((err) ->
-                    if DEBUG then console.log("init_library/index: error reading file: #{misc.to_json(err)}")
+                    ##if DEBUG then console.log("init_library/index: error reading file: #{misc.to_json(err)}")
                     cb(err.statusText ? 'error')
                 )
 
