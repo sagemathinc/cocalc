@@ -573,8 +573,10 @@ class SyncDoc extends EventEmitter
             doctype           : undefined  # optional object describing document constructor (used by project to open file)
             from_patch_str    : JSON.parse
             before_change_hook : undefined
+            after_change_hook : undefined
 
         @_before_change_hook = opts.before_change_hook
+        @_after_change_hook = opts.after_change_hook
 
         if not opts.string_id?
             opts.string_id = schema.client_db.sha1(opts.project_id, opts.path)
@@ -1929,28 +1931,45 @@ class SyncDoc extends EventEmitter
         #dbg = @dbg("_handle_patch_update")
         #dbg(new Date(), changed_keys)
 
-        @_before_change_hook?()
-
         # note: other code handles that @_patches_table.get(key) may not be defined, e.g., when changed means "deleted"
         @_patch_list.add( (@_process_patch(@_patches_table.get(key)) for key in changed_keys) )
+
+        if @_updating_live
+            return
+        @_updating_live = true
 
         # Save any unsaved changes we might have made locally.
         # This is critical to do, since otherwise the remote
         # changes would overwrite the local ones.
-        @_save()
+        ensure_saved = (cb) =>
+            if @_closed
+                cb()
+                return
+            @_before_change_hook?()
+            if @_last.is_equal(@_doc)
+                cb()
+                return
+            @_save =>
+                cb(true)  # check that done happens in next call above.
 
-        # compute result of applying all patches in order to snapshot
-        new_remote = @_patch_list.value()
+        misc.retry_until_success
+            f  : ensure_saved
+            cb : =>
+                @_updating_live = false
 
-        # temporary hotfix for https://github.com/sagemathinc/cocalc/issues/1873
-        try
-            changed = not @_doc?.is_equal(new_remote)
-        catch
-            changed = true
-        # if any possibility that document changed, set to new version
-        if changed
-            @_last = @_doc = new_remote
-            @emit('change')
+                # compute result of applying all patches in order to snapshot
+                new_remote = @_patch_list.value()
+
+                # temporary hotfix for https://github.com/sagemathinc/cocalc/issues/1873
+                try
+                    changed = not @_doc?.is_equal(new_remote)
+                catch
+                    changed = true
+                # if any possibility that document changed, set to new version
+                if changed
+                    @_last = @_doc = new_remote
+                    @_after_change_hook?()
+                    @emit('change')
 
     # Return true if there are changes to this syncstring that have not been
     # committed to the database (with the commit acknowledged).  This does not
@@ -1994,6 +2013,7 @@ class exports.SyncString extends SyncDoc
             file_use_interval : undefined
             cursors           : false      # if true, also provide cursor tracking ability
             before_change_hook: undefined
+            after_change_hook : undefined
 
         from_str = (str) ->
             new StringDocument(str)
@@ -2010,6 +2030,7 @@ class exports.SyncString extends SyncDoc
             from_str           : from_str
             doctype            : {type:'string'}
             before_change_hook : opts.before_change_hook
+            after_change_hook  : opts.after_change_hook
 
 ###
 Used for testing

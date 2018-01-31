@@ -1782,6 +1782,7 @@ class exports.Connection extends EventEmitter
             cursors            : false
             patch_interval     : 1000
             before_change_hook : undefined
+            after_change_hook  : undefined
         opts.client = @
         return new syncstring.SyncString(opts)
 
