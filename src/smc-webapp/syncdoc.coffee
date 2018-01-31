@@ -208,13 +208,15 @@ class SynchronizedDocument2 extends SynchronizedDocument
 
         id = require('smc-util/schema').client_db.sha1(@project_id, @filename)
         @_syncstring = webapp_client.sync_string
-            id         : id
-            project_id : @project_id
-            path       : @filename
-            cursors    : true
+            id                 : id
+            project_id         : @project_id
+            path               : @filename
+            cursors            : true
+            before_change_hook : @_set_syncstring_to_codemirror
 
         @_syncstring.once 'load-time-estimate', (est) ->
-            console.log 'load time estimate', est
+            # TODO: do something with this.
+            #console.log 'load time estimate', est
 
         # This is important to debounce since above hash/getValue grows linearly in size of
         # document; also, we debounce instead of throttle, since we don't want to have this
@@ -269,12 +271,6 @@ class SynchronizedDocument2 extends SynchronizedDocument
                     update_unsaved_uncommitted_changes()
                     @_update_read_only()
 
-                @_syncstring.on 'before-change', =>
-                    if @_closed
-                        return
-                    #console.log("syncstring before change")
-                    @_set_syncstring_to_codemirror()
-
                 @_syncstring.on 'deleted', =>
                     if @_closed
                         return
@@ -307,10 +303,10 @@ class SynchronizedDocument2 extends SynchronizedDocument
     # Set value of the syncstring to equal current value of the codemirror editor
     _set_syncstring_to_codemirror: =>
         if not @_user_action
-            # console.log 'not setting due to no user action'
+            #console.log 'not setting due to no user action'
             # user has not explicitly done anything, so there should be no changes.
             return
-        # console.log 'user action so setting'
+        #console.log 'user action so setting'
         @_user_action = false
         @_last_val = val = @codemirror.getValue()
         @_syncstring.from_str(val)
