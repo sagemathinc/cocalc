@@ -45,7 +45,7 @@ exports.DeleteSharedProjectPanel = rclass
             <hr/>
             <span style={color:'#666'}>
                 If for some reason you would like to delete the shared projects
-                that yiou created for this course, you may do so by clicking above.
+                that you created for this course, you may do so by clicking above.
                 Be careful!<br/>
                 All students will be removed from the deleted shared projects.
             </span>
