@@ -1,7 +1,28 @@
 ###
 Conversion between Markdown and HTML
 ###
+unified       = require('unified')
+markdown      = require('remark-parse')
+math          = require('remark-math')
+remark2rehype = require('remark-rehype')
+raw           = require('rehype-raw')
+katex         = require('rehype-katex')
+stringify     = require('rehype-stringify')
 
+processor = unified()
+    .use(markdown)
+    .use(math)
+    .use(remark2rehype, {allowDangerousHTML: true})
+    .use(raw)
+    .use(katex)
+    .use(stringify)
+
+exports.markdown_to_html_v2 = (raw_string) ->
+    processor.processSync(raw_string).toString()
+
+###
+# Old Method retained for backwards compatibility
+###
 marked = require('marked')
 
 misc = require('smc-util/misc')

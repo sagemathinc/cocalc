@@ -1537,14 +1537,12 @@ class SynchronizedWorksheet extends SynchronizedDocument2
 
         if mesg.md?
             # markdown
-            x = markdown.markdown_to_html(mesg.md)
+            x = markdown.markdown_to_html_v2(mesg.md)
             t = $('<div class="sagews-output-md">')
             if @editor.opts.allow_javascript_eval
-                t.html(x.s)
+                t.html(x)
             else
-                t.html_noscript(x.s)
-            #console.log 'sagews:mesg.md, t:', t
-            t.mathjax(hide_when_rendering:true)
+                t.html_noscript(x)
             output.append(t)
             @process_html_output(t)
 

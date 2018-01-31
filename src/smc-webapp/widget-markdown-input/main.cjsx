@@ -95,7 +95,7 @@ exports.MarkdownInput = rclass
 
     to_html: ->
         if @props.default_value
-            html = markdown.markdown_to_html(@props.default_value).s
+            html = markdown.markdown_to_html_v2(@props.default_value)
             {__html: html}
         else
             {__html: ''}
