@@ -51,6 +51,7 @@ exports.CourseActions = class CourseActions extends Actions
         if not @redux?
             throw Error("@redux must be defined")
         @get_store = () => @redux.getStore(@name)
+        # window.course = @
 
     _loaded: =>
         if not @syncdb?
@@ -726,6 +727,25 @@ exports.CourseActions = class CourseActions extends Actions
         for student_id in store.get_student_ids(deleted:false)
             @delete_project(student_id)
         @set_activity(id:id)
+
+    # Delete the shared project, removing students too.
+    delete_shared_project: =>
+        store = @get_store()
+        return if not store?
+        shared_id = store.get_shared_project_id()
+        return if not shared_id
+        project_actions = @redux.getActions('projects')
+        # delete project
+        project_actions.delete_project(shared_id)
+        # remove student collabs
+        for student_id in store.get_student_ids(deleted:false)
+            student_account_id = store.getIn(['students', student_id, 'account_id'])
+            if student_account_id
+                project_actions.remove_collaborator(shared_id, student_account_id)
+        # make the course itself forget about the shared project:
+        @_set
+            table             : 'settings'
+            shared_project_id : ''
 
     # upgrade_goal is a map from the quota type to the goal quota the instructor wishes
     # to get all the students to.
