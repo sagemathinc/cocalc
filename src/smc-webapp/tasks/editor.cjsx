@@ -4,6 +4,8 @@ Top-level react component for task list
 
 {React, rclass, rtypes} = require('../smc-react')
 
+{Loading}               = require('../r_misc')
+
 {TaskList}              = require('./list')
 {ButtonBar}             = require('./buttonbar')
 {Find}                  = require('./find')
@@ -11,6 +13,8 @@ Top-level react component for task list
 {HashtagBar}            = require('./hashtag-bar')
 {Headings, is_sortable} = require('./headings')
 {Row, Col}              = require('react-bootstrap')
+
+{IS_MOBILE} = require('../feature')
 
 exports.TaskEditor = rclass ({name}) ->
     propTypes :
@@ -29,10 +33,12 @@ exports.TaskEditor = rclass ({name}) ->
             local_task_state        : rtypes.immutable.Map
             local_view_state        : rtypes.immutable.Map
             hashtags                : rtypes.immutable.Map
+            search_terms            : rtypes.immutable.Set
             search_desc             : rtypes.string
             focus_find_box          : rtypes.bool
             read_only               : rtypes.bool
             scroll_into_view        : rtypes.bool
+            load_time_estimate      : rtypes.immutable.Map
 
     shouldComponentUpdate: (next) ->
         return @props.tasks                   != next.tasks or \
@@ -46,6 +52,7 @@ exports.TaskEditor = rclass ({name}) ->
                @props.hashtags                != next.hashtags  or \
                @props.read_only               != next.read_only or \
                @props.search                  != next.search    or \
+               @props.search_terms            != next.search_terms or \
                @props.scroll_into_view        != next.scroll_into_view or \
                !!next.focus_find_box and not @props.focus_find_box
 
@@ -104,27 +111,47 @@ exports.TaskEditor = rclass ({name}) ->
     on_sort_end: ({oldIndex, newIndex}) ->
         @props.actions?.reorder_tasks(oldIndex, newIndex)
 
+    render_loading: ->
+        <div style={fontSize: '40px', textAlign: 'center', padding: '15px', color: '#999'}>
+            <Loading estimate={@props.load_time_estimate} />
+        </div>
+
+    render_new_hint: ->
+        <div style={fontSize: '40px', textAlign: 'center', padding: '15px', color: '#999'}>
+            Click New to create a task.
+        </div>
+
     render_list: ->
         if not @props.tasks? or not @props.visible?
-            return
+            return @render_loading()
+        if @props.visible.size == 0 and @props.actions?
+            return @render_new_hint()
+
+        if IS_MOBILE # obviously, this is not going to dynamically change, but it at least makes mobile *usable*...
+            STYLE = {}
+        else
+            STYLE = {overflowX:'hidden', overflowY:'auto', paddingBottom: '300px'}
         <TaskList
-            actions          = {@props.actions}
-            path             = {@props.path}
-            project_id       = {@props.project_id}
-            tasks            = {@props.tasks}
-            visible          = {@props.visible}
-            current_task_id  = {@props.current_task_id}
-            local_task_state = {@props.local_task_state}
-            scroll           = {@props.local_view_state?.get('scroll')}
-            scroll_into_view = {@props.scroll_into_view}
-            font_size        = {@props.local_view_state?.get('font_size')}
-            style            = {overflowX:'hidden', overflowY:'auto'}
-            sortable         = {not @props.read_only and is_sortable(@props.local_view_state?.getIn(['sort', 'column']))}
-            read_only        = {@props.read_only}
-            onSortEnd        = {@on_sort_end}
-            useDragHandle    = {true}
-            lockAxis         = {'y'}
-            selected_hashtags = {@props.local_view_state?.get('selected_hashtags')}
+            actions              = {@props.actions}
+            path                 = {@props.path}
+            project_id           = {@props.project_id}
+            tasks                = {@props.tasks}
+            visible              = {@props.visible}
+            current_task_id      = {@props.current_task_id}
+            local_task_state     = {@props.local_task_state}
+            full_desc            = {@props.local_view_state?.get('full_desc')}
+            scroll               = {@props.local_view_state?.get('scroll')}
+            scroll_into_view     = {@props.scroll_into_view}
+            font_size            = {@props.local_view_state?.get('font_size')}
+            style                = {STYLE}
+            sortable             = {not @props.read_only and is_sortable(@props.local_view_state?.getIn(['sort', 'column']))}
+            read_only            = {@props.read_only}
+            selected_hashtags    = {@props.local_view_state?.get('selected_hashtags')}
+            show_max             = {@props.local_view_state?.get('show_max')}
+            search_terms         = {@props.search_terms}
+            onSortEnd            = {@on_sort_end}
+            useDragHandle        = {true}
+            lockAxis             = {'y'}
             lockToContainerEdges = {true}
         />
 
@@ -135,7 +162,11 @@ exports.TaskEditor = rclass ({name}) ->
             />
 
     render: ->
-        <div className='smc-vfill'>
+        if IS_MOBILE
+            className = undefined
+        else
+            className='smc-vfill'
+        <div className={className}>
             {@render_hashtag_bar()}
             {@render_find_bar()}
             {@render_button_bar()}

@@ -21,14 +21,14 @@ exports.DescVisible = rclass
 
     render_visible: ->
         <span style={color:'#666'}>
-            Showing {@props.num_visible} {plural(@props.num_visible, 'task')}.
+            {@props.num_visible} matching {plural(@props.num_visible, 'task')}.
         </span>
 
     render_search: ->
         if not @props.search_desc
             return
         <span style={color:'#666', marginLeft:'10px'}>
-            Showing tasks that match <b><i>{@props.search_desc}</i></b>.
+            Tasks that match <b><i>{@props.search_desc}</i></b>.
         </span>
 
     render_checked: ->
@@ -36,13 +36,13 @@ exports.DescVisible = rclass
         if v.length == 0
             return
         <span style={color:'#666', marginLeft:'10px'}>
-            Showing <b><i>{v.join(' and ')}</i></b> tasks.
+            Including <b><i>{v.join(' and ')}</i></b> tasks.
         </span>
 
     render: ->
         if not @props.num_visible? or not @props.local_view_state? or not @props.num_tasks?
             return <span />
-        <div style={padding:'10px 0px', float: 'right', marginRight: '15px'}>
+        <div style={padding:'10px 0px', float: 'right', marginRight: '15px', fontSize:'12pt'}>
             {@render_visible()}
             {@render_search()}
             {@render_checked()}

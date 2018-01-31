@@ -578,6 +578,7 @@ class exports.SyncDB extends EventEmitter
         @_doc.on('metadata-change', => @emit('metadata-change'))
         @_doc.on('before-change', => @emit('before-change'))
         @_doc.on('sync', => @emit('sync'))
+        @_doc.on('load-time-estimate', (args...) => @emit('load-time-estimate', args...))
         if opts.cursors
             @_doc.on('cursor_activity', (args...) => @emit('cursor_activity', args...))
         @_doc.on('connected', => @emit('connected'))

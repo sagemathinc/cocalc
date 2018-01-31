@@ -87,7 +87,13 @@ exports.remove = (path, redux, project_id, is_public) ->
         console.warn("BUG -- remove called on path of type '#{typeof(path)}'", path, project_id)
         # see https://github.com/sagemathinc/cocalc/issues/1275
         return
+
     is_public = !!is_public
+
+    if not is_public
+        # always fire off a save to disk when closing.
+        exports.save(path, redux, project_id, is_public)
+
     ext = misc.filename_extension(path).toLowerCase()
     # Use specific one for the given extension, or a fallback.
     remove = (file_editors[is_public][ext]?.remove) ? (file_editors[is_public]['']?.remove)

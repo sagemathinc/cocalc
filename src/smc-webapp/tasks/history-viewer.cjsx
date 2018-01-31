@@ -59,6 +59,7 @@ exports.HistoryViewer = HistoryViewer = rclass
             visible    = {visible}
             read_only  = {true}
             style      = {overflowY:'auto'}
+            show_max   = {100}
             />
 
     render: ->

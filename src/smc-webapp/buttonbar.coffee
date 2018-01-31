@@ -845,7 +845,7 @@ exports.commands =
 
                     print(MyClass(5))
                     """
-        class_inheritence :
+        class_inheritance :
             insert: """
                     class A(object):
                         def __repr__(self):
@@ -861,7 +861,7 @@ exports.commands =
 
                     class C(A, B):
                         \"\"\"
-                        This is a class that inerits from classes A and B.
+                        This is a class that inherits from classes A and B.
                         \"\"\"
                         def __repr__(self):
                             return "instance of C"
@@ -1673,7 +1673,7 @@ initialize_sage_python_r_toolbar = () ->
             ["Lambda", "#lambda", "A Python lambda function"]
             ["Classes"],
             ["Class", "#simple_class", "Define a simple class"],
-            ["Class with inheritence", "#class_inheritence", "A class that inherits from other classes"]
+            ["Class with inheritance", "#class_inheritance", "A class that inherits from other classes"]
         ]]
 
     add_menu(pybar, py_func)

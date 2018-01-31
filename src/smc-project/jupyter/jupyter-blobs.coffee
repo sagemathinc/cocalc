@@ -79,6 +79,5 @@ class BlobStore
             res.send(@get(sha1))
         return router
 
-
 exports.blob_store = new BlobStore()
 

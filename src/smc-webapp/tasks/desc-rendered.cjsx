@@ -39,6 +39,12 @@ process_hashtags = (value, selected_hashtags) ->
         x0 = x
     value = value0 + value.slice(x0[1])
 
+process_checkboxes = (value) ->
+    value = replace_all_function value, '[ ]', (index) ->
+        "<i class='fa fa-square-o'       data-index='#{index}' data-checkbox='false'></i>"
+    value = replace_all_function value, '[x]', (index) ->
+        "<i class='fa fa-check-square-o' data-index='#{index}' data-checkbox='true'></i>"
+    return value
 
 exports.DescriptionRendered = rclass
     propTypes :
@@ -47,26 +53,32 @@ exports.DescriptionRendered = rclass
         desc              : rtypes.string
         path              : rtypes.string
         project_id        : rtypes.string
-        minimize          : rtypes.bool
+        full_desc         : rtypes.bool
         read_only         : rtypes.bool
         selected_hashtags : rtypes.immutable.Map
+        search_terms      : rtypes.immutable.Set
+
+    shouldComponentUpdate: (next) ->
+        return @props.desc              != next.desc or \
+               @props.full_desc         != next.full_desc or \
+               @props.read_only         != next.read_only or \
+               @props.selected_hashtags != next.selected_hashtags or \
+               @props.search_terms      != next.search_terms
 
     render_content: ->
         value = @props.desc
         if not value?.trim()
             return <span style={color:'#666'}>Enter a description...</span>
-        if @props.minimize
+        if not @props.full_desc
             value = header_part(value)
         value = process_hashtags(value, @props.selected_hashtags)
         if @props.actions?
-            value = replace_all_function value, '[ ]', (index) ->
-                "<i class='fa fa-square-o'       data-index='#{index}' data-checkbox='false'></i>"
-            value = replace_all_function value, '[x]', (index) ->
-                "<i class='fa fa-check-square-o' data-index='#{index}' data-checkbox='true'></i>"
+            value = process_checkboxes(value)
         <Markdown
             value      = {value}
             project_id = {@props.project_id}
             file_path  = {path_split(@props.path).head}
+            highlight  = {@props.search_terms}
         />
 
     on_click: (e) ->

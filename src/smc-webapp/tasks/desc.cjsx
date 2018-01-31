@@ -22,24 +22,34 @@ exports.Description = rclass
         task_id    : rtypes.string.isRequired
         desc       : rtypes.string
         editing    : rtypes.bool
-        minimize   : rtypes.bool
+        full_desc  : rtypes.bool
         is_current : rtypes.bool
         font_size  : rtypes.number
         read_only  : rtypes.bool
         selected_hashtags : rtypes.immutable.Map
+        search_terms : rtypes.immutable.Set
 
     shouldComponentUpdate: (next) ->
-        return @props.desc     != next.desc     or \
-               @props.task_id  != next.task_id  or \
-               @props.editing  != next.editing  or \
-               @props.minimize != next.minimize or \
-               @props.is_current != next.is_current or \
-               @props.font_size  != next.font_size  or \
-               @props.read_only  != next.read_only  or \
+        return @props.desc              != next.desc     or \
+               @props.task_id           != next.task_id  or \
+               @props.editing           != next.editing  or \
+               @props.full_desc         != next.full_desc or \
+               @props.is_current        != next.is_current or \
+               @props.font_size         != next.font_size  or \
+               @props.read_only         != next.read_only  or \
+               @props.search_terms      != next.search_terms or \
                @props.selected_hashtags != next.selected_hashtags
 
     edit: ->
+        cur_sel = window?.getSelection()?.toString()
+        if cur_sel and @_sel != cur_sel
+            # clicking to select something, so do NOT switch to edit.
+            # Do it via comparing selection, in case of clicking into a partial selection.
+            return
         @props.actions.edit_desc(@props.task_id)
+
+    mouse_down: ->
+        @_sel = window?.getSelection()?.toString()
 
     stop_editing: ->
         @props.actions.stop_editing_desc(@props.task_id)
@@ -49,30 +59,36 @@ exports.Description = rclass
             return
         <div>
             <DescriptionEditor
-                actions    = {@props.actions}
-                task_id    = {@props.task_id}
-                desc       = {@props.desc}
-                is_current = {@props.is_current}
-                font_size  = {@props.font_size}
+                actions           = {@props.actions}
+                task_id           = {@props.task_id}
+                desc              = {@props.desc}
+                is_current        = {@props.is_current}
+                font_size         = {@props.font_size}
+                selected_hashtags = {@props.selected_hashtags}
+                search_terms      = {@props.search_terms}
             />
-            <div style={color:'#666', paddingTop: '5px', float: 'right'}>
-                Use <a href='https://help.github.com/categories/writing-on-github/' target='_blank'>Markdown</a>, LaTeX and hashtags.
+            <div style={color:'#666', padding: '5px 0', float: 'right'}>
+                Use <a href='https://help.github.com/categories/writing-on-github/' target='_blank'>Markdown</a>, LaTeX and #hashtags. Shift+Enter to close.
             </div>
         </div>
 
     render_desc: ->
         if @props.editing
             return
-        <div onClick={@edit}>
+        <div
+            onClick     = {@edit}
+            onMouseDown = {@mouse_down}
+        >
             <DescriptionRendered
                 actions           = {@props.actions}
                 task_id           = {@props.task_id}
                 path              = {@props.path}
                 project_id        = {@props.project_id}
                 desc              = {@props.desc}
-                minimize          = {@props.minimize}
+                full_desc         = {@props.full_desc}
                 read_only         = {@props.read_only}
                 selected_hashtags = {@props.selected_hashtags}
+                search_terms      = {@props.search_terms}
                 />
         </div>
 

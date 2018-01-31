@@ -70,7 +70,7 @@ exports.send_email = (opts={}) ->
         dbg = (m) -> winston.debug("send_email(to:#{opts.to}) -- #{m}")
     else
         dbg = (m) ->
-    dbg(opts.body)
+    dbg("#{opts.body[..200]}...")
 
     if is_banned(opts.to) or is_banned(opts.from)
         dbg("WARNING: attempt to send banned email")
@@ -138,6 +138,8 @@ exports.send_email = (opts={}) ->
             personalization.addSubstitution(new helper.Substitution("#title#", opts.subject))
 
             mail.addPersonalization(personalization)
+
+            # dbg("sending email to #{opts.to} data -- #{misc.to_json(mail.toJSON())}")
 
             # Sendgrid V3 API
             request = email_server.emptyRequest
@@ -343,11 +345,13 @@ exports.welcome_email = (opts) ->
     token_url   = "#{DOMAIN_NAME}#{endpoint}?#{token_query}"
 
     if opts.only_verify
-        subject = "Verify your email address on #{SITE_NAME} (#{DNS})"
-        body    = verify_email_html(token_url)
+        subject  = "Verify your email address on #{SITE_NAME} (#{DNS})"
+        body     = verify_email_html(token_url)
+        category = 'verify'
     else
-        subject = "Welcome to #{SITE_NAME} - #{DNS}"
-        body    = welcome_email_html(token_url)
+        subject  = "Welcome to #{SITE_NAME} - #{DNS}"
+        body     = welcome_email_html(token_url)
+        category = 'welcome'
 
     # exports... because otherwise stubbing in the test suite of send_email would not work
     exports.send_email
@@ -357,7 +361,7 @@ exports.welcome_email = (opts) ->
         from         : COMPANY_EMAIL
         to           : opts.to
         cb           : opts.cb
-        category     : 'welcome'
+        category     : category
         asm_group    : 147985     # https://app.sendgrid.com/suppressions/advanced_suppression_manager
 
 

@@ -936,7 +936,7 @@ AddSubscription = rclass
             <h4><Icon name='check' /> Confirm your selection </h4>
             <p>You have selected the <span style={fontWeight:'bold'}>{name} subscription</span>.</p>
             {@render_renewal_info()}
-            <p>By clicking 'Add Subscription' your payment card will be immediately charged{subscription}.</p>
+            <p>By clicking 'Add Subscription or Course Package' your payment card will be immediately charged{subscription}.</p>
         </Alert>
 
     render_create_subscription_buttons: ->
@@ -950,7 +950,7 @@ AddSubscription = rclass
                         bsStyle  = 'primary'
                         onClick  = {=>(@submit_create_subscription();@props.on_close())}
                         disabled = {@props.selected_plan is ''} >
-                        <Icon name='check' /> Add Subscription
+                        <Icon name='check' /> Add Subscription or Course Package
                     </Button>
                     <Button onClick={@props.on_close}>
                         Cancel
@@ -1625,7 +1625,7 @@ Subscriptions = rclass
             disabled  = {@state.state isnt 'view' or @props.sources.total_count is 0}
             onClick   = {=>@setState(state : 'add_new')}
             className = 'pull-right' >
-            <Icon name='plus-circle' /> Add Subscription...
+            <Icon name='plus-circle' /> Add Subscription or Course Package...
         </Button>
 
     render_add_subscription: ->
@@ -1639,7 +1639,7 @@ Subscriptions = rclass
     render_header: ->
         <Row>
             <Col sm={6}>
-                <Icon name='list-alt' /> Subscriptions
+                <Icon name='list-alt' /> Subscriptions and Course Packages
             </Col>
             <Col sm={6}>
                 {@render_add_subscription_button()}
@@ -1944,10 +1944,10 @@ BillingPage = rclass
                 # no payment sources yet; no subscriptions either: a new user (probably)
                 <span>
                     Click "Add Payment Method..." to add your credit card, then
-                    click "Add Subscription..." and
+                    click "Add Subscription or Course Package..." and
                     choose from either a monthly, yearly or semester-long plan.
                     You will <b>not be charged</b> until you select a specific subscription then click
-                    "Add Subscription".
+                    "Add Subscription or Course Package".
                     {help}
                 </span>
             else
@@ -1964,11 +1964,11 @@ BillingPage = rclass
         else if subs == 0
             # have a payment source, but no subscriptions
             <span>
-                Click "Add Subscription...", then
+                Click "Add Subscription or Course Package...", then
                 choose from either a monthly, yearly or semester-long plan (you may sign up for the
                 same subscription more than once to increase the number of upgrades).
                 You will be charged only after you select a specific subscription and click
-                "Add Subscription".
+                "Add Subscription or Course Package".
                 {help}
             </span>
         else if invoices == 0
@@ -2024,7 +2024,7 @@ BillingPage = rclass
             if @props.is_simplified and subs > 0
                 <div>
                     <PaymentMethods redux={@props.redux} sources={@props.customer.sources} default={@props.customer.default_source} />
-                    {<Panel header={@get_panel_header('list-alt', 'Subscriptions')} eventKey='2'>
+                    {<Panel header={@get_panel_header('list-alt', 'Subscriptions and Course Packages')} eventKey='2'>
                         {@render_subscriptions()}
                     </Panel> if not @props.for_course}
                 </div>

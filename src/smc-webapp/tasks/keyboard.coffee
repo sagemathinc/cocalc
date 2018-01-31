@@ -42,7 +42,7 @@ exports.create_key_handler = (actions) ->
             return false
 
         if mod and evt.which == 32  # space - need mod so user can space to scroll down.
-            actions.toggle_task_done()
+            actions.toggle_full_desc()
             return false
         if not mod and (evt.which == 13 or evt.which == 73) # return (or i, like vim) = edit selected
             actions.edit_desc()

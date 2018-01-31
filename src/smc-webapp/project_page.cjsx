@@ -177,6 +177,8 @@ FreeProjectWarning = rclass ({name}) ->
     displayName : 'FreeProjectWarning'
 
     reduxProps:
+        account :
+            other_settings : rtypes.immutable.Map
         projects :
             # get_total_project_quotas relys on this data
             # Will be removed by #1084
@@ -192,12 +194,13 @@ FreeProjectWarning = rclass ({name}) ->
     propTypes:
         project_id : rtypes.string
 
-    shouldComponentUpdate: (nextProps) ->
-        return @props.free_warning_extra_shown != nextProps.free_warning_extra_shown or  \
-            @props.free_warning_closed != nextProps.free_warning_closed or   \
-            @props.free_compute_slowdown != nextProps.free_compute_slowdown or  \
-            @props.project_map?.get(@props.project_id)?.get('users') != nextProps.project_map?.get(@props.project_id)?.get('users') or \
-            not @props.project_log?
+    shouldComponentUpdate: (next) ->
+        return @props.free_warning_extra_shown            != next.free_warning_extra_shown or  \
+            @props.free_warning_closed                    != next.free_warning_closed or   \
+            @props.free_compute_slowdown                  != next.free_compute_slowdown or  \
+            @props.project_map?.get(@props.project_id)    != next.project_map?.get(@props.project_id) or \
+            @props.other_settings?.get('no_free_warnings') != next.other_settings?.get('no_free_warnings')
+
 
     extra: (host, internet) ->
         {PolicyPricingPageUrl} = require('./customize')
@@ -238,6 +241,8 @@ FreeProjectWarning = rclass ({name}) ->
         #<a onClick={=>@actions(project_id: @props.project_id).show_extra_free_warning()} style={color:'white', cursor:'pointer'}> learn more...</a>
 
     render: ->
+        if @props.other_settings?.get('no_free_warnings')
+            return null
         if not @props.project_log?
             return null
         if not require('./customize').commercial

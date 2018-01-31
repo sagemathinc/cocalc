@@ -451,6 +451,8 @@ class ProjectsActions extends Actions
         @redux.getTable('projects').set
             project_id     : project_id
             action_request : {action:'stop', time:webapp_client.server_time()}
+        @redux.getProjectActions(project_id).log
+            event : 'project_stop_requested'
 
     close_project_on_server: (project_id) =>  # not used by UI yet - dangerous
         @redux.getTable('projects').set
@@ -461,6 +463,8 @@ class ProjectsActions extends Actions
         @redux.getTable('projects').set
             project_id     : project_id
             action_request : {action:'restart', time:webapp_client.server_time()}
+        @redux.getProjectActions(project_id).log
+            event : 'project_restart_requested'
 
     # Explcitly set whether or not project is hidden for the given account (state=true means hidden)
     set_project_hide: (account_id, project_id, state) =>

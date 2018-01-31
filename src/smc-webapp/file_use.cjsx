@@ -95,6 +95,11 @@ class FileUseActions extends Actions
         if not account_id?
             # nothing to do -- non-logged in users shouldn't be marking files
             return
+        project_is_known = @redux.getStore('projects').get('project_map')?.has(project_id)
+        if not project_is_known
+            # user is not currently a collaborator on this project, so definitely shouldn't
+            # mark file use.
+            return
         if ttl
             if ttl == 'default'
                 if action.slice(0,4) == 'chat'

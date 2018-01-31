@@ -87,6 +87,7 @@ if not misc.is_object(client_metrics)
 
 class exports.Client extends EventEmitter
     constructor: (opts) ->
+        super()
         @_opts = defaults opts,
             conn           : undefined
             logger         : undefined
@@ -207,7 +208,7 @@ class exports.Client extends EventEmitter
 
     dbg: (desc) =>
         if @logger?.debug
-            return (m...) => @logger.debug("Client(#{@id}).#{desc}: #{JSON.stringify(m)}")
+            return (args...) => @logger.debug("Client(#{@id}).#{desc}:", args...)
         else
             return ->
 
@@ -227,6 +228,7 @@ class exports.Client extends EventEmitter
         @compute_session_uuids = []
         c = clients[@id]
         delete clients[@id]
+        dbg("num_clients=#{misc.len(clients)}")
         if c? and c.call_callbacks?
             for id,f of c.call_callbacks
                 f("connection closed")
@@ -1166,7 +1168,7 @@ class exports.Client extends EventEmitter
 
     mesg_invite_collaborator: (mesg) =>
         @touch()
-        #dbg = @dbg('mesg_invite_collaborator')
+        dbg = @dbg('mesg_invite_collaborator')
         #dbg("mesg: #{misc.to_json(mesg)}")
         @get_project mesg, 'write', (err, project) =>
             if err
@@ -1714,12 +1716,6 @@ class exports.Client extends EventEmitter
                     err = 'close'
                 if err
                     dbg("user_query(query='#{misc.to_json(query)}') error:", err)
-                    if not @account_id? and misc.startswith("#{err}", "FATAL")
-                        # Tried to do a user_query before signing in.  Since we no longer have any anonymous user queries
-                        # there is absolutely no situation where a client should do this, unless it is buggy.
-                        dbg("immediately terminating buggy client trying to do FATAL user_query when not signed_in")
-                        @conn.end()
-                        return
                     if @_query_changefeeds?[mesg_id]
                         delete @_query_changefeeds[mesg_id]
                     @error_to_client(id:mesg_id, error:err)

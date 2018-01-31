@@ -22,36 +22,31 @@
 {Button, ButtonToolbar, Panel, Well} = require('react-bootstrap')
 {Icon} = require('../r_misc')
 
-exports.DeleteStudentsPanel = rclass
+exports.DeleteSharedProjectPanel = rclass
     propTypes:
         delete : rtypes.func.isRequired
 
     getInitialState: ->
-        delete_student_projects_confirm : false
+        delete_shared_projects_confirm : false
 
-    render_confirm_delete_student_projects: ->
+    render_confirm_delete_shared_projects: ->
         <Well style={marginTop:'10px'}>
-            All student projects will be deleted and are no longer accessible by the student.  (You will still have access to the deleted projects in the Projects page.) Are you absolutely sure?
+            The shared project will be deleted and all students removed from it.  (You will still have access to the deleted shared project in the Projects page.) Are you absolutely sure?
             <ButtonToolbar style={marginTop:'10px'}>
-                <Button
-                    bsStyle='danger'
-                    onClick={=>@setState(delete_student_projects_confirm:false); @props.delete()}
-                >
-                    YES, DELETE all Student Projects
-                </Button>
-                <Button onClick={=>@setState(delete_student_projects_confirm:false)}>Cancel</Button>
+                <Button bsStyle='danger' onClick={=>@setState(delete_shared_projects_confirm:false); @props.delete()}>YES, DELETE the Shared Project</Button>
+                <Button onClick={=>@setState(delete_shared_projects_confirm:false)}>Cancel</Button>
             </ButtonToolbar>
         </Well>
 
     render: ->
-        <Panel header={<h4><Icon name='trash'/> Delete all student projects</h4>}>
-            <Button bsStyle='danger' onClick={=>@setState(delete_student_projects_confirm:true)}><Icon name="trash"/> Delete all Student Projects...</Button>
-            {@render_confirm_delete_student_projects() if @state.delete_student_projects_confirm}
+        <Panel header={<h4><Icon name='trash'/> Delete shared project</h4>}>
+            <Button bsStyle='danger' onClick={=>@setState(delete_shared_projects_confirm:true)}><Icon name="trash"/> Delete Shared Project...</Button>
+            {@render_confirm_delete_shared_projects() if @state.delete_shared_projects_confirm}
             <hr/>
             <span style={color:'#666'}>
-                If for some reason you would like to delete all the student projects
-                created for this course, you may do so by clicking above.
+                If for some reason you would like to delete the shared projects
+                that you created for this course, you may do so by clicking above.
                 Be careful!<br/>
-                Students will be removed from the deleted projects.
+                All students will be removed from the deleted shared projects.
             </span>
         </Panel>

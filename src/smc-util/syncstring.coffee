@@ -34,11 +34,11 @@ TOUCH_INTERVAL_M = 10
 # How often the local hub will autosave this file to disk if it has it open and
 # there are unsaved changes.  This is very important since it ensures that a user that
 # edits a file but doesn't click "Save" and closes their browser (right after their edits
-# have gone to the databse), still has their file saved to disk soon.  This is important,
+# have gone to the database), still has their file saved to disk soon.  This is important,
 # e.g., for homework getting collected and not missing the last few changes.  It turns out
-# this is what people expect!
+# this is what people expect.
 # Set to 0 to disable. (But don't do that.)
-LOCAL_HUB_AUTOSAVE_S = 120
+LOCAL_HUB_AUTOSAVE_S = 45
 #LOCAL_HUB_AUTOSAVE_S = 5
 
 # If the client becomes disconnected from the backend for more than this long
@@ -572,6 +572,10 @@ class SyncDoc extends EventEmitter
             from_str          : required   # creates a doc from a string.
             doctype           : undefined  # optional object describing document constructor (used by project to open file)
             from_patch_str    : JSON.parse
+            before_change_hook : undefined
+
+        @_before_change_hook = opts.before_change_hook
+
         if not opts.string_id?
             opts.string_id = schema.client_db.sha1(opts.project_id, opts.path)
 
@@ -924,6 +928,7 @@ class SyncDoc extends EventEmitter
                 read_only         : null
                 last_file_change  : null
                 doctype           : null
+                archived          : null
 
         @_syncstring_table = @_client.sync_table(query)
 
@@ -1493,6 +1498,7 @@ class SyncDoc extends EventEmitter
         # only string_id and last_active, and nothing else.
         if not x? or not x.users?
             # Brand new document
+            @emit('load-time-estimate', {type:'new', time:1})
             @_last_snapshot = undefined
             @_snapshot_interval = schema.SCHEMA.syncstrings.user_query.get.fields.snapshot_interval
             # brand new syncstring
@@ -1509,6 +1515,11 @@ class SyncDoc extends EventEmitter
             @_syncstring_table.set(obj)
             @emit('metadata-change')
         else
+            if x.archived
+                @emit('load-time-estimate', {type:'archived', time:8})
+            else
+                @emit('load-time-estimate', {type:'ready', time:2})
+
             # TODO: handle doctype change here (?)
             @_last_snapshot     = x.last_snapshot
             @_snapshot_interval = x.snapshot_interval
@@ -1771,6 +1782,10 @@ class SyncDoc extends EventEmitter
         if cb?
             #dbg("waiting for save.state to change from '#{@_syncstring_table.get_one().getIn(['save','state'])}' to 'done'")
             f = (cb) =>
+                if @_closed
+                    # closed during save
+                    cb()
+                    return
                 if @_deleted
                     # if deleted, then save doesn't need to finish and is done successfully.
                     cb()
@@ -1786,7 +1801,8 @@ class SyncDoc extends EventEmitter
                         if err
                             #dbg("got err waiting: #{err}")
                         else
-                            err = @_syncstring_table.get_one().getIn(['save', 'error'])
+                            # ? because @_syncstring_table could be undefined here, if saving and closing at the same time.
+                            err = @_syncstring_table?.get_one().getIn(['save', 'error'])
                             #if err
                             #    dbg("got result but there was an error: #{err}")
                         if err
@@ -1796,6 +1812,10 @@ class SyncDoc extends EventEmitter
                 f         : f
                 max_tries : 5
                 cb        : (err) =>
+                    if @_closed
+                        # closed during save
+                        cb()
+                        return
                     if err
                         # TODO: This should in theory never be necessary, and I've resisted adding
                         # it for five years.  However, here it is:
@@ -1909,6 +1929,8 @@ class SyncDoc extends EventEmitter
         #dbg = @dbg("_handle_patch_update")
         #dbg(new Date(), changed_keys)
 
+        @_before_change_hook?()
+
         # note: other code handles that @_patches_table.get(key) may not be defined, e.g., when changed means "deleted"
         @_patch_list.add( (@_process_patch(@_patches_table.get(key)) for key in changed_keys) )
 
@@ -1971,22 +1993,23 @@ class exports.SyncString extends SyncDoc
             patch_interval    : undefined
             file_use_interval : undefined
             cursors           : false      # if true, also provide cursor tracking ability
-
+            before_change_hook: undefined
 
         from_str = (str) ->
             new StringDocument(str)
 
         super
-            string_id         : opts.id
-            client            : opts.client
-            project_id        : opts.project_id
-            path              : opts.path
-            save_interval     : opts.save_interval
-            patch_interval    : opts.patch_interval
-            file_use_interval : opts.file_use_interval
-            cursors           : opts.cursors
-            from_str          : from_str
-            doctype           : {type:'string'}
+            string_id          : opts.id
+            client             : opts.client
+            project_id         : opts.project_id
+            path               : opts.path
+            save_interval      : opts.save_interval
+            patch_interval     : opts.patch_interval
+            file_use_interval  : opts.file_use_interval
+            cursors            : opts.cursors
+            from_str           : from_str
+            doctype            : {type:'string'}
+            before_change_hook : opts.before_change_hook
 
 ###
 Used for testing

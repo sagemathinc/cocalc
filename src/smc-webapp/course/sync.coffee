@@ -82,6 +82,7 @@ exports.create_sync_db = (redux, actions, store) =>
                     return
                 actions.lookup_nonregistered_students()
                 actions.configure_all_projects()
+                actions._init_who_pay()  # this is just to deal with older courses that may have already paid.
 
                 # Also
                 projects_store.on 'change', actions.handle_projects_store_update

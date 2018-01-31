@@ -125,10 +125,7 @@ exports.register_nonreact_editor = (opts) ->
         save     : (path, redux, project_id) ->
             if opts.is_public
                 return
-            e = editors[get_key(project_id, path)]
-            # click_save_button if defined, otherwise just the save function.
-            if e?
-                (e.click_save_button ? e.save)?()
+            editors[get_key(project_id, path)]?.save?()
 
 
 if DEBUG

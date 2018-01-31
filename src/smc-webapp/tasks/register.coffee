@@ -17,7 +17,7 @@ misc                   = require('smc-util/misc')
 
 exports.register = ->
     register_file_editor
-        ext       : ['tasks2']   # temporary extension JUST for development
+        ext       : ['tasks']
 
         is_public : false
 
@@ -43,8 +43,8 @@ exports.register = ->
 
             actions._init(project_id, path, syncdb, store, webapp_client)
 
-            if window.smc?
-                window.a = actions # for DEBUGGING
+            #if window.smc?
+            #    window.a = actions # for DEBUGGING
 
             syncdb.once 'init', (err) =>
                 if err

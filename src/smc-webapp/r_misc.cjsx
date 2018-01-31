@@ -185,15 +185,25 @@ exports.Loading = Loading = rclass
     displayName : 'Misc-Loading'
 
     propTypes :
-        style  : rtypes.object
-        text   : rtypes.string
+        style    : rtypes.object
+        text     : rtypes.string
+        estimate : rtypes.immutable.Map  # {time:[time in seconds], type:['new', 'ready', 'archived']}
 
     getDefaultProps : ->
         text   : 'Loading...'
 
+    render_estimate: ->
+        if @props.estimate?
+            <div>
+                Loading '{@props.estimate.get('type')}' file.
+                <br/>
+                Estimated time: {@props.estimate.get('time')}s
+            </div>
+
     render: ->
         <span style={@props.style}>
             <span><Icon name='cc-icon-cocalc-ring' spin /> {@props.text}</span>
+            {@render_estimate()}
         </span>
 
 exports.Saving = Saving = rclass
@@ -766,15 +776,17 @@ exports.HTML = rclass
                                          # sanitizing input.  Use this as an opportunity to modify the HTML structure
                                          # before it is exported to text and given to react.   Obviously, you can't
                                          # install click handlers here.
+        highlight      : rtypes.immutable.Set
 
     getDefaultProps: ->
         has_mathjax : true
         safeHTML    : true
 
-    shouldComponentUpdate: (newProps) ->
-        return @props.value != newProps.value or \
-             not underscore.isEqual(@props.style, newProps.style) or \
-             @props.safeHTML != newProps.safeHTML
+    shouldComponentUpdate: (next) ->
+        return @props.value != next.value or \
+             @props.highlight != next.highlight or \
+             not underscore.isEqual(@props.style, next.style) or \
+             @props.safeHTML != next.safeHTML
 
     ###
     # Seems no longer necessary and *DOES* break massively on Safari! -- see https://github.com/sagemathinc/cocalc/issues/1895
@@ -813,6 +825,12 @@ exports.HTML = rclass
             return
         $(ReactDOM.findDOMNode(@)).find("table").addClass('table')
 
+    _update_highlight: ->
+        if not @_is_mounted or not @props.highlight?
+            return
+        # Use jquery-highlight, which is a pretty serious walk of the DOM tree, etc.
+        $(ReactDOM.findDOMNode(@)).highlight(@props.highlight.toJS())
+
     update_content: ->
         if not @_is_mounted
             return
@@ -823,6 +841,7 @@ exports.HTML = rclass
             #@_update_escaped_chars()
             @_update_links()   # this MUST be after update_escaped_chars -- see https://github.com/sagemathinc/cocalc/issues/1391
             @_update_tables()
+            @_update_highlight()
 
     componentDidUpdate: ->
         @update_content()
@@ -856,7 +875,10 @@ exports.HTML = rclass
 
 
     render: ->
+        # the random key is the whole span (hence the html) does get rendered whenever
+        # this component is updated.  Otherwise, it will NOT re-render except when the value changes.
         <span
+            key                     = {Math.random()}
             className               = {@props.className}
             dangerouslySetInnerHTML = {@render_html()}
             style                   = {@props.style}>
@@ -874,6 +896,13 @@ exports.Markdown = rclass
         safeHTML       : rtypes.bool     # optional -- default true, if true scripts and unsafe attributes are removed from sanitized html
         href_transform : rtypes.func     # optional function used to first transform href target strings
         post_hook      : rtypes.func     # see docs to HTML
+        highlight      : rtypes.immutable.Set
+
+    shouldComponentUpdate: (next) ->
+        return @props.value != next.value or \
+             @props.highlight != next.highlight or \
+             not underscore.isEqual(@props.style, next.style) or \
+             @props.safeHTML != next.safeHTML
 
     getDefaultProps: ->
         safeHTML : true
@@ -889,7 +918,6 @@ exports.Markdown = rclass
     render: ->
         HTML = exports.HTML
         value = @to_html()
-        #if DEBUG then console.log('Markdown.to_html value', value.s, value.has_mathjax)
         <HTML
             value          = {value.s}
             has_mathjax    = {value.has_mathjax}
@@ -899,6 +927,7 @@ exports.Markdown = rclass
             className      = {@props.className}
             href_transform = {@props.href_transform}
             post_hook      = {@props.post_hook}
+            highlight      = {@props.highlight}
             safeHTML       = {@props.safeHTML} />
 
 activity_style =
@@ -1101,21 +1130,29 @@ exports.DateTimePicker = rclass
     displayName : 'Misc-DateTimePicker'
 
     propTypes :
-        value     : rtypes.oneOfType([rtypes.string, rtypes.object])
-        on_change : rtypes.func.isRequired
-        on_focus  : rtypes.func
-        on_blur   : rtypes.func
+        value       : rtypes.oneOfType([rtypes.string, rtypes.object])
+        on_change   : rtypes.func.isRequired
+        on_focus    : rtypes.func
+        on_blur     : rtypes.func
+        autoFocus   : rtypes.bool
+        onKeyDown   : rtypes.func
+        defaultOpen : rtypes.string
 
+    getDefaultProps: ->
+        defaultOpen : 'date'
 
     render: ->
         <DateTimePicker
             step       = {60}
             editFormat = {'MMM d, yyyy h:mm tt'}
+            format     = {'MMM d, yyyy h:mm tt'}
             parse      = {DATETIME_PARSE_FORMATS}
             value      = {@props.value}
             onChange   = {@props.on_change}
             onFocus    = {@props.on_focus}
             onBlur     = {@props.on_blur}
+            autoFocus  = {@props.autoFocus}
+            defaultOpen = {@props.defaultOpen}
         />
 
 Calendar = require('react-widgets/lib/Calendar')
@@ -1188,8 +1225,6 @@ exports.DirectoryInput = rclass
             onKeyDown    = {@props.on_key_down}
             onKeyUp      = {@props.on_key_up}
         />
-
-#onChange     = {(value) => @props.on_change(value.trim()); console.log(value)}
 
 # A warning to put on pages when the project is deleted
 # TODO: use this in more places

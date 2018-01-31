@@ -1086,8 +1086,9 @@ OtherSettings = rclass
     displayName : 'Account-OtherSettings'
 
     propTypes :
-        other_settings : rtypes.object
-        redux          : rtypes.object
+        redux              : rtypes.object
+        other_settings     : rtypes.object
+        is_stripe_customer : rtypes.bool
 
     reduxProps :
         account :
@@ -1098,7 +1099,7 @@ OtherSettings = rclass
 
     render_first_steps: ->
         <Checkbox
-            checked  = {@props.other_settings.first_steps}
+            checked  = {!!@props.other_settings.first_steps}
             ref      = 'first_steps'
             onChange = {(e)=>@on_change('first_steps', e.target.checked)}>
             Offer to setup the "First Steps" guide (if available).
@@ -1106,16 +1107,16 @@ OtherSettings = rclass
 
     render_time_ago_absolute: ->
         <Checkbox
-            checked  = {@props.other_settings.time_ago_absolute}
+            checked  = {!!@props.other_settings.time_ago_absolute}
             ref      = 'time_ago_absolute'
             onChange = {(e)=>@on_change('time_ago_absolute', e.target.checked)}>
-            Display timestamps as absolute points in time – otherwise they are relative to the current time. (This toggle does not yet work yet for some views, including TimeTravel and task lists.)
+            Display timestamps as absolute points in time – otherwise they are relative to the current time.
         </Checkbox>
 
     render_confirm: ->
         if not require('./feature').IS_MOBILE
             <Checkbox
-                checked  = {@props.other_settings.confirm_close}
+                checked  = {!!@props.other_settings.confirm_close}
                 ref      = 'confirm_close'
                 onChange = {(e)=>@on_change('confirm_close', e.target.checked)}>
                 Confirm: always ask for confirmation before closing the browser window
@@ -1142,7 +1143,7 @@ OtherSettings = rclass
 
     render_mask_files: ->
         <Checkbox
-            checked  = {@props.other_settings.mask_files}
+            checked  = {!!@props.other_settings.mask_files}
             ref      = 'mask_files'
             onChange = {(e)=>@on_change('mask_files', e.target.checked)}
         >
@@ -1167,6 +1168,20 @@ OtherSettings = rclass
                     number    = {@props.other_settings.page_size} />
         </LabeledRow>
 
+    render_no_free_warnings: ->
+        if not @props.is_stripe_customer
+            extra = <span>(only available to customers)</span>
+        else
+            extra = <span>(thanks for being a customer)</span>
+        <Checkbox
+            disabled = {not @props.is_stripe_customer}
+            checked  = {!!@props.other_settings.no_free_warnings}
+            ref      = 'no_free_warnings'
+            onChange = {(e)=>@on_change('no_free_warnings', e.target.checked)}
+        >
+            Hide free warnings: do <b><i>not</i></b> show a warning banner when using a free trial project {extra}
+        </Checkbox>
+
     render: ->
         if not @props.other_settings
             return <Loading />
@@ -1175,6 +1190,7 @@ OtherSettings = rclass
             {@render_first_steps()}
             {@render_time_ago_absolute()}
             {@render_mask_files()}
+            {@render_no_free_warnings()}
             {@render_default_file_sort()}
             {@render_page_size()}
             {@render_standby_timeout()}
@@ -1582,6 +1598,7 @@ exports.AccountSettingsTop = rclass
         editor_settings : rtypes.object
         other_settings  : rtypes.object
         groups          : rtypes.array
+        stripe_customer : rtypes.immutable.Map
 
     render: ->
         <div style={marginTop:'1em'}>
@@ -1613,8 +1630,9 @@ exports.AccountSettingsTop = rclass
                         editor_settings = {@props.editor_settings}
                         redux           = {@props.redux} />
                     <OtherSettings
-                        other_settings  = {@props.other_settings}
-                        redux           = {@props.redux} />
+                        other_settings     = {@props.other_settings}
+                        is_stripe_customer = {@props.stripe_customer?}
+                        redux              = {@props.redux} />
                     <ProfileSettings
                         email_address = {@props.email_address}
                         first_name    = {@props.first_name}

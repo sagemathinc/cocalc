@@ -1,3 +1,16 @@
+Files being edited right now:
+
+
+    select account_id, project_id, right(filename,40), time from file_access_log where time >= now() - interval '1 minute' order by time desc;
+
+    select count(distinct account_id) from file_access_log where time >= now() - interval '1 minute';
+
+    select count(distinct account_id) from file_access_log where time >= now() - interval '1 day';
+    select count(distinct project_id) from file_access_log where time >= now() - interval '1 day';
+
+    select count(distinct account_id) from file_access_log where time >= now() - interval '1 day' - interval '1 year' and time <= now() - interval '1 year';
+
+
 Recently published paths:
 
     select now()-created,project_id,path from public_paths where created >= now() - interval '1 day' and created <= now() order by created desc;

@@ -10,15 +10,28 @@ misc = require('smc-util/misc')
 
 {SORT_INFO, HEADINGS, HEADINGS_DIR} = require('./headings')
 
-exports.update_visible = (tasks, view, counts, current_task_id) ->
+DONE_CUTOFF_MS = 45000
+
+exports.update_visible = (tasks, local_tasks, view, counts, current_task_id) ->
     show_deleted    = !!view.get('show_deleted')
     show_done       = !!view.get('show_done')
 
+    now = new Date()
+    _is_visible = {}
+    is_visible = (task, id) ->
+        c = _is_visible[id]
+        if c?
+            return c
+        if (not show_deleted and task.get('deleted')) or \
+           (not show_done and task.get('done') and now - (task.get('last_edited') ? 0) > DONE_CUTOFF_MS)
+            _is_visible[id] = false
+        else
+            _is_visible[id] = true
+        return _is_visible[id]
+
     relevant_tags = {}
     tasks.forEach (task, id) =>
-        if not show_deleted and task.get('deleted')
-            return
-        if not show_done and task.get('done')
+        if not is_visible(task, id)
             return
         desc = task.get('desc')
         for x in misc.parse_hashtags(desc)
@@ -60,13 +73,13 @@ exports.update_visible = (tasks, view, counts, current_task_id) ->
             new_counts.done    += 1
         if task.get('deleted')
             new_counts.deleted += 1
-        if not show_deleted and task.get('deleted')
-            return
-        if not show_done and task.get('done')
+
+        editing_desc = local_tasks.getIn([id, 'editing_desc'])
+        if not editing_desc and not is_visible(task, id)
             return
 
         desc = task.get('desc')
-        if search_matches(search, desc)
+        if search_matches(search, desc) or editing_desc
             visible = 1  # tag of a currently visible task
             if id == current_task_id
                 current_is_visible = true
@@ -102,4 +115,6 @@ exports.update_visible = (tasks, view, counts, current_task_id) ->
         counts          : counts
         hashtags        : immutable.fromJS(hashtags)
         search_desc     : search.join(' ')
+        search_terms    : immutable.Set((x for x in search when x[0] != '#' and x[0] != '-'))
+        nonhash_search  : immutable.List((x for x in search when x[0] != '#'))
     return obj

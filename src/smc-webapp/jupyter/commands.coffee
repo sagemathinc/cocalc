@@ -80,10 +80,7 @@ exports.commands = (actions) ->
     'close and halt' :
         i : 'hand-stop-o'
         m : 'Close and halt'
-        f : ->
-            actions.signal('SIGKILL')
-            actions.file_open()
-            actions.file_action('close_file')
+        f : -> actions.close_and_halt()
 
     'close pager' :
         m : 'Close pager'
@@ -92,6 +89,7 @@ exports.commands = (actions) ->
 
     'confirm restart kernel' :
         m : 'Restart kernel...'
+        i : 'refresh'
         k : [{"mode":"escape","which":48,twice:true}]
         f : ->
             actions.confirm_dialog
@@ -409,7 +407,7 @@ exports.commands = (actions) ->
         f : -> actions.run_cell_and_insert_new_cell_below()
 
     'run cell and select next' :
-        i : 'play'
+        i : 'step-forward'
         m : 'Run cells and select below'
         k : [{which:13, shift:true}]
         f : -> actions.shift_enter_run_selected_cells(); actions.scroll('cell visible')
@@ -489,7 +487,6 @@ exports.commands = (actions) ->
         f : -> actions.switch_to_classical_notebook()
 
     'tab key' :
-        i : 'step-forward'
         m : 'Tab key (completion)...'
         f : -> actions.tab_key()
 

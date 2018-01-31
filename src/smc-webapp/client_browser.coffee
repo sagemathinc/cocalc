@@ -245,27 +245,22 @@ class Connection extends client.Connection
                 min     : 1000
                 factor  : 1.3
                 retries : 100000
+
+        misc_page.delete_cookie('SMCSERVERID3')
+        @_delete_websocket_cookie()
         conn = new Primus(url, opts)
 
         @_conn = conn
         conn.on 'open', () =>
             @_connected = true
             @_connection_is_totally_dead = false
-            if @_conn_id?
-                conn.write(@_conn_id)
-            else
-                conn.write("XXXXXXXXXXXXXXXXXXXX")
             protocol = if window.WebSocket? then 'websocket' else 'polling'
             @emit("connected", protocol)
             log("connected; protocol='#{protocol}'")
             @_num_attempts = 0
 
             conn.removeAllListeners('data')
-            f = (data) =>
-                @_conn_id = data.toString()
-                conn.removeListener('data',f)
-                conn.on('data', ondata)
-            conn.on("data", f)
+            conn.on("data", ondata)
 
             if auth_token?
                 @sign_in_using_auth_token
@@ -306,6 +301,7 @@ class Connection extends client.Connection
             @_num_attempts = opts.attempt
             @emit("disconnected", "close") # This just informs everybody that we *are* disconnected.
             conn.removeAllListeners('data')
+            @_delete_websocket_cookie()
             log("reconnect scheduled (attempt #{opts.attempt} out of #{opts.retries})")
 
         conn.on 'reconnect', =>
@@ -334,11 +330,13 @@ class Connection extends client.Connection
         if @_connected
             return @_conn.latency
 
-    _fix_connection: (delete_cookies) =>
-        if delete_cookies
-            console.log("websocket -- deleting haproxy cookies")
-            document.cookie = 'SMCSERVERID3=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;'
+    _delete_websocket_cookie: =>
+        console.log('websocket -- delete cookie')
+        misc_page.delete_cookie('SMCSERVERID3')
+
+    _fix_connection: =>
         console.log("websocket --_fix_connection... ")
+        @_delete_websocket_cookie()
         @_conn.end()
         @_conn.open()
 

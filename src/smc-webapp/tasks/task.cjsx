@@ -13,6 +13,7 @@ A single task
 {DueDate}      = require('./due')
 {DragHandle}   = require('./drag')
 {DoneCheckbox} = require('./done')
+{Timer}        = require('./timer')
 
 exports.Task = rclass
     propTypes :
@@ -23,22 +24,24 @@ exports.Task = rclass
         is_current       : rtypes.bool
         editing_due_date : rtypes.bool
         editing_desc     : rtypes.bool
-        min_desc         : rtypes.bool
+        full_desc        : rtypes.bool
         font_size        : rtypes.number
         sortable         : rtypes.bool
         read_only        : rtypes.bool
         selected_hashtags: rtypes.immutable.Map
+        search_terms     : rtypes.immutable.Set
 
     shouldComponentUpdate: (next) ->
         return @props.task              != next.task             or \
                @props.is_current        != next.is_current       or \
                @props.editing_due_date  != next.editing_due_date or \
                @props.editing_desc      != next.editing_desc     or \
-               @props.min_desc          != next.min_desc         or \
+               @props.full_desc         != next.full_desc        or \
                @props.font_size         != next.font_size        or \
                @props.sortable          != next.sortable         or \
                @props.read_only         != next.read_only        or \
-               @props.selected_hashtags != next.selected_hashtags
+               @props.selected_hashtags != next.selected_hashtags or \
+               @props.search_terms      != next.search_terms
 
     render_drag_handle: ->
         <DragHandle sortable={@props.sortable}/>
@@ -51,26 +54,34 @@ exports.Task = rclass
             task_id   = {@props.task.get('task_id')}
         />
 
+    render_timer: ->
+        <Timer
+            actions = {@props.actions}
+            task_id = {@props.task.get('task_id')}
+        />
+
     render_min_toggle: (has_body) ->
         <MinToggle
-            actions  = {@props.actions}
-            task_id  = {@props.task.get('task_id')}
-            minimize = {@props.min_desc}
-            has_body = {has_body}
+            actions   = {@props.actions}
+            task_id   = {@props.task.get('task_id')}
+            full_desc = {@props.full_desc}
+            has_body  = {has_body}
         />
 
     render_desc: (desc) ->
         <Description
-            actions    = {@props.actions}
-            path       = {@props.path}
-            project_id = {@props.project_id}
-            task_id    = {@props.task.get('task_id')}
-            desc       = {desc}
-            editing    = {@props.editing_desc}
-            is_current = {@props.is_current}
-            font_size  = {@props.font_size}
-            read_only  = {@props.read_only}
+            actions           = {@props.actions}
+            path              = {@props.path}
+            project_id        = {@props.project_id}
+            task_id           = {@props.task.get('task_id')}
+            desc              = {desc}
+            full_desc         = {@props.full_desc}
+            editing           = {@props.editing_desc}
+            is_current        = {@props.is_current}
+            font_size         = {@props.font_size}
+            read_only         = {@props.read_only}
             selected_hashtags = {@props.selected_hashtags}
+            search_terms      = {@props.search_terms}
         />
 
     render_last_edited: ->
@@ -98,14 +109,14 @@ exports.Task = rclass
         style =
             padding      : '5px 5px 0 5px'
             margin       : '5px'
-            borderRadius : '4px'
             background   : 'white'
         if @props.is_current
-            style.border       = '1px solid #08c'
-            style.borderLeft   = '5px solid #08c'
+            style.border       = '1px solid rgb(171, 171, 171)'
+            style.borderLeft   = '5px solid rgb(66, 165, 245)'
+            style.background   = 'rgb(247, 247, 247)'
         else
-            style.border       = '1px solid #888'
-            style.borderLeft   = '5px solid #888'
+            style.border       = '1px solid #ccc'
+            style.borderLeft   = '5px solid #ccc'
         if @props.task.get('deleted')
             style.background = '#d9534f'
             style.color  = '#fff'
@@ -121,16 +132,15 @@ exports.Task = rclass
         else
             # not editing, so maybe a min toggle...
             {head, body} = parse_desc(desc)  # parse description into head, then body (sep by blank line)
-            if @props.min_desc
+            if not @props.full_desc
                 desc = head
         <div style={style} onClick={@on_click}>
             <Row>
-                <Col md={1} style={display: 'flex', flexDirection:'row'}>
+                <Col md={1}>
                     {@render_drag_handle()}
-                    {@render_done_checkbox()}
                     {@render_min_toggle(!!body)}
                 </Col>
-                <Col md={9}>
+                <Col md={8}>
                     {@render_desc(desc)}
                 </Col>
                 <Col md={1}>
@@ -138,6 +148,9 @@ exports.Task = rclass
                 </Col>
                 <Col md={1}>
                     {@render_last_edited()}
+                </Col>
+                <Col md={1}>
+                    {@render_done_checkbox()}
                 </Col>
             </Row>
         </div>

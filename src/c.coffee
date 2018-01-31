@@ -12,7 +12,7 @@ LICENSE   : AGPLv3
 async = require('async')
 
 # disable incredibly verbose DB debugging, which makes interactive use hard
-require('smc-hub/postgres-base').DEBUG = false
+require('smc-hub/postgres-base').DEBUG = true
 
 global.misc = require('smc-util/misc')
 global.done = misc.done

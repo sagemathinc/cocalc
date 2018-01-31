@@ -1279,6 +1279,7 @@ class CodeMirrorEditor extends FileEditor
         if @_saving
             return
         @_saving = true
+        @syncdoc?.delete_trailing_whitespace?()  # only delete trailing whitespace on explicit save -- never on AUTOSAVE.
         @save_button.icon_spin(start:true, delay:8000)
         @save (err) =>
             # WARNING: As far as I can tell, this doesn't call FileEditor.save
@@ -2095,7 +2096,7 @@ exports.register_nonreact_editors = () ->
 
     {HistoryEditor} = require('./editor_history')
     register(false, HistoryEditor,    ['sage-history'])
-    register(false, TaskList,         ['tasks'])
+    #register(false, TaskList,         ['tasks'])
     exports.switch_to_ipynb_classic = ->
         register(false, JupyterNotebook,  ['ipynb'])
 
