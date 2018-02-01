@@ -1772,12 +1772,14 @@ class exports.Connection extends EventEmitter
 
     sync_string: (opts) =>
         opts = defaults opts,
-            id                : undefined
-            project_id        : required
-            path              : required
-            file_use_interval : 'default'
-            cursors           : false
-            patch_interval    : 1000
+            id                 : undefined
+            project_id         : required
+            path               : required
+            file_use_interval  : 'default'
+            cursors            : false
+            patch_interval     : 1000
+            before_change_hook : undefined
+            after_change_hook  : undefined
         opts.client = @
         return new syncstring.SyncString(opts)
 

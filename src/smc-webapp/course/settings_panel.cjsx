@@ -38,6 +38,7 @@ misc = require('smc-util/misc')
 {StudentProjectUpgrades} = require('./upgrades')
 {HelpBox} = require('./help_box')
 {DeleteStudentsPanel} = require('./delete_students')
+{DeleteSharedProjectPanel} = require('./delete_shared_project')
 
 STUDENT_COURSE_PRICE = require('smc-util/upgrade-spec').upgrades.subscription.student_course.price.month4
 
@@ -173,12 +174,13 @@ exports.SettingsPanel = rclass
     displayName : "CourseEditorSettings"
 
     propTypes :
-        redux       : rtypes.object.isRequired
-        name        : rtypes.string.isRequired
-        path        : rtypes.string.isRequired
-        project_id  : rtypes.string.isRequired
-        settings    : rtypes.immutable.Map.isRequired
-        project_map : rtypes.immutable.Map.isRequired
+        redux             : rtypes.object.isRequired
+        name              : rtypes.string.isRequired
+        path              : rtypes.string.isRequired
+        project_id        : rtypes.string.isRequired
+        settings          : rtypes.immutable.Map.isRequired
+        project_map       : rtypes.immutable.Map.isRequired
+        shared_project_id : rtypes.string
 
     shouldComponentUpdate: (next, next_state) ->
         return next.settings != @props.settings or next.project_map != @props.project_map or \
@@ -506,6 +508,23 @@ exports.SettingsPanel = rclass
             student_pay   = {@props.settings?.get('student_pay')}
         />
 
+    render_delete_shared_project: ->
+        if @props.shared_project_id
+            <DeleteSharedProjectPanel
+                delete = {@actions(@props.name).delete_shared_project}
+                />
+
+    render_delete_students: ->
+        <DeleteStudentsPanel
+            delete = {@actions(@props.name).delete_all_student_projects}
+            />
+
+    render_disable_students: ->
+        <DisableStudentCollaboratorsPanel
+            checked   = {!!@props.settings.get('allow_collabs')}
+            on_change = {@actions(@props.name).set_allow_collabs}
+            />
+
     render: ->
         <div>
             <Row>
@@ -514,18 +533,14 @@ exports.SettingsPanel = rclass
                     {@render_require_institute_pay()}
                     {@render_save_grades()}
                     {@render_start_all_projects()}
-                    <DeleteStudentsPanel
-                        delete = {@actions(@props.name).delete_all_student_projects}
-                        />
+                    {@render_delete_students()}
+                    {@render_delete_shared_project()}
                 </Col>
                 <Col md=6>
                     <HelpBox/>
                     {@render_title_description()}
                     {@render_email_invite_body()}
-                    <DisableStudentCollaboratorsPanel
-                        checked   = {!!@props.settings.get('allow_collabs')}
-                        on_change = {@actions(@props.name).set_allow_collabs}
-                        />
+                    {@render_disable_students()}
                 </Col>
             </Row>
         </div>
