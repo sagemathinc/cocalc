@@ -954,7 +954,14 @@ class SyncDoc extends EventEmitter
                     cb()
                     return
                 @_syncstring_table.wait
-                    until : (t) => t.get_one()?.get('init')
+                    until : (t) =>
+                        tbl = t.get_one()
+                        # init must be set in table and archived must NOT be set (so patches are loaded from blob store)
+                        init = tbl?.get('init')
+                        if init and not tbl?.get('archived')
+                            return init
+                        else
+                            return false
                     cb    : (err, init) =>
                         if @_closed # closed while waiting on condition (perfectly reasonable -- do nothing).
                             return
@@ -1514,6 +1521,7 @@ class SyncDoc extends EventEmitter
             @_syncstring_table.set(obj)
             @emit('metadata-change')
         else
+            # Existing document.
             if x.archived
                 @emit('load-time-estimate', {type:'archived', time:8})
             else
