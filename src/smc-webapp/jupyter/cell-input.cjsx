@@ -82,7 +82,9 @@ exports.CellInput = rclass
             next.font_size                != @props.font_size or \
             next.complete                 != @props.complete or\
             next.cell_toolbar             != @props.cell_toolbar or \
-            (next.cell_toolbar == 'slideshow' and (next.cell.get('slide') != @props.cell.get('slide')))
+            (next.cell_toolbar == 'slideshow' and (next.cell.get('slide') != @props.cell.get('slide'))) or \
+            next.cell.getIn(['metadata', 'editable'])  != @props.cell.getIn(['metadata', 'editable']) or \
+            next.cell.getIn(['metadata', 'deletable']) != @props.cell.getIn(['metadata', 'deletable'])
 
     render_input_prompt: (type) ->
         <InputPrompt
@@ -92,11 +94,13 @@ exports.CellInput = rclass
             kernel     = {@props.cell.get('kernel')}
             start      = {@props.cell.get('start')}
             end        = {@props.cell.get('end')}
+            editable   = {@props.cell.getIn(['metadata', 'editable'])}
+            deletable  = {@props.cell.getIn(['metadata', 'deletable'])}
         />
 
     handle_md_double_click: ->
-        if not @props.actions?
-            return
+        return if not @props.actions?
+        return if @props.cell.getIn(['metadata', 'editable']) == false
         id = @props.cell.get('id')
         @props.actions.set_md_cell_editing(id)
         @props.actions.set_cur_id(id)
@@ -186,7 +190,7 @@ exports.CellInput = rclass
             actions      = {@props.actions}
             cell_toolbar = {@props.cell_toolbar}
             cell         = {@props.cell}
-            />
+        />
 
 
     render_time: ->

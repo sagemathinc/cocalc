@@ -24,6 +24,8 @@ exports.InputPrompt = rclass
         kernel     : rtypes.string
         start      : rtypes.number
         end        : rtypes.number
+        editable   : rtypes.bool
+        deleteable : rtypes.bool
 
     render: ->
         if @props.type != 'code'
@@ -54,12 +56,18 @@ exports.InputPrompt = rclass
                 else
                     n = ' '
 
+        # TODO improve these markers
+        mode = ''
+        mode += 'R' if not (@props.editable ? true)
+        mode += 'D' if not(@props.deletable ? true)
+
         <div style={INPUT_STYLE} className='hidden-xs'>
             <Tip
                 title     = {'Code Cell'}
                 tip       = {tip}
-                placement = 'right'>
-                In [{n}]:
+                placement = 'right'
+            >
+                {mode} In [{n}]:
             </Tip>
         </div>
 

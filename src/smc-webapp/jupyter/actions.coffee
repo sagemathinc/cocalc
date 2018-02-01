@@ -624,6 +624,10 @@ class exports.JupyterActions extends Actions
     _delete: (obj, save=true) =>
         if @_state == 'closed'
             return
+        # don't delete cells marked as deletable=false
+        if obj.type? == 'cell' and obj.id?
+            if not (@store.getIn(['cells', obj.id, 'metadata', 'deletable']) ? true)
+                return
         @syncdb.exit_undo_mode()
         @syncdb.delete(obj, save)
         @_syncdb_change(immutable.fromJS([{type:obj.type, id:obj.id}]))
