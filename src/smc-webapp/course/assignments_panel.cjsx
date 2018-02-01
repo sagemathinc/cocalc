@@ -359,8 +359,14 @@ Assignment = rclass
             </Button>
         </Tip>
 
-    render_assignment_button: ->
-        bsStyle = if (@props.assignment.get('last_assignment')?.size ? 0) == 0 then "primary" else "warning"
+    render_assignment_button: (status) ->
+        if (@props.assignment.get('last_assignment')?.size ? 0) == 0
+            bsStyle = "primary"
+        else
+            bsStyle = "warning"
+        if status.assignment > 0 and status.not_assignment == 0
+            bsStyle = "success"
+
         <Button key='assign'
                 bsStyle  = {bsStyle}
                 onClick  = {=>@setState(copy_confirm_assignment:true, copy_confirm:true)}
@@ -472,7 +478,10 @@ Assignment = rclass
             return
         if status.collect > 0
             # Have already collected something
-            bsStyle = 'warning'
+            if status.not_collect == 0
+                bsStyle = "success"
+            else
+                bsStyle = 'warning'
         else
             bsStyle = 'primary'
         <Button key='collect'
@@ -583,7 +592,10 @@ Assignment = rclass
             return
         if status.return_graded > 0
             # Have already returned some
-            bsStyle = "warning"
+            if status.not_return_graded == 0
+                bsStyle = 'success'
+            else
+                bsStyle = "warning"
         else
             bsStyle = "primary"
         <Button key='return'
