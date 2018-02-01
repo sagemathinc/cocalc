@@ -995,6 +995,28 @@ class exports.JupyterActions extends Actions
         @copy_selected_cells()
         @delete_selected_cells()
 
+    toggle_write_protection: =>
+        @toggle_metadata_boolean('editable')
+
+    toggle_delete_protection: =>
+        @toggle_metadata_boolean('deletable')
+
+    # This toggles the boolean value of given metadata field.
+    # If not set, it is assumed to be true and toggled to false
+    # For more than one cell, the first one is used to toggle all cells to the inverted state
+    toggle_metadata_boolean: (key) =>
+        new_value = undefined
+        for id in @store.get_selected_cell_ids_list()
+            if not new_value?
+                current_value = @store.getIn(['cells', id, 'metadata', key]) ? true
+                new_value = not current_value
+            @set_cell_metadata(
+                id        : id
+                metadata  : {"#{key}": new_value}
+                merge     : true
+                save      : true
+            )
+
     # Paste cells from the internal clipboard; also
     #   delta = 0 -- replace currently selected cells
     #   delta = 1 -- paste cells below last selected cell
@@ -1812,10 +1834,17 @@ class exports.JupyterActions extends Actions
         @blur_lock()
         @setState(edit_cell_metadata: {id: id, metadata:metadata})
 
-    set_cell_metadata: (id, metadata, save=true) =>
+    set_cell_metadata: (opts) =>
         ###
         Sets the metadata to exactly the metadata object.  It doesn't just merge it in.
         ###
+        {id, metadata, save, merge} = opts = defaults opts,
+            id       : required
+            metadata : required
+            save     : true
+            merge    : false
+
+        # Special case: delete metdata (unconditionally)
         if not metadata? or misc.len(metadata) == 0
             @_set
                 type     : 'cell'
@@ -1823,6 +1852,11 @@ class exports.JupyterActions extends Actions
                 metadata : null,
                 save
             return
+
+        if merge
+            current  = @store.getIn(['cells', id, 'metadata']) ? immutable.Map()
+            metadata = current.merge(metadata)
+
         # special fields
         # "collapsed", "scrolled", "slideshow", and "tags"
         if metadata.tags?
