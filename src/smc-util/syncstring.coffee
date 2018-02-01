@@ -936,6 +936,13 @@ class SyncDoc extends EventEmitter
             @_syncstring_table.on('change', @_handle_syncstring_update)
             async.series([
                 (cb) =>
+                    # wait until syncstring is not archived -- if we open a very old syncstring, the patches
+                    # may be archived; we have to wait until after they have been pulled from blob storage before
+                    # we init the patch table below, load from disk, etc.
+                    @_syncstring_table.wait
+                        until : (t) => not t.get_one()?.get('archived')
+                        cb    : cb
+                (cb) =>
                     async.parallel([@_init_patch_list, @_init_cursors, @_init_evaluator], cb)
                 (cb) =>
                     @_closed = false
