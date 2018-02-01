@@ -1,5 +1,6 @@
 misc = require('smc-util/misc')
 {types} = misc
+{COLORS} = require('smc-util/theme')
 
 exports.entry_style =
     paddingTop    : '5px'
@@ -23,3 +24,8 @@ exports.show_hide_deleted = (opts) ->
 
     marginTop  : if opts.needs_margin then '15px' else '0px'
     float      : 'right'
+
+exports.progress_info =
+    color        : COLORS.GRAY
+    marginLeft   : '10px'
+    whiteSpace   : 'nowrap'
