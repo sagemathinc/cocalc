@@ -274,7 +274,7 @@ exports.CourseStore = class CourseStore extends Store
         return x.get('time')
 
     has_grade: (assignment, student_id) =>
-        return !!assignment.get("grades")?.get(student_id)
+        return !!@get_assignment(assignment)?.get("grades")?.get(student_id)
 
     get_assignment_status: (assignment) =>
         #
