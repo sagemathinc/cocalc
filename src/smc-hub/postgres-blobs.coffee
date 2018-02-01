@@ -738,6 +738,9 @@ class exports.PostgreSQL extends PostgreSQL
                     return
                 blob = undefined
                 async.series([
+                    #(cb) =>
+                        # For testing only!
+                    #    setTimeout(cb, 7000)
                     (cb) =>
                         dbg("download blob")
                         @get_blob
