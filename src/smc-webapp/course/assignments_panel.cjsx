@@ -36,6 +36,7 @@ styles = require('./styles')
 {STEPS, step_direction, step_verb, step_ready} = util
 {BigTime, FoldersToolbar, StudentAssignmentInfo, StudentAssignmentInfoHeader} = require('./common')
 
+{Progress} = require('./progress')
 
 exports.AssignmentsPanel = rclass ({name}) ->
     displayName : "CourseEditorAssignments"
@@ -378,9 +379,12 @@ Assignment = rclass
                     <Icon name="share-square-o" /> Assign...
                 </Tip>
             </Button>,
-            <span style={styles.progress_info} key={'progress-info'}>
-                ({status.assignment} / {status.assignment + status.not_assignment} assigned)
-            </span>
+            <Progress
+                key      = 'progress'
+                done     = {status.assignment}
+                not_done = {status.not_assignment}
+                step     = 'assigned'
+                />
         ]
 
     render_copy_confirms: (status) ->
@@ -501,9 +505,12 @@ Assignment = rclass
                     <Icon name="share-square-o" rotate={"180"} /> Collect...
                 </Tip>
             </Button>,
-            <span style={styles.progress_info} key={'progress-info'}>
-                ({status.collect} / {status.collect + status.not_collect} collected)
-            </span>
+            <Progress
+                key      = 'progress'
+                done     = {status.collect}
+                not_done = {status.not_collect}
+                step     = 'collected'
+                />
         ]
 
     render_peer_assign_tip: (warning) ->
@@ -543,9 +550,12 @@ Assignment = rclass
                         <Icon name="share-square-o" /> Peer Assign...
                 </Tip>
             </Button>,
-            <span style={styles.progress_info} key={'progress-info'}>
-                ({status.peer_assignment} / {status.peer_assignment + status.not_peer_assignment} peer assigned)
-            </span>
+            <Progress
+                key      = 'progress'
+                done     = {status.peer_assignment}
+                not_done = {status.not_peer_assignment}
+                step     = 'peer assigned'
+                />
         ]
 
     render_peer_collect_tip: (warning) ->
@@ -584,9 +594,12 @@ Assignment = rclass
                         <Icon name="share-square-o" rotate="180"/> Peer Collect...
                 </Tip>
             </Button>,
-            <span style={styles.progress_info} key={'progress-info'}>
-                ({status.peer_collect} / {status.peer_collect + status.not_peer_collect} peer collected)
-            </span>
+            <Progress
+                key      = 'progress'
+                done     = {status.peer_collect}
+                not_done = {status.not_peer_collect}
+                step     = 'peer collected'
+                />
         ]
 
     return_assignment: ->
@@ -637,9 +650,12 @@ Assignment = rclass
                     <Icon name="share-square-o" /> Return...
                 </Tip>
             </Button>,
-            <span style={styles.progress_info} key={'progress-info'}>
-                ({status.return_graded} / {status.return_graded + status.not_return_graded} returned)
-            </span>
+            <Progress
+                key      = 'progress'
+                done     = {status.return_graded}
+                not_done = {status.not_return_graded}
+                step     = 'returned'
+                />
         ]
 
 
