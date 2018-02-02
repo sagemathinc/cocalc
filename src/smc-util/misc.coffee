@@ -2114,4 +2114,3 @@ exports.human_readable_size = (bytes) ->
     b = Math.floor(bytes/100000000)
     return "#{b/10} GB"
 
-
