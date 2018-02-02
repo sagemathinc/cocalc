@@ -82,14 +82,14 @@ hub_register = require('./hub_register')
 # and also report number of connected clients
 REGISTER_INTERVAL_S = 45   # every 45 seconds
 
-smc_version = {}
-init_smc_version = () ->
-    smc_version = require('./hub-version')
+init_smc_version = (db, cb) ->
+    server_settings = require('./server-settings')(db)
+    server_settings.table.once('init', cb)
     # winston.debug("init smc_version: #{misc.to_json(smc_version.version)}")
-    smc_version.on 'change', (version) ->
-        winston.debug("smc_version changed -- sending updates to clients")
+    server_settings.table.on 'change', ->
+        winston.debug("version changed -- sending updates to clients")
         for id, c of clients
-            if c.smc_version < version.version
+            if c.smc_version < server_settings.version.version_recommended_browser
                 c.push_version_update()
 
 to_json = misc.to_json
@@ -441,7 +441,6 @@ exports.start_server = start_server = (cb) ->
     # Log heap memory usage info
     memory.init(winston.debug)
 
-    init_smc_version()
 
     async.series([
         (cb) ->
@@ -466,6 +465,8 @@ exports.start_server = start_server = (cb) ->
                 cb          : () ->
                     winston.debug("connected to database.")
                     cb()
+        (cb) ->
+            init_smc_version(database, cb)
         (cb) ->
             if not program.port
                 cb(); return

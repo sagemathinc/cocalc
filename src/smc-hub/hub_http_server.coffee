@@ -72,7 +72,7 @@ exports.init_express_http_server = (opts) ->
     winston.debug("initializing express http server")
     winston.debug("MATHJAX_URL = ", misc_node.MATHJAX_URL)
 
-    server_settings = require('./server-settings').server_settings(opts.database)
+    server_settings = require('./server-settings')(opts.database)
 
     # Create an express application
     router = express.Router()
@@ -325,7 +325,7 @@ exports.init_express_http_server = (opts) ->
             res.json({})
 
     router.get '/customize', (req, res) ->
-        res.json(server_settings.public)
+        res.json(server_settings.pub)
 
     # Save other paths in # part of URL then redirect to the single page app.
     router.get ['/projects*', '/help*', '/settings*'], (req, res) ->
