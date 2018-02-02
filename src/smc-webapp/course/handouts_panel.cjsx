@@ -305,8 +305,16 @@ Handout = rclass
             {@render_copy_confirm_overwrite_all(step, status) if @state["copy_confirm_all_#{step}"]}
         </Alert>
 
-    render_handout_button: (handout_count) ->
-        bsStyle = if handout_count == 0 then "primary" else "warning"
+    render_handout_button: (status) ->
+        handout_count = status.handout
+        not_handout   = status.not_handout
+        if handout_count == 0
+            bsStyle = "primary"
+        else
+            if not_handout == 0
+                bsStyle = 'success'
+            else
+                bsStyle = "warning"
         <Button key='handout'
                 bsStyle  = {bsStyle}
                 onClick  = {=>@setState(copy_confirm_handout:true, copy_confirm:true)}
@@ -388,7 +396,7 @@ Handout = rclass
                     </Col>
                     <Col md=6>
                         <Row style={marginLeft:'8px'}>
-                            {@render_handout_button(status.handout)}
+                            {@render_handout_button(status)}
                             <span style={color:'#666', marginLeft:'5px'}>
                                 ({status.handout}/{status.handout + status.not_handout} received)
                             </span>
