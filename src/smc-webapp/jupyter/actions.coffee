@@ -327,6 +327,7 @@ class exports.JupyterActions extends Actions
         md_edit_ids = @store.get('md_edit_ids')
         if md_edit_ids.contains(id)
             return
+        return if not @store.is_cell_editable(id)
         @setState(md_edit_ids : md_edit_ids.add(id))
 
     set_md_cell_not_editing: (id) =>
@@ -625,8 +626,9 @@ class exports.JupyterActions extends Actions
         if @_state == 'closed'
             return
         # don't delete cells marked as deletable=false
-        if obj.type? == 'cell' and obj.id?
-            if not (@store.getIn(['cells', obj.id, 'metadata', 'deletable']) ? true)
+        if obj.type == 'cell' and obj.id?
+            if not @store.is_cell_deletable(obj.id)
+                @set_error("Cell '#{obj.id}' is delete protected")
                 return
         @syncdb.exit_undo_mode()
         @syncdb.delete(obj, save)
@@ -1570,7 +1572,7 @@ class exports.JupyterActions extends Actions
             trust : !!trust  # case to bool
 
     insert_image: =>
-       @setState(insert_image: true)
+        @setState(insert_image: true)
 
     command: (name) =>
         f = @_commands?[name]?.f

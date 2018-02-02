@@ -158,3 +158,13 @@ class exports.JupyterStore extends Store
 
     get_raw_link: (path) =>
         return @redux.getProjectStore(@get('project_id')).get_raw_link(path)
+
+    is_cell_editable: (id) =>
+        @get_cell_metadata_flag(id, 'editable')
+
+    is_cell_deletable: (id) =>
+        @get_cell_metadata_flag(id, 'deletable')
+
+    get_cell_metadata_flag: (id, key) =>
+        # default is true
+        return @getIn(['cells', id, 'metadata', key]) ? true

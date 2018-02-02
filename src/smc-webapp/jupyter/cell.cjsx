@@ -3,12 +3,12 @@ React component that describes a single cell
 ###
 
 misc_page = require('../misc_page')
-
-misc = require('smc-util/misc')
+{COLORS}  = require('smc-util/theme')
+misc      = require('smc-util/misc')
 
 {React, ReactDOM, rclass, rtypes}  = require('../smc-react')
 
-{Icon, Loading}    = require('../r_misc')
+{Icon, Loading, Tip}    = require('../r_misc')
 
 {CellInput}  = require('./cell-input')
 {CellOutput} = require('./cell-output')
@@ -31,6 +31,8 @@ exports.Cell = rclass
         more_output      : rtypes.immutable.Map   # if given, is info for *this* cell
         cell_toolbar     : rtypes.string
         trust            : rtypes.bool
+        editable         : rtypes.bool
+        deleteable       : rtypes.bool
 
     shouldComponentUpdate: (next) ->   # note: we assume project_id and directory don't change
         return next.id               != @props.id or \
@@ -45,6 +47,8 @@ exports.Cell = rclass
                next.more_output      != @props.more_output or \
                next.cell_toolbar     != @props.cell_toolbar or \
                next.trust            != @props.trust or \
+               next.editable         != @props.editable or \
+               next.deleteable       != @props.deleteable or \
                (next.complete        != @props.complete and (next.is_current or @props.is_current))  # only worry about complete when editing this cell
 
     render_cell_input: (cell) ->
@@ -91,6 +95,32 @@ exports.Cell = rclass
         if @props.is_current and @props.actions?
             <Hook name={@props.actions.name} />
 
+    render_metadata_state: ->
+        style =
+            position   : 'absolute'
+            top        : '2px'
+            left       : '5px'
+            color      : COLORS.GRAY_L
+            whiteSpace : 'nowrap'
+
+        lock_style =
+            marginRight  : '5px'
+
+        <div style={style}>
+            {
+                if not @props.deletable
+                    <Tip title={'Write protected'} placement={'right'} size={'small'} style={lock_style}>
+                        <Icon name='lock' />
+                    </Tip>
+            }
+            {
+                if not @props.editable
+                    <Tip title={'Delete protected'} placement={'right'} size={'small'}>
+                        <Icon name='ban'/>
+                    </Tip>
+            }
+        </div>
+
     render: ->
         if @props.is_current
             # is the current cell
@@ -121,11 +151,12 @@ exports.Cell = rclass
 
         # Note that the cell id is used for the cell-list.cjsx scroll functionality.
         <div
-            style   = {style}
+            style     = {style}
             onMouseUp = {@click_on_cell}
-            id      = {@props.id}
-            >
+            id        = {@props.id}
+        >
             {@render_hook()}
+            {@render_metadata_state()}
             {@render_cell_input(@props.cell)}
             {@render_cell_output(@props.cell)}
         </div>
