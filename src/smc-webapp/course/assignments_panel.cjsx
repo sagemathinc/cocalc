@@ -37,6 +37,7 @@ styles = require('./styles')
 {BigTime, FoldersToolbar, StudentAssignmentInfo, StudentAssignmentInfoHeader} = require('./common')
 
 {Progress} = require('./progress')
+{SkipCopy} = require('./skip')
 
 exports.AssignmentsPanel = rclass ({name}) ->
     displayName : "CourseEditorAssignments"
@@ -402,7 +403,7 @@ Assignment = rclass
     render_copy_cancel: (step) ->
         cancel = =>
             @setState("copy_confirm_#{step}":false, "copy_confirm_all_#{step}":false, copy_confirm:false)
-        <Button key='cancel' onClick={cancel}>Cancel</Button>
+        <Button key='cancel' onClick={cancel}>Close</Button>
 
     copy_assignment: (step, new_only) ->
         # assign assignment to all (non-deleted) students
@@ -422,12 +423,24 @@ Assignment = rclass
                 console.log("BUG -- unknown step: #{step}")
         @setState("copy_confirm_#{step}":false, "copy_confirm_all_#{step}":false, copy_confirm:false)
 
+    render_skip: (step) ->
+        if step == 'return_graded'
+            return
+        <div style={float:'right'}>
+            <SkipCopy
+                assignment = {@props.assignment}
+                step       = step
+                actions    = {@actions(@props.name)}
+            />
+        </div>
+
     render_copy_confirm_to_all: (step, status) ->
         n = status["not_#{step}"]
         <Alert bsStyle='warning' key="#{step}_confirm_to_all", style={marginTop:'15px'}>
             <div style={marginBottom:'15px'}>
                 {misc.capitalize(step_verb(step))} this homework {step_direction(step)} the {n} student{if n>1 then "s" else ""}{step_ready(step, n)}?
             </div>
+            {@render_skip(step)}
             <ButtonToolbar>
                 <Button key='yes' bsStyle='primary' onClick={=>@copy_assignment(step, false)} >Yes</Button>
                 {@render_copy_cancel(step)}
@@ -465,6 +478,7 @@ Assignment = rclass
             <div style={marginBottom:'15px'}>
                 {misc.capitalize(step_verb(step))} this homework {step_direction(step)}...
             </div>
+            {@render_skip(step)}
             <ButtonToolbar>
                 <Button key='all' bsStyle='danger' onClick={=>@setState("copy_confirm_all_#{step}":true, copy_confirm:true)}
                         disabled={@state["copy_confirm_all_#{step}"]} >
@@ -606,6 +620,9 @@ Assignment = rclass
         # Assign assignment to all (non-deleted) students.
         @props.redux.getActions(@props.name).return_assignment_to_all_students(@props.assignment)
 
+    toggle_skip_grading: ->
+        @actions(@props.name).set_skip(@props.assignment, 'grading', not @props.assignment.get('skip_grading'))
+
     render_skip_grading_button: (status) ->
         if status.collect == 0
             # No button if nothing collected.
@@ -616,7 +633,7 @@ Assignment = rclass
         else
             icon = 'square-o'
         <Button
-            onClick={=>@actions(@props.name).toggle_skip_grading(@props.assignment.get('assignment_id'))}>
+            onClick={@toggle_skip_grading} >
             <Icon name={icon} /> Skip Grading
         </Button>
 
