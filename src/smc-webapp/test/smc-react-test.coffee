@@ -1,6 +1,6 @@
 `DEBUG = true`
-{computed, depends, rtypes, _internals} = require('../smc-react')
-{harvest_import_functions, harvest_own_functions, generate_selectors} = _internals
+{computed, depends, rtypes, __internals} = require('../smc-react')
+{harvest_import_functions, harvest_own_functions, generate_selectors} = __internals
 
 # 3rd Party Libraries
 expect = require('expect')

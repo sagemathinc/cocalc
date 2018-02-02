@@ -269,7 +269,15 @@ redux_app = (state, action) ->
             return state
 
 class AppRedux
-    constructor: () ->
+    constructor: ->
+        @_tables = {}
+        @_redux_store = redux_lib.createStore(redux_app)
+        @_stores  = {}
+        @_actions = {}
+        @_redux_store.subscribe(@_redux_store_change)
+
+    # Only used by tests to completely reset the global redux instance
+    __reset: ->
         @_tables = {}
         @_redux_store = redux_lib.createStore(redux_app)
         @_stores  = {}
@@ -595,7 +603,7 @@ exports.ReactDOM = require('react-dom')
 if DEBUG
     smc?.redux = redux  # for convenience in the browser (mainly for debugging)
 
-_internals =
+__internals =
         AppRedux                 : AppRedux
         harvest_import_functions : harvest_import_functions
         harvest_own_functions    : harvest_own_functions
@@ -604,4 +612,4 @@ _internals =
         react_component          : react_component
 
 if process?.env?.SMC_TEST
-    exports._internals = _internals
+    exports.__internals = __internals
