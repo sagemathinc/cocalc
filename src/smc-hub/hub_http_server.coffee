@@ -72,6 +72,8 @@ exports.init_express_http_server = (opts) ->
     winston.debug("initializing express http server")
     winston.debug("MATHJAX_URL = ", misc_node.MATHJAX_URL)
 
+    server_settings = require('./server-settings').server_settings(opts.database)
+
     # Create an express application
     router = express.Router()
     app    = express()
@@ -85,7 +87,6 @@ exports.init_express_http_server = (opts) ->
                                   buckets : [0.01, 0.1, 1, 2, 10, 20]
                                   labels: ['path', 'method', 'code']
                               )
-
     # response time metrics
     router.use (req, res, next) ->
         res_finished_h = response_time_histogram.startTimer()
@@ -318,27 +319,13 @@ exports.init_express_http_server = (opts) ->
     # Used to determine whether or not a token is needed for
     # the user to create an account.
     router.get '/registration', (req, res) ->
-        if not hub_register.database_is_working()
-            res.json({error:"not connected to database"})
-            return
-        opts.database.get_server_setting
-            name : 'account_creation_token'
-            cb   : (err, token) ->
-                if err or not token
-                    res.json({})
-                else
-                    res.json({token:true})
+        if server_settings.all.account_creation_token
+            res.json({token:true})
+        else
+            res.json({})
 
     router.get '/customize', (req, res) ->
-        if not hub_register.database_is_working()
-            res.json({error:"not connected to database"})
-            return
-        opts.database.get_site_settings
-            cb : (err, settings) ->
-                if err or not settings
-                    res.json({})
-                else
-                    res.json(settings)
+        res.json(server_settings.public)
 
     # Save other paths in # part of URL then redirect to the single page app.
     router.get ['/projects*', '/help*', '/settings*'], (req, res) ->

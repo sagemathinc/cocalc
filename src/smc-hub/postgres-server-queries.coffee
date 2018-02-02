@@ -187,7 +187,6 @@ class exports.PostgreSQL extends PostgreSQL
                 "name = $::TEXT" : opts.name
             cb    : one_result('value', opts.cb)
 
-    # TODO: optimization -- site_settings could be done as a changefeed (and is done as one in rethink.coffee)
     get_site_settings: (opts) =>
         opts = defaults opts,
             cb : required   # (err, settings)
@@ -206,6 +205,10 @@ class exports.PostgreSQL extends PostgreSQL
                             k.value = eval(k.value)
                         x[k.name] = k.value
                     opts.cb(undefined, x)
+
+    server_settings_synctable: (opts={}) =>
+        opts.table = 'server_settings'
+        return @synctable(opts)
 
     set_passport_settings: (opts) =>
         opts = defaults opts,
