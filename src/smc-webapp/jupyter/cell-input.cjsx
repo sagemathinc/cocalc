@@ -92,8 +92,6 @@ exports.CellInput = rclass
             kernel     = {@props.cell.get('kernel')}
             start      = {@props.cell.get('start')}
             end        = {@props.cell.get('end')}
-            editable   = {@props.cell.getIn(['metadata', 'editable'])}
-            deletable  = {@props.cell.getIn(['metadata', 'deletable'])}
         />
 
     handle_md_double_click: ->
