@@ -22,7 +22,6 @@ auth_token           = require('./auth-token')
 password             = require('./password')
 local_hub_connection = require('./local_hub_connection')
 sign_in              = require('./sign-in')
-smc_version          = require('./hub-version')
 hub_projects         = require('./projects')
 {get_stripe}         = require('./stripe/connect')
 {get_support}        = require('./support')
@@ -1457,12 +1456,14 @@ class exports.Client extends EventEmitter
         # The version of the client...
         @smc_version = mesg.version
         @dbg('mesg_version')("client.smc_version=#{mesg.version}")
-        if mesg.version < smc_version.version
+        {version} = require('./server-settings')(@database)
+        if mesg.version < version.version_recommended_browser ? 0
             @push_version_update()
 
     push_version_update: =>
-        @push_to_client(message.version(version:smc_version.version, min_version:smc_version.min_browser_version))
-        if smc_version.min_browser_version and @smc_version and @smc_version < smc_version.min_browser_version
+        {version} = require('./server-settings')(@database)
+        @push_to_client(message.version(version:version.version_recommended_browser, min_version:version.version_min_browser))
+        if version.version_min_browser and @smc_version < version.version_min_browser
             # Client is running an unsupported bad old version.
             # Brutally disconnect client!  It's critical that they upgrade, since they are
             # causing problems or have major buggy code.
