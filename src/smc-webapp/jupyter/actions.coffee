@@ -327,7 +327,9 @@ class exports.JupyterActions extends Actions
         md_edit_ids = @store.get('md_edit_ids')
         if md_edit_ids.contains(id)
             return
-        return if not @store.is_cell_editable(id)
+        if not @store.is_cell_editable(id)
+            @setError("This cell is protected from being edited.")
+            return
         @setState(md_edit_ids : md_edit_ids.add(id))
 
     set_md_cell_not_editing: (id) =>
@@ -625,10 +627,10 @@ class exports.JupyterActions extends Actions
     _delete: (obj, save=true) =>
         if @_state == 'closed'
             return
-        # don't delete cells marked as deletable=false
+        # double check: don't delete cells marked as deletable=false
         if obj.type == 'cell' and obj.id?
             if not @store.is_cell_deletable(obj.id)
-                @set_error("Cell '#{obj.id}' is delete protected")
+                @set_error("Cell '#{obj.id}' is protected from being deleted.")
                 return
         @syncdb.exit_undo_mode()
         @syncdb.delete(obj, save)
@@ -686,10 +688,21 @@ class exports.JupyterActions extends Actions
         @move_cursor_after(selected[selected.length-1])
         if @store.get('cur_id') == id
             @move_cursor_before(selected[0])
+        not_deletable = 0
         for id in selected
-            @_delete({type:'cell', id:id}, false)
+            if @store.is_cell_deletable(id)
+                @_delete({type:'cell', id:id}, false)
+            else
+                not_deletable += 1
         if sync
             @_sync()
+        if not_deletable > 0
+            if selected.length == 1
+                @set_error("This cell is protected from deletion.")
+                @move_cursor_to_cell(id)
+            else
+                verb = if not_deletable == 1 then 'is' else 'are'
+                @set_error("#{not_deletable} #{misc.plural(not_deletable, 'cell')} #{verb} protected from deletion.")
         return
 
     move_selected_cells: (delta) =>
@@ -882,6 +895,13 @@ class exports.JupyterActions extends Actions
         @set_cur_id_from_index(i - 1)
         return
 
+    move_cursor_to_cell: (id) =>
+        i = @store.get_cell_index(id)
+        if not i?
+            return
+        @set_cur_id_from_index(i)
+        return
+
     set_cursor_locs: (locs=[]) =>
         if locs.length == 0
             # don't remove on blur -- cursor will fade out just fine
@@ -937,6 +957,12 @@ class exports.JupyterActions extends Actions
             return
         next_id = @store.get_cell_id(1)
         if not next_id?
+            return
+        if (not @store.is_cell_deletable(cur_id)) or (not @store.is_cell_deletable(next_id))
+            @set_error('A cell protected from being deleted cannot be merged.')
+            return
+        if (not @store.is_cell_editable(cur_id)) or (not @store.is_cell_editable(next_id))
+            @set_error('A cell protected from being edited cannot be merged.')
             return
         cells = @store.get('cells')
         if not cells?

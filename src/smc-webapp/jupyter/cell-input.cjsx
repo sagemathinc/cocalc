@@ -62,6 +62,7 @@ exports.CellInput = rclass
         complete         : rtypes.immutable.Map              # status of tab completion
         cell_toolbar     : rtypes.string
         trust            : rtypes.bool
+        is_readonly      : rtypes.bool
 
     shouldComponentUpdate: (next) ->
         return \
@@ -112,6 +113,8 @@ exports.CellInput = rclass
                 options = @props.cm_options.get('options')
                 options = options.set('mode',{})
                 options = options.set('foldGutter', false)  # no use with no mode
+        if @props.is_readonly
+            options = options.set('readOnly', 'nocursor')
         if @props.cell.get('line_numbers')?
             options = options.set('lineNumbers', @props.cell.get('line_numbers'))
         return options

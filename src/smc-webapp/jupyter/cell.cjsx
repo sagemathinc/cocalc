@@ -67,6 +67,7 @@ exports.Cell = rclass
             complete         = {@props.complete if @props.is_current}
             cell_toolbar     = {@props.cell_toolbar}
             trust            = {@props.trust}
+            is_readonly      = {!@props.editable}
             />
 
     render_cell_output: (cell) ->
