@@ -382,6 +382,16 @@ describe "keys", ->
         k([]).should.be.eql []
         k({}).should.be.eql []
 
+describe "has_key", ->
+    k = misc.has_key
+    obj = {a:1, b:'123', c:null, d:undefined}
+    it "tests existence", ->
+        k(obj, 'a').should.be.ok()
+        k(obj, 'z').should.not.be.ok()
+    it "also works for null/undefined keys", ->
+        k(obj, 'c').should.be.ok()
+        k(obj, 'd').should.be.ok()
+
 describe "pairs_to_obj", ->
     pto = misc.pairs_to_obj
     it "convert an array of 2-element arrays to an object", ->
