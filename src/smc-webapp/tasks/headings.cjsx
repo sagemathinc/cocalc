@@ -79,9 +79,9 @@ exports.Headings = rclass
         dir    = @props.sort?.get('dir')    ? HEADINGS_DIR[0]
         <Row style={borderBottom:'1px solid lightgray'}>
             <Col md={1} style={color:'#666', textAlign:'center'}>
-                Done
+
             </Col>
-            <Col md={7} style={color:'#666'}>
+            <Col md={6} style={color:'#666'}>
                 Description
             </Col>
             <Col md={2}>
@@ -92,6 +92,9 @@ exports.Headings = rclass
             </Col>
             <Col md={1}>
                 {@render_heading(HEADINGS[2], if column==HEADINGS[2] then dir)}
+            </Col>
+            <Col md={1} style={color:'#666'}>
+                Done
             </Col>
         </Row>
 

@@ -38,9 +38,9 @@ exports.MinToggle = rclass
             else
                 title = 'Show full description'
             <Tip title={title} delayShow={1000}>
-                <div onClick={@toggle_state} style={fontSize:'17pt', color:'#888'}>
+                <span onClick={@toggle_state} style={fontSize:'17pt', color:'#888', float:'right'}>
                     {toggle}
-                </div>
+                </span>
             </Tip>
         else
             <span />

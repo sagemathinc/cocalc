@@ -13,6 +13,7 @@ A single task
 {DueDate}      = require('./due')
 {DragHandle}   = require('./drag')
 {DoneCheckbox} = require('./done')
+{Timer}        = require('./timer')
 
 exports.Task = rclass
     propTypes :
@@ -51,6 +52,12 @@ exports.Task = rclass
             read_only = {@props.read_only}
             done      = {!!@props.task.get('done')}
             task_id   = {@props.task.get('task_id')}
+        />
+
+    render_timer: ->
+        <Timer
+            actions = {@props.actions}
+            task_id = {@props.task.get('task_id')}
         />
 
     render_min_toggle: (has_body) ->
@@ -104,9 +111,9 @@ exports.Task = rclass
             margin       : '5px'
             background   : 'white'
         if @props.is_current
-            style.border       = '1px solid #08c'
-            style.borderLeft   = '5px solid #08c'
-            style.background   = '#e8e8e8'
+            style.border       = '1px solid rgb(171, 171, 171)'
+            style.borderLeft   = '5px solid rgb(66, 165, 245)'
+            style.background   = 'rgb(247, 247, 247)'
         else
             style.border       = '1px solid #ccc'
             style.borderLeft   = '5px solid #ccc'
@@ -129,12 +136,11 @@ exports.Task = rclass
                 desc = head
         <div style={style} onClick={@on_click}>
             <Row>
-                <Col md={1} style={display: 'flex', flexDirection:'row'}>
+                <Col md={1}>
                     {@render_drag_handle()}
-                    {@render_done_checkbox()}
                     {@render_min_toggle(!!body)}
                 </Col>
-                <Col md={9}>
+                <Col md={8}>
                     {@render_desc(desc)}
                 </Col>
                 <Col md={1}>
@@ -142,6 +148,9 @@ exports.Task = rclass
                 </Col>
                 <Col md={1}>
                     {@render_last_edited()}
+                </Col>
+                <Col md={1}>
+                    {@render_done_checkbox()}
                 </Col>
             </Row>
         </div>

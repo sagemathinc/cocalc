@@ -32,7 +32,9 @@
   },
   "devDependencies": {},
   "scripts": {
-    "test": "echo 'TEST PROJECT'; node_modules/.bin/mocha --reporter progress test && echo 'TEST JUPYTER SERVER'; cd jupyter && ../node_modules/.bin/mocha --reporter  progress  test"
+    "test": "npm run testproj && npm run testjup",
+    "testproj": "echo 'TEST PROJECT'; node_modules/.bin/mocha --reporter ${REPORTER:-progress} test/*.coffee",
+    "testjup": "echo 'TEST JUPYTER SERVER'; cd jupyter && ../node_modules/.bin/mocha ${BAIL} --reporter ${REPORTER:-progress} test/*.coffee"
   },
   "author": "SageMath, Inc.",
   "contributors": [

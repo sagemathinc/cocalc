@@ -22,7 +22,6 @@ auth_token           = require('./auth-token')
 password             = require('./password')
 local_hub_connection = require('./local_hub_connection')
 sign_in              = require('./sign-in')
-smc_version          = require('./hub-version')
 hub_projects         = require('./projects')
 {get_stripe}         = require('./stripe/connect')
 {get_support}        = require('./support')
@@ -207,7 +206,7 @@ class exports.Client extends EventEmitter
 
     dbg: (desc) =>
         if @logger?.debug
-            return (m...) => @logger.debug("Client(#{@id}).#{desc}: #{JSON.stringify(m)}")
+            return (args...) => @logger.debug("Client(#{@id}).#{desc}:", args...)
         else
             return ->
 
@@ -227,6 +226,7 @@ class exports.Client extends EventEmitter
         @compute_session_uuids = []
         c = clients[@id]
         delete clients[@id]
+        dbg("num_clients=#{misc.len(clients)}")
         if c? and c.call_callbacks?
             for id,f of c.call_callbacks
                 f("connection closed")
@@ -1166,7 +1166,7 @@ class exports.Client extends EventEmitter
 
     mesg_invite_collaborator: (mesg) =>
         @touch()
-        #dbg = @dbg('mesg_invite_collaborator')
+        dbg = @dbg('mesg_invite_collaborator')
         #dbg("mesg: #{misc.to_json(mesg)}")
         @get_project mesg, 'write', (err, project) =>
             if err
@@ -1456,12 +1456,14 @@ class exports.Client extends EventEmitter
         # The version of the client...
         @smc_version = mesg.version
         @dbg('mesg_version')("client.smc_version=#{mesg.version}")
-        if mesg.version < smc_version.version
+        {version} = require('./server-settings')(@database)
+        if mesg.version < version.version_recommended_browser ? 0
             @push_version_update()
 
     push_version_update: =>
-        @push_to_client(message.version(version:smc_version.version, min_version:smc_version.min_browser_version))
-        if smc_version.min_browser_version and @smc_version and @smc_version < smc_version.min_browser_version
+        {version} = require('./server-settings')(@database)
+        @push_to_client(message.version(version:version.version_recommended_browser, min_version:version.version_min_browser))
+        if version.version_min_browser and @smc_version < version.version_min_browser
             # Client is running an unsupported bad old version.
             # Brutally disconnect client!  It's critical that they upgrade, since they are
             # causing problems or have major buggy code.
@@ -1714,12 +1716,6 @@ class exports.Client extends EventEmitter
                     err = 'close'
                 if err
                     dbg("user_query(query='#{misc.to_json(query)}') error:", err)
-                    if not @account_id? and misc.startswith("#{err}", "FATAL")
-                        # Tried to do a user_query before signing in.  Since we no longer have any anonymous user queries
-                        # there is absolutely no situation where a client should do this, unless it is buggy.
-                        dbg("immediately terminating buggy client trying to do FATAL user_query when not signed_in")
-                        @conn.end()
-                        return
                     if @_query_changefeeds?[mesg_id]
                         delete @_query_changefeeds[mesg_id]
                     @error_to_client(id:mesg_id, error:err)

@@ -303,10 +303,10 @@ class ProjectActions extends Actions
         if not group? or group == 'public'
             return # no point in saving if not open enough to even know our group or if our relationship to entire project is "public"
         return if not store = @get_store()
-        store.open_files.filter (val, path) =>
+        store.open_files.forEach (val, path) =>
             is_public = val.get('component')?.is_public  # might still in theory someday be true.
             project_file.save(path, @redux, @project_id, is_public)
-            return false
+            return
 
     # Open the given file in this project.
     open_file: (opts) =>
@@ -1004,7 +1004,7 @@ class ProjectActions extends Actions
                     _init_library_index_cache[@project_id] = data
                     cb()
                 ).fail((err) ->
-                    if DEBUG then console.log("init_library/index: error reading file: #{misc.to_json(err)}")
+                    ##if DEBUG then console.log("init_library/index: error reading file: #{misc.to_json(err)}")
                     cb(err.statusText ? 'error')
                 )
 
@@ -1612,8 +1612,8 @@ class ProjectActions extends Actions
         webapp_client.exec
             project_id      : @project_id
             command         : cmd + " | cut -c 1-256"  # truncate horizontal line length (imagine a binary file that is one very long line)
-            timeout         : 10   # how long grep runs on client
-            network_timeout : 15   # how long network call has until it must return something or get total error.
+            timeout         : 20   # how long grep runs on client
+            network_timeout : 25   # how long network call has until it must return something or get total error.
             max_output      : max_output
             bash            : true
             err_on_exit     : true

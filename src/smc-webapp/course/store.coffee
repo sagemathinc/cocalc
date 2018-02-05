@@ -274,7 +274,7 @@ exports.CourseStore = class CourseStore extends Store
         return x.get('time')
 
     has_grade: (assignment, student_id) =>
-        return @get_assignment(assignment)?.get("grades")?.get(student_id)
+        return !!@get_assignment(assignment)?.get("grades")?.get(student_id)
 
     get_assignment_status: (assignment) =>
         #
@@ -316,6 +316,8 @@ exports.CourseStore = class CourseStore extends Store
         peer = assignment.get('peer_grade')?.get('enabled')
         skip_grading = assignment.get('skip_grading') ? false
 
+        # if DEBUG then console.log('get_assignment_status/assignment', assignment)
+
         info = {}
         for t in STEPS(peer)
             info[t] = 0
@@ -331,7 +333,7 @@ exports.CourseStore = class CourseStore extends Store
                     # add one only if the previous step *was* done (and in
                     # the case of returning, they have a grade)
                     graded = @has_grade(assignment, student_id) or skip_grading
-                    if previous and (t!='return_graded' or graded)
+                    if (previous and t != 'return_graded') or graded
                         info["not_#{t}"] += 1
                     previous = false
 

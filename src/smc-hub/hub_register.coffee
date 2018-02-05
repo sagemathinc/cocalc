@@ -33,10 +33,10 @@ the_database = undefined
 the_host     = undefined
 the_port     = undefined
 the_interval = undefined
-the_clients  = []
+the_clients  = {}
 
 number_of_clients = () ->
-    return (C for id,C of the_clients when not C._destroy_timer? and not C.closed).length
+    return misc.len(the_clients)
 
 exports.number_of_clients = () ->
     if not the_database?

@@ -78,7 +78,7 @@ exports.AccountPage = rclass
             other_settings          : rtypes.immutable.Map
             profile                 : rtypes.object
             groups                  : rtypes.array
-            stripe_customer         : rtypes.object
+            stripe_customer         : rtypes.immutable.Map
             ssh_keys                : rtypes.immutable.Map
 
     propTypes :
@@ -127,6 +127,7 @@ exports.AccountPage = rclass
             autosave        = {@props.autosave}
             font_size       = {@props.font_size}
             editor_settings = {@props.editor_settings}
+            stripe_customer = {@props.stripe_customer}
             other_settings  = {@props.other_settings.toJS()}
             groups          = {@props.groups} />
 

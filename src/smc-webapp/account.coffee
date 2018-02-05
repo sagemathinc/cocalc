@@ -64,6 +64,7 @@ signed_in = (mesg) ->
     document.cookie = "#{APP_BASE_URL}has_remember_me=true; expires=#{exp} ;path=/"
     # Record which hub we're connected to.
     redux.getActions('account').setState(hub: mesg.hub)
+    console.log("Signed into #{mesg.hub} at #{new Date()}")
     load_file = window.smc_target and window.smc_target != 'login'
     if first_login
         first_login = false

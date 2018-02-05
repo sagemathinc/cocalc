@@ -268,23 +268,17 @@ class SageSession
                         opts.cb?({done:true, error:err})
                 )
     _handle_mesg_blob: (mesg) =>
-        sha1 = mesg.uuid
-        dbg = @dbg("_handle_mesg_blob(sha1='#{sha1}')")
+        uuid = mesg.uuid
+        dbg = @dbg("_handle_mesg_blob(uuid='#{uuid}')")
         dbg()
-        hub = @_client.get_hub_socket()
-        if not hub?
-            error = 'no global hubs are connected to the local hub, so nowhere to send file'
-            dbg(error)
-            resp =  message.save_blob
-                error  : error
-                sha1   : sha1
-            @_socket?.write_mesg('json', resp)
-            return
-        dbg("forwarding blob to hub")
-        hub.write_mesg('blob', mesg)
-        blobs.receive_save_blob_message
-            sha1 : sha1
-            cb   : (resp) =>
+        @_client.save_blob
+            blob : mesg.blob
+            uuid : uuid
+            cb   : (err, resp) =>
+                if err
+                    resp =  message.save_blob
+                        error : err
+                        sha1  : uuid  # dumb - that sha1 should be called uuid...
                 @_socket?.write_mesg('json', resp)
 
     _handle_mesg_json: (mesg) =>

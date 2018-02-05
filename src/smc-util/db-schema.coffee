@@ -260,6 +260,7 @@ schema.accounts =
                     first_steps       : true
                     newsletter        : true
                     time_ago_absolute : false
+                    no_free_warnings  : false   # if true, do not show warning when using non-member projects
                 first_name      : ''
                 last_name       : ''
                 terminal        :
@@ -481,6 +482,27 @@ schema.file_access_log =
         time       :
             type : 'timestamp'
     pg_indexes : ['project_id', 'account_id', 'filename', 'time']
+
+# This table is derived from file_access_log.  It's the image of the set file_access_log under
+# the non-injective function
+#
+#    (id,project_id,account_id,filename,time) |--> (project_id, account_id, date),
+#
+# where date is the day of the time. For reference, this query computes/update this table:
+#
+#   insert into usage_by_date (account_id, project_id, date) (select distinct account_id, project_id, time::date from file_access_log) ON CONFLICT DO NOTHING;
+#
+schema.usage_by_date =
+    primary_key : ['date', 'account_id', 'project_id']
+    durability : 'soft' # loss of some log data not serious, since used only for analytics
+    fields:
+        project_id :
+            type : 'uuid'
+        account_id :
+            type : 'uuid'
+        date     :
+            type : 'date'
+    pg_indexes : ['date', 'account_id', 'project_id']
 
 # TODO: for postgres rewrite after done we MIGHT completely redo file_use to eliminate
 # the id field, use project_id, path as a compound primary key, and maybe put users in
@@ -1070,32 +1092,44 @@ schema.server_settings =
 exports.site_settings_conf =
     site_name:
         name    : "Site name"
-        desc    : "The heading name of your site."
+        desc    : "The heading name of your CoCalc site."
         default : "CoCalc"
     site_description:
         name    : "Site description"
-        desc    : "The description of your site."
+        desc    : "The description of your CoCalc site."
         default : ""
     terms_of_service:
-        name    : "Terms of service link text"
+        name    : "Terms of service"
         desc    : "The text displayed for the terms of service link (make empty to not require)."
         default : 'By signing up you agree to our <a target="_blank" href="/policies/terms.html">Terms of Service</a>.'
     account_creation_email_instructions:
-        name    : 'Account creation instructions'
+        name    : 'Account creation'
         desc    : "Instructions displayed next to the box where a user creates their account using their name and email address."
         default : 'Create an Account'
     help_email:
-        name    : "Help email address"
+        name    : "Help email"
         desc    : "Email address that user is directed to use for support requests"
         default : "help@sagemath.com"
     commercial:
-        name    : "Commercial UI elements ('yes' or 'no')"
+        name    : "Commercial ('yes' or 'no')"
         desc    : "Whether or not to include user interface elements related to for-pay upgrades and features.  Set to 'yes' to include these elements."
         default : "no"
     kucalc:
-        name    : "KuCalc UI elements ('yes' or 'no')"
+        name    : "KuCalc UI ('yes' or 'no')"
         desc    : "Whether to show UI elements adapted to what the KuCalc backend provides"
         default : "no"  # TODO -- this will *default* to yes when run from kucalc; but site admin can set it either way anywhere for testing.
+    version_min_project :
+        name    : "Required project version"
+        desc    : "Minimal version *required* by projects (if project older, will be force restarted)."
+        default : "0"
+    version_min_browser :
+        name    : "Required browser version"
+        desc    : "Minimal version *retuired* for browser clients (if older, forced disconnect)."
+        default : "0"
+    version_recommended_browser :
+        name    : "Recommended version"
+        desc    : "Older clients receive an upgrade warning."
+        default : "0"
 
 
 site_settings_fields = misc.keys(exports.site_settings_conf)

@@ -44,6 +44,7 @@ CourseSync           = require('./sync')
 {AssignmentsPanel}   = require('./assignments_panel')
 {HandoutsPanel}      = require('./handouts_panel')
 {SettingsPanel}      = require('./settings_panel')
+{PayBanner}          = require('./pay-banner')
 {SharedProjectPanel} = require('./shared_project_panel')
 {STEPS, previous_step, step_direction, step_verb, step_ready} = require('./util')
 
@@ -118,11 +119,19 @@ CourseEditor = rclass ({name}) ->
 
     render_activity: ->
         <ActivityDisplay activity={misc.values(@props.activity)} trunc=80
-            on_clear={=>@props.redux.getActions(@props.name).clear_activity()} />
+            on_clear={=>@actions(@props.name).clear_activity()} />
 
     render_error: ->
         <ErrorDisplay error={@props.error}
-                      onClose={=>@props.redux.getActions(@props.name).set_error('')} />
+                      onClose={=>@actions(@props.name).set_error('')} />
+
+    render_pay_banner: ->
+        <PayBanner
+            settings     = {@props.settings}
+            num_students = {@props.students?.size}
+            tab          = {@props.tab}
+            name         = {@props.name}
+            />
 
     render_save_button: ->
         <SaveButton saving={@props.saving} unsaved={true} on_click={=>@props.redux.getActions(@props.name).save()}/>
@@ -198,29 +207,38 @@ CourseEditor = rclass ({name}) ->
 
     render_settings: ->
         if @props.redux? and @props.settings?
-            <SettingsPanel redux={@props.redux} settings={@props.settings}
-                      name={@props.name} project_id={@props.project_id}
-                      path={@props.path}
-                      project_map={@props.project_map} />
+            <SettingsPanel
+                redux             = {@props.redux}
+                settings          = {@props.settings}
+                name              = {@props.name}
+                project_id        = {@props.project_id}
+                path              = {@props.path}
+                shared_project_id = {@props.settings?.get('shared_project_id')}
+                project_map       = {@props.project_map}
+            />
         else
             return <Loading />
 
     render_shared_project: ->
         if @props.redux? and @props.settings?
-            <SharedProjectPanel redux={@props.redux} name={@props.name}
-                shared_project_id={@props.settings?.get('shared_project_id')}/>
+            <SharedProjectPanel
+                redux             = {@props.redux} 
+                name              = {@props.name}
+                shared_project_id = {@props.settings?.get('shared_project_id')}
+            />
         else
             return <Loading />
 
     render: ->
         <div style={padding:"7px 7px 7px 7px"}>
+            {@render_pay_banner()}
             {@render_save_button() if @props.show_save_button}
             {@render_error() if @props.error}
             {@render_activity() if @props.activity?}
             {@render_files_button()}
             {@render_title()}
             {@render_save_timetravel()}
-            <Tabs id='course-tabs' animation={false} activeKey={@props.tab} onSelect={(key)=>@props.redux?.getActions(@props.name).set_tab(key)}>
+            <Tabs id='course-tabs' animation={false} activeKey={@props.tab} onSelect={(key)=>@actions(@props.name).set_tab(key)}>
                 <Tab eventKey={'students'} title={<StudentsPanel.Header n={@num_students()} />}>
                     {@render_students()}
                 </Tab>

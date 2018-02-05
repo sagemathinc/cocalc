@@ -38,6 +38,7 @@ misc = require('smc-util/misc')
 {StudentProjectUpgrades} = require('./upgrades')
 {HelpBox} = require('./help_box')
 {DeleteStudentsPanel} = require('./delete_students')
+{DeleteSharedProjectPanel} = require('./delete_shared_project')
 
 STUDENT_COURSE_PRICE = require('smc-util/upgrade-spec').upgrades.subscription.student_course.price.month4
 
@@ -173,12 +174,13 @@ exports.SettingsPanel = rclass
     displayName : "CourseEditorSettings"
 
     propTypes :
-        redux       : rtypes.object.isRequired
-        name        : rtypes.string.isRequired
-        path        : rtypes.string.isRequired
-        project_id  : rtypes.string.isRequired
-        settings    : rtypes.immutable.Map.isRequired
-        project_map : rtypes.immutable.Map.isRequired
+        redux             : rtypes.object.isRequired
+        name              : rtypes.string.isRequired
+        path              : rtypes.string.isRequired
+        project_id        : rtypes.string.isRequired
+        settings          : rtypes.immutable.Map.isRequired
+        project_map       : rtypes.immutable.Map.isRequired
+        shared_project_id : rtypes.string
 
     shouldComponentUpdate: (next, next_state) ->
         return next.settings != @props.settings or next.project_map != @props.project_map or \
@@ -236,9 +238,11 @@ exports.SettingsPanel = rclass
         </h4>
 
     path: (ext) ->
-        p = @props.path
+        # make path more likely to be python-readable...
+        p = misc.replace_all(@props.path, '-', '_')
+        p = misc.split(p).join('_')
         i = p.lastIndexOf('.')
-        return p.slice(0,i) + '.' + ext
+        return 'export_' + p.slice(0,i) + '.' + ext
 
     open_file: (path) ->
         @actions(project_id : @props.project_id).open_file(path:path,foreground:true)
@@ -266,7 +270,7 @@ exports.SettingsPanel = rclass
         timestamp  = (webapp_client.server_time()).toISOString()
         content = "# Course '#{@props.settings.get('title')}'\n"
         content += "# exported #{timestamp}\n"
-        content += "Name,Email,"
+        content += "Name,Id,Email,"
         content += ("\"grade: #{assignment.get('path')}\"" for assignment in assignments).join(',') + ','
         content += ("\"comments: #{assignment.get('path')}\"" for assignment in assignments).join(',') + '\n'
         for student in store.get_sorted_students()
@@ -276,7 +280,8 @@ exports.SettingsPanel = rclass
             comments = comments.replace(/\n/g, "\\n")
             name     = "\"#{store.get_student_name(student)}\""
             email    = "\"#{store.get_student_email(student) ? ''}\""
-            line     = [name, email, grades, comments].join(',')
+            id       = "\"#{student.get('student_id')}\""
+            line     = [name, id, email, grades, comments].join(',')
             content += line + '\n'
         @write_file(@path('csv'), content)
 
@@ -310,7 +315,8 @@ exports.SettingsPanel = rclass
             name     = store.get_student_name(student)
             email    = store.get_student_email(student)
             email    = if email? then "'#{email}'" else 'None'
-            line     = "    {'name':'#{name}', 'email':#{email}, 'grades':[#{grades}], 'comments':[#{comments}]},"
+            id       = student.get('student_id')
+            line     = "    {'name':'#{name}', 'id':'#{id}', 'email':#{email}, 'grades':[#{grades}], 'comments':[#{comments}]},"
             content += line + '\n'
         content += ']\n'
         @write_file(@path('py'), content)
@@ -381,8 +387,21 @@ exports.SettingsPanel = rclass
 
     render_students_pay_button: ->
         <Button bsStyle='primary' onClick={@click_student_pay_button}>
-            <Icon name='arrow-circle-up' /> {if @state.students_pay then "Adjust settings" else "Require students to pay"}...
+            <Icon name='arrow-circle-up' /> {if @state.students_pay then "Adjust settings" else "Configure how students will pay"}...
         </Button>
+
+    render_student_pay_choice_checkbox: ->
+        <span>
+            <Checkbox
+                checked  = {!!@props.settings?.get('student_pay')}
+                onChange = {@handle_student_pay_choice}
+            >
+                Students will pay for this course
+            </Checkbox>
+        </span>
+
+    handle_student_pay_choice: (e) ->
+        @actions(@props.name).set_pay_choice('student', e.target.checked)
 
     render_require_students_pay_desc: ->
         date = new Date(@props.settings.get('pay'))
@@ -433,17 +452,16 @@ exports.SettingsPanel = rclass
 
     render_students_pay_checkbox: ->
         <span>
-            <Checkbox checked  = {!!@props.settings.get('pay')}
-                   key      = 'students_pay'
-                   ref      = 'student_pay'
-                   onChange = {@handle_students_pay_checkbox}
+            <Checkbox
+                checked  = {!!@props.settings.get('pay')}
+                onChange = {@handle_students_pay_checkbox}
             >
                 {@render_students_pay_checkbox_label()}
             </Checkbox>
         </span>
 
     render_students_pay_dialog: ->
-        <Alert bsStyle='info'>
+        <Alert bsStyle='warning'>
             <h3><Icon name='arrow-circle-up' /> Require students to upgrade</h3>
             <hr/>
             <span>Click the following checkbox to require that all students in the course pay a special discounted <b>one-time ${STUDENT_COURSE_PRICE}</b> fee to move their projects from trial servers to members-only computers, enable full internet access, and do not see a large red warning message.  This lasts four months, and <em>you will not be charged (only students are charged).</em></span>
@@ -459,36 +477,70 @@ exports.SettingsPanel = rclass
         else
             <span>Require that all students in the course pay a one-time ${STUDENT_COURSE_PRICE} fee to move their projects off trial servers and enable full internet access, for four months.  This is strongly recommended, and ensures that your students have a better experience, and do not see a large <span style={color:'red'}>RED warning banner</span> all the time.   Alternatively, you (or your university) can pay for all students at one for a significant discount -- see below.</span>
 
-
-    render_require_students_pay: ->
-        <Panel header={<h4><Icon name='dashboard' />  Require students to upgrade (students pay)</h4>}>
+    render_student_pay_details: ->
+        <div>
             {if @state.show_students_pay_dialog then @render_students_pay_dialog() else @render_students_pay_button()}
             <hr/>
             <div style={color:"#666"}>
                 {@render_student_pay_desc()}
             </div>
+        </div>
+
+    render_require_students_pay: ->
+        if @props.settings?.get('student_pay') or @props.settings?.get('institute_pay')
+            style = bg = undefined
+        else
+            style = {fontWeight:'bold'}
+            bg    = '#fcf8e3'
+        <Panel
+            style  = {background:bg}
+            header = {<h4 style={style}><Icon name='dashboard' />  Require students to upgrade (students pay)</h4>}>
+            {@render_student_pay_choice_checkbox()}
+            {@render_student_pay_details() if @props.settings?.get('student_pay')}
         </Panel>
+
+    render_require_institute_pay: ->
+        <StudentProjectUpgrades
+            name          = {@props.name}
+            redux         = {@props.redux}
+            upgrade_goal  = {@props.settings?.get('upgrade_goal')}
+            institute_pay = {@props.settings?.get('institute_pay')}
+            student_pay   = {@props.settings?.get('student_pay')}
+        />
+
+    render_delete_shared_project: ->
+        if @props.shared_project_id
+            <DeleteSharedProjectPanel
+                delete = {@actions(@props.name).delete_shared_project}
+                />
+
+    render_delete_students: ->
+        <DeleteStudentsPanel
+            delete = {@actions(@props.name).delete_all_student_projects}
+            />
+
+    render_disable_students: ->
+        <DisableStudentCollaboratorsPanel
+            checked   = {!!@props.settings.get('allow_collabs')}
+            on_change = {@actions(@props.name).set_allow_collabs}
+            />
 
     render: ->
         <div>
             <Row>
                 <Col md=6>
                     {@render_require_students_pay()}
-                    <StudentProjectUpgrades name={@props.name} redux={@props.redux} upgrade_goal={@props.settings?.get('upgrade_goal')} />
+                    {@render_require_institute_pay()}
                     {@render_save_grades()}
                     {@render_start_all_projects()}
-                    <DeleteStudentsPanel
-                        delete = {@actions(@props.name).delete_all_student_projects}
-                        />
+                    {@render_delete_students()}
+                    {@render_delete_shared_project()}
                 </Col>
                 <Col md=6>
                     <HelpBox/>
                     {@render_title_description()}
                     {@render_email_invite_body()}
-                    <DisableStudentCollaboratorsPanel
-                        checked   = {!!@props.settings.get('allow_collabs')}
-                        on_change = {@actions(@props.name).set_allow_collabs}
-                        />
+                    {@render_disable_students()}
                 </Col>
             </Row>
         </div>

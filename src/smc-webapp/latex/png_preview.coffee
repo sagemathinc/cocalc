@@ -11,6 +11,7 @@ templates = $("#webapp-editor-templates")
 class exports.PNG_Preview extends FileEditor
     constructor: (@project_id, @filename, contents, opts) ->
         super(@project_id, @filename)
+        @dbg("PNG_Preview constructor called with #{misc.to_json(opts)}")
         @pdflatex = new PDFLatexDocument(project_id:@project_id, filename:@filename, image_type:"png")
         @opts = opts
         @_updating = false
@@ -33,9 +34,10 @@ class exports.PNG_Preview extends FileEditor
         @_needs_update = true
         @_dragpos = null
         @_init_dragging()
+        #if DEBUG then window.png_preview = @
 
     dbg: (mesg) =>
-        #console.log("PDF_Preview: #{mesg}")
+        #if DEBUG then console.log("PDF_Preview: #{mesg}")
 
     # TODO refactor this into misc_page
     _init_dragging: =>
@@ -214,6 +216,7 @@ class exports.PNG_Preview extends FileEditor
         @dbg("update: current_page=#{n}")
 
         f = (opts, cb) =>
+            @dbg("update/f: opts=#{misc.to_json(opts)}")
             opts.cb = (err, changed_pages) =>
                 if err
                     cb(err)
@@ -272,6 +275,7 @@ class exports.PNG_Preview extends FileEditor
         p          = @pdflatex.page(n)
         url        = p.url
         resolution = p.resolution
+        @dbg("PNG_Preview._update_page: last_page = #{@last_page}")
         if not url?
             # delete page and all following it from DOM
             for m in [n .. @last_page]

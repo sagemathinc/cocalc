@@ -39,6 +39,8 @@ class exports.TaskActions extends Actions
         @syncdb.once('init', @_syncdb_metadata)
         @syncdb.on('metadata-change', @_syncdb_metadata)
 
+        @syncdb.once 'load-time-estimate', (est) => @setState(load_time_estimate: est)
+
     close: =>
         if @_state == 'closed'
             return
@@ -249,7 +251,8 @@ class exports.TaskActions extends Actions
             return
         task = @store.getIn(['tasks', task_id])
         # Update last_edited if desc or due date changes
-        if not task? or (obj.desc? and obj.desc != task.get('desc') or (obj.due_date? and obj.due_date != task.get('due_date')))
+        if not task? or (obj.desc? and obj.desc != task.get('desc') or (obj.due_date? and obj.due_date != task.get('due_date')) \
+                         or (obj.done? and obj.done != task.get('done')))
             last_edited = @store.getIn(['tasks', task_id, 'last_edited']) ? 0
             now = new Date() - 0
             if now - last_edited >= LAST_EDITED_THRESH_S*1000
@@ -357,7 +360,7 @@ class exports.TaskActions extends Actions
     toggle_task_done: (task_id) =>
         task_id ?= @store.get('current_task_id')
         if task_id?
-            @set_task(task_id, {done:!@store.getIn(['tasks', task_id, 'done'])})
+            @set_task(task_id, {done:!@store.getIn(['tasks', task_id, 'done'])}, true)
 
     stop_editing_due_date: (task_id) =>
         @set_local_task_state(task_id, {editing_due_date : false})
@@ -477,3 +480,17 @@ class exports.TaskActions extends Actions
 
     set_show_max: (show_max) =>
         @set_local_view_state({show_max: show_max}, false)
+
+    start_timer: (task_id) =>
+        ###
+        task = @store.getIn(['tasks', task_id])
+        if not task?
+            return
+        timer = task.get('timer') ?
+        @set_task(task_id, {timer:{total:}})
+        ###
+
+    stop_timer: (task_id) =>
+
+    delete_timer: (task_id) =>
+

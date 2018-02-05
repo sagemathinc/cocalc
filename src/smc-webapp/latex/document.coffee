@@ -402,7 +402,7 @@ patchSynctex(\"#{@filename_tex}\");' | R --no-save"
             err_on_exit : true
             cb          : (err, output) =>
                 if err
-                    console.log("Make sure pdfinfo is installed!  sudo apt-get install poppler-utils.")
+                    console.warn("Make sure pdfinfo is installed!  sudo apt-get install poppler-utils.")
                     cb(err)
                     return
                 v = {}
@@ -416,6 +416,7 @@ patchSynctex(\"#{@filename_tex}\");' | R --no-save"
         before = @num_pages
         @pdfinfo (err, info) =>
             # if err maybe no pdf yet -- just don't do anything
+            @dbg("update_number_of_pdf_pages: #{err}, #{info?.Pages}")
             if not err and info?.Pages?
                 @num_pages = info.Pages
                 # Delete trailing removed pages from our local view of things; otherwise, they won't properly

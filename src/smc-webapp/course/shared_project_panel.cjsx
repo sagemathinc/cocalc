@@ -134,7 +134,7 @@ exports.SharedProjectPanel.Header = rclass
             tip = "Shared project that everybody involved in this course may use."
         else
             tip = "Create a shared project that everybody in this course may use."
-        <Tip delayShow=1300 title="Shared Project"
+        <Tip delayShow=1300 title="Shared project"
              tip={tip}>
             <span>
                 <Icon name="users"/> Shared Project

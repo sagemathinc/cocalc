@@ -97,18 +97,18 @@ exports.all_local_hubs = () ->
             v.push(h)
     return v
 
-smc_version = undefined
-init_smc_version = () ->
-    smc_version = require('./hub-version')
-    smc_version.on 'change', () ->
-        winston.debug("local_hub_connection (smc_version changed) -- checking on clients")
+server_settings = undefined
+init_server_settings = (database) ->
+    server_settings = require('./server-settings')(database)
+    server_settings.table.on 'change', () ->
+        winston.debug("local_hub_connection (version might have changed) -- checking on clients")
         for x in exports.all_local_hubs()
             x.restart_if_version_too_old()
 
 class LocalHub # use the function "new_local_hub" above; do not construct this directly!
     constructor: (@project_id, @database, @compute_server) ->
-        if not smc_version?  # module being used -- make sure smc_version is initialized
-            init_smc_version()
+        if not server_settings?  # module being used -- make sure server_settings is initialized
+            init_server_settings(@database)
         @_local_hub_socket_connecting = false
         @_sockets = {}  # key = session_uuid:client_id
         @_sockets_by_client_id = {}   #key = client_id, value = list of sockets for that client
@@ -317,7 +317,7 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
         @restart_if_version_too_old()
 
     # If our known version of the project is too old compared to the
-    # current min_project_version in smcu-util/smc-version, then
+    # current version_min_project in smcu-util/smc-version, then
     # we restart the project, which updates the code to the latest
     # version.  Only restarts the project if we have an open control
     # socket to it.
@@ -331,10 +331,10 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
         if not @smc_version?
             # client hasn't told us their version yet
             return
-        if smc_version.min_project_version <= @smc_version
+        if server_settings.version.version_min_project <= @smc_version
             # the project is up to date
             return
-        if @_restart_goal_version == smc_version.min_project_version
+        if @_restart_goal_version == server_settings.version.version_min_project
             # We already restarted the project in an attempt to update it to this version
             # and it didn't get updated.  Don't try again until @_restart_version is cleared, since
             # we don't want to lock a user out of their project due to somebody forgetting
@@ -342,15 +342,15 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
             # didn't finish restarting.
             return
 
-        winston.debug("restart_if_version_too_old(#{@project_id}): #{@smc_version}, #{smc_version.min_project_version}")
+        winston.debug("restart_if_version_too_old(#{@project_id}): #{@smc_version}, #{server_settings.version.version_min_project}")
         # record some stuff so that we don't keep trying to restart the project constantly
-        ver = @_restart_goal_version = smc_version.min_project_version # version which we tried to get to
+        ver = @_restart_goal_version = server_settings.version.version_min_project # version which we tried to get to
         f = () =>
             if @_restart_goal_version == ver
                 delete @_restart_goal_version
         setTimeout(f, 15*60*1000)  # don't try again for at least 15 minutes.
 
-        @dbg("restart_if_version_too_old -- restarting since #{smc_version.min_project_version} > #{@smc_version}")
+        @dbg("restart_if_version_too_old -- restarting since #{server_settings.version.version_min_project} > #{@smc_version}")
         @restart (err) =>
             @dbg("restart_if_version_too_old -- done #{err}")
 

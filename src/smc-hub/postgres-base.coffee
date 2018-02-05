@@ -27,7 +27,12 @@ exports.DEBUG = true
 
 # If database conection is non-responsive but no error raised directly
 # by db client, then we will know and fix, rather than just sitting there...
-DEFAULT_TIMEOUS_MS = 35000
+DEFAULT_TIMEOUS_MS = 60000
+
+# Do not test for non-responsiveness until a while after initial connection
+# established, since things tend to work initially, *but* may also be much
+# slower, due to tons of clients simultaneously connecting to DB.
+DEFAULT_TIMEOUT_DELAY_MS = DEFAULT_TIMEOUS_MS * 4
 
 QUERY_ALERT_THRESH_MS=5000
 
@@ -66,7 +71,7 @@ read_password_from_disk = ->
         # no password file
         return
 
-class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whenever we successfully connect to the database.
+class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whenever we successfully connect to the database and 'disconnect' when connection to postgres fails
     constructor: (opts) ->
         opts = defaults opts,
             host            : process.env['PGHOST'] ? 'localhost'    # or 'hostname:port'
@@ -83,10 +88,12 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
             concurrent_warn : 500
             ensure_exists   : true  # ensure database exists on startup (runs psql in a shell)
             timeout_ms      : DEFAULT_TIMEOUS_MS # **IMPORTANT: if *any* query takes this long, entire connection is terminated and recreated!**
+            timeout_delay_ms : DEFAULT_TIMEOUT_DELAY_MS # Only reconnect on timeout this many ms after connect.  Motivation: on initial startup queries may take much longer due to competition with other clients.
         @setMaxListeners(10000)  # because of a potentially large number of changefeeds
         @_state = 'init'
         @_debug = opts.debug
         @_timeout_ms = opts.timeout_ms
+        @_timeout_delay_ms = opts.timeout_delay_ms
         @_ensure_exists = opts.ensure_exists
         @_init_test_query()
         dbg = @_dbg("constructor")  # must be after setting @_debug above
@@ -101,7 +108,6 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
         @_concurrent_warn = opts.concurrent_warn
         @_user = opts.user
         @_database = opts.database
-        @_concurrent_queries = 0
         @_password = opts.password ? read_password_from_disk()
         @_init_metrics()
 
@@ -200,9 +206,9 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
             @_client.end()
             delete @_client
         client = undefined
+        @_connect_time = 0
         async.series([
             (cb) =>
-                @_concurrent_queries = 0
                 if @_ensure_exists
                     dbg("first make sure db exists")
                     @_ensure_database_exists(cb)
@@ -220,8 +226,10 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
                 if @_notification?
                     client.on('notification', @_notification)
                 client.on 'error', (err) =>
+                    @emit('disconnect')
                     dbg("error -- #{err}")
                     client?.end()
+                    client?.removeAllListeners()
                     delete @_client
                     @connect()  # start trying to reconnect
                 client.connect(cb)
@@ -230,6 +238,7 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
                 #    SELECT * FROM file_use WHERE project_id = any(select project_id from projects where users ? '25e2cae4-05c7-4c28-ae22-1e6d3d2e8bb3') ORDER BY last_edited DESC limit 100;
                 # will take forever due to the query planner using a nestloop scan.  We thus
                 # disable doing so!
+                @_connect_time = new Date()
                 dbg("now connected; disabling nestloop query planning.")
                 client.query("SET enable_nestloop TO off", cb)
         ], (err) =>
@@ -240,6 +249,8 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
                 cb?(err)
             else
                 @_client = client
+                client.concurrent_queries = 0
+                client.setMaxListeners(1000)  # there is one emitter for each concurrent query... (see query_cb)
                 dbg("connected!")
                 cb?(undefined, @)
         )
@@ -301,7 +312,12 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
             order_by    : undefined
             limit       : undefined
             safety_check: true
+            retry_until_success : undefined  # if given, should be options to misc.retry_until_success
             cb          : undefined
+
+        if opts.retry_until_success
+            @_query_retry_until_success(opts)
+            return
 
         if not @_client?
             dbg = @_dbg("_query")
@@ -317,6 +333,32 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
                         @__do_query(opts)
         else
             @__do_query(opts)
+
+    _query_retry_until_success: (opts) =>
+        retry_opts = opts.retry_until_success
+        orig_cb = opts.cb
+        delete opts.retry_until_success
+
+        # f just calls @_do_query, but with a different cb (same opts)
+        args = undefined
+        f = (cb) =>
+            opts.cb = (args0...) =>
+                args = args0
+                cb(args[0])
+            @_query(opts)
+
+        retry_opts.f = f
+        # When misc.retry_until_success finishes, it calls this, which just
+        # calls the original cb.
+        retry_opts.cb = (err) =>
+            if err
+                orig_cb(err)
+            else
+                orig_cb(args...)
+
+        # OK, now start it attempting.
+        misc.retry_until_success(retry_opts)
+
 
     __do_query: (opts) =>
         dbg = @_dbg("_query('#{opts.query}',id='#{misc.uuid().slice(0,6)}')")
@@ -505,7 +547,6 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
         if opts.limit?
             opts.query += " LIMIT #{opts.limit} "
 
-        dbg("query='#{opts.query}'")
 
         if opts.safety_check
             safety_check = opts.query.toLowerCase()
@@ -527,39 +568,65 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
         # params can easily be huge, e.g., a blob.  But this may be
         # needed at some point for debugging.
         #dbg("query='#{opts.query}', params=#{misc.to_json(opts.params)}")
+        client = @_client
+        client.concurrent_queries += 1
+        dbg("query='#{opts.query} (concurrent=#{client.concurrent_queries})'")
 
-        @_concurrent_queries += 1
         @concurrent_counter.labels('started').inc(1)
         try
             start = new Date()
-            if @_timeout_ms
+            if @_timeout_ms and @_timeout_delay_ms
                 # Create a timer, so that if the query doesn't return within
                 # timeout_ms time, then the entire connection is destroyed.
                 # It then gets recreated automatically.  I tested
                 # and all outstanding queries also get an error when this happens.
-                timer = setTimeout((=>@_client?.emit('error', 'timeout')), @_timeout_ms)
-            @_client.query opts.query, opts.params, (err, result) =>
+                timeout_error = =>
+                    # Only disconnect with timeout error if it has been sufficiently long
+                    # since connecting.   This way when an error is triggered, all the
+                    # outstanding timers at the moment of the error will just get ignored
+                    # when they fire (since @_connect_time is 0 or too recent).
+                    if @_connect_time and new Date() - @_connect_time > @_timeout_delay_ms
+                        client.emit('error', 'timeout')
+                timer = setTimeout(timeout_error, @_timeout_ms)
+
+            # PAINFUL FACT: In client.query below, if the client is closed/killed/errored
+            # (especially via client.emit above), then none of the callbacks from
+            # client.query are called!
+            finished = false
+            error_listener = ->
+                dbg("error_listener fired")
+                query_cb('error')
+            client.once('error', error_listener)
+            query_cb = (err, result) =>
+                if finished  # ensure no matter what that query_cb is called at most once.
+                    dbg("called when finished (ignoring)")
+                    return
+                finished = true
+                client.removeListener('error', error_listener)
+
                 if @_timeout_ms
                     clearTimeout(timer)
                 query_time_ms = new Date() - start
-                @_concurrent_queries -= 1
+                client.concurrent_queries -= 1
                 @query_time_histogram.observe({table:opts.table ? ''}, query_time_ms)
                 @concurrent_counter.labels('ended').inc(1)
                 if err
-                    dbg("done (concurrent=#{@_concurrent_queries}), (query_time_ms=#{query_time_ms}) -- error: #{err}")
+                    dbg("done (concurrent=#{client.concurrent_queries}), (query_time_ms=#{query_time_ms}) -- error: #{err}")
                     err = 'postgresql ' + err
                 else
-                    dbg("done (concurrent=#{@_concurrent_queries}) (query_time_ms=#{query_time_ms}) -- success")
+                    dbg("done (concurrent=#{client.concurrent_queries}) (query_time_ms=#{query_time_ms}) -- success")
                 if opts.cache and @_query_cache?
                     @_query_cache.set(full_query_string, [err, result])
                 opts.cb?(err, result)
                 if query_time_ms >= QUERY_ALERT_THRESH_MS
                     dbg("QUERY_ALERT_THRESH: query_time_ms=#{query_time_ms}\nQUERY_ALERT_THRESH: query='#{opts.query}'\nQUERY_ALERT_THRESH: params='#{misc.to_json(opts.params)}'")
+            client.query(opts.query, opts.params, query_cb)
+
         catch e
             # this should never ever happen
-            dbg("EXCEPTION in @_client.query: #{e}")
+            dbg("EXCEPTION in client.query: #{e}")
             opts.cb?(e)
-            @_concurrent_queries -= 1
+            client.concurrent_queries -= 1
             @concurrent_counter.labels('ended').inc(1)
         return
 
@@ -986,8 +1053,8 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
         ], (err) => opts.cb?(err))
 
     # Return the number of outstanding concurrent queries.
-    concurrent: () =>
-        return @_concurrent_queries
+    concurrent: =>
+        return @_client?.concurrent_queries ? 0
 
     # Compute the sha1 hash (in hex) of the input arguments, which are
     # converted to strings (via json) if they are not strings, then concatenated.
@@ -1059,6 +1126,8 @@ exports.pg_type = pg_type = (info) ->
             return 'UUID'
         when 'timestamp'
             return 'TIMESTAMP'
+        when 'date'
+            return 'DATE'
         when 'string', 'text'
             return 'TEXT'
         when 'boolean'

@@ -763,6 +763,15 @@ exports.define_codemirror_extensions = () ->
 
         delete @_setValueNoJump
 
+        # Just do an expensive double check that the above worked.  I have no reason
+        # to believe the above could ever fail... but maybe it does in some very rare
+        # cases, and if it did, the results would be PAINFUL.  So... we just brutally
+        # do the set if it fails.  This will mess up cursors, etc., but that's a reasonable
+        # price to pay for correctness.
+        if value != @getValue()
+            console.warn("setValueNoJump failed -- just setting value directly")
+            @setValue(value)
+
     CodeMirror.defineExtension 'patchApply', (patch) ->
         ## OPTIMIZATION: this is a very stupid/inefficient way to turn
         ## a patch into a diff.  We should just directly rewrite
@@ -1782,13 +1791,13 @@ exports.open_new_tab = (url, popup=false) ->
         tab = window.open(url, '', 'menubar=yes,toolbar=no,resizable=yes,scrollbars=yes,height=640,width=800')
     else
         tab = window.open(url)
-    if(!tab || tab.closed || typeof tab.closed=='undefined')
+    if not tab?.closed? or tab.closed   # either ab isn't even defined (or doesn't have close method) -- or already closed -- popup blocked
         {alert_message} = require('./alerts')
         alert_message
             title   : "Pop-ups blocked."
             message : "Either enable pop-ups for this website or <a href='#{url}' target='_blank'>click on this link</a>."
-            type    : 'error'
-            timeout : 10
+            type    : 'info'
+            timeout : 15
         return null
     return tab
 

@@ -23,7 +23,7 @@ DEBUG = false
 
 # Maximum number of outstanding concurrent messages (that have responses)
 # to send at once to the backend.
-MAX_CONCURRENT = 100
+MAX_CONCURRENT = 25
 
 {EventEmitter} = require('events')
 
@@ -207,7 +207,7 @@ class exports.Connection extends EventEmitter
         # (node) warning: possible EventEmitter memory leak detected. 301 listeners added. Use emitter.setMaxListeners() to increase limit.
         @setMaxListeners(3000)  # every open file/table/sync db listens for connect event, which adds up.
 
-        @_emit_mesg_info = underscore.throttle(@_emit_mesg_info, 1500)
+        @_emit_mesg_info = underscore.throttle(@_emit_mesg_info, 750)
 
         @emit("connecting")
         @_call             =
@@ -689,6 +689,7 @@ class exports.Connection extends EventEmitter
     _update_calls: =>
         while @_call.queue.length > 0 and @_call.count < MAX_CONCURRENT
             @_process_next_call()
+        #console.log("_update_calls: ", @_call)
 
     _emit_mesg_info: =>
         info = misc.copy_without(@_call, ['queue'])
@@ -1771,12 +1772,14 @@ class exports.Connection extends EventEmitter
 
     sync_string: (opts) =>
         opts = defaults opts,
-            id                : undefined
-            project_id        : required
-            path              : required
-            file_use_interval : 'default'
-            cursors           : false
-            patch_interval    : 1000
+            id                 : undefined
+            project_id         : required
+            path               : required
+            file_use_interval  : 'default'
+            cursors            : false
+            patch_interval     : 1000
+            before_change_hook : undefined
+            after_change_hook  : undefined
         opts.client = @
         return new syncstring.SyncString(opts)
 

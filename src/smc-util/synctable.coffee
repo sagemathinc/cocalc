@@ -81,19 +81,6 @@ this could be fine.  However, on reconnect, the first thing is that complete ups
 table is set on server version of table, so reconnecting user only sends its changes if upstream
 hasn't changed anything in that same record.
 
-
-SERIOUS UNFINISHED ISSUE:
-1. Non-admin user is a collab on a project
-2. They open and edit a file
-3. They have some offline changes
-4. They are removed from that project as collab before those changes are saved
-5. There will be changes (and updates to file_use) that are denied, with
-   the error "FATAL: user must be an admin".  The client will just keep
-   retrying those forever, until the client refreshes their browser.
-6. Solving this is pretty tricky, e.g., the file_use table would have to selectively
-   have entries removed from it.  This just isn't solved.  The cb_fatal below
-   is just a workaround to reduce the impact of this problem, while hopefully
-   not breaking things too badly.
 ###
 
 # if true, will log to the console a huge amount of info about every get/set
@@ -113,18 +100,7 @@ schema         = require('./schema')
 {defaults, required} = misc
 
 is_fatal = (err) ->
-    return typeof(err) == 'string' and err.slice(0,5) == 'FATAL'
-
-cb_fatal = (err, cb) ->
-    if not cb?
-        return
-    if is_fatal(err)
-        # throw in an arbitrary pause to wait for proper connection or
-        # give the backend time to breath
-        setTimeout((->cb(err)), 30000 + Math.random()*5000)
-    else
-        # cb as usual
-        cb(err)
+    return typeof(err) == 'string' and err.slice(0,5) == 'FATAL' and err.indexOf('tracker') == -1  # TODO: tracker part is temporary workaround -- remove
 
 # We represent synchronized tables by an immutable.js mapping from the primary
 # key to the object.  Since PostgresQL primary keys can be compound (more than
@@ -185,8 +161,8 @@ class Plug
         misc.retry_until_success
             f           : @__try_to_connect_once
             log         : dbg
-            start_delay : 4000
-            max_delay   : 20000
+            start_delay : 3000
+            max_delay   : 12000
             cb          : =>
                 delete @_is_connecting
                 dbg("success!")
@@ -203,8 +179,8 @@ class Plug
                 if not @_opts.client.is_signed_in()
                     cb("not signed in but need to be")
                     return
-            if give_up_timer
-                clearInterval(give_up_timer)
+            if give_up_timer?
+                clearTimeout(give_up_timer)
             @_opts.connect (err) =>
                 if err == 'closed'
                     cb()  # success = stop trying.
@@ -228,7 +204,7 @@ class Plug
             give_up = =>
                 @_opts.client.removeListener(event, do_connect)
                 cb("timeout")
-            timer = setTimeout(give_up, 5000+Math.random()*10000)
+            give_up_timer = setTimeout(give_up, 5000+Math.random()*10000)
 
 class SyncTable extends EventEmitter
     constructor: (@_query, @_options, @_client, @_debounce_interval, @_throttle_changes, @_cache_key) ->
@@ -334,6 +310,13 @@ class SyncTable extends EventEmitter
                     # already closed so ignore anything else.
                     return
 
+                if is_fatal(err)
+                    console.warn('setting up changefeed', @_table, err)
+                    @close(true)
+                    cb?(err)
+                    cb = undefined
+                    return
+
                 if first_resp
                     dbg("query got ", err, resp)
                     first_resp = false
@@ -342,7 +325,7 @@ class SyncTable extends EventEmitter
                     else if resp?.event == 'query_cancel'
                         cb?("query-cancel")
                     else if err
-                        cb_fatal(err, cb)
+                        cb?(err)
                     else if not resp?.query?[@_table]?
                         cb?("got no data")
                     else
@@ -590,6 +573,13 @@ class SyncTable extends EventEmitter
             timeout : 30
             cb      : (err) =>
                 if err
+                    if is_fatal(err)
+                        console.warn('FATAL doing set', @_table, err)
+                        @close(true)
+                        cb?(err)
+                        cb = undefined
+                        return
+
                     console.warn("_save('#{@_table}') error:", err)
                     if err == 'clock'
                         @_client.alert_message(type:'error', timeout:9999,  message:"Your computer's clock is or was off!  Fix it and **refresh your browser**.")
@@ -640,8 +630,8 @@ class SyncTable extends EventEmitter
             f        : (cb) =>
                 misc.retry_until_success
                     f         : @_save
-                    max_delay : 5000
-                    max_time  : 30000
+                    max_delay : 20000
+                    max_time  : 60000
                     cb        : cb
             interval : @_debounce_interval
             state    : @_save_debounce
@@ -930,7 +920,7 @@ class SyncTable extends EventEmitter
 
         return new_val
 
-    close: =>
+    close: (fatal) =>
         if @_state == 'closed'
             # already closed
             return
@@ -939,8 +929,9 @@ class SyncTable extends EventEmitter
             # close: not zero -- so don't close it yet -- still in use by multiple clients
             return
         @_client.removeListener('disconnected', @_disconnected)
-        # do a last attempt at a save (so we don't lose data), then really close.
-        @_save()  # this will synchronously construct the last save and send it
+        if not fatal
+            # do a last attempt at a save (so we don't lose data), then really close.
+            @_save()  # this will synchronously construct the last save and send it
         # The moment the sync part of @_save is done, we remove listeners and clear
         # everything up.  It's critical that as soon as @close is called that there
         # be no possible way any further connect events (etc) can make this SyncTable
