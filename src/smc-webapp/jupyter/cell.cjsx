@@ -114,13 +114,13 @@ exports.Cell = rclass
             {
                 if not @props.deletable
                     <Tip title={'Protected from deletion'} placement={'right'} size={'small'} style={lock_style}>
-                        <Icon name='lock' />
+                        <Icon name='ban' />
                     </Tip>
             }
             {
                 if not @props.editable
                     <Tip title={'Protected from modifications'} placement={'right'} size={'small'}>
-                        <Icon name='ban'/>
+                        <Icon name='lock' />
                     </Tip>
             }
         </div>

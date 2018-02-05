@@ -249,9 +249,7 @@ class exports.JupyterActions extends Actions
     # Set the input of the given cell in the syncdb, which will also change the store.
     # Might throw a CellWriteProtectedException
     set_cell_input: (id, input, save=true) =>
-        if not @store.is_cell_editable(id)
-            throw CellWriteProtectedException
-        @_set
+        @_checked_set
             type  : 'cell'
             id    : id
             input : input
@@ -260,7 +258,7 @@ class exports.JupyterActions extends Actions
             save
 
     set_cell_output: (id, output, save=true) =>
-        @_set
+        @_checked_set
             type   : 'cell'
             id     : id
             output : output,
@@ -268,16 +266,28 @@ class exports.JupyterActions extends Actions
 
     clear_selected_outputs: =>
         cells = @store.get('cells')
-        for id in @store.get_selected_cell_ids_list()
+        v = @store.get_selected_cell_ids_list()
+        for id in v
             cell = cells.get(id)
-            if cell.get('output')? or cell.get('exec_count')
-                @_set({type:'cell', id:id, output:null, exec_count:null}, false)
+            try
+                if cell.get('output')? or cell.get('exec_count')
+                    @_set({type:'cell', id:id, output:null, exec_count:null}, false)
+            catch ex
+                if ex is CellWriteProtectedException
+                    if v.length == 1
+                        @show_edit_protection_error()
+                else
+                    throw ex
         @_sync()
 
     clear_all_outputs: =>
         @store.get('cells').forEach (cell, id) =>
             if cell.get('output')? or cell.get('exec_count')
-                @_set({type:'cell', id:id, output:null, exec_count:null}, false)
+                try
+                    @_set({type:'cell', id:id, output:null, exec_count:null}, false)
+                catch ex
+                    if ex isnt CellWriteProtectedException
+                        throw ex
             return
         @_sync()
 
@@ -308,7 +318,7 @@ class exports.JupyterActions extends Actions
         if cell_type != 'markdown' and cell_type != 'raw' and cell_type != 'code'
             throw Error("cell type (='#{cell_type}') must be 'markdown', 'raw', or 'code'")
         if not @store.is_cell_editable(id)
-            @set_error("This cell is protected from being edited.")
+            @show_edit_protection_error()
             return
         obj =
             type      : 'cell'
@@ -350,7 +360,7 @@ class exports.JupyterActions extends Actions
             @set_md_cell_editing(id)
         catch ex
             if ex is CellWriteProtectedException
-                @set_error("This cell is protected from being edited.")
+                @show_edit_protection_error()
                 return
             else
                 throw ex
@@ -636,11 +646,25 @@ class exports.JupyterActions extends Actions
     _set: (obj, save=true) =>
         if @_state == 'closed'
             return
+        # check write protection regarding specific keys to be set
+        if (obj.type == 'cell') and (obj.id?) and (not @store.is_cell_editable(obj.id))
+            for protected_key in ['input', 'output', 'exec_count', 'cell_type']
+                if misc.has_key(protected_key)
+                    throw CellWriteProtectedException
         #@dbg("_set")("obj=#{misc.to_json(obj)}")
         @syncdb.exit_undo_mode()
         @syncdb.set(obj, save)
         # ensure that we update locally immediately for our own changes.
         @_syncdb_change(immutable.fromJS([misc.copy_with(obj, ['id', 'type'])]))
+
+    _checked_set: (obj, save=true) =>
+        try
+            @_set(obj, save)
+        catch ex
+            if ex is CellWriteProtectedException
+                @show_edit_protection_error()
+            else
+                throw ex
 
     # might throw a CellDeleteProtectedException
     _delete: (obj, save=true) =>
@@ -719,7 +743,7 @@ class exports.JupyterActions extends Actions
             @_sync()
         if not_deletable > 0
             if selected.length == 1
-                @set_error("This cell is protected from deletion.")
+                @show_delete_protection_error()
                 @move_cursor_to_cell(id)
             else
                 verb = if not_deletable == 1 then 'is' else 'are'
@@ -789,6 +813,8 @@ class exports.JupyterActions extends Actions
     run_code_cell: (id, save=true) =>
         # We mark the start timestamp uniquely, so that the backend can sort
         # multiple cells with a simultaneous time to start request.
+        return if @check_edit_protection(id)
+
         start = @_client.server_time() - 0
         if @_last_start? and start <= @_last_start
             start = @_last_start + 1
@@ -807,6 +833,7 @@ class exports.JupyterActions extends Actions
         @set_trust_notebook(true)
 
     clear_cell: (id, save=true) =>
+        return if @check_edit_protection(id)
         @_set
             type         : 'cell'
             id           : id
@@ -964,9 +991,7 @@ class exports.JupyterActions extends Actions
         if cursor.id != cur_id
             # cursor isn't in currently selected cell, so don't know how to split
             return
-        if not @store.is_cell_editable(cur_id)
-            @set_error('This cell is protected from being edited.')
-            return
+        return if @check_edit_protection(cur_id)
         # insert a new cell before the currently selected one
         new_id = @insert_cell(-1)
 
@@ -1010,11 +1035,11 @@ class exports.JupyterActions extends Actions
         if not next_id?
             return
         for cell_id in [cur_id, next_id]
-            if not @store.is_cell_deletable(cur_id)
-                @set_error('A cell protected from being deleted cannot be merged.')
-                return
             if not @store.is_cell_editable(cur_id)
-                @set_error('A cell protected from being edited cannot be merged.')
+                @set_error('A cell protected from editing cannot be merged.')
+                return
+            if not @store.is_cell_deletable(cur_id)
+                @set_error('A cell protected from deletion cannot be merged.')
                 return
         cells = @store.get('cells')
         if not cells?
@@ -1091,10 +1116,31 @@ class exports.JupyterActions extends Actions
                 @set_md_cell_not_editing(id)
         @toggle_metadata_boolean('editable', f)
 
+    check_edit_protection: (id) =>
+        if not @store.is_cell_editable(id)
+            @show_edit_protection_error()
+            return true
+        else
+            return false
+
+    show_edit_protection_error: =>
+        @set_error("This cell is protected from being edited.")
+
+
     # this prevents any cell from being deleted, either directly, or indirectly via a "merge"
     # example: teacher handout notebook and student should not be able to modify an instruction cell in any way
     toggle_delete_protection: =>
         @toggle_metadata_boolean('deletable')
+
+    check_delete_protection: (id) =>
+        if not @store.is_cell_deletable(id)
+            @show_delete_protection_error()
+            return true
+        else
+            return false
+
+    show_delete_protection_error: =>
+        @set_error("This cell is protected from deletion.")
 
     # This toggles the boolean value of given metadata field.
     # If not set, it is assumed to be true and toggled to false
@@ -1832,6 +1878,7 @@ class exports.JupyterActions extends Actions
     set_cell_slide: (id, value) =>
         if not value
             value = null  # delete
+        return if @check_edit_protection(id)
         @_set
             type  : 'cell'
             id    : id
@@ -1864,6 +1911,7 @@ class exports.JupyterActions extends Actions
     insert_input_at_cursor: (id, s, save) =>
         if not @store.getIn(['cells', id])?
             return
+        return if @check_edit_protection(id)
         input   = @_get_cell_input(id)
         cursor  = @_cursor_locs?[0]
         if cursor?.id == id
@@ -1881,6 +1929,7 @@ class exports.JupyterActions extends Actions
         if not cell?
             # no such cell
             return
+        return if @check_edit_protection(id)
         attachments = cell.get('attachments')?.toJS() ? {}
         attachments[name] = val
         @_set
@@ -1908,6 +1957,7 @@ class exports.JupyterActions extends Actions
         @set_cell_input(id, misc.replace_all(@_get_cell_input(id), @_attachment_markdown(name), ''))
 
     add_tag: (id, tag, save=true) =>
+        return if @check_edit_protection(id)
         @_set
             type  : 'cell'
             id    : id
@@ -1915,6 +1965,7 @@ class exports.JupyterActions extends Actions
             save
 
     remove_tag: (id, tag, save=true) =>
+        return if @check_edit_protection(id)
         @_set
             type  : 'cell'
             id    : id
