@@ -454,7 +454,6 @@ class exports.JupyterActions extends Actions
             # Now switch.
             @setState(mode: mode)
             @set_cursor_locs([])  # none
-            @setState(highlight_protection:false)
         else if mode == 'edit'
             # switch to focused
             @focus_unlock()
@@ -464,7 +463,6 @@ class exports.JupyterActions extends Actions
             id = @store.get('cur_id')
             if not @store.is_cell_editable(id)
                 #@set_error("This cell is protected from being edited.")
-                @setState(highlight_protection:true)
             else
                 @setState(mode:mode)
                 type = @store.getIn(['cells', id, 'cell_type'])

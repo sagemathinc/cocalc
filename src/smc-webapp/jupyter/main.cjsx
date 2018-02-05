@@ -75,7 +75,6 @@ exports.JupyterEditor = rclass ({name}) ->
             raw_ipynb           : rtypes.immutable.Map
             metadata            : rtypes.immutable.Map
             trust               : rtypes.bool
-            highlight_protection: rtypes.bool
 
     render_error: ->
         if @props.error
@@ -138,7 +137,6 @@ exports.JupyterEditor = rclass ({name}) ->
             scroll       = {@props.scroll}
             cell_toolbar = {@props.cell_toolbar}
             trust        = {@props.trust}
-            highlight_protection = {@props.highlight_protection}
             />
 
     render_introspect: ->

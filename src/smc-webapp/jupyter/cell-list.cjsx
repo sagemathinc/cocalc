@@ -31,7 +31,6 @@ exports.CellList = rclass
         scroll       : rtypes.oneOfType([rtypes.number, rtypes.string])
         cell_toolbar : rtypes.string
         trust        : rtypes.bool
-        highlight_protection : rtypes.bool
 
     componentWillUnmount: ->
         # save scroll state
@@ -194,7 +193,6 @@ exports.CellList = rclass
                     trust            = {@props.trust}
                     editable         = {editable}
                     deletable        = {deletable}
-                    highlight_protection = {@props.highlight_protection}
                     />
             if @props.actions?
                 v.push(@render_insert_cell(id))

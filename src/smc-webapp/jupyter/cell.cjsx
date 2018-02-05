@@ -33,7 +33,6 @@ exports.Cell = rclass
         trust            : rtypes.bool
         editable         : rtypes.bool
         deleteable       : rtypes.bool
-        highlight_protection : rtypes.bool
 
     shouldComponentUpdate: (next) ->   # note: we assume project_id and directory don't change
         return next.id               != @props.id or \
@@ -50,7 +49,6 @@ exports.Cell = rclass
                next.trust            != @props.trust or \
                next.editable         != @props.editable or \
                next.deleteable       != @props.deleteable or \
-               next.highlight_protection != @props.highlight_protection or \
                (next.complete        != @props.complete and (next.is_current or @props.is_current))  # only worry about complete when editing this cell
 
     render_cell_input: (cell) ->
@@ -106,9 +104,8 @@ exports.Cell = rclass
             color      : COLORS.GRAY_L
             whiteSpace : 'nowrap'
 
-        if @props.highlight_protection
-            if @props.is_current or @props.is_selected
-                style.color = COLORS.BS_RED
+        if @props.is_current or @props.is_selected
+            style.color = COLORS.BS_RED
 
         lock_style =
             marginRight  : '5px'
