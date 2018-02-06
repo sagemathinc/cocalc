@@ -31,12 +31,7 @@ os_path        = require('path')
 {webapp_client} = require('./webapp_client')
 {COLORS}        = require('smc-util/theme')
 
-# src: where the library files are
-# start: open this file after copying the directory
-exports.LIBRARY = LIBRARY =
-    first_steps :
-        src    : '/ext/library/first-steps/src'
-        start  : 'first-steps.tasks'
+{LIBRARY}       = require('project_store')
 
 # used for some styles
 HEIGHT = '275px'

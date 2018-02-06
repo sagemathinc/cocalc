@@ -28,6 +28,7 @@ SearchInput, TimeAgo, ErrorDisplay, Space, Tip, LoginLink, Footer, CourseProject
 {SMC_Dropwrapper} = require('./smc-dropzone')
 {FileTypeSelector, NewFileButton} = require('./project_new')
 {SiteName} = require('./customize')
+{file_actions} = require('./project_store')
 
 {BillingPageLink, BillingPageForCourseRedux, PayCourseFee}     = require('./billing')
 {human_readable_size} = misc
@@ -45,40 +46,6 @@ feature = require('./feature')
 
 Combobox = require('react-widgets/lib/Combobox') # TODO: delete this when the combobox is in r_misc
 TERM_MODE_CHAR = '/'
-
-exports.file_actions = file_actions =
-    compress  :
-        name  : 'Compress'
-        icon  : 'compress'
-        allows_multiple_files : true
-    delete    :
-        name  : 'Delete'
-        icon  : 'trash-o'
-        allows_multiple_files : true
-    rename    :
-        name  : 'Rename'
-        icon  : 'pencil'
-        allows_multiple_files : false
-    duplicate :
-        name  : 'Duplicate'
-        icon  : 'clone'
-        allows_multiple_files : false
-    move      :
-        name  : 'Move'
-        icon  : 'arrows'
-        allows_multiple_files : true
-    copy      :
-        name  : 'Copy'
-        icon  : 'files-o'
-        allows_multiple_files : true
-    share     :
-        name  : 'Share'
-        icon  : 'share-square-o'
-        allows_multiple_files : false
-    download  :
-        name  : 'Download'
-        icon  : 'cloud-download'
-        allows_multiple_files : true
 
 FileCheckbox = rclass
     displayName : 'ProjectFiles-FileCheckbox'
