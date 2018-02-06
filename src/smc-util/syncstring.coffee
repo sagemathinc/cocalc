@@ -1636,8 +1636,8 @@ class SyncDoc extends EventEmitter
                     if @_closed
                         @_file_watcher.close()
                         return
-                    if ctime - (@_save_to_disk_start_ctime ? 0) >= 15*1000
-                        # last attempt to save was at least 15s ago, so definitely
+                    if ctime - (@_save_to_disk_start_ctime ? 0) >= 7*1000
+                        # last attempt to save was at least 7s ago, so definitely
                         # this change event was not caused by it.
                         dbg("_load_from_disk: no recent save")
                         @_load_from_disk()
@@ -1649,12 +1649,11 @@ class SyncDoc extends EventEmitter
                         return
                     if @_save_to_disk_start_ctime <= ctime and ctime <= @_save_to_disk_end_ctime
                         # changed triggered during the save
-                        dbg("_load_from_disk: change happened during @_save_to_disk , so ignoring file change")
+                        dbg("_load_from_disk: change happened during @_save_to_disk, so ignoring file change")
                         return
                     # Changed happened near to when there was a save, but not in window, so
                     # we do it..
-                    dbg("_load_from_disk: despite a recent save")
-                    @_load_from_disk()
+                    dbg("_load_from_disk: happened to close to recent save, so ignoring")
                     return
 
                 @_file_watcher.on 'delete', =>
