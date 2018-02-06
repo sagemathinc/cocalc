@@ -38,6 +38,7 @@ exports.TaskEditor = rclass ({name}) ->
             focus_find_box          : rtypes.bool
             read_only               : rtypes.bool
             scroll_into_view        : rtypes.bool
+            load_time_estimate      : rtypes.immutable.Map
 
     shouldComponentUpdate: (next) ->
         return @props.tasks                   != next.tasks or \
@@ -112,7 +113,7 @@ exports.TaskEditor = rclass ({name}) ->
 
     render_loading: ->
         <div style={fontSize: '40px', textAlign: 'center', padding: '15px', color: '#999'}>
-            <Loading />
+            <Loading estimate={@props.load_time_estimate} />
         </div>
 
     render_new_hint: ->
@@ -129,7 +130,7 @@ exports.TaskEditor = rclass ({name}) ->
         if IS_MOBILE # obviously, this is not going to dynamically change, but it at least makes mobile *usable*...
             STYLE = {}
         else
-            STYLE = {overflowX:'hidden', overflowY:'auto', paddingBottom: '300px'}
+            STYLE = {overflowX:'hidden', overflowY:'auto', paddingBottom: '100px', paddingTop:'15px'}
         <TaskList
             actions              = {@props.actions}
             path                 = {@props.path}

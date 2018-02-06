@@ -170,8 +170,12 @@ exports.TaskList = SortableContainer rclass
             {v}
         </div>
 
+    on_click: (e) ->
+        if e.target == @refs.main_div
+            @props.actions.enable_key_handler()
+
     render: ->
-        <div style={@props.style} ref='main_div'>
+        <div style={@props.style} ref='main_div' onClick={@on_click}>
             {@render_tasks()}
             {@render_show_more_less()}
         </div>

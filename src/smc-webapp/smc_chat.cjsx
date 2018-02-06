@@ -687,7 +687,7 @@ exports.ChatRoom = rclass ({name}) ->
 
     append_file: (file) ->
         if file.type.indexOf("image") isnt -1
-            final_insertion_text = "<img src=\".chat-images/#{file.name}\" width='60%'>"
+            final_insertion_text = "<img src=\".chat-images/#{file.name}\" width='100%'>"
         else
             final_insertion_text = "[#{file.name}](#{file.name})"
 

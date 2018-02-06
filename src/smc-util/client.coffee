@@ -1744,6 +1744,14 @@ class exports.Connection extends EventEmitter
                 else
                     cb?(undefined, tickets.tickets)
 
+    # This is probably just for testing -- it's used by the HTTP API, but websocket clients
+    # can just compute this themselves via results of DB query.
+    get_available_upgrades: (cb) =>
+        @call
+            message     : message.get_available_upgrades()
+            error_event : true
+            cb          : cb
+
     # Queries directly to the database (sort of like Facebook's GraphQL)
 
     projects: (opts) =>
@@ -1772,12 +1780,14 @@ class exports.Connection extends EventEmitter
 
     sync_string: (opts) =>
         opts = defaults opts,
-            id                : undefined
-            project_id        : required
-            path              : required
-            file_use_interval : 'default'
-            cursors           : false
-            patch_interval    : 1000
+            id                 : undefined
+            project_id         : required
+            path               : required
+            file_use_interval  : 'default'
+            cursors            : false
+            patch_interval     : 1000
+            before_change_hook : undefined
+            after_change_hook  : undefined
         opts.client = @
         return new syncstring.SyncString(opts)
 

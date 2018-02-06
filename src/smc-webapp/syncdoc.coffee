@@ -186,7 +186,7 @@ class SynchronizedDocument2 extends SynchronizedDocument
         @codemirror1 = @editor.codemirror1
         @element     = @editor.element
 
-        # window.w = @
+        window.w = @
 
         # replace undo/redo by sync-aware versions
         for cm in [@codemirror, @codemirror1]
@@ -208,10 +208,16 @@ class SynchronizedDocument2 extends SynchronizedDocument
 
         id = require('smc-util/schema').client_db.sha1(@project_id, @filename)
         @_syncstring = webapp_client.sync_string
-            id         : id
-            project_id : @project_id
-            path       : @filename
-            cursors    : true
+            id                 : id
+            project_id         : @project_id
+            path               : @filename
+            cursors            : true
+            before_change_hook : @_set_syncstring_to_codemirror
+            after_change_hook  : @_set_codemirror_to_syncstring
+
+        @_syncstring.once 'load-time-estimate', (est) ->
+            # TODO: do something with this.
+            #console.log 'load time estimate', est
 
         # This is important to debounce since above hash/getValue grows linearly in size of
         # document; also, we debounce instead of throttle, since we don't want to have this
@@ -257,7 +263,7 @@ class SynchronizedDocument2 extends SynchronizedDocument
                     if @_closed
                         return
                     #dbg("got upstream syncstring change: '#{misc.trunc_middle(@_syncstring.to_str(),400)}'")
-                    @_set_codemirror_to_syncstring()
+                    #@_set_codemirror_to_syncstring()
                     @emit('sync')
 
                 @_syncstring.on 'metadata-change', =>
@@ -265,12 +271,6 @@ class SynchronizedDocument2 extends SynchronizedDocument
                         return
                     update_unsaved_uncommitted_changes()
                     @_update_read_only()
-
-                @_syncstring.on 'before-change', =>
-                    if @_closed
-                        return
-                    #console.log("syncstring before change")
-                    @_set_syncstring_to_codemirror()
 
                 @_syncstring.on 'deleted', =>
                     if @_closed
@@ -301,22 +301,36 @@ class SynchronizedDocument2 extends SynchronizedDocument
                 @emit('connect')   # successful connection
                 cb?()  # done initializing document (this is used, e.g., in the SynchronizedWorksheet derived class).
 
+    _debug_sync_state: (info) =>
+        console.log "--- #{info}"
+        console.log "codemirror='#{@codemirror.getValue()}'"
+        console.log "syncstring='#{@_syncstring.to_str()}'"
+        if info == 'after' and @codemirror.getValue() != @_syncstring.to_str()
+            console.warn("BUG -- values are different!")
+
     # Set value of the syncstring to equal current value of the codemirror editor
     _set_syncstring_to_codemirror: =>
+        #console.log '_set_syncstring_to_codemirror'
+        #@_debug_sync_state('before')
         if not @_user_action
-            # console.log 'not setting due to no user action'
+            #console.log "not setting due to no user action"
             # user has not explicitly done anything, so there should be no changes.
             return
-        # console.log 'user action so setting'
+        #console.log 'user action so setting'
         @_user_action = false
         @_last_val = val = @codemirror.getValue()
         @_syncstring.from_str(val)
+        #@_debug_sync_state('after')
 
     # Set value of the codemirror editor to equal current value of the syncstring
     _set_codemirror_to_syncstring: =>
+        #console.log '_set_codemirror_to_syncstring'
+        #@_debug_sync_state('before')
         @_setting_from_syncstring = true
-        @codemirror.setValueNoJump(@_syncstring.to_str())
+        @_last_set = val = @_syncstring.to_str()
+        @codemirror.setValueNoJump(val)
         @_setting_from_syncstring = false
+        #@_debug_sync_state('after')
 
     has_unsaved_changes: =>
         if not @codemirror?
