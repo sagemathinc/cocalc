@@ -2443,4 +2443,29 @@ API message2
             desc : 'tells client that it should submit metrics to the hub every interval_s seconds'
 
 
+# Info about available upgrades for a given user
+API message2
+    event : 'get_available_upgrades'
+    fields:
+        id:
+           init  : undefined
+           desc  : 'A unique UUID for the query'
 
+# client <-- hub
+
+API message2
+    event : 'available_upgrades'
+    fields :
+        id:
+           init  : undefined
+           desc  : 'A unique UUID for the query'
+        total :
+            init : required
+            desc : 'info about the total upgrades that the user has purchased'
+        excess :
+            init : required
+            desc : 'info about upgrades where the total allocated exceeds what user has purchased'
+        available :
+            init : required
+            desc : 'how much of each purchased upgrade is available'
+    desc : 'See https://github.com/sagemathinc/cocalc/blob/master/src/smc-util/upgrade-spec.coffee for units'

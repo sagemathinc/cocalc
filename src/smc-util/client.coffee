@@ -1744,6 +1744,14 @@ class exports.Connection extends EventEmitter
                 else
                     cb?(undefined, tickets.tickets)
 
+    # This is probably just for testing -- it's used by the HTTP API, but websocket clients
+    # can just compute this themselves via results of DB query.
+    get_available_upgrades: (cb) =>
+        @call
+            message     : message.get_available_upgrades()
+            error_event : true
+            cb          : cb
+
     # Queries directly to the database (sort of like Facebook's GraphQL)
 
     projects: (opts) =>
