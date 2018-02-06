@@ -652,7 +652,6 @@ class exports.JupyterActions extends Actions
                 if misc.has_key(protected_key)
                     throw CellWriteProtectedException
         #@dbg("_set")("obj=#{misc.to_json(obj)}")
-        @syncdb.exit_undo_mode()
         @syncdb.set(obj, save)
         # ensure that we update locally immediately for our own changes.
         @_syncdb_change(immutable.fromJS([misc.copy_with(obj, ['id', 'type'])]))
@@ -674,7 +673,6 @@ class exports.JupyterActions extends Actions
         if obj.type == 'cell' and obj.id?
             if not @store.is_cell_deletable(obj.id)
                 throw CellDeleteProtectedException
-        @syncdb.exit_undo_mode()
         @syncdb.delete(obj, save)
         @_syncdb_change(immutable.fromJS([{type:obj.type, id:obj.id}]))
 

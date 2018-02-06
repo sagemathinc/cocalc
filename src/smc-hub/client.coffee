@@ -14,6 +14,7 @@ misc                 = require('smc-util/misc')
 {defaults, required, to_safe_str} = misc
 {JSON_CHANNEL}       = require('smc-util/client')
 message              = require('smc-util/message')
+compute_upgrades     = require('smc-util/upgrades')
 base_url_lib         = require('./base-url')
 access               = require('./access')
 clients              = require('./clients').get_clients()
@@ -2502,3 +2503,37 @@ class exports.Client extends EventEmitter
                 v.labels.account_id = @account_id
         client_metrics[@id] = metrics
         #dbg('RECORDED: ', misc.to_json(client_metrics[@id]))
+
+    mesg_get_available_upgrades: (mesg) =>
+        dbg = @dbg("mesg_get_available_upgrades")
+        locals = {}
+        async.series([
+            (cb) =>
+                dbg("get stripe id")
+                @stripe_get_customer_id @account_id, (err, id) =>
+                    locals.id = id
+                    cb(err)
+            (cb) =>
+                dbg("get stripe customer data")
+                @stripe_get_customer locals.id, (err, stripe_customer) =>
+                    locals.stripe_data = stripe_customer?.subscriptions?.data
+                    cb(err)
+            (cb) =>
+                dbg("get user project upgrades")
+                @database.get_user_project_upgrades
+                    account_id : @account_id
+                    cb         : (err, projects) =>
+                        locals.projects = projects
+                        cb(err)
+        ], (err) =>
+            if err
+                @error_to_client(id:mesg.id, error:err)
+            else
+                locals.x = compute_upgrades.available_upgrades(locals.stripe_data, locals.projects)
+                locals.resp = message.available_upgrades
+                    id        : mesg.id
+                    total     : compute_upgrades.get_total_upgrades(locals.stripe_data)
+                    excess    : locals.x.excess
+                    available : locals.x.available
+                @push_to_client(locals.resp)
+        )
