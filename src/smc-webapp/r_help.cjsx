@@ -36,7 +36,7 @@ misc = require('smc-util/misc')
 {Icon, Loading, Space, TimeAgo, UNIT, Footer} = require('./r_misc')
 {HelpEmailLink, SiteName, SiteDescription, PolicyPricingPageUrl} = require('./customize')
 {RECENT_TIMES, RECENT_TIMES_KEY} = require('smc-util/schema')
-{COLORS, HELP_EMAIL, WIKI_URL, TWITTER_HANDLE} = require('smc-util/theme')
+{COLORS, HELP_EMAIL, WIKI_URL, TWITTER_HANDLE, LIVE_DEMO_REQUEST, SITE_NAME} = require('smc-util/theme')
 {ComputeEnvironment} = require('./compute_environment')
 
 # List item style
@@ -287,6 +287,10 @@ ABOUT_LINKS =
         icon : 'cc-icon-section'
         link : 'Terms of Service, Pricing, Copyright and Privacy policies'
         href : "#{BASE_URL}/policies/index.html"
+    live_demo :
+        icon : 'comments-o'
+        link : "Request a live demo about how to teach a course"
+        href : LIVE_DEMO_REQUEST
     developers :
         icon : 'keyboard-o'
         text : <span>

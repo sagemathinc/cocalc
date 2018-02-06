@@ -21,6 +21,7 @@
 {React, rclass, rtypes}  = require('../smc-react')
 {Panel} = require('react-bootstrap')
 {Icon} = require('../r_misc')
+{SITE_NAME, LIVE_DEMO_REQUEST} = require('smc-util/theme')
 
 exports.HelpBox = rclass
     render: ->
@@ -29,7 +30,7 @@ exports.HelpBox = rclass
                 <ul>
                     <li>
                         <a href="https://tutorial.cocalc.com/" target="_blank">
-                            A tutorial for anyone wanting to use CoCalc for teaching
+                            A tutorial for anyone wanting to use CoCalc for teaching <Icon name='external-link'/>
                         </a> (by Mike Croucher)
                     </li>
                     <li>
@@ -43,6 +44,9 @@ exports.HelpBox = rclass
                     <li>
                         <a href="http://blog.ouseful.info/2015/11/24/course-management-and-collaborative-jupyter-notebooks-via-sagemathcloud/" target='_blank'>
                             Course Management and collaborative Jupyter Notebooks <Icon name='external-link'/></a> (by Tony Hirst)
+                    </li>
+                    <li>
+                        <a href={LIVE_DEMO_REQUEST} target={'_blank'}>Request a Live Demo <Icon name='external-link'/></a> (with a {SITE_NAME} specialist)
                     </li>
                 </ul>
             </span>
