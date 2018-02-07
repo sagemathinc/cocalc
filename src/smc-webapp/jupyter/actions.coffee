@@ -251,7 +251,8 @@ class exports.JupyterActions extends Actions
     # Set the input of the given cell in the syncdb, which will also change the store.
     # Might throw a CellWriteProtectedException
     set_cell_input: (id, input, save=true) =>
-        @_checked_set
+        return if @store.check_edit_protection(id, @)
+        @_set
             type  : 'cell'
             id    : id
             input : input
@@ -260,7 +261,7 @@ class exports.JupyterActions extends Actions
             save
 
     set_cell_output: (id, output, save=true) =>
-        @_checked_set
+        @_set
             type   : 'cell'
             id     : id
             output : output,
@@ -271,25 +272,21 @@ class exports.JupyterActions extends Actions
         v = @store.get_selected_cell_ids_list()
         for id in v
             cell = cells.get(id)
-            try
-                if cell.get('output')? or cell.get('exec_count')
-                    @_set({type:'cell', id:id, output:null, exec_count:null}, false)
-            catch ex
-                if ex is CellWriteProtectedException
-                    if v.length == 1
-                        @show_edit_protection_error()
-                else
-                    throw ex
+            if not @store.is_cell_editable(id)
+                if v.length == 1
+                    @show_edit_protection_error()
+                continue
+            if cell.get('output')? or cell.get('exec_count')
+                @_set({type:'cell', id:id, output:null, exec_count:null}, false)
         @_sync()
 
     clear_all_outputs: =>
         @store.get('cells').forEach (cell, id) =>
             if cell.get('output')? or cell.get('exec_count')
-                try
+                if not @store.is_cell_editable(id)
+                    @show_edit_protection_error()
+                else
                     @_set({type:'cell', id:id, output:null, exec_count:null}, false)
-                catch ex
-                    if ex isnt CellWriteProtectedException
-                        throw ex
             return
         @_sync()
 
@@ -319,9 +316,7 @@ class exports.JupyterActions extends Actions
     set_cell_type: (id, cell_type='code') =>
         if cell_type != 'markdown' and cell_type != 'raw' and cell_type != 'code'
             throw Error("cell type (='#{cell_type}') must be 'markdown', 'raw', or 'code'")
-        if not @store.is_cell_editable(id)
-            @show_edit_protection_error()
-            return
+        return if @store.check_edit_protection(id, @)
         obj =
             type      : 'cell'
             id        : id
@@ -347,8 +342,7 @@ class exports.JupyterActions extends Actions
         md_edit_ids = @store.get('md_edit_ids')
         if md_edit_ids.contains(id)
             return
-        if not @store.is_cell_editable(id)
-            throw CellWriteProtectedException
+        return if @store.check_edit_protection(id, @)
         @setState(md_edit_ids : md_edit_ids.add(id))
 
     set_md_cell_not_editing: (id) =>
@@ -358,14 +352,8 @@ class exports.JupyterActions extends Actions
         @setState(md_edit_ids : md_edit_ids.delete(id))
 
     change_cell_to_heading: (id, n=1) =>
-        try
-            @set_md_cell_editing(id)
-        catch ex
-            if ex is CellWriteProtectedException
-                @show_edit_protection_error()
-                return
-            else
-                throw ex
+        return if @store.check_edit_protection(id, @)
+        @set_md_cell_editing(id)
         @set_cell_type(id, 'markdown')
         input = misc.lstrip(@_get_cell_input(id))
         i = 0
@@ -658,15 +646,6 @@ class exports.JupyterActions extends Actions
         # ensure that we update locally immediately for our own changes.
         @_syncdb_change(immutable.fromJS([misc.copy_with(obj, ['id', 'type'])]))
 
-    _checked_set: (obj, save=true) =>
-        try
-            @_set(obj, save)
-        catch ex
-            if ex is CellWriteProtectedException
-                @show_edit_protection_error()
-            else
-                throw ex
-
     # might throw a CellDeleteProtectedException
     _delete: (obj, save=true) =>
         if @_state == 'closed'
@@ -732,13 +711,10 @@ class exports.JupyterActions extends Actions
             @move_cursor_before(selected[0])
         not_deletable = 0
         for id in selected
-            try
+            if not @store.is_cell_deletable(id)
+                not_deletable += 1
+            else
                 @_delete({type:'cell', id:id}, false)
-            catch ex
-                if ex is CellDeleteProtectedException
-                    not_deletable += 1
-                else
-                    throw ex
         if sync
             @_sync()
         if not_deletable > 0
