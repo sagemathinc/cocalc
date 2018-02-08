@@ -429,7 +429,7 @@ Assignment = rclass
         <div style={float:'right'}>
             <SkipCopy
                 assignment = {@props.assignment}
-                step       = step
+                step       = {step}
                 actions    = {@actions(@props.name)}
             />
         </div>
