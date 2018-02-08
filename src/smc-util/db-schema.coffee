@@ -154,6 +154,9 @@ schema.accounts =
         email_address_challenge :
             type : 'map'
             desc : 'Contains random token for verification of an address: {"email": "...", "token": <random>, "time" : <timestamp for timeout>}'
+        email_address_problem :
+            type : 'map'
+            desc : 'Describes a problem with a given email address. example: { "wrong@email.address" : { "type": "bounce", "time": "2018-...", "mesg": "554 5.7.1 <....>: Recipient address rejected: Access denied, user does not exist", "status": <status code>}}'
         passports       :
             type : 'map'
             desc : 'Map from string ("[strategy]-[id]") derived from passport name and id to the corresponding profile'
@@ -226,6 +229,7 @@ schema.accounts =
                 account_id             : null
                 email_address          : null
                 email_address_verified : null
+                email_address_problem  : null
                 editor_settings :
                     strip_trailing_whitespace : false
                     show_trailing_whitespace  : true
