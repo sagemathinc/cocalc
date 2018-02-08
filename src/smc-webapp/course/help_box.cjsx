@@ -21,28 +21,32 @@
 {React, rclass, rtypes}  = require('../smc-react')
 {Panel} = require('react-bootstrap')
 {Icon} = require('../r_misc')
+{SITE_NAME, LIVE_DEMO_REQUEST} = require('smc-util/theme')
 
 exports.HelpBox = rclass
     render: ->
         <Panel header={<h4><Icon name='question-circle' />  Help</h4>}>
-            <span style={color:"#666"}>
+            <span style={color:"#666", fontSize:'11pt'}>
                 <ul>
                     <li>
+                        <a href={LIVE_DEMO_REQUEST} target={'_blank'}>Request a live demo <Icon name='external-link'/></a> (with a {SITE_NAME} specialist)
+                    </li>
+                    <li>
                         <a href="https://tutorial.cocalc.com/" target="_blank">
-                            A tutorial for anyone wanting to use CoCalc for teaching
-                        </a> (by Mike Croucher)
+                            Tutorial for using CoCalc for teaching <Icon name='external-link'/>
+                        </a>
                     </li>
                     <li>
                         <a href="http://www.beezers.org/blog/bb/2015/09/grading-in-sagemathcloud/" target='_blank'>
-                            Grading Courses <Icon name='external-link'/></a> (by Rob Beezer)
+                            Grading courses <Icon name='external-link'/></a>
                     </li>
                     <li>
                         <a href="http://www.beezers.org/blog/bb/2016/01/pennies-a-day-for-sagemathcloud/" target="_blank">
-                            Course Plans and teaching experiences <Icon name='external-link'/></a> (by Rob Beezer)
+                            Course plans and teaching experiences <Icon name='external-link'/></a>
                     </li>
                     <li>
                         <a href="http://blog.ouseful.info/2015/11/24/course-management-and-collaborative-jupyter-notebooks-via-sagemathcloud/" target='_blank'>
-                            Course Management and collaborative Jupyter Notebooks <Icon name='external-link'/></a> (by Tony Hirst)
+                            Course management and collaborative Jupyter Notebooks <Icon name='external-link'/></a>
                     </li>
                 </ul>
             </span>
