@@ -26,7 +26,7 @@ misc = require('smc-util/misc')
 
 # React Libraries
 {React, rclass, rtypes} = require('../smc-react')
-{Alert, Button, ButtonToolbar, ButtonGroup, Input, Row, Col, Panel, Table} = require('react-bootstrap')
+{Alert, Button, ButtonToolbar, ButtonGroup, Input, FormGroup, FormControl, Row, Col, Panel, Table} = require('react-bootstrap')
 
 # CoCalc and course components
 util = require('./util')
@@ -247,8 +247,38 @@ Handout = rclass
 
     render_copy_cancel: (step) ->
         cancel = =>
-            @setState("copy_confirm_#{step}":false, "copy_confirm_all_#{step}":false, copy_confirm:false)
+            @setState(
+                "copy_confirm_#{step}"         : false
+                "copy_confirm_all_#{step}"     : false
+                copy_confirm                   : false
+                copy_handout_confirm_overwrite : false
+            )
         <Button key='cancel' onClick={cancel}>Cancel</Button>
+
+    render_copy_handout_confirm_overwrite: (step) ->
+        return if not @state.copy_handout_confirm_overwrite
+        <div style={marginTop:'15px'}>
+            Type in "OVERWRITE" if you are certain to replace the handout files of all students.
+            <FormGroup>
+                <FormControl
+                    autoFocus
+                    type        = 'text'
+                    ref         = 'copy_handout_confirm_overwrite_field'
+                    onChange    = {(e)=>@setState(copy_handout_confirm_overwrite_text : e.target.value)}
+                    style       = {marginTop : '1ex'}
+                />
+            </FormGroup>
+            <ButtonToolbar style={textAlign: 'center', marginTop: '15px'}>
+                <Button
+                    disabled = {@state.copy_handout_confirm_overwrite_text != 'OVERWRITE'}
+                    bsStyle  = 'danger'
+                    onClick  = {=>@copy_handout(step, false, true)}
+                >
+                    <Icon name='trash' /> Confirm replacing files
+                </Button>
+                {@render_copy_cancel(step)}
+            </ButtonToolbar>
+        </div>
 
     copy_handout: (step, new_only, overwrite) ->
         # handout to all (non-deleted) students
@@ -286,10 +316,15 @@ Handout = rclass
                 {@copy_confirm_all_caution(step)}
             </div>
             <ButtonToolbar>
-                <Button key='all' bsStyle='warning' onClick={=>@copy_handout(step, false)}>Yes, do it</Button>
-                <Button key='all-overwrite' bsStyle='danger' onClick={=>@copy_handout(step, false, true)}>Replace student files!</Button>
+                <Button key='all' bsStyle='warning'
+                    onClick={=>@copy_handout(step, false)}
+                >Yes, do it</Button>
+                <Button key='all-overwrite' bsStyle='danger'
+                    onClick={=>@setState(copy_handout_confirm_overwrite:true)}
+                >Replace student files!</Button>
                 {@render_copy_cancel(step)}
             </ButtonToolbar>
+            {@render_copy_handout_confirm_overwrite(step)}
         </div>
 
     render_copy_confirm_to_all_or_new: (step, status) ->

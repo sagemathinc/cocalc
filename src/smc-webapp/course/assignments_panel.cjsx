@@ -402,15 +402,45 @@ Assignment = rclass
 
     render_copy_cancel: (step) ->
         cancel = =>
-            @setState("copy_confirm_#{step}":false, "copy_confirm_all_#{step}":false, copy_confirm:false)
+            @setState(
+                "copy_confirm_#{step}"            : false
+                "copy_confirm_all_#{step}"        : false
+                copy_confirm                      : false
+                copy_assignment_confirm_overwrite : false
+            )
         <Button key='cancel' onClick={cancel}>Close</Button>
+
+    render_copy_assignment_confirm_overwrite: (step) ->
+        return if not @state.copy_assignment_confirm_overwrite
+        <div style={marginTop:'15px'}>
+            Type in "OVERWRITE" if you are certain to replace the assignment files of all students.
+            <FormGroup>
+                <FormControl
+                    autoFocus
+                    type        = 'text'
+                    ref         = 'copy_assignment_confirm_overwrite_field'
+                    onChange    = {(e)=>@setState(copy_assignment_confirm_overwrite_text : e.target.value)}
+                    style       = {marginTop : '1ex'}
+                />
+            </FormGroup>
+            <ButtonToolbar style={textAlign: 'center', marginTop: '15px'}>
+                <Button
+                    disabled = {@state.copy_assignment_confirm_overwrite_text != 'OVERWRITE'}
+                    bsStyle  = 'danger'
+                    onClick  = {=>@copy_assignment(step, false, true)}
+                >
+                    <Icon name='trash' /> Confirm replacing files
+                </Button>
+                {@render_copy_cancel(step)}
+            </ButtonToolbar>
+        </div>
 
     copy_assignment: (step, new_only, overwrite) ->
         # assign assignment to all (non-deleted) students
         actions = @props.redux.getActions(@props.name)
         switch step
             when 'assignment'
-                actions.copy_assignment_to_all_students(@props.assignment, new_only, overwrite)
+                actions.copy_assignment_to_all_students(@props.assignment, new_only)
             when 'collect'
                 actions.copy_assignment_from_all_students(@props.assignment, new_only)
             when 'peer_assignment'
@@ -472,13 +502,22 @@ Assignment = rclass
                 {@copy_confirm_all_caution(step)}
             </div>
             <ButtonToolbar>
-                <Button key='all' bsStyle='warning' onClick={=>@copy_assignment(step, false)}>Yes, do it</Button>
+                <Button key='all' bsStyle='warning'
+                    disabled={@state.copy_assignment_confirm_overwrite}
+                    onClick={=>@copy_assignment(step, false)}
+                >Yes, do it</Button>
                 {
                     if step == 'assignment'
-                        <Button key='all-overwrite' bsStyle='danger' onClick={=>@copy_assignment(step, false, true)}>Replace student files!</Button>
+                        <Button
+                            key='all-overwrite'
+                            bsStyle='danger'
+                            onClick={=>@setState(copy_assignment_confirm_overwrite:true)}
+                            disabled={@state.copy_assignment_confirm_overwrite}
+                        >Replace student files!</Button>
                 }
                 {@render_copy_cancel(step)}
             </ButtonToolbar>
+            {@render_copy_assignment_confirm_overwrite(step)}
         </div>
 
     render_copy_confirm_to_all_or_new: (step, status) ->
