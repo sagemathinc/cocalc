@@ -266,7 +266,7 @@ FreeProjectWarning = rclass ({name}) ->
             marginBottom : 0
             fontSize     : "#{font_size}pt"
 
-        if font_size > 14 # only get obnoxious after a while...
+        if host
             styles.color      = 'white'
             styles.background = 'red'
 
@@ -279,11 +279,11 @@ FreeProjectWarning = rclass ({name}) ->
         ###
 
         if host and internet
-            mesg = <span>Time to upgrade this project, since it is on an <b>unpaid trial server</b> and has no network access.</span>
+            mesg = <span>Upgrade this project.  It is on an <b>unpaid trial server</b> and has no network access.  Expect very bad performance.</span>
         else if host
-            mesg = <span>Time to upgrade this project, since it is on an <b>unpaid trial server</b>.</span>
+            mesg = <span>Upgrade this project.  It is on an <b>unpaid trial server</b>. Expect very bad performance.</span>
         else if internet
-            mesg = <span>WARNING: this project does not have network access.</span>
+            mesg = <span>This project does not have network access.</span>
 
         <Alert bsStyle='warning' style={styles}>
             <Icon name='exclamation-triangle' style={float:'right', marginTop: '3px'}/>

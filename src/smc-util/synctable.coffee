@@ -100,7 +100,7 @@ schema         = require('./schema')
 {defaults, required} = misc
 
 is_fatal = (err) ->
-    return typeof(err) == 'string' and err.slice(0,5) == 'FATAL'
+    return typeof(err) == 'string' and err.slice(0,5) == 'FATAL' and err.indexOf('tracker') == -1  # TODO: tracker part is temporary workaround -- remove
 
 # We represent synchronized tables by an immutable.js mapping from the primary
 # key to the object.  Since PostgresQL primary keys can be compound (more than
@@ -161,8 +161,8 @@ class Plug
         misc.retry_until_success
             f           : @__try_to_connect_once
             log         : dbg
-            start_delay : 10000
-            max_delay   : 30000
+            start_delay : 3000
+            max_delay   : 12000
             cb          : =>
                 delete @_is_connecting
                 dbg("success!")
@@ -314,6 +314,7 @@ class SyncTable extends EventEmitter
                     console.warn('setting up changefeed', @_table, err)
                     @close(true)
                     cb?(err)
+                    cb = undefined
                     return
 
                 if first_resp
@@ -576,6 +577,7 @@ class SyncTable extends EventEmitter
                         console.warn('FATAL doing set', @_table, err)
                         @close(true)
                         cb?(err)
+                        cb = undefined
                         return
 
                     console.warn("_save('#{@_table}') error:", err)

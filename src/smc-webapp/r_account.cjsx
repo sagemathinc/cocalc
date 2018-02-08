@@ -34,6 +34,8 @@ md5 = require('md5')
 
 misc       = require('smc-util/misc')
 
+smc_version = require('smc-util/smc-version')
+
 {webapp_client} = require('./webapp_client')
 
 {PROJECT_UPGRADES} = require('smc-util/schema')
@@ -1110,7 +1112,7 @@ OtherSettings = rclass
             checked  = {!!@props.other_settings.time_ago_absolute}
             ref      = 'time_ago_absolute'
             onChange = {(e)=>@on_change('time_ago_absolute', e.target.checked)}>
-            Display timestamps as absolute points in time – otherwise they are relative to the current time. (This toggle does not yet work yet for some views, including TimeTravel.)
+            Display timestamps as absolute points in time – otherwise they are relative to the current time.
         </Checkbox>
 
     render_confirm: ->
@@ -1349,12 +1351,6 @@ SiteSettings = rclass
         if @state.error
             <ErrorDisplay error={@state.error} onClose={=>@setState(error:'')} />
 
-    render: ->
-        <div>
-            {@render_main()}
-            {@render_error()}
-        </div>
-
     load: ->
         @setState(state:'load')
         webapp_client.query
@@ -1396,15 +1392,26 @@ SiteSettings = rclass
     render_save_button: ->
         <Button onClick={@save}>Save</Button>
 
+    render_version_hint: (value) ->
+        if new Date(parseInt(value)*1000) > new Date()
+            error = <div style={background:'red', color:'white', margin:'15px', padding:'15px'}>INVALID version - it is in the future!!</div>
+        else
+            error = undefined
+        <div style={marginTop:'15px', color:'#666'}>
+            Your browser version: <pre style={background: 'white', fontSize: '10pt'}>{smc_version.version}</pre>
+            {error}
+        </div>
+
     render_row: (name, value) ->
         if not value?
             value = site_settings_conf[name].default
         conf = site_settings_conf[name]
         label = <Tip key={name} title={conf.name} tip={conf.desc}>{conf.name}</Tip>
-        <LabeledRow key={name} label={label}>
+        <LabeledRow label={label} key={name}>
             <FormGroup>
                 <FormControl ref={name} type='text' value={value}
                     onChange={=>e = misc.copy(@state.edited); e[name]=ReactDOM.findDOMNode(@refs[name]).value; @setState(edited:e)} />
+                {@render_version_hint(value) if name == 'version_recommended_browser'}
             </FormGroup>
         </LabeledRow>
 
@@ -1425,6 +1432,12 @@ SiteSettings = rclass
                 <div>Saving site configuration...</div>
             when 'load'
                 <div>Loading site configuration...</div>
+
+    render: ->
+        <div>
+            {@render_main()}
+            {@render_error()}
+        </div>
 
 SystemMessage = rclass
     displayName : 'Account-SystemMessage'

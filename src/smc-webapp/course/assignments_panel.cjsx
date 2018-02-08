@@ -23,6 +23,7 @@
 misc = require('smc-util/misc')
 {defaults, required} = misc
 {webapp_client} = require('../webapp_client')
+{COLORS} = require('smc-util/theme')
 
 # React libraries
 {React, rclass, rtypes} = require('../smc-react')
@@ -35,6 +36,8 @@ styles = require('./styles')
 {STEPS, step_direction, step_verb, step_ready} = util
 {BigTime, FoldersToolbar, StudentAssignmentInfo, StudentAssignmentInfoHeader} = require('./common')
 
+{Progress} = require('./progress')
+{SkipCopy} = require('./skip')
 
 exports.AssignmentsPanel = rclass ({name}) ->
     displayName : "CourseEditorAssignments"
@@ -269,7 +272,7 @@ Assignment = rclass
                     <Col md=6 key='delete'>
                         <Row>
                             <Col md=7>
-                                {@render_peer_button()}
+                                {@render_peer_button(status)}
                             </Col>
                             <Col md=5>
                                 <span className='pull-right'>
@@ -359,17 +362,31 @@ Assignment = rclass
             </Button>
         </Tip>
 
-    render_assignment_button: ->
-        bsStyle = if (@props.assignment.get('last_assignment')?.size ? 0) == 0 then "primary" else "warning"
-        <Button key='assign'
-                bsStyle  = {bsStyle}
-                onClick  = {=>@setState(copy_confirm_assignment:true, copy_confirm:true)}
-                disabled = {@state.copy_confirm}>
-            <Tip title={<span>Assign: <Icon name='user-secret'/> You <Icon name='long-arrow-right' />  <Icon name='users' /> Students </span>}
-                 tip="Copy the files for this assignment from this project to all other student projects.">
-                <Icon name="share-square-o" /> Assign...
-            </Tip>
-        </Button>
+    render_assignment_button: (status) ->
+        if (@props.assignment.get('last_assignment')?.size ? 0) == 0
+            bsStyle = "primary"
+        else
+            bsStyle = "warning"
+        if status.assignment > 0 and status.not_assignment == 0
+            bsStyle = "success"
+
+        [
+            <Button key='assign'
+                    bsStyle  = {bsStyle}
+                    onClick  = {=>@setState(copy_confirm_assignment:true, copy_confirm:true)}
+                    disabled = {@state.copy_confirm}>
+                <Tip title={<span>Assign: <Icon name='user-secret'/> You <Icon name='long-arrow-right' />  <Icon name='users' /> Students </span>}
+                     tip="Copy the files for this assignment from this project to all other student projects.">
+                    <Icon name="share-square-o" /> Assign...
+                </Tip>
+            </Button>,
+            <Progress
+                key      = 'progress'
+                done     = {status.assignment}
+                not_done = {status.not_assignment}
+                step     = 'assigned'
+                />
+        ]
 
     render_copy_confirms: (status) ->
         steps = STEPS(@props.assignment.get('peer_grade')?.get('enabled'))
@@ -386,7 +403,7 @@ Assignment = rclass
     render_copy_cancel: (step) ->
         cancel = =>
             @setState("copy_confirm_#{step}":false, "copy_confirm_all_#{step}":false, copy_confirm:false)
-        <Button key='cancel' onClick={cancel}>Cancel</Button>
+        <Button key='cancel' onClick={cancel}>Close</Button>
 
     copy_assignment: (step, new_only, overwrite) ->
         # assign assignment to all (non-deleted) students
@@ -406,12 +423,24 @@ Assignment = rclass
                 console.log("BUG -- unknown step: #{step}")
         @setState("copy_confirm_#{step}":false, "copy_confirm_all_#{step}":false, copy_confirm:false)
 
+    render_skip: (step) ->
+        if step == 'return_graded'
+            return
+        <div style={float:'right'}>
+            <SkipCopy
+                assignment = {@props.assignment}
+                step       = step
+                actions    = {@actions(@props.name)}
+            />
+        </div>
+
     render_copy_confirm_to_all: (step, status) ->
         n = status["not_#{step}"]
         <Alert bsStyle='warning' key="#{step}_confirm_to_all", style={marginTop:'15px'}>
             <div style={marginBottom:'15px'}>
                 {misc.capitalize(step_verb(step))} this homework {step_direction(step)} the {n} student{if n>1 then "s" else ""}{step_ready(step, n)}?
             </div>
+            {@render_skip(step)}
             <ButtonToolbar>
                 <Button key='yes' bsStyle='primary' onClick={=>@copy_assignment(step, false)} >Yes</Button>
                 {@render_copy_cancel(step)}
@@ -459,6 +488,7 @@ Assignment = rclass
             <div style={marginBottom:'15px'}>
                 {misc.capitalize(step_verb(step))} this homework {step_direction(step)}...
             </div>
+            {@render_skip(step)}
             <ButtonToolbar>
                 <Button key='all' bsStyle='danger' onClick={=>@setState("copy_confirm_all_#{step}":true, copy_confirm:true)}
                         disabled={@state["copy_confirm_all_#{step}"]} >
@@ -482,19 +512,30 @@ Assignment = rclass
             return
         if status.collect > 0
             # Have already collected something
-            bsStyle = 'warning'
+            if status.not_collect == 0
+                bsStyle = "success"
+            else
+                bsStyle = 'warning'
         else
             bsStyle = 'primary'
-        <Button key='collect'
-                onClick  = {=>@setState(copy_confirm_collect:true, copy_confirm:true)}
-                disabled = {@state.copy_confirm}
-                bsStyle={bsStyle} >
-            <Tip
-                title={<span>Collect: <Icon name='users' /> Students <Icon name='long-arrow-right' /> <Icon name='user-secret'/> You</span>}
-                tip = {@render_collect_tip(bsStyle=='warning')}>
-                <Icon name="share-square-o" rotate={"180"} /> Collect...
-            </Tip>
-        </Button>
+        [
+            <Button key='collect'
+                    onClick  = {=>@setState(copy_confirm_collect:true, copy_confirm:true)}
+                    disabled = {@state.copy_confirm}
+                    bsStyle={bsStyle} >
+                <Tip
+                    title={<span>Collect: <Icon name='users' /> Students <Icon name='long-arrow-right' /> <Icon name='user-secret'/> You</span>}
+                    tip = {@render_collect_tip(bsStyle=='warning')}>
+                    <Icon name="share-square-o" rotate={"180"} /> Collect...
+                </Tip>
+            </Button>,
+            <Progress
+                key      = 'progress'
+                done     = {status.collect}
+                not_done = {status.not_collect}
+                step     = 'collected'
+                />
+        ]
 
     render_peer_assign_tip: (warning) ->
         <span key='normal'>
@@ -513,22 +554,33 @@ Assignment = rclass
         if status.collect == 0
             # nothing to peer assign
             return
-        if status.peer_assignment == 0
+        if status.peer_assignment > 0
             # haven't peer-assigned anything yet
-            bsStyle = 'primary'
+            if status.not_peer_assignment == 0
+                bsStyle = 'success'
+            else
+                bsStyle = 'warning'
         else
             # warning, since we have assigned already and this may overwrite
-            bsStyle = 'warning'
-        <Button key='peer-assign'
-                onClick  = {=>@setState(copy_confirm_peer_assignment:true, copy_confirm:true)}
-                disabled = {@state.copy_confirm}
-                bsStyle  = {bsStyle} >
-            <Tip
-                title={<span>Peer Assign: <Icon name='users' /> You <Icon name='long-arrow-right' /> <Icon name='user-secret'/> Students</span>}
-                tip = {@render_peer_assign_tip(bsStyle=='warning')}>
-                    <Icon name="share-square-o" /> Peer Assign...
-            </Tip>
-        </Button>
+            bsStyle = 'primary'
+        [
+            <Button key='peer-assign'
+                    onClick  = {=>@setState(copy_confirm_peer_assignment:true, copy_confirm:true)}
+                    disabled = {@state.copy_confirm}
+                    bsStyle  = {bsStyle} >
+                <Tip
+                    title={<span>Peer Assign: <Icon name='users' /> You <Icon name='long-arrow-right' /> <Icon name='user-secret'/> Students</span>}
+                    tip = {@render_peer_assign_tip(bsStyle=='warning')}>
+                        <Icon name="share-square-o" /> Peer Assign...
+                </Tip>
+            </Button>,
+            <Progress
+                key      = 'progress'
+                done     = {status.peer_assignment}
+                not_done = {status.not_peer_assignment}
+                step     = 'peer assigned'
+                />
+        ]
 
     render_peer_collect_tip: (warning) ->
         <span key='normal'>
@@ -546,39 +598,55 @@ Assignment = rclass
         if status.not_peer_assignment > 0
             # everybody must have received peer assignment, or collecting isn't allowed
             return
-        if status.peer_collect == 0
+        if status.peer_collect > 0
             # haven't peer-collected anything yet
-            bsStyle = 'primary'
+            if status.not_peer_collect == 0
+                bsStyle = 'success'
+            else
+                bsStyle = 'warning'
         else
             # warning, since we have already collected and this may overwrite
-            bsStyle = 'warning'
-        <Button key='peer-collect'
-                onClick  = {=>@setState(copy_confirm_peer_collect:true, copy_confirm:true)}
-                disabled = {@state.copy_confirm}
-                bsStyle  = {bsStyle} >
-            <Tip
-                title={<span>Peer Collect: <Icon name='users' /> Students <Icon name='long-arrow-right' /> <Icon name='user-secret'/> You</span>}
-                tip = {@render_peer_collect_tip(bsStyle=='warning')}>
-                    <Icon name="share-square-o" rotate="180"/> Peer Collect...
-            </Tip>
-        </Button>
+            bsStyle = 'primary'
+        [
+            <Button key='peer-collect'
+                    onClick  = {=>@setState(copy_confirm_peer_collect:true, copy_confirm:true)}
+                    disabled = {@state.copy_confirm}
+                    bsStyle  = {bsStyle} >
+                <Tip
+                    title={<span>Peer Collect: <Icon name='users' /> Students <Icon name='long-arrow-right' /> <Icon name='user-secret'/> You</span>}
+                    tip = {@render_peer_collect_tip(bsStyle=='warning')}>
+                        <Icon name="share-square-o" rotate="180"/> Peer Collect...
+                </Tip>
+            </Button>,
+            <Progress
+                key      = 'progress'
+                done     = {status.peer_collect}
+                not_done = {status.not_peer_collect}
+                step     = 'peer collected'
+                />
+        ]
 
     return_assignment: ->
         # Assign assignment to all (non-deleted) students.
         @props.redux.getActions(@props.name).return_assignment_to_all_students(@props.assignment)
 
+    toggle_skip_grading: ->
+        @actions(@props.name).set_skip(@props.assignment, 'grading', not @props.assignment.get('skip_grading'))
+
     render_skip_grading_button: (status) ->
         if status.collect == 0
             # No button if nothing collected.
             return
-        if @props.assignment.get('skip_grading') ? false
+        is_skip_grading = @props.assignment.get('skip_grading') ? false
+        if is_skip_grading
             icon = 'check-square-o'
         else
             icon = 'square-o'
         <Button
-            onClick={=>@actions(@props.name).toggle_skip_grading(@props.assignment.get('assignment_id'))}>
+            onClick={@toggle_skip_grading} >
             <Icon name={icon} /> Skip Grading
         </Button>
+
 
     render_return_graded_button: (status) ->
         if status.collect == 0
@@ -593,18 +661,30 @@ Assignment = rclass
             return
         if status.return_graded > 0
             # Have already returned some
-            bsStyle = "warning"
+            if status.not_return_graded == 0
+                bsStyle = 'success'
+            else
+                bsStyle = "warning"
         else
             bsStyle = "primary"
-        <Button key='return'
-            onClick  = {=>@setState(copy_confirm_return_graded:true, copy_confirm:true)}
-            disabled = {@state.copy_confirm}
-            bsStyle  = {bsStyle} >
-            <Tip title={<span>Return: <Icon name='user-secret'/> You <Icon name='long-arrow-right' />  <Icon name='users' /> Students </span>}
-                 tip="Copy the graded versions of files for this assignment from this project to all other student projects.">
-                <Icon name="share-square-o" /> Return...
-            </Tip>
-        </Button>
+        [
+            <Button key='return'
+                onClick  = {=>@setState(copy_confirm_return_graded:true, copy_confirm:true)}
+                disabled = {@state.copy_confirm}
+                bsStyle  = {bsStyle} >
+                <Tip title={<span>Return: <Icon name='user-secret'/> You <Icon name='long-arrow-right' />  <Icon name='users' /> Students </span>}
+                     tip="Copy the graded versions of files for this assignment from this project to all other student projects.">
+                    <Icon name="share-square-o" /> Return...
+                </Tip>
+            </Button>,
+            <Progress
+                key      = 'progress'
+                done     = {status.return_graded}
+                not_done = {status.not_return_graded}
+                step     = 'returned'
+                />
+        ]
+
 
     delete_assignment: ->
         @props.redux.getActions(@props.name).delete_assignment(@props.assignment)
@@ -729,7 +809,7 @@ Assignment = rclass
 
         </Alert>
 
-    render_peer_button: ->
+    render_peer_button: (status) ->
         if @props.assignment.get('peer_grade')?.get('enabled')
             icon = 'check-square-o'
         else

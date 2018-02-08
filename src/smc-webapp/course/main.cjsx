@@ -207,17 +207,25 @@ CourseEditor = rclass ({name}) ->
 
     render_settings: ->
         if @props.redux? and @props.settings?
-            <SettingsPanel redux={@props.redux} settings={@props.settings}
-                      name={@props.name} project_id={@props.project_id}
-                      path={@props.path}
-                      project_map={@props.project_map} />
+            <SettingsPanel
+                redux             = {@props.redux}
+                settings          = {@props.settings}
+                name              = {@props.name}
+                project_id        = {@props.project_id}
+                path              = {@props.path}
+                shared_project_id = {@props.settings?.get('shared_project_id')}
+                project_map       = {@props.project_map}
+            />
         else
             return <Loading />
 
     render_shared_project: ->
         if @props.redux? and @props.settings?
-            <SharedProjectPanel redux={@props.redux} name={@props.name}
-                shared_project_id={@props.settings?.get('shared_project_id')}/>
+            <SharedProjectPanel
+                redux             = {@props.redux} 
+                name              = {@props.name}
+                shared_project_id = {@props.settings?.get('shared_project_id')}
+            />
         else
             return <Loading />
 

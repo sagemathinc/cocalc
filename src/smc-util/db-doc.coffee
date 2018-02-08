@@ -577,6 +577,7 @@ class exports.SyncDB extends EventEmitter
         @_doc.on('metadata-change', => @emit('metadata-change'))
         @_doc.on('before-change', => @emit('before-change'))
         @_doc.on('sync', => @emit('sync'))
+        @_doc.on('load-time-estimate', (args...) => @emit('load-time-estimate', args...))
         if opts.cursors
             @_doc.on('cursor_activity', (args...) => @emit('cursor_activity', args...))
         @_doc.on('connected', => @emit('connected'))
@@ -652,6 +653,7 @@ class exports.SyncDB extends EventEmitter
         return
 
     set_doc: (value) =>
+        @exit_undo_mode()
         @_check()
         @_doc.set_doc(value)
         return
@@ -670,6 +672,7 @@ class exports.SyncDB extends EventEmitter
     # change (or create) exactly *one* database entry that matches
     # the given where criterion.
     set: (obj, save=true) =>
+        @exit_undo_mode()
         doc = @_doc?.get_doc()
         if not doc?   # see https://github.com/sagemathinc/cocalc/issues/2130
             return
@@ -703,6 +706,7 @@ class exports.SyncDB extends EventEmitter
 
     # delete everything that matches the given criterion; returns number of deleted items
     delete: (where, save=true) =>
+        @exit_undo_mode()
         if not @_doc?
             return
         d = @_doc.get_doc()
@@ -777,8 +781,7 @@ class exports.SyncDB extends EventEmitter
         return
 
     exit_undo_mode: =>
-        @_check()
-        @_doc.exit_undo_mode()
+        @_doc?.exit_undo_mode()
 
     in_undo_mode: =>
         @_check()

@@ -185,15 +185,25 @@ exports.Loading = Loading = rclass
     displayName : 'Misc-Loading'
 
     propTypes :
-        style  : rtypes.object
-        text   : rtypes.string
+        style    : rtypes.object
+        text     : rtypes.string
+        estimate : rtypes.immutable.Map  # {time:[time in seconds], type:['new', 'ready', 'archived']}
 
     getDefaultProps : ->
         text   : 'Loading...'
 
+    render_estimate: ->
+        if @props.estimate?
+            <div>
+                Loading '{@props.estimate.get('type')}' file.
+                <br/>
+                Estimated time: {@props.estimate.get('time')}s
+            </div>
+
     render: ->
         <span style={@props.style}>
             <span><Icon name='cc-icon-cocalc-ring' spin /> {@props.text}</span>
+            {@render_estimate()}
         </span>
 
 exports.Saving = Saving = rclass
@@ -1126,22 +1136,22 @@ exports.DateTimePicker = rclass
         on_blur     : rtypes.func
         autoFocus   : rtypes.bool
         onKeyDown   : rtypes.func
-        defaultOpen : rtypes.string
+        defaultOpen : rtypes.oneOf([false, 'time', 'date'])
 
     getDefaultProps: ->
         defaultOpen : 'date'
 
     render: ->
         <DateTimePicker
-            step       = {60}
-            editFormat = {'MMM d, yyyy h:mm tt'}
-            format     = {'MMM d, yyyy h:mm tt'}
-            parse      = {DATETIME_PARSE_FORMATS}
-            value      = {@props.value}
-            onChange   = {@props.on_change}
-            onFocus    = {@props.on_focus}
-            onBlur     = {@props.on_blur}
-            autoFocus  = {@props.autoFocus}
+            step        = {60}
+            editFormat  = {'MMM d, yyyy h:mm tt'}
+            format      = {'MMM d, yyyy h:mm tt'}
+            parse       = {DATETIME_PARSE_FORMATS}
+            value       = {@props.value}
+            onChange    = {@props.on_change}
+            onFocus     = {@props.on_focus}
+            onBlur      = {@props.on_blur}
+            autoFocus   = {@props.autoFocus}
             defaultOpen = {@props.defaultOpen}
         />
 
