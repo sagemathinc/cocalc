@@ -31,8 +31,6 @@ os_path        = require('path')
 {webapp_client} = require('./webapp_client')
 {COLORS}        = require('smc-util/theme')
 
-{LIBRARY}       = require('project_store')
-
 # used for some styles
 HEIGHT = '275px'
 

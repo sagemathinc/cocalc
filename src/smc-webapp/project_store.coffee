@@ -94,7 +94,7 @@ FROM_WEB_TIMEOUT_S = 45
 
 # src: where the library files are
 # start: open this file after copying the directory
-exports.LIBRARY = LIBRARY =
+LIBRARY =
     first_steps :
         src    : '/ext/library/first-steps/src'
         start  : 'first-steps.tasks'
