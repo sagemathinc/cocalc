@@ -80,7 +80,7 @@
   "devDependencies": {
     "babel-core": "^6.26.0",
     "babel-register": "^6.26.0",
-    "cjsx-register": "^1.0.3",
+    "cjsx-register": "^1.0.5",
     "coffeelint": "^2.0.7",
     "coffeescript": "^2.1.0",
     "expect": "^21.0.0",
