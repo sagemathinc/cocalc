@@ -453,6 +453,7 @@ exports.copy = (obj) ->
     return r
 
 # copy of map but without some keys
+# I.e., restrict a function to the complement of a subset of the domain.
 exports.copy_without = (obj, without) ->
     if typeof(without) == 'string'
         without = [without]
@@ -463,6 +464,7 @@ exports.copy_without = (obj, without) ->
     return r
 
 # copy of map but only with some keys
+# I.e., restrict a function to a subset of the domain.
 exports.copy_with = (obj, w) ->
     if typeof(w) == 'string'
         w = [w]

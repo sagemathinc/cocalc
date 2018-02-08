@@ -14,6 +14,7 @@ misc                 = require('smc-util/misc')
 {defaults, required, to_safe_str} = misc
 {JSON_CHANNEL}       = require('smc-util/client')
 message              = require('smc-util/message')
+compute_upgrades     = require('smc-util/upgrades')
 base_url_lib         = require('./base-url')
 access               = require('./access')
 clients              = require('./clients').get_clients()
@@ -22,7 +23,6 @@ auth_token           = require('./auth-token')
 password             = require('./password')
 local_hub_connection = require('./local_hub_connection')
 sign_in              = require('./sign-in')
-smc_version          = require('./hub-version')
 hub_projects         = require('./projects')
 {get_stripe}         = require('./stripe/connect')
 {get_support}        = require('./support')
@@ -1458,12 +1458,14 @@ class exports.Client extends EventEmitter
         # The version of the client...
         @smc_version = mesg.version
         @dbg('mesg_version')("client.smc_version=#{mesg.version}")
-        if mesg.version < smc_version.version
+        {version} = require('./server-settings')(@database)
+        if mesg.version < version.version_recommended_browser ? 0
             @push_version_update()
 
     push_version_update: =>
-        @push_to_client(message.version(version:smc_version.version, min_version:smc_version.min_browser_version))
-        if smc_version.min_browser_version and @smc_version and @smc_version < smc_version.min_browser_version
+        {version} = require('./server-settings')(@database)
+        @push_to_client(message.version(version:version.version_recommended_browser, min_version:version.version_min_browser))
+        if version.version_min_browser and @smc_version < version.version_min_browser
             # Client is running an unsupported bad old version.
             # Brutally disconnect client!  It's critical that they upgrade, since they are
             # causing problems or have major buggy code.
@@ -2502,3 +2504,37 @@ class exports.Client extends EventEmitter
                 v.labels.account_id = @account_id
         client_metrics[@id] = metrics
         #dbg('RECORDED: ', misc.to_json(client_metrics[@id]))
+
+    mesg_get_available_upgrades: (mesg) =>
+        dbg = @dbg("mesg_get_available_upgrades")
+        locals = {}
+        async.series([
+            (cb) =>
+                dbg("get stripe id")
+                @stripe_get_customer_id @account_id, (err, id) =>
+                    locals.id = id
+                    cb(err)
+            (cb) =>
+                dbg("get stripe customer data")
+                @stripe_get_customer locals.id, (err, stripe_customer) =>
+                    locals.stripe_data = stripe_customer?.subscriptions?.data
+                    cb(err)
+            (cb) =>
+                dbg("get user project upgrades")
+                @database.get_user_project_upgrades
+                    account_id : @account_id
+                    cb         : (err, projects) =>
+                        locals.projects = projects
+                        cb(err)
+        ], (err) =>
+            if err
+                @error_to_client(id:mesg.id, error:err)
+            else
+                locals.x = compute_upgrades.available_upgrades(locals.stripe_data, locals.projects)
+                locals.resp = message.available_upgrades
+                    id        : mesg.id
+                    total     : compute_upgrades.get_total_upgrades(locals.stripe_data)
+                    excess    : locals.x.excess
+                    available : locals.x.available
+                @push_to_client(locals.resp)
+        )

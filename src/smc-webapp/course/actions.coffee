@@ -904,12 +904,11 @@ exports.CourseActions = class CourseActions extends Actions
             cur[k] = v
         @_set_assignment_field(assignment, 'peer_grade', cur)
 
-    toggle_skip_grading: (assignment_id) =>
+    set_skip: (assignment, step, value) =>
         store = @get_store()
         return if not store?
-        assignment = store.get_assignment(assignment_id)
-        cur = assignment.get('skip_grading') ? false
-        @_set_assignment_field(assignment_id, 'skip_grading', !cur)
+        assignment = store.get_assignment(assignment)  # just in case is an id
+        @_set_assignment_field(assignment.get('assignment_id'), "skip_#{step}", !!value)
 
     # Synchronous function that makes the peer grading map for the given
     # assignment, if it hasn't already been made.

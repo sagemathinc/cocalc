@@ -322,12 +322,14 @@ exports.StudentAssignmentInfo = rclass
     render: ->
         peer_grade = @props.assignment.get('peer_grade')?.get('enabled')
         skip_grading = @props.assignment.get('skip_grading') ? false
+        skip_assignment = @props.assignment.get('skip_assignment')
+        skip_collect = @props.assignment.get('skip_collect')
         if peer_grade
             show_grade_col = !skip_grading and @props.info.last_peer_collect
             show_return_graded = @props.grade or (skip_grading and @props.info.last_peer_collect)
         else
-            show_grade_col = !skip_grading and @props.info.last_collect
-            show_return_graded = @props.grade or (skip_grading and @props.info.last_collect)
+            show_grade_col = (!skip_grading and @props.info.last_collect) or skip_collect
+            show_return_graded = @props.grade or (skip_grading and @props.info.last_collect) or (skip_grading and skip_collect)
         width = if peer_grade then 2 else 3
         <Row style={borderTop:'1px solid #aaa', paddingTop:'5px', paddingBottom: '5px'}>
             <Col md={2} key="title">
@@ -341,7 +343,7 @@ exports.StudentAssignmentInfo = rclass
                            "Open the student's copy of this assignment directly in their project.  You will be able to see them type, chat with them, leave them hints, etc.")}
                     </Col>
                     <Col md={width} key='collect'>
-                        {@render_last('Collect', @props.info.last_collect, 'collected', @props.info.last_assignment?,
+                        {@render_last('Collect', @props.info.last_collect, 'collected', @props.info.last_assignment? or skip_assignment,
                            "Copy the assignment from your student's project back to your project so you can grade their work.",
                            "Open the copy of your student's work in your own project, so that you can grade their work.")}
                     </Col>
@@ -349,7 +351,7 @@ exports.StudentAssignmentInfo = rclass
                     {@render_peer_collect() if peer_grade and @props.info.peer_collect}
                     {if show_grade_col then @render_grade_col(width) else <Col md={width} key='grade'></Col>}
                     <Col md={width} key='return_graded'>
-                        {@render_last('Return', @props.info.last_return_graded, 'graded', @props.info.last_collect?,
+                        {@render_last('Return', @props.info.last_return_graded, 'graded', @props.info.last_collect? or skip_collect,
                            "Copy the graded assignment back to your student's project.",
                            "Open the copy of your student's work that you returned to them. This opens the returned assignment directly in their project.") if show_return_graded}
                     </Col>

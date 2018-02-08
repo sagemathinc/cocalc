@@ -6,7 +6,7 @@ Edit description of a single task
 
 {three_way_merge} = require('smc-util/syncstring')
 
-{debounce} = require('underscore')
+{throttle} = require('underscore')
 
 {cm_options} = require('../jupyter/cm_options')
 
@@ -95,9 +95,11 @@ exports.DescriptionEditor = rclass
         @cm.setValueNoJump(new_val)
 
     _cm_undo: ->
+        @_cm_save()
         @props.actions.undo()
 
     _cm_redo: ->
+        @_cm_save()
         @props.actions.redo()
 
     _cm_destroy: ->
@@ -144,7 +146,7 @@ exports.DescriptionEditor = rclass
         @_cm_last_remote = value
         @cm.setValue(value)
 
-        @_cm_change = debounce(@_cm_save, 1000)
+        @_cm_change = throttle(@_cm_save, 2000, {leading:false})
         @cm.on('change', @_cm_change)
         @cm.on('focus',=> @props.actions.disable_key_handler())
 

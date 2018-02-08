@@ -939,6 +939,13 @@ class SyncDoc extends EventEmitter
             @_syncstring_table.on('change', @_handle_syncstring_update)
             async.series([
                 (cb) =>
+                    # wait until syncstring is not archived -- if we open a very old syncstring, the patches
+                    # may be archived; we have to wait until after they have been pulled from blob storage before
+                    # we init the patch table below, load from disk, etc.
+                    @_syncstring_table.wait
+                        until : (t) => not t.get_one()?.get('archived')
+                        cb    : cb
+                (cb) =>
                     async.parallel([@_init_patch_list, @_init_cursors, @_init_evaluator], cb)
                 (cb) =>
                     @_closed = false
@@ -957,7 +964,14 @@ class SyncDoc extends EventEmitter
                     cb()
                     return
                 @_syncstring_table.wait
-                    until : (t) => t.get_one()?.get('init')
+                    until : (t) =>
+                        tbl = t.get_one()
+                        # init must be set in table and archived must NOT be set (so patches are loaded from blob store)
+                        init = tbl?.get('init')
+                        if init and not tbl?.get('archived')
+                            return init
+                        else
+                            return false
                     cb    : (err, init) =>
                         if @_closed # closed while waiting on condition (perfectly reasonable -- do nothing).
                             return
@@ -1517,6 +1531,7 @@ class SyncDoc extends EventEmitter
             @_syncstring_table.set(obj)
             @emit('metadata-change')
         else
+            # Existing document.
             if x.archived
                 @emit('load-time-estimate', {type:'archived', time:8})
             else
@@ -1624,8 +1639,8 @@ class SyncDoc extends EventEmitter
                     if @_closed
                         @_file_watcher.close()
                         return
-                    if ctime - (@_save_to_disk_start_ctime ? 0) >= 15*1000
-                        # last attempt to save was at least 15s ago, so definitely
+                    if ctime - (@_save_to_disk_start_ctime ? 0) >= 7*1000
+                        # last attempt to save was at least 7s ago, so definitely
                         # this change event was not caused by it.
                         dbg("_load_from_disk: no recent save")
                         @_load_from_disk()
@@ -1637,12 +1652,11 @@ class SyncDoc extends EventEmitter
                         return
                     if @_save_to_disk_start_ctime <= ctime and ctime <= @_save_to_disk_end_ctime
                         # changed triggered during the save
-                        dbg("_load_from_disk: change happened during @_save_to_disk , so ignoring file change")
+                        dbg("_load_from_disk: change happened during @_save_to_disk, so ignoring file change")
                         return
                     # Changed happened near to when there was a save, but not in window, so
                     # we do it..
-                    dbg("_load_from_disk: despite a recent save")
-                    @_load_from_disk()
+                    dbg("_load_from_disk: happened to close to recent save, so ignoring")
                     return
 
                 @_file_watcher.on 'delete', =>

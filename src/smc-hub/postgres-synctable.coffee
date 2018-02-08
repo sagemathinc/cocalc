@@ -150,9 +150,8 @@ class exports.PostgreSQL extends PostgreSQL
             order_by : undefined
             where_function : undefined # if given; a function of the *primary* key that returns true if and only if it matches the changefeed
             idle_timeout_s : undefined   # TODO: currently ignored
-            cb       : required
-        new SyncTable(@, opts.table, opts.columns, opts.where, opts.where_function, opts.limit, opts.order_by, opts.cb)
-        return
+            cb       : undefined
+        return new SyncTable(@, opts.table, opts.columns, opts.where, opts.where_function, opts.limit, opts.order_by, opts.cb)
 
     changefeed: (opts) =>
         opts = defaults opts,
@@ -677,13 +676,13 @@ class SyncTable extends EventEmitter
         t = SCHEMA[@_table]
         if not t?
             @_state = 'error'
-            cb("unknown table #{@_table}")
+            cb?("unknown table #{@_table}")
             return
 
         try
             @_primary_key = @_db._primary_key(@_table)
         catch e
-            cb(e)
+            cb?(e)
             return
 
         @_listen_columns = {"#{@_primary_key}" : pg_type(t.fields[@_primary_key], @_primary_key)}
@@ -703,7 +702,12 @@ class SyncTable extends EventEmitter
 
         #@_update = underscore.throttle(@_update, 500)
 
-        @_init (err) => cb(err, @)
+        @_init (err) =>
+            if err and not cb?
+                @emit("error", err)
+                return
+            @emit('init')
+            cb?(err, @)
 
     _dbg: (f) =>
         return @_db._dbg("SyncTable(table='#{@_table}').#{f}")

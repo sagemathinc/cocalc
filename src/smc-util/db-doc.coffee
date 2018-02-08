@@ -654,6 +654,7 @@ class exports.SyncDB extends EventEmitter
         return
 
     set_doc: (value) =>
+        @exit_undo_mode()
         @_check()
         @_doc.set_doc(value)
         return
@@ -672,6 +673,7 @@ class exports.SyncDB extends EventEmitter
     # change (or create) exactly *one* database entry that matches
     # the given where criterion.
     set: (obj, save=true) =>
+        @exit_undo_mode()
         doc = @_doc?.get_doc()
         if not doc?   # see https://github.com/sagemathinc/cocalc/issues/2130
             return
@@ -705,6 +707,7 @@ class exports.SyncDB extends EventEmitter
 
     # delete everything that matches the given criterion; returns number of deleted items
     delete: (where, save=true) =>
+        @exit_undo_mode()
         if not @_doc?
             return
         d = @_doc.get_doc()
@@ -779,8 +782,7 @@ class exports.SyncDB extends EventEmitter
         return
 
     exit_undo_mode: =>
-        @_check()
-        @_doc.exit_undo_mode()
+        @_doc?.exit_undo_mode()
 
     in_undo_mode: =>
         @_check()

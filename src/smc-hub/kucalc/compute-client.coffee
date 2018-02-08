@@ -382,8 +382,8 @@ class Project extends EventEmitter
             delete_missing    : undefined # if true, delete files in dest path not in source, **including** newer files
             backup            : undefined # make backup files
             exclude_history   : undefined
-            timeout           : 5*60
-            bwlimit           : '5MB'
+            timeout           : undefined
+            bwlimit           : undefined
             cb                : undefined
         if not opts.target_project_id
             opts.target_project_id = @project_id

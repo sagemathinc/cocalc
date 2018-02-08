@@ -37,7 +37,7 @@ sendgrid     = require("sendgrid")
 misc         = require('smc-util/misc')
 {defaults, required} = misc
 
-{SENDGRID_TEMPLATE_ID, SENDGRID_ASM_NEWSLETTER, COMPANY_NAME, COMPANY_EMAIL, DOMAIN_NAME, SITE_NAME, DNS, HELP_EMAIL} = require('smc-util/theme')
+{SENDGRID_TEMPLATE_ID, SENDGRID_ASM_NEWSLETTER, COMPANY_NAME, COMPANY_EMAIL, DOMAIN_NAME, SITE_NAME, DNS, HELP_EMAIL, LIVE_DEMO_REQUEST} = require('smc-util/theme')
 
 email_server = undefined
 
@@ -324,8 +324,13 @@ You can share your thoughts in a <strong>side chat</strong> next to each documen
 </li>
 </ul>
 
-<p style="margin-top:10px;margin-bottom:20px;">
+<p style="margin-top:20px;margin-bottom:10px;">
 <strong>Questions?</strong>
+</p>
+<p style="margin-top:0;margin-bottom:10px;">
+Schedule a Live Demo with a specialist from CoCalc: <a href="#{LIVE_DEMO_REQUEST}">request form</a>.
+</p>
+<p style="margin-top:0;margin-bottom:20px;">
 In case of problems, concerns why you received this email, or other questions please contact:
 <a href="mailto:#{HELP_EMAIL}">#{HELP_EMAIL}</a>.
 </p>

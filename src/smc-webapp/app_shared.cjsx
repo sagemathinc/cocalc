@@ -437,19 +437,23 @@ exports.VersionWarning = rclass
             fontSize        : '12pt'
             position        : 'fixed'
             left            : 12
-            backgroundColor : 'red'
-            color           : '#fff'
+            backgroundColor : '#fcf8e3'
+            color           : '#8a6d3b'
             top             : 20
             borderRadius    : 4
-            padding         : 5
+            padding         : '15px'
             zIndex          : 900
             boxShadow       : '8px 8px 4px #888'
             width           : '70%'
             marginTop       : '1em'
+        if @props.new_version.min_version > webapp_client.version()
+            styles.backgroundColor = 'red'
+            styles.color           = '#fff'
+
         <div style={styles}>
-            <Icon name='refresh' /> New Version Available: upgrade by clicking on <Space/>
-            <a onClick={=>window.location.reload()} style={cursor:'pointer', color: 'white', fontWeight: 'bold', textDecoration: 'underline'}>
-                reload this page
+            <Icon name={'refresh'} /> New Version Available: upgrade by  <Space/>
+            <a onClick={=>window.location.reload()} style={cursor:'pointer', fontWeight: 'bold', color:styles.color, textDecoration: 'underline'}>
+                reloading this page
             </a>.
             {@render_close()}
             {@render_critical()}

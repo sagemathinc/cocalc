@@ -154,6 +154,9 @@ schema.accounts =
         email_address_challenge :
             type : 'map'
             desc : 'Contains random token for verification of an address: {"email": "...", "token": <random>, "time" : <timestamp for timeout>}'
+        email_address_problem :
+            type : 'map'
+            desc : 'Describes a problem with a given email address. example: { "wrong@email.address" : { "type": "bounce", "time": "2018-...", "mesg": "554 5.7.1 <....>: Recipient address rejected: Access denied, user does not exist", "status": <status code>}}'
         passports       :
             type : 'map'
             desc : 'Map from string ("[strategy]-[id]") derived from passport name and id to the corresponding profile'
@@ -226,6 +229,7 @@ schema.accounts =
                 account_id             : null
                 email_address          : null
                 email_address_verified : null
+                email_address_problem  : null
                 editor_settings :
                     strip_trailing_whitespace : false
                     show_trailing_whitespace  : true
@@ -1092,32 +1096,44 @@ schema.server_settings =
 exports.site_settings_conf =
     site_name:
         name    : "Site name"
-        desc    : "The heading name of your site."
+        desc    : "The heading name of your CoCalc site."
         default : "CoCalc"
     site_description:
         name    : "Site description"
-        desc    : "The description of your site."
+        desc    : "The description of your CoCalc site."
         default : ""
     terms_of_service:
-        name    : "Terms of service link text"
+        name    : "Terms of service"
         desc    : "The text displayed for the terms of service link (make empty to not require)."
         default : 'By signing up you agree to our <a target="_blank" href="/policies/terms.html">Terms of Service</a>.'
     account_creation_email_instructions:
-        name    : 'Account creation instructions'
+        name    : 'Account creation'
         desc    : "Instructions displayed next to the box where a user creates their account using their name and email address."
         default : 'Create an Account'
     help_email:
-        name    : "Help email address"
+        name    : "Help email"
         desc    : "Email address that user is directed to use for support requests"
         default : "help@sagemath.com"
     commercial:
-        name    : "Commercial UI elements ('yes' or 'no')"
+        name    : "Commercial ('yes' or 'no')"
         desc    : "Whether or not to include user interface elements related to for-pay upgrades and features.  Set to 'yes' to include these elements."
         default : "no"
     kucalc:
-        name    : "KuCalc UI elements ('yes' or 'no')"
+        name    : "KuCalc UI ('yes' or 'no')"
         desc    : "Whether to show UI elements adapted to what the KuCalc backend provides"
         default : "no"  # TODO -- this will *default* to yes when run from kucalc; but site admin can set it either way anywhere for testing.
+    version_min_project :
+        name    : "Required project version"
+        desc    : "Minimal version *required* by projects (if project older, will be force restarted)."
+        default : "0"
+    version_min_browser :
+        name    : "Required browser version"
+        desc    : "Minimal version *retuired* for browser clients (if older, forced disconnect)."
+        default : "0"
+    version_recommended_browser :
+        name    : "Recommended version"
+        desc    : "Older clients receive an upgrade warning."
+        default : "0"
 
 
 site_settings_fields = misc.keys(exports.site_settings_conf)
