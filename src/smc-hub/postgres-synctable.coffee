@@ -187,7 +187,9 @@ class exports.PostgreSQL extends PostgreSQL
 
 
 class ProjectAndUserTracker extends EventEmitter
-    constructor: (@_db, cb) ->
+    constructor: (_db, cb) ->
+        super()
+        @_db = _db
         dbg = @_dbg('constructor')
         dbg("Initializing Project and user tracker...")
         @setMaxListeners(10000)  # every changefeed might result in a listener on this one object.
@@ -444,7 +446,13 @@ Changes object will close and not work any further!
 You must recreate it.
 ###
 class Changes extends EventEmitter
-    constructor: (@_db, @_table, @_select, @_watch, @_where, cb) ->
+    constructor: (_db, _table, _select, _watch, _where, cb) ->
+        super()
+        @_db     = _db
+        @_table  = _table
+        @_select = _select
+        @_watch  = _watch
+        @_where  = _where
         @dbg = @_dbg("constructor")
         @dbg("select=#{misc.to_json(@_select)}, watch=#{misc.to_json(@_watch)}, @_where=#{misc.to_json(@_where)}")
         try
@@ -672,7 +680,15 @@ class Changes extends EventEmitter
             return true
 
 class SyncTable extends EventEmitter
-    constructor: (@_db, @_table, @_columns, @_where, @_where_function, @_limit, @_order_by, cb) ->
+    constructor: (_db, _table, _columns, _where, _where_function, _limit, _order_by, cb) ->
+        super()
+        @_db             = _db
+        @_table          = _table
+        @_columns        = _columns
+        @_where          = _where
+        @_where_function = _where_function
+        @_limit          = _limit
+        @_order_by       = _order_by
         t = SCHEMA[@_table]
         if not t?
             @_state = 'error'
