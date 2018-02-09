@@ -460,11 +460,16 @@ class exports.TaskActions extends Actions
         if not new_id? or not new_pos?
             return
         if new_index == 0
+            # moving to very beginning
             set_pos = new_pos - 1
-        else
+        else if new_index < old_index
             before_id = visible.get(new_index-1)
             before_pos = @store.getIn(['tasks', before_id, 'position']) ? (new_pos - 1)
             set_pos = (new_pos + before_pos)/2
+        else if new_index > old_index
+            after_id = visible.get(new_index+1)
+            after_pos = @store.getIn(['tasks', after_id, 'position']) ? (new_pos + 1)
+            set_pos = (new_pos + after_pos)/2
         @set_task(old_id, {position:set_pos}, true)
         @__update_visible()
 
