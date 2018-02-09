@@ -987,6 +987,40 @@ class exports.Connection extends EventEmitter
             timeout : opts.timeout
             cb      : (err, resp) => opts.cb?(err, resp)
 
+    write_text_file_to_project_verified: (opts) ->
+        opts = defaults opts,
+            project_id : required
+            path       : required
+            content    : required
+            timeout    : DEFAULT_TIMEOUT
+            cb         : undefined
+
+        #dbg = @dbg('write_text_file_to_project_verified')
+        orig_cb = opts.cb
+        sha1sum = misc.sha1(opts.content)
+        opts.cb = (err, resp) =>
+            test = =>
+                #dbg("CALL: #{opts.path}")
+                @exec
+                    project_id : opts.project_id
+                    command    : 'sha1sum'
+                    args       : [opts.path]
+                    cb         : (err, mesg) =>
+                        #dbg("CB: #{err} #{misc.to_json(mesg)}")
+                        if mesg.exit_code != 0
+                            setTimeout(test, 1000)
+                        else
+                            remote_sha1 = mesg.stdout.split(' ')[0]
+                            if remote_sha1 == "#{sha1sum}XX"
+                                orig_cb?(err, resp)
+                            else
+                                orig_cb?("Expected checksum #{sha1sum} does not match #{remote_sha1}.")
+            if err
+                orig_cb?(err)
+            else
+                setTimeout(test, 1000)
+        @write_text_file_to_project(opts)
+
     read_text_file_from_project: (opts) ->
         opts = defaults opts,
             project_id : required

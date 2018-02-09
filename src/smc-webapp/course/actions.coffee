@@ -1223,7 +1223,7 @@ exports.CourseActions = class CourseActions extends Actions
                 due_date = store.get_due_date(assignment)
                 if not due_date?
                     cb(); return
-                webapp_client.write_text_file_to_project
+                webapp_client.write_text_file_to_project_verified
                     project_id : store.get('course_project_id')
                     path       : src_path + '/DUE_DATE.txt'
                     content    : "This assignment is due\n\n   #{due_date.toLocaleString()}"
