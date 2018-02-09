@@ -1,5 +1,5 @@
 ###
-Drag tasks handle (and other support)
+Checkbox for toggline done status
 ###
 
 {React, rclass, rtypes}  = require('../smc-react')
