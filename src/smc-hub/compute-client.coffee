@@ -889,6 +889,7 @@ class ComputeServerClient
 # etc.  Never freed.  Not sure what to do...
 class ProjectClient extends EventEmitter
     constructor: (opts) ->
+        super()
         opts = defaults opts,
             project_id     : required
             compute_server : required
