@@ -57,8 +57,9 @@ bounded_integer = (n, min, max, def) ->
         return max
     return n
 
-CellWriteProtectedException = {}
-CellDeleteProtectedException = {}
+# no worries, they don't break react rendering even when they escape
+CellWriteProtectedException = new Error('CellWriteProtectedException')
+CellDeleteProtectedException = new Error('CellDeleteProtectedException')
 
 class exports.JupyterActions extends Actions
 
@@ -281,14 +282,17 @@ class exports.JupyterActions extends Actions
         @_sync()
 
     clear_all_outputs: =>
+        not_editable = 0
         @store.get('cells').forEach (cell, id) =>
             if cell.get('output')? or cell.get('exec_count')
                 if not @store.is_cell_editable(id)
-                    @show_edit_protection_error()
+                    not_editable += 1
                 else
                     @_set({type:'cell', id:id, output:null, exec_count:null}, false)
             return
         @_sync()
+        if not_editable > 0
+            @set_error("One or more cells are protected from editing.")
 
     # prop can be: 'collapsed', 'scrolled'
     toggle_output: (id, prop) =>
@@ -755,7 +759,7 @@ class exports.JupyterActions extends Actions
         @syncdb?.redo()
         return
 
-    # might throw a CellWriteProtectedException
+    # in the future, might throw a CellWriteProtectedException. for now, just running is ok.
     run_cell: (id) =>
         cell = @store.getIn(['cells', id])
         if not cell?
@@ -1073,7 +1077,7 @@ class exports.JupyterActions extends Actions
         @toggle_metadata_boolean('deletable')
 
     show_edit_protection_error: =>
-        @set_error("This cell is protected from being edited.")
+        @set_error("This cell is protected from editing.")
 
     show_delete_protection_error: =>
         @set_error("This cell is protected from deletion.")
@@ -1814,7 +1818,7 @@ class exports.JupyterActions extends Actions
     set_cell_slide: (id, value) =>
         if not value
             value = null  # delete
-        return if @check_edit_protection(id, @)
+        return if @store.check_edit_protection(id, @)
         @_set
             type  : 'cell'
             id    : id
@@ -1847,7 +1851,7 @@ class exports.JupyterActions extends Actions
     insert_input_at_cursor: (id, s, save) =>
         if not @store.getIn(['cells', id])?
             return
-        return if @check_edit_protection(id, @)
+        return if @store.check_edit_protection(id, @)
         input   = @_get_cell_input(id)
         cursor  = @_cursor_locs?[0]
         if cursor?.id == id
