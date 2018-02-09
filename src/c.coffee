@@ -11,9 +11,6 @@ LICENSE   : AGPLv3
 
 async = require('async')
 
-# disable incredibly verbose DB debugging, which makes interactive use hard
-require('smc-hub/postgres-base').DEBUG = true
-
 global.misc = require('smc-util/misc')
 global.done = misc.done
 global.done1 = misc.done1
@@ -25,7 +22,7 @@ get_db = (cb) ->
         cb?(undefined, db)  # HACK -- might not really be initialized yet!
         return db
     else
-        db = require('./smc-hub/postgres').db()
+        db = require('./smc-hub/postgres').db(debug:false)
         db.connect(cb:cb)
         return db
 
