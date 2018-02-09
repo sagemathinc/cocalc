@@ -35,6 +35,8 @@ update_project_status = (client, cb) ->
         (cb) ->
             compute_status (err, s) ->
                 status = s
+                status.session_id = session_id
+                status.time       = new Date()
                 if not err
                     current_status = s
                 cb(err)
