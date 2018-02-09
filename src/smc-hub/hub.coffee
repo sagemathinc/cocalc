@@ -625,7 +625,7 @@ command_line = () ->
         .option('--base_url [string]', 'Base url, so https://sitenamebase_url/', String, '')  # '' or string that starts with /
         .option('--local', 'If option is specified, then *all* projects run locally as the same user as the server and store state in .sagemathcloud-local instead of .sagemathcloud; also do not kill all processes on project restart -- for development use (default: false, since not given)', Boolean, false)
         .option('--foreground', 'If specified, do not run as a deamon')
-        .option('--kucalc', 'if given, assume running in the KuCalc kubernetes environment')
+        .option('--kucalc', 'if given, assume running in the KuCalc kubernetes environment')
         .option('--dev', 'if given, then run in VERY UNSAFE single-user local dev mode')
         .option('--single', 'if given, then run in LESS SAFE single-machine mode')
         .option('--db_pool <n>', 'number of db connections in pool (default: 1)', ((n)->parseInt(n)), 1)

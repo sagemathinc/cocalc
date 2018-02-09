@@ -49,7 +49,7 @@ class exports.PostgreSQL extends PostgreSQL
             @_user_query(opts)
             return
 
-        if not @_user_query_queue?
+        if not @_user_query_queue?
             o =
                 do_query   : @_user_query
                 dbg        : @_dbg('user_query_queue')
