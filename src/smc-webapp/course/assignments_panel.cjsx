@@ -412,6 +412,12 @@ Assignment = rclass
 
     render_copy_assignment_confirm_overwrite: (step) ->
         return if not @state.copy_assignment_confirm_overwrite
+        do_it = =>
+            @copy_assignment(step, false)
+            @setState(
+                copy_assignment_confirm_overwrite      : false
+                copy_assignment_confirm_overwrite_text : ''
+            )
         <div style={marginTop:'15px'}>
             Type in "OVERWRITE" if you are certain to replace the assignment files of all students.
             <FormGroup>
@@ -427,15 +433,15 @@ Assignment = rclass
                 <Button
                     disabled = {@state.copy_assignment_confirm_overwrite_text != 'OVERWRITE'}
                     bsStyle  = 'danger'
-                    onClick  = {=>@copy_assignment(step, false, true)}
+                    onClick  = {do_it}
                 >
-                    <Icon name='trash' /> Confirm replacing files
+                    <Icon name='exclamation-triangle' /> Confirm replacing files
                 </Button>
                 {@render_copy_cancel(step)}
             </ButtonToolbar>
         </div>
 
-    copy_assignment: (step, new_only, overwrite) ->
+    copy_assignment: (step, new_only) ->
         # assign assignment to all (non-deleted) students
         actions = @props.redux.getActions(@props.name)
         switch step

@@ -257,6 +257,12 @@ Handout = rclass
 
     render_copy_handout_confirm_overwrite: (step) ->
         return if not @state.copy_handout_confirm_overwrite
+        do_it = =>
+            @copy_handout(step, false)
+            @setState(
+                copy_handout_confirm_overwrite         : false
+                copy_handout_confirm_overwrite_text    : ''
+            )
         <div style={marginTop:'15px'}>
             Type in "OVERWRITE" if you are certain to replace the handout files of all students.
             <FormGroup>
@@ -272,9 +278,9 @@ Handout = rclass
                 <Button
                     disabled = {@state.copy_handout_confirm_overwrite_text != 'OVERWRITE'}
                     bsStyle  = 'danger'
-                    onClick  = {=>@copy_handout(step, false, true)}
+                    onClick  = {do_it}
                 >
-                    <Icon name='trash' /> Confirm replacing files
+                    <Icon name='exclamation-triangle' /> Confirm replacing files
                 </Button>
                 {@render_copy_cancel(step)}
             </ButtonToolbar>
