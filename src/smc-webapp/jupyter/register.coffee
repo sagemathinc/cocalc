@@ -1,5 +1,5 @@
 ###
-Register the Jupyter Notebook editor and viwer with SMC
+Register the Jupyter Notebook editor and viewer with CoCalc
   - set the file extension, icon, react component,
     and how to init and remove the actions/store
 ###
@@ -14,6 +14,8 @@ misc                   = require('smc-util/misc')
 {JupyterEditor}        = require('./main')
 {JupyterActions}       = require('./actions')
 {JupyterStore}         = require('./store')
+
+require('./nbgrader')
 
 exports.register = ->
     register_file_editor

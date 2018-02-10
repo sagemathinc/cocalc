@@ -23,6 +23,7 @@
 Functionality that mimics aspects of nbgrader
 ###
 
+{JupyterActions} = require('./actions')
 misc = require('smc-util/misc')
 md5  = require('md5')
 
@@ -70,3 +71,9 @@ exports.compute_checksum = (cell) ->
     return m.hexdigest()
     ###
     return md5('0xNOTIMPLEMENTED')
+
+
+JupyterActions::nbgrader = ->
+    cur_id = @store.get('cur_id')
+    @set_cell_input(cur_id, "test #{Math.random()}")
+

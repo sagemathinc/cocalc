@@ -8,6 +8,7 @@ The toolbar at the top of each cell
 {Attachments} = require('./cell-toolbar-attachments')
 {TagsToolbar} = require('./cell-toolbar-tags')
 {Metadata}    = require('./cell-toolbar-metadata')
+{NBGrader}    = require('./cell-toolbar-nbgrader')
 
 BAR_STYLE =
     width        : '100%'
@@ -34,6 +35,8 @@ exports.CellToolbar = rclass
                 T = TagsToolbar
             when 'metadata'
                 T = Metadata
+            when 'nbgrader'
+                T = NBGrader
             else
                 return <span> Toolbar not implemented: {@props.cell_toolbar} </span>
         <div style={BAR_STYLE}>

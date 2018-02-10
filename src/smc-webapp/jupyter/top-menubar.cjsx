@@ -127,7 +127,7 @@ exports.TopMenubar = rclass ({name}) ->
         toolbar = {name:'toggle toolbar', display:if @props.toolbar then 'Hide Toolbar' else 'Show Toolbar'}
 
         cell_toolbars = []
-        for name in ['none', 'metadata', 'slideshow', 'attachments', 'tags']
+        for name in ['none', 'metadata', 'slideshow', 'attachments', 'tags', 'nbgrader']
             item_name = ">cell toolbar #{name}"
             if (@props.cell_toolbar ? 'none') == name
                 cell_toolbars.push({name:item_name, style:SELECTED_STYLE})

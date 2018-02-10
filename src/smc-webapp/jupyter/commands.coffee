@@ -29,6 +29,10 @@ exports.commands = (actions) ->
         m : 'Slideshow'
         f : -> actions.cell_toolbar('slideshow')
 
+    'cell toolbar nbgrader':
+        m : 'NBGrader'
+        f : -> actions.cell_toolbar('nbgrader')
+
     'change cell to code' :
         m : 'Change to code'
         k : [{which:89, mode:'escape'}]
