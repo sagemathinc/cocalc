@@ -1180,7 +1180,7 @@ exports.CourseActions = class CourseActions extends Actions
     #    assignment.last_assignment[student_id] = {time:?, error:err}
     #
     # where time >= now is the current time in milliseconds.
-    copy_assignment_to_student: (assignment, student) =>
+    copy_assignment_to_student: (assignment, student, create_due_date_file=false) =>
         if @_start_copy(assignment, student, 'last_assignment')
             return
         id = @set_activity(desc:"Copying assignment to a student")
@@ -1219,15 +1219,10 @@ exports.CourseActions = class CourseActions extends Actions
                 else
                     cb()
             (cb) =>
-                # write the due date to a file
-                due_date = store.get_due_date(assignment)
-                if not due_date?
-                    cb(); return
-                webapp_client.write_text_file_to_project
-                    project_id : store.get('course_project_id')
-                    path       : src_path + '/DUE_DATE.txt'
-                    content    : "This assignment is due\n\n   #{due_date.toLocaleString()}"
-                    cb         : cb
+                if create_due_date_file
+                    @copy_assignment_create_due_date_file(assignment, store, cb)
+                else
+                    cb()
             (cb) =>
                 @set_activity(id:id, desc:"Copying files to #{student_name}'s project")
                 webapp_client.copy_path_between_projects
@@ -1244,13 +1239,64 @@ exports.CourseActions = class CourseActions extends Actions
             finish(err)
         )
 
+    # this is part of the assignment disribution, should be done only *once*, not for every student
+    copy_assignment_create_due_date_file: (assignment, store, cb) =>
+        # write the due date to a file
+        due_date    = store.get_due_date(assignment)
+        src_path    = assignment.get('path')
+        due_date_fn = 'DUE_DATE.txt'
+        if not due_date?
+            cb()
+            return
+
+        locals =
+            due_id       : @set_activity(desc:"Creating #{due_date_fn} file...")
+            due_date     : due_date
+            src_path     : src_path
+            content      : "This assignment is due\n\n   #{due_date.toLocaleString()}"
+            project_id   : store.get('course_project_id')
+            path         : src_path + '/' + due_date_fn
+            due_date_fn  : due_date_fn
+
+        async.series([
+            (cb) =>
+                webapp_client.write_text_file_to_project
+                    project_id : locals.project_id
+                    path       : locals.path
+                    content    : locals.content
+                    cb         : (err) =>
+                        if err
+                            @clear_activity(locals.due_id)
+                            cb(err)
+                        else
+                            cb()
+            (cb) =>
+                # wait 1 secs ...
+                setTimeout(cb, 1000)
+            (cb) =>
+                # verify existence
+                webapp_client.read_text_file_from_project
+                    project_id : locals.project_id
+                    path       : locals.path
+                    cb         : (err, result) =>
+                        @clear_activity(locals.due_id)
+                        if err
+                            cb(err)
+                        else
+                            if result?.content == locals.content
+                                cb()
+                            else
+                                cb("Problem writing #{due_date_fn} file. Try again...")
+        ], cb)
+
 
 
     copy_assignment: (type, assignment_id, student_id) =>
         # type = assigned, collected, graded
         switch type
             when 'assigned'
-                @copy_assignment_to_student(assignment_id, student_id)
+                # create_due_date_file = true
+                @copy_assignment_to_student(assignment_id, student_id, true)
             when 'collected'
                 @copy_assignment_from_student(assignment_id, student_id)
             when 'graded'
@@ -1264,9 +1310,18 @@ exports.CourseActions = class CourseActions extends Actions
 
     # Copy the given assignment to all non-deleted students, doing several copies in parallel at once.
     copy_assignment_to_all_students: (assignment, new_only) =>
+        store = @get_store()
+        if not store? or not @_store_is_initialized()
+            return finish("store not yet initialized")
         desc = "Copying assignments to all students #{if new_only then 'who have not already received it' else ''}"
         short_desc = "copy to student"
-        @_action_all_students(assignment, new_only, @copy_assignment_to_student, 'assignment', desc, short_desc)
+        async.series([
+            (cb) =>
+                @copy_assignment_create_due_date_file(assignment, store, cb)
+            (cb) =>
+                # by default, doesn't create the due file
+                @_action_all_students(assignment, new_only, @copy_assignment_to_student, 'assignment', desc, short_desc)
+        ])
 
     # Copy the given assignment to all non-deleted students, doing several copies in parallel at once.
     copy_assignment_from_all_students: (assignment, new_only) =>
