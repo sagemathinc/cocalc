@@ -24,8 +24,19 @@ Functionality that mimics aspects of nbgrader
 ###
 
 {JupyterActions} = require('./actions')
-misc = require('smc-util/misc')
-md5  = require('md5')
+{JupyterStore}   = require('./store')
+
+misc      = require('smc-util/misc')
+md5       = require('md5')
+immutable = require('immutable')
+
+exports.CELL_TYPES = CELL_TYPES =
+    ''        : '-'
+    manual    : 'Manually graded answer'
+    solution  : 'Autograded answer'
+    tests     : 'Autograder test'
+    readonly  : 'Read-only'
+
 
 # compute the checksum of a cell just like nbgrader does
 # utils.compute_checksum is here https://github.com/jupyter/nbgrader/blob/master/nbgrader/utils.py#L92
@@ -72,8 +83,113 @@ exports.compute_checksum = (cell) ->
     ###
     return md5('0xNOTIMPLEMENTED')
 
+###
 
-JupyterActions::nbgrader = ->
-    cur_id = @store.get('cur_id')
-    @set_cell_input(cur_id, "test #{Math.random()}")
+nbgrader metadata fields (4 types)
 
+manually graded answer, 3 points
+
+  "nbgrader": {
+    "schema_version": 1,
+    "solution": true,
+    "grade": true,
+    "locked": false,
+    "points": 3,
+    "grade_id": "cell-a1baa9e8d10a4e0b"
+  }
+
+autograded answer
+
+  "nbgrader": {
+    "schema_version": 1,
+    "solution": true,
+    "grade": false,
+    "locked": false,
+    "grade_id": "cell-1509e19eff29d205"
+  }
+
+autograder test, 2 points
+
+  "nbgrader": {
+    "schema_version": 1,
+    "solution": false,
+    "grade": true,
+    "locked": true,
+    "points": 2,
+    "grade_id": "cell-058f430d8dbb7c79"
+  }
+
+read only
+
+  "nbgrader": {
+    "schema_version": 1,
+    "solution": false,
+    "grade": false,
+    "locked": true,
+    "grade_id": "cell-4301bc9b1c3e88b1"
+  }
+
+###
+
+### ACTIONS ###
+
+JupyterActions::nbgrader_set_cell_type = (id, val) ->
+    data =
+        schema_version    : 1
+        grade_id          : "cell-#{id}"
+    switch val
+        when 'manual'
+            data.solution = true
+            data.grade    = true
+            data.locked   = false
+            data.points   = 1
+        when 'solution'
+            data.solution = true
+            data.grade    = false
+            data.locked   = false
+        when 'tests'
+            data.solution = false
+            data.grade    = true
+            data.locked   = true
+            data.points   = 1
+        when 'readonly'
+            data.solution = false
+            data.grade    = false
+            data.locked   = true
+        else
+            @nbgrader_delete_data(id)
+            return
+
+    @nbgrader_set_data(id, immutable.fromJS(data))
+
+JupyterActions::nbgrader_set_data = (id, data) ->
+    # TODO: this should be merge = true, or just set the nbgrader field, and not touch the other ones
+    if DEBUG then console.log("JupyterActions::nbgrader_set_data", id, data.toJS())
+    @set_cell_metadata(id, {nbgrader : data})
+
+JupyterActions::nbgrader_delete_data = (id) ->
+    # get rid of the nbgrader metadata
+    metadata = @store.getIn(['cells', id, 'metadata'])
+    metadata = metadata.delete('nbgrader')
+    @set_cell_metadata(id, metadata)
+
+JupyterActions::nbgrader_set_points = (id, num) ->
+    data = @store.get_nbgrader(id)
+    data = data.set('grade', num)
+    @nbgrader_set_data(data)
+
+### STORE ###
+
+JupyterStore::get_nbgrader = (id) ->
+    return @getIn(['cells', id, 'metadata', 'nbgrader'])
+
+JupyterStore::get_nbgrader_cell_type = (id) ->
+    data     =  @getIn(['cells', id])
+    return '' if not (data?.getIn(['metadata', 'nbgrader']) ? false)
+    data     = data.toJS()
+    solution = is_solution(data)
+    grade    = is_grade(data)
+    return 'manual'   if solution  and grade
+    return 'solution' if solution  and !grade
+    return 'tests'    if !solution and grade
+    return 'readonly' if !solution and !grade
