@@ -1258,37 +1258,16 @@ exports.CourseActions = class CourseActions extends Actions
             path         : src_path + '/' + due_date_fn
             due_date_fn  : due_date_fn
 
-        async.series([
-            (cb) =>
-                webapp_client.write_text_file_to_project
-                    project_id : locals.project_id
-                    path       : locals.path
-                    content    : locals.content
-                    cb         : (err) =>
-                        if err
-                            @clear_activity(locals.due_id)
-                            cb(err)
-                        else
-                            cb()
-            (cb) =>
-                # wait 1 secs ...
-                setTimeout(cb, 1000)
-            (cb) =>
-                # verify existence
-                webapp_client.read_text_file_from_project
-                    project_id : locals.project_id
-                    path       : locals.path
-                    cb         : (err, result) =>
-                        @clear_activity(locals.due_id)
-                        if err
-                            cb(err)
-                        else
-                            if result?.content == locals.content
-                                cb()
-                            else
-                                cb("Problem writing #{due_date_fn} file. Try again...")
-        ], cb)
-
+        webapp_client.write_text_file_to_project
+            project_id : locals.project_id
+            path       : locals.path
+            content    : locals.content
+            cb         : (err) =>
+                @clear_activity(locals.due_id)
+                if err
+                    cb("Problem writing #{due_date_fn} file ('#{err}'). Try again...")
+                else
+                    cb()
 
 
     copy_assignment: (type, assignment_id, student_id) =>
