@@ -106,6 +106,9 @@ class exports.Actions extends Actions
         @cm = cm
         @set_codemirror_to_syncstring()
 
+    focused_codemirror: =>
+        return @cm
+
     syncstring_save: =>
         @syncstring?.save()
 
@@ -121,3 +124,30 @@ class exports.Actions extends Actions
 
     exit_undo_mode: =>
         @syncstring.exit_undo_mode()
+
+    # per-session sync-aware undo
+    undo: =>
+        if not @cm?
+            return
+        cm = @focused_codemirror()
+        if not @syncstring.in_undo_mode()
+            @set_syncstring_to_codemirror()
+        value = @syncstring.undo().to_str()
+        cm.setValueNoJump(value)
+        @set_syncstring_to_codemirror()
+        @syncstring_save()
+
+    # per-session sync-aware redo
+    redo: =>
+        if not @cm?
+            return
+        if not @syncstring.in_undo_mode()
+            return
+        doc = @syncstring.redo()
+        if not doc?
+            # can't redo if version not defined/not available.
+            return
+        value = doc.to_str()
+        @focused_codemirror().setValueNoJump(value)
+        @set_syncstring_to_codemirror()
+        @syncstring_save()

@@ -40,14 +40,15 @@ exports.ButtonBar = rclass
         </ButtonGroup>
 
     render_save_timetravel_group: ->
+        disabled = not @props.has_unsaved_changes or @props.read_only
         <ButtonGroup key='editor'>
             <Button
                 key      = 'save'
                 bsStyle  = 'success'
-                disabled = {not @props.has_unsaved_changes or @props.read_only}
+                disabled = {disabled}
                 onClick  = {@props.actions.save} >
                 <Icon name='save' /> {if @props.read_only then 'Readonly' else 'Save'}
-                <UncommittedChanges has_uncommitted_changes={@props.has_uncommitted_changes} />
+                {<UncommittedChanges has_uncommitted_changes={@props.has_uncommitted_changes} /> if not disabled}
             </Button>
             <Button
                 key     = 'timetravel'
