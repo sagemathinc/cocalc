@@ -15,7 +15,7 @@ MIN_POSSIBLE_MEMORY =
 # Min guaranteed idle timeouts
 MIN_POSSIBLE_MINTIME =
     member    : 30*60   # 30 minutes
-    nonmember : 10*60   # 10 minutes
+    nonmember : 12*60   # 12 minutes
 
 exports.quota = (settings, users) ->
     # so can assume defined below
