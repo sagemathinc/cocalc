@@ -1519,7 +1519,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                 e.html(mesg.html)
             else
                 e.html_noscript(mesg.html)
-            e.mathjax(hide_when_rendering:true)
+            e.mathjax(hide_when_rendering:false)
             output.append(e)
             @process_html_output(e)
 
@@ -1544,7 +1544,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
             else
                 t.html_noscript(x.s)
             #console.log 'sagews:mesg.md, t:', t
-            t.mathjax(hide_when_rendering:true)
+            t.mathjax(hide_when_rendering:false)
             output.append(t)
             @process_html_output(t)
 
@@ -1557,7 +1557,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                 arg.display = true
             else
                 arg.inline = true
-            arg.hide_when_rendering = true
+            arg.hide_when_rendering = false
             output.append(elt.mathjax(arg))
 
         if mesg.raw_input?
