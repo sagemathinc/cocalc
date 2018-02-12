@@ -20,11 +20,13 @@ exports.Editor = rclass ({name}) ->
             read_only               : rtypes.bool
             load_time_estimate      : rtypes.immutable.Map
             is_loaded               : rtypes.bool
+            local_view_state        : rtypes.immutable.Map
 
     shouldComponentUpdate: (next) ->
         return @props.has_unsaved_changes     != next.has_unsaved_changes or \
                @props.has_uncommitted_changes != next.has_uncommitted_changes or \
-               @props.read_only               != next.read_only
+               @props.read_only               != next.read_only or \
+               @props.local_view_state        != next.local_view_state
 
     componentDidMount: ->
         @props.actions.enable_key_handler()
@@ -51,6 +53,7 @@ exports.Editor = rclass ({name}) ->
         <CodeEditor
             actions   = {@props.actions}
             read_only = {@props.read_only}
+            font_size = {@props.local_view_state?.get('font_size')}
             />
 
     render: ->
