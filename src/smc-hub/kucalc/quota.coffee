@@ -31,6 +31,7 @@ exports.quota = (settings, users) ->
         cpu_limit      : 1           # upper bound on vCPU's
         cpu_request    : 0           # will hold guaranteed min number of vCPU's as a float from 0 to infinity.
         privileged     : false       # for elevated docker privileges (FUSE mounting, later more)
+        mintime        : MIN_POSSIBLE_MINTIME.nonmember
 
     # network access
     if settings.network  # free admin-set
