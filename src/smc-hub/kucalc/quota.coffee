@@ -1,4 +1,3 @@
-
 # No matter what, every project gets SOME possibly tiny amount of guaranteed cpu.
 # This is important since otherwise projects will NOT start at all, e.g., if a paying
 # customer is using 100% of the cpu on the node (this will happen if their limits are
@@ -13,7 +12,10 @@ MIN_POSSIBLE_MEMORY =
     member    : 300
     nonmember : 200
 
-misc = require('smc-util/misc')
+# Min guaranteed idle timeouts
+MIN_POSSIBLE_MINTIME =
+    member    : 30*60   # 30 minutes
+    nonmember : 10*60   # 10 minutes
 
 exports.quota = (settings, users) ->
     # so can assume defined below
@@ -91,7 +93,7 @@ exports.quota = (settings, users) ->
     for _, val of users
         quota.cpu_request += to_int(val?.upgrades?.cpu_shares) / 1024
 
-    # ensure minimums are met
+    # ensure minimums cpu are met
     if quota.member_host
         if quota.cpu_request < MIN_POSSIBLE_CPU.member
             quota.cpu_request = MIN_POSSIBLE_CPU.member
@@ -99,13 +101,21 @@ exports.quota = (settings, users) ->
         if quota.cpu_request < MIN_POSSIBLE_CPU.nonmember
             quota.cpu_request = MIN_POSSIBLE_CPU.nonmember
 
-    # ensure minimums are met
+    # ensure minimumsmemory are met
     if quota.member_host
         if quota.memory_request < MIN_POSSIBLE_MEMORY.member
             quota.memory_request = MIN_POSSIBLE_MEMORY.member
     else
         if quota.memory_request < MIN_POSSIBLE_MEMORY.nonmember
             quota.memory_request = MIN_POSSIBLE_MEMORY.nonmember
+
+    # ensure min mintime
+    if quota.member_host
+        if quota.mintime < MIN_POSSIBLE_MINTIME.member
+            quota.mintime = MIN_POSSIBLE_MINTIME.member
+    else
+        if quota.mintime < MIN_POSSIBLE_MINTIME.nonmember
+            quota.mintime = MIN_POSSIBLE_MINTIME.nonmember
 
     return quota
 
