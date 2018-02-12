@@ -1,5 +1,7 @@
 ###
-Edit description of a single task
+Single codemirror-based file editor
+
+This is a wrapper around a single codemirror editor view.
 ###
 
 {React, ReactDOM, rclass, rtypes}  = require('../smc-react')
@@ -22,43 +24,30 @@ STYLE =
     borderRadius : '3px'
     background   : '#fff'
 
-CM_OPTIONS =
-    mode              : {name:'gfm2'}
-    showTrailingSpace : true
-    indentUnit        : 2
-    tabSize           : 2
-    matchBrackets     : true
-    lineWrapping      : true
-
-exports.DescriptionEditor = rclass
+exports.CodeEditor = rclass
     propTypes :
-        actions    : rtypes.object.isRequired
-        task_id    : rtypes.string.isRequired
-        desc       : rtypes.string
-        is_current : rtypes.bool
-        font_size  : rtypes.number  # used only to cause refresh
+        actions : rtypes.object.isRequired
+        value   : rtypes.string.isRequired
 
     reduxProps :
         account :
             editor_settings : rtypes.immutable.Map
 
     shouldComponentUpdate: (next) ->
-        return @props.task_id    != next.task_id    or \
-               @props.desc       != next.desc       or \
-               @props.font_size  != next.font_size  or \
-               @props.is_current != next.is_current
+        return @props.editor_settings != next.editor_settings or \
+               @props.font_size       != next.font_size
 
     componentDidMount: ->
-        @init_codemirror(@props.desc)
+        @init_codemirror(@props.value)
 
     componentWillReceiveProps: (next) ->
         if not @cm?
-            @init_codemirror(next.desc)
+            @init_codemirror(next.value)
             return
         if @props.font_size != next.font_size
             @cm_refresh()
-        if @props.desc != next.desc
-            @_cm_merge_remote(next.desc)
+        if @props.value != next.value
+            @_cm_merge_remote(next.value)
 
     cm_refresh: ->
         @cm?.refresh()
@@ -77,7 +66,7 @@ exports.DescriptionEditor = rclass
             # only save if we actually changed something
             return
         @_cm_last_remote = value
-        @props.actions.set_desc(@props.task_id, value)
+        @props.actions.set_value(value)
 
     _cm_merge_remote: (remote) ->
         if not @cm?
@@ -110,26 +99,14 @@ exports.DescriptionEditor = rclass
         $(@cm.getWrapperElement()).remove()  # remove from DOM -- "Remove this from your tree to delete an editor instance."
         delete @cm
 
-    stop_editing: ->
-        @_cm_save()
-        @props.actions.stop_editing_desc(@props.task_id)
-        @props.actions.enable_key_handler()
-        return false
-
     init_codemirror: (value) ->
         node = $(ReactDOM.findDOMNode(@)).find("textarea")[0]
         if not node?
             return
 
-        if @props.editor_settings?
-            options = cm_options({name:'gfm2'}, @props.editor_settings.toJS())
-            misc.merge(options, CM_OPTIONS)
-        else
-            options = misc.deep_copy(CM_OPTIONS)
+        options = @props.editor_settings?.toJS() ? {}
         save_to_disk = => @props.actions.save()
         keys =
-            "Shift-Enter" : @stop_editing
-            Esc           : @stop_editing
             Tab           : => @cm.tab_as_space()
             "Cmd-S"       : save_to_disk
             "Alt-S"       : save_to_disk
@@ -149,17 +126,13 @@ exports.DescriptionEditor = rclass
         @cm.on('change', @_cm_change)
         @cm.on('focus',=> @props.actions.disable_key_handler())
 
-        # NOTE: for vim, we have to deal with trickier vim mode, since editor looses focus
-        # when entering colon command... but we do NOT want to stop editing in this case.
-        if options.keyMap != 'vim'
-            @cm.on('blur', @stop_editing)
-
         # replace undo/redo by our sync aware versions
         @cm.undo = @_cm_undo
         @cm.redo = @_cm_redo
 
         if @props.is_current
             @cm?.focus()
+
         setTimeout((=>@cm_refresh(); if @props.is_current then @cm?.focus()), 0)
 
     render: ->

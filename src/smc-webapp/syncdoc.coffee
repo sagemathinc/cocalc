@@ -186,7 +186,7 @@ class SynchronizedDocument2 extends SynchronizedDocument
         @codemirror1 = @editor.codemirror1
         @element     = @editor.element
 
-        window.w = @
+        #window.w = @
 
         # replace undo/redo by sync-aware versions
         for cm in [@codemirror, @codemirror1]
