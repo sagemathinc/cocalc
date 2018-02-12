@@ -36,7 +36,7 @@ exports.DEFAULT_QUOTAS =
     cpu_shares     : 0
     memory         : 1000
     memory_request : 0
-    mintime        : 10*60
+    mintime        : 1800   # hour
     network        : 0
     member_host    : 0
 

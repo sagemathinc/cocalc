@@ -12,11 +12,6 @@ MIN_POSSIBLE_MEMORY =
     member    : 300
     nonmember : 200
 
-# Min guaranteed idle timeouts
-MIN_POSSIBLE_MINTIME =
-    member    : 30*60   # 30 minutes
-    nonmember : 12*60   # 12 minutes
-
 exports.quota = (settings, users) ->
     # so can assume defined below
     settings ?= {}
@@ -31,7 +26,6 @@ exports.quota = (settings, users) ->
         cpu_limit      : 1           # upper bound on vCPU's
         cpu_request    : 0           # will hold guaranteed min number of vCPU's as a float from 0 to infinity.
         privileged     : false       # for elevated docker privileges (FUSE mounting, later more)
-        mintime        : MIN_POSSIBLE_MINTIME.nonmember
 
     # network access
     if settings.network  # free admin-set
@@ -102,21 +96,13 @@ exports.quota = (settings, users) ->
         if quota.cpu_request < MIN_POSSIBLE_CPU.nonmember
             quota.cpu_request = MIN_POSSIBLE_CPU.nonmember
 
-    # ensure minimumsmemory are met
+    # ensure minimum memory met
     if quota.member_host
         if quota.memory_request < MIN_POSSIBLE_MEMORY.member
             quota.memory_request = MIN_POSSIBLE_MEMORY.member
     else
         if quota.memory_request < MIN_POSSIBLE_MEMORY.nonmember
             quota.memory_request = MIN_POSSIBLE_MEMORY.nonmember
-
-    # ensure min mintime
-    if quota.member_host
-        if quota.mintime < MIN_POSSIBLE_MINTIME.member
-            quota.mintime = MIN_POSSIBLE_MINTIME.member
-    else
-        if quota.mintime < MIN_POSSIBLE_MINTIME.nonmember
-            quota.mintime = MIN_POSSIBLE_MINTIME.nonmember
 
     return quota
 
