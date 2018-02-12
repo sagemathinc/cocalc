@@ -10,6 +10,8 @@ This is a wrapper around a single codemirror editor view.
 
 {throttle} = require('underscore')
 
+SAVE_INTERVAL_MS = 2000
+
 {cm_options} = require('../jupyter/cm_options')
 
 misc = require('smc-util/misc')
@@ -27,7 +29,6 @@ STYLE =
 exports.CodeEditor = rclass
     propTypes :
         actions : rtypes.object.isRequired
-        value   : rtypes.string.isRequired
 
     reduxProps :
         account :
@@ -38,16 +39,11 @@ exports.CodeEditor = rclass
                @props.font_size       != next.font_size
 
     componentDidMount: ->
-        @init_codemirror(@props.value)
+        @init_codemirror()
 
     componentWillReceiveProps: (next) ->
-        if not @cm?
-            @init_codemirror(next.value)
-            return
         if @props.font_size != next.font_size
             @cm_refresh()
-        if @props.value != next.value
-            @_cm_merge_remote(next.value)
 
     cm_refresh: ->
         @cm?.refresh()
@@ -55,39 +51,12 @@ exports.CodeEditor = rclass
 
     componentWillUnmount: ->
         if @cm?
-            @_cm_save()
             @_cm_destroy()
 
-    _cm_save: ->
-        if not @cm?
-            return
-        value = @cm.getValue()
-        if value == @_cm_last_remote
-            # only save if we actually changed something
-            return
-        @_cm_last_remote = value
-        @props.actions.set_value(value)
-
-    _cm_merge_remote: (remote) ->
-        if not @cm?
-            return
-        @_cm_last_remote ?= ''
-        if @_cm_last_remote == remote
-            return  # nothing to do
-        local = @cm.getValue()
-        new_val = three_way_merge
-            base   : @_cm_last_remote
-            local  : local
-            remote : remote
-        @_cm_last_remote = remote
-        @cm.setValueNoJump(new_val)
-
     _cm_undo: ->
-        @_cm_save()
         @props.actions.undo()
 
     _cm_redo: ->
-        @_cm_save()
         @props.actions.redo()
 
     _cm_destroy: ->
@@ -98,8 +67,15 @@ exports.CodeEditor = rclass
         delete @cm.redo
         $(@cm.getWrapperElement()).remove()  # remove from DOM -- "Remove this from your tree to delete an editor instance."
         delete @cm
+        @props.actions.set_cm()
 
-    init_codemirror: (value) ->
+    save_state: ->
+        if not @cm?
+            return
+        @props.actions.set_syncstring_to_codemirror()
+        @props.actions.syncstring_save()
+
+    init_codemirror: ->
         node = $(ReactDOM.findDOMNode(@)).find("textarea")[0]
         if not node?
             return
@@ -111,20 +87,24 @@ exports.CodeEditor = rclass
             "Cmd-S"       : save_to_disk
             "Alt-S"       : save_to_disk
             "Ctrl-S"      : save_to_disk
-        if options.keyMap == 'vim'
-            delete keys.Esc
+
         options.extraKeys ?= {}
         misc.merge(options.extraKeys, keys)
 
         @cm = CodeMirror.fromTextArea(node, options)
-        $(@cm.getWrapperElement()).css(height:'auto')
+        $(@cm.getWrapperElement()).addClass('smc-vfill')
 
-        @_cm_last_remote = value
-        @cm.setValue(value)
+        @save_state_throttle = throttle(@save_state, SAVE_INTERVAL_MS, {leading:false})
 
-        @_cm_change = throttle(@_cm_save, 2000, {leading:false})
-        @cm.on('change', @_cm_change)
-        @cm.on('focus',=> @props.actions.disable_key_handler())
+        @cm.on 'change', (instance, changeObj) =>
+            if not @cm._setting_from_syncstring
+                @_user_action = true
+            if changeObj.origin? and changeObj.origin != 'setValue'
+                @save_state_throttle()
+                @props.actions.exit_undo_mode()
+
+        #@_cm_change = throttle(@_cm_save, 2000, {leading:false})
+        #@cm.on('change', @_cm_change)
 
         # replace undo/redo by our sync aware versions
         @cm.undo = @_cm_undo
@@ -135,7 +115,9 @@ exports.CodeEditor = rclass
 
         setTimeout((=>@cm_refresh(); if @props.is_current then @cm?.focus()), 0)
 
+        @props.actions.set_cm(@cm)
+
     render: ->
-        <div style={STYLE}>
+        <div style={STYLE} className='smc-vfill'>
             <textarea />
         </div>

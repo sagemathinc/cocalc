@@ -19,7 +19,7 @@ exports.Editor = rclass ({name}) ->
             has_uncommitted_changes : rtypes.bool
             read_only               : rtypes.bool
             load_time_estimate      : rtypes.immutable.Map
-            value                   : rtypes.string
+            is_loaded               : rtypes.bool
 
     shouldComponentUpdate: (next) ->
         return @props.has_unsaved_changes     != next.has_unsaved_changes or \
@@ -46,12 +46,11 @@ exports.Editor = rclass ({name}) ->
         </div>
 
     render_editor: ->
-        if not @props.value?
+        if not @props.is_loaded
             return @render_loading()
         <CodeEditor
             actions   = {@props.actions}
             read_only = {@props.read_only}
-            value     = {@props.value}
             />
 
     render: ->

@@ -67,8 +67,8 @@ class exports.Actions extends Actions
             @setState(read_only: read_only)
 
     _syncstring_change: (changes) =>
-        #console.log '_syncstring_change', "'#{@syncstring.to_str()}'"
-        @setState(value: @syncstring.to_str())
+        if not @store.get('is_loaded')
+            @setState(is_loaded: true)
         @set_save_status?()
 
     save: =>
@@ -102,11 +102,22 @@ class exports.Actions extends Actions
         size = @store.getIn(['local_view_state', 'font_size'])
         @set_local_view_state(font_size: size-1)
 
-    set_value: (value) =>
-        #console.log 'set_value', "'#{value}'"
-        if @_state == 'closed'
-            return
-        @syncstring.from_str(value)
-        @syncstring.save()
-        @setState(value:value)
+    set_cm: (cm) =>
+        @cm = cm
+        @set_codemirror_to_syncstring()
 
+    syncstring_save: =>
+        @syncstring?.save()
+
+    set_syncstring_to_codemirror: =>
+        if not @cm? or not @syncstring?
+            return
+        @syncstring.from_str(@cm.getValue())
+
+    set_codemirror_to_syncstring: =>
+        if not @cm? or not @syncstring?
+            return
+        @cm.setValueNoJump(@syncstring.to_str())
+
+    exit_undo_mode: =>
+        @syncstring.exit_undo_mode()

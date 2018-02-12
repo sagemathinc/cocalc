@@ -32,10 +32,12 @@ exports.register = ->
             store   = redux.createStore(name, Store)
 
             syncstring = webapp_client.sync_string
-                id         : require('smc-util/schema').client_db.sha1(project_id, path)
-                project_id : project_id
-                path       : path
-                cursors    : true
+                id                 : require('smc-util/schema').client_db.sha1(project_id, path)
+                project_id         : project_id
+                path               : path
+                cursors            : true
+                before_change_hook : actions.set_syncstring_to_codemirror
+                after_change_hook  : actions.set_codemirror_to_syncstring
 
             if window.smc?
                 window.a = actions # for DEBUGGING
