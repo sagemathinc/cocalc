@@ -448,20 +448,29 @@ class exports.TaskActions extends Actions
         @setState(local_view_state: view)
         @_update_visible()
 
+    # Move task that was at position old_index to now be at position new_index
     reorder_tasks: (old_index, new_index) =>
         if old_index == new_index
             return
         visible = @store.get('visible')
+
         old_id = visible.get(old_index)
         new_id = visible.get(new_index)
-        if not old_id? or not new_id?
-            return
-        old_pos = @store.getIn(['tasks', old_id, 'position'])
         new_pos = @store.getIn(['tasks', new_id, 'position'])
-        if not old_pos? or not new_pos?
+        if not new_id? or not new_pos?
             return
-        @set_task(old_id, {position:new_pos}, true)
-        @set_task(new_id, {position:old_pos}, true)
+        if new_index == 0
+            # moving to very beginning
+            set_pos = new_pos - 1
+        else if new_index < old_index
+            before_id = visible.get(new_index-1)
+            before_pos = @store.getIn(['tasks', before_id, 'position']) ? (new_pos - 1)
+            set_pos = (new_pos + before_pos)/2
+        else if new_index > old_index
+            after_id = visible.get(new_index+1)
+            after_pos = @store.getIn(['tasks', after_id, 'position']) ? (new_pos + 1)
+            set_pos = (new_pos + after_pos)/2
+        @set_task(old_id, {position:set_pos}, true)
         @__update_visible()
 
     focus_find_box: =>

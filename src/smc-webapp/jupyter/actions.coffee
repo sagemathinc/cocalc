@@ -621,7 +621,6 @@ class exports.JupyterActions extends Actions
         if @_state == 'closed'
             return
         #@dbg("_set")("obj=#{misc.to_json(obj)}")
-        @syncdb.exit_undo_mode()
         @syncdb.set(obj, save)
         # ensure that we update locally immediately for our own changes.
         @_syncdb_change(immutable.fromJS([misc.copy_with(obj, ['id', 'type'])]))
@@ -629,7 +628,6 @@ class exports.JupyterActions extends Actions
     _delete: (obj, save=true) =>
         if @_state == 'closed'
             return
-        @syncdb.exit_undo_mode()
         @syncdb.delete(obj, save)
         @_syncdb_change(immutable.fromJS([{type:obj.type, id:obj.id}]))
 
