@@ -809,14 +809,16 @@ class SyncDoc extends EventEmitter
     # "@_syncstring_table.set(...)" below because it is critical to
     # to be able to do the touch before @_syncstring_table gets initialized,
     # since otherwise the initial open a file will be very slow.
-    touch: (min_age_m=5) =>
+    touch: (min_age_m=5, cb) =>
         if @_client.is_project()
+            cb?()
             return
         if min_age_m > 0
-            # if min_age_m is 0 always do it immediately; if > 0 check what it was:
+            # if min_age_m is 0 always try to do it immediately; if > 0 check what it was:
             last_active = @_syncstring_table?.get_one()?.get('last_active')
             # if not defined or not set recently, do it.
             if not (not last_active? or +last_active <= +misc.server_minutes_ago(min_age_m))
+                cb?()
                 return
         # Now actually do the set.
         @_client.query
@@ -828,6 +830,8 @@ class SyncDoc extends EventEmitter
                     deleted     : @_deleted
                     last_active : misc.server_time()
                     doctype     : misc.to_json(@_doctype)  # important to set here, since this is when syncstring is often first created
+            cb: cb
+
 
     # The project calls this once it has checked for the file on disk; this
     # way the frontend knows that the syncstring has been initialized in
@@ -911,7 +915,6 @@ class SyncDoc extends EventEmitter
         if not @_closed
             cb("already connected")
             return
-        @touch(0)   # critical to do a quick initial touch so file gets opened on the backend
         query =
             syncstrings :
                 string_id         : @_string_id
@@ -929,73 +932,86 @@ class SyncDoc extends EventEmitter
                 doctype           : null
                 archived          : null
 
-        @_syncstring_table = @_client.sync_table(query)
-
-        @_syncstring_table.once 'connected', =>
-            @_handle_syncstring_update()
-            @_syncstring_table.on('change', @_handle_syncstring_update)
-            async.series([
-                (cb) =>
-                    # wait until syncstring is not archived -- if we open a very old syncstring, the patches
-                    # may be archived; we have to wait until after they have been pulled from blob storage before
-                    # we init the patch table below, load from disk, etc.
-                    @_syncstring_table.wait
-                        until : (t) => not t.get_one()?.get('archived')
-                        cb    : cb
-                (cb) =>
-                    async.parallel([@_init_patch_list, @_init_cursors, @_init_evaluator], cb)
-                (cb) =>
-                    @_closed = false
-                    if @_client.is_user() and not @_periodically_touch?
-                        @touch(1)
-                        # touch every few minutes while syncstring is open, so that backend local_hub
-                        # (if open) keeps its side open
-                        @_periodically_touch = setInterval((=>@touch(TOUCH_INTERVAL_M/2)), 1000*60*TOUCH_INTERVAL_M)
-                    if @_client.is_project()
-                        @_load_from_disk_if_newer(cb)
-                    else
-                        cb()
-            ], (err) =>
-                if @_closed
-                    # closed while connecting...
+        async.series([
+            (cb) =>
+                # It is critical to do a quick initial touch so file gets opened on the
+                # backend or syncstring gets created (otherwise creation of various
+                # changefeeds below will FATAL fail).
+                @touch(0, cb)
+            (cb) =>
+                @_syncstring_table = @_client.sync_table(query)
+                @_syncstring_table.once 'connected', =>
+                    @_handle_syncstring_update()
+                    @_syncstring_table.on('change', @_handle_syncstring_update)
                     cb()
-                    return
+            (cb) =>
+                # wait until syncstring is not archived -- if we open a very old syncstring, the patches
+                # may be archived; we have to wait until after they have been pulled from blob storage before
+                # we init the patch table below, load from disk, etc.
                 @_syncstring_table.wait
-                    until : (t) =>
-                        tbl = t.get_one()
-                        # init must be set in table and archived must NOT be set (so patches are loaded from blob store)
-                        init = tbl?.get('init')
-                        if init and not tbl?.get('archived')
-                            return init
-                        else
-                            return false
-                    cb    : (err, init) =>
-                        if @_closed # closed while waiting on condition (perfectly reasonable -- do nothing).
-                            return
-                        if err
-                            @emit('init', err)
-                            return
-                        init = init.toJS()
-                        err  = init.error
-                        if err
-                            @emit('init', err)
-                            return
-                        if @_client.is_user() and @_patch_list.count() == 0 and (init.size ? 0) > 0
-                            # wait for a change -- i.e., project loading the file from
-                            # disk and making available...  Because init.size > 0, we know that
-                            # there must be SOMETHING in the patches table once initialization is done.
-                            # This is the root cause of https://github.com/sagemathinc/cocalc/issues/2382
-                            @_patches_table.once 'change', =>
-                                @emit('init')
-                        else
-                            @emit('init')
-                if err
-                    cb(err)
+                    until : (t) => not t.get_one()?.get('archived')
+                    cb    : cb
+            (cb) =>
+                async.parallel([@_init_patch_list, @_init_cursors, @_init_evaluator], cb)
+            (cb) =>
+                @_closed = false
+                if @_client.is_user() and not @_periodically_touch?
+                    @touch(1)
+                    # touch every few minutes while syncstring is open, so that backend local_hub
+                    # (if open) keeps its side open
+                    @_periodically_touch = setInterval((=>@touch(TOUCH_INTERVAL_M/2)), 1000*60*TOUCH_INTERVAL_M)
+                if @_client.is_project()
+                    @_load_from_disk_if_newer(cb)
                 else
-                    @emit('change')
-                    @emit('connected')
                     cb()
-            )
+        ], (err) =>
+            if @_closed
+                # closed while connecting...
+                cb()
+                return
+
+            if err
+                cb(err)
+            else
+                # Emit 'init' when ready for use.
+                @_wait_init()
+                @emit('change')
+                @emit('connected')
+                cb()
+        )
+
+    # wait until the syncstring table is ready to be used (so extracted from archive, etc.),
+    # and only then emit an init.
+    _wait_init: =>
+        @_syncstring_table?.wait
+            until : (t) =>
+                tbl = t.get_one()
+                # init must be set in table and archived must NOT be set (so patches are loaded from blob store)
+                init = tbl?.get('init')
+                if init and not tbl?.get('archived')
+                    return init
+                else
+                    return false
+            cb    : (err, init) =>
+                if @_closed # closed while waiting on condition (perfectly reasonable -- do nothing).
+                    return
+                if err
+                    @emit('init', err)
+                    return
+                init = init.toJS()
+                err  = init.error
+                if err
+                    @emit('init', err)
+                    return
+                if @_client.is_user() and @_patch_list.count() == 0 and (init.size ? 0) > 0
+                    # wait for a change -- i.e., project loading the file from
+                    # disk and making available...  Because init.size > 0, we know that
+                    # there must be SOMETHING in the patches table once initialization is done.
+                    # This is the root cause of https://github.com/sagemathinc/cocalc/issues/2382
+                    @_patches_table.once 'change', =>
+                        @emit('init')
+                else
+                    @emit('init')
 
     # Delete the synchronized string and **all** patches from the database -- basically
     # delete the complete history of editing this file.
