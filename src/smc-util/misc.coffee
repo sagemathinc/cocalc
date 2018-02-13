@@ -365,6 +365,9 @@ exports.len = (obj) ->
 # return the keys of an object, e.g., {a:5, xyz:'10'} -> ['a', 'xyz']
 exports.keys = underscore.keys
 
+# does the given object (first arg) have the given key (second arg)?
+exports.has_key = underscore.has
+
 # returns the values of a map
 exports.values = underscore.values
 

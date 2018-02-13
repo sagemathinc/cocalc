@@ -203,7 +203,7 @@ $.fn.extend
             tex                 : undefined
             display             : false
             inline              : false
-            hide_when_rendering : false  # if true, entire element will get hidden until mathjax is rendered
+            hide_when_rendering : false         # if true, entire element will get hidden until mathjax is rendered
             cb                  : undefined     # if defined, gets called as cb(t) for *every* element t in the jquery set!
         @each () ->
             t = $(this)

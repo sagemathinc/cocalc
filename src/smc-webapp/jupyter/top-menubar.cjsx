@@ -113,6 +113,7 @@ exports.TopMenubar = rclass ({name}) ->
                  "cut cell", "copy cell", "paste cell above", "paste cell below", "paste cell and replace", "delete cell", "", \
                  "split cell at cursor", "merge cell with previous cell", "merge cell with next cell", "merge cells", "", \
                  "move cell up", "move cell down", "", \
+                 "write protect", "delete protect", "", \
                  "find and replace", "", \
                  "#{if cell_type != 'markdown' then '<' else ''}insert image"]  # disable if not markdown
 
@@ -376,7 +377,4 @@ external_link = (name, url) ->
         >
         <Icon name='external-link'/> {name}
     </MenuItem>
-
-
-
 

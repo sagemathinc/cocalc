@@ -169,12 +169,16 @@ exports.CellList = rclass
 
         v = []
         @props.cell_list.map (id) =>
+            cell_data  = @props.cells.get(id)
+            # is it possible/better idea to use the @actions.store here?
+            editable   = cell_data.getIn(['metadata', 'editable']) ? true
+            deletable  = cell_data.getIn(['metadata', 'deletable']) ? true
             cell = <Cell
                     key              = {id}
                     actions          = {@props.actions}
                     id               = {id}
                     cm_options       = {@props.cm_options}
-                    cell             = {@props.cells.get(id)}
+                    cell             = {cell_data}
                     is_current       = {id == @props.cur_id}
                     is_selected      = {@props.sel_ids?.contains(id)}
                     is_markdown_edit = {@props.md_edit_ids?.contains(id)}
@@ -187,6 +191,8 @@ exports.CellList = rclass
                     more_output      = {@props.more_output?.get(id)}
                     cell_toolbar     = {@props.cell_toolbar}
                     trust            = {@props.trust}
+                    editable         = {editable}
+                    deletable        = {deletable}
                     />
             if @props.actions?
                 v.push(@render_insert_cell(id))

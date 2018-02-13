@@ -43,7 +43,7 @@ exports.EditCellMetadata = rclass
     on_change: (value) ->
         if not @props.id?
             return
-        @props.actions.set_cell_metadata(@props.id, value)
+        @props.actions.set_cell_metadata(id:@props.id, metadata:value)
 
     render_editor: ->
         <div style={fontSize:@props.font_size, border: '1px solid #ccc', margin: '5px', borderRadius: '3px'}>

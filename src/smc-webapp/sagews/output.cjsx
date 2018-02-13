@@ -23,6 +23,11 @@ exports.CellOutput = rclass
         output : rtypes.object.isRequired
         flags  : rtypes.string
 
+    render_auto: ->
+        # This is deprecated, but can be in some older worksheets.
+        # It should do nothing for static rendering.
+        return <span/>
+
     render_stdout: (value, key) ->
         <Stdout key={key} message={fromJS(text:value)} />
 
