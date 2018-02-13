@@ -311,8 +311,8 @@ connect_to_database = (opts) ->
         opts.cb(); return
     dbg("connecting...")
     database = require('./postgres').db
-        host     : program.database_nodes.split(',')[0]  # postgres has only one master server
-        database : program.keyspace
+        host            : program.database_nodes.split(',')[0]  # postgres has only one master server
+        database        : program.keyspace
         concurrent_warn : program.db_concurrent_warn
     database.connect(cb:opts.cb)
 

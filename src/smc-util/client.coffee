@@ -1824,6 +1824,27 @@ class exports.Connection extends EventEmitter
         # Will only do something if @_redux has been set.
         @_redux?.getActions('file_use').mark_file(opts.project_id, opts.path, opts.action, opts.ttl)
 
+    _post_query: (opts) =>
+        opts = defaults opts,
+            query   : required
+            options : undefined    # if given must be an array of objects, e.g., [{limit:5}]
+            cb      : undefined
+        data =
+            query   : misc.to_json(opts.query)
+            options : if opts.options then misc.to_json(opts.options)
+        jqXHR = $.post("#{window?.app_base_url ? ''}/user_query", data)
+        if not opts.cb?
+            return
+        jqXHR.fail ->
+            opts.cb("failed")
+            return
+        jqXHR.done (resp) ->
+            if resp.error
+                opts.cb(resp.error)
+            else
+                opts.cb(undefined, resp.result)
+        return
+
     query: (opts) =>
         opts = defaults opts,
             query   : required
@@ -1836,19 +1857,10 @@ class exports.Connection extends EventEmitter
 
         if not opts.changes and $?.post?
             # Can do via http POST request, rather than websocket messages
-            data =
-                query   : misc.to_json(opts.query)
-                options : if opts.options then misc.to_json(opts.options)
-            console.log 'doing post', data
-            jqXHR = $.post("#{window?.app_base_url ? ''}/user_query", data)  # todo change to use $.ajax and timeout... -- or maybe define by backend.
-            jqXHR.fail ->
-                opts.cb("failed")
-                return
-            jqXHR.done (resp) ->
-                if resp.error
-                    opts.cb(resp.error)
-                else
-                    opts.cb(undefined, resp.result)
+            @_post_query
+                query   : opts.query
+                options : opts.options
+                cb      : opts.cb
             return
 
         #@__query_id ?= 0; @__query_id += 1; id = @__query_id
