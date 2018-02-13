@@ -1759,3 +1759,4 @@ exports.CourseActions = class CourseActions extends Actions
             return
         # Now open it
         @redux.getProjectActions(proj).open_directory(path)
+

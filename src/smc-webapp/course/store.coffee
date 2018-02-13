@@ -289,6 +289,8 @@ exports.CourseStore = class CourseStore extends Store
         #  not_peer_assignment - number of students who have NOT received peer assignment
         #  peer_collect        - number of students from whom we have collected peer grading
         #  not_peer_collect    - number of students from whome we have NOT collected peer grading
+        #  graded              - have a grade entered
+        #  not_graded          - no grade entered
         #  return_graded       - number of students to whom we've returned assignment
         #  not_return_graded   - number of students to whom we've NOT returned assignment
         #                        but we collected it from them *and* either assigned a grade or skip grading
@@ -322,6 +324,7 @@ exports.CourseStore = class CourseStore extends Store
         for t in STEPS(peer)
             info[t] = 0
             info["not_#{t}"] = 0
+        info['graded'] = info['not_graded'] = 0
         for student_id in students
             previous = true
             for t in STEPS(peer)
@@ -336,6 +339,11 @@ exports.CourseStore = class CourseStore extends Store
                     if (previous and t != 'return_graded') or graded
                         info["not_#{t}"] += 1
                     previous = false
+
+            if @has_grade(assignment, student_id)
+                info['graded'] += 1
+            else
+                info['not_graded'] += 1
 
         @_assignment_status[assignment_id] = info
         return info
@@ -435,3 +443,25 @@ exports.CourseStore = class CourseStore extends Store
             deleted_project_ids : @get_student_project_ids(include_deleted:true, deleted_only:true, map:true)
             upgrade_goal        : upgrade_goal
         return plan
+
+    manual_grading_previous_student: (assignment, current_student_id) =>
+        return @_first_student_without_grade(assignment, current_student_id, true)
+
+    manual_grading_next_student: (assignment, current_student_id) =>
+        return @_first_student_without_grade(assignment, current_student_id)
+
+    _first_student_without_grade: (assignment, id, previous=false) =>
+        students = @get_student_ids(deleted:false)
+        if previous
+            students = students.reverse()
+        skip = id?
+        for student_id in students
+            if skip and student_id != id
+                continue
+            else
+                if skip
+                    skip = false
+                    continue
+            if not @has_grade(assignment, student_id)
+                return student_id
+        return null

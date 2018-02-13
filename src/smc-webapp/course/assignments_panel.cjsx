@@ -305,8 +305,9 @@ Assignment = rclass
             width = 3
         buttons = []
         insert_skip_button = =>
+            b1 = @render_grading_manual_button(status)
             b2 = @render_skip_grading_button(status)
-            buttons.push(<Col md={width} key='skip_grading'>{b2}</Col>)
+            buttons.push(<Col md={width} key='grading_buttons'>{b2} {b1}</Col>)
 
         for name in STEPS(peer)
             b = @["render_#{name}_button"](status)
@@ -334,18 +335,74 @@ Assignment = rclass
 
         return v
 
+    render_grade_student_header: ->
+        store   = @props.redux.getStore(@props.name)
+        previous = =>
+            id = store.manual_grading_previous_student(@props.assignment, @state.manual_grading_student_id)
+            @setState(manual_grading_student_id : id)
+        next = =>
+            id = store.manual_grading_next_student(@props.assignment, @state.manual_grading_student_id)
+            @setState(manual_grading_student_id : id)
+
+        if @state.manual_grading_student_id?
+            student_name = store.get_student_name(@state.manual_grading_student_id)
+            info = <span style={marginRight:'2rem'}>Manual grading <b>{student_name}</b></span>
+        else
+            info = <span>End of student list</span>
+
+        <div>
+            {info}
+            <ButtonToolbar>
+                <Button
+                    onClick  = {previous}
+                    bsStyle  = {'default'}
+                >
+                    <Icon name={'step-backward'} /> Previous
+                </Button>
+                <Button
+                    onClick  = {next}
+                    bsStyle  = {'primary'}
+                >
+                    <Icon name={'step-forward'} /> Next Student
+                </Button>
+                <Button
+                    onClick  = {=>@setState(manual_grading:null)}
+                    bsStyle  = {'warning'}
+                >
+                    <Icon name={'stop'} /> Stop Grading
+                </Button>
+            </ButtonToolbar>
+        </div>
+
     render_more: ->
+        if @state.manual_grading == @props.assignment.get('assignment_id')
+            header = @render_grade_student_header()
+            panel_body  =
+                <StudentListForGrading
+                    redux               = {@props.redux}
+                    name                = {@props.name}
+                    assignment          = {@props.assignment}
+                    students            = {@props.students}
+                    user_map            = {@props.user_map}
+                    active_student_sort = {@props.active_student_sort}
+                    student_id          = {@state.manual_grading_student_id}
+                />
+        else
+            header = @render_more_header()
+            panel_body  =
+                <StudentListForAssignment
+                    redux               = {@props.redux}
+                    name                = {@props.name}
+                    assignment          = {@props.assignment}
+                    students            = {@props.students}
+                    user_map            = {@props.user_map}
+                    active_student_sort = {@props.active_student_sort}
+                />
+
         <Row key='more'>
             <Col sm=12>
-                <Panel header={@render_more_header()}>
-                    <StudentListForAssignment
-                        redux               = {@props.redux}
-                        name                = {@props.name}
-                        assignment          = {@props.assignment}
-                        students            = {@props.students}
-                        user_map            = {@props.user_map}
-                        active_student_sort = {@props.active_student_sort}
-                        />
+                <Panel header={header}>
+                    {panel_body}
                     {@render_note()}
                 </Panel>
             </Col>
@@ -634,9 +691,44 @@ Assignment = rclass
             icon = 'square-o'
         <Button
             onClick={@toggle_skip_grading} >
-            <Icon name={icon} /> Skip Grading
+            <Icon name={icon} /> Skip
         </Button>
 
+    render_grading_manual_button: (status) ->
+        return null if @props.assignment.get('skip_grading') ? false
+        # Have already collected something
+        disabled = false
+        icon     = 'play'
+        handler  = =>
+            store = @props.redux.getStore(@props.name)
+            next_student_id = store.manual_grading_next_student(
+                @props.assignment, @state.manual_grading_student_id
+            )
+            @setState(
+                manual_grading            : @props.assignment.get('assignment_id')
+                manual_grading_student_id : next_student_id
+            )
+
+        if status.graded > 0
+            if status.not_graded == 0
+                disabled = true
+                bsStyle  = 'success'
+                activity = 'Done'
+                icon     = 'check-circle'
+            else
+                bsStyle  = 'primary'
+                activity = 'Continue'
+        else
+            bsStyle  = 'primary'
+            activity = 'Start'
+
+        <Button
+            onClick  = {handler}
+            bsStyle  = {bsStyle}
+            disabled = {disabled}
+        >
+            <Icon name={icon} /> {activity} Grading
+        </Button>
 
     render_return_graded_button: (status) ->
         if status.collect == 0
@@ -889,4 +981,36 @@ StudentListForAssignment = rclass
                 peer_grade = {!!@props.assignment.get('peer_grade')?.get('enabled')}
             />
             {@render_students()}
+        </div>
+
+StudentListForGrading = rclass
+    displayName : "CourseEditor-StudentListForGrading"
+
+    propTypes :
+        name                : rtypes.string.isRequired
+        redux               : rtypes.object.isRequired
+        assignment          : rtypes.object.isRequired
+        students            : rtypes.object.isRequired
+        user_map            : rtypes.object.isRequired
+        student_id          : rtypes.string
+        active_student_sort : rtypes.immutable.Map
+
+    render: ->
+        if not @props.student_id?
+            return <div>No student</div>
+        store         = @props.redux.getStore(@props.name)
+        assignment_id = @props.assignment.get('assignment_id')
+        info          = store.student_assignment_info(@props.student_id, @props.assignment)
+        last_collect  = info.last_collect
+        if last_collect.time?
+            time          = <BigTime date={last_collect.time} />
+        else
+            time          = "never"
+        <div>
+            Last collected files {time}.
+            <Button
+                onClick = {=>@actions(@props.name).open_assignment('collected', assignment_id, @props.student_id)}
+            >
+                <Icon name="folder-open-o" /> Open
+            </Button>
         </div>
