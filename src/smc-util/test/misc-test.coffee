@@ -88,6 +88,33 @@ describe "sinon", ->
 
 # start testing misc.coffee
 
+describe 'seconds2hms', ->
+    s2hms = misc.seconds2hms
+    s2hm  = misc.seconds2hm
+    it 'converts to short form', ->
+        expect(s2hms(0)).toEqual '0s'
+        expect(s2hms(60)).toEqual '1m0s'
+        expect(s2hms(61)).toEqual '1m1s'
+        expect(s2hms(3601)).toEqual '1h0m1s'
+        expect(s2hms(7300)).toEqual '2h1m40s'
+    it 'converts to long form', ->
+        expect(s2hms( 0, true)).toEqual '0 seconds'
+        expect(s2hms(61, true)).toEqual '1 minute 1 second'
+        expect(s2hms(3601, true)).toEqual '1 hour 0 minutes'
+        expect(s2hms(7300, true)).toEqual '2 hours 1 minute'
+    it 'converts to short form in minute resolution', ->
+        expect(s2hm(0)).toEqual '0m'
+        expect(s2hm(60)).toEqual '1m'
+        expect(s2hm(61)).toEqual '1m'
+        expect(s2hm(3601)).toEqual '1h0m'
+        expect(s2hm(7300)).toEqual '2h1m'
+    it 'converts to long form in minute resolution', ->
+        expect(s2hm( 0, true)).toEqual '0 minutes'
+        expect(s2hm(60, true)).toEqual '1 minute'
+        expect(s2hm(61, true)).toEqual '1 minute'
+        expect(s2hm(3601, true)).toEqual '1 hour 0 minutes'
+        expect(s2hm(7300, true)).toEqual '2 hours 1 minute'
+
 describe 'startswith', ->
     startswith = misc.startswith
     it 'checks that "foobar" starts with foo', ->
