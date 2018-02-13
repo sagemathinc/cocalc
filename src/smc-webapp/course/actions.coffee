@@ -1767,10 +1767,11 @@ exports.CourseActions = class CourseActions extends Actions
             next_student_id = store.manual_grading_previous_student(assignment, student_id)
         else
             next_student_id = store.manual_grading_next_student(assignment, student_id)
-        {fromJS} = require('immutable')
-        @setState(manual_grading : fromJS(
+        {Map} = require('immutable')
+        @setState(manual_grading : Map(
             student_id    : next_student_id
             assignment_id : assignment.get('assignment_id')
+            progress      : 1
         ))
 
     manual_grading_stop: () =>

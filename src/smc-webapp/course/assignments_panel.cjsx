@@ -35,6 +35,7 @@ styles = require('./styles')
 {DateTimePicker, ErrorDisplay, Icon, LabeledRow, Loading, MarkdownInput, Space, Tip, NumberInput} = require('../r_misc')
 {STEPS, step_direction, step_verb, step_ready} = util
 {BigTime, FoldersToolbar, StudentAssignmentInfo, StudentAssignmentInfoHeader} = require('./common')
+{GradingStudentAssignment, GradingStudentAssignmentHeader} = require('./grading')
 
 {Progress} = require('./progress')
 {SkipCopy} = require('./skip')
@@ -343,59 +344,29 @@ Assignment = rclass
 
         return v
 
-    render_grade_student_header: ->
-        store   = @props.redux.getStore(@props.name)
-        sid     = @props.manual_grading?.get('student_id') ? undefined
-        previous = =>
-            @actions(@props.name).manual_grading(@props.assignment, sid, true)
-        next = =>
-            @actions(@props.name).manual_grading(@props.assignment, sid, false)
-
-        if sid?
-            student_name = store.get_student_name(sid)
-            info = <span style={marginRight:'2rem'}>Manual grading <b>{student_name}</b></span>
-        else
-            info = <span>End of student list</span>
-
-        <div>
-            {info}
-            <ButtonToolbar>
-                <Button
-                    onClick  = {previous}
-                    bsStyle  = {'default'}
-                >
-                    <Icon name={'step-backward'} /> Previous
-                </Button>
-                <Button
-                    onClick  = {next}
-                    bsStyle  = {'primary'}
-                >
-                    <Icon name={'step-forward'} /> Next Student
-                </Button>
-                <Button
-                    onClick  = {=>@actions(@props.name).manual_grading_stop()}
-                    bsStyle  = {'warning'}
-                >
-                    <Icon name={'stop'} /> Stop Grading
-                </Button>
-            </ButtonToolbar>
-        </div>
 
     render_more: ->
         if @props.manual_grading?.get('assignment_id') == @props.assignment.get('assignment_id')
-            header = @render_grade_student_header()
-            panel_body  =
-                <StudentListForGrading
+            header      =
+                <GradingStudentAssignmentHeader
                     redux               = {@props.redux}
                     name                = {@props.name}
                     assignment          = {@props.assignment}
                     students            = {@props.students}
                     user_map            = {@props.user_map}
-                    active_student_sort = {@props.active_student_sort}
-                    student_id          = {@props.manual_grading?.get('student_id')}
+                    manual_grading      = {@props.manual_grading}
+                />
+            panel_body  =
+                <GradingStudentAssignment
+                    redux               = {@props.redux}
+                    name                = {@props.name}
+                    assignment          = {@props.assignment}
+                    students            = {@props.students}
+                    user_map            = {@props.user_map}
+                    manual_grading      = {@props.manual_grading}
                 />
         else
-            header = @render_more_header()
+            header      = @render_more_header()
             panel_body  =
                 <StudentListForAssignment
                     redux               = {@props.redux}
@@ -985,34 +956,4 @@ StudentListForAssignment = rclass
             {@render_students()}
         </div>
 
-StudentListForGrading = rclass
-    displayName : "CourseEditor-StudentListForGrading"
 
-    propTypes :
-        name                : rtypes.string.isRequired
-        redux               : rtypes.object.isRequired
-        assignment          : rtypes.object.isRequired
-        students            : rtypes.object.isRequired
-        user_map            : rtypes.object.isRequired
-        student_id          : rtypes.string
-        active_student_sort : rtypes.immutable.Map
-
-    render: ->
-        if not @props.student_id?
-            return <div>No student</div>
-        store         = @props.redux.getStore(@props.name)
-        assignment_id = @props.assignment.get('assignment_id')
-        info          = store.student_assignment_info(@props.student_id, @props.assignment)
-        last_collect  = info.last_collect
-        if last_collect.time?
-            time          = <BigTime date={last_collect.time} />
-        else
-            time          = "never"
-        <div>
-            Last collected files {time}.
-            <Button
-                onClick = {=>@actions(@props.name).open_assignment('collected', assignment_id, @props.student_id)}
-            >
-                <Icon name="folder-open-o" /> Open
-            </Button>
-        </div>
