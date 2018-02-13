@@ -1838,8 +1838,8 @@ class exports.Connection extends EventEmitter
             # Can do via http POST request, rather than websocket messages
             data =
                 query   : misc.to_json(opts.query)
-                changes : if opts.options then misc.to_json(opts.options)
-            console.log 'doing post'
+                options : if opts.options then misc.to_json(opts.options)
+            console.log 'doing post', data
             jqXHR = $.post("#{window?.app_base_url ? ''}/user_query", data)  # todo change to use $.ajax and timeout... -- or maybe define by backend.
             jqXHR.fail ->
                 opts.cb("failed")
