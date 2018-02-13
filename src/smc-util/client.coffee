@@ -1833,6 +1833,24 @@ class exports.Connection extends EventEmitter
             cb      : undefined
         if opts.options? and not misc.is_array(opts.options)
             throw Error("options must be an array")
+
+        if not opts.changes and $?.post?
+            # Can do via http POST request, rather than websocket messages
+            data =
+                query   : misc.to_json(opts.query)
+                changes : if opts.options then misc.to_json(opts.options)
+            console.log 'doing post'
+            jqXHR = $.post("#{window?.app_base_url ? ''}/user_query", data)  # todo change to use $.ajax and timeout... -- or maybe define by backend.
+            jqXHR.fail ->
+                opts.cb("failed")
+                return
+            jqXHR.done (resp) ->
+                if resp.error
+                    opts.cb(resp.error)
+                else
+                    opts.cb(undefined, resp.result)
+            return
+
         #@__query_id ?= 0; @__query_id += 1; id = @__query_id
         #console.log("#{(new Date()).toISOString()} -- #{id}: query=#{misc.to_json(opts.query)}")
         err = validate_client_query(opts.query, @account_id)
