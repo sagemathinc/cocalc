@@ -82,6 +82,12 @@ immutable_equals = (objA, objB) ->
             return false
     return true
 
+exports.any_changes = (now, next, attrs) ->
+    for attr in attrs
+        if now[attr] != next[attr]
+            return true
+    return false
+
 # Like PureRenderMixin, except only for immutable variables. Will always
 # re-render if any props are mutable objects.
 exports.ImmutablePureRenderMixin = ImmutablePureRenderMixin =

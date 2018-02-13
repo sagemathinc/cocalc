@@ -48,6 +48,7 @@ exports.AssignmentsPanel = rclass ({name}) ->
             active_assignment_sort : rtypes.object
             active_student_sort    : rtypes.immutable.Map
             expanded_peer_configs  : rtypes.immutable.Set
+            manual_grading         : rtypes.immutable.Map
 
     propTypes :
         name            : rtypes.string.isRequired
@@ -119,6 +120,7 @@ exports.AssignmentsPanel = rclass ({name}) ->
                     is_expanded         = {@props.expanded_assignments.has(x.assignment_id)}
                     active_student_sort = {@props.active_student_sort}
                     expand_peer_config  = {@props.expanded_peer_configs.has(x.assignment_id)}
+                    manual_grading      = {@props.manual_grading}
                     />
 
     render_show_deleted: (num_deleted, num_shown) ->
@@ -185,19 +187,25 @@ Assignment = rclass
     displayName : "CourseEditor-Assignment"
 
     propTypes :
-        name                : rtypes.string.isRequired
-        assignment          : rtypes.immutable.Map.isRequired
-        project_id          : rtypes.string.isRequired
-        redux               : rtypes.object.isRequired
-        students            : rtypes.object.isRequired
-        user_map            : rtypes.object.isRequired
-        background          : rtypes.string
-        is_expanded         : rtypes.bool
-        active_student_sort : rtypes.immutable.Map
-        expand_peer_config  : rtypes.bool
+        name                      : rtypes.string.isRequired
+        assignment                : rtypes.immutable.Map.isRequired
+        project_id                : rtypes.string.isRequired
+        redux                     : rtypes.object.isRequired
+        students                  : rtypes.object.isRequired
+        user_map                  : rtypes.object.isRequired
+        background                : rtypes.string
+        is_expanded               : rtypes.bool
+        active_student_sort       : rtypes.immutable.Map
+        expand_peer_config        : rtypes.bool
+        manual_grading            : rtypes.immutable.Map
 
     shouldComponentUpdate: (nextProps, nextState) ->
-        return @state != nextState or @props.assignment != nextProps.assignment or @props.students != nextProps.students or @props.user_map != nextProps.user_map or @props.background != nextProps.background or @props.is_expanded != nextProps.is_expanded or @props.active_student_sort != nextProps.active_student_sort or @props.expand_peer_config  != nextProps.expand_peer_config
+        {any_changes} = require('../r_misc')
+        return @state != nextState or \
+            any_changes(@props, nextProps,
+                ['assignment', 'students', 'user_map', 'background', 'is_expanded', \
+                'active_student_sort', 'expand_peer_config', 'manual_grading']
+            )
 
     getInitialState: ->
         confirm_delete : false
@@ -337,15 +345,14 @@ Assignment = rclass
 
     render_grade_student_header: ->
         store   = @props.redux.getStore(@props.name)
+        sid     = @props.manual_grading?.get('student_id') ? undefined
         previous = =>
-            id = store.manual_grading_previous_student(@props.assignment, @state.manual_grading_student_id)
-            @setState(manual_grading_student_id : id)
+            @actions(@props.name).manual_grading(@props.assignment, sid, true)
         next = =>
-            id = store.manual_grading_next_student(@props.assignment, @state.manual_grading_student_id)
-            @setState(manual_grading_student_id : id)
+            @actions(@props.name).manual_grading(@props.assignment, sid, false)
 
-        if @state.manual_grading_student_id?
-            student_name = store.get_student_name(@state.manual_grading_student_id)
+        if sid?
+            student_name = store.get_student_name(sid)
             info = <span style={marginRight:'2rem'}>Manual grading <b>{student_name}</b></span>
         else
             info = <span>End of student list</span>
@@ -366,7 +373,7 @@ Assignment = rclass
                     <Icon name={'step-forward'} /> Next Student
                 </Button>
                 <Button
-                    onClick  = {=>@setState(manual_grading:null)}
+                    onClick  = {=>@actions(@props.name).manual_grading_stop()}
                     bsStyle  = {'warning'}
                 >
                     <Icon name={'stop'} /> Stop Grading
@@ -375,7 +382,7 @@ Assignment = rclass
         </div>
 
     render_more: ->
-        if @state.manual_grading == @props.assignment.get('assignment_id')
+        if @props.manual_grading?.get('assignment_id') == @props.assignment.get('assignment_id')
             header = @render_grade_student_header()
             panel_body  =
                 <StudentListForGrading
@@ -385,7 +392,7 @@ Assignment = rclass
                     students            = {@props.students}
                     user_map            = {@props.user_map}
                     active_student_sort = {@props.active_student_sort}
-                    student_id          = {@state.manual_grading_student_id}
+                    student_id          = {@props.manual_grading?.get('student_id')}
                 />
         else
             header = @render_more_header()
@@ -700,14 +707,8 @@ Assignment = rclass
         disabled = false
         icon     = 'play'
         handler  = =>
-            store = @props.redux.getStore(@props.name)
-            next_student_id = store.manual_grading_next_student(
-                @props.assignment, @state.manual_grading_student_id
-            )
-            @setState(
-                manual_grading            : @props.assignment.get('assignment_id')
-                manual_grading_student_id : next_student_id
-            )
+            sid = @props.manual_grading?.get('student_id') ? undefined
+            @actions(@props.name).manual_grading(@props.assignment, sid)
 
         if status.graded > 0
             if status.not_graded == 0
@@ -715,6 +716,7 @@ Assignment = rclass
                 bsStyle  = 'success'
                 activity = 'Done'
                 icon     = 'check-circle'
+                handler  = ->
             else
                 bsStyle  = 'primary'
                 activity = 'Continue'

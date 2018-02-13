@@ -1760,3 +1760,18 @@ exports.CourseActions = class CourseActions extends Actions
         # Now open it
         @redux.getProjectActions(proj).open_directory(path)
 
+    manual_grading: (assignment, student_id, previous=false) =>
+        store = @get_store()
+        return if not store?
+        if previous
+            next_student_id = store.manual_grading_previous_student(assignment, student_id)
+        else
+            next_student_id = store.manual_grading_next_student(assignment, student_id)
+        {fromJS} = require('immutable')
+        @setState(manual_grading : fromJS(
+            student_id    : next_student_id
+            assignment_id : assignment.get('assignment_id')
+        ))
+
+    manual_grading_stop: () =>
+        @setState(manual_grading : null)
