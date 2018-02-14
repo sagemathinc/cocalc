@@ -2136,9 +2136,11 @@ get_directory_listing = (opts) ->
         #log         : console.log
         cb          : (err) ->
             #console.log opts.path, 'get_directory_listing.success or timeout', err
-            if prom_client.enabled
+            if prom_client.enabled and prom_dir_listing_start?
                 prom_labels.err = !!err
-                prom_get_dir_listing_h?.observe(prom_labels, (misc.server_time() - prom_dir_listing_start) / 1000)
+                tm = (misc.server_time() - prom_dir_listing_start) / 1000
+                if not isNaN(tm)
+                    prom_get_dir_listing_h?.observe(prom_labels, tm)
 
             opts.cb(err ? listing_err, listing)
             if time0 and state != 'running' and not err
