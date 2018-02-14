@@ -469,10 +469,9 @@ class exports.Connection extends EventEmitter
                 misc.delete_local_storage(@remember_me_key())
                 @emit(mesg.event, mesg)
 
-            when "project_list_updated", 'project_data_changed'
-                @emit(mesg.event, mesg)
             when 'version'
                 @emit('new_version', {version:mesg.version, min_version:mesg.min_version})
+
             when "error"
                 # An error that isn't tagged with an id -- some sort of general problem.
                 if not mesg.id?
