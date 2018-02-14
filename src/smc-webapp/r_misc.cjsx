@@ -1428,7 +1428,7 @@ EditorFileInfoDropdown = rclass
                 'copy'     : 'files-o'
         else
             # dynamically create a map from 'key' to 'icon'
-            {file_actions} = require('./project_files')
+            {file_actions} = require('./project_store')
             items = underscore.object(([k, v.icon] for k, v of file_actions))
 
         for name, icon of items

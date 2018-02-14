@@ -28,7 +28,7 @@ immutable  = require('immutable')
 {Col, Row, Button, ButtonGroup, ButtonToolbar, FormControl, FormGroup, InputGroup, Panel, Well} = require('react-bootstrap')
 {Icon, Loading, TimeAgo, PathLink, r_join, SearchInput, Space, Tip} = require('./r_misc')
 {User} = require('./users')
-{file_actions} = require('./project_files')
+{file_actions} = require('./project_store')
 {ProjectTitleAuto} = require('./projects')
 
 {file_associations} = require('./file-associations')
