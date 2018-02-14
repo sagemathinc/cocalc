@@ -1489,7 +1489,11 @@ exports.round2 = round2 = (num) ->
     # padding to fix floating point issue (see http://stackoverflow.com/questions/11832914/round-to-at-most-2-decimal-places-in-javascript)
     Math.round((num + 0.00001) * 100) / 100
 
-exports.seconds2hms = seconds2hms = (secs, longform) ->
+# like seconds2hms, but only up to minute-resultion
+exports.seconds2hm = seconds2hm = (secs, longform) ->
+    return seconds2hms(secs, longform, false)
+
+exports.seconds2hms = seconds2hms = (secs, longform, show_seconds=true) ->
     longform ?= false
     if secs < 10
         s = round2(secs % 60)
@@ -1499,7 +1503,7 @@ exports.seconds2hms = seconds2hms = (secs, longform) ->
         s = Math.round(secs % 60)
     m = Math.floor(secs / 60) % 60
     h = Math.floor(secs / 60 / 60)
-    if h == 0 and m == 0
+    if (h == 0 and m == 0) and show_seconds
         if longform
             return "#{s} #{exports.plural(s, 'second')}"
         else
@@ -1508,12 +1512,21 @@ exports.seconds2hms = seconds2hms = (secs, longform) ->
         if longform
             return "#{h} #{exports.plural(h, 'hour')} #{m} #{exports.plural(m, 'minute')}"
         else
-            return "#{h}h#{m}m#{s}s"
-    if m > 0
-        if longform
-            return "#{m} #{exports.plural(m, 'minute')} #{s} #{exports.plural(s, 'second')}"
+            if show_seconds
+                return "#{h}h#{m}m#{s}s"
+            else
+                return "#{h}h#{m}m"
+    if (m > 0) or (not show_seconds)
+        if show_seconds
+            if longform
+                return "#{m} #{exports.plural(m, 'minute')} #{s} #{exports.plural(s, 'second')}"
+            else
+                return "#{m}m#{s}s"
         else
-            return "#{m}m#{s}s"
+            if longform
+                return "#{m} #{exports.plural(m, 'minute')}"
+            else
+                return "#{m}m"
 
 # returns the number parsed from the input text, or undefined if invalid
 # rounds to the nearest 0.01 if round_number is true (default : true)
