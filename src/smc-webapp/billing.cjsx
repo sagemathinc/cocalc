@@ -1294,7 +1294,7 @@ exports.ExplainPlan = ExplainPlan = rclass
                 </p>
 
                 <p>
-                Paying is optional, but will ensure that your students have a better
+                Payment is required. This will ensure that your students have a better
                 experience, network access, and receive priority support.  The cost
                 is <b>between $4 and ${STUDENT_COURSE_PRICE} per student</b>, depending on class size and whether
                 you or your students pay.  <b>Start right now:</b> <i>you can fully setup your class

@@ -37,7 +37,7 @@ exports.JupyterEditor = rclass ({name}) ->
 
     reduxProps :
         "#{name}" :
-            view_mode           : rtypes.string                     # 'normal', 'json', 'raw'
+            view_mode           : rtypes.oneOf(['normal', 'json', 'raw'])
             kernel              : rtypes.string                     # string name of the kernel
             error               : rtypes.string
             fatal               : rtypes.string                     # *FATAL* error; user must edit file to fix.
@@ -47,7 +47,7 @@ exports.JupyterEditor = rclass ({name}) ->
             cells               : rtypes.immutable.Map              # map from ids to cells
             cur_id              : rtypes.string
             sel_ids             : rtypes.immutable.Set.isRequired   # set of selected cells
-            mode                : rtypes.string.isRequired          # 'edit' or 'escape'
+            mode                : rtypes.oneOf(['edit', 'escape']).isRequired
             font_size           : rtypes.number
             md_edit_ids         : rtypes.immutable.Set.isRequired   # ids of markdown cells in edit mode
             cm_options          : rtypes.immutable.Map              # settings for all the codemirror editors
