@@ -219,6 +219,7 @@ class exports.Client extends EventEmitter
             # cancel any outstanding queries.
             @database.cancel_user_queries(client_id:@id)
 
+        delete @_project_cache
         delete client_metrics[@id]
         clearInterval(@_remember_me_interval)
         @query_cancel_all_changefeeds()
@@ -1475,39 +1476,45 @@ class exports.Client extends EventEmitter
                 # Wait 1 minute to give them a chance to save data...
                 setTimeout((()=>@conn.end()), 60000)
 
-    user_is_in_group: (group) =>
+    _user_is_in_group: (group) =>
         return @groups? and group in @groups
 
+    assert_user_is_in_group: (group, cb) =>
+        @get_groups (err) =>
+            if not err and not @_user_is_in_group('admin')  # user_is_in_group works after get_groups is called.
+                err = "must be logged in and a member of the admin group"
+            cb(err)
+
     mesg_project_set_quotas: (mesg) =>
-        if not @user_is_in_group('admin')
-            @error_to_client(id:mesg.id, error:"must be logged in and a member of the admin group to set project quotas")
-        else if not misc.is_valid_uuid_string(mesg.project_id)
+        if not misc.is_valid_uuid_string(mesg.project_id)
             @error_to_client(id:mesg.id, error:"invalid project_id")
-        else
-            project = undefined
-            dbg = @dbg("mesg_project_set_quotas(project_id='#{mesg.project_id}')")
-            async.series([
-                (cb) =>
-                    dbg("update base quotas in the database")
-                    @database.set_project_settings
-                        project_id : mesg.project_id
-                        settings   : misc.copy_without(mesg, ['event', 'id'])
-                        cb         : cb
-                (cb) =>
-                    dbg("get project from compute server")
-                    @compute_server.project
-                        project_id : mesg.project_id
-                        cb         : (err, p) =>
-                            project = p; cb(err)
-                (cb) =>
-                    dbg("determine total quotas and apply")
-                    project.set_all_quotas(cb:cb)
-            ], (err) =>
-                if err
-                    @error_to_client(id:mesg.id, error:"problem setting project quota -- #{err}")
-                else
-                    @push_to_client(message.success(id:mesg.id))
-            )
+            return
+        project = undefined
+        dbg = @dbg("mesg_project_set_quotas(project_id='#{mesg.project_id}')")
+        async.series([
+            (cb) =>
+                @assert_user_is_in_group('admin', cb)
+            (cb) =>
+                dbg("update base quotas in the database")
+                @database.set_project_settings
+                    project_id : mesg.project_id
+                    settings   : misc.copy_without(mesg, ['event', 'id'])
+                    cb         : cb
+            (cb) =>
+                dbg("get project from compute server")
+                @compute_server.project
+                    project_id : mesg.project_id
+                    cb         : (err, p) =>
+                        project = p; cb(err)
+            (cb) =>
+                dbg("determine total quotas and apply")
+                project.set_all_quotas(cb:cb)
+        ], (err) =>
+            if err
+                @error_to_client(id:mesg.id, error:"problem setting project quota -- #{err}")
+            else
+                @push_to_client(message.success(id:mesg.id))
+        )
 
     ###
     Public/published projects data
@@ -2356,9 +2363,6 @@ class exports.Client extends EventEmitter
                     @push_to_client(message.stripe_invoices(id:mesg.id, invoices:invoices))
 
     mesg_stripe_admin_create_invoice_item: (mesg) =>
-        if not @user_is_in_group('admin')
-            @error_to_client(id:mesg.id, error:"must be logged in and a member of the admin group to create invoice items")
-            return
         dbg = @dbg("mesg_stripe_admin_create_invoice_item")
         @_stripe = get_stripe()
         if not @_stripe?
@@ -2371,6 +2375,8 @@ class exports.Client extends EventEmitter
         email       = undefined
         new_customer = true
         async.series([
+            (cb) =>
+                @assert_user_is_in_group('admin', cb)
             (cb) =>
                 dbg("check for existing stripe customer_id")
                 @database.get_account

@@ -636,7 +636,7 @@ class exports.Connection extends EventEmitter
             cb          : undefined
         # Use the remember_me-authenticated HTTP POST user_api endpoint instead, since call doesn't
         # require returning multiple messages.
-        console.log '_do_post_call', JSON.stringify(opts.message)
+        #console.log '_do_post_call', JSON.stringify(opts.message)
 
         jqXHR = $.post("#{window?.app_base_url ? ''}/user_api", {message:misc.to_json(opts.message)})
         if not opts.cb?
