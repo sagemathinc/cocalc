@@ -98,9 +98,9 @@ describe 'seconds2hms', ->
         expect(s2hms(3601)).toEqual '1h0m1s'
         expect(s2hms(7300)).toEqual '2h1m40s'
     it 'converts to long form', ->
-        expect(s2hms( 0, true)).toEqual '0 seconds'
+        expect(s2hms(0, true)).toEqual '0 seconds'
         expect(s2hms(61, true)).toEqual '1 minute 1 second'
-        expect(s2hms(3601, true)).toEqual '1 hour 0 minutes'
+        expect(s2hms(3601, true)).toEqual '1 hour'
         expect(s2hms(7300, true)).toEqual '2 hours 1 minute'
     it 'converts to short form in minute resolution', ->
         expect(s2hm(0)).toEqual '0m'
@@ -108,12 +108,14 @@ describe 'seconds2hms', ->
         expect(s2hm(61)).toEqual '1m'
         expect(s2hm(3601)).toEqual '1h0m'
         expect(s2hm(7300)).toEqual '2h1m'
+        expect(s2hm(36000)).toEqual '10h0m'
     it 'converts to long form in minute resolution', ->
-        expect(s2hm( 0, true)).toEqual '0 minutes'
+        expect(s2hm(0, true)).toEqual '0 minutes'
         expect(s2hm(60, true)).toEqual '1 minute'
         expect(s2hm(61, true)).toEqual '1 minute'
-        expect(s2hm(3601, true)).toEqual '1 hour 0 minutes'
+        expect(s2hm(3601, true)).toEqual '1 hour'
         expect(s2hm(7300, true)).toEqual '2 hours 1 minute'
+        expect(s2hm(36000, true)).toEqual '10 hours'
 
 describe 'startswith', ->
     startswith = misc.startswith
