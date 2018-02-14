@@ -1493,6 +1493,7 @@ exports.round2 = round2 = (num) ->
 exports.seconds2hm = seconds2hm = (secs, longform) ->
     return seconds2hms(secs, longform, false)
 
+# dear future developer: look into test/misc-test.coffee to see how the expected output is defined.
 exports.seconds2hms = seconds2hms = (secs, longform, show_seconds=true) ->
     longform ?= false
     if secs < 10
@@ -1510,7 +1511,10 @@ exports.seconds2hms = seconds2hms = (secs, longform, show_seconds=true) ->
             return "#{s}s"
     if h > 0
         if longform
-            return "#{h} #{exports.plural(h, 'hour')} #{m} #{exports.plural(m, 'minute')}"
+            ret = "#{h} #{exports.plural(h, 'hour')}"
+            if m > 0
+                ret += " #{m} #{exports.plural(m, 'minute')}"
+            return ret
         else
             if show_seconds
                 return "#{h}h#{m}m#{s}s"
@@ -1519,7 +1523,10 @@ exports.seconds2hms = seconds2hms = (secs, longform, show_seconds=true) ->
     if (m > 0) or (not show_seconds)
         if show_seconds
             if longform
-                return "#{m} #{exports.plural(m, 'minute')} #{s} #{exports.plural(s, 'second')}"
+                ret = "#{m} #{exports.plural(m, 'minute')}"
+                if s > 0
+                    ret += " #{s} #{exports.plural(s, 'second')}"
+                return ret
             else
                 return "#{m}m#{s}s"
         else
