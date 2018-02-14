@@ -19,6 +19,8 @@
 #
 ###############################################################################
 
+async       = require('async')
+
 # React libraries
 {Actions, Store}  = require('../smc-react')
 
@@ -444,14 +446,21 @@ exports.CourseStore = class CourseStore extends Store
             upgrade_goal        : upgrade_goal
         return plan
 
-    manual_grading_previous_student: (assignment, current_student_id) =>
+    # return true, if student has collected files without an error (and hence ready to be graded)
+    has_last_collected: (assignment, student_id) ->
+        last_coll = @get_assignment(assignment).get('last_collected')?.get(student_id)
+        return false if not x? or x.get('error')
+        return true
+
+    grading_previous_student: (assignment, current_student_id) =>
         return @_first_student_without_grade(assignment, current_student_id, true)
 
-    manual_grading_next_student: (assignment, current_student_id) =>
+    grading_next_student: (assignment, current_student_id) =>
         return @_first_student_without_grade(assignment, current_student_id)
 
     _first_student_without_grade: (assignment, id, previous=false) =>
-        students = @get_student_ids(deleted:false)
+        assignment = @get_assignment(assignment)
+        students   = @get_student_ids(deleted:false)
         if previous
             students = students.reverse()
         skip = id?
@@ -462,6 +471,48 @@ exports.CourseStore = class CourseStore extends Store
                 if skip
                     skip = false
                     continue
+            # It's fine to return a student without collected files
+            #if not @has_last_collected(assignment, student_id)
+            #    continue
             if not @has_grade(assignment, student_id)
                 return student_id
         return null
+
+    grading_get_listing: (assignment, student_id, subdir, cb) =>
+        project_id = @get('course_project_id')
+        collect_path = "#{assignment.get('collect_path')}/#{student_id}"
+        {join} = require('path')
+        subdir = join(collect_path, subdir ? '')
+
+        locals =
+            listing : null
+            group   : null
+
+        async.series([
+            (cb) =>
+                # make sure that our relationship to this project is known.
+                @redux.getStore('projects').wait
+                    until   : (s) => s.get_my_group(project_id)
+                    timeout : 30
+                    cb      : (err, group) =>
+                        locals.group = group
+                        cb(err)
+            (cb) =>
+                {get_directory_listing} = require('../project_store')
+                get_directory_listing
+                    project_id : project_id
+                    path       : collect_path
+                    hidden     : false
+                    max_time_s : 30  # keep trying for up to 30 secs
+                    group      : locals.group
+                    cb         : (err, listing) =>
+                        locals.listing = listing
+                        cb(err)
+        ], (err) =>
+            cb(err, locals.listing)
+        )
+
+        #cb(null, {files:['a', 'b', 'c', project_id, collect_path, assignment.get('assignment_id'), student_id]})
+
+
+

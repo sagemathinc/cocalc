@@ -20,8 +20,9 @@
 ###############################################################################
 
 # 3rd party libs
-async     = require('async')
+async       = require('async')
 markdownlib = require('../markdown')
+immutable   = require('immutable')
 
 # CoCalc libraries
 misc = require('smc-util/misc')
@@ -1760,19 +1761,41 @@ exports.CourseActions = class CourseActions extends Actions
         # Now open it
         @redux.getProjectActions(proj).open_directory(path)
 
-    manual_grading: (assignment, student_id, previous=false) =>
+    grading: (assignment, student_id, previous=false) =>
         store = @get_store()
         return if not store?
         if previous
-            next_student_id = store.manual_grading_previous_student(assignment, student_id)
+            next_student_id = store.grading_previous_student(assignment, student_id)
         else
-            next_student_id = store.manual_grading_next_student(assignment, student_id)
-        {Map} = require('immutable')
-        @setState(manual_grading : Map(
+            next_student_id = store.grading_next_student(assignment, student_id)
+
+        if not next_student_id?
+            @set_error('No further students to grade')
+            return
+
+        # this switches to grading mode, but no listing
+        @setState(grading : immutable.Map(
             student_id    : next_student_id
             assignment_id : assignment.get('assignment_id')
-            progress      : 1
+            listing       : null
         ))
 
-    manual_grading_stop: () =>
-        @setState(manual_grading : null)
+        # ideally, we should not really support subdirectories at all.
+        subdir = ''
+        store.grading_get_listing assignment, next_student_id, subdir, (err, listing) =>
+            if err
+                if err == 'no_dir'
+                    listing = {error: 'no_dir'}
+                else
+                    @set_error("Grading error: #{err}")
+                    return
+            listing = immutable.fromJS(listing)
+
+            @setState(grading : immutable.Map(
+                student_id    : next_student_id
+                assignment_id : assignment.get('assignment_id')
+                listing       : listing
+            ))
+
+    grading_stop: () =>
+        @setState(grading : null)

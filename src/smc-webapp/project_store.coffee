@@ -2066,7 +2066,7 @@ if prom_client.enabled
         'get_dir_listing_seconds', 'get_directory_listing time',
          {buckets : [1, 2, 5, 7, 10, 15, 20, 30, 50], labels: ['public', 'state', 'err']})
 
-get_directory_listing = (opts) ->
+exports.get_directory_listing = get_directory_listing = (opts) ->
     opts = defaults opts,
         project_id : required
         path       : required

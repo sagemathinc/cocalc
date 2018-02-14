@@ -49,7 +49,7 @@ exports.AssignmentsPanel = rclass ({name}) ->
             active_assignment_sort : rtypes.object
             active_student_sort    : rtypes.immutable.Map
             expanded_peer_configs  : rtypes.immutable.Set
-            manual_grading         : rtypes.immutable.Map
+            grading                : rtypes.immutable.Map
 
     propTypes :
         name            : rtypes.string.isRequired
@@ -121,7 +121,7 @@ exports.AssignmentsPanel = rclass ({name}) ->
                     is_expanded         = {@props.expanded_assignments.has(x.assignment_id)}
                     active_student_sort = {@props.active_student_sort}
                     expand_peer_config  = {@props.expanded_peer_configs.has(x.assignment_id)}
-                    manual_grading      = {@props.manual_grading}
+                    grading             = {@props.grading}
                     />
 
     render_show_deleted: (num_deleted, num_shown) ->
@@ -198,14 +198,14 @@ Assignment = rclass
         is_expanded               : rtypes.bool
         active_student_sort       : rtypes.immutable.Map
         expand_peer_config        : rtypes.bool
-        manual_grading            : rtypes.immutable.Map
+        grading                   : rtypes.immutable.Map
 
     shouldComponentUpdate: (nextProps, nextState) ->
         {any_changes} = require('../r_misc')
         return @state != nextState or \
             any_changes(@props, nextProps,
                 ['assignment', 'students', 'user_map', 'background', 'is_expanded', \
-                'active_student_sort', 'expand_peer_config', 'manual_grading']
+                'active_student_sort', 'expand_peer_config', 'grading']
             )
 
     getInitialState: ->
@@ -314,7 +314,7 @@ Assignment = rclass
             width = 3
         buttons = []
         insert_skip_button = =>
-            b1 = @render_grading_manual_button(status)
+            b1 = @render_grading_button(status)
             b2 = @render_skip_grading_button(status)
             buttons.push(<Col md={width} key='grading_buttons'>{b2} {b1}</Col>)
 
@@ -346,24 +346,24 @@ Assignment = rclass
 
 
     render_more: ->
-        if @props.manual_grading?.get('assignment_id') == @props.assignment.get('assignment_id')
+        if @props.grading?.get('assignment_id') == @props.assignment.get('assignment_id')
             header      =
                 <GradingStudentAssignmentHeader
-                    redux               = {@props.redux}
-                    name                = {@props.name}
-                    assignment          = {@props.assignment}
-                    students            = {@props.students}
-                    user_map            = {@props.user_map}
-                    manual_grading      = {@props.manual_grading}
+                    redux        = {@props.redux}
+                    name         = {@props.name}
+                    assignment   = {@props.assignment}
+                    students     = {@props.students}
+                    user_map     = {@props.user_map}
+                    grading      = {@props.grading}
                 />
             panel_body  =
                 <GradingStudentAssignment
-                    redux               = {@props.redux}
-                    name                = {@props.name}
-                    assignment          = {@props.assignment}
-                    students            = {@props.students}
-                    user_map            = {@props.user_map}
-                    manual_grading      = {@props.manual_grading}
+                    redux        = {@props.redux}
+                    name         = {@props.name}
+                    assignment   = {@props.assignment}
+                    students     = {@props.students}
+                    user_map     = {@props.user_map}
+                    grading      = {@props.grading}
                 />
         else
             header      = @render_more_header()
@@ -672,14 +672,14 @@ Assignment = rclass
             <Icon name={icon} /> Skip
         </Button>
 
-    render_grading_manual_button: (status) ->
+    render_grading_button: (status) ->
         return null if @props.assignment.get('skip_grading') ? false
         # Have already collected something
         disabled = false
         icon     = 'play'
         handler  = =>
-            sid = @props.manual_grading?.get('student_id') ? undefined
-            @actions(@props.name).manual_grading(@props.assignment, sid)
+            # student_id is set to null on purpose (starts fresh)
+            @actions(@props.name).grading(@props.assignment, null)
 
         if status.graded > 0
             if status.not_graded == 0
