@@ -87,6 +87,7 @@ if not misc.is_object(client_metrics)
 
 class exports.Client extends EventEmitter
     constructor: (opts) ->
+        super()
         @_opts = defaults opts,
             conn           : undefined
             logger         : undefined

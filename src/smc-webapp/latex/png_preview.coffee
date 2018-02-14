@@ -9,8 +9,8 @@ async = require('async')
 templates = $("#webapp-editor-templates")
 
 class exports.PNG_Preview extends FileEditor
-    constructor: (@project_id, @filename, contents, opts) ->
-        super(@project_id, @filename)
+    constructor: (project_id, filename, contents, opts) ->
+        super(project_id, filename)
         @dbg("PNG_Preview constructor called with #{misc.to_json(opts)}")
         @pdflatex = new PDFLatexDocument(project_id:@project_id, filename:@filename, image_type:"png")
         @opts = opts

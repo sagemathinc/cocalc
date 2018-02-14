@@ -33,7 +33,7 @@ exports.Find = rclass
         show  = @props.local_view_state.get("show_#{type}")
         toggle = <ShowToggle
             actions = {@props.actions}
-            type    = type
+            type    = {type}
             show    = {show}
             count   = {count}
             />

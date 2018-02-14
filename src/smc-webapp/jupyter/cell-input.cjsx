@@ -195,7 +195,7 @@ exports.CellInput = rclass
     render_time: ->
         cell = @props.cell
         if cell.get('start')?
-            <div style={position:'absolute', zIndex: 1, right: '2px', width: '100%', paddingLeft:'5px'}, className='pull-right hidden-xs'>
+            <div style={position:'absolute', zIndex: 1, right: '2px', width: '100%', paddingLeft:'5px'} className='pull-right hidden-xs'>
                 <div style={color:'#999', fontSize:'8pt', position:'absolute', right:'5px', lineHeight: 1.25, top: '1px', textAlign:'right'}>
                     <CellTiming
                         start = {cell.get('start')}

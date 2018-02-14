@@ -259,8 +259,8 @@ Page = rclass
             </Navbar> if not @props.fullscreen}
             {<div className="smc-sticky-position-hack" style={minHeight:positionHackHeight}> </div>if not @props.fullscreen}
             {<FullscreenButton /> if (@props.fullscreen != 'kiosk')}
-            {# Children must define their own padding from navbar and screen borders}
-            {# Note that the parent is a flex container}
+            {### Children must define their own padding from navbar and screen borders ###}
+            {### Note that the parent is a flex container ###}
             <ActiveAppContent active_top_tab={@props.active_top_tab}/>
         </div>
 

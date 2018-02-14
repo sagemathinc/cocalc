@@ -11,8 +11,9 @@ templates = $("#webapp-editor-templates")
 # NOTE: This is *ONLY* used as part of the latex editor now.  There is a rewrite
 # in eidtor_pdf.cjsx in react that is much better.
 class exports.PDF_PreviewEmbed extends FileEditor
-    constructor: (@project_id, @filename, contents, @opts) ->
-        super(@project_id, @filename)
+    constructor: (project_id, filename, contents, opts) ->
+        super(project_id, filename)
+        @opts = opts
         @element = templates.find(".webapp-editor-pdf-preview-embed").clone()
         @pdf_title = @element.find(".webapp-editor-pdf-title")
         @pdf_title.find("span").text("loading ...")

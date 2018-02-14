@@ -146,7 +146,7 @@ exports.MiniTerminal = MiniTerminal = rclass
 
     render_output: (x, style) ->
         if x
-            <pre style=style>
+            <pre style={style}>
                 <a onClick={(e)=>e.preventDefault(); @setState(stdout:'', error:'')}
                    href=''
                    style={right:'10px', top:'0px', color:'#666', fontSize:'14pt', position:'absolute'}>

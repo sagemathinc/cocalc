@@ -251,7 +251,7 @@ exports.TopMenubar = rclass ({name}) ->
                 disabled = {disabled}
                 >
                 <span style={style}>
-                    {s} {display ? obj.m ? name}   {# shortcut must be first! -- https://github.com/sagemathinc/cocalc/issues/1935 }
+                    {s} {display ? obj.m ? name}   {### shortcut must be first! -- https://github.com/sagemathinc/cocalc/issues/1935 ###}
                 </span>
             </MenuItem>
         else
