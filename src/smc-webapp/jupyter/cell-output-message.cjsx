@@ -46,8 +46,8 @@ exports.Stdout = Stdout = rclass
             </div>
         else
             <div style={STDOUT_STYLE}>
-                {# This span below is solely to workaround an **ancient** Firefox bug }
-                {# See https://github.com/sagemathinc/cocalc/issues/1958    }
+                {### This span below is solely to workaround an **ancient** Firefox bug ###}
+                {### See https://github.com/sagemathinc/cocalc/issues/1958    ###}
                 <span>{value}</span>
             </div>
 
@@ -119,7 +119,7 @@ TextPlain = rclass
 
     render: ->
         <div style={STDOUT_STYLE}>
-            {# span?  what? -- See https://github.com/sagemathinc/cocalc/issues/1958 }
+            {### span?  what? -- See https://github.com/sagemathinc/cocalc/issues/1958 ###}
             <span>{@props.value}</span>
         </div>
 
@@ -243,7 +243,7 @@ Data = rclass
                         />
 
                 when 'iframe'
-                   return <IFrame sha1={value} project_id={@props.project_id}/>
+                    return <IFrame sha1={value} project_id={@props.project_id}/>
 
                 when 'application'
                     switch b

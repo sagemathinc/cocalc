@@ -63,6 +63,7 @@ class Session extends EventEmitter
     #    - 'close'  -- session's connection is closed/terminated
     #    - 'execute_javascript' -- code that server wants client to run related to this session
     constructor: (opts) ->
+        super()
         opts = defaults opts,
             conn         : required     # a Connection instance
             project_id   : required
@@ -201,7 +202,9 @@ class exports.Connection extends EventEmitter
     #                      e.g., title/description/settings/etc.
     #    - 'new_version', number -- sent when there is a new version of the source code so client should refresh
 
-    constructor: (@url) ->
+    constructor: (url) ->
+        super()
+        @url = url
         # Tweaks the maximum number of listeners an EventEmitter can have -- 0 would mean unlimited
         # The issue is https://github.com/sagemathinc/cocalc/issues/1098 and the errors we got are
         # (node) warning: possible EventEmitter memory leak detected. 301 listeners added. Use emitter.setMaxListeners() to increase limit.

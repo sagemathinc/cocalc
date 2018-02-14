@@ -211,7 +211,9 @@ class PatchValueCache
 
 # Sorted list of patches applied to a string
 class SortedPatchList extends EventEmitter
-    constructor: (@_from_str) ->
+    constructor: (_from_str) ->
+        super()
+        @_from_str = _from_str
         @_patches = []
         @_times = {}
         @_cache = new PatchValueCache()
@@ -556,6 +558,7 @@ STATES:
 
 class SyncDoc extends EventEmitter
     constructor: (opts) ->
+        super()
         @_opts = opts = defaults opts,
             save_interval     : 1500
             cursor_interval   : 2000
@@ -1057,8 +1060,8 @@ class SyncDoc extends EventEmitter
     _load_from_disk_if_newer: (cb) =>
         tm     = @last_changed()
         dbg    = @_client.dbg("syncstring._load_from_disk_if_newer('#{@_path}')")
-        locals = {exists: false, is_read_only: false, size:0}
-        async.series([
+        locals = {exists: false, is_read_only: false, size: 0}
+        async.series([
             (cb) =>
                 dbg("check if path exists")
                 @_client.path_exists
@@ -2064,7 +2067,10 @@ Used for testing
 ###
 synctable = require('./synctable')
 class exports.TestBrowserClient1 extends synctable.TestBrowserClient1
-    constructor: (@_client_id, @_debounce_interval=0) ->
+    constructor: (_client_id, _debounce_interval=0) ->
+        super()
+        @_client_id = _client_id
+        @_debounce_interval = _debounce_interval
 
     is_user: =>
         return true

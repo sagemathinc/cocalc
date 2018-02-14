@@ -36,7 +36,40 @@ misc      = require('smc-util/misc')
 {types, defaults, required} = misc
 
 {Actions, rtypes, computed, depends, Table, register_project_store, redux}  = require('./smc-react')
-{file_actions} = require('./project_files')
+
+exports.file_actions = file_actions =
+    compress  :
+        name  : 'Compress'
+        icon  : 'compress'
+        allows_multiple_files : true
+    delete    :
+        name  : 'Delete'
+        icon  : 'trash-o'
+        allows_multiple_files : true
+    rename    :
+        name  : 'Rename'
+        icon  : 'pencil'
+        allows_multiple_files : false
+    duplicate :
+        name  : 'Duplicate'
+        icon  : 'clone'
+        allows_multiple_files : false
+    move      :
+        name  : 'Move'
+        icon  : 'arrows'
+        allows_multiple_files : true
+    copy      :
+        name  : 'Copy'
+        icon  : 'files-o'
+        allows_multiple_files : true
+    share     :
+        name  : 'Share'
+        icon  : 'share-square-o'
+        allows_multiple_files : false
+    download  :
+        name  : 'Download'
+        icon  : 'cloud-download'
+        allows_multiple_files : true
 
 # Register this module with the redux module, so it can be used by the reset of SMC easily.
 register_project_store(exports)
@@ -59,7 +92,12 @@ BANNED_FILE_TYPES             = ['doc', 'docx', 'pdf', 'sws']
 
 FROM_WEB_TIMEOUT_S = 45
 
-{LIBRARY} = require('./library')
+# src: where the library files are
+# start: open this file after copying the directory
+LIBRARY =
+    first_steps :
+        src    : '/ext/library/first-steps/src'
+        start  : 'first-steps.tasks'
 
 QUERIES =
     project_log :

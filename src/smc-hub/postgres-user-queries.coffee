@@ -1,9 +1,9 @@
-###
+"""
 User (and project) client queries
 
 COPYRIGHT : (c) 2017 SageMath, Inc.
 LICENSE   : AGPLv3
-###
+"""
 
 MAX_CHANGEFEEDS_PER_CLIENT = 2000
 
@@ -14,8 +14,7 @@ EventEmitter = require('events')
 async        = require('async')
 underscore   = require('underscore')
 
-{PostgreSQL, one_result, all_results, count_result, pg_type} = require('./postgres')
-{quote_field} = require('./postgres-base')
+{one_result, all_results, count_result, pg_type, quote_field} = require('./postgres-base')
 
 {UserQueryQueue} = require('./postgres-user-query-queue')
 
@@ -24,7 +23,7 @@ required = defaults.required
 
 {PROJECT_UPGRADES, SCHEMA} = require('smc-util/schema')
 
-class exports.PostgreSQL extends PostgreSQL
+exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
     # Cancel all queued up queries by the given client
     cancel_user_queries: (opts) =>
         opts = defaults opts,
@@ -49,7 +48,7 @@ class exports.PostgreSQL extends PostgreSQL
             @_user_query(opts)
             return
 
-        if not @_user_query_queue?
+        if not @_user_query_queue?
             o =
                 do_query   : @_user_query
                 dbg        : @_dbg('user_query_queue')

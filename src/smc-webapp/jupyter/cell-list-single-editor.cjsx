@@ -130,9 +130,6 @@ exports.CellList = rclass
         @cm.undo = @_cm_undo
         @cm.redo = @_cm_redo
 
-    componentDidMount: ->
-        @init_codemirror()
-
     componentWillReceiveProps: (next) ->
         if not @cm? or not @props.cm_options.equals(next.cm_options) or @props.font_size != next.font_size
             @init_codemirror()

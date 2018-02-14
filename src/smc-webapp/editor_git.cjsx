@@ -381,7 +381,7 @@ FileListing = rclass
         (@render_row(name, idx) for name, idx in @props.listing)
 
     render: ->
-        <Col sm=12>
+        <Col sm={12}>
             {@render_rows()}
         </Col>
 
@@ -630,15 +630,15 @@ Git = (name) -> rclass
     render_configuration: ->
         <div>
             <Row>
-                <Col sm=6>
+                <Col sm={6}>
                     {@render_user_name_panel()}
                 </Col>
-                <Col sm=6>
+                <Col sm={6}>
                     {@render_user_email_panel()}
                 </Col>
             </Row>
             <Row>
-                <Col sm=6>
+                <Col sm={6}>
                     {@render_github_login_panel()}
                 </Col>
             </Row>
@@ -647,11 +647,11 @@ Git = (name) -> rclass
     render_commit: ->
         <div>
             <Row>
-                <Col sm=6>
+                <Col sm={6}>
                     {@render_commit_panel()}
                     {@render_changed_untracked_files()}
                 </Col>
-                <Col sm=6>
+                <Col sm={6}>
                     {@render_diff()}
                 </Col>
             </Row>
@@ -660,7 +660,7 @@ Git = (name) -> rclass
     render_log: ->
         <div>
             <Row>
-                <Col sm=12>
+                <Col sm={12}>
                     {@render_log_panel()}
                 </Col>
             </Row>
@@ -675,7 +675,7 @@ Git = (name) -> rclass
                 t = @
                 do (issue, t) ->
                     <Row key={idx}>
-                        <Col sm=8>
+                        <Col sm={8}>
                              { issue.title }
                         </Col>
                         <Col>
@@ -688,7 +688,7 @@ Git = (name) -> rclass
     render_issues: ->
         <div>
             <Row>
-                <Col sm=12>
+                <Col sm={12}>
                     {@list_issues()}
                 </Col>
             </Row>
@@ -696,7 +696,7 @@ Git = (name) -> rclass
 
 
     render_tab_header: (name, icon, description)->
-        <Tip delayShow=1300
+        <Tip delayShow={1300}
              title={name} tip={description}>
             <span>
                 <Octicon name={icon}/> {name }

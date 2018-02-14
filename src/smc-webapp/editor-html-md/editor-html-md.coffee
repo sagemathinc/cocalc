@@ -43,8 +43,9 @@ templates       = $("#webapp-editor-templates")
 
 class exports.HTML_MD_Editor extends editor.FileEditor
 
-    constructor: (@project_id, @filename, content, @opts) ->
-        super(@project_id, @filename)
+    constructor: (project_id, filename, content, opts) ->
+        super(project_id, filename)
+        @opts = opts
         # The are two components, side by side
         #     * source editor -- a CodeMirror editor
         #     * preview/contenteditable -- rendered view
