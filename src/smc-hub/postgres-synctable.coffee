@@ -34,13 +34,12 @@ underscore   = require('underscore')
 required = defaults.required
 misc_node = require('smc-util-node/misc_node')
 
-{PostgreSQL, pg_type, one_result, all_results} = require('./postgres')
-{quote_field} = require('./postgres-base')
+{pg_type, one_result, all_results, quote_field} = require('./postgres-base')
 
 {SCHEMA} = require('smc-util/schema')
 
 
-class exports.PostgreSQL extends PostgreSQL
+exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
 
     _ensure_trigger_exists: (table, select, watch, cb) =>
         dbg = @_dbg("_ensure_trigger_exists(#{table})")

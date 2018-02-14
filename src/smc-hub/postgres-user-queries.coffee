@@ -14,8 +14,7 @@ EventEmitter = require('events')
 async        = require('async')
 underscore   = require('underscore')
 
-{PostgreSQL, one_result, all_results, count_result, pg_type} = require('./postgres')
-{quote_field} = require('./postgres-base')
+{one_result, all_results, count_result, pg_type, quote_field} = require('./postgres-base')
 
 {UserQueryQueue} = require('./postgres-user-query-queue')
 
@@ -24,7 +23,7 @@ required = defaults.required
 
 {PROJECT_UPGRADES, SCHEMA} = require('smc-util/schema')
 
-class exports.PostgreSQL extends PostgreSQL
+exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
     # Cancel all queued up queries by the given client
     cancel_user_queries: (opts) =>
         opts = defaults opts,
