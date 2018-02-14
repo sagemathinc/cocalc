@@ -19,7 +19,7 @@
 #
 ###############################################################################
 
-require('coffee-cache')
+require('coffee2-cache')
 
 EXPERIMENTAL = false
 

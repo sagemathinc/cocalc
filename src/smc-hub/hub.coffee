@@ -26,7 +26,7 @@ many Sage sessions, and PostgreSQL database.  There are
 many HUBs running.
 ###
 
-require('coffee-cache')
+require('coffee2-cache')
 
 DEBUG = false
 

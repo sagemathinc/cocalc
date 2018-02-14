@@ -6,7 +6,7 @@ know exactly what you're doing.
 COPYRIGHT : (c) 2017 SageMath, Inc.
 LICENSE   : AGPLv3
 ###
-require('coffee-cache')
+require('coffee2-cache')
 
 fs           = require('fs')
 
