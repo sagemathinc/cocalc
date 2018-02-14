@@ -1848,7 +1848,7 @@ class exports.Connection extends EventEmitter
             if resp.error
                 opts.cb(resp.error)
             else
-                opts.cb(undefined, resp.result)
+                opts.cb(undefined, {query:resp.result})
         return
 
     query: (opts) =>
