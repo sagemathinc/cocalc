@@ -39,7 +39,6 @@ get_account_id = (database, remember_me, cb) ->
 
 exports.init = (router, cookie_name, database) ->
     router.post '/user_query', (req, res) ->
-        console.log req.body
         if not req.body.query?
             res.send({error:'missing query'})
             return
