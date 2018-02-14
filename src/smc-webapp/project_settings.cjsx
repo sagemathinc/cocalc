@@ -130,24 +130,30 @@ QuotaConsole = rclass
                     new_state[name] = misc.round2(settings.get(name) * data.display_factor)
                 @setState(new_state)
 
-    render_quota_row: (quota, base_value=0, upgrades, params_data) ->
+    render_quota_row: (name, quota, base_value=0, upgrades, params_data) ->
         factor = params_data.display_factor
         unit   = params_data.display_unit
+
+        text = (val) ->
+            amount = misc.round2(val * factor)
+            if name == 'mintime'
+                return misc.seconds2hm(val)
+            else
+                return "#{amount} #{misc.plural(amount, unit)}"
 
         upgrade_list = []
         if upgrades?
             for id, val of upgrades
-                amount = misc.round2(val * factor)
                 li =
                     <li key={id}>
-                        {amount} {misc.plural(amount, unit)} given by <User account_id={id} user_map={@props.user_map} />
+                        {text(val)} given by <User account_id={id} user_map={@props.user_map} />
                     </li>
                 upgrade_list.push(li)
 
         amount = misc.round2(base_value * factor)
-        if amount
+        if base_value
             # amount given by free project
-            upgrade_list.unshift(<li key='free'>{amount} {misc.plural(amount, unit)} given by free project</li>)
+            upgrade_list.unshift(<li key='free'>{text(base_value)} given by free project</li>)
 
         <LabeledRow
             label = {<Tip title={params_data.display}
@@ -324,7 +330,8 @@ QuotaConsole = rclass
                 view : <b>{r(total_quotas['cpu_shares'] * quota_params['cpu_shares'].display_factor)} {misc.plural(total_quotas['cpu_shares'] * quota_params['cpu_shares'].display_factor, 'core')}</b>
                 edit : <b>{@render_input('cpu_shares')} {misc.plural(total_quotas['cpu_shares'], 'core')}</b>
             mintime     :
-                view : <span><b>{r(misc.round2(total_quotas['mintime'] * quota_params['mintime'].display_factor))} {misc.plural(total_quotas['mintime'] * quota_params['mintime'].display_factor, 'hour')}</b> of non-interactive use before project stops</span>
+                # no display factor multiplication, because mintime is in seconds
+                view : <span><b>{misc.seconds2hm(total_quotas['mintime'], true)}</b> of non-interactive use before project stops</span>
                 edit : <span><b>{@render_input('mintime')} hours</b> of non-interactive use before project stops</span>
             network     :
                 view : <b>{if @props.project_settings.get('network') or total_quotas['network'] then 'Yes' else 'Blocked'}</b>
@@ -337,7 +344,7 @@ QuotaConsole = rclass
 
         <div>
             {@render_admin_edit_buttons()}
-            {@render_quota_row(quotas[name], settings.get(name), upgrades[name], quota_params[name]) for name in PROJECT_UPGRADES.field_order}
+            {@render_quota_row(name, quotas[name], settings.get(name), upgrades[name], quota_params[name]) for name in PROJECT_UPGRADES.field_order}
         </div>
 
 UsagePanel = rclass
@@ -913,8 +920,6 @@ ProjectSettingsBody = rclass ({name}) ->
             get_upgrades_you_applied_to_project : rtypes.func
             get_total_project_quotas : rtypes.func
             get_upgrades_to_project : rtypes.func
-        "#{name}" :
-            free_compute_slowdown    : rtypes.number
 
     shouldComponentUpdate: (nextProps) ->
         return @props.project != nextProps.project or @props.user_map != nextProps.user_map or \
@@ -936,7 +941,7 @@ ProjectSettingsBody = rclass ({name}) ->
         {commercial} = require('./customize')
 
         <div>
-            {if commercial and total_project_quotas? and not total_project_quotas.member_host then <NonMemberProjectWarning upgrade_type='member_host' upgrades_you_can_use={upgrades_you_can_use} upgrades_you_applied_to_all_projects={upgrades_you_applied_to_all_projects} course_info={course_info} account_id={webapp_client.account_id} email_address={@props.email_address} free_compute_slowdown={@props.free_compute_slowdown}/>}
+            {if commercial and total_project_quotas? and not total_project_quotas.member_host then <NonMemberProjectWarning upgrade_type='member_host' upgrades_you_can_use={upgrades_you_can_use} upgrades_you_applied_to_all_projects={upgrades_you_applied_to_all_projects} course_info={course_info} account_id={webapp_client.account_id} email_address={@props.email_address} />}
             {if commercial and total_project_quotas? and not total_project_quotas.network then <NoNetworkProjectWarning upgrade_type='network' upgrades_you_can_use={upgrades_you_can_use} upgrades_you_applied_to_all_projects={upgrades_you_applied_to_all_projects} /> }
             <h1 style={marginTop:"0px"}><Icon name='wrench' /> Settings and configuration</h1>
             <Row>

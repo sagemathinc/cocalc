@@ -1241,7 +1241,7 @@ exports.course_warning = (pay) ->
     return webapp_client.server_time() <= misc.months_before(-3, pay)  # require subscription until 3 months after start (an estimate for when class ended, and less than when what student did pay for will have expired).
 
 project_warning_opts = (opts) ->
-    {upgrades_you_can_use, upgrades_you_applied_to_all_projects, course_info, account_id, email_address, upgrade_type, free_compute_slowdown} = opts
+    {upgrades_you_can_use, upgrades_you_applied_to_all_projects, course_info, account_id, email_address, upgrade_type} = opts
     total = upgrades_you_can_use?[upgrade_type] ? 0
     used  = upgrades_you_applied_to_all_projects?[upgrade_type] ? 0
     x =
@@ -1252,7 +1252,6 @@ project_warning_opts = (opts) ->
         course_info           : opts.course_info
         account_id            : account_id
         email_address         : email_address
-        free_compute_slowdown : free_compute_slowdown
     return x
 
 exports.CourseProjectExtraHelp = CourseProjectExtraHelp = ->
@@ -1294,7 +1293,7 @@ exports.CourseProjectWarning = (opts) ->
     </Alert>
 
 exports.NonMemberProjectWarning = (opts) ->
-    {total, used, avail, course_warning, free_compute_slowdown} = project_warning_opts(opts)
+    {total, used, avail, course_warning} = project_warning_opts(opts)
 
     ## Disabled until a pay-in-place version gets implemented
     #if course_warning
@@ -1310,16 +1309,9 @@ exports.NonMemberProjectWarning = (opts) ->
         else
             suggestion = <span><Space /><a href={url} target='_blank' style={cursor:'pointer'}>Subscriptions start at only $7/month.</a></span>
 
-    if free_compute_slowdown? and free_compute_slowdown > 0
-        pct = Math.round(free_compute_slowdown)
-        slowdown = <span>Computations in this project could run up to {pct}% faster after upgrading to member server hosting.</span>
-    else
-        slowdown = ''
-
     <Alert bsStyle='warning' style={marginTop:'10px'}>
         <h4><Icon name='exclamation-triangle'/>  Warning: this project is <strong>running on a free server</strong></h4>
         <p>
-            {slowdown}
             <Space />
             Projects running on free servers compete for resources with a large number of other free projects.
             The free servers are <b><i>randomly rebooted frequently</i></b>,

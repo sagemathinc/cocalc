@@ -1114,10 +1114,6 @@ message
     project_id : required
 
 
-# hub --> client(s)
-message
-    event      : 'project_list_updated'
-
 ## search ---------------------------
 
 # client --> hub
