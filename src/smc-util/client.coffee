@@ -1824,6 +1824,33 @@ class exports.Connection extends EventEmitter
         # Will only do something if @_redux has been set.
         @_redux?.getActions('file_use').mark_file(opts.project_id, opts.path, opts.action, opts.ttl)
 
+    _post_query: (opts) =>
+        opts = defaults opts,
+            query   : required
+            options : undefined    # if given must be an array of objects, e.g., [{limit:5}]
+            cb      : undefined
+        data =
+            query   : misc.to_json(opts.query)
+            options : if opts.options then misc.to_json(opts.options)
+        #tt0 = new Date()
+        #console.log '_post_query', data
+        jqXHR = $.post("#{window?.app_base_url ? ''}/user_query", data)
+        if not opts.cb?
+            #console.log 'no cb'
+            return
+        jqXHR.fail ->
+            #console.log 'failed'
+            opts.cb("failed")
+            return
+        jqXHR.done (resp) ->
+            #console.log 'got back ', JSON.stringify(resp)
+            #console.log 'TIME: ', new Date() - tt0
+            if resp.error
+                opts.cb(resp.error)
+            else
+                opts.cb(undefined, {query:resp.result})
+        return
+
     query: (opts) =>
         opts = defaults opts,
             query   : required
@@ -1833,8 +1860,18 @@ class exports.Connection extends EventEmitter
             cb      : undefined
         if opts.options? and not misc.is_array(opts.options)
             throw Error("options must be an array")
+
+        if not opts.changes and $?.post? and @_enable_post
+            # Can do via http POST request, rather than websocket messages
+            @_post_query
+                query   : opts.query
+                options : opts.options
+                cb      : opts.cb
+            return
+
         #@__query_id ?= 0; @__query_id += 1; id = @__query_id
         #console.log("#{(new Date()).toISOString()} -- #{id}: query=#{misc.to_json(opts.query)}")
+        #tt0 = new Date()
         err = validate_client_query(opts.query, @account_id)
         if err
             opts.cb?(err)
@@ -1850,6 +1887,7 @@ class exports.Connection extends EventEmitter
             timeout     : opts.timeout
             cb          : (args...) ->
                 #console.log("#{(new Date()).toISOString()} -- #{id}: query_resp=#{misc.to_json(args)}")
+                #console.log 'TIME: ', new Date() - tt0
                 opts.cb?(args...)
 
     query_cancel: (opts) =>

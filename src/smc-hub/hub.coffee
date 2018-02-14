@@ -311,8 +311,8 @@ connect_to_database = (opts) ->
         opts.cb(); return
     dbg("connecting...")
     database = require('./postgres').db
-        host     : program.database_nodes.split(',')[0]  # postgres has only one master server
-        database : program.keyspace
+        host            : program.database_nodes.split(',')[0]  # postgres has only one master server
+        database        : program.keyspace
         concurrent_warn : program.db_concurrent_warn
     database.connect(cb:opts.cb)
 
@@ -466,8 +466,6 @@ exports.start_server = start_server = (cb) ->
                     winston.debug("connected to database.")
                     cb()
         (cb) ->
-            init_smc_version(database, cb)
-        (cb) ->
             if not program.port
                 cb(); return
             if program.dev or program.update
@@ -475,6 +473,9 @@ exports.start_server = start_server = (cb) ->
                 database.update_schema(cb:cb)
             else
                 cb()
+        (cb) ->
+            # This must happen *AFTER* update_schema above.
+            init_smc_version(database, cb)
         (cb) ->
             if not program.port
                 cb(); return
