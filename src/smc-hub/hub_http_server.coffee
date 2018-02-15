@@ -79,8 +79,10 @@ exports.init_express_http_server = (opts) ->
     app    = express()
     app.use(cookieParser())
 
-    router.use(body_parser.json())
-    router.use(body_parser.urlencoded({ extended: true }))
+    # Very large limit, since can be used to send, e.g., large single patches, and
+    # the default is only 100kb!  https://github.com/expressjs/body-parser#limit-2
+    router.use(body_parser.json({limit: '3mb'}))
+    router.use(body_parser.urlencoded({extended: true, limit: '3mb'}))
 
     # initialize metrics
     response_time_histogram = MetricsRecorder.new_histogram('http_histogram', 'http server'
