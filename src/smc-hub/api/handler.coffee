@@ -113,7 +113,7 @@ get_client = (opts) ->
             database       : opts.database
             compute_server : opts.compute_server
         client = new Client(options)
-        clien.push_to_client = (mesg, cb) =>
+        client.push_to_client = (mesg, cb) =>
             client.emit('push_to_client', mesg)
             cb?()
         client.ip_address = opts.ip_address
