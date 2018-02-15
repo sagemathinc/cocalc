@@ -1489,7 +1489,12 @@ exports.round2 = round2 = (num) ->
     # padding to fix floating point issue (see http://stackoverflow.com/questions/11832914/round-to-at-most-2-decimal-places-in-javascript)
     Math.round((num + 0.00001) * 100) / 100
 
-exports.seconds2hms = seconds2hms = (secs, longform) ->
+# like seconds2hms, but only up to minute-resultion
+exports.seconds2hm = seconds2hm = (secs, longform) ->
+    return seconds2hms(secs, longform, false)
+
+# dear future developer: look into test/misc-test.coffee to see how the expected output is defined.
+exports.seconds2hms = seconds2hms = (secs, longform, show_seconds=true) ->
     longform ?= false
     if secs < 10
         s = round2(secs % 60)
@@ -1499,21 +1504,36 @@ exports.seconds2hms = seconds2hms = (secs, longform) ->
         s = Math.round(secs % 60)
     m = Math.floor(secs / 60) % 60
     h = Math.floor(secs / 60 / 60)
-    if h == 0 and m == 0
+    if (h == 0 and m == 0) and show_seconds
         if longform
             return "#{s} #{exports.plural(s, 'second')}"
         else
             return "#{s}s"
     if h > 0
         if longform
-            return "#{h} #{exports.plural(h, 'hour')} #{m} #{exports.plural(m, 'minute')}"
+            ret = "#{h} #{exports.plural(h, 'hour')}"
+            if m > 0
+                ret += " #{m} #{exports.plural(m, 'minute')}"
+            return ret
         else
-            return "#{h}h#{m}m#{s}s"
-    if m > 0
-        if longform
-            return "#{m} #{exports.plural(m, 'minute')} #{s} #{exports.plural(s, 'second')}"
+            if show_seconds
+                return "#{h}h#{m}m#{s}s"
+            else
+                return "#{h}h#{m}m"
+    if (m > 0) or (not show_seconds)
+        if show_seconds
+            if longform
+                ret = "#{m} #{exports.plural(m, 'minute')}"
+                if s > 0
+                    ret += " #{s} #{exports.plural(s, 'second')}"
+                return ret
+            else
+                return "#{m}m#{s}s"
         else
-            return "#{m}m#{s}s"
+            if longform
+                return "#{m} #{exports.plural(m, 'minute')}"
+            else
+                return "#{m}m"
 
 # returns the number parsed from the input text, or undefined if invalid
 # rounds to the nearest 0.01 if round_number is true (default : true)
@@ -2118,5 +2138,4 @@ exports.human_readable_size = (bytes) ->
         return "#{b/10} MB"
     b = Math.floor(bytes/100000000)
     return "#{b/10} GB"
-
 

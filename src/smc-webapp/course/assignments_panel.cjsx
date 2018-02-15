@@ -99,10 +99,10 @@ exports.AssignmentsPanel = rclass ({name}) ->
     render_assignment_table_header: ->
         # HACK: -10px margin gets around ReactBootstrap's incomplete access to styling
         <Row style={marginTop:'-10px', marginBottom:'3px'}>
-            <Col md=6>
+            <Col md={6}>
                 {@render_sort_link("dir_name", "Assignment Name")}
             </Col>
-            <Col md=6>
+            <Col md={6}>
                 {@render_sort_link("due_date", "Due Date")}
             </Col>
         </Row>
@@ -177,7 +177,7 @@ exports.AssignmentsPanel.Header = rclass
         n : rtypes.number
 
     render: ->
-        <Tip delayShow=1300
+        <Tip delayShow={1300}
              title="Assignments" tip="This tab lists all of the assignments associated to your course, along with student grades and status about each assignment.  You can also quickly find assignments by name on the left.   An assignment is a directory in your project, which may contain any files.  Add an assignment to your course by searching for the directory name in the search box on the right.">
             <span>
                 <Icon name="share-square-o"/> Assignments {if @props.n? then " (#{@props.n})" else ""}
@@ -220,13 +220,13 @@ Assignment = rclass
 
     render_due: ->
         <Row>
-            <Col xs=1 style={marginTop:'8px', color:'#666'}>
+            <Col xs={1} style={marginTop:'8px', color:'#666'}>
                 <Tip placement='top' title="Set the due date"
                     tip="Set the due date for the assignment.  This changes how the list of assignments is sorted.  Note that you must explicitly click a button to collect student assignments when they are due -- they are not automatically collected on the due date.  You should also tell students when assignments are due (e.g., at the top of the assignment).">
                     Due
                 </Tip>
             </Col>
-            <Col xs=11>
+            <Col xs={11}>
                 <DateTimePicker
                     value       = {@_due_date()}
                     on_change   = {@date_change}
@@ -242,16 +242,16 @@ Assignment = rclass
 
     render_note: ->
         <Row key='note' style={styles.note}>
-            <Col xs=2>
+            <Col xs={2}>
                 <Tip title="Notes about this assignment" tip="Record notes about this assignment here. These notes are only visible to you, not to your students.  Put any instructions to students about assignments in a file in the directory that contains the assignment.">
                     Private Assignment Notes<br /><span style={color:"#666"}></span>
                 </Tip>
             </Col>
-            <Col xs=10>
+            <Col xs={10}>
                 <MarkdownInput
                     persist_id    = {@props.assignment.get('path') + @props.assignment.get('assignment_id') + "note"}
                     attach_to     = {@props.name}
-                    rows          = 6
+                    rows          = {6}
                     placeholder   = 'Private notes about this assignment (not visible to students)'
                     default_value = {@props.assignment.get('note')}
                     on_save       = {(value)=>@props.redux.getActions(@props.name).set_assignment_note(@props.assignment, value)}
@@ -270,20 +270,20 @@ Assignment = rclass
             paddingBottom : '15px'
             marginBottom  : '15px'
         v.push <Row key='header3' style={bottom}>
-            <Col md=2>
+            <Col md={2}>
                 {@render_open_button()}
             </Col>
-            <Col md=10>
+            <Col md={10}>
                 <Row>
-                    <Col md=6 style={fontSize:'14px'} key='due'>
+                    <Col md={6} style={fontSize:'14px'} key='due'>
                         {@render_due()}
                     </Col>
-                    <Col md=6 key='delete'>
+                    <Col md={6} key='delete'>
                         <Row>
-                            <Col md=7>
+                            <Col md={7}>
                                 {@render_peer_button(status)}
                             </Col>
-                            <Col md=5>
+                            <Col md={5}>
                                 <span className='pull-right'>
                                     {@render_delete_button()}
                                 </span>
@@ -296,13 +296,13 @@ Assignment = rclass
 
         if @props.expand_peer_config
             v.push <Row key='header2-peer' style={bottom}>
-                <Col md=10 mdOffset=2>
+                <Col md={10} mdOffset={2}>
                     {@render_configure_peer()}
                 </Col>
             </Row>
         if @state.confirm_delete
             v.push <Row key='header2-delete' style={bottom}>
-                <Col md=10 mdOffset=2>
+                <Col md={10} mdOffset={2}>
                     {@render_confirm_delete()}
                 </Col>
             </Row>
@@ -329,7 +329,7 @@ Assignment = rclass
                     insert_skip_button()
 
         v.push <Row key='header-control'>
-            <Col md=10 mdOffset=2 key='buttons'>
+            <Col md={10} mdOffset={2} key='buttons'>
                 <Row>
                     {buttons}
                 </Row>
@@ -337,7 +337,7 @@ Assignment = rclass
         </Row>
 
         v.push <Row key='header2-copy'>
-            <Col md=10 mdOffset=2>
+            <Col md={10} mdOffset={2}>
                 {@render_copy_confirms(status)}
             </Col>
         </Row>
@@ -378,7 +378,7 @@ Assignment = rclass
                 />
 
         <Row key='more'>
-            <Col sm=12>
+            <Col sm={12}>
                 <Panel header={header}>
                     {panel_body}
                     {@render_note()}
@@ -430,7 +430,7 @@ Assignment = rclass
                 @render_copy_confirm(step, status)
 
     render_copy_confirm: (step, status) ->
-        <span key="copy_confirm_#{step}">
+        <span key={"copy_confirm_#{step}"}>
             {@render_copy_confirm_to_all(step, status) if status[step]==0}
             {@render_copy_confirm_to_all_or_new(step, status) if status[step]!=0}
         </span>
@@ -464,14 +464,14 @@ Assignment = rclass
         <div style={float:'right'}>
             <SkipCopy
                 assignment = {@props.assignment}
-                step       = step
+                step       = {step}
                 actions    = {@actions(@props.name)}
             />
         </div>
 
     render_copy_confirm_to_all: (step, status) ->
         n = status["not_#{step}"]
-        <Alert bsStyle='warning' key="#{step}_confirm_to_all", style={marginTop:'15px'}>
+        <Alert bsStyle='warning' key={"#{step}_confirm_to_all"} style={marginTop:'15px'}>
             <div style={marginBottom:'15px'}>
                 {misc.capitalize(step_verb(step))} this homework {step_direction(step)} the {n} student{if n>1 then "s" else ""}{step_ready(step, n)}?
             </div>
@@ -805,7 +805,7 @@ Assignment = rclass
                     tip="Set the due date for grading this assignment.  Note that you must explicitly click a button to collect graded assignments when -- they are not automatically collected on the due date.  A file is included in the student peer grading assignment telling them when they should finish their grading.">
                     Due
         </Tip>
-        <LabeledRow label_cols=6 label={label}>
+        <LabeledRow label_cols={6} label={label}>
             <DateTimePicker
                 value       = {@_peer_due(config.due_date)}
                 on_change   = {@peer_due_change}
@@ -816,10 +816,10 @@ Assignment = rclass
 
     render_configure_peer_number: (config) ->
         store = @props.redux.getStore(@props.name)
-        <LabeledRow label_cols=6 label='Number of students who will grade each assignment'>
+        <LabeledRow label_cols={6} label='Number of students who will grade each assignment'>
             <NumberInput
                 on_change = {(n) => @set_peer_grade(number : n)}
-                min       = 1
+                min       = {1}
                 max       = {(store?.num_students() ? 2) - 1}
                 number    = {config.number ? 1}
             />
@@ -828,12 +828,12 @@ Assignment = rclass
     render_configure_grading_guidelines: (config) ->
         store = @props.redux.getStore(@props.name)
         <div style={marginTop:'10px'}>
-            <LabeledRow label_cols=6 label='Grading guidelines, which will be made available to students in their grading folder in a file GRADING_GUIDE.md.  Tell your students how to grade each problem.  Since this is a markdown file, you might also provide a link to a publicly shared file or directory with guidelines.'>
+            <LabeledRow label_cols={6} label='Grading guidelines, which will be made available to students in their grading folder in a file GRADING_GUIDE.md.  Tell your students how to grade each problem.  Since this is a markdown file, you might also provide a link to a publicly shared file or directory with guidelines.'>
                 <div style={background:'white', padding:'10px', border:'1px solid #ccc', borderRadius:'3px'}>
                     <MarkdownInput
                         persist_id    = {@props.assignment.get('path') + @props.assignment.get('assignment_id') + "grading-guidelines"}
                         attach_to     = {@props.name}
-                        rows          = 16
+                        rows          = {16}
                         placeholder   = 'Enter your grading guidelines for this assignment...'
                         default_value = {config.guidelines}
                         on_save       = {(x) => @set_peer_grade(guidelines : x)}
@@ -893,19 +893,19 @@ Assignment = rclass
 
     render_summary_line: () ->
         <Row key='summary' style={backgroundColor:@props.background}>
-            <Col md=6>
+            <Col md={6}>
                 <h5>
                     {@render_assignment_title_link()}
                 </h5>
             </Col>
-            <Col md=6>
+            <Col md={6}>
                 {@render_summary_due_date()}
             </Col>
         </Row>
 
     render: ->
         <Row style={if @props.is_expanded then styles.selected_entry else styles.entry}>
-            <Col xs=12>
+            <Col xs={12}>
                 {@render_summary_line()}
                 {@render_more() if @props.is_expanded}
             </Col>

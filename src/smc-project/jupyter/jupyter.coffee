@@ -101,7 +101,13 @@ node_cleanup =>
 
 logger = undefined
 class Kernel extends EventEmitter
-    constructor : (@name, @_dbg, @_path, @_actions, usage) ->
+    constructor : (name, _dbg, _path, _actions, usage) ->
+        super()
+        @name = name
+        @_dbg = _dbg
+        @_path = _path
+        @_actions = _actions
+
         @store = key_value_store()
         {head, tail} = misc.path_split(@_path)
         @_directory = head
@@ -109,6 +115,7 @@ class Kernel extends EventEmitter
         @_set_state('off')
         @_identity = misc.uuid()
         @_start_time = new Date() - 0
+        @_execute_code_queue = []
         _jupyter_kernels[@_path] = @
         dbg = @dbg('constructor')
         dbg()

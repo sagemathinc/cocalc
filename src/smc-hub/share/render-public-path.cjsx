@@ -112,7 +112,7 @@ exports.render_public_path = (opts) ->
                 viewer   = {opts.viewer}
                 path     = {opts.path}
                 size     = {stats.size}
-                max_size = {MAX_SIZE}
-                />
+                max_size = {MAX_SIZE} />
+
             opts.react(opts.res, component, opts.path)
 

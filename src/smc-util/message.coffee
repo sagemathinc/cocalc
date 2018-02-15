@@ -1114,10 +1114,6 @@ message
     project_id : required
 
 
-# hub --> client(s)
-message
-    event      : 'project_list_updated'
-
 ## search ---------------------------
 
 # client --> hub
@@ -1798,6 +1794,7 @@ via the API and is intended for use by CoCalc support only:
 
 message
     event        : 'webapp_error'
+    id           : undefined # ignored
     name         : required  # string
     message      : required  # string
     comment      : undefined # string

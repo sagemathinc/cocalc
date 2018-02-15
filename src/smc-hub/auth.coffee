@@ -69,7 +69,7 @@ express_session = require('express-session')
 api_key_cookie_name = (base_url) ->
     return base_url + 'get_api_key'
 
-remember_me_cookie_name = (base_url) ->
+exports.remember_me_cookie_name = remember_me_cookie_name = (base_url) ->
     return base_url + 'remember_me'
 
 ########################################

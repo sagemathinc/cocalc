@@ -27,7 +27,9 @@ exports.get_public_paths = (database, cb) ->
         cb(undefined, the_public_paths)
 
 class PublicPaths extends EventEmitter
-    constructor: (@database) ->
+    constructor: (database) ->
+        super()
+        @database = database
         @_do_init()
 
     _do_init: =>

@@ -69,14 +69,14 @@ exports.Page = rclass
             <head>
                 {@title()}
                 {@notranslate()}
-                {# bootstrap CDN #}
+                {### bootstrap CDN ###}
                 <link
                     rel         = "stylesheet"
                     href        = "https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css"
                     integrity   = "sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u"
                     crossOrigin = "anonymous" />
 
-                {# codemirror CDN -- https://cdnjs.com/libraries/codemirror #}
+                {### codemirror CDN -- https://cdnjs.com/libraries/codemirror ###}
                 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.31.0/codemirror.min.css" />
 
                 {@render_favicon()}
@@ -86,12 +86,12 @@ exports.Page = rclass
             </head>
             <body>
                 <TopBar
-                    viewer       = @props.viewer
-                    path         = @props.path
-                    project_id   = @props.project_id
-                    base_url     = @props.base_url
-                    site_name    = @props.site_name
-                    is_public    = @props.is_public
+                    viewer       = {@props.viewer}
+                    path         = {@props.path}
+                    project_id   = {@props.project_id}
+                    base_url     = {@props.base_url}
+                    site_name    = {@props.site_name}
+                    is_public    = {@props.is_public}
                 />
                 {@props.children}
             </body>

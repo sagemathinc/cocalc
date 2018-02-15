@@ -112,7 +112,7 @@ exports.register_nonreact_editor = (opts) ->
 
         generator : (path, redux, project_id) ->
             key = get_key(project_id, path)
-            wrapper_generator = ({project_name}) -> <WrappedEditor editor={editors[key]} project_name=project_name />
+            wrapper_generator = ({project_name}) -> <WrappedEditor editor={editors[key]} project_name={project_name} />
             wrapper_generator.get_editor = -> editors[key]
             return wrapper_generator
 
