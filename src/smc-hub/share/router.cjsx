@@ -38,10 +38,9 @@ react_viewer = (base_url, path, project_id, notranslate, viewer, is_public) ->
             notranslate      = {!!notranslate}
             google_analytics = {google_analytics}
             viewer           = {viewer}
-            is_public        = {is_public}>
-
+            is_public        = {is_public}
+        >
             {component}
-
         </Page>
         extra = {path:path, project_id:project_id}  # just used for log
         react_support.react(res, the_page, extra, viewer)

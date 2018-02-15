@@ -58,8 +58,8 @@ TOOLTIP_CONFIG =
     delay: {show: 500, hide: 100}
 
 class exports.LatexEditor extends editor.FileEditor
-    constructor: (@project_id, @filename, content, opts) ->
-        super(@project_id, @filename)
+    constructor: (project_id, filename, content, opts) ->
+        super(project_id, filename)
 
         # The are three components:
         #     * latex_editor -- a CodeMirror editor

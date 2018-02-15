@@ -80,6 +80,7 @@ client_keydown = (ev) ->
 
 class Console extends EventEmitter
     constructor: (opts={}) ->
+        super()
         @opts = defaults opts,
             element     : required  # DOM (or jQuery) element that is replaced by this console.
             project_id  : required

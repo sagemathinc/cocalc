@@ -7,7 +7,7 @@ Copyright (C) 2017, Sagemath Inc.
 AGPLv3
 ###
 
-require('coffee-cache').setCacheDir("#{process.env.HOME}/.coffee/cache")
+# require('coffee-cache').setCacheDir("#{process.env.HOME}/.coffee/cache")
 
 misc = require('smc-util/misc')
 smc_react = require('../../smc-react')
@@ -19,7 +19,7 @@ redux_name = smc_react.redux_name(project_id, path)
 
 exports.setup = (cb) ->
     # ensure project store is initialized, so can test file menu.
-    smc_react.redux.constructor()  # this instantly resets the state of all redux
+    smc_react.redux.__reset()
     smc_react.redux.getProjectStore(project_id)
 
     # Initialize/reset the testing client that the synctables connect to.
@@ -67,6 +67,6 @@ exports.setup = (cb) ->
 exports.teardown = (cb) ->
     smc_react.redux.getActions(redux_name)?.close()
     smc_react.redux.removeProjectReferences(project_id)
-    smc_react.redux.constructor()  # this instantly resets the state of all redux
+    smc_react.redux.__reset()
     webapp_client.reset()
     cb()

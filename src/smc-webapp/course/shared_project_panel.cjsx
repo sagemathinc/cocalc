@@ -42,7 +42,7 @@ exports.SharedProjectPanel = rclass
 
     render: ->
         <Row>
-            <Col md=6>
+            <Col md={6}>
                  <Panel header={<h4><Icon name='users' />  {@panel_header_text()} </h4>}>
                     {@render_content()}
                  </Panel>
@@ -134,7 +134,7 @@ exports.SharedProjectPanel.Header = rclass
             tip = "Shared project that everybody involved in this course may use."
         else
             tip = "Create a shared project that everybody in this course may use."
-        <Tip delayShow=1300 title="Shared project"
+        <Tip delayShow={1300} title="Shared project"
              tip={tip}>
             <span>
                 <Icon name="users"/> Shared Project

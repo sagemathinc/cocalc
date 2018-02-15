@@ -108,6 +108,10 @@ class Connection extends client.Connection
             @_enable_post = true
         window.disable_post = =>
             @_enable_post = false
+
+        # Make this the default now.
+        @_enable_post = true
+
         if not DEBUG
             return
         window.smc                     ?= {}

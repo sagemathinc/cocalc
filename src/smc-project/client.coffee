@@ -44,7 +44,7 @@ winston = require('winston')
 winston.remove(winston.transports.Console)
 winston.add(winston.transports.Console, {level: 'debug', timestamp:true, colorize:true})
 
-require('coffee-script/register')
+require('coffeescript/register')
 
 message    = require('smc-util/message')
 misc       = require('smc-util/misc')
@@ -80,7 +80,9 @@ else
 
 
 class exports.Client extends EventEmitter
-    constructor: (@project_id) ->
+    constructor: (project_id) ->
+        super()
+        @project_id = project_id
         @dbg('constructor')()
         @setMaxListeners(300)  # every open file/table/sync db listens for connect event, which adds up.
         # initialize two caches

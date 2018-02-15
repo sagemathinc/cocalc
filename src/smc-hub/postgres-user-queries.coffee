@@ -1,9 +1,9 @@
-###
+"""
 User (and project) client queries
 
 COPYRIGHT : (c) 2017 SageMath, Inc.
 LICENSE   : AGPLv3
-###
+"""
 
 MAX_CHANGEFEEDS_PER_CLIENT = 2000
 
@@ -14,8 +14,7 @@ EventEmitter = require('events')
 async        = require('async')
 underscore   = require('underscore')
 
-{PostgreSQL, one_result, all_results, count_result, pg_type} = require('./postgres')
-{quote_field} = require('./postgres-base')
+{one_result, all_results, count_result, pg_type, quote_field} = require('./postgres-base')
 
 {UserQueryQueue} = require('./postgres-user-query-queue')
 
@@ -24,7 +23,7 @@ required = defaults.required
 
 {PROJECT_UPGRADES, SCHEMA} = require('smc-util/schema')
 
-class exports.PostgreSQL extends PostgreSQL
+exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
     # Cancel all queued up queries by the given client
     cancel_user_queries: (opts) =>
         opts = defaults opts,
@@ -49,7 +48,7 @@ class exports.PostgreSQL extends PostgreSQL
             @_user_query(opts)
             return
 
-        if not @_user_query_queue?
+        if not @_user_query_queue?
             o =
                 do_query   : @_user_query
                 dbg        : @_dbg('user_query_queue')
@@ -305,6 +304,8 @@ class exports.PostgreSQL extends PostgreSQL
         for x in options
             for name, value of x
                 switch name
+                    when 'only_changes'
+                        r.only_changes = !!value
                     when 'limit'
                         r.limit = value
                     when 'slice'
@@ -1107,10 +1108,12 @@ class exports.PostgreSQL extends PostgreSQL
             options = options.concat(schema_options)
 
         # Parse option part of the query
-        {limit, order_by, slice, err} = @_query_parse_options(options)
+        {limit, order_by, slice, only_changes, err} = @_query_parse_options(options)
 
         if err
             return {err: err}
+        if only_changes
+            r.only_changes = true
         if limit?
             r.limit = limit
         else if not multi
@@ -1428,13 +1431,18 @@ class exports.PostgreSQL extends PostgreSQL
                 else
                     cb()
             (cb) =>
-                dbg("finally doing query")
-                @_user_get_query_do_query _query_opts, client_query, opts.query, opts.multi, json_fields, (err, result) =>
-                    if err
-                        cb(err)
-                        return
-                    locals.result = result
+                if _query_opts.only_changes
+                    dbg("skipping query")
+                    locals.result = undefined
                     cb()
+                else
+                    dbg("finally doing query")
+                    @_user_get_query_do_query _query_opts, client_query, opts.query, opts.multi, json_fields, (err, result) =>
+                        if err
+                            cb(err)
+                            return
+                        locals.result = result
+                        cb()
         ], (err) =>
             if err
                 dbg("series failed -- err=#{err}")

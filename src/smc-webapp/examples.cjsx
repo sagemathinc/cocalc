@@ -97,10 +97,10 @@ class ExamplesActions extends Actions
         nav_entries = []
         for key in _.keys(data)
             entry = switch key
-                        when 'gap'
-                            ['gap', 'GAP']
-                        else
-                            [key, key[0].toUpperCase() + key[1..]]
+                when 'gap'
+                    ['gap', 'GAP']
+                else
+                    [key, key[0].toUpperCase() + key[1..]]
             if _.keys(data[key]).length > 0
                 nav_entries.push(entry)
         @set(nav_entries: nav_entries)
@@ -352,8 +352,8 @@ ExamplesHeader = rclass
         entries ?= []
         <Nav bsStyle="pills" activeKey={@props.lang} ref='lang' onSelect={@langSelect}>
             {entries.map (entry, idx) =>
-                    [key, name] = entry
-                    <NavItem key={key} eventKey={key} title={name}>{name}</NavItem>
+                [key, name] = entry
+                <NavItem key={key} eventKey={key} title={name}>{name}</NavItem>
             }
         </Nav>
 
@@ -450,7 +450,7 @@ ExamplesBody = rclass
                 active = if @props.search_sel == idx then 'active' else ''
                 <li className={"list-group-item " + active} onClick={click} key={idx}>
                     {lvl1} → {lvl2} → <span style={fontWeight: 'bold'} dangerouslySetInnerHTML={__html : title_hl}></span>
-                    {' '}{<span className='snippet'} dangerouslySetInnerHTML={__html : snippet}></span> if snippet?.length > 0}
+                    {' '}{<span className='snippet' dangerouslySetInnerHTML={__html : snippet}></span> if snippet?.length > 0}
                 </li>
             }
         </ul>

@@ -7,7 +7,7 @@ COPYRIGHT : (c) 2017 SageMath, Inc.
 LICENSE   : AGPLv3
 ###
 
-require('coffee-cache')
+require('coffee2-cache')
 
 DEBUG    = !!(process.env['SMC_DEBUG'] ? false)
 #DEBUG = true
