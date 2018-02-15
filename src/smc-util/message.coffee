@@ -2451,9 +2451,8 @@ API message2
 This request returns information on project upgrdes for the user
 whose API key appears in the request.
 Two objects are returned, total upgrades and available upgrades.
-Values for `mintime` are in units of seconds.
-Values for `cpu shares` correspond the number of CPU shares shown
-in the web UI in 'Account Settings / Upgrades' multiplied by 256.
+
+See https://github.com/sagemathinc/cocalc/blob/master/src/smc-util/upgrade-spec.coffee for units
 
 Example:
 ```
@@ -2485,7 +2484,7 @@ Example:
 
 # client <-- hub
 
-API message2
+API message
     event : 'available_upgrades'
     fields :
         id:
