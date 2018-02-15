@@ -104,7 +104,7 @@ for ext, mode of codemirror_associations
         name   : name
 
 # noext = means file with no extension but the given name.
-file_associations['noext-Dockerfile'] =
+file_associations['noext-dockerfile'] =
     editor : 'codemirror'
     binary : false
     icon   : 'fa-ship'
@@ -187,7 +187,7 @@ file_associations['css'] =
     opts   : {mode:'css', indent_unit:4, tab_size:4}
     name   : "CSS"
 
-for m in ['noext-makefile', 'noext-Makefile', 'noext-GNUmakefile', 'make', 'build']
+for m in ['noext-makefile', 'noext-gnumakefile', 'make', 'build']
     file_associations[m] =
         editor : 'codemirror'
         icon   : 'fa-cogs'

@@ -4,17 +4,13 @@ Single codemirror-based file editor
 This is a wrapper around a single codemirror editor view.
 ###
 
-{React, ReactDOM, rclass, rtypes}  = require('../smc-react')
-
-{three_way_merge} = require('smc-util/syncstring')
-
-{throttle} = require('underscore')
-
 SAVE_INTERVAL_MS = 2000
 
-{cm_options} = require('../jupyter/cm_options')
-
-misc = require('smc-util/misc')
+{React, ReactDOM, rclass, rtypes} = require('../smc-react')
+{three_way_merge}                 = require('smc-util/syncstring')
+{throttle}                        = require('underscore')
+{cm_options}                      = require('./cm-options')
+misc                              = require('smc-util/misc')
 
 STYLE =
     width        : '100%'
@@ -29,10 +25,11 @@ STYLE =
 exports.CodeEditor = rclass
     propTypes :
         actions : rtypes.object.isRequired
+        path    : rtypes.string.isRequired
 
     reduxProps :
         account :
-            editor_settings : rtypes.immutable.Map
+            editor_settings : rtypes.immutable.Map.isRequired
 
     shouldComponentUpdate: (next) ->
         return @props.editor_settings != next.editor_settings or \
@@ -80,19 +77,24 @@ exports.CodeEditor = rclass
         if not node?
             return
 
-        options = @props.editor_settings?.toJS() ? {}
-        save_to_disk = => @props.actions.save()
-        keys =
-            Tab           : => @cm.tab_as_space()
-            "Cmd-S"       : save_to_disk
-            "Alt-S"       : save_to_disk
-            "Ctrl-S"      : save_to_disk
+        options = cm_options(filename: @props.path, editor_settings: @props.editor_settings)
 
-        options.extraKeys ?= {}
+        keys =
+            Tab      : => @cm?.tab_as_space?()
+            "Cmd-S"  : @props.actions.save
+            "Alt-S"  : @props.actions.save
+            "Ctrl-S" : @props.actions.save
+
         misc.merge(options.extraKeys, keys)
 
         @cm = CodeMirror.fromTextArea(node, options)
-        $(@cm.getWrapperElement()).addClass('smc-vfill')
+
+        e = $(@cm.getWrapperElement())
+        e.addClass('smc-vfill')
+        # The Codemirror themes impose their own weird fonts, but most users want whatever
+        # they've configured as "monospace" in their browser.  So we force that back:
+        e.attr('style', e.attr('style') + '; height:100%; font-family:monospace !important;')
+        # see http://stackoverflow.com/questions/2655925/apply-important-css-style-using-jquery
 
         @save_state_throttle = throttle(@save_state, SAVE_INTERVAL_MS, {leading:false})
 

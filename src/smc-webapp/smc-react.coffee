@@ -458,13 +458,16 @@ connect_component = (spec) =>
         if not state?
             return props
         for store_name, info of spec
-            if store_name=='undefined'  # gets turned into this string when making a common mistake
+            if store_name == 'undefined'  # gets turned into this string when making a common mistake
                 console.warn("spec = ", spec)
                 throw Error("store_name of spec *must* be defined")
+            store = redux.getStore(store_name)
+            if not store?
+                throw Error("store '#{store_name}' *must* be defined")
             for prop, type of info
-                if redux.getStore(store_name).__converted?
-                    val = redux.getStore(store_name)[prop]
-                    if not Object.getOwnPropertyDescriptor(redux.getStore(store_name), prop)?.get?
+                if store.__converted?
+                    val = store[prop]
+                    if not Object.getOwnPropertyDescriptor(store, prop)?.get?
                         if DEBUG
                             console.warn("Requested reduxProp `#{prop}` from store `#{store_name}` but it is not defined in its stateTypes nor reduxProps")
                         val = state.getIn([store_name, prop])

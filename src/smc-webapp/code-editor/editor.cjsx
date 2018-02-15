@@ -10,8 +10,8 @@ Top-level react component for editing code
 exports.Editor = rclass ({name}) ->
     propTypes :
         actions    : rtypes.object.isRequired
-        path       : rtypes.string
-        project_id : rtypes.string
+        path       : rtypes.string.isRequired
+        project_id : rtypes.string.isRequired
 
     reduxProps :
         "#{name}" :
@@ -54,6 +54,7 @@ exports.Editor = rclass ({name}) ->
             actions   = {@props.actions}
             read_only = {@props.read_only}
             font_size = {@props.local_view_state?.get('font_size')}
+            path      = {@props.path}
             />
 
     render: ->

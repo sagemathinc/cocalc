@@ -8,6 +8,7 @@ misc                   = require('smc-util/misc')
 {alert_message}        = require('../alerts')
 {redux_name}           = require('../smc-react')
 {webapp_client}        = require('../webapp_client')
+{file_associations}    = require('../file-associations')
 
 {Editor}               = require('./editor')
 {Actions}              = require('./actions')
@@ -15,7 +16,7 @@ misc                   = require('smc-util/misc')
 
 exports.register = ->
     register_file_editor
-        ext       : ['txt2']  # for testing for now.
+        ext       : (key for key, value of file_associations when value.editor == 'codemirror')
 
         is_public : false
 

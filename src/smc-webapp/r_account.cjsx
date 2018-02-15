@@ -824,7 +824,7 @@ TerminalSettings = rclass
     render: ->
         if not @props.terminal?
             return <Loading />
-        <Panel header={<h2> <Icon name='terminal' /> Terminal <span className='lighten'>(settings applied to newly opened terminals)</span></h2>}>
+        <Panel header={<h2> <Icon name='terminal' /> Terminal settings <span className='lighten'>(applied to newly opened terminals)</span></h2>}>
             <LabeledRow label='Terminal font size'>
                 <NumberInput
                     on_change = {(font_size)=>@handleChange(font_size:font_size)}
@@ -1015,7 +1015,7 @@ EditorSettings = rclass
     render: ->
         if not @props.editor_settings?
             return <Loading />
-        <Panel header={<h2> <Icon name='edit' /> Editor (settings apply to newly (re-)opened files)</h2>}>
+        <Panel header={<h2> <Icon name='edit' /> Editor settings</h2>}>
             <EditorSettingsFontSize
                 on_change={@on_change} font_size={@props.font_size} />
             <EditorSettingsAutosaveInterval
