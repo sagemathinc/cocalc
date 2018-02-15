@@ -1794,6 +1794,7 @@ via the API and is intended for use by CoCalc support only:
 
 message
     event        : 'webapp_error'
+    id           : undefined # ignored
     name         : required  # string
     message      : required  # string
     comment      : undefined # string
