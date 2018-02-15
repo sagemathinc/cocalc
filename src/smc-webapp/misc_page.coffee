@@ -203,7 +203,7 @@ $.fn.extend
             tex                 : undefined
             display             : false
             inline              : false
-            hide_when_rendering : false  # if true, entire element will get hidden until mathjax is rendered
+            hide_when_rendering : false         # if true, entire element will get hidden until mathjax is rendered
             cb                  : undefined     # if defined, gets called as cb(t) for *every* element t in the jquery set!
         @each () ->
             t = $(this)
@@ -1642,7 +1642,7 @@ exports.load_coffeescript_compiler = (cb) ->
     else
         require.ensure [], =>
             # this should define window.CoffeeScript as the compiler instance.
-            require("script!coffeescript/coffee-script.js")
+            require("script-loader!coffeescript/lib/coffeescript/index.js")
             console.log("loaded CoffeeScript via require.ensure")
             cb?()
 

@@ -59,7 +59,7 @@ exports.available_upgrades = (stripe_subscriptions_data, projects) ->
                 excess[project_id] ?= {}
                 excess[project_id][prop] = curval - available[prop]
                 available[prop] = 0
-    return available:available, excess:excess
+    return {available:available, excess:excess}
 
 # INPUT: same as above, but also a single project_id
 #

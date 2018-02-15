@@ -13,8 +13,8 @@ that it simultaneously manages numerous sessions, since simultaneously
 doing a lot of IO-based things is what Node.JS is good at.
 ###
 
-
-require('coffee-cache').setCacheDir("#{process.env.HOME}/.coffee")
+# TODO wat.
+# require('coffee-cache').setCacheDir("#{process.env.HOME}/.coffee")
 
 
 BUG_COUNTER = 0
@@ -45,7 +45,7 @@ program = require('commander')          # command line arguments -- https://gith
 winston.remove(winston.transports.Console)
 winston.add(winston.transports.Console, {level: 'debug', timestamp:true, colorize:true})
 
-require('coffee-script/register')
+require('coffeescript/register')
 
 message     = require('smc-util/message')
 misc        = require('smc-util/misc')

@@ -188,7 +188,6 @@ FreeProjectWarning = rclass ({name}) ->
         "#{name}" :
             free_warning_extra_shown : rtypes.bool
             free_warning_closed      : rtypes.bool
-            free_compute_slowdown    : rtypes.number
             project_log              : rtypes.immutable
 
     propTypes:
@@ -197,7 +196,6 @@ FreeProjectWarning = rclass ({name}) ->
     shouldComponentUpdate: (next) ->
         return @props.free_warning_extra_shown            != next.free_warning_extra_shown or  \
             @props.free_warning_closed                    != next.free_warning_closed or   \
-            @props.free_compute_slowdown                  != next.free_compute_slowdown or  \
             @props.project_map?.get(@props.project_id)    != next.project_map?.get(@props.project_id) or \
             @props.other_settings?.get('no_free_warnings') != next.other_settings?.get('no_free_warnings')
 
@@ -266,24 +264,16 @@ FreeProjectWarning = rclass ({name}) ->
             marginBottom : 0
             fontSize     : "#{font_size}pt"
 
-        if font_size > 14 # only get obnoxious after a while...
+        if host
             styles.color      = 'white'
             styles.background = 'red'
 
-        ###
-        if @props.free_compute_slowdown? and @props.free_compute_slowdown > 0.0
-            pct = Math.round(@props.free_compute_slowdown)
-            slowdown = <span>This project could run up to <b>{pct}% faster after upgrading</b> to member server hosting.</span>
-        else
-            slowdown = ''
-        ###
-
         if host and internet
-            mesg = <span>Time to upgrade this project, since it is on an <b>unpaid trial server</b> and has no network access.</span>
+            mesg = <span>Upgrade this project.  It is on an <b>unpaid trial server</b> and has no network access.  Expect very bad performance.</span>
         else if host
-            mesg = <span>Time to upgrade this project, since it is on an <b>unpaid trial server</b>.</span>
+            mesg = <span>Upgrade this project.  It is on an <b>unpaid trial server</b>. Expect very bad performance.</span>
         else if internet
-            mesg = <span>WARNING: this project does not have network access.</span>
+            mesg = <span>This project does not have network access.</span>
 
         <Alert bsStyle='warning' style={styles}>
             <Icon name='exclamation-triangle' style={float:'right', marginTop: '3px'}/>

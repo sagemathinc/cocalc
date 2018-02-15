@@ -21,7 +21,12 @@ fs     = require('fs')
 {EventEmitter} = require('events')
 
 class exports.Watcher extends EventEmitter
-    constructor: (@path, @interval, @debounce) ->
+    constructor: (path, interval, debounce) ->
+        super()
+        @path = path
+        @interval = interval
+        @debounce = debounce
+
         fs.watchFile(@path, {interval: @interval, persistent:false}, @_listen)
 
     close: () =>

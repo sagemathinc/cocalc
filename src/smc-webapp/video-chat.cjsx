@@ -191,7 +191,7 @@ exports.VideoChatButton = rclass
                 title     = {<span>Toggle Video Chat</span>}
                 tip       = {@render_tip(num_users_chatting)}
                 placement = 'left'
-                delayShow = 1000
+                delayShow = {1000}
                 >
                 <Icon name='video-camera'/>
                 {<span style={marginLeft:'5px'}>{num_users_chatting}</span> if num_users_chatting}

@@ -34,8 +34,8 @@ counter = metrics_recorder.new_counter('log_lines_total', 'counts the number of 
 class exports.WinstonMetrics extends winston.Transport
     constructor: (opts) ->
         opts ?= {}
-        @name = opts.name ? new_name()
         super(level:opts.level)
+        @name = opts.name ? new_name()
 
 exports.WinstonMetrics::name = 'transport-metric'
 

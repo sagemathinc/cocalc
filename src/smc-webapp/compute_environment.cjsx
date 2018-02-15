@@ -222,7 +222,6 @@ ComputeEnvironment = rclass
             components    : rtypes.object
             selected_lang : rtypes.string
             langs         : rtypes.arrayOf(rtypes.string)
-            selected_lang : rtypes.string
 
     propTypes :
         actions : rtypes.object

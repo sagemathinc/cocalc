@@ -567,3 +567,10 @@ exports.commands = (actions) ->
         k : [{ctrl:true, shift:true, which:188}]
         f : -> actions.zoom(-1)
 
+    'write protect':
+        m : 'Toggle write protection'
+        f : -> actions.toggle_write_protection()
+
+    'delete protect':
+        m : 'Toggle delete protection'
+        f : -> actions.toggle_delete_protection()

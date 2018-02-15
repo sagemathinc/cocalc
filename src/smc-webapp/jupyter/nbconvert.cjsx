@@ -31,7 +31,7 @@ Error = rclass
         nbconvert           : rtypes.immutable.Map
 
     componentDidMount: ->
-       setTimeout((()=>@scroll()),10)
+        setTimeout((()=>@scroll()),10)
 
     componentWillReceiveProps: (next) ->
         if not misc.is_string(@props.nbconvert.get('error')) and misc.is_string(next.nbconvert.get('error'))

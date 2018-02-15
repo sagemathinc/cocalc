@@ -564,6 +564,7 @@ class SyncDoc extends syncstring.SyncDoc
 # otherwise I would have to proxy all the methods.
 class exports.SyncDB extends EventEmitter
     constructor: (opts) ->
+        super()
         @_path = opts.path
         if opts.change_throttle
             # console.log("throttling on_change #{opts.throttle}")

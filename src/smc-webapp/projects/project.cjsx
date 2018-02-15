@@ -128,19 +128,19 @@ exports.ProjectRow = rclass
 
         <Well style={project_row_styles} onMouseDown={@handle_mouse_down}>
             <Row>
-                <Col onClick={@handle_click} sm=2 style={fontWeight: 'bold', maxHeight: '7em', overflowY: 'auto'}>
+                <Col onClick={@handle_click} sm={2} style={fontWeight: 'bold', maxHeight: '7em', overflowY: 'auto'}>
                     {@render_project_title()}
                 </Col>
-                <Col onClick={@handle_click} sm=2 style={color: '#666', maxHeight: '7em', overflowY: 'auto'}>
+                <Col onClick={@handle_click} sm={2} style={color: '#666', maxHeight: '7em', overflowY: 'auto'}>
                     {@render_last_edited()}
                 </Col>
-                <Col onClick={@handle_click} sm=2 style={color: '#666', maxHeight: '7em', overflowY: 'auto'}>
+                <Col onClick={@handle_click} sm={2} style={color: '#666', maxHeight: '7em', overflowY: 'auto'}>
                     {@render_project_description()}
                 </Col>
-                <Col sm=4>
+                <Col sm={4}>
                     {@render_collab()}
                 </Col>
-                <Col sm=2 onClick={@open_project_settings}>
+                <Col sm={2} onClick={@open_project_settings}>
                     {@render_status()}
                 </Col>
             </Row>
