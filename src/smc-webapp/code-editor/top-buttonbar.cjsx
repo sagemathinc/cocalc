@@ -87,7 +87,7 @@ exports.ButtonBar = rclass
                 disabled = {disabled}
                 onClick  = {@props.actions.save} >
                 <Icon name='save' /> {if @props.read_only then 'Readonly' else 'Save'}
-                {<UncommittedChanges has_uncommitted_changes={@props.has_uncommitted_changes} /> if not disabled}
+                {<UncommittedChanges has_uncommitted_changes={@props.has_uncommitted_changes} delay_ms={8000} /> if not disabled}
             </Button>
             <Button
                 key     = {'timetravel'}

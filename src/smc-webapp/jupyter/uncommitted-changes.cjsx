@@ -21,6 +21,9 @@ exports.UncommittedChanges = rclass
         has_uncommitted_changes : rtypes.bool
         delay_ms                : rtypes.number
 
+    getDefaultProps: ->
+        delay_ms : 5000
+
     getInitialState: ->
         counter : 0
 
@@ -33,7 +36,7 @@ exports.UncommittedChanges = rclass
         if next_state?.counter != @state.counter
             return true
         @_last_change = new Date()
-        setTimeout(@_check, @props.delay_ms ? 5000 + 1)
+        setTimeout(@_check, @props.delay_ms + 10)
         return !!next.has_uncommitted_changes != !!@props.has_uncommitted_changes
 
     componentWillUnmount: ->
@@ -43,7 +46,10 @@ exports.UncommittedChanges = rclass
         @_mounted = true
 
     render: ->
-        if not @props.has_uncommitted_changes or (new Date() - @_last_change < (@props.delay_ms ? 5000))
+        if not @props.has_uncommitted_changes
+            return <span/>
+        @_last_change ?= new Date()
+        if new Date() - @_last_change < @props.delay_ms
             return <span/>
         <span style={STYLE}>
             NOT saved!

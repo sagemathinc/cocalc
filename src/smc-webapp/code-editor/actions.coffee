@@ -91,7 +91,7 @@ class exports.Actions extends Actions
         f = =>
             do_set()
             setTimeout(do_set, 3000)
-        @set_save_status = underscore.debounce(f, 500)
+        @set_save_status = underscore.debounce(f, 500, true)
         @syncstring.on('metadata-change', @set_save_status)
         @syncstring.on('connected',       @set_save_status)
 
@@ -145,6 +145,7 @@ class exports.Actions extends Actions
 
     syncstring_save: =>
         @syncstring?.save()
+        @set_save_status()
 
     set_syncstring_to_codemirror: =>
         if not @cm? or not @syncstring?
@@ -155,6 +156,7 @@ class exports.Actions extends Actions
         if not @cm? or not @syncstring?
             return
         @cm.setValueNoJump(@syncstring.to_str())
+        @set_save_status()
 
     exit_undo_mode: =>
         @syncstring.exit_undo_mode()

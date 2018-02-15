@@ -17,7 +17,6 @@ STYLE =
     overflow     : 'auto'
     marginbottom : '1ex'
     minheight    : '2em'
-    padding      : '5px'
     border       : '1px solid #ccc'
     borderRadius : '3px'
     background   : '#fff'
@@ -99,14 +98,9 @@ exports.CodeEditor = rclass
         @save_state_throttle = throttle(@save_state, SAVE_INTERVAL_MS, {leading:false})
 
         @cm.on 'change', (instance, changeObj) =>
-            if not @cm._setting_from_syncstring
-                @_user_action = true
             if changeObj.origin? and changeObj.origin != 'setValue'
                 @save_state_throttle()
                 @props.actions.exit_undo_mode()
-
-        #@_cm_change = throttle(@_cm_save, 2000, {leading:false})
-        #@cm.on('change', @_cm_change)
 
         # replace undo/redo by our sync aware versions
         @cm.undo = @_cm_undo
