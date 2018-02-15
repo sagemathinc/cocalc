@@ -16,17 +16,16 @@ require('./jsdom-support')
 
 exports.react = (res, component, extra, viewer) ->
     res.type('html')
-    # we will definitely want to disable mathjax someday for any filetypes that don't need it,
-    # since it can be slow, even if nothing gets processed.
-    use_mathjax = true
+    # we will definitely want to disable math processing someday for any filetypes that don't need it
+    use_math = true
     async.series([
         (cb) ->
-            if not use_mathjax
+            if not use_math
                 cb()
                 return
             t0 = new Date()
             process_react_component component, viewer, ->
-                console.log("react: time to process mathjax: #{new Date() - t0}ms", extra)
+                console.log("react: time to process math with KaTeX: #{new Date() - t0}ms", extra)
                 cb()
         (cb) ->
             t0 = new Date()
