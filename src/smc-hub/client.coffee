@@ -930,11 +930,10 @@ class exports.Client extends EventEmitter
             else
                 project = hub_projects.new_project(mesg.project_id, @database, @compute_server)
                 @database.touch_project(project_id:mesg.project_id)
-                if not @_project_cache?
-                    @_project_cache = {}
+                @_project_cache ?= {}
                 @_project_cache[key] = project
                 # cache for a while
-                setTimeout((()=>delete @_project_cache[key]), CACHE_PROJECT_AUTH_MS)
+                setTimeout((()=>delete @_project_cache?[key]), CACHE_PROJECT_AUTH_MS)
                 dbg("got project; caching and returning")
                 cb(undefined, project)
         )
