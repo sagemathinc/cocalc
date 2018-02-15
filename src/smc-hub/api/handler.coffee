@@ -13,11 +13,6 @@ messages = require('smc-util/message')
 
 {Client} = require('../client')
 
-class APIClient extends Client
-    push_to_client: (mesg, cb) =>
-        @emit 'push_to_client', mesg
-        cb?()
-
 log = (name, logger) ->
     if logger?
         return (m...) -> logger.debug("API.#{name}: ", m...)
@@ -117,7 +112,10 @@ get_client = (opts) ->
             logger         : opts.logger
             database       : opts.database
             compute_server : opts.compute_server
-        client = new APIClient(options)
+        client = new Client(options)
+        client.push_to_client = (mesg, cb) =>
+            client.emit('push_to_client', mesg)
+            cb?()
         client.ip_address = opts.ip_address
         client.account_id = account_id
         opts.cb(undefined, client)

@@ -304,6 +304,8 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
         for x in options
             for name, value of x
                 switch name
+                    when 'only_changes'
+                        r.only_changes = !!value
                     when 'limit'
                         r.limit = value
                     when 'slice'
@@ -1106,10 +1108,12 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             options = options.concat(schema_options)
 
         # Parse option part of the query
-        {limit, order_by, slice, err} = @_query_parse_options(options)
+        {limit, order_by, slice, only_changes, err} = @_query_parse_options(options)
 
         if err
             return {err: err}
+        if only_changes
+            r.only_changes = true
         if limit?
             r.limit = limit
         else if not multi
@@ -1427,13 +1431,18 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                 else
                     cb()
             (cb) =>
-                dbg("finally doing query")
-                @_user_get_query_do_query _query_opts, client_query, opts.query, opts.multi, json_fields, (err, result) =>
-                    if err
-                        cb(err)
-                        return
-                    locals.result = result
+                if _query_opts.only_changes
+                    dbg("skipping query")
+                    locals.result = undefined
                     cb()
+                else
+                    dbg("finally doing query")
+                    @_user_get_query_do_query _query_opts, client_query, opts.query, opts.multi, json_fields, (err, result) =>
+                        if err
+                            cb(err)
+                            return
+                        locals.result = result
+                        cb()
         ], (err) =>
             if err
                 dbg("series failed -- err=#{err}")

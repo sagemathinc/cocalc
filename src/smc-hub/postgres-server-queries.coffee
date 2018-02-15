@@ -126,6 +126,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             smc_git_rev  : undefined
             uptime       : undefined
             start_time   : undefined
+            id           : undefined  # ignored
             cb           : undefined
         @_query
             query       : 'INSERT INTO webapp_errors'
