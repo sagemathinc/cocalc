@@ -108,11 +108,6 @@ user_api_call = (opts) ->
         opts.cb(err, locals.resp)
     )
 
-class APIClient extends Client
-    push_to_client: (mesg, cb) =>
-        @emit 'push_to_client', mesg
-        cb?()
-
 get_client = (opts) ->
     opts = defaults opts,
         account_id     : required
@@ -125,7 +120,10 @@ get_client = (opts) ->
         logger         : opts.logger
         database       : opts.database
         compute_server : opts.compute_server
-    client = new APIClient(options)
+    client = new Client(options)
+    client.push_to_client = (mesg, cb) =>
+        client.emit('push_to_client', mesg)
+        cb?()
     client.account_id = opts.account_id
     client.ip_address = opts.ip_address
     opts.cb(undefined, client)
