@@ -2451,9 +2451,8 @@ API message2
 This request returns information on project upgrdes for the user
 whose API key appears in the request.
 Two objects are returned, total upgrades and available upgrades.
-Values for `mintime` are in units of seconds.
-Values for `cpu shares` correspond the number of CPU shares shown
-in the web UI in 'Account Settings / Upgrades' multiplied by 256.
+
+See https://github.com/sagemathinc/cocalc/blob/master/src/smc-util/upgrade-spec.coffee for units
 
 Example:
 ```
@@ -2485,19 +2484,9 @@ Example:
 
 # client <-- hub
 
-API message2
-    event : 'available_upgrades'
-    fields :
-        id:
-           init  : undefined
-           desc  : 'A unique UUID for the query'
-        total :
-            init : required
-            desc : 'info about the total upgrades that the user has purchased'
-        excess :
-            init : required
-            desc : 'info about upgrades where the total allocated exceeds what user has purchased'
-        available :
-            init : required
-            desc : 'how much of each purchased upgrade is available'
-    desc : 'See https://github.com/sagemathinc/cocalc/blob/master/src/smc-util/upgrade-spec.coffee for units'
+message
+    event      : 'available_upgrades'
+    id         : undefined
+    total      : required  # total upgrades the user has purchased
+    excess     : required  # upgrades where the total allocated exceeds what user has purchased
+    available  : required  # how much of each purchased upgrade is available
