@@ -181,6 +181,27 @@ exports.CourseStore = class CourseStore extends Store
     get_comments: (assignment, student) =>
         return @get_assignment(assignment)?.get('comments')?.get(@get_student(student)?.get('student_id'))
 
+    get_points: (assignment, student, filepath) =>
+        student_id = @get_student(student)?.get('student_id')
+        points     = @get_assignment(assignment)?.get('points')?.get(student_id)
+        return points?.get(filepath) ? 0
+
+    get_points_total: (assignment, student) =>
+        student_id = @get_student(student)?.get('student_id')
+        points     = @get_assignment(assignment)?.getIn(['points', student_id])
+        return points?.reduce(((a, b) -> a+b), 0) ? 0
+
+    get_points_subdir: (assignment, student, subdir) =>
+        reducer = (cur, val, path) ->
+            if path.indexOf(subdir + '/') == 0
+                return cur + val
+            else
+                return cur
+
+        student_id = @get_student(student)?.get('student_id')
+        points     = @get_assignment(assignment)?.getIn(['points', student_id])
+        return points?.reduce(reducer, 0) ? 0
+
     get_due_date: (assignment) =>
         due_date = @get_assignment(assignment)?.get('due_date')
         if due_date?
@@ -452,13 +473,15 @@ exports.CourseStore = class CourseStore extends Store
         return false if not x? or x.get('error')
         return true
 
-    grading_previous_student: (assignment, current_student_id) =>
-        return @_first_student_without_grade(assignment, current_student_id, true)
+    grading_previous_student: (assignment, current_student_id, student_to_grade=true) =>
+        return @_first_student_without_grade(assignment, current_student_id, true, student_to_grade)
 
-    grading_next_student: (assignment, current_student_id) =>
-        return @_first_student_without_grade(assignment, current_student_id)
+    grading_next_student: (assignment, current_student_id, student_to_grade=true) =>
+        return @_first_student_without_grade(assignment, current_student_id, false, student_to_grade)
 
-    _first_student_without_grade: (assignment, id, previous=false) =>
+    _first_student_without_grade: (assignment, id, previous=false, student_to_grade=true) =>
+        # previous: iterate into opposite direction
+        # student_to_grade: if true, only return a student who does not have a grade yet
         assignment = @get_assignment(assignment)
         students   = @get_student_ids(deleted:false)
         if previous
@@ -474,7 +497,7 @@ exports.CourseStore = class CourseStore extends Store
             # It's fine to return a student without collected files
             #if not @has_last_collected(assignment, student_id)
             #    continue
-            if not @has_grade(assignment, student_id)
+            if (not student_to_grade) or (not @has_grade(assignment, student_id))
                 return student_id
         return null
 

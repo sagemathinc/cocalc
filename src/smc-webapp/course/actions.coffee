@@ -871,6 +871,26 @@ exports.CourseActions = class CourseActions extends Actions
         obj.comments = comments_map
         @_set(obj)
 
+    # this associates a path to a collected file of a student assignment with
+    # "points" (a non-negative integer). Sum over all entries is the total number of
+    # points for an assignment of a student...
+    set_points: (assignment, student, filepath, points) =>
+        store = @get_store()
+        return if not store?
+        assignment    = store.get_assignment(assignment)
+        student       = store.get_student(student)
+        student_id    = student.get('student_id')
+        obj           = {table:'assignments', assignment_id:assignment.get('assignment_id')}
+        points_map            = @_get_one(obj).points ? {}
+        student_points_map    = points_map[student_id] ? {}
+        if points == 0
+            delete student_points_map[filepath]
+        else
+            student_points_map[filepath] = points
+        points_map[student_id] = student_points_map
+        obj.points = points_map
+        @_set(obj)
+
     set_active_assignment_sort: (column_name) =>
         store = @get_store()
         if not store?
@@ -1762,40 +1782,37 @@ exports.CourseActions = class CourseActions extends Actions
         # Now open it
         @redux.getProjectActions(proj).open_directory(path)
 
-    grading: (assignment, student_id, previous=false) =>
+    grading: (assignment, student_id, previous=false, student_to_grade=true) =>
         store = @get_store()
         return if not store?
         if previous
-            next_student_id = store.grading_previous_student(assignment, student_id)
+            next_student_id = store.grading_previous_student(assignment, student_id, student_to_grade)
         else
-            next_student_id = store.grading_next_student(assignment, student_id)
-
-        if not next_student_id?
-            @set_error('No further students to grade')
-            return
+            next_student_id = store.grading_next_student(assignment, student_id, student_to_grade)
 
         # this switches to grading mode, but no listing
         @setState(grading : immutable.Map(
-            student_id    : next_student_id
+            student_id    : next_student_id ? student_id
             assignment_id : assignment.get('assignment_id')
             listing       : null
+            end_of_list   : not (next_student_id?)
         ))
 
-        # ideally, we should not really support subdirectories at all.
         subdir = ''
         store.grading_get_listing assignment, next_student_id, subdir, (err, listing) =>
             if err
                 if err == 'no_dir'
-                    listing = {error: 'no_dir'}
+                    listing = {error: err}
                 else
                     @set_error("Grading error: #{err}")
                     return
             listing = immutable.fromJS(listing)
 
             @setState(grading : immutable.Map(
-                student_id    : next_student_id
+                student_id    : next_student_id ? student_id
                 assignment_id : assignment.get('assignment_id')
                 listing       : listing
+                end_of_list   : not (next_student_id?)
             ))
 
     grading_stop: () =>

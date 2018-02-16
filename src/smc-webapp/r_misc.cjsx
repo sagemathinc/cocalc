@@ -413,12 +413,13 @@ exports.NumberInput = NumberInput = rclass
     displayName : 'Misc-NumberInput'
 
     propTypes :
-        number      : rtypes.number.isRequired
-        min         : rtypes.number.isRequired
-        max         : rtypes.number.isRequired
-        on_change   : rtypes.func.isRequired
-        unit        : rtypes.string
-        disabled    : rtypes.bool
+        number         : rtypes.number.isRequired
+        min            : rtypes.number.isRequired
+        max            : rtypes.number.isRequired
+        on_change      : rtypes.func.isRequired
+        unit           : rtypes.string
+        disabled       : rtypes.bool
+        formgroupstyle : rtypes.object
 
     componentWillReceiveProps: (next_props) ->
         if @props.number != next_props.number
@@ -449,7 +450,7 @@ exports.NumberInput = NumberInput = rclass
         <Row>
             <Col xs={6}>
                 <form onSubmit={@saveChange}>
-                    <FormGroup>
+                    <FormGroup style={@props.formgroupstyle ? {}}>
                         <FormControl
                             type     = 'text'
                             ref      = 'input'
