@@ -18,15 +18,19 @@ exports.Editor = rclass ({name}) ->
             has_unsaved_changes     : rtypes.bool
             has_uncommitted_changes : rtypes.bool
             read_only               : rtypes.bool
+            printing                : rtypes.bool
             load_time_estimate      : rtypes.immutable.Map
             is_loaded               : rtypes.bool
             local_view_state        : rtypes.immutable.Map
+            error                   : rtypes.string
 
     shouldComponentUpdate: (next) ->
         return @props.has_unsaved_changes     != next.has_unsaved_changes or \
                @props.has_uncommitted_changes != next.has_uncommitted_changes or \
                @props.read_only               != next.read_only or \
-               @props.local_view_state        != next.local_view_state
+               @props.local_view_state        != next.local_view_state or \
+               @props.printing                != next.printing or \
+               @props.error                   != next.error
 
     componentDidMount: ->
         @props.actions.enable_key_handler()
@@ -42,6 +46,7 @@ exports.Editor = rclass ({name}) ->
             has_uncommitted_changes = {@props.has_uncommitted_changes}
             project_id              = {@props.project_id}
             path                    = {@props.path}
+            printing                = {@props.printing}
             />
 
     render_loading: ->
@@ -60,8 +65,15 @@ exports.Editor = rclass ({name}) ->
             scroll    = {@props.local_view_state?.get('scroll')}
             />
 
+    render_error: ->
+        if not @props.error
+            return
+        # TODO
+        <div style={color:'red'}>{@props.error}</div>
+
     render: ->
         <div className={'smc-vfill'} style={background:'white'}>
             {@render_button_bar()}
+            {@render_error()}
             {@render_editor()}
         </div>

@@ -10,6 +10,8 @@ underscore = require('underscore')
 misc       = require('smc-util/misc')
 keyboard   = require('./keyboard')
 copypaste  = require('../copy-paste-buffer')
+convert_to_pdf = require('./convert-to-pdf')
+browser_print  = require('./browser-print')
 
 class exports.Actions extends Actions
     _init: (project_id, path, syncstring, store) =>
@@ -223,4 +225,12 @@ class exports.Actions extends Actions
         @cm.replaceSelection(copypaste.get_buffer())
 
     print: =>
-        console.log 'print, todo'
+        @setState(printing: true)
+        convert_to_pdf.convert
+            path  : @path
+            cb    : (err, pdf) =>
+                @setState(printing: false)
+                if err
+                    @setState(error: err)
+                else
+                    browser_print.print(pdf:pdf)

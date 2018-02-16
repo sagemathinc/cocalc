@@ -280,6 +280,10 @@ exports.ErrorDisplay = ErrorDisplay = rclass
             {error}
         </Alert>
 
+exports.Spinner = rclass
+    render : ->
+        <Icon name='spinner' spin={true} />
+
 exports.Footer = rclass
     displayName : "Footer"
 

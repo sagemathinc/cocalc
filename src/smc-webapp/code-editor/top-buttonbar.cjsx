@@ -6,7 +6,7 @@ The Top Button bar -- basic editing functionality
 
 {React, rclass, rtypes, redux} = require('../smc-react')
 {ButtonGroup, Button}   = require('react-bootstrap')
-{Icon, Space, VisibleMDLG, VisibleLG,
+{Icon, Space, Spinner, VisibleMDLG, VisibleLG,
 EditorFileInfoDropdown} = require('../r_misc')
 {UncommittedChanges}    = require('../jupyter/uncommitted-changes')
 
@@ -18,11 +18,13 @@ exports.ButtonBar = rclass
         has_uncommitted_changes : rtypes.bool
         path                    : rtypes.string  # used for file info only
         project_id              : rtypes.string
+        printing                : rtypes.bool
 
     shouldComponentUpdate: (next) ->
         return @props.has_unsaved_changes     != next.has_unsaved_changes or \
                @props.has_uncommitted_changes != next.has_uncommitted_changes or \
-               @props.read_only               != next.read_only
+               @props.read_only               != next.read_only or \
+               @props.printing                != next.printing
 
     render_undo_redo_group: ->
         <ButtonGroup key={'undo-group'}>
@@ -121,12 +123,20 @@ exports.ButtonBar = rclass
             </Button>
         </ButtonGroup>
 
+    render_print_spinner: ->
+        if @props.printing
+            <span>
+                <Space />
+                <Spinner />
+            </span>
+
     render_print: ->
         <Button
             key      = {'print'}
             onClick  = {@props.actions.print}
             disabled = {@props.read_only} >
             <Icon name={'print'} /> <VisibleMDLG>Print</VisibleMDLG>
+            {@render_print_spinner()}
         </Button>
 
     render_split: ->
