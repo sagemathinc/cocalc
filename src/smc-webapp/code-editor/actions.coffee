@@ -6,13 +6,10 @@ WIKI_HELP_URL = "https://github.com/sagemathinc/cocalc/wiki/editor"  # TODO -- w
 
 immutable  = require('immutable')
 underscore = require('underscore')
-
 {Actions}  = require('../smc-react')
-
-misc = require('smc-util/misc')
-
-
-keyboard = require('./keyboard')
+misc       = require('smc-util/misc')
+keyboard   = require('./keyboard')
+copypaste  = require('../copy-paste-buffer')
 
 class exports.Actions extends Actions
     _init: (project_id, path, syncstring, store) =>
@@ -200,11 +197,21 @@ class exports.Actions extends Actions
     split_view: =>
         console.log 'split_view, todo'
 
+    cut: =>
+        if not @cm?
+            return
+        copypaste.set_buffer(@cm.getSelection())
+        @cm.replaceSelection('')
+
     copy: =>
-        console.log 'copy, todo'
+        if not @cm?
+            return
+        copypaste.set_buffer(@cm.getSelection())
 
     paste: =>
-        console.log 'paste, todo'
+        if not @cm?
+            return
+        @cm.replaceSelection(copypaste.get_buffer())
 
     print: =>
         console.log 'print, todo'

@@ -100,6 +100,11 @@ exports.ButtonBar = rclass
     render_copy_group: ->
         <ButtonGroup key={'copy'}>
             <Button
+                key      = {'cut'}
+                onClick  = {@props.actions.cut} >
+                <Icon name={'scissors'} /> Cut
+            </Button>
+            <Button
                 key      = {'copy'}
                 onClick  = {@props.actions.copy} >
                 <Icon name={'copy'} /> Copy

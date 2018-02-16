@@ -12,6 +12,7 @@ SAVE_INTERVAL_MS = 2000
 {cm_options}                      = require('./cm-options')
 misc                              = require('smc-util/misc')
 
+
 STYLE =
     width        : '100%'
     overflow     : 'auto'
