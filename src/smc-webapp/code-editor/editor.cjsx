@@ -61,7 +61,7 @@ exports.Editor = rclass ({name}) ->
             />
 
     render: ->
-        <div className={'smc-vfill'}>
+        <div className={'smc-vfill'} style={background:'white'}>
             {@render_button_bar()}
             {@render_editor()}
         </div>

@@ -1429,17 +1429,18 @@ exports.EditorFileInfoDropdown = EditorFileInfoDropdown = rclass
         for name, icon of items
             @render_menu_item(name, icon)
 
-    render_dropdown_button: (bsSize, className) ->
-        title = <span>File<Space /></span>
-        <DropdownButton style={marginRight:'2px'} id='file_info_button' bsSize={bsSize} title={title} className={className}>
-            {@render_menu_items()}
-        </DropdownButton>
+    render_title: ->
+        <span>
+            <span className={'hidden-xs'}>
+                File
+                <Space />
+            </span>
+        </span>
 
     render: ->
-        <span>
-            {@render_dropdown_button('large', 'pull-left visible-xs')}
-            {@render_dropdown_button(null, 'pull-left hidden-xs')}
-        </span>
+        <DropdownButton style={marginRight:'2px'} id='file_info_button' title={@render_title()}>
+            {@render_menu_items()}
+        </DropdownButton>
 
 exports.render_file_info_dropdown = (filename, actions, dom_node, is_public) ->
     ReactDOM.render(<EditorFileInfoDropdown filename={filename} actions={actions} is_public={is_public} />, dom_node)
@@ -1842,3 +1843,25 @@ exports.CopyToClipBoard = rclass
                 {@render_button_after() unless @props.hide_after}
             </InputGroup>
         </FormGroup>
+
+# See https://getbootstrap.com/docs/3.3/css/
+# HiddenXS = hide if width < 768px
+exports.HiddenXS = rclass
+    render: ->
+        <span className={'hidden-xs'}>
+            {@props.children}
+        </span>
+
+# VisibleMDLG = visible on medium or large devices (anything with width > 992px)
+exports.VisibleMDLG = rclass
+    render: ->
+        <span className={'visible-md-inline visible-lg-inline'}>
+            {@props.children}
+        </span>
+
+# VisibleMDLG = visible on medium or large devices (anything with width > 992px)
+exports.VisibleLG = rclass
+    render: ->
+        <span className={'visible-lg-inline'}>
+            {@props.children}
+        </span>

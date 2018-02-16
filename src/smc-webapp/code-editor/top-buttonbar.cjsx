@@ -6,7 +6,7 @@ The Top Button bar -- basic editing functionality
 
 {React, rclass, rtypes, redux} = require('../smc-react')
 {ButtonGroup, Button}   = require('react-bootstrap')
-{Icon, Space,
+{Icon, Space, VisibleMDLG, VisibleLG,
 EditorFileInfoDropdown} = require('../r_misc')
 {UncommittedChanges}    = require('../jupyter/uncommitted-changes')
 
@@ -31,14 +31,14 @@ exports.ButtonBar = rclass
                 onClick  = {@props.actions.undo}
                 disabled = {@props.read_only}
                 >
-                <Icon name='undo' /> Undo
+                <Icon name='undo' /> <VisibleMDLG>Undo</VisibleMDLG>
             </Button>
             <Button
                 key      = {'redo'}
                 onClick  = {@props.actions.redo}
                 disabled = {@props.read_only}
                 >
-                <Icon name='repeat' /> Redo
+                <Icon name='repeat' /> <VisibleMDLG>Redo</VisibleMDLG>
             </Button>
         </ButtonGroup>
 
@@ -48,20 +48,20 @@ exports.ButtonBar = rclass
                 key      = {'find'}
                 onClick  = {@props.actions.find}
                 >
-                <Icon name='search' /> Find
+                <Icon name='search' /> <VisibleMDLG>Find</VisibleMDLG>
             </Button>
             <Button
                 key      = {'replace'}
                 onClick  = {@props.actions.replace}
                 disabled = {@props.read_only}
                 >
-                <Icon name='exchange' /> Replace
+                <Icon name='exchange' /> <VisibleMDLG>Replace</VisibleMDLG>
             </Button>
             <Button
                 key      = {'goto-line'}
                 onClick  = {@props.actions.goto_line}
                 >
-                <Icon name='bolt' /> Line
+                <Icon name='bolt' /> <VisibleMDLG>Line</VisibleMDLG>
             </Button>
         </ButtonGroup>
 
@@ -96,7 +96,7 @@ exports.ButtonBar = rclass
                 key     = {'timetravel'}
                 bsStyle = {'info'}
                 onClick = {@props.actions.time_travel} >
-                <Icon name='history' /> TimeTravel
+                <Icon name='history' /> <VisibleMDLG>TimeTravel</VisibleMDLG>
             </Button>
         </ButtonGroup>
 
@@ -106,18 +106,18 @@ exports.ButtonBar = rclass
                 key      = {'cut'}
                 onClick  = {@props.actions.cut}
                 disabled = {@props.read_only} >
-                <Icon name={'scissors'} /> Cut
+                <Icon name={'scissors'} /> <VisibleLG>Cut</VisibleLG>
             </Button>
             <Button
                 key      = {'copy'}
                 onClick  = {@props.actions.copy} >
-                <Icon name={'copy'} /> Copy
+                <Icon name={'copy'} />  <VisibleLG>Copy</VisibleLG>
             </Button>
             <Button
                 key     = {'paste'}
                 onClick = {@props.actions.paste}
                 disabled = {@props.read_only} >
-                <Icon name={'paste'} /> Paste
+                <Icon name={'paste'} />  <VisibleLG>Paste</VisibleLG>
             </Button>
         </ButtonGroup>
 
@@ -126,14 +126,14 @@ exports.ButtonBar = rclass
             key      = {'print'}
             onClick  = {@props.actions.print}
             disabled = {@props.read_only} >
-            <Icon name={'print'} /> Print
+            <Icon name={'print'} /> <VisibleMDLG>Print</VisibleMDLG>
         </Button>
 
     render_split: ->
         <Button
             key     = {'split'}
             onClick = {@props.actions.split_view} >
-            <Icon name='columns' /> Split
+            <Icon name='columns' /> <VisibleMDLG>Split</VisibleMDLG>
         </Button>
 
     render_file_info: ->
@@ -145,7 +145,7 @@ exports.ButtonBar = rclass
         />
 
     render: ->
-        <div style={padding: '5px'}>
+        <div style={padding: '2px'}>
             {@render_file_info()}
             <Space/>
             {@render_copy_group()}
