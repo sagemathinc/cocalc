@@ -1782,23 +1782,29 @@ exports.CourseActions = class CourseActions extends Actions
         # Now open it
         @redux.getProjectActions(proj).open_directory(path)
 
-    grading: (assignment, student_id, previous=false, student_to_grade=true) =>
+    grading: (assignment, student_id, previous=false, student_to_grade=true, subdir) =>
         store = @get_store()
         return if not store?
-        if previous
-            next_student_id = store.grading_previous_student(assignment, student_id, student_to_grade)
+        if previous == false
+            [next_student_id, cnt] = store.grading_previous_student(assignment, student_id, student_to_grade)
+        else if previous == true
+            [next_student_id, cnt] = store.grading_next_student(assignment, student_id, student_to_grade)
         else
-            next_student_id = store.grading_next_student(assignment, student_id, student_to_grade)
+            # previous is null/undefined, stick with same student ... e.g. directory changes
+            cnt = store.getIn(['grading', 'progress']) ? 1
+            next_student_id = student_id
 
         # this switches to grading mode, but no listing
-        @setState(grading : immutable.Map(
+        data = immutable.Map(
             student_id    : next_student_id ? student_id
+            progress      : cnt
             assignment_id : assignment.get('assignment_id')
             listing       : null
             end_of_list   : not (next_student_id?)
-        ))
+        )
+        @setState(grading : data)
 
-        subdir = ''
+        subdir ?= ''
         store.grading_get_listing assignment, next_student_id, subdir, (err, listing) =>
             if err
                 if err == 'no_dir'
@@ -1807,13 +1813,7 @@ exports.CourseActions = class CourseActions extends Actions
                     @set_error("Grading error: #{err}")
                     return
             listing = immutable.fromJS(listing)
-
-            @setState(grading : immutable.Map(
-                student_id    : next_student_id ? student_id
-                assignment_id : assignment.get('assignment_id')
-                listing       : listing
-                end_of_list   : not (next_student_id?)
-            ))
+            @setState(grading : data.set('listing', listing))
 
     grading_stop: () =>
         @setState(grading : null)

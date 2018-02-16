@@ -487,7 +487,9 @@ exports.CourseStore = class CourseStore extends Store
         if previous
             students = students.reverse()
         skip = id?
+        cnt  = if previous then students.length + 1 else 0
         for student_id in students
+            if previous then cnt -= 1 else cnt += 1
             if skip and student_id != id
                 continue
             else
@@ -498,8 +500,8 @@ exports.CourseStore = class CourseStore extends Store
             #if not @has_last_collected(assignment, student_id)
             #    continue
             if (not student_to_grade) or (not @has_grade(assignment, student_id))
-                return student_id
-        return null
+                return [student_id, cnt]
+        return [null, 0]
 
     grading_get_listing: (assignment, student_id, subdir, cb) =>
         project_id = @get('course_project_id')

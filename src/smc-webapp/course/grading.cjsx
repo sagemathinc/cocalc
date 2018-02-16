@@ -55,6 +55,7 @@ course_specific_files = (entry) ->
 _init_state = (props) ->
     store           : props.redux.getStore(props.name)
     student_id      :  _student_id(props)
+    editing_grade   : false
     edited_grade    : ''
     edited_comments : ''
     grade_value     : undefined
@@ -97,11 +98,11 @@ exports.GradingStudentAssignmentHeader = rclass
         @actions(@props.name).open_assignment(type, @props.assignment, @state.student_id)
 
     render_open: ->
-        <Col md={3}>
-            <Row>
+        [
+            <Row key={'top'}>
                 Open assignment
             </Row>
-            <Row>
+            <Row key={'bottons'}>
                 <ButtonToolbar>
                     <Button
                         onClick = {=>@open_assignment('assigned')}
@@ -114,16 +115,16 @@ exports.GradingStudentAssignmentHeader = rclass
                         bsSize  = {'small'}
                     >
                         <Icon name="folder-open-o" /> Collected files
-                </Button>
+                    </Button>
                 </ButtonToolbar>
             </Row>
-        </Col>
+        ]
 
     render_points: ->
         total = @state.store.get_points_total(@props.assignment, @state.student_id)
-        <Col md={3}>
+        <Row>
             <span>Total Points: {total}</span>
-        </Col>
+        </Row>
 
     previous: (student_to_grade) ->
         @actions(@props.name).grading(@props.assignment, @state.student_id, true, student_to_grade)
@@ -134,11 +135,17 @@ exports.GradingStudentAssignmentHeader = rclass
     exit: ->
         @actions(@props.name).grading_stop()
 
+    render_progress: ->
+        return <span>{@props.grading?.get('progress') ? NaN} of {@props.students?.size ? NaN}</span>
+
     render_nav: ->
         rowstyle =
-            marginBottom: '20px'
+            marginBottom: '10px'
 
         <Col md={4}>
+            <Row style={rowstyle}>
+                {@render_progress()}
+            </Row>
             <Row style={rowstyle}>
                 <ButtonToolbar>
                     <Button
@@ -171,23 +178,14 @@ exports.GradingStudentAssignmentHeader = rclass
                     </Button>
                 </ButtonToolbar>
             </Row>
-            <Row style={rowstyle}>
-                <ButtonToolbar>
-                    <Button
-                        onClick  = {@exit}
-                        bsStyle  = {'warning'}
-                    >
-                        <Icon name={'sign-out'} /> Exit Grading
-                    </Button>
-                </ButtonToolbar>
-            </Row>
         </Col>
 
     save_grade: (e) ->
         e?.preventDefault?()
         @actions(@props.name).set_grade(@props.assignment, @state.student_id, @state.edited_grade)
         @actions(@props.name).set_comments(@props.assignment, @state.student_id, @state.edited_comments)
-        @next()
+        @setState(editing_grade   : false)
+        #@next()
 
     grade: ->
         <Col>
@@ -201,26 +199,33 @@ exports.GradingStudentAssignmentHeader = rclass
             </ButtonToolbar>
         </Col>
 
+    grade_cancel: ->
+        @setState(
+            edited_grade    : @state.grade_value
+            edited_comments : @state.grade_comments
+            editing_grade   : false
+        )
+
     on_key_down_grade_editor: (e) ->
         switch e.keyCode
             when 27
-                @setState
-                    edited_grade    : @state.grade_value
-                    edited_comments : @state.grade_comments
+                @grade_cancel()
             when 13
                 if e.shiftKey
                     @save_grade()
 
     grade_value_edit: ->
-          <form key='grade' onSubmit={@save_grade} style={{}}>
+          <form key={'grade'} onSubmit={@save_grade} style={{}}>
                 <FormGroup>
                     <FormControl
                         autoFocus   = {true}
-                        ref         = 'grade_input'
-                        type        = 'text'
-                        placeholder = 'Grade (any text)...'
+                        ref         = {'grade_input'}
+                        type        = {'text'}
+                        placeholder = {'Grade (any text)...'}
+                        value       = {@state.edited_grade}
                         onChange    = {(e)=>@setState(edited_grade:e.target.value)}
                         onKeyDown   = {@on_key_down_grade_editor}
+                        onBlur      = {@save_grade}
                     />
                 </FormGroup>
             </form>
@@ -228,17 +233,17 @@ exports.GradingStudentAssignmentHeader = rclass
     grade_comment_edit: ->
         <MarkdownInput
             autoFocus        = {false}
-            editing          = {true}
-            hide_edit_button = {true}
+            editing          = {@state.editing_grade}
+            hide_edit_button = {false}
             save_disabled    = {@state.edited_grade == @props.grade_value and @state.edited_comments == @state.grade_comments}
-            rows             = {2}
-            placeholder      = 'Comments (optional)'
+            rows             = {3}
+            placeholder      = {'Comments (optional)'}
             default_value    = {@state.edited_comments}
             on_edit          = {=>@setState(editing_grade:true)}
             on_change        = {(value)=>@setState(edited_comments:value)}
             on_save          = {@save_grade}
-            on_cancel        = {=>@setState(editing_grade:false)}
-            rendered_style   = {maxHeight:'2rem', overflowY:'auto', padding:'5px', border: '1px solid #888'}
+            on_cancel        = {@grade_cancel}
+            rendered_style   = {maxHeight:'5rem', overflowY:'auto', padding:'5px', border: "1px solid #{COLORS.GRAY_L}"}
         />
 
     render_enter_grade: ->
@@ -247,31 +252,38 @@ exports.GradingStudentAssignmentHeader = rclass
                 {@grade_value_edit()}
             </Row>
             <Row>
+                <b>Comment:</b>
+                <br/>
                 {@grade_comment_edit()}
             </Row>
         </Col>
 
-    render: ->
+    render_info: ->
         if @state.student_id?
             student_name = @state.store.get_student_name(@state.student_id, true)
-            info =
-                <Col md={3}>
-                    Student <b>{student_name?.full ? 'N/A'}</b>
-                </Col>
+            return <Row>Student <b>{student_name?.full ? 'N/A'}</b></Row>
         else
-            info = <Col md={3}>End of student list</Col>
+            return <Row>End of student list</Row>
 
-        progress = <Col md={1}>{@props.grading?.get('progress') ? NaN} of NaN</Col>
-
+    render: ->
         <Row>
-            <Col md={8}>
-                {@render_nav()}
+            {@render_nav()}
+            <Col md={3}>
                 {@render_open()}
+                {@render_info()}
                 {@render_points()}
-                {info}
-                {progress}
             </Col>
             {@render_enter_grade()}
+            <Col md={1}>
+                <ButtonToolbar>
+                    <Button
+                        onClick  = {@exit}
+                        bsStyle  = {'warning'}
+                    >
+                        <Icon name={'sign-out'} /> Exit Grading
+                    </Button>
+                </ButtonToolbar>
+            </Col>
         </Row>
 
 
@@ -308,7 +320,6 @@ exports.GradingStudentAssignment = rclass
         >
             <Icon name='eye' /> Collected file
         </Button>
-
 
     render_open_student_file: (filename) ->
         filepath = path_join(@student_project_path(), filename)
@@ -347,9 +358,9 @@ exports.GradingStudentAssignment = rclass
             <Col md={3}>Filename</Col>
             <Col md={1}>Last modified</Col>
             <Col md={2}>Points</Col>
+            <Col md={2}>Autograde</Col>
             <Col md={2}>Collected file</Col>
             <Col md={2}>Student file</Col>
-            <Col md={2}>Autograde</Col>
         </Row>
 
     save_points: (filename, points) ->
@@ -368,7 +379,43 @@ exports.GradingStudentAssignment = rclass
         />
 
     render_points_subdir: (subdir) ->
-        return @state.store.get_points_subdir(@props.assignment, @state.student_id, subdir)
+        p = @state.store.get_points_subdir(@props.assignment, @state.student_id, subdir)
+        return "Sum: #{p}"
+
+    open_subdir = (subdir) =>
+        <Button
+            bsSize  = {'small'}
+            onClick = {=>@actions(@props.name).grading(@props.assignment, @state.student_id, true, null, subdir)}
+        >
+            {"Open #{subdir}/"}
+        </Button>
+
+    listing_directory_row: (filename, time) ->
+        subdirpath = path_join(@state.subdir, filename)
+
+        [
+            <Col key={0} md={3}>{@open_subdir(subdirpath)}</Col>
+            <Col key={1} md={1}>{time}</Col>
+            <Col key={2} md={2}>{@render_points_subdir(subdirpath)}</Col>
+            <Col key={3} md={6}></Col>
+        ]
+
+    listing_file_row: (filename, time) ->
+        [
+            <Col key={0} md={3}>{filename}</Col>
+            <Col key={1} md={1}>{time}</Col>
+            <Col key={2} md={2}>{@render_points_input(filename)}</Col>
+            <Col key={3} md={2}>{@render_autograde(filename)}</Col>
+            <Col key={4} md={2}>{@render_open_collected_file(filename)}</Col>
+            <Col key={5} md={2}>{@render_open_student_file(filename)}</Col>
+        ]
+
+    listing_rowstyle = (idx) ->
+        col = if idx %% 2 == 0 then 'white' else COLORS.GRAY_LL
+        return
+            background     : col
+            paddingTop     : '5px'
+            paddingBottom  : '5px'
 
     listing: ->
         listing = @props.grading.get('listing')
@@ -382,48 +429,18 @@ exports.GradingStudentAssignment = rclass
             else
                 return <div>Got error listing directory: {error}</div>
 
-        open_subdir = (subdir) =>
-            <Button
-                bsSize  = {'small'}
-                onClick = {=>window.alert("Open subdirectory: #{subdir}")}
-            >
-                {"#{subdir}/"}
-            </Button>
-
-        dirinfo  = (filename, time) =>
-            subdirpath = path_join(@state.subdir, filename)
-            [
-                <Col key={0} md={3}>{open_subdir(subdirpath)}</Col>
-                <Col key={1} md={1}>{time}</Col>
-                <Col key={2} md={2}>{@render_points_subdir(subdirpath)}</Col>
-                <Col key={3} md={2}></Col>
-            ]
-
-        fileinfo = (filename, time) =>
-            [
-                <Col key={0} md={3}>{filename}</Col>
-                <Col key={1} md={1}>{time}</Col>
-                <Col key={2} md={2}>{@render_points_input(filename)}</Col>
-                <Col key={3} md={2}>{@render_autograde(filename)}</Col>
-            ]
-
-        rowstyle = (idx) ->
-            col = if idx %% 2 == 0 then 'white' else COLORS.GRAY_LL
-            return
-                background     : col
-                paddingTop     : '5px'
-                paddingBottom  : '5px'
-
         return listing.get('files').filterNot(course_specific_files).map (file, idx) =>
             filename = file.get('name')
             time     = <BigTime date={(file.get('mtime') ? 0) * 1000} />
             isdir    = file.get('isdir') == true
-            info     = if isdir then dirinfo else fileinfo
 
-            <Row key={filename} style={rowstyle(idx)}>
-                {info(filename, time)}
-                <Col md={2}>{@render_open_collected_file(filename)}</Col>
-                <Col md={2}>{@render_open_student_file(filename)}</Col>
+            <Row key={filename} style={@listing_rowstyle(idx)}>
+                {
+                    if isdir
+                        @listing_directory_row(filename, time)
+                    else
+                        @listing_file_row(filename, time)
+                }
             </Row>
 
     collected: (time) ->
