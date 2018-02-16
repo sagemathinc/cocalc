@@ -23,8 +23,9 @@ STYLE =
 
 exports.CodeEditor = rclass
     propTypes :
-        actions : rtypes.object.isRequired
-        path    : rtypes.string.isRequired
+        actions   : rtypes.object.isRequired
+        path      : rtypes.string.isRequired
+        font_size : rtypes.number
 
     reduxProps :
         account :
@@ -114,6 +115,10 @@ exports.CodeEditor = rclass
         @props.actions.set_cm(@cm)
 
     render: ->
-        <div style={STYLE} className='smc-vfill'>
+        font_size = @props.font_size ? @props.editor_settings.get('font_size') ? 15
+        style = misc.merge({fontSize: "#{font_size}px"}, STYLE)
+        <div
+            style     = {style}
+            className = 'smc-vfill' >
             <textarea />
         </div>
