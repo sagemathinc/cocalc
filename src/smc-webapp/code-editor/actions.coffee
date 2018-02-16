@@ -186,7 +186,13 @@ class exports.Actions extends Actions
         @syncstring_save()
 
     find: =>
-        @cm?.execCommand('findPersistent')
+        @cm?.execCommand('find')
+
+    find_next: =>
+        @cm?.execCommand('findNext')
+
+    find_prev: =>
+        @cm?.execCommand('findPrev')
 
     replace: =>
         @cm?.execCommand('replace')

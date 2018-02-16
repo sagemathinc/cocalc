@@ -89,6 +89,14 @@ exports.CodeEditor = rclass
             "Shift-Ctrl-," : @props.actions.decrease_font_size
             "Shift-Cmd-."  : @props.actions.increase_font_size
             "Shift-Cmd-,"  : @props.actions.decrease_font_size
+            "Ctrl-L"       : @props.actions.goto_line
+            "Cmd-L"        : @props.actions.goto_line
+            "Cmd-F"        : @props.actions.find
+            "Ctrl-F"       : @props.actions.find
+            "Cmd-G"        : @props.actions.find_next
+            "Ctrl-G"       : @props.actions.find_next
+            "Shift-Cmd-G"  : @props.actions.find_prev
+            "Shift-Ctrl-G" : @props.actions.find_prev
 
         misc.merge(options.extraKeys, keys)
 
