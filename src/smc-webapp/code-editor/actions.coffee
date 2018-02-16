@@ -186,13 +186,13 @@ class exports.Actions extends Actions
         @syncstring_save()
 
     find: =>
-        console.log 'find, todo'
+        @cm?.execCommand('findPersistent')
 
     replace: =>
-        console.log 'replace, todo'
+        @cm?.execCommand('replace')
 
     goto_line: =>
-        console.log 'goto_line, todo'
+        @cm?.execCommand('jumpToLine')
 
     split_view: =>
         console.log 'split_view, todo'

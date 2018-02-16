@@ -81,10 +81,14 @@ exports.CodeEditor = rclass
         options = cm_options(filename: @props.path, editor_settings: @props.editor_settings)
 
         keys =
-            Tab      : => @cm?.tab_as_space?()
-            "Cmd-S"  : @props.actions.save
-            "Alt-S"  : @props.actions.save
-            "Ctrl-S" : @props.actions.save
+            Tab            : => @cm?.tab_as_space?()
+            "Cmd-S"        : @props.actions.save
+            "Alt-S"        : @props.actions.save
+            "Ctrl-S"       : @props.actions.save
+            "Shift-Ctrl-." : @props.actions.increase_font_size
+            "Shift-Ctrl-," : @props.actions.decrease_font_size
+            "Shift-Cmd-."  : @props.actions.increase_font_size
+            "Shift-Cmd-,"  : @props.actions.decrease_font_size
 
         misc.merge(options.extraKeys, keys)
 
