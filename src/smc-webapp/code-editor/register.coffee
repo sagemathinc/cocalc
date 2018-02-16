@@ -16,7 +16,7 @@ misc                   = require('smc-util/misc')
 
 exports.register = ->
     register_file_editor
-        ext       : (key for key, value of file_associations when value.editor == 'codemirror')
+        ext       : (key for key, value of file_associations when value.editor == 'codemirror' and key != 'sagews')
 
         is_public : false
 

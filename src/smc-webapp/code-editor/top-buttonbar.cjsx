@@ -4,9 +4,10 @@ The Top Button bar -- basic editing functionality
 -
 ###
 
-{React, rclass, rtypes} = require('../smc-react')
+{React, rclass, rtypes, redux} = require('../smc-react')
 {ButtonGroup, Button}   = require('react-bootstrap')
-{Icon, Space}           = require('../r_misc')
+{Icon, Space,
+EditorFileInfoDropdown} = require('../r_misc')
 {UncommittedChanges}    = require('../jupyter/uncommitted-changes')
 
 exports.ButtonBar = rclass
@@ -15,6 +16,8 @@ exports.ButtonBar = rclass
         read_only               : rtypes.bool
         has_unsaved_changes     : rtypes.bool
         has_uncommitted_changes : rtypes.bool
+        path                    : rtypes.string  # used for file info only
+        project_id              : rtypes.string
 
     shouldComponentUpdate: (next) ->
         return @props.has_unsaved_changes     != next.has_unsaved_changes or \
@@ -133,8 +136,18 @@ exports.ButtonBar = rclass
             <Icon name='columns' /> Split
         </Button>
 
+    render_file_info: ->
+        <EditorFileInfoDropdown
+            key       = {'info'}
+            filename  = {@props.path}
+            actions   = {redux.getProjectActions(@props.project_id)}
+            is_public = {false}
+        />
+
     render: ->
         <div style={padding: '5px'}>
+            {@render_file_info()}
+            <Space/>
             {@render_copy_group()}
             <Space/>
             {@render_undo_redo_group()}

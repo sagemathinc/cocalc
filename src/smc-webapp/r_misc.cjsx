@@ -1391,13 +1391,16 @@ exports.ProjectState = rclass
 # info button inside the editor when editing a file. links you back to the file listing with the action prompted
 # TODO: move this somewhere else once editor is rewritten
 {DropdownButton, MenuItem} = require('react-bootstrap')
-EditorFileInfoDropdown = rclass
+exports.EditorFileInfoDropdown = EditorFileInfoDropdown = rclass
     displayName : 'Misc-EditorFileInfoDropdown'
 
     propTypes :
         filename  : rtypes.string.isRequired # expects the full path name
         actions   : rtypes.object.isRequired
         is_public : rtypes.bool
+
+    shouldComponentUpdate: (next) ->
+        return next.filename != @props.filename or next.is_public != next.is_public
 
     getDefaultProps: ->
         is_public : false
@@ -1427,15 +1430,16 @@ EditorFileInfoDropdown = rclass
             @render_menu_item(name, icon)
 
     render_dropdown_button: (bsSize, className) ->
-        <DropdownButton style={marginRight:'2px'} id='file_info_button' bsStyle='info' bsSize={bsSize} title={<Icon name='info-circle' />} className={className}>
+        title = <span>File<Space /></span>
+        <DropdownButton style={marginRight:'2px'} id='file_info_button' bsSize={bsSize} title={title} className={className}>
             {@render_menu_items()}
         </DropdownButton>
 
     render: ->
-        <div>
+        <span>
             {@render_dropdown_button('large', 'pull-left visible-xs')}
             {@render_dropdown_button(null, 'pull-left hidden-xs')}
-        </div>
+        </span>
 
 exports.render_file_info_dropdown = (filename, actions, dom_node, is_public) ->
     ReactDOM.render(<EditorFileInfoDropdown filename={filename} actions={actions} is_public={is_public} />, dom_node)

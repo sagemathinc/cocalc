@@ -40,6 +40,8 @@ exports.Editor = rclass ({name}) ->
             read_only               = {@props.read_only}
             has_unsaved_changes     = {@props.has_unsaved_changes}
             has_uncommitted_changes = {@props.has_uncommitted_changes}
+            project_id              = {@props.project_id}
+            path                    = {@props.path}
             />
 
     render_loading: ->
