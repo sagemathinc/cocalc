@@ -20,8 +20,6 @@ exports.register = ->
 
         is_public : false
 
-        icon      : 'tasks'  # TODO
-
         component : Editor
 
         init      : (path, redux, project_id) ->

@@ -101,7 +101,8 @@ exports.ButtonBar = rclass
         <ButtonGroup key={'copy'}>
             <Button
                 key      = {'cut'}
-                onClick  = {@props.actions.cut} >
+                onClick  = {@props.actions.cut}
+                disabled = {@props.read_only} >
                 <Icon name={'scissors'} /> Cut
             </Button>
             <Button
@@ -120,7 +121,8 @@ exports.ButtonBar = rclass
     render_print: ->
         <Button
             key      = {'print'}
-            onClick  = {@props.actions.print} >
+            onClick  = {@props.actions.print}
+            disabled = {@props.read_only} >
             <Icon name={'print'} /> Print
         </Button>
 

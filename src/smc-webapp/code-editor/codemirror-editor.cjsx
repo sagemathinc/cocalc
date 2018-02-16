@@ -28,6 +28,7 @@ exports.CodeEditor = rclass
         path      : rtypes.string.isRequired
         font_size : rtypes.number
         scroll    : rtypes.immutable.Map
+        read_only : rtypes.bool
 
     reduxProps :
         account :
@@ -35,7 +36,8 @@ exports.CodeEditor = rclass
 
     shouldComponentUpdate: (next) ->
         return @props.editor_settings != next.editor_settings or \
-               @props.font_size       != next.font_size
+               @props.font_size       != next.font_size or \
+               @props.read_only       != next.read_only
 
     componentDidMount: ->
         @init_codemirror()
@@ -43,6 +45,8 @@ exports.CodeEditor = rclass
     componentWillReceiveProps: (next) ->
         if @props.font_size != next.font_size
             @cm_refresh()
+        if @props.read_only != next.read_only
+            @cm?.setOption('readOnly', next.read_only)
 
     cm_refresh: ->
         @cm?.refresh()
@@ -139,6 +143,8 @@ exports.CodeEditor = rclass
 
         if @props.scroll?
             @cm.scrollTo(@props.scroll.get('left'), @props.scroll.get('top'))
+
+        @cm.setOption('readOnly', @props.read_only)
 
     render: ->
         font_size = @props.font_size ? @props.editor_settings.get('font_size') ? 15
