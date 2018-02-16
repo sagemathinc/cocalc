@@ -15,6 +15,7 @@ Things you might want to check when starting a new cocalc dev task. Use a .term 
   - any files in ~/bin that override system commands
 
 - It also helps to restart your project before starting a new dev task, to kill leftover processes and environment settings.
+  * If you delete `~/.smc`, you **must** restart your project
 
 ## Setup
 
