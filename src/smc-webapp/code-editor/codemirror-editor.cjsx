@@ -8,7 +8,7 @@ SAVE_INTERVAL_MS = 2000
 
 {React, ReactDOM, rclass, rtypes} = require('../smc-react')
 {three_way_merge}                 = require('smc-util/syncstring')
-{throttle}                        = require('underscore')
+{debounce, throttle}              = require('underscore')
 {cm_options}                      = require('./cm-options')
 misc                              = require('smc-util/misc')
 
@@ -27,6 +27,7 @@ exports.CodeEditor = rclass
         actions   : rtypes.object.isRequired
         path      : rtypes.string.isRequired
         font_size : rtypes.number
+        scroll    : rtypes.immutable.Map
 
     reduxProps :
         account :
@@ -49,6 +50,7 @@ exports.CodeEditor = rclass
 
     componentWillUnmount: ->
         if @cm?
+            @save_scroll_position()
             @_cm_destroy()
 
     _cm_undo: ->
@@ -66,6 +68,12 @@ exports.CodeEditor = rclass
         $(@cm.getWrapperElement()).remove()  # remove from DOM -- "Remove this from your tree to delete an editor instance."
         delete @cm
         @props.actions.set_cm()
+
+    save_scroll_position: ->
+        if not @cm?
+            return
+        info = misc.copy_with(@cm.getScrollInfo(), ['left', 'top'])
+        @props.actions.save_scroll_position(info)
 
     save_state: ->
         if not @cm?
@@ -116,6 +124,8 @@ exports.CodeEditor = rclass
                 @save_state_throttle()
                 @props.actions.exit_undo_mode()
 
+        @cm.on 'viewportChange', debounce(@save_scroll_position, 1000)
+
         # replace undo/redo by our sync aware versions
         @cm.undo = @_cm_undo
         @cm.redo = @_cm_redo
@@ -126,6 +136,9 @@ exports.CodeEditor = rclass
         setTimeout((=>@cm_refresh(); if @props.is_current then @cm?.focus()), 0)
 
         @props.actions.set_cm(@cm)
+
+        if @props.scroll?
+            @cm.scrollTo(@props.scroll.get('left'), @props.scroll.get('top'))
 
     render: ->
         font_size = @props.font_size ? @props.editor_settings.get('font_size') ? 15

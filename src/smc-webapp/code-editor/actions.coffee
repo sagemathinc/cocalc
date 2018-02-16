@@ -71,6 +71,9 @@ class exports.Actions extends Actions
         @_save_local_view_state()
         return
 
+    save_scroll_position: (info) =>
+        @set_local_view_state({scroll:info})
+
     enable_key_handler: =>
         if @_state == 'closed'
             return

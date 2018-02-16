@@ -55,6 +55,7 @@ exports.Editor = rclass ({name}) ->
             read_only = {@props.read_only}
             font_size = {@props.local_view_state?.get('font_size')}
             path      = {@props.path}
+            scroll    = {@props.local_view_state?.get('scroll')}
             />
 
     render: ->
