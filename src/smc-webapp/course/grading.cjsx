@@ -102,7 +102,7 @@ exports.GradingStudentAssignmentHeader = rclass
             <Row key={'top'}>
                 Open assignment
             </Row>
-            <Row key={'bottons'}>
+            <Row key={'buttons'}>
                 <ButtonToolbar>
                     <Button
                         onClick = {=>@open_assignment('assigned')}
@@ -120,17 +120,22 @@ exports.GradingStudentAssignmentHeader = rclass
             </Row>
         ]
 
-    render_points: ->
-        total = @state.store.get_points_total(@props.assignment, @state.student_id)
-        <Row>
-            <span>Total Points: {total}</span>
-        </Row>
 
-    previous: (student_to_grade) ->
-        @actions(@props.name).grading(@props.assignment, @state.student_id, true, student_to_grade)
+    previous: (without_grade) ->
+        @actions(@props.name).grading(
+            assignment       : @props.assignment
+            student_id       : @state.student_id
+            direction        : -1
+            without_grade    : without_grade
+        )
 
-    next: (student_to_grade) ->
-        @actions(@props.name).grading(@props.assignment, @state.student_id, false, student_to_grade)
+    next: (without_grade) ->
+        @actions(@props.name).grading(
+            assignment       :  @props.assignment
+            student_id       : @state.student_id
+            direction        : 1
+            without_grade    : without_grade
+        )
 
     exit: ->
         @actions(@props.name).grading_stop()
@@ -259,19 +264,29 @@ exports.GradingStudentAssignmentHeader = rclass
         </Col>
 
     render_info: ->
-        if @state.student_id?
-            student_name = @state.store.get_student_name(@state.student_id, true)
-            return <Row>Student <b>{student_name?.full ? 'N/A'}</b></Row>
-        else
-            return <Row>End of student list</Row>
+        <Row style={fontSize:'120%'}>
+        {
+            if @state.student_id?
+                student_name = @state.store.get_student_name(@state.student_id, true)
+                <span>Student <b>{student_name?.full ? 'N/A'}</b></span>
+            else
+                <span>End of student list</span>
+        }
+        </Row>
+
+    render_points: ->
+        total = @state.store.get_points_total(@props.assignment, @state.student_id)
+        <Row style={fontSize:'120%'}>
+            <span>Total Points: <b>{total}</b></span>
+        </Row>
 
     render: ->
         <Row>
             {@render_nav()}
             <Col md={3}>
-                {@render_open()}
                 {@render_info()}
                 {@render_points()}
+                {@render_open()}
             </Col>
             {@render_enter_grade()}
             <Col md={1}>
@@ -312,7 +327,7 @@ exports.GradingStudentAssignment = rclass
         return path_join('NOT', 'YET', 'IMPLEMENTED', @state.student_id)
 
     render_open_collected_file : (filename) ->
-        filepath = path_join(@collect_student_path(), filename)
+        filepath = @fullpath(filename)
         <Button
             onClick = {-> window.alert("OPEN #{filepath}")}
             bsStyle = {'primary'}
@@ -368,7 +383,7 @@ exports.GradingStudentAssignment = rclass
         @actions(@props.name).set_points(@props.assignment, @state.student_id, filepath, points)
 
     render_points_input: (filename) ->
-        filepath = path_join(@state.subdir, filename)
+        filepath = @filepath(filename)
         points   = @state.store.get_points(@props.assignment, @state.student_id, filepath)
         <NumberInput
             number         = {points}
@@ -382,10 +397,16 @@ exports.GradingStudentAssignment = rclass
         p = @state.store.get_points_subdir(@props.assignment, @state.student_id, subdir)
         return "Sum: #{p}"
 
-    open_subdir = (subdir) =>
+    open_subdir: (subdir) ->
         <Button
             bsSize  = {'small'}
-            onClick = {=>@actions(@props.name).grading(@props.assignment, @state.student_id, true, null, subdir)}
+            onClick = {=>@actions(@props.name).grading(
+                assignment       : @props.assignment
+                student_id       : @state.student_id
+                direction        : 0
+                without_grade    : null
+                subdir           : subdir
+            )}
         >
             {"Open #{subdir}/"}
         </Button>
@@ -410,7 +431,7 @@ exports.GradingStudentAssignment = rclass
             <Col key={5} md={2}>{@render_open_student_file(filename)}</Col>
         ]
 
-    listing_rowstyle = (idx) ->
+    listing_rowstyle: (idx) ->
         col = if idx %% 2 == 0 then 'white' else COLORS.GRAY_LL
         return
             background     : col
@@ -443,17 +464,32 @@ exports.GradingStudentAssignment = rclass
                 }
             </Row>
 
-    collected: (time) ->
-        <Col>
-            <Row>
-                {@collect_student_path()} at {time}
-            </Row>
+    collected: ->
+        last_collect  = @state.student_info?.last_collect
+        if last_collect?.time?
+            time          = <BigTime date={last_collect.time} />
+        else
+            time          = "never"
 
-            {### <Row>{misc.to_json(@props.grading.get('listing') ? 'Loading...')}</Row> ###}
+        <Row>
+            {@collect_student_path()} collected {time}
+        </Row>
 
-            {@listing_header()}
-            {@listing()}
-        </Col>
+    render_up: ->
+        return null if not (@state.subdir?.length > 0)
+        updir = @state.subdir.split('/')[...-1].join('/')
+        <Button
+            bsSize  = {'small'}
+            onClick = {=>@actions(@props.name).grading(
+                assignment       : @props.assignment
+                student_id       : @state.student_id
+                direction        : 0
+                without_grade    : null
+                subdir           : updir
+            )}
+        >
+            <Icon name='arrow-up' /> Up
+        </Button>
 
     render: ->
         if not @state.student_id?
@@ -462,17 +498,13 @@ exports.GradingStudentAssignment = rclass
         if @props.grading.get('end_of_list')
             return <div>You reached the end of students list.</div>
 
-        assignment_id = @props.assignment.get('assignment_id')
-        last_collect  = @state.student_info?.last_collect
-        if last_collect?.time?
-            time          = <BigTime date={last_collect.time} />
-        else
-            time          = "never"
-
         <div>
             {###
             Info: <code>{misc.to_json(@state.student_info)}</code>.
             <br/>
             ###}
-            {@collected(time)}
+            {@collected()}
+            {@render_up()}
+            {@listing_header()}
+            {@listing()}
         </div>

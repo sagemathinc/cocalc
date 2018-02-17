@@ -1782,30 +1782,41 @@ exports.CourseActions = class CourseActions extends Actions
         # Now open it
         @redux.getProjectActions(proj).open_directory(path)
 
-    grading: (assignment, student_id, previous=false, student_to_grade=true, subdir) =>
+    grading: (opts) =>
+        opts = defaults opts,
+            assignment       : required
+            student_id       : undefined
+            direction        : 1
+            without_grade    : true
+            subdir           : ''
+        # direction: 0, +1 or -1, which student in the list to pick next
+        #            first call after deleting grading should be +1, otherwise student_id stays undefined
         store = @get_store()
         return if not store?
-        if previous == false
-            [next_student_id, cnt] = store.grading_previous_student(assignment, student_id, student_to_grade)
-        else if previous == true
-            [next_student_id, cnt] = store.grading_next_student(assignment, student_id, student_to_grade)
+        if opts.direction == 1 or opts.direction == -1
+            [next_student_id, cnt] = store.grading_next_student(
+                assignment            : opts.assignment
+                current_student_id    : opts.student_id
+                direction             : opts.direction
+                without_grade         : opts.without_grade
+            )
         else
             # previous is null/undefined, stick with same student ... e.g. directory changes
             cnt = store.getIn(['grading', 'progress']) ? 1
-            next_student_id = student_id
+            next_student_id = opts.student_id
 
         # this switches to grading mode, but no listing
         data = immutable.Map(
-            student_id    : next_student_id ? student_id
+            student_id    : next_student_id ? opts.student_id
             progress      : cnt
-            assignment_id : assignment.get('assignment_id')
+            assignment_id : opts.assignment.get('assignment_id')
             listing       : null
             end_of_list   : not (next_student_id?)
+            subdir        : opts.subdir
         )
         @setState(grading : data)
 
-        subdir ?= ''
-        store.grading_get_listing assignment, next_student_id, subdir, (err, listing) =>
+        store.grading_get_listing opts.assignment, next_student_id, opts.subdir, (err, listing) =>
             if err
                 if err == 'no_dir'
                     listing = {error: err}

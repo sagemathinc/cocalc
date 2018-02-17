@@ -470,27 +470,28 @@ exports.CourseStore = class CourseStore extends Store
     # return true, if student has collected files without an error (and hence ready to be graded)
     has_last_collected: (assignment, student_id) ->
         last_coll = @get_assignment(assignment).get('last_collected')?.get(student_id)
-        return false if not x? or x.get('error')
-        return true
+        if not x? or x.get('error')
+            return false
+        else
+            return true
 
-    grading_previous_student: (assignment, current_student_id, student_to_grade=true) =>
-        return @_first_student_without_grade(assignment, current_student_id, true, student_to_grade)
-
-    grading_next_student: (assignment, current_student_id, student_to_grade=true) =>
-        return @_first_student_without_grade(assignment, current_student_id, false, student_to_grade)
-
-    _first_student_without_grade: (assignment, id, previous=false, student_to_grade=true) =>
-        # previous: iterate into opposite direction
+    grading_next_student: (opts) =>
+        opts = defaults opts,
+            assignment            : required
+            current_student_id    : undefined
+            direction             : 1
+            without_grade         : true
+        # direction: 1 or -1
         # student_to_grade: if true, only return a student who does not have a grade yet
-        assignment = @get_assignment(assignment)
+        assignment = @get_assignment(opts.assignment)
         students   = @get_student_ids(deleted:false)
-        if previous
+        if opts.direction == -1
             students = students.reverse()
-        skip = id?
-        cnt  = if previous then students.length + 1 else 0
+        skip = opts.current_student_id?
+        cnt  = if opts.direction == -1 then students.length + 1 else 0
         for student_id in students
-            if previous then cnt -= 1 else cnt += 1
-            if skip and student_id != id
+            cnt += opts.direction
+            if skip and student_id != opts.current_student_id
                 continue
             else
                 if skip
@@ -499,15 +500,13 @@ exports.CourseStore = class CourseStore extends Store
             # It's fine to return a student without collected files
             #if not @has_last_collected(assignment, student_id)
             #    continue
-            if (not student_to_grade) or (not @has_grade(assignment, student_id))
+            if (not opts.without_grade) or (not @has_grade(assignment, student_id))
                 return [student_id, cnt]
         return [null, 0]
 
     grading_get_listing: (assignment, student_id, subdir, cb) =>
         project_id = @get('course_project_id')
         collect_path = "#{assignment.get('collect_path')}/#{student_id}"
-        {join} = require('path')
-        subdir = join(collect_path, subdir ? '')
 
         locals =
             listing : null
@@ -524,9 +523,10 @@ exports.CourseStore = class CourseStore extends Store
                         cb(err)
             (cb) =>
                 {get_directory_listing} = require('../project_store')
+                {join} = require('path')
                 get_directory_listing
                     project_id : project_id
-                    path       : collect_path
+                    path       : join(collect_path, subdir ? '')
                     hidden     : false
                     max_time_s : 30  # keep trying for up to 30 secs
                     group      : locals.group

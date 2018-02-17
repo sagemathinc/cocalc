@@ -679,7 +679,7 @@ Assignment = rclass
         icon     = 'play'
         handler  = =>
             # student_id is set to null on purpose (starts fresh)
-            @actions(@props.name).grading(@props.assignment, null)
+            @actions(@props.name).grading(assignment:@props.assignment)
 
         if status.graded > 0
             if status.not_graded == 0
@@ -700,7 +700,7 @@ Assignment = rclass
             bsStyle  = {bsStyle}
             disabled = {disabled}
         >
-            <Icon name={icon} /> {activity} Grading
+            <Icon name={icon} /> {activity} Grading…
         </Button>
 
     render_return_graded_button: (status) ->
