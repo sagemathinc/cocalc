@@ -484,12 +484,13 @@ exports.CourseStore = class CourseStore extends Store
         # direction: 1 or -1
         # student_to_grade: if true, only return a student who does not have a grade yet
         assignment = @get_assignment(opts.assignment)
-        students   = @get_student_ids(deleted:false)
+        students   = @get_sorted_students()
         if opts.direction == -1
             students = students.reverse()
         skip = opts.current_student_id?
         cnt  = if opts.direction == -1 then students.length + 1 else 0
-        for student_id in students
+        for student in students
+            student_id = student.get('student_id')
             cnt += opts.direction
             if skip and student_id != opts.current_student_id
                 continue

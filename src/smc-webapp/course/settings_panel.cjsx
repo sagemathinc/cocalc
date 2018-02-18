@@ -23,8 +23,9 @@
 immutable = require('immutable')
 
 # CoCalc libraries
-misc = require('smc-util/misc')
+misc            = require('smc-util/misc')
 {webapp_client} = require('../webapp_client')
+{COLORS}        = require('smc-util/theme')
 
 # React libraries and Components
 {React, rclass, rtypes}  = require('../smc-react')
@@ -234,15 +235,15 @@ exports.SettingsPanel = rclass
     ###
     render_grades_header: ->
         <h4>
-            <Icon name='table' />  Export grades
+            <Icon name='table' />  Export data
         </h4>
 
-    path: (ext) ->
+    path: (ext, prefix='export_') ->
         # make path more likely to be python-readable...
         p = misc.replace_all(@props.path, '-', '_')
         p = misc.split(p).join('_')
         i = p.lastIndexOf('.')
-        return 'export_' + p.slice(0,i) + '.' + ext
+        return prefix + p.slice(0,i) + '.' + ext
 
     open_file: (path) ->
         @actions(project_id : @props.project_id).open_file(path:path,foreground:true)
@@ -285,6 +286,39 @@ exports.SettingsPanel = rclass
             content += line + '\n'
         @write_file(@path('csv'), content)
 
+    save_points_to_csv: ->
+        store = @props.redux.getStore(@props.name)
+        assignments = store.get_sorted_assignments()
+        students = store.get_sorted_students()
+        # CSV definition: http://edoceo.com/utilitas/csv-file-format
+        # i.e. double quotes everywhere (not single!) and double quote in double quotes usually blows up
+        timestamp  = (webapp_client.server_time()).toISOString()
+        content = "# Course '#{@props.settings.get('title')}'\n"
+        content += "# exported #{timestamp}\n"
+        content += 'Name,ID,Email,Assignment,Grade,File,Points\n'
+
+        for assignment in assignments
+            apth = assignment.get('path')
+            for student in students
+                name     = store.get_student_name(student)
+                email    = store.get_student_email(student) ? ''
+                id       = student.get('student_id')
+                grade    = store.get_grade(assignment, student) ? ''
+                assignment.getIn(['points', id])?.forEach (points, filepath) ->
+                    return if points == 0
+                    line = [name, id, email, apth, grade, filepath]
+                    # points is an integer, hence without quotes!
+                    content += ("\"#{x}\"" for x in line).join(',') + ",#{points}\n"
+
+        @write_file(@path('csv', 'export_points_'), content)
+
+    save_py_header: ->
+        timestamp = (webapp_client.server_time()).toISOString()
+        content = "course = '#{@props.settings.get('title')}'\n"
+        content += 'from datetime import datetime\n'
+        content += "exported = datetime.strptime('#{timestamp}', '%Y-%m-%dT%H:%M:%S.%fZ')\n"
+        return content
+
     save_grades_to_py: ->
         ###
         example:
@@ -296,12 +330,10 @@ exports.SettingsPanel = rclass
             {'name':'Bar None', 'email': 'bar@school.edu', 'grades':[15,50], 'comments':['some_comments','Better!']},
         ]
         ###
-        timestamp = (webapp_client.server_time()).toISOString()
         store = @props.redux.getStore(@props.name)
         assignments = store.get_sorted_assignments()
         students = store.get_sorted_students()
-        content = "course = '#{@props.settings.get('title')}'\n"
-        content += "exported = '#{timestamp}'\n"
+        content = @save_py_header()
         content += "assignments = ["
         content += ("'#{assignment.get('path')}'" for assignment in assignments).join(',') + ']\n'
 
@@ -321,22 +353,57 @@ exports.SettingsPanel = rclass
         content += ']\n'
         @write_file(@path('py'), content)
 
+    save_points_to_py: ->
+        store = @props.redux.getStore(@props.name)
+        assignments = store.get_sorted_assignments()
+        students = store.get_sorted_students()
+        content = @save_py_header()
+        data = {}
+        for assignment in assignments
+            apth = assignment.get('path')
+            data[apth] = a_data = {}
+            for student in students
+                id = student.get('student_id')
+                a_data[id] = student_data = {}
+                student_data.name    = store.get_student_name(student)
+                student_data.email   = store.get_student_email(student) ? ''
+                student_data.grade   = store.get_grade(assignment, student) ? ''
+                student_data.comment = store.get_comments(assignment, student) ? ''
+                student_data.points  = point_data = {}
+                assignment.getIn(['points', id])?.forEach (points, filepath) ->
+                    return if points == 0
+                    point_data[filepath] = points
+
+        content += "points = #{JSON.stringify(data, null, 2)}\n"
+        @write_file(@path('py', 'export_points_'), content)
+
     render_save_grades: ->
         <Panel header={@render_grades_header()}>
-            <div style={marginBottom:'10px'}>Save grades to... </div>
-            <ButtonToolbar>
-                <Button onClick={@save_grades_to_csv}><Icon name='file-text-o'/> CSV file...</Button>
-                <Button onClick={@save_grades_to_py}><Icon name='file-code-o'/> Python file...</Button>
-            </ButtonToolbar>
+            <Row>
+                <Col md={6}>
+                    <div style={marginBottom:'10px'}>Save <b>grades</b> to... </div>
+                    <ButtonToolbar>
+                        <Button onClick={@save_grades_to_csv}><Icon name='file-text-o'/> CSV file...</Button>
+                        <Button onClick={@save_grades_to_py}><Icon name='file-code-o'/> Python file...</Button>
+                    </ButtonToolbar>
+                </Col>
+                <Col md={6}>
+                    <div style={marginBottom:'10px'}>Save <b>points</b> to... </div>
+                    <ButtonToolbar>
+                        <Button onClick={@save_points_to_csv}><Icon name='file-text-o'/> CSV file...</Button>
+                        <Button onClick={@save_points_to_py}><Icon name='file-code-o'/> Python file...</Button>
+                    </ButtonToolbar>
+                </Col>
+            </Row>
             <hr/>
-            <div style={color:"#666"}>
+            <span style={color:COLORS.GRAY}>
                 Export all the grades you have recorded
                 for students in your course to a csv or Python file.
                 <br/>
                 In Microsoft Excel, you can {' '}
                 <a target="_blank" href="https://support.office.com/en-us/article/Import-or-export-text-txt-or-csv-files-5250ac4c-663c-47ce-937b-339e391393ba">
                 import the CSV file</a>.
-            </div>
+            </span>
         </Panel>
 
     ###
