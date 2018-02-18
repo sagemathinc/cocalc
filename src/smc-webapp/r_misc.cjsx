@@ -420,6 +420,7 @@ exports.NumberInput = NumberInput = rclass
         unit           : rtypes.string
         disabled       : rtypes.bool
         formgroupstyle : rtypes.object
+        plusminus      : rtypes.bool
 
     componentWillReceiveProps: (next_props) ->
         if @props.number != next_props.number
@@ -429,9 +430,7 @@ exports.NumberInput = NumberInput = rclass
     getInitialState: ->
         number : @props.number
 
-    saveChange: (e) ->
-        e?.preventDefault()
-        n = parseInt(@state.number)
+    saveNumber: (n) ->
         if "#{n}" == "NaN"
             n = @props.number
         if n < @props.min
@@ -441,20 +440,50 @@ exports.NumberInput = NumberInput = rclass
         @setState(number:n)
         @props.on_change(n)
 
+    saveChange: (e) ->
+        e?.preventDefault()
+        n = parseInt(@state.number)
+        @saveNumber(n)
+
     render_save_button: ->
         if @state.number? and @state.number != @props.number
             <Button className='pull-right' bsStyle='success' onClick={@saveChange}><Icon name='save' /> Save</Button>
 
+    plusminus_click: (delta) ->
+        @saveNumber(@state.number + delta)
+
+    plusminus: (delta) ->
+        return null if not @props.plusminus?
+        if delta > 0
+            name = 'plus'
+            disabled = @props.number == @props.max
+        else
+            name = 'minus'
+            disabled = @props.number == @props.min
+
+        <Col xs={2}>
+            <Button
+                disabled = {disabled}
+                onClick  = {=>@plusminus_click(delta)}
+            >
+                <Icon name={name} />
+            </Button>
+        </Col>
+
     render: ->
         unit = if @props.unit? then "#{@props.unit}" else ''
+        xs   = if @props.unit? then 6                else 12
+        if @props.plusminus?
+            xs -= if @props.unit? then 2 else 4
         <Row>
-            <Col xs={6}>
+            {@plusminus(-1)}
+            <Col xs={xs}>
                 <form onSubmit={@saveChange}>
                     <FormGroup style={@props.formgroupstyle ? {}}>
                         <FormControl
                             type     = 'text'
                             ref      = 'input'
-                            value    = {if @state.number? then @state.number else @props.number}
+                            value    = {@state.number ? @props.number}
                             onChange = {=>@setState(number:ReactDOM.findDOMNode(@refs.input).value)}
                             onBlur   = {@saveChange}
                             onKeyDown= {(e)=>if e.keyCode == 27 then @setState(number:@props.number)}
@@ -463,9 +492,13 @@ exports.NumberInput = NumberInput = rclass
                     </FormGroup>
                 </form>
             </Col>
-            <Col xs={6} className="lighten">
-                {unit}
-            </Col>
+            {@plusminus(+1)}
+            {
+                if @props.unit?
+                    <Col xs={xs} className="lighten">
+                        {unit}
+                    </Col>
+            }
         </Row>
 
 exports.LabeledRow = LabeledRow = rclass

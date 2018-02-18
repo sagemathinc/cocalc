@@ -387,10 +387,12 @@ exports.GradingStudentAssignment = rclass
         points   = @state.store.get_points(@props.assignment, @state.student_id, filepath)
         <NumberInput
             number         = {points}
+            bsSize         = {'small'}
             min            = {0}
             max            = {99999}
             formgroupstyle = {'marginBottom' : 0}
             on_change      = {(val)=>@save_points(filename, val)}
+            plusminus      = {true}
         />
 
     render_points_subdir: (subdir) ->
