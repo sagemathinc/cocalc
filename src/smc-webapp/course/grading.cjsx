@@ -40,6 +40,10 @@ styles = require('./styles')
 {BigTime} = require('./common')
 
 
+rowstyle =
+    marginBottom: '10px'
+
+
 _student_id = (props) ->
     props.grading?.get('student_id')
 
@@ -78,6 +82,7 @@ _update_state = (props, next, state, setState) ->
             student_info    : state.store.student_assignment_info(student_id, props.assignment)
             subdir          : _subdir(props)
 
+
 exports.GradingStudentAssignmentHeader = rclass
     displayName : "CourseEditor-GradingStudentAssignmentHeader"
 
@@ -100,27 +105,26 @@ exports.GradingStudentAssignmentHeader = rclass
 
     render_open: ->
         [
-            <Row key={'top'}>
+            <Row key={'top'} style={rowstyle}>
                 Open assignment
             </Row>
-            <Row key={'buttons'}>
+            <Row key={'buttons'} style={rowstyle}>
                 <ButtonToolbar>
-                    <Button
-                        onClick = {=>@open_assignment('assigned')}
-                        bsSize  = {'small'}
-                    >
-                        <Icon name="folder-open-o" /> Student files
-                    </Button>
                     <Button
                         onClick = {=>@open_assignment('collected')}
                         bsSize  = {'small'}
                     >
                         <Icon name="folder-open-o" /> Collected files
                     </Button>
+                    <Button
+                        onClick = {=>@open_assignment('assigned')}
+                        bsSize  = {'small'}
+                    >
+                        <Icon name="folder-open-o" /> Student files
+                    </Button>
                 </ButtonToolbar>
             </Row>
         ]
-
 
     previous: (without_grade) ->
         @actions(@props.name).grading(
@@ -144,13 +148,17 @@ exports.GradingStudentAssignmentHeader = rclass
     render_progress: ->
         return <span>{@props.grading?.get('progress') ? NaN} of {@props.students?.size ? NaN}</span>
 
-    render_nav: ->
-        rowstyle =
-            marginBottom: '10px'
+    render_info: ->
+        if @props.grading.get('end_of_list')
+            <span>End of student list</span>
+        else if @state.student_id?
+            student_name = @state.store.get_student_name(@state.student_id, true)
+            <span style={fontSize:'120%'}>Student <b>{student_name?.full ? 'N/A'}</b></span>
 
+    render_nav: ->
         <Col md={4}>
             <Row style={rowstyle}>
-                {@render_progress()}
+                {@render_info()} ({@render_progress()})
             </Row>
             <Row style={rowstyle}>
                 <ButtonToolbar>
@@ -264,17 +272,6 @@ exports.GradingStudentAssignmentHeader = rclass
             </Row>
         </Col>
 
-    render_info: ->
-        <Row style={fontSize:'120%'}>
-        {
-            if @state.student_id?
-                student_name = @state.store.get_student_name(@state.student_id, true)
-                <span>Student <b>{student_name?.full ? 'N/A'}</b></span>
-            else
-                <span>End of student list</span>
-        }
-        </Row>
-
     render_points: ->
         total = @state.store.get_points_total(@props.assignment, @state.student_id)
         <Row style={fontSize:'120%'}>
@@ -285,7 +282,6 @@ exports.GradingStudentAssignmentHeader = rclass
         <Row>
             {@render_nav()}
             <Col md={3}>
-                {@render_info()}
                 {@render_points()}
                 {@render_open()}
             </Col>
@@ -326,13 +322,13 @@ exports.GradingStudentAssignment = rclass
     collect_student_path: ->
         return path_join(@props.assignment.get('collect_path'), @state.student_id, @state.subdir)
 
-    student_project_path: ->
-        return path_join('NOT', 'YET', 'IMPLEMENTED', @state.student_id)
+    open_assignment: (type, filepath) ->
+        @actions(@props.name).open_assignment(type, @props.assignment, @state.student_id, filepath)
 
     render_open_collected_file : (filename) ->
-        filepath = @fullpath(filename)
+        filepath = @filepath(filename)
         <Button
-            onClick = {-> window.alert("OPEN #{filepath}")}
+            onClick = {=>@open_assignment('collected', filepath)}
             bsStyle = {'primary'}
             bsSize  = {'small'}
         >
@@ -340,9 +336,9 @@ exports.GradingStudentAssignment = rclass
         </Button>
 
     render_open_student_file: (filename) ->
-        filepath = path_join(@student_project_path(), filename)
+        filepath = @filepath(filename)
         <Button
-            onClick = {-> window.alert("OPEN #{filepath}")}
+            onClick = {=>@open_assignment('assigned', filepath)}
             bsStyle = {'default'}
             bsSize  = {'small'}
         >
@@ -430,7 +426,7 @@ exports.GradingStudentAssignment = rclass
                 subdir           : subdir
             )}
         >
-            {"Open #{name}/"}
+            <Icon name='folder-open-o'/> {name}
         </Button>
 
     listing_directory_row: (filename, time) ->

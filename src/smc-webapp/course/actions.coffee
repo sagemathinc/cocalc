@@ -1536,7 +1536,7 @@ exports.CourseActions = class CourseActions extends Actions
                 type = 'last_peer_collect'
         @_stop_copy(assignment_id, student_id, type)
 
-    open_assignment: (type, assignment_id, student_id) =>
+    open_assignment: (type, assignment_id, student_id, filepath) =>
         # type = assigned, collected, graded
         store = @get_store()
         if not store?
@@ -1569,8 +1569,13 @@ exports.CourseActions = class CourseActions extends Actions
         if not proj?
             @set_error("no such project")
             return
-        # Now open it
-        @redux.getProjectActions(proj).open_directory(path)
+        if filepath?
+            {join} = require('path')
+            path = join(path, filepath)
+            @redux.getProjectActions(proj).open_file(path:path)
+        else
+            # Now open it
+            @redux.getProjectActions(proj).open_directory(path)
 
     # Handouts
     add_handout: (path) =>
