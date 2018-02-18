@@ -22,7 +22,7 @@ STYLE =
     borderRadius : '3px'
     background   : '#fff'
 
-exports.CodeEditor = rclass
+exports.CodemirrorEditor = rclass
     propTypes :
         actions   : rtypes.object.isRequired
         path      : rtypes.string.isRequired

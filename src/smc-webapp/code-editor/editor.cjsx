@@ -5,7 +5,7 @@ Top-level react component for editing code
 {React, rclass, rtypes} = require('../smc-react')
 {Loading}               = require('../r_misc')
 {ButtonBar}             = require('./top-buttonbar')
-{CodeEditor}            = require('./codemirror-editor')
+{CodemirrorEditor}            = require('./codemirror-editor')
 
 exports.Editor = rclass ({name}) ->
     propTypes :
@@ -57,7 +57,7 @@ exports.Editor = rclass ({name}) ->
     render_editor: ->
         if not @props.is_loaded
             return @render_loading()
-        <CodeEditor
+        <CodemirrorEditor
             actions   = {@props.actions}
             read_only = {@props.read_only}
             font_size = {@props.local_view_state?.get('font_size')}

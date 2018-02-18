@@ -6,7 +6,7 @@ The Top Button bar -- basic editing functionality
 
 {React, rclass, rtypes, redux} = require('../smc-react')
 {ButtonGroup, Button}   = require('react-bootstrap')
-{Icon, Space, Spinner, VisibleMDLG, VisibleLG,
+{Icon, Space, Spinner, Tip, VisibleMDLG, VisibleLG,
 EditorFileInfoDropdown} = require('../r_misc')
 {UncommittedChanges}    = require('../jupyter/uncommitted-changes')
 
@@ -131,20 +131,28 @@ exports.ButtonBar = rclass
             </span>
 
     render_print: ->
-        <Button
-            key      = {'print'}
-            onClick  = {@props.actions.print}
-            disabled = {@props.read_only} >
-            <Icon name={'print'} /> <VisibleMDLG>Print</VisibleMDLG>
-            {@render_print_spinner()}
-        </Button>
+        <Tip
+            placement = {'left'}
+            title     = {'Print file to PDF.'}>
+            <Button
+                key      = {'print'}
+                onClick  = {@props.actions.print}
+                disabled = {@props.read_only} >
+                <Icon name={'print'} /> <VisibleMDLG>Print</VisibleMDLG>
+                {@render_print_spinner()}
+            </Button>
+        </Tip>
 
     render_split: ->
-        <Button
-            key     = {'split'}
-            onClick = {@props.actions.split_view} >
-            <Icon name='columns' /> <VisibleMDLG>Split</VisibleMDLG>
-        </Button>
+        <Tip
+            placement = {'left'}
+            title     = {'Split the current edit frame.'} >
+            <Button
+                key     = {'split'}
+                onClick = {@props.actions.split_view} >
+                <Icon name='columns' rotate={'90'} /> <VisibleMDLG>Split</VisibleMDLG>
+            </Button>
+        </Tip>
 
     render_file_info: ->
         <EditorFileInfoDropdown
