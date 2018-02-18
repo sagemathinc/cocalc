@@ -21,7 +21,7 @@
 async = require('async')
 
 {React, ReactDOM, rclass, rtypes, is_redux, is_redux_actions, redux, Store, Actions, Redux} = require('./smc-react')
-{Alert, Button, ButtonToolbar, Checkbox, Col, FormControl, FormGroup, ControlLabel, InputGroup, Overlay, OverlayTrigger, Popover, Modal, Tooltip, Row, Well} = require('react-bootstrap')
+{Alert, Button, ButtonToolbar, Checkbox, Col, Form, FormControl, FormGroup, ControlLabel, InputGroup, Overlay, OverlayTrigger, Popover, Modal, Tooltip, Row, Well} = require('react-bootstrap')
 {HelpEmailLink, SiteName, CompanyName, PricingUrl, PolicyTOSPageUrl, PolicyIndexPageUrl, PolicyPricingPageUrl} = require('./customize')
 {UpgradeRestartWarning} = require('./upgrade_restart_warning')
 copy_to_clipboard = require('copy-to-clipboard')
@@ -421,6 +421,7 @@ exports.NumberInput = NumberInput = rclass
         disabled       : rtypes.bool
         formgroupstyle : rtypes.object
         plusminus      : rtypes.bool
+        bsSize         : rtypes.string
 
     componentWillReceiveProps: (next_props) ->
         if @props.number != next_props.number
@@ -445,6 +446,7 @@ exports.NumberInput = NumberInput = rclass
         n = parseInt(@state.number)
         @saveNumber(n)
 
+    # TODO remove?
     render_save_button: ->
         if @state.number? and @state.number != @props.number
             <Button className='pull-right' bsStyle='success' onClick={@saveChange}><Icon name='save' /> Save</Button>
@@ -461,38 +463,37 @@ exports.NumberInput = NumberInput = rclass
             name = 'minus'
             disabled = @props.number == @props.min
 
-        <Col xs={2}>
-            <Button
-                disabled = {disabled}
-                onClick  = {=>@plusminus_click(delta)}
-            >
-                <Icon name={name} />
-            </Button>
-        </Col>
+        <Button
+            disabled = {disabled}
+            bsSize   = {@props.bsSize ? 'normal'}
+            onClick  = {=>@plusminus_click(delta)}
+        >
+            <Icon name={name} />
+        </Button>
 
     render: ->
         unit = if @props.unit? then "#{@props.unit}" else ''
         xs   = if @props.unit? then 6                else 12
-        if @props.plusminus?
-            xs -= if @props.unit? then 2 else 4
         <Row>
-            {@plusminus(-1)}
             <Col xs={xs}>
-                <form onSubmit={@saveChange}>
+                <Form inline onSubmit={@saveChange}>
                     <FormGroup style={@props.formgroupstyle ? {}}>
+                        {@plusminus(-1)}
                         <FormControl
                             type     = 'text'
                             ref      = 'input'
+                            bsSize   = {@props.bsSize}
                             value    = {@state.number ? @props.number}
                             onChange = {=>@setState(number:ReactDOM.findDOMNode(@refs.input).value)}
                             onBlur   = {@saveChange}
                             onKeyDown= {(e)=>if e.keyCode == 27 then @setState(number:@props.number)}
                             disabled = {@props.disabled}
+                            style    = {textAlign:'right'}
                         />
+                        {@plusminus(+1)}
                     </FormGroup>
-                </form>
+                </Form>
             </Col>
-            {@plusminus(+1)}
             {
                 if @props.unit?
                     <Col xs={xs} className="lighten">

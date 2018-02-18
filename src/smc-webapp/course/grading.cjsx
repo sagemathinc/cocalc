@@ -21,6 +21,7 @@
 
 path      = require('path')
 path_join = path.join
+immutable = require('immutable')
 
 # CoCalc libraries
 {defaults, required} = misc = require('smc-util/misc')
@@ -314,7 +315,9 @@ exports.GradingStudentAssignment = rclass
         grading      : rtypes.immutable.Map
 
     getInitialState: ->
-        return _init_state(@props)
+        s = _init_state(@props)
+        s.active_autogrades = immutable.Set()
+        return s
 
     componentWillReceiveProps: (next) ->
         x = _update_state(@props, next, @state)
@@ -355,17 +358,29 @@ exports.GradingStudentAssignment = rclass
     autograde: (ext, filename) ->
         # ext in ['ipynb']
         fullpath = @fullpath(filename)
-        setTimeout((=> @save_points(filename, Math.floor(10 * Math.random()))), 1000)
+        filepath = @filepath(filename)
+        @setState(active_autogrades : @state.active_autogrades.add(filepath))
+        done = =>
+            @save_points(filename, Math.floor(10 * Math.random()))
+            @setState(active_autogrades : @state.active_autogrades.remove(filepath))
+        setTimeout(done, 3000)
 
     render_autograde: (filename) ->
-        ext = misc.separate_file_extension(filename).ext
+        ext    = misc.separate_file_extension(filename).ext
+        active = @state.active_autogrades.includes(@filepath(filename))
+        if active
+            icon = <Icon name='cc-icon-cocalc-ring' spin />
+        else
+            icon = <Icon name='graduation-cap' />
+
         if ext == 'ipynb'
             <Button
-                onClick = {=>@autograde(ext, filename)}
-                bsStyle = {'default'}
-                bsSize  = {'small'}
+                onClick  = {=>@autograde(ext, filename)}
+                bsStyle  = {'default'}
+                bsSize   = {'small'}
+                disabled = {active}
             >
-                <Icon name='graduation-cap' /> Autograde
+                {icon} Autograde
             </Button>
 
     listing_header: ->
@@ -390,6 +405,7 @@ exports.GradingStudentAssignment = rclass
             bsSize         = {'small'}
             min            = {0}
             max            = {99999}
+            bsSize         = {'small'}
             formgroupstyle = {'marginBottom' : 0}
             on_change      = {(val)=>@save_points(filename, val)}
             plusminus      = {true}
@@ -400,6 +416,10 @@ exports.GradingStudentAssignment = rclass
         return "Sum: #{p}"
 
     open_subdir: (subdir) ->
+        if @state.subdir.length > 0
+            name = subdir[@state.subdir.length+1 ..]
+        else
+            name = subdir
         <Button
             bsSize  = {'small'}
             onClick = {=>@actions(@props.name).grading(
@@ -410,7 +430,7 @@ exports.GradingStudentAssignment = rclass
                 subdir           : subdir
             )}
         >
-            {"Open #{subdir}/"}
+            {"Open #{name}/"}
         </Button>
 
     listing_directory_row: (filename, time) ->
