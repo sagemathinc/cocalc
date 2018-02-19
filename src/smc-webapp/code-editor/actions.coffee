@@ -59,6 +59,11 @@ class exports.Actions extends Actions
         if not local_view_state.has("font_size")
             font_size = @redux.getStore('account')?.get('font_size') ? 14
             local_view_state = local_view_state.set('font_size', font_size)
+        if true or not local_view_state.has("frame_tree")
+            #frame_tree = immutable.fromJS({type:'cm', path:@path})
+            #frame_tree = immutable.fromJS({direction:'row', type:'frame_tree', first:{type:'cm', path:@path}, second:{type:'cm', path:@path}})
+            frame_tree = immutable.fromJS({direction:'col', type:'frame_tree', first:{type:'cm', path:@path}, second:{type:'cm', path:@path}})
+            local_view_state = local_view_state.set('frame_tree', frame_tree)
         return local_view_state
 
     set_local_view_state: (obj, update_visible=true) =>
@@ -109,7 +114,7 @@ class exports.Actions extends Actions
 
     save: =>
         @setState(has_unsaved_changes:false)
-        @syncstring.save_to_disk =>
+        @syncstring?.save_to_disk =>
             @set_save_status()
 
     time_travel: =>
@@ -142,9 +147,6 @@ class exports.Actions extends Actions
         @cm = cm
         @set_codemirror_to_syncstring()
 
-    focused_codemirror: =>
-        return @cm
-
     syncstring_save: =>
         @syncstring?.save()
         @set_save_status()
@@ -167,11 +169,10 @@ class exports.Actions extends Actions
     undo: =>
         if not @cm?
             return
-        cm = @focused_codemirror()
         if not @syncstring.in_undo_mode()
             @set_syncstring_to_codemirror()
         value = @syncstring.undo().to_str()
-        cm.setValueNoJump(value)
+        @cm.setValueNoJump(value)
         @set_syncstring_to_codemirror()
         @syncstring_save()
 
@@ -186,7 +187,7 @@ class exports.Actions extends Actions
             # can't redo if version not defined/not available.
             return
         value = doc.to_str()
-        @focused_codemirror().setValueNoJump(value)
+        @cm.setValueNoJump(value)
         @set_syncstring_to_codemirror()
         @syncstring_save()
 
@@ -209,20 +210,14 @@ class exports.Actions extends Actions
         console.log 'split_view, todo'
 
     cut: =>
-        if not @cm?
-            return
-        copypaste.set_buffer(@cm.getSelection())
-        @cm.replaceSelection('')
+        copypaste.set_buffer(@cm?.getSelection())
+        @cm?.replaceSelection('')
 
     copy: =>
-        if not @cm?
-            return
-        copypaste.set_buffer(@cm.getSelection())
+        copypaste.set_buffer(@cm?.getSelection())
 
     paste: =>
-        if not @cm?
-            return
-        @cm.replaceSelection(copypaste.get_buffer())
+        @cm?.replaceSelection(copypaste.get_buffer())
 
     print: =>
         @setState(printing: true)

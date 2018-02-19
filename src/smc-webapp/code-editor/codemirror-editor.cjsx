@@ -9,8 +9,10 @@ SAVE_INTERVAL_MS = 2000
 {React, ReactDOM, rclass, rtypes} = require('../smc-react')
 {three_way_merge}                 = require('smc-util/syncstring')
 {debounce, throttle}              = require('underscore')
-{cm_options}                      = require('./cm-options')
 misc                              = require('smc-util/misc')
+
+{cm_options}                      = require('./cm-options')
+doc                               = require('./doc')
 
 
 STYLE =
@@ -90,29 +92,15 @@ exports.CodemirrorEditor = rclass
         if not node?
             return
 
-        options = cm_options(filename: @props.path, editor_settings: @props.editor_settings)
-
-        keys =
-            Tab            : => @cm?.tab_as_space?()
-            "Cmd-S"        : @props.actions.save
-            "Alt-S"        : @props.actions.save
-            "Ctrl-S"       : @props.actions.save
-            "Shift-Ctrl-." : @props.actions.increase_font_size
-            "Shift-Ctrl-," : @props.actions.decrease_font_size
-            "Shift-Cmd-."  : @props.actions.increase_font_size
-            "Shift-Cmd-,"  : @props.actions.decrease_font_size
-            "Ctrl-L"       : @props.actions.goto_line
-            "Cmd-L"        : @props.actions.goto_line
-            "Cmd-F"        : @props.actions.find
-            "Ctrl-F"       : @props.actions.find
-            "Cmd-G"        : @props.actions.find_next
-            "Ctrl-G"       : @props.actions.find_next
-            "Shift-Cmd-G"  : @props.actions.find_prev
-            "Shift-Ctrl-G" : @props.actions.find_prev
-
-        misc.merge(options.extraKeys, keys)
+        options = cm_options
+            filename        : @props.path
+            editor_settings : @props.editor_settings
+            actions         : @props.actions
 
         @cm = CodeMirror.fromTextArea(node, options)
+        d   = doc.get(path: @props.path, cm: @cm)
+        if d?
+            @cm.swapDoc(d)
 
         e = $(@cm.getWrapperElement())
         e.addClass('smc-vfill')

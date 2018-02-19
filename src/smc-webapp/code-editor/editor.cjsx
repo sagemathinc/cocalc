@@ -5,7 +5,7 @@ Top-level react component for editing code
 {React, rclass, rtypes} = require('../smc-react')
 {Loading}               = require('../r_misc')
 {ButtonBar}             = require('./top-buttonbar')
-{CodemirrorEditor}            = require('./codemirror-editor')
+{FrameTree}             = require('./frame-tree')
 
 exports.Editor = rclass ({name}) ->
     propTypes :
@@ -54,15 +54,13 @@ exports.Editor = rclass ({name}) ->
             <Loading estimate={@props.load_time_estimate} />
         </div>
 
-    render_editor: ->
-        if not @props.is_loaded
+    render_frame_tree: ->
+        frame_tree = @props.local_view_state?.get('frame_tree')
+        if not @props.is_loaded or not frame_tree?
             return @render_loading()
-        <CodemirrorEditor
-            actions   = {@props.actions}
-            read_only = {@props.read_only}
-            font_size = {@props.local_view_state?.get('font_size')}
-            path      = {@props.path}
-            scroll    = {@props.local_view_state?.get('scroll')}
+        <FrameTree
+            actions    = {@props.actions}
+            frame_tree = {frame_tree}
             />
 
     render_error: ->
@@ -75,5 +73,5 @@ exports.Editor = rclass ({name}) ->
         <div className={'smc-vfill'} style={background:'white'}>
             {@render_button_bar()}
             {@render_error()}
-            {@render_editor()}
+            {@render_frame_tree()}
         </div>

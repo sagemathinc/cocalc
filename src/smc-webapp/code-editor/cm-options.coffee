@@ -12,6 +12,7 @@ exports.cm_options = (opts) ->
     {filename, editor_settings} = defaults opts,
         filename        : required  # string -- determines editor mode
         editor_settings : required  # immutable.js map
+        actions         : undefined
 
     key = misc.filename_extension_notilde(filename).toLowerCase()
     if not key
@@ -19,6 +20,7 @@ exports.cm_options = (opts) ->
     default_opts = file_associations[key]?.opts ? {}
 
     opts = defaults default_opts,
+        undoDepth                  : 0  # we use our own sync-aware undo.
         mode                       : undefined
         delete_trailing_whitespace : editor_settings.get('strip_trailing_whitespace')
         show_trailing_whitespace   : editor_settings.get('show_trailing_whitespace')
@@ -48,6 +50,25 @@ exports.cm_options = (opts) ->
         "Ctrl-/"       : "toggleComment"    # shortcut chosen by jupyter project (undocumented)
 
         "Ctrl-Space"   : "autocomplete"
+        "Tab"          : (cm) -> cm.tab_as_space()
+
+    if opts.actions?
+        misc.merge extraKeys,
+            "Cmd-S"        : opts.actions.save
+            "Alt-S"        : opts.actions.save
+            "Ctrl-S"       : opts.actions.save
+            "Shift-Ctrl-." : opts.actions.increase_font_size
+            "Shift-Ctrl-," : opts.actions.decrease_font_size
+            "Shift-Cmd-."  : opts.actions.increase_font_size
+            "Shift-Cmd-,"  : opts.actions.decrease_font_size
+            "Ctrl-L"       : opts.actions.goto_line
+            "Cmd-L"        : opts.actions.goto_line
+            "Cmd-F"        : opts.actions.find
+            "Ctrl-F"       : opts.actions.find
+            "Cmd-G"        : opts.actions.find_next
+            "Ctrl-G"       : opts.actions.find_next
+            "Shift-Cmd-G"  : opts.actions.find_prev
+            "Shift-Ctrl-G" : opts.actions.find_prev
 
     if opts.match_xml_tags
         extraKeys['Ctrl-J'] = "toMatchingTag"
