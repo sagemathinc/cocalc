@@ -30,12 +30,12 @@ if window?
     $ = window.$
 
     isMobile = exports.isMobile =
-        Android: () -> !! navigator?.userAgent.match(/Android/i)
-        BlackBerry: () -> !! navigator?.userAgent.match(/BlackBerry/i)
-        iOS: () -> !! navigator?.userAgent.match(/iPhone|iPad|iPod/i)
-        Windows: () -> !! navigator?.userAgent.match(/IEMobile/i)
-        tablet: () -> !! navigator?.userAgent.match(/iPad/i) or !! navigator?.userAgent.match(/Tablet/i)
-        any: () -> (isMobile.Android() || isMobile.BlackBerry() || isMobile.iOS() || isMobile.Windows())
+        Android    : -> !! navigator?.userAgent.match(/Android/i)
+        BlackBerry : -> !! navigator?.userAgent.match(/BlackBerry/i)
+        iOS        : -> !! navigator?.userAgent.match(/iPhone|iPad|iPod/i)
+        Windows    : -> !! navigator?.userAgent.match(/IEMobile/i)
+        tablet     : -> !! navigator?.userAgent.match(/iPad/i) or !! navigator?.userAgent.match(/Tablet/i)
+        any        : -> (isMobile.Android() || isMobile.BlackBerry() || isMobile.iOS() || isMobile.Windows())
 
     if not $?
         # don't even have jQuery -- obviously won't have any features -- this happens, e.g., in node.js
@@ -58,13 +58,13 @@ if window?
     $.browser.blink   = ($.browser.chrome || $.browser.opera) && !!window.CSS
     $.browser.edge    = /edge\/\d./i.test(user_agent)
 
-    exports.get_browser = () ->
+    exports.get_browser = ->
         for k, v of $.browser
             if v
                 return k
         return null
 
-    exports.get_mobile = () ->
+    exports.get_mobile = ->
         for k, v of exports.isMobile
             if v()
                 return k
@@ -73,7 +73,7 @@ if window?
 
     # returns true if the page is currently displayed in responsive mode (the window is less than 768px)
     # Use this because CSS and JS display different widths due to scrollbar
-    exports.is_responsive_mode = () ->
+    exports.is_responsive_mode = ->
         return $(".webapp-responsive-mode-test").width() < 768
 
     # MOBILE for us means "responsive skinny" and on a mobile device.

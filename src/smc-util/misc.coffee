@@ -84,7 +84,7 @@ exports.merge = (dest, objs...) ->
     for obj in objs
         for k, v of obj
             dest[k] = v
-    dest
+    return dest
 
 # Makes new object that is shallow copy merge of all objects.
 exports.merge_copy = (objs...) ->

@@ -60,9 +60,13 @@ class exports.Actions extends Actions
             font_size = @redux.getStore('account')?.get('font_size') ? 14
             local_view_state = local_view_state.set('font_size', font_size)
         if true or not local_view_state.has("frame_tree")
-            #frame_tree = immutable.fromJS({type:'cm', path:@path})
-            #frame_tree = immutable.fromJS({direction:'row', type:'frame_tree', first:{type:'cm', path:@path}, second:{type:'cm', path:@path}})
-            frame_tree = immutable.fromJS({direction:'col', type:'frame_tree', first:{type:'cm', path:@path}, second:{type:'cm', path:@path}})
+            id = misc.uuid()
+            #frame_tree = immutable.fromJS({id:id, type:'cm', path:@path})
+            #frame_tree = immutable.fromJS({id:id, direction:'row', type:'frame_tree', first:{type:'cm', path:@path}, second:{type:'cm', path:@path}})
+            #frame_tree = immutable.fromJS({pos:0.25, id:id, direction:'col', type:'frame_tree', first:{type:'cm', path:@path}, second:{type:'cm', path:@path}})
+            #frame_tree = immutable.fromJS({pos:0.25, id:id, direction:'col', type:'frame_tree', first:{type:'cm', path:@path}, second:{id:'foo',direction:'col',type:'frame_tree',first:{type:'cm', path:@path},second:{type:'cm',path:@path}}})
+            #frame_tree = immutable.fromJS({pos:0.25, id:id, direction:'col', type:'frame_tree', first:{type:'cm', path:@path}, second:{id:'foo',direction:'row',type:'frame_tree',first:{type:'cm', path:@path},second:{type:'cm',path:@path}}})
+            frame_tree = immutable.fromJS({pos:0.25, id:id, direction:'row', type:'frame_tree', first:{type:'cm', path:@path}, second:{id:'foo',direction:'col',type:'frame_tree',first:{type:'cm', path:@path},second:{id:'foo2',direction:'row',type:'frame_tree',first:{type:'cm', path:@path},second:{type:'cm',path:@path}}}})
             local_view_state = local_view_state.set('frame_tree', frame_tree)
         return local_view_state
 
@@ -76,6 +80,34 @@ class exports.Actions extends Actions
         @setState
             local_view_state : local
         @_save_local_view_state()
+        return
+
+    set_frame_tree: (obj) =>
+        id = obj.id
+        if not id?  # id must be set
+            return
+        if misc.len(obj) < 2  # nothing to do
+            return
+        local = @store.get('local_view_state')
+        tree0 = local.get('frame_tree')
+        process = (node) =>
+            if not node?
+                return node
+            if node.get('id') == id
+                # it's the one -- change it
+                for k, v of obj
+                    if k != 'id'
+                        node = node.set(k, immutable.fromJS(v))
+                return node
+            for x in ['first', 'second'] # binary tree...
+                sub0 = node.get(x)
+                sub1 = process(sub0)
+                if sub0 != sub1 # changed
+                    node = node.set(x, sub1)
+            return node
+        tree1 = process(tree0)
+        if tree1 != tree0
+            @setState(local_view_state : local.set('frame_tree', tree1))
         return
 
     save_scroll_position: (info) =>
