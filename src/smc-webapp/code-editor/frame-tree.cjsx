@@ -9,6 +9,7 @@ The frame_tree prop is:
 
     id        : a UUID that uniquely determines this particular node in the frame tree
     type      : 'frame_tree'
+    scroll    : optional scroll position info
     direction : 'row' = frame is split via horizontal line; 'col' = frame is split via vert line
     first     : if object, it's another frame_tree object (so direction, first, second, pos);
                 if string, is id of some codemirror editor.
@@ -19,10 +20,10 @@ or
 
     id        : a UUID that uniquely determines this particular node in the frame tree
     type      : 'cm'
+    scroll    : optional scroll position info
     path      : path to file being edited
     font_size : font size of this file
     read_only : is it read only or not?
-    scroll    : info about scroll
 
 ###
 
@@ -60,9 +61,11 @@ exports.FrameTree = FrameTree = rclass
     render_codemirror: (desc) ->
         <CodemirrorEditor
             actions   = {@props.actions}
+            id        = {desc.get('id')}
             read_only = {desc.get('read_only')}
             font_size = {desc.get('font_size')}
             path      = {desc.get('path')}
+            scroll    = {desc.get('scroll')}
         />
 
     render_one: (desc) ->

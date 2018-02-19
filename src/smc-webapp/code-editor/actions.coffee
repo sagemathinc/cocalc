@@ -2,16 +2,17 @@
 Editor Actions
 ###
 
-WIKI_HELP_URL = "https://github.com/sagemathinc/cocalc/wiki/editor"  # TODO -- write this
+WIKI_HELP_URL   = "https://github.com/sagemathinc/cocalc/wiki/editor"  # TODO -- write this
 
-immutable  = require('immutable')
-underscore = require('underscore')
-{Actions}  = require('../smc-react')
-misc       = require('smc-util/misc')
-keyboard   = require('./keyboard')
-copypaste  = require('../copy-paste-buffer')
+immutable      = require('immutable')
+underscore     = require('underscore')
+{Actions}      = require('../smc-react')
+misc           = require('smc-util/misc')
+keyboard       = require('./keyboard')
+copypaste      = require('../copy-paste-buffer')
 convert_to_pdf = require('./convert-to-pdf')
 browser_print  = require('./browser-print')
+tree_ops       = require('./tree-ops')
 
 class exports.Actions extends Actions
     _init: (project_id, path, syncstring, store) =>
@@ -59,15 +60,20 @@ class exports.Actions extends Actions
         if not local_view_state.has("font_size")
             font_size = @redux.getStore('account')?.get('font_size') ? 14
             local_view_state = local_view_state.set('font_size', font_size)
-        if true or not local_view_state.has("frame_tree")
-            id = misc.uuid()
-            #frame_tree = immutable.fromJS({id:id, type:'cm', path:@path})
-            #frame_tree = immutable.fromJS({id:id, direction:'row', type:'frame_tree', first:{type:'cm', path:@path}, second:{type:'cm', path:@path}})
-            #frame_tree = immutable.fromJS({pos:0.25, id:id, direction:'col', type:'frame_tree', first:{type:'cm', path:@path}, second:{type:'cm', path:@path}})
-            #frame_tree = immutable.fromJS({pos:0.25, id:id, direction:'col', type:'frame_tree', first:{type:'cm', path:@path}, second:{id:'foo',direction:'col',type:'frame_tree',first:{type:'cm', path:@path},second:{type:'cm',path:@path}}})
-            #frame_tree = immutable.fromJS({pos:0.25, id:id, direction:'col', type:'frame_tree', first:{type:'cm', path:@path}, second:{id:'foo',direction:'row',type:'frame_tree',first:{type:'cm', path:@path},second:{type:'cm',path:@path}}})
-            frame_tree = immutable.fromJS({pos:0.25, id:id, direction:'row', type:'frame_tree', first:{type:'cm', path:@path}, second:{id:'foo',direction:'col',type:'frame_tree',first:{type:'cm', path:@path},second:{id:'foo2',direction:'row',type:'frame_tree',first:{type:'cm', path:@path},second:{type:'cm',path:@path}}}})
-            local_view_state = local_view_state.set('frame_tree', frame_tree)
+
+        frame_tree = local_view_state.get('frame_tree')
+        if not frame_tree?
+            frame_tree = immutable.fromJS({type:'cm', path:@path})
+            #frame_tree = immutable.fromJS({direction:'row', type:'frame_tree', first:{type:'cm', path:@path}, second:{type:'cm', path:@path}})
+            #frame_tree = immutable.fromJS({pos:0.25, direction:'col', type:'frame_tree', first:{type:'cm', path:@path}, second:{type:'cm', path:@path}})
+            #frame_tree = immutable.fromJS({pos:0.25, direction:'col', type:'frame_tree', first:{type:'cm', path:@path}, second:{,direction:'col',type:'frame_tree',first:{type:'cm', path:@path},second:{type:'cm',path:@path}}})
+            #frame_tree = immutable.fromJS({pos:0.25, direction:'col', type:'frame_tree', first:{type:'cm', path:@path}, second:{direction:'row',type:'frame_tree',first:{type:'cm', path:@path},second:{type:'cm',path:@path}}})
+            #frame_tree = immutable.fromJS({pos:0.25, direction:'row', type:'frame_tree', first:{type:'cm', path:@path}, second:{direction:'col',type:'frame_tree',first:{type:'cm', path:@path},second:{direction:'row',type:'frame_tree',first:{type:'cm', path:@path},second:{type:'cm',path:@path}}}})
+
+        frame_tree = tree_ops.assign_ids(frame_tree)
+        frame_tree = tree_ops.ensure_ids_are_unique(frame_tree)
+        local_view_state = local_view_state.set('frame_tree', frame_tree)
+
         return local_view_state
 
     set_local_view_state: (obj, update_visible=true) =>
@@ -83,35 +89,17 @@ class exports.Actions extends Actions
         return
 
     set_frame_tree: (obj) =>
-        id = obj.id
-        if not id?  # id must be set
-            return
-        if misc.len(obj) < 2  # nothing to do
-            return
         local = @store.get('local_view_state')
-        tree0 = local.get('frame_tree')
-        process = (node) =>
-            if not node?
-                return node
-            if node.get('id') == id
-                # it's the one -- change it
-                for k, v of obj
-                    if k != 'id'
-                        node = node.set(k, immutable.fromJS(v))
-                return node
-            for x in ['first', 'second'] # binary tree...
-                sub0 = node.get(x)
-                sub1 = process(sub0)
-                if sub0 != sub1 # changed
-                    node = node.set(x, sub1)
-            return node
-        tree1 = process(tree0)
-        if tree1 != tree0
-            @setState(local_view_state : local.set('frame_tree', tree1))
+        t0    = local?.get('frame_tree')
+        if not t0?
+            return
+        t1    = tree_ops.set(t0, obj)
+        if t1 != t0
+            @setState(local_view_state : local.set('frame_tree', t1))
         return
 
-    save_scroll_position: (info) =>
-        @set_local_view_state({scroll:info})
+    save_scroll_position: (id, info) =>
+        @set_frame_tree(id:id, scroll:info)
 
     enable_key_handler: =>
         if @_state == 'closed'

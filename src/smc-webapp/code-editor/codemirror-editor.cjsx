@@ -26,6 +26,7 @@ STYLE =
 
 exports.CodemirrorEditor = rclass
     propTypes :
+        id        : rtypes.string.isRequired
         actions   : rtypes.object.isRequired
         path      : rtypes.string.isRequired
         font_size : rtypes.number
@@ -79,7 +80,7 @@ exports.CodemirrorEditor = rclass
         if not @cm?
             return
         info = misc.copy_with(@cm.getScrollInfo(), ['left', 'top'])
-        @props.actions.save_scroll_position(info)
+        @props.actions.save_scroll_position(@props.id, info)
 
     save_state: ->
         if not @cm?
