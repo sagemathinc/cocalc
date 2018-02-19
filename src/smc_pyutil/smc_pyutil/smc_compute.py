@@ -890,6 +890,7 @@ class Project(object):
                 exclude = self._exclude('')
             v = (['rsync'] + options +
                      ['-zaxs',   # compressed, archive mode (so leave symlinks, etc.), don't cross filesystem boundaries
+                      '--omit-link-times',  # see https://github.com/sagemathinc/cocalc/issues/2713
                       '--chown=%s:%s'%(u,u),
                       "--ignore-errors"] + exclude + w)
             # do the rsync
