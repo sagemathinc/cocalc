@@ -106,15 +106,11 @@ require("script-loader!term/color_themes.js")
 # Make html look nice
 require("script-loader!jsbeautify/beautify-html.min.js")
 
-# Make html into markdown
-#require("script!remarked/reMarked.min.js")
-
 # ********************************
 # node_modules, mainly from inside smc-webapp
 
 require("async")
 require("events")
-require("marked")
 require("redux")
 require("react")
 require("react-redux")

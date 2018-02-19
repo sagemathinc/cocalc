@@ -446,8 +446,8 @@ class exports.HTML_MD_Editor extends editor.FileEditor
 
     md_to_html: (cb) =>
         source = @_get()
-        m = require('../markdown').markdown_to_html(source)
-        cb(undefined, m.s)
+        html = require('../markdown').markdown_to_html(source)
+        cb(undefined, html)
 
     rmd_to_html: (cb) =>
         split_path = misc.path_split(@filename)

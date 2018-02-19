@@ -787,9 +787,8 @@ class TaskList
                     x0 = x
                 desc = desc0 + desc.slice(x0[1])
 
-            x = markdown.markdown_to_html(desc)
-            desc = x.s
-            has_mathjax = x.has_mathjax
+            x = markdown.markdown_to_html(desc, {process_math : true})
+            desc = x
 
         if task.deleted
             desc = "<del>#{desc}</del>"
@@ -797,10 +796,6 @@ class TaskList
         task.element.find(".webapp-tasks-desc-column").css({fontSize: "#{@default_font_size ? 14}px"})
         e = task.element.find(".webapp-task-desc")
         e.html(desc)
-        if has_mathjax
-            # .mathjax() does the above optimization, but it first does e.html(), so is a slight waste -- most
-            # items have no math, so this is worth it...
-            e.mathjax()
 
         if desc.indexOf('[ ]') != -1 or desc.indexOf('[x]') != -1
 

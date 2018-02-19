@@ -911,16 +911,13 @@ exports.Markdown = rclass
         if @props.value
             # change escaped characters back for markdown processing
             v = @props.value.replace(/&gt;/g, '>').replace(/&lt;/g, '<')
-            return markdown.markdown_to_html(v)
-        else
-            {s: '', has_mathjax: false}
+            return markdown.markdown_to_html(v).s
 
     render: ->
         HTML = exports.HTML
         value = @to_html()
         <HTML
-            value          = {value.s}
-            has_mathjax    = {value.has_mathjax}
+            value          = {value}
             style          = {@props.style}
             project_id     = {@props.project_id}
             file_path      = {@props.file_path}
