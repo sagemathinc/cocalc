@@ -11,9 +11,8 @@ The frame_tree prop is:
     type      : 'frame_tree'
     scroll    : optional scroll position info
     direction : 'row' = frame is split via horizontal line; 'col' = frame is split via vert line
-    first     : if object, it's another frame_tree object (so direction, first, second, pos);
-                if string, is id of some codemirror editor.
-    second    : optional; if given, frame is split
+    first     : NOT optional -- another object with id, type, etc.
+    second    : another object with id, type, etc.
     pos       : optional; if given, is position of drag bar, as number from 0 to 1 (representation proportion of width or height).
 
 or
@@ -37,25 +36,31 @@ bar_color = '#eee'
 drag_offset = if feature.IS_TOUCH then 5 else 1
 
 cols_drag_bar =
-    border  : "#{drag_offset}px solid #{bar_color}"
-    zIndex  : 10
-    padding : 0.5
-    cursor  : 'ew-resize'
+    border       : "#{drag_offset}px solid #{bar_color}"
+    zIndex       : 10
+    padding      : 0.5
+    cursor       : 'ew-resize'
+    borderRadius : '2px'
 
 rows_drag_bar = misc.merge(misc.copy(cols_drag_bar), {cursor:'ns-resize'})
+
+active_border = '1px solid #77b6e8'
 
 exports.FrameTree = FrameTree = rclass
     propTypes :
         actions    : rtypes.object.isRequired
+        active_id  : rtypes.string
         frame_tree : rtypes.immutable.isRequired
 
     shouldComponentUpdate: (next) ->
-        return @props.frame_tree != next.frame_tree
+        return @props.frame_tree != next.frame_tree or \
+               @props.active_id  != next.active_id
 
     render_frame_tree: (desc) ->
         <FrameTree
             actions    = {@props.actions}
             frame_tree = {desc}
+            active_id  = {@props.active_id}
         />
 
     render_codemirror: (desc) ->
@@ -78,7 +83,14 @@ exports.FrameTree = FrameTree = rclass
                 return <div>Invalid frame tree {misc.to_json(desc)}</div>
 
     render_first: ->
-        @render_one(@props.frame_tree.get('first'))
+        desc = @props.frame_tree.get('first')
+        if @props.active_id == desc.get('id')
+            style = {border: active_border}
+        else
+            style = undefined
+        <div style={style} className='smc-vfill'>
+            @render_one(desc)
+        </div>
 
     render_cols_drag_bar: ->
         reset = =>
@@ -107,17 +119,31 @@ exports.FrameTree = FrameTree = rclass
             pos = 0.5
         return pos
 
-    render_cols: ->
+    get_data: (flex_direction) ->
         pos = @get_pos()
+        data =
+            pos          : pos
+            first        : @props.frame_tree.get('first')
+            style_first  : {flex:pos, flexDirection:flex_direction}
+            second       : @props.frame_tree.get('second')
+            style_second : {flex:1-pos, flexDirection:flex_direction}
+        if data.first.get('id') == @props.active_id
+            data.style_first.border = active_border
+        else if data.second.get('id') == @props.active_id
+            data.style_second.border = active_border
+        return data
+
+    render_cols: ->
+        data = @get_data('row')
         <div
             style = {display:'flex', flexDirection:'row'}
             ref   = {'cols_container'}>
-            <div className={'smc-vfill'} style={flex:pos}>
-                {@render_one(@props.frame_tree.get('first'))}
+            <div className={'smc-vfill'} style={data.style_first}>
+                {@render_one(data.first)}
             </div>
             {@render_cols_drag_bar()}
-            <div className={'smc-vfill'} style={flex:1-pos}>
-                {@render_one(@props.frame_tree.get('second'))}
+            <div className={'smc-vfill'} style={data.style_second}>
+                {@render_one(data.second)}
             </div>
         </div>
 
@@ -143,25 +169,22 @@ exports.FrameTree = FrameTree = rclass
         </Draggable>
 
     render_rows: ->
-        pos = @get_pos()
+        data = @get_data('column')
         <div
             className = {'smc-vfill'}
             ref       = {'rows_container'} >
-            <div className={'smc-vfill'} style={flex:pos, flexDirection:'column'}>
-                {@render_one(@props.frame_tree.get('first'))}
+            <div className={'smc-vfill'} style={data.style_first}>
+                {@render_one(data.first)}
             </div>
             {@render_rows_drag_bar()}
-            <div className={'smc-vfill'} style={flex:1-pos, flexDirection:'column'}>
-                {@render_one(@props.frame_tree.get('second'))}
+            <div className={'smc-vfill'} style={data.style_second}>
+                {@render_one(data.second)}
             </div>
         </div>
 
     render: ->
         if @props.frame_tree.get('type') != 'frame_tree'
             return @render_one(@props.frame_tree)
-        else if not @props.frame_tree.get('second')?
-            # frame tree, but with only a first (so a leaf)
-            return @render_first()
         else if @props.frame_tree.get('direction') == 'col'
             return @render_cols()
         else

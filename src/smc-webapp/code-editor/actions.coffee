@@ -63,16 +63,21 @@ class exports.Actions extends Actions
 
         frame_tree = local_view_state.get('frame_tree')
         if not frame_tree?
-            frame_tree = immutable.fromJS({type:'cm', path:@path})
-            #frame_tree = immutable.fromJS({direction:'row', type:'frame_tree', first:{type:'cm', path:@path}, second:{type:'cm', path:@path}})
-            #frame_tree = immutable.fromJS({pos:0.25, direction:'col', type:'frame_tree', first:{type:'cm', path:@path}, second:{type:'cm', path:@path}})
-            #frame_tree = immutable.fromJS({pos:0.25, direction:'col', type:'frame_tree', first:{type:'cm', path:@path}, second:{,direction:'col',type:'frame_tree',first:{type:'cm', path:@path},second:{type:'cm',path:@path}}})
-            #frame_tree = immutable.fromJS({pos:0.25, direction:'col', type:'frame_tree', first:{type:'cm', path:@path}, second:{direction:'row',type:'frame_tree',first:{type:'cm', path:@path},second:{type:'cm',path:@path}}})
-            #frame_tree = immutable.fromJS({pos:0.25, direction:'row', type:'frame_tree', first:{type:'cm', path:@path}, second:{direction:'col',type:'frame_tree',first:{type:'cm', path:@path},second:{direction:'row',type:'frame_tree',first:{type:'cm', path:@path},second:{type:'cm',path:@path}}}})
+            frame_tree = immutable.fromJS({direction:'row', type:'frame_tree', first:{type:'cm', path:@path}})
+
+        #frame_tree = immutable.fromJS({direction:'row', type:'frame_tree', first:{type:'cm', path:@path}, second:{type:'cm', path:@path}})
+        #frame_tree = immutable.fromJS({pos:0.25, direction:'col', type:'frame_tree', first:{type:'cm', path:@path}, second:{type:'cm', path:@path}})
+        #frame_tree = immutable.fromJS({pos:0.25, direction:'col', type:'frame_tree', first:{type:'cm', path:@path}, second:{,direction:'col',type:'frame_tree',first:{type:'cm', path:@path},second:{type:'cm',path:@path}}})
+        #frame_tree = immutable.fromJS({pos:0.25, direction:'col', type:'frame_tree', first:{type:'cm', path:@path}, second:{direction:'row',type:'frame_tree',first:{type:'cm', path:@path},second:{type:'cm',path:@path}}})
+        #frame_tree = immutable.fromJS({pos:0.25, direction:'row', type:'frame_tree', first:{type:'cm', path:@path}, second:{direction:'col',type:'frame_tree',first:{type:'cm', path:@path},second:{direction:'row',type:'frame_tree',first:{type:'cm', path:@path},second:{type:'cm',path:@path}}}})
 
         frame_tree = tree_ops.assign_ids(frame_tree)
         frame_tree = tree_ops.ensure_ids_are_unique(frame_tree)
         local_view_state = local_view_state.set('frame_tree', frame_tree)
+
+        active_id = local_view_state.get('active_id')
+        if not active_id? or not tree_ops.has_id(frame_tree, active_id) or not tree_ops.is_leaf_id(frame_tree, active_id)
+            local_view_state = local_view_state.set('active_id', tree_ops.get_leaf_id(frame_tree))
 
         return local_view_state
 
@@ -86,6 +91,12 @@ class exports.Actions extends Actions
         @setState
             local_view_state : local
         @_save_local_view_state()
+        return
+
+    set_active_id: (active_id) =>
+        frame_tree = @store.getIn(['local_view_state', 'frame_tree'])
+        if frame_tree? and tree_ops.is_leaf_id(frame_tree, active_id)
+            @setState(local_view_state : @store.get('local_view_state').set('active_id', active_id))
         return
 
     set_frame_tree: (obj) =>

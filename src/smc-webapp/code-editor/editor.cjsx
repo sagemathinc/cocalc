@@ -59,8 +59,9 @@ exports.Editor = rclass ({name}) ->
         if not @props.is_loaded or not frame_tree?
             return @render_loading()
         <FrameTree
-            actions    = {@props.actions}
-            frame_tree = {frame_tree}
+            actions     = {@props.actions}
+            frame_tree  = {frame_tree}
+            active_id   = {@props.local_view_state.get('active_id')}
             />
 
     render_error: ->
