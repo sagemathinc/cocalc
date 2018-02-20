@@ -185,16 +185,22 @@ class exports.Actions extends Actions
     redo: =>
         @syncstring?.redo()
 
-    set_font_size: (size) =>
-        @set_local_view_state(font_size: size)
+    change_font_size: (delta) =>
+        local = @store.getIn('local_view_state')
+        id    = local.get('active_id')
+        font_size  = tree_ops.get_node(local.get('frame_tree'), id)?.get('font_size')
+        if not font_size?
+            font_size = @redux.getStore('account')?.get('font_size') ? 14
+        font_size  += delta
+        if font_size < 2
+            font_size = 2
+        @set_frame_tree(id:id, font_size:font_size)
 
     increase_font_size: =>
-        size = @store.getIn(['local_view_state', 'font_size'])
-        @set_local_view_state(font_size: size+1)
+        @change_font_size(1)
 
     decrease_font_size: =>
-        size = @store.getIn(['local_view_state', 'font_size'])
-        @set_local_view_state(font_size: size-1)
+        @change_font_size(-1)
 
     set_cm: (cm) =>
         @cm = cm
