@@ -344,7 +344,6 @@ Assignment = rclass
 
         return v
 
-
     render_more: ->
         if @props.grading?.get('assignment_id') == @props.assignment.get('assignment_id')
             header      =
@@ -379,7 +378,7 @@ Assignment = rclass
 
         <Row key='more'>
             <Col sm={12}>
-                <Panel header={header}>
+                <Panel header={header} style={marginTop:'15px'}>
                     {panel_body}
                     {@render_note()}
                 </Panel>

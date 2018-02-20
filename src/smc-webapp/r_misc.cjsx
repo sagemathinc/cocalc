@@ -474,10 +474,12 @@ exports.NumberInput = NumberInput = rclass
     render: ->
         unit = if @props.unit? then "#{@props.unit}" else ''
         xs   = if @props.unit? then 6                else 12
+        fgstyle = @props.formgroupstyle ? {}
+        fgstyle.whiteSpace = 'nowrap'
         <Row>
             <Col xs={xs}>
                 <Form inline onSubmit={@saveChange}>
-                    <FormGroup style={@props.formgroupstyle ? {}}>
+                    <FormGroup style={fgstyle}>
                         {@plusminus(-1)}
                         <FormControl
                             type     = 'text'

@@ -498,9 +498,8 @@ exports.CourseStore = class CourseStore extends Store
                 if skip
                     skip = false
                     continue
-            # It's fine to return a student without collected files
-            #if not @has_last_collected(assignment, student_id)
-            #    continue
+
+            # should check for @has_last_collected(assignment, student_id) ?
             if (not opts.without_grade) or (not @has_grade(assignment, student_id))
                 return [student_id, cnt]
         return [null, 0]

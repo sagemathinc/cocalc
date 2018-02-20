@@ -22,6 +22,7 @@
 path      = require('path')
 path_join = path.join
 immutable = require('immutable')
+_         = require('underscore')
 
 # CoCalc libraries
 {defaults, required} = misc = require('smc-util/misc')
@@ -29,7 +30,7 @@ immutable = require('immutable')
 {COLORS}             = require('smc-util/theme')
 
 # React libraries
-{React, rclass, rtypes} = require('../smc-react')
+{React, rclass, rtypes, ReactDOM} = require('../smc-react')
 {Alert, Button, ButtonToolbar, ButtonGroup, FormControl, FormGroup, Checkbox, Row, Col, Panel} = require('react-bootstrap')
 
 # CoCalc and course components
@@ -71,6 +72,7 @@ _init_state = (props) ->
 _update_state = (props, next, state, setState) ->
     if props.grading != next.grading
         student_id = _student_id(next)
+        return if not student_id?
         grade      = state.store.get_grade(props.assignment, student_id)
         comment    = state.store.get_comments(props.assignment, student_id)
         return
@@ -100,8 +102,64 @@ exports.GradingStudentAssignmentHeader = rclass
         x = _update_state(@props, next, @state)
         @setState(x) if x?
 
-    open_assignment: (type) ->
-        @actions(@props.name).open_assignment(type, @props.assignment, @state.student_id)
+    exit: ->
+        @actions(@props.name).grading_stop()
+
+    render: ->
+        assignment   = @props.assignment.get('path')
+        student_info = @state.store.get_student_name(@state.student_id, true)
+        student_name = student_info?.full ? 'N/A'
+        <Row>
+            <Col md={9}>
+                <h4>
+                    Grading assignment <code>{assignment}</code> of student {student_name}
+                </h4>
+            </Col>
+            <Col md={3} style={textAlign:'right'}>
+                <Button
+                    onClick  = {@exit}
+                    bsStyle  = {'warning'}
+                >
+                    <Icon name={'sign-out'} /> Exit Grading
+                </Button>
+            </Col>
+        </Row>
+
+
+
+exports.GradingStudentAssignment = rclass
+    displayName : "CourseEditor-GradingStudentAssignment"
+
+    propTypes :
+        name         : rtypes.string.isRequired
+        redux        : rtypes.object.isRequired
+        assignment   : rtypes.object.isRequired
+        students     : rtypes.object.isRequired
+        user_map     : rtypes.object.isRequired
+        grading      : rtypes.immutable.Map
+
+    getInitialState: ->
+        s = _init_state(@props)
+        s.active_autogrades = immutable.Set()
+        return s
+
+    componentWillReceiveProps: (next) ->
+        x = _update_state(@props, next, @state)
+        @setState(x) if x?
+
+    collect_student_path: ->
+        return path_join(@props.assignment.get('collect_path'), @state.student_id, @state.subdir)
+
+    open_assignment: (type, filepath) ->
+        @actions(@props.name).open_assignment(type, @props.assignment, @state.student_id, filepath)
+
+    componentDidMount: ->
+        show_entry       =  =>
+            $(ReactDOM.findDOMNode(@refs.student_list)).find('.active').scrollintoview()
+        @scrollToStudent = _.debounce(show_entry, 100)
+
+    componentDidUpdate: (props, state) ->
+        @scrollToStudent()
 
     render_open: ->
         [
@@ -136,14 +194,11 @@ exports.GradingStudentAssignmentHeader = rclass
 
     next: (without_grade) ->
         @actions(@props.name).grading(
-            assignment       :  @props.assignment
+            assignment       : @props.assignment
             student_id       : @state.student_id
             direction        : 1
             without_grade    : without_grade
         )
-
-    exit: ->
-        @actions(@props.name).grading_stop()
 
     render_progress: ->
         return <span>{@props.grading?.get('progress') ? NaN} of {@props.students?.size ? NaN}</span>
@@ -155,8 +210,42 @@ exports.GradingStudentAssignmentHeader = rclass
             student_name = @state.store.get_student_name(@state.student_id, true)
             <span style={fontSize:'120%'}>Student <b>{student_name?.full ? 'N/A'}</b></span>
 
+    student_list_entry_click: (student_id) ->
+        @actions(@props.name).grading(
+            assignment       : @props.assignment
+            student_id       : student_id
+            direction        : 0
+            without_grade    : null
+        )
+
+    student_list_entries: ->
+        for student in @state.store.get_sorted_students()
+            id = student.get('student_id')
+            active = if @state.student_id == id then 'active' else ''
+            name = @state.store.get_student_name(student)
+            do (id) =>
+                <li
+                    key        = {id}
+                    className  = {"list-group-item " + active}
+                    onClick    = {=>@student_list_entry_click(id)}
+                    style      = {cursor : 'pointer'}
+                >
+                    {name}
+                </li>
+
+    render_list: ->
+        style =
+            height    : '200px'
+            overflowY : 'scroll'
+
+        <Col md={3}>
+            <ul className='list-group' ref='student_list' style={style}>
+                {@student_list_entries()}
+            </ul>
+        </Col>
+
     render_nav: ->
-        <Col md={4}>
+        <Col md={3}>
             <Row style={rowstyle}>
                 {@render_info()} ({@render_progress()})
             </Row>
@@ -236,7 +325,7 @@ exports.GradingStudentAssignmentHeader = rclass
                         ref         = {'grade_input'}
                         type        = {'text'}
                         placeholder = {'Grade (any text)...'}
-                        value       = {@state.edited_grade}
+                        value       = {@state.edited_grade ? ''}
                         onChange    = {(e)=>@setState(edited_grade:e.target.value)}
                         onKeyDown   = {@on_key_down_grade_editor}
                         onBlur      = {@save_grade}
@@ -261,7 +350,7 @@ exports.GradingStudentAssignmentHeader = rclass
         />
 
     render_enter_grade: ->
-        <Col md={4}>
+        <Col md={3}>
             <Row>
                 {@grade_value_edit()}
             </Row>
@@ -278,52 +367,16 @@ exports.GradingStudentAssignmentHeader = rclass
             <span>Total Points: <b>{total}</b></span>
         </Row>
 
-    render: ->
+    render_controls: ->
         <Row>
+            {@render_list()}
             {@render_nav()}
-            <Col md={3}>
+            <Col md={2}>
                 {@render_points()}
                 {@render_open()}
             </Col>
             {@render_enter_grade()}
-            <Col md={1}>
-                <ButtonToolbar>
-                    <Button
-                        onClick  = {@exit}
-                        bsStyle  = {'warning'}
-                    >
-                        <Icon name={'sign-out'} /> Exit Grading
-                    </Button>
-                </ButtonToolbar>
-            </Col>
         </Row>
-
-
-exports.GradingStudentAssignment = rclass
-    displayName : "CourseEditor-GradingStudentAssignment"
-
-    propTypes :
-        name         : rtypes.string.isRequired
-        redux        : rtypes.object.isRequired
-        assignment   : rtypes.object.isRequired
-        students     : rtypes.object.isRequired
-        user_map     : rtypes.object.isRequired
-        grading      : rtypes.immutable.Map
-
-    getInitialState: ->
-        s = _init_state(@props)
-        s.active_autogrades = immutable.Set()
-        return s
-
-    componentWillReceiveProps: (next) ->
-        x = _update_state(@props, next, @state)
-        @setState(x) if x?
-
-    collect_student_path: ->
-        return path_join(@props.assignment.get('collect_path'), @state.student_id, @state.subdir)
-
-    open_assignment: (type, filepath) ->
-        @actions(@props.name).open_assignment(type, @props.assignment, @state.student_id, filepath)
 
     render_open_collected_file : (filename) ->
         filepath = @filepath(filename)
@@ -416,8 +469,11 @@ exports.GradingStudentAssignment = rclass
             name = subdir[@state.subdir.length+1 ..]
         else
             name = subdir
-        <Button
-            bsSize  = {'small'}
+        style =
+            fontWeight    : 'bold'
+            cursor        : 'pointer'
+        <a
+            style   = {style}
             onClick = {=>@actions(@props.name).grading(
                 assignment       : @props.assignment
                 student_id       : @state.student_id
@@ -426,8 +482,20 @@ exports.GradingStudentAssignment = rclass
                 subdir           : subdir
             )}
         >
-            <Icon name='folder-open-o'/> {name}
-        </Button>
+            <Icon name='folder-open-o'/> {name}{'/'}
+        </a>
+
+    open_file: (filename) ->
+        filepath = @filepath(filename)
+        style =
+            fontWeight    : 'bold'
+            cursor        : 'pointer'
+        <a
+            style     = {style}
+            onClick   = {=>@open_assignment('collected', filepath)}
+        >
+            {filename}
+        </a>
 
     listing_directory_row: (filename, time) ->
         subdirpath = path_join(@state.subdir, filename)
@@ -441,12 +509,11 @@ exports.GradingStudentAssignment = rclass
 
     listing_file_row: (filename, time) ->
         [
-            <Col key={0} md={3}>{filename}</Col>
+            <Col key={0} md={3}>{@open_file(filename)}</Col>
             <Col key={1} md={1}>{time}</Col>
             <Col key={2} md={2}>{@render_points_input(filename)}</Col>
-            <Col key={3} md={2}>{@render_autograde(filename)}</Col>
-            <Col key={4} md={2}>{@render_open_collected_file(filename)}</Col>
-            <Col key={5} md={2}>{@render_open_student_file(filename)}</Col>
+            <Col key={3} md={3}>{@render_autograde(filename)}</Col>
+            <Col key={5} md={3}>{@render_open_student_file(filename)}</Col>
         ]
 
     listing_rowstyle: (idx) ->
@@ -521,6 +588,9 @@ exports.GradingStudentAssignment = rclass
             Info: <code>{misc.to_json(@state.student_info)}</code>.
             <br/>
             ###}
+            <div>
+                {@render_controls()}
+            </div>
             {@collected()}
             {@render_up()}
             {@listing_header()}
