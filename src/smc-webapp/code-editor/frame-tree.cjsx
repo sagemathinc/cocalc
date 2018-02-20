@@ -14,6 +14,7 @@ The frame_tree prop is:
     first     : NOT optional -- another object with id, type, etc.
     second    : another object with id, type, etc.
     pos       : optional; if given, is position of drag bar, as number from 0 to 1 (representation proportion of width or height).
+    deletable : bool
 
 or
 
@@ -23,7 +24,7 @@ or
     path      : path to file being edited
     font_size : font size of this file
     read_only : is it read only or not?
-
+    deletable : bool
 ###
 
 Draggable                         = require('react-draggable')
@@ -31,6 +32,7 @@ misc                              = require('smc-util/misc')
 {React, ReactDOM, rclass, rtypes} = require('../smc-react')
 {CodemirrorEditor}                = require('./codemirror-editor')
 feature                           = require('../feature')
+{FrameTitleBar}                   = require('./frame-title-bar')
 
 bar_color = '#eee'
 drag_offset = if feature.IS_TOUCH then 5 else 1
@@ -63,6 +65,20 @@ exports.FrameTree = FrameTree = rclass
             active_id  = {@props.active_id}
         />
 
+    render_titlebar: (desc) ->
+        if desc.has('deletable')
+            deletable = desc.get('deletable')
+        else
+            # as long as tree is nontrivial.
+            deletable = @props.frame_tree.get('first')? or @props.frame_tree.get('second')?
+        <FrameTitleBar
+            actions    = {@props.actions}
+            active_id  = {@props.active_id}
+            id         = {desc.get('id')}
+            title      = {desc.get('path')}
+            deletable  = {deletable}
+        />
+
     render_codemirror: (desc) ->
         <CodemirrorEditor
             actions   = {@props.actions}
@@ -78,9 +94,13 @@ exports.FrameTree = FrameTree = rclass
             when 'frame_tree'
                 return @render_frame_tree(desc)
             when 'cm'
-                return @render_codemirror(desc)
+                child = @render_codemirror(desc)
             else
                 return <div>Invalid frame tree {misc.to_json(desc)}</div>
+        <div className={'smc-vfill'}>
+            {@render_titlebar(desc)}
+            {child}
+        </div>
 
     render_first: ->
         desc = @props.frame_tree.get('first')

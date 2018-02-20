@@ -110,6 +110,31 @@ exports.get_node = (tree, id) ->
     process(tree)
     return the_node
 
+exports.delete_node = (tree, id) ->
+    if not tree?
+        return
+    if tree.get('id') == id
+        # we never delete the root of the tree
+        return tree
+    done = false
+    process = (node) ->
+        if not node? or done
+            return node
+        for x in ['first', 'second']
+            t = node.get(x)
+            if t?.get('id') == id
+                # replace this entire node by the other branch.
+                done = true
+                if x == 'first'
+                    return node.get('second')
+                else
+                    return node.get('first')
+            # descend the tree
+            t1 = process(t)
+            if t1 != t
+                node = node.set(x, t1)
+        return node
+    return process(tree)
 
 exports.is_leaf_id = (tree, id) ->
     return exports.is_leaf(exports.get_node(tree, id))

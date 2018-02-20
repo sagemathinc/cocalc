@@ -57,13 +57,17 @@ class exports.Actions extends Actions
         if x?
             local_view_state = immutable.fromJS(JSON.parse(x))
         local_view_state ?= immutable.Map()
+
+        if not local_view_state.has('version') # may use to deprecate in case we change format.
+            local_view_state = local_view_state.set('version', 1)
+
         if not local_view_state.has("font_size")
             font_size = @redux.getStore('account')?.get('font_size') ? 14
             local_view_state = local_view_state.set('font_size', font_size)
 
         frame_tree = local_view_state.get('frame_tree')
         if not frame_tree?
-            frame_tree = immutable.fromJS({direction:'row', type:'frame_tree', first:{type:'cm', path:@path}})
+            frame_tree = immutable.fromJS({type:'cm', path:@path})
 
         #frame_tree = immutable.fromJS({id:'a',direction:'row', type:'frame_tree', first:{id:'b',type:'cm', path:@path}, second:{id:'c',type:'cm', path:@path}})
         #frame_tree = immutable.fromJS({pos:0.25, direction:'col', type:'frame_tree', first:{type:'cm', path:@path}, second:{type:'cm', path:@path}})
@@ -98,6 +102,7 @@ class exports.Actions extends Actions
         local = @store.get('local_view_state')
         if tree_ops.is_leaf_id(local?.get('frame_tree'), active_id)
             @setState(local_view_state : @store.get('local_view_state').set('active_id', active_id))
+            @_save_local_view_state()
         return
 
     set_frame_tree: (obj) =>
@@ -108,6 +113,18 @@ class exports.Actions extends Actions
         t1    = tree_ops.set(t0, obj)
         if t1 != t0
             @setState(local_view_state : local.set('frame_tree', t1))
+            @_save_local_view_state()
+        return
+
+    close_frame: (id) =>
+        local = @store.get('local_view_state')
+        t0    = local?.get('frame_tree')
+        if not t0?
+            return
+        t1 = tree_ops.delete_node(t0, id)
+        if t1 != t0
+            @setState(local_view_state : local.set('frame_tree', t1))
+            @_save_local_view_state()
         return
 
     save_scroll_position: (id, info) =>
