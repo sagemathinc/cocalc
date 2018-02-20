@@ -97,6 +97,7 @@ exports.CodemirrorEditor = rclass
             filename        : @props.path
             editor_settings : @props.editor_settings
             actions         : @props.actions
+            frame_id        : @props.id
 
         @cm = CodeMirror.fromTextArea(node, options)
         d   = doc.get(path: @props.path, cm: @cm)

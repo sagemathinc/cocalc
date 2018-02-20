@@ -9,10 +9,11 @@ misc                 = require('smc-util/misc')
 {defaults, required} = misc
 
 exports.cm_options = (opts) ->
-    {filename, editor_settings, actions} = defaults opts,
+    {filename, editor_settings, actions, frame_id} = defaults opts,
         filename        : required  # string -- determines editor mode
         editor_settings : required  # immutable.js map
         actions         : undefined
+        frame_id        : required
 
     key = misc.filename_extension_notilde(filename).toLowerCase()
     if not key
@@ -50,25 +51,28 @@ exports.cm_options = (opts) ->
         "Ctrl-/"       : "toggleComment"    # shortcut chosen by jupyter project (undocumented)
 
         "Ctrl-Space"   : "autocomplete"
-        "Tab"          : (cm) -> cm.tab_as_space()
-
+        "Tab"          : (cm) -> tab_key(cm, opts.spaces_instead_of_tabs)
+        "Shift-Tab"    : (cm) -> cm.unindent_selection()
+        
     if actions?
-        misc.merge extraKeys,
+        actionKeys =
             "Cmd-S"        : actions.save
             "Alt-S"        : actions.save
             "Ctrl-S"       : actions.save
-            "Shift-Ctrl-." : actions.increase_font_size
-            "Shift-Ctrl-," : actions.decrease_font_size
-            "Shift-Cmd-."  : actions.increase_font_size
-            "Shift-Cmd-,"  : actions.decrease_font_size
-            "Ctrl-L"       : (cm) => cm.execCommand('jumpToLine')
-            "Cmd-L"        : (cm) => cm.execCommand('jumpToLine')
-            "Cmd-F"        : (cm) => cm.execCommand('find')
-            "Ctrl-F"       : (cm) => cm.execCommand('find')
-            "Cmd-G"        : (cm) => cm.execCommand('findNext')
-            "Ctrl-G"       : (cm) => cm.execCommand('findNext')
-            "Shift-Cmd-G"  : (cm) => cm.execCommand('findPrev')
-            "Shift-Ctrl-G" : (cm) => cm.execCommand('findPrev')
+            "Shift-Ctrl-." : -> actions.increase_font_size(frame_id)
+            "Shift-Ctrl-," : -> actions.decrease_font_size(frame_id)
+            "Shift-Cmd-."  : -> actions.increase_font_size(frame_id)
+            "Shift-Cmd-,"  : -> actions.decrease_font_size(frame_id)
+            "Ctrl-L"       : (cm) -> cm.execCommand('jumpToLine')
+            "Cmd-L"        : (cm) -> cm.execCommand('jumpToLine')
+            "Cmd-F"        : (cm) -> cm.execCommand('find')
+            "Ctrl-F"       : (cm) -> cm.execCommand('find')
+            "Cmd-G"        : (cm) -> cm.execCommand('findNext')
+            "Ctrl-G"       : (cm) -> cm.execCommand('findNext')
+            "Shift-Cmd-G"  : (cm) -> cm.execCommand('findPrev')
+            "Shift-Ctrl-G" : (cm) -> cm.execCommand('findPrev')
+        for k, v of actionKeys
+            extraKeys[k] = v
 
     if opts.match_xml_tags
         extraKeys['Ctrl-J'] = "toMatchingTag"
@@ -120,3 +124,14 @@ exports.cm_options = (opts) ->
         options.theme = opts.theme
 
     return options
+
+
+tab_key = (editor, spaces_instead_of_tabs) ->
+    if editor.somethingSelected()
+        CodeMirror.commands.defaultTab(editor)
+    else
+        if spaces_instead_of_tabs
+            editor.tab_as_space()
+        else
+            CodeMirror.commands.defaultTab(editor)
+

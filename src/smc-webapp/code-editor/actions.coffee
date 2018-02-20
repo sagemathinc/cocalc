@@ -202,9 +202,15 @@ class exports.Actions extends Actions
     decrease_font_size: (id) =>
         @change_font_size(-1, id)
 
-    set_cm: (cm) =>
+    set_cm: (cm, id) =>
+        if id
+            @_cm ?= {}
+            @_cm[id] = cm
         @cm = cm
         @set_codemirror_to_syncstring()
+        
+    _active_cm: =>
+        return @_cm?[local_view_state.get('active_id')]
 
     syncstring_save: =>
         @syncstring?.save()
