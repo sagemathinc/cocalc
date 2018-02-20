@@ -67,22 +67,6 @@ exports.ButtonBar = rclass
             </Button>
         </ButtonGroup>
 
-    render_zoom: ->
-        <ButtonGroup key={'zoom-group'}>
-            <Button
-                key     = {'font-increase'}
-                onClick = {@props.actions.decrease_font_size}
-                >
-                <Icon style={fontSize:'7pt'} name={'font'} />
-            </Button>
-            <Button
-                key     = {'font-decrease'}
-                onClick = {@props.actions.increase_font_size}
-                >
-                <Icon style={fontSize:'11pt'} name={'font'} />
-            </Button>
-        </ButtonGroup>
-
     render_save_timetravel_group: ->
         disabled = not @props.has_unsaved_changes or @props.read_only
         <ButtonGroup key={'save-group'}>
@@ -143,6 +127,23 @@ exports.ButtonBar = rclass
             </Button>
         </Tip>
 
+    ###
+    render_zoom: ->
+        <ButtonGroup key={'zoom-group'}>
+            <Button
+                key     = {'font-increase'}
+                onClick = {@props.actions.decrease_font_size}
+                >
+                <Icon style={fontSize:'7pt'} name={'font'} />
+            </Button>
+            <Button
+                key     = {'font-decrease'}
+                onClick = {@props.actions.increase_font_size}
+                >
+                <Icon style={fontSize:'11pt'} name={'font'} />
+            </Button>
+        </ButtonGroup>
+
     render_split: ->
         <Tip
             key       = {'split'}
@@ -161,6 +162,7 @@ exports.ButtonBar = rclass
                 </Button>
             </ButtonGroup>
         </Tip>
+    ###
 
     render_file_info: ->
         <EditorFileInfoDropdown
@@ -179,10 +181,6 @@ exports.ButtonBar = rclass
             {@render_undo_redo_group()}
             <Space/>
             {@render_find_replace_group()}
-            <Space/>
-            {@render_zoom()}
-            <Space/>
-            {@render_split()}
             <Space/>
             {@render_print()}
             <Space/>

@@ -143,9 +143,9 @@ exports.FrameTree = FrameTree = rclass
         data =
             pos          : pos
             first        : @props.frame_tree.get('first')
-            style_first  : {flex:pos,   flexDirection:flex_direction, border:'2px solid transparent'}
+            style_first  : {display:'flex', overflow:'hidden', flex:pos,   border:'2px solid transparent'}
             second       : @props.frame_tree.get('second')
-            style_second : {flex:1-pos, flexDirection:flex_direction, border:'2px solid transparent'}
+            style_second : {display:'flex', overflow:'hidden', flex:1-pos, border:'2px solid transparent'}
         if data.first.get('id') == @props.active_id
             data.style_first.border = active_border
         else if data.second.get('id') == @props.active_id

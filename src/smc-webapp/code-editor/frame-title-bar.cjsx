@@ -2,21 +2,15 @@
 FrameTitleBar - title bar in a frame, in the frame tree
 ###
 
+{ButtonGroup, Button}   = require('react-bootstrap')
 {React, rclass, rtypes} = require('../smc-react')
+{Icon}                  = require('../r_misc')
 
 title_bar_style =
     background  : '#eee'
     fontSize    : '10pt'
     paddingLeft : '1em'
     color       : '#666'
-
-close_style =
-    float        : 'right'
-    paddingRight : '2px'
-    marginTop    : '-4px'
-    marginBottom : '-4px'
-    fontSize     : '14pt'
-    cursor       : 'pointer'
 
 exports.FrameTitleBar = rclass
     propTypes :
@@ -36,15 +30,61 @@ exports.FrameTitleBar = rclass
 
     render_x: ->
         if @props.deletable
-            <span
-                className='webapp-editor-close-hover-x'
-                style={close_style}
-                onClick={@click_close} >
-                ×
-            </span>
+            <Button
+                key     = {'close'}
+                bsSize  = {"xsmall"}
+                onClick = {@click_close} >
+                <Icon name={'times'}/>
+            </Button>
+
+    render_split_row: ->
+        <Button
+            key     = {'split-row'}
+            bsSize  = {"xsmall"}
+            onClick = {=>@props.actions.split_frame('row', @props.id)} >
+            <Icon name='columns' rotate={'90'} />
+        </Button>
+
+    render_split_col: ->
+        <Button
+            key     = {'split-col'}
+            bsSize  = {"xsmall"}
+            onClick = {=>@props.actions.split_frame('col', @props.id)} >
+            <Icon name='columns' />
+        </Button>
+
+    render_zoom_out: ->
+        <Button
+            key     = {'font-increase'}
+            bsSize  = {"xsmall"}
+            onClick = {=>@props.actions.decrease_font_size(@props.id)}
+            >
+            <Icon style={fontSize:'5pt'} name={'font'} />
+        </Button>
+
+    render_zoom_in: ->
+        <Button
+            key     = {'font-decrease'}
+            onClick = {=>@props.actions.increase_font_size(@props.id)}
+            bsSize  = {"xsmall"}
+            >
+            <Icon style={fontSize:'9pt'} name={'font'} />
+        </Button>
+
+    render_buttons: ->
+        <span style={float:'right'}>
+            <ButtonGroup>
+                {@render_zoom_out()}
+                {@render_zoom_in()}
+                {@render_split_row()}
+                {@render_split_col()}
+                {@render_x()}
+            </ButtonGroup>
+        </span>
+
 
     render: ->
         <div style={title_bar_style}>
             {@props.title}
-            {@render_x()}
+            {@render_buttons()}
         </div>

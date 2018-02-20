@@ -128,8 +128,8 @@ class exports.Actions extends Actions
     close_frame: (id) =>
         @_tree_op('delete_node', id)
 
-    split_frame: (direction) =>
-        @_tree_op('split_leaf', @store.getIn(['local_view_state', 'active_id']), direction)
+    split_frame: (direction, id) =>
+        @_tree_op('split_leaf', id ? @store.getIn(['local_view_state', 'active_id']), direction)
 
     save_scroll_position: (id, info) =>
         @set_frame_tree(id:id, scroll:info)
@@ -185,9 +185,9 @@ class exports.Actions extends Actions
     redo: =>
         @syncstring?.redo()
 
-    change_font_size: (delta) =>
-        local = @store.getIn('local_view_state')
-        id    = local.get('active_id')
+    change_font_size: (delta, id) =>
+        local      = @store.getIn('local_view_state')
+        id        ?= local.get('active_id')
         font_size  = tree_ops.get_node(local.get('frame_tree'), id)?.get('font_size')
         if not font_size?
             font_size = @redux.getStore('account')?.get('font_size') ? 14
@@ -196,11 +196,11 @@ class exports.Actions extends Actions
             font_size = 2
         @set_frame_tree(id:id, font_size:font_size)
 
-    increase_font_size: =>
-        @change_font_size(1)
+    increase_font_size: (id) =>
+        @change_font_size(1, id)
 
-    decrease_font_size: =>
-        @change_font_size(-1)
+    decrease_font_size: (id) =>
+        @change_font_size(-1, id)
 
     set_cm: (cm) =>
         @cm = cm
