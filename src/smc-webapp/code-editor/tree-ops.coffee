@@ -90,16 +90,32 @@ exports.has_id = (tree, id) ->
     return has
 
 exports.is_leaf = (node) ->
-    return not node.get('first') and not node.get('second')
+    return node? and not node.get('first') and not node.get('second')
+
+# Get node in the tree with given id
+exports.get_node = (tree, id) ->
+    if not tree?
+        return false
+    the_node = undefined
+    process = (node) ->
+        if the_node? or not node?
+            return
+        if node.get('id') == id
+            the_node = node
+            return
+        for x in ['first', 'second']
+            if the_node?
+                break
+            process(node.get(x))
+    process(tree)
+    return the_node
+
 
 exports.is_leaf_id = (tree, id) ->
-    node = tree.get(id)
-    if not node?
-        return false
-    return not node.get('first') and not node.get('second')
+    return exports.is_leaf(exports.get_node(tree, id))
 
-# Get id of a leaf node.  Assumes all ids are set.
-exports.get_leaf_id = (tree) ->
+# Get id of some leaf node.  Assumes all ids are set.
+exports.get_some_leaf_id = (tree) ->
     done = false
     id   = undefined
     process = (node) ->

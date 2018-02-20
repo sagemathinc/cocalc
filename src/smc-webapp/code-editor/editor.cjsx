@@ -58,11 +58,16 @@ exports.Editor = rclass ({name}) ->
         frame_tree = @props.local_view_state?.get('frame_tree')
         if not @props.is_loaded or not frame_tree?
             return @render_loading()
-        <FrameTree
-            actions     = {@props.actions}
-            frame_tree  = {frame_tree}
-            active_id   = {@props.local_view_state.get('active_id')}
-            />
+        <div
+            className = {'smc-vfill'}
+            style     = {background: 'lightgrey'}
+            >
+            <FrameTree
+                actions     = {@props.actions}
+                frame_tree  = {frame_tree}
+                active_id   = {@props.local_view_state.get('active_id')}
+                />
+        </div>
 
     render_error: ->
         if not @props.error
