@@ -749,7 +749,7 @@ exports.SearchInput = rclass
             </InputGroup>
         </FormGroup>
 
-exports.HTML = rclass
+exports.HTML = HTML = rclass
     displayName : 'Misc-HTML'   # this name is assumed and USED in the smc-hub/share/mathjax-support to identify this component; do NOT change!
 
     propTypes :
@@ -857,10 +857,8 @@ exports.Markdown = rclass
             return markdown.markdown_to_html(v, {process_math : true})
 
     render: ->
-        HTML = exports.HTML
-        value = @to_html()
         <HTML
-            value          = {value}
+            value          = {@to_html()}
             style          = {@props.style}
             project_id     = {@props.project_id}
             file_path      = {@props.file_path}
