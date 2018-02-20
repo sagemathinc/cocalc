@@ -16,22 +16,8 @@ require('./jsdom-support')
 
 exports.react = (res, component, extra, viewer) ->
     res.type('html')
-    # we will definitely want to disable math processing someday for any filetypes that don't need it
-    use_math = true
-    async.series([
-        (cb) ->
-            if not use_math
-                cb()
-                return
-            t0 = new Date()
-            process_react_component component, viewer, ->
-                console.log("react: time to process math with KaTeX: #{new Date() - t0}ms", extra)
-                cb()
-        (cb) ->
-            t0 = new Date()
-            stream = ReactDOMServer.renderToStaticNodeStream(component)
-            stream.pipe(res)
-            stream.once 'end', ->
-                console.log("react: time to render and stream out: #{new Date() - t0}ms", extra)
-                cb()
-    ])
+    t0 = new Date()
+    stream = ReactDOMServer.renderToStaticNodeStream(component)
+    stream.pipe(res)
+    stream.once 'end', ->
+        console.log("react: time to render and stream out: #{new Date() - t0}ms", extra)

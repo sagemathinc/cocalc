@@ -749,23 +749,12 @@ exports.SearchInput = rclass
             </InputGroup>
         </FormGroup>
 
-# rendered_mathjax is used for backend pre-rendering of mathjax by the share server.
-rendered_mathjax = undefined
-exports.set_rendered_mathjax = (value, html) ->
-    rendered_mathjax ?= {}
-    if rendered_mathjax[value]?
-        rendered_mathjax[value].ref += 1
-    else
-        rendered_mathjax[value] = {html:html, ref:1}
-
-
 exports.HTML = rclass
     displayName : 'Misc-HTML'   # this name is assumed and USED in the smc-hub/share/mathjax-support to identify this component; do NOT change!
 
     propTypes :
         value          : rtypes.string
         style          : rtypes.object
-        has_mathjax    : rtypes.bool
         project_id     : rtypes.string   # optional -- can be used to improve link handling (e.g., to images)
         file_path      : rtypes.string   # optional -- ...
         className      : rtypes.string   # optional class
@@ -779,7 +768,6 @@ exports.HTML = rclass
         highlight      : rtypes.immutable.Set
 
     getDefaultProps: ->
-        has_mathjax : true
         safeHTML    : true
 
     shouldComponentUpdate: (next) ->
@@ -788,97 +776,47 @@ exports.HTML = rclass
              not underscore.isEqual(@props.style, next.style) or \
              @props.safeHTML != next.safeHTML
 
-    ###
-    # Seems no longer necessary and *DOES* break massively on Safari! -- see https://github.com/sagemathinc/cocalc/issues/1895
-    _update_escaped_chars: ->
-        if not @_is_mounted
-            return
-        node = $(ReactDOM.findDOMNode(@))
-        node.html(node[0].innerHTML.replace(/\\\$/g, '$'))
-    ###
+    _process_math: (html_before) ->
 
-    _update_mathjax: (cb) ->
-        if not @_is_mounted  # see https://github.com/sagemathinc/cocalc/issues/1689
-            cb()
-            return
-        if @props.has_mathjax
-            $(ReactDOM.findDOMNode(@)).mathjax
-                hide_when_rendering : false
-                cb : () =>
-                    # Awkward code, since cb may be called more than once if there
-                    # where more than one node.
-                    cb?()
-                    cb = undefined
-        else
-            cb()
+        return html_after
 
-    _update_links: ->
-        if not @_is_mounted
-            return
+    _process_links: (html_before) ->
+
         $(ReactDOM.findDOMNode(@)).process_smc_links
             project_id     : @props.project_id
             file_path      : @props.file_path
             href_transform : @props.href_transform
 
-    _update_tables: ->
-        if not @_is_mounted
-            return
-        $(ReactDOM.findDOMNode(@)).find("table").addClass('table')
+        return html_after
 
-    _update_highlight: ->
-        if not @_is_mounted or not @props.highlight?
-            return
+    _process_tables: (html_before) ->
+
+        $(ReactDOM.findDOMNode(@)).find("table").addClass('table')
+        return html_after
+
+    _process_highlighting: ->
         # Use jquery-highlight, which is a pretty serious walk of the DOM tree, etc.
         $(ReactDOM.findDOMNode(@)).highlight(@props.highlight.toJS())
 
-    update_content: ->
-        if not @_is_mounted
-            return
-        # orchestrates the _update_* methods
-        @_update_mathjax =>
-            if not @_is_mounted
-                return
-            #@_update_escaped_chars()
-            @_update_links()   # this MUST be after update_escaped_chars -- see https://github.com/sagemathinc/cocalc/issues/1391
-            @_update_tables()
-            @_update_highlight()
-
-    componentDidUpdate: ->
-        @update_content()
-
-    componentDidMount: ->
-        @_is_mounted = true
-        @update_content()
-
-    componentWillUnmount: ->
-        # see https://facebook.github.io/react/blog/2015/12/16/ismounted-antipattern.html
-        # and https://github.com/sagemathinc/cocalc/issues/1689
-        @_is_mounted = false
-
     render_html: ->
         if @props.value
-            if @props.has_mathjax and rendered_mathjax?
-                x = rendered_mathjax?[@props.value]
-                if x?
-                    x.ref -= 1
-                    if x.ref <= 0
-                        delete rendered_mathjax?[@props.value]
-                    return {__html:x.html}
-
             if @props.safeHTML
                 html = require('./misc_page').sanitize_html_safe(@props.value, @props.post_hook)
             else
                 html = require('./misc_page').sanitize_html(@props.value, true, true, @props.post_hook)
+
+            html = @_process_math(html)
+            html = @_process_links(html)
+            html = @_process_tables(html)
+            html = @_process_highlight(html)
+
             {__html: html}
         else
             {__html: ''}
 
 
     render: ->
-        # the random key is the whole span (hence the html) does get rendered whenever
-        # this component is updated.  Otherwise, it will NOT re-render except when the value changes.
         <span
-            key                     = {Math.random()}
             className               = {@props.className}
             dangerouslySetInnerHTML = {@render_html()}
             style                   = {@props.style}>
@@ -911,7 +849,7 @@ exports.Markdown = rclass
         if @props.value
             # change escaped characters back for markdown processing
             v = @props.value.replace(/&gt;/g, '>').replace(/&lt;/g, '<')
-            return markdown.markdown_to_html(v).s
+            return markdown.markdown_to_html(v)
 
     render: ->
         HTML = exports.HTML
