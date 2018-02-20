@@ -69,11 +69,11 @@ class exports.Actions extends Actions
         if not frame_tree?
             frame_tree = immutable.fromJS({type:'cm', path:@path})
 
-        #frame_tree = immutable.fromJS({id:'a',direction:'row', type:'frame_tree', first:{id:'b',type:'cm', path:@path}, second:{id:'c',type:'cm', path:@path}})
-        #frame_tree = immutable.fromJS({pos:0.25, direction:'col', type:'frame_tree', first:{type:'cm', path:@path}, second:{type:'cm', path:@path}})
-        #frame_tree = immutable.fromJS({pos:0.25, direction:'col', type:'frame_tree', first:{type:'cm', path:@path}, second:{,direction:'col',type:'frame_tree',first:{type:'cm', path:@path},second:{type:'cm',path:@path}}})
-        #frame_tree = immutable.fromJS({pos:0.25, direction:'col', type:'frame_tree', first:{type:'cm', path:@path}, second:{direction:'row',type:'frame_tree',first:{type:'cm', path:@path},second:{type:'cm',path:@path}}})
-        #frame_tree = immutable.fromJS({pos:0.25, direction:'row', type:'frame_tree', first:{id:'a',type:'cm', path:@path}, second:{direction:'col',type:'frame_tree',first:{type:'cm', path:@path},second:{direction:'row',type:'frame_tree',first:{type:'cm', path:@path},second:{id:'b',type:'cm',path:@path}}}})
+        #frame_tree = immutable.fromJS({id:'a',direction:'row', type:'node', first:{id:'b',type:'cm', path:@path}, second:{id:'c',type:'cm', path:@path}})
+        #frame_tree = immutable.fromJS({pos:0.25, direction:'col', type:'node', first:{type:'cm', path:@path}, second:{type:'cm', path:@path}})
+        #frame_tree = immutable.fromJS({pos:0.25, direction:'col', type:'node', first:{type:'cm', path:@path}, second:{,direction:'col',type:'node',first:{type:'cm', path:@path},second:{type:'cm',path:@path}}})
+        #frame_tree = immutable.fromJS({pos:0.25, direction:'col', type:'node', first:{type:'cm', path:@path}, second:{direction:'row',type:'node',first:{type:'cm', path:@path},second:{type:'cm',path:@path}}})
+        #frame_tree = immutable.fromJS({pos:0.25, direction:'row', type:'node', first:{id:'a',type:'cm', path:@path}, second:{direction:'col',type:'node',first:{type:'cm', path:@path},second:{direction:'row',type:'node',first:{type:'cm', path:@path},second:{id:'b',type:'cm',path:@path}}}})
 
         frame_tree = tree_ops.assign_ids(frame_tree)
         frame_tree = tree_ops.ensure_ids_are_unique(frame_tree)
@@ -105,27 +105,33 @@ class exports.Actions extends Actions
             @_save_local_view_state()
         return
 
-    set_frame_tree: (obj) =>
+    _tree_op: (op, args...) =>
         local = @store.get('local_view_state')
         t0    = local?.get('frame_tree')
         if not t0?
             return
-        t1    = tree_ops.set(t0, obj)
+        f = tree_ops[op]
+        if not f?
+            throw Error("unknown tree op '#{op}'")
+        t1 = f(t0, args...)
         if t1 != t0
+            if op == 'delete_node'
+                if not tree_ops.is_leaf_id(t1, local.get('active_id'))
+                    local = local.set('active_id',  tree_ops.get_some_leaf_id(t1))
             @setState(local_view_state : local.set('frame_tree', t1))
             @_save_local_view_state()
+        else
+            console.log 'no change'
         return
 
+    set_frame_tree: (obj) =>
+        @_tree_op('set', obj)
+
     close_frame: (id) =>
-        local = @store.get('local_view_state')
-        t0    = local?.get('frame_tree')
-        if not t0?
-            return
-        t1 = tree_ops.delete_node(t0, id)
-        if t1 != t0
-            @setState(local_view_state : local.set('frame_tree', t1))
-            @_save_local_view_state()
-        return
+        @_tree_op('delete_node', id)
+
+    split_frame: (direction) =>
+        @_tree_op('split_leaf', @store.getIn(['local_view_state', 'active_id']), direction)
 
     save_scroll_position: (id, info) =>
         @set_frame_tree(id:id, scroll:info)
@@ -254,9 +260,6 @@ class exports.Actions extends Actions
 
     goto_line: =>
         @cm?.execCommand('jumpToLine')
-
-    split_view: =>
-        console.log 'split_view, todo'
 
     cut: =>
         copypaste.set_buffer(@cm?.getSelection())

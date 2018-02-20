@@ -117,6 +117,9 @@ exports.CodemirrorEditor = rclass
                 @save_state_throttle()
                 @props.actions.exit_undo_mode()
 
+        @cm.on 'focus', =>
+            @props.actions.set_active_id(@props.id)
+
         @cm.on 'viewportChange', debounce(@save_scroll_position, 1000)
 
         # replace undo/redo by our sync aware versions

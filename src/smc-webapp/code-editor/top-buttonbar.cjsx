@@ -145,13 +145,21 @@ exports.ButtonBar = rclass
 
     render_split: ->
         <Tip
+            key       = {'split'}
             placement = {'left'}
-            title     = {'Split the current edit frame.'} >
-            <Button
-                key     = {'split'}
-                onClick = {@props.actions.split_view} >
-                <Icon name='columns' rotate={'90'} /> <VisibleMDLG>Split</VisibleMDLG>
-            </Button>
+            title     = {'Split the current edit frame showing two parts of the document at once.'} >
+            <ButtonGroup key={'split'}>
+                <Button
+                    key     = {'split-row'}
+                    onClick = {=>@props.actions.split_frame('row')} >
+                    <Icon name='columns' rotate={'90'} /> <VisibleMDLG></VisibleMDLG>
+                </Button>
+                <Button
+                    key     = {'split-col'}
+                    onClick = {=>@props.actions.split_frame('col')} >
+                    <Icon name='columns' /> <VisibleMDLG>Split</VisibleMDLG>
+                </Button>
+            </ButtonGroup>
         </Tip>
 
     render_file_info: ->

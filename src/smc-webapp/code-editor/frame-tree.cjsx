@@ -8,8 +8,7 @@ places, terminals, etc.
 The frame_tree prop is:
 
     id        : a UUID that uniquely determines this particular node in the frame tree
-    type      : 'frame_tree'
-    scroll    : optional scroll position info
+    type      : 'node'
     direction : 'row' = frame is split via horizontal line; 'col' = frame is split via vert line
     first     : NOT optional -- another object with id, type, etc.
     second    : another object with id, type, etc.
@@ -91,7 +90,7 @@ exports.FrameTree = FrameTree = rclass
 
     render_one: (desc) ->
         switch desc?.get('type')
-            when 'frame_tree'
+            when 'node'
                 return @render_frame_tree(desc)
             when 'cm'
                 child = @render_codemirror(desc)
@@ -203,7 +202,7 @@ exports.FrameTree = FrameTree = rclass
         </div>
 
     render: ->
-        if @props.frame_tree.get('type') != 'frame_tree'
+        if @props.frame_tree.get('type') != 'node'
             return @render_one(@props.frame_tree)
         else if @props.frame_tree.get('direction') == 'col'
             return @render_cols()
