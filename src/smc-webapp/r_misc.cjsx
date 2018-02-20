@@ -25,6 +25,7 @@ async = require('async')
 {HelpEmailLink, SiteName, CompanyName, PricingUrl, PolicyTOSPageUrl, PolicyIndexPageUrl, PolicyPricingPageUrl} = require('./customize')
 {UpgradeRestartWarning} = require('./upgrade_restart_warning')
 copy_to_clipboard = require('copy-to-clipboard')
+katex = require('./katex')
 
 # injected by webpack, but not for react-static renderings (ATTN don't assign to uppercase vars!)
 smc_version = SMC_VERSION ? 'N/A'
@@ -753,31 +754,29 @@ exports.HTML = HTML = rclass
     displayName : 'Misc-HTML'   # this name is assumed and USED in the smc-hub/share/mathjax-support to identify this component; do NOT change!
 
     propTypes :
-        value          : rtypes.string
-        style          : rtypes.object
-        project_id     : rtypes.string   # optional -- can be used to improve link handling (e.g., to images)
-        file_path      : rtypes.string   # optional -- ...
-        className      : rtypes.string   # optional class
-        safeHTML       : rtypes.bool     # optional -- default true, if true scripts and unsafe attributes are removed from sanitized html
-        href_transform : rtypes.func     # optional function that link/src hrefs are fed through
-        post_hook      : rtypes.func     # optional function post_hook(elt), which should mutate elt, where elt is
+        value            : rtypes.string
+        style            : rtypes.object
+        auto_render_math : rtypes.bool
+        project_id       : rtypes.string   # optional -- can be used to improve link handling (e.g., to images)
+        file_path        : rtypes.string   # optional -- ...
+        className        : rtypes.string   # optional class
+        safeHTML         : rtypes.bool     # optional -- default true, if true scripts and unsafe attributes are removed from sanitized html
+        href_transform   : rtypes.func     # optional function that link/src hrefs are fed through
+        post_hook        : rtypes.func     # optional function post_hook(elt), which should mutate elt, where elt is
                                          # the jQuery wrapped set that is created (and discarded!) in the course of
                                          # sanitizing input.  Use this as an opportunity to modify the HTML structure
                                          # before it is exported to text and given to react.   Obviously, you can't
                                          # install click handlers here.
 
     getDefaultProps: ->
-        safeHTML    : true
+        auto_render_math : false
+        safeHTML         : true
 
     shouldComponentUpdate: (next) ->
         return @props.value != next.value or \
-             not underscore.isEqual(@props.style, next.style) or \
-             @props.safeHTML != next.safeHTML
-
-    shouldComponentUpdate: (next) ->
-        return @props.value != next.value or \
-             not underscore.isEqual(@props.style, next.style) or \
-             @props.safeHTML != next.safeHTML
+            @props.auto_render_math != next.auto_render_math or \
+            not underscore.isEqual(@props.style, next.style) or \
+            @props.safeHTML != next.safeHTML
 
     _update_links: ->
         if not @_is_mounted
@@ -814,6 +813,9 @@ exports.HTML = HTML = rclass
                 html = require('./misc_page').sanitize_html_safe(@props.value, @props.post_hook)
             else
                 html = require('./misc_page').sanitize_html(@props.value, true, true, @props.post_hook)
+
+            if @props.auto_render_math
+                html = katex.render(html)
 
             {__html: html}
         else
