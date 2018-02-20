@@ -120,8 +120,6 @@ class exports.Actions extends Actions
                     local = local.set('active_id',  tree_ops.get_some_leaf_id(t1))
             @setState(local_view_state : local.set('frame_tree', t1))
             @_save_local_view_state()
-        else
-            console.log 'no change'
         return
 
     set_frame_tree: (obj) =>

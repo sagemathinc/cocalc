@@ -155,7 +155,7 @@ exports.FrameTree = FrameTree = rclass
     render_cols: ->
         data = @get_data('row')
         <div
-            style = {display:'flex', flexDirection:'row'}
+            style = {display:'flex', flexDirection:'row', flex:1}
             ref   = {'cols_container'}>
             <div className={'smc-vfill'} style={data.style_first}>
                 {@render_one(data.first)}
