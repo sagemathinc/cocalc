@@ -9,7 +9,7 @@ misc                 = require('smc-util/misc')
 {defaults, required} = misc
 
 exports.cm_options = (opts) ->
-    {filename, editor_settings} = defaults opts,
+    {filename, editor_settings, actions} = defaults opts,
         filename        : required  # string -- determines editor mode
         editor_settings : required  # immutable.js map
         actions         : undefined
@@ -52,23 +52,23 @@ exports.cm_options = (opts) ->
         "Ctrl-Space"   : "autocomplete"
         "Tab"          : (cm) -> cm.tab_as_space()
 
-    if opts.actions?
+    if actions?
         misc.merge extraKeys,
-            "Cmd-S"        : opts.actions.save
-            "Alt-S"        : opts.actions.save
-            "Ctrl-S"       : opts.actions.save
-            "Shift-Ctrl-." : opts.actions.increase_font_size
-            "Shift-Ctrl-," : opts.actions.decrease_font_size
-            "Shift-Cmd-."  : opts.actions.increase_font_size
-            "Shift-Cmd-,"  : opts.actions.decrease_font_size
-            "Ctrl-L"       : opts.actions.goto_line
-            "Cmd-L"        : opts.actions.goto_line
-            "Cmd-F"        : opts.actions.find
-            "Ctrl-F"       : opts.actions.find
-            "Cmd-G"        : opts.actions.find_next
-            "Ctrl-G"       : opts.actions.find_next
-            "Shift-Cmd-G"  : opts.actions.find_prev
-            "Shift-Ctrl-G" : opts.actions.find_prev
+            "Cmd-S"        : actions.save
+            "Alt-S"        : actions.save
+            "Ctrl-S"       : actions.save
+            "Shift-Ctrl-." : actions.increase_font_size
+            "Shift-Ctrl-," : actions.decrease_font_size
+            "Shift-Cmd-."  : actions.increase_font_size
+            "Shift-Cmd-,"  : actions.decrease_font_size
+            "Ctrl-L"       : (cm) => cm.execCommand('jumpToLine')
+            "Cmd-L"        : (cm) => cm.execCommand('jumpToLine')
+            "Cmd-F"        : (cm) => cm.execCommand('find')
+            "Ctrl-F"       : (cm) => cm.execCommand('find')
+            "Cmd-G"        : (cm) => cm.execCommand('findNext')
+            "Ctrl-G"       : (cm) => cm.execCommand('findNext')
+            "Shift-Cmd-G"  : (cm) => cm.execCommand('findPrev')
+            "Shift-Ctrl-G" : (cm) => cm.execCommand('findPrev')
 
     if opts.match_xml_tags
         extraKeys['Ctrl-J'] = "toMatchingTag"
