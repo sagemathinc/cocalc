@@ -765,38 +765,48 @@ exports.HTML = rclass
                                          # sanitizing input.  Use this as an opportunity to modify the HTML structure
                                          # before it is exported to text and given to react.   Obviously, you can't
                                          # install click handlers here.
-        highlight      : rtypes.immutable.Set
 
     getDefaultProps: ->
         safeHTML    : true
 
     shouldComponentUpdate: (next) ->
         return @props.value != next.value or \
-             @props.highlight != next.highlight or \
              not underscore.isEqual(@props.style, next.style) or \
              @props.safeHTML != next.safeHTML
 
-    _process_math: (html_before) ->
+    shouldComponentUpdate: (next) ->
+        return @props.value != next.value or \
+             not underscore.isEqual(@props.style, next.style) or \
+             @props.safeHTML != next.safeHTML
 
-        return html_after
-
-    _process_links: (html_before) ->
-
+    _update_links: ->
+        if not @_is_mounted
+            return
         $(ReactDOM.findDOMNode(@)).process_smc_links
             project_id     : @props.project_id
             file_path      : @props.file_path
             href_transform : @props.href_transform
 
-        return html_after
-
-    _process_tables: (html_before) ->
-
+    _update_tables: ->
+        if not @_is_mounted
+            return
         $(ReactDOM.findDOMNode(@)).find("table").addClass('table')
-        return html_after
 
-    _process_highlighting: ->
-        # Use jquery-highlight, which is a pretty serious walk of the DOM tree, etc.
-        $(ReactDOM.findDOMNode(@)).highlight(@props.highlight.toJS())
+    update_content: ->
+        @_update_links()   # this MUST be after update_escaped_chars -- see https://github.com/sagemathinc/cocalc/issues/1391
+        @_update_tables()
+
+    componentDidUpdate: ->
+        @update_content()
+
+    componentDidMount: ->
+        @_is_mounted = true
+        @update_content()
+
+    componentWillUnmount: ->
+        # see https://facebook.github.io/react/blog/2015/12/16/ismounted-antipattern.html
+        # and https://github.com/sagemathinc/cocalc/issues/1689
+        @_is_mounted = false
 
     render_html: ->
         if @props.value
@@ -804,11 +814,6 @@ exports.HTML = rclass
                 html = require('./misc_page').sanitize_html_safe(@props.value, @props.post_hook)
             else
                 html = require('./misc_page').sanitize_html(@props.value, true, true, @props.post_hook)
-
-            html = @_process_math(html)
-            html = @_process_links(html)
-            html = @_process_tables(html)
-            html = @_process_highlight(html)
 
             {__html: html}
         else
@@ -849,7 +854,7 @@ exports.Markdown = rclass
         if @props.value
             # change escaped characters back for markdown processing
             v = @props.value.replace(/&gt;/g, '>').replace(/&lt;/g, '<')
-            return markdown.markdown_to_html(v)
+            return markdown.markdown_to_html(v, {process_math : true})
 
     render: ->
         HTML = exports.HTML
