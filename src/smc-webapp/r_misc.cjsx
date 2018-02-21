@@ -841,11 +841,9 @@ exports.Markdown = rclass
         safeHTML       : rtypes.bool     # optional -- default true, if true scripts and unsafe attributes are removed from sanitized html
         href_transform : rtypes.func     # optional function used to first transform href target strings
         post_hook      : rtypes.func     # see docs to HTML
-        highlight      : rtypes.immutable.Set
 
     shouldComponentUpdate: (next) ->
         return @props.value != next.value or \
-             @props.highlight != next.highlight or \
              not underscore.isEqual(@props.style, next.style) or \
              @props.safeHTML != next.safeHTML
 
@@ -854,21 +852,18 @@ exports.Markdown = rclass
 
     to_html: ->
         if @props.value
-            # change escaped characters back for markdown processing
-            v = @props.value.replace(/&gt;/g, '>').replace(/&lt;/g, '<')
-            return markdown.markdown_to_html(v, {process_math : true})
+            return markdown.markdown_to_html(@props.value, {process_math : true})
 
     render: ->
         <HTML
-            value          = {@to_html()}
-            style          = {@props.style}
-            project_id     = {@props.project_id}
-            file_path      = {@props.file_path}
-            className      = {@props.className}
-            href_transform = {@props.href_transform}
-            post_hook      = {@props.post_hook}
-            highlight      = {@props.highlight}
-            safeHTML       = {@props.safeHTML} />
+            value            = {@to_html()}
+            style            = {@props.style}
+            project_id       = {@props.project_id}
+            file_path        = {@props.file_path}
+            className        = {@props.className}
+            href_transform   = {@props.href_transform}
+            post_hook        = {@props.post_hook}
+            safeHTML         = {@props.safeHTML} />
 
 activity_style =
     float           : 'right'

@@ -79,6 +79,13 @@ exports.Page = rclass
                 {### codemirror CDN -- https://cdnjs.com/libraries/codemirror ###}
                 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.31.0/codemirror.min.css" />
 
+                {### Katex CDN ###}
+                <link
+                    rel="stylesheet"
+                    href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.9.0/katex.min.css"
+                    integrity="sha384-TEMocfGvRuD1rIAacqrknm5BQZ7W7uWitoih+jMNFXQIbNl16bO8OZmylH/Vi/Ei"
+                    crossorigin="anonymous" />
+
                 {@render_favicon()}
                 {@render_css()}
                 {@render_noindex()}

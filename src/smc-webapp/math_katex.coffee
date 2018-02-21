@@ -7,12 +7,30 @@ replace_math = (text, math) ->
     return text.replace(/@@(\d+)@@/g, math_group_process)
 
 exports.render = (html) ->
-    console.log "Rendering... Katex"
+    console.log "Rendering Katex directly via lib version: #{require('katex/package.json')._id}"
     [text, math] = remove_math(html, true)
     text = replace_all(text, '\\$', '$')   # make \$ not involved in math just be $.
     katex_opts =
-        macros:
-            "\\RR" : "\\mathbb{R}"
+        macros     : # get these from sage/misc/latex.py
+            "\\Bold"  : "\\mathbb{#1}"
+            "\\ZZ"    : "\\Bold{Z}"
+            "\\NN"    : "\\Bold{N}"
+            "\\RR"    : "\\Bold{R}"
+            "\\CC"    : "\\Bold{C}"
+            "\\FF"    : "\\Bold{F}"
+            "\\QQ"    : "\\Bold{Q}"
+            "\\QQbar" : "\\overline{\\QQ}"
+            "\\CDF"   : "\\Bold{C}"
+            "\\CIF"   : "\\Bold{C}"
+            "\\CLF"   : "\\Bold{C}"
+            "\\RDF"   : "\\Bold{R}"
+            "\\RIF"   : "\\Bold{I} \\Bold{R}"
+            "\\RLF"   : "\\Bold{R}"
+            "\\CFF"   : "\\Bold{CFF}"
+            "\\GF"    : "\\Bold{F}_{#1}"
+            "\\Zp"    : "\\ZZ_{#1}"
+            "\\Qp"    : "\\QQ_{#1}"
+            "\\Zmod"  : "\\ZZ/#1\\ZZ"
 
     math = for s in math
         katex_opts.displayMode = false
@@ -29,7 +47,7 @@ exports.render = (html) ->
             s = s.slice(s.indexOf('}')+1, s.lastIndexOf('\\end'))
             katex_opts.displayMode = true
 
-        # change these HTML entities, since our input format is TeX, **not** HTML (which is not supported by mathjax-node)
+        # change these HTML entities, since our input format is TeX, **not** HTML (which is not supported by katex)
         s = replace_all(s, '&amp;', '&')
         s = replace_all(s, '&lt;', '<')
         s = replace_all(s, '&gt;', '>')
