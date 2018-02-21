@@ -1508,7 +1508,7 @@ ProjectFilesActionBox = rclass
 
     render_share_defn: ->
         <div style={color:'#555'}>
-            Use sharing to make a file or directory <a href="https://cocalc.com/share" target="_blank"><b><i>visible to the world.</i></b></a>  If you would like to collaborate and chat with other people on documents in this project, go the project Settings tab and "Add people to project".
+            Use sharing to make a file or directory <a href="https://cocalc.com/share" target="_blank"><b><i>visible to the world.</i></b></a> Learn more about sharing files <a href="https://github.com/sagemathinc/cocalc/wiki/share" target="_blank"><b><i>here.</i></b></a> If you would like to collaborate and chat with other people on documents in this project, go the project Settings tab and "Add people to project".
         </div>
 
     show_help: ->
