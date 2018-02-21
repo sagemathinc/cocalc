@@ -55,9 +55,9 @@ exports.cm_options = (opts) ->
 
     if actions?
         actionKeys =
-            "Cmd-S"        : actions.save
-            "Alt-S"        : actions.save
-            "Ctrl-S"       : actions.save
+            "Cmd-S"        : -> actions.save(true)
+            "Alt-S"        : -> actions.save(true)
+            "Ctrl-S"       : -> actions.save(true)
             "Shift-Ctrl-." : -> actions.increase_font_size(frame_id)
             "Shift-Ctrl-," : -> actions.decrease_font_size(frame_id)
             "Shift-Cmd-."  : -> actions.increase_font_size(frame_id)

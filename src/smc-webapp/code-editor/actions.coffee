@@ -18,7 +18,7 @@ class exports.Actions extends Actions
     _init: (project_id, path, syncstring, store) =>
         @project_id = project_id
         @path       = path
-        @syncstring = syncstring
+        @_syncstring = syncstring
         @store      = store
 
         @_save_local_view_state = underscore.debounce((=>@__save_local_view_state?()), 1500)
@@ -27,13 +27,13 @@ class exports.Actions extends Actions
         @setState
             local_view_state : @_load_local_view_state()
 
-        @syncstring.once('init', @_syncstring_metadata)
-        @syncstring.on('metadata-change', @_syncstring_metadata)
+        @_syncstring.once('init', @_syncstring_metadata)
+        @_syncstring.on('metadata-change', @_syncstring_metadata)
 
-        @syncstring.on('change', @_syncstring_change)
-        @syncstring.on('init', @_syncstring_change)
+        @_syncstring.on('change', @_syncstring_change)
+        @_syncstring.on('init', @_syncstring_change)
 
-        @syncstring.once('load-time-estimate', (est) => @setState(load_time_estimate: est))
+        @_syncstring.once('load-time-estimate', (est) => @setState(load_time_estimate: est))
 
     close: =>
         if @_state == 'closed'
@@ -41,11 +41,15 @@ class exports.Actions extends Actions
         @_state = 'closed'
         @__save_local_view_state?()
         delete @_save_local_view_state
-        @syncstring.close()
-        delete @syncstring
         if @_key_handler?
             @redux.getActions('page').erase_active_key_handler(@_key_handler)
             delete @_key_handler
+        if @_syncstring?
+            # Do not want to loose the very last change user made!
+            @set_syncstring_to_codemirror()
+            @_syncstring._save()
+            @_syncstring.close()
+            delete @_syncstring
 
     __save_local_view_state: =>
         local_view_state = @store.get('local_view_state')
@@ -162,17 +166,17 @@ class exports.Actions extends Actions
     _init_has_unsaved_changes: =>  # basically copies from tasks/actions.coffee -- opportunity to refactor
         do_set = =>
             @setState
-                has_unsaved_changes     : @syncstring?.has_unsaved_changes()
-                has_uncommitted_changes : @syncstring?.has_uncommitted_changes()
+                has_unsaved_changes     : @_syncstring?.has_unsaved_changes()
+                has_uncommitted_changes : @_syncstring?.has_uncommitted_changes()
         f = =>
             do_set()
             setTimeout(do_set, 3000)
         @set_save_status = underscore.debounce(f, 500, true)
-        @syncstring.on('metadata-change', @set_save_status)
-        @syncstring.on('connected',       @set_save_status)
+        @_syncstring.on('metadata-change', @set_save_status)
+        @_syncstring.on('connected',       @set_save_status)
 
     _syncstring_metadata: =>
-        read_only = @syncstring.get_read_only()
+        read_only = @_syncstring.get_read_only()
         if read_only != @store.get('read_only')
             @setState(read_only: read_only)
 
@@ -181,16 +185,31 @@ class exports.Actions extends Actions
             @setState(is_loaded: true)
         @set_save_status?()
 
-    save: =>
+    delete_trailing_whitespace: =>
+        cm = @cm
+        if not cm?
+            return
+        omit_lines = {}
+        @_syncstring.get_cursors()?.map (x, _) =>
+            x.get('locs')?.map (loc) =>
+                y = loc.get('y')
+                if y?
+                    omit_lines[y] = true
+        console.log omit_lines
+        cm.delete_trailing_whitespace(omit_lines:omit_lines)
+
+    save: (explicit) =>
         @setState(has_unsaved_changes:false)
         # TODO: what about markdown, where do not want this...
         # and what about multiple syncstrings...
-        if @redux.getStore('account')?.getIn(['editor_settings', 'strip_trailing_whitespace'])
-            @syncstring?.delete_trailing_whitespace?()
-        @syncstring?.save_to_disk =>
+        # TODO: Maybe just move this to some explicit menu of actions, which also includes several other formatting actions.
+        # Doing this automatically is fraught with error, since cursors aren't precise...
+        if explicit and @redux.getStore('account')?.getIn(['editor_settings', 'strip_trailing_whitespace'])
+            @delete_trailing_whitespace()
+        @_syncstring?.save_to_disk =>
             @set_save_status()
             # do it again.
-            @syncstring?.save_to_disk =>
+            @_syncstring?.save_to_disk =>
                 @set_save_status()
 
     time_travel: =>
@@ -203,10 +222,10 @@ class exports.Actions extends Actions
 
     undo: =>
         # TODO: do we need explicit exit of undo mode anywhere??!
-        @syncstring?.undo()
+        @_syncstring?.undo()
 
     redo: =>
-        @syncstring?.redo()
+        @_syncstring?.redo()
 
     change_font_size: (delta, id) =>
         local      = @store.getIn('local_view_state')
@@ -236,48 +255,48 @@ class exports.Actions extends Actions
         return @_cm?[local_view_state.get('active_id')]
 
     syncstring_save: =>
-        @syncstring?.save()
+        @_syncstring?.save()
         @set_save_status()
 
     set_syncstring_to_codemirror: =>
-        if not @cm? or not @syncstring?
+        if not @cm? or not @_syncstring?
             return
-        @syncstring.from_str(@cm.getValue())
+        @_syncstring.from_str(@cm.getValue())
 
     set_codemirror_to_syncstring: =>
-        if not @cm? or not @syncstring?
+        if not @cm? or not @_syncstring?
             return
-        @cm.setValueNoJump(@syncstring.to_str())
+        @cm.setValueNoJump(@_syncstring.to_str())
         @set_save_status()
 
     exit_undo_mode: =>
-        @syncstring?.exit_undo_mode()
+        @_syncstring?.exit_undo_mode()
 
     # per-session sync-aware undo
     undo: =>
         if not @cm?
             return
-        if not @syncstring.in_undo_mode()
+        if not @_syncstring.in_undo_mode()
             @set_syncstring_to_codemirror()
-        value = @syncstring.undo().to_str()
+        value = @_syncstring.undo().to_str()
         @cm.setValueNoJump(value)
         @set_syncstring_to_codemirror()
-        @syncstring_save()
+        @_syncstring_save()
 
     # per-session sync-aware redo
     redo: =>
         if not @cm?
             return
-        if not @syncstring.in_undo_mode()
+        if not @_syncstring.in_undo_mode()
             return
-        doc = @syncstring.redo()
+        doc = @_syncstring.redo()
         if not doc?
             # can't redo if version not defined/not available.
             return
         value = doc.to_str()
         @cm.setValueNoJump(value)
         @set_syncstring_to_codemirror()
-        @syncstring_save()
+        @_syncstring_save()
 
     find: =>
         @cm?.execCommand('find')
