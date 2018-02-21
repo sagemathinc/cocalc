@@ -3,6 +3,8 @@ Conversion between Markdown and HTML
 
 Automatically parses math with Katex
 ###
+{defaults} = require('smc-util/misc')
+
 unified       = require('unified')
 
 markdown      = require('remark-parse')
@@ -28,7 +30,10 @@ markdown_processor = unified()
     .use(stringify)
 
 exports.markdown_to_html = (markdown_string, opts) ->
+    opts = defaults opts,
+        process_math : false
+
     if opts.process_math
-        return katex_markdown_processor.processSync(raw_string).toString()
+        return katex_markdown_processor.processSync(markdown_string).toString()
     else
-        return markdown_processor.processSync(raw_string).toString()
+        return markdown_processor.processSync(markdown_string).toString()

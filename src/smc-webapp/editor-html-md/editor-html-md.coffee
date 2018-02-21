@@ -38,6 +38,8 @@ editor          = require('../editor')
 {redux}         = require('../smc-react')
 printing        = require('../printing')
 
+math_katex      = require('../math_katex')
+
 templates       = $("#webapp-editor-templates")
 
 
@@ -446,7 +448,7 @@ class exports.HTML_MD_Editor extends editor.FileEditor
 
     md_to_html: (cb) =>
         source = @_get()
-        html = require('../markdown').markdown_to_html(source)
+        html = require('../markdown').markdown_to_html(source, {process_math : true})
         cb(undefined, html)
 
     rmd_to_html: (cb) =>
@@ -545,8 +547,6 @@ class exports.HTML_MD_Editor extends editor.FileEditor
                 )
 
                 @preview_content.find("table").addClass('table')  # bootstrap table
-
-                @preview_content.mathjax()
 
                 #@preview_content.find(".smc-html-cursor").scrollintoview()
                 #@preview_content.find(".smc-html-cursor").remove()

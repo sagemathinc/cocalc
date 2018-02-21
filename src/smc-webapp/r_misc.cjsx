@@ -25,7 +25,7 @@ async = require('async')
 {HelpEmailLink, SiteName, CompanyName, PricingUrl, PolicyTOSPageUrl, PolicyIndexPageUrl, PolicyPricingPageUrl} = require('./customize')
 {UpgradeRestartWarning} = require('./upgrade_restart_warning')
 copy_to_clipboard = require('copy-to-clipboard')
-katex = require('./katex')
+math_katex = require('./math_katex')
 
 # injected by webpack, but not for react-static renderings (ATTN don't assign to uppercase vars!)
 smc_version = SMC_VERSION ? 'N/A'
@@ -751,7 +751,7 @@ exports.SearchInput = rclass
         </FormGroup>
 
 exports.HTML = HTML = rclass
-    displayName : 'Misc-HTML'   # this name is assumed and USED in the smc-hub/share/mathjax-support to identify this component; do NOT change!
+    displayName : 'Misc-HTML'
 
     propTypes :
         value            : rtypes.string
@@ -815,7 +815,7 @@ exports.HTML = HTML = rclass
                 html = require('./misc_page').sanitize_html(@props.value, true, true, @props.post_hook)
 
             if @props.auto_render_math
-                html = katex.render(html)
+                html = math_katex.render(html)
 
             {__html: html}
         else

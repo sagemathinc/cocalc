@@ -7,6 +7,7 @@ replace_math = (text, math) ->
     return text.replace(/@@(\d+)@@/g, math_group_process)
 
 exports.render = (html) ->
+    console.log "Rendering... Katex"
     [text, math] = remove_math(html, true)
     text = replace_all(text, '\\$', '$')   # make \$ not involved in math just be $.
     katex_opts =
