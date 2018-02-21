@@ -44,28 +44,6 @@ exports.ButtonBar = rclass
             </Button>
         </ButtonGroup>
 
-    render_find_replace_group: ->
-        <ButtonGroup key={'find-group'}>
-            <Button
-                key      = {'find'}
-                onClick  = {@props.actions.find}
-                >
-                <Icon name='search' /> <VisibleMDLG>Find</VisibleMDLG>
-            </Button>
-            <Button
-                key      = {'replace'}
-                onClick  = {@props.actions.replace}
-                disabled = {@props.read_only}
-                >
-                <Icon name='exchange' /> <VisibleMDLG>Replace</VisibleMDLG>
-            </Button>
-            <Button
-                key      = {'goto-line'}
-                onClick  = {@props.actions.goto_line}
-                >
-                <Icon name='bolt' /> <VisibleMDLG>Line</VisibleMDLG>
-            </Button>
-        </ButtonGroup>
 
     render_save_timetravel_group: ->
         disabled = not @props.has_unsaved_changes or @props.read_only
@@ -83,27 +61,6 @@ exports.ButtonBar = rclass
                 bsStyle = {'info'}
                 onClick = {@props.actions.time_travel} >
                 <Icon name='history' /> <VisibleMDLG>TimeTravel</VisibleMDLG>
-            </Button>
-        </ButtonGroup>
-
-    render_copy_group: ->
-        <ButtonGroup key={'copy'}>
-            <Button
-                key      = {'cut'}
-                onClick  = {@props.actions.cut}
-                disabled = {@props.read_only} >
-                <Icon name={'scissors'} /> <VisibleLG>Cut</VisibleLG>
-            </Button>
-            <Button
-                key      = {'copy'}
-                onClick  = {@props.actions.copy} >
-                <Icon name={'copy'} />  <VisibleLG>Copy</VisibleLG>
-            </Button>
-            <Button
-                key     = {'paste'}
-                onClick = {@props.actions.paste}
-                disabled = {@props.read_only} >
-                <Icon name={'paste'} />  <VisibleLG>Paste</VisibleLG>
             </Button>
         </ButtonGroup>
 
@@ -127,43 +84,6 @@ exports.ButtonBar = rclass
             </Button>
         </Tip>
 
-    ###
-    render_zoom: ->
-        <ButtonGroup key={'zoom-group'}>
-            <Button
-                key     = {'font-increase'}
-                onClick = {@props.actions.decrease_font_size}
-                >
-                <Icon style={fontSize:'7pt'} name={'font'} />
-            </Button>
-            <Button
-                key     = {'font-decrease'}
-                onClick = {@props.actions.increase_font_size}
-                >
-                <Icon style={fontSize:'11pt'} name={'font'} />
-            </Button>
-        </ButtonGroup>
-
-    render_split: ->
-        <Tip
-            key       = {'split'}
-            placement = {'left'}
-            title     = {'Split the current edit frame showing two parts of the document at once.'} >
-            <ButtonGroup key={'split'}>
-                <Button
-                    key     = {'split-row'}
-                    onClick = {=>@props.actions.split_frame('row')} >
-                    <Icon name='columns' rotate={'90'} /> <VisibleMDLG></VisibleMDLG>
-                </Button>
-                <Button
-                    key     = {'split-col'}
-                    onClick = {=>@props.actions.split_frame('col')} >
-                    <Icon name='columns' /> <VisibleMDLG>Split</VisibleMDLG>
-                </Button>
-            </ButtonGroup>
-        </Tip>
-    ###
-
     render_file_info: ->
         <EditorFileInfoDropdown
             key       = {'info'}
@@ -176,11 +96,7 @@ exports.ButtonBar = rclass
         <div style={padding: '2px'}>
             {@render_file_info()}
             <Space/>
-            {@render_copy_group()}
-            <Space/>
             {@render_undo_redo_group()}
-            <Space/>
-            {@render_find_replace_group()}
             <Space/>
             {@render_print()}
             <Space/>

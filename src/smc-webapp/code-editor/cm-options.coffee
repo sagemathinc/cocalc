@@ -53,6 +53,9 @@ exports.cm_options = (opts) ->
         "Tab"          : (cm) -> tab_key(cm, opts.spaces_instead_of_tabs)
         "Shift-Tab"    : (cm) -> cm.unindent_selection()
 
+        "Shift-Cmd-L"  : (cm) -> cm.align_assignments()
+        "Shift-Ctrl-L" : (cm) -> cm.align_assignments()
+
     if actions?
         actionKeys =
             "Cmd-S"        : -> actions.save(true)

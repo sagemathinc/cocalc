@@ -74,7 +74,7 @@ exports.CodemirrorEditor = rclass
         delete @cm.redo
         $(@cm.getWrapperElement()).remove()  # remove from DOM -- "Remove this from your tree to delete an editor instance."
         delete @cm
-        @props.actions.set_cm()
+        @props.actions.set_cm(@props.id)
 
     save_scroll_position: ->
         if not @cm?
@@ -132,7 +132,7 @@ exports.CodemirrorEditor = rclass
 
         setTimeout((=>@cm_refresh(); if @props.is_current then @cm?.focus()), 0)
 
-        @props.actions.set_cm(@cm)
+        @props.actions.set_cm(@props.id, @cm)
 
         if @props.scroll?
             @cm.scrollTo(@props.scroll.get('left'), @props.scroll.get('top'))

@@ -85,6 +85,8 @@ if window?
     # IS_TOUCH for us means multitouch tablet or mobile.
     exports.IS_TOUCH = exports.isMobile.tablet() or exports.IS_MOBILE
 
+    exports.IS_IPAD  = navigator?.userAgent.match(/iPad/i)
+
     # DEBUG
     # exports.IS_MOBILE = true
 

@@ -78,6 +78,7 @@ exports.FrameTree = FrameTree = rclass
             id         = {desc.get('id')}
             path       = {desc.get('path')}
             deletable  = {desc.get('deletable') ? true}
+            read_only  = {desc.get('read_only')}
         />
 
     render_codemirror: (desc) ->

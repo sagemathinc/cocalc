@@ -6,6 +6,7 @@ Top-level react component for editing code
 {Loading}               = require('../r_misc')
 {ButtonBar}             = require('./top-buttonbar')
 {FrameTree}             = require('./frame-tree')
+{IS_IPAD}               = require('../feature')
 
 exports.Editor = rclass ({name}) ->
     propTypes :
@@ -77,9 +78,14 @@ exports.Editor = rclass ({name}) ->
         # TODO
         <div style={color:'red'}>{@props.error}</div>
 
+    render_ipad_footer: ->
+        if IS_IPAD
+            <div style={height:'90px'}></div>
+
     render: ->
         <div className={'smc-vfill'} style={background:'#efefef'}>
             {@render_button_bar()}
             {@render_error()}
             {@render_frame_tree()}
+            {@render_ipad_footer()}
         </div>

@@ -186,7 +186,7 @@ class exports.Actions extends Actions
         @set_save_status?()
 
     delete_trailing_whitespace: =>
-        cm = @cm
+        cm = @_get_cm()
         if not cm?
             return
         omit_lines = {}
@@ -247,48 +247,61 @@ class exports.Actions extends Actions
     decrease_font_size: (id) =>
         @change_font_size(-1, id)
 
-    set_cm: (cm, id) =>
-        if id
-            @_cm ?= {}
+    set_cm: (id, cm) =>
+        if @_cm? and misc.len(@_cm) > 0
             @_cm[id] = cm
-        @cm = cm
+            return
+        @_cm = {id: cm}
         @set_codemirror_to_syncstring()
 
+    # returns cm with given id or at least some cm, if any known.
+    _get_cm: (id) =>
+        @_cm ?= {}
+        cm = @_cm[id] ? @_active_cm()
+        if not cm
+            for id, v of @_cm
+                return v
+        return cm
+
     _active_cm: =>
-        return @_cm?[local_view_state.get('active_id')]
+        return @_cm?[@store.getIn(['local_view_state', 'active_id'])]
 
     syncstring_save: =>
         @_syncstring?.save()
         @set_save_status()
 
     set_syncstring_to_codemirror: =>
-        if not @cm? or not @_syncstring?
+        cm = @_get_cm()
+        if not cm? or not @_syncstring?
             return
-        @_syncstring.from_str(@cm.getValue())
+        @_syncstring.from_str(cm.getValue())
 
     set_codemirror_to_syncstring: =>
-        if not @cm? or not @_syncstring?
+        cm = @_get_cm()
+        if not cm? or not @_syncstring?
             return
-        @cm.setValueNoJump(@_syncstring.to_str())
+        cm.setValueNoJump(@_syncstring.to_str())
         @set_save_status()
 
     exit_undo_mode: =>
         @_syncstring?.exit_undo_mode()
 
     # per-session sync-aware undo
-    undo: =>
-        if not @cm?
+    undo: (id) =>
+        cm = @_get_cm(id)
+        if not cm?
             return
         if not @_syncstring.in_undo_mode()
             @set_syncstring_to_codemirror()
         value = @_syncstring.undo().to_str()
-        @cm.setValueNoJump(value)
+        cm.setValueNoJump(value)
         @set_syncstring_to_codemirror()
         @_syncstring.save()
 
     # per-session sync-aware redo
-    redo: =>
-        if not @cm?
+    redo: (id) =>
+        cm = @_get_cm(id)
+        if not cm?
             return
         if not @_syncstring.in_undo_mode()
             return
@@ -297,34 +310,40 @@ class exports.Actions extends Actions
             # can't redo if version not defined/not available.
             return
         value = doc.to_str()
-        @cm.setValueNoJump(value)
+        cm.setValueNoJump(value)
         @set_syncstring_to_codemirror()
         @_syncstring.save()
 
-    find: =>
-        @cm?.execCommand('find')
+    find: (id) =>
+        @_get_cm(id)?.execCommand('find')
 
-    find_next: =>
-        @cm?.execCommand('findNext')
+    find_next: (id) =>
+        @_get_cm(id)?.execCommand('findNext')
 
-    find_prev: =>
-        @cm?.execCommand('findPrev')
+    find_prev:(id)  =>
+        @_get_cm(id)?.execCommand('findPrev')
 
-    replace: =>
-        @cm?.execCommand('replace')
+    replace: (id) =>
+        @_get_cm(id)?.execCommand('replace')
 
-    goto_line: =>
-        @cm?.execCommand('jumpToLine')
+    goto_line: (id) =>
+        @_get_cm(id)?.execCommand('jumpToLine')
 
-    cut: =>
-        copypaste.set_buffer(@cm?.getSelection())
-        @cm?.replaceSelection('')
+    cut: (id) =>
+        cm = @_get_cm(id)
+        if cm?
+            copypaste.set_buffer(cm.getSelection())
+            cm.replaceSelection('')
 
-    copy: =>
-        copypaste.set_buffer(@cm?.getSelection())
+    copy: (id) =>
+        cm = @_get_cm(id)
+        if cm?
+            copypaste.set_buffer(cm.getSelection())
 
-    paste: =>
-        @cm?.replaceSelection(copypaste.get_buffer())
+    paste: (id) =>
+        cm = @_get_cm(id)
+        if cm?
+            cm?.replaceSelection(copypaste.get_buffer())
 
     print: =>
         @setState(printing: true)
