@@ -8,7 +8,6 @@ async = require('async')
 ReactDOMServer = require('react-dom/server')
 
 require('./jsdom-support')
-{process_react_component} = require('./process-react')
 
 # Uncomment for cc-in-cc dev benchmarking purposes.  This variable is already set
 # by the Docker container when running in kubernetes.
