@@ -66,6 +66,7 @@ exports.Editor = rclass ({name}) ->
                 actions     = {@props.actions}
                 frame_tree  = {frame_tree}
                 active_id   = {@props.local_view_state.get('active_id')}
+                full_id     = {@props.local_view_state.get('full_id')}
                 />
         </div>
 

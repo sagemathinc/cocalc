@@ -116,8 +116,9 @@ class exports.Actions extends Actions
         t1 = f(t0, args...)
         if t1 != t0
             if op == 'delete_node'
-                if not tree_ops.is_leaf_id(t1, local.get('active_id'))
-                    local = local.set('active_id',  tree_ops.get_some_leaf_id(t1))
+                for x in ['active_id', 'full_id']
+                    if not tree_ops.is_leaf_id(t1, local.get(x))
+                        local = local.set(x,  tree_ops.get_some_leaf_id(t1))
             @setState(local_view_state : local.set('frame_tree', t1))
             @_save_local_view_state()
         return
@@ -130,6 +131,11 @@ class exports.Actions extends Actions
 
     split_frame: (direction, id) =>
         @_tree_op('split_leaf', id ? @store.getIn(['local_view_state', 'active_id']), direction)
+
+    set_frame_full: (id) =>
+        local   = @store.get('local_view_state')
+        @setState(local_view_state : local.set('full_id', id).set('active_id', id))
+        @_save_local_view_state()
 
     save_scroll_position: (id, info) =>
         @set_frame_tree(id:id, scroll:info)
@@ -167,6 +173,10 @@ class exports.Actions extends Actions
 
     save: =>
         @setState(has_unsaved_changes:false)
+        # TODO: what about markdown, where do not want this...
+        # and what about multiple syncstrings...
+        if @redux.getStore('account')?.getIn(['editor_settings', 'strip_trailing_whitespace'])
+            @syncstring?.delete_trailing_whitespace?()
         @syncstring?.save_to_disk =>
             @set_save_status()
 
@@ -208,7 +218,7 @@ class exports.Actions extends Actions
             @_cm[id] = cm
         @cm = cm
         @set_codemirror_to_syncstring()
-        
+
     _active_cm: =>
         return @_cm?[local_view_state.get('active_id')]
 
@@ -228,7 +238,7 @@ class exports.Actions extends Actions
         @set_save_status()
 
     exit_undo_mode: =>
-        @syncstring.exit_undo_mode()
+        @syncstring?.exit_undo_mode()
 
     # per-session sync-aware undo
     undo: =>

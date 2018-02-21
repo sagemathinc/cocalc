@@ -32,6 +32,8 @@ misc                              = require('smc-util/misc')
 {CodemirrorEditor}                = require('./codemirror-editor')
 feature                           = require('../feature')
 {FrameTitleBar}                   = require('./frame-title-bar')
+tree_ops                          = require('./tree-ops')
+
 
 bar_color = '#eee'
 drag_offset = if feature.IS_TOUCH then 5 else 1
@@ -51,31 +53,33 @@ exports.FrameTree = FrameTree = rclass
     propTypes :
         actions    : rtypes.object.isRequired
         active_id  : rtypes.string
+        full_id    : rtypes.string
         frame_tree : rtypes.immutable.isRequired
+        is_only    : rtypes.bool
 
     shouldComponentUpdate: (next) ->
         return @props.frame_tree != next.frame_tree or \
-               @props.active_id  != next.active_id
+               @props.active_id  != next.active_id or \
+               @props.full_id    != next.full_id or \
+               @props.is_only    != next.is_only
 
     render_frame_tree: (desc) ->
         <FrameTree
             actions    = {@props.actions}
             frame_tree = {desc}
             active_id  = {@props.active_id}
+            is_only    = {false}
         />
 
     render_titlebar: (desc) ->
-        if desc.has('deletable')
-            deletable = desc.get('deletable')
-        else
-            # as long as tree is nontrivial.
-            deletable = @props.frame_tree.get('first')? or @props.frame_tree.get('second')?
         <FrameTitleBar
             actions    = {@props.actions}
             active_id  = {@props.active_id}
+            is_full    = {desc.get('id') == @props.full_id}
+            is_only    = {not @props.is_only? and not (@props.frame_tree.get('first')? or @props.frame_tree.get('second')?)}
             id         = {desc.get('id')}
             title      = {desc.get('path')}
-            deletable  = {deletable}
+            deletable  = {desc.get('deletable') ? true}
         />
 
     render_codemirror: (desc) ->
@@ -202,6 +206,13 @@ exports.FrameTree = FrameTree = rclass
         </div>
 
     render: ->
+        if @props.full_id
+            # A single frame is full-tab'd:
+            node = tree_ops.get_node(@props.frame_tree, @props.full_id)
+            if node?
+                # only render it if it actually exists, of course.
+                return @render_one(node)
+
         if @props.frame_tree.get('type') != 'node'
             return @render_one(@props.frame_tree)
         else if @props.frame_tree.get('direction') == 'col'

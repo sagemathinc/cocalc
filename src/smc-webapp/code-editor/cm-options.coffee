@@ -23,7 +23,6 @@ exports.cm_options = (opts) ->
     opts = defaults default_opts,
         undoDepth                  : 0  # we use our own sync-aware undo.
         mode                       : undefined
-        delete_trailing_whitespace : editor_settings.get('strip_trailing_whitespace')
         show_trailing_whitespace   : editor_settings.get('show_trailing_whitespace')
         allow_javascript_eval      : true  # if false, the one use of eval isn't allowed.
         line_numbers               : editor_settings.get('line_numbers')
@@ -53,7 +52,7 @@ exports.cm_options = (opts) ->
         "Ctrl-Space"   : "autocomplete"
         "Tab"          : (cm) -> tab_key(cm, opts.spaces_instead_of_tabs)
         "Shift-Tab"    : (cm) -> cm.unindent_selection()
-        
+
     if actions?
         actionKeys =
             "Cmd-S"        : actions.save

@@ -363,14 +363,15 @@ exports.FullscreenButton = rclass
             @actions('page').toggle_fullscreen()
 
     render: ->
-        icon = if @props.fullscreen then 'expand' else 'compress'
+        icon = if @props.fullscreen then 'compress' else 'expand'
 
-        outer_style =
+        tip_style =
             position   : 'fixed'
             zIndex     : 10000
             right      : 0
             top        : '1px'
             borderRadius: '3px'
+
 
         icon_style =
             fontSize   : '13pt'
@@ -379,16 +380,20 @@ exports.FullscreenButton = rclass
             cursor     : 'pointer'
 
         if @props.fullscreen
-            outer_style.background = '#fff'
-            outer_style.opacity    = .7
-            outer_style.border     = '1px solid grey'
+            icon_style.background = '#f0ad4e'
+            icon_style.opacity    = .7
+            icon_style.border     = '1px solid grey'
 
         <Tip
-            style     = {outer_style}
+            style     = {tip_style}
             title     = {'Removes navigational chrome from the UI. Shift-click to enter "kiosk-mode".'}
             placement = {'left'}
         >
-            <Icon style={icon_style} name={icon} onClick = {(e) => @on_fullscreen(e)} />
+            <Icon
+                style   = {icon_style}
+                name    = {icon}
+                onClick = {@on_fullscreen}
+            />
         </Tip>
 
 exports.AppLogo = rclass
