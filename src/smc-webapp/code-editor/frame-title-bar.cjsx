@@ -11,8 +11,11 @@ title_bar_style =
     fontSize    : '10pt'
     paddingLeft : '1em'
     color       : '#666'
+    borderTop   : '1px solid rgb(204,204,204)'
+    borderLeft  : '1px solid rgb(204,204,204)'
+    borderRight : '1px solid rgb(204,204,204)'
 
-button_size = 'small'  # 'xsmall'
+button_size = 'xsmall'  # or small
 
 exports.FrameTitleBar = rclass
     propTypes :
@@ -36,13 +39,14 @@ exports.FrameTitleBar = rclass
         @props.actions.close_frame(@props.id)
 
     render_x: ->
-        if @props.is_full or @props.is_only or not @props.deletable
-            return
-        <span style={marginLeft:'3em'} key={'close'}>
+        disabled = @props.is_full or @props.is_only or not @props.deletable
+        <span style={marginLeft:'1em'} key={'close'}>
             <Button
-                key     = {'close'}
-                bsSize  = {button_size}
-                onClick = {@click_close} >
+                style    = {background:'transparent', border:'transparent'}
+                disabled = {disabled}
+                key      = {'close'}
+                bsSize   = {button_size}
+                onClick  = {@click_close} >
                 <Icon name={'times'}/>
             </Button>
         </span>

@@ -116,9 +116,10 @@ class exports.Actions extends Actions
         t1 = f(t0, args...)
         if t1 != t0
             if op == 'delete_node'
-                for x in ['active_id', 'full_id']
-                    if not tree_ops.is_leaf_id(t1, local.get(x))
-                        local = local.set(x,  tree_ops.get_some_leaf_id(t1))
+                if not tree_ops.is_leaf_id(t1, local.get('active_id'))
+                    local = local.set('active_id',  tree_ops.get_some_leaf_id(t1))
+                if not tree_ops.is_leaf_id(t1, local.get('full_id'))
+                    local = local.delete('full_id')
             @setState(local_view_state : local.set('frame_tree', t1))
             @_save_local_view_state()
         return
@@ -179,6 +180,9 @@ class exports.Actions extends Actions
             @syncstring?.delete_trailing_whitespace?()
         @syncstring?.save_to_disk =>
             @set_save_status()
+            # do it again.
+            @syncstring?.save_to_disk =>
+                @set_save_status()
 
     time_travel: =>
         @redux.getProjectActions(@project_id).open_file

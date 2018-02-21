@@ -35,19 +35,17 @@ feature                           = require('../feature')
 tree_ops                          = require('./tree-ops')
 
 
-bar_color = '#eee'
-drag_offset = if feature.IS_TOUCH then 5 else 1
+drag_offset = if feature.IS_TOUCH then 5 else 2
+
+frame_border = "0px solid grey"
 
 cols_drag_bar =
-    #border       : "#{drag_offset}px solid #{bar_color}"
     padding      : "#{drag_offset}px"
-    background   : "lightgrey"
+    background   : "#efefef"
     zIndex       : 10
     cursor       : 'ew-resize'
 
 rows_drag_bar = misc.merge(misc.copy(cols_drag_bar), {cursor:'ns-resize'})
-
-active_border = '2px solid #77b6e8'
 
 exports.FrameTree = FrameTree = rclass
     propTypes :
@@ -75,8 +73,8 @@ exports.FrameTree = FrameTree = rclass
         <FrameTitleBar
             actions    = {@props.actions}
             active_id  = {@props.active_id}
-            is_full    = {desc.get('id') == @props.full_id}
-            is_only    = {not @props.is_only? and not (@props.frame_tree.get('first')? or @props.frame_tree.get('second')?)}
+            is_full    = {desc.get('id') == @props.full_id and not @props.is_only}
+            is_only    = {@props.is_only}
             id         = {desc.get('id')}
             title      = {desc.get('path')}
             deletable  = {desc.get('deletable') ? true}
@@ -107,11 +105,7 @@ exports.FrameTree = FrameTree = rclass
 
     render_first: ->
         desc = @props.frame_tree.get('first')
-        if @props.active_id == desc.get('id')
-            style = {border: active_border}
-        else
-            style = undefined
-        <div style={style} className='smc-vfill'>
+        <div style={border: frame_border} className={'smc-vfill'}>
             @render_one(desc)
         </div>
 
@@ -147,13 +141,9 @@ exports.FrameTree = FrameTree = rclass
         data =
             pos          : pos
             first        : @props.frame_tree.get('first')
-            style_first  : {display:'flex', overflow:'hidden', flex:pos,   border:'2px solid transparent'}
+            style_first  : {display:'flex', overflow:'hidden', flex:pos,   border:frame_border}
             second       : @props.frame_tree.get('second')
-            style_second : {display:'flex', overflow:'hidden', flex:1-pos, border:'2px solid transparent'}
-        if data.first.get('id') == @props.active_id
-            data.style_first.border = active_border
-        else if data.second.get('id') == @props.active_id
-            data.style_second.border = active_border
+            style_second : {display:'flex', overflow:'hidden', flex:1-pos, border:frame_border}
         return data
 
     render_cols: ->

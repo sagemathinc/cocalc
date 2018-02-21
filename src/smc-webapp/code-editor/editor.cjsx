@@ -67,6 +67,7 @@ exports.Editor = rclass ({name}) ->
                 frame_tree  = {frame_tree}
                 active_id   = {@props.local_view_state.get('active_id')}
                 full_id     = {@props.local_view_state.get('full_id')}
+                is_only     = {frame_tree.get('type') != 'node'}
                 />
         </div>
 
@@ -77,7 +78,7 @@ exports.Editor = rclass ({name}) ->
         <div style={color:'red'}>{@props.error}</div>
 
     render: ->
-        <div className={'smc-vfill'} style={background:'white'}>
+        <div className={'smc-vfill'} style={background:'#efefef'}>
             {@render_button_bar()}
             {@render_error()}
             {@render_frame_tree()}
