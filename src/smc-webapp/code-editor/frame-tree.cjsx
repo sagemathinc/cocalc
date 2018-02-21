@@ -97,6 +97,8 @@ exports.FrameTree = FrameTree = rclass
             when 'cm'
                 child = @render_codemirror(desc)
             else
+                # fix this disaster next time around.
+                setTimeout((=>@props.actions?.reset_frame_tree()), 1)
                 return <div>Invalid frame tree {misc.to_json(desc)}</div>
         <div className={'smc-vfill'}>
             {@render_titlebar(desc)}

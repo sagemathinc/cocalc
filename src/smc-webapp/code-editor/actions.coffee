@@ -67,16 +67,10 @@ class exports.Actions extends Actions
 
         frame_tree = local_view_state.get('frame_tree')
         if not frame_tree?
-            frame_tree = immutable.fromJS({type:'cm', path:@path})
-
-        #frame_tree = immutable.fromJS({id:'a',direction:'row', type:'node', first:{id:'b',type:'cm', path:@path}, second:{id:'c',type:'cm', path:@path}})
-        #frame_tree = immutable.fromJS({pos:0.25, direction:'col', type:'node', first:{type:'cm', path:@path}, second:{type:'cm', path:@path}})
-        #frame_tree = immutable.fromJS({pos:0.25, direction:'col', type:'node', first:{type:'cm', path:@path}, second:{,direction:'col',type:'node',first:{type:'cm', path:@path},second:{type:'cm',path:@path}}})
-        #frame_tree = immutable.fromJS({pos:0.25, direction:'col', type:'node', first:{type:'cm', path:@path}, second:{direction:'row',type:'node',first:{type:'cm', path:@path},second:{type:'cm',path:@path}}})
-        #frame_tree = immutable.fromJS({pos:0.25, direction:'row', type:'node', first:{id:'a',type:'cm', path:@path}, second:{direction:'col',type:'node',first:{type:'cm', path:@path},second:{direction:'row',type:'node',first:{type:'cm', path:@path},second:{id:'b',type:'cm',path:@path}}}})
-
-        frame_tree = tree_ops.assign_ids(frame_tree)
-        frame_tree = tree_ops.ensure_ids_are_unique(frame_tree)
+            frame_tree = @_default_frame_tree()
+        else
+            frame_tree = tree_ops.assign_ids(frame_tree)
+            frame_tree = tree_ops.ensure_ids_are_unique(frame_tree)
         local_view_state = local_view_state.set('frame_tree', frame_tree)
 
         active_id = local_view_state.get('active_id')
@@ -124,8 +118,23 @@ class exports.Actions extends Actions
             @_save_local_view_state()
         return
 
+    _default_frame_tree: =>
+        frame_tree = immutable.fromJS
+            type : 'cm'
+            path : @path
+        frame_tree = tree_ops.assign_ids(frame_tree)
+        frame_tree = tree_ops.ensure_ids_are_unique(frame_tree)
+        return frame_tree
+
     set_frame_tree: (obj) =>
         @_tree_op('set', obj)
+
+    reset_frame_tree: =>
+        local = @store.get('local_view_state')
+        local = local.set('frame_tree', @_default_frame_tree())
+        @setState(local_view_state: local)
+        @_save_local_view_state()
+        return
 
     close_frame: (id) =>
         @_tree_op('delete_node', id)
