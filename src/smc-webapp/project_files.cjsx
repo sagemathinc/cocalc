@@ -1511,9 +1511,6 @@ ProjectFilesActionBox = rclass
             Use sharing to make a file or directory <a href="https://cocalc.com/share" target="_blank"><b><i>visible to the world.</i></b></a> Learn more about sharing files <a href="https://github.com/sagemathinc/cocalc/wiki/share" target="_blank"><b><i>here.</i></b></a> If you would like to collaborate and chat with other people on documents in this project, go the project Settings tab and "Add people to project".
         </div>
 
-    show_help: ->
-        window.open(WIKI_SHARE_HELP_URL, "_blank").focus()
-
     render_share: ->
         # currently only works for a single selected file
         single_file = @props.checked_files.first()
@@ -1579,9 +1576,6 @@ ProjectFilesActionBox = rclass
                             </Button>
                             <Button bsStyle='warning' onClick={@stop_sharing_click} disabled={not single_file_data.is_public or parent_is_public}>
                                 <Icon name='shield' /> Make item private
-                            </Button>
-                            <Button bsStyle='info' onClick={@show_help}>
-                                <Icon name='question-circle' /> Help
                             </Button>
                         </ButtonGroup>
                         <Button onClick={@cancel_action}>
