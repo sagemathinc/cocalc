@@ -198,6 +198,11 @@ class exports.Actions extends Actions
         console.log omit_lines
         cm.delete_trailing_whitespace(omit_lines:omit_lines)
 
+    _do_save: (cb) =>
+        @_syncstring?.save_to_disk (err) =>
+            @set_save_status()
+            cb?(err)
+
     save: (explicit) =>
         @setState(has_unsaved_changes:false)
         # TODO: what about markdown, where do not want this...
@@ -206,11 +211,9 @@ class exports.Actions extends Actions
         # Doing this automatically is fraught with error, since cursors aren't precise...
         if explicit and @redux.getStore('account')?.getIn(['editor_settings', 'strip_trailing_whitespace'])
             @delete_trailing_whitespace()
-        @_syncstring?.save_to_disk =>
-            @set_save_status()
+        @_do_save =>
             # do it again.
-            @_syncstring?.save_to_disk =>
-                @set_save_status()
+            setTimeout(@_do_save, 3000)
 
     time_travel: =>
         @redux.getProjectActions(@project_id).open_file
@@ -281,7 +284,7 @@ class exports.Actions extends Actions
         value = @_syncstring.undo().to_str()
         @cm.setValueNoJump(value)
         @set_syncstring_to_codemirror()
-        @_syncstring_save()
+        @_syncstring.save()
 
     # per-session sync-aware redo
     redo: =>
@@ -296,7 +299,7 @@ class exports.Actions extends Actions
         value = doc.to_str()
         @cm.setValueNoJump(value)
         @set_syncstring_to_codemirror()
-        @_syncstring_save()
+        @_syncstring.save()
 
     find: =>
         @cm?.execCommand('find')

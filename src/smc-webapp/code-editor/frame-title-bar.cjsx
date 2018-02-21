@@ -4,16 +4,24 @@ FrameTitleBar - title bar in a frame, in the frame tree
 
 {ButtonGroup, Button}   = require('react-bootstrap')
 {React, rclass, rtypes} = require('../smc-react')
-{Icon, Space}           = require('../r_misc')
+{Icon, Space, Tip}      = require('../r_misc')
+misc = require('smc-util/misc')
 
 title_bar_style =
-    background  : '#eee'
-    fontSize    : '10pt'
-    paddingLeft : '1em'
-    color       : '#666'
-    borderTop   : '1px solid rgb(204,204,204)'
-    borderLeft  : '1px solid rgb(204,204,204)'
-    borderRight : '1px solid rgb(204,204,204)'
+    background    : '#eee'
+    borderTop     : '1px solid rgb(204,204,204)'
+    borderLeft    : '1px solid rgb(204,204,204)'
+    borderRight   : '1px solid rgb(204,204,204)'
+    verticalAlign : 'middle'
+    lineHeight    : '20px'
+    whiteSpace    : 'nowrap'
+    overflow      : 'hidden'
+    textOverflow  : 'ellipsis'
+
+path_style =
+    fontSize    : '13px'
+    paddingLeft : '5px'
+    color       : '#333'
 
 button_size = 'xsmall'  # or small
 
@@ -22,7 +30,7 @@ exports.FrameTitleBar = rclass
         actions    : rtypes.object.isRequired
         active_id  : rtypes.string
         id         : rtypes.string
-        title      : rtypes.string
+        path       : rtypes.string
         deletable  : rtypes.bool
         is_full    : rtypes.bool
         is_only    : rtypes.bool    # is the only frame -- so don't show delete or full buttons at all.
@@ -30,7 +38,7 @@ exports.FrameTitleBar = rclass
     shouldComponentUpdate: (next) ->
         return @props.active_id  != next.active_id or \
                @props.id         != next.id or \
-               @props.title      != next.title or \
+               @props.path       != next.path or \
                @props.deletable  != next.deletable or \
                @props.is_full    != next.is_full or \
                @props.is_only    != next.is_only
@@ -40,7 +48,7 @@ exports.FrameTitleBar = rclass
 
     render_x: ->
         disabled = @props.is_full or @props.is_only or not @props.deletable
-        <span style={marginLeft:'1em'} key={'close'}>
+        <span style={marginLeft:'5px', float:'right'} key={'close'}>
             <Button
                 style    = {background:'transparent', border:'transparent'}
                 disabled = {disabled}
@@ -52,10 +60,9 @@ exports.FrameTitleBar = rclass
         </span>
 
     render_full: ->
-        if @props.is_only
-            return
         if @props.is_full
             <Button
+                disabled = {@props.is_only}
                 key     = {'compress'}
                 bsSize  = {button_size}
                 bsStyle = {'warning'}
@@ -64,6 +71,7 @@ exports.FrameTitleBar = rclass
             </Button>
         else
             <Button
+                disabled = {@props.is_only}
                 key     = {'expand'}
                 bsSize  = {button_size}
                 onClick = {=> @props.actions.set_frame_full(@props.id)} >
@@ -71,22 +79,20 @@ exports.FrameTitleBar = rclass
             </Button>
 
     render_split_row: ->
-        if @props.is_full
-            return
         <Button
-            key     = {'split-row'}
-            bsSize  = {button_size}
-            onClick = {=>@props.actions.split_frame('row', @props.id)} >
+            disabled = {@props.is_full}
+            key      = {'split-row'}
+            bsSize   = {button_size}
+            onClick  = {=>@props.actions.split_frame('row', @props.id)} >
             <Icon name='columns' rotate={'90'} />
         </Button>
 
     render_split_col: ->
-        if @props.is_full
-            return
         <Button
-            key     = {'split-col'}
-            bsSize  = {button_size}
-            onClick = {=>@props.actions.split_frame('col', @props.id)} >
+            disabled = {@props.is_full}
+            key      = {'split-col'}
+            bsSize   = {button_size}
+            onClick  = {=>@props.actions.split_frame('col', @props.id)} >
             <Icon name='columns' />
         </Button>
 
@@ -117,12 +123,22 @@ exports.FrameTitleBar = rclass
                 {@render_split_col()}
                 {@render_full()}
             </ButtonGroup>
-            {@render_x()}
+        </span>
+
+    render_path: ->
+        <span style={path_style}>
+            <Tip
+                placement = {'bottom'}
+                title     = {@props.path}
+            >
+                {misc.path_split(@props.path).tail}
+            </Tip>
         </span>
 
 
     render: ->
         <div style={title_bar_style}>
-            {@props.title}
+            {@render_path()}
+            {@render_x()}
             {@render_buttons()}
         </div>

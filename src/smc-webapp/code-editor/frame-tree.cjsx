@@ -76,7 +76,7 @@ exports.FrameTree = FrameTree = rclass
             is_full    = {desc.get('id') == @props.full_id and not @props.is_only}
             is_only    = {@props.is_only}
             id         = {desc.get('id')}
-            title      = {desc.get('path')}
+            path       = {desc.get('path')}
             deletable  = {desc.get('deletable') ? true}
         />
 
