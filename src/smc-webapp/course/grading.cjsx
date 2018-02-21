@@ -63,6 +63,7 @@ _init_state = (props) ->
     student_id      :  _student_id(props)
     student_info    : undefined
     subdir          : ''
+    student_filter  : ''
 
 _update_state = (props, next, state, setState) ->
     if props.grading != next.grading or props.assignment != next.assignment
@@ -336,10 +337,18 @@ exports.GradingStudentAssignment = rclass
         )
 
     student_list_entries: ->
+        matching = (name) =>
+            if @state.student_filter?.length > 0
+                return name.toLowerCase().indexOf(@state.student_filter.toLowerCase()) >= 0
+            else
+                return true
+
         @state.store.get_sorted_students().map (student) =>
-            id     = student.get('student_id')
-            active = if @state.student_id == id then 'active' else ''
-            name   = @state.store.get_student_name(student)
+            id      = student.get('student_id')
+            current = @state.student_id == id
+            active  = if current then 'active' else ''
+            name    = @state.store.get_student_name(student)
+            return null if not matching(name)
             <li
                 key        = {id}
                 className  = {"list-group-item " + active}
@@ -349,13 +358,54 @@ exports.GradingStudentAssignment = rclass
                 {name}
             </li>
 
+    student_list_filter: ->
+        <form key={'filter_list'} style={{}}>
+            <FormGroup>
+                <InputGroup>
+                    <InputGroup.Addon>
+                        Filter
+                    </InputGroup.Addon>
+                    <FormControl
+                        autoFocus   = {true}
+                        ref         = {'stundent_filter'}
+                        type        = {'text'}
+                        placeholder = {'any text...'}
+                        value       = {@state.student_filter}
+                        onChange    = {(e)=>@setState(student_filter:e.target.value)}
+                    />
+                    <InputGroup.Button>
+                        <Button
+                            bsStyle  = {'warning'}
+                            onClick  = {=>@setState(student_filter:'')}
+                            disabled = {@state.student_filter?.length == 0 ? true}
+                            style    = {whiteSpace:'nowrap'}
+                        >
+                            <Icon name='times-circle'/>
+                        </Button>
+                    </InputGroup.Button>
+                </InputGroup>
+            </FormGroup>
+        </form>
+
+
     render_list: ->
         style =
             overflowY : 'auto'
 
-        <ul className='list-group' ref='student_list' style={style}>
-            {@student_list_entries()}
-        </ul>
+        flex =
+            display        : 'flex'
+            flexDirection  : 'column'
+
+        [
+            <Row key={1}>
+                {@student_list_filter()}
+            </Row>
+            <Row style={flex} key={2}>
+                <ul className='list-group' ref='student_list' style={style}>
+                    {@student_list_entries()}
+                </ul>
+            </Row>
+        ]
 
     render_nav: ->
         <Col md={4}>
