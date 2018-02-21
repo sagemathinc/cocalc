@@ -37,11 +37,11 @@ bar_color = '#eee'
 drag_offset = if feature.IS_TOUCH then 5 else 1
 
 cols_drag_bar =
-    border       : "#{drag_offset}px solid #{bar_color}"
+    #border       : "#{drag_offset}px solid #{bar_color}"
+    padding      : "#{drag_offset}px"
+    background   : "lightgrey"
     zIndex       : 10
-    padding      : 0.5
     cursor       : 'ew-resize'
-    borderRadius : '2px'
 
 rows_drag_bar = misc.merge(misc.copy(cols_drag_bar), {cursor:'ns-resize'})
 
