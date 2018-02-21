@@ -31,7 +31,7 @@ _         = require('underscore')
 
 # React libraries
 {React, rclass, rtypes, ReactDOM} = require('../smc-react')
-{Alert, Button, ButtonToolbar, ButtonGroup, Form, FormControl, FormGroup, ControlLabel, InputGroup, Checkbox, Row, Col, Panel} = require('react-bootstrap')
+{Alert, Button, ButtonToolbar, ButtonGroup, Form, FormControl, FormGroup, ControlLabel, InputGroup, Checkbox, Row, Col, Panel, Breadcrumb} = require('react-bootstrap')
 
 # CoCalc and course components
 util = require('./util')
@@ -216,10 +216,19 @@ Grade = rclass
         </form>
 
     grade_comment_edit: ->
+        style =
+            maxHeight:'5rem'
+            overflowY:'auto'
+            padding:'5px'
+            border: "1px solid #{COLORS.GRAY_L}"
+
+        if not @state.editing_grade
+            style.cursor = 'pointer'
+
         <MarkdownInput
             autoFocus        = {false}
             editing          = {@state.editing_grade}
-            hide_edit_button = {false}
+            hide_edit_button = {@state.edited_comments?.length > 0}
             save_disabled    = {@save_disabled()}
             rows             = {3}
             placeholder      = {'Comments (optional)'}
@@ -228,7 +237,7 @@ Grade = rclass
             on_change        = {(value)=>@setState(edited_comments:value)}
             on_save          = {@save_grade}
             on_cancel        = {@grade_cancel}
-            rendered_style   = {maxHeight:'5rem', overflowY:'auto', padding:'5px', border: "1px solid #{COLORS.GRAY_L}"}
+            rendered_style   = {style}
         />
 
     render: ->
@@ -302,21 +311,20 @@ exports.GradingStudentAssignment = rclass
             </Row>
         ]
 
-    previous: (without_grade) ->
+    jump: (direction, without_grade, collected_files) ->
         @actions(@props.name).grading(
             assignment       : @props.assignment
             student_id       : @state.student_id
             direction        : -1
             without_grade    : without_grade
+            collected_files  : collected_files
         )
 
-    next: (without_grade) ->
-        @actions(@props.name).grading(
-            assignment       : @props.assignment
-            student_id       : @state.student_id
-            direction        : 1
-            without_grade    : without_grade
-        )
+    previous: (without_grade, collected_files) ->
+        @jump(-1, without_grade, collected_files)
+
+    next: (without_grade, collected_files) ->
+        @jump(-1, without_grade, collected_files)
 
     render_progress: ->
         <span>Student {@props.grading?.get('progress') ? NaN} of {@props.students?.size ? NaN}</span>
@@ -343,7 +351,7 @@ exports.GradingStudentAssignment = rclass
             else
                 return true
 
-        @state.store.get_sorted_students().map (student) =>
+        list = @state.store.get_sorted_students().map (student) =>
             id      = student.get('student_id')
             current = @state.student_id == id
             active  = if current then 'active' else ''
@@ -353,12 +361,20 @@ exports.GradingStudentAssignment = rclass
                 key        = {id}
                 className  = {"list-group-item " + active}
                 onClick    = {=>@student_list_entry_click(id)}
-                style      = {cursor : 'pointer'}
+                style      = {cursor : 'pointer', border: '0', borderBottom: '1px solid #ddd'}
             >
                 {name}
             </li>
 
+        list = (entry for entry in list when entry?)
+        if list.length == 0
+            list.push(<li>No student matches…</li>)
+
+        return list
+
     student_list_filter: ->
+        disabled = @state.student_filter?.length == 0 ? true
+
         <form key={'filter_list'} style={{}}>
             <FormGroup>
                 <InputGroup>
@@ -375,9 +391,9 @@ exports.GradingStudentAssignment = rclass
                     />
                     <InputGroup.Button>
                         <Button
-                            bsStyle  = {'warning'}
+                            bsStyle  = {if disabled then 'default' else 'warning'}
                             onClick  = {=>@setState(student_filter:'')}
-                            disabled = {@state.student_filter?.length == 0 ? true}
+                            disabled = {disabled}
                             style    = {whiteSpace:'nowrap'}
                         >
                             <Icon name='times-circle'/>
@@ -390,7 +406,10 @@ exports.GradingStudentAssignment = rclass
 
     render_list: ->
         style =
-            overflowY : 'auto'
+            overflowY     : 'auto'
+            border        : "1px solid #{COLORS.GRAY_L}"
+            borderRadius  : '5px'
+            marginBottom  : '0px'
 
         flex =
             display        : 'flex'
@@ -412,6 +431,7 @@ exports.GradingStudentAssignment = rclass
             <Row style={rowstyle}>
                 {@render_progress()}
             </Row>
+            {###
             <Row style={rowstyle}>
                 <ButtonToolbar>
                     <Button
@@ -428,6 +448,7 @@ exports.GradingStudentAssignment = rclass
                     </Button>
                 </ButtonToolbar>
             </Row>
+            ###}
             <Row style={rowstyle}>
                 <ButtonToolbar>
                     <Button
@@ -634,6 +655,47 @@ exports.GradingStudentAssignment = rclass
             </ul>
         </Row>
 
+    open_directory: (path) ->
+        @setState(subdir : path)
+        @actions(@props.name).grading(
+            assignment       : @props.assignment
+            student_id       : @state.student_id
+            direction        : 0
+            without_grade    : false
+            subdir           : path
+        )
+
+    render_listing_path: ->
+        crumbs  = [
+            <Breadcrumb.Item
+                key        = {''}
+                onClick    = {=>@open_directory('')}
+                style      = {{}}
+            >
+                <Icon name='home' />
+            </Breadcrumb.Item>
+        ]
+
+        path = ''
+        segments = @state.subdir.split('/')
+        segments.map (segment) =>
+            path = path_join(path, segment)
+            do (path, segment) =>
+                crumbs.push(
+                    <Breadcrumb.Item
+                        key        = {path}
+                        onClick    = {=>@open_directory(path)}
+                        style      = {{}}
+                    >
+                        {segment}
+                    </Breadcrumb.Item>
+                )
+
+        <Breadcrumb bsSize='small' style={marginBottom: '15px'}>
+            {crumbs}
+        </Breadcrumb>
+
+
     collected: ->
         last_collect  = @state.student_info?.last_collect
         if last_collect?.time?
@@ -642,7 +704,12 @@ exports.GradingStudentAssignment = rclass
             time          = "never"
 
         <Row>
-            {@collect_student_path()} {@render_up()} <span style={color:COLORS.GRAY}>(collected {time})</span>
+            <Col md={9} style={padding:'0'}>
+                {@render_listing_path()}
+            </Col>
+            <Col md={3} style={textAlign:'right', color:COLORS.GRAY, padding:'0'}>
+                (collected {time})
+            </Col>
         </Row>
 
     render_up: ->
@@ -674,11 +741,11 @@ exports.GradingStudentAssignment = rclass
             marginRight    : '15px'
 
         <Row style={height: '70vh', display: 'flex'}>
-            <Col md={3} style={flexcolumn}>
+            <Col md={3} style={misc.merge({marginLeft:'15px'}, flexcolumn)}>
                 {@render_list()}
             </Col>
             <Col md={9} style={flexcolumn}>
-                <Row>
+                <Row style={marginBottom: '15px'}>
                     {@render_nav()}
                     <Col md={3}>
                         {@render_points()}

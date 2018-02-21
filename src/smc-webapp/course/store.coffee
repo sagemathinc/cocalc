@@ -480,7 +480,8 @@ exports.CourseStore = class CourseStore extends Store
             assignment            : required
             current_student_id    : undefined
             direction             : 1
-            without_grade         : true
+            without_grade         : true   # not yet graded?
+            collected_files       : true   # already collected files?
         # direction: 1 or -1
         # student_to_grade: if true, only return a student who does not have a grade yet
         assignment = @get_assignment(opts.assignment)
@@ -499,8 +500,9 @@ exports.CourseStore = class CourseStore extends Store
                     skip = false
                     continue
 
-            # should check for @has_last_collected(assignment, student_id) ?
-            if (not opts.without_grade) or (not @has_grade(assignment, student_id))
+            collected = (not opts.collected_files) or (not @has_last_collected(assignment, student_id))
+            has_grade = (not opts.without_grade) or (not @has_grade(assignment, student_id))
+            if has_grade and collected
                 return [student_id, cnt]
         return [null, 0]
 

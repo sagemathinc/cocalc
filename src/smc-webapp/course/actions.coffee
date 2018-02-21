@@ -1792,7 +1792,8 @@ exports.CourseActions = class CourseActions extends Actions
             assignment       : required
             student_id       : undefined
             direction        : 1
-            without_grade    : true
+            without_grade    : true   # not yet graded?
+            collected_files  : true   # already collected files?
             subdir           : ''
         # direction: 0, +1 or -1, which student in the list to pick next
         #            first call after deleting grading should be +1, otherwise student_id stays undefined
@@ -1804,6 +1805,7 @@ exports.CourseActions = class CourseActions extends Actions
                 current_student_id    : opts.student_id
                 direction             : opts.direction
                 without_grade         : opts.without_grade
+                collected_files       : opts.collected_files
             )
         else
             # previous is null/undefined, stick with same student ... e.g. directory changes
