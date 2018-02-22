@@ -4,15 +4,23 @@ React component that represents cursors of other users.
 
 {React, ReactDOM, rclass, rtypes}  = require('../smc-react')
 
+{debounce} = require('underscore')
+
+{IS_TOUCH} = require('../feature')
+
 misc = require('smc-util/misc')
 
 exports.Cursor = Cursor = rclass
     propTypes:
         name  : rtypes.string.isRequired
         color : rtypes.string.isRequired
+        top   : rtypes.string   # doesn't change
+
+    shouldComponentUpdate: (props, state) ->
+        return @props.name != props.name or @props.color != props.color or @state.hover != state.hover
 
     getInitialState: ->
-        hover : false
+        hover : IS_TOUCH    # always show on mobile, since no way to hover.
 
     componentDidMount: ->
         @_mounted = true
@@ -35,7 +43,7 @@ exports.Cursor = Cursor = rclass
     render: ->
         # onClick is needed for mobile.
         <span
-            style        = {color:@props.color, position:'relative', cursor:'text', pointerEvents : 'all'}
+            style        = {color:@props.color, position:'relative', cursor:'text', pointerEvents : 'all', top:@props.top}
             onMouseEnter = {=>@show(3000)}
             onClick      = {=>@show(3000)}
             >
@@ -46,7 +54,7 @@ exports.Cursor = Cursor = rclass
                 style={width: '6px', left: '-2px', top: '-2px', height: '6px', position:'absolute', backgroundColor:@props.color}
                 />
             {<span
-                style={position: 'absolute', fontSize: '10pt', color: '#fff', top: '-10px', left: '-2px', padding: '2px', whiteSpace: 'nowrap', background:@props.color, fontFamily:'sans-serif', boxShadow: '3px 3px 5px 0px #bbb'}
+                style={opacity:0.4, position: 'absolute', fontSize: '10pt', color: '#fff', top: '-10px', left: '-2px', padding: '2px', whiteSpace: 'nowrap', background:@props.color, fontFamily:'sans-serif', boxShadow: '3px 3px 5px 0px #bbb'}
                 >{@props.name}</span> if @state.hover}
         </span>
 
@@ -56,21 +64,58 @@ PositionedCursor = rclass
         color      : rtypes.string.isRequired
         line       : rtypes.number.isRequired
         ch         : rtypes.number.isRequired
-        codemirror : rtypes.object            # optional codemirror editor instance
+        codemirror : rtypes.object.isRequired
 
-    render_codemirror: ->
-        {left, top} = @props.codemirror.cursorCoords({line:@props.line, ch:@props.ch}, 'local')
-        gutter = $(@props.codemirror.getGutterElement()).width()
-        <div style={position:'absolute', left:"#{left+gutter}px", top:"#{top}px"}>
-            <Cursor name={@props.name} color={@props.color}/>
-        </div>
+    shouldComponentUpdate: (next) ->
+        return @props.line  != next.line or \
+               @props.ch    != next.ch   or \
+               @props.name  != next.name or \
+               @props.color != next.color
+
+    _render_cursor: (props) ->
+        ReactDOM.render(<Cursor name={props.name} color={props.color} top={'-1.2em'}/>, @_elt)
 
     componentDidMount: ->
-        # CodeMirror-scroll
-        #if @props.codemirror?
-        #    $(ReactDOM.findDOMNode(@)).clone().prependTo($(@props.codemirror.getScrollerElement()))
+        @_elt = document.createElement("div")
+        @_elt.style.position   = 'absolute'
+        @_elt.style['z-index'] = '5'
+        @_render_cursor(@props)
+        @props.codemirror.addWidget({line : @props.line, ch:@props.ch}, @_elt, false)
 
-    render_static: ->
+    componentWillReceiveProps: (next) ->
+        if not @_elt?
+            return
+        if @props.line != next.line or @props.ch != next.ch
+            # move the widget
+            @props.codemirror.addWidget({line:next.line, ch:next.ch}, @_elt, false)
+        if @props.name != next.name or @props.color != next.color
+            # update how widget is rendered
+            @_render_cursor(next)
+
+    componentWillUnmount: ->
+        if @_elt?
+            ReactDOM.unmountComponentAtNode(@_elt)
+            @_elt.remove()
+            delete @_elt
+
+    render: ->
+        # A simple (unused) container to satisfy react.
+        <span />
+
+StaticPositionedCursor = rclass
+    propTypes:
+        name       : rtypes.string.isRequired
+        color      : rtypes.string.isRequired
+        line       : rtypes.number.isRequired
+        ch         : rtypes.number.isRequired
+
+    shouldComponentUpdate: (next) ->
+        return @props.line  != next.line or \
+               @props.ch    != next.ch   or \
+               @props.name  != next.name or \
+               @props.color != next.color
+
+    render: ->
         style =
             position      : 'absolute'
             height        : 0
@@ -85,18 +130,11 @@ PositionedCursor = rclass
         position = ('\n' for _ in [0...@props.line]).join('') + (' ' for _ in [0...@props.ch]).join('')
         <div style={style}>{position}<Cursor name={@props.name} color={@props.color}/></div>
 
-    render: ->
-        if not @props.codemirror?
-            @render_static()
-        else
-            @render_codemirror()
-
 
 exports.Cursors = rclass
     propTypes:
         cursors    : rtypes.immutable.Map.isRequired
         codemirror : rtypes.object            # optional codemirror editor instance
-        scroll     : rtypes.immutable.Map
 
     reduxProps:
         users:
@@ -117,6 +155,10 @@ exports.Cursors = rclass
     render: ->
         now = misc.server_time()
         v = []
+        if @props.codemirror?
+            C = PositionedCursor
+        else
+            C = StaticPositionedCursor
         @props.cursors?.forEach (locs, account_id) =>
             {color, name} = @profile(account_id)
             locs.forEach (pos) =>
@@ -124,7 +166,7 @@ exports.Cursors = rclass
                     if account_id == @props.account_id
                         # don't show our own cursor (we just haven't made this possible due to only keying by accoun_id)
                         return
-                    v.push <PositionedCursor
+                    v.push <C
                         key        = {v.length}
                         color      = {color}
                         name       = {name}

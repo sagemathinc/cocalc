@@ -28,7 +28,7 @@ path_style =
     color       : '#333'
 
 if IS_TOUCH
-    button_size = 'small'
+    button_size = 'xsmall'
     close_style = undefined
 else
     button_size = 'xsmall'

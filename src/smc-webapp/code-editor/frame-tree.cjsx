@@ -53,6 +53,7 @@ exports.FrameTree = FrameTree = rclass
         active_id  : rtypes.string
         full_id    : rtypes.string
         frame_tree : rtypes.immutable.isRequired
+        font_size  : rtypes.number.isRequired
         is_only    : rtypes.bool
         cursors    : rtypes.immutable.Map
 
@@ -68,6 +69,7 @@ exports.FrameTree = FrameTree = rclass
             actions    = {@props.actions}
             frame_tree = {desc}
             active_id  = {@props.active_id}
+            font_size  = {@props.font_size}
             is_only    = {false}
             cursors    = {@props.cursors}
         />
@@ -89,7 +91,7 @@ exports.FrameTree = FrameTree = rclass
             actions   = {@props.actions}
             id        = {desc.get('id')}
             read_only = {desc.get('read_only')}
-            font_size = {desc.get('font_size')}
+            font_size = {desc.get('font_size') ? @props.font_size}
             path      = {desc.get('path')}
             scroll    = {desc.get('scroll')}
             cursors   = {@props.cursors}

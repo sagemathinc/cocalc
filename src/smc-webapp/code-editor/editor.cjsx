@@ -25,6 +25,8 @@ exports.Editor = rclass ({name}) ->
             local_view_state        : rtypes.immutable.Map
             error                   : rtypes.string
             cursors                 : rtypes.immutable.Map
+        account :
+            font_size : rtypes.number
 
     shouldComponentUpdate: (next) ->
         return @props.has_unsaved_changes     != next.has_unsaved_changes or \
@@ -33,7 +35,8 @@ exports.Editor = rclass ({name}) ->
                @props.local_view_state        != next.local_view_state or \
                @props.printing                != next.printing or \
                @props.error                   != next.error or \
-               @props.cursors                 != next.cursors
+               @props.cursors                 != next.cursors or \
+               @props.font_size               != next.font_size
 
     componentDidMount: ->
         @props.actions.enable_key_handler()
@@ -66,12 +69,13 @@ exports.Editor = rclass ({name}) ->
             style     = {background: 'lightgrey'}
             >
             <FrameTree
-                actions     = {@props.actions}
-                frame_tree  = {frame_tree}
-                active_id   = {@props.local_view_state.get('active_id')}
-                full_id     = {@props.local_view_state.get('full_id')}
-                is_only     = {frame_tree.get('type') != 'node'}
-                cursors     = {@props.cursors}
+                actions    = {@props.actions}
+                frame_tree = {frame_tree}
+                active_id  = {@props.local_view_state.get('active_id')}
+                full_id    = {@props.local_view_state.get('full_id')}
+                is_only    = {frame_tree.get('type') != 'node'}
+                cursors    = {@props.cursors}
+                font_size  = {@props.font_size ? 14}
                 />
         </div>
 

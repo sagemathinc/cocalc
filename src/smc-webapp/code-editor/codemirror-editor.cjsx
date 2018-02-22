@@ -32,8 +32,8 @@ exports.CodemirrorEditor = rclass
         id        : rtypes.string.isRequired
         actions   : rtypes.object.isRequired
         path      : rtypes.string.isRequired
+        font_size : rtypes.number.isRequired
         cursors   : rtypes.immutable.Map
-        font_size : rtypes.number
         scroll    : rtypes.immutable.Map
         read_only : rtypes.bool
 
@@ -41,10 +41,14 @@ exports.CodemirrorEditor = rclass
         account :
             editor_settings : rtypes.immutable.Map.isRequired
 
-    shouldComponentUpdate: (next) ->
-        return @props.editor_settings != next.editor_settings or \
-               @props.font_size       != next.font_size or \
-               @props.read_only       != next.read_only or \
+    getInitialState: ->
+        has_cm : false
+
+    shouldComponentUpdate: (next, state) ->
+        return @state.has_cm          != state?.has_cm        or \
+               @props.editor_settings != next.editor_settings or \
+               @props.font_size       != next.font_size       or \
+               @props.read_only       != next.read_only       or \
                @props.cursors         != next.cursors
 
     componentDidMount: ->
@@ -135,7 +139,7 @@ exports.CodemirrorEditor = rclass
         @cm.on 'focus', =>
             @props.actions.set_active_id(@props.id)
 
-        @cm.on 'viewportChange', debounce(@save_scroll_position, 1000)
+        @cm.on 'scroll', debounce(@save_scroll_position, 1000)
 
         @cm.on 'cursorActivity', @_cm_cursor
 
@@ -154,17 +158,18 @@ exports.CodemirrorEditor = rclass
             @cm.scrollTo(@props.scroll.get('left'), @props.scroll.get('top'))
 
         @cm.setOption('readOnly', @props.read_only)
+        @setState(has_cm: true)
 
     render_cursors: ->
-        if @props.cursors?
+        if @props.cursors? and @cm? and @state.has_cm
+            # Very important not to render without cm defined, because that renders to static Codemirror instead.
             <Cursors
-                scroll     = {@props.scroll}
                 cursors    = {@props.cursors}
                 codemirror = {@cm} />
 
     render: ->
-        font_size = @props.font_size ? @props.editor_settings.get('font_size') ? 15
-        style = misc.merge({fontSize: "#{font_size}px"}, STYLE)
+        style = misc.copy(STYLE)
+        style.fontSize = "#{@props.font_size}px"
         <div
             style     = {style}
             className = 'smc-vfill' >
