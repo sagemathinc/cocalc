@@ -1823,6 +1823,7 @@ exports.CourseActions = class CourseActions extends Actions
             student_filter  : store.grading_get_student_filter()
             only_not_graded : store.grading_get_filter_button('only_not_graded')
             only_collected  : store.grading_get_filter_button('only_collected')
+            page_number     : store.grading_get_page_number()
         )
         @setState(grading : data)
 
@@ -1846,7 +1847,7 @@ exports.CourseActions = class CourseActions extends Actions
         grading = store.get('grading')
         @setState(grading:grading.set('student_filter', string)) if grading?
 
-    set_student_filter_button: (key, value) =>
+    set_grading_entry: (key, value) =>
         store = @get_store()
         return if not store?
         grading = store.get('grading')

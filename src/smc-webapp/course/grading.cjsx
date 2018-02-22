@@ -44,6 +44,7 @@ styles = require('./styles')
 rowstyle =
     marginBottom: '10px'
 
+PAGE_SIZE = 20
 
 _student_id = (props) ->
     props.grading?.get('student_id')
@@ -53,6 +54,9 @@ _subdir = (props) ->
 
 _student_filter = (props) ->
     props.grading?.get('student_filter') ? ''
+
+_page_number = (props) ->
+    props.grading?.get('page_number') ? 0
 
 # filter predicate for file listing, return true for less important files
 # also match name.ext~ variants in case of multiple rsyncs ...
@@ -67,8 +71,9 @@ _init_state = (props) ->
     student_info    : undefined
     subdir          : _subdir(props)
     student_filter  : _student_filter(props)
+    page_number     : _page_number(props)
 
-_update_state = (props, next, state, setState) ->
+_update_state = (props, next, state) ->
     if any_changes(props, next, ['grading', 'assignment'])
         student_id = _student_id(next)
         return if not student_id?
@@ -270,11 +275,19 @@ exports.GradingStudentAssignment = rclass
     getInitialState: ->
         s = _init_state(@props)
         s.active_autogrades = immutable.Set()
+        s.listing_files = @get_listing_files(@props)
         return s
 
     componentWillReceiveProps: (next) ->
         x = _update_state(@props, next, @state)
         @setState(x) if x?
+        if @props.grading?.get('listing') != next.grading?.get('listing')
+            @setState(listing_files: @get_listing_files(next))
+
+    get_listing_files: (props) ->
+        all_files = props.grading.getIn(['listing', 'files'])
+        if all_files?
+            return all_files.filterNot(course_specific_files)
 
     collect_student_path: ->
         return path_join(@props.assignment.get('collect_path'), @state.student_id, @state.subdir)
@@ -344,6 +357,7 @@ exports.GradingStudentAssignment = rclass
             <span style={fontSize:'120%'}>Student <b>{student_name?.full ? 'N/A'}</b></span>
 
     student_list_entry_click: (student_id) ->
+        @setState(listing_files : undefined)
         @actions(@props.name).grading(
             assignment       : @props.assignment
             student_id       : student_id
@@ -366,6 +380,16 @@ exports.GradingStudentAssignment = rclass
             cursor         : 'pointer'
             border         : '0'
             borderBottom   : "1px solid #{COLORS.GRAY_L}"
+            overflow       : 'hidden'
+            whiteSpace     : 'nowrap'
+
+        grade = (active, grade_val) ->
+            col = if active then COLORS.GRAY_LL else COLORS.GRAY
+            grade_style =
+                color          : col
+                display        : 'inline-block'
+                float          : 'right'
+            <span style={grade_style}>({misc.trunc(grade_val, 15)})</span>
 
         list = @state.store.get_sorted_students().map (student) =>
             id        = student.get('student_id')
@@ -374,14 +398,13 @@ exports.GradingStudentAssignment = rclass
             current   = @state.student_id == id
             active    = if current then 'active' else ''
             grade_val = @state.store.get_grade(@props.assignment, id)
-            grade     = <span style={color:COLORS.GRAY}>({grade_val})</span>
             <li
                 key        = {id}
                 className  = {"list-group-item " + active}
                 onClick    = {=>@student_list_entry_click(id)}
                 style      = {li_style}
             >
-                {name} {grade if grade_val?.length > 0}
+                {name} {grade(active, grade_val) if grade_val?.length > 0}
             </li>
 
         list = (entry for entry in list when entry?)
@@ -463,10 +486,10 @@ exports.GradingStudentAssignment = rclass
         @state.store.grading_get_filter_button('only_collected')
 
     set_only_not_graded: (only_not_graded) ->
-        @actions(@props.name).set_student_filter_button('only_not_graded', only_not_graded)
+        @actions(@props.name).set_grading_entry('only_not_graded', only_not_graded)
 
     set_only_collected: (only_collected) ->
-        @actions(@props.name).set_student_filter_button('only_collected', only_collected)
+        @actions(@props.name).set_grading_entry('only_collected', only_collected)
 
     render_filter_only_not_graded: ->
         only_not_graded = @get_only_not_graded()
@@ -493,7 +516,7 @@ exports.GradingStudentAssignment = rclass
             onClick  = {=>@set_only_collected(not only_collected)}
             bsStyle  = {'default'}
         >
-            <Icon name={icon} /> Only collected
+            <Icon name={icon} /> Files collected
         </Button>
 
     render_nav: ->
@@ -701,10 +724,9 @@ exports.GradingStudentAssignment = rclass
             paddingBottom  : '5px'
 
     listing_entries: ->
-        listing = @props.grading.get('listing')
-        return <li><Loading /></li> if not listing?
+        return <li><Loading /></li> if not @state.listing_files?
 
-        error   = listing.get('error')
+        error = @state.listing_files.get('error')
         if error?
             if error = 'no_dir'
                 # TODO insert collect button here and refresh listing accordingly ...
@@ -712,7 +734,7 @@ exports.GradingStudentAssignment = rclass
             else
                 return <div>Got error listing directory: {error}</div>
 
-        listing.get('files').filterNot(course_specific_files).map (file, idx) =>
+        @state.listing_files.map (file, idx) =>
             filename = file.get('name')
             time     = <BigTime date={(file.get('mtime') ? 0) * 1000} />
             isdir    = file.get('isdir') == true
@@ -736,7 +758,7 @@ exports.GradingStudentAssignment = rclass
         </Row>
 
     open_directory: (path) ->
-        @setState(subdir : path)
+        @setState(subdir : path, listing_files: undefined)
         @actions(@props.name).grading(
             assignment       : @props.assignment
             student_id       : @state.student_id
@@ -769,25 +791,65 @@ exports.GradingStudentAssignment = rclass
                 </Breadcrumb.Item>
             )
 
-        <Breadcrumb bsSize='small' style={marginBottom: '15px'}>
+        <Breadcrumb bsSize='small' style={margin: '0 15px 15px 15px'}>
             {crumbs}
         </Breadcrumb>
 
+    listing_page: (offset) ->
+        p = @state.page_number + offset
+        @actions(@props.name).set_grading_entry('page_number', p)
+        @setState(page_number : p)
+
+    render_listing_pager: ->
+        num_pages = 10
+        btn_style =
+            whiteSpace: 'nowrap'
+        <div style={padding:'0', flex:'0'}>
+            <ButtonGroup style={marginBottom:'5px', display:'flex'}>
+                <Button
+                    onClick={=>@listing_page(-1)}
+                    disabled={@state.page_number <= 0}
+                    style={btn_style}
+                >
+                    <Icon name='angle-double-left' /> Prev
+                </Button>
+                <Button
+                    style={btn_style}
+                    disabled
+                >
+                    {"#{@state.page_number + 1}/#{num_pages}"}
+                </Button>
+                <Button
+                    onClick={=>@listing_page(+1)}
+                    disabled={@state.page_number >= num_pages - 1}
+                    style={btn_style}
+                >
+                     Next <Icon name='angle-double-right' />
+                </Button>
+            </ButtonGroup>
+        </div>
 
     collected: ->
         last_collect  = @state.student_info?.last_collect
         if last_collect?.time?
-            time          = <BigTime date={last_collect.time} />
+            time      = <BigTime date={last_collect.time} />
         else
-            time          = "never"
+            time      = "never"
 
         <Row>
-            <Col md={9} style={padding:'0'}>
-                {@render_listing_path()}
-            </Col>
-            <Col md={3} style={textAlign:'right', color:COLORS.GRAY, padding:'0'}>
-                (collected {time})
-            </Col>
+            <div style={display: 'flex', flexDirection: 'row'}>
+                {@render_listing_pager()}
+                <div style={padding:'0', flex:'1'}>
+                    {@render_listing_path()}
+                </div>
+                <div style={padding:'0', flex:'0'}>
+                    <ButtonGroup style={marginBottom:'5px', display:'flex'}>
+                        <Button style={whiteSpace:'nowrap'} disabled>
+                            collected: {time}
+                        </Button>
+                    </ButtonGroup>
+                </div>
+            </div>
         </Row>
 
     render_up: ->
