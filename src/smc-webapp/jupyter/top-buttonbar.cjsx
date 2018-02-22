@@ -182,7 +182,7 @@ exports.TopButtonbar = rclass ({name}) ->
                 <Icon name='history'/> <span className = 'hidden-sm'>TimeTravel</span>
             </Button>
             {@render_close_and_halt()}
-            {# @render_switch_button()}
+            {### @render_switch_button() ###}
         </ButtonGroup>
 
     render: ->

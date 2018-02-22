@@ -1,10 +1,12 @@
 ###
 PostgreSQL database entry point.
+Do not import any of the submodules directly unless you
+know exactly what you're doing.
 
 COPYRIGHT : (c) 2017 SageMath, Inc.
 LICENSE   : AGPLv3
 ###
-require('coffee-cache')
+require('coffee2-cache')
 
 fs           = require('fs')
 
@@ -12,17 +14,17 @@ base = require('./postgres-base')
 for f in ['pg_type', 'expire_time', 'one_result', 'all_results', 'count_result']
     exports[f] = base[f]
 
-exports.PUBLIC_PROJECT_COLUMNS = ['project_id',  'last_edited', 'title', 'description', 'deleted',  'created']
-exports.PROJECT_COLUMNS = ['users'].concat(exports.PUBLIC_PROJECT_COLUMNS)
-
+exports.PUBLIC_PROJECT_COLUMNS = base.PUBLIC_PROJECT_COLUMNS
+exports.PROJECT_COLUMNS        = base.PROJECT_COLUMNS
 
 # Add further functionality to PostgreSQL class -- must be at the bottom of this file.
-# Each of the following calls extends the PostgreSQL class with further important functionality.
+# Each of the following calls composes the PostgreSQL class with further important functionality.
 # Order matters.
-for module in ['base', 'server-queries', 'blobs', 'synctable', 'user-queries', 'ops']
-    exports.PostgreSQL = require("./postgres-#{module}").PostgreSQL
+PostgreSQL = base.PostgreSQL
+for module in ['server-queries', 'blobs', 'synctable', 'user-queries', 'ops']
+     PostgreSQL = require("./postgres-#{module}").extend_PostgreSQL(PostgreSQL)
 
 exports.db = (opts) ->
-    return new exports.PostgreSQL(opts)
+    return new PostgreSQL(opts)
 
 

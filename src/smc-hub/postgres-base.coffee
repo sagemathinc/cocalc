@@ -50,8 +50,6 @@ if not pg?
 #               syncstring system was breaking... until I switched to native.  Not sure.
 #pg      = require('pg')
 
-
-
 winston      = require('./winston-metrics').get_logger('postgres')
 
 misc_node = require('smc-util-node/misc_node')
@@ -60,6 +58,9 @@ misc_node = require('smc-util-node/misc_node')
 required = defaults.required
 
 {SCHEMA, client_db} = require('smc-util/schema')
+
+exports.PUBLIC_PROJECT_COLUMNS = ['project_id',  'last_edited', 'title', 'description', 'deleted',  'created']
+exports.PROJECT_COLUMNS = ['users'].concat(exports.PUBLIC_PROJECT_COLUMNS)
 
 read_password_from_disk = ->
     filename = (process.env.SMC_ROOT ? '.') + '/data/secrets/postgres'
@@ -73,6 +74,7 @@ read_password_from_disk = ->
 
 class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whenever we successfully connect to the database and 'disconnect' when connection to postgres fails
     constructor: (opts) ->
+        super()
         opts = defaults opts,
             host            : process.env['PGHOST'] ? 'localhost'    # or 'hostname:port'
             database        : process.env['SMC_DB'] ? 'smc'

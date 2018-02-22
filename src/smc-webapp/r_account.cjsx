@@ -198,7 +198,7 @@ EmailAddressSetting = rclass
                     value       = {@state.email_address}
                     placeholder = 'user@example.com'
                     onChange    = {=>@setState(email_address : ReactDOM.findDOMNode(@refs.email_address).value)}
-                    maxLength   = 254
+                    maxLength   = {254}
                 />
             </FormGroup>
             Current password
@@ -523,7 +523,7 @@ AccountSettings = rclass
                 <Button bsStyle="primary" onClick={=>@actions('account').sign_out(@props.everywhere)}>
                     <Icon name="external-link" /> Sign out
                 </Button>
-                <Button onClick={=>@actions('account').setState(show_sign_out : false)}} >
+                <Button onClick={=>@actions('account').setState(show_sign_out : false)}>
                     Cancel
                 </Button>
             </ButtonToolbar>
@@ -564,7 +564,7 @@ AccountSettings = rclass
                 ref       = 'first_name'
                 onChange  = {(e)=>@handle_change(e, 'first_name')}
                 onBlur    = {(e)=>@save_change(e, 'first_name')}
-                maxLength = 254
+                maxLength = {254}
                 />
             <TextSetting
                 label    = 'Last name'
@@ -572,13 +572,13 @@ AccountSettings = rclass
                 ref      = 'last_name'
                 onChange = {(e)=>@handle_change(e, 'last_name')}
                 onBlur   = {(e)=>@save_change(e, 'last_name')}
-                maxLength = 254
+                maxLength = {254}
                 />
             <EmailAddressSetting
                 email_address = {@props.email_address}
                 redux         = {@props.redux}
                 ref           = 'email_address'
-                maxLength     = 254
+                maxLength     = {254}
                 />
             <EmailVerification
                 account_id             = {@props.account_id}
@@ -593,17 +593,17 @@ AccountSettings = rclass
                 />
             <PasswordSetting
                 ref   = 'password'
-                maxLength = 64
+                maxLength = {64}
                 />
             <APIKeySetting />
             <Row style={marginTop: '15px', borderTop: '1px solid #ccc', paddingTop: '15px'}>
-                <Col xs=12>
+                <Col xs={12}>
                     {@render_sign_out_buttons()}
                 </Col>
             </Row>
             {@render_sign_out_confirm() if @props.show_sign_out}
             <Row>
-                <Col xs=12>
+                <Col xs={12}>
                     <DeleteAccount
                         style={marginTop:'1ex'}
                         initial_click = {=>@setState(show_delete_confirmation:true)}
@@ -636,7 +636,7 @@ DeleteAccount = rclass
                     className = 'pull-right'
                     bsStyle   = 'danger'
                     style     = {@props.style}
-                    onClick   = @props.initial_click
+                    onClick   = {@props.initial_click}
                 >
                 <Icon name='trash' /> Delete Account...
                 </Button>
@@ -697,7 +697,7 @@ DeleteAccountConfirmation = rclass
                 <Button
                     style   = {paddingRight:'8px'}
                     bsStyle = 'primary'
-                    onClick = {@props.cancel_click}}
+                    onClick = {@props.cancel_click}
                 >
                     Cancel
                 </Button>
@@ -773,7 +773,7 @@ ProfileSettings = rclass
         if not @props.email_address
             return @render_gravatar_needs_email()
         <Row>
-            <Col md=6 key='checkbox'>
+            <Col md={6} key='checkbox'>
                 <Checkbox
                     ref      = "checkbox"
                     checked  = {!!@props.profile.get('image')}
@@ -781,7 +781,7 @@ ProfileSettings = rclass
                     Use gravatar
                 </Checkbox>
             </Col>
-            <Col md=6 key='set'>
+            <Col md={6} key='set'>
                 {@render_gravatar_button() if not @state.show_instructions}
             </Col>
         </Row>
@@ -790,7 +790,7 @@ ProfileSettings = rclass
         <h2>
             <Avatar
                 account_id = {@props.account_id}
-                size       = 40
+                size       = {40}
             />
             <Space />
             <Space />
@@ -828,8 +828,8 @@ TerminalSettings = rclass
             <LabeledRow label='Terminal font size'>
                 <NumberInput
                     on_change = {(font_size)=>@handleChange(font_size:font_size)}
-                    min       = 3
-                    max       = 80
+                    min       = {3}
+                    max       = {80}
                     number    = {@props.terminal.font_size}
                     unit      = "px" />
             </LabeledRow>
@@ -903,8 +903,8 @@ EditorSettingsAutosaveInterval = rclass
         <LabeledRow label='Autosave interval'>
             <NumberInput
                 on_change = {(n)=>@props.on_change('autosave',n)}
-                min       = 15
-                max       = 900
+                min       = {15}
+                max       = {900}
                 number    = {@props.autosave}
                 unit      = "seconds" />
         </LabeledRow>
@@ -920,8 +920,8 @@ EditorSettingsFontSize = rclass
         <LabeledRow label='Font Size'>
             <NumberInput
                 on_change = {(n)=>@props.on_change('font_size',n)}
-                min       = 6
-                max       = 32
+                min       = {6}
+                max       = {32}
                 number    = {@props.font_size}
                 unit      = "px" />
         </LabeledRow>
@@ -1137,8 +1137,8 @@ OtherSettings = rclass
         <LabeledRow label='Standby timeout'>
             <NumberInput
                 on_change = {(n)=>@on_change('standby_timeout_m',n)}
-                min       = 1
-                max       = 180
+                min       = {1}
+                max       = {180}
                 unit      = "minutes"
                 number    = {@props.other_settings.standby_timeout_m} />
         </LabeledRow>
@@ -1165,8 +1165,8 @@ OtherSettings = rclass
         <LabeledRow label='Number of files per page'>
             <NumberInput
                     on_change = {(n)=>@on_change('page_size',n)}
-                    min       = 1
-                    max       = 1000000
+                    min       = {1}
+                    max       = {1000000}
                     number    = {@props.other_settings.page_size} />
         </LabeledRow>
 
@@ -1239,7 +1239,7 @@ AccountCreationToken = rclass
                                 ref      = 'input'
                                 type     = 'text'
                                 value    = {@state.token}
-                                onChange = {(e)=>@setState(token:e.target.value)}}
+                                onChange = {(e)=>@setState(token:e.target.value)}
                             />
                         </FormGroup>
                     </form>
@@ -1457,7 +1457,7 @@ SystemMessage = rclass
         <ButtonToolbar>
             <Button onClick={=>@setState(state:'edit')}>Compose...</Button>
             {<Button onClick={@mark_all_done}>Mark {open} {misc.plural(open, 'notification')} done</Button> if open > 0}
-            {<Button disabled=true>No outstanding notifications</Button> if open == 0}
+            {<Button disabled={true}>No outstanding notifications</Button> if open == 0}
         </ButtonToolbar>
 
 
@@ -1466,11 +1466,11 @@ SystemMessage = rclass
             <FormGroup>
                 <FormControl
                     autoFocus
-                    value={@state.mesg}
-                    ref='input'
-                    rows=3
-                    componentClass='textarea'
-                    onChange={=>@setState(mesg:ReactDOM.findDOMNode(@refs.input).value)}
+                    value          = {@state.mesg}
+                    ref            = 'input'
+                    rows           = {3}
+                    componentClass = 'textarea'
+                    onChange       = {=>@setState(mesg:ReactDOM.findDOMNode(@refs.input).value)}
                 />
             </FormGroup>
             <ButtonToolbar>
@@ -1530,7 +1530,7 @@ AddStripeUser = rclass
     render_form: ->
         <form onSubmit={(e)=>e.preventDefault();if misc.is_valid_email_address(@state.email.trim()) then @add_stripe_user()}>
             <Row>
-                <Col md=6>
+                <Col md={6}>
                     <FormGroup>
                         <FormControl
                             ref         = 'input'
@@ -1541,7 +1541,7 @@ AddStripeUser = rclass
                         />
                     </FormGroup>
                 </Col>
-                <Col md=6>
+                <Col md={6}>
                     <Button bsStyle='warning' disabled={not misc.is_valid_email_address(@state.email.trim())} onClick={@add_stripe_user}>Add/Update Stripe Info</Button>
                 </Col>
             </Row>
@@ -1616,7 +1616,7 @@ exports.AccountSettingsTop = rclass
     render: ->
         <div style={marginTop:'1em'}>
             <Row>
-                <Col xs=12 md=6>
+                <Col xs={12} md={6}>
                     <AccountSettings
                         account_id     = {@props.account_id}
                         first_name     = {@props.first_name}
@@ -1636,7 +1636,7 @@ exports.AccountSettingsTop = rclass
                         evaluate_key = {@props.evaluate_key}
                         redux        = {@props.redux} />
                 </Col>
-                <Col xs=12 md=6>
+                <Col xs={12} md={6}>
                     <EditorSettings
                         autosave        = {@props.autosave}
                         font_size       = {@props.font_size}

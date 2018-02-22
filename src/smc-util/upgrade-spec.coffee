@@ -29,8 +29,7 @@ Define upgrades to projects.
 
 upgrades = exports.upgrades = {}
 
-# these are the base quotas -- keep req_* commented out until they are also in params below.
-# They are for future use for k8s
+# these are the base quotas
 exports.DEFAULT_QUOTAS =
     disk_quota     : 3000
     cores          : 1

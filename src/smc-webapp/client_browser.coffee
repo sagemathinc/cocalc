@@ -104,6 +104,14 @@ class Connection extends client.Connection
 
     _setup_window_smc: () =>
         # if we are in DEBUG mode, inject the client into the global window object
+        window.enable_post = =>
+            @_enable_post = true
+        window.disable_post = =>
+            @_enable_post = false
+
+        # Make this the default now.
+        @_enable_post = true
+
         if not DEBUG
             return
         window.smc                     ?= {}

@@ -24,11 +24,9 @@ required = defaults.required
 
 PROJECT_GROUPS = misc.PROJECT_GROUPS
 
+{PROJECT_COLUMNS, one_result, all_results, count_result, expire_time} = require('./postgres-base')
 
-{PostgreSQL, PROJECT_COLUMNS, one_result, all_results, count_result, expire_time} = require('./postgres')
-
-class exports.PostgreSQL extends PostgreSQL
-
+exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
     # write an event to the central_log table
     log: (opts) =>
         opts = defaults opts,
@@ -128,6 +126,7 @@ class exports.PostgreSQL extends PostgreSQL
             smc_git_rev  : undefined
             uptime       : undefined
             start_time   : undefined
+            id           : undefined  # ignored
             cb           : undefined
         @_query
             query       : 'INSERT INTO webapp_errors'

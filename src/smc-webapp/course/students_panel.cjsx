@@ -165,7 +165,7 @@ exports.StudentsPanel = rclass ({name}) ->
             return
         options = @get_add_selector_options()
         <FormGroup>
-            <FormControl componentClass='select' multiple ref="add_select" rows=10 onClick={@add_selector_clicked}>
+            <FormControl componentClass='select' multiple ref="add_select" rows={10} onClick={@add_selector_clicked}>
                 {options}
             </FormControl>
             {@render_add_selector_button(options)}
@@ -207,24 +207,24 @@ exports.StudentsPanel = rclass ({name}) ->
                 else
                     msg = "Already added student or project collaborator: "
                 msg += existing.join(', ')
-                ed = <ErrorDisplay bsStyle='info' error=msg onClose={=>@setState(existing_students:undefined)} />
+                ed = <ErrorDisplay bsStyle='info' error={msg} onClose={=>@setState(existing_students:undefined)} />
         if ed?
-            <Row style={marginTop:'1em', marginBottom:'-10px'}><Col md=5 lgOffset=7>{ed}</Col></Row>
+            <Row style={marginTop:'1em', marginBottom:'-10px'}><Col md={5} lgOffset={7}>{ed}</Col></Row>
 
     render_header: (num_omitted) ->
         <div>
             <Row style={marginBottom:'-15px'}>
-                <Col md=3>
+                <Col md={3}>
                     <SearchInput
                         placeholder = "Find students..."
                         default_value = {@state.search}
                         on_change   = {(value)=>@setState(search:value)}
                     />
                 </Col>
-                <Col md=4>
+                <Col md={4}>
                     {<h6>(Omitting {num_omitted} students)</h6> if num_omitted}
                 </Col>
-                <Col md=5>
+                <Col md={5}>
                     <form onSubmit={@do_add_search}>
                         <FormGroup>
                             <InputGroup>
@@ -302,7 +302,7 @@ exports.StudentsPanel = rclass ({name}) ->
     render_student_table_header: ->
         # HACK: -10px margin gets around ReactBootstrap's incomplete access to styling
         <Row style={marginTop:'-10px', marginBottom:'3px'}>
-            <Col md=3>
+            <Col md={3}>
                 <div style={display:'inline-block', width:'50%'}>
                     {@render_sort_link("first_name", "First Name")}
                 </div>
@@ -310,13 +310,13 @@ exports.StudentsPanel = rclass ({name}) ->
                     {@render_sort_link("last_name", "Last Name")}
                 </div>
             </Col>
-            <Col md=2>
+            <Col md={2}>
                 {@render_sort_link("email", "Student Email")}
             </Col>
-            <Col md=4>
+            <Col md={4}>
                 {@render_sort_link("last_active", "Last Active")}
             </Col>
-            <Col md=3>
+            <Col md={3}>
                 {@render_sort_link("hosting", "Hosting Type")}
             </Col>
         </Row>
@@ -365,7 +365,7 @@ exports.StudentsPanel.Header = rclass
         n : rtypes.number
 
     render: ->
-        <Tip delayShow=1300
+        <Tip delayShow={1300}
              title="Students"
              tip="This tab lists all students in your course, along with their grades on each assignment.  You can also quickly find students by name on the left and add new students on the right.">
             <span>
@@ -617,16 +617,16 @@ Student = rclass
 
     render_note: ->
         <Row key='note' style={styles.note}>
-            <Col xs=2>
+            <Col xs={2}>
                 <Tip title="Notes about this student" tip="Record notes about this student here. These notes are only visible to you, not to the student.  In particular, you might want to include an email address or other identifying information here, and notes about late assignments, excuses, etc.">
                     Private Student Notes
                 </Tip>
             </Col>
-            <Col xs=10>
+            <Col xs={10}>
                 <MarkdownInput
                     persist_id    = {@props.student.get('student_id') + "note"}
                     attach_to     = {@props.name}
-                    rows          = 6
+                    rows          = {6}
                     placeholder   = 'Notes about student (not visible to student)'
                     default_value = {@props.student.get('note')}
                     on_save       = {(value)=>@actions(@props.name).set_student_note(@props.student, value)}
@@ -638,7 +638,7 @@ Student = rclass
         # Info for each assignment about the student.
         v = []
         v.push <Row key='more'>
-                <Col md=12>
+                <Col md={12}>
                     {@render_assignments_info()}
                 </Col>
             </Row>
@@ -647,21 +647,21 @@ Student = rclass
 
     render_basic_info: ->
         <Row key='basic' style={backgroundColor:@props.background}>
-            <Col md=3>
+            <Col md={3}>
                 <h6>
                     {@render_student()}
                     {@render_deleted()}
                 </h6>
             </Col>
-            <Col md=2>
+            <Col md={2}>
                 <h6 style={color:"#666"}>
                     {@render_student_email()}
                 </h6>
             </Col>
-            <Col md=4 style={paddingTop:'10px'}>
+            <Col md={4} style={paddingTop:'10px'}>
                 {@render_last_active()}
             </Col>
-            <Col md=3 style={paddingTop:'10px'}>
+            <Col md={3} style={paddingTop:'10px'}>
                 {@render_hosting()}
             </Col>
         </Row>
@@ -673,15 +673,15 @@ Student = rclass
     render_panel_header: ->
         <div>
             <Row>
-                <Col md=8>
+                <Col md={8}>
                     {@render_project_access()}
                 </Col>
-                <Col md=4>
+                <Col md={4}>
                     {@render_delete_button()}
                 </Col>
             </Row>
             {<Row>
-                <Col md=4>
+                <Col md={4}>
                     {@render_edit_student_interface()}
                 </Col>
             </Row> if @state.editing_student }
@@ -690,7 +690,7 @@ Student = rclass
     render_edit_student_interface: ->
         <Well style={marginTop:'10px'}>
             <Row>
-                <Col md=6>
+                <Col md={6}>
                     First Name
                     <FormGroup>
                         <FormControl
@@ -703,7 +703,7 @@ Student = rclass
                         />
                     </FormGroup>
                 </Col>
-                <Col md=6>
+                <Col md={6}>
                     Last Name
                     <FormGroup>
                         <FormControl
@@ -717,7 +717,7 @@ Student = rclass
                 </Col>
             </Row>
             <Row>
-                <Col md=12>
+                <Col md={12}>
                     Email Address
                     <FormGroup>
                         <FormControl
@@ -741,7 +741,7 @@ Student = rclass
 
     render: ->
         <Row style={if @state.more then styles.selected_entry_style}>
-            <Col xs=12>
+            <Col xs={12}>
                 {@render_basic_info()}
                 {@render_more_panel() if @props.is_expanded}
             </Col>

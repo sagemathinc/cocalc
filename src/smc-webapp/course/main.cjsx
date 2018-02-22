@@ -118,7 +118,7 @@ CourseEditor = rclass ({name}) ->
         path        : rtypes.string.isRequired
 
     render_activity: ->
-        <ActivityDisplay activity={misc.values(@props.activity)} trunc=80
+        <ActivityDisplay activity={misc.values(@props.activity)} trunc={80}
             on_clear={=>@actions(@props.name).clear_activity()} />
 
     render_error: ->
@@ -222,7 +222,7 @@ CourseEditor = rclass ({name}) ->
     render_shared_project: ->
         if @props.redux? and @props.settings?
             <SharedProjectPanel
-                redux             = {@props.redux} 
+                redux             = {@props.redux}
                 name              = {@props.name}
                 shared_project_id = {@props.settings?.get('shared_project_id')}
             />
