@@ -51,6 +51,9 @@ _student_id = (props) ->
 _subdir = (props) ->
     props.grading?.get('subdir') ? ''
 
+_student_filter = (props) ->
+    props.grading?.get('student_filter') ? ''
+
 # filter predicate for file listing, return true for less important files
 # also match name.ext~ variants in case of multiple rsyncs ...
 course_specific_files = (entry) ->
@@ -63,10 +66,10 @@ _init_state = (props) ->
     student_id      :  _student_id(props)
     student_info    : undefined
     subdir          : _subdir(props)
-    student_filter  : props.student_filter
+    student_filter  : _student_filter(props)
 
 _update_state = (props, next, state, setState) ->
-    if any_changes(props, next, ['grading', 'assignment', 'student_filter'])
+    if any_changes(props, next, ['grading', 'assignment'])
         student_id = _student_id(next)
         return if not student_id?
         grade      = state.store.get_grade(props.assignment, student_id)
@@ -79,7 +82,7 @@ _update_state = (props, next, state, setState) ->
             edited_comments : comment
             student_info    : state.store.student_assignment_info(student_id, props.assignment)
             subdir          : _subdir(props)
-            student_filter  : next.student_filter
+            student_filter  : _student_filter(props)
 
 
 exports.GradingStudentAssignmentHeader = rclass
@@ -93,7 +96,6 @@ exports.GradingStudentAssignmentHeader = rclass
         grading      : rtypes.immutable.Map
 
     getInitialState: ->
-        if DEBUG then window.a = @actions(@props.name)
         return _init_state(@props)
 
     componentWillReceiveProps: (next) ->
@@ -118,7 +120,7 @@ exports.GradingStudentAssignmentHeader = rclass
                     onClick  = {@exit}
                     bsStyle  = {'warning'}
                 >
-                    <Icon name={'sign-out'} /> Exit Grading
+                    <Icon name={'sign-out'} /> Close Grading
                 </Button>
             </Col>
         </Row>
@@ -265,10 +267,6 @@ exports.GradingStudentAssignment = rclass
         students        : rtypes.object.isRequired
         user_map        : rtypes.object.isRequired
         grading         : rtypes.immutable.Map
-        student_filter  : rtypes.string
-
-    getDefaultProps: ->
-        student_filter  : ''
 
     getInitialState: ->
         s = _init_state(@props)
@@ -350,11 +348,13 @@ exports.GradingStudentAssignment = rclass
         )
 
     student_list_entries: ->
-        matching = (name) =>
+        matching = (id, name) =>
+            by_name = by_only_graded = true
             if @state.student_filter?.length > 0
-                return name.toLowerCase().indexOf(@state.student_filter.toLowerCase()) >= 0
-            else
-                return true
+                by_name = name.toLowerCase().indexOf(@state.student_filter.toLowerCase()) >= 0
+            if @get_only_graded()
+                by_only_graded = not @state.store.has_grade(@props.assignment, id)
+            return by_name and by_only_graded
 
         li_style =
             cursor         : 'pointer'
@@ -366,7 +366,7 @@ exports.GradingStudentAssignment = rclass
             current = @state.student_id == id
             active  = if current then 'active' else ''
             name    = @state.store.get_student_name(student)
-            return null if not matching(name)
+            return null if not matching(id, name)
             <li
                 key        = {id}
                 className  = {"list-group-item " + active}
@@ -440,11 +440,33 @@ exports.GradingStudentAssignment = rclass
             </Row>
         ]
 
+    get_only_graded: ->
+        @state.store.grading_get_filter_only_graded()
+
+    set_only_graded: (only_graded) ->
+        @actions(@props.name).set_student_filter_only_graded(only_graded)
+
+    render_filter_only_graded: ->
+        only_graded = @get_only_graded()
+        if only_graded
+            icon = 'check-square-o'
+        else
+            icon = 'square-o'
+
+        <Button
+            onClick  = {=>@set_only_graded(not only_graded)}
+            bsStyle  = {'default'}
+        >
+            <Icon name={icon} /> Not yet graded
+        </Button>
+
     render_nav: ->
         <Col md={4}>
+            {###
             <Row style={rowstyle}>
                 {@render_progress()}
             </Row>
+            ###}
             {###
             <Row style={rowstyle}>
                 <ButtonToolbar>
@@ -465,18 +487,25 @@ exports.GradingStudentAssignment = rclass
             ###}
             <Row style={rowstyle}>
                 <ButtonToolbar>
+                    {###
                     <Button
                         onClick  = {=>@previous(true)}
                         bsStyle  = {'default'}
                     >
                         <Icon name={'step-backward'} /> Previous
                     </Button>
+                    ###}
                     <Button
                         onClick  = {=>@next(true)}
                         bsStyle  = {'primary'}
                     >
-                        <Icon name={'step-forward'} /> Next to Grade
+                        <Icon name={'step-forward'} /> Pick next student to grade
                     </Button>
+                </ButtonToolbar>
+            </Row>
+            <Row style={rowstyle}>
+                <ButtonToolbar>
+                    {@render_filter_only_graded()}
                 </ButtonToolbar>
             </Row>
         </Col>
@@ -740,12 +769,38 @@ exports.GradingStudentAssignment = rclass
             <Icon name='arrow-up' /> Up
         </Button>
 
+    start_fresh: ->
+        @actions(@props.name).grading(
+            student_id       : undefined
+            assignment       : @props.assignment
+            without_grade    : false
+            collected_files  : false
+        )
+
+    render_end_of_list: ->
+        <Col>
+            <Row style={marginBottom:'30px'}>
+                <h2 style={textAlign:'center'}>
+                    Congratulations! You reached the end of the student list.
+                </h2>
+            </Row>
+            <Row style={textAlign:'center', marginBottom:'60px'}>
+                <Button
+                    onClick = {=>@start_fresh()}
+                    bsStyle = {'primary'}
+                    bsSize  = {'large'}
+                >
+                    Start fresh …
+                </Button>
+            </Row>
+        </Col>
+
     render: ->
         if not @state.student_id?
             return <div>No student</div>
 
         if @props.grading.get('end_of_list')
-            return <div>You reached the end of students list.</div>
+            return @render_end_of_list()
 
         flexcolumn =
             display        : 'flex'

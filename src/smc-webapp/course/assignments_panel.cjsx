@@ -50,7 +50,6 @@ exports.AssignmentsPanel = rclass ({name}) ->
             active_student_sort    : rtypes.immutable.Map
             expanded_peer_configs  : rtypes.immutable.Set
             grading                : rtypes.immutable.Map
-            student_filter         : rtypes.string
 
     propTypes :
         name            : rtypes.string.isRequired
@@ -123,7 +122,6 @@ exports.AssignmentsPanel = rclass ({name}) ->
                 active_student_sort = {@props.active_student_sort}
                 expand_peer_config  = {@props.expanded_peer_configs.has(x.assignment_id)}
                 grading             = {@props.grading}
-                student_filter      = {@props.student_filter}
             />
 
     render_show_deleted: (num_deleted, num_shown) ->
@@ -201,14 +199,13 @@ Assignment = rclass
         active_student_sort       : rtypes.immutable.Map
         expand_peer_config        : rtypes.bool
         grading                   : rtypes.immutable.Map
-        student_filter            : rtypes.string
 
     shouldComponentUpdate: (nextProps, nextState) ->
         {any_changes} = require('../r_misc')
         return @state != nextState or \
             any_changes(@props, nextProps,
                 ['assignment', 'students', 'user_map', 'background', 'is_expanded', \
-                'active_student_sort', 'expand_peer_config', 'grading', 'student_filter']
+                'active_student_sort', 'expand_peer_config', 'grading']
             )
 
     getInitialState: ->
@@ -366,7 +363,6 @@ Assignment = rclass
                     students       = {@props.students}
                     user_map       = {@props.user_map}
                     grading        = {@props.grading}
-                    student_filter = {@props.student_filter}
                 />
         else
             header      = @render_more_header()
@@ -682,7 +678,11 @@ Assignment = rclass
         icon     = 'play'
         handler  = =>
             # student_id is set to null on purpose (starts fresh)
-            @actions(@props.name).grading(assignment:@props.assignment)
+            @actions(@props.name).grading(
+                assignment       : @props.assignment
+                without_grade    : false
+                collected_files  : false
+            )
 
         if status.graded > 0
             if status.not_graded == 0

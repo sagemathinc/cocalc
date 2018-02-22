@@ -481,7 +481,7 @@ exports.CourseStore = class CourseStore extends Store
             current_student_id    : undefined
             direction             : 1
             without_grade         : true   # not yet graded?
-            collected_files       : true   # already collected files?
+            collected_files       : true   # has collected files?
         # direction: 1 or -1
         # student_to_grade: if true, only return a student who does not have a grade yet
         assignment = @get_assignment(opts.assignment)
@@ -500,11 +500,17 @@ exports.CourseStore = class CourseStore extends Store
                     skip = false
                     continue
 
-            collected = (not opts.collected_files) or (not @has_last_collected(assignment, student_id))
-            has_grade = (not opts.without_grade) or (not @has_grade(assignment, student_id))
-            if has_grade and collected
+            # collected_files and without_grade is true by default
+            # then, only return a student without a grade but with collected files
+            x = @has_last_collected(assignment, student_id)
+            is_collected = (not opts.collected_files) or (x)
+            has_no_grade = (not opts.without_grade) or (not @has_grade(assignment, student_id))
+            if has_no_grade and is_collected
                 return [student_id, cnt]
         return [null, 0]
+
+    grading_get_filter_only_graded: =>
+        @getIn(['grading', 'filter_only_graded']) ? false
 
     grading_get_listing: (assignment, student_id, subdir, cb) =>
         project_id = @get('course_project_id')
@@ -538,8 +544,4 @@ exports.CourseStore = class CourseStore extends Store
         ], (err) =>
             cb(err, locals.listing)
         )
-
-        #cb(null, {files:['a', 'b', 'c', project_id, collect_path, assignment.get('assignment_id'), student_id]})
-
-
 
