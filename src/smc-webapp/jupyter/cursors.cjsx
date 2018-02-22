@@ -50,7 +50,6 @@ exports.Cursor = Cursor = rclass
                 >{@props.name}</span> if @state.hover}
         </span>
 
-
 PositionedCursor = rclass
     propTypes:
         name       : rtypes.string.isRequired
@@ -65,6 +64,11 @@ PositionedCursor = rclass
         <div style={position:'absolute', left:"#{left+gutter}px", top:"#{top}px"}>
             <Cursor name={@props.name} color={@props.color}/>
         </div>
+
+    componentDidMount: ->
+        # CodeMirror-scroll
+        #if @props.codemirror?
+        #    $(ReactDOM.findDOMNode(@)).clone().prependTo($(@props.codemirror.getScrollerElement()))
 
     render_static: ->
         style =
@@ -92,11 +96,12 @@ exports.Cursors = rclass
     propTypes:
         cursors    : rtypes.immutable.Map.isRequired
         codemirror : rtypes.object            # optional codemirror editor instance
+        scroll     : rtypes.immutable.Map
 
     reduxProps:
-        "users":
+        users:
             user_map: rtypes.immutable.Map
-        "account":
+        account:
             account_id : rtypes.string
 
     profile: (account_id) ->

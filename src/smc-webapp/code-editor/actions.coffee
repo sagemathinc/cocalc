@@ -29,6 +29,7 @@ class exports.Actions extends Actions
 
         @_syncstring.once('init', @_syncstring_metadata)
         @_syncstring.on('metadata-change', @_syncstring_metadata)
+        @_syncstring.on('cursor_activity', @_syncstring_cursor_activity)
 
         @_syncstring.on('change', @_syncstring_change)
         @_syncstring.on('init', @_syncstring_change)
@@ -180,10 +181,30 @@ class exports.Actions extends Actions
         if read_only != @store.get('read_only')
             @setState(read_only: read_only)
 
+    _syncstring_cursor_activity: =>
+        # TODO: for now, just for the one syncstring obviously
+        # TOOD: this is probably slow...
+        cursors = immutable.Map()
+        @_syncstring.get_cursors().forEach (info, account_id) =>
+            info.get('locs').forEach (loc) =>
+                loc  = loc.set('time', info.get('time'))
+                locs = (cursors.get(account_id) ? immutable.List()).push(loc)
+                cursors = cursors.set(account_id, locs)
+                return
+            return
+        if not cursors.equals(@store.get('cursors'))
+            @setState(cursors: cursors)
+
     _syncstring_change: (changes) =>
         if not @store.get('is_loaded')
             @setState(is_loaded: true)
         @set_save_status?()
+
+    set_cursor_locs:  (locs=[]) =>
+        if locs.length == 0
+            # don't remove on blur -- cursor will fade out just fine
+            return
+        @_syncstring?.set_cursor_locs(locs)
 
     delete_trailing_whitespace: =>
         cm = @_get_cm()

@@ -32,7 +32,10 @@ if IS_TOUCH
     close_style = undefined
 else
     button_size = 'xsmall'
-    close_style = background:title_bar_style.background, border:'transparent', height:0
+    close_style =
+        background : title_bar_style.background
+        border     : 'transparent'
+        height     : 0
 
 exports.FrameTitleBar = rclass
     propTypes :
@@ -45,12 +48,8 @@ exports.FrameTitleBar = rclass
         is_full    : rtypes.bool
         is_only    : rtypes.bool    # is the only frame -- so don't show delete or full buttons at all.
 
-    getInitialState: ->
-        display_buttons : IS_TOUCH  # must always show on touch devices
-
-    shouldComponentUpdate: (next, state) ->
-        return @state.display_buttons != state.display_buttons or \
-               @props.active_id  != next.active_id or \
+    shouldComponentUpdate: (next) ->
+        return @props.active_id  != next.active_id or \
                @props.id         != next.id or \
                @props.path       != next.path or \
                @props.deletable  != next.deletable or \
@@ -64,7 +63,7 @@ exports.FrameTitleBar = rclass
     render_x: ->
         disabled = @props.is_full or @props.is_only or not @props.deletable
         <ButtonGroup style={marginLeft:'5px', float:'right'} key={'x'}>
-            {@render_full() if @props.is_full or @state.display_buttons or @props.active_id == @props.id}
+            {@render_full() if @props.is_full or @props.active_id == @props.id}
             <Button
                 style    = {close_style}
                 disabled = {disabled}
@@ -210,31 +209,17 @@ exports.FrameTitleBar = rclass
             </Tip>
         </span>
 
-    cancel_hide: ->
-        if @_hide?
-            clearTimeout(@_hide)
-            delete @_hide
-
-    show_buttons: ->
-        if not @state.display_buttons
-            @cancel_hide()
-            @setState(display_buttons:true)
-
-    hide_buttons: ->
-        @cancel_hide()
-        @_hide = setTimeout((=>@cancel_hide(); @setState(display_buttons:false)), 1500)
-
-    componentWillUnmount: ->
-        @cancel_hide()
-
     render: ->
+        is_active = @props.id == @props.active_id
+        if is_active
+            style = misc.copy(title_bar_style)
+            style.background = '#ddd'
+        else
+            style = title_bar_style
         <div
-            style        = {title_bar_style}
-            onMouseEnter = {@show_buttons if not IS_TOUCH}
-            onMouseLeave = {@hide_buttons if not IS_TOUCH}
-            onMouseOver  = {@show_buttons if not IS_TOUCH}
+            style = {style}
             >
             {@render_path()}
             {@render_x()}
-            {@render_buttons() if @state.display_buttons or @props.id == @props.active_id}
+            {@render_buttons() if is_active}
         </div>

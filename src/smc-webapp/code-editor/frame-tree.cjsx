@@ -54,12 +54,14 @@ exports.FrameTree = FrameTree = rclass
         full_id    : rtypes.string
         frame_tree : rtypes.immutable.isRequired
         is_only    : rtypes.bool
+        cursors    : rtypes.immutable.Map
 
     shouldComponentUpdate: (next) ->
         return @props.frame_tree != next.frame_tree or \
                @props.active_id  != next.active_id or \
                @props.full_id    != next.full_id or \
-               @props.is_only    != next.is_only
+               @props.is_only    != next.is_only or \
+               @props.cursors    != next.cursors
 
     render_frame_tree: (desc) ->
         <FrameTree
@@ -67,6 +69,7 @@ exports.FrameTree = FrameTree = rclass
             frame_tree = {desc}
             active_id  = {@props.active_id}
             is_only    = {false}
+            cursors    = {@props.cursors}
         />
 
     render_titlebar: (desc) ->
@@ -89,6 +92,7 @@ exports.FrameTree = FrameTree = rclass
             font_size = {desc.get('font_size')}
             path      = {desc.get('path')}
             scroll    = {desc.get('scroll')}
+            cursors   = {@props.cursors}
         />
 
     render_one: (desc) ->

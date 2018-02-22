@@ -24,6 +24,7 @@ exports.Editor = rclass ({name}) ->
             is_loaded               : rtypes.bool
             local_view_state        : rtypes.immutable.Map
             error                   : rtypes.string
+            cursors                 : rtypes.immutable.Map
 
     shouldComponentUpdate: (next) ->
         return @props.has_unsaved_changes     != next.has_unsaved_changes or \
@@ -31,7 +32,8 @@ exports.Editor = rclass ({name}) ->
                @props.read_only               != next.read_only or \
                @props.local_view_state        != next.local_view_state or \
                @props.printing                != next.printing or \
-               @props.error                   != next.error
+               @props.error                   != next.error or \
+               @props.cursors                 != next.cursors
 
     componentDidMount: ->
         @props.actions.enable_key_handler()
@@ -69,6 +71,7 @@ exports.Editor = rclass ({name}) ->
                 active_id   = {@props.local_view_state.get('active_id')}
                 full_id     = {@props.local_view_state.get('full_id')}
                 is_only     = {frame_tree.get('type') != 'node'}
+                cursors     = {@props.cursors}
                 />
         </div>
 

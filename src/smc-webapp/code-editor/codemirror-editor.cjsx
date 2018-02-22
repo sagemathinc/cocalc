@@ -6,13 +6,16 @@ This is a wrapper around a single codemirror editor view.
 
 SAVE_INTERVAL_MS = 2000
 
-{React, ReactDOM, rclass, rtypes} = require('../smc-react')
-{three_way_merge}                 = require('smc-util/syncstring')
-{debounce, throttle}              = require('underscore')
-misc                              = require('smc-util/misc')
+{React, ReactDOM,
+ rclass, rtypes}     = require('../smc-react')
+{three_way_merge}    = require('smc-util/syncstring')
+{debounce, throttle} = require('underscore')
+misc                 = require('smc-util/misc')
 
-{cm_options}                      = require('./cm-options')
-doc                               = require('./doc')
+{Cursors}            = require('../jupyter/cursors')
+
+{cm_options}         = require('./cm-options')
+doc                  = require('./doc')
 
 
 STYLE =
@@ -29,6 +32,7 @@ exports.CodemirrorEditor = rclass
         id        : rtypes.string.isRequired
         actions   : rtypes.object.isRequired
         path      : rtypes.string.isRequired
+        cursors   : rtypes.immutable.Map
         font_size : rtypes.number
         scroll    : rtypes.immutable.Map
         read_only : rtypes.bool
@@ -40,7 +44,8 @@ exports.CodemirrorEditor = rclass
     shouldComponentUpdate: (next) ->
         return @props.editor_settings != next.editor_settings or \
                @props.font_size       != next.font_size or \
-               @props.read_only       != next.read_only
+               @props.read_only       != next.read_only or \
+               @props.cursors         != next.cursors
 
     componentDidMount: ->
         @init_codemirror()
@@ -75,6 +80,15 @@ exports.CodemirrorEditor = rclass
         $(@cm.getWrapperElement()).remove()  # remove from DOM -- "Remove this from your tree to delete an editor instance."
         delete @cm
         @props.actions.set_cm(@props.id)
+
+    _cm_cursor: ->
+        if not @cm?
+            return
+        if @cm._setValueNoJump
+            # cursor move is being caused by external setValueNoJump, so do not report.
+            return
+        locs = ({x:c.anchor.ch, y:c.anchor.line} for c in @cm.listSelections())
+        @props.actions.set_cursor_locs(locs)
 
     save_scroll_position: ->
         if not @cm?
@@ -123,6 +137,8 @@ exports.CodemirrorEditor = rclass
 
         @cm.on 'viewportChange', debounce(@save_scroll_position, 1000)
 
+        @cm.on 'cursorActivity', @_cm_cursor
+
         # replace undo/redo by our sync aware versions
         @cm.undo = @_cm_undo
         @cm.redo = @_cm_redo
@@ -139,11 +155,19 @@ exports.CodemirrorEditor = rclass
 
         @cm.setOption('readOnly', @props.read_only)
 
+    render_cursors: ->
+        if @props.cursors?
+            <Cursors
+                scroll     = {@props.scroll}
+                cursors    = {@props.cursors}
+                codemirror = {@cm} />
+
     render: ->
         font_size = @props.font_size ? @props.editor_settings.get('font_size') ? 15
         style = misc.merge({fontSize: "#{font_size}px"}, STYLE)
         <div
             style     = {style}
             className = 'smc-vfill' >
+            {@render_cursors()}
             <textarea />
         </div>
