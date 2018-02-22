@@ -1402,6 +1402,8 @@ exports.EditorFileInfoDropdown = EditorFileInfoDropdown = rclass
         filename  : rtypes.string.isRequired # expects the full path name
         actions   : rtypes.object.isRequired
         is_public : rtypes.bool
+        bsSize    : rtypes.string
+        label     : rtypes.string
 
     shouldComponentUpdate: (next) ->
         return next.filename != @props.filename or next.is_public != next.is_public
@@ -1436,13 +1438,18 @@ exports.EditorFileInfoDropdown = EditorFileInfoDropdown = rclass
     render_title: ->
         <span>
             <span className={'hidden-xs'}>
-                File
+                <Icon name={'file'}/> {@props.label ? ''}
                 <Space />
             </span>
         </span>
 
     render: ->
-        <DropdownButton style={marginRight:'2px'} id='file_info_button' title={@render_title()}>
+        <DropdownButton
+            style   = {marginRight: '2px'}
+            id      = 'file_info_button'
+            title   = {@render_title()}
+            bsSize  = {@props.bsSize}
+            >
             {@render_menu_items()}
         </DropdownButton>
 

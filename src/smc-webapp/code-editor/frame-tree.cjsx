@@ -51,39 +51,47 @@ exports.FrameTree = FrameTree = rclass
     propTypes :
         actions    : rtypes.object.isRequired
         active_id  : rtypes.string
+        project_id : rtypes.string
         full_id    : rtypes.string
         frame_tree : rtypes.immutable.isRequired
         font_size  : rtypes.number.isRequired
         is_only    : rtypes.bool
         cursors    : rtypes.immutable.Map
+        has_unsaved_changes : rtypes.bool
 
     shouldComponentUpdate: (next) ->
         return @props.frame_tree != next.frame_tree or \
                @props.active_id  != next.active_id or \
+               @props.project_id != next.project_id or \
                @props.full_id    != next.full_id or \
                @props.is_only    != next.is_only or \
-               @props.cursors    != next.cursors
+               @props.cursors    != next.cursors or \
+               @props.has_unsaved_changes != next.has_unsaved_changes
 
     render_frame_tree: (desc) ->
         <FrameTree
-            actions    = {@props.actions}
-            frame_tree = {desc}
-            active_id  = {@props.active_id}
-            font_size  = {@props.font_size}
-            is_only    = {false}
-            cursors    = {@props.cursors}
+            actions             = {@props.actions}
+            frame_tree          = {desc}
+            active_id           = {@props.active_id}
+            project_id          = {@props.project_id}
+            font_size           = {@props.font_size}
+            is_only             = {false}
+            cursors             = {@props.cursors}
+            has_unsaved_changes = {@props.has_unsaved_changes}
         />
 
     render_titlebar: (desc) ->
         <FrameTitleBar
             actions    = {@props.actions}
             active_id  = {@props.active_id}
+            project_id = {desc.get('project_id') ? @props.project_id}
             is_full    = {desc.get('id') == @props.full_id and not @props.is_only}
             is_only    = {@props.is_only}
             id         = {desc.get('id')}
             path       = {desc.get('path')}
             deletable  = {desc.get('deletable') ? true}
             read_only  = {desc.get('read_only')}
+            has_unsaved_changes = {@props.has_unsaved_changes}
         />
 
     render_codemirror: (desc) ->

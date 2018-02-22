@@ -71,11 +71,13 @@ exports.Editor = rclass ({name}) ->
             <FrameTree
                 actions    = {@props.actions}
                 frame_tree = {frame_tree}
+                project_id = {@props.project_id}
                 active_id  = {@props.local_view_state.get('active_id')}
                 full_id    = {@props.local_view_state.get('full_id')}
                 is_only    = {frame_tree.get('type') != 'node'}
                 cursors    = {@props.cursors}
                 font_size  = {@props.font_size ? 14}
+                has_unsaved_changes = {@props.has_unsaved_changes}
                 />
         </div>
 
@@ -91,7 +93,6 @@ exports.Editor = rclass ({name}) ->
 
     render: ->
         <div className={'smc-vfill'} style={background:'#efefef'}>
-            {@render_button_bar()}
             {@render_error()}
             {@render_frame_tree()}
             {@render_ipad_footer()}
