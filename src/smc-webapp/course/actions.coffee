@@ -1814,13 +1814,15 @@ exports.CourseActions = class CourseActions extends Actions
 
         # this switches to grading mode, but no listing
         data = immutable.Map(
-            student_id     : next_student_id ? opts.student_id
-            progress       : cnt
-            assignment_id  : opts.assignment.get('assignment_id')
-            listing        : null
-            end_of_list    : not (next_student_id?)
-            subdir         : opts.subdir
-            student_filter : store.grading_get_filter_only_graded()
+            student_id      : next_student_id ? opts.student_id
+            progress        : cnt
+            assignment_id   : opts.assignment.get('assignment_id')
+            listing         : null
+            end_of_list     : not (next_student_id?)
+            subdir          : opts.subdir
+            student_filter  : store.grading_get_student_filter()
+            only_not_graded : store.grading_get_filter_button('only_not_graded')
+            only_collected  : store.grading_get_filter_button('only_collected')
         )
         @setState(grading : data)
 
@@ -1844,9 +1846,9 @@ exports.CourseActions = class CourseActions extends Actions
         grading = store.get('grading')
         @setState(grading:grading.set('student_filter', string)) if grading?
 
-    set_student_filter_only_graded: (only_graded) =>
+    set_student_filter_button: (key, value) =>
         store = @get_store()
         return if not store?
         grading = store.get('grading')
-        @setState(grading:grading.set('filter_only_graded', only_graded)) if grading?
+        @setState(grading:grading.set(key, value)) if grading?
 

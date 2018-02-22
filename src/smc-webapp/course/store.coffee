@@ -469,8 +469,8 @@ exports.CourseStore = class CourseStore extends Store
 
     # return true, if student has collected files without an error (and hence ready to be graded)
     has_last_collected: (assignment, student_id) ->
-        last_coll = @get_assignment(assignment).get('last_collected')?.get(student_id)
-        if not x? or x.get('error')
+        last_collect = @get_assignment(assignment).get('last_collect')?.get(student_id)
+        if (not last_collect?) or last_collect.get('error')
             return false
         else
             return true
@@ -509,8 +509,11 @@ exports.CourseStore = class CourseStore extends Store
                 return [student_id, cnt]
         return [null, 0]
 
-    grading_get_filter_only_graded: =>
-        @getIn(['grading', 'filter_only_graded']) ? false
+    grading_get_filter_button: (key) =>
+        @getIn(['grading', key]) ? true
+
+    grading_get_student_filter: =>
+        @getIn(['grading', 'student_filter']) ? ''
 
     grading_get_listing: (assignment, student_id, subdir, cb) =>
         project_id = @get('course_project_id')

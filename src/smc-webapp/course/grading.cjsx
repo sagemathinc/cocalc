@@ -82,7 +82,6 @@ _update_state = (props, next, state, setState) ->
             edited_comments : comment
             student_info    : state.store.student_assignment_info(student_id, props.assignment)
             subdir          : _subdir(props)
-            student_filter  : _student_filter(props)
 
 
 exports.GradingStudentAssignmentHeader = rclass
@@ -196,7 +195,7 @@ Grade = rclass
                         Grade
                     </InputGroup.Addon>
                     <FormControl
-                        autoFocus   = {true}
+                        autoFocus   = {false}
                         ref         = {'grade_input'}
                         type        = {'text'}
                         placeholder = {'any text...'}
@@ -329,6 +328,11 @@ exports.GradingStudentAssignment = rclass
     next: (without_grade, collected_files) ->
         @jump(+1, without_grade, collected_files)
 
+    pick_next: ->
+        without_grade   = @get_only_not_graded()
+        collected_files = @get_only_collected()
+        @jump(+1, without_grade, collected_files)
+
     render_progress: ->
         <span>Student {@props.grading?.get('progress') ? NaN} of {@props.students?.size ? NaN}</span>
 
@@ -349,12 +353,14 @@ exports.GradingStudentAssignment = rclass
 
     student_list_entries: ->
         matching = (id, name) =>
-            by_name = by_only_graded = true
+            pick_student = true
             if @state.student_filter?.length > 0
-                by_name = name.toLowerCase().indexOf(@state.student_filter.toLowerCase()) >= 0
-            if @get_only_graded()
-                by_only_graded = not @state.store.has_grade(@props.assignment, id)
-            return by_name and by_only_graded
+                pick_student and= name.toLowerCase().indexOf(@state.student_filter.toLowerCase()) >= 0
+            if @get_only_not_graded()
+                pick_student and= not @state.store.has_grade(@props.assignment, id)
+            if @get_only_collected()
+                pick_student and= @state.store.has_last_collected(@props.assignment, id)
+            return pick_student
 
         li_style =
             cursor         : 'pointer'
@@ -362,18 +368,20 @@ exports.GradingStudentAssignment = rclass
             borderBottom   : "1px solid #{COLORS.GRAY_L}"
 
         list = @state.store.get_sorted_students().map (student) =>
-            id      = student.get('student_id')
-            current = @state.student_id == id
-            active  = if current then 'active' else ''
-            name    = @state.store.get_student_name(student)
+            id        = student.get('student_id')
+            name      = @state.store.get_student_name(student)
             return null if not matching(id, name)
+            current   = @state.student_id == id
+            active    = if current then 'active' else ''
+            grade_val = @state.store.get_grade(@props.assignment, id)
+            grade     = <span style={color:COLORS.GRAY}>({grade_val})</span>
             <li
                 key        = {id}
                 className  = {"list-group-item " + active}
                 onClick    = {=>@student_list_entry_click(id)}
                 style      = {li_style}
             >
-                {name}
+                {name} {grade if grade_val?.length > 0}
             </li>
 
         list = (entry for entry in list when entry?)
@@ -385,6 +393,13 @@ exports.GradingStudentAssignment = rclass
     set_student_filter: (string) ->
         @setState(student_filter:string)
         @actions(@props.name).set_student_filter(string)
+
+    on_key_down_student_filter: (e) ->
+        switch e.keyCode
+            when 27
+                @set_student_filter('')
+            when 13
+                @pick_next()
 
     student_list_filter: ->
         disabled = @state.student_filter?.length == 0 ? true
@@ -402,6 +417,7 @@ exports.GradingStudentAssignment = rclass
                         placeholder = {'any text...'}
                         value       = {@state.student_filter}
                         onChange    = {(e)=>@set_student_filter(e.target.value)}
+                        onKeyDown   = {@on_key_down_student_filter}
                     />
                     <InputGroup.Button>
                         <Button
@@ -440,24 +456,44 @@ exports.GradingStudentAssignment = rclass
             </Row>
         ]
 
-    get_only_graded: ->
-        @state.store.grading_get_filter_only_graded()
+    get_only_not_graded: ->
+        @state.store.grading_get_filter_button('only_not_graded')
 
-    set_only_graded: (only_graded) ->
-        @actions(@props.name).set_student_filter_only_graded(only_graded)
+    get_only_collected: ->
+        @state.store.grading_get_filter_button('only_collected')
 
-    render_filter_only_graded: ->
-        only_graded = @get_only_graded()
-        if only_graded
+    set_only_not_graded: (only_not_graded) ->
+        @actions(@props.name).set_student_filter_button('only_not_graded', only_not_graded)
+
+    set_only_collected: (only_collected) ->
+        @actions(@props.name).set_student_filter_button('only_collected', only_collected)
+
+    render_filter_only_not_graded: ->
+        only_not_graded = @get_only_not_graded()
+        if only_not_graded
             icon = 'check-square-o'
         else
             icon = 'square-o'
 
         <Button
-            onClick  = {=>@set_only_graded(not only_graded)}
+            onClick  = {=>@set_only_not_graded(not only_not_graded)}
             bsStyle  = {'default'}
         >
-            <Icon name={icon} /> Not yet graded
+            <Icon name={icon} /> Not graded
+        </Button>
+
+    render_filter_only_collected: ->
+        only_collected = @get_only_collected()
+        if only_collected
+            icon = 'check-square-o'
+        else
+            icon = 'square-o'
+
+        <Button
+            onClick  = {=>@set_only_collected(not only_collected)}
+            bsStyle  = {'default'}
+        >
+            <Icon name={icon} /> Only collected
         </Button>
 
     render_nav: ->
@@ -496,7 +532,7 @@ exports.GradingStudentAssignment = rclass
                     </Button>
                     ###}
                     <Button
-                        onClick  = {=>@next(true)}
+                        onClick  = {=>@pick_next()}
                         bsStyle  = {'primary'}
                     >
                         <Icon name={'step-forward'} /> Pick next student to grade
@@ -505,7 +541,8 @@ exports.GradingStudentAssignment = rclass
             </Row>
             <Row style={rowstyle}>
                 <ButtonToolbar>
-                    {@render_filter_only_graded()}
+                    {@render_filter_only_not_graded()}
+                    {@render_filter_only_collected()}
                 </ButtonToolbar>
             </Row>
         </Col>
@@ -722,15 +759,15 @@ exports.GradingStudentAssignment = rclass
         segments = @state.subdir.split('/')
         segments.map (segment) =>
             path = path_join(path, segment)
-            do (path, segment) =>
-                crumbs.push(
-                    <Breadcrumb.Item
-                        key        = {path}
-                        onClick    = {=>@open_directory(path)}
-                    >
-                        {segment}
-                    </Breadcrumb.Item>
-                )
+            #do (path, segment) =>
+            crumbs.push(
+                <Breadcrumb.Item
+                    key        = {path}
+                    onClick    = {=>@open_directory(path)}
+                >
+                    {segment}
+                </Breadcrumb.Item>
+            )
 
         <Breadcrumb bsSize='small' style={marginBottom: '15px'}>
             {crumbs}
