@@ -1835,3 +1835,7 @@ exports.CourseActions = class CourseActions extends Actions
 
     grading_stop: () =>
         @setState(grading : null)
+        @set_student_filter('')
+
+    set_student_filter: (string) =>
+        @setState(student_filter:string)

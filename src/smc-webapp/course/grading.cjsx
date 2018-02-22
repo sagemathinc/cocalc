@@ -36,7 +36,7 @@ _         = require('underscore')
 # CoCalc and course components
 util = require('./util')
 styles = require('./styles')
-{DateTimePicker, ErrorDisplay, Icon, LabeledRow, Loading, MarkdownInput, Space, Tip, NumberInput} = require('../r_misc')
+{DateTimePicker, ErrorDisplay, Icon, LabeledRow, Loading, MarkdownInput, Space, Tip, NumberInput, any_changes} = require('../r_misc')
 {STEPS, step_direction, step_verb, step_ready} = util
 {BigTime} = require('./common')
 
@@ -62,11 +62,11 @@ _init_state = (props) ->
     store           : props.redux.getStore(props.name)
     student_id      :  _student_id(props)
     student_info    : undefined
-    subdir          : ''
-    student_filter  : ''
+    subdir          : _subdir(props)
+    student_filter  : props.student_filter
 
 _update_state = (props, next, state, setState) ->
-    if props.grading != next.grading or props.assignment != next.assignment
+    if any_changes(props, next, ['grading', 'assignment', 'student_filter'])
         student_id = _student_id(next)
         return if not student_id?
         grade      = state.store.get_grade(props.assignment, student_id)
@@ -79,6 +79,7 @@ _update_state = (props, next, state, setState) ->
             edited_comments : comment
             student_info    : state.store.student_assignment_info(student_id, props.assignment)
             subdir          : _subdir(props)
+            student_filter  : next.student_filter
 
 
 exports.GradingStudentAssignmentHeader = rclass
@@ -92,6 +93,7 @@ exports.GradingStudentAssignmentHeader = rclass
         grading      : rtypes.immutable.Map
 
     getInitialState: ->
+        if DEBUG then window.a = @actions(@props.name)
         return _init_state(@props)
 
     componentWillReceiveProps: (next) ->
@@ -231,7 +233,7 @@ Grade = rclass
             hide_edit_button = {@state.edited_comments?.length > 0}
             save_disabled    = {@save_disabled()}
             rows             = {3}
-            placeholder      = {'Comments (optional)'}
+            placeholder      = {'Comments (optional, visible to student)'}
             default_value    = {@state.edited_comments}
             on_edit          = {=>@setState(editing_grade:true)}
             on_change        = {(value)=>@setState(edited_comments:value)}
@@ -253,17 +255,20 @@ Grade = rclass
         </Col>
 
 
-
 exports.GradingStudentAssignment = rclass
     displayName : "CourseEditor-GradingStudentAssignment"
 
     propTypes :
-        name         : rtypes.string.isRequired
-        redux        : rtypes.object.isRequired
-        assignment   : rtypes.object.isRequired
-        students     : rtypes.object.isRequired
-        user_map     : rtypes.object.isRequired
-        grading      : rtypes.immutable.Map
+        name            : rtypes.string.isRequired
+        redux           : rtypes.object.isRequired
+        assignment      : rtypes.object.isRequired
+        students        : rtypes.object.isRequired
+        user_map        : rtypes.object.isRequired
+        grading         : rtypes.immutable.Map
+        student_filter  : rtypes.string
+
+    getDefaultProps: ->
+        student_filter  : ''
 
     getInitialState: ->
         s = _init_state(@props)
@@ -324,7 +329,7 @@ exports.GradingStudentAssignment = rclass
         @jump(-1, without_grade, collected_files)
 
     next: (without_grade, collected_files) ->
-        @jump(-1, without_grade, collected_files)
+        @jump(+1, without_grade, collected_files)
 
     render_progress: ->
         <span>Student {@props.grading?.get('progress') ? NaN} of {@props.students?.size ? NaN}</span>
@@ -351,6 +356,11 @@ exports.GradingStudentAssignment = rclass
             else
                 return true
 
+        li_style =
+            cursor         : 'pointer'
+            border         : '0'
+            borderBottom   : "1px solid #{COLORS.GRAY_L}"
+
         list = @state.store.get_sorted_students().map (student) =>
             id      = student.get('student_id')
             current = @state.student_id == id
@@ -361,7 +371,7 @@ exports.GradingStudentAssignment = rclass
                 key        = {id}
                 className  = {"list-group-item " + active}
                 onClick    = {=>@student_list_entry_click(id)}
-                style      = {cursor : 'pointer', border: '0', borderBottom: '1px solid #ddd'}
+                style      = {li_style}
             >
                 {name}
             </li>
@@ -371,6 +381,10 @@ exports.GradingStudentAssignment = rclass
             list.push(<li>No student matches…</li>)
 
         return list
+
+    set_student_filter: (string) ->
+        @setState(student_filter:string)
+        @actions(@props.name).set_student_filter(string)
 
     student_list_filter: ->
         disabled = @state.student_filter?.length == 0 ? true
@@ -387,12 +401,12 @@ exports.GradingStudentAssignment = rclass
                         type        = {'text'}
                         placeholder = {'any text...'}
                         value       = {@state.student_filter}
-                        onChange    = {(e)=>@setState(student_filter:e.target.value)}
+                        onChange    = {(e)=>@set_student_filter(e.target.value)}
                     />
                     <InputGroup.Button>
                         <Button
                             bsStyle  = {if disabled then 'default' else 'warning'}
-                            onClick  = {=>@setState(student_filter:'')}
+                            onClick  = {=>@set_student_filter('')}
                             disabled = {disabled}
                             style    = {whiteSpace:'nowrap'}
                         >
@@ -532,11 +546,11 @@ exports.GradingStudentAssignment = rclass
         <Row style={background: COLORS.GRAY_LL}>
             <Col md={4}>Filename</Col>
             <Col md={2}>Last modified</Col>
-            <Col md={3}>Points</Col>
+            <Col md={4}>Points</Col>
             {###
             <Col md={2}>Autograde</Col>
             ###}
-            <Col md={3} style={textAlign:'right'}>Student file</Col>
+            <Col md={2} style={textAlign:'right'}>Student file</Col>
         </Row>
 
     save_points: (filename, points) ->
@@ -600,17 +614,17 @@ exports.GradingStudentAssignment = rclass
         [
             <Col key={0} md={4}>{@open_subdir(subdirpath)}</Col>
             <Col key={1} md={2}>{time}</Col>
-            <Col key={2} md={3}>{@render_points_subdir(subdirpath)}</Col>
-            <Col key={3} md={3}></Col>
+            <Col key={2} md={4}>{@render_points_subdir(subdirpath)}</Col>
+            <Col key={3} md={2}></Col>
         ]
 
     listing_file_row: (filename, time) ->
         [
             <Col key={0} md={4}>{@open_file(filename)}</Col>
             <Col key={1} md={2}>{time}</Col>
-            <Col key={2} md={3}>{@render_points_input(filename)}</Col>
+            <Col key={2} md={4}>{@render_points_input(filename)}</Col>
             # <Col key={3} md={3}>{@render_autograde(filename)}</Col>
-            <Col key={5} md={3} style={textAlign:'right'}>{@render_open_student_file(filename)}</Col>
+            <Col key={5} md={2} style={textAlign:'right'}>{@render_open_student_file(filename)}</Col>
         ]
 
     listing_rowstyle: (idx) ->
@@ -670,7 +684,6 @@ exports.GradingStudentAssignment = rclass
             <Breadcrumb.Item
                 key        = {''}
                 onClick    = {=>@open_directory('')}
-                style      = {{}}
             >
                 <Icon name='home' />
             </Breadcrumb.Item>
@@ -685,7 +698,6 @@ exports.GradingStudentAssignment = rclass
                     <Breadcrumb.Item
                         key        = {path}
                         onClick    = {=>@open_directory(path)}
-                        style      = {{}}
                     >
                         {segment}
                     </Breadcrumb.Item>

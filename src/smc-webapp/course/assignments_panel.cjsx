@@ -50,6 +50,7 @@ exports.AssignmentsPanel = rclass ({name}) ->
             active_student_sort    : rtypes.immutable.Map
             expanded_peer_configs  : rtypes.immutable.Set
             grading                : rtypes.immutable.Map
+            student_filter         : rtypes.string
 
     propTypes :
         name            : rtypes.string.isRequired
@@ -110,19 +111,20 @@ exports.AssignmentsPanel = rclass ({name}) ->
     render_assignments: (assignments) ->
         for x,i in assignments
             <Assignment
-                    key                 = {x.assignment_id}
-                    assignment          = {@props.all_assignments.get(x.assignment_id)}
-                    background          = {if i%2==0 then "#eee"}
-                    project_id          = {@props.project_id}
-                    redux               = {@props.redux}
-                    students            = {@props.students}
-                    user_map            = {@props.user_map}
-                    name                = {@props.name}
-                    is_expanded         = {@props.expanded_assignments.has(x.assignment_id)}
-                    active_student_sort = {@props.active_student_sort}
-                    expand_peer_config  = {@props.expanded_peer_configs.has(x.assignment_id)}
-                    grading             = {@props.grading}
-                    />
+                key                 = {x.assignment_id}
+                assignment          = {@props.all_assignments.get(x.assignment_id)}
+                background          = {if i%2==0 then "#eee"}
+                project_id          = {@props.project_id}
+                redux               = {@props.redux}
+                students            = {@props.students}
+                user_map            = {@props.user_map}
+                name                = {@props.name}
+                is_expanded         = {@props.expanded_assignments.has(x.assignment_id)}
+                active_student_sort = {@props.active_student_sort}
+                expand_peer_config  = {@props.expanded_peer_configs.has(x.assignment_id)}
+                grading             = {@props.grading}
+                student_filter      = {@props.student_filter}
+            />
 
     render_show_deleted: (num_deleted, num_shown) ->
         if @state.show_deleted
@@ -199,13 +201,14 @@ Assignment = rclass
         active_student_sort       : rtypes.immutable.Map
         expand_peer_config        : rtypes.bool
         grading                   : rtypes.immutable.Map
+        student_filter            : rtypes.string
 
     shouldComponentUpdate: (nextProps, nextState) ->
         {any_changes} = require('../r_misc')
         return @state != nextState or \
             any_changes(@props, nextProps,
                 ['assignment', 'students', 'user_map', 'background', 'is_expanded', \
-                'active_student_sort', 'expand_peer_config', 'grading']
+                'active_student_sort', 'expand_peer_config', 'grading', 'student_filter']
             )
 
     getInitialState: ->
@@ -348,21 +351,22 @@ Assignment = rclass
         if @props.grading?.get('assignment_id') == @props.assignment.get('assignment_id')
             header      =
                 <GradingStudentAssignmentHeader
-                    redux        = {@props.redux}
-                    name         = {@props.name}
-                    assignment   = {@props.assignment}
-                    students     = {@props.students}
-                    user_map     = {@props.user_map}
-                    grading      = {@props.grading}
+                    redux          = {@props.redux}
+                    name           = {@props.name}
+                    assignment     = {@props.assignment}
+                    students       = {@props.students}
+                    user_map       = {@props.user_map}
+                    grading        = {@props.grading}
                 />
             panel_body  =
                 <GradingStudentAssignment
-                    redux        = {@props.redux}
-                    name         = {@props.name}
-                    assignment   = {@props.assignment}
-                    students     = {@props.students}
-                    user_map     = {@props.user_map}
-                    grading      = {@props.grading}
+                    redux          = {@props.redux}
+                    name           = {@props.name}
+                    assignment     = {@props.assignment}
+                    students       = {@props.students}
+                    user_map       = {@props.user_map}
+                    grading        = {@props.grading}
+                    student_filter = {@props.student_filter}
                 />
         else
             header      = @render_more_header()
