@@ -34,9 +34,8 @@ if IS_TOUCH
     close_style = undefined
 else
     close_style =
-        background : title_bar_style.background
-        border     : 'transparent'
-        height     : 0
+        background  : 'transparent'
+        borderColor : 'transparent'
 
 exports.FrameTitleBar = rclass
     propTypes :
@@ -284,8 +283,8 @@ exports.FrameTitleBar = rclass
             {<Space/> if extra}
             {@render_copy_group() if extra}
             {<Space /> if extra}
-            {@render_find_replace_group() if extra}
-            {<Space /> if extra}
+            {@render_find_replace_group()}
+            <Space />
             {@render_zoom_group() if extra}
             {<Space /> if extra}
             {@render_split_group()}
