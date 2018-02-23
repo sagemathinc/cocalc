@@ -143,6 +143,7 @@ exports.FrameTree = FrameTree = rclass
             ref     = {'cols_drag_bar'}
             axis    = {'x'}
             onStop  = {handle_stop}
+            onMouseDown = {(e) => e.preventDefault()}
             >
             <div style={cols_drag_bar}> </div>
         </Draggable>
@@ -161,13 +162,18 @@ exports.FrameTree = FrameTree = rclass
             style_first  : {display:'flex', overflow:'hidden', flex:pos,   border:frame_border}
             second       : @props.frame_tree.get('second')
             style_second : {display:'flex', overflow:'hidden', flex:1-pos, border:frame_border}
+
+        if flex_direction == 'row'
+            data.outer_style = {display:'flex', flexDirection:'row', flex:1}
+        else
+            data.outer_style = undefined
         return data
 
     render_cols: ->
         data = @get_data('row')
         <div
-            style = {display:'flex', flexDirection:'row', flex:1}
-            ref   = {'cols_container'}>
+            ref   = {'cols_container'}
+            style = {data.outer_style}>
             <div className={'smc-vfill'} style={data.style_first}>
                 {@render_one(data.first)}
             </div>
@@ -194,6 +200,7 @@ exports.FrameTree = FrameTree = rclass
             ref     = {'rows_drag_bar'}
             axis    = {'y'}
             onStop  = {handle_stop}
+            onMouseDown = {(e) => e.preventDefault()}
             >
             <div style={rows_drag_bar}> </div>
         </Draggable>
@@ -202,7 +209,8 @@ exports.FrameTree = FrameTree = rclass
         data = @get_data('column')
         <div
             className = {'smc-vfill'}
-            ref       = {'rows_container'} >
+            ref       = {'rows_container'}
+            style     = {data.outer_style} >
             <div className={'smc-vfill'} style={data.style_first}>
                 {@render_one(data.first)}
             </div>
