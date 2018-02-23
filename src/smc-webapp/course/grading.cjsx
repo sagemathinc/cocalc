@@ -40,12 +40,26 @@ styles = require('./styles')
 {STEPS, step_direction, step_verb, step_ready} = util
 {BigTime} = require('./common')
 
-
-rowstyle =
+# Constants
+ROW_STYLE =
     marginBottom: '10px'
+
+LIST_STYLE =
+    overflowY     : 'auto'
+    border        : "1px solid #{COLORS.GRAY_L}"
+    borderRadius  : '5px'
+    marginBottom  : '0px'
+
+LIST_ENTRY_STYLE =
+    cursor         : 'pointer'
+    border         : '0'
+    borderBottom   : "1px solid #{COLORS.GRAY_L}"
+    overflow       : 'hidden'
+    whiteSpace     : 'nowrap'
 
 PAGE_SIZE = 10
 
+# util functions
 _student_id = (props) ->
     props.grading?.get('student_id')
 
@@ -109,15 +123,21 @@ exports.GradingStudentAssignmentHeader = rclass
     exit: ->
         @actions(@props.name).grading_stop()
 
+    render_title: (student_name) ->
+        if @props.grading.get('end_of_list')
+            <h4>End</h4>
+        else
+            <h4>
+                Grading student <b>{student_name}</b>
+            </h4>
+
     render: ->
-        assignment   = @props.assignment.get('path')
+        #assignment   = @props.assignment.get('path')
         student_info = @state.store.get_student_name(@state.student_id, true)
         student_name = student_info?.full ? 'N/A'
         <Row>
             <Col md={9}>
-                <h4>
-                    Grading student <b>{student_name}</b>
-                </h4>
+                {@render_title(student_name)}
             </Col>
             <Col md={3} style={textAlign:'right'}>
                 <Button
@@ -312,14 +332,15 @@ exports.GradingStudentAssignment = rclass
 
     render_open: ->
         [
-            <Row key={'top'} style={rowstyle}>
+            <Row key={'top'} style={ROW_STYLE}>
                 Open assignment
             </Row>
-            <Row key={'buttons'} style={rowstyle}>
+            <Row key={'buttons'} style={ROW_STYLE}>
                 <ButtonToolbar>
                     <Button
-                        onClick = {=>@open_assignment('collected')}
-                        bsSize  = {'small'}
+                        onClick  = {=>@open_assignment('collected')}
+                        bsSize   = {'small'}
+                        disabled = {(@state.listing?.get('error')?.length > 0) ? false}
                     >
                         <Icon name='folder-open-o' /> Collected files
                     </Button>
@@ -337,7 +358,7 @@ exports.GradingStudentAssignment = rclass
         @actions(@props.name).grading(
             assignment       : @props.assignment
             student_id       : @state.student_id
-            direction        : -1
+            direction        : direction
             without_grade    : without_grade
             collected_files  : collected_files
         )
@@ -348,10 +369,10 @@ exports.GradingStudentAssignment = rclass
     next: (without_grade, collected_files) ->
         @jump(+1, without_grade, collected_files)
 
-    pick_next: ->
+    pick: (direction=1) ->
         without_grade   = @get_only_not_graded()
         collected_files = @get_only_collected()
-        @jump(+1, without_grade, collected_files)
+        @jump(direction, without_grade, collected_files)
 
     render_progress: ->
         <span>Student {@props.grading?.get('progress') ? NaN} of {@props.students?.size ? NaN}</span>
@@ -364,7 +385,9 @@ exports.GradingStudentAssignment = rclass
             <span style={fontSize:'120%'}>Student <b>{student_name?.full ? 'N/A'}</b></span>
 
     student_list_entry_click: (student_id) ->
-        @setState(listing_files : undefined)
+        @setState(
+            listing_files    : undefined
+        )
         @actions(@props.name).grading(
             assignment       : @props.assignment
             student_id       : student_id
@@ -383,42 +406,51 @@ exports.GradingStudentAssignment = rclass
                 pick_student and= @state.store.has_last_collected(@props.assignment, id)
             return pick_student
 
-        li_style =
-            cursor         : 'pointer'
-            border         : '0'
-            borderBottom   : "1px solid #{COLORS.GRAY_L}"
-            overflow       : 'hidden'
-            whiteSpace     : 'nowrap'
-
-        grade = (active, grade_val) ->
+        info = (active, grade_val, points) ->
             col = if active then COLORS.GRAY_LL else COLORS.GRAY
-            grade_style =
+            info_style =
                 color          : col
                 display        : 'inline-block'
                 float          : 'right'
-            <span style={grade_style}>({misc.trunc(grade_val, 15)})</span>
 
+            show_grade  = grade_val?.length > 0
+            show_points = (points ? 0) > 0
+            grade  = if show_grade  then misc.trunc(grade_val, 15) else 'N/A'
+            points = if show_points then ", #{points} pts."        else ''
+
+            if show_points or show_grade
+                <span style={info_style}>
+                    ({grade}{points})
+                </span>
+            else
+                null
+
+        current_idx = null
+        idx         = -1
         list = @state.store.get_sorted_students().map (student) =>
             id        = student.get('student_id')
             name      = @state.store.get_student_name(student)
             return null if not matching(id, name)
             current   = @state.student_id == id
+            idx += 1
+            if current then current_idx = idx
             active    = if current then 'active' else ''
             grade_val = @state.store.get_grade(@props.assignment, id)
+            points    = @state.store.get_points_total(@props.assignment, id)
             <li
                 key        = {id}
                 className  = {"list-group-item " + active}
                 onClick    = {=>@student_list_entry_click(id)}
-                style      = {li_style}
+                style      = {LIST_ENTRY_STYLE}
             >
-                {name} {grade(active, grade_val) if grade_val?.length > 0}
+                {name} {info(active, grade_val, points)}
             </li>
 
         list = (entry for entry in list when entry?)
         if list.length == 0
             list.push(<li>No student matches…</li>)
 
-        return list
+        return [list, current_idx]
 
     set_student_filter: (string) ->
         @setState(student_filter:string)
@@ -464,12 +496,7 @@ exports.GradingStudentAssignment = rclass
         </form>
 
 
-    render_list: ->
-        style =
-            overflowY     : 'auto'
-            border        : "1px solid #{COLORS.GRAY_L}"
-            borderRadius  : '5px'
-            marginBottom  : '0px'
+    render_list: (student_list) ->
 
         flex =
             display        : 'flex'
@@ -480,8 +507,8 @@ exports.GradingStudentAssignment = rclass
                 {@student_list_filter()}
             </Row>
             <Row style={flex} key={2}>
-                <ul className='list-group' ref='student_list' style={style}>
-                    {@student_list_entries()}
+                <ul className='list-group' ref='student_list' style={LIST_STYLE}>
+                    {student_list}
                 </ul>
             </Row>
         ]
@@ -496,6 +523,7 @@ exports.GradingStudentAssignment = rclass
         @actions(@props.name).set_grading_entry('only_not_graded', only_not_graded)
 
     set_only_collected: (only_collected) ->
+        @setState(student_list_first_selected:false)
         @actions(@props.name).set_grading_entry('only_collected', only_collected)
 
     render_filter_only_not_graded: ->
@@ -526,54 +554,35 @@ exports.GradingStudentAssignment = rclass
             <Icon name={icon} /> Files collected
         </Button>
 
-    render_nav: ->
+    render_nav: (current_idx) ->
         <Col md={4}>
             {###
-            <Row style={rowstyle}>
+            <Row style={ROW_STYLE}>
                 {@render_progress()}
             </Row>
             ###}
-            {###
-            <Row style={rowstyle}>
-                <ButtonToolbar>
+            <Row style={ROW_STYLE}>
+                <ButtonGroup>
                     <Button
-                        onClick  = {=>@previous(false)}
+                        onClick  = {=>@pick(-1)}
                         bsStyle  = {'default'}
+                        disabled = {current_idx == 0}
                     >
-                        <Icon name={'step-backward'} /> Previous
+                        <Icon name={'step-backward'} />
                     </Button>
                     <Button
-                        onClick  = {=>@next(false)}
-                        bsStyle  = {'default'}
-                    >
-                        <Icon name={'step-forward'} /> Next Student
-                    </Button>
-                </ButtonToolbar>
-            </Row>
-            ###}
-            <Row style={rowstyle}>
-                <ButtonToolbar>
-                    {###
-                    <Button
-                        onClick  = {=>@previous(true)}
-                        bsStyle  = {'default'}
-                    >
-                        <Icon name={'step-backward'} /> Previous
-                    </Button>
-                    ###}
-                    <Button
-                        onClick  = {=>@pick_next()}
+                        onClick  = {=>@pick(+1)}
                         bsStyle  = {'primary'}
                     >
                         <Icon name={'step-forward'} /> Pick next student to grade
                     </Button>
-                </ButtonToolbar>
+                </ButtonGroup>
             </Row>
-            <Row style={rowstyle}>
-                <ButtonToolbar>
+            <Row style={ROW_STYLE}>
+                <ButtonGroup>
                     {@render_filter_only_not_graded()}
                     {@render_filter_only_collected()}
-                </ButtonToolbar>
+                </ButtonGroup>
             </Row>
         </Col>
 
@@ -706,29 +715,32 @@ exports.GradingStudentAssignment = rclass
 
     listing_directory_row: (filename, time) ->
         subdirpath = path_join(@state.subdir, filename)
-
         [
-            <Col key={0} md={4}>{@open_subdir(subdirpath)}</Col>
-            <Col key={1} md={2}>{time}</Col>
-            <Col key={2} md={4}>{@render_points_subdir(subdirpath)}</Col>
+            <Col key={0} md={4} style={@listing_colstyle()}>{@open_subdir(subdirpath)}</Col>
+            <Col key={1} md={2} style={@listing_colstyle()}>{time}</Col>
+            <Col key={2} md={4} style={@listing_colstyle()}>{@render_points_subdir(subdirpath)}</Col>
             <Col key={3} md={2}></Col>
         ]
 
     listing_file_row: (filename, time) ->
         [
-            <Col key={0} md={4}>{@open_file(filename)}</Col>
-            <Col key={1} md={2}>{time}</Col>
+            <Col key={0} md={4} style={@listing_colstyle()}>{@open_file(filename)}</Col>
+            <Col key={1} md={2} style={@listing_colstyle()}>{time}</Col>
             <Col key={2} md={4}>{@render_points_input(filename)}</Col>
             # <Col key={3} md={3}>{@render_autograde(filename)}</Col>
             <Col key={5} md={2} style={textAlign:'right'}>{@render_open_student_file(filename)}</Col>
         ]
 
+    listing_colstyle: ->
+        return {margin: '10px 0'}
+
     listing_rowstyle: (idx) ->
         col = if idx %% 2 == 0 then 'white' else COLORS.GRAY_LL
-        return
+        style =
             background     : col
             paddingTop     : '5px'
             paddingBottom  : '5px'
+        return misc.merge(style, LIST_ENTRY_STYLE)
 
     listing_entries: ->
         return <li><Loading /></li> if not @state.listing?
@@ -751,7 +763,7 @@ exports.GradingStudentAssignment = rclass
                 isdir    = file.get('isdir') == true
 
                 <li key={filename} style={@listing_rowstyle(idx)} className={'list-group-item'}>
-                    <Row style={marginLeft: '0px', marginRight:'0px'}s>
+                    <Row>
                     {
                         if isdir
                             @listing_directory_row(filename, time)
@@ -763,11 +775,20 @@ exports.GradingStudentAssignment = rclass
         else
             return <div>No files.</div>
 
+    listing_more_files_info: ->
+        num_pages = @state.num_pages ? 1
+        page      = (@state.page_number ? 1) + 1
+        return null if num_pages == 1 or page >= num_pages
+        <div style={color:COLORS.GRAY}>
+            More files are on the <a style={cursor:'pointer'} onClick={=>@listing_page(+1)}>next page</a> …
+        </div>
+
     listing: ->
         <Row style={display:'flex', flexDirection:'column'}>
-            <ul className='list-group' style={overflowY : 'auto'}>
+            <ul className='list-group' style={LIST_STYLE}>
                 {@listing_entries()}
             </ul>
+            {@listing_more_files_info()}
         </Row>
 
     open_directory: (path) ->
@@ -892,18 +913,21 @@ exports.GradingStudentAssignment = rclass
 
     render_end_of_list: ->
         <Col>
-            <Row style={marginBottom:'30px'}>
+            <Row style={marginTop: '100px', marginBottom:'30px'}>
                 <h2 style={textAlign:'center'}>
                     Congratulations! You reached the end of the student list.
                 </h2>
+                <div style={color:COLORS.GRAY_L}>
+                    Take a deep breath and …
+                </div>
             </Row>
-            <Row style={textAlign:'center', marginBottom:'60px'}>
+            <Row style={textAlign:'center', marginBottom:'100px'}>
                 <Button
                     onClick = {=>@start_fresh()}
                     bsStyle = {'primary'}
                     bsSize  = {'large'}
                 >
-                    Start fresh …
+                    … start fresh
                 </Button>
             </Row>
         </Col>
@@ -920,13 +944,15 @@ exports.GradingStudentAssignment = rclass
             flexDirection  : 'column'
             marginRight    : '15px'
 
+        [student_list, current_idx] = @student_list_entries()
+
         <Row style={height: '70vh', display: 'flex'}>
             <Col md={3} style={misc.merge({marginLeft:'15px'}, flexcolumn)}>
-                {@render_list()}
+                {@render_list(student_list)}
             </Col>
             <Col md={9} style={flexcolumn}>
                 <Row style={marginBottom: '15px'}>
-                    {@render_nav()}
+                    {@render_nav(current_idx)}
                     <Col md={3}>
                         {@render_points()}
                         {@render_open()}
