@@ -9,7 +9,7 @@ FrameTitleBar - title bar in a frame, in the frame tree
  EditorFileInfoDropdown}= require('../r_misc')
 {UncommittedChanges}    = require('../jupyter/uncommitted-changes')
 
-{IS_TOUCH} = require('../feature')
+{IS_TOUCH, IS_IPAD} = require('../feature')
 misc       = require('smc-util/misc')
 
 title_bar_style =
@@ -271,7 +271,8 @@ exports.FrameTitleBar = rclass
         />
 
     render_buttons: ->
-        extra = @props.is_only or @props.is_full
+        # On touch or full show all buttons.
+        extra = IS_TOUCH or @props.is_only or @props.is_full
         <span style={float:'right'}>
             {@render_file_info() if extra}
             {<Space/> if extra}
@@ -283,10 +284,10 @@ exports.FrameTitleBar = rclass
             {<Space/> if extra}
             {@render_copy_group() if extra}
             {<Space /> if extra}
-            {@render_find_replace_group()}
-            <Space />
-            {@render_zoom_group() if extra}
+            {@render_find_replace_group() if extra}
             {<Space /> if extra}
+            {@render_zoom_group()}
+            <Space />
             {@render_split_group()}
         </span>
 

@@ -5,6 +5,7 @@ using the given editor settings.
 
 {file_associations}  = require('../file-associations')
 feature              = require('../feature')
+mobile               = require('./mobile')
 misc                 = require('smc-util/misc')
 {defaults, required} = misc
 
@@ -55,6 +56,10 @@ exports.cm_options = (opts) ->
 
         "Shift-Cmd-L"  : (cm) -> cm.align_assignments()
         "Shift-Ctrl-L" : (cm) -> cm.align_assignments()
+
+    if feature.IS_TOUCH  # maybe should be IS_IPAD... ?
+        # Better more external keyboard friendly shortcuts, motivated by iPad.
+        mobile.extra_alt_keys(extraKeys, actions, frame_id, opts)
 
     if actions?
         actionKeys =

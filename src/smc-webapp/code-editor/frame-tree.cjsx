@@ -139,6 +139,7 @@ exports.FrameTree = FrameTree = rclass
             reset()
             @props.actions.set_frame_tree(id:@props.frame_tree.get('id'), pos:pos)
 
+        # the preventDefault below prevents the text and scroll of what is in the frame from getting messed up during the drag.
         <Draggable
             ref     = {'cols_drag_bar'}
             axis    = {'x'}
