@@ -189,7 +189,8 @@ exports.CourseStore = class CourseStore extends Store
     get_points_total: (assignment, student) =>
         student_id = @get_student(student)?.get('student_id')
         points     = @get_assignment(assignment)?.getIn(['points', student_id])
-        return points?.reduce(((a, b) -> a+b), 0) ? 0
+        return null if (not points?) or (points.size == 0)
+        return points.reduce(((a, b) -> a+b), 0)
 
     get_points_subdir: (assignment, student, subdir) =>
         reducer = (cur, val, path) ->

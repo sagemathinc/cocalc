@@ -2139,3 +2139,28 @@ exports.human_readable_size = (bytes) ->
     b = Math.floor(bytes/100000000)
     return "#{b/10} GB"
 
+exports.quantile = (list, q, sorted=false) ->
+    if not sorted
+        list.sort((a, b) -> a - b)
+    index = q / 100.0 * (list.length - 1)
+    if Math.floor(index) == index
+        return list[index]
+    else
+        i = Math.floor(index)
+        fraction = index - i;
+        return list[i] + (list[i+1] - list[i]) * fraction
+
+exports.percentRank = (list, n, sorted=false) ->
+    if not sorted
+        list.sort((a, b) -> a - b)
+    L = 0
+    S = 0
+    N = list.length
+
+    for i in [0...list.length]
+        if list[i] < n
+            L += 1
+        else if list[i] == n
+            S += 1
+
+    return 100.0 * (L + (0.5 * S)) / N

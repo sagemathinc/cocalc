@@ -80,27 +80,34 @@ course_specific_files = (entry) ->
     return false
 
 _init_state = (props) ->
-    store           : props.redux.getStore(props.name)
-    student_id      :  _student_id(props)
-    student_info    : undefined
-    subdir          : _subdir(props)
-    student_filter  : _student_filter(props)
-    page_number     : _page_number(props)
+    store      = props.redux.getStore(props.name)
+    student_id = _student_id(props)
+    return
+        store           : store
+        student_id      : student_id
+        student_info    : store.student_assignment_info(student_id, props.assignment)
+        subdir          : _subdir(props)
+        student_filter  : _student_filter(props)
+        page_number     : _page_number(props)
 
 _update_state = (props, next, state) ->
     if any_changes(props, next, ['grading', 'assignment'])
         student_id = _student_id(next)
         return if not student_id?
+        subdir     = _subdir(next)
         grade      = state.store.get_grade(props.assignment, student_id)
         comment    = state.store.get_comments(props.assignment, student_id)
-        return
+        ret =
             student_id      : student_id
             grade_value     : grade
             grade_comments  : comment
             edited_grade    : grade
             edited_comments : comment
             student_info    : state.store.student_assignment_info(student_id, props.assignment)
-            subdir          : _subdir(props)
+            subdir          : subdir
+        if _subdir(props) != subdir or student_id != _student_id(props)
+            ret.page_number = 0
+        return ret
 
 
 exports.GradingStudentAssignmentHeader = rclass
@@ -304,6 +311,11 @@ exports.GradingStudentAssignment = rclass
         if @props.grading?.get('listing') != next.grading?.get('listing')
             @setState(@get_listing_files(next))
 
+    componentDidMount: ->
+        show_entry       =  =>
+            $(ReactDOM.findDOMNode(@refs.student_list)).find('.active').scrollintoview()
+        @scrollToStudent = _.debounce(show_entry, 100)
+
     get_listing_files: (props) ->
         listing   = props.grading?.get('listing')
         files     = listing?.get('files')?.filterNot(course_specific_files)
@@ -321,11 +333,6 @@ exports.GradingStudentAssignment = rclass
 
     open_assignment: (type, filepath) ->
         @actions(@props.name).open_assignment(type, @props.assignment, @state.student_id, filepath)
-
-    componentDidMount: ->
-        show_entry       =  =>
-            $(ReactDOM.findDOMNode(@refs.student_list)).find('.active').scrollintoview()
-        @scrollToStudent = _.debounce(show_entry, 100)
 
     componentDidUpdate: (props, state) ->
         @scrollToStudent()
@@ -427,16 +434,22 @@ exports.GradingStudentAssignment = rclass
 
         current_idx = null
         idx         = -1
+        all_points  = []
         list = @state.store.get_sorted_students().map (student) =>
             id        = student.get('student_id')
             name      = @state.store.get_student_name(student)
+            points    = @state.store.get_points_total(@props.assignment, id)
+            # all_points is used to compute quantile distributions
+            all_points.push(points) if points?
+            # filter by name or state?
             return null if not matching(id, name)
+            # should this student be highlighted in the list?
             current   = @state.student_id == id
+            # idx is used to disable the back button when == 0, that's all
             idx += 1
             if current then current_idx = idx
             active    = if current then 'active' else ''
             grade_val = @state.store.get_grade(@props.assignment, id)
-            points    = @state.store.get_points_total(@props.assignment, id)
             <li
                 key        = {id}
                 className  = {"list-group-item " + active}
@@ -450,7 +463,9 @@ exports.GradingStudentAssignment = rclass
         if list.length == 0
             list.push(<li>No student matches…</li>)
 
-        return [list, current_idx]
+        # we assume all_points is sorted!
+        all_points.sort((a, b) -> a - b)
+        return [list, current_idx, all_points]
 
     set_student_filter: (string) ->
         @setState(student_filter:string)
@@ -555,7 +570,7 @@ exports.GradingStudentAssignment = rclass
         </Button>
 
     render_nav: (current_idx) ->
-        <Col md={4}>
+        <Col md={3}>
             {###
             <Row style={ROW_STYLE}>
                 {@render_progress()}
@@ -586,10 +601,62 @@ exports.GradingStudentAssignment = rclass
             </Row>
         </Col>
 
-    render_points: ->
+    percentile_rank_help: ->
+        url = 'https://en.wikipedia.org/wiki/Percentile_rank'
+        {open_new_tab} = require('smc-webapp/misc_page')
+        open_new_tab(url)
+
+    render_points: (all_points) ->
         total = @state.store.get_points_total(@props.assignment, @state.student_id)
-        <Row style={fontSize:'120%'}>
-            <span>Total Points: <b>{total}</b></span>
+        pct = misc.percentRank(all_points, total)
+        <Row>
+            <Col md={10} style={textAlign: 'center'}>
+                <ButtonGroup>
+                    <Button
+                        disabled={true}
+                    >
+                        Total points
+                    </Button>
+                    <Button
+                        style    = {fontWeight: 'bold', color:'black', paddingLeft:'20px', paddingRight:'20px'}
+                        disabled = {true}
+                    >
+                        {total ? 0}
+                    </Button>
+                    <Button
+                        style    = {color:COLORS.GRAY}
+                        onClick  = {=>@percentile_rank_help()}
+                    >
+                        {misc.round1(pct)}% percentile
+                    </Button>
+                </ButtonGroup>
+            </Col>
+        </Row>
+
+    render_stats: (all_points) ->
+        data = [0, 25, 50, 75, 100].map (q) ->
+            [q, misc.quantile(all_points, q)]
+        <Row style={color:COLORS.GRAY, marginTop:'10px'}>
+            <Row>
+                <Col
+                    md    = {10}
+                    style = {borderBottom: "1px solid #{COLORS.GRAY}", textAlign:'center'}
+                >
+                    Point distribution quantiles
+                </Col>
+            </Row>
+            <Row>
+                {
+                    for [q, v] in data
+                        <Col
+                            key   = {q}
+                            md    = {2}
+                            style = {textAlign:'center', whiteSpace: 'nowrap'}
+                        >
+                            {q}q: {misc.round1(v)}
+                        </Col>
+                }
+            </Row>
         </Row>
 
     render_open_collected_file : (filename) ->
@@ -678,7 +745,7 @@ exports.GradingStudentAssignment = rclass
 
     render_points_subdir: (subdir) ->
         p = @state.store.get_points_subdir(@props.assignment, @state.student_id, subdir)
-        return "Sum: #{p}"
+        return "Sum: #{p} pts."
 
     open_subdir: (subdir) ->
         if @state.subdir.length > 0
@@ -694,7 +761,8 @@ exports.GradingStudentAssignment = rclass
                 assignment       : @props.assignment
                 student_id       : @state.student_id
                 direction        : 0
-                without_grade    : null
+                without_grade    : @get_only_not_graded()
+                collected_files  : @get_only_collected()
                 subdir           : subdir
             )}
         >
@@ -879,8 +947,18 @@ exports.GradingStudentAssignment = rclass
                 </div>
                 <div style={padding:'0', flex:'0'}>
                     <ButtonGroup style={marginBottom:'5px', display:'flex'}>
-                        <Button style={whiteSpace:'nowrap'} disabled>
-                            collected: {time}
+                        <Button
+                            style    = {whiteSpace:'nowrap'}
+                            disabled = {(@state.listing?.get('error')?.length > 0) ? false}
+                            onClick  = {=>@open_assignment('collected')}
+                        >
+                            <Icon name='folder-open-o' /> Collected {time}
+                        </Button>
+                        <Button
+                            onClick = {=>@open_assignment('assigned')}
+                            style   = {whiteSpace:'nowrap'}
+                        >
+                            Student <Icon name='external-link' />
                         </Button>
                     </ButtonGroup>
                 </div>
@@ -944,18 +1022,21 @@ exports.GradingStudentAssignment = rclass
             flexDirection  : 'column'
             marginRight    : '15px'
 
-        [student_list, current_idx] = @student_list_entries()
+        [student_list, current_idx, all_points] = @student_list_entries()
 
-        <Row style={height: '70vh', display: 'flex'}>
+        <Row
+            style={height: '70vh', display: 'flex'}
+        >
             <Col md={3} style={misc.merge({marginLeft:'15px'}, flexcolumn)}>
                 {@render_list(student_list)}
             </Col>
             <Col md={9} style={flexcolumn}>
                 <Row style={marginBottom: '15px'}>
                     {@render_nav(current_idx)}
-                    <Col md={3}>
-                        {@render_points()}
-                        {@render_open()}
+                    <Col md={4}>
+                        {@render_points(all_points)}
+                        {@render_stats(all_points)}
+                        {### @render_open() ###}
                     </Col>
                     <Grade
                         actions    = {@actions(@props.name)}
