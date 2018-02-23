@@ -44,7 +44,7 @@ styles = require('./styles')
 rowstyle =
     marginBottom: '10px'
 
-PAGE_SIZE = 20
+PAGE_SIZE = 10
 
 _student_id = (props) ->
     props.grading?.get('student_id')
@@ -275,19 +275,26 @@ exports.GradingStudentAssignment = rclass
     getInitialState: ->
         s = _init_state(@props)
         s.active_autogrades = immutable.Set()
-        s.listing_files = @get_listing_files(@props)
+        s = misc.merge(s, @get_listing_files(@props))
         return s
 
     componentWillReceiveProps: (next) ->
         x = _update_state(@props, next, @state)
         @setState(x) if x?
         if @props.grading?.get('listing') != next.grading?.get('listing')
-            @setState(listing_files: @get_listing_files(next))
+            @setState(@get_listing_files(next))
 
     get_listing_files: (props) ->
-        all_files = props.grading.getIn(['listing', 'files'])
-        if all_files?
-            return all_files.filterNot(course_specific_files)
+        listing   = props.grading?.get('listing')
+        files     = listing?.get('files')?.filterNot(course_specific_files)
+        num_pages = ((files?.size ? 0) // PAGE_SIZE) + 1
+        data =
+            listing       : listing
+            listing_files : files
+            num_pages     : num_pages
+        if _page_number(props) > num_pages
+            data.page_number = 0
+        return data
 
     collect_student_path: ->
         return path_join(@props.assignment.get('collect_path'), @state.student_id, @state.subdir)
@@ -724,9 +731,9 @@ exports.GradingStudentAssignment = rclass
             paddingBottom  : '5px'
 
     listing_entries: ->
-        return <li><Loading /></li> if not @state.listing_files?
+        return <li><Loading /></li> if not @state.listing?
 
-        error = @state.listing_files.get('error')
+        error = @state.listing.get('error')
         if error?
             if error = 'no_dir'
                 # TODO insert collect button here and refresh listing accordingly ...
@@ -734,21 +741,27 @@ exports.GradingStudentAssignment = rclass
             else
                 return <div>Got error listing directory: {error}</div>
 
-        @state.listing_files.map (file, idx) =>
-            filename = file.get('name')
-            time     = <BigTime date={(file.get('mtime') ? 0) * 1000} />
-            isdir    = file.get('isdir') == true
+        files = @state.listing_files ? undefined
+        if files?.size > 0
+            begin = PAGE_SIZE * (@state.page_number ? 0)
+            end   = begin + PAGE_SIZE
+            return files.slice(begin, end).map (file, idx) =>
+                filename = file.get('name')
+                time     = <BigTime date={(file.get('mtime') ? 0) * 1000} />
+                isdir    = file.get('isdir') == true
 
-            <li key={filename} style={@listing_rowstyle(idx)} className={'list-group-item'}>
-                <Row style={marginLeft: '0px', marginRight:'0px'}s>
-                {
-                    if isdir
-                        @listing_directory_row(filename, time)
-                    else
-                        @listing_file_row(filename, time)
-                }
-                </Row>
-            </li>
+                <li key={filename} style={@listing_rowstyle(idx)} className={'list-group-item'}>
+                    <Row style={marginLeft: '0px', marginRight:'0px'}s>
+                    {
+                        if isdir
+                            @listing_directory_row(filename, time)
+                        else
+                            @listing_file_row(filename, time)
+                    }
+                    </Row>
+                </li>
+        else
+            return <div>No files.</div>
 
     listing: ->
         <Row style={display:'flex', flexDirection:'column'}>
@@ -791,7 +804,7 @@ exports.GradingStudentAssignment = rclass
                 </Breadcrumb.Item>
             )
 
-        <Breadcrumb bsSize='small' style={margin: '0 15px 15px 15px'}>
+        <Breadcrumb bsSize='small' style={margin: '0 15px 15px 0'}>
             {crumbs}
         </Breadcrumb>
 
@@ -801,28 +814,29 @@ exports.GradingStudentAssignment = rclass
         @setState(page_number : p)
 
     render_listing_pager: ->
-        num_pages = 10
+        if (not @state.num_pages?) or (@state.num_pages ? 1) == 1 or (not @state.page_number?)
+            return null
         btn_style =
             whiteSpace: 'nowrap'
-        <div style={padding:'0', flex:'0'}>
+        <div style={padding:'0', flex:'0', marginRight: '15px'}>
             <ButtonGroup style={marginBottom:'5px', display:'flex'}>
                 <Button
-                    onClick={=>@listing_page(-1)}
-                    disabled={@state.page_number <= 0}
-                    style={btn_style}
+                    onClick    = {=>@listing_page(-1)}
+                    disabled   = {@state.page_number <= 0}
+                    style      = {btn_style}
                 >
                     <Icon name='angle-double-left' /> Prev
                 </Button>
                 <Button
-                    style={btn_style}
+                    style      = {btn_style}
                     disabled
                 >
-                    {"#{@state.page_number + 1}/#{num_pages}"}
+                    {"#{@state.page_number + 1}/#{@state.num_pages}"}
                 </Button>
                 <Button
-                    onClick={=>@listing_page(+1)}
-                    disabled={@state.page_number >= num_pages - 1}
-                    style={btn_style}
+                    onClick    = {=>@listing_page(+1)}
+                    disabled   = {@state.page_number >= @state.num_pages - 1}
+                    style      = {btn_style}
                 >
                      Next <Icon name='angle-double-right' />
                 </Button>
