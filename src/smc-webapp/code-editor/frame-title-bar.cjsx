@@ -19,15 +19,16 @@ title_bar_style =
     borderRight   : '1px solid rgb(204,204,204)'
     verticalAlign : 'middle'
     lineHeight    : '20px'
-    overflow      : 'hidden'
     textOverflow  : 'ellipsis'
     minHeight     : '24px'
 
 path_style =
-    whiteSpace  : 'nowrap'
-    fontSize    : '13px'
-    paddingLeft : '5px'
-    color       : '#333'
+    whiteSpace   : 'nowrap'
+    fontSize     : '13px'
+    paddingLeft  : '5px'
+    paddingRight : '15px'
+    color        : '#333'
+    float        : 'right'
 
 button_size = 'small'
 if IS_TOUCH
@@ -67,6 +68,8 @@ exports.FrameTitleBar = rclass
     button_size: ->
         if @props.is_only or @props.is_full
             return
+        else if IS_IPAD
+            return 'small'
         else
             return 'xsmall'
 
@@ -228,7 +231,7 @@ exports.FrameTitleBar = rclass
                 bsSize   = {@button_size()}
                 disabled = {disabled}
                 onClick  = {=>@props.actions.save(true)} >
-                <Icon name='save' /> {if @props.read_only then 'Readonly' else 'Save'}
+                <Icon name='save' /> <VisibleMDLG>{if @props.read_only then 'Readonly' else 'Save'}</VisibleMDLG>
                 {<UncommittedChanges has_uncommitted_changes={@props.has_uncommitted_changes} delay_ms={8000} /> if not disabled}
             </Button>
             <Button
@@ -267,13 +270,14 @@ exports.FrameTitleBar = rclass
             filename  = {@props.path}
             actions   = {redux.getProjectActions(@props.project_id)}
             is_public = {false}
+            label     = {'File'}
             bsSize    = {@button_size()}
         />
 
     render_buttons: ->
         # On touch or full show all buttons.
         extra = IS_TOUCH or @props.is_only or @props.is_full
-        <span style={float:'right'}>
+        <span key={'buttons'}>
             {@render_file_info() if extra}
             {<Space/> if extra}
             {@render_save_timetravel_group()}
@@ -311,7 +315,7 @@ exports.FrameTitleBar = rclass
         <div
             style = {style}
             >
-            {@render_path()}
-            {@render_x()}
             {@render_buttons() if is_active}
+            {@render_x()}
+            {### @render_path() -- do not need for now; will need later....###}
         </div>
