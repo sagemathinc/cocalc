@@ -28,7 +28,28 @@ exports.macros =
     "\\Qp"    : "\\QQ_{#1}"
     "\\Zmod"  : "\\ZZ/#1\\ZZ"
 
+# Sage's Jupyter kernel uses this to display math.
+# eg. with `show(2/3)`
+# We remove `\newcommand...` because we already define \Bold as above
+# And \newcommand is not yet supported https://github.com/Khan/KaTeX/issues/37
+SCRIPT = '<script type="math/tex; mode=display">\\newcommand{\\Bold}[1]{\\mathbf{#1}}'
+replace_scripts = (html) ->
+    i = 0
+    while true
+        i = html.indexOf(SCRIPT)
+        if i == -1
+            break
+        j = html.indexOf('</script>', i)
+        if j == -1
+            break
+        html = html.slice(0, i) + '\n$$' + html.slice(i+SCRIPT.length, j) + '$$\n' + html.slice(j+'</script>'.length)
+    return html
+
 exports.render = (html) ->
+    #console.log "Rendering Katex directly via lib version: #{require('katex/package.json')._id}"
+
+    html = replace_scripts(html)
+
     [text, math] = remove_math(html, true)
     text = replace_all(text, '\\$', '$')   # make \$ not involved in math just be $.
     katex_opts =
@@ -54,6 +75,9 @@ exports.render = (html) ->
         s = replace_all(s, '&lt;', '<')
         s = replace_all(s, '&gt;', '>')
 
-        katex.renderToString(s, katex_opts)
+        try
+            katex.renderToString(s, katex_opts)
+        catch
+            '<code class="katex" style="color: #cc0000">' + s + '</code>'
 
     return replace_math(text, math)

@@ -92,6 +92,8 @@ exports.share_router = (opts) ->
         router.use "/#{name}", express.static(os_path.join(process.env.SMC_ROOT, "webapp-lib/#{name}"),
                                     {immutable:true, maxAge:86000000})
 
+    router.use express.static(os_path.join(__dirname, 'static'))
+
     # TODO: serve from static file when/if it gets at all big; or from some refactor
     # of our existing css.  That said, our aim for the share server is extreme cleanliness
     # and simplicity, so what we want may be different from cocalc interactive.
