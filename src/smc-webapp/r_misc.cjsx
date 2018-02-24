@@ -413,15 +413,16 @@ exports.NumberInput = NumberInput = rclass
     displayName : 'Misc-NumberInput'
 
     propTypes :
-        number         : rtypes.number.isRequired
-        min            : rtypes.number.isRequired
-        max            : rtypes.number.isRequired
-        on_change      : rtypes.func.isRequired
-        unit           : rtypes.string
-        disabled       : rtypes.bool
-        formgroupstyle : rtypes.object
-        plusminus      : rtypes.bool
-        bsSize         : rtypes.string
+        number          : rtypes.number.isRequired
+        min             : rtypes.number.isRequired
+        max             : rtypes.number.isRequired
+        on_change       : rtypes.func.isRequired
+        unit            : rtypes.string
+        disabled        : rtypes.bool
+        formgroupstyle  : rtypes.object
+        plusminus       : rtypes.bool
+        select_on_click : rtypes.bool
+        bsSize          : rtypes.string
 
     componentWillReceiveProps: (next_props) ->
         if @props.number != next_props.number
@@ -471,6 +472,10 @@ exports.NumberInput = NumberInput = rclass
             <Icon name={name} />
         </Button>
 
+    onClickHandler: (e) ->
+        if @props.select_on_click
+            e.target.select()
+
     render: ->
         unit = if @props.unit? then "#{@props.unit}" else ''
         xs   = if @props.unit? then 6                else 12
@@ -489,6 +494,7 @@ exports.NumberInput = NumberInput = rclass
                             onChange = {=>@setState(number:ReactDOM.findDOMNode(@refs.input).value)}
                             onBlur   = {@saveChange}
                             onKeyDown= {(e)=>if e.keyCode == 27 then @setState(number:@props.number)}
+                            onClick  = {@onClickHandler}
                             disabled = {@props.disabled}
                             style    = {textAlign:'right'}
                         />

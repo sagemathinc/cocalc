@@ -45,17 +45,20 @@ ROW_STYLE =
     marginBottom: '10px'
 
 LIST_STYLE =
-    overflowY     : 'auto'
-    border        : "1px solid #{COLORS.GRAY_L}"
     borderRadius  : '5px'
     marginBottom  : '0px'
 
 LIST_ENTRY_STYLE =
-    cursor         : 'pointer'
     border         : '0'
     borderBottom   : "1px solid #{COLORS.GRAY_L}"
     overflow       : 'hidden'
     whiteSpace     : 'nowrap'
+
+FLEX_LIST_CONTAINER =
+    display        : 'flex'
+    flexDirection  : 'column'
+    overflowY      : 'auto'
+    border         : "1px solid #{COLORS.GRAY_L}"
 
 PAGE_SIZE = 10
 
@@ -276,7 +279,7 @@ Grade = rclass
         />
 
     render: ->
-        <Col md={5}>
+        <Col md={4}>
             <Row>
                 {@grade_value_edit()}
             </Row>
@@ -413,7 +416,7 @@ exports.GradingStudentAssignment = rclass
                 pick_student and= @state.store.has_last_collected(@props.assignment, id)
             return pick_student
 
-        info = (active, grade_val, points) ->
+        info = (active, grade_val, points, is_collected) ->
             col = if active then COLORS.GRAY_LL else COLORS.GRAY
             info_style =
                 color          : col
@@ -421,26 +424,29 @@ exports.GradingStudentAssignment = rclass
                 float          : 'right'
 
             show_grade  = grade_val?.length > 0
-            show_points = (points ? 0) > 0
-            grade  = if show_grade  then misc.trunc(grade_val, 15) else 'N/A'
-            points = if show_points then ", #{points} pts."        else ''
+            show_points = points? or is_collected
+            grade  = if show_grade  then misc.trunc(grade_val, 15) else 'N/G'
+            points = if show_points then ", #{points ? 0} pts."        else ''
 
             if show_points or show_grade
                 <span style={info_style}>
-                    ({grade}{points})
+                    {grade}{points}
                 </span>
             else
                 null
 
+        style       = misc.merge({cursor:'pointer'}, LIST_ENTRY_STYLE)
         current_idx = null
         idx         = -1
         all_points  = []
         list = @state.store.get_sorted_students().map (student) =>
-            id        = student.get('student_id')
-            name      = @state.store.get_student_name(student)
-            points    = @state.store.get_points_total(@props.assignment, id)
+            id           = student.get('student_id')
+            name         = @state.store.get_student_name(student)
+            points       = @state.store.get_points_total(@props.assignment, id)
+            is_collected = @state.store.student_assignment_info(id, @props.assignment)?.last_collect?.time?
             # all_points is used to compute quantile distributions
-            all_points.push(points) if points?
+            # collected but no points means zero points...
+            all_points.push(points ? 0) if (points? or is_collected)
             # filter by name or state?
             return null if not matching(id, name)
             # should this student be highlighted in the list?
@@ -454,9 +460,10 @@ exports.GradingStudentAssignment = rclass
                 key        = {id}
                 className  = {"list-group-item " + active}
                 onClick    = {=>@student_list_entry_click(id)}
-                style      = {LIST_ENTRY_STYLE}
+                style      = {style}
             >
-                {name} {info(active, grade_val, points)}
+                <span style={float:'left'}>{name}</span>
+                {info(active, grade_val, points, is_collected)}
             </li>
 
         list = (entry for entry in list when entry?)
@@ -521,7 +528,7 @@ exports.GradingStudentAssignment = rclass
             <Row key={1}>
                 {@student_list_filter()}
             </Row>
-            <Row style={flex} key={2}>
+            <Row style={FLEX_LIST_CONTAINER} key={2}>
                 <ul className='list-group' ref='student_list' style={LIST_STYLE}>
                     {student_list}
                 </ul>
@@ -589,7 +596,8 @@ exports.GradingStudentAssignment = rclass
                         onClick  = {=>@pick(+1)}
                         bsStyle  = {'primary'}
                     >
-                        <Icon name={'step-forward'} /> Pick next student to grade
+                        <Icon name={'step-forward'} /> Pick next
+                        <span className='hidden-md'> student to grade</span>
                     </Button>
                 </ButtonGroup>
             </Row>
@@ -627,7 +635,8 @@ exports.GradingStudentAssignment = rclass
                         style    = {color:COLORS.GRAY}
                         onClick  = {=>@percentile_rank_help()}
                     >
-                        {misc.round1(pct)}% percentile
+                        {misc.round1(pct)}%
+                        <span className='hidden-md'> percentile</span>
                     </Button>
                 </ButtonGroup>
             </Col>
@@ -653,7 +662,7 @@ exports.GradingStudentAssignment = rclass
                             md    = {2}
                             style = {textAlign:'center', whiteSpace: 'nowrap'}
                         >
-                            {q}q: {misc.round1(v)}
+                            {q}<sup>th</sup>: {misc.round1(v)}
                         </Col>
                 }
             </Row>
@@ -666,7 +675,7 @@ exports.GradingStudentAssignment = rclass
             bsStyle = {'primary'}
             bsSize  = {'small'}
         >
-            <Icon name='eye' /> Collected file
+            <Icon name='eye' /> Collected<span className='hidden-md'> file</span>
         </Button>
 
     render_open_student_file: (filename) ->
@@ -733,14 +742,15 @@ exports.GradingStudentAssignment = rclass
         filepath = @filepath(filename)
         points   = @state.store.get_points(@props.assignment, @state.student_id, filepath)
         <NumberInput
-            number         = {points}
-            bsSize         = {'small'}
-            min            = {0}
-            max            = {99999}
-            bsSize         = {'small'}
-            formgroupstyle = {'marginBottom' : 0}
-            on_change      = {(val)=>@save_points(filename, val)}
-            plusminus      = {true}
+            number          = {points}
+            bsSize          = {'small'}
+            min             = {0}
+            max             = {99999}
+            bsSize          = {'small'}
+            formgroupstyle  = {'marginBottom' : 0}
+            on_change       = {(val)=>@save_points(filename, val)}
+            plusminus       = {true}
+            select_on_click = {true}
         />
 
     render_points_subdir: (subdir) ->
@@ -852,7 +862,7 @@ exports.GradingStudentAssignment = rclass
         </div>
 
     listing: ->
-        <Row style={display:'flex', flexDirection:'column'}>
+        <Row style={FLEX_LIST_CONTAINER}>
             <ul className='list-group' style={LIST_STYLE}>
                 {@listing_entries()}
             </ul>
@@ -952,7 +962,7 @@ exports.GradingStudentAssignment = rclass
                             disabled = {(@state.listing?.get('error')?.length > 0) ? false}
                             onClick  = {=>@open_assignment('collected')}
                         >
-                            <Icon name='folder-open-o' /> Collected {time}
+                            <Icon name='folder-open-o' /><span className='hidden-md'> Collected</span> {time}
                         </Button>
                         <Button
                             onClick = {=>@open_assignment('assigned')}
@@ -991,11 +1001,11 @@ exports.GradingStudentAssignment = rclass
 
     render_end_of_list: ->
         <Col>
-            <Row style={marginTop: '100px', marginBottom:'30px'}>
+            <Row style={marginTop: '75px', marginBottom:'30px'}>
                 <h2 style={textAlign:'center'}>
                     Congratulations! You reached the end of the student list.
                 </h2>
-                <div style={color:COLORS.GRAY_L}>
+                <div style={color:COLORS.GRAY, textAlign:'center'}>
                     Take a deep breath and …
                 </div>
             </Row>
@@ -1005,7 +1015,7 @@ exports.GradingStudentAssignment = rclass
                     bsStyle = {'primary'}
                     bsSize  = {'large'}
                 >
-                    … start fresh
+                    … start fresh <Space/> <Icon name='coffee' />
                 </Button>
             </Row>
         </Col>
@@ -1033,7 +1043,7 @@ exports.GradingStudentAssignment = rclass
             <Col md={9} style={flexcolumn}>
                 <Row style={marginBottom: '15px'}>
                     {@render_nav(current_idx)}
-                    <Col md={4}>
+                    <Col md={5}>
                         {@render_points(all_points)}
                         {@render_stats(all_points)}
                         {### @render_open() ###}
