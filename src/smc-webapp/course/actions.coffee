@@ -1792,20 +1792,24 @@ exports.CourseActions = class CourseActions extends Actions
             assignment       : required
             student_id       : undefined
             direction        : 1
-            without_grade    : true   # not yet graded?
-            collected_files  : true   # already collected files?
+            without_grade    : undefined   # not yet graded?
+            collected_files  : undefined   # already collected files?
             subdir           : ''
         # direction: 0, +1 or -1, which student in the list to pick next
         #            first call after deleting grading should be +1, otherwise student_id stays undefined
         store = @get_store()
         return if not store?
+
+        only_not_graded = store.grading_get_filter_button('only_not_graded')
+        only_collected  = store.grading_get_filter_button('only_collected')
+
         if opts.direction == 1 or opts.direction == -1
             [next_student_id, cnt] = store.grading_next_student(
                 assignment            : opts.assignment
                 current_student_id    : opts.student_id
                 direction             : opts.direction
-                without_grade         : opts.without_grade
-                collected_files       : opts.collected_files
+                without_grade         : opts.without_grade   ? only_not_graded
+                collected_files       : opts.collected_files ? only_collected
             )
         else
             # previous is null/undefined, stick with same student ... e.g. directory changes
@@ -1821,8 +1825,8 @@ exports.CourseActions = class CourseActions extends Actions
             end_of_list     : not (next_student_id?)
             subdir          : opts.subdir
             student_filter  : store.grading_get_student_filter()
-            only_not_graded : store.grading_get_filter_button('only_not_graded')
-            only_collected  : store.grading_get_filter_button('only_collected')
+            only_not_graded : only_not_graded
+            only_collected  : only_collected
             page_number     : store.grading_get_page_number()
         )
         @setState(grading : data)
@@ -1832,7 +1836,7 @@ exports.CourseActions = class CourseActions extends Actions
                 if err == 'no_dir'
                     listing = {error: err}
                 else
-                    @set_error("Grading error: #{err}")
+                    @set_error("Grading file listing error: #{err}")
                     return
             listing = immutable.fromJS(listing)
             @setState(grading : data.set('listing', listing))

@@ -680,8 +680,6 @@ Assignment = rclass
             # student_id is set to null on purpose (starts fresh)
             @actions(@props.name).grading(
                 assignment       : @props.assignment
-                without_grade    : false
-                collected_files  : false
             )
 
         if status.graded > 0

@@ -159,15 +159,6 @@ exports.GradingStudentAssignmentHeader = rclass
             </Col>
         </Row>
 
-Controls = rclass
-    displayName : 'CourseEditor-GradingStudentAssignment-Controls'
-
-    propTypes :
-        grading      : rtypes.object.isRequired
-
-    render: ->
-        'Controls'
-
 Grade = rclass
     displayName : 'CourseEditor-GradingStudentAssignment-Grade'
 
@@ -379,7 +370,7 @@ exports.GradingStudentAssignment = rclass
     next: (without_grade, collected_files) ->
         @jump(+1, without_grade, collected_files)
 
-    pick: (direction=1) ->
+    pick_next: (direction=1) ->
         without_grade   = @get_only_not_graded()
         collected_files = @get_only_collected()
         @jump(direction, without_grade, collected_files)
@@ -470,7 +461,7 @@ exports.GradingStudentAssignment = rclass
         if list.length == 0
             list.push(<li>No student matches…</li>)
 
-        # we assume all_points is sorted!
+        # we assume throughout the code that all_points is sorted!
         all_points.sort((a, b) -> a - b)
         return [list, current_idx, all_points]
 
@@ -586,14 +577,14 @@ exports.GradingStudentAssignment = rclass
             <Row style={ROW_STYLE}>
                 <ButtonGroup>
                     <Button
-                        onClick  = {=>@pick(-1)}
+                        onClick  = {=>@pick_next(-1)}
                         bsStyle  = {'default'}
                         disabled = {current_idx == 0}
                     >
                         <Icon name={'step-backward'} />
                     </Button>
                     <Button
-                        onClick  = {=>@pick(+1)}
+                        onClick  = {=>@pick_next(+1)}
                         bsStyle  = {'primary'}
                     >
                         <Icon name={'step-forward'} /> Pick next
@@ -616,7 +607,7 @@ exports.GradingStudentAssignment = rclass
 
     render_points: (all_points) ->
         total = @state.store.get_points_total(@props.assignment, @state.student_id)
-        pct = misc.percentRank(all_points, total)
+        pct = misc.percentRank(all_points, total, true)
         <Row>
             <Col md={10} style={textAlign: 'center'}>
                 <ButtonGroup>
@@ -644,7 +635,7 @@ exports.GradingStudentAssignment = rclass
 
     render_stats: (all_points) ->
         data = [0, 25, 50, 75, 100].map (q) ->
-            [q, misc.quantile(all_points, q)]
+            [q, misc.quantile(all_points, q, true)]
         <Row style={color:COLORS.GRAY, marginTop:'10px'}>
             <Row>
                 <Col
@@ -995,8 +986,8 @@ exports.GradingStudentAssignment = rclass
         @actions(@props.name).grading(
             student_id       : undefined
             assignment       : @props.assignment
-            without_grade    : false
-            collected_files  : false
+            without_grade    : @get_only_not_graded()
+            collected_files  : @get_only_collected()
         )
 
     render_end_of_list: ->
