@@ -59,6 +59,7 @@ FLEX_LIST_CONTAINER =
     flexDirection  : 'column'
     overflowY      : 'auto'
     border         : "1px solid #{COLORS.GRAY_L}"
+    borderRadius   : '5px'
 
 PAGE_SIZE = 10
 
@@ -88,7 +89,7 @@ _init_state = (props) ->
     return
         store           : store
         student_id      : student_id
-        student_info    : store.student_assignment_info(student_id, props.assignment)
+        student_info    : if student_id? then store.student_assignment_info(student_id, props.assignment)
         subdir          : _subdir(props)
         student_filter  : _student_filter(props)
         page_number     : _page_number(props)
@@ -106,8 +107,9 @@ _update_state = (props, next, state) ->
             grade_comments  : comment
             edited_grade    : grade
             edited_comments : comment
-            student_info    : state.store.student_assignment_info(student_id, props.assignment)
+            student_info    : if student_id? then state.store.student_assignment_info(student_id, props.assignment)
             subdir          : subdir
+        # reset file listing pager to 0 when switching directories or student
         if _subdir(props) != subdir or student_id != _student_id(props)
             ret.page_number = 0
         return ret
@@ -193,7 +195,6 @@ Grade = rclass
         @props.actions.set_grade(@props.assignment, @props.student_id, @state.edited_grade)
         @props.actions.set_comments(@props.assignment, @props.student_id, @state.edited_comments)
         @setState(editing_grade : false)
-        #@next()
 
     grade_cancel: ->
         @setState(
@@ -470,6 +471,7 @@ exports.GradingStudentAssignment = rclass
         @actions(@props.name).set_student_filter(string)
 
     on_key_down_student_filter: (e) ->
+        e?.preventDefault?()
         switch e.keyCode
             when 27
                 @set_student_filter('')
@@ -483,7 +485,7 @@ exports.GradingStudentAssignment = rclass
             <FormGroup>
                 <InputGroup>
                     <InputGroup.Addon>
-                        Filter
+                        Search
                     </InputGroup.Addon>
                     <FormControl
                         autoFocus   = {true}
@@ -588,9 +590,12 @@ exports.GradingStudentAssignment = rclass
                         bsStyle  = {'primary'}
                     >
                         <Icon name={'step-forward'} /> Pick next
-                        <span className='hidden-md'> student to grade</span>
+                        <span className='hidden-md'> student</span>
                     </Button>
                 </ButtonGroup>
+            </Row>
+            <Row style={color:COLORS.GRAY}>
+                Filter students by:
             </Row>
             <Row style={ROW_STYLE}>
                 <ButtonGroup>
@@ -848,17 +853,18 @@ exports.GradingStudentAssignment = rclass
         num_pages = @state.num_pages ? 1
         page      = (@state.page_number ? 1) + 1
         return null if num_pages == 1 or page >= num_pages
-        <div style={color:COLORS.GRAY}>
+        <Row style={color:COLORS.GRAY} key={'more'}>
             More files are on the <a style={cursor:'pointer'} onClick={=>@listing_page(+1)}>next page</a> …
-        </div>
+        </Row>
 
     listing: ->
-        <Row style={FLEX_LIST_CONTAINER}>
+        listing = <Row style={FLEX_LIST_CONTAINER} key={0}>
             <ul className='list-group' style={LIST_STYLE}>
                 {@listing_entries()}
             </ul>
-            {@listing_more_files_info()}
         </Row>
+        more = @listing_more_files_info()
+        return (if more? then [listing, more] else listing)
 
     open_directory: (path) ->
         @setState(subdir : path, listing_files: undefined)
@@ -1002,18 +1008,26 @@ exports.GradingStudentAssignment = rclass
             </Row>
             <Row style={textAlign:'center', marginBottom:'100px'}>
                 <Button
-                    onClick = {=>@start_fresh()}
-                    bsStyle = {'primary'}
-                    bsSize  = {'large'}
+                    onClick  = {=>@start_fresh()}
+                    bsStyle  = {'primary'}
+                    bsSize   = {'large'}
                 >
-                    … start fresh <Space/> <Icon name='coffee' />
+                    … take another round <Space/> <Icon name='gavel' />
+                </Button>
+                <Button
+                    style    = {marginLeft: '3rem'}
+                    onClick  = {=>@actions(@props.name).grading_stop()}
+                    bsStyle  = {'default'}
+                    bsSize   = {'large'}
+                >
+                    <Icon name={'sign-out'} /> Exit
                 </Button>
             </Row>
         </Col>
 
     render: ->
         if not @state.student_id?
-            return <div>No student</div>
+            return <div>No student to grade, because there are no collected assignments…</div>
 
         if @props.grading.get('end_of_list')
             return @render_end_of_list()

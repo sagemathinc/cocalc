@@ -672,6 +672,9 @@ Assignment = rclass
         </Button>
 
     render_grading_button: (status) ->
+        if status.collect == 0
+            # No button if nothing collected.
+            return
         return null if @props.assignment.get('skip_grading') ? false
         # Have already collected something
         disabled = false
