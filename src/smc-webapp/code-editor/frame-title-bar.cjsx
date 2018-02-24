@@ -21,6 +21,7 @@ title_bar_style =
     lineHeight    : '20px'
     textOverflow  : 'ellipsis'
     minHeight     : '24px'
+    padding       : '1px'
 
 path_style =
     whiteSpace   : 'nowrap'
