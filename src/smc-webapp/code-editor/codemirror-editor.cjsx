@@ -139,7 +139,11 @@ exports.CodemirrorEditor = rclass
             actions         : @props.actions
             frame_id        : @props.id
 
+        @_style_active_line = options.styleActiveLine
+        options.styleActiveLine = false
+
         @cm = CodeMirror.fromTextArea(node, options)
+
         d   = doc.get(path: @props.path, cm: @cm)
         if d?
             @cm.swapDoc(d)
@@ -160,6 +164,12 @@ exports.CodemirrorEditor = rclass
 
         @cm.on 'focus', =>
             @props.actions.set_active_id(@props.id)
+            if @_style_active_line
+                @cm?.setOption('styleActiveLine', true)
+
+        @cm.on 'blur', =>
+            if @_style_active_line
+                @cm?.setOption('styleActiveLine', false)
 
         @cm.on 'scroll', debounce(@save_scroll_position, 1000)
 

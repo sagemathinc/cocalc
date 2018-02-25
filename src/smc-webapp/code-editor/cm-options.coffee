@@ -39,7 +39,7 @@ exports.cm_options = (opts) ->
         auto_close_xml_tags        : editor_settings.get('auto_close_xml_tags')
         line_wrapping              : editor_settings.get('line_wrapping')
         spaces_instead_of_tabs     : editor_settings.get('spaces_instead_of_tabs')
-        style_active_line          : editor_settings.get('style_active_line') ? 15 # (a number between 0 and 127)
+        style_active_line          : !!(editor_settings.get('style_active_line') ? true)
         bindings                   : editor_settings.get('bindings')
         theme                      : editor_settings.get('theme')
 
