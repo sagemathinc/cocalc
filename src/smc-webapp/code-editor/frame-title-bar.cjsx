@@ -21,6 +21,7 @@ title_bar_style =
     lineHeight    : '20px'
     textOverflow  : 'ellipsis'
     minHeight     : '24px'
+    padding       : '1px'
 
 path_style =
     whiteSpace   : 'nowrap'
@@ -74,6 +75,10 @@ exports.FrameTitleBar = rclass
             return 'xsmall'
 
     render_x: ->
+        if @props.is_only
+            return
+        if @props.is_full
+            return <span style={float:'right'}> {@render_full()} </span>
         disabled = @props.is_full or @props.is_only or not @props.deletable
         <ButtonGroup style={marginLeft:'5px', float:'right'} key={'x'}>
             {@render_full() if @props.is_full or @props.active_id == @props.id}
