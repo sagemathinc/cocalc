@@ -104,7 +104,6 @@ exports.FrameTitleBar = rclass
                 disabled = {@props.is_only}
                 key     = {'compress'}
                 bsSize  = {@button_size()}
-                bsStyle = {'warning'}
                 onClick = {=> @props.actions.set_frame_full()} >
                 <Icon name={'compress'}/>
             </Button>

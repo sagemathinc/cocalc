@@ -37,15 +37,21 @@ tree_ops                          = require('./tree-ops')
 
 drag_offset = if feature.IS_TOUCH then 5 else 2
 
-frame_border = "0px solid grey"
-
 cols_drag_bar =
     padding      : "#{drag_offset}px"
     background   : "#efefef"
-    zIndex       : 10
+    zIndex       : 20
     cursor       : 'ew-resize'
 
+drag_hover =
+    background:'darkgrey'
+    opacity:.8
+
+cols_drag_bar_drag_hover = misc.merge(misc.copy(cols_drag_bar), drag_hover)
+
 rows_drag_bar = misc.merge(misc.copy(cols_drag_bar), {cursor:'ns-resize'})
+
+rows_drag_bar_drag_hover = misc.merge(misc.copy(rows_drag_bar), drag_hover)
 
 exports.FrameTree = FrameTree = rclass
     propTypes :
@@ -59,14 +65,18 @@ exports.FrameTree = FrameTree = rclass
         cursors    : rtypes.immutable.Map
         has_unsaved_changes : rtypes.bool
 
-    shouldComponentUpdate: (next) ->
+    getInitialState: ->
+        drag_hover: false
+
+    shouldComponentUpdate: (next, state) ->
         return @props.frame_tree != next.frame_tree or \
                @props.active_id  != next.active_id or \
                @props.project_id != next.project_id or \
                @props.full_id    != next.full_id or \
                @props.is_only    != next.is_only or \
                @props.cursors    != next.cursors or \
-               @props.has_unsaved_changes != next.has_unsaved_changes
+               @props.has_unsaved_changes != next.has_unsaved_changes or \
+               @state.drag_hover  != state.drag_hover
 
     render_frame_tree: (desc) ->
         <FrameTree
@@ -122,7 +132,7 @@ exports.FrameTree = FrameTree = rclass
 
     render_first: ->
         desc = @props.frame_tree.get('first')
-        <div style={border: frame_border} className={'smc-vfill'}>
+        <div className={'smc-vfill'}>
             @render_one(desc)
         </div>
 
@@ -146,7 +156,11 @@ exports.FrameTree = FrameTree = rclass
             onStop  = {handle_stop}
             onMouseDown = {(e) => e.preventDefault()}
             >
-            <div style={cols_drag_bar}> </div>
+            <div
+                style        = {if @state.drag_hover then cols_drag_bar_drag_hover else cols_drag_bar}
+                onMouseEnter = {=> @setState(drag_hover: true)}
+                onMouseLeave = {=> @setState(drag_hover: false)}>
+            </div>
         </Draggable>
 
     get_pos: ->
@@ -160,9 +174,9 @@ exports.FrameTree = FrameTree = rclass
         data =
             pos          : pos
             first        : @props.frame_tree.get('first')
-            style_first  : {display:'flex', overflow:'hidden', flex:pos,   border:frame_border}
+            style_first  : {display:'flex', overflow:'hidden', flex:pos}
             second       : @props.frame_tree.get('second')
-            style_second : {display:'flex', overflow:'hidden', flex:1-pos, border:frame_border}
+            style_second : {display:'flex', overflow:'hidden', flex:1-pos}
 
         if flex_direction == 'row'
             data.outer_style = {display:'flex', flexDirection:'row', flex:1}
@@ -203,7 +217,12 @@ exports.FrameTree = FrameTree = rclass
             onStop  = {handle_stop}
             onMouseDown = {(e) => e.preventDefault()}
             >
-            <div style={rows_drag_bar}> </div>
+            <div
+                style        = {if @state.drag_hover then rows_drag_bar_drag_hover else rows_drag_bar}
+                onMouseEnter = {=> @setState(drag_hover: true)}
+                onMouseLeave = {=> @setState(drag_hover: false)}
+                >
+            </div>
         </Draggable>
 
     render_rows: ->
