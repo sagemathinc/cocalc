@@ -281,7 +281,9 @@ exports.FrameTitleBar = rclass
 
     render_buttons: ->
         # On touch or full show all buttons.
-        extra = IS_TOUCH or @props.is_only or @props.is_full
+        #extra = IS_TOUCH or @props.is_only or @props.is_full
+        # J3 suggested this, so I'm testing it...
+        extra = true
         <span key={'buttons'}>
             {@render_file_info() if extra}
             {<Space/> if extra}
