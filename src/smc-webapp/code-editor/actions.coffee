@@ -148,8 +148,10 @@ class exports.Actions extends Actions
         @_tree_op('split_leaf', id ? @store.getIn(['local_view_state', 'active_id']), direction)
 
     set_frame_full: (id) =>
-        local   = @store.get('local_view_state')
-        @setState(local_view_state : local.set('full_id', id).set('active_id', id))
+        local   = @store.get('local_view_state').set('full_id', id)
+        if id?
+            local = local.set('active_id', id)
+        @setState(local_view_state : local)
         @_save_local_view_state()
 
     save_scroll_position: (id, info) =>
@@ -216,7 +218,6 @@ class exports.Actions extends Actions
                 y = loc.get('y')
                 if y?
                     omit_lines[y] = true
-        console.log omit_lines
         cm.delete_trailing_whitespace(omit_lines:omit_lines)
 
     _do_save: (cb) =>
@@ -349,6 +350,9 @@ class exports.Actions extends Actions
 
     goto_line: (id) =>
         @_get_cm(id)?.execCommand('jumpToLine')
+
+    programmatical_goto_line: (line) =>  # used when clicking on other user avatar.
+        console.log 'programmatical_goto_line', line
 
     cut: (id) =>
         cm = @_get_cm(id)

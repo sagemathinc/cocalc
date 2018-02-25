@@ -63,7 +63,13 @@ exports.FrameTitleBar = rclass
                @props.read_only  != next.read_only or \
                @props.has_unsaved_changes != next.has_unsaved_changes
 
+    componentWillReceiveProps: ->
+        @_last_render = new Date()
+
     click_close: ->
+        if new Date() - @_last_render < 500
+            # avoid accidental click -- easily can happen otherwise.
+            return
         @props.actions.close_frame(@props.id)
 
     button_size: ->

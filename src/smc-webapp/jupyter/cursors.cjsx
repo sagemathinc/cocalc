@@ -54,7 +54,7 @@ exports.Cursor = Cursor = rclass
                 style={width: '6px', left: '-2px', top: '-2px', height: '6px', position:'absolute', backgroundColor:@props.color}
                 />
             {<span
-                style={opacity:0.4, position: 'absolute', fontSize: '10pt', color: '#fff', top: '-10px', left: '-2px', padding: '2px', whiteSpace: 'nowrap', background:@props.color, fontFamily:'sans-serif', boxShadow: '3px 3px 5px 0px #bbb'}
+                style={opacity:0.6, position: 'absolute', fontSize: '10pt', color: '#fff', top: '-10px', left: '-2px', padding: '2px', whiteSpace: 'nowrap', background:@props.color, fontFamily:'sans-serif', boxShadow: '3px 3px 5px 0px #bbb'}
                 >{@props.name}</span> if @state.hover}
         </span>
 
