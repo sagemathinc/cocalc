@@ -593,27 +593,32 @@ Student = rclass
             <em>{misc.trunc_middle(assignment.get('path'), 50)}</em> {@render_title_due(assignment)}
         </span>
 
-    render_assignments_info_rows: ->
+    render_assignments_info_rows: (peer_grade_layout) ->
+        # peer_grade_layout: if true, the header has two more rows for peer grading
         store = @props.redux.getStore(@props.name)
         for assignment in store.get_sorted_assignments()
             grade    = store.get_grade(assignment, @props.student)
             comments = store.get_comments(assignment, @props.student)
             info     = store.student_assignment_info(@props.student, assignment)
+            points   = store.get_points_total(assignment, @props.student)
             <StudentAssignmentInfo
-                key        = {assignment.get('assignment_id')}
-                title      = {@render_title(assignment)}
-                name       = {@props.name}
-                student    = {@props.student}
-                assignment = {assignment}
-                grade      = {grade}
-                comments   = {comments}
-                info       = {info}
-                />
+                key               = {assignment.get('assignment_id')}
+                title             = {@render_title(assignment)}
+                name              = {@props.name}
+                student           = {@props.student}
+                assignment        = {assignment}
+                peer_grade_layout = {peer_grade_layout}
+                grade             = {grade}
+                points            = {points}
+                edit_points       = {false}
+                comments          = {comments}
+                info              = {info}
+            />
 
     render_assignments_info: ->
         peer_grade = @props.redux.getStore(@props.name).any_assignment_uses_peer_grading()
         header = <StudentAssignmentInfoHeader key='header' title="Assignment" peer_grade={peer_grade}/>
-        return [header, @render_assignments_info_rows()]
+        return [header, @render_assignments_info_rows(peer_grade)]
 
     render_note: ->
         <Row key='note' style={styles.note}>

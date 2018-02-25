@@ -1,4 +1,4 @@
-###############################################################################
+##############################################################################
 #
 #    CoCalc: Collaborative Calculation in the Cloud
 #
@@ -21,9 +21,9 @@
 underscore = require('underscore')
 
 # CoCalc libraries
-misc = require('smc-util/misc')
-{defaults, required} = misc
-{webapp_client} = require('../webapp_client')
+{defaults, required} = misc = require('smc-util/misc')
+{webapp_client}      = require('../webapp_client')
+{COLORS}             = require('smc-util/theme')
 
 # React libraries
 {React, rclass, rtypes, Actions, ReactDOM}  = require('../smc-react')
@@ -120,13 +120,16 @@ exports.StudentAssignmentInfo = rclass
     displayName : "CourseEditor-StudentAssignmentInfo"
 
     propTypes :
-        name       : rtypes.string.isRequired
-        title      : rtypes.oneOfType([rtypes.string,rtypes.object]).isRequired
-        student    : rtypes.oneOfType([rtypes.string,rtypes.object]).isRequired # required string (student_id) or student immutable js object
-        assignment : rtypes.oneOfType([rtypes.string,rtypes.object]).isRequired # required string (assignment_id) or assignment immutable js object
-        grade      : rtypes.string
-        comments   : rtypes.string
-        info       : rtypes.object.isRequired
+        name              : rtypes.string.isRequired
+        title             : rtypes.oneOfType([rtypes.string,rtypes.object]).isRequired
+        student           : rtypes.oneOfType([rtypes.string,rtypes.object]).isRequired # required string (student_id) or student immutable js object
+        assignment        : rtypes.oneOfType([rtypes.string,rtypes.object]).isRequired # required string (assignment_id) or assignment immutable js object
+        peer_grade_layout : rtypes.bool
+        grade             : rtypes.string
+        points            : rtypes.number
+        edit_points       : rtypes.bool
+        comments          : rtypes.string
+        info              : rtypes.object.isRequired
 
     getInitialState: ->
         editing_grade   : false
@@ -134,8 +137,9 @@ exports.StudentAssignmentInfo = rclass
         edited_comments : @props.comments ? ''
 
     getDefaultProps: ->
-        grade    : ''
-        comments : ''
+        grade             : ''
+        comments          : ''
+        peer_grade_layout : false
 
     open: (type, assignment_id, student_id) ->
         @actions(@props.name).open_assignment(type, assignment_id, student_id)
@@ -154,6 +158,14 @@ exports.StudentAssignmentInfo = rclass
 
     edit_grade: ->
         @setState(editing_grade:true)
+
+    edit_points: ->
+        student_id = if typeof(@props.student) != 'string' then @props.student.get('student_id') else @props.student
+        @actions(@props.name).grading(
+            assignment  : @props.assignment
+            student_id  : student_id
+            direction   : 0
+        )
 
     render_grade: ->
         if @state.editing_grade
@@ -204,6 +216,17 @@ exports.StudentAssignmentInfo = rclass
                 if e.shiftKey
                     @save_grade()
 
+    render_edit_points: ->
+        style  = {float:'right', color:COLORS.GRAY}
+        points = "#{@props.points ? 0} pts."
+        if @props.edit_points
+            <Button
+                style   = {style}
+                onClick = {@edit_points}
+                bsStyle = {'default'}
+            >{points}</Button>
+        else
+            <span style={style}>{points}</span>
 
     render_grade_col: (width) ->
         bsStyle = if not (@props.grade).trim() then 'primary'
@@ -211,8 +234,9 @@ exports.StudentAssignmentInfo = rclass
 
         <Col md={width} key='grade'>
             <Tip title="Enter student's grade" tip="Enter the grade that you assigned to your student on this assignment here.  You can enter anything (it doesn't have to be a number).">
-                <Button key='edit' onClick={@edit_grade} bsStyle={bsStyle}>{text}</Button>
+                <Button key={'edit'} onClick={@edit_grade} bsStyle={bsStyle}>{text}</Button>
             </Tip>
+            {@render_edit_points()}
             {@render_grade()}
             {@render_comments()}
         </Col>
@@ -320,6 +344,9 @@ exports.StudentAssignmentInfo = rclass
                "Open your copy of your student's peer grading work in your own project, so that you can grade their work.")}
         </Col>
 
+    render_empty_peer_col: (which) ->
+        <Col md={2} key={"peer-#{which}}"}><Row /></Col>
+
     render: ->
         peer_grade = @props.assignment.get('peer_grade')?.get('enabled')
         skip_grading = @props.assignment.get('skip_grading') ? false
@@ -331,7 +358,7 @@ exports.StudentAssignmentInfo = rclass
         else
             show_grade_col = (!skip_grading and @props.info.last_collect) or skip_collect
             show_return_graded = @props.grade or (skip_grading and @props.info.last_collect) or (skip_grading and skip_collect)
-        width = if peer_grade then 2 else 3
+        width = if (peer_grade or @props.peer_grade_layout) then 2 else 3
         <Row style={borderTop:'1px solid #aaa', paddingTop:'5px', paddingBottom: '5px'}>
             <Col md={2} key="title">
                 {@props.title}
@@ -350,6 +377,8 @@ exports.StudentAssignmentInfo = rclass
                     </Col>
                     {@render_peer_assign()  if peer_grade and @props.info.peer_assignment}
                     {@render_peer_collect() if peer_grade and @props.info.peer_collect}
+                    {@render_empty_peer_col('assign') if not peer_grade and @props.peer_grade_layout}
+                    {@render_empty_peer_col('collect') if not peer_grade and @props.peer_grade_layout}
                     {if show_grade_col then @render_grade_col(width) else <Col md={width} key='grade'></Col>}
                     <Col md={width} key='return_graded'>
                         {@render_last('Return', @props.info.last_return_graded, 'graded', @props.info.last_collect? or skip_collect,

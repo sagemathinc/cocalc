@@ -1787,6 +1787,42 @@ exports.CourseActions = class CourseActions extends Actions
         # Now open it
         @redux.getProjectActions(proj).open_directory(path)
 
+    grading_get_student_list: (assignment) =>
+        store = @get_store()
+        return if not store?
+        student_filter  = store.grading_get_student_filter()
+        only_not_graded = store.grading_get_filter_button('only_not_graded')
+        only_collected  = store.grading_get_filter_button('only_collected')
+
+        matching = (id, name) =>
+            pick_student = true
+            if student_filter?.length > 0
+                pick_student and= name.toLowerCase().indexOf(student_filter.toLowerCase()) >= 0
+            if only_not_graded
+                pick_student and= not store.has_grade(assignment, id)
+            if only_collected
+                pick_student and= store.has_last_collected(assignment, id)
+            return pick_student
+
+        all_points  = []
+        list = store.get_sorted_students().map (student) =>
+            id           = student.get('student_id')
+            name         = store.get_student_name(student)
+            points       = store.get_points_total(assignment, id)
+            is_collected = store.student_assignment_info(id, assignment)?.last_collect?.time?
+            # all_points is used to compute quantile distributions
+            # collected but no points means zero points...
+            all_points.push(points ? 0) if (points? or is_collected)
+            # filter by name or button states
+            return null if not matching(id, name)
+            return student
+
+        list = (entry for entry in list when entry?)
+
+        # we assume throughout the code that all_points is sorted!
+        all_points.sort((a, b) -> a - b)
+        return [list, all_points]
+
     grading: (opts) =>
         opts = defaults opts,
             assignment       : required

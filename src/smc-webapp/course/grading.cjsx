@@ -418,7 +418,7 @@ exports.GradingStudentAssignment = rclass
             show_grade  = grade_val?.length > 0
             show_points = points? or is_collected
             grade  = if show_grade  then misc.trunc(grade_val, 15) else 'N/G'
-            points = if show_points then ", #{points ? 0} pts."        else ''
+            points = if show_points then ", #{points ? 0} pts."    else ''
 
             if show_points or show_grade
                 <span style={info_style}>
@@ -471,12 +471,12 @@ exports.GradingStudentAssignment = rclass
         @actions(@props.name).set_student_filter(string)
 
     on_key_down_student_filter: (e) ->
-        e?.preventDefault?()
         switch e.keyCode
             when 27
                 @set_student_filter('')
             when 13
                 @pick_next()
+                e?.preventDefault?()
 
     student_list_filter: ->
         disabled = @state.student_filter?.length == 0 ? true
@@ -566,7 +566,7 @@ exports.GradingStudentAssignment = rclass
             onClick  = {=>@set_only_collected(not only_collected)}
             bsStyle  = {'default'}
         >
-            <Icon name={icon} /> Files collected
+            <Icon name={icon} /> Collected
         </Button>
 
     render_nav: (current_idx) ->
@@ -628,8 +628,8 @@ exports.GradingStudentAssignment = rclass
                         {total ? 0}
                     </Button>
                     <Button
-                        style    = {color:COLORS.GRAY}
-                        onClick  = {=>@percentile_rank_help()}
+                        style     = {color: COLORS.GRAY}
+                        onClick   = {=>@percentile_rank_help()}
                     >
                         {misc.round1(pct)}%
                         <span className='hidden-md'> percentile</span>
@@ -639,26 +639,32 @@ exports.GradingStudentAssignment = rclass
         </Row>
 
     render_stats: (all_points) ->
-        data = [0, 25, 50, 75, 100].map (q) ->
-            [q, misc.quantile(all_points, q, true)]
+        qpoints = {min:0, q25:25, median:50, q75:75, max:100}
+        data = (["#{name}", misc.quantile(all_points, v, true)] for name, v of qpoints)
         <Row style={color:COLORS.GRAY, marginTop:'10px'}>
             <Row>
                 <Col
                     md    = {10}
                     style = {borderBottom: "1px solid #{COLORS.GRAY}", textAlign:'center'}
                 >
-                    Point distribution quantiles
+                    <a
+                        href   = {'https://en.wikipedia.org/wiki/Five-number_summary'}
+                        target = {'_blank'}
+                        style  = {color: COLORS.GRAY}
+                    >
+                        5-number summary
+                    </a> of points per student
                 </Col>
             </Row>
             <Row>
                 {
-                    for [q, v] in data
+                    for [name, val] in data
                         <Col
-                            key   = {q}
+                            key   = {name}
                             md    = {2}
                             style = {textAlign:'center', whiteSpace: 'nowrap'}
                         >
-                            {q}<sup>th</sup>: {misc.round1(v)}
+                            <span className={'hidden-md'}>{name}: </span>{misc.round1(val)}
                         </Col>
                 }
             </Row>
