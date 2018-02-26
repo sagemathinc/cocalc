@@ -43,6 +43,7 @@ exports.Editor = rclass ({name}) ->
 
     componentWillUnmount: ->
         @props.actions.disable_key_handler()
+        @props.actions.set_syncstring_to_codemirror()
 
     render_button_bar: ->
         <ButtonBar
