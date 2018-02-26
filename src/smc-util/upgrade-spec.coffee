@@ -134,8 +134,8 @@ upgrades.field_order = ['member_host', 'network', 'mintime', 'disk_quota',
 # live_subscriptions is an array of arrays.  Each array should have length a divisor of 12.
 # The subscriptions will be displayed one row at a time.
 upgrades.live_subscriptions = [['standard', 'premium', 'professional'],
-                               ['small_course2', 'medium_course2', 'large_course2'],
-                               ['small_course', 'medium_course', 'large_course']]
+                               ['xsmall_course2', 'small_course2', 'medium_course2', 'large_course2'],
+                               ['xsmall_course',  'small_course', 'medium_course', 'large_course']]
 
 upgrades.period_names =
     month  : 'month'
@@ -260,6 +260,39 @@ subscription.medium_course2 =
         memory_request : 0
         member_host    : 70
         network        : 70
+
+subscription.xsmall_course =
+    icon  : 'battery-empty'
+    desc  : 'Basic extra small course\n(10 students)'
+    price :
+        month4 : 99
+        year1  : 249
+    cancel_at_period_end : true
+    benefits :
+        cores          : 0
+        cpu_shares     : 0
+        disk_quota     : 0
+        memory         : 0
+        memory_request : 0
+        member_host    : 10
+        network        : 10
+
+subscription.xsmall_course2 =
+    icon  : 'battery-empty'
+    desc  : 'Standard extra small course\n(10 students)'
+    price :
+        month4 : 199
+        year1  : 499
+    cancel_at_period_end : true
+    benefits :
+        cores          : 10
+        cpu_shares     : 0
+        disk_quota     : 0
+        memory         : 10*1000
+        mintime        : 18*3600
+        memory_request : 0
+        member_host    : 10
+        network        : 10
 
 subscription.small_course =
     icon  : 'battery-quarter'
