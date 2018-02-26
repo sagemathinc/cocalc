@@ -76,6 +76,15 @@ _student_filter = (props) ->
 _page_number = (props) ->
     props.grading?.get('page_number') ? 0
 
+_current_idx = (student_list, student_id) ->
+    current_idx = null
+    student_list.map (student, idx) ->
+        id = student.get('student_id')
+        if student_id == id
+            current_idx = idx
+    return current_idx
+
+
 # filter predicate for file listing, return true for less important files
 # also match name.ext~ variants in case of multiple rsyncs ...
 course_specific_files = (entry) ->
@@ -298,6 +307,11 @@ exports.GradingStudentAssignment = rclass
         s = _init_state(@props)
         s.active_autogrades = immutable.Set()
         s = misc.merge(s, @get_listing_files(@props))
+        store = @props.redux.getStore(@props.name)
+        [student_list, all_points] = store.grading_get_student_list(@props.assignment)
+        s.student_list = student_list
+        s.all_points   = all_points
+        s.current_idx  = _current_idx(student_list, s.student_id)
         return s
 
     componentWillReceiveProps: (next) ->
@@ -305,6 +319,13 @@ exports.GradingStudentAssignment = rclass
         @setState(x) if x?
         if @props.grading?.get('listing') != next.grading?.get('listing')
             @setState(@get_listing_files(next))
+        if @props.grading != next.grading or @props.assignment != next.assignment
+            [student_list, all_points] = @state.store.grading_get_student_list(next.assignment)
+            @setState(
+                student_list : student_list
+                all_points   : all_points
+                current_idx  : _current_idx(student_list, x.student_id)
+            )
 
     componentDidMount: ->
         show_entry       =  =>
@@ -397,6 +418,7 @@ exports.GradingStudentAssignment = rclass
             without_grade    : null
         )
 
+    ###
     student_list_entries: ->
         matching = (id, name) =>
             pick_student = true
@@ -432,6 +454,7 @@ exports.GradingStudentAssignment = rclass
         idx         = -1
         all_points  = []
         list = @state.store.get_sorted_students().map (student) =>
+        #list = @props.grading.get('student_list').map (student) =>
             id           = student.get('student_id')
             name         = @state.store.get_student_name(student)
             points       = @state.store.get_points_total(@props.assignment, id)
@@ -465,6 +488,7 @@ exports.GradingStudentAssignment = rclass
         # we assume throughout the code that all_points is sorted!
         all_points.sort((a, b) -> a - b)
         return [list, current_idx, all_points]
+    ###
 
     set_student_filter: (string) ->
         @setState(student_filter:string)
@@ -511,6 +535,7 @@ exports.GradingStudentAssignment = rclass
         </form>
 
 
+    ###
     render_list: (student_list) ->
 
         flex =
@@ -527,6 +552,67 @@ exports.GradingStudentAssignment = rclass
                 </ul>
             </Row>
         ]
+    ###
+
+    render_student_list_entries_info: (active, grade_val, points, is_collected) ->
+            col = if active then COLORS.GRAY_LL else COLORS.GRAY
+            info_style =
+                color          : col
+                display        : 'inline-block'
+                float          : 'right'
+
+            show_grade  = grade_val?.length > 0
+            show_points = points? or is_collected
+            grade  = if show_grade  then misc.trunc(grade_val, 15) else 'N/G'
+            points = if show_points then ", #{points ? 0} pts."    else ''
+
+            if show_points or show_grade
+                <span style={info_style}>
+                    {grade}{points}
+                </span>
+            else
+                null
+
+    render_student_list_entries: ->
+        style       = misc.merge({cursor:'pointer'}, LIST_ENTRY_STYLE)
+        list = @state.student_list.map (student) =>
+            id           = student.get('student_id')
+            name         = @state.store.get_student_name(student)
+            points       = @state.store.get_points_total(@props.assignment, id)
+            is_collected = @state.store.student_assignment_info(id, @props.assignment)?.last_collect?.time?
+            # should this student be highlighted in the list?
+            current      = @state.student_id == id
+            active       = if current then 'active' else ''
+            grade_val    = @state.store.get_grade(@props.assignment, id)
+            <li
+                key        = {id}
+                className  = {"list-group-item " + active}
+                onClick    = {=>@student_list_entry_click(id)}
+                style      = {style}
+            >
+                <span style={float:'left'}>{name}</span>
+                {@render_student_list_entries_info(active, grade_val, points, is_collected)}
+            </li>
+
+        if list.length == 0
+            list.push(<li>No student matches…</li>)
+        return list
+
+    render_student_list: ->
+        flex =
+            display        : 'flex'
+            flexDirection  : 'column'
+
+        [
+            <Row key={1}>
+                {@student_list_filter()}
+            </Row>
+            <Row style={FLEX_LIST_CONTAINER} key={2}>
+                <ul className='list-group' ref='student_list' style={LIST_STYLE}>
+                    {@render_student_list_entries()}
+                </ul>
+            </Row>
+        ]
 
     get_only_not_graded: ->
         @state.store.grading_get_filter_button('only_not_graded')
@@ -535,11 +621,13 @@ exports.GradingStudentAssignment = rclass
         @state.store.grading_get_filter_button('only_collected')
 
     set_only_not_graded: (only_not_graded) ->
-        @actions(@props.name).set_grading_entry('only_not_graded', only_not_graded)
+        actions = @actions(@props.name)
+        actions.set_grading_entry('only_not_graded', only_not_graded)
 
     set_only_collected: (only_collected) ->
         @setState(student_list_first_selected:false)
-        @actions(@props.name).set_grading_entry('only_collected', only_collected)
+        actions = @actions(@props.name)
+        actions.set_grading_entry('only_collected', only_collected)
 
     render_filter_only_not_graded: ->
         only_not_graded = @get_only_not_graded()
@@ -569,7 +657,7 @@ exports.GradingStudentAssignment = rclass
             <Icon name={icon} /> Collected
         </Button>
 
-    render_nav: (current_idx) ->
+    render_nav: () ->
         <Col md={3}>
             {###
             <Row style={ROW_STYLE}>
@@ -581,7 +669,7 @@ exports.GradingStudentAssignment = rclass
                     <Button
                         onClick  = {=>@pick_next(-1)}
                         bsStyle  = {'default'}
-                        disabled = {current_idx == 0}
+                        disabled = {@state.current_idx == 0}
                     >
                         <Icon name={'step-backward'} />
                     </Button>
@@ -610,9 +698,9 @@ exports.GradingStudentAssignment = rclass
         {open_new_tab} = require('smc-webapp/misc_page')
         open_new_tab(url)
 
-    render_points: (all_points) ->
+    render_points: ->
         total = @state.store.get_points_total(@props.assignment, @state.student_id)
-        pct = misc.percentRank(all_points, total, true)
+        pct = misc.percentRank(@state.all_points, total, true)
         <Row>
             <Col md={10} style={textAlign: 'center'}>
                 <ButtonGroup>
@@ -638,9 +726,9 @@ exports.GradingStudentAssignment = rclass
             </Col>
         </Row>
 
-    render_stats: (all_points) ->
+    render_stats: ->
         qpoints = {min:0, q25:25, median:50, q75:75, max:100}
-        data = (["#{name}", misc.quantile(all_points, v, true)] for name, v of qpoints)
+        data = (["#{name}", misc.quantile(@state.all_points, v, true)] for name, v of qpoints)
         <Row style={color:COLORS.GRAY, marginTop:'10px'}>
             <Row>
                 <Col
@@ -1043,20 +1131,21 @@ exports.GradingStudentAssignment = rclass
             flexDirection  : 'column'
             marginRight    : '15px'
 
-        [student_list, current_idx, all_points] = @student_list_entries()
+        #[student_list, current_idx, all_points] = @student_list_entries()
 
         <Row
             style={height: '70vh', display: 'flex'}
         >
             <Col md={3} style={misc.merge({marginLeft:'15px'}, flexcolumn)}>
-                {@render_list(student_list)}
+                {### @render_list(student_list) ###}
+                {@render_student_list()}
             </Col>
             <Col md={9} style={flexcolumn}>
                 <Row style={marginBottom: '15px'}>
-                    {@render_nav(current_idx)}
+                    {@render_nav()}
                     <Col md={5}>
-                        {@render_points(all_points)}
-                        {@render_stats(all_points)}
+                        {@render_points()}
+                        {@render_stats()}
                         {### @render_open() ###}
                     </Col>
                     <Grade

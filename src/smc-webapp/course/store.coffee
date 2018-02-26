@@ -552,3 +552,37 @@ exports.CourseStore = class CourseStore extends Store
             cb(err, locals.listing)
         )
 
+    grading_get_student_list: (assignment) =>
+        return if not assignment?
+        student_filter  = @grading_get_student_filter()
+        only_not_graded = @grading_get_filter_button('only_not_graded')
+        only_collected  = @grading_get_filter_button('only_collected')
+
+        matching = (id, name) =>
+            pick_student = true
+            if student_filter?.length > 0
+                pick_student and= name.toLowerCase().indexOf(student_filter.toLowerCase()) >= 0
+            if only_not_graded
+                pick_student and= not @has_grade(assignment, id)
+            if only_collected
+                pick_student and= @has_last_collected(assignment, id)
+            return pick_student
+
+        all_points  = []
+        list = @get_sorted_students().map (student) =>
+            id           = student.get('student_id')
+            name         = @get_student_name(student)
+            points       = @get_points_total(assignment, id)
+            is_collected = @student_assignment_info(id, assignment)?.last_collect?.time?
+            # all_points is used to compute quantile distributions
+            # collected but no points means zero points...
+            all_points.push(points ? 0) if (points? or is_collected)
+            # filter by name or button states
+            return null if not matching(id, name)
+            return student
+
+        list = (entry for entry in list when entry?)
+
+        # we assume throughout the code that all_points is sorted!
+        all_points.sort((a, b) -> a - b)
+        return [list, all_points]
