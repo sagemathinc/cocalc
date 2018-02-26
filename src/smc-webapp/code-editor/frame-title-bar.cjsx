@@ -18,10 +18,9 @@ title_bar_style =
     borderLeft    : '1px solid rgb(204,204,204)'
     borderRight   : '1px solid rgb(204,204,204)'
     verticalAlign : 'middle'
-    lineHeight    : '20px'
     textOverflow  : 'ellipsis'
-    minHeight     : '24px'
     padding       : '1px'
+    #overflow      : 'hidden'
 
 path_style =
     whiteSpace   : 'nowrap'
@@ -75,10 +74,8 @@ exports.FrameTitleBar = rclass
     button_size: ->
         if @props.is_only or @props.is_full
             return
-        else if IS_IPAD
-            return 'small'
         else
-            return 'xsmall'
+            return 'small'
 
     render_x: ->
         if @props.is_only
@@ -86,10 +83,11 @@ exports.FrameTitleBar = rclass
         if @props.is_full
             return <span style={float:'right'}> {@render_full()} </span>
         disabled = @props.is_full or @props.is_only or not @props.deletable
+        show_full = @props.is_full or @props.active_id == @props.id
         <ButtonGroup style={marginLeft:'5px', float:'right'} key={'x'}>
-            {@render_full() if @props.is_full or @props.active_id == @props.id}
+            {@render_full() if show_full}
             <Button
-                style    = {close_style}
+                style    = {if not show_full then close_style}
                 disabled = {disabled}
                 key      = {'close'}
                 bsSize   = {@button_size()}
@@ -234,6 +232,7 @@ exports.FrameTitleBar = rclass
 
     render_save_timetravel_group: ->
         disabled = not @props.has_unsaved_changes or @props.read_only
+        labels   = @props.is_only or @props.is_full
         <ButtonGroup key={'save-group'}>
             <Button
                 key      = {'save'}
@@ -241,7 +240,7 @@ exports.FrameTitleBar = rclass
                 bsSize   = {@button_size()}
                 disabled = {disabled}
                 onClick  = {=>@props.actions.save(true)} >
-                <Icon name='save' /> <VisibleMDLG>{if @props.read_only then 'Readonly' else 'Save'}</VisibleMDLG>
+                <Icon name='save' /> <VisibleMDLG>{if @props.read_only then 'Readonly' else if labels then 'Save' else ''}</VisibleMDLG>
                 {<UncommittedChanges has_uncommitted_changes={@props.has_uncommitted_changes} delay_ms={8000} /> if not disabled}
             </Button>
             <Button
@@ -250,6 +249,7 @@ exports.FrameTitleBar = rclass
                 bsSize  = {@button_size()}
                 onClick = {@props.actions.time_travel} >
                 <Icon name='history' />
+                {if labels then 'TimeTravel'}
             </Button>
         </ButtonGroup>
 
@@ -280,24 +280,27 @@ exports.FrameTitleBar = rclass
             filename  = {@props.path}
             actions   = {redux.getProjectActions(@props.project_id)}
             is_public = {false}
-            label     = {'File'}
+            label     = {if @props.is_only or @props.is_full then 'File'}
             bsSize    = {@button_size()}
         />
 
     render_buttons: ->
         # On touch or full show all buttons.
         #extra = IS_TOUCH or @props.is_only or @props.is_full
-        # J3 suggested this, so I'm testing it...
-        extra = true
-        <span key={'buttons'}>
-            {@render_file_info() if extra}
-            {<Space/> if extra}
+        extra = true  # should maybe be configurable...
+        if not (@props.is_only or @props.is_full)
+            style = {maxHeight:'30px', overflow:'hidden'}
+        else
+            style = undefined
+        <div
+            style = {style}
+            key   = {'buttons'}>
+            {@render_file_info()}
+            {<Space/>}
             {@render_save_timetravel_group()}
-            <Space/>
-            {@render_print() if extra}
-            {<Space/> if extra}
-            {@render_undo_redo_group() if extra}
-            {<Space/> if extra}
+            {<Space/>}
+            {@render_undo_redo_group()}
+            {<Space/>}
             {@render_copy_group() if extra}
             {<Space /> if extra}
             {@render_find_replace_group() if extra}
@@ -305,7 +308,7 @@ exports.FrameTitleBar = rclass
             {@render_zoom_group()}
             <Space />
             {@render_split_group()}
-        </span>
+        </div>
 
     render_path: ->
         <span style={path_style}>
@@ -324,10 +327,8 @@ exports.FrameTitleBar = rclass
             style.background = '#f8f8f8'
         else
             style = title_bar_style
-        <div
-            style = {style}
-            >
-            {@render_buttons() if is_active}
+        <div style   = {style}>
             {@render_x()}
+            {@render_buttons() if is_active}
             {### @render_path() -- do not need for now; will need later....###}
         </div>

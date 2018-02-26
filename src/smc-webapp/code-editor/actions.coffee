@@ -102,6 +102,7 @@ class exports.Actions extends Actions
         if tree_ops.is_leaf_id(local?.get('frame_tree'), active_id)
             @setState(local_view_state : @store.get('local_view_state').set('active_id', active_id))
             @_save_local_view_state()
+            @focus()
         return
 
     _tree_op: (op, args...) =>
@@ -143,16 +144,21 @@ class exports.Actions extends Actions
 
     close_frame: (id) =>
         @_tree_op('delete_node', id)
+        delete @_cm_selections?[id]
+        delete @_cm?[id]
+        setTimeout(@focus, 1)
 
     split_frame: (direction, id) =>
         @_tree_op('split_leaf', id ? @store.getIn(['local_view_state', 'active_id']), direction)
+        @set_active_id(id)
 
     set_frame_full: (id) =>
-        local   = @store.get('local_view_state').set('full_id', id)
+        local = @store.get('local_view_state').set('full_id', id)
         if id?
             local = local.set('active_id', id)
         @setState(local_view_state : local)
         @_save_local_view_state()
+        setTimeout(@focus, 1)
 
     save_scroll_position: (id, info) =>
         @set_frame_tree(id:id, scroll:info)
@@ -235,7 +241,9 @@ class exports.Actions extends Actions
             @delete_trailing_whitespace()
         @_do_save =>
             # do it again.
-            setTimeout(@_do_save, 3000)
+            setTimeout(@_do_save, 4000)
+        if explicit
+            @_active_cm()?.focus()
 
     time_travel: =>
         @redux.getProjectActions(@project_id).open_file
@@ -262,6 +270,7 @@ class exports.Actions extends Actions
         if font_size < 2
             font_size = 2
         @set_frame_tree(id:id, font_size:font_size)
+        @_get_cm(id)?.focus()
 
     increase_font_size: (id) =>
         @change_font_size(1, id)
@@ -270,23 +279,42 @@ class exports.Actions extends Actions
         @change_font_size(-1, id)
 
     set_cm: (id, cm) =>
+        sel = @_cm_selections?[id]
+        if sel?
+            # restore saved selections (cursor position, selected ranges)
+            cm.setSelections(sel)
+
         if @_cm? and misc.len(@_cm) > 0
             @_cm[id] = cm
             return
-        @_cm = {id: cm}
+        @_cm = {"#{id}": cm}
         @set_codemirror_to_syncstring()
+
+    unset_cm: (id) =>
+        cm = @_get_cm(id)
+        if not cm?
+            return
+        if tree_ops.has_id(@store.getIn(['local_view_state', 'frame_tree']), id)
+            # Save the selections, in case this editor
+            # is displayed again.
+            @_cm_selections ?= {}
+            @_cm_selections[id] = cm.listSelections()
+        delete @_cm?[id]
 
     # returns cm with given id or at least some cm, if any known.
     _get_cm: (id) =>
         @_cm ?= {}
         cm = @_cm[id] ? @_active_cm()
-        if not cm
+        if not cm?
             for id, v of @_cm
                 return v
         return cm
 
     _active_cm: =>
         return @_cm?[@store.getIn(['local_view_state', 'active_id'])]
+
+    focus: =>
+        @_get_cm()?.focus()
 
     syncstring_save: =>
         @_syncstring?.save()
@@ -317,6 +345,7 @@ class exports.Actions extends Actions
             @set_syncstring_to_codemirror()
         value = @_syncstring.undo().to_str()
         cm.setValueNoJump(value)
+        cm.focus()
         @set_syncstring_to_codemirror()
         @_syncstring.save()
 
@@ -333,6 +362,7 @@ class exports.Actions extends Actions
             return
         value = doc.to_str()
         cm.setValueNoJump(value)
+        cm.focus()
         @set_syncstring_to_codemirror()
         @_syncstring.save()
 
@@ -359,16 +389,19 @@ class exports.Actions extends Actions
         if cm?
             copypaste.set_buffer(cm.getSelection())
             cm.replaceSelection('')
+            cm.focus()
 
     copy: (id) =>
         cm = @_get_cm(id)
         if cm?
             copypaste.set_buffer(cm.getSelection())
+            cm.focus()
 
     paste: (id) =>
         cm = @_get_cm(id)
         if cm?
-            cm?.replaceSelection(copypaste.get_buffer())
+            cm.replaceSelection(copypaste.get_buffer())
+            cm.focus()
 
     print: =>
         @setState(printing: true)

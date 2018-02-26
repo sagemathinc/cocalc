@@ -112,6 +112,7 @@ exports.FrameTree = FrameTree = rclass
             font_size = {desc.get('font_size') ? @props.font_size}
             path      = {desc.get('path')}
             scroll    = {desc.get('scroll')}
+            is_current= {desc.get('id') == @props.active_id}
             cursors   = {@props.cursors}
         />
 
@@ -125,7 +126,11 @@ exports.FrameTree = FrameTree = rclass
                 # fix this disaster next time around.
                 setTimeout((=>@props.actions?.reset_frame_tree()), 1)
                 return <div>Invalid frame tree {misc.to_json(desc)}</div>
-        <div className={'smc-vfill'}>
+        <div
+            className    = {'smc-vfill'}
+            onClick      = {=>@props.actions.set_active_id(desc.get('id'))}
+            onTouchStart = {=>@props.actions.set_active_id(desc.get('id'))}
+        >
             {@render_titlebar(desc)}
             {child}
         </div>

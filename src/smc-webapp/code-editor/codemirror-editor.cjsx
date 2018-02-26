@@ -36,6 +36,7 @@ exports.CodemirrorEditor = rclass
         cursors   : rtypes.immutable.Map
         scroll    : rtypes.immutable.Map
         read_only : rtypes.bool
+        is_current: rtypes.bool
 
     reduxProps :
         account :
@@ -100,12 +101,12 @@ exports.CodemirrorEditor = rclass
     _cm_destroy: ->
         if not @cm?
             return
+        @props.actions.unset_cm(@props.id)
         delete @_cm_last_remote
         delete @cm.undo
         delete @cm.redo
         $(@cm.getWrapperElement()).remove()  # remove from DOM -- "Remove this from your tree to delete an editor instance."
         delete @cm
-        @props.actions.set_cm(@props.id)
 
     _cm_cursor: ->
         if not @cm?
@@ -120,6 +121,7 @@ exports.CodemirrorEditor = rclass
         if not @cm?
             return
         info = misc.copy_with(@cm.getScrollInfo(), ['left', 'top'])
+        info.sel = @cm.listSelections()
         @props.actions.save_scroll_position(@props.id, info)
 
     save_state: ->
@@ -163,7 +165,7 @@ exports.CodemirrorEditor = rclass
                 @props.actions.exit_undo_mode()
 
         @cm.on 'focus', =>
-            @props.actions.set_active_id(@props.id)
+            #@props.actions.set_active_id(@props.id)
             if @_style_active_line
                 @cm?.setOption('styleActiveLine', true)
 
@@ -171,9 +173,12 @@ exports.CodemirrorEditor = rclass
             if @_style_active_line
                 @cm?.setOption('styleActiveLine', false)
 
-        @cm.on 'scroll', debounce(@save_scroll_position, 1000)
+        save_scroll = debounce(@save_scroll_position, 1000)
+
+        @cm.on 'scroll', save_scroll
 
         @cm.on 'cursorActivity', @_cm_cursor
+        @cm.on 'cursorActivity', save_scroll
 
         # replace undo/redo by our sync aware versions
         @cm.undo = @_cm_undo
@@ -188,6 +193,9 @@ exports.CodemirrorEditor = rclass
 
         if @props.scroll?
             @cm.scrollTo(@props.scroll.get('left'), @props.scroll.get('top'))
+            sel = @props.scroll.get('sel')?.toJS()
+            if sel?
+                @cm.setSelections(sel)
 
         @cm.setOption('readOnly', @props.read_only)
         @setState(has_cm: true)
