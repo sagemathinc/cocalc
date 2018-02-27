@@ -669,33 +669,77 @@ exports.GradingStudentAssignment = rclass
 
     render_stats: ->
         qpoints = {min:0, q25:25, median:50, q75:75, max:100}
-        data = (["#{name}", misc.quantile(@state.all_points, v, true)] for name, v of qpoints)
-        <Row style={color:COLORS.GRAY, marginTop:'10px'}>
-            <Row>
-                <Col
-                    md    = {10}
-                    style = {borderBottom: "1px solid #{COLORS.GRAY}", textAlign:'center'}
-                >
-                    <a
-                        href   = {'https://en.wikipedia.org/wiki/Five-number_summary'}
-                        target = {'_blank'}
-                        style  = {color: COLORS.GRAY}
-                    >
-                        5-number summary
-                    </a> of points per student
-                </Col>
-            </Row>
-            <Row>
+        data = _.object(["#{name}", misc.quantile(@state.all_points, v, true)] for name, v of qpoints)
+        spread = data.max - data.min
+        spaces = {}
+        prev = 0
+        for k, v of data
+            spaces["#{k}"] = (v - data.min - prev) / spread / 2
+            prev = v
+
+        boxstyle =
+            color        : COLORS.GRAY
+            marginTop    : '10px'
+            marginRight  : '30px'
+            #border       : "1px solid #{COLORS.GRAY_L}"
+            #borderRadius : '5px'
+
+        style_outer =
+            margin           : '10px 20px'
+            borderBottom     : "1px solid #{COLORS.GRAY}"
+            display          : 'flex'
+            justifyContent   : 'space-between'
+            flexDirection    : 'row'
+            position         : 'relative'
+            transform        : 'translateY(-15px)'
+
+        style_number = (name) ->
+            ret =
+                display        : 'inline-block'
+                textAlign      : 'center'
+                whiteSpace     : 'nowrap'
+                padding        : '1px 5px'
+                background     : 'white'
+                border         : "1px solid #{COLORS.GRAY}"
+                position       : 'relative'
+                borderRadius   : '5px'
+                transform      : 'translateY(50%)'
+                marginLeft     : "#{100 * spaces[name]}%"
+            if name == 'median'
+                ret.fontWeight = 'bold'
+            return ret
+
+
+        <Row style={boxstyle}>
+            <Row
+                md    = {12}
+                style = {textAlign:'center'}
+            >
+                <div style={style_outer}>
                 {
-                    for [name, val] in data
-                        <Col
+                    for name, val of data
+                        <div
                             key   = {name}
-                            md    = {2}
-                            style = {textAlign:'center', whiteSpace: 'nowrap'}
+                            style = {style_number(name)}
                         >
-                            <span className={'hidden-md'}>{name}: </span>{misc.round1(val)}
-                        </Col>
+                            <Tip title={name} placement='bottom'>
+                                {misc.round1(val)}
+                            </Tip>
+                        </div>
                 }
+                </div>
+            </Row>
+            <Row
+                md    = {12}
+                style = {textAlign:'center'}
+            >
+                <a
+                    href   = {'https://en.wikipedia.org/wiki/Five-number_summary'}
+                    target = {'_blank'}
+                    style  = {color: COLORS.GRAY}
+                >
+                    5-number summary
+                </a> of all points per student
             </Row>
         </Row>
 
