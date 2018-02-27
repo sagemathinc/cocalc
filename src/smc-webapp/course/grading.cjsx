@@ -337,6 +337,16 @@ exports.GradingStudentAssignment = rclass
             $(ReactDOM.findDOMNode(@refs.student_list)).find('.active').scrollintoview()
         @scrollToStudent = _.debounce(show_entry, 100)
 
+        if @_timer?
+            clearInterval(@_timer)
+        @_timer = setInterval((=>@actions(@props.name).grading_update_activity()), 60 * 1000)
+
+    componentWillUnmount: ->
+        if @_timer?
+            clearInterval(@_timer)
+        delete @_timer
+        # don't call actions.grading_remove_activity, because the user is probably just in another tab
+
     get_listing_files: (props) ->
         listing   = props.grading?.get('listing')
         files     = listing?.get('files')?.filterNot(course_specific_files)
@@ -489,6 +499,7 @@ exports.GradingStudentAssignment = rclass
 
     render_student_list_presenece: (student_id) ->
         # presence of other teachers
+        # cursors are only relevant for the last 10 minutes (componentDidMount updates with a timer)
         min_10_ago = misc.server_minutes_ago(10)
         presence = []
         whoelse = @props.grading.getIn(['cursors', @props.assignment.get('assignment_id'), student_id])
@@ -497,16 +508,22 @@ exports.GradingStudentAssignment = rclass
             presence.push(
                 <Avatar
                     key        = {account_id}
-                    size       = {24}
+                    size       = {22}
                     account_id = {account_id}
                 />
             )
             return
 
+        style =
+            marginRight    : '10px'
+            display        : 'inline-block'
+            marginTop      : '-5px'
+            marginBottom   : '-5px'
+
         if presence.length > 0
-            <span style={marginRight:'10px'}>
+            <div style={style}>
                 {presence}
-            </span>
+            </div>
 
 
     render_student_list_entries: ->
@@ -715,24 +732,6 @@ exports.GradingStudentAssignment = rclass
                 md    = {12}
                 style = {textAlign:'center'}
             >
-                <div style={style_outer}>
-                {
-                    for name, val of data
-                        <div
-                            key   = {name}
-                            style = {style_number(name)}
-                        >
-                            <Tip title={name} placement='bottom'>
-                                {misc.round1(val)}
-                            </Tip>
-                        </div>
-                }
-                </div>
-            </Row>
-            <Row
-                md    = {12}
-                style = {textAlign:'center'}
-            >
                 <a
                     href   = {'https://en.wikipedia.org/wiki/Five-number_summary'}
                     target = {'_blank'}
@@ -740,6 +739,27 @@ exports.GradingStudentAssignment = rclass
                 >
                     5-number summary
                 </a> of all points per student
+            </Row>
+            <Row
+                md    = {12}
+                style = {textAlign:'center'}
+            >
+                <div style={style_outer}>
+                {
+                    for name, val of data
+                        <div
+                            key   = {name}
+                            style = {style_number(name)}
+                        >
+                            <Tip
+                                title     = {name}
+                                placement = {'bottom'}
+                            >
+                                {misc.round1(val)}
+                            </Tip>
+                        </div>
+                }
+                </div>
             </Row>
         </Row>
 
