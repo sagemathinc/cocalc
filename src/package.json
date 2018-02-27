@@ -15,13 +15,12 @@
     "clean-webpack-plugin": "^0.1",
     "coffee-cache": "^1.0.2",
     "coffee-loader": "^0.9.0",
-    "coffeelint": "^2.0.7",
-    "coffeescript": "^2.1.0",
-    "copy-webpack-plugin": "^4",
+    "coffeelint": "^2.1.0",
+    "coffeescript": "^2.2.2",
+    "copy-webpack-plugin": "^4.4.1",
     "crypto-browserify": "^3.12.0",
     "css-loader": "^0.23.1",
     "extract-text-webpack-plugin": "^2",
-    "file-loader": "^1.1.4",
     "forever": "^0.15.3",
     "handlebars": "^4.0.5",
     "handlebars-loader": "^1.1.4",
@@ -46,7 +45,7 @@
     "style-loader": "^0.13.1",
     "uglify-js": "^2.6.2",
     "url-loader": "^0.6",
-    "webpack": "^3",
+    "webpack": "^3.11.0",
     "webpack-dev-server": "^2",
     "webpack-path-rewriter": "^1",
     "webpack-sha-hash": "^2",
@@ -97,6 +96,6 @@
   },
   "homepage": "https://github.com/sagemathinc/cocalc",
   "devDependencies": {
-    "file-loader": "^0.8.5"
+    "file-loader": "^1.1.9"
   }
 }

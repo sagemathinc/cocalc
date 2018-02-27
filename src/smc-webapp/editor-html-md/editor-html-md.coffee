@@ -446,7 +446,7 @@ class exports.HTML_MD_Editor extends editor.FileEditor
 
     md_to_html: (cb) =>
         source = @_get()
-        html = require('../markdown').markdown_to_html(source, {process_math : true})
+        html = require('../markdown').markdown_to_html(source, {process_math : false})
         cb(undefined, html)
 
     rmd_to_html: (cb) =>
@@ -536,6 +536,8 @@ class exports.HTML_MD_Editor extends editor.FileEditor
             if warnings
                 @preview_content.html("<pre><code>#{warnings}</code></pre>")
             else
+                source = require('../math_katex').render(source)
+
                 # finally set html in the live DOM
                 @preview_content.html(source)
 
