@@ -17,15 +17,12 @@ title_bar_style =
     borderTop     : '1px solid rgb(204,204,204)'
     borderLeft    : '1px solid rgb(204,204,204)'
     borderRight   : '1px solid rgb(204,204,204)'
-    verticalAlign : 'middle'
-    textOverflow  : 'ellipsis'
     padding       : '1px'
     #overflow      : 'hidden'
 
 path_style =
     whiteSpace   : 'nowrap'
     fontSize     : '13px'
-    paddingLeft  : '5px'
     paddingRight : '15px'
     color        : '#333'
     float        : 'right'
@@ -78,22 +75,22 @@ exports.FrameTitleBar = rclass
             return 'small'
 
     render_x: ->
-        if @props.is_only
-            return
-        if @props.is_full
-            return <span style={float:'right'}> {@render_full()} </span>
-        disabled = @props.is_full or @props.is_only or not @props.deletable
         show_full = @props.is_full or @props.active_id == @props.id
-        <ButtonGroup style={marginLeft:'5px', float:'right'} key={'x'}>
-            {@render_full() if show_full}
-            <Button
-                style    = {if not show_full then close_style}
-                disabled = {disabled}
-                key      = {'close'}
-                bsSize   = {@button_size()}
-                onClick  = {@click_close} >
-                <Icon name={'times'}/>
-            </Button>
+        <Button
+            style    = {if not show_full then close_style}
+            key      = {'close'}
+            bsSize   = {@button_size()}
+            onClick  = {@click_close} >
+            <Icon name={'times'}/>
+        </Button>
+
+    render_control: ->
+        is_active = @props.active_id == @props.id
+        <ButtonGroup style={float:'right'} key={'close'}>
+            {@render_split_row() if is_active and not @props.is_full}
+            {@render_split_col() if is_active and not @props.is_full}
+            {@render_full()      if is_active and not @props.is_only}
+            {@render_x()         if not @props.is_only}
         </ButtonGroup>
 
     render_full: ->
@@ -116,19 +113,17 @@ exports.FrameTitleBar = rclass
 
     render_split_row: ->
         <Button
-            disabled = {@props.is_full}
             key      = {'split-row'}
             bsSize   = {@button_size()}
-            onClick  = {=>@props.actions.split_frame('row', @props.id)} >
+            onClick  = {=>if @props.is_full then @props.actions.set_frame_full() else @props.actions.split_frame('row', @props.id)} >
             <Icon name='columns' rotate={'90'} />
         </Button>
 
     render_split_col: ->
         <Button
-            disabled = {@props.is_full}
             key      = {'split-col'}
             bsSize   = {@button_size()}
-            onClick  = {=>@props.actions.split_frame('col', @props.id)} >
+            onClick  = {=>if @props.is_full then @props.actions.set_frame_full() else @props.actions.split_frame('col', @props.id)} >
             <Icon name='columns' />
         </Button>
 
@@ -274,7 +269,7 @@ exports.FrameTitleBar = rclass
             </Button>
         </Tip>
 
-    render_file_info: ->
+    render_file_menu: ->
         <EditorFileInfoDropdown
             key       = {'info'}
             filename  = {@props.path}
@@ -285,29 +280,24 @@ exports.FrameTitleBar = rclass
         />
 
     render_buttons: ->
-        # On touch or full show all buttons.
-        #extra = IS_TOUCH or @props.is_only or @props.is_full
-        extra = true  # should maybe be configurable...
         if not (@props.is_only or @props.is_full)
-            style = {maxHeight:'30px', overflow:'hidden'}
+            # When in split view, we let the buttonbar flow around and hide, so that
+            # extra buttons are cleanly not visible when frame is thin.
+            style = {maxHeight:'30px', overflow:'hidden', flex:1}
         else
             style = undefined
         <div
             style = {style}
             key   = {'buttons'}>
-            {@render_file_info()}
-            {<Space/>}
             {@render_save_timetravel_group()}
             {<Space/>}
             {@render_undo_redo_group()}
             {<Space/>}
-            {@render_copy_group() if extra}
-            {<Space /> if extra}
-            {@render_find_replace_group() if extra}
-            {<Space /> if extra}
+            {@render_copy_group()}
+            {<Space />}
+            {@render_find_replace_group()}
+            {<Space />}
             {@render_zoom_group()}
-            <Space />
-            {@render_split_group()}
         </div>
 
     render_path: ->
@@ -320,15 +310,24 @@ exports.FrameTitleBar = rclass
             </Tip>
         </span>
 
+    render_main_buttons: ->
+        # This is complicated below (with the flex display) in order to have a drop down menu that actually appears
+        # and *ALSO* have buttons that vanish when there are many of them (via scrolling around).
+        <div style={display:'flex'}>
+            {@render_file_menu()}
+            {@render_buttons()}
+        </div>
+
     render: ->
+        # Whether this is *the* active currently focused frame:
         is_active = @props.id == @props.active_id
         if is_active
             style = misc.copy(title_bar_style)
             style.background = '#f8f8f8'
         else
             style = title_bar_style
-        <div style   = {style}>
-            {@render_x()}
-            {@render_buttons() if is_active}
-            {### @render_path() -- do not need for now; will need later....###}
+
+        <div style = {style}>
+            {@render_control()}
+            {if is_active then @render_main_buttons()}
         </div>

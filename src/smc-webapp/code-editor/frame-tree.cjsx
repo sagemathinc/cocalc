@@ -179,9 +179,9 @@ exports.FrameTree = FrameTree = rclass
         data =
             pos          : pos
             first        : @props.frame_tree.get('first')
-            style_first  : {display:'flex', overflow:'hidden', flex:pos}
+            style_first  : {display:'flex', flex:pos}
             second       : @props.frame_tree.get('second')
-            style_second : {display:'flex', overflow:'hidden', flex:1-pos}
+            style_second : {display:'flex', flex:1-pos}
 
         if flex_direction == 'row'
             data.outer_style = {display:'flex', flexDirection:'row', flex:1}

@@ -1404,12 +1404,14 @@ exports.EditorFileInfoDropdown = EditorFileInfoDropdown = rclass
         is_public : rtypes.bool
         bsSize    : rtypes.string
         label     : rtypes.string
+        style     : rtypes.object
 
     shouldComponentUpdate: (next) ->
         return next.filename != @props.filename or next.is_public != next.is_public
 
     getDefaultProps: ->
         is_public : false
+        style     : {marginRight:'2px'}
 
     handle_click: (name) ->
         @props.actions.show_file_action_panel
@@ -1445,7 +1447,7 @@ exports.EditorFileInfoDropdown = EditorFileInfoDropdown = rclass
 
     render: ->
         <DropdownButton
-            style   = {marginRight: '2px'}
+            style   = {@props.style}
             id      = 'file_info_button'
             title   = {@render_title()}
             bsSize  = {@props.bsSize}
