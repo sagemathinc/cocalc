@@ -825,7 +825,6 @@ PlanInfo = rclass
 
         <Panel
             style     = {style}
-            className = 'smc-grow'
             header    = {@render_plan_name(plan_data)}
             bsStyle   = {if @props.selected then 'primary' else 'info'}
             onClick   = {=>@props.on_click?()}
