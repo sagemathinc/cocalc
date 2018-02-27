@@ -64,7 +64,7 @@ exports.Avatar = Avatar = rclass
         activity   : rtypes.object   # if given; is most recent activity -- {project_id:?, path:?, last_used:?} object;
                                      # When defined, fade out over time; click goes to that file.
         no_tooltip : rtypes.bool     # if true, do not show a tooltip with full name info
-        no_loading : rtypes.bool     # if true do not show a loading indicator (show nothing)
+        no_loading : rtypes.bool     # if true, do not show a loading indicator (show nothing)
 
     getDefaultProps: ->
         size      : 30
@@ -170,7 +170,6 @@ exports.Avatar = Avatar = rclass
         {last_used} = @props.activity
         # don't fade out completely as then just see an empty face, which looks broken...
         return misc.ensure_bound(1 - ((server_time() - last_used) / (@props.max_age_s*1000)), 0, .85)
-
 
     render : ->
         if not @props.user_map?

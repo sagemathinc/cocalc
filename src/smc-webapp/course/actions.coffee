@@ -132,6 +132,24 @@ exports.CourseActions = class CourseActions extends Actions
             @setState(t)
             @setState(unsaved:@syncdb?.has_unsaved_changes())
 
+    _syncdb_cursor_activity: =>
+        next_cursors = @syncdb.get_cursors()
+        grading_cursors = {} # assignment_id → student_id → account_id
+        next_cursors.forEach (info, account_id) ->
+            info.get('locs').forEach (loc) ->
+                switch loc.get('type')
+                    when 'grading'
+                        student_id      = loc.get('student_id')
+                        assignment_id   = loc.get('assignment_id')
+                        time            = new Date(info.get('time'))
+                        grading_cursors ?= {}
+                        grading_cursors[assignment_id] ?= {}
+                        grading_cursors[assignment_id][student_id] ?= {}
+                        grading_cursors[assignment_id][student_id][account_id] = time
+            return
+
+        @grading_set_cursors(grading_cursors)
+
     handle_projects_store_update: (state) =>
         store = @get_store()
         return if not store?
@@ -1828,8 +1846,13 @@ exports.CourseActions = class CourseActions extends Actions
             only_not_graded : only_not_graded
             only_collected  : only_collected
             page_number     : store.grading_get_page_number()
+            listing         : null
         )
-        @setState(grading : data)
+
+        grading = store.get('grading') ? immutable.Map()
+        grading = grading.merge(data)
+        @setState(grading : grading)
+        @grading_update_activity()
 
         store.grading_get_listing opts.assignment, next_student_id, opts.subdir, (err, listing) =>
             if err
@@ -1839,10 +1862,11 @@ exports.CourseActions = class CourseActions extends Actions
                     @set_error("Grading file listing error: #{err}")
                     return
             listing = immutable.fromJS(listing)
-            @setState(grading : data.set('listing', listing))
+            @set_grading_entry('listing', listing)
 
     grading_stop: () =>
         @setState(grading : null)
+        @grading_remove_activity()
         @set_student_filter('')
 
     set_student_filter: (string) =>
@@ -1859,3 +1883,25 @@ exports.CourseActions = class CourseActions extends Actions
         grading = store.get('grading')
         @setState(grading:grading.set(key, value)) if grading?
 
+    grading_set_cursors: (cursors) =>
+        @set_grading_entry('cursors', immutable.fromJS(cursors))
+
+    grading_update_activity: (opts) =>
+        store = @get_store()
+        return if not store?
+        grading = store.get('grading')
+        return if not grading?
+
+        location = defaults opts,
+            type          : 'grading'
+            assignment_id : grading.get('assignment_id')
+            student_id    : grading.get('student_id')
+
+        return if @syncdb?.is_closed() or not @_loaded()
+        # argument must be an array, and we only have one cursor (at least, at the time of writing)
+        @syncdb?.set_cursor_locs([location])
+
+    grading_remove_activity: =>
+        return if @syncdb?.is_closed() or not @_loaded()
+        # argument must be an array, not null!
+        @syncdb?.set_cursor_locs([])

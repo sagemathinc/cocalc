@@ -117,7 +117,7 @@ exports.Cursors = rclass
             locs.forEach (pos) =>
                 if now - pos.get('time') <= 60000
                     if account_id == @props.account_id
-                        # don't show our own cursor (we just haven't made this possible due to only keying by accoun_id)
+                        # don't show our own cursor (we just haven't made this possible due to only keying by account_id)
                         return
                     v.push <PositionedCursor
                         key        = {v.length}

@@ -28,6 +28,7 @@ _         = require('underscore')
 {defaults, required} = misc = require('smc-util/misc')
 {webapp_client}      = require('../webapp_client')
 {COLORS}             = require('smc-util/theme')
+{Avatar}             = require('../other-users')
 
 # React libraries
 {React, rclass, rtypes, ReactDOM} = require('../smc-react')
@@ -303,6 +304,10 @@ exports.GradingStudentAssignment = rclass
         user_map        : rtypes.object.isRequired
         grading         : rtypes.immutable.Map
 
+    reduxProps:
+        account :
+            account_id  : rtypes.string
+
     getInitialState: ->
         s = _init_state(@props)
         s.active_autogrades = immutable.Set()
@@ -418,78 +423,6 @@ exports.GradingStudentAssignment = rclass
             without_grade    : null
         )
 
-    ###
-    student_list_entries: ->
-        matching = (id, name) =>
-            pick_student = true
-            if @state.student_filter?.length > 0
-                pick_student and= name.toLowerCase().indexOf(@state.student_filter.toLowerCase()) >= 0
-            if @get_only_not_graded()
-                pick_student and= not @state.store.has_grade(@props.assignment, id)
-            if @get_only_collected()
-                pick_student and= @state.store.has_last_collected(@props.assignment, id)
-            return pick_student
-
-        info = (active, grade_val, points, is_collected) ->
-            col = if active then COLORS.GRAY_LL else COLORS.GRAY
-            info_style =
-                color          : col
-                display        : 'inline-block'
-                float          : 'right'
-
-            show_grade  = grade_val?.length > 0
-            show_points = points? or is_collected
-            grade  = if show_grade  then misc.trunc(grade_val, 15) else 'N/G'
-            points = if show_points then ", #{points ? 0} pts."    else ''
-
-            if show_points or show_grade
-                <span style={info_style}>
-                    {grade}{points}
-                </span>
-            else
-                null
-
-        style       = misc.merge({cursor:'pointer'}, LIST_ENTRY_STYLE)
-        current_idx = null
-        idx         = -1
-        all_points  = []
-        list = @state.store.get_sorted_students().map (student) =>
-        #list = @props.grading.get('student_list').map (student) =>
-            id           = student.get('student_id')
-            name         = @state.store.get_student_name(student)
-            points       = @state.store.get_points_total(@props.assignment, id)
-            is_collected = @state.store.student_assignment_info(id, @props.assignment)?.last_collect?.time?
-            # all_points is used to compute quantile distributions
-            # collected but no points means zero points...
-            all_points.push(points ? 0) if (points? or is_collected)
-            # filter by name or state?
-            return null if not matching(id, name)
-            # should this student be highlighted in the list?
-            current   = @state.student_id == id
-            # idx is used to disable the back button when == 0, that's all
-            idx += 1
-            if current then current_idx = idx
-            active    = if current then 'active' else ''
-            grade_val = @state.store.get_grade(@props.assignment, id)
-            <li
-                key        = {id}
-                className  = {"list-group-item " + active}
-                onClick    = {=>@student_list_entry_click(id)}
-                style      = {style}
-            >
-                <span style={float:'left'}>{name}</span>
-                {info(active, grade_val, points, is_collected)}
-            </li>
-
-        list = (entry for entry in list when entry?)
-        if list.length == 0
-            list.push(<li>No student matches…</li>)
-
-        # we assume throughout the code that all_points is sorted!
-        all_points.sort((a, b) -> a - b)
-        return [list, current_idx, all_points]
-    ###
-
     set_student_filter: (string) ->
         @setState(student_filter:string)
         @actions(@props.name).set_student_filter(string)
@@ -535,62 +468,70 @@ exports.GradingStudentAssignment = rclass
         </form>
 
 
-    ###
-    render_list: (student_list) ->
-
-        flex =
-            display        : 'flex'
-            flexDirection  : 'column'
-
-        [
-            <Row key={1}>
-                {@student_list_filter()}
-            </Row>
-            <Row style={FLEX_LIST_CONTAINER} key={2}>
-                <ul className='list-group' ref='student_list' style={LIST_STYLE}>
-                    {student_list}
-                </ul>
-            </Row>
-        ]
-    ###
-
     render_student_list_entries_info: (active, grade_val, points, is_collected) ->
-            col = if active then COLORS.GRAY_LL else COLORS.GRAY
-            info_style =
-                color          : col
-                display        : 'inline-block'
-                float          : 'right'
+        col = if active then COLORS.GRAY_LL else COLORS.GRAY
+        info_style =
+            color          : col
+            display        : 'inline-block'
+            float          : 'right'
 
-            show_grade  = grade_val?.length > 0
-            show_points = points? or is_collected
-            grade  = if show_grade  then misc.trunc(grade_val, 15) else 'N/G'
-            points = if show_points then ", #{points ? 0} pts."    else ''
+        show_grade  = grade_val?.length > 0
+        show_points = points? or is_collected
+        grade  = if show_grade  then misc.trunc(grade_val, 15) else 'N/G'
+        points = if show_points then ", #{points ? 0} pts."    else ''
 
-            if show_points or show_grade
-                <span style={info_style}>
-                    {grade}{points}
-                </span>
-            else
-                null
+        if show_points or show_grade
+            <span style={info_style}>
+                {grade}{points}
+            </span>
+        else
+            null
+
+    render_student_list_presenece: (student_id) ->
+        # presence of other teachers
+        min_10_ago = misc.server_minutes_ago(10)
+        presence = []
+        whoelse = @props.grading.getIn(['cursors', @props.assignment.get('assignment_id'), student_id])
+        whoelse?.map (time, account_id) =>
+            return if account_id == @props.account_id or time < min_10_ago
+            presence.push(
+                <Avatar
+                    key        = {account_id}
+                    size       = {24}
+                    account_id = {account_id}
+                />
+            )
+            return
+
+        if presence.length > 0
+            <span style={marginRight:'10px'}>
+                {presence}
+            </span>
+
 
     render_student_list_entries: ->
         style       = misc.merge({cursor:'pointer'}, LIST_ENTRY_STYLE)
         list = @state.student_list.map (student) =>
-            id           = student.get('student_id')
+            student_id   = student.get('student_id')
             name         = @state.store.get_student_name(student)
-            points       = @state.store.get_points_total(@props.assignment, id)
-            is_collected = @state.store.student_assignment_info(id, @props.assignment)?.last_collect?.time?
+            points       = @state.store.get_points_total(@props.assignment, student_id)
+            is_collected = @state.store.student_assignment_info(student_id, @props.assignment)?.last_collect?.time?
+
             # should this student be highlighted in the list?
-            current      = @state.student_id == id
+            current      = @state.student_id == student_id
             active       = if current then 'active' else ''
-            grade_val    = @state.store.get_grade(@props.assignment, id)
+            grade_val    = @state.store.get_grade(@props.assignment, student_id)
+
             <li
-                key        = {id}
+                key        = {student_id}
                 className  = {"list-group-item " + active}
-                onClick    = {=>@student_list_entry_click(id)}
+                onClick    = {=>@student_list_entry_click(student_id)}
                 style      = {style}
             >
-                <span style={float:'left'}>{name}</span>
+                <span style={float:'left'}>
+                    {@render_student_list_presenece(student_id)}
+                    {name}
+                </span>
                 {@render_student_list_entries_info(active, grade_val, points, is_collected)}
             </li>
 

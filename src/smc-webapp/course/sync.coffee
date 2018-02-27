@@ -41,6 +41,7 @@ exports.create_sync_db = (redux, actions, store) =>
         string_cols     : ['note', 'description', 'title', 'email_invite']
         change_throttle : 500  # helps when doing a lot of assign/collect, etc.
         save_interval   : 3000  # wait at least 3s between saving changes to backend
+        cursors         : true  # cursors is used to share presence info about who is looking at / grading which student, etc.
 
 
     syncdb.once 'init', (err) =>
@@ -70,6 +71,7 @@ exports.create_sync_db = (redux, actions, store) =>
         actions?.setState(t)
         syncdb.on('change', (changes) -> actions?._syncdb_change(changes))
         syncdb.on('sync', => redux.getProjectActions(@project_id).flag_file_activity(@filename))
+        syncdb.on('cursor_activity', actions?._syncdb_cursor_activity)
 
         # Wait until the projects store has data about users of our project before configuring anything.
         projects_store = redux.getStore('projects')
