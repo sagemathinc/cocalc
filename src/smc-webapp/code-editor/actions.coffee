@@ -97,8 +97,10 @@ class exports.Actions extends Actions
         return
 
     set_active_id: (active_id) =>
-        @tree_ops = tree_ops
         local = @store.get('local_view_state')
+        if local?.get('active_id') == active_id
+            # already set -- nother more to do
+            return
         if tree_ops.is_leaf_id(local?.get('frame_tree'), active_id)
             @setState(local_view_state : @store.get('local_view_state').set('active_id', active_id))
             @_save_local_view_state()
@@ -240,9 +242,9 @@ class exports.Actions extends Actions
         if explicit and @redux.getStore('account')?.getIn(['editor_settings', 'strip_trailing_whitespace'])
             @delete_trailing_whitespace()
         @_do_save =>
-            if @_syncstring?.has_unsaved_changes()
-                # do it again...
-                @_do_save()
+            # do it again...
+            setTimeout((=>if @_syncstring?.has_unsaved_changes() then @_do_save()), 3000)
+
         if explicit
             @_active_cm()?.focus()
 
