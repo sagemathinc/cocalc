@@ -77,6 +77,7 @@ exports.FrameTitleBar = rclass
     render_x: ->
         show_full = @props.is_full or @props.active_id == @props.id
         <Button
+            title    = {'Close this frame'}
             style    = {if not show_full then close_style}
             key      = {'close'}
             bsSize   = {@button_size()}
@@ -97,6 +98,7 @@ exports.FrameTitleBar = rclass
         if @props.is_full
             <Button
                 disabled = {@props.is_only}
+                title   = {'Show all frames'}
                 key     = {'compress'}
                 bsSize  = {@button_size()}
                 onClick = {=> @props.actions.set_frame_full()} >
@@ -106,6 +108,7 @@ exports.FrameTitleBar = rclass
             <Button
                 disabled = {@props.is_only}
                 key     = {'expand'}
+                title   = {'Show only this frame'}
                 bsSize  = {@button_size()}
                 onClick = {=> @props.actions.set_frame_full(@props.id)} >
                 <Icon name={'expand'}/>
@@ -114,6 +117,7 @@ exports.FrameTitleBar = rclass
     render_split_row: ->
         <Button
             key      = {'split-row'}
+            title    = {'Split frame horizontally into two rows'}
             bsSize   = {@button_size()}
             onClick  = {=>if @props.is_full then @props.actions.set_frame_full() else @props.actions.split_frame('row', @props.id)} >
             <Icon name='columns' rotate={'90'} />
@@ -122,6 +126,7 @@ exports.FrameTitleBar = rclass
     render_split_col: ->
         <Button
             key      = {'split-col'}
+            title    = {'Split frame vertically into two columns'}
             bsSize   = {@button_size()}
             onClick  = {=>if @props.is_full then @props.actions.set_frame_full() else @props.actions.split_frame('col', @props.id)} >
             <Icon name='columns' />
@@ -130,6 +135,7 @@ exports.FrameTitleBar = rclass
     render_zoom_out: ->
         <Button
             key     = {'font-increase'}
+            title    = {'Decrease font size'}
             bsSize  = {@button_size()}
             onClick = {=>@props.actions.decrease_font_size(@props.id)}
             >
@@ -139,6 +145,7 @@ exports.FrameTitleBar = rclass
     render_zoom_in: ->
         <Button
             key     = {'font-decrease'}
+            title    = {'Increase font size'}
             onClick = {=>@props.actions.increase_font_size(@props.id)}
             bsSize  = {@button_size()}
             >
@@ -149,12 +156,14 @@ exports.FrameTitleBar = rclass
         <ButtonGroup key={'find-group'}>
             <Button
                 key      = {'find'}
+                title    = {'Find text'}
                 onClick  = {=>@props.actions.find(@props.id)}
                 bsSize   = {@button_size()}>
                 <Icon name='search' />
             </Button>
             <Button
                 key      = {'replace'}
+                title    = {'Replace text'}
                 onClick  = {=>@props.actions.replace(@props.id)}
                 disabled = {@props.read_only}
                 bsSize   = {@button_size()}>
@@ -162,6 +171,7 @@ exports.FrameTitleBar = rclass
             </Button>
             <Button
                 key      = {'goto-line'}
+                title    = {'Jump to line'}
                 onClick  = {=>@props.actions.goto_line(@props.id)}
                 bsSize   = {@button_size()}>
                 <Icon name='bolt' />
@@ -172,6 +182,7 @@ exports.FrameTitleBar = rclass
         <ButtonGroup key={'copy'}>
             <Button
                 key      = {'cut'}
+                title    = {'Cut selected text'}
                 onClick  = {=>@props.actions.cut(@props.id)}
                 disabled = {@props.read_only}
                 bsSize   = {@button_size()}>
@@ -179,12 +190,14 @@ exports.FrameTitleBar = rclass
             </Button>
             <Button
                 key      = {'copy'}
+                title    = {'Copy selected text'}
                 onClick  = {=>@props.actions.copy(@props.id)}
                 bsSize  = {@button_size()}>
                 <Icon name={'copy'} />
             </Button>
             <Button
                 key     = {'paste'}
+                title    = {'Paste buffer'}
                 onClick = {debounce((=>@props.actions.paste(@props.id)), 200, true)}
                 disabled = {@props.read_only}
                 bsSize  = {@button_size()}>
@@ -208,6 +221,7 @@ exports.FrameTitleBar = rclass
         <ButtonGroup key={'undo-group'}>
             <Button
                 key      = {'undo'}
+                title    = {'Undo last thing you did'}
                 onClick  = {@props.actions.undo}
                 disabled = {@props.read_only}
                 bsSize   = {@button_size()}
@@ -216,6 +230,7 @@ exports.FrameTitleBar = rclass
             </Button>
             <Button
                 key      = {'redo'}
+                title    = {'Redo last thing you did'}
                 onClick  = {@props.actions.redo}
                 disabled = {@props.read_only}
                 bsSize   = {@button_size()}
@@ -231,6 +246,7 @@ exports.FrameTitleBar = rclass
         <ButtonGroup key={'save-group'}>
             <Button
                 key      = {'save'}
+                title    = {"Save file to disk"}
                 bsStyle  = {'success'}
                 bsSize   = {@button_size()}
                 disabled = {disabled}
@@ -240,6 +256,7 @@ exports.FrameTitleBar = rclass
             </Button>
             <Button
                 key     = {'timetravel'}
+                title   = {'Show complete edit history'}
                 bsStyle = {'info'}
                 bsSize  = {@button_size()}
                 onClick = {@props.actions.time_travel} >
@@ -272,6 +289,7 @@ exports.FrameTitleBar = rclass
     render_file_menu: ->
         <EditorFileInfoDropdown
             key       = {'info'}
+            title     = {'File related actions'}
             filename  = {@props.path}
             actions   = {redux.getProjectActions(@props.project_id)}
             is_public = {false}
