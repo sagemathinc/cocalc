@@ -51,7 +51,6 @@ exports.create_missing_plans = (opts) ->
                     known    : locals.known
                     cb       : cb
             async.map(misc.keys(upgrades.subscription), f, cb)
-
     ], opts.cb)
 
 # Create a specific plan (error if plan already defined)
@@ -91,6 +90,7 @@ exports.create_plan = (opts) ->
                 return
             if locals.plans.length == 0
                 dbg("no missing stripe plans")
+                cb()
                 return
             dbg("creating #{locals.plans.length} missing stripe plans")
             f = (plan, cb) ->
