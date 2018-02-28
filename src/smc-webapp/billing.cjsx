@@ -801,7 +801,7 @@ PlanInfo = rclass
     render_plan_name: (plan_data) ->
         if plan_data.desc?
             name = plan_data.desc
-            if name.indexOf('\n')
+            if name.indexOf('\n') != -1
                 v = name.split('\n')
                 name = <span>{v[0].trim()}<br/>{v[1].trim()}</span>
         else
@@ -933,9 +933,9 @@ AddSubscription = rclass
         name = plan_data.desc ? misc.capitalize(@props.selected_plan).replace(/_/g,' ') + ' plan'
         <Alert>
             <h4><Icon name='check' /> Confirm your selection </h4>
-            <p>You have selected the <span style={fontWeight:'bold'}>{name} subscription</span>.</p>
+            <p>You have selected a <span style={fontWeight:'bold'}>{name} subscription</span>.</p>
             {@render_renewal_info()}
-            <p>By clicking 'Add Subscription or Course Package' your payment card will be immediately charged{subscription}.</p>
+            <p>By clicking 'Add Subscription or Course Package' below, your payment card will be immediately charged{subscription}.</p>
         </Alert>
 
     render_create_subscription_buttons: ->
@@ -992,11 +992,9 @@ ConfirmPaymentMethod = rclass
 
     render_recurring_payment_confirmation: ->
         <span>
-            <p>The initial payment will be processed with the card below.</p>
-            <p>Future payments will be made with your default card<Space/>
-            <b>at the time of renewal</b>.
-            Changing your default card right before renewal will cause the<Space/>
-            new default to be charged instead of the previous one.</p>
+            <p>The initial payment will be processed with the card below.
+            Future payments will be made with whichever card you have set as your default<Space/>
+            <b>at the time of renewal</b>.</p>
         </span>
 
     render: ->
@@ -1048,7 +1046,7 @@ CouponAdder = rclass
             placeholder_text = 'Enter your code here...'
 
         <Well>
-            <h4><Icon name='plus' /> Add a coupon?</h4>
+            <h5 style={color:'#666'}><Icon name='plus' /> Add a coupon?</h5>
             {<CouponList applied_coupons={@props.applied_coupons} /> if @props.applied_coupons?.size > 0}
             {<FormGroup style={marginTop:'5px'}>
                 <InputGroup>
@@ -1180,7 +1178,7 @@ exports.ExplainResources = ExplainResources = rclass
                     You may create any number of independent projects.
                     They form your personal workspaces,
                     where you privately store your files, computational worksheets, and data.
-                    You typically run computations through the web-interface,
+                    You typically run computations through a web browser,
                     either via a worksheet, notebook, or by executing a program in a terminal
                     (you can also ssh into any project).
                     You can also invite collaborators to work with you inside a project,
@@ -1191,14 +1189,11 @@ exports.ExplainResources = ExplainResources = rclass
 
                     <h4>Shared Resources</h4>
                     <div>
-                    Each projects runs on a server, where it shares disk space, CPU, and RAM with other projects.
-                    Initially, projects run with default free quotas on heavily used free machines that are rebooted frequently.
+                    Each project runs on a server, where it shares disk space, CPU, and RAM with other projects.
+                    Initially, projects run with default quotas on heavily used machines that are rebooted frequently.
                     You can upgrade any quota on any project on which you collaborate, and you can move projects
                     to faster very stable <em>members-only computers</em>,
                     where there is much less competition for resources.
-                    If a project on a free computer is not used for a few weeks, it gets moved to secondary storage, and
-                    starting it up will take longer; in contrast, projects on members-only computers always start
-                    up very quickly.
                     </div>
                     <Space/>
 
@@ -1213,10 +1208,10 @@ exports.ExplainResources = ExplainResources = rclass
                     </li>
                     <li>Project collaborators can collectively contribute to the same project,
                         in order to increase the quotas of their common project
-                        &mdash; these contributions benefit all project collaborators.</li>
-                    <li>You can remove your contributions to any project (owner or collaborator) at any time.</li>
-                    <li>You may also subscribe to the same subscription more than once,
-                        in order to increase your total amount of quota upgrades.</li>
+                        &mdash; these contributions add together to benefit all project collaborators equally.</li>
+                    <li>You can remove your contributions to any project at any time.</li>
+                    <li>You may also purchase multiple plans more than once,
+                        in order to increase the total amount of upgrades available to you.</li>
                     </ul>
                     </div>
                     <Space/>
