@@ -86,6 +86,31 @@ MASKED_FILE_EXTENSIONS =
     'tex'  : 'aux bbl blg fdb_latexmk fls glo idx ilg ind lof log nav out snm synctex.gz toc xyc synctex.gz(busy) sagetex.sage sagetex.sout sagetex.scmd sagetex.sage.py sage-plots-for-FILENAME'.split(' ')
     'rnw'  : ['tex', 'NODOT-concordance.tex']
 
+COMPUTE_FILE_MASKS = exports.compute_file_masks = (listing) ->
+    filename_map = misc.dict( ([item.name, item] for item in listing) ) # map filename to file
+    for file in listing
+        # note: never skip already masked files, because of rnw->tex
+        filename = file.name
+
+        # mask items beginning with '.'
+        if misc.startswith(filename, '.')
+            file.mask = true
+            continue
+
+        # mask compiled files, e.g. mask 'foo.class' when 'foo.java' exists
+        ext = misc.filename_extension(filename).toLowerCase()
+        basename = filename[0...filename.length - ext.length]
+        for mask_ext in MASKED_FILE_EXTENSIONS[ext] ? [] # check each possible compiled extension
+            if misc.startswith(mask_ext, 'NODOT')
+                bn = basename[... -1]  # exclude the trailing dot
+                mask_ext = mask_ext['NODOT'.length ...]
+            else if mask_ext.indexOf('FILENAME') >= 0
+                bn = mask_ext.replace('FILENAME', filename)
+                mask_ext = ''
+            else
+                bn = basename
+            filename_map["#{bn}#{mask_ext}"]?.mask = true
+
 BAD_FILENAME_CHARACTERS       = '\\'
 BAD_LATEX_FILENAME_CHARACTERS = '\'"()"~%'
 BANNED_FILE_TYPES             = ['doc', 'docx', 'pdf', 'sws']
@@ -1810,7 +1835,7 @@ create_project_store_def = (name, project_id) ->
         listing = listing.toJS()
 
         if @other_settings.get('mask_files')
-            @_compute_file_masks(listing)
+            COMPUTE_FILE_MASKS(listing)
 
         if @current_path == '.snapshots'
             @_compute_snapshot_display_names(listing)
@@ -1912,31 +1937,6 @@ create_project_store_def = (name, project_id) ->
             return []
         words = search.split(" ")
         return (x for x in listing when @_match(words, x.display_name ? x.name, x.isdir))
-
-    _compute_file_masks: (listing) ->
-        filename_map = misc.dict( ([item.name, item] for item in listing) ) # map filename to file
-        for file in listing
-            # note: never skip already masked files, because of rnw->tex
-            filename = file.name
-
-            # mask items beginning with '.'
-            if misc.startswith(filename, '.')
-                file.mask = true
-                continue
-
-            # mask compiled files, e.g. mask 'foo.class' when 'foo.java' exists
-            ext = misc.filename_extension(filename).toLowerCase()
-            basename = filename[0...filename.length - ext.length]
-            for mask_ext in MASKED_FILE_EXTENSIONS[ext] ? [] # check each possible compiled extension
-                if misc.startswith(mask_ext, 'NODOT')
-                    bn = basename[... -1]  # exclude the trailing dot
-                    mask_ext = mask_ext['NODOT'.length ...]
-                else if mask_ext.indexOf('FILENAME') >= 0
-                    bn = mask_ext.replace('FILENAME', filename)
-                    mask_ext = ''
-                else
-                    bn = basename
-                filename_map["#{bn}#{mask_ext}"]?.mask = true
 
     _compute_snapshot_display_names: (listing) ->
         for item in listing

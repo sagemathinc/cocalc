@@ -89,8 +89,12 @@ _current_idx = (student_list, student_id) ->
 # filter predicate for file listing, return true for less important files
 # also match name.ext~ variants in case of multiple rsyncs ...
 course_specific_files = (entry) ->
+    return true if entry.get('mask')
+    filename = entry.get('name')
     for fn in ['DUE_DATE.txt', 'GRADE.txt', 'STUDENT - ']
-        return true if entry.get('name').indexOf(fn) == 0
+        return true if filename.indexOf(fn) == 0
+    if filename.length >= 1 and filename[-1..] == '~'
+        return true
     return false
 
 _init_state = (props) ->
@@ -336,6 +340,7 @@ exports.GradingStudentAssignment = rclass
         show_entry       =  =>
             $(ReactDOM.findDOMNode(@refs.student_list)).find('.active').scrollintoview()
         @scrollToStudent = _.debounce(show_entry, 100)
+        @scrollToStudent()
 
         if @_timer?
             clearInterval(@_timer)
@@ -347,13 +352,21 @@ exports.GradingStudentAssignment = rclass
         delete @_timer
         # don't call actions.grading_remove_activity, because the user is probably just in another tab
 
-    componentDidUpdate: (props, state) ->
-        @scrollToStudent()
+    componentDidUpdate: (prevProps, prevState) ->
+        # only scroll when current_idx in the student list changes
+        if prevState.current_idx != @state.current_idx
+            @scrollToStudent()
 
     get_listing_files: (props) ->
-        listing   = props.grading?.get('listing')
-        files     = listing?.get('files')?.filterNot(course_specific_files)
-        num_pages = ((files?.size ? 0) // PAGE_SIZE) + 1
+        {compute_file_masks} = require('../project_store')
+        # TODO this is stupid, file listings should be immutable.js
+        listing = props.grading?.getIn(['listing', 'files'])
+        return if not listing?
+        listing_js = listing.toJS()
+        compute_file_masks(listing_js)
+        listing    = immutable.fromJS(listing_js)
+        files      = listing?.filterNot(course_specific_files)
+        num_pages  = ((files?.size ? 0) // PAGE_SIZE) + 1
         data =
             listing       : listing
             listing_files : files
@@ -712,7 +725,6 @@ exports.GradingStudentAssignment = rclass
         boxstyle =
             color        : COLORS.GRAY
             marginTop    : '10px'
-            marginRight  : '30px'
             #border       : "1px solid #{COLORS.GRAY_L}"
             #borderRadius : '5px'
 
@@ -743,8 +755,8 @@ exports.GradingStudentAssignment = rclass
 
 
         <Row style={boxstyle}>
-            <Row
-                md    = {12}
+            <Col
+                md    = {10}
                 style = {textAlign:'center'}
             >
                 <a
@@ -754,9 +766,9 @@ exports.GradingStudentAssignment = rclass
                 >
                     5-number summary
                 </a> of all points per student
-            </Row>
-            <Row
-                md    = {12}
+            </Col>
+            <Col
+                md    = {10}
                 style = {textAlign:'center'}
             >
                 <div style={style_outer}>
@@ -775,7 +787,7 @@ exports.GradingStudentAssignment = rclass
                         </div>
                 }
                 </div>
-            </Row>
+            </Col>
         </Row>
 
     render_open_collected_file : (filename) ->
