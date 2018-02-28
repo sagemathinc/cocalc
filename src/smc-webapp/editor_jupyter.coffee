@@ -1336,10 +1336,10 @@ class JupyterNotebook extends EventEmitter
                         cb(err)
             (cb) =>
                 status?("making '#{@filename}' public", 70)
-                redux.getProjectActions(@project_id).set_public_path(@filename, "Jupyter notebook #{@filename}")
+                redux.getProjectActions(@project_id).set_public_path(@filename, {description : "Jupyter notebook #{@filename}"})
                 html = @filename.slice(0,@filename.length-5)+'html'
                 status?("making '#{html}' public", 90)
-                redux.getProjectActions(@project_id).set_public_path(html, "Jupyter html version of #{@filename}")
+                redux.getProjectActions(@project_id).set_public_path(html, {description : "Jupyter html version of #{@filename}"})
                 cb()
             ], (err) =>
                 status?("done", 100)
