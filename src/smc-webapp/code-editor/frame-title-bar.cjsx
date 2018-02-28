@@ -287,13 +287,15 @@ exports.FrameTitleBar = rclass
         </Tip>
 
     render_file_menu: ->
+        if not (@props.is_only or @props.is_full)
+            return
         <EditorFileInfoDropdown
             key       = {'info'}
             title     = {'File related actions'}
             filename  = {@props.path}
             actions   = {redux.getProjectActions(@props.project_id)}
             is_public = {false}
-            label     = {if @props.is_only or @props.is_full then 'File'}
+            label     = {'File'}
             bsSize    = {@button_size()}
         />
 

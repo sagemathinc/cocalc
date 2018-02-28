@@ -4,7 +4,7 @@ Single codemirror-based file editor
 This is a wrapper around a single codemirror editor view.
 ###
 
-SAVE_INTERVAL_MS = 2000
+SAVE_INTERVAL_MS = 750
 
 {React, ReactDOM,
  rclass, rtypes}     = require('../smc-react')
@@ -173,7 +173,7 @@ exports.CodemirrorEditor = rclass
             if @_style_active_line
                 @cm?.setOption('styleActiveLine', false)
 
-        save_scroll = debounce(@save_scroll_position, 1000)
+        save_scroll = debounce(@save_scroll_position, 500)
 
         @cm.on 'scroll', save_scroll
 
@@ -192,10 +192,10 @@ exports.CodemirrorEditor = rclass
         @props.actions.set_cm(@props.id, @cm)
 
         if @props.scroll?
-            @cm.scrollTo(@props.scroll.get('left'), @props.scroll.get('top'))
             sel = @props.scroll.get('sel')?.toJS()
             if sel?
                 @cm.setSelections(sel)
+            @cm.scrollTo(@props.scroll.get('left'), @props.scroll.get('top'))
 
         @cm.setOption('readOnly', @props.read_only)
         @setState(has_cm: true)
