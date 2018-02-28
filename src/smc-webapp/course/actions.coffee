@@ -150,7 +150,7 @@ exports.CourseActions = class CourseActions extends Actions
         store = @get_store()
         return if not store?
         settings = store.get('settings')
-        if settings.get('student') or settings.get('institute')
+        if settings.get('institute_pay') or settings.get('student_pay')
             # already done
             return
         @set_pay_choice('institute', false)
