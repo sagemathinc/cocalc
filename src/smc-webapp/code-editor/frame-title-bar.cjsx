@@ -309,13 +309,13 @@ exports.FrameTitleBar = rclass
             key   = {'buttons'}>
             {@render_save_timetravel_group()}
             {<Space/>}
-            {@render_undo_redo_group()}
-            {<Space/>}
             {@render_copy_group()}
-            {<Space />}
-            {@render_find_replace_group()}
+            {<Space/>}
+            {@render_undo_redo_group()}
             {<Space />}
             {@render_zoom_group()}
+            {<Space />}
+            {@render_find_replace_group()}
         </div>
 
     render_path: ->
