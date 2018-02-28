@@ -17,35 +17,46 @@ exports.Cursor = Cursor = rclass
         top   : rtypes.string   # doesn't change
 
     shouldComponentUpdate: (props, state) ->
-        return @props.name != props.name or @props.color != props.color or @state.hover != state.hover
+        return @props.name != props.name or @props.color != props.color or @state.show_name != state.show_name
 
     getInitialState: ->
-        hover : IS_TOUCH    # always show on mobile, since no way to hover.
+        show_name : true
 
     componentDidMount: ->
         @_mounted = true
+        @_set_timer(2000)
 
     componentWillUnmount: ->
         @_mounted = false
 
-    hide: ->
-        delete @_timer
-        if @_mounted
-            @setState(hover: false)
+    _clear_timer: ->
+        if @_timer?
+            clearTimeout(@_timer)
+            delete @_timer
 
-    show: (n) ->
-        if @_mounted
-            if @_timer?
-                clearTimeout(@_timer)
-            @setState(hover: true)
-            @_timer = setTimeout((=>@hide()), n)
+    _set_timer: (timeout) ->
+        @_clear_timer()
+        @_timer = setTimeout((=>@hide_name()), timeout)
+
+    hide_name: ->
+        if not @_mounted
+            return
+        @_clear_timer()
+        @setState(show_name: false)
+
+    show_name: (timeout) ->
+        if not @_mounted
+            return
+        @setState(show_name: true)
+        if timeout
+            @_set_timer(timeout)
 
     render: ->
         # onClick is needed for mobile.
         <span
             style        = {color:@props.color, position:'relative', cursor:'text', pointerEvents : 'all', top:@props.top}
-            onMouseEnter = {=>@show(3000)}
-            onClick      = {=>@show(3000)}
+            onMouseEnter = {=>@show_name()}
+            onMouseLeave = {=>@show_name(2000)}
             >
             <span
                 style={width: 0, height:'1em', borderLeft: '2px solid', position:'absolute'}
@@ -54,8 +65,8 @@ exports.Cursor = Cursor = rclass
                 style={width: '6px', left: '-2px', top: '-2px', height: '6px', position:'absolute', backgroundColor:@props.color}
                 />
             {<span
-                style={opacity:0.6, position: 'absolute', fontSize: '10pt', color: '#fff', top: '-10px', left: '-2px', padding: '2px', whiteSpace: 'nowrap', background:@props.color, fontFamily:'sans-serif', boxShadow: '3px 3px 5px 0px #bbb'}
-                >{@props.name}</span> if @state.hover}
+                style={position: 'absolute', fontSize: '10pt', color: '#fff', top: '-10px', left: '-2px', padding: '2px', whiteSpace: 'nowrap', background:@props.color, fontFamily:'sans-serif', boxShadow: '3px 3px 5px 0px #bbb'}
+                >{@props.name}</span> if @state.show_name}
         </span>
 
 PositionedCursor = rclass
