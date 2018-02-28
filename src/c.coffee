@@ -25,12 +25,10 @@ get_db = (cb) ->
         db = require('./smc-hub/postgres').db(debug:false)
         db.connect(cb:cb)
         return db
-
 # get a connection to the db
-global.db = (cb) ->
-    global.db = get_db(cb)
-    return
-console.log("db() -- sets global variable db to a database")
+global.db = get_db()
+
+console.log("db -- database")
 
 global.gcloud = ->
     global.g = require('./smc-hub/smc_gcloud.coffee').gcloud(db:get_db())
