@@ -131,11 +131,18 @@ upgrades.field_order = ['member_host', 'network', 'mintime', 'disk_quota',
                         'memory', 'memory_request',
                         'cores', 'cpu_shares']
 
+
 # live_subscriptions is an array of arrays.  Each array should have length a divisor of 12.
 # The subscriptions will be displayed one row at a time.
-upgrades.live_subscriptions = [['standard2', 'premium2', 'professional2'],
+
+# Switch to this on the frontend when we go live with the new pricing plans.
+#upgrades.live_subscriptions = [['standard2', 'premium2', 'professional2'],
+#                               ['xsmall_course2', 'small_course2', 'medium_course2', 'large_course2'],
+#                               ['xsmall_basic_course', 'small_basic_course', 'medium_basic_course', 'large_basic_course']]
+
+upgrades.live_subscriptions = [['standard', 'premium', 'professional'],
                                ['xsmall_course2', 'small_course2', 'medium_course2', 'large_course2'],
-                               ['xsmall_basic_course', 'small_basic_course', 'medium_basic_course', 'large_basic_course']]
+                               ['xsmall_course',  'small_course', 'medium_course', 'large_course']]
 
 upgrades.period_names =
     month  : 'month'
