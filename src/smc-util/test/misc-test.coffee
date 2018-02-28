@@ -89,18 +89,27 @@ describe "sinon", ->
 # start testing misc.coffee
 
 describe 'percentRank', ->
+    l = [1, 1, 2, 3, 5, 8, 13]
     p = misc.percentRank
     it 'deals well with empty lists', ->
         p([], 0).should.eql NaN
 
+    it 'gives correct results', ->
+        p(l, 2).should.eql 35.714285714285715
+        p(l, 3).should.eql 50.0
+
 describe 'quantile', ->
+    l = [1, 1, 2, 3, 5, 8, 13]
     q = misc.quantile
     it 'deals well with empty lists', ->
-        q([], 0).should.eql 0
+        q([], 0).should.eql NaN
 
     it 'gives correct results', ->
-        l = [1, 1, 2, 3, 5, 8, 13]
+        # simple linear interpolation, though ...
         q(l, 0).should.eql 1
+        q(l, 25).should.eql 1.5
+        q(l, 50).should.eql 3.0
+        q(l, 75).should.eql 6.5
         q(l, 100).should.eql 13
         q([-1, 1], 50).should.eql 0
 

@@ -2139,7 +2139,13 @@ exports.human_readable_size = (bytes) ->
     b = Math.floor(bytes/100000000)
     return "#{b/10} GB"
 
+# This is with simple linear interpolation
+# from scipy.stats.mstats import mquantiles
+# mquantiles(l, [0, .25, .50, .75, 1], alphap=1, betap=1)
+# The default of scipy is probably better
 exports.quantile = (list, q, sorted=false) ->
+    if not (list?.length >= 2)
+        return NaN
     if not sorted
         list.sort((a, b) -> a - b)
     index = q / 100.0 * (list.length - 1)
@@ -2150,7 +2156,14 @@ exports.quantile = (list, q, sorted=false) ->
         fraction = index - i;
         return list[i] + (list[i+1] - list[i]) * fraction
 
+# if anyone wonders, there is more than one way to do this. this is the "mean" version, which
+# is also the way it is done in the wikipedia page
+# from scipy.stats import percentileofscore
+# l = [1, 1, 2, 3, 5, 8, 13]
+# percentileofscore(l, 2, kind='mean')
 exports.percentRank = (list, n, sorted=false) ->
+    if not (list?.length > 0)
+        return NaN
     if not sorted
         list.sort((a, b) -> a - b)
     L = 0
