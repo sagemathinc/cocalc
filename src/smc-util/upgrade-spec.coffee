@@ -21,6 +21,9 @@
 
 ###
 Define upgrades to projects.
+
+NOTE: Technically upgrades.subscription should be called upgrades.plans, to better
+corresponding to what stripe does...
 ###
 
 # NOTE: This script ./upgrade-spec.coffee is copied into the Docker container
@@ -136,13 +139,15 @@ upgrades.field_order = ['member_host', 'network', 'mintime', 'disk_quota',
 # The subscriptions will be displayed one row at a time.
 
 # Switch to this on the frontend when we go live with the new pricing plans.
-#upgrades.live_subscriptions = [['standard2', 'premium2', 'professional2'],
-#                               ['xsmall_course2', 'small_course2', 'medium_course2', 'large_course2'],
-#                               ['xsmall_basic_course', 'small_basic_course', 'medium_basic_course', 'large_basic_course']]
+upgrades.live_subscriptions = [['standard2', 'premium2', 'professional2'],
+                               ['xsmall_course2', 'small_course2', 'medium_course2', 'large_course2'],
+                               ['xsmall_basic_course', 'small_basic_course', 'medium_basic_course', 'large_basic_course']]
 
+### OLD
 upgrades.live_subscriptions = [['standard', 'premium', 'professional'],
                                ['xsmall_course2', 'small_course2', 'medium_course2', 'large_course2'],
                                ['xsmall_course',  'small_course', 'medium_course', 'large_course']]
+###
 
 upgrades.period_names =
     month  : 'month'
@@ -154,6 +159,8 @@ subscription = upgrades.subscription = {}
 
 subscription.professional =    # a user that has a professional subscription
     icon  : 'battery-full'
+    desc  : 'Professional Plan'
+    statement : 'COCALC PRO'
     price :
         month  : 99
         year   : 999
@@ -170,6 +177,8 @@ subscription.professional =    # a user that has a professional subscription
 
 subscription.premium =    # a user that has a premium subscription
     icon  : 'battery-three-quarters'
+    desc  : 'Premium Plan'
+    statement : 'COCALC PREMIUM'
     price :
         month  : 49
         year   : 499
@@ -186,6 +195,8 @@ subscription.premium =    # a user that has a premium subscription
 
 subscription.standard =   # a user that has a standard subscription
     icon  : 'battery-quarter'
+    desc  : 'Standard Plan'
+    statement : 'COCALC STANDARD'
     price :
         month  : 7
         year   : 79
@@ -202,7 +213,8 @@ subscription.standard =   # a user that has a standard subscription
 
 subscription.professional2 =    # a user that has a professional subscription
     icon  : 'battery-full'
-    desc  : 'Professional plan'
+    desc  : 'Professional Plan'
+    statement : 'COCALC PRO'
     price :
         month  : 149
         year   : 1499
@@ -219,7 +231,8 @@ subscription.professional2 =    # a user that has a professional subscription
 
 subscription.premium2 =    # a user that has a premium subscription
     icon  : 'battery-three-quarters'
-    desc  : 'Premium plan'
+    desc  : 'Premium Plan'
+    statement : 'COCALC PREMIUM'
     price :
         month  : 79
         year   : 799
@@ -235,8 +248,9 @@ subscription.premium2 =    # a user that has a premium subscription
         network        : 32
 
 subscription.standard2 =   # a user that has a standard subscription
-    icon  : 'battery-quarter'
-    desc  : 'Standard plan'
+    icon      : 'battery-quarter'
+    desc      : 'Standard Plan'
+    statement : 'COCALC STANDARD'
     price :
         month  : 14
         year   : 149
@@ -255,7 +269,8 @@ subscription.standard2 =   # a user that has a standard subscription
 
 subscription.large_course =
     icon  : 'battery-full'
-    desc : 'Basic large course\n(250 students)'
+    desc : 'Basic Large Course\n(250 students)'
+    statement : 'COCALC BASIC LG'
     price :
         month4 : 999
         year1  : 2499
@@ -272,7 +287,8 @@ subscription.large_course =
 
 subscription.large_course2 =
     icon  : 'battery-full'
-    desc : 'Standard large course\n(250 students)'
+    desc : 'Standard Large Course\n(250 students)'
+    statement : 'COCALC LG'
     price :
         month4 : 1999
         year1  : 4999
@@ -289,7 +305,8 @@ subscription.large_course2 =
 
 subscription.medium_course =
     icon  : 'battery-three-quarters'
-    desc  : 'Basic medium course\n(70 students)'
+    desc  : 'Basic Medium Course\n(70 students)'
+    statement : 'COCALC BASIC MD'
     price :
         month4 : 399
         year1  : 999
@@ -305,7 +322,8 @@ subscription.medium_course =
 
 subscription.medium_course2 =
     icon  : 'battery-three-quarters'
-    desc  : 'Standard medium course\n(70 students)'
+    desc  : 'Standard Medium Course\n(70 students)'
+    statement : 'COCALC MD'
     price :
         month4 : 799
         year1  : 1999
@@ -322,7 +340,8 @@ subscription.medium_course2 =
 
 subscription.xsmall_course =
     icon  : 'battery-empty'
-    desc  : 'Basic extra small course\n(10 students)'
+    desc  : 'Basic Extra Small Course\n(10 students)'
+    statement : 'COCALC BASIC XS'
     price :
         month4 : 99
         year1  : 249
@@ -338,7 +357,8 @@ subscription.xsmall_course =
 
 subscription.xsmall_course2 =
     icon  : 'battery-empty'
-    desc  : 'Standard extra small course\n(10 students)'
+    desc  : 'Standard Extra Small Course\n(10 students)'
+    statement : 'COCALC XS'
     price :
         month4 : 199
         year1  : 499
@@ -355,7 +375,8 @@ subscription.xsmall_course2 =
 
 subscription.small_course =
     icon  : 'battery-quarter'
-    desc  : 'Basic small course\n(25 students)'
+    desc  : 'Basic Small Course\n(25 students)'
+    statement : 'COCALC BASIC SM'
     price :
         month4 : 199
         year1  : 499
@@ -371,7 +392,8 @@ subscription.small_course =
 
 subscription.small_course2 =
     icon  : 'battery-quarter'
-    desc  : 'Standard small course\n(25 students)'
+    desc  : 'Standard Small Course\n(25 students)'
+    statement : 'COCALC SM'
     price :
         month4 : 399
         year1  : 999
@@ -392,7 +414,8 @@ Basic Courses
 
 subscription.xsmall_basic_course =
     icon  : 'battery-empty'
-    desc  : 'Basic extra small course\n(10 students)'
+    desc  : 'Basic Extra Small Course\n(10 students)'
+    statement : 'COCALC BASIC XS'
     price :
         month4 : 149
         year1  : 349
@@ -408,7 +431,8 @@ subscription.xsmall_basic_course =
 
 subscription.small_basic_course =
     icon  : 'battery-quarter'
-    desc  : 'Basic small course\n(25 students)'
+    desc  : 'Basic Small Course\n(25 students)'
+    statement : 'COCALC BASIC SM'
     price :
         month4 : 299
         year1  : 799
@@ -424,7 +448,8 @@ subscription.small_basic_course =
 
 subscription.medium_basic_course =
     icon  : 'battery-three-quarters'
-    desc  : 'Basic medium course\n(70 students)'
+    desc  : 'Basic Medium Course\n(70 students)'
+    statement : 'COCALC BASIC MD'
     price :
         month4 : 599
         year1  : 1499
@@ -440,7 +465,8 @@ subscription.medium_basic_course =
 
 subscription.large_basic_course =
     icon  : 'battery-full'
-    desc : 'Basic large course\n(250 students)'
+    desc : 'Basic Large Course\n(250 students)'
+    statement : 'COCALC BASIC LG'
     price :
         month4 : 1499
         year1  : 3499
@@ -459,6 +485,8 @@ Individual student
 ###
 subscription.student_course =
     icon  : 'graduation-cap'
+    statement : 'COCALC STUDENT'
+    desc  : 'Student Course'
     price :
         month4 : 14
     cancel_at_period_end : true
