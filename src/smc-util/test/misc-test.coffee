@@ -88,6 +88,22 @@ describe "sinon", ->
 
 # start testing misc.coffee
 
+describe 'percentRank', ->
+    p = misc.percentRank
+    it 'deals well with empty lists', ->
+        p([], 0).should.eql NaN
+
+describe 'quantile', ->
+    q = misc.quantile
+    it 'deals well with empty lists', ->
+        q([], 0).should.eql 0
+
+    it 'gives correct results', ->
+        l = [1, 1, 2, 3, 5, 8, 13]
+        q(l, 0).should.eql 1
+        q(l, 100).should.eql 13
+        q([-1, 1], 50).should.eql 0
+
 describe 'seconds2hms', ->
     s2hms = misc.seconds2hms
     s2hm  = misc.seconds2hm

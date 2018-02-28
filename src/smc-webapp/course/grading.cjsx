@@ -347,6 +347,9 @@ exports.GradingStudentAssignment = rclass
         delete @_timer
         # don't call actions.grading_remove_activity, because the user is probably just in another tab
 
+    componentDidUpdate: (props, state) ->
+        @scrollToStudent()
+
     get_listing_files: (props) ->
         listing   = props.grading?.get('listing')
         files     = listing?.get('files')?.filterNot(course_specific_files)
@@ -365,8 +368,6 @@ exports.GradingStudentAssignment = rclass
     open_assignment: (type, filepath) ->
         @actions(@props.name).open_assignment(type, @props.assignment, @state.student_id, filepath)
 
-    componentDidUpdate: (props, state) ->
-        @scrollToStudent()
 
     render_open: ->
         [
@@ -435,7 +436,7 @@ exports.GradingStudentAssignment = rclass
 
     set_student_filter: (string) ->
         @setState(student_filter:string)
-        @actions(@props.name).set_student_filter(string)
+        @actions(@props.name).grading_set_student_filter(string)
 
     on_key_down_student_filter: (e) ->
         switch e.keyCode
@@ -515,7 +516,7 @@ exports.GradingStudentAssignment = rclass
             return
 
         style =
-            marginRight    : '10px'
+            marginLeft    : '10px'
             display        : 'inline-block'
             marginTop      : '-5px'
             marginBottom   : '-5px'
@@ -527,9 +528,16 @@ exports.GradingStudentAssignment = rclass
 
 
     render_student_list_entries: ->
-        style       = misc.merge({cursor:'pointer'}, LIST_ENTRY_STYLE)
+        style        = misc.merge({cursor:'pointer'}, LIST_ENTRY_STYLE)
+        avatar_style =
+            display        : 'inline-block'
+            marginRight    : '10px'
+            marginTop      : '-5px'
+            marginBottom   : '-5px'
+
         list = @state.student_list.map (student) =>
             student_id   = student.get('student_id')
+            account_id   = student.get('account_id')
             name         = @state.store.get_student_name(student)
             points       = @state.store.get_points_total(@props.assignment, student_id)
             is_collected = @state.store.student_assignment_info(student_id, @props.assignment)?.last_collect?.time?
@@ -546,8 +554,14 @@ exports.GradingStudentAssignment = rclass
                 style      = {style}
             >
                 <span style={float:'left'}>
-                    {@render_student_list_presenece(student_id)}
+                    {<div style={avatar_style}>
+                        <Avatar
+                            size       = {22}
+                            account_id = {account_id}
+                        />
+                    </div> if account_id?}
                     {name}
+                    {@render_student_list_presenece(student_id)}
                 </span>
                 {@render_student_list_entries_info(active, grade_val, points, is_collected)}
             </li>
@@ -580,12 +594,12 @@ exports.GradingStudentAssignment = rclass
 
     set_only_not_graded: (only_not_graded) ->
         actions = @actions(@props.name)
-        actions.set_grading_entry('only_not_graded', only_not_graded)
+        actions.grading_set_entry('only_not_graded', only_not_graded)
 
     set_only_collected: (only_collected) ->
         @setState(student_list_first_selected:false)
         actions = @actions(@props.name)
-        actions.set_grading_entry('only_collected', only_collected)
+        actions.grading_set_entry('only_collected', only_collected)
 
     render_filter_only_not_graded: ->
         only_not_graded = @get_only_not_graded()
@@ -658,7 +672,7 @@ exports.GradingStudentAssignment = rclass
 
     render_points: ->
         total = @state.store.get_points_total(@props.assignment, @state.student_id)
-        pct = misc.percentRank(@state.all_points, total, true)
+        pct   = misc.percentRank(@state.all_points, total, true)
         <Row>
             <Col md={10} style={textAlign: 'center'}>
                 <ButtonGroup>
@@ -673,21 +687,22 @@ exports.GradingStudentAssignment = rclass
                     >
                         {total ? 0}
                     </Button>
-                    <Button
+                    {<Button
                         style     = {color: COLORS.GRAY}
                         onClick   = {=>@percentile_rank_help()}
                     >
                         {misc.round1(pct)}%
                         <span className='hidden-md'> percentile</span>
-                    </Button>
+                    </Button> if @state.all_points.length >= 5}
                 </ButtonGroup>
             </Col>
         </Row>
 
     render_stats: ->
+        return <div/> if @state.all_points.length < 5
         qpoints = {min:0, q25:25, median:50, q75:75, max:100}
         data = _.object(["#{name}", misc.quantile(@state.all_points, v, true)] for name, v of qpoints)
-        spread = data.max - data.min
+        spread = data.max - data.min + 1
         spaces = {}
         prev = 0
         for k, v of data
@@ -1005,7 +1020,7 @@ exports.GradingStudentAssignment = rclass
 
     listing_page: (offset) ->
         p = @state.page_number + offset
-        @actions(@props.name).set_grading_entry('page_number', p)
+        @actions(@props.name).grading_set_entry('page_number', p)
         @setState(page_number : p)
 
     render_listing_pager: ->

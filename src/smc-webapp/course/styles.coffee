@@ -5,12 +5,13 @@ exports.entry_style =
     paddingTop    : '5px'
     paddingBottom : '5px'
 
-exports.selected_entry = misc.merge
+exports.selected_entry =
     border        : '1px solid #aaa'
     boxShadow     : '5px 5px 5px #999'
-    borderRadius  : '3px'
-    marginBottom  : '10px',
-    exports.entry_style
+    borderRadius  : '5px'
+    marginBottom  : '10px'
+    paddingTop    : '0px'
+    paddingBottom : '5px'
 
 exports.note =
     borderTop  : '3px solid #aaa'

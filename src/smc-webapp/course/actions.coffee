@@ -1805,7 +1805,15 @@ exports.CourseActions = class CourseActions extends Actions
         # Now open it
         @redux.getProjectActions(proj).open_directory(path)
 
+    #
+    # Methods below are for the grading sub-functionality
+    # They're prefixed with "grading_"
+    #
+
     grading: (opts) =>
+        # this method starts grading and also steps forward to the next student
+        # hence, initially the "direction" to jump is +1
+        # there is also a second phase, where the directory listing is loaded.
         opts = defaults opts,
             assignment       : required
             student_id       : undefined
@@ -1852,8 +1860,10 @@ exports.CourseActions = class CourseActions extends Actions
         grading = store.get('grading') ? immutable.Map()
         grading = grading.merge(data)
         @setState(grading : grading)
+        # sets a "cursor" pointing to this assignment and student, signal for others
         @grading_update_activity()
 
+        # Phase 2: get the collected files listing
         store.grading_get_listing opts.assignment, next_student_id, opts.subdir, (err, listing) =>
             if err
                 if err == 'no_dir'
@@ -1862,14 +1872,16 @@ exports.CourseActions = class CourseActions extends Actions
                     @set_error("Grading file listing error: #{err}")
                     return
             listing = immutable.fromJS(listing)
-            @set_grading_entry('listing', listing)
+            @grading_set_entry('listing', listing)
 
+    # teacher departs from the dialog
     grading_stop: () =>
         @setState(grading : null)
         @grading_remove_activity()
-        @set_student_filter('')
+        @grading_set_student_filter('')
 
-    set_student_filter: (string) =>
+    # additonally filter student list by a substring
+    grading_set_student_filter: (string) =>
         store = @get_store()
         return if not store?
         grading = store.get('grading')
@@ -1877,14 +1889,15 @@ exports.CourseActions = class CourseActions extends Actions
         @setState(grading:grading.set('student_filter', string))
         assignment = store.get_assignment(grading.get('assignment_id'))
 
-    set_grading_entry: (key, value) =>
+    # utility method to set just a key in the grading state
+    grading_set_entry: (key, value) =>
         store = @get_store()
         return if not store?
         grading = store.get('grading')
         @setState(grading:grading.set(key, value)) if grading?
 
     grading_set_cursors: (cursors) =>
-        @set_grading_entry('cursors', immutable.fromJS(cursors))
+        @grading_set_entry('cursors', immutable.fromJS(cursors))
 
     grading_update_activity: (opts) =>
         store = @get_store()
