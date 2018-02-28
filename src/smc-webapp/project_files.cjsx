@@ -1479,7 +1479,7 @@ ProjectFilesActionBox = rclass
 
     share_click: ->
         description = ReactDOM.findDOMNode(@refs.share_description).value
-        @props.actions.set_public_path(@props.checked_files.first(), description)
+        @props.actions.set_public_path(@props.checked_files.first(), {description: description})
 
     stop_sharing_click: ->
         @props.actions.disable_public_path(@props.checked_files.first())
@@ -1509,6 +1509,21 @@ ProjectFilesActionBox = rclass
         <div style={color:'#555'}>
             Use sharing to make a file or directory <a href="https://cocalc.com/share" target="_blank"><b><i>visible to the world.</i></b></a> Learn more about sharing files <a href="https://github.com/sagemathinc/cocalc/wiki/share" target="_blank"><b><i>here.</i></b></a> If you would like to collaborate and chat with other people on documents in this project, go the project Settings tab and "Add people to project".
         </div>
+
+    set_public_file_unlisting_to: (new_value) ->
+        description = ReactDOM.findDOMNode(@refs.share_description).value
+        @props.actions.set_public_path(@props.checked_files.first(), {description : description, unlisted : new_value})
+
+    render_unlisting_checkbox: (single_file_data) ->
+        is_unlisted = !!(single_file_data.public?.unlisted)
+
+        <form>
+            <Checkbox
+                checked  = {is_unlisted}
+                onChange = {=>@set_public_file_unlisting_to(not is_unlisted)} >
+                <i>Unlisted:</i> Only allow those with a link to view this.
+            </Checkbox>
+        </form>
 
     render_share: ->
         # currently only works for a single selected file
@@ -1586,6 +1601,11 @@ ProjectFilesActionBox = rclass
                     {<ButtonToolbar>
                         {@render_social_buttons(single_file)}
                     </ButtonToolbar> if show_social_media}
+                </Col>
+            </Row>
+            <Row>
+                <Col sm={12}>
+                    {@render_unlisting_checkbox(single_file_data)}
                 </Col>
             </Row>
         </div>
