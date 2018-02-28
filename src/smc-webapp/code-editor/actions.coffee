@@ -193,7 +193,7 @@ class exports.Actions extends Actions
 
     _syncstring_cursor_activity: =>
         # TODO: for now, just for the one syncstring obviously
-        # TOOD: this is probably slow...
+        # TOOD: this is probably naive and slow too...
         cursors = immutable.Map()
         @_syncstring.get_cursors().forEach (info, account_id) =>
             info.get('locs').forEach (loc) =>
@@ -210,11 +210,11 @@ class exports.Actions extends Actions
             @setState(is_loaded: true)
         @set_save_status?()
 
-    set_cursor_locs:  (locs=[]) =>
+    set_cursor_locs:  (locs=[], side_effect) =>
         if locs.length == 0
             # don't remove on blur -- cursor will fade out just fine
             return
-        @_syncstring?.set_cursor_locs(locs)
+        @_syncstring?.set_cursor_locs(locs, side_effect)
 
     delete_trailing_whitespace: =>
         cm = @_get_cm()

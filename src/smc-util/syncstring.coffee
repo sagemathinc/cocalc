@@ -561,7 +561,7 @@ class SyncDoc extends EventEmitter
         super()
         @_opts = opts = defaults opts,
             save_interval     : 1500
-            cursor_interval   : 2000
+            cursor_interval   : 1000
             patch_interval    : 1000       # debouncing of incoming upstream patches
             file_use_interval : 'default'  # throttles: default is 60s for everything except .sage-chat files, where it is 10s.
             string_id         : undefined
@@ -632,12 +632,13 @@ class SyncDoc extends EventEmitter
 
         if opts.cursors
             # Initialize throttled cursors functions
-            set_cursor_locs = (locs) =>
+            set_cursor_locs = (locs, side_effect) =>
                 x =
                     string_id : @_string_id
                     user_id   : @_user_id
                     locs      : locs
-                    time      : @_client.server_time()
+                if not side_effect
+                    x.time = @_client.server_time()
                 @_cursors?.set(x, 'none')
             @_throttled_set_cursor_locs = underscore.throttle(set_cursor_locs, @_opts.cursor_interval)
 
@@ -894,7 +895,6 @@ class SyncDoc extends EventEmitter
         if @_project_autosave?
             clearInterval(@_project_autosave)
             delete @_project_autosave
-        delete @_cursor_throttled
         delete @_cursor_map
         delete @_users
         @_syncstring_table?.close()
@@ -1196,7 +1196,7 @@ class SyncDoc extends EventEmitter
                     user_id   : null
                     locs      : null
                     time      : null
-            @_cursors = @_client.sync_table(query)
+            @_cursors = @_client.sync_table(query, [], @_opts.cursor_interval)
             @_cursors.once 'connected', =>
                 # cursors now initialized; first initialize the local @_cursor_map,
                 # which tracks positions of cursors by account_id:
@@ -1208,14 +1208,6 @@ class SyncDoc extends EventEmitter
             # @_other_cursors is an immutable.js map from account_id's
             # to list of cursor positions of *other* users (starts undefined).
             @_cursor_map = undefined
-            @_cursor_throttled = {}  # throttled event emitters for each account_id
-            emit_cursor_throttled = (account_id) =>
-                t = @_cursor_throttled[account_id]
-                if not t?
-                    f = () =>
-                        @emit('cursor_activity', account_id)
-                    t = @_cursor_throttled[account_id] = underscore.throttle(f, @_opts.cursor_interval)
-                t()
 
             @_cursors.on 'change', (keys) =>
                 if @_closed
@@ -1223,13 +1215,13 @@ class SyncDoc extends EventEmitter
                 for k in keys
                     account_id = @_users[JSON.parse(k)?[1]]
                     @_cursor_map = @_cursor_map.set(account_id, @_cursors.get(k))
-                    emit_cursor_throttled(account_id)
+                    @emit('cursor_activity', account_id)
 
     # Set this users cursors to the given locs.  This function is
     # throttled, so calling it many times is safe, and all but
     # the last call is discarded.
     # NOTE: no-op if only one user or cursors not enabled for this doc
-    set_cursor_locs: (locs) =>
+    set_cursor_locs: (locs, side_effect) =>
         if @_closed
             return
         if @_users.length <= 2
@@ -1238,7 +1230,7 @@ class SyncDoc extends EventEmitter
             # own cursors - just other user's cursors.  This simple optimization will save tons
             # of bandwidth, since many files are never opened by more than one user.
             return
-        @_throttled_set_cursor_locs?(locs)
+        @_throttled_set_cursor_locs?(locs, side_effect)
         return
 
     # returns immutable.js map from account_id to list of cursor positions, if cursors are enabled.

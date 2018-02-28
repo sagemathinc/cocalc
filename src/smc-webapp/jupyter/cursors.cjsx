@@ -12,11 +12,14 @@ misc = require('smc-util/misc')
 
 exports.Cursor = Cursor = rclass
     propTypes:
-        name  : rtypes.string.isRequired
-        color : rtypes.string.isRequired
-        top   : rtypes.string   # doesn't change
+        name   : rtypes.string.isRequired
+        color  : rtypes.string.isRequired
+        top    : rtypes.string   # doesn't change
+        time : rtypes.number
 
     shouldComponentUpdate: (props, state) ->
+        if @props.time != props.time
+            @show_name(2000)
         return @props.name != props.name or @props.color != props.color or @state.show_name != state.show_name
 
     getInitialState: ->
@@ -57,6 +60,8 @@ exports.Cursor = Cursor = rclass
             style        = {color:@props.color, position:'relative', cursor:'text', pointerEvents : 'all', top:@props.top}
             onMouseEnter = {=>@show_name()}
             onMouseLeave = {=>@show_name(2000)}
+            onTouchStart = {=>@show_name()}
+            onTouchEnd   = {=>@show_name(2000)}
             >
             <span
                 style={width: 0, height:'1em', borderLeft: '2px solid', position:'absolute'}
@@ -76,15 +81,17 @@ PositionedCursor = rclass
         line       : rtypes.number.isRequired
         ch         : rtypes.number.isRequired
         codemirror : rtypes.object.isRequired
+        time       : rtypes.number
 
     shouldComponentUpdate: (next) ->
         return @props.line  != next.line or \
                @props.ch    != next.ch   or \
                @props.name  != next.name or \
-               @props.color != next.color
+               @props.color != next.color or \
+               @props.time  != next.time
 
     _render_cursor: (props) ->
-        ReactDOM.render(<Cursor name={props.name} color={props.color} top={'-1.2em'}/>, @_elt)
+        ReactDOM.render(<Cursor name={props.name} color={props.color} top={'-1.2em'} time={@props.time}/>, @_elt)
 
     componentDidMount: ->
         @_elt = document.createElement("div")
@@ -99,9 +106,8 @@ PositionedCursor = rclass
         if @props.line != next.line or @props.ch != next.ch
             # move the widget
             @props.codemirror.addWidget({line:next.line, ch:next.ch}, @_elt, false)
-        if @props.name != next.name or @props.color != next.color
-            # update how widget is rendered
-            @_render_cursor(next)
+        # Then always update how widget is rendered (this will at least cause it to display for 2 seconds after move/change).
+        @_render_cursor(next)
 
     componentWillUnmount: ->
         if @_elt?
@@ -119,6 +125,7 @@ StaticPositionedCursor = rclass
         color      : rtypes.string.isRequired
         line       : rtypes.number.isRequired
         ch         : rtypes.number.isRequired
+        time       : rtypes.number
 
     shouldComponentUpdate: (next) ->
         return @props.line  != next.line or \
@@ -139,7 +146,7 @@ StaticPositionedCursor = rclass
 
         # we position using newlines and blank spaces, so no measurement is needed.
         position = ('\n' for _ in [0...@props.line]).join('') + (' ' for _ in [0...@props.ch]).join('')
-        <div style={style}>{position}<Cursor name={@props.name} color={@props.color}/></div>
+        <div style={style}>{position}<Cursor time={@props.time} name={@props.name} color={@props.color}/></div>
 
 
 exports.Cursors = rclass
@@ -179,6 +186,7 @@ exports.Cursors = rclass
                         return
                     v.push <C
                         key        = {v.length}
+                        time       = {pos.get('time') - 0}
                         color      = {color}
                         name       = {name}
                         line       = {pos.get('y') ? 0}

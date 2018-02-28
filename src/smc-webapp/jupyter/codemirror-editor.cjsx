@@ -83,10 +83,8 @@ exports.CodeMirrorEditor = rclass
     _cm_cursor: ->
         if not @cm? or not @props.actions?
             return
-        if @cm._setValueNoJump   # if true, cursor move is being caused by external setValueNoJump
-            return
         locs = ({x:c.anchor.ch, y:c.anchor.line, id:@props.id} for c in @cm.listSelections())
-        @props.actions.set_cursor_locs(locs)
+        @props.actions.set_cursor_locs(locs, @cm._setValueNoJump)
 
         # See https://github.com/jupyter/notebook/issues/2464 for discussion of this cell_list_top business.
         cell_list_top = @props.actions._cell_list_div?.offset().top

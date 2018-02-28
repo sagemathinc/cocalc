@@ -111,11 +111,10 @@ exports.CodemirrorEditor = rclass
     _cm_cursor: ->
         if not @cm?
             return
-        if @cm._setValueNoJump
-            # cursor move is being caused by external setValueNoJump, so do not report.
-            return
         locs = ({x:c.anchor.ch, y:c.anchor.line} for c in @cm.listSelections())
-        @props.actions.set_cursor_locs(locs)
+        # is cursor move is being caused by external setValueNoJump, so just a side effect of something another user did.
+        side_effect = @cm._setValueNoJump
+        @props.actions.set_cursor_locs(locs, side_effect)
 
     save_scroll_position: ->
         if not @cm?
