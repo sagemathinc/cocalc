@@ -1135,8 +1135,9 @@ class exports.Connection extends EventEmitter
             mesg = message.copy_path_between_projects(opts)
 
         @call
-            message : mesg
-            cb      : (err, resp) =>
+            message    : mesg
+            allow_post : false     # since it may take too long
+            cb         : (err, resp) =>
                 if err
                     cb?(err)
                 else if resp.event == 'error'
