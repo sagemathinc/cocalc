@@ -115,6 +115,7 @@ QUERIES =
             path        : null
             description : null
             disabled    : null
+            unlisted    : null
             created     : null
             last_edited : null
             last_saved  : null
@@ -1448,12 +1449,13 @@ class ProjectActions extends Actions
     ###
     # Actions for PUBLIC PATHS
     ###
-    set_public_path: (path, description) =>
+    set_public_path: (path, opts={}) =>
         obj =
             project_id  : @project_id
             path        : path
-            description : description
+            description : opts.description or ""
             disabled    : false
+            unlisted    : opts.unlisted or false
         return if not store = @get_store()
         obj.last_edited = obj.created = now = misc.server_time()
         # only set created if this obj is new; have to just linearly search through paths right now...
@@ -1942,24 +1944,24 @@ create_project_store_def = (name, project_id) ->
             item.display_name = "#{tm}"
             item.mtime = (tm - 0)/1000
 
-    _compute_public_files: (x, public_paths, current_path) =>
-        listing = x.listing
-        pub = x.public
-        v = public_paths
-        if v? and v.size > 0
+    # Mutates data to include info on public paths.
+    _compute_public_files: (data, public_paths, current_path) =>
+        listing = data.listing
+        pub = data.public
+        if public_paths? and public_paths.size > 0
             head = if current_path then current_path + '/' else ''
             paths = []
-            map   = {}
-            for x in v.toJS()
-                map[x.path] = x
+            public_path_data = {}
+            for x in public_paths.toJS()
+                public_path_data[x.path] = x
                 paths.push(x.path)
             for x in listing
                 full = head + x.name
                 p = misc.containing_public_path(full, paths)
                 if p?
-                    x.public = map[p]
+                    x.public = public_path_data[p]
                     x.is_public = not x.public.disabled
-                    pub[x.name] = map[p]
+                    pub[x.name] = public_path_data[p]
 
 
     _sort_on_string_field: (field) =>

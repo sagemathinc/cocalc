@@ -118,7 +118,7 @@ upgrades.params =
         input_type     : 'checkbox'
         desc           : 'Full internet access enables a project to connect to the computers outside of CoCalc, download software packages, etc.'
     member_host :
-        display        : 'Paid hosting'
+        display        : 'Member hosting'
         unit           : 'project'
         display_unit   : 'project'
         display_factor : 1
@@ -131,8 +131,15 @@ upgrades.field_order = ['member_host', 'network', 'mintime', 'disk_quota',
                         'memory', 'memory_request',
                         'cores', 'cpu_shares']
 
+
 # live_subscriptions is an array of arrays.  Each array should have length a divisor of 12.
 # The subscriptions will be displayed one row at a time.
+
+# Switch to this on the frontend when we go live with the new pricing plans.
+#upgrades.live_subscriptions = [['standard2', 'premium2', 'professional2'],
+#                               ['xsmall_course2', 'small_course2', 'medium_course2', 'large_course2'],
+#                               ['xsmall_basic_course', 'small_basic_course', 'medium_basic_course', 'large_basic_course']]
+
 upgrades.live_subscriptions = [['standard', 'premium', 'professional'],
                                ['xsmall_course2', 'small_course2', 'medium_course2', 'large_course2'],
                                ['xsmall_course',  'small_course', 'medium_course', 'large_course']]
@@ -193,6 +200,58 @@ subscription.standard =   # a user that has a standard subscription
         mintime        : 24*3600
         network        : 20
 
+subscription.professional2 =    # a user that has a professional subscription
+    icon  : 'battery-full'
+    desc  : 'Professional plan'
+    price :
+        month  : 149
+        year   : 1499
+    cancel_at_period_end : false
+    benefits :
+        cores          : 4
+        cpu_shares     : 2048
+        disk_quota     : 5000*20
+        member_host    : 2*20
+        memory         : 3000*20
+        memory_request : 1000*4
+        mintime        : 24*3600*20
+        network        : 80
+
+subscription.premium2 =    # a user that has a premium subscription
+    icon  : 'battery-three-quarters'
+    desc  : 'Premium plan'
+    price :
+        month  : 79
+        year   : 799
+    cancel_at_period_end : false
+    benefits :
+        cores          : 2
+        cpu_shares     : 1024
+        disk_quota     : 5000*8
+        member_host    : 2*8
+        memory         : 3000*8
+        memory_request : 1000*2
+        mintime        : 24*3600*8
+        network        : 32
+
+subscription.standard2 =   # a user that has a standard subscription
+    icon  : 'battery-quarter'
+    desc  : 'Standard plan'
+    price :
+        month  : 14
+        year   : 149
+    cancel_at_period_end : false
+    benefits :
+        cores          : 0
+        cpu_shares     : 0
+        disk_quota     : 8000
+        member_host    : 4
+        memory         : 4000
+        memory_request : 0
+        mintime        : 24*3600
+        network        : 8
+
+
 
 subscription.large_course =
     icon  : 'battery-full'
@@ -223,7 +282,7 @@ subscription.large_course2 =
         cpu_shares     : 0
         disk_quota     : 0
         memory         : 250*1000
-        mintime        : 264*7200  # multiple of days
+        mintime        : 25*24*3600
         memory_request : 0
         member_host    : 250
         network        : 250
@@ -256,7 +315,7 @@ subscription.medium_course2 =
         cpu_shares     : 0
         disk_quota     : 0
         memory         : 70*1000
-        mintime        : 72*7200
+        mintime        : 7*24*3600
         memory_request : 0
         member_host    : 70
         network        : 70
@@ -289,7 +348,7 @@ subscription.xsmall_course2 =
         cpu_shares     : 0
         disk_quota     : 0
         memory         : 10*1000
-        mintime        : 18*3600
+        mintime        : 24*3600
         memory_request : 0
         member_host    : 10
         network        : 10
@@ -322,11 +381,82 @@ subscription.small_course2 =
         cpu_shares     : 0
         disk_quota     : 0
         memory         : 25*1000
-        mintime        : 48*3600
+        mintime        : 60*3600
         memory_request : 0
         member_host    : 25
         network        : 25
 
+###
+Basic Courses
+###
+
+subscription.xsmall_basic_course =
+    icon  : 'battery-empty'
+    desc  : 'Basic extra small course\n(10 students)'
+    price :
+        month4 : 149
+        year1  : 349
+    cancel_at_period_end : true
+    benefits :
+        cores          : 0
+        cpu_shares     : 0
+        disk_quota     : 0
+        memory         : 0
+        memory_request : 0
+        member_host    : 10
+        network        : 10
+
+subscription.small_basic_course =
+    icon  : 'battery-quarter'
+    desc  : 'Basic small course\n(25 students)'
+    price :
+        month4 : 299
+        year1  : 799
+    cancel_at_period_end : true
+    benefits :
+        cores          : 0
+        cpu_shares     : 0
+        disk_quota     : 0
+        memory         : 0
+        memory_request : 0
+        member_host    : 25
+        network        : 25
+
+subscription.medium_basic_course =
+    icon  : 'battery-three-quarters'
+    desc  : 'Basic medium course\n(70 students)'
+    price :
+        month4 : 599
+        year1  : 1499
+    cancel_at_period_end : true
+    benefits :
+        cores          : 0
+        cpu_shares     : 0
+        disk_quota     : 0
+        memory         : 0
+        memory_request : 0
+        member_host    : 70
+        network        : 70
+
+subscription.large_basic_course =
+    icon  : 'battery-full'
+    desc : 'Basic large course\n(250 students)'
+    price :
+        month4 : 1499
+        year1  : 3499
+    cancel_at_period_end : true
+    benefits :
+        cores          : 0
+        cpu_shares     : 0
+        disk_quota     : 0
+        memory         : 0
+        memory_request : 0
+        member_host    : 250
+        network        : 250
+
+###
+Individual student
+###
 subscription.student_course =
     icon  : 'graduation-cap'
     price :
@@ -341,21 +471,3 @@ subscription.student_course =
         member_host    : 2
         mintime        : 7600
         network        : 2
-
-###
-subscription.student_course2 =
-    icon  : 'graduation-cap'
-    price :
-        month4 : 28
-    cancel_at_period_end : true
-    benefits :
-        cores          : 1
-        cpu_shares     : 0
-        disk_quota     : 0
-        memory         : 2000
-        memory_request : 0
-        member_host    : 2
-        mintime        : 7200
-        network        : 2
-###
-
