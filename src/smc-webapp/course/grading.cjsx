@@ -941,8 +941,7 @@ exports.GradingStudentAssignment = rclass
         return misc.merge(style, LIST_ENTRY_STYLE)
 
     listing_entries: ->
-        return <li><Loading /></li> if not @state.listing?
-
+        return if not @state.listing?
         error = @state.listing.get('error')
         if error?
             if error = 'no_dir'
@@ -951,7 +950,8 @@ exports.GradingStudentAssignment = rclass
             else
                 return <div>Got error listing directory: {error}</div>
 
-        files = @state.listing_files ? undefined
+        return <li><Loading /></li> if not @state.listing_files?
+        files = @state.listing_files
         if files?.size > 0
             begin = PAGE_SIZE * (@state.page_number ? 0)
             end   = begin + PAGE_SIZE
