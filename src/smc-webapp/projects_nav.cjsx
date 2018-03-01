@@ -60,16 +60,6 @@ ProjectTab = rclass
     getInitialState: ->
         x_hovered : false
 
-    componentDidMount: ->
-        @strip_href()
-
-    componentDidUpdate: () ->
-        @strip_href()
-
-    # WTF? -- wstein
-    strip_href: ->
-        @refs.tab?.node.children[0].removeAttribute('href')
-
     close_tab: (e) ->
         e.stopPropagation()
         e.preventDefault()
