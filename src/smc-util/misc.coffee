@@ -2156,6 +2156,26 @@ exports.quantile = (list, q, sorted=false) ->
         fraction = index - i;
         return list[i] + (list[i+1] - list[i]) * fraction
 
+# 5 number quantile
+exports.five_number_quantiles = (list, sorted=false) ->
+    if not (list?.length >= 2)
+        return NaN
+    if not sorted
+        list.sort((a, b) -> a - b)
+
+    qpoints = [
+        {name:'min',     q:  0, help: 'minimum'}
+        {name:'q25',     q: 25, help: '25-th quantile'}
+        {name:'median',  q: 50, help: 'median'}
+        {name:'q75',     q: 75, help: '75-th quantile'}
+        {name:'max',     q:100, help: 'maximum'}
+    ]
+    data = {}
+    for point in qpoints
+        value = exports.quantile(list, point.q, true)
+        data["#{point.name}"] = {value:value, help:point.help}
+    return data
+
 # if anyone wonders, there is more than one way to do this. this is the "mean" version, which
 # is also the way it is done in the wikipedia page
 # from scipy.stats import percentileofscore

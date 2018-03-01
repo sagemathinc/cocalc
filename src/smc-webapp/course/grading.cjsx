@@ -713,14 +713,13 @@ exports.GradingStudentAssignment = rclass
 
     render_stats: ->
         return <div/> if @state.all_points.length < 5
-        qpoints = {min:0, q25:25, median:50, q75:75, max:100}
-        data = _.object(["#{name}", misc.quantile(@state.all_points, v, true)] for name, v of qpoints)
-        spread = data.max - data.min + 1
+        data = misc.five_number_quantiles(@state.all_points, true)
+        spread = data.max.value - data.min.value + 1
         spaces = {}
         prev = 0
         for k, v of data
-            spaces["#{k}"] = (v - data.min - prev) / spread / 2
-            prev = v
+            spaces["#{k}"] = (v.value - data.min.value - prev) / spread / 2
+            prev = v.value
 
         boxstyle =
             color        : COLORS.GRAY
@@ -749,8 +748,8 @@ exports.GradingStudentAssignment = rclass
                 borderRadius   : '5px'
                 transform      : 'translateY(50%)'
                 marginLeft     : "#{100 * spaces[name]}%"
-            if name == 'median'
-                ret.fontWeight = 'bold'
+            #if name == 'median'
+            #    ret.fontWeight = 'bold'
             return ret
 
 
@@ -773,16 +772,16 @@ exports.GradingStudentAssignment = rclass
             >
                 <div style={style_outer}>
                 {
-                    for name, val of data
+                    for name, point of data
                         <div
                             key   = {name}
                             style = {style_number(name)}
                         >
                             <Tip
-                                title     = {name}
+                                title     = {point.help}
                                 placement = {'bottom'}
                             >
-                                {misc.round1(val)}
+                                {misc.round1(point.value)}
                             </Tip>
                         </div>
                 }

@@ -113,6 +113,19 @@ describe 'quantile', ->
         q(l, 100).should.eql 13
         q([-1, 1], 50).should.eql 0
 
+describe 'five_number_quantiles', ->
+    l = [1, 1, 2, 3, 5, 8, 13]
+    q = misc.quantile
+    f = misc.five_number_quantiles
+    it 'works like quantile', ->
+        fv = f(l)
+        fv.min.value.should.eql q(l, 0)
+        fv.q25.value.should.eql q(l, 25)
+        fv.median.value.should.eql q(l, 50)
+        fv.q75.value.should.eql q(l, 75)
+        fv.max.value.should.eql q(l, 100)
+        misc.keys(fv).length.should.eql 5
+
 describe 'seconds2hms', ->
     s2hms = misc.seconds2hms
     s2hm  = misc.seconds2hm
