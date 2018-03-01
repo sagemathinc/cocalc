@@ -452,7 +452,10 @@ exports.NumberInput = NumberInput = rclass
         if @state.number? and @state.number != @props.number
             <Button className='pull-right' bsStyle='success' onClick={@saveChange}><Icon name='save' /> Save</Button>
 
-    plusminus_click: (delta) ->
+    speedup: 10
+
+    plusminus_click: (e, delta) ->
+        if e.shiftKey then delta *= @speedup
         @saveNumber(@state.number + delta)
 
     plusminus: (delta) ->
@@ -464,13 +467,18 @@ exports.NumberInput = NumberInput = rclass
             name = 'minus'
             disabled = @props.number == @props.min
 
-        <Button
-            disabled = {disabled}
-            bsSize   = {@props.bsSize ? 'normal'}
-            onClick  = {=>@plusminus_click(delta)}
+        <Tip
+            title     = {"Hold down your shift key while clicking to increase changes by #{@speedup}x."}
+            placement = {'bottom'}
         >
-            <Icon name={name} />
-        </Button>
+            <Button
+                disabled = {disabled}
+                bsSize   = {@props.bsSize ? 'normal'}
+                onClick  = {(e)=>@plusminus_click(e, delta)}
+            >
+                <Icon name={name} />
+            </Button>
+        </Tip>
 
     onClickHandler: (e) ->
         if @props.select_on_click

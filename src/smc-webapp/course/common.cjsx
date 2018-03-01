@@ -220,11 +220,18 @@ exports.StudentAssignmentInfo = rclass
         style  = {float:'right', color:COLORS.GRAY}
         points = "#{@props.points ? 0} pts."
         if @props.edit_points
-            <Button
-                style   = {style}
-                onClick = {@edit_points}
-                bsStyle = {'default'}
-            >{points}</Button>
+            <Tip
+                title    = {"Points for this collected assignment"}
+                tip      = {"Click to show the grading points edtior for the collected assignment of this student."}
+            >
+                <Button
+                    style   = {style}
+                    onClick = {@edit_points}
+                    bsStyle = {'default'}
+                >
+                    {points}
+                </Button>
+            </Tip>
         else
             <span style={style}>{points}</span>
 

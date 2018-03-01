@@ -752,7 +752,6 @@ exports.GradingStudentAssignment = rclass
             #    ret.fontWeight = 'bold'
             return ret
 
-
         <Row style={boxstyle}>
             <Col
                 md    = {10}
