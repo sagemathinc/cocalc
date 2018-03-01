@@ -45,7 +45,7 @@ exports.AssignmentsPanel = rclass ({name}) ->
     reduxProps :
         "#{name}":
             expanded_assignments   : rtypes.immutable.Set
-            active_assignment_sort : rtypes.object
+            active_assignment_sort : rtypes.immutable.Map
             active_student_sort    : rtypes.immutable.Map
             expanded_peer_configs  : rtypes.immutable.Set
 
@@ -71,15 +71,15 @@ exports.AssignmentsPanel = rclass ({name}) ->
             search_key  : 'path'
             search      : @state.search.trim()
 
-        if @props.active_assignment_sort.column_name == "due_date"
+        if @props.active_assignment_sort.get('column_name') == "due_date"
             f = (a) -> [a.due_date ? 0, a.path?.toLowerCase()]
-        else if @props.active_assignment_sort.column_name == "dir_name"
+        else if @props.active_assignment_sort.get('column_name') == "dir_name"
             f = (a) -> [a.path?.toLowerCase(), a.due_date ? 0]
 
         {list, deleted, num_deleted} = util.order_list
             list             : list
             compare_function : (a,b) => misc.cmp_array(f(a), f(b))
-            reverse          : @props.active_assignment_sort.is_descending
+            reverse          : @props.active_assignment_sort.get('is_descending')
             include_deleted  : @state.show_deleted
 
         return {shown_assignments:list, deleted_assignments:deleted, num_omitted:num_omitted, num_deleted:num_deleted}
@@ -90,8 +90,8 @@ exports.AssignmentsPanel = rclass ({name}) ->
             {display_name}
             <Space/>
             {<Icon style={marginRight:'10px'}
-                name={if @props.active_assignment_sort.is_descending then 'caret-up' else 'caret-down'}
-            /> if @props.active_assignment_sort.column_name == column_name}
+                name={if @props.active_assignment_sort.get('is_descending') then 'caret-up' else 'caret-down'}
+            /> if @props.active_assignment_sort.get('column_name') == column_name}
         </a>
 
     render_assignment_table_header: ->

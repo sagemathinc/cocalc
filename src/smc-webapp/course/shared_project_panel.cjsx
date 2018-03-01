@@ -34,6 +34,10 @@ exports.SharedProjectPanel = rclass
     getInitialState: ->
         confirm_create : false
 
+    shouldComponentUpdate: (props, state) ->
+        return @state.confirm_create != state.confirm_create or \
+               @props.shared_project_id != props.shared_project_id
+
     panel_header_text: ->
         if @props.shared_project_id
             "Shared project that everybody can fully use"

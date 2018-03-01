@@ -60,8 +60,9 @@ exports.NavTab = rclass
     displayName : "NavTab"
 
     propTypes :
-        label           : rtypes.oneOfType([rtypes.string, rtypes.object])
-        icon            : rtypes.oneOfType([rtypes.string, rtypes.object])
+        label           : rtypes.string
+        label_class     : rtypes.string
+        icon            : rtypes.string
         close           : rtypes.bool
         on_click        : rtypes.func
         active_top_tab  : rtypes.string
@@ -70,19 +71,21 @@ exports.NavTab = rclass
         inner_style     : rtypes.object
         add_inner_style : rtypes.object
 
+    shouldComponentUpdate: (next) ->
+        return misc.is_different(@props, next, ['label', 'label_class', 'icon', 'close', 'active_top_tab'])
+
     render_label: ->
-        if @props.label
-            <span style={marginLeft: 5}>
+        if @props.label?
+            <span style={marginLeft: 5} className={@props.label_class}>
                 {@props.label}
             </span>
 
     make_icon: ->
-        if typeof(@props.icon) == 'string'
+        if @props.icon?
             <Icon
                 name  = {@props.icon}
-                style = {fontSize: 20, paddingRight: 2} />
-        else if @props.icon?
-            @props.icon
+                style = {fontSize: 20, paddingRight: 2}
+            />
 
     on_click: (e) ->
         if @props.name?
@@ -137,6 +140,9 @@ exports.NotificationBell = rclass
     getDefaultProps: ->
         active : false
 
+    shouldComponentUpdate: (next) ->
+        return misc.is_different(@props, next, ['count', 'active'])
+
     on_click: (e) ->
         @actions('page').toggle_show_file_use()
         document.activeElement.blur() # otherwise, it'll be highlighted even when closed again
@@ -178,10 +184,10 @@ exports.NotificationBell = rclass
             bell_style = {color: COLOR.FG_RED}
 
         <NavItem
-            ref='bell'
-            style={outer_style}
-            onClick={@on_click}
-            className={'active' if @props.active}
+            ref       = {'bell'}
+            style     = {outer_style}
+            onClick   = {@on_click}
+            className = {'active' if @props.active}
         >
             <div style={inner_style}>
                 <Icon name='bell-o' className={clz} style={bell_style} />
@@ -204,6 +210,10 @@ exports.ConnectionIndicator = rclass
         status   : rtypes.string
         actions  : rtypes.object
         on_click : rtypes.func
+
+    shouldComponentUpdate: (next) ->
+        return misc.is_different(@props, next, ['avgping', 'connection_status', 'ping', 'status']) or \
+            misc.is_different(@props.mesg_info, next.mesg_info, ['enqueued', 'count'])
 
     connection_status: ->
         if @props.connection_status == 'connected'
@@ -297,6 +307,10 @@ exports.ConnectionInfo = rclass
         account :
             hub       : rtypes.string
             mesg_info : rtypes.object
+
+    shouldComponentUpdate: (next) ->
+        return misc.is_different(@props, next, ['avgping', 'ping', 'status', 'hub']) or \
+            misc.is_different(@props.mesg_info, next.mesg_info, ['enqueued', 'count'])
 
     close: ->
         @actions('page').show_connection(false)

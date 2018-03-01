@@ -68,6 +68,8 @@ FileUsePageWrapper = (props) ->
         {<FileUsePage redux={redux} />}
     </div>
 
+# TODO: important to nail down the data below as immutable and add shouldComponentUpdate, since
+# this Page component gets massive not-needed rendering all the time!!!!
 Page = rclass
     displayName : "Page"
 
@@ -127,7 +129,8 @@ Page = rclass
 
         <NavTab
             name           = 'account'
-            label          = {<span className={nav_class}>Account</span>}
+            label          = {'Account'}
+            label_class    = {nav_class}
             icon           = {a}
             actions        = {@actions('page')}
             active_top_tab = {@props.active_top_tab}
@@ -141,6 +144,7 @@ Page = rclass
         <NavTab
             name            = 'account'
             label           = 'Sign in'
+            label_class     = {nav_class}
             icon            = 'sign-in'
             on_click        = {@sign_in_tab_clicked}
             actions         = {@actions('page')}
@@ -153,8 +157,9 @@ Page = rclass
         if not require('./customize').commercial
             return
         <NavTab
-            label          = {<span className={nav_class}>Help</span>}
-            icon           = 'medkit'
+            label          = {'Help'}
+            label_class    = {nav_class}
+            icon           = {'medkit'}
             actions        = {@actions('page')}
             active_top_tab = {@props.active_top_tab}
             on_click       = {=>redux.getActions('support').show(true)}
@@ -173,9 +178,10 @@ Page = rclass
             {@render_account_tab() if logged_in}
             {@render_sign_in_tab() if not logged_in}
             <NavTab
-                name           = 'about'
-                label          = {<span className={nav_class}>CoCalc</span>}
-                icon           = 'info-circle'
+                name           = {'about'}
+                label          = {'CoCalc'}
+                label_class    = {nav_class}
+                icon           = {'info-circle'}
                 actions        = {@actions('page')}
                 active_top_tab = {@props.active_top_tab} />
             <NavItem className='divider-vertical hidden-xs' />
@@ -193,7 +199,7 @@ Page = rclass
 
         <Nav style={height:'40px', margin:'0', overflow:'hidden'}>
             <NavTab
-                name           = 'projects'
+                name           = {'projects'}
                 inner_style    = {padding:'0px'}
                 actions        = {@actions('page')}
                 active_top_tab = {@props.active_top_tab}

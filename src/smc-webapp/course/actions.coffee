@@ -392,7 +392,7 @@ exports.CourseActions = class CourseActions extends Actions
                         timeout : 60
                         cb      : cb
             ], cb)
-        id = @set_activity(desc:"Creating #{students.length} student projects (do not close this until done)")
+        id = @set_activity(desc:"Creating #{students.length} student projects (do not close the course until done)")
         async.mapLimit student_ids, PARALLEL_LIMIT, f, (err) =>
             @set_activity(id:id)
             if err

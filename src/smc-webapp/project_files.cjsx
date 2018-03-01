@@ -2024,19 +2024,21 @@ error_style =
     right       : '5px'
     boxShadow   : '5px 5px 5px grey'
 
+# TODO: change/rewrite ProjectFiles to not have any rtypes.objects and
+# add a shouldComponentUpdate!!
 exports.ProjectFiles = rclass ({name}) ->
     displayName : 'ProjectFiles'
 
     reduxProps :
         projects :
-            project_map                       : rtypes.immutable
+            project_map                       : rtypes.immutable.Map
             date_when_course_payment_required : rtypes.func
             get_my_group                      : rtypes.func
             get_total_project_quotas          : rtypes.func
         account :
-            other_settings : rtypes.immutable
+            other_settings : rtypes.immutable.Map
         billing :
-            customer      : rtypes.object
+            customer       : rtypes.object
 
         "#{name}" :
             active_file_sort      : rtypes.object
