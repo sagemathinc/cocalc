@@ -1826,7 +1826,7 @@ exports.UpgradeAdjustor = rclass
                         onClick  = {=>@save_upgrade_quotas(remaining)}
                         disabled = {@props.disable_submit or not @valid_changed_upgrade_inputs(current, limits)}
                     >
-                        <Icon name='arrow-circle-up' /> {if @props.submit_text then @props.submit_text else "Submit changes"}
+                        <Icon name='arrow-circle-up' /> {if @props.submit_text then @props.submit_text else "Save changes"}
                     </Button>
                     <Button onClick={@props.cancel_upgrading}>
                         Cancel
