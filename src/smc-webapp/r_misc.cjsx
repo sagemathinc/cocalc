@@ -123,8 +123,9 @@ exports.Icon = Icon = rclass
         onMouseOver: rtypes.func
         onMouseOut : rtypes.func
 
-    shouldComponentUpdate: (next) ->  # we exclude style changes for speed reasons (and style is rarely used)
-        return misc.is_different(@props, next, ['name', 'size', 'rotate', 'flip', 'spin', 'pulse', 'fixedWidth', \
+    shouldComponentUpdate: (next) ->  # we exclude style changes for speed reasons (and style is rarely used); always update if there are children
+        return @props.children? or \
+               misc.is_different(@props, next, ['name', 'size', 'rotate', 'flip', 'spin', 'pulse', 'fixedWidth', \
                                           'stack', 'inverse', 'className'])
 
 
@@ -162,7 +163,15 @@ exports.Icon = Icon = rclass
             classNames += ' fa-inverse'
         if className
             classNames += " #{className}"
-        return <i style={style} className={classNames} onMouseOver={@props.onMouseOver} onMouseOut={@props.onMouseOut} onClick={@props.onClick}>{@props.children}</i>
+        <i
+            style       = {style}
+            className   = {classNames}
+            onMouseOver = {@props.onMouseOver} 
+            onMouseOut  = {@props.onMouseOut}
+            onClick     = {@props.onClick}
+        >
+                {@props.children}
+        </i>
 
 # this Octicon icon class requires the CSS file in octicons/octicons/octicons.css (see landing.coffee)
 exports.Octicon = rclass
@@ -473,9 +482,6 @@ exports.LabeledRow = LabeledRow = rclass
         label      : rtypes.any.isRequired
         style      : rtypes.object            # NOTE: for perf reasons, we do not update if only the style changes!
         label_cols : rtypes.number    # number between 1 and 11 (default: 4)
-
-    shouldComponentUpdate: (next) ->
-        return misc.is_different(@props, next, ['label', 'label_cols'])
 
     getDefaultProps: ->
         label_cols : 4

@@ -70,10 +70,11 @@ exports.NavTab = rclass
         style           : rtypes.object
         inner_style     : rtypes.object
         add_inner_style : rtypes.object
-        stable          : rtypes.bool     # if true, children assumed to never change
 
     shouldComponentUpdate: (next) ->
-        return not @props.stable or misc.is_different(@props, next, ['label', 'label_class', 'icon', 'close', 'active_top_tab'])
+        if @props.children?
+            return true
+        return misc.is_different(@props, next, ['label', 'label_class', 'icon', 'close', 'active_top_tab'])
 
     render_label: ->
         if @props.label?
@@ -408,6 +409,9 @@ exports.FullscreenButton = rclass
 
 exports.AppLogo = rclass
     displayName : 'AppLogo'
+
+    shouldComponentUpdate: ->
+        return false
 
     render: ->
         {APP_ICON} = require('./art')
