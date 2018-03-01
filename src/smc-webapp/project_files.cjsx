@@ -1047,6 +1047,11 @@ ProjectFilesActionBox = rclass
     reduxProps :
         projects :
             get_project_select_list : rtypes.func
+            # get_total_project_quotas relys on this data
+            # Will be removed by #1084
+            project_map                       : rtypes.immutable.Map
+            get_total_project_quotas          : rtypes.func
+
         account :
             get_user_type : rtypes.func
         customize :
@@ -1525,7 +1530,22 @@ ProjectFilesActionBox = rclass
             </Checkbox>
         </form>
 
+    render_share_error: ->
+        <Alert bsStyle={'danger'} style={padding:'30px', marginBottom:'30px'}>
+            <h3>
+                Publicly sharing files requires internet access
+            </h3>
+            <div style={fontSize:'12pt'}>
+                You <b>must</b> first enable the 'Internet access' upgrade in project
+                settings in order to publicly share files from this project.
+            </div>
+        </Alert>
+
     render_share: ->
+        quotas = @props.get_total_project_quotas(@props.project_id)
+        if not quotas?.network
+            return @render_share_error()
+
         # currently only works for a single selected file
         single_file = @props.checked_files.first()
         single_file_data = @props.file_map[misc.path_split(single_file).tail]
