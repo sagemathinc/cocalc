@@ -538,36 +538,44 @@ react_component = (x) ->
             C = connect_component(x.reduxProps)(C)
     return C
 
-COUNT = false
-TIME = false
-if COUNT
-    # Use these in the console:
-    #  reset_render_count()
-    #  JSON.stringify(get_render_count())
-    render_count = {}
-    rclass = (x) ->
-        x._render = x.render
-        x.render = () ->
-            render_count[x.displayName] = (render_count[x.displayName] ? 0) + 1
-            return @_render()
-        return react_component(x)
-    window.get_render_count = ->
-        total = 0
-        for k,v of render_count
-            total += v
-        return {counts:render_count, total:total}
-    window.reset_render_count = ->
+MODE = 'default'  # one of 'default', 'count', 'verbose', 'time'
+MODE = 'verbose'
+switch MODE
+    when 'count'
+        # Use these in the console:
+        #  reset_render_count()
+        #  JSON.stringify(get_render_count())
         render_count = {}
-else if TIME
-    rclass = (x) =>
-        t0 = performance.now()
-        r = react_component(x)
-        t1 = performance.now()
-        if t1 - t0 > 1
-            console.log r.displayName, "took", t1 - t0, "ms of time"
-        return r
-else
-    rclass = react_component
+        rclass = (x) ->
+            x._render = x.render
+            x.render = () ->
+                render_count[x.displayName] = (render_count[x.displayName] ? 0) + 1
+                return @_render()
+            return react_component(x)
+        window.get_render_count = ->
+            total = 0
+            for k,v of render_count
+                total += v
+            return {counts:render_count, total:total}
+        window.reset_render_count = ->
+            render_count = {}
+    when 'time'
+        rclass = (x) =>
+            t0 = performance.now()
+            r = react_component(x)
+            t1 = performance.now()
+            if t1 - t0 > 1
+                console.log r.displayName, "took", t1 - t0, "ms of time"
+            return r
+    when 'verbose'
+        rclass = (x) ->
+            x._render = x.render
+            x.render = () ->
+                console.log x.displayName
+                return @_render()
+            return react_component(x)
+    else
+        rclass = react_component
 
 Redux = createReactClass
     propTypes :

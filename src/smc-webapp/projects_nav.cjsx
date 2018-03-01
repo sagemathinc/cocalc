@@ -60,6 +60,22 @@ ProjectTab = rclass
     getInitialState: ->
         x_hovered : false
 
+    ###
+    This strip_href is a hack below to workaround issues with Firefox.  In particular, without this hack:
+    In the project bar in the dev app, I can grab the tab for a project and pull it down
+    from the bar. Just the label, not the whole browser tab. And when I let go, the
+    tab returns to the project bar but its horizontal motion still tracks mouse
+    cursor position. Clicking mouse releases the tab to a correct position in the
+    project bar. That does not happen in with Chrome.
+    ###
+    strip_href: ->
+        @refs.tab?.node.children[0].removeAttribute('href')
+    componentDidMount: ->
+        @strip_href()
+    componentDidUpdate: () ->
+        @strip_href()
+
+
     close_tab: (e) ->
         e.stopPropagation()
         e.preventDefault()
