@@ -1,4 +1,4 @@
-###############################################################################
+##############################################################################
 #
 #    CoCalc: Collaborative Calculation in the Cloud
 #
@@ -480,13 +480,26 @@ SupportForm = rclass
         submit    : rtypes.func.isRequired
         actions   : rtypes.object.isRequired
 
-    email_change: ->
-        @props.actions.set_email(ReactDOM.findDOMNode(@refs.email).value)
+    getInitialState: ->
+        email    : @props.email
+        subject  : @props.subject
+        body     : @props.body
+
+    componentWillMount: ->
+        {debounce}   = require('underscore')
+        @set_email   = debounce(@props.actions.set_email, 100, false)
+        @set_content = debounce(@props.actions.set, 100, false)
 
     data_change: ->
-        @props.actions.set
-            body     : ReactDOM.findDOMNode(@refs.body).value
-            subject  : ReactDOM.findDOMNode(@refs.subject).value
+        data =
+            subject : ReactDOM.findDOMNode(@refs.subject).value
+            body    : ReactDOM.findDOMNode(@refs.body).value
+        @set_content(data)
+        @setState(data)
+
+    email_change: (value) ->
+        @set_email(value)
+        @setState(email:value)
 
     render: ->
         if not @props.show
@@ -510,8 +523,8 @@ SupportForm = rclass
                     type        = 'text'
                     tabIndex    = {1}
                     placeholder = 'your_email@address.com'
-                    value       = {@props.email}
-                    onChange    = {@email_change} />
+                    value       = {@state.email}
+                    onChange    = {(e) => @email_change(e.target.value)} />
             </FormGroup>
             {email_info}
             <Space />
@@ -523,7 +536,7 @@ SupportForm = rclass
                     tabIndex    = {2}
                     label       = 'Message'
                     placeholder = "Subject ..."
-                    value       = {@props.subject}
+                    value       = {@state.subject}
                     onChange    = {@data_change} />
             </FormGroup>
             <div style={margin:'10px', color:'#666'}>
@@ -538,7 +551,7 @@ SupportForm = rclass
                     tabIndex    = {3}
                     placeholder = 'Describe the problem ...'
                     rows        = {6}
-                    value       = {@props.body}
+                    value       = {@state.body}
                     onChange    = {@data_change} />
             </FormGroup>
         </form>
