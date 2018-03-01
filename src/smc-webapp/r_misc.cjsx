@@ -1010,12 +1010,14 @@ exports.Tip = Tip = rclass
         icon      : rtypes.string
         id        : rtypes.string   # can be used for screen readers (otherwise defaults to title)
         style     : rtypes.object   # changing not checked when updating.
+        stable    : rtypes.bool     # if true, children assumed to never change
 
     shouldComponentUpdate: (props, state) ->
-        return @state.display_trigger != state.display_trigger or \
+        return not @props.stable or \
+               @props.always_update or \
+               @state.display_trigger != state.display_trigger or \
                misc.is_different(@props, props, ['placement', 'size', 'delayShow', \
                                                  'delayHide', 'rootClose', 'icon', 'id'])
-
 
     getDefaultProps: ->
         placement : 'right'

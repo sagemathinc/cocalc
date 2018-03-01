@@ -49,7 +49,6 @@ GhostTab = (props) ->
 ProjectTab = rclass
     reduxProps:
         projects:
-            get_title : rtypes.func
             public_project_titles : rtypes.immutable.Map
 
     propTypes:
@@ -67,6 +66,7 @@ ProjectTab = rclass
     componentDidUpdate: () ->
         @strip_href()
 
+    # WTF? -- wstein
     strip_href: ->
         @refs.tab?.node.children[0].removeAttribute('href')
 
@@ -76,8 +76,7 @@ ProjectTab = rclass
         @actions('page').close_project_tab(@props.project_id)
 
     render: ->
-        title = @props.get_title(@props.project_id)
-        title ?= @props.public_project_titles?.get(@props.project_id)
+        title  = @props.project?.get('title') ? @props.public_project_titles?.get(@props.project_id)
         if not title?
             if @props.active_top_tab == @props.project_id
                 set_window_title("Loading")
@@ -113,14 +112,14 @@ ProjectTab = rclass
         >
             <div style = {float:'right', whiteSpace:'nowrap', fontSize:'16px', color:x_color}>
                 <Icon
-                    name = 'times'
-                    onClick = {@close_tab}
+                    name        = 'times'
+                    onClick     = {@close_tab}
                     onMouseOver = {(e)=>@setState(x_hovered:true)}
-                    onMouseOut = {(e)=>@actions('page').clear_ghost_tabs();@setState(x_hovered:false)}
+                    onMouseOut  = {(e)=>@actions('page').clear_ghost_tabs();@setState(x_hovered:false)}
                 />
             </div>
             <div style={project_name_styles}>
-                <Tip title={misc.trunc(title,32)} tip={desc} placement='bottom' size='small'>
+                <Tip title={misc.trunc(title,32)} tip={desc} placement='bottom' size='small' always_update={true}>
                     <Icon name={icon} style={fontSize:'20px'} />
                     <span style={marginLeft: 5, position:'relative', top:-2}>{misc.trunc(title,24)}</span>
                 </Tip>
@@ -143,12 +142,12 @@ FullProjectsNav = rclass
     on_sort_end: ({oldIndex, newIndex}) ->
         @actions('projects').move_project_tab({old_index:oldIndex, new_index:newIndex, open_projects:@props.open_projects})
 
-    project_tabs: ->
+    render_project_tabs: ->
         v = []
         if not @props.open_projects?
             return
         @props.open_projects.map (project_id, index) =>
-            v.push(@project_tab(project_id, index))
+            v.push(@render_project_tab(project_id, index))
 
         if @props.num_ghost_tabs == 0
             return v
@@ -159,25 +158,17 @@ FullProjectsNav = rclass
             v.push(<GhostTab index={index} key={index}/>)
         return v
 
-    project_tab: (project_id, index) ->
+    render_project_tab: (project_id, index) ->
         <ProjectTab
-            index          = {index}
-            key            = {project_id}
-            project_id     = {project_id}
-            active_top_tab = {@props.active_top_tab}
-            project        = {@props.project_map?.get(project_id)}
+            index                 = {index}
+            key                   = {project_id}
+            project_id            = {project_id}
+            active_top_tab        = {@props.active_top_tab}
+            project               = {@props.project_map?.get(project_id)}
             public_project_titles = {@props.public_project_titles}
         />
 
     render: ->
-        shim_style =
-            position    : 'absolute'
-            left        : '0'
-            marginRight : '0px'
-            marginLeft  : '0px'
-            paddingLeft : '0px'
-            width       : '100%'
-            display     : 'flex'
         <div
             style = {display:'flex', flex:'1', overflow:'hidden', height:'40px', margin:'0'}
         >
@@ -192,7 +183,7 @@ FullProjectsNav = rclass
                 distance             = {3 if not feature.IS_TOUCH}
                 pressDelay           = {200 if feature.IS_TOUCH}
             >
-                {@project_tabs()}
+                {@render_project_tabs()}
             </SortableNav>
         </div>
 
@@ -264,7 +255,6 @@ DropdownProjectsNav = rclass
         projects :
             open_projects  : rtypes.immutable.List # Open projects and their state
             project_map    : rtypes.immutable.Map  # All projects available to the user
-            get_title      : rtypes.func
             public_project_titles : rtypes.immutable.Map
         page :
             active_top_tab    : rtypes.string    # key of the active tab
@@ -291,7 +281,7 @@ DropdownProjectsNav = rclass
             project_id = @props.active_top_tab
 
             title = null
-            title ?= @props.get_title(project_id)
+            title ?= @props.project_map.getIn([project_id, 'title'])
             title ?= @props.public_project_titles?.get(project_id)
             title ?= <Loading key={@props.project_id} />
         else
@@ -316,7 +306,7 @@ DropdownProjectsNav = rclass
             whiteSpace   : 'nowrap'
             overflow     : 'hidden'
             textOverflow : 'ellipsis'
-        title = @props.get_title(project_id)
+        title = @props.project_map?.getIn([project_id, 'title'])
 
         desc = misc.trunc(@props.project_map?.getIn([@props.project_id, 'description']) ? '', 128)
         project_state = @props.project_map?.getIn([@props.project_id, 'state', 'state'])
