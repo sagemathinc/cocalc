@@ -109,13 +109,13 @@ exports.AssignmentsPanel = rclass ({name}) ->
         for x,i in assignments
             <Assignment
                     key                 = {x.assignment_id}
+                    project_id          = {@props.project_id}
+                    name                = {@props.name}
+                    redux               = {@props.redux}
                     assignment          = {@props.all_assignments.get(x.assignment_id)}
                     background          = {if i%2==0 then "#eee"}
-                    project_id          = {@props.project_id}
-                    redux               = {@props.redux}
                     students            = {@props.students}
                     user_map            = {@props.user_map}
-                    name                = {@props.name}
                     is_expanded         = {@props.expanded_assignments.has(x.assignment_id)}
                     active_student_sort = {@props.active_student_sort}
                     expand_peer_config  = {@props.expanded_peer_configs.has(x.assignment_id)}
@@ -188,21 +188,22 @@ Assignment = rclass
         name                : rtypes.string.isRequired
         project_id          : rtypes.string.isRequired
         redux               : rtypes.object.isRequired
+
         assignment          : rtypes.immutable.Map.isRequired
+        background          : rtypes.string
         students            : rtypes.object.isRequired
         user_map            : rtypes.object.isRequired
-        background          : rtypes.string
         is_expanded         : rtypes.bool
         active_student_sort : rtypes.immutable.Map
         expand_peer_config  : rtypes.bool
 
+    getInitialState: ->  {} # there are many keys used in state; we assume @state not null in code below.
+
     shouldComponentUpdate: (nextProps, nextState) ->
-        return @state.confirm_delete != nextState.confirm_delete or \
+        # state is an object with tons of keys and values true/false
+        return not misc.is_equal(@state, nextState) or \
                misc.is_different(@props, nextProps, ['assignment', 'students', 'user_map', 'background', \
                              'is_expanded', 'active_student_sort', 'expand_peer_config'])
-
-    getInitialState: ->
-        confirm_delete : false
 
     _due_date: ->
         due_date = @props.assignment.get('due_date')  # a string

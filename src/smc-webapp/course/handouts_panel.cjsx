@@ -81,23 +81,25 @@ exports.HandoutsPanel = rclass ({name}) ->
             expanded_handouts : rtypes.immutable.Set
 
     propTypes :
-        project_id   : rtypes.string.isRequired
-        all_handouts : rtypes.immutable.Map.isRequired # handout_id -> handout
-        students     : rtypes.immutable.Map.isRequired # student_id -> student
-        user_map     : rtypes.object.isRequired
-        actions      : rtypes.object.isRequired
-        store_object : rtypes.object
+        actions         : rtypes.object.isRequired
+        store_object    : rtypes.object
         project_actions : rtypes.object.isRequired
+        project_id      : rtypes.string.isRequired
+        all_handouts    : rtypes.immutable.Map.isRequired # handout_id -> handout
+        students        : rtypes.immutable.Map.isRequired # student_id -> student
+        user_map        : rtypes.object.isRequired
 
     getInitialState: ->
         show_deleted : false
         search          : ''      # Search value for filtering handouts
 
     # Update on different students, handouts, or filter parameters
+    # TODO: this is BS -- do this right.  Get rid of store_object above and
+    # put the actual data it uses; make everything immutable!
     shouldComponentUpdate: (nextProps, nextState) ->
         if nextProps.all_handouts != @props.all_handouts or nextProps.students != @props.students or @props.expanded_handouts != nextProps.expanded_handouts
             return true
-        if nextState.search != @state.search or nextState.show_deleted != @state.show_deleted
+        if not misc.is_equal(nextState, @state)
             return true
         return false
 

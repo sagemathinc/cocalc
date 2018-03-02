@@ -552,7 +552,7 @@ TimeAgo = require('react-timeago').default
 # date0 and date1 are string, Date object or number
 # This is just used for updates, so is_different if there
 # is a chance they are different
-is_different_date = (date0, date1) ->
+exports.is_different_date = is_different_date = (date0, date1) ->
     t0 = typeof(date0)
     t1 = typeof(date1)
     if t0 != t1
