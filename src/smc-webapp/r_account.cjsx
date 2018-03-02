@@ -80,7 +80,7 @@ EmailVerification = rclass
     propTypes :
         account_id             : rtypes.string
         email_address          : rtypes.string
-        email_address_verified : rtypes.object
+        email_address_verified : rtypes.immutable.Map
 
     getInitialState: ->
         disabled_button : false
@@ -103,8 +103,7 @@ EmailVerification = rclass
         if not @props.email_address?
             <span>Unkown</span>
         else
-            email_address_verified = @props.email_address_verified ? {}
-            if email_address_verified[@props.email_address]?
+            if @props.email_address_verified?.get(@props.email_address)
                 <span style={color: 'green'}>Verified</span>
             else
                 [
@@ -408,8 +407,8 @@ AccountSettings = rclass
         first_name             : rtypes.string
         last_name              : rtypes.string
         email_address          : rtypes.string
-        email_address_verified : rtypes.object
-        passports              : rtypes.object
+        email_address_verified : rtypes.immutable.Map
+        passports              : rtypes.immutable.Map
         show_sign_out          : rtypes.bool
         sign_out_error         : rtypes.string
         everywhere             : rtypes.bool
@@ -457,7 +456,7 @@ AccountSettings = rclass
     remove_strategy_click: ->
         strategy = @state.remove_strategy_button
         @setState(remove_strategy_button:undefined, add_strategy_link:undefined)
-        for k, _ of @props.passports
+        for k, _ of @props.passports?.toJS() ? {}
             if misc.startswith(k, strategy)
                 id = k.split('-')[1]
                 break
@@ -475,7 +474,7 @@ AccountSettings = rclass
             return
         strategy = @state.remove_strategy_button
         name = misc.capitalize(strategy)
-        if misc.len(@props.passports) <= 1 and not @props.email_address
+        if @props.passports?.size <= 1 and not @props.email_address
             <Well>
                 You must set an email address above or add another login method before
                 you can disable login to your <SiteName/> account using your {name} account.
@@ -545,7 +544,7 @@ AccountSettings = rclass
     render_sign_in_strategies: ->
         if not STRATEGIES? or STRATEGIES.length <= 1
             return
-        strategies = (x.slice(0,x.indexOf('-')) for x in misc.keys(@props.passports ? {}))
+        strategies = (x.slice(0,x.indexOf('-')) for x in misc.keys(@props.passports?.toJS() ? {}))
         <div>
             <hr key='hr0' />
             <h5 style={color:"#666"}>Linked accounts (only used for sign in)</h5>
@@ -732,7 +731,7 @@ ProfileSettings = rclass
     reduxProps:
         account :
             account_id : rtypes.string
-            profile    : rtypes.immutable
+            profile    : rtypes.immutable.Map
 
     getInitialState: ->
         show_instructions : false
@@ -815,8 +814,11 @@ TerminalSettings = rclass
     displayName : 'Account-TerminalSettings'
 
     propTypes :
-        terminal : rtypes.object
+        terminal : rtypes.immutable.Map
         redux    : rtypes.object
+
+    shouldComponentUpdate: (props) ->
+        return @props.terminal != props.terminal
 
     handleChange: (obj) ->
         @props.redux.getTable('account').set(terminal: obj)
@@ -830,19 +832,19 @@ TerminalSettings = rclass
                     on_change = {(font_size)=>@handleChange(font_size:font_size)}
                     min       = {3}
                     max       = {80}
-                    number    = {@props.terminal.font_size}
+                    number    = {@props.terminal.get('font_size')}
                     unit      = "px" />
             </LabeledRow>
             <LabeledRow label='Terminal font family'>
                 <SelectorInput
-                    selected  = {@props.terminal.font}
+                    selected  = {@props.terminal.get('font')}
                     options   = {TERMINAL_FONT_FAMILIES}
                     on_change = {(font)=>@handleChange(font:font)}
                 />
             </LabeledRow>
             <LabeledRow label='Terminal color scheme'>
                 <SelectorInput
-                    selected  = {@props.terminal.color_scheme}
+                    selected  = {@props.terminal.get('color_scheme')}
                     options   = {TERMINAL_COLOR_SCHEMES}
                     on_change = {(color_scheme)=>@handleChange(color_scheme : color_scheme)}
                 />
@@ -870,8 +872,11 @@ EditorSettingsCheckboxes = rclass
     displayName : 'Account-EditorSettingsCheckboxes'
 
     propTypes :
-        editor_settings : rtypes.object.isRequired
+        editor_settings : rtypes.immutable.Map.isRequired
         on_change       : rtypes.func.isRequired
+
+    shouldComponentUpdate: (props) ->
+        return @props.editor_settings != props.editor_settings
 
     label_checkbox: (name, desc) ->
         <span>
@@ -880,7 +885,7 @@ EditorSettingsCheckboxes = rclass
         </span>
 
     render_checkbox: (name, desc) ->
-        <Checkbox checked  = {@props.editor_settings[name]}
+        <Checkbox checked  = {@props.editor_settings.get(name)}
                key      = {name}
                ref      = {name}
                onChange = {(e)=>@props.on_change(name, e.target.checked)}>
@@ -999,10 +1004,13 @@ EditorSettings = rclass
     displayName : 'Account-EditorSettings'
 
     propTypes :
-        redux    : rtypes.object
-        autosave : rtypes.number
-        font_size: rtypes.number
-        editor_settings : rtypes.object
+        redux           : rtypes.object
+        autosave        : rtypes.number
+        font_size       : rtypes.number
+        editor_settings : rtypes.immutable.Map
+
+    shouldComponentUpdate: (props) ->
+        return misc.is_different(@props, props, ['autosave', 'font_size', 'editor_settings'])
 
     on_change: (name, val) ->
         if name == 'autosave'
@@ -1021,9 +1029,9 @@ EditorSettings = rclass
             <EditorSettingsAutosaveInterval
                 on_change={@on_change} autosave={@props.autosave} />
             <EditorSettingsColorScheme
-                on_change={(value)=>@on_change('theme',value)} theme={@props.editor_settings.theme} />
+                on_change={(value)=>@on_change('theme',value)} theme={@props.editor_settings.get('theme')} />
             <EditorSettingsKeyboardBindings
-                on_change={(value)=>@on_change('bindings',value)} bindings={@props.editor_settings.bindings} />
+                on_change={(value)=>@on_change('bindings',value)} bindings={@props.editor_settings.get('bindings')} />
             <EditorSettingsCheckboxes
                 on_change={@on_change} editor_settings={@props.editor_settings} />
         </Panel>
@@ -1563,13 +1571,13 @@ AddStripeUser = rclass
 
 AdminSettings = rclass
     propTypes :
-        groups : rtypes.array
+        groups : rtypes.immutable.List
 
     render: ->
-        if not @props.groups? or 'admin' not in @props.groups
+        if not @props.groups?.contains('admin')
             return <span />
 
-        add_stripe_label = <Tip title="Add/Update Stripe User" tip="Make it so the SMC user with the given email address has a corresponding stripe identity, even if they have never entered a credit card.  You'll need this if you want to directly create a plan for them in Stripe.">Add/Update Stripe Users</Tip>
+        add_stripe_label = <Tip title="Add/Update Stripe User" tip="Make it so the user with the given email address has a corresponding stripe identity, even if they have never entered a credit card.  You'll need this if you want to directly create a plan for them in Stripe.">Add/Update Stripe Users</Tip>
 
         <Panel header={<h2> <Icon name='users' /> Administrative server settings</h2>}>
             <LabeledRow label='Account Creation Token'>
@@ -1594,41 +1602,41 @@ exports.AccountSettingsTop = rclass
     displayName : 'AccountSettingsTop'
 
     propTypes :
-        redux           : rtypes.object
-        account_id      : rtypes.string
-        first_name      : rtypes.string
-        last_name       : rtypes.string
-        email_address   : rtypes.string
-        email_address_verified : rtypes.object
-        passports       : rtypes.object
-        show_sign_out   : rtypes.bool
-        sign_out_error  : rtypes.string
-        everywhere      : rtypes.bool
-        terminal        : rtypes.object
-        evaluate_key    : rtypes.string
-        autosave        : rtypes.number
-        font_size       : rtypes.number
-        editor_settings : rtypes.object
-        other_settings  : rtypes.object
-        groups          : rtypes.array
-        stripe_customer : rtypes.immutable.Map
+        redux                  : rtypes.object
+        account_id             : rtypes.string
+        first_name             : rtypes.string
+        last_name              : rtypes.string
+        email_address          : rtypes.string
+        email_address_verified : rtypes.immutable.Map
+        passports              : rtypes.immutable.Map
+        show_sign_out          : rtypes.bool
+        sign_out_error         : rtypes.string
+        everywhere             : rtypes.bool
+        terminal               : rtypes.immutable.Map
+        evaluate_key           : rtypes.string
+        autosave               : rtypes.number
+        font_size              : rtypes.number
+        editor_settings        : rtypes.immutable.Map
+        other_settings         : rtypes.immutable.Map
+        groups                 : rtypes.immutable.List
+        stripe_customer        : rtypes.immutable.Map
 
     render: ->
         <div style={marginTop:'1em'}>
             <Row>
                 <Col xs={12} md={6}>
                     <AccountSettings
-                        account_id     = {@props.account_id}
-                        first_name     = {@props.first_name}
-                        last_name      = {@props.last_name}
-                        email_address  = {@props.email_address}
+                        account_id             = {@props.account_id}
+                        first_name             = {@props.first_name}
+                        last_name              = {@props.last_name}
+                        email_address          = {@props.email_address}
                         email_address_verified = {@props.email_address_verified}
-                        passports      = {@props.passports}
-                        show_sign_out  = {@props.show_sign_out}
-                        sign_out_error = {@props.sign_out_error}
-                        everywhere     = {@props.everywhere}
-                        other_settings = {@props.other_settings}
-                        redux          = {@props.redux} />
+                        passports              = {@props.passports}
+                        show_sign_out          = {@props.show_sign_out}
+                        sign_out_error         = {@props.sign_out_error}
+                        everywhere             = {@props.everywhere}
+                        other_settings         = {@props.other_settings}
+                        redux                  = {@props.redux} />
                     <TerminalSettings
                         terminal = {@props.terminal}
                         redux    = {@props.redux} />

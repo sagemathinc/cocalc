@@ -45,7 +45,7 @@ Passports = rclass
     displayName : 'Passports'
 
     propTypes :
-        strategies  : rtypes.array
+        strategies  : rtypes.immutable.List
         get_api_key : rtypes.string
 
     styles :
@@ -79,7 +79,7 @@ Passports = rclass
         <div style={textAlign: 'center'}>
             <h3 style={marginTop: 0}>Connect with</h3>
             <div>
-                {@render_strategy(name) for name in @props.strategies}
+                {@render_strategy(name) for name in @props.strategies?.toJS() ? []}
             </div>
             <hr style={marginTop: 10, marginBottom: 10} />
         </div>
@@ -97,8 +97,8 @@ SignUp = rclass
     displayName: 'SignUp'
 
     propTypes :
-        strategies      : rtypes.array
-        sign_up_error   : rtypes.string
+        strategies      : rtypes.immutable.List
+        sign_up_error   : rtypes.immutable.Map
         token           : rtypes.bool
         has_account     : rtypes.bool
         signing_up      : rtypes.bool
@@ -116,13 +116,14 @@ SignUp = rclass
         @actions('account').create_account(first_name, last_name, email, password, token)
 
     display_error: (field)->
-        if @props.sign_up_error?[field]?
-            <div style={ERROR_STYLE}>{@props.sign_up_error[field]}</div>
+        err = @props.sign_up_error?.get(field)
+        if err?
+            <div style={ERROR_STYLE}>{err}</div>
 
     display_passports: ->
         if not @props.strategies?
             return <Loading />
-        if @props.strategies.length > 1
+        if @props.strategies.size > 1
             return <Passports strategies={@props.strategies} get_api_key={@props.get_api_key} />
 
     display_token_input: ->
@@ -147,7 +148,8 @@ SignUp = rclass
             <br />
             {@display_token_input()}
             {@display_error("token")}
-            {@display_error("account_creation_failed")}   {### a generic error ###}
+            {@display_error("generic")}                   {### a generic error ###}
+            {@display_error("account_creation_failed")}
             {@display_passports()}
             <AccountCreationEmailInstructions />
             <form style={marginTop: 20, marginBottom: 20} onSubmit={@make_account}>
@@ -570,8 +572,8 @@ Connecting = () ->
 
 exports.LandingPage = rclass
     propTypes:
-        strategies              : rtypes.array
-        sign_up_error           : rtypes.object
+        strategies              : rtypes.immutable.List
+        sign_up_error           : rtypes.immutable.Map
         sign_in_error           : rtypes.string
         signing_in              : rtypes.bool
         signing_up              : rtypes.bool
