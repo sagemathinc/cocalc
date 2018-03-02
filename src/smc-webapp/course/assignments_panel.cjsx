@@ -757,13 +757,20 @@ Assignment = rclass
             bsStyle  = 'primary'
             activity = 'Start'
 
-        <Button
-            onClick  = {handler}
-            bsStyle  = {bsStyle}
-            disabled = {disabled}
+        <Tip
+            title     = {'Open grading dialog'}
+            tip       = {'Go through the collected files of your students, assign points, and grade them.'}
+            placement = {'bottom'}
+            style     = {float:'right'}
         >
-            <Icon name={icon} /> {activity} Grading…
-        </Button>
+            <Button
+                onClick  = {handler}
+                bsStyle  = {bsStyle}
+                disabled = {disabled}
+            >
+                <Icon name={icon} /> {activity} Grading…
+            </Button>
+        </Tip>
 
     render_return_graded_button: (status) ->
         if status.collect == 0

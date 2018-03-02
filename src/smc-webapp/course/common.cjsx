@@ -270,9 +270,11 @@ exports.StudentAssignmentInfo = rclass
                  Cancel
             </Button>
             if name.toLowerCase() == 'assign'
-                # inline-block because buttons above are float:left
-                v.push <div style={margin:'5px', display: 'inline-block'}>
-                           <a target='_blank' href='https://github.com/sagemathinc/cocalc/wiki/CourseCopy'>
+                v.push <div style={margin:'5px', display:'inline-block'}>
+                           <a
+                               target = {'_blank'}
+                               href   = {'https://github.com/sagemathinc/cocalc/wiki/CourseCopy'}
+                           >
                                What happens when I assign again?
                            </a>
                        </div>

@@ -62,6 +62,14 @@ FLEX_LIST_CONTAINER =
     border         : "1px solid #{COLORS.GRAY_L}"
     borderRadius   : '5px'
 
+EMPTY_LISTING_TEXT =
+    fontSize       : '120%'
+    textAlign      : 'center'
+    minHeight      : '15vh'
+    display        : 'flex'
+    alignItems     : 'center'
+    justifyContent : 'center'
+
 PAGE_SIZE = 10
 
 # util functions
@@ -783,27 +791,18 @@ exports.GradingStudentAssignment = rclass
             </Col>
         </Row>
 
-    render_open_collected_file : (filename) ->
-        filepath = @filepath(filename)
-        <Button
-            onClick  = {=>@open_assignment('collected', filepath)}
-            disabled = {(@state.listing?.get('error')?.length > 0) ? false}
-            bsStyle  = {'primary'}
-            bsSize   = {'small'}
-        >
-            <Icon name='eye' /> Collected<span className='hidden-md'> file</span>
-        </Button>
-
     render_open_student_file: (filename) ->
         filepath = @filepath(filename)
         <Tip
-            title = {"Open the student's file"}
-            title = {"This opens the corresponding file in the student's project. This allows you to see the progress via 'TimeTravel' for many file types, etc."}
+            title     = {"Open the student's file"}
+            title     = {"This opens the corresponding file in the student's project. This allows you to see the progress via 'TimeTravel' for many file types, etc."}
+            placement = {'left'}
         >
             <Button
                 onClick = {=>@open_assignment('assigned', filepath)}
                 bsStyle = {'default'}
                 bsSize  = {'small'}
+                style   = {color:COLORS.GRAY}
             >
                 Student file <Icon name='external-link' />
             </Button>
@@ -845,7 +844,12 @@ exports.GradingStudentAssignment = rclass
             </Button>
 
     listing_header: ->
-        <Row style={background: COLORS.GRAY_LL}>
+        header_style =
+            background  : COLORS.GRAY_LLL
+            color       : COLORS.GRAY
+            padding     : '5px 0px'
+
+        <Row style={header_style}>
             <Col md={4}>Filename</Col>
             <Col md={2}>Last modified</Col>
             <Col md={4}>Points</Col>
@@ -944,15 +948,23 @@ exports.GradingStudentAssignment = rclass
         return misc.merge(style, LIST_ENTRY_STYLE)
 
     listing_entries: ->
-        return <li><Loading /></li> if not @state.listing?
+        if not @state.listing?
+            return <div style={EMPTY_LISTING_TEXT}>
+                       <Loading />
+                   </div>
 
         error = @state.listing.get('error')
         if error?
             if error = 'no_dir'
                 # TODO insert collect button here and refresh listing accordingly ...
-                return <div>No directory. Not yet collected from student?</div>
+                return <div style={EMPTY_LISTING_TEXT}>
+                           No directory. Not yet collected from student?
+                       </div>
             else
-                return <div>Got error listing directory: {error}</div>
+                return <div style={EMPTY_LISTING_TEXT}>
+                           <div>Got an error listing directory:</div>
+                           <pre>{error}</pre>
+                       </div>
 
         files = @state.listing.get('files')
         if files?.size > 0
@@ -975,7 +987,7 @@ exports.GradingStudentAssignment = rclass
                     </Row>
                 </li>
         else
-            return <div>No files.</div>
+            return <div style={EMPTY_LISTING_TEXT}>No files.</div>
 
     listing_more_files_info: ->
         num_pages = @state.num_pages ? 1
@@ -1110,29 +1122,29 @@ exports.GradingStudentAssignment = rclass
                 </div>
                 <div style={padding:'0', flex:'0'}>
                     <ButtonGroup style={marginBottom:'5px', display:'flex'}>
-                        <Tip
-                            title     = {'Open the collected files right here in your own project.'}
-                            placement = {'bottom'}
+                        <Button
+                            style    = {whiteSpace:'nowrap'}
+                            disabled = {disabled}
+                            onClick  = {=>@open_assignment('collected')}
                         >
-                            <Button
-                                style    = {whiteSpace:'nowrap'}
-                                disabled = {disabled}
-                                onClick  = {=>@open_assignment('collected')}
+                            <Tip
+                                title     = {'Open the collected files right here in your own project.'}
+                                placement = {'bottom'}
                             >
                                 <Icon name='folder-open-o' /><span className='hidden-md'> Collected</span> {time}
-                            </Button>
-                        </Tip>
-                        <Tip
-                            title     = {"Open this directory of files in the student's project."}
-                            placement = {'bottom'}
+                            </Tip>
+                        </Button>
+                        <Button
+                            onClick = {=>@open_assignment('assigned')}
+                            style   = {whiteSpace:'nowrap'}
                         >
-                            <Button
-                                onClick = {=>@open_assignment('assigned')}
-                                style   = {whiteSpace:'nowrap'}
+                            <Tip
+                                title     = {"Open this directory of files in the student's project."}
+                                placement = {'bottom'}
                             >
                                 Student <Icon name='external-link' />
-                            </Button>
-                        </Tip>
+                            </Tip>
+                        </Button>
                     </ButtonGroup>
                 </div>
             </div>
