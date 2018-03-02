@@ -347,7 +347,7 @@ SupportInfo = rclass
             <p>
             Sorry, there has been an error creating the ticket.
             <br/>
-            Please email <HelpEmailLink /> directly!
+            Please email <HelpEmailLink /> directly!  (NOTE: You can click "Help" again to reopen the support ticket form and copy your content to email.)
             </p>
             <p>Error message:</p>
             <pre>{@props.err}</pre>

@@ -540,6 +540,8 @@ react_component = (x) ->
 
 MODE = 'default'  # one of 'default', 'count', 'verbose', 'time'
 MODE = 'verbose'
+if not smc?
+    MODE = 'default'  # never enable in prod
 switch MODE
     when 'count'
         # Use these in the console:
