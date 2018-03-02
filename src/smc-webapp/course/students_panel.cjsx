@@ -41,17 +41,17 @@ exports.StudentsPanel = rclass ({name}) ->
     reduxProps:
         "#{name}":
             expanded_students   : rtypes.immutable.Set
-            active_student_sort : rtypes.object
+            active_student_sort : rtypes.immutable.Map
             get_student_name    : rtypes.func
 
     propTypes:
         name        : rtypes.string.isRequired
         redux       : rtypes.object.isRequired
         project_id  : rtypes.string.isRequired
-        students    : rtypes.object.isRequired
-        user_map    : rtypes.object.isRequired
-        project_map : rtypes.object.isRequired
-        assignments : rtypes.object.isRequired
+        students    : rtypes.immutable.Map.isRequired
+        user_map    : rtypes.immutable.Map.isRequired
+        project_map : rtypes.immutable.Map.isRequired
+        assignments : rtypes.immutable.Map.isRequired
 
     getInitialState: ->
         err              : undefined
@@ -62,6 +62,11 @@ exports.StudentsPanel = rclass ({name}) ->
         existing_students: undefined
         selected_option_nodes : undefined
         show_deleted     : false
+
+    shouldComponentUpdate: (props, state) ->
+        return @state != state or \
+            misc.is_different(@props, props, ['expanded_students', 'active_student_sort', \
+                      'name', 'project_id', 'students', 'user_map', 'project_map', 'assignments'])
 
     do_add_search: (e) ->
         # Search for people to add to the course
@@ -263,9 +268,9 @@ exports.StudentsPanel = rclass ({name}) ->
         # note           : "Is younger sister of Abby Florence (TA)"
 
         v = util.parse_students(@props.students, @props.user_map, @props.redux)
-        v.sort(util.pick_student_sorter(@props.active_student_sort))
+        v.sort(util.pick_student_sorter(@props.active_student_sort?.toJS()))
 
-        if @props.active_student_sort.is_descending
+        if @props.active_student_sort.get('is_descending')
             v.reverse()
 
         # Deleted students
@@ -295,8 +300,8 @@ exports.StudentsPanel = rclass ({name}) ->
             {display_name}
             <Space/>
             {<Icon style={marginRight:'10px'}
-                name={if @props.active_student_sort.is_descending then 'caret-up' else 'caret-down'}
-            /> if @props.active_student_sort.column_name == column_name}
+                name={if @props.active_student_sort.get('is_descending') then 'caret-up' else 'caret-down'}
+            /> if @props.active_student_sort.get('column_name') == column_name}
         </a>
 
     render_student_table_header: ->
@@ -386,17 +391,19 @@ Student = rclass
     propTypes:
         redux                : rtypes.object.isRequired
         name                 : rtypes.string.isRequired
-        student              : rtypes.object.isRequired
-        user_map             : rtypes.object.isRequired
-        project_map          : rtypes.object.isRequired  # here entirely to cause an update when project activity happens
-        assignments          : rtypes.object.isRequired  # here entirely to cause an update when project activity happens
+        student              : rtypes.immutable.Map.isRequired
+        user_map             : rtypes.immutable.Map.isRequired
+        project_map          : rtypes.immutable.Map.isRequired  # here entirely to cause an update when project activity happens
+        assignments          : rtypes.immutable.Map.isRequired  # here entirely to cause an update when project activity happens
         background           : rtypes.string
         is_expanded          : rtypes.bool
         student_name         : rtypes.object
         display_account_name : rtypes.bool
 
     shouldComponentUpdate: (nextProps, nextState) ->
-        return @state != nextState or @props.student != nextProps.student or @props.assignments != nextProps.assignments  or @props.project_map != nextProps.project_map or @props.user_map != nextProps.user_map or @props.background != nextProps.background or @props.is_expanded != nextProps.is_expanded or @props.student_name.full != nextProps.student_name.full
+        return misc.is_different(@state, nextState, ['confirm_delete', 'editing_student', 'edited_first_name', 'edited_last_name', 'edited_email_address']) or \
+            misc.is_different(@props, nextProps, ['name', 'student', 'user_map', 'project_map', 'assignments', 'background', 'is_expanded']) or \
+            @props.student_name?.full != nextProps.student_name?.full
 
     componentWillReceiveProps: (next) ->
         if @props.student_name.first != next.student_name.first

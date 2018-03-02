@@ -150,7 +150,7 @@ exports.render_history_footer = render_history_footer = ->
 exports.render_history = render_history = (history, user_map) ->
     if not history?
         return
-    historyList = history.toJS().slice(1)  # convert to javascrip from immutable, and remove current version.
+    historyList = history.toJS().slice(1)  # convert to javascript from immutable, and remove current version.
     for index, objects of historyList
         value = objects.content
         value = misc.smiley

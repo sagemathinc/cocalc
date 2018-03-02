@@ -91,25 +91,25 @@ Page = rclass
             <Nav stacked>
                 <NavTab
                     on_click       = {@close_menu}
-                    name           = 'account'
-                    label          = {@account_name()}
-                    icon           = 'cog'
+                    name           = {'account'}
+                    label          = {'Account'}
+                    icon           = {'cog'}
                     actions        = {@actions('page')}
                     active_top_tab = {@props.active_top_tab}
                     style          = {width:'100%'}
                 />
                 <NavTab
                     on_click       = {@close_menu}
-                    name           = 'about'
-                    label          = 'CoCalc'
-                    icon           = 'info-circle'
+                    name           = {'about'}
+                    label          = {'CoCalc'}
+                    icon           = {'info-circle'}
                     actions        = {@actions('page')}
                     active_top_tab = {@props.active_top_tab}
                     style          = {width:'100%'}
                 />
                 <NavTab
-                    label          = 'Help'
-                    icon           = 'medkit'
+                    label          = {'Help'}
+                    icon           = {'medkit'}
                     actions        = {@actions('page')}
                     active_top_tab = {@props.active_top_tab}
                     on_click       = {=>@close_menu(); @actions('support').show(true)}
