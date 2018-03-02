@@ -66,6 +66,9 @@ class exports.Actions extends Actions
         if not local_view_state.has('version') # may use to deprecate in case we change format.
             local_view_state = local_view_state.set('version', 1)
 
+        if not local_view_state.has('scroll')
+            local_view_state = local_view_state.set('scroll', immutable.Map())
+
         if not local_view_state.has("font_size")
             font_size = @redux.getStore('account')?.get('font_size') ? 14
             local_view_state = local_view_state.set('font_size', font_size)
@@ -109,6 +112,8 @@ class exports.Actions extends Actions
 
     _tree_op: (op, args...) =>
         local = @store.get('local_view_state')
+        if not local?
+            return
         t0    = local?.get('frame_tree')
         if not t0?
             return
@@ -146,6 +151,7 @@ class exports.Actions extends Actions
 
     close_frame: (id) =>
         @_tree_op('delete_node', id)
+        @save_scroll_position(id)
         delete @_cm_selections?[id]
         delete @_cm?[id]
         setTimeout(@focus, 1)
@@ -163,7 +169,18 @@ class exports.Actions extends Actions
         setTimeout(@focus, 1)
 
     save_scroll_position: (id, info) =>
-        @set_frame_tree(id:id, scroll:info)
+        local  = @store.get('local_view_state')
+        if not local?
+            return
+        scroll = local.get('scroll') ? immutable.Map()
+        if not info?
+            if not scroll.has(id)
+                return
+            scroll = scroll.delete(id)
+        else
+            scroll = scroll.set(id, immutable.fromJS(info))
+        @setState(local_view_state : local.set('scroll', scroll))
+        @_save_local_view_state()
 
     enable_key_handler: =>
         if @_state == 'closed'
@@ -196,6 +213,8 @@ class exports.Actions extends Actions
         # TOOD: this is probably naive and slow too...
         cursors = immutable.Map()
         @_syncstring.get_cursors().forEach (info, account_id) =>
+            if account_id == @_syncstring._client.account_id  # skip self.
+                return
             info.get('locs').forEach (loc) =>
                 loc  = loc.set('time', info.get('time'))
                 locs = (cursors.get(account_id) ? immutable.List()).push(loc)

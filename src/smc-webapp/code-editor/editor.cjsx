@@ -2,6 +2,8 @@
 Top-level react component for editing code
 ###
 
+misc                    = require('smc-util/misc')
+
 {React, rclass, rtypes} = require('../smc-react')
 {Loading}               = require('../r_misc')
 {FrameTree}             = require('./frame-tree')
@@ -20,24 +22,15 @@ exports.Editor = rclass ({name}) ->
             has_unsaved_changes     : rtypes.bool
             has_uncommitted_changes : rtypes.bool
             read_only               : rtypes.bool
-            printing                : rtypes.bool
             load_time_estimate      : rtypes.immutable.Map
             is_loaded               : rtypes.bool
-            local_view_state        : rtypes.immutable.Map
+            local_view_state        : rtypes.immutable.Map.isRequired
             error                   : rtypes.string
             cursors                 : rtypes.immutable.Map
-        account :
-            font_size : rtypes.number
 
     shouldComponentUpdate: (next) ->
-        return @props.has_unsaved_changes     != next.has_unsaved_changes or \
-               @props.has_uncommitted_changes != next.has_uncommitted_changes or \
-               @props.read_only               != next.read_only or \
-               @props.local_view_state        != next.local_view_state or \
-               @props.printing                != next.printing or \
-               @props.error                   != next.error or \
-               @props.cursors                 != next.cursors or \
-               @props.font_size               != next.font_size
+        return misc.is_different(@props, next, ['has_unsaved_changes', 'has_uncommitted_changes', 'read_only',
+                        'load_time_estimate', 'is_loaded', 'error', 'cursors', 'local_view_state'])
 
     componentDidMount: ->
         @props.actions.enable_key_handler()
@@ -52,22 +45,25 @@ exports.Editor = rclass ({name}) ->
         </div>
 
     render_frame_tree: ->
-        frame_tree = @props.local_view_state?.get('frame_tree')
-        if not @props.is_loaded or not frame_tree?
+        local = @props.local_view_state
+        frame_tree = local.get('frame_tree')
+        scroll     = local.get('scroll')
+        if not @props.is_loaded or not frame_tree? or not scroll?
             return @render_loading()
         <div
             className = {'smc-vfill'}
             style     = {background: 'lightgrey'}
             >
             <FrameTree
-                actions    = {@props.actions}
-                frame_tree = {frame_tree}
-                project_id = {@props.project_id}
-                active_id  = {@props.local_view_state.get('active_id')}
-                full_id    = {@props.local_view_state.get('full_id')}
-                is_only    = {frame_tree.get('type') != 'node'}
-                cursors    = {@props.cursors}
-                font_size  = {@props.font_size ? 14}
+                actions             = {@props.actions}
+                frame_tree          = {frame_tree}
+                scroll              = {scroll}
+                project_id          = {@props.project_id}
+                active_id           = {local.get('active_id')}
+                full_id             = {local.get('full_id')}
+                font_size           = {local.get('font_size')}
+                is_only             = {frame_tree.get('type') != 'node'}
+                cursors             = {@props.cursors}
                 has_unsaved_changes = {@props.has_unsaved_changes}
                 />
         </div>

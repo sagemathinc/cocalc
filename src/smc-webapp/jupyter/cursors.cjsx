@@ -11,11 +11,13 @@ React component that represents cursors of other users.
 misc = require('smc-util/misc')
 
 exports.Cursor = Cursor = rclass
+    displayName: 'Cursor'
+
     propTypes:
-        name   : rtypes.string.isRequired
-        color  : rtypes.string.isRequired
-        top    : rtypes.string   # doesn't change
-        time : rtypes.number
+        name  : rtypes.string.isRequired
+        color : rtypes.string.isRequired
+        top   : rtypes.string   # doesn't change
+        time  : rtypes.number
 
     shouldComponentUpdate: (props, state) ->
         if @props.time != props.time

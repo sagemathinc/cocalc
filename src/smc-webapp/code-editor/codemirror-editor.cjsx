@@ -47,12 +47,9 @@ exports.CodemirrorEditor = rclass
     getInitialState: ->
         has_cm : false
 
-    shouldComponentUpdate: (next, state) ->
-        return @state.has_cm          != state?.has_cm        or \
-               @props.editor_settings != next.editor_settings or \
-               @props.font_size       != next.font_size       or \
-               @props.read_only       != next.read_only       or \
-               @props.cursors         != next.cursors
+    shouldComponentUpdate: (props, state) ->
+        return misc.is_different(@state, state, ['has_cm']) or \
+               misc.is_different(@props, props, ['editor_settings', 'font_size', 'cursors', 'read_only'])
 
     componentDidMount: ->
         @init_codemirror()

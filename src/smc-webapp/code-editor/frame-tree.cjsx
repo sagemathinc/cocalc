@@ -58,10 +58,11 @@ exports.FrameTree = FrameTree = rclass
 
     propTypes :
         actions    : rtypes.object.isRequired
+        project_id : rtypes.string        # assumed to never change -- all frames in same project
         active_id  : rtypes.string
-        project_id : rtypes.string
         full_id    : rtypes.string
         frame_tree : rtypes.immutable.isRequired
+        scroll     : rtypes.immutable.isRequired    # IMPORTANT: change does NOT cause re-render (uncontrolled)
         font_size  : rtypes.number.isRequired
         is_only    : rtypes.bool
         cursors    : rtypes.immutable.Map
@@ -71,19 +72,15 @@ exports.FrameTree = FrameTree = rclass
         drag_hover: false
 
     shouldComponentUpdate: (next, state) ->
-        return @props.frame_tree != next.frame_tree or \
-               @props.active_id  != next.active_id or \
-               @props.project_id != next.project_id or \
-               @props.full_id    != next.full_id or \
-               @props.is_only    != next.is_only or \
-               @props.cursors    != next.cursors or \
-               @props.has_unsaved_changes != next.has_unsaved_changes or \
-               @state.drag_hover  != state.drag_hover
+        return @state.drag_hover != state.drag_hover or \
+               misc.is_different(@props, next, ['frame_tree', 'active_id', 'full_id', 'is_only', \
+                      'cursors', 'has_unsaved_changes'])
 
     render_frame_tree: (desc) ->
         <FrameTree
             actions             = {@props.actions}
             frame_tree          = {desc}
+            scroll              = {@props.scroll}
             active_id           = {@props.active_id}
             project_id          = {@props.project_id}
             font_size           = {@props.font_size}
@@ -94,15 +91,15 @@ exports.FrameTree = FrameTree = rclass
 
     render_titlebar: (desc) ->
         <FrameTitleBar
-            actions    = {@props.actions}
-            active_id  = {@props.active_id}
-            project_id = {desc.get('project_id') ? @props.project_id}
-            is_full    = {desc.get('id') == @props.full_id and not @props.is_only}
-            is_only    = {@props.is_only}
-            id         = {desc.get('id')}
-            path       = {desc.get('path')}
-            deletable  = {desc.get('deletable') ? true}
-            read_only  = {desc.get('read_only')}
+            actions             = {@props.actions}
+            active_id           = {@props.active_id}
+            project_id          = {desc.get('project_id') ? @props.project_id}
+            is_full             = {desc.get('id') == @props.full_id and not @props.is_only}
+            is_only             = {@props.is_only}
+            id                  = {desc.get('id')}
+            path                = {desc.get('path')}
+            deletable           = {desc.get('deletable') ? true}
+            read_only           = {desc.get('read_only')}
             has_unsaved_changes = {@props.has_unsaved_changes}
         />
 
@@ -113,7 +110,7 @@ exports.FrameTree = FrameTree = rclass
             read_only = {desc.get('read_only')}
             font_size = {desc.get('font_size') ? @props.font_size}
             path      = {desc.get('path')}
-            scroll    = {desc.get('scroll')}
+            scroll    = {@props.scroll.get(desc.get('id'))}
             is_current= {desc.get('id') == @props.active_id}
             cursors   = {@props.cursors}
         />

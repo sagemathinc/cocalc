@@ -40,10 +40,11 @@ exports.FrameTitleBar = rclass
 
     propTypes :
         actions    : rtypes.object.isRequired
+        path       : rtypes.string  # assumed to not change for now
+        project_id : rtypes.string  # assumed to not change for now
+
         active_id  : rtypes.string
         id         : rtypes.string
-        path       : rtypes.string
-        project_id : rtypes.string
         deletable  : rtypes.bool
         read_only  : rtypes.bool
         has_unsaved_changes : rtypes.bool
@@ -51,21 +52,14 @@ exports.FrameTitleBar = rclass
         is_only    : rtypes.bool    # is the only frame
 
     shouldComponentUpdate: (next) ->
-        return @props.active_id  != next.active_id or \
-               @props.id         != next.id or \
-               @props.project_id != next.project_id or \
-               @props.path       != next.path or \
-               @props.deletable  != next.deletable or \
-               @props.is_full    != next.is_full or \
-               @props.is_only    != next.is_only or \
-               @props.read_only  != next.read_only or \
-               @props.has_unsaved_changes != next.has_unsaved_changes
+        return misc.is_different(@props, next, ['active_id', 'id', 'deletable', 'is_full', 'is_only', \
+                     'read_only', 'has_unsaved_changes'])
 
     componentWillReceiveProps: ->
         @_last_render = new Date()
 
     click_close: ->
-        if new Date() - @_last_render < 500
+        if new Date() - @_last_render < 150
             # avoid accidental click -- easily can happen otherwise.
             return
         @props.actions.close_frame(@props.id)
