@@ -133,7 +133,7 @@ exports.AccountPage = rclass
             font_size              = {@props.font_size}
             editor_settings        = {@props.editor_settings}
             stripe_customer        = {@props.stripe_customer}
-            other_settings         = {@props.other_settings.toJS()}
+            other_settings         = {@props.other_settings}
             groups                 = {@props.groups} />
 
     render_landing_page: ->

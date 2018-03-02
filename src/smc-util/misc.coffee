@@ -1266,24 +1266,30 @@ exports.field_cmp = (field) ->
 
 # Return true if and only if a[field] != b[field] for some field.
 # Here we literally just use !=, so do not use this for non-atomic values!
-exports.is_different = (a, b, fields) ->
+exports.is_different = (a, b, fields, why) ->
     if not a?
         if not b?
             return false  # they are the same
         # a not defined but b is
         for field in fields
             if b[field]?
+                if why
+                    console.log field, a?[field], b[field]
                 return true
         return false
     if not b?
         # a is defined or would be handled above
         for field in fields
             if a[field]?
+                if why
+                    console.log field, a[field], b?[field]
                 return true  # different
         return false  # same
 
     for field in fields
         if a[field] != b[field]
+            if why
+                console.log field, a[field], b[field]
             return true
     return false
 

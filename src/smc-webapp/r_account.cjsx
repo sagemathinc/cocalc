@@ -1097,7 +1097,7 @@ OtherSettings = rclass
 
     propTypes :
         redux              : rtypes.object
-        other_settings     : rtypes.object
+        other_settings     : rtypes.immutable.Map
         is_stripe_customer : rtypes.bool
 
     reduxProps :
@@ -1109,7 +1109,7 @@ OtherSettings = rclass
 
     render_first_steps: ->
         <Checkbox
-            checked  = {!!@props.other_settings.first_steps}
+            checked  = {!!@props.other_settings.get('first_steps')}
             ref      = 'first_steps'
             onChange = {(e)=>@on_change('first_steps', e.target.checked)}>
             Offer to setup the "First Steps" guide (if available).
@@ -1117,7 +1117,7 @@ OtherSettings = rclass
 
     render_time_ago_absolute: ->
         <Checkbox
-            checked  = {!!@props.other_settings.time_ago_absolute}
+            checked  = {!!@props.other_settings.get('time_ago_absolute')}
             ref      = 'time_ago_absolute'
             onChange = {(e)=>@on_change('time_ago_absolute', e.target.checked)}>
             Display timestamps as absolute points in time – otherwise they are relative to the current time.
@@ -1126,7 +1126,7 @@ OtherSettings = rclass
     render_confirm: ->
         if not require('./feature').IS_MOBILE
             <Checkbox
-                checked  = {!!@props.other_settings.confirm_close}
+                checked  = {!!@props.other_settings.get('confirm_close')}
                 ref      = 'confirm_close'
                 onChange = {(e)=>@on_change('confirm_close', e.target.checked)}>
                 Confirm: always ask for confirmation before closing the browser window
@@ -1134,9 +1134,9 @@ OtherSettings = rclass
 
     render_page_size_warning: ->
         BIG_PAGE_SIZE = 500
-        if @props.other_settings.page_size > BIG_PAGE_SIZE
+        if @props.other_settings.get('page_size') > BIG_PAGE_SIZE
             <Alert bsStyle='warning'>
-                Your file listing page size is set to {@props.other_settings.page_size}. Sizes above {BIG_PAGE_SIZE} may cause the file listing to render slowly for directories with lots of files.
+                Your file listing page size is set to {@props.other_settings.get('page_size')}. Sizes above {BIG_PAGE_SIZE} may cause the file listing to render slowly for directories with lots of files.
             </Alert>
 
     render_standby_timeout: ->
@@ -1148,12 +1148,12 @@ OtherSettings = rclass
                 min       = {1}
                 max       = {180}
                 unit      = "minutes"
-                number    = {@props.other_settings.standby_timeout_m} />
+                number    = {@props.other_settings.get('standby_timeout_m')} />
         </LabeledRow>
 
     render_mask_files: ->
         <Checkbox
-            checked  = {!!@props.other_settings.mask_files}
+            checked  = {!!@props.other_settings.get('mask_files')}
             ref      = 'mask_files'
             onChange = {(e)=>@on_change('mask_files', e.target.checked)}
         >
@@ -1163,7 +1163,7 @@ OtherSettings = rclass
     render_default_file_sort: ->
         <LabeledRow label='Default file sort'>
             <SelectorInput
-                selected  = {@props.other_settings.default_file_sort}
+                selected  = {@props.other_settings.get('default_file_sort')}
                 options   = {time:'Sort by time', name:'Sort by name'}
                 on_change = {(value)=>@on_change('default_file_sort', value)}
             />
@@ -1175,7 +1175,7 @@ OtherSettings = rclass
                     on_change = {(n)=>@on_change('page_size',n)}
                     min       = {1}
                     max       = {1000000}
-                    number    = {@props.other_settings.page_size} />
+                    number    = {@props.other_settings.get('page_size')} />
         </LabeledRow>
 
     render_no_free_warnings: ->
@@ -1185,7 +1185,7 @@ OtherSettings = rclass
             extra = <span>(thanks for being a customer)</span>
         <Checkbox
             disabled = {not @props.is_stripe_customer}
-            checked  = {!!@props.other_settings.no_free_warnings}
+            checked  = {!!@props.other_settings.get('no_free_warnings')}
             ref      = 'no_free_warnings'
             onChange = {(e)=>@on_change('no_free_warnings', e.target.checked)}
         >
