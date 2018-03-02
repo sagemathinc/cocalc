@@ -419,7 +419,7 @@ Assignment = rclass
                 copy_assignment_confirm_overwrite_text : ''
             )
         <div style={marginTop:'15px'}>
-            Type in "OVERWRITE" if you are certain to replace the assignment files of all students.
+            Type in "OVERWRITE" if you are sure you want to overwrite any work they may have.
             <FormGroup>
                 <FormControl
                     autoFocus
