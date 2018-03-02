@@ -2,7 +2,7 @@
 React Component for displaying the entire page on a mobile device.
 ###
 
-{React, ReactDOM, rclass, redux, rtypes, Redux} = require('./smc-react')
+{React, ReactDOM, rclass, redux, rtypes, Redux, redux_fields} = require('./smc-react')
 {Button, Navbar, Nav, NavItem, MenuItem} = require('react-bootstrap')
 {Loading, Icon, Tip} = require('./r_misc')
 
@@ -22,29 +22,32 @@ misc = require('smc-util/misc')
 {ProjectsNav} = require('./projects_nav')
 {ActiveAppContent, CookieWarning, LocalStorageWarning, ConnectionIndicator, ConnectionInfo, NavTab, NotificationBell, AppLogo, VersionWarning} = require('./app_shared')
 
+PAGE_REDUX_PROPS =
+    page :
+        active_top_tab    : rtypes.string    # key of the active tab
+        show_connection   : rtypes.bool
+        ping              : rtypes.number
+        avgping           : rtypes.number
+        connection_status : rtypes.string
+        new_version       : rtypes.immutable.Map
+        fullscreen        : rtypes.oneOf(['default', 'kiosk'])
+        cookie_warning    : rtypes.bool
+        local_storage_warning : rtypes.bool
+        show_file_use     : rtypes.bool
+    file_use :
+        notify_count      : rtypes.number
+    account :
+        is_logged_in      : rtypes.bool
+    support :
+        show : rtypes.bool
+
+PAGE_REDUX_FIELDS = redux_fields(PAGE_REDUX_PROPS)
+
 # Project tabs's names are their project id
 Page = rclass
     displayName : "Mobile-App"
 
-    reduxProps :
-        page :
-            active_top_tab    : rtypes.string    # key of the active tab
-            show_connection   : rtypes.bool
-            ping              : rtypes.number
-            avgping           : rtypes.number
-            connection_status : rtypes.string
-            new_version       : rtypes.object
-            fullscreen        : rtypes.oneOf(['default', 'kiosk'])
-            cookie_warning    : rtypes.bool
-            local_storage_warning : rtypes.bool
-            show_file_use     : rtypes.bool
-        file_use :
-            get_notify_count : rtypes.func
-        account :
-            get_fullname : rtypes.func
-            is_logged_in : rtypes.func
-        support :
-            show : rtypes.bool
+    reduxProps : PAGE_REDUX_PROPS
 
     propTypes :
         redux : rtypes.object
@@ -52,16 +55,12 @@ Page = rclass
     getInitialState: ->
         show_menu : false
 
+    shouldComponentUpdate: (props, state) ->
+        return @state.show_menu != state.show_menu or \
+               misc.is_different(@props, props, PAGE_REDUX_FIELDS)
+
     componentWillUnmount: ->
         @actions('page').clear_all_handlers()
-
-    account_name: ->
-        name = ''
-        if @props.get_fullname?
-            name = misc.trunc_middle(@props.get_fullname(), 32)
-        if not name.trim()
-            name = "Account"
-        return name
 
     render_projects_button: ->
         <Nav style={margin:'0', padding:'5px 5px 0px 5px'}>
@@ -117,9 +116,9 @@ Page = rclass
                 />
                 {<NotificationBell
                     on_click = {=>@close_menu(); @actions('page').set_active_tab('file-use')}
-                    count    = {@props.get_notify_count()}
+                    count    = {@props.notify_count}
                     active   = {@props.show_file_use}
-                /> if @props.is_logged_in()}
+                /> if @props.is_logged_in}
                 <ConnectionIndicator
                     on_click = {@close_menu}
                     actions  = {@actions('page')}
