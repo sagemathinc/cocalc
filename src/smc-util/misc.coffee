@@ -1230,6 +1230,9 @@ exports.call_lock = (opts) ->
             obj._call_unlock()
             cb?(args...)
 
+# "Performs an optimized deep comparison between the two objects, to determine if they should be considered equal."
+exports.is_equal = underscore.isEqual
+
 exports.cmp = (a,b) ->
     if a < b
         return -1

@@ -26,7 +26,7 @@ misc = require('smc-util/misc')
 
 # React Libraries
 {React, rclass, rtypes} = require('../smc-react')
-{Alert, Button, ButtonToolbar, ButtonGroup, Input, Row, Col, Panel, Table} = require('react-bootstrap')
+{Alert, Button, ButtonToolbar, ButtonGroup, Input, FormGroup, FormControl, Row, Col, Panel, Table} = require('react-bootstrap')
 
 # CoCalc and course components
 util = require('./util')
@@ -81,23 +81,25 @@ exports.HandoutsPanel = rclass ({name}) ->
             expanded_handouts : rtypes.immutable.Set
 
     propTypes :
-        project_id   : rtypes.string.isRequired
-        all_handouts : rtypes.immutable.Map.isRequired # handout_id -> handout
-        students     : rtypes.immutable.Map.isRequired # student_id -> student
-        user_map     : rtypes.object.isRequired
-        actions      : rtypes.object.isRequired
-        store_object : rtypes.object
+        actions         : rtypes.object.isRequired
+        store_object    : rtypes.object
         project_actions : rtypes.object.isRequired
+        project_id      : rtypes.string.isRequired
+        all_handouts    : rtypes.immutable.Map.isRequired # handout_id -> handout
+        students        : rtypes.immutable.Map.isRequired # student_id -> student
+        user_map        : rtypes.object.isRequired
 
     getInitialState: ->
         show_deleted : false
         search          : ''      # Search value for filtering handouts
 
     # Update on different students, handouts, or filter parameters
+    # TODO: this is BS -- do this right.  Get rid of store_object above and
+    # put the actual data it uses; make everything immutable!
     shouldComponentUpdate: (nextProps, nextState) ->
         if nextProps.all_handouts != @props.all_handouts or nextProps.students != @props.students or @props.expanded_handouts != nextProps.expanded_handouts
             return true
-        if nextState.search != @state.search or nextState.show_deleted != @state.show_deleted
+        if not misc.is_equal(nextState, @state)
             return true
         return false
 
@@ -247,14 +249,50 @@ Handout = rclass
 
     render_copy_cancel: (step) ->
         cancel = =>
-            @setState("copy_confirm_#{step}":false, "copy_confirm_all_#{step}":false, copy_confirm:false)
+            @setState(
+                "copy_confirm_#{step}"         : false
+                "copy_confirm_all_#{step}"     : false
+                copy_confirm                   : false
+                copy_handout_confirm_overwrite : false
+            )
         <Button key='cancel' onClick={cancel}>Cancel</Button>
 
-    copy_handout: (step, new_only) ->
+    render_copy_handout_confirm_overwrite: (step) ->
+        return if not @state.copy_handout_confirm_overwrite
+        do_it = =>
+            @copy_handout(step, false)
+            @setState(
+                copy_handout_confirm_overwrite         : false
+                copy_handout_confirm_overwrite_text    : ''
+            )
+        <div style={marginTop:'15px'}>
+            Type in "OVERWRITE" if you are certain to replace the handout files of all students.
+            <FormGroup>
+                <FormControl
+                    autoFocus
+                    type        = 'text'
+                    ref         = 'copy_handout_confirm_overwrite_field'
+                    onChange    = {(e)=>@setState(copy_handout_confirm_overwrite_text : e.target.value)}
+                    style       = {marginTop : '1ex'}
+                />
+            </FormGroup>
+            <ButtonToolbar style={textAlign: 'center', marginTop: '15px'}>
+                <Button
+                    disabled = {@state.copy_handout_confirm_overwrite_text != 'OVERWRITE'}
+                    bsStyle  = 'danger'
+                    onClick  = {do_it}
+                >
+                    <Icon name='exclamation-triangle' /> Confirm replacing files
+                </Button>
+                {@render_copy_cancel(step)}
+            </ButtonToolbar>
+        </div>
+
+    copy_handout: (step, new_only, overwrite) ->
         # handout to all (non-deleted) students
         switch step
             when 'handout'
-                @props.actions.copy_handout_to_all_students(@props.handout, new_only)
+                @props.actions.copy_handout_to_all_students(@props.handout, new_only, overwrite)
             else
                 console.log("BUG -- unknown step: #{step}")
         @setState("copy_confirm_#{step}":false, "copy_confirm_all_#{step}":false, copy_confirm:false)
@@ -274,7 +312,11 @@ Handout = rclass
     copy_confirm_all_caution: (step) ->
         switch step
             when 'handout'
-                return "This will recopy all of the files to them.  CAUTION: if you update a file that a student has also worked on, their work will get copied to a backup file ending in a tilde, or possibly only be available in snapshots."
+                return """
+                       This will recopy all of the files to them.
+                       CAUTION: if you update a file that a student has also worked on, their work will get copied to a backup file ending in a tilde, or possibly only be available in snapshots.
+                       Select "Replace student files!" in case you do not want to create any backups and also delete all other files in the assignment directory of their projects.
+                       """
 
     render_copy_confirm_overwrite_all: (step, status) ->
         <div key="copy_confirm_overwrite_all" style={marginTop:'15px'}>
@@ -282,9 +324,15 @@ Handout = rclass
                 {@copy_confirm_all_caution(step)}
             </div>
             <ButtonToolbar>
-                <Button key='all' bsStyle='danger' onClick={=>@copy_handout(step, false)}>Yes, do it</Button>
+                <Button key='all' bsStyle='warning'
+                    onClick={=>@copy_handout(step, false)}
+                >Yes, do it</Button>
+                <Button key='all-overwrite' bsStyle='danger'
+                    onClick={=>@setState(copy_handout_confirm_overwrite:true)}
+                >Replace student files!</Button>
                 {@render_copy_cancel(step)}
             </ButtonToolbar>
+            {@render_copy_handout_confirm_overwrite(step)}
         </div>
 
     render_copy_confirm_to_all_or_new: (step, status) ->
