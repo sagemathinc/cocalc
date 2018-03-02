@@ -242,12 +242,7 @@ OpenProjectMenuItem = rclass
         else
             x_color = COLORS.TOP_BAR.X
 
-        a_tag_style =
-            display: 'flex'
-            padding: '2px 10px'
-            height: '39px'
-
-        <MenuItem onClick={@open_project} style={width:'100%', lineHeight:'1.75em', color:text_color} elementProps={style:a_tag_style}>
+        <MenuItem onClick={@open_project} style={lineHeight:'1.75em', color:text_color}>
             <Tip style={menu_item_project_name_styles} title={misc.trunc(title,32)} tip={desc} placement='bottom' size='small'>
                 <div style={height: '36px', padding: [7, 5], fontSize: '18px'}>
                     <Icon name={icon} style={fontSize:'20px'} />
