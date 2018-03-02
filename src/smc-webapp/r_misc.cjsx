@@ -166,7 +166,7 @@ exports.Icon = Icon = rclass
         <i
             style       = {style}
             className   = {classNames}
-            onMouseOver = {@props.onMouseOver} 
+            onMouseOver = {@props.onMouseOver}
             onMouseOut  = {@props.onMouseOut}
             onClick     = {@props.onClick}
         >
@@ -549,6 +549,20 @@ timeago_formatter = (value, unit, suffix, date) ->
 
 TimeAgo = require('react-timeago').default
 
+# date0 and date1 are string, Date object or number
+# This is just used for updates, so is_different if there
+# is a chance they are different
+is_different_date = (date0, date1) ->
+    t0 = typeof(date0)
+    t1 = typeof(date1)
+    if t0 != t1
+        return true
+    switch t0
+        when 'object'
+            return date0 - date1 != 0
+        else
+            return date0 != date1
+
 # this "element" can also be used without being connected to a redux store - e.g. for the "shared" statically rendered pages
 exports.TimeAgoElement = rclass
     displayName : 'Misc-TimeAgoElement'
@@ -559,6 +573,7 @@ exports.TimeAgoElement = rclass
         tip               : rtypes.string     # optional body of the tip popover with title the original time.
         live              : rtypes.bool       # whether or not to auto-update
         time_ago_absolute : rtypes.bool
+        date              : rtypes.oneOfType([rtypes.string, rtypes.object, rtypes.number])  # date object or something that convert to date
 
     getDefaultProps: ->
         popover   : true
@@ -604,22 +619,24 @@ exports.TimeAgoElement = rclass
         else
             @render_timeago(d)
 
-TimeAgoWrapper = rclass
-    displayName : 'Misc-TimeAgoWrapper'
+exports.TimeAgo = rclass
+    displayName : 'Misc-TimeAgo'
 
     propTypes :
         popover   : rtypes.bool
         placement : rtypes.string
         tip       : rtypes.string     # optional body of the tip popover with title the original time.
         live      : rtypes.bool       # whether or not to auto-update
+        date      : rtypes.oneOfType([rtypes.string, rtypes.object, rtypes.number])  # date object or something that convert to date
 
     reduxProps :
         account :
             other_settings : rtypes.immutable.Map
 
     shouldComponentUpdate: (props) ->
-        return misc.is_different(@props, props, ['popover', 'placement', 'tip', 'live']) or \
-            @props.other_settings?.get('time_ago_absolute') != props.other_settings?.get('time_ago_absolute')
+        return is_different_date(@props.date, props.date) or \
+               misc.is_different(@props, props, ['popover', 'placement', 'tip', 'live']) or \
+               @props.other_settings?.get('time_ago_absolute') != props.other_settings?.get('time_ago_absolute')
 
     render: ->
         <exports.TimeAgoElement
@@ -630,27 +647,6 @@ TimeAgoWrapper = rclass
             live              = {@props.live}
             time_ago_absolute = {@props.other_settings?.get('time_ago_absolute') ? false}
         />
-
-# TODO is the wrapper above really necessary?
-exports.TimeAgo = rclass
-    displayName : 'Misc-TimeAgo-redux'
-
-    propTypes :
-        popover   : rtypes.bool
-        placement : rtypes.string
-        tip       : rtypes.string     # optional body of the tip popover with title the original time.
-        live      : rtypes.bool       # whether or not to auto-update
-
-    render: ->
-        <Redux redux={redux}>
-            <TimeAgoWrapper
-                date      = {@props.date}
-                popover   = {@props.popover}
-                placement = {@props.placement}
-                tip       = {@props.tip}
-                live      = {@props.live}
-            />
-        </Redux>
 
 # Important:
 # widget can be controlled or uncontrolled -- use default_value for an *uncontrolled* widget

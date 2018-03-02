@@ -186,9 +186,9 @@ Assignment = rclass
 
     propTypes :
         name                : rtypes.string.isRequired
-        assignment          : rtypes.immutable.Map.isRequired
         project_id          : rtypes.string.isRequired
         redux               : rtypes.object.isRequired
+        assignment          : rtypes.immutable.Map.isRequired
         students            : rtypes.object.isRequired
         user_map            : rtypes.object.isRequired
         background          : rtypes.string
@@ -197,7 +197,9 @@ Assignment = rclass
         expand_peer_config  : rtypes.bool
 
     shouldComponentUpdate: (nextProps, nextState) ->
-        return @state != nextState or @props.assignment != nextProps.assignment or @props.students != nextProps.students or @props.user_map != nextProps.user_map or @props.background != nextProps.background or @props.is_expanded != nextProps.is_expanded or @props.active_student_sort != nextProps.active_student_sort or @props.expand_peer_config  != nextProps.expand_peer_config
+        return @state.confirm_delete != nextState.confirm_delete or \
+               misc.is_different(@props, nextProps, ['assignment', 'students', 'user_map', 'background', \
+                             'is_expanded', 'active_student_sort', 'expand_peer_config'])
 
     getInitialState: ->
         confirm_delete : false
@@ -857,6 +859,9 @@ StudentListForAssignment = rclass
         user_map            : rtypes.object.isRequired
         background          : rtypes.string
         active_student_sort : rtypes.immutable.Map
+
+    shouldComponentUpdate: (props) ->
+        return misc.is_different(@props, props, ['assignment', 'students', 'user_map', 'background', 'active_student_sort'])
 
     render_student_info: (student_id) ->
         store = @props.redux.getStore(@props.name)
