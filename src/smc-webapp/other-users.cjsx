@@ -33,7 +33,7 @@ misc = require('smc-util/misc')
 # This is only needed to ensure that faces fade out; any newly added faces
 # will still be displayed instantly.  Also, updating more frequently updates
 # the line positions in the tooltip.
-UPDATE_INTERVAL_S = 5
+UPDATE_INTERVAL_S = 15
 
 # Cutoff for how recent activity must be to show users.  Should be significantly
 # longer than default for the mark_file function in the file_use actions.
@@ -225,6 +225,12 @@ exports.UsersViewing = rclass
         size       : rtypes.number
         style      : rtypes.object
 
+    reduxProps:
+        file_use :
+            file_use : rtypes.immutable   # only so component is updated immediately whenever file use changes
+        account :
+            account_id : rtypes.string    # so we can exclude ourselves from list of faces
+
     getDefaultProps: ->
         max_age_s : MAX_AGE_S
         size      : 24
@@ -234,12 +240,6 @@ exports.UsersViewing = rclass
 
     componentDidMount: ->
         @setInterval((=> @forceUpdate()), UPDATE_INTERVAL_S*1000)
-
-    reduxProps:
-        file_use :
-            file_use : rtypes.immutable   # only so component is updated immediately whenever file use changes
-        account :
-            account_id : rtypes.string    # so we can exclude ourselves from list of faces
 
     render_active_users: (users) ->
         v = ({account_id:account_id, activity:most_recent(activity)} for account_id, activity of (users ? {}))

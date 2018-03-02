@@ -612,7 +612,10 @@ pager_range = (page_size, page_number) ->
 FileListing = rclass
     displayName: 'ProjectFiles-FileListing'
 
-    propTypes:
+    propTypes:  # TODO: everything but actions/redux should be immutable JS data, and use shouldComponentUpdate
+        actions                : rtypes.object.isRequired
+        redux                  : rtypes.object
+
         active_file_sort       : rtypes.object
         listing                : rtypes.array.isRequired
         file_map               : rtypes.object.isRequired
@@ -622,17 +625,15 @@ FileListing = rclass
         page_number            : rtypes.number
         page_size              : rtypes.number
         public_view            : rtypes.bool
-        actions                : rtypes.object.isRequired
-        create_folder          : rtypes.func.isRequired
-        create_file            : rtypes.func.isRequired
+        create_folder          : rtypes.func.isRequired   # TODO: should be action!
+        create_file            : rtypes.func.isRequired   # TODO: should be action!
         selected_file_index    : rtypes.number
         project_id             : rtypes.string
         show_upload            : rtypes.bool
         shift_is_down          : rtypes.bool
-        sort_by                : rtypes.func
+        sort_by                : rtypes.func              # TODO: should be data
         library                : rtypes.object
         other_settings         : rtypes.immutable
-        redux                  : rtypes.object
 
     getDefaultProps: ->
         file_search           : ''
@@ -2023,19 +2024,22 @@ error_style =
     right       : '5px'
     boxShadow   : '5px 5px 5px grey'
 
+# TODO: change/rewrite ProjectFiles to not have any rtypes.objects and
+# add a shouldComponentUpdate!!
 exports.ProjectFiles = rclass ({name}) ->
     displayName : 'ProjectFiles'
 
     reduxProps :
         projects :
-            project_map                       : rtypes.immutable
+            project_map                       : rtypes.immutable.Map
             date_when_course_payment_required : rtypes.func
             get_my_group                      : rtypes.func
             get_total_project_quotas          : rtypes.func
         account :
-            other_settings : rtypes.immutable
+            other_settings : rtypes.immutable.Map
+            is_logged_in   : rtypes.bool
         billing :
-            customer      : rtypes.object
+            customer       : rtypes.object
 
         "#{name}" :
             active_file_sort      : rtypes.object
@@ -2218,14 +2222,14 @@ exports.ProjectFiles = rclass ({name}) ->
     render_access_error: ->
         public_view = @props.get_my_group(@props.project_id) == 'public'
         if public_view
-            if @props.redux.getStore('account')?.is_logged_in()
+            if @props.is_logged_in
                 <ErrorDisplay style={maxWidth:'100%'} bsStyle="warning" title="Showing only public files" error={"You are viewing a project that you are not a collaborator on. To view non-public files or edit files in this project you need to ask a collaborator of the project to add you."} />
             else
                 <div>
                     <ErrorDisplay style={maxWidth:'100%'}  bsStyle="warning" title="Showing only public files" error={"You are not logged in. To view non-public files or edit files in this project you will need to sign in. If you are not a collaborator then you need to ask a collaborator of the project to add you to access non public files."} />
                 </div>
         else
-            if @props.redux.getStore('account')?.is_logged_in()
+            if @props.is_logged_in
                 <ErrorDisplay title="Directory is not public" error={"You are trying to access a non public project that you are not a collaborator on. You need to ask a collaborator of the project to add you."} />
             else
                 <div>

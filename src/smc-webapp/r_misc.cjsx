@@ -118,10 +118,16 @@ exports.Icon = Icon = rclass
         stack      : rtypes.oneOf(['1x', '2x'])
         inverse    : rtypes.bool
         className  : rtypes.string
-        style      : rtypes.object
+        style      : rtypes.object   # for speed reasons, just changing this does NOT cause update.
         onClick    : rtypes.func
         onMouseOver: rtypes.func
         onMouseOut : rtypes.func
+
+    shouldComponentUpdate: (next) ->  # we exclude style changes for speed reasons (and style is rarely used); always update if there are children
+        return @props.children? or \
+               misc.is_different(@props, next, ['name', 'size', 'rotate', 'flip', 'spin', 'pulse', 'fixedWidth', \
+                                          'stack', 'inverse', 'className'])
+
 
     getDefaultProps: ->
         name    : 'square-o'
@@ -157,7 +163,15 @@ exports.Icon = Icon = rclass
             classNames += ' fa-inverse'
         if className
             classNames += " #{className}"
-        return <i style={style} className={classNames} onMouseOver={@props.onMouseOver} onMouseOut={@props.onMouseOut} onClick={@props.onClick}>{@props.children}</i>
+        <i
+            style       = {style}
+            className   = {classNames}
+            onMouseOver = {@props.onMouseOver}
+            onMouseOut  = {@props.onMouseOut}
+            onClick     = {@props.onClick}
+        >
+                {@props.children}
+        </i>
 
 # this Octicon icon class requires the CSS file in octicons/octicons/octicons.css (see landing.coffee)
 exports.Octicon = rclass
@@ -470,7 +484,7 @@ exports.LabeledRow = LabeledRow = rclass
 
     propTypes :
         label      : rtypes.any.isRequired
-        style      : rtypes.object
+        style      : rtypes.object            # NOTE: for perf reasons, we do not update if only the style changes!
         label_cols : rtypes.number    # number between 1 and 11 (default: 4)
 
     getDefaultProps: ->
@@ -539,6 +553,20 @@ timeago_formatter = (value, unit, suffix, date) ->
 
 TimeAgo = require('react-timeago').default
 
+# date0 and date1 are string, Date object or number
+# This is just used for updates, so is_different if there
+# is a chance they are different
+is_different_date = (date0, date1) ->
+    t0 = typeof(date0)
+    t1 = typeof(date1)
+    if t0 != t1
+        return true
+    switch t0
+        when 'object'
+            return date0 - date1 != 0
+        else
+            return date0 != date1
+
 # this "element" can also be used without being connected to a redux store - e.g. for the "shared" statically rendered pages
 exports.TimeAgoElement = rclass
     displayName : 'Misc-TimeAgoElement'
@@ -549,6 +577,7 @@ exports.TimeAgoElement = rclass
         tip               : rtypes.string     # optional body of the tip popover with title the original time.
         live              : rtypes.bool       # whether or not to auto-update
         time_ago_absolute : rtypes.bool
+        date              : rtypes.oneOfType([rtypes.string, rtypes.object, rtypes.number])  # date object or something that convert to date
 
     getDefaultProps: ->
         popover   : true
@@ -594,18 +623,24 @@ exports.TimeAgoElement = rclass
         else
             @render_timeago(d)
 
-TimeAgoWrapper = rclass
-    displayName : 'Misc-TimeAgoWrapper'
+exports.TimeAgo = rclass
+    displayName : 'Misc-TimeAgo'
 
     propTypes :
         popover   : rtypes.bool
         placement : rtypes.string
         tip       : rtypes.string     # optional body of the tip popover with title the original time.
         live      : rtypes.bool       # whether or not to auto-update
+        date      : rtypes.oneOfType([rtypes.string, rtypes.object, rtypes.number])  # date object or something that convert to date
 
     reduxProps :
         account :
-            other_settings : rtypes.object
+            other_settings : rtypes.immutable.Map
+
+    shouldComponentUpdate: (props) ->
+        return is_different_date(@props.date, props.date) or \
+               misc.is_different(@props, props, ['popover', 'placement', 'tip', 'live']) or \
+               @props.other_settings?.get('time_ago_absolute') != props.other_settings?.get('time_ago_absolute')
 
     render: ->
         <exports.TimeAgoElement
@@ -614,29 +649,8 @@ TimeAgoWrapper = rclass
             placement         = {@props.placement}
             tip               = {@props.tip}
             live              = {@props.live}
-            time_ago_absolute = {@props.other_settings?.time_ago_absolute ? false}
+            time_ago_absolute = {@props.other_settings?.get('time_ago_absolute') ? false}
         />
-
-# TODO is the wrapper above really necessary?
-exports.TimeAgo = rclass
-    displayName : 'Misc-TimeAgo-redux'
-
-    propTypes :
-        popover   : rtypes.bool
-        placement : rtypes.string
-        tip       : rtypes.string     # optional body of the tip popover with title the original time.
-        live      : rtypes.bool       # whether or not to auto-update
-
-    render: ->
-        <Redux redux={redux}>
-            <TimeAgoWrapper
-                date      = {@props.date}
-                popover   = {@props.popover}
-                placement = {@props.placement}
-                tip       = {@props.tip}
-                live      = {@props.live}
-            />
-        </Redux>
 
 # Important:
 # widget can be controlled or uncontrolled -- use default_value for an *uncontrolled* widget
@@ -650,7 +664,7 @@ exports.TimeAgo = rclass
 exports.SearchInput = rclass
     displayName : 'Misc-SearchInput'
 
-    propTypes :
+    propTypes :   # style, and the on_ functions changes do not cause component update
         style           : rtypes.object
         autoFocus       : rtypes.bool
         autoSelect      : rtypes.bool
@@ -665,6 +679,11 @@ exports.SearchInput = rclass
         on_clear        : rtypes.func    # invoked without arguments when input box is cleared (eg. via esc or clicking the clear button)
         clear_on_submit : rtypes.bool    # if true, will clear search box on every submit (default: false)
         buttonAfter     : rtypes.object
+
+    shouldComponentUpdate: (props, state) ->
+        return misc.is_different(@state, state, ['value', 'ctrl_down']) or \
+               misc.is_different(@props, props, ['clear_on_submit', 'autoFocus', 'autoSelect', 'placeholder', \
+                                                 'default_value',  'value'])
 
     getInitialState: ->
         value     : (@props.value || @props.default_value) ? ''
@@ -955,10 +974,13 @@ exports.ActivityDisplay = rclass
     displayName : 'ActivityDisplay'
 
     propTypes :
-        activity : rtypes.array.isRequired   # array of strings
+        activity : rtypes.array.isRequired   # array of strings  -- only changing this causes re-render
         trunc    : rtypes.number             # truncate activity messages at this many characters (default: 80)
         on_clear : rtypes.func               # if given, called when a clear button is clicked
         style    : rtypes.object             # additional styles to be merged onto activity_style
+
+    shouldComponentUpdate: (next) ->
+        return misc.is_different_array(@props.activity, next.activity)
 
     render_items: ->
         n = @props.trunc ? 80
@@ -984,16 +1006,24 @@ exports.Tip = Tip = rclass
     displayName : 'Tip'
 
     propTypes :
-        title     : rtypes.oneOfType([rtypes.string, rtypes.node]).isRequired
+        title     : rtypes.oneOfType([rtypes.string, rtypes.node]).isRequired  # not checked for update
         placement : rtypes.string   # 'top', 'right', 'bottom', left' -- defaults to 'right'
-        tip       : rtypes.oneOfType([rtypes.string, rtypes.node])
+        tip       : rtypes.oneOfType([rtypes.string, rtypes.node])              # not checked for update
         size      : rtypes.string   # "xsmall", "small", "medium", "large"
         delayShow : rtypes.number
         delayHide : rtypes.number
         rootClose : rtypes.bool
         icon      : rtypes.string
         id        : rtypes.string   # can be used for screen readers (otherwise defaults to title)
-        style     : rtypes.object
+        style     : rtypes.object   # changing not checked when updating.
+        stable    : rtypes.bool     # if true, children assumed to never change
+
+    shouldComponentUpdate: (props, state) ->
+        return not @props.stable or \
+               @props.always_update or \
+               @state.display_trigger != state.display_trigger or \
+               misc.is_different(@props, props, ['placement', 'size', 'delayShow', \
+                                                 'delayHide', 'rootClose', 'icon', 'id'])
 
     getDefaultProps: ->
         placement : 'right'

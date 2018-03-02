@@ -146,9 +146,14 @@ StudentProjectsStartStopPanel = rclass ({name}) ->
         </Panel>
 
 DisableStudentCollaboratorsPanel = rclass ->
+    displayName : 'DisableStudentCollaboratorsPanel'
+
     propTypes:
         checked   : rtypes.bool
         on_change : rtypes.func
+
+    shouldComponentUpdate: (props) ->
+        return @props.checked != props.checked
 
     render: ->
         <Panel header={<h4><Icon name='envelope'/> Collaborator policy</h4>}>
@@ -182,9 +187,9 @@ exports.SettingsPanel = rclass
         project_map       : rtypes.immutable.Map.isRequired
         shared_project_id : rtypes.string
 
-    shouldComponentUpdate: (next, next_state) ->
-        return next.settings != @props.settings or next.project_map != @props.project_map or \
-            next_state.show_students_pay_dialog != @stateshow_students_pay_dialog
+    shouldComponentUpdate: (props, state) ->
+        return state.show_students_pay_dialog != @state.show_students_pay_dialog or \
+               misc.is_different(@props, props, ['settings', 'project_map'])
 
     getInitialState: ->
         show_students_pay_dialog : false

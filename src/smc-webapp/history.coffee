@@ -113,7 +113,7 @@ exports.set_url = (url) ->
 exports.load_target = load_target = (target) ->
     if not target
         return
-    logged_in = redux.getStore('account')?.is_logged_in()
+    logged_in = redux.getStore('account')?.get('is_logged_in')
     segments = target.split('/')
     switch segments[0]
         when 'help'

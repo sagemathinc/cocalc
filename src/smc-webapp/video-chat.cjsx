@@ -137,6 +137,9 @@ exports.VideoChatButton = rclass
         label      : rtypes.string
         short      : rtypes.bool     # if true, styles button to be short
 
+    shouldComponentUpdate: (props) ->
+        return misc.is_different(@props, props, ['file_use', 'account_id', 'project_id', 'path', 'label', 'short'])
+
     mixins: [SetIntervalMixin]
 
     componentWillMount: ->
