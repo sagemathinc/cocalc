@@ -36,6 +36,8 @@ else
         borderColor : 'transparent'
 
 exports.FrameTitleBar = rclass
+    displayName: 'CodeEditor-FrameTitleBar'
+
     propTypes :
         actions    : rtypes.object.isRequired
         active_id  : rtypes.string

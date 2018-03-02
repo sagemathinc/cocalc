@@ -54,6 +54,8 @@ rows_drag_bar = misc.merge(misc.copy(cols_drag_bar), {cursor:'ns-resize'})
 rows_drag_bar_drag_hover = misc.merge(misc.copy(rows_drag_bar), drag_hover)
 
 exports.FrameTree = FrameTree = rclass
+    displayName: 'CodeEditor-FrameTree'
+
     propTypes :
         actions    : rtypes.object.isRequired
         active_id  : rtypes.string

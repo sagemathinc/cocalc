@@ -28,6 +28,8 @@ STYLE =
     background   : '#fff'
 
 exports.CodemirrorEditor = rclass
+    displayName: 'CodeEditor-CodemirrorEditor'
+
     propTypes :
         id        : rtypes.string.isRequired
         actions   : rtypes.object.isRequired

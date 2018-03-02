@@ -4,11 +4,12 @@ Top-level react component for editing code
 
 {React, rclass, rtypes} = require('../smc-react')
 {Loading}               = require('../r_misc')
-{ButtonBar}             = require('./top-buttonbar')
 {FrameTree}             = require('./frame-tree')
 {IS_IPAD}               = require('../feature')
 
 exports.Editor = rclass ({name}) ->
+    displayName: 'CodeEditor-Editor'
+
     propTypes :
         actions    : rtypes.object.isRequired
         path       : rtypes.string.isRequired
@@ -44,17 +45,6 @@ exports.Editor = rclass ({name}) ->
     componentWillUnmount: ->
         @props.actions.disable_key_handler()
         @props.actions.set_syncstring_to_codemirror()
-
-    render_button_bar: ->
-        <ButtonBar
-            actions                 = {@props.actions}
-            read_only               = {@props.read_only}
-            has_unsaved_changes     = {@props.has_unsaved_changes}
-            has_uncommitted_changes = {@props.has_uncommitted_changes}
-            project_id              = {@props.project_id}
-            path                    = {@props.path}
-            printing                = {@props.printing}
-            />
 
     render_loading: ->
         <div style={fontSize: '40px', textAlign: 'center', padding: '15px', color: '#999'}>
