@@ -227,10 +227,12 @@ OpenProjectMenuItem = rclass
         project_state = @props.project?.getIn(['state', 'state'])
         icon = require('smc-util/schema').COMPUTE_STATES[project_state]?.icon ? 'bullhorn'
 
-        project_name_styles =
-            whiteSpace: 'nowrap'
-            overflow: 'hidden'
-            textOverflow: 'ellipsis'
+        menu_item_project_name_styles =
+            whiteSpace   : 'nowrap'
+            overflow     : 'hidden'
+            textOverflow : 'ellipsis'
+            marginRight  : '3px'
+            width        : '100%'
 
         if @props.project_id == @props.active_top_tab
             text_color = COLORS.TOP_BAR.TEXT_ACTIVE
@@ -240,20 +242,25 @@ OpenProjectMenuItem = rclass
         else
             x_color = COLORS.TOP_BAR.X
 
-        <MenuItem onClick={@open_project} style={width:'100%', lineHeight:'1.75em', color:text_color}>
-            <Button
-                bsStyle="warning"
-                onClick={@close_tab}
-                style = {float:'right', whiteSpace:'nowrap', fontSize:'16px', color:x_color}
-            >
-                <Icon name='times'/>
-            </Button>
-            <Tip style={project_name_styles} title={misc.trunc(title,32)} tip={desc} placement='bottom' size='small'>
+        a_tag_style =
+            display: 'flex'
+            padding: '2px 10px'
+            height: '39px'
+
+        <MenuItem onClick={@open_project} style={width:'100%', lineHeight:'1.75em', color:text_color} elementProps={style:a_tag_style}>
+            <Tip style={menu_item_project_name_styles} title={misc.trunc(title,32)} tip={desc} placement='bottom' size='small'>
                 <div style={height: '36px', padding: [7, 5], fontSize: '18px'}>
                     <Icon name={icon} style={fontSize:'20px'} />
                     <span style={marginLeft: "5px"}>{misc.trunc(title,24)}</span>
                 </div>
             </Tip>
+            <Button
+                bsStyle="warning"
+                onClick={@close_tab}
+                style = {height: '34px', paddingTop: '4px', whiteSpace:'nowrap', fontSize:'16px', color:x_color}
+            >
+                <Icon name='times'/>
+            </Button>
         </MenuItem>
 
 DropdownProjectsNav = rclass
@@ -312,6 +319,8 @@ DropdownProjectsNav = rclass
             whiteSpace   : 'nowrap'
             overflow     : 'hidden'
             textOverflow : 'ellipsis'
+            marginRight  : '3px'
+
         title = @props.project_map?.getIn([project_id, 'title'])
 
         desc = misc.trunc(@props.project_map?.getIn([@props.project_id, 'description']) ? '', 128)
@@ -320,15 +329,15 @@ DropdownProjectsNav = rclass
 
         <Nav style={margin:'0', flex:'1', fontSize:'20px', padding:'15px'}>
             <NavItem onClick={(e)=>e.stopPropagation();e.preventDefault();@actions('page').set_active_tab(project_id)}>
-                <Icon
-                    name = 'times'
-                    style = {float:'right', whiteSpace:'nowrap', fontSize:'12pt'}
-                    onClick={(e)=>e.stopPropagation();e.preventDefault();@actions('page').close_project_tab(project_id)}
-                />
                 <div style={project_name_styles}>
                     <Icon name={icon} style={fontSize:'20px'} />
                     <span style={marginLeft: "5px"}>{misc.trunc(title,24)}</span>
                 </div>
+                <Icon
+                    name = 'times'
+                    style = {whiteSpace:'nowrap', fontSize:'12pt'}
+                    onClick={(e)=>e.stopPropagation();e.preventDefault();@actions('page').close_project_tab(project_id)}
+                />
             </NavItem>
         </Nav>
 
