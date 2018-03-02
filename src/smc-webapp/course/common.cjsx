@@ -38,6 +38,9 @@ immutable = require('immutable')
 exports.BigTime = BigTime = rclass
     displayName : "CourseEditor-BigTime"
 
+    propTypes:
+        date : rtypes.number.isRequired
+
     render: ->
         date = @props.date
         if not date?

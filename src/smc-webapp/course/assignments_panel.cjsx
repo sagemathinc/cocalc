@@ -188,24 +188,21 @@ Assignment = rclass
     displayName : "CourseEditor-Assignment"
 
     propTypes :
-        name                      : rtypes.string.isRequired
-        assignment                : rtypes.immutable.Map.isRequired
-        project_id                : rtypes.string.isRequired
-        redux                     : rtypes.object.isRequired
-        students                  : rtypes.object.isRequired
-        user_map                  : rtypes.object.isRequired
-        background                : rtypes.string
-        is_expanded               : rtypes.bool
-        active_student_sort       : rtypes.immutable.Map
-        expand_peer_config        : rtypes.bool
-        grading                   : rtypes.immutable.Map
+        project_id          : rtypes.string.isRequired
+        redux               : rtypes.object.isRequired
+        assignment          : rtypes.immutable.Map.isRequired
+        students            : rtypes.object.isRequired
+        user_map            : rtypes.object.isRequired
+        background          : rtypes.string
+        is_expanded         : rtypes.bool
+        active_student_sort : rtypes.immutable.Map
+        expand_peer_config  : rtypes.bool
+        grading             : rtypes.immutable.Map
 
     shouldComponentUpdate: (nextProps, nextState) ->
-        return @state != nextState or \
-            misc.is_different(@props, nextProps,
-                ['assignment', 'students', 'user_map', 'background', 'is_expanded', \
-                'active_student_sort', 'expand_peer_config', 'grading']
-            )
+        return @state.confirm_delete != nextState.confirm_delete or \
+               misc.is_different(@props, nextProps, ['assignment', 'students', 'user_map', 'background', \
+                             'is_expanded', 'active_student_sort', 'expand_peer_config', 'grading'])
 
     getInitialState: ->
         confirm_delete : false
@@ -925,6 +922,9 @@ StudentListForAssignment = rclass
         user_map            : rtypes.object.isRequired
         background          : rtypes.string
         active_student_sort : rtypes.immutable.Map
+
+    shouldComponentUpdate: (props) ->
+        return misc.is_different(@props, props, ['assignment', 'students', 'user_map', 'background', 'active_student_sort'])
 
     render_student_info: (student_id) ->
         store = @props.redux.getStore(@props.name)
