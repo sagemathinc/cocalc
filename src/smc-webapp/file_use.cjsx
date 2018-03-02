@@ -64,6 +64,13 @@ sha1 = require('smc-util/schema').client_db.sha1
 {User} = require('./users')
 
 class FileUseActions extends Actions
+    _init: =>
+        store = redux.getStore('file_use')
+        store.on 'change', =>
+            # Ensure derived immutable state is updated right after clearing the cache; this of course
+            # initializes the cache.
+            @setState(notify_count : store.get_notify_count())
+
     record_error: (err) =>
         # Record in the store that an error occured as a result of some action
         # This should get displayed to the user...
@@ -280,8 +287,8 @@ class FileUseStore extends Store
         v = w0.concat(w1.concat(w2))
         @_cache =
             sorted_file_use_list           : v
-            sorted_file_use_immutable_list : immutable.fromJS(v)
             file_use_map                   : file_use_map
+            sorted_file_use_immutable_list : immutable.fromJS(v)
             notify_count                   : (x for x in v when x.notify).length
         require('browser').set_window_title()
         return v
@@ -607,11 +614,12 @@ notification_list_click_handler = (e) ->
 
 init_redux = (redux) ->
     if not redux.getActions('file_use')?
-        redux.createActions('file_use', FileUseActions)
-        store = redux.createStore('file_use', FileUseStore, {})
+        actions = redux.createActions('file_use', FileUseActions)
+        store   = redux.createStore('file_use', FileUseStore, {})
         redux.createTable('file_use', FileUseTable)
+        actions._init()  # must be after making store
 
 init_redux(redux)
 
-# Updates the browser's awareness of a notifcation
+# Updates the browser's awareness of a notification
 require('./browser').set_notify_count_function(-> redux.getStore('file_use').get_notify_count())

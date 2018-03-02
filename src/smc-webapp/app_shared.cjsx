@@ -430,10 +430,13 @@ exports.VersionWarning = rclass
     displayName : 'VersionWarning'
 
     propTypes :
-        new_version : rtypes.object
+        new_version : rtypes.immutable.Map
+
+    shouldComponentUpdate: (props) ->
+        return @props.new_version != props.new_version
 
     render_critical: ->
-        if @props.new_version.min_version > webapp_client.version()
+        if @props.new_version.get('min_version') > webapp_client.version()
             <div>
                 <br />
                 THIS IS A CRITICAL UPDATE. YOU MUST <Space/>
@@ -444,7 +447,7 @@ exports.VersionWarning = rclass
             </div>
 
     render_close: ->
-        if not (@props.new_version.min_version > webapp_client.version())
+        if not (@props.new_version.get('min_version') > webapp_client.version())
             <Icon
                 name = 'times'
                 className = 'pull-right'
@@ -465,7 +468,7 @@ exports.VersionWarning = rclass
             boxShadow       : '8px 8px 4px #888'
             width           : '70%'
             marginTop       : '1em'
-        if @props.new_version.min_version > webapp_client.version()
+        if @props.new_version.get('min_version') > webapp_client.version()
             styles.backgroundColor = 'red'
             styles.color           = '#fff'
 
@@ -512,7 +515,7 @@ exports.LocalStorageWarning = rclass
             <Icon name='warning' /> You <em>must</em> enable local storage to use this website{' (on Safari you must disable private browsing mode)' if feature.get_browser() == 'safari'}.
         </div>
 
-# This is used in the "desktop_app" to show a global announcement on top of CC
+# This is used in the "desktop_app" to show a global announcement on top of CoCalc.
 # It was first used for a general CoCalc announcement, but it's general enough to be used later on
 # for other global announcements.
 # For now, it just has a simple dismiss button backed by the account → other_settings, though.

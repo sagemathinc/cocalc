@@ -23,7 +23,9 @@ remember_me = webapp_client.remember_me_key()
 # Define account actions
 class AccountActions extends Actions
     set_user_type: (user_type) =>
-        @setState(user_type: user_type)
+        @setState
+            user_type    : user_type
+            is_logged_in : user_type == 'signed_in'
 
     sign_in: (email, password) =>
         @setState(signing_in: true)
@@ -225,9 +227,6 @@ class AccountStore extends Store
     get_account_id: =>
         return @get('account_id')
 
-    is_logged_in: =>
-        return @get_user_type() == 'signed_in'
-
     is_admin: =>
         return @get('groups').includes('admin')
 
@@ -267,6 +266,11 @@ class AccountStore extends Store
     get_page_size: =>
         return @getIn(['other_settings', 'page_size']) ? 50  # at least have a valid value if loading...
 
+    ###
+    TODO: This is deleted, but if you do setState(show_global_info: true), then it gets shown.
+    We need to delete this function and instead do like in the _init of actions, i.e.,
+    set derived state based on changes to account store in AccountActions.  -- william
+
     is_global_info_visible: =>
         # TODO when there is more time, rewrite this to be tied to announcements of a specific type (and use their timestamps)
         # for now, we use the existence of a timestamp value to indicate that the banner is not shown
@@ -282,6 +286,7 @@ class AccountStore extends Store
         # start_dt = new Date('2017-08-25T19:00:00.000Z')
         # return start_dt < webapp_client.server_time() and sgi2_dt < start_dt
         return false
+    ###
 
 # Register account store
 # Use the database defaults for all account info until this gets set after they login

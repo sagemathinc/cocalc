@@ -1214,13 +1214,18 @@ exports.CourseActions = class CourseActions extends Actions
     # Copy the files for the given assignment to the given student. If
     # the student project doesn't exist yet, it will be created.
     # You may also pass in an id for either the assignment or student.
+    # "overwrite" (boolean, optional): if true, the copy operation will overwrite/delete remote files in student projects -- #1483
     # If the store is initialized and the student and assignment both exist,
     # then calling this action will result in this getting set in the store:
     #
     #    assignment.last_assignment[student_id] = {time:?, error:err}
     #
     # where time >= now is the current time in milliseconds.
-    copy_assignment_to_student: (assignment, student, create_due_date_file=false) =>
+    copy_assignment_to_student: (assignment, student, opts) =>
+        {overwrite, create_due_date_file} = defaults opts,
+            overwrite            : false
+            create_due_date_file : false
+
         if @_start_copy(assignment, student, 'last_assignment')
             return
         id = @set_activity(desc:"Copying assignment to a student")
@@ -1270,9 +1275,9 @@ exports.CourseActions = class CourseActions extends Actions
                     src_path          : src_path
                     target_project_id : student_project_id
                     target_path       : assignment.get('target_path')
-                    overwrite_newer   : false
-                    delete_missing    : false
-                    backup            : true
+                    overwrite_newer   : !!overwrite        # default is "false"
+                    delete_missing    : !!overwrite        # default is "false"
+                    backup            : not (!!overwrite)  # default is "true"
                     exclude_history   : true
                     cb                : cb
         ], (err) =>
@@ -1315,7 +1320,7 @@ exports.CourseActions = class CourseActions extends Actions
         switch type
             when 'assigned'
                 # create_due_date_file = true
-                @copy_assignment_to_student(assignment_id, student_id, true)
+                @copy_assignment_to_student(assignment_id, student_id, create_due_date_file:true)
             when 'collected'
                 @copy_assignment_from_student(assignment_id, student_id)
             when 'graded'
@@ -1328,7 +1333,7 @@ exports.CourseActions = class CourseActions extends Actions
                 @set_error("copy_assignment -- unknown type: #{type}")
 
     # Copy the given assignment to all non-deleted students, doing several copies in parallel at once.
-    copy_assignment_to_all_students: (assignment, new_only) =>
+    copy_assignment_to_all_students: (assignment, new_only, overwrite) =>
         store = @get_store()
         if not store? or not @_store_is_initialized()
             return finish("store not yet initialized")
@@ -1339,7 +1344,7 @@ exports.CourseActions = class CourseActions extends Actions
                 @copy_assignment_create_due_date_file(assignment, store, cb)
             (cb) =>
                 # by default, doesn't create the due file
-                @_action_all_students(assignment, new_only, @copy_assignment_to_student, 'assignment', desc, short_desc)
+                @_action_all_students(assignment, new_only, @copy_assignment_to_student, 'assignment', desc, short_desc, overwrite)
         ])
 
     # Copy the given assignment to all non-deleted students, doing several copies in parallel at once.
@@ -1358,7 +1363,7 @@ exports.CourseActions = class CourseActions extends Actions
         short_desc = "copy peer grading from students"
         @_action_all_students(assignment, new_only, @peer_collect_from_student, 'peer_collect', desc, short_desc)
 
-    _action_all_students: (assignment, new_only, action, step, desc, short_desc) =>
+    _action_all_students: (assignment, new_only, action, step, desc, short_desc, overwrite) =>
         id = @set_activity(desc:desc)
         error = (err) =>
             @clear_activity(id)
@@ -1378,7 +1383,7 @@ exports.CourseActions = class CourseActions extends Actions
             if new_only and store.last_copied(step, assignment, student_id, true)
                 cb(); return
             n = misc.mswalltime()
-            action(assignment, student_id)
+            action(assignment, student_id, overwrite:overwrite)
             store.wait
                 timeout : 60*15
                 until   : => store.last_copied(step, assignment, student_id) >= n
@@ -1692,13 +1697,14 @@ exports.CourseActions = class CourseActions extends Actions
     # Copy the files for the given handout to the given student. If
     # the student project doesn't exist yet, it will be created.
     # You may also pass in an id for either the handout or student.
+    # "overwrite" (boolean, optional): if true, the copy operation will overwrite/delete remote files in student projects -- #1483
     # If the store is initialized and the student and handout both exist,
     # then calling this action will result in this getting set in the store:
     #
     #    handout.status[student_id] = {time:?, error:err}
     #
     # where time >= now is the current time in milliseconds.
-    copy_handout_to_student: (handout, student) =>
+    copy_handout_to_student: (handout, student, overwrite) =>
         if @_handout_start_copy(handout, student)
             return
         id = @set_activity(desc:"Copying handout to a student")
@@ -1743,9 +1749,9 @@ exports.CourseActions = class CourseActions extends Actions
                     src_path          : src_path
                     target_project_id : student_project_id
                     target_path       : handout.get('target_path')
-                    overwrite_newer   : false
-                    delete_missing    : false
-                    backup            : true
+                    overwrite_newer   : !!overwrite        # default is "false"
+                    delete_missing    : !!overwrite        # default is "false"
+                    backup            : not (!!overwrite)  # default is "true"
                     exclude_history   : true
                     cb                : cb
         ], (err) =>
@@ -1753,7 +1759,7 @@ exports.CourseActions = class CourseActions extends Actions
         )
 
     # Copy the given handout to all non-deleted students, doing several copies in parallel at once.
-    copy_handout_to_all_students: (handout, new_only) =>
+    copy_handout_to_all_students: (handout, new_only, overwrite) =>
         desc = "Copying handouts to all students #{if new_only then 'who have not already received it' else ''}"
         short_desc = "copy to student"
 
@@ -1772,7 +1778,7 @@ exports.CourseActions = class CourseActions extends Actions
             if new_only and store.handout_last_copied(handout, student_id, true)
                 cb(); return
             n = misc.mswalltime()
-            @copy_handout_to_student(handout, student_id)
+            @copy_handout_to_student(handout, student_id, overwrite)
             store.wait
                 timeout : 60*15
                 until   : => store.handout_last_copied(handout, student_id) >= n

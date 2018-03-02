@@ -624,3 +624,21 @@ __internals =
 
 if process?.env?.SMC_TEST
     exports.__internals = __internals
+
+###
+Given
+spec =
+    foo :
+       bar : ...
+       stuff : ...
+    foo2 :
+       other : ...
+
+the redux_fields function returns ['bar', 'stuff', 'other'].
+###
+exports.redux_fields = (spec) ->
+    v = []
+    for _, val of spec
+        for key, _ of val
+            v.push(key)
+    return v

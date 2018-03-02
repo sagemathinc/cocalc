@@ -44,6 +44,7 @@ ACCOUNT_SPEC =  # WARNING: these must ALL be comparable with == and != !!!!!
     sign_in_error           : rtypes.string
     signing_in              : rtypes.bool
     signing_up              : rtypes.bool
+    is_logged_in            : rtypes.bool
     forgot_password_error   : rtypes.string
     forgot_password_success : rtypes.string # is this needed?
     show_forgot_password    : rtypes.bool
@@ -174,7 +175,7 @@ exports.AccountPage = rclass
         return v
 
     render: ->
-        logged_in = @props.redux.getStore('account')?.is_logged_in()
+        logged_in = @props.is_logged_in
         <div style={overflow:'auto'}>
             <Grid className='constrained'>
                 {@render_landing_page() if not logged_in}

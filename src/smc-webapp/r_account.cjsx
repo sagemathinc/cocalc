@@ -1100,10 +1100,6 @@ OtherSettings = rclass
         other_settings     : rtypes.immutable.Map
         is_stripe_customer : rtypes.bool
 
-    reduxProps :
-        account :
-            is_global_info_visible : rtypes.func
-
     on_change: (name, value) ->
         @props.redux.getTable('account').set(other_settings:{"#{name}":value})
 
