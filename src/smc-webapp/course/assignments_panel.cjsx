@@ -201,9 +201,8 @@ Assignment = rclass
         grading                   : rtypes.immutable.Map
 
     shouldComponentUpdate: (nextProps, nextState) ->
-        {any_changes} = require('../r_misc')
         return @state != nextState or \
-            any_changes(@props, nextProps,
+            misc.is_different(@props, nextProps,
                 ['assignment', 'students', 'user_map', 'background', 'is_expanded', \
                 'active_student_sort', 'expand_peer_config', 'grading']
             )

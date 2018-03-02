@@ -37,7 +37,7 @@ _         = require('underscore')
 # CoCalc and course components
 util = require('./util')
 styles = require('./styles')
-{DateTimePicker, ErrorDisplay, Icon, LabeledRow, Loading, MarkdownInput, Space, Tip, NumberInput, any_changes} = require('../r_misc')
+{DateTimePicker, ErrorDisplay, Icon, LabeledRow, Loading, MarkdownInput, Space, Tip, NumberInput} = require('../r_misc')
 {STEPS, step_direction, step_verb, step_ready} = util
 {BigTime} = require('./common')
 
@@ -88,14 +88,17 @@ _current_idx = (student_list, student_id) ->
 
 # filter predicate for file listing, return true for less important files
 # also match name.ext~ variants in case of multiple rsyncs ...
-course_specific_files = (entry) ->
-    return true if entry.get('mask')
-    filename = entry.get('name')
+is_course_specific_file = (filename) ->
     for fn in ['DUE_DATE.txt', 'GRADE.txt', 'STUDENT - ']
         return true if filename.indexOf(fn) == 0
     if filename.length >= 1 and filename[-1..] == '~'
         return true
     return false
+
+course_specific_files = (entry) ->
+    return true if entry.get('mask')
+    filename = entry.get('name')
+    return is_course_specific_file(filename)
 
 _init_state = (props) ->
     store      = props.redux.getStore(props.name)
@@ -109,7 +112,7 @@ _init_state = (props) ->
         page_number     : _page_number(props)
 
 _update_state = (props, next, state) ->
-    if any_changes(props, next, ['grading', 'assignment'])
+    if misc.is_different(props, next, ['grading', 'assignment'])
         student_id = _student_id(next)
         return if not student_id?
         subdir     = _subdir(next)
@@ -123,6 +126,7 @@ _update_state = (props, next, state) ->
             edited_comments : comment
             student_info    : if student_id? then state.store.student_assignment_info(student_id, props.assignment)
             subdir          : subdir
+            page_number     : _page_number(next)
         # reset file listing pager to 0 when switching directories or student
         if _subdir(props) != subdir or student_id != _student_id(props)
             ret.page_number = 0
@@ -313,21 +317,28 @@ exports.GradingStudentAssignment = rclass
             account_id  : rtypes.string
 
     getInitialState: ->
-        s = _init_state(@props)
-        s.active_autogrades = immutable.Set()
-        s = misc.merge(s, @get_listing_files(@props))
+        state = _init_state(@props)
+        state.active_autogrades = immutable.Set()
+        show_all_files = state.store.grading_get_show_all_files()
+        state = misc.merge(state, @get_listing_files(@props, show_all_files))
         store = @props.redux.getStore(@props.name)
         [student_list, all_points] = store.grading_get_student_list(@props.assignment)
-        s.student_list = student_list
-        s.all_points   = all_points
-        s.current_idx  = _current_idx(student_list, s.student_id)
-        return s
+        state.student_list = student_list
+        state.all_points   = all_points
+        state.current_idx  = _current_idx(student_list, state.student_id)
+        return state
 
     componentWillReceiveProps: (next) ->
         x = _update_state(@props, next, @state)
         @setState(x) if x?
-        if @props.grading?.get('listing') != next.grading?.get('listing')
-            @setState(@get_listing_files(next))
+
+        listing_changed    = @props.grading?.get('listing') != next.grading?.get('listing')
+        show_files_changed = @props.grading?.get('show_all_files') != next.grading?.get('show_all_files')
+        page_changed       = @props.grading?.get('page_number') != next.grading?.get('page_number')
+        if listing_changed or show_files_changed or page_changed
+            show_all_files = @state.store.grading_get_show_all_files()
+            @setState(@get_listing_files(next, show_all_files))
+
         if @props.grading != next.grading or @props.assignment != next.assignment
             [student_list, all_points] = @state.store.grading_get_student_list(next.assignment)
             @setState(
@@ -357,19 +368,31 @@ exports.GradingStudentAssignment = rclass
         if prevState.current_idx != @state.current_idx
             @scrollToStudent()
 
-    get_listing_files: (props) ->
+    get_listing_files: (props, show_all_files) ->
         {compute_file_masks} = require('../project_store')
+        listing = props.grading?.getIn(['listing'])
+        if not listing?
+            return {listing:undefined}
+
         # TODO this is stupid, file listings should be immutable.js
-        listing = props.grading?.getIn(['listing', 'files'])
-        return if not listing?
-        listing_js = listing.toJS()
+        listing_js = listing.get('files')?.toJS() ? []
         compute_file_masks(listing_js)
-        listing    = immutable.fromJS(listing_js)
-        files      = listing?.filterNot(course_specific_files)
+        files      = immutable.fromJS(listing_js)
+        if not (show_all_files ? false)
+            files  = files.filterNot(course_specific_files)
+        else
+            files = files.withMutations (files) ->
+                files.map (entry, idx) ->
+                    filename = entry.get('name')
+                    if is_course_specific_file(filename)
+                        files.setIn([idx, 'mask'], true)
+                    return null
+
+        listing    = listing.set('files', files)
         num_pages  = ((files?.size ? 0) // PAGE_SIZE) + 1
+
         data =
             listing       : listing
-            listing_files : files
             num_pages     : num_pages
         if _page_number(props) > num_pages
             data.page_number = 0
@@ -380,31 +403,6 @@ exports.GradingStudentAssignment = rclass
 
     open_assignment: (type, filepath) ->
         @actions(@props.name).open_assignment(type, @props.assignment, @state.student_id, filepath)
-
-
-    render_open: ->
-        [
-            <Row key={'top'} style={ROW_STYLE}>
-                Open assignment
-            </Row>
-            <Row key={'buttons'} style={ROW_STYLE}>
-                <ButtonToolbar>
-                    <Button
-                        onClick  = {=>@open_assignment('collected')}
-                        bsSize   = {'small'}
-                        disabled = {(@state.listing?.get('error')?.length > 0) ? false}
-                    >
-                        <Icon name='folder-open-o' /> Collected files
-                    </Button>
-                    <Button
-                        onClick = {=>@open_assignment('assigned')}
-                        bsSize  = {'small'}
-                    >
-                        Student files <Icon name='external-link' />
-                    </Button>
-                </ButtonToolbar>
-            </Row>
-        ]
 
     jump: (direction, without_grade, collected_files) ->
         @actions(@props.name).grading(
@@ -437,9 +435,6 @@ exports.GradingStudentAssignment = rclass
             <span style={fontSize:'120%'}>Student <b>{student_name?.full ? 'N/A'}</b></span>
 
     student_list_entry_click: (student_id) ->
-        @setState(
-            listing_files    : undefined
-        )
         @actions(@props.name).grading(
             assignment       : @props.assignment
             student_id       : student_id
@@ -791,22 +786,28 @@ exports.GradingStudentAssignment = rclass
     render_open_collected_file : (filename) ->
         filepath = @filepath(filename)
         <Button
-            onClick = {=>@open_assignment('collected', filepath)}
-            bsStyle = {'primary'}
-            bsSize  = {'small'}
+            onClick  = {=>@open_assignment('collected', filepath)}
+            disabled = {(@state.listing?.get('error')?.length > 0) ? false}
+            bsStyle  = {'primary'}
+            bsSize   = {'small'}
         >
             <Icon name='eye' /> Collected<span className='hidden-md'> file</span>
         </Button>
 
     render_open_student_file: (filename) ->
         filepath = @filepath(filename)
-        <Button
-            onClick = {=>@open_assignment('assigned', filepath)}
-            bsStyle = {'default'}
-            bsSize  = {'small'}
+        <Tip
+            title = {"Open the student's file"}
+            title = {"This opens the corresponding file in the student's project. This allows you to see the progress via 'TimeTravel' for many file types, etc."}
         >
-            Student file <Icon name='external-link' />
-        </Button>
+            <Button
+                onClick = {=>@open_assignment('assigned', filepath)}
+                bsStyle = {'default'}
+                bsSize  = {'small'}
+            >
+                Student file <Icon name='external-link' />
+            </Button>
+        </Tip>
 
     filepath: (filename) ->
         path_join(@state.subdir, filename)
@@ -899,11 +900,14 @@ exports.GradingStudentAssignment = rclass
             <Icon name='folder-open-o'/> {name}{'/'}
         </a>
 
-    open_file: (filename) ->
+    open_file: (filename, masked) ->
         filepath = @filepath(filename)
         style =
             fontWeight    : 'bold'
             cursor        : 'pointer'
+        if masked
+            style.color      = COLORS.GRAY
+            style.fontWeight = 'inherit'
         <a
             style     = {style}
             onClick   = {=>@open_assignment('collected', filepath)}
@@ -914,23 +918,22 @@ exports.GradingStudentAssignment = rclass
     listing_directory_row: (filename, time) ->
         subdirpath = path_join(@state.subdir, filename)
         [
-            <Col key={0} md={4} style={@listing_colstyle()}>{@open_subdir(subdirpath)}</Col>
-            <Col key={1} md={2} style={@listing_colstyle()}>{time}</Col>
-            <Col key={2} md={4} style={@listing_colstyle()}>{@render_points_subdir(subdirpath)}</Col>
+            <Col key={0} md={4} style={@listing_colstyle}>{@open_subdir(subdirpath)}</Col>
+            <Col key={1} md={2} style={@listing_colstyle}>{time}</Col>
+            <Col key={2} md={4} style={@listing_colstyle}>{@render_points_subdir(subdirpath)}</Col>
             <Col key={3} md={2}></Col>
         ]
 
-    listing_file_row: (filename, time) ->
+    listing_file_row: (filename, time, masked) ->
         [
-            <Col key={0} md={4} style={@listing_colstyle()}>{@open_file(filename)}</Col>
-            <Col key={1} md={2} style={@listing_colstyle()}>{time}</Col>
+            <Col key={0} md={4} style={@listing_colstyle}>{@open_file(filename, masked)}</Col>
+            <Col key={1} md={2} style={@listing_colstyle}>{time}</Col>
             <Col key={2} md={4}>{@render_points_input(filename)}</Col>
             # <Col key={3} md={3}>{@render_autograde(filename)}</Col>
             <Col key={5} md={2} style={textAlign:'right'}>{@render_open_student_file(filename)}</Col>
         ]
 
-    listing_colstyle: ->
-        return {margin: '10px 0'}
+    listing_colstyle: {margin: '10px 0'}
 
     listing_rowstyle: (idx) ->
         col = if idx %% 2 == 0 then 'white' else COLORS.GRAY_LL
@@ -941,7 +944,8 @@ exports.GradingStudentAssignment = rclass
         return misc.merge(style, LIST_ENTRY_STYLE)
 
     listing_entries: ->
-        return if not @state.listing?
+        return <li><Loading /></li> if not @state.listing?
+
         error = @state.listing.get('error')
         if error?
             if error = 'no_dir'
@@ -950,13 +954,13 @@ exports.GradingStudentAssignment = rclass
             else
                 return <div>Got error listing directory: {error}</div>
 
-        return <li><Loading /></li> if not @state.listing_files?
-        files = @state.listing_files
+        files = @state.listing.get('files')
         if files?.size > 0
             begin = PAGE_SIZE * (@state.page_number ? 0)
             end   = begin + PAGE_SIZE
             return files.slice(begin, end).map (file, idx) =>
                 filename = file.get('name')
+                masked   = file.get('mask') ? false
                 time     = <BigTime date={(file.get('mtime') ? 0) * 1000} />
                 isdir    = file.get('isdir') == true
 
@@ -966,7 +970,7 @@ exports.GradingStudentAssignment = rclass
                         if isdir
                             @listing_directory_row(filename, time)
                         else
-                            @listing_file_row(filename, time)
+                            @listing_file_row(filename, time, masked)
                     }
                     </Row>
                 </li>
@@ -991,7 +995,7 @@ exports.GradingStudentAssignment = rclass
         return (if more? then [listing, more] else listing)
 
     open_directory: (path) ->
-        @setState(subdir : path, listing_files: undefined)
+        @setState(subdir : path)
         @actions(@props.name).grading(
             assignment       : @props.assignment
             student_id       : @state.student_id
@@ -1063,6 +1067,29 @@ exports.GradingStudentAssignment = rclass
             </ButtonGroup>
         </div>
 
+    toggle_show_all_files: ->
+        @actions(@props.name).grading_toggle_show_all_files()
+
+    render_toggle_show_all_files: ->
+        visible = @state.store.grading_get_show_all_files()
+        icon    = if visible then 'eye' else 'eye-slash'
+        <div style={padding:'0', flex:'0', marginRight: '15px'}>
+            <ButtonGroup style={marginBottom:'5px', display:'flex'}>
+                <Tip
+                    title     = {'Show/hide files'}
+                    tip       = {'By default, less important files are hidden from the files listing.'}
+                    placement = {'top'}
+                >
+                    <Button
+                        onClick    = {=>@toggle_show_all_files()}
+                        style      = {whiteSpace: 'nowrap'}
+                    >
+                        <Icon name={icon} />
+                    </Button>
+                </Tip>
+            </ButtonGroup>
+        </div>
+
     collected: ->
         last_collect  = @state.student_info?.last_collect
         if last_collect?.time?
@@ -1070,27 +1097,42 @@ exports.GradingStudentAssignment = rclass
         else
             time      = "never"
 
+        # enable button only when we have listing information and some files without errors
+        disabled = not @state.listing?
+        disabled or= (@state.listing?.get('error')?.length > 0) ? false
+
         <Row>
             <div style={display: 'flex', flexDirection: 'row'}>
+                {@render_toggle_show_all_files()}
                 {@render_listing_pager()}
                 <div style={padding:'0', flex:'1'}>
                     {@render_listing_path()}
                 </div>
                 <div style={padding:'0', flex:'0'}>
                     <ButtonGroup style={marginBottom:'5px', display:'flex'}>
-                        <Button
-                            style    = {whiteSpace:'nowrap'}
-                            disabled = {(@state.listing?.get('error')?.length > 0) ? false}
-                            onClick  = {=>@open_assignment('collected')}
+                        <Tip
+                            title     = {'Open the collected files right here in your own project.'}
+                            placement = {'bottom'}
                         >
-                            <Icon name='folder-open-o' /><span className='hidden-md'> Collected</span> {time}
-                        </Button>
-                        <Button
-                            onClick = {=>@open_assignment('assigned')}
-                            style   = {whiteSpace:'nowrap'}
+                            <Button
+                                style    = {whiteSpace:'nowrap'}
+                                disabled = {disabled}
+                                onClick  = {=>@open_assignment('collected')}
+                            >
+                                <Icon name='folder-open-o' /><span className='hidden-md'> Collected</span> {time}
+                            </Button>
+                        </Tip>
+                        <Tip
+                            title     = {"Open this directory of files in the student's project."}
+                            placement = {'bottom'}
                         >
-                            Student <Icon name='external-link' />
-                        </Button>
+                            <Button
+                                onClick = {=>@open_assignment('assigned')}
+                                style   = {whiteSpace:'nowrap'}
+                            >
+                                Student <Icon name='external-link' />
+                            </Button>
+                        </Tip>
                     </ButtonGroup>
                 </div>
             </div>
@@ -1176,7 +1218,6 @@ exports.GradingStudentAssignment = rclass
                     <Col md={5}>
                         {@render_points()}
                         {@render_stats()}
-                        {### @render_open() ###}
                     </Col>
                     <Grade
                         actions    = {@actions(@props.name)}

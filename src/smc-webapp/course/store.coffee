@@ -519,6 +519,9 @@ exports.CourseStore = class CourseStore extends Store
     grading_get_page_number: =>
         @getIn(['grading', 'page_number']) ? 0
 
+    grading_get_show_all_files: =>
+        @getIn(['grading', 'show_all_files']) ? false
+
     grading_get_listing: (assignment, student_id, subdir, cb) =>
         project_id = @get('course_project_id')
         collect_path = "#{assignment.get('collect_path')}/#{student_id}"

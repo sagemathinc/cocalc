@@ -1853,7 +1853,7 @@ exports.CourseActions = class CourseActions extends Actions
             student_filter  : store.grading_get_student_filter()
             only_not_graded : only_not_graded
             only_collected  : only_collected
-            page_number     : store.grading_get_page_number()
+            page_number     : 0   # store.grading_get_page_number()
             listing         : null
         )
 
@@ -1898,6 +1898,14 @@ exports.CourseActions = class CourseActions extends Actions
 
     grading_set_cursors: (cursors) =>
         @grading_set_entry('cursors', immutable.fromJS(cursors))
+
+    grading_toggle_show_all_files: =>
+        store = @get_store()
+        return if not store?
+        visible = store.grading_get_show_all_files()
+        @grading_set_entry('show_all_files', !visible)
+        # also reset visible page number to zero
+        @grading_set_entry('page_number', 0)
 
     grading_update_activity: (opts) =>
         store = @get_store()
