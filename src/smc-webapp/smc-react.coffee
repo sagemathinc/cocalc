@@ -444,6 +444,7 @@ computed = (rtype) =>
 # For backward compatibility
 rtypes = require('smc-util/opts').types
 
+
 ###
 Used by Provider to map app state to component props
 
@@ -470,7 +471,8 @@ connect_component = (spec) =>
                         val = state.getIn([store_name, prop])
                 else # TODOJ: remove when all stores are converted
                     val = state.getIn([store_name, prop])
-                if type.category == "IMMUTABLE"
+                # or type.category == 'DO_NOT_CONVERT_TO_JS' ??
+                if type.category == "IMMUTABLE" or prop == 'grading'
                     props[prop] = val
                 else
                     props[prop] = if val?.toJS? then val.toJS() else val

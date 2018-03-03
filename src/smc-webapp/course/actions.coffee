@@ -1849,7 +1849,8 @@ exports.CourseActions = class CourseActions extends Actions
             next_student_id = opts.student_id
 
         # this switches to grading mode, but no listing
-        data = immutable.Map(
+        {Grading} = require('./grading')
+        data = new Grading(
             student_id      : next_student_id ? opts.student_id
             progress        : cnt
             assignment_id   : opts.assignment.get('assignment_id')
@@ -1863,7 +1864,7 @@ exports.CourseActions = class CourseActions extends Actions
             listing         : null
         )
 
-        grading = store.get('grading') ? immutable.Map()
+        grading = store.get('grading') ? new Grading()
         grading = grading.merge(data)
         @setState(grading : grading)
         # sets a "cursor" pointing to this assignment and student, signal for others

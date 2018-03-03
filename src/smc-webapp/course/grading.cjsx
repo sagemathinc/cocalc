@@ -23,6 +23,7 @@ path      = require('path')
 path_join = path.join
 immutable = require('immutable')
 _         = require('underscore')
+PropTypes = require('prop-types')
 
 # CoCalc libraries
 {defaults, required} = misc = require('smc-util/misc')
@@ -71,6 +72,26 @@ EMPTY_LISTING_TEXT =
     justifyContent : 'center'
 
 PAGE_SIZE = 10
+
+GradingRecord = immutable.Record
+    student_id      : null
+    progress        : 0
+    assignment_id   : null
+    listing         : null
+    end_of_list     : null
+    subdir          : ''
+    student_filter  : null
+    only_not_graded : true
+    only_collected  : true
+    page_number     : 0
+    listing         : null
+    show_all_files  : false
+    cursors         : null,
+    'Grading'
+
+exports.Grading = class Grading extends GradingRecord
+    setListing: (listing) ->
+        return @set('listing', listing)
 
 # util functions
 _student_id = (props) ->
@@ -149,7 +170,7 @@ exports.GradingStudentAssignmentHeader = rclass
         redux        : rtypes.object.isRequired
         assignment   : rtypes.object.isRequired
         students     : rtypes.object.isRequired
-        grading      : rtypes.immutable.Map
+        grading      : PropTypes.instanceOf(Grading)
 
     getInitialState: ->
         return _init_state(@props)
@@ -194,7 +215,7 @@ Grade = rclass
         actions       : rtypes.object.isRequired
         store         : rtypes.object.isRequired
         assignment    : rtypes.immutable.Map
-        grading       : rtypes.immutable.Map.isRequired
+        grading       : PropTypes.instanceOf(Grading).isRequired
         student_id    : rtypes.string.isRequired
 
     getInitialState: ->
@@ -318,7 +339,7 @@ exports.GradingStudentAssignment = rclass
         assignment      : rtypes.object.isRequired
         students        : rtypes.object.isRequired
         user_map        : rtypes.object.isRequired
-        grading         : rtypes.immutable.Map
+        grading         : PropTypes.instanceOf(Grading).isRequired
 
     reduxProps:
         account :
@@ -583,7 +604,7 @@ exports.GradingStudentAssignment = rclass
             </li>
 
         if list.length == 0
-            list.push(<li>No student matches…</li>)
+            list.push(<div style={EMPTY_LISTING_TEXT}>No student matches…</div>)
         return list
 
     render_student_list: ->
@@ -922,22 +943,26 @@ exports.GradingStudentAssignment = rclass
     listing_directory_row: (filename, time) ->
         subdirpath = path_join(@state.subdir, filename)
         [
-            <Col key={0} md={4} style={@listing_colstyle}>{@open_subdir(subdirpath)}</Col>
-            <Col key={1} md={2} style={@listing_colstyle}>{time}</Col>
-            <Col key={2} md={4} style={@listing_colstyle}>{@render_points_subdir(subdirpath)}</Col>
+            <Col key={0} md={4} style={@listing_colstyle2()}>{@open_subdir(subdirpath)}</Col>
+            <Col key={1} md={2} style={@listing_colstyle()}>{time}</Col>
+            <Col key={2} md={4} style={@listing_colstyle()}>{@render_points_subdir(subdirpath)}</Col>
             <Col key={3} md={2}></Col>
         ]
 
     listing_file_row: (filename, time, masked) ->
         [
-            <Col key={0} md={4} style={@listing_colstyle}>{@open_file(filename, masked)}</Col>
-            <Col key={1} md={2} style={@listing_colstyle}>{time}</Col>
+            <Col key={0} md={4} style={@listing_colstyle2()}>{@open_file(filename, masked)}</Col>
+            <Col key={1} md={2} style={@listing_colstyle()}>{time}</Col>
             <Col key={2} md={4}>{@render_points_input(filename)}</Col>
             # <Col key={3} md={3}>{@render_autograde(filename)}</Col>
             <Col key={5} md={2} style={textAlign:'right'}>{@render_open_student_file(filename)}</Col>
         ]
 
-    listing_colstyle: {margin: '10px 0'}
+    listing_colstyle: ->
+        {margin: '10px 0'}
+
+    listing_colstyle2: ->
+        misc.merge({overflow: 'hidden', textOverflow: 'ellipsis'}, @listing_colstyle())
 
     listing_rowstyle: (idx) ->
         col = if idx %% 2 == 0 then 'white' else COLORS.GRAY_LL
@@ -1030,15 +1055,15 @@ exports.GradingStudentAssignment = rclass
         segments = @state.subdir.split('/')
         segments.map (segment) =>
             path = path_join(path, segment)
-            #do (path, segment) =>
-            crumbs.push(
-                <Breadcrumb.Item
-                    key        = {path}
-                    onClick    = {=>@open_directory(path)}
-                >
-                    {segment}
-                </Breadcrumb.Item>
-            )
+            do (path, segment) =>
+                crumbs.push(
+                    <Breadcrumb.Item
+                        key        = {path}
+                        onClick    = {=>@open_directory(path)}
+                    >
+                        {segment}
+                    </Breadcrumb.Item>
+                )
 
         <Breadcrumb bsSize='small' style={margin: '0 15px 15px 0'}>
             {crumbs}

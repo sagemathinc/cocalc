@@ -35,7 +35,7 @@ styles = require('./styles')
 {DateTimePicker, ErrorDisplay, Icon, LabeledRow, Loading, MarkdownInput, Space, Tip, NumberInput} = require('../r_misc')
 {STEPS, step_direction, step_verb, step_ready} = util
 {BigTime, FoldersToolbar, StudentAssignmentInfo, StudentAssignmentInfoHeader} = require('./common')
-{GradingStudentAssignment, GradingStudentAssignmentHeader} = require('./grading')
+{GradingStudentAssignment, GradingStudentAssignmentHeader, Grading} = require('./grading')
 
 {Progress} = require('./progress')
 {SkipCopy} = require('./skip')
@@ -49,7 +49,7 @@ exports.AssignmentsPanel = rclass ({name}) ->
             active_assignment_sort : rtypes.immutable.Map
             active_student_sort    : rtypes.immutable.Map
             expanded_peer_configs  : rtypes.immutable.Set
-            grading                : rtypes.immutable.Map
+            grading                : rtypes.instanceOf(Grading)
 
     propTypes :
         name            : rtypes.string.isRequired
@@ -198,7 +198,7 @@ Assignment = rclass
         is_expanded         : rtypes.bool
         active_student_sort : rtypes.immutable.Map
         expand_peer_config  : rtypes.bool
-        grading             : rtypes.immutable.Map
+        grading             : rtypes.instanceOf(Grading)
 
     getInitialState: ->  {} # there are many keys used in state; we assume @state not null in code below.
 
