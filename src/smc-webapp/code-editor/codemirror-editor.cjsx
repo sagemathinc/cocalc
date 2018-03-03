@@ -118,7 +118,7 @@ exports.CodemirrorEditor = rclass
     save_scroll_position: ->
         if not @cm?
             return
-        info = misc.copy_with(@cm.getScrollInfo(), ['left', 'top'])
+        info = misc.copy_with(@cm.getScrollInfo(), ['left', 'top', 'clientHeight', 'height', 'width'])
         info.sel = @cm.listSelections()
         @props.actions.save_scroll_position(@props.id, info)
 
@@ -193,7 +193,11 @@ exports.CodemirrorEditor = rclass
             sel = @props.scroll.get('sel')?.toJS()
             if sel?
                 @cm.setSelections(sel)
-            @cm.scrollTo(@props.scroll.get('left'), @props.scroll.get('top'))
+            scroll_before = @props.scroll.toJS()
+            scroll_after  = @cm.getScrollInfo()
+            x = (scroll_before.left / scroll_before.width) * scroll_after.width
+            y = (((scroll_before.top+scroll_before.clientHeight/2) / scroll_before.height) * scroll_after.height) - scroll_after.clientHeight/2
+            @cm.scrollTo(x, y)
 
         @cm.setOption('readOnly', @props.read_only)
         @setState(has_cm: true)
