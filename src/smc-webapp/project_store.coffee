@@ -241,7 +241,6 @@ class ProjectActions extends Actions
                 if is_public != was_public
                     @open_file(path : path)
 
-
     add_a_ghost_file_tab: () =>
         return if not store = @get_store()
         current_num = store.num_ghost_file_tabs
@@ -492,9 +491,12 @@ class ProjectActions extends Actions
     # If the given path is open, and editor supports going to line, moves to the given line.
     # Otherwise, does nothing.
     goto_line: (path, line) =>
-        # Obviously, for now, this only works for non-react editors.
-        # For react editors later, will get their actions and pass this on to them.
-        wrapped_editors.get_editor(@project_id, path)?.programmatical_goto_line?(line)
+        a = redux.getEditorActions(@project_id, path)
+        if not a?
+            # try non-react editor
+            wrapped_editors.get_editor(@project_id, path)?.programmatical_goto_line?(line)
+        else
+            a.programmatical_goto_line?(line)
 
     # Used by open/close chat below.
     _set_chat_state: (path, is_chat_open) =>
@@ -1870,13 +1872,15 @@ create_project_store_def = (name, project_id) ->
 
 
     # Returns the cursor positions for the given project_id/path, if that
-    # file is opened, and supports cursors.   Currently this only works
-    # for old sync'd codemirror editors.  Otherwise, returns undefined.
-    # To do this right, we'll want to have implement redux.getEditorStore(...)
-    # and *MOVE* this method there.
-    # Not a property
+    # file is opened, and supports cursors and is either old (and ...) or
+    # is in react and has store with a cursors key.
     get_users_cursors: (path, account_id) ->
-        return wrapped_editors.get_editor(@project_id, path)?.get_users_cursors?(account_id)
+        store = redux.getEditorStore(@project_id, path)
+        if not store?
+            # try non-react editor
+            return wrapped_editors.get_editor(@project_id, path)?.get_users_cursors?(account_id)
+        else
+            return store.get('cursors')?.get(account_id)
 
     # Not a property
     is_file_open: (path) ->

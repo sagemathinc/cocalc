@@ -404,7 +404,12 @@ class exports.Actions extends Actions
         @_get_cm(id)?.execCommand('jumpToLine')
 
     programmatical_goto_line: (line) =>  # used when clicking on other user avatar.
-        console.log 'programmatical_goto_line', line
+        cm = @_get_cm()
+        if not cm?
+            return
+        pos  = {line:line-1, ch:0}
+        info = cm.getScrollInfo()
+        cm.scrollIntoView(pos, info.clientHeight/2)
 
     cut: (id) =>
         cm = @_get_cm(id)
