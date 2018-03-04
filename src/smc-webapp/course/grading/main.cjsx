@@ -44,20 +44,10 @@ styles = require('../styles')
 # Grading specific
 {Grading} = require('./models')
 {Grade} = require('./grade')
+{GradingStats} = require('./stats')
 {ROW_STYLE, LIST_STYLE, LIST_ENTRY_STYLE, FLEX_LIST_CONTAINER, EMPTY_LISTING_TEXT, PAGE_SIZE} = require('./const')
 
 # util functions
-_student_id = (props) ->
-    props.grading?.get('student_id')
-
-_subdir = (props) ->
-    props.grading?.get('subdir') ? ''
-
-_student_filter = (props) ->
-    props.grading?.get('student_filter') ? ''
-
-_page_number = (props) ->
-    props.grading?.get('page_number') ? 0
 
 _current_idx = (student_list, student_id) ->
     current_idx = null
@@ -69,20 +59,20 @@ _current_idx = (student_list, student_id) ->
 
 exports._init_state = _init_state = (props) ->
     store      = props.redux.getStore(props.name)
-    student_id = _student_id(props)
+    student_id = props.grading.student_id
     return
         store           : store
         student_id      : student_id
         student_info    : if student_id? then store.student_assignment_info(student_id, props.assignment)
-        subdir          : _subdir(props)
-        student_filter  : _student_filter(props)
-        page_number     : _page_number(props)
+        subdir          : props.grading.subdir
+        student_filter  : props.grading.student_filter
+        page_number     : props.grading.page_number
 
 exports._update_state = _update_state = (props, next, state) ->
     if misc.is_different(props, next, ['grading', 'assignment'])
-        student_id = _student_id(next)
+        student_id = next.grading.student_id
         return if not student_id?
-        subdir     = _subdir(next)
+        subdir     = next.grading.subdir
         grade      = state.store.get_grade(props.assignment, student_id)
         comment    = state.store.get_comments(props.assignment, student_id)
         ret =
@@ -93,13 +83,11 @@ exports._update_state = _update_state = (props, next, state) ->
             edited_comments : comment
             student_info    : if student_id? then state.store.student_assignment_info(student_id, props.assignment)
             subdir          : subdir
-            page_number     : _page_number(next)
+            page_number     : next.grading.page_number
         # reset file listing pager to 0 when switching directories or student
-        if _subdir(props) != subdir or student_id != _student_id(props)
+        if props.grading.subdir != subdir or student_id != props.grading.student_id
             ret.page_number = 0
         return ret
-
-
 
 
 exports.GradingStudentAssignment = rclass
@@ -133,9 +121,9 @@ exports.GradingStudentAssignment = rclass
         x = _update_state(@props, next, @state)
         @setState(x) if x?
 
-        listing_changed    = @props.grading?.get('listing') != next.grading?.get('listing')
-        show_files_changed = @props.grading?.get('show_all_files') != next.grading?.get('show_all_files')
-        page_changed       = @props.grading?.get('page_number') != next.grading?.get('page_number')
+        listing_changed    = @props.grading?.listing != next.grading?.listing
+        show_files_changed = @props.grading?.show_all_files != next.grading?.show_all_files
+        page_changed       = @props.grading?.page_number != next.grading?.page_number
         if listing_changed or show_files_changed or page_changed
             show_all_files = @state.store.grading_get_show_all_files()
             @setState(next.grading.get_listing_files(show_all_files))
@@ -195,11 +183,8 @@ exports.GradingStudentAssignment = rclass
         collected_files = @get_only_collected()
         @jump(direction, without_grade, collected_files)
 
-    render_progress: ->
-        <span>Student {@props.grading?.get('progress') ? NaN} of {@props.students?.size ? NaN}</span>
-
     render_info: ->
-        if @props.grading.get('end_of_list')
+        if @props.grading.end_of_list
             <span>End of student list</span>
         else if @state.student_id?
             student_name = @state.store.get_student_name(@state.student_id, true)
@@ -410,11 +395,6 @@ exports.GradingStudentAssignment = rclass
 
     render_nav: () ->
         <Col md={3}>
-            {###
-            <Row style={ROW_STYLE}>
-                {@render_progress()}
-            </Row>
-            ###}
             <Row style={ROW_STYLE}>
                 <ButtonGroup>
                     <Button
@@ -477,82 +457,7 @@ exports.GradingStudentAssignment = rclass
             </Col>
         </Row>
 
-    render_stats: ->
-        return <div/> if @state.all_points.length < 5
-        data = misc.five_number_quantiles(@state.all_points, true)
-        spread = data.max.value - data.min.value + 1
-        spaces = {}
-        prev = 0
-        for k, v of data
-            spaces["#{k}"] = (v.value - data.min.value - prev) / spread / 2
-            prev = v.value
 
-        boxstyle =
-            color        : COLORS.GRAY
-            marginTop    : '10px'
-            #border       : "1px solid #{COLORS.GRAY_L}"
-            #borderRadius : '5px'
-
-        style_outer =
-            margin           : '10px 20px'
-            borderBottom     : "1px solid #{COLORS.GRAY}"
-            display          : 'flex'
-            justifyContent   : 'space-between'
-            flexDirection    : 'row'
-            position         : 'relative'
-            transform        : 'translateY(-15px)'
-
-        style_number = (name) ->
-            ret =
-                display        : 'inline-block'
-                textAlign      : 'center'
-                whiteSpace     : 'nowrap'
-                padding        : '1px 5px'
-                background     : 'white'
-                border         : "1px solid #{COLORS.GRAY}"
-                position       : 'relative'
-                borderRadius   : '5px'
-                transform      : 'translateY(50%)'
-                marginLeft     : "#{100 * spaces[name]}%"
-            #if name == 'median'
-            #    ret.fontWeight = 'bold'
-            return ret
-
-        <Row style={boxstyle}>
-            <Col
-                md    = {10}
-                style = {textAlign:'center'}
-            >
-                <a
-                    href   = {'https://en.wikipedia.org/wiki/Five-number_summary'}
-                    target = {'_blank'}
-                    style  = {color: COLORS.GRAY}
-                >
-                    5-number summary
-                </a> of all points per student
-            </Col>
-            <Col
-                md    = {10}
-                style = {textAlign:'center'}
-            >
-                <div style={style_outer}>
-                {
-                    for name, point of data
-                        <div
-                            key   = {name}
-                            style = {style_number(name)}
-                        >
-                            <Tip
-                                title     = {point.help}
-                                placement = {'bottom'}
-                            >
-                                {misc.round1(point.value)}
-                            </Tip>
-                        </div>
-                }
-                </div>
-            </Col>
-        </Row>
 
     render_open_student_file: (filename) ->
         filepath = @filepath(filename)
@@ -714,24 +619,24 @@ exports.GradingStudentAssignment = rclass
             paddingBottom  : '5px'
         return misc.merge(style, LIST_ENTRY_STYLE)
 
-    listing_entries: ->
-        if not @state.listing?
+    listing_error: (error) ->
+        if error = 'no_dir'
+            # TODO insert collect button here and refresh listing accordingly ...
             return <div style={EMPTY_LISTING_TEXT}>
-                       <Loading />
+                       No directory. Not yet collected from student?
+                   </div>
+        else
+            return <div style={EMPTY_LISTING_TEXT}>
+                       <div>Got an error listing directory:</div>
+                       <pre>{error}</pre>
                    </div>
 
+    listing_entries: ->
+        if not @state.listing?
+            return <div style={EMPTY_LISTING_TEXT}><Loading /></div>
+
         error = @state.listing.get('error')
-        if error?
-            if error = 'no_dir'
-                # TODO insert collect button here and refresh listing accordingly ...
-                return <div style={EMPTY_LISTING_TEXT}>
-                           No directory. Not yet collected from student?
-                       </div>
-            else
-                return <div style={EMPTY_LISTING_TEXT}>
-                           <div>Got an error listing directory:</div>
-                           <pre>{error}</pre>
-                       </div>
+        return @listing_error(error) if error?
 
         files = @state.listing.get('files')
         if files?.size > 0
@@ -917,22 +822,6 @@ exports.GradingStudentAssignment = rclass
             </div>
         </Row>
 
-    render_up: ->
-        return null if not (@state.subdir?.length > 0)
-        updir = @state.subdir.split('/')[...-1].join('/')
-        <Button
-            bsSize  = {'small'}
-            onClick = {=>@actions(@props.name).grading(
-                assignment       : @props.assignment
-                student_id       : @state.student_id
-                direction        : 0
-                without_grade    : null
-                subdir           : updir
-            )}
-        >
-            <Icon name='arrow-up' /> Up
-        </Button>
-
     start_fresh: ->
         @actions(@props.name).grading(
             student_id       : undefined
@@ -974,7 +863,7 @@ exports.GradingStudentAssignment = rclass
         if not @state.student_id?
             return <div>No student to grade, because there are no collected assignments…</div>
 
-        if @props.grading.get('end_of_list')
+        if @props.grading.end_of_list
             return @render_end_of_list()
 
         flexcolumn =
@@ -982,13 +871,10 @@ exports.GradingStudentAssignment = rclass
             flexDirection  : 'column'
             marginRight    : '15px'
 
-        #[student_list, current_idx, all_points] = @student_list_entries()
-
         <Row
             style={height: '70vh', display: 'flex'}
         >
             <Col md={3} style={misc.merge({marginLeft:'15px'}, flexcolumn)}>
-                {### @render_list(student_list) ###}
                 {@render_student_list()}
             </Col>
             <Col md={9} style={flexcolumn}>
@@ -996,7 +882,7 @@ exports.GradingStudentAssignment = rclass
                     {@render_nav()}
                     <Col md={5}>
                         {@render_points()}
-                        {@render_stats()}
+                        <GradingStats all_points={@state.all_points} />
                     </Col>
                     <Grade
                         actions    = {@actions(@props.name)}

@@ -44,19 +44,17 @@ course_specific_files = (entry) ->
 # Models
 
 GradingRecord = immutable.Record
-    student_id      : null
-    progress        : 0
-    assignment_id   : null
-    listing         : null
-    end_of_list     : null
-    subdir          : ''
-    student_filter  : null
-    only_not_graded : true
-    only_collected  : true
-    page_number     : 0
-    listing         : null
-    show_all_files  : false
-    cursors         : null,
+    student_id      : null      # the currentl student
+    assignment_id   : null      # the UUID string
+    end_of_list     : false     # true, if at the end of student list
+    subdir          : ''        # for a collected directory of files, in which (relative) subdirectory are we?
+    student_filter  : null      # string, if set the student are filtered by their name
+    only_not_graded : true      # by default, we want to only see student who did not recieve a grade yet
+    only_collected  : true      # by default, we only want to see students where the assignments are collected
+    page_number     : 0         # if there are more files in the listing than "PAGE_SIZE", this tells us the page at which we are
+    listing         : null      # an immutable.js map, "files": a sorted and processed list, like they are in project_store (entries have a "mask" field); and "error": e.g. "no_dir"
+    show_all_files  : false     # if true, we want to see all files including those which are masked
+    cursors         : null,     # information about other collaborators also grading an assignment (i.e. real-time presence information)
     'Grading'
 
 exports.Grading = class Grading extends GradingRecord
