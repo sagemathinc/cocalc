@@ -1849,7 +1849,7 @@ exports.CourseActions = class CourseActions extends Actions
             next_student_id = opts.student_id
 
         # this switches to grading mode, but no listing
-        {Grading} = require('./grading')
+        {Grading} = require('./grading/models')
         data = new Grading(
             student_id      : next_student_id ? opts.student_id
             progress        : cnt

@@ -23,75 +23,27 @@ path      = require('path')
 path_join = path.join
 immutable = require('immutable')
 _         = require('underscore')
-PropTypes = require('prop-types')
 
 # CoCalc libraries
 {defaults, required} = misc = require('smc-util/misc')
-{webapp_client}      = require('../webapp_client')
+{webapp_client}      = require('../../webapp_client')
 {COLORS}             = require('smc-util/theme')
-{Avatar}             = require('../other-users')
+{Avatar}             = require('../../other-users')
 
 # React libraries
-{React, rclass, rtypes, ReactDOM} = require('../smc-react')
+{React, rclass, rtypes, ReactDOM} = require('../../smc-react')
 {Alert, Button, ButtonToolbar, ButtonGroup, Form, FormControl, FormGroup, ControlLabel, InputGroup, Checkbox, Row, Col, Panel, Breadcrumb} = require('react-bootstrap')
 
 # CoCalc and course components
-util = require('./util')
-styles = require('./styles')
-{DateTimePicker, ErrorDisplay, Icon, LabeledRow, Loading, MarkdownInput, Space, Tip, NumberInput} = require('../r_misc')
+util = require('../util')
+styles = require('../styles')
+{DateTimePicker, ErrorDisplay, Icon, LabeledRow, Loading, MarkdownInput, Space, Tip, NumberInput} = require('../../r_misc')
 {STEPS, step_direction, step_verb, step_ready} = util
-{BigTime} = require('./common')
+{BigTime} = require('../common')
 
-# Constants
-ROW_STYLE =
-    marginBottom: '10px'
-
-LIST_STYLE =
-    borderRadius  : '5px'
-    marginBottom  : '0px'
-
-LIST_ENTRY_STYLE =
-    border         : '0'
-    borderBottom   : "1px solid #{COLORS.GRAY_L}"
-    overflow       : 'hidden'
-    whiteSpace     : 'nowrap'
-
-FLEX_LIST_CONTAINER =
-    display        : 'flex'
-    flexDirection  : 'column'
-    overflowY      : 'auto'
-    border         : "1px solid #{COLORS.GRAY_L}"
-    borderRadius   : '5px'
-
-EMPTY_LISTING_TEXT =
-    fontSize       : '120%'
-    textAlign      : 'center'
-    minHeight      : '15vh'
-    display        : 'flex'
-    alignItems     : 'center'
-    justifyContent : 'center'
-
-PAGE_SIZE = 10
-
-GradingRecord = immutable.Record
-    student_id      : null
-    progress        : 0
-    assignment_id   : null
-    listing         : null
-    end_of_list     : null
-    subdir          : ''
-    student_filter  : null
-    only_not_graded : true
-    only_collected  : true
-    page_number     : 0
-    listing         : null
-    show_all_files  : false
-    cursors         : null,
-    'Grading'
-
-exports.Grading = class Grading extends GradingRecord
-    setListing: (listing) ->
-        return @set('listing', listing)
+# Grading specific
+{Grading} = require('./models')
+{ROW_STYLE, LIST_STYLE, LIST_ENTRY_STYLE, FLEX_LIST_CONTAINER, EMPTY_LISTING_TEXT, PAGE_SIZE} = require('./const')
 
 # util functions
 _student_id = (props) ->
@@ -114,22 +66,7 @@ _current_idx = (student_list, student_id) ->
             current_idx = idx
     return current_idx
 
-
-# filter predicate for file listing, return true for less important files
-# also match name.ext~ variants in case of multiple rsyncs ...
-is_course_specific_file = (filename) ->
-    for fn in ['DUE_DATE.txt', 'GRADE.txt', 'STUDENT - ']
-        return true if filename.indexOf(fn) == 0
-    if filename.length >= 1 and filename[-1..] == '~'
-        return true
-    return false
-
-course_specific_files = (entry) ->
-    return true if entry.get('mask')
-    filename = entry.get('name')
-    return is_course_specific_file(filename)
-
-_init_state = (props) ->
+exports._init_state = _init_state = (props) ->
     store      = props.redux.getStore(props.name)
     student_id = _student_id(props)
     return
@@ -140,7 +77,7 @@ _init_state = (props) ->
         student_filter  : _student_filter(props)
         page_number     : _page_number(props)
 
-_update_state = (props, next, state) ->
+exports._update_state = _update_state = (props, next, state) ->
     if misc.is_different(props, next, ['grading', 'assignment'])
         student_id = _student_id(next)
         return if not student_id?
@@ -162,52 +99,6 @@ _update_state = (props, next, state) ->
         return ret
 
 
-exports.GradingStudentAssignmentHeader = rclass
-    displayName : "CourseEditor-GradingStudentAssignmentHeader"
-
-    propTypes :
-        name         : rtypes.string.isRequired
-        redux        : rtypes.object.isRequired
-        assignment   : rtypes.object.isRequired
-        students     : rtypes.object.isRequired
-        grading      : PropTypes.instanceOf(Grading)
-
-    getInitialState: ->
-        return _init_state(@props)
-
-    componentWillReceiveProps: (next) ->
-        x = _update_state(@props, next, @state)
-        @setState(x) if x?
-
-    exit: ->
-        @actions(@props.name).grading_stop()
-
-    render_title: (student_name) ->
-        if @props.grading.get('end_of_list')
-            <h4>End</h4>
-        else
-            <h4>
-                Grading student <b>{student_name}</b>
-            </h4>
-
-    render: ->
-        #assignment   = @props.assignment.get('path')
-        student_info = @state.store.get_student_name(@state.student_id, true)
-        student_name = student_info?.full ? 'N/A'
-        <Row>
-            <Col md={9}>
-                {@render_title(student_name)}
-            </Col>
-            <Col md={3} style={textAlign:'right'}>
-                <Button
-                    onClick  = {@exit}
-                    bsStyle  = {'warning'}
-                >
-                    <Icon name={'sign-out'} /> Close Grading
-                </Button>
-            </Col>
-        </Row>
-
 Grade = rclass
     displayName : 'CourseEditor-GradingStudentAssignment-Grade'
 
@@ -215,7 +106,7 @@ Grade = rclass
         actions       : rtypes.object.isRequired
         store         : rtypes.object.isRequired
         assignment    : rtypes.immutable.Map
-        grading       : PropTypes.instanceOf(Grading).isRequired
+        grading       : rtypes.instanceOf(Grading).isRequired
         student_id    : rtypes.string.isRequired
 
     getInitialState: ->
@@ -339,7 +230,7 @@ exports.GradingStudentAssignment = rclass
         assignment      : rtypes.object.isRequired
         students        : rtypes.object.isRequired
         user_map        : rtypes.object.isRequired
-        grading         : PropTypes.instanceOf(Grading).isRequired
+        grading         : rtypes.instanceOf(Grading).isRequired
 
     reduxProps:
         account :
@@ -349,7 +240,7 @@ exports.GradingStudentAssignment = rclass
         state = _init_state(@props)
         state.active_autogrades = immutable.Set()
         show_all_files = state.store.grading_get_show_all_files()
-        state = misc.merge(state, @get_listing_files(@props, show_all_files))
+        state = misc.merge(state, @props.grading.get_listing_files(show_all_files))
         store = @props.redux.getStore(@props.name)
         [student_list, all_points] = store.grading_get_student_list(@props.assignment)
         state.student_list = student_list
@@ -366,7 +257,7 @@ exports.GradingStudentAssignment = rclass
         page_changed       = @props.grading?.get('page_number') != next.grading?.get('page_number')
         if listing_changed or show_files_changed or page_changed
             show_all_files = @state.store.grading_get_show_all_files()
-            @setState(@get_listing_files(next, show_all_files))
+            @setState(next.grading.get_listing_files(show_all_files))
 
         if @props.grading != next.grading or @props.assignment != next.assignment
             [student_list, all_points] = @state.store.grading_get_student_list(next.assignment)
@@ -396,36 +287,6 @@ exports.GradingStudentAssignment = rclass
         # only scroll when current_idx in the student list changes
         if prevState.current_idx != @state.current_idx
             @scrollToStudent()
-
-    get_listing_files: (props, show_all_files) ->
-        {compute_file_masks} = require('../project_store')
-        listing = props.grading?.getIn(['listing'])
-        if not listing?
-            return {listing:undefined}
-
-        # TODO this is stupid, file listings should be immutable.js
-        listing_js = listing.get('files')?.toJS() ? []
-        compute_file_masks(listing_js)
-        files      = immutable.fromJS(listing_js)
-        if not (show_all_files ? false)
-            files  = files.filterNot(course_specific_files)
-        else
-            files = files.withMutations (files) ->
-                files.map (entry, idx) ->
-                    filename = entry.get('name')
-                    if is_course_specific_file(filename)
-                        files.setIn([idx, 'mask'], true)
-                    return null
-
-        listing    = listing.set('files', files)
-        num_pages  = ((files?.size ? 0) // PAGE_SIZE) + 1
-
-        data =
-            listing       : listing
-            num_pages     : num_pages
-        if _page_number(props) > num_pages
-            data.page_number = 0
-        return data
 
     collect_student_path: ->
         return path_join(@props.assignment.get('collect_path'), @state.student_id, @state.subdir)

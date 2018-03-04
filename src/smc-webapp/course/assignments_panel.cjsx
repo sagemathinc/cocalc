@@ -35,7 +35,9 @@ styles = require('./styles')
 {DateTimePicker, ErrorDisplay, Icon, LabeledRow, Loading, MarkdownInput, Space, Tip, NumberInput} = require('../r_misc')
 {STEPS, step_direction, step_verb, step_ready} = util
 {BigTime, FoldersToolbar, StudentAssignmentInfo, StudentAssignmentInfoHeader} = require('./common')
-{GradingStudentAssignment, GradingStudentAssignmentHeader, Grading} = require('./grading')
+{GradingStudentAssignment} = require('./grading/main')
+{GradingStudentAssignmentHeader} = require('./grading/header')
+{Grading} = require('./grading/models')
 
 {Progress} = require('./progress')
 {SkipCopy} = require('./skip')
