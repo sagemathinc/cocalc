@@ -56,3 +56,8 @@ exports.EMPTY_LISTING_TEXT =
     alignItems     : 'center'
     justifyContent : 'center'
 
+exports.GRADE_COMMENT_STYLE =
+    maxHeight:'5rem'
+    overflowY:'auto'
+    padding:'5px'
+    border: "1px solid #{COLORS.GRAY_L}"

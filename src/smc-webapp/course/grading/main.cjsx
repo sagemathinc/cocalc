@@ -43,6 +43,7 @@ styles = require('../styles')
 
 # Grading specific
 {Grading} = require('./models')
+{Grade} = require('./grade')
 {ROW_STYLE, LIST_STYLE, LIST_ENTRY_STYLE, FLEX_LIST_CONTAINER, EMPTY_LISTING_TEXT, PAGE_SIZE} = require('./const')
 
 # util functions
@@ -99,126 +100,6 @@ exports._update_state = _update_state = (props, next, state) ->
         return ret
 
 
-Grade = rclass
-    displayName : 'CourseEditor-GradingStudentAssignment-Grade'
-
-    propTypes :
-        actions       : rtypes.object.isRequired
-        store         : rtypes.object.isRequired
-        assignment    : rtypes.immutable.Map
-        grading       : rtypes.instanceOf(Grading).isRequired
-        student_id    : rtypes.string.isRequired
-
-    getInitialState: ->
-        editing_grade   : false
-        edited_grade    : ''
-        edited_comments : ''
-        grade_value     : ''
-        grade_comments  : ''
-
-    componentWillReceiveProps: (next) ->
-        if @props.grading != next.grading or @props.assignment != next.assignment
-            return if not @props.student_id?
-            grade      = @props.store.get_grade(@props.assignment, @props.student_id)
-            comment    = @props.store.get_comments(@props.assignment, @props.student_id)
-            @setState(
-                grade_value     : grade
-                grade_comments  : comment
-                edited_grade    : grade
-                edited_comments : comment
-            )
-
-    save_grade: (e) ->
-        e?.preventDefault?()
-        @props.actions.set_grade(@props.assignment, @props.student_id, @state.edited_grade)
-        @props.actions.set_comments(@props.assignment, @props.student_id, @state.edited_comments)
-        @setState(editing_grade : false)
-
-    grade_cancel: ->
-        @setState(
-            edited_grade    : @state.grade_value
-            edited_comments : @state.grade_comments
-            editing_grade   : false
-        )
-
-    on_key_down_grade_editor: (e) ->
-        switch e.keyCode
-            when 27
-                @grade_cancel()
-            when 13
-                if e.shiftKey
-                    @save_grade()
-
-    save_disabled: ->
-        @state.edited_grade == @state.grade_value and @state.edited_comments == @state.grade_comments
-
-    grade_value_edit: ->
-        <form key={'grade'} onSubmit={@save_grade} style={{}}>
-            <FormGroup>
-                <InputGroup>
-                    <InputGroup.Addon>
-                        Grade
-                    </InputGroup.Addon>
-                    <FormControl
-                        autoFocus   = {false}
-                        ref         = {'grade_input'}
-                        type        = {'text'}
-                        placeholder = {'any text...'}
-                        value       = {@state.edited_grade ? ''}
-                        onChange    = {(e)=>@setState(edited_grade:e.target.value)}
-                        onKeyDown   = {@on_key_down_grade_editor}
-                        onBlur      = {@save_grade}
-                    />
-                    <InputGroup.Button>
-                        <Button
-                            bsStyle  = {'success'}
-                            onClick  = {@save_grade}
-                            disabled = {@save_disabled()}
-                            style    = {whiteSpace:'nowrap'}
-                        >
-                            <Icon name='save'/>
-                        </Button>
-                    </InputGroup.Button>
-                </InputGroup>
-            </FormGroup>
-        </form>
-
-    grade_comment_edit: ->
-        style =
-            maxHeight:'5rem'
-            overflowY:'auto'
-            padding:'5px'
-            border: "1px solid #{COLORS.GRAY_L}"
-
-        if not @state.editing_grade
-            style.cursor = 'pointer'
-
-        <MarkdownInput
-            autoFocus        = {false}
-            editing          = {@state.editing_grade}
-            hide_edit_button = {@state.edited_comments?.length > 0}
-            save_disabled    = {@save_disabled()}
-            rows             = {3}
-            placeholder      = {'Comments (optional, visible to student)'}
-            default_value    = {@state.edited_comments}
-            on_edit          = {=>@setState(editing_grade:true)}
-            on_change        = {(value)=>@setState(edited_comments:value)}
-            on_save          = {@save_grade}
-            on_cancel        = {@grade_cancel}
-            rendered_style   = {style}
-        />
-
-    render: ->
-        <Col md={4}>
-            <Row>
-                {@grade_value_edit()}
-            </Row>
-            <Row>
-                <b>Comment:</b>
-                <br/>
-                {@grade_comment_edit()}
-            </Row>
-        </Col>
 
 
 exports.GradingStudentAssignment = rclass

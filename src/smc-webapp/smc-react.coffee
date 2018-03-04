@@ -471,8 +471,9 @@ connect_component = (spec) =>
                         val = state.getIn([store_name, prop])
                 else # TODOJ: remove when all stores are converted
                     val = state.getIn([store_name, prop])
-                # or type.category == 'DO_NOT_CONVERT_TO_JS' ??
-                if type.category == "IMMUTABLE" or prop == 'grading'
+                # TODO: improve detection of values which are instances of immutable record factories
+                is_record = val?.__proto__.__proto__?.constructor?.name == 'Record'
+                if type.category == "IMMUTABLE" or is_record
                     props[prop] = val
                 else
                     props[prop] = if val?.toJS? then val.toJS() else val

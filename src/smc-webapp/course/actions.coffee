@@ -1864,8 +1864,8 @@ exports.CourseActions = class CourseActions extends Actions
             listing         : null
         )
 
-        grading = store.get('grading') ? new Grading()
-        grading = grading.merge(data)
+        grading = store.get('grading')
+        grading = grading?.merge(data) ? data
         @setState(grading : grading)
         # sets a "cursor" pointing to this assignment and student, signal for others
         @grading_update_activity()

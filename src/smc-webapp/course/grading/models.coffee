@@ -83,7 +83,7 @@ exports.Grading = class Grading extends GradingRecord
                     return null
 
         listing    = @listing.set('files', files)
-        num_pages  = ((files?.size ? 0) // PAGE_SIZE) + 1
+        num_pages  = Math.max(1, ((files?.size ? 0) // PAGE_SIZE))
 
         data =
             listing       : listing
