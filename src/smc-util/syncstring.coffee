@@ -320,17 +320,20 @@ class SortedPatchList extends EventEmitter
     there is one; this is used to update snapshots in case of offline changes
     getting inserted into the changelog.
 
-    If without is defined, it must be an array of Date objects; in that case
+    If without_times is defined, it must be an array of Date objects; in that case
     the current value of the string is computed, but with all the patches
-    at the given times in "without" ignored.  This is used elsewhere as a building
-    block to implement undo.
+    at the given times in "without_times" ignored.  This is used elsewhere
+    as a building block to implement undo.
     ###
     value: (time, force=false, without_times=undefined) =>
         #start_time = new Date()
-        # If the time is specified, verify that it is valid; otherwise, convert it to a valid time.
+
         if time? and not misc.is_date(time)
+            # If the time is specified, verify that it is valid; otherwise, convert it to a valid time.
             time = misc.ISO_to_Date(time)
+
         if without_times?
+            # Process without_times to get a map from time numbers to true.
             if not misc.is_array(without_times)
                 throw Error("without_times must be an array")
             if without_times.length > 0
@@ -349,7 +352,8 @@ class SortedPatchList extends EventEmitter
                 else
                     without_times = v # change to map from time in ms to true.
 
-        prev_cutoff = @newest_snapshot_time()
+        prev_cutoff = @newest_snapshot_time()   # we do not discard patch due to prev if prev is before this.
+
         # Determine oldest cached value
         oldest_cached_time = @_cache.oldest_time()  # undefined if nothing cached
         # If the oldest cached value exists and is at least as old as the requested
@@ -368,7 +372,7 @@ class SortedPatchList extends EventEmitter
                 if time? and x.time > time
                     # Done -- no more patches need to be applied
                     break
-                if not x.prev? or @_times[x.prev - 0] or +x.prev >= +prev_cutoff
+                if not x.prev? or @_times[x.prev - 0] or +x.prev <= +prev_cutoff
                     if not without? or (without? and not without_times[+x.time])
                         # apply patch x to update value to be closer to what we want
                         value = value.apply_patch(x.patch)
@@ -407,7 +411,7 @@ class SortedPatchList extends EventEmitter
                     break
                 # Apply a patch to move us forward.
                 #console.log("applying patch #{i}")
-                if not x.prev? or @_times[x.prev - 0] or +x.prev >= +prev_cutoff
+                if not x.prev? or @_times[x.prev - 0] or +x.prev <= +prev_cutoff
                     if not without? or (without? and not without_times[+x.time])
                         value = value.apply_patch(x.patch)
                 cache_time = x.time
@@ -425,10 +429,11 @@ class SortedPatchList extends EventEmitter
         return value
 
     # VERY Slow -- only for consistency checking purposes and debugging.
-    # If force=true, don't use snapshots.
+    # If snapshots=false, don't use snapshots.
     _value_no_cache: (time, snapshots=true) =>
         value = @_from_str('') # default in case no snapshots
         start = 0
+        prev_cutoff = @newest_snapshot_time()
         if snapshots and @_patches.length > 0  # otherwise the [..] notation below has surprising behavior
             for i in [@_patches.length-1 .. 0]
                 if (not time? or +@_patches[i].time <= +time) and @_patches[i].snapshot?
@@ -444,7 +449,10 @@ class SortedPatchList extends EventEmitter
             if time? and x.time > time
                 # Done -- no more patches need to be applied
                 break
-            value = value.apply_patch(x.patch)
+            if not x.prev? or @_times[x.prev - 0] or +x.prev <= +prev_cutoff
+                value = value.apply_patch(x.patch)
+            else
+                console.log 'skipping patch due to prev', x
         return value
 
     # For testing/debugging.  Go through the complete patch history and
@@ -504,7 +512,7 @@ class SortedPatchList extends EventEmitter
             opts.log("-----------------------------------------------------\n", i, x.user_id, tm,  misc.trunc_middle(JSON.stringify(x.patch), opts.trunc))
             if not s?
                 s = @_from_str(x.snapshot ? '')
-            if not x.prev? or @_times[x.prev - 0] or +x.prev >= +prev_cutoff
+            if not x.prev? or @_times[x.prev - 0] or +x.prev <= +prev_cutoff
                 t = s.apply_patch(x.patch)
             else
                 opts.log("prev=#{x.prev} missing, so not applying")
