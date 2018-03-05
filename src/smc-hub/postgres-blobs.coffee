@@ -24,11 +24,11 @@ misc_node = require('smc-util-node/misc_node')
 {defaults} = misc = require('smc-util/misc')
 required = defaults.required
 
-{expire_time, one_result, all_results, PostgreSQL} = require('./postgres')
+{expire_time, one_result, all_results} = require('./postgres-base')
 
 {filesystem_bucket} = require('./filesystem-bucket')
 
-class exports.PostgreSQL extends PostgreSQL
+exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
     save_blob: (opts) =>
         opts = defaults opts,
             uuid       : undefined # uuid=sha1-based id coming from blob

@@ -45,7 +45,7 @@ Passports = rclass
     displayName : 'Passports'
 
     propTypes :
-        strategies  : rtypes.array
+        strategies  : rtypes.immutable.List
         get_api_key : rtypes.string
 
     styles :
@@ -79,7 +79,7 @@ Passports = rclass
         <div style={textAlign: 'center'}>
             <h3 style={marginTop: 0}>Connect with</h3>
             <div>
-                {@render_strategy(name) for name in @props.strategies}
+                {@render_strategy(name) for name in @props.strategies?.toJS() ? []}
             </div>
             <hr style={marginTop: 10, marginBottom: 10} />
         </div>
@@ -97,8 +97,8 @@ SignUp = rclass
     displayName: 'SignUp'
 
     propTypes :
-        strategies      : rtypes.array
-        sign_up_error   : rtypes.string
+        strategies      : rtypes.immutable.List
+        sign_up_error   : rtypes.immutable.Map
         token           : rtypes.bool
         has_account     : rtypes.bool
         signing_up      : rtypes.bool
@@ -116,13 +116,14 @@ SignUp = rclass
         @actions('account').create_account(first_name, last_name, email, password, token)
 
     display_error: (field)->
-        if @props.sign_up_error?[field]?
-            <div style={ERROR_STYLE}>{@props.sign_up_error[field]}</div>
+        err = @props.sign_up_error?.get(field)
+        if err?
+            <div style={ERROR_STYLE}>{err}</div>
 
     display_passports: ->
         if not @props.strategies?
             return <Loading />
-        if @props.strategies.length > 1
+        if @props.strategies.size > 1
             return <Passports strategies={@props.strategies} get_api_key={@props.get_api_key} />
 
     display_token_input: ->
@@ -142,12 +143,13 @@ SignUp = rclass
         #    well_style.backgroundColor = COLORS.LANDING.LOGIN_BAR_BG
         #    well_style.color           = 'white'
         #    well_class = 'webapp-landing-sign-up-highlight'
-        <Well style=well_style className={well_class}>
+        <Well style={well_style} className={well_class}>
             <TermsOfService style={fontWeight:'bold', textAlign: "center"} />
             <br />
             {@display_token_input()}
             {@display_error("token")}
-            {@display_error("account_creation_failed")}   {# a generic error}
+            {@display_error("generic")}                   {### a generic error ###}
+            {@display_error("account_creation_failed")}
             {@display_passports()}
             <AccountCreationEmailInstructions />
             <form style={marginTop: 20, marginBottom: 20} onSubmit={@make_account}>
@@ -158,7 +160,7 @@ SignUp = rclass
                         type        = 'text'
                         autoFocus   = {false}
                         placeholder = 'First name'
-                        maxLength   = 120 />
+                        maxLength   = {120} />
                 </FormGroup>
                 <FormGroup>
                     {@display_error("last_name")}
@@ -167,15 +169,15 @@ SignUp = rclass
                         type        = 'text'
                         autoFocus   = {false}
                         placeholder = 'Last name'
-                        maxLength   = 120 />
+                        maxLength   = {120} />
                 </FormGroup>
                 <FormGroup>
                     {@display_error("email_address")}
-                    <FormControl ref='email' type='email' placeholder='Email address' maxLength=254 />
+                    <FormControl ref='email' type='email' placeholder='Email address' maxLength={254} />
                 </FormGroup>
                 <FormGroup>
                     {@display_error("password")}
-                    <FormControl ref='password' type='password' placeholder='Choose a password' maxLength=64 />
+                    <FormControl ref='password' type='password' placeholder='Choose a password' maxLength={64} />
                 </FormGroup>
                 <Button
                     style    = {marginBottom: UNIT, marginTop: UNIT}
@@ -236,7 +238,7 @@ SignIn = rclass
 
     render: ->
         if @props.xs
-            <Col xs=12>
+            <Col xs={12}>
                 <form onSubmit={@sign_in} className='form-inline'>
                     <Row>
                         <FormGroup>
@@ -268,19 +270,19 @@ SignIn = rclass
             </Col>
         else
             <form onSubmit={@sign_in} className='form-inline'>
-                <Grid fluid=true style={padding:0}>
+                <Grid fluid={true} style={padding:0}>
                 <Row>
-                    <Col xs=5>
+                    <Col xs={5}>
                         <FormGroup>
                             <FormControl style={width:'100%'} ref='email' type='email' placeholder='Email address' autoFocus={true} onChange={@remove_error} />
                         </FormGroup>
                     </Col>
-                    <Col xs=4>
+                    <Col xs={4}>
                         <FormGroup>
                             <FormControl style={width:'100%'} ref='password' type='password' placeholder='Password' onChange={@remove_error} />
                         </FormGroup>
                     </Col>
-                    <Col xs=3>
+                    <Col xs={3}>
                         <Button
                             type      = "submit"
                             disabled  = {@props.signing_in}
@@ -291,14 +293,14 @@ SignIn = rclass
                     </Col>
                 </Row>
                 <Row>
-                    <Col xs=7 xsOffset=5 style={paddingLeft:15}>
+                    <Col xs={7} xsOffset={5} style={paddingLeft:15}>
                         <div style={marginTop: '1ex'}>
                             <a onClick={@display_forgot_password} style={color:@props.color, cursor: "pointer", fontSize:@forgot_font_size()} >Forgot Password?</a>
                         </div>
                     </Col>
                 </Row>
                 <Row className='form-inline pull-right' style={clear : "right"}>
-                    <Col xs=12>
+                    <Col xs={12}>
                         {@display_error()}
                     </Col>
                 </Row>
@@ -445,10 +447,10 @@ ContentItem = rclass
 
     render: ->
         <Row>
-            <Col sm=2>
+            <Col sm={2}>
                 <h1 style={textAlign: "center"}><Icon name={@props.icon} /></h1>
             </Col>
-            <Col sm=10>
+            <Col sm={10}>
                 <h2 style={fontFamily: DESC_FONT}>{@props.heading}</h2>
                 {@props.text}
             </Col>
@@ -526,12 +528,12 @@ SagePreview = rclass
         <div className="hidden-xs">
             <Well>
                 <Row>
-                    <Col sm=6>
+                    <Col sm={6}>
                         <ExampleBox title="Interactive Worksheets" index={0}>
                             Interactively explore mathematics, science and statistics. <strong>Collaborate with others in real time</strong>. You can see their cursors moving around while they type &mdash; this works for Sage Worksheets and even Jupyter Notebooks!
                         </ExampleBox>
                     </Col>
-                    <Col sm=6>
+                    <Col sm={6}>
                         <ExampleBox title="Course Management" index={1}>
                             <SiteName /> helps to you to <strong>conveniently organize a course</strong>: add students, create their projects, see their progress,
                             understand their problems by dropping right into their files from wherever you are.
@@ -542,7 +544,7 @@ SagePreview = rclass
                 </Row>
                 <br />
                 <Row>
-                    <Col sm=6>
+                    <Col sm={6}>
                       <ExampleBox title="LaTeX Editor" index={2}>
                             <SiteName /> supports authoring documents written in LaTeX, Markdown or HTML.
                             The <strong>preview</strong> helps you understanding what&#39;s going on.
@@ -550,7 +552,7 @@ SagePreview = rclass
                             CoCalc also allows you to publish documents online.
                         </ExampleBox>
                     </Col>
-                    <Col sm=6>
+                    <Col sm={6}>
                         <ExampleBox title="Jupyter Notebooks and Linux Terminals" index={3}>
                             <SiteName /> does not arbitrarily restrict you.
                             Work with <strong>Jupyter Notebooks</strong>,
@@ -570,8 +572,8 @@ Connecting = () ->
 
 exports.LandingPage = rclass
     propTypes:
-        strategies              : rtypes.array
-        sign_up_error           : rtypes.object
+        strategies              : rtypes.immutable.List
+        sign_up_error           : rtypes.immutable.Map
         sign_in_error           : rtypes.string
         signing_in              : rtypes.bool
         signing_up              : rtypes.bool
@@ -650,8 +652,7 @@ exports.LandingPage = rclass
                               top      : UNIT,\
                               right    : UNIT,\
                               fontSize : '11pt',\
-                              float    : "right"}
-                      >
+                              float    : "right"} >
                       <SignIn
                           signing_in    = {@props.signing_in}
                           sign_in_error = {@props.sign_in_error}
@@ -695,7 +696,7 @@ exports.LandingPage = rclass
                   </div>
             </Row>
             <Row>
-                <Col sm=6>
+                <Col sm={6}>
                     <SignUp
                         sign_up_error   = {@props.sign_up_error}
                         strategies      = {@props.strategies}
@@ -706,7 +707,7 @@ exports.LandingPage = rclass
                         get_api_key     = {@props.get_api_key}
                         />
                 </Col>
-                <Col sm=6>
+                <Col sm={6}>
                     <div style={color:"#333", fontSize:'12pt', marginTop:'2em'}>
                         Create a new account here or sign in with an existing account above.
                         <br/>

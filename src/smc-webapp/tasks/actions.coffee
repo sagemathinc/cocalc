@@ -19,6 +19,8 @@ misc = require('smc-util/misc')
 
 keyboard = require('./keyboard')
 
+{toggle_checkbox} = require('./desc-rendering')
+
 class exports.TaskActions extends Actions
     _init: (project_id, path, syncdb, store, client) =>
         @_save_local_view_state = underscore.debounce((=>@__save_local_view_state?()), 1500)
@@ -503,3 +505,9 @@ class exports.TaskActions extends Actions
 
     delete_timer: (task_id) =>
 
+    toggle_desc_checkbox: (task_id, index, checked) =>
+        desc = @store.getIn(['tasks', task_id, 'desc'])
+        if not desc?
+            return
+        desc = toggle_checkbox(desc, index, checked)
+        @set_desc(task_id, desc)

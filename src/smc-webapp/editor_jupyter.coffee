@@ -157,7 +157,13 @@ syncstring also does the same sort of merging process.
 underscore = require('underscore')
 
 class JupyterWrapper extends EventEmitter
-    constructor: (@element, @server_url, @filename, @read_only, @project_id, timeout, cb) ->
+    constructor: (element, server_url, filename, read_only, project_id, timeout, cb) ->
+        super()
+        @element = element
+        @server_url = server_url
+        @filename = filename
+        @read_only = read_only
+        @project_id = project_id
         @blobs = {}
         @blobs_pending = {}
         @state = 'loading'
@@ -815,7 +821,10 @@ exports.jupyter_server_url = (project_id) ->
 
 
 class JupyterNotebook extends EventEmitter
-    constructor: (@parent, @filename, opts={}) ->
+    constructor: (parent, filename, opts={}) ->
+        super()
+        @parent = parent
+        @filename = filename
         opts = @opts = defaults opts,
             read_only         : false
             mode              : undefined   # ignored
@@ -1327,15 +1336,15 @@ class JupyterNotebook extends EventEmitter
                         cb(err)
             (cb) =>
                 status?("making '#{@filename}' public", 70)
-                redux.getProjectActions(@project_id).set_public_path(@filename, "Jupyter notebook #{@filename}")
+                redux.getProjectActions(@project_id).set_public_path(@filename, {description : "Jupyter notebook #{@filename}"})
                 html = @filename.slice(0,@filename.length-5)+'html'
                 status?("making '#{html}' public", 90)
-                redux.getProjectActions(@project_id).set_public_path(html, "Jupyter html version of #{@filename}")
+                redux.getProjectActions(@project_id).set_public_path(html, {description : "Jupyter html version of #{@filename}"})
                 cb()
             ], (err) =>
-            status?("done", 100)
-            @publish_button.find("fa-refresh").hide()
-            cb?(err)
+                status?("done", 100)
+                @publish_button.find("fa-refresh").hide()
+                cb?(err)
         )
 
     refresh: (cb) =>

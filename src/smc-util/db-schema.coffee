@@ -934,6 +934,9 @@ schema.public_paths =
         disabled    :
             type : 'boolean'
             desc : 'if true then disabled'
+        unlisted :
+            type : 'boolean'
+            desc : 'if true then unlisted, so does not appear in /share listing page.'
         created :
             type : 'timestamp'
             desc : 'when this path was created'
@@ -973,6 +976,7 @@ schema.public_paths =
                 path        : null
                 description : null
                 disabled    : null   # if true then disabled
+                unlisted    : null   # if true then do not show in main listing (so doesn't get google indexed)
                 last_edited : null
                 created     : null
                 last_saved  : null
@@ -984,6 +988,7 @@ schema.public_paths =
                 path        : true
                 description : true
                 disabled    : true
+                unlisted    : true
                 last_edited : true
                 created     : true
             required_fields :

@@ -1350,31 +1350,30 @@ exports.ProjectsPage = ProjectsPage = rclass
                 return <LoginLink />
             else
                 return <div style={fontSize:'40px', textAlign:'center', color:'#999999'} > <Loading />  </div>
-
         visible_projects = @visible_projects()
         <div className='container-content' style={overflow:'auto'}>
             <Grid fluid className='constrained' style={minHeight:"75vh"}>
                 <Well style={marginTop:'1em',overflow:'hidden'}>
                     <Row>
-                        <Col sm=4>
+                        <Col sm={4}>
                             {@render_projects_title()}
                         </Col>
-                        <Col sm=4>
+                        <Col sm={4}>
                             <ProjectsFilterButtons
                                 hidden  = {@props.hidden}
                                 deleted = {@props.deleted}
                                 show_hidden_button = {@has_hidden_projects() or @props.hidden}
                                 show_deleted_button = {@has_deleted_projects() or @props.deleted} />
                         </Col>
-                        <Col sm=4>
+                        <Col sm={4}>
                             <UsersViewing style={width:'100%'}/>
                         </Col>
                     </Row>
                     <Row>
-                        <Col sm=4>
+                        <Col sm={4}>
                             <ProjectsSearch ref="search" search={@props.search} open_first_project={@open_first_project} />
                         </Col>
-                        <Col sm=8>
+                        <Col sm={8}>
                             <HashtagGroup
                                 hashtags          = {@hashtags()}
                                 selected_hashtags = {@props.selected_hashtags[@filter()]}
@@ -1382,14 +1381,14 @@ exports.ProjectsPage = ProjectsPage = rclass
                         </Col>
                     </Row>
                     <Row>
-                        <Col sm=12 style={marginTop:'1ex'}>
+                        <Col sm={12} style={marginTop:'1ex'}>
                             <NewProjectCreator
                                 start_in_edit_mode = {@project_list().length == 0}
                                 />
                         </Col>
                     </Row>
                     <Row>
-                        <Col sm=12>
+                        <Col sm={12}>
                             <ProjectsListingDescription
                                 nb_projects       = {@project_list().length}
                                 visible_projects  = {visible_projects}
@@ -1402,7 +1401,7 @@ exports.ProjectsPage = ProjectsPage = rclass
                         </Col>
                     </Row>
                     <Row>
-                        <Col sm=12>
+                        <Col sm={12}>
                             <ProjectList
                                 projects    = {visible_projects}
                                 show_all    = {@props.show_all}

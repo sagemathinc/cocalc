@@ -430,10 +430,10 @@ ExamplesHeader = rclass
             onSelect  = {@langSelect}
         >
             {
-                entries.map (key) ->
+                entries.map (key, idx) ->
                     name = lang2name(key)
                     <NavItem
-                        key      = {key}
+                        key      = {idx}
                         eventKey = {key}
                         title    = {name}
                     >

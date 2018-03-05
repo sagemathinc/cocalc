@@ -130,7 +130,8 @@ exports.TaskEditor = rclass ({name}) ->
         if IS_MOBILE # obviously, this is not going to dynamically change, but it at least makes mobile *usable*...
             STYLE = {}
         else
-            STYLE = {overflowX:'hidden', overflowY:'auto', paddingBottom: '100px', paddingTop:'15px'}
+            # The 300px is needed so the pop-up calendar is not hidden
+            STYLE = {overflowX:'hidden', overflowY:'auto', paddingBottom: '300px', paddingTop:'15px'}
         <TaskList
             actions              = {@props.actions}
             path                 = {@props.path}

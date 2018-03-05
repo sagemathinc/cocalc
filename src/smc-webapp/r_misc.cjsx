@@ -100,7 +100,7 @@ exports.SetIntervalMixin =
         @intervals.forEach clearInterval
 
 exports.Space = Space = ->
-    <span>&nbsp</span>
+    <span>&nbsp;</span>
 
 # Font Awesome component -- obviously TODO move to own file
 # Converted from https://github.com/andreypopp/react-fa
@@ -122,6 +122,13 @@ exports.Icon = Icon = rclass
         onClick    : rtypes.func
         onMouseOver: rtypes.func
         onMouseOut : rtypes.func
+
+    shouldComponentUpdate: (next) ->  # we exclude style changes for speed reasons (and style is rarely used); always update if there are children
+        return @props.children? or \
+               misc.is_different(@props, next, ['name', 'size', 'rotate', 'flip', 'spin', 'pulse', 'fixedWidth', \
+                                          'stack', 'inverse', 'className']) or \
+               not misc.is_equal(@props.style, next.style)
+
 
     getDefaultProps: ->
         name    : 'square-o'
@@ -157,7 +164,15 @@ exports.Icon = Icon = rclass
             classNames += ' fa-inverse'
         if className
             classNames += " #{className}"
-        return <i style={style} className={classNames} onMouseOver={@props.onMouseOver} onMouseOut={@props.onMouseOut} onClick={@props.onClick}>{@props.children}</i>
+        <i
+            style       = {style}
+            className   = {classNames}
+            onMouseOver = {@props.onMouseOver}
+            onMouseOut  = {@props.onMouseOut}
+            onClick     = {@props.onClick}
+        >
+                {@props.children}
+        </i>
 
 # this Octicon icon class requires the CSS file in octicons/octicons/octicons.css (see landing.coffee)
 exports.Octicon = rclass
@@ -291,9 +306,9 @@ exports.Footer = rclass
             <Space/>
             <SiteName/> by <CompanyName/>
             {' '} &middot; {' '}
-            <a target="_blank" href=PolicyIndexPageUrl>Policies</a>
+            <a target="_blank" href={PolicyIndexPageUrl}>Policies</a>
             {' '} &middot; {' '}
-            <a target="_blank" href=PolicyTOSPageUrl>Terms of Service</a>
+            <a target="_blank" href={PolicyTOSPageUrl}>Terms of Service</a>
             {' '} &middot; {' '}
             <HelpEmailLink />
             {' '} &middot; {' '}
@@ -313,10 +328,10 @@ exports.MessageDisplay = MessageDisplay = rclass
 
     render: ->
         <Row style={backgroundColor:'white', margin:'1ex', padding:'1ex', border:'1px solid lightgray', dropShadow:'3px 3px 3px lightgray', borderRadius:'3px'}>
-            <Col md=8 xs=8>
+            <Col md={8} xs={8}>
                 <span style={color:'gray', marginRight:'1ex'}>{@props.message}</span>
             </Col>
-            <Col md=4 xs=4>
+            <Col md={4} xs={4}>
                 <Button className='pull-right' onClick={@props.onClose} bsSize='small'>
                     <Icon name='times' />
                 </Button>
@@ -441,7 +456,7 @@ exports.NumberInput = NumberInput = rclass
     render: ->
         unit = if @props.unit? then "#{@props.unit}" else ''
         <Row>
-            <Col xs=6>
+            <Col xs={6}>
                 <form onSubmit={@saveChange}>
                     <FormGroup>
                         <FormControl
@@ -456,7 +471,7 @@ exports.NumberInput = NumberInput = rclass
                     </FormGroup>
                 </form>
             </Col>
-            <Col xs=6 className="lighten">
+            <Col xs={6} className="lighten">
                 {unit}
             </Col>
         </Row>
@@ -466,7 +481,7 @@ exports.LabeledRow = LabeledRow = rclass
 
     propTypes :
         label      : rtypes.any.isRequired
-        style      : rtypes.object
+        style      : rtypes.object            # NOTE: for perf reasons, we do not update if only the style changes!
         label_cols : rtypes.number    # number between 1 and 11 (default: 4)
 
     getDefaultProps: ->
@@ -535,6 +550,20 @@ timeago_formatter = (value, unit, suffix, date) ->
 
 TimeAgo = require('react-timeago').default
 
+# date0 and date1 are string, Date object or number
+# This is just used for updates, so is_different if there
+# is a chance they are different
+exports.is_different_date = is_different_date = (date0, date1) ->
+    t0 = typeof(date0)
+    t1 = typeof(date1)
+    if t0 != t1
+        return true
+    switch t0
+        when 'object'
+            return date0 - date1 != 0
+        else
+            return date0 != date1
+
 # this "element" can also be used without being connected to a redux store - e.g. for the "shared" statically rendered pages
 exports.TimeAgoElement = rclass
     displayName : 'Misc-TimeAgoElement'
@@ -545,6 +574,7 @@ exports.TimeAgoElement = rclass
         tip               : rtypes.string     # optional body of the tip popover with title the original time.
         live              : rtypes.bool       # whether or not to auto-update
         time_ago_absolute : rtypes.bool
+        date              : rtypes.oneOfType([rtypes.string, rtypes.object, rtypes.number])  # date object or something that convert to date
 
     getDefaultProps: ->
         popover   : true
@@ -590,18 +620,24 @@ exports.TimeAgoElement = rclass
         else
             @render_timeago(d)
 
-TimeAgoWrapper = rclass
-    displayName : 'Misc-TimeAgoWrapper'
+exports.TimeAgo = rclass
+    displayName : 'Misc-TimeAgo'
 
     propTypes :
         popover   : rtypes.bool
         placement : rtypes.string
         tip       : rtypes.string     # optional body of the tip popover with title the original time.
         live      : rtypes.bool       # whether or not to auto-update
+        date      : rtypes.oneOfType([rtypes.string, rtypes.object, rtypes.number])  # date object or something that convert to date
 
     reduxProps :
         account :
-            other_settings : rtypes.object
+            other_settings : rtypes.immutable.Map
+
+    shouldComponentUpdate: (props) ->
+        return is_different_date(@props.date, props.date) or \
+               misc.is_different(@props, props, ['popover', 'placement', 'tip', 'live']) or \
+               @props.other_settings?.get('time_ago_absolute') != props.other_settings?.get('time_ago_absolute')
 
     render: ->
         <exports.TimeAgoElement
@@ -610,29 +646,8 @@ TimeAgoWrapper = rclass
             placement         = {@props.placement}
             tip               = {@props.tip}
             live              = {@props.live}
-            time_ago_absolute = {@props.other_settings?.time_ago_absolute ? false}
+            time_ago_absolute = {@props.other_settings?.get('time_ago_absolute') ? false}
         />
-
-# TODO is the wrapper above really necessary?
-exports.TimeAgo = rclass
-    displayName : 'Misc-TimeAgo-redux'
-
-    propTypes :
-        popover   : rtypes.bool
-        placement : rtypes.string
-        tip       : rtypes.string     # optional body of the tip popover with title the original time.
-        live      : rtypes.bool       # whether or not to auto-update
-
-    render: ->
-        <Redux redux={redux}>
-            <TimeAgoWrapper
-                date      = {@props.date}
-                popover   = {@props.popover}
-                placement = {@props.placement}
-                tip       = {@props.tip}
-                live      = {@props.live}
-            />
-        </Redux>
 
 # Important:
 # widget can be controlled or uncontrolled -- use default_value for an *uncontrolled* widget
@@ -646,7 +661,7 @@ exports.TimeAgo = rclass
 exports.SearchInput = rclass
     displayName : 'Misc-SearchInput'
 
-    propTypes :
+    propTypes :   # style, and the on_ functions changes do not cause component update
         style           : rtypes.object
         autoFocus       : rtypes.bool
         autoSelect      : rtypes.bool
@@ -661,6 +676,11 @@ exports.SearchInput = rclass
         on_clear        : rtypes.func    # invoked without arguments when input box is cleared (eg. via esc or clicking the clear button)
         clear_on_submit : rtypes.bool    # if true, will clear search box on every submit (default: false)
         buttonAfter     : rtypes.object
+
+    shouldComponentUpdate: (props, state) ->
+        return misc.is_different(@state, state, ['value', 'ctrl_down']) or \
+               misc.is_different(@props, props, ['clear_on_submit', 'autoFocus', 'autoSelect', 'placeholder', \
+                                                 'default_value',  'value'])
 
     getInitialState: ->
         value     : (@props.value || @props.default_value) ? ''
@@ -951,10 +971,13 @@ exports.ActivityDisplay = rclass
     displayName : 'ActivityDisplay'
 
     propTypes :
-        activity : rtypes.array.isRequired   # array of strings
+        activity : rtypes.array.isRequired   # array of strings  -- only changing this causes re-render
         trunc    : rtypes.number             # truncate activity messages at this many characters (default: 80)
         on_clear : rtypes.func               # if given, called when a clear button is clicked
         style    : rtypes.object             # additional styles to be merged onto activity_style
+
+    shouldComponentUpdate: (next) ->
+        return misc.is_different_array(@props.activity, next.activity)
 
     render_items: ->
         n = @props.trunc ? 80
@@ -980,16 +1003,24 @@ exports.Tip = Tip = rclass
     displayName : 'Tip'
 
     propTypes :
-        title     : rtypes.oneOfType([rtypes.string, rtypes.node]).isRequired
+        title     : rtypes.oneOfType([rtypes.string, rtypes.node]).isRequired  # not checked for update
         placement : rtypes.string   # 'top', 'right', 'bottom', left' -- defaults to 'right'
-        tip       : rtypes.oneOfType([rtypes.string, rtypes.node])
+        tip       : rtypes.oneOfType([rtypes.string, rtypes.node])              # not checked for update
         size      : rtypes.string   # "xsmall", "small", "medium", "large"
         delayShow : rtypes.number
         delayHide : rtypes.number
         rootClose : rtypes.bool
         icon      : rtypes.string
         id        : rtypes.string   # can be used for screen readers (otherwise defaults to title)
-        style     : rtypes.object
+        style     : rtypes.object   # changing not checked when updating.
+        stable    : rtypes.bool     # if true, children assumed to never change
+
+    shouldComponentUpdate: (props, state) ->
+        return not @props.stable or \
+               @props.always_update or \
+               @state.display_trigger != state.display_trigger or \
+               misc.is_different(@props, props, ['placement', 'size', 'delayShow', \
+                                                 'delayHide', 'rootClose', 'icon', 'id'])
 
     getDefaultProps: ->
         placement : 'right'
@@ -1241,7 +1272,7 @@ exports.course_warning = (pay) ->
     return webapp_client.server_time() <= misc.months_before(-3, pay)  # require subscription until 3 months after start (an estimate for when class ended, and less than when what student did pay for will have expired).
 
 project_warning_opts = (opts) ->
-    {upgrades_you_can_use, upgrades_you_applied_to_all_projects, course_info, account_id, email_address, upgrade_type, free_compute_slowdown} = opts
+    {upgrades_you_can_use, upgrades_you_applied_to_all_projects, course_info, account_id, email_address, upgrade_type} = opts
     total = upgrades_you_can_use?[upgrade_type] ? 0
     used  = upgrades_you_applied_to_all_projects?[upgrade_type] ? 0
     x =
@@ -1252,7 +1283,6 @@ project_warning_opts = (opts) ->
         course_info           : opts.course_info
         account_id            : account_id
         email_address         : email_address
-        free_compute_slowdown : free_compute_slowdown
     return x
 
 exports.CourseProjectExtraHelp = CourseProjectExtraHelp = ->
@@ -1294,7 +1324,7 @@ exports.CourseProjectWarning = (opts) ->
     </Alert>
 
 exports.NonMemberProjectWarning = (opts) ->
-    {total, used, avail, course_warning, free_compute_slowdown} = project_warning_opts(opts)
+    {total, used, avail, course_warning} = project_warning_opts(opts)
 
     ## Disabled until a pay-in-place version gets implemented
     #if course_warning
@@ -1310,16 +1340,9 @@ exports.NonMemberProjectWarning = (opts) ->
         else
             suggestion = <span><Space /><a href={url} target='_blank' style={cursor:'pointer'}>Subscriptions start at only $7/month.</a></span>
 
-    if free_compute_slowdown? and free_compute_slowdown > 0
-        pct = Math.round(free_compute_slowdown)
-        slowdown = <span>Computations in this project could run up to {pct}% faster after upgrading to member server hosting.</span>
-    else
-        slowdown = ''
-
     <Alert bsStyle='warning' style={marginTop:'10px'}>
         <h4><Icon name='exclamation-triangle'/>  Warning: this project is <strong>running on a free server</strong></h4>
         <p>
-            {slowdown}
             <Space />
             Projects running on free servers compete for resources with a large number of other free projects.
             The free servers are <b><i>randomly rebooted frequently</i></b>,
@@ -1428,7 +1451,7 @@ EditorFileInfoDropdown = rclass
                 'copy'     : 'files-o'
         else
             # dynamically create a map from 'key' to 'icon'
-            {file_actions} = require('./project_files')
+            {file_actions} = require('./project_store')
             items = underscore.object(([k, v.icon] for k, v of file_actions))
 
         for name, icon of items
@@ -1513,7 +1536,7 @@ exports.UpgradeAdjustor = rclass
 
         return state
 
-     get_quota_info : ->
+    get_quota_info : ->
         # how much upgrade you currently use on this one project
         current = @props.upgrades_you_applied_to_this_project
         # how much unused upgrade you have remaining
@@ -1523,7 +1546,6 @@ exports.UpgradeAdjustor = rclass
         # additionally, the limits are capped by the maximum per project
         maximum = require('smc-util/schema').PROJECT_UPGRADES.max_per_project
         limits = misc.map_limit(limits, maximum)
-
         limits    : limits
         remaining : remaining
         current   : current
@@ -1582,19 +1604,19 @@ exports.UpgradeAdjustor = rclass
             show_remaining = Math.max(show_remaining, 0)
 
             if not @is_upgrade_input_valid(val, limit)
-                label = <div style=UPGRADE_ERROR_STYLE>Uncheck this: you do not have enough upgrades</div>
+                label = <div style={UPGRADE_ERROR_STYLE}>Uncheck this: you do not have enough upgrades</div>
             else
                 label = if val == 0 then 'Enable' else 'Enabled'
 
             <Row key={name} style={marginTop:'5px'}>
-                <Col sm=6>
+                <Col sm={6}>
                     <Tip title={display} tip={desc}>
                         <strong>{display}</strong>
                     </Tip>
                     <br/>
                     You have {show_remaining} unallocated {misc.plural(show_remaining, display_unit)}
                 </Col>
-                <Col sm=6>
+                <Col sm={6}>
                     <form>
                         <Checkbox
                             ref      = {"upgrade_#{name}"}
@@ -1625,9 +1647,9 @@ exports.UpgradeAdjustor = rclass
             if not @is_upgrade_input_valid(val, limit)
                 bs_style = 'error'
                 if misc.parse_number_input(val)?
-                    label = <div style=UPGRADE_ERROR_STYLE>Value too high: not enough upgrades or exceeding limit</div>
+                    label = <div style={UPGRADE_ERROR_STYLE}>Value too high: not enough upgrades or exceeding limit</div>
                 else
-                    label = <div style=UPGRADE_ERROR_STYLE>Please enter a number</div>
+                    label = <div style={UPGRADE_ERROR_STYLE}>Please enter a number</div>
             else
                 label = <span></span>
 
@@ -1645,14 +1667,14 @@ exports.UpgradeAdjustor = rclass
                 remaining_note = <span>You have {remaining_all} unallocated {unit}</span>
 
             <Row key={name} style={marginTop:'5px'}>
-                <Col sm=6>
+                <Col sm={6}>
                     <Tip title={display} tip={desc}>
                         <strong>{display}</strong>
                     </Tip>
                     <br/>
                     {remaining_note}
                 </Col>
-                <Col sm=6>
+                <Col sm={6}>
                     <FormGroup>
                         <InputGroup>
                             <FormControl
@@ -1750,10 +1772,10 @@ exports.UpgradeAdjustor = rclass
                 </span>
                 <hr/>
                 <Row>
-                    <Col md=2>
+                    <Col md={2}>
                         <b style={fontSize:'12pt'}>Quota</b>
                     </Col>
-                    <Col md=4>
+                    <Col md={4}>
                         <Button
                             bsSize  = 'xsmall'
                             onClick = {@max_upgrades}
@@ -1770,7 +1792,7 @@ exports.UpgradeAdjustor = rclass
                             Remove all upgrades
                         </Button>
                     </Col>
-                    <Col md=6>
+                    <Col md={6}>
                         <b style={fontSize:'12pt'}>Your contribution</b>
                     </Col>
                 </Row>
@@ -1785,7 +1807,7 @@ exports.UpgradeAdjustor = rclass
                         onClick  = {=>@save_upgrade_quotas(remaining)}
                         disabled = {@props.disable_submit or not @valid_changed_upgrade_inputs(current, limits)}
                     >
-                        <Icon name='arrow-circle-up' /> {if @props.submit_text then @props.submit_text else "Submit changes"}
+                        <Icon name='arrow-circle-up' /> {if @props.submit_text then @props.submit_text else "Save changes"}
                     </Button>
                     <Button onClick={@props.cancel_upgrading}>
                         Cancel

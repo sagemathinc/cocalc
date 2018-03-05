@@ -275,7 +275,7 @@ You run your computations through the web interface, via interactive worksheets 
     <a href="http://www.sagemath.org/">SageMath</a>,
     <a href="https://www.sympy.org/">SymPy</a>, etc.
 </li>
-<li style="margin-top:0;margin-bottom:10px;">Statistical analysis:
+<li style="margin-top:0;margin-bottom:10px;">Statistics and Data Science:
     <a href="https://www.r-project.org/">R project</a>,
     <a href="http://pandas.pydata.org/">Pandas</a>,
     <a href="http://www.statsmodels.org/">statsmodels</a>,

@@ -38,7 +38,7 @@ exports.OutputToggle = rclass
             onClick       = {@toggle_scrolled}
             onDoubleClick = {@collapse_output}
             >
-            <div style={flex:1}></div>     {# use up all space}
+            <div style={flex:1}></div>     {### use up all space ###}
             {@props.children}
         </div>
 

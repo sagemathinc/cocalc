@@ -31,6 +31,7 @@ now = ->
 
 class exports.OutputHandler extends EventEmitter
     constructor: (opts) ->
+        super()
         @_opts = defaults opts,
             cell              : required    # object; the cell whose output (etc.) will get mutated
             max_output_length : undefined   # If given, used to truncate, discard output messages; extra

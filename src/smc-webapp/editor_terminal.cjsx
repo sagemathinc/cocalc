@@ -161,7 +161,7 @@ class DevTerminalActions extends Actions
         @setState('font_size':(@get_store().get('font_size') + 1))
 
     set_title: (title) =>
-      @setState(title:title)
+        @setState(title:title)
 
     set_value: (value) =>
         if @redux.getStore(@name).get('value') != value
@@ -189,13 +189,12 @@ exports.TerminalEditor = rclass ({name}) ->
         editor     : rtypes.object
         project_id : rtypes.string
         actions    : rtypes.object.isRequired
-        editor     : rtypes.object
 
     getDefaultProps: ->
-      font_size : 12
-      title : 'Terminal'
-      rows : 30
-      cols : 80
+        font_size : 12
+        title : 'Terminal'
+        rows : 30
+        cols : 80
 
     getInitialState: ->
         paused : false
@@ -273,7 +272,7 @@ exports.TerminalEditor = rclass ({name}) ->
 
     header: ->
         <Row style={padding:'0px'}>
-            <Col sm=2>
+            <Col sm={2}>
                 <ButtonToolbar style={marginLeft:'2px'}>
                     <Button onClick={@decrease_font_size} bsSize="small" style={marginLeft:'0px'}>
                         <Icon name={'font'} style={fontSize:'7pt'}/>
@@ -301,12 +300,12 @@ exports.TerminalEditor = rclass ({name}) ->
                     </Button>
                 </ButtonToolbar>
             </Col>
-            <Col sm=8>
+            <Col sm={8}>
                 <div style={fontWeight:'bold', paddingTop:'3px'}>
                     {@props.filename}
                 </div>
             </Col>
-            <Col sm=2 xsHidden={true}>
+            <Col sm={2} xsHidden={true}>
                 <div style={fontWeight:'bold', textAlign:'right', paddingTop:'3px'}>
                     {@props.title}
                 </div>

@@ -30,12 +30,18 @@ misc = require('smc-util/misc')
 
 {Button, ButtonToolbar, ButtonGroup, FormControl, FormGroup, InputGroup, Row, Col} = require('react-bootstrap')
 
-{ErrorDisplay, Icon, MarkdownInput, Space, TimeAgo, Tip, SearchInput} = require('../r_misc')
+{ErrorDisplay, Icon, MarkdownInput, Space, TimeAgo, Tip, SearchInput, is_different_date} = require('../r_misc')
 
 immutable = require('immutable')
 
 exports.BigTime = BigTime = rclass
     displayName : "CourseEditor-BigTime"
+
+    propTypes:
+        date : rtypes.oneOfType([rtypes.string, rtypes.object, rtypes.number])
+
+    shouldComponentUpdate: (props) ->
+        return is_different_date(@props.date, props.date)
 
     render: ->
         date = @props.date
@@ -105,12 +111,12 @@ exports.StudentAssignmentInfoHeader = rclass
 
     render: ->
         <Row style={borderBottom:'2px solid #aaa'} >
-            <Col md=2 key='title'>
+            <Col md={2} key='title'>
                 <Tip title={@props.title} tip={if @props.title=="Assignment" then "This column gives the directory name of the assignment." else "This column gives the name of the student."}>
                     <b>{@props.title}</b>
                 </Tip>
             </Col>
-            <Col md=10 key="rest">
+            <Col md={10} key="rest">
                 {if @props.peer_grade then @render_headers_peer() else @render_headers()}
             </Col>
         </Row>
@@ -232,7 +238,12 @@ exports.StudentAssignmentInfo = rclass
                  Cancel
             </Button>
             if name.toLowerCase() == 'assign'
-                v.push <div style={margin:'5px'}><a target='_blank' href='https://github.com/sagemathinc/cocalc/wiki/CourseCopy'>What happens when I assign again?</a></div>
+                # inline-block because buttons above are float:left
+                v.push <div style={margin:'5px', display: 'inline-block'}>
+                           <a target='_blank' href='https://github.com/sagemathinc/cocalc/wiki/CourseCopy'>
+                               What happens when I assign again?
+                           </a>
+                       </div>
             return v
         else
             <Button key="copy" bsStyle='warning' onClick={=>@setState("#{key}":true)}>
@@ -332,10 +343,10 @@ exports.StudentAssignmentInfo = rclass
             show_return_graded = @props.grade or (skip_grading and @props.info.last_collect) or (skip_grading and skip_collect)
         width = if peer_grade then 2 else 3
         <Row style={borderTop:'1px solid #aaa', paddingTop:'5px', paddingBottom: '5px'}>
-            <Col md=2 key="title">
+            <Col md={2} key="title">
                 {@props.title}
             </Col>
-            <Col md=10 key="rest">
+            <Col md={10} key="rest">
                 <Row>
                     <Col md={width} key='last_assignment'>
                         {@render_last('Assign', @props.info.last_assignment, 'assigned', true,
@@ -432,7 +443,7 @@ exports.MultipleAddSearch = MultipleAddSearch = rclass
 
     render_add_selector: ->
         <FormGroup>
-            <FormControl componentClass='select' multiple ref="selector" size=5 rows=10 onChange={@change_selection}>
+            <FormControl componentClass='select' multiple ref="selector" size={5} rows={10} onChange={@change_selection}>
                 {@render_results_list()}
             </FormControl>
             <ButtonToolbar>
@@ -544,17 +555,17 @@ exports.FoldersToolbar = rclass
 
     render: ->
         <Row style={marginBottom:'-15px'}>
-            <Col md=3>
+            <Col md={3}>
                 <SearchInput
                     placeholder   = {"Find #{@props.plural_item_name}..."}
                     default_value = {@props.search}
                     on_change     = {@props.search_change}
                 />
             </Col>
-            <Col md=4>
+            <Col md={4}>
               {<h5>(Omitting {@props.num_omitted} {if @props.num_ommitted > 1 then @props.plural_item_name else @props.item_name})</h5> if @props.num_omitted}
             </Col>
-            <Col md=5>
+            <Col md={5}>
                 <MultipleAddSearch
                     add_selected   = {@submit_selected}
                     do_search      = {@do_add_search}

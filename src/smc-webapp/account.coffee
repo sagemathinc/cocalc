@@ -104,7 +104,7 @@ if misc.get_local_storage(remember_me)
     ), 45000
 webapp_client.on "remember_me_failed", () ->
     redux.getActions('account').setState(remember_me: false)
-    if redux.getStore('account')?.is_logged_in()  # if we thought user was logged in, but the cookie was invalid, force them to sign in again
+    if redux.getStore('account')?.get('is_logged_in')  # if we thought user was logged in, but the cookie was invalid, force them to sign in again
         f = ->
             if not misc.get_local_storage(remember_me)
                 alert_message(type:'info', message:'You might have to sign in again.', timeout:1000000)

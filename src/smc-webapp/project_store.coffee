@@ -36,7 +36,40 @@ misc      = require('smc-util/misc')
 {types, defaults, required} = misc
 
 {Actions, rtypes, computed, depends, Table, register_project_store, redux}  = require('./smc-react')
-{file_actions} = require('./project_files')
+
+exports.file_actions = file_actions =
+    compress  :
+        name  : 'Compress'
+        icon  : 'compress'
+        allows_multiple_files : true
+    delete    :
+        name  : 'Delete'
+        icon  : 'trash-o'
+        allows_multiple_files : true
+    rename    :
+        name  : 'Rename'
+        icon  : 'pencil'
+        allows_multiple_files : false
+    duplicate :
+        name  : 'Duplicate'
+        icon  : 'clone'
+        allows_multiple_files : false
+    move      :
+        name  : 'Move'
+        icon  : 'arrows'
+        allows_multiple_files : true
+    copy      :
+        name  : 'Copy'
+        icon  : 'files-o'
+        allows_multiple_files : true
+    share     :
+        name  : 'Share'
+        icon  : 'share-square-o'
+        allows_multiple_files : false
+    download  :
+        name  : 'Download'
+        icon  : 'cloud-download'
+        allows_multiple_files : true
 
 # Register this module with the redux module, so it can be used by the reset of SMC easily.
 register_project_store(exports)
@@ -59,7 +92,12 @@ BANNED_FILE_TYPES             = ['doc', 'docx', 'pdf', 'sws']
 
 FROM_WEB_TIMEOUT_S = 45
 
-{LIBRARY} = require('./library')
+# src: where the library files are
+# start: open this file after copying the directory
+LIBRARY =
+    first_steps :
+        src    : '/ext/library/first-steps/src'
+        start  : 'first-steps.tasks'
 
 QUERIES =
     project_log :
@@ -77,6 +115,7 @@ QUERIES =
             path        : null
             description : null
             disabled    : null
+            unlisted    : null
             created     : null
             last_edited : null
             last_saved  : null
@@ -1407,89 +1446,16 @@ class ProjectActions extends Actions
                 @set_activity(id: id, stop:'')
                 cb?(err)
 
-    # slowdown is an estimate how much longer computations take -- unit is percent
-    # After initialization, updated every 30 seconds if the store exists
-    # Requires the store to be initialized
-    init_free_compute_slowdown: =>
-        return if not store = @get_store()
-        return if store.free_compute_slowdown?
-        @setState(free_compute_slowdown : 0.0)
-        {webapp_client} = require('./webapp_client')
-        ncpu = undefined
-
-        # Comment out f() at the bottom of init_free_compute_slowdown to use f_test
-        # Expect load to increase by 1% every second while load should be displayed
-        # Console logs should stop when project is closed
-        # Projects should have independent load values
-        # test_load = 0
-        # f_test = =>
-        #     proj_store = @redux.getStore('projects')
-        #     quotas = proj_store.get_total_project_quotas(@project_id)
-        #     state  = proj_store.getIn(['project_map', @project_id, 'state', 'state'])
-        #     if state == 'running' and (quotas?) and (not quotas.member_host)
-        #         test_load = test_load + 1
-        #         @setState(free_compute_slowdown : test_load)
-        #     else
-        #         @setState(free_compute_slowdown : 0.0)
-        #     console.log "test load for", @project_id, "is", test_load
-        #     setTimeout(f_test, 1000) if @get_store()?
-        # f_test()
-
-        f = =>
-            proj_store = @redux.getStore('projects')
-            quotas = proj_store.get_total_project_quotas(@project_id)
-            state  = proj_store.getIn(['project_map', @project_id, 'state', 'state'])
-            # project running and not on a members host
-            if state == 'running' and (quotas?) and (not quotas.member_host)
-                webapp_client.exec
-                    project_id   : @project_id
-                    command      : '/bin/cat'
-                    args         : ['/proc/loadavg']
-                    bash         : false
-                    err_on_exit  : true
-                    cb           : (err, output) =>
-                        try
-                            [l1, l5, l15, ...] = output.stdout.split(' ')
-                            l5 = window.parseFloat(l5)
-                            #l5 = 4.2 if DEBUG             # testing only
-                            #quotas.cores = 0.75  if DEBUG # testing only
-                            # normalized load 5 bounded by 1
-                            n5 = Math.max(1, l5 / ncpu)
-                            slowdown = (100 * n5 * (1 / Math.min(quotas.cores ? 1, 1))) - 100
-                            #slowdown = 42 if DEBUG        # testing only
-                            #if DEBUG then console.log('updating free_compute_slowdown: n5 =', n5)
-                            if isFinite(slowdown) and not isNaN(slowdown)
-                                @setState(free_compute_slowdown : Math.max(0.0, slowdown))
-                            else
-                                @setState(free_compute_slowdown : 0.0)
-                        setTimeout(f, 30 * 1000) if @get_store()?
-            else
-                # otherwise, check again later ...
-                @setState(free_compute_slowdown : 0.0)
-                setTimeout(f, 120 * 1000) if @get_store()?
-
-        # get the number of cpus, which is constant
-        webapp_client.exec
-            project_id   : @project_id
-            bash         : true
-            command      : 'grep process /proc/cpuinfo | wc -l'
-            err_on_exit  : true
-            cb           : (err, output) =>
-                if err
-                    return
-                try
-                    ncpu = window.parseInt(output.stdout)
-                    f()
-
     ###
     # Actions for PUBLIC PATHS
     ###
-    set_public_path: (path, description) =>
+    set_public_path: (path, opts={}) =>
         obj =
             project_id  : @project_id
             path        : path
-            description : description
+            description : opts.description or ""
             disabled    : false
+            unlisted    : opts.unlisted or false
         return if not store = @get_store()
         obj.last_edited = obj.created = now = misc.server_time()
         # only set created if this obj is new; have to just linearly search through paths right now...
@@ -1758,7 +1724,6 @@ create_project_store_def = (name, project_id) ->
         free_warning_closed      : rtypes.bool     # Makes bottom height update
         free_warning_extra_shown : rtypes.bool
         num_ghost_file_tabs      : rtypes.number
-        free_compute_slowdown    : rtypes.number
 
         # Project Files
         activity               : rtypes.immutable
@@ -1979,24 +1944,24 @@ create_project_store_def = (name, project_id) ->
             item.display_name = "#{tm}"
             item.mtime = (tm - 0)/1000
 
-    _compute_public_files: (x, public_paths, current_path) =>
-        listing = x.listing
-        pub = x.public
-        v = public_paths
-        if v? and v.size > 0
+    # Mutates data to include info on public paths.
+    _compute_public_files: (data, public_paths, current_path) =>
+        listing = data.listing
+        pub = data.public
+        if public_paths? and public_paths.size > 0
             head = if current_path then current_path + '/' else ''
             paths = []
-            map   = {}
-            for x in v.toJS()
-                map[x.path] = x
+            public_path_data = {}
+            for x in public_paths.toJS()
+                public_path_data[x.path] = x
                 paths.push(x.path)
             for x in listing
                 full = head + x.name
                 p = misc.containing_public_path(full, paths)
                 if p?
-                    x.public = map[p]
+                    x.public = public_path_data[p]
                     x.is_public = not x.public.disabled
-                    pub[x.name] = map[p]
+                    pub[x.name] = public_path_data[p]
 
 
     _sort_on_string_field: (field) =>
@@ -2016,7 +1981,6 @@ exports.getStore = getStore = (project_id, redux) ->
     actions = redux.createActions(name, ProjectActions)
     actions.project_id = project_id  # so actions can assume this is available on the object
     store = redux.createStore(create_project_store_def(name, project_id))
-    actions.init_free_compute_slowdown()
 
     queries = misc.deep_copy(QUERIES)
     create_table = (table_name, q) ->
@@ -2136,9 +2100,11 @@ get_directory_listing = (opts) ->
         #log         : console.log
         cb          : (err) ->
             #console.log opts.path, 'get_directory_listing.success or timeout', err
-            if prom_client.enabled
+            if prom_client.enabled and prom_dir_listing_start?
                 prom_labels.err = !!err
-                prom_get_dir_listing_h?.observe(prom_labels, (misc.server_time() - prom_dir_listing_start) / 1000)
+                tm = (misc.server_time() - prom_dir_listing_start) / 1000
+                if not isNaN(tm)
+                    prom_get_dir_listing_h?.observe(prom_labels, tm)
 
             opts.cb(err ? listing_err, listing)
             if time0 and state != 'running' and not err

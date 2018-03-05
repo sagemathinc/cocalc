@@ -233,7 +233,10 @@ templates = $("#webapp-editor-templates")
 
 class FileEditor extends EventEmitter
     # ATTN it is crucial to call this constructor in subclasses via super(@project_id, @filename)
-    constructor: (@project_id, @filename) ->
+    constructor: (project_id, filename) ->
+        super()
+        @project_id = project_id
+        @filename = filename
         @ext = misc.filename_extension_notilde(@filename)?.toLowerCase()
         @_show = underscore.debounce(@_show, 50)
 
@@ -351,8 +354,8 @@ exports.FileEditor = FileEditor
 #     - 'toggle-split-view' :
 ###############################################
 class CodeMirrorEditor extends FileEditor
-    constructor: (@project_id, @filename, content, opts) ->
-        super(@project_id, @filename)
+    constructor: (project_id, filename, content, opts) ->
+        super(project_id, filename)
         editor_settings = redux.getStore('account').get_editor_settings()
         opts = @opts = defaults opts,
             mode                      : undefined
@@ -1695,8 +1698,8 @@ codemirror_session_editor = exports.codemirror_session_editor = (project_id, fil
     return E
 
 class Terminal extends FileEditor
-    constructor: (@project_id, @filename, content, opts) ->
-        super(@project_id, @filename)
+    constructor: (project_id, filename, content, opts) ->
+        super(project_id, filename)
         @element = $("<div>").hide()
         elt = @element.webapp_console
             title      : "Terminal"
@@ -1781,8 +1784,9 @@ class Terminal extends FileEditor
         @console?.resize()
 
 class Media extends FileEditor
-    constructor: (@project_id, @filename, url, @opts) ->
-        super(@project_id, @filename)
+    constructor: (project_id, filename, url, opts) ->
+        super(project_id, filename)
+        @opts = opts
         @mode = if @ext in VIDEO_EXTS then 'video' else 'image'
         @element = templates.find(".webapp-editor-image").clone()
         @element.find(".webapp-editor-image-title").text(@filename)
@@ -1838,8 +1842,9 @@ class Media extends FileEditor
 
 
 class PublicHTML extends FileEditor
-    constructor: (@project_id, @filename, @content, opts) ->
-        super(@project_id, @filename)
+    constructor: (project_id, filename, content, opts) ->
+        super(project_id, filename)
+        @content = content
         @element = templates.find(".webapp-editor-static-html").clone()
         # ATTN: we can't set src='raw-path' because the sever might not run.
         # therefore we retrieve the content and set it directly.
@@ -1887,10 +1892,10 @@ class PublicHTML extends FileEditor
         @iframe.maxheight()
 
 class PublicCodeMirrorEditor extends CodeMirrorEditor
-    constructor: (@project_id, @filename, content, opts, cb) ->
+    constructor: (project_id, filename, content, opts, cb) ->
         opts.read_only = true
         opts.public_access = true
-        super(@project_id, @filename, "Loading...", opts)
+        super(project_id, filename, "Loading...", opts)
         @element.find('a[href="#save"]').hide()       # no need to even put in the button for published
         @element.find('a[href="#readonly"]').hide()   # ...
         webapp_client.public_get_text_file
@@ -1901,21 +1906,23 @@ class PublicCodeMirrorEditor extends CodeMirrorEditor
                 if err
                     content = "Error opening file -- #{err}"
                 @_set(content)
-                cb?(err)
+                cb?(err, @)
 
 class PublicSagews extends PublicCodeMirrorEditor
-    constructor: (@project_id, @filename, content, opts) ->
+    constructor: (project_id, filename, content, opts) ->
         opts.allow_javascript_eval = false
-        super @project_id, @filename, content, opts, (err) =>
-            @element.find('a[href="#split-view"]').hide()  # disable split view
+        super project_id, filename, content, opts, (err, eventual_this) =>
+            eventual_this.element.find('a[href="#split-view"]').hide()  # disable split view
             if not err
-                @syncdoc = new (sagews.SynchronizedWorksheet)(@, {static_viewer:true})
-                @syncdoc.process_sage_updates()
-                @syncdoc.init_hide_show_gutter()
+                eventual_this.syncdoc = new (sagews.SynchronizedWorksheet)(eventual_this, {static_viewer:true})
+                eventual_this.syncdoc.process_sage_updates()
+                eventual_this.syncdoc.init_hide_show_gutter()
 
 class FileEditorWrapper extends FileEditor
-    constructor: (@project_id, @filename, @content, @opts) ->
-        super(@project_id, @filename)
+    constructor: (project_id, filename, content, opts) ->
+        super(project_id, filename)
+        @content = content
+        @opts = opts
         @init_wrapped(@project_id, @filename, @content, @opts)
 
     init_wrapped: () =>
@@ -2019,8 +2026,9 @@ class JupyterNBViewer extends FileEditorWrapper
 class JupyterNBViewerEmbedded extends FileEditor
     # this is like JupyterNBViewer but https://nbviewer.jupyter.org in an iframe
     # it's only used for public files and when not part of the project or anonymous
-    constructor: (@project_id, @filename, @content, opts) ->
-        super(@project_id, @filename)
+    constructor: (project_id, filename, content, opts) ->
+        super(project_id, filename)
+        @content = content
         @element = $(".smc-jupyter-templates .smc-jupyter-nbviewer").clone()
         @init_buttons()
 

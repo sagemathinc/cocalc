@@ -41,17 +41,17 @@ exports.StudentsPanel = rclass ({name}) ->
     reduxProps:
         "#{name}":
             expanded_students   : rtypes.immutable.Set
-            active_student_sort : rtypes.object
+            active_student_sort : rtypes.immutable.Map
             get_student_name    : rtypes.func
 
     propTypes:
         name        : rtypes.string.isRequired
         redux       : rtypes.object.isRequired
         project_id  : rtypes.string.isRequired
-        students    : rtypes.object.isRequired
-        user_map    : rtypes.object.isRequired
-        project_map : rtypes.object.isRequired
-        assignments : rtypes.object.isRequired
+        students    : rtypes.immutable.Map.isRequired
+        user_map    : rtypes.immutable.Map.isRequired
+        project_map : rtypes.immutable.Map.isRequired
+        assignments : rtypes.immutable.Map.isRequired
 
     getInitialState: ->
         err              : undefined
@@ -62,6 +62,11 @@ exports.StudentsPanel = rclass ({name}) ->
         existing_students: undefined
         selected_option_nodes : undefined
         show_deleted     : false
+
+    shouldComponentUpdate: (props, state) ->
+        return @state != state or \
+            misc.is_different(@props, props, ['expanded_students', 'active_student_sort', \
+                      'name', 'project_id', 'students', 'user_map', 'project_map', 'assignments'])
 
     do_add_search: (e) ->
         # Search for people to add to the course
@@ -165,7 +170,7 @@ exports.StudentsPanel = rclass ({name}) ->
             return
         options = @get_add_selector_options()
         <FormGroup>
-            <FormControl componentClass='select' multiple ref="add_select" rows=10 onClick={@add_selector_clicked}>
+            <FormControl componentClass='select' multiple ref="add_select" rows={10} onClick={@add_selector_clicked}>
                 {options}
             </FormControl>
             {@render_add_selector_button(options)}
@@ -207,24 +212,24 @@ exports.StudentsPanel = rclass ({name}) ->
                 else
                     msg = "Already added student or project collaborator: "
                 msg += existing.join(', ')
-                ed = <ErrorDisplay bsStyle='info' error=msg onClose={=>@setState(existing_students:undefined)} />
+                ed = <ErrorDisplay bsStyle='info' error={msg} onClose={=>@setState(existing_students:undefined)} />
         if ed?
-            <Row style={marginTop:'1em', marginBottom:'-10px'}><Col md=5 lgOffset=7>{ed}</Col></Row>
+            <Row style={marginTop:'1em', marginBottom:'-10px'}><Col md={5} lgOffset={7}>{ed}</Col></Row>
 
     render_header: (num_omitted) ->
         <div>
             <Row style={marginBottom:'-15px'}>
-                <Col md=3>
+                <Col md={3}>
                     <SearchInput
                         placeholder = "Find students..."
                         default_value = {@state.search}
                         on_change   = {(value)=>@setState(search:value)}
                     />
                 </Col>
-                <Col md=4>
+                <Col md={4}>
                     {<h6>(Omitting {num_omitted} students)</h6> if num_omitted}
                 </Col>
-                <Col md=5>
+                <Col md={5}>
                     <form onSubmit={@do_add_search}>
                         <FormGroup>
                             <InputGroup>
@@ -263,9 +268,9 @@ exports.StudentsPanel = rclass ({name}) ->
         # note           : "Is younger sister of Abby Florence (TA)"
 
         v = util.parse_students(@props.students, @props.user_map, @props.redux)
-        v.sort(util.pick_student_sorter(@props.active_student_sort))
+        v.sort(util.pick_student_sorter(@props.active_student_sort?.toJS()))
 
-        if @props.active_student_sort.is_descending
+        if @props.active_student_sort.get('is_descending')
             v.reverse()
 
         # Deleted students
@@ -295,14 +300,14 @@ exports.StudentsPanel = rclass ({name}) ->
             {display_name}
             <Space/>
             {<Icon style={marginRight:'10px'}
-                name={if @props.active_student_sort.is_descending then 'caret-up' else 'caret-down'}
-            /> if @props.active_student_sort.column_name == column_name}
+                name={if @props.active_student_sort.get('is_descending') then 'caret-up' else 'caret-down'}
+            /> if @props.active_student_sort.get('column_name') == column_name}
         </a>
 
     render_student_table_header: ->
         # HACK: -10px margin gets around ReactBootstrap's incomplete access to styling
         <Row style={marginTop:'-10px', marginBottom:'3px'}>
-            <Col md=3>
+            <Col md={3}>
                 <div style={display:'inline-block', width:'50%'}>
                     {@render_sort_link("first_name", "First Name")}
                 </div>
@@ -310,13 +315,13 @@ exports.StudentsPanel = rclass ({name}) ->
                     {@render_sort_link("last_name", "Last Name")}
                 </div>
             </Col>
-            <Col md=2>
+            <Col md={2}>
                 {@render_sort_link("email", "Student Email")}
             </Col>
-            <Col md=4>
+            <Col md={4}>
                 {@render_sort_link("last_active", "Last Active")}
             </Col>
-            <Col md=3>
+            <Col md={3}>
                 {@render_sort_link("hosting", "Hosting Type")}
             </Col>
         </Row>
@@ -365,7 +370,7 @@ exports.StudentsPanel.Header = rclass
         n : rtypes.number
 
     render: ->
-        <Tip delayShow=1300
+        <Tip delayShow={1300}
              title="Students"
              tip="This tab lists all students in your course, along with their grades on each assignment.  You can also quickly find students by name on the left and add new students on the right.">
             <span>
@@ -386,17 +391,19 @@ Student = rclass
     propTypes:
         redux                : rtypes.object.isRequired
         name                 : rtypes.string.isRequired
-        student              : rtypes.object.isRequired
-        user_map             : rtypes.object.isRequired
-        project_map          : rtypes.object.isRequired  # here entirely to cause an update when project activity happens
-        assignments          : rtypes.object.isRequired  # here entirely to cause an update when project activity happens
+        student              : rtypes.immutable.Map.isRequired
+        user_map             : rtypes.immutable.Map.isRequired
+        project_map          : rtypes.immutable.Map.isRequired  # here entirely to cause an update when project activity happens
+        assignments          : rtypes.immutable.Map.isRequired  # here entirely to cause an update when project activity happens
         background           : rtypes.string
         is_expanded          : rtypes.bool
         student_name         : rtypes.object
         display_account_name : rtypes.bool
 
     shouldComponentUpdate: (nextProps, nextState) ->
-        return @state != nextState or @props.student != nextProps.student or @props.assignments != nextProps.assignments  or @props.project_map != nextProps.project_map or @props.user_map != nextProps.user_map or @props.background != nextProps.background or @props.is_expanded != nextProps.is_expanded or @props.student_name.full != nextProps.student_name.full
+        return misc.is_different(@state, nextState, ['confirm_delete', 'editing_student', 'edited_first_name', 'edited_last_name', 'edited_email_address']) or \
+            misc.is_different(@props, nextProps, ['name', 'student', 'user_map', 'project_map', 'assignments', 'background', 'is_expanded']) or \
+            @props.student_name?.full != nextProps.student_name?.full
 
     componentWillReceiveProps: (next) ->
         if @props.student_name.first != next.student_name.first
@@ -617,16 +624,16 @@ Student = rclass
 
     render_note: ->
         <Row key='note' style={styles.note}>
-            <Col xs=2>
+            <Col xs={2}>
                 <Tip title="Notes about this student" tip="Record notes about this student here. These notes are only visible to you, not to the student.  In particular, you might want to include an email address or other identifying information here, and notes about late assignments, excuses, etc.">
                     Private Student Notes
                 </Tip>
             </Col>
-            <Col xs=10>
+            <Col xs={10}>
                 <MarkdownInput
                     persist_id    = {@props.student.get('student_id') + "note"}
                     attach_to     = {@props.name}
-                    rows          = 6
+                    rows          = {6}
                     placeholder   = 'Notes about student (not visible to student)'
                     default_value = {@props.student.get('note')}
                     on_save       = {(value)=>@actions(@props.name).set_student_note(@props.student, value)}
@@ -638,7 +645,7 @@ Student = rclass
         # Info for each assignment about the student.
         v = []
         v.push <Row key='more'>
-                <Col md=12>
+                <Col md={12}>
                     {@render_assignments_info()}
                 </Col>
             </Row>
@@ -647,21 +654,21 @@ Student = rclass
 
     render_basic_info: ->
         <Row key='basic' style={backgroundColor:@props.background}>
-            <Col md=3>
+            <Col md={3}>
                 <h6>
                     {@render_student()}
                     {@render_deleted()}
                 </h6>
             </Col>
-            <Col md=2>
+            <Col md={2}>
                 <h6 style={color:"#666"}>
                     {@render_student_email()}
                 </h6>
             </Col>
-            <Col md=4 style={paddingTop:'10px'}>
+            <Col md={4} style={paddingTop:'10px'}>
                 {@render_last_active()}
             </Col>
-            <Col md=3 style={paddingTop:'10px'}>
+            <Col md={3} style={paddingTop:'10px'}>
                 {@render_hosting()}
             </Col>
         </Row>
@@ -673,15 +680,15 @@ Student = rclass
     render_panel_header: ->
         <div>
             <Row>
-                <Col md=8>
+                <Col md={8}>
                     {@render_project_access()}
                 </Col>
-                <Col md=4>
+                <Col md={4}>
                     {@render_delete_button()}
                 </Col>
             </Row>
             {<Row>
-                <Col md=4>
+                <Col md={4}>
                     {@render_edit_student_interface()}
                 </Col>
             </Row> if @state.editing_student }
@@ -690,7 +697,7 @@ Student = rclass
     render_edit_student_interface: ->
         <Well style={marginTop:'10px'}>
             <Row>
-                <Col md=6>
+                <Col md={6}>
                     First Name
                     <FormGroup>
                         <FormControl
@@ -703,7 +710,7 @@ Student = rclass
                         />
                     </FormGroup>
                 </Col>
-                <Col md=6>
+                <Col md={6}>
                     Last Name
                     <FormGroup>
                         <FormControl
@@ -717,7 +724,7 @@ Student = rclass
                 </Col>
             </Row>
             <Row>
-                <Col md=12>
+                <Col md={12}>
                     Email Address
                     <FormGroup>
                         <FormControl
@@ -741,7 +748,7 @@ Student = rclass
 
     render: ->
         <Row style={if @state.more then styles.selected_entry_style}>
-            <Col xs=12>
+            <Col xs={12}>
                 {@render_basic_info()}
                 {@render_more_panel() if @props.is_expanded}
             </Col>

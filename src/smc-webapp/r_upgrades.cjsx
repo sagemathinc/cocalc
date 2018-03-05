@@ -55,7 +55,7 @@ exports.UpgradesPage = rclass
         <div>
             <h3>Thank you for supporting <SiteName/></h3>
             <span style={color:"#666"}>
-                We offer many <a href=PolicyPricingPageUrl target='_blank'> pricing
+                We offer many <a href={PolicyPricingPageUrl} target='_blank'> pricing
                 and subscription options</a>, which you can subscribe to in the Billing tab.
                 Your upgrades are listed below, along with how you have
                 applied them to projects.  You can adjust your project upgrades from
@@ -70,23 +70,23 @@ exports.UpgradesPage = rclass
         u = round1(if used? then info.display_factor * used else 0)
         percent_used = Math.round(u/n*100)
         <Row key={param} style={backgroundColor:'#eee' if darker}>
-            <Col sm=2>
+            <Col sm={2}>
                 {info.display}
             </Col>
-            <Col sm=3>
+            <Col sm={3}>
                 <Row>
-                    <Col sm=5>
+                    <Col sm={5}>
                         {<span>{u} {misc.plural(u, info.display_unit)}</span> if u?}
                     </Col>
-                    <Col sm=7>
+                    <Col sm={7}>
                         <ProgressBar striped now={percent_used} style={marginBottom: '0px'}/>
                     </Col>
                 </Row>
             </Col>
-            <Col sm=2>
+            <Col sm={2}>
                 {<span>{n} {misc.plural(n, info.display_unit)}</span> if n?}
             </Col>
-            <Col sm=5 style={color:"#666"}>
+            <Col sm={5} style={color:"#666"}>
                 {info.desc}
             </Col>
         </Row>
@@ -106,16 +106,16 @@ exports.UpgradesPage = rclass
 
         <Panel header={<h4>Upgrades that you get from your subscriptions</h4>}>
             <Row key='header'>
-                <Col sm=2>
+                <Col sm={2}>
                     <strong>Quota</strong>
                 </Col>
-                <Col sm=3>
+                <Col sm={3}>
                     <strong>Used</strong>
                 </Col>
-                <Col sm=2>
+                <Col sm={2}>
                     <strong>Purchased</strong>
                 </Col>
-                <Col sm=5>
+                <Col sm={5}>
                     <strong>Description</strong>
                 </Col>
             </Row>
@@ -147,14 +147,14 @@ exports.UpgradesPage = rclass
     render_upgraded_project: (project_id, upgrades, darker) ->
         {ProjectTitle} = require('./projects')
         <Row key={project_id} style={backgroundColor:'#eee' if darker}>
-            <Col sm=4>
+            <Col sm={4}>
                 <ProjectTitle
                     project_id={project_id}
                     project_map={@props.project_map}
                     handle_click={(e)=>@open_project_settings(e, project_id)}
                 />
             </Col>
-            <Col sm=8>
+            <Col sm={8}>
                 {@render_upgrades_to_project(project_id, upgrades)}
             </Col>
         </Row>
@@ -179,7 +179,7 @@ exports.UpgradesPage = rclass
     render_header: ->
         <div>
             <Row>
-                <Col sm=12 style={display:'flex'} >
+                <Col sm={12} style={display:'flex'} >
                     <h4 style={flex:'1'} >Upgrades you have applied to projects</h4>
                     <Button bsStyle='warning' onClick={=>@setState(expand_reset_all_projects:true)} disabled={@state.expand_reset_all_projects}>
                         Remove all upgrades you have applied to projects...
@@ -187,7 +187,7 @@ exports.UpgradesPage = rclass
                 </Col>
             </Row>
             {<Row>
-                <Col sm=12>
+                <Col sm={12}>
                     <ResetProjectsConfirmation
                         on_confirm = {@confirm_reset}
                         on_cancel  = {=>@setState(expand_reset_all_projects:false)}
@@ -202,10 +202,10 @@ exports.UpgradesPage = rclass
             return
         <Panel header={@render_header()}>
             <Row key='header'>
-                <Col sm=4>
+                <Col sm={4}>
                     <strong>Project</strong>
                 </Col>
-                <Col sm=8>
+                <Col sm={8}>
                     <strong>Upgrades you have applied to this project</strong>
                 </Col>
             </Row>

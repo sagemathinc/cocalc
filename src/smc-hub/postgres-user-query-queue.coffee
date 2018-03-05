@@ -1,4 +1,4 @@
-"""
+###
 User query queue.
 
 The point of this is to make it so:
@@ -7,7 +7,7 @@ The point of this is to make it so:
  (2) when the client disconnects, any outstanding (not started) queries are cancelled, and
  (3) queries that don't even start until a certain amount of time after they were made are
      automatically considered to have failed (so the client retries).
-"""
+###
 
 {defaults} = misc = require('smc-util/misc')
 required = defaults.required

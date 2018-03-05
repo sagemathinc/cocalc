@@ -365,6 +365,9 @@ exports.len = (obj) ->
 # return the keys of an object, e.g., {a:5, xyz:'10'} -> ['a', 'xyz']
 exports.keys = underscore.keys
 
+# does the given object (first arg) have the given key (second arg)?
+exports.has_key = underscore.has
+
 # returns the values of a map
 exports.values = underscore.values
 
@@ -1227,6 +1230,9 @@ exports.call_lock = (opts) ->
             obj._call_unlock()
             cb?(args...)
 
+# "Performs an optimized deep comparison between the two objects, to determine if they should be considered equal."
+exports.is_equal = underscore.isEqual
+
 exports.cmp = (a,b) ->
     if a < b
         return -1
@@ -1260,6 +1266,48 @@ timestamp_cmp0 = (a,b,field='timestamp') ->
 
 exports.field_cmp = (field) ->
     return (a, b) -> exports.cmp(a[field], b[field])
+
+# Return true if and only if a[field] != b[field] for some field.
+# Here we literally just use !=, so do not use this for non-atomic values!
+exports.is_different = (a, b, fields, why) ->
+    if not a?
+        if not b?
+            return false  # they are the same
+        # a not defined but b is
+        for field in fields
+            if b[field]?
+                if why
+                    console.log field, a?[field], b[field]
+                return true
+        return false
+    if not b?
+        # a is defined or would be handled above
+        for field in fields
+            if a[field]?
+                if why
+                    console.log field, a[field], b?[field]
+                return true  # different
+        return false  # same
+
+    for field in fields
+        if a[field] != b[field]
+            if why
+                console.log field, a[field], b[field]
+            return true
+    return false
+
+exports.is_different_array = (a, b) ->
+    ad = a?; bd = b?
+    if not ad and bd
+        return true
+    if ad and not bd
+        return true
+    if a.length != b.length
+        return true
+    for i in [0...a.length]
+        if a[i] != b[i]
+            return true
+    return false
 
 #####################
 # temporary location for activity_log code, shared by front and backend.
@@ -1486,7 +1534,12 @@ exports.round2 = round2 = (num) ->
     # padding to fix floating point issue (see http://stackoverflow.com/questions/11832914/round-to-at-most-2-decimal-places-in-javascript)
     Math.round((num + 0.00001) * 100) / 100
 
-exports.seconds2hms = seconds2hms = (secs, longform) ->
+# like seconds2hms, but only up to minute-resultion
+exports.seconds2hm = seconds2hm = (secs, longform) ->
+    return seconds2hms(secs, longform, false)
+
+# dear future developer: look into test/misc-test.coffee to see how the expected output is defined.
+exports.seconds2hms = seconds2hms = (secs, longform, show_seconds=true) ->
     longform ?= false
     if secs < 10
         s = round2(secs % 60)
@@ -1496,21 +1549,36 @@ exports.seconds2hms = seconds2hms = (secs, longform) ->
         s = Math.round(secs % 60)
     m = Math.floor(secs / 60) % 60
     h = Math.floor(secs / 60 / 60)
-    if h == 0 and m == 0
+    if (h == 0 and m == 0) and show_seconds
         if longform
             return "#{s} #{exports.plural(s, 'second')}"
         else
             return "#{s}s"
     if h > 0
         if longform
-            return "#{h} #{exports.plural(h, 'hour')} #{m} #{exports.plural(m, 'minute')}"
+            ret = "#{h} #{exports.plural(h, 'hour')}"
+            if m > 0
+                ret += " #{m} #{exports.plural(m, 'minute')}"
+            return ret
         else
-            return "#{h}h#{m}m#{s}s"
-    if m > 0
-        if longform
-            return "#{m} #{exports.plural(m, 'minute')} #{s} #{exports.plural(s, 'second')}"
+            if show_seconds
+                return "#{h}h#{m}m#{s}s"
+            else
+                return "#{h}h#{m}m"
+    if (m > 0) or (not show_seconds)
+        if show_seconds
+            if longform
+                ret = "#{m} #{exports.plural(m, 'minute')}"
+                if s > 0
+                    ret += " #{s} #{exports.plural(s, 'second')}"
+                return ret
+            else
+                return "#{m}m#{s}s"
         else
-            return "#{m}m#{s}s"
+            if longform
+                return "#{m} #{exports.plural(m, 'minute')}"
+            else
+                return "#{m}m"
 
 # returns the number parsed from the input text, or undefined if invalid
 # rounds to the nearest 0.01 if round_number is true (default : true)
@@ -2115,5 +2183,4 @@ exports.human_readable_size = (bytes) ->
         return "#{b/10} MB"
     b = Math.floor(bytes/100000000)
     return "#{b/10} GB"
-
 

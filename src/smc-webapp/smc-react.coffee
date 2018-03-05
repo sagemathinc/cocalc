@@ -114,7 +114,10 @@ Note: you cannot name a property "state" or "props"
 ###
 class Store extends EventEmitter
     # TODOJ: remove @name when fully switched over
-    constructor: (@name, @redux, store_def) ->
+    constructor: (name, redux, store_def) ->
+        super()
+        @name = name
+        @redux = redux
         @setMaxListeners(150)
         if not store_def?
             return
@@ -266,7 +269,15 @@ redux_app = (state, action) ->
             return state
 
 class AppRedux
-    constructor: () ->
+    constructor: ->
+        @_tables = {}
+        @_redux_store = redux_lib.createStore(redux_app)
+        @_stores  = {}
+        @_actions = {}
+        @_redux_store.subscribe(@_redux_store_change)
+
+    # Only used by tests to completely reset the global redux instance
+    __reset: ->
         @_tables = {}
         @_redux_store = redux_lib.createStore(redux_app)
         @_stores  = {}
@@ -527,36 +538,47 @@ react_component = (x) ->
             C = connect_component(x.reduxProps)(C)
     return C
 
-COUNT = false
-TIME = false
-if COUNT
-    # Use these in the console:
-    #  reset_render_count()
-    #  JSON.stringify(get_render_count())
-    render_count = {}
-    rclass = (x) ->
-        x._render = x.render
-        x.render = () ->
-            render_count[x.displayName] = (render_count[x.displayName] ? 0) + 1
-            return @_render()
-        return react_component(x)
-    window.get_render_count = ->
-        total = 0
-        for k,v of render_count
-            total += v
-        return {counts:render_count, total:total}
-    window.reset_render_count = ->
+MODE = 'default'  # one of 'default', 'count', 'verbose', 'time'
+#MODE = 'verbose'
+#MODE = 'count'
+if not smc?
+    MODE = 'default'  # never enable in prod
+switch MODE
+    when 'count'
+        # Use these in the console:
+        #  reset_render_count()
+        #  JSON.stringify(get_render_count())
         render_count = {}
-else if TIME
-    rclass = (x) =>
-        t0 = performance.now()
-        r = react_component(x)
-        t1 = performance.now()
-        if t1 - t0 > 1
-            console.log r.displayName, "took", t1 - t0, "ms of time"
-        return r
-else
-    rclass = react_component
+        rclass = (x) ->
+            x._render = x.render
+            x.render = () ->
+                render_count[x.displayName] = (render_count[x.displayName] ? 0) + 1
+                return @_render()
+            return react_component(x)
+        window.get_render_count = ->
+            total = 0
+            for k,v of render_count
+                total += v
+            return {counts:render_count, total:total}
+        window.reset_render_count = ->
+            render_count = {}
+    when 'time'
+        rclass = (x) =>
+            t0 = performance.now()
+            r = react_component(x)
+            t1 = performance.now()
+            if t1 - t0 > 1
+                console.log r.displayName, "took", t1 - t0, "ms of time"
+            return r
+    when 'verbose'
+        rclass = (x) ->
+            x._render = x.render
+            x.render = () ->
+                console.log x.displayName
+                return @_render()
+            return react_component(x)
+    else
+        rclass = react_component
 
 Redux = createReactClass
     propTypes :
@@ -592,7 +614,7 @@ exports.ReactDOM = require('react-dom')
 if DEBUG
     smc?.redux = redux  # for convenience in the browser (mainly for debugging)
 
-_internals =
+__internals =
         AppRedux                 : AppRedux
         harvest_import_functions : harvest_import_functions
         harvest_own_functions    : harvest_own_functions
@@ -601,4 +623,22 @@ _internals =
         react_component          : react_component
 
 if process?.env?.SMC_TEST
-    exports._internals = _internals
+    exports.__internals = __internals
+
+###
+Given
+spec =
+    foo :
+       bar : ...
+       stuff : ...
+    foo2 :
+       other : ...
+
+the redux_fields function returns ['bar', 'stuff', 'other'].
+###
+exports.redux_fields = (spec) ->
+    v = []
+    for _, val of spec
+        for key, _ of val
+            v.push(key)
+    return v

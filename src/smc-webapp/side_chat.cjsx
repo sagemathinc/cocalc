@@ -243,7 +243,7 @@ Message = rclass
             <FormGroup>
                 <FormControl
                     autoFocus      = {true}
-                    rows           = 4
+                    rows           = {4}
                     componentClass = 'textarea'
                     ref            = 'editedMessage'
                     onKeyDown      = {@on_keydown}

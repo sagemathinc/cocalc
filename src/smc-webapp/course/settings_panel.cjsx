@@ -72,7 +72,7 @@ StudentProjectsStartStopPanel = rclass ({name}) ->
                     return
                 bsStyle = 'info'
 
-        <Alert bsStyle=bsStyle>
+        <Alert bsStyle={bsStyle}>
             {misc.capitalize(state_name)} all projects... <Icon name='cc-icon-cocalc-ring' spin />
         </Alert>
 
@@ -112,12 +112,12 @@ StudentProjectsStartStopPanel = rclass ({name}) ->
         n = @props.num_students
         <Panel header={<h4><Icon name='flash'/> Student projects control</h4>}>
             <Row>
-                <Col md=9>
+                <Col md={9}>
                     {r} of {n} student projects currently running.
                 </Col>
             </Row>
             <Row style={marginTop:'10px'}>
-                <Col md=12>
+                <Col md={12}>
                     <ButtonToolbar>
                         <Button onClick={=>@setState(confirm_start_all_projects:true)}
                             disabled={n==0 or n==r or @state.confirm_start_all_projects or @props.action_all_projects_state == "starting"}
@@ -133,7 +133,7 @@ StudentProjectsStartStopPanel = rclass ({name}) ->
                 </Col>
             </Row>
             <Row style={marginTop:'10px'}>
-                <Col md=12>
+                <Col md={12}>
                     {@render_confirm_start_all_projects() if @state.confirm_start_all_projects}
                     {@render_confirm_stop_all_projects() if @state.confirm_stop_all_projects}
                     {@render_in_progress_action() if @props.action_all_projects_state != "any"}
@@ -146,9 +146,14 @@ StudentProjectsStartStopPanel = rclass ({name}) ->
         </Panel>
 
 DisableStudentCollaboratorsPanel = rclass ->
+    displayName : 'DisableStudentCollaboratorsPanel'
+
     propTypes:
         checked   : rtypes.bool
         on_change : rtypes.func
+
+    shouldComponentUpdate: (props) ->
+        return @props.checked != props.checked
 
     render: ->
         <Panel header={<h4><Icon name='envelope'/> Collaborator policy</h4>}>
@@ -182,9 +187,9 @@ exports.SettingsPanel = rclass
         project_map       : rtypes.immutable.Map.isRequired
         shared_project_id : rtypes.string
 
-    shouldComponentUpdate: (next, next_state) ->
-        return next.settings != @props.settings or next.project_map != @props.project_map or \
-            next_state.show_students_pay_dialog != @stateshow_students_pay_dialog
+    shouldComponentUpdate: (props, state) ->
+        return state.show_students_pay_dialog != @state.show_students_pay_dialog or \
+               misc.is_different(@props, props, ['settings', 'project_map'])
 
     getInitialState: ->
         show_students_pay_dialog : false
@@ -211,7 +216,7 @@ exports.SettingsPanel = rclass
                 <MarkdownInput
                     persist_id    = {@props.name + "course-description"}
                     attach_to     = {@props.name}
-                    rows          = 6
+                    rows          = {6}
                     type          = "textarea"
                     default_value = {@props.settings.get('description')}
                     on_save       = {(desc)=>@actions(@props.name).set_description(desc)}
@@ -350,7 +355,7 @@ exports.SettingsPanel = rclass
                 <MarkdownInput
                     persist_id    = {@props.name + "email-invite-body"}
                     attach_to     = {@props.name}
-                    rows          = 6
+                    rows          = {6}
                     type          = "textarea"
                     default_value = {@props.redux.getStore(@props.name).get_email_invite()}
                     on_save       = {(body)=>@actions(@props.name).set_email_invite(body)}
@@ -528,7 +533,7 @@ exports.SettingsPanel = rclass
     render: ->
         <div>
             <Row>
-                <Col md=6>
+                <Col md={6}>
                     {@render_require_students_pay()}
                     {@render_require_institute_pay()}
                     {@render_save_grades()}
@@ -536,7 +541,7 @@ exports.SettingsPanel = rclass
                     {@render_delete_students()}
                     {@render_delete_shared_project()}
                 </Col>
-                <Col md=6>
+                <Col md={6}>
                     <HelpBox/>
                     {@render_title_description()}
                     {@render_email_invite_body()}
@@ -547,7 +552,7 @@ exports.SettingsPanel = rclass
 
 exports.SettingsPanel.Header = rclass
     render: ->
-        <Tip delayShow=1300 title="Settings"
+        <Tip delayShow={1300} title="Settings"
              tip="Configure various things about your course here, including the title and description.  You can also export all grades in various formats from this page.">
             <span>
                 <Icon name="wrench"/> Settings
