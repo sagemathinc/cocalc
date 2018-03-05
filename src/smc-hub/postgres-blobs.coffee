@@ -787,7 +787,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
     export_patches: (opts) =>
         opts = defaults opts,
             string_id : required
-            cb        : required   # cb(err, string)
+            cb        : required   # cb(err, array)
         @_query
             query : "SELECT extract(epoch from time)*1000 as epoch, * FROM patches"
             where : {"string_id = $::CHAR(40)" : opts.string_id}
@@ -802,7 +802,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
 
     import_patches: (opts) =>
         opts = defaults opts,
-            patches   : required  # as exported by export_patches
+            patches   : required  # array as exported by export_patches
             string_id : undefined # if given, change the string_id when importing the patches to this
             cb        : undefined
         patches = opts.patches
@@ -837,16 +837,6 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                 conflict : 'ON CONFLICT DO NOTHING'  # in case multiple servers (or this server) are doing this import at once -- this can and does happen sometimes.
                 cb       : cb
         async.mapSeries([0...patches.length/insert_block_size], f, (err) => opts.cb?(err))
-
-    export_syncstring:  (opts) =>
-        opts = defaults opts,
-            string_id : required
-            cb        : undefined
-
-    import_syncstring:  (opts) =>
-        opts = defaults opts,
-            obj : required
-            cb  : undefined
 
     delete_blob: (opts) =>
         opts = defaults opts,
