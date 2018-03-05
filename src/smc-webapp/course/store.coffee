@@ -128,6 +128,9 @@ exports.CourseStore = class CourseStore extends Store
                 v.push(student_id)
         return v
 
+    get_student_id: (student_or_id) =>
+        return @get_student(student_or_id)?.get('student_id')
+
     # return list of all student projects (or undefined if not loaded)
     get_student_project_ids: (opts) =>
         {include_deleted, deleted_only, map} = defaults opts,
@@ -176,13 +179,13 @@ exports.CourseStore = class CourseStore extends Store
         return v
 
     get_grade: (assignment, student) =>
-        return @get_assignment(assignment)?.get('grades')?.get(@get_student(student)?.get('student_id'))
+        return @get_assignment(assignment)?.get('grades')?.get(@get_student_id(student))
 
     get_comments: (assignment, student) =>
-        return @get_assignment(assignment)?.get('comments')?.get(@get_student(student)?.get('student_id'))
+        return @get_assignment(assignment)?.get('comments')?.get(@get_student_id(student))
 
     get_points: (assignment, student, filepath) =>
-        student_id = @get_student(student)?.get('student_id')
+        student_id = @get_student_id(student)
         points     = @get_assignment(assignment)?.get('points')?.get(student_id)
         return points?.get(filepath) ? 0
 
