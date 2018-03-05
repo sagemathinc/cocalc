@@ -118,7 +118,7 @@ exports.Icon = Icon = rclass
         stack      : rtypes.oneOf(['1x', '2x'])
         inverse    : rtypes.bool
         className  : rtypes.string
-        style      : rtypes.object   # for speed reasons, just changing this does NOT cause update.
+        style      : rtypes.object
         onClick    : rtypes.func
         onMouseOver: rtypes.func
         onMouseOut : rtypes.func
@@ -126,7 +126,8 @@ exports.Icon = Icon = rclass
     shouldComponentUpdate: (next) ->  # we exclude style changes for speed reasons (and style is rarely used); always update if there are children
         return @props.children? or \
                misc.is_different(@props, next, ['name', 'size', 'rotate', 'flip', 'spin', 'pulse', 'fixedWidth', \
-                                          'stack', 'inverse', 'className'])
+                                          'stack', 'inverse', 'className']) or \
+               not misc.is_equal(@props.style, next.style)
 
 
     getDefaultProps: ->

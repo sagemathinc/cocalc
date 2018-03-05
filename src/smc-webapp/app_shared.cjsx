@@ -205,7 +205,7 @@ exports.ConnectionIndicator = rclass
             avgping           : rtypes.number
             connection_status : rtypes.string
         account :
-            mesg_info : rtypes.object
+            mesg_info         : rtypes.immutable.Map
 
     propTypes :
         ping     : rtypes.number
@@ -214,26 +214,31 @@ exports.ConnectionIndicator = rclass
         on_click : rtypes.func
 
     shouldComponentUpdate: (next) ->
-        return misc.is_different(@props, next, ['avgping', 'connection_status', 'ping', 'status']) or \
-            misc.is_different(@props.mesg_info, next.mesg_info, ['enqueued', 'count'])
+        return misc.is_different(@props, next, ['avgping', 'connection_status', 'ping', 'status', 'mesg_info'])
 
-    connection_status: ->
+    render_ping: ->
+        if @props.avgping?
+            <Tip
+                title     = {'Most recently recorded roundtrip time to the server.'}
+                placement = {'left'}
+                >
+                {Math.floor(@props.avgping)}ms
+            </Tip>
+
+    render_connection_status: ->
         if @props.connection_status == 'connected'
             icon_style = {marginRight: 8, fontSize: '13pt', display: 'inline'}
-            if (@props.mesg_info?.enqueued ? 0) > 5  # serious backlog of data!
+            if (@props.mesg_info?.get('enqueued') ? 0) > 5  # serious backlog of data!
                 icon_style.color = 'red'
-            else if (@props.mesg_info?.count ? 0) > 1 # worrisome amount
+            else if (@props.mesg_info?.get('count') ? 0) > 1 # worrisome amount
                 icon_style.color = '#08e'
-            else if (@props.mesg_info?.count ? 0) > 0 # working well but doing something minimal
+            else if (@props.mesg_info?.get('count') ? 0) > 0 # working well but doing something minimal
                 icon_style.color = '#00c'
+            else
+                icon_style.color = 'grey'
             <div>
                 <Icon name='wifi' style={icon_style}/>
-                {<Tip
-                    title     = {'Most recently recorded roundtrip time to the server.'}
-                    placement = {'left'}
-                    >
-                    {Math.floor(@props.avgping)}ms
-                </Tip> if @props.avgping?}
+                {@render_ping()}
             </div>
         else if @props.connection_status == 'connecting'
             <span style={backgroundColor : '#FFA500', color : 'white', padding : '1ex', 'zIndex': 100001}>
@@ -262,7 +267,7 @@ exports.ConnectionIndicator = rclass
 
         <NavItem style={outer_styles} onClick={@connection_click}>
             <div style={inner_styles} >
-                {@connection_status()}
+                {@render_connection_status()}
             </div>
         </NavItem>
 
@@ -275,24 +280,25 @@ bytes_to_str = (bytes) ->
 
 MessageInfo = rclass
     propTypes :
-        info : rtypes.object
+        info : rtypes.immutable.Map
+
     render: ->
         if not @props.info?
             return <span></span>
-        if @props.info.count > 0
+        if @props.info.get('count') > 0
             flight_style = {color:'#08e', fontWeight:'bold'}
         <div>
             <pre>
-                {@props.info.sent} messages sent ({bytes_to_str(@props.info.sent_length)})
+                {@props.info.get('sent')} messages sent ({bytes_to_str(@props.info.get('sent_length'))})
                 <br/>
-                {@props.info.recv} messages received ({bytes_to_str(@props.info.recv_length)})
+                {@props.info.get('recv')} messages received ({bytes_to_str(@props.info.get('recv_length'))})
                 <br/>
-                <span style={flight_style}>{@props.info.count} messages in flight</span>
+                <span style={flight_style}>{@props.info.get('count')} messages in flight</span>
                 <br/>
-                {@props.info.enqueued} messages queued to send
+                {@props.info.get('enqueued')} messages queued to send
             </pre>
             <div style={color:"#666"}>
-                Connection icon color changes as the number of messages increases. Usually, no action is needed, but the counts are helpful for diagnostic purposes or to help you understand what is going on.  The maximum number of messages that can be sent at the same time is {@props.info.max_concurrent}.
+                Connection icon color changes as the number of messages increases. Usually, no action is needed, but the counts are helpful for diagnostic purposes or to help you understand what is going on.  The maximum number of messages that can be sent at the same time is {@props.info.get('max_concurrent')}.
             </div>
         </div>
 
@@ -308,11 +314,10 @@ exports.ConnectionInfo = rclass
     reduxProps :
         account :
             hub       : rtypes.string
-            mesg_info : rtypes.object
+            mesg_info : rtypes.immutable.Map
 
     shouldComponentUpdate: (next) ->
-        return misc.is_different(@props, next, ['avgping', 'ping', 'status', 'hub']) or \
-            misc.is_different(@props.mesg_info, next.mesg_info, ['enqueued', 'count'])
+        return misc.is_different(@props, next, ['avgping', 'ping', 'status', 'hub', 'mesg_info'])
 
     close: ->
         @actions('page').show_connection(false)
@@ -371,6 +376,9 @@ exports.FullscreenButton = rclass
     reduxProps :
         page :
             fullscreen : rtypes.oneOf(['default', 'kiosk'])
+
+    shouldComponentUpdate: (next) ->
+        return @props.fullscreen != next.fullscreen
 
     on_fullscreen: (ev) ->
         if ev.shiftKey
