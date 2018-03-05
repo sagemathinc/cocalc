@@ -247,6 +247,19 @@ class SortedPatchList extends EventEmitter
             t += n
         return new Date(t)
 
+    _ensure_time_field_is_valid: (patch, field) ->
+        # Ensure patch[field] is a valid Date object or undefined; if neither, returns true,
+        # which means this patch is hopeless corrupt and should be ignored
+        # (should be impossible given postgres data types)
+        val = patch[field]
+        if not val? or misc.is_date(val)
+            return
+        try
+            patch[field] = misc.ISO_to_Date(val)
+            return false
+        catch err
+            return true # BAD
+
     add: (patches) =>
         if patches.length == 0
             # nothing to do
@@ -256,15 +269,11 @@ class SortedPatchList extends EventEmitter
         oldest = undefined
         for x in patches
             if x?
-                if not misc.is_date(x.time)
-                    # ensure that time is not a string representation of a time
-                    try
-                        x.time = misc.ISO_to_Date(x.time)
-                        if isNaN(x.time) # ignore bad times
-                            continue
-                    catch err
-                        # ignore invalid times
-                        continue
+                # ensure that time and prev fields is a valid Date object
+                if @_ensure_time_field_is_valid(x, 'time')
+                    continue
+                if @_ensure_time_field_is_valid(x, 'prev')
+                    continue
                 t   = x.time - 0
                 cur = @_times[t]
                 if cur?
