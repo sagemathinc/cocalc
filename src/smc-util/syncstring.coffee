@@ -1453,8 +1453,8 @@ class SyncDoc extends EventEmitter
         return not @_last_snapshot or @_load_full_history_done
 
     load_full_history: (cb) =>
-        dbg = @dbg("load_full_history")
-        dbg()
+        #dbg = @dbg("load_full_history")
+        #dbg()
         if @has_full_history()
             #dbg("nothing to do, since complete history definitely already loaded")
             cb?()
