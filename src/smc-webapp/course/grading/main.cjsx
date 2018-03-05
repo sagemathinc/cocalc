@@ -35,16 +35,16 @@ _         = require('underscore')
 {Alert, Button, ButtonToolbar, ButtonGroup, Form, FormControl, FormGroup, ControlLabel, InputGroup, Checkbox, Row, Col, Panel, Breadcrumb} = require('react-bootstrap')
 
 # CoCalc and course components
-util = require('../util')
+util   = require('../util')
 styles = require('../styles')
 {DateTimePicker, ErrorDisplay, Icon, LabeledRow, Loading, MarkdownInput, Space, Tip, NumberInput} = require('../../r_misc')
 {STEPS, step_direction, step_verb, step_ready} = util
-{BigTime} = require('../common')
 
 # Grading specific
-{Grading} = require('./models')
-{Grade} = require('./grade')
-{GradingStats} = require('./stats')
+{Grading}       = require('./models')
+{Grade}         = require('./grade')
+{GradingStats}  = require('./stats')
+{Listing}       = require('./listing')
 {ROW_STYLE, LIST_STYLE, LIST_ENTRY_STYLE, FLEX_LIST_CONTAINER, EMPTY_LISTING_TEXT, PAGE_SIZE} = require('./const')
 
 # util functions
@@ -159,9 +159,6 @@ exports.GradingStudentAssignment = rclass
 
     collect_student_path: ->
         return path_join(@props.assignment.get('collect_path'), @state.student_id, @state.subdir)
-
-    open_assignment: (type, filepath) ->
-        @actions(@props.name).open_assignment(type, @props.assignment, @state.student_id, filepath)
 
     jump: (direction, without_grade, collected_files) ->
         @actions(@props.name).grading(
@@ -457,371 +454,6 @@ exports.GradingStudentAssignment = rclass
             </Col>
         </Row>
 
-
-
-    render_open_student_file: (filename) ->
-        filepath = @filepath(filename)
-        <Tip
-            title     = {"Open the student's file"}
-            title     = {"This opens the corresponding file in the student's project. This allows you to see the progress via 'TimeTravel' for many file types, etc."}
-            placement = {'left'}
-        >
-            <Button
-                onClick = {=>@open_assignment('assigned', filepath)}
-                bsStyle = {'default'}
-                bsSize  = {'small'}
-                style   = {color:COLORS.GRAY}
-            >
-                Student file <Icon name='external-link' />
-            </Button>
-        </Tip>
-
-    filepath: (filename) ->
-        path_join(@state.subdir, filename)
-
-    fullpath: (filename) ->
-        path_join(@collect_student_path(), filename)
-
-    # TODO this is pure demo
-    autograde: (ext, filename) ->
-        # ext in ['ipynb']
-        fullpath = @fullpath(filename)
-        filepath = @filepath(filename)
-        @setState(active_autogrades : @state.active_autogrades.add(filepath))
-        done = =>
-            @save_points(filename, Math.floor(10 * Math.random()))
-            @setState(active_autogrades : @state.active_autogrades.remove(filepath))
-        setTimeout(done, 3000)
-
-    render_autograde: (filename) ->
-        ext    = misc.separate_file_extension(filename).ext
-        active = @state.active_autogrades.includes(@filepath(filename))
-        if active
-            icon = <Icon name='cc-icon-cocalc-ring' spin />
-        else
-            icon = <Icon name='graduation-cap' />
-
-        if ext == 'ipynb'
-            <Button
-                onClick  = {=>@autograde(ext, filename)}
-                bsStyle  = {'default'}
-                bsSize   = {'small'}
-                disabled = {active}
-            >
-                {icon} Autograde
-            </Button>
-
-    listing_header: ->
-        header_style =
-            background  : COLORS.GRAY_LLL
-            color       : COLORS.GRAY
-            padding     : '5px 0px'
-
-        <Row style={header_style}>
-            <Col md={4}>Filename</Col>
-            <Col md={2}>Last modified</Col>
-            <Col md={4}>Points</Col>
-            {###
-            <Col md={2}>Autograde</Col>
-            ###}
-            <Col md={2} style={textAlign:'right'}>Student file</Col>
-        </Row>
-
-    save_points: (filename, points) ->
-        filepath = @filepath(filename)
-        @actions(@props.name).set_points(@props.assignment, @state.student_id, filepath, points)
-
-    render_points_input: (filename) ->
-        filepath = @filepath(filename)
-        points   = @state.store.get_points(@props.assignment, @state.student_id, filepath)
-        <NumberInput
-            number          = {points}
-            bsSize          = {'small'}
-            min             = {0}
-            max             = {99999}
-            bsSize          = {'small'}
-            formgroupstyle  = {'marginBottom' : 0}
-            on_change       = {(val)=>@save_points(filename, val)}
-            plusminus       = {true}
-            select_on_click = {true}
-        />
-
-    render_points_subdir: (subdir) ->
-        p = @state.store.get_points_subdir(@props.assignment, @state.student_id, subdir)
-        return "Sum: #{p} pts."
-
-    open_subdir: (subdir) ->
-        if @state.subdir.length > 0
-            name = subdir[@state.subdir.length+1 ..]
-        else
-            name = subdir
-        style =
-            fontWeight    : 'bold'
-            cursor        : 'pointer'
-        <a
-            style   = {style}
-            onClick = {=>@actions(@props.name).grading(
-                assignment       : @props.assignment
-                student_id       : @state.student_id
-                direction        : 0
-                without_grade    : @get_only_not_graded()
-                collected_files  : @get_only_collected()
-                subdir           : subdir
-            )}
-        >
-            <Icon name='folder-open-o'/> {name}{'/'}
-        </a>
-
-    open_file: (filename, masked) ->
-        filepath = @filepath(filename)
-        style =
-            fontWeight    : 'bold'
-            cursor        : 'pointer'
-        if masked
-            style.color      = COLORS.GRAY
-            style.fontWeight = 'inherit'
-        <a
-            style     = {style}
-            onClick   = {=>@open_assignment('collected', filepath)}
-        >
-            {filename}
-        </a>
-
-    listing_directory_row: (filename, time) ->
-        subdirpath = path_join(@state.subdir, filename)
-        [
-            <Col key={0} md={4} style={@listing_colstyle2()}>{@open_subdir(subdirpath)}</Col>
-            <Col key={1} md={2} style={@listing_colstyle()}>{time}</Col>
-            <Col key={2} md={4} style={@listing_colstyle()}>{@render_points_subdir(subdirpath)}</Col>
-            <Col key={3} md={2}></Col>
-        ]
-
-    listing_file_row: (filename, time, masked) ->
-        [
-            <Col key={0} md={4} style={@listing_colstyle2()}>{@open_file(filename, masked)}</Col>
-            <Col key={1} md={2} style={@listing_colstyle()}>{time}</Col>
-            <Col key={2} md={4}>{@render_points_input(filename)}</Col>
-            # <Col key={3} md={3}>{@render_autograde(filename)}</Col>
-            <Col key={5} md={2} style={textAlign:'right'}>{@render_open_student_file(filename)}</Col>
-        ]
-
-    listing_colstyle: ->
-        {margin: '10px 0'}
-
-    listing_colstyle2: ->
-        misc.merge({overflow: 'hidden', textOverflow: 'ellipsis'}, @listing_colstyle())
-
-    listing_rowstyle: (idx) ->
-        col = if idx %% 2 == 0 then 'white' else COLORS.GRAY_LL
-        style =
-            background     : col
-            paddingTop     : '5px'
-            paddingBottom  : '5px'
-        return misc.merge(style, LIST_ENTRY_STYLE)
-
-    listing_error: (error) ->
-        if error = 'no_dir'
-            # TODO insert collect button here and refresh listing accordingly ...
-            return <div style={EMPTY_LISTING_TEXT}>
-                       No directory. Not yet collected from student?
-                   </div>
-        else
-            return <div style={EMPTY_LISTING_TEXT}>
-                       <div>Got an error listing directory:</div>
-                       <pre>{error}</pre>
-                   </div>
-
-    listing_entries: ->
-        if not @state.listing?
-            return <div style={EMPTY_LISTING_TEXT}><Loading /></div>
-
-        error = @state.listing.get('error')
-        return @listing_error(error) if error?
-
-        files = @state.listing.get('files')
-        if files?.size > 0
-            begin = PAGE_SIZE * (@state.page_number ? 0)
-            end   = begin + PAGE_SIZE
-            return files.slice(begin, end).map (file, idx) =>
-                filename = file.get('name')
-                masked   = file.get('mask') ? false
-                time     = <BigTime date={(file.get('mtime') ? 0) * 1000} />
-                isdir    = file.get('isdir') == true
-
-                <li key={filename} style={@listing_rowstyle(idx)} className={'list-group-item'}>
-                    <Row>
-                    {
-                        if isdir
-                            @listing_directory_row(filename, time)
-                        else
-                            @listing_file_row(filename, time, masked)
-                    }
-                    </Row>
-                </li>
-        else
-            return <div style={EMPTY_LISTING_TEXT}>No files.</div>
-
-    listing_more_files_info: ->
-        num_pages = @state.num_pages ? 1
-        page      = (@state.page_number ? 1) + 1
-        return null if num_pages == 1 or page >= num_pages
-        <Row style={color:COLORS.GRAY} key={'more'}>
-            More files are on the <a style={cursor:'pointer'} onClick={=>@listing_page(+1)}>next page</a> …
-        </Row>
-
-    listing: ->
-        listing = <Row style={FLEX_LIST_CONTAINER} key={0}>
-            <ul className='list-group' style={LIST_STYLE}>
-                {@listing_entries()}
-            </ul>
-        </Row>
-        more = @listing_more_files_info()
-        return (if more? then [listing, more] else listing)
-
-    open_directory: (path) ->
-        @setState(subdir : path)
-        @actions(@props.name).grading(
-            assignment       : @props.assignment
-            student_id       : @state.student_id
-            direction        : 0
-            without_grade    : false
-            subdir           : path
-        )
-
-    render_listing_path: ->
-        crumbs  = [
-            <Breadcrumb.Item
-                key        = {''}
-                onClick    = {=>@open_directory('')}
-            >
-                <Icon name='home' />
-            </Breadcrumb.Item>
-        ]
-
-        path = ''
-        segments = @state.subdir.split('/')
-        segments.map (segment) =>
-            path = path_join(path, segment)
-            do (path, segment) =>
-                crumbs.push(
-                    <Breadcrumb.Item
-                        key        = {path}
-                        onClick    = {=>@open_directory(path)}
-                    >
-                        {segment}
-                    </Breadcrumb.Item>
-                )
-
-        <Breadcrumb bsSize='small' style={margin: '0 15px 15px 0'}>
-            {crumbs}
-        </Breadcrumb>
-
-    listing_page: (offset) ->
-        p = @state.page_number + offset
-        @actions(@props.name).grading_set_entry('page_number', p)
-        @setState(page_number : p)
-
-    render_listing_pager: ->
-        if (not @state.num_pages?) or (@state.num_pages ? 1) == 1 or (not @state.page_number?)
-            return null
-        btn_style =
-            whiteSpace: 'nowrap'
-        <div style={padding:'0', flex:'0', marginRight: '15px'}>
-            <ButtonGroup style={marginBottom:'5px', display:'flex'}>
-                <Button
-                    onClick    = {=>@listing_page(-1)}
-                    disabled   = {@state.page_number <= 0}
-                    style      = {btn_style}
-                >
-                    <Icon name='angle-double-left' /> Prev
-                </Button>
-                <Button
-                    style      = {btn_style}
-                    disabled
-                >
-                    {"#{@state.page_number + 1}/#{@state.num_pages}"}
-                </Button>
-                <Button
-                    onClick    = {=>@listing_page(+1)}
-                    disabled   = {@state.page_number >= @state.num_pages - 1}
-                    style      = {btn_style}
-                >
-                     Next <Icon name='angle-double-right' />
-                </Button>
-            </ButtonGroup>
-        </div>
-
-    toggle_show_all_files: ->
-        @actions(@props.name).grading_toggle_show_all_files()
-
-    render_toggle_show_all_files: ->
-        visible = @state.store.grading_get_show_all_files()
-        icon    = if visible then 'eye' else 'eye-slash'
-        <div style={padding:'0', flex:'0', marginRight: '15px'}>
-            <ButtonGroup style={marginBottom:'5px', display:'flex'}>
-                <Tip
-                    title     = {'Show/hide files'}
-                    tip       = {'By default, less important files are hidden from the files listing.'}
-                    placement = {'top'}
-                >
-                    <Button
-                        onClick    = {=>@toggle_show_all_files()}
-                        style      = {whiteSpace: 'nowrap'}
-                    >
-                        <Icon name={icon} />
-                    </Button>
-                </Tip>
-            </ButtonGroup>
-        </div>
-
-    collected: ->
-        last_collect  = @state.student_info?.last_collect
-        if last_collect?.time?
-            time      = <BigTime date={last_collect.time} />
-        else
-            time      = "never"
-
-        # enable button only when we have listing information and some files without errors
-        disabled = not @state.listing?
-        disabled or= (@state.listing?.get('error')?.length > 0) ? false
-
-        <Row>
-            <div style={display: 'flex', flexDirection: 'row'}>
-                {@render_toggle_show_all_files()}
-                {@render_listing_pager()}
-                <div style={padding:'0', flex:'1'}>
-                    {@render_listing_path()}
-                </div>
-                <div style={padding:'0', flex:'0'}>
-                    <ButtonGroup style={marginBottom:'5px', display:'flex'}>
-                        <Button
-                            style    = {whiteSpace:'nowrap'}
-                            disabled = {disabled}
-                            onClick  = {=>@open_assignment('collected')}
-                        >
-                            <Tip
-                                title     = {'Open the collected files right here in your own project.'}
-                                placement = {'bottom'}
-                            >
-                                <Icon name='folder-open-o' /><span className='hidden-md'> Collected</span> {time}
-                            </Tip>
-                        </Button>
-                        <Button
-                            onClick = {=>@open_assignment('assigned')}
-                            style   = {whiteSpace:'nowrap'}
-                        >
-                            <Tip
-                                title     = {"Open this directory of files in the student's project."}
-                                placement = {'bottom'}
-                            >
-                                Student <Icon name='external-link' />
-                            </Tip>
-                        </Button>
-                    </ButtonGroup>
-                </div>
-            </div>
-        </Row>
-
     start_fresh: ->
         @actions(@props.name).grading(
             student_id       : undefined
@@ -896,8 +528,19 @@ exports.GradingStudentAssignment = rclass
                 Info: <code>{misc.to_json(@state.student_info)}</code>.
                 <br/>
                 ###}
-                {@collected()}
-                {@listing_header()}
-                {@listing()}
+                <Listing
+                    name             = {@props.name}
+                    store            = {@state.store}
+                    grading          = {@props.grading}
+                    assignment       = {@props.assignment}
+                    page_number      = {@state.page_number}
+                    num_pages        = {@state.num_pages}
+                    student_info     = {@state.student_info}
+                    listing          = {@state.listing}
+                    student_id       = {@state.student_id}
+                    subdir           = {@state.subdir}
+                    without_grade    = {@get_only_not_graded()}
+                    collected_files  = {@get_only_collected()}
+                />
             </Col>
         </Row>
