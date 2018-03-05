@@ -344,15 +344,13 @@ Assignment = rclass
         return v
 
     render_more: ->
-        if @props.grading?.get('assignment_id') == @props.assignment.get('assignment_id')
+        if @props.grading?.assignment_id == @props.assignment.get('assignment_id')
             header      =
                 <GradingStudentAssignmentHeader
                     redux          = {@props.redux}
                     name           = {@props.name}
-                    assignment     = {@props.assignment}
-                    students       = {@props.students}
-                    user_map       = {@props.user_map}
-                    grading        = {@props.grading}
+                    student_id     = {@props.grading.student_id}
+                    end_of_list    = {@props.grading.end_of_list}
                 />
             panel_body  =
                 <GradingStudentAssignment

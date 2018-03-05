@@ -39,22 +39,20 @@ exports.GradingStudentAssignmentHeader = rclass
     propTypes :
         name         : rtypes.string.isRequired
         redux        : rtypes.object.isRequired
-        assignment   : rtypes.object.isRequired
-        students     : rtypes.object.isRequired
-        grading      : rtypes.instanceOf(Grading)
+        end_of_list  : rtypes.bool
+        student_id   : rtypes.string
+
+    shouldComponentUpdate: (next) ->
+        misc.is_different(@props, next, ['end_of_list', 'student_id'])
 
     getInitialState: ->
-        return _init_state(@props)
-
-    componentWillReceiveProps: (next) ->
-        x = _update_state(@props, next, @state)
-        @setState(x) if x?
+        store : @props.redux.getStore(@props.name)
 
     exit: ->
         @actions(@props.name).grading_stop()
 
     render_title: (student_name) ->
-        if @props.grading.get('end_of_list')
+        if @props.end_of_list
             <h4>End</h4>
         else
             <h4>
@@ -62,8 +60,7 @@ exports.GradingStudentAssignmentHeader = rclass
             </h4>
 
     render: ->
-        #assignment   = @props.assignment.get('path')
-        student_info = @state.store.get_student_name(@state.student_id, true)
+        student_info = @state.store.get_student_name(@props.student_id, true)
         student_name = student_info?.full ? 'N/A'
         <Row>
             <Col md={9}>

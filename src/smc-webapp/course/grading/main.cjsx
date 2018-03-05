@@ -381,7 +381,6 @@ exports.GradingStudentAssignment = rclass
                 <Listing
                     name             = {@props.name}
                     store            = {@state.store}
-                    grading          = {@props.grading}
                     assignment       = {@props.assignment}
                     page_number      = {@state.page_number}
                     num_pages        = {@state.num_pages}

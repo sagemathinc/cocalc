@@ -44,7 +44,7 @@ course_specific_files = (entry) ->
 # Models
 
 GradingRecord = immutable.Record
-    student_id      : null      # the currentl student
+    student_id      : null      # the currently student
     assignment_id   : null      # the UUID string
     end_of_list     : false     # true, if at the end of student list
     subdir          : ''        # for a collected directory of files, in which (relative) subdirectory are we?
@@ -58,8 +58,6 @@ GradingRecord = immutable.Record
     'Grading'
 
 exports.Grading = class Grading extends GradingRecord
-    setListing: (listing) ->
-        return @set('listing', listing)
 
     get_listing_files: (show_all_files) ->
         if not @listing?

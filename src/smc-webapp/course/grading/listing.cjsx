@@ -36,7 +36,6 @@ _         = require('underscore')
 
 # grading specific
 {BigTime} = require('../common')
-{Grading} = require('./models')
 {ROW_STYLE, LIST_STYLE, LIST_ENTRY_STYLE, FLEX_LIST_CONTAINER, EMPTY_LISTING_TEXT, PAGE_SIZE} = require('./const')
 
 listing_colstyle  = {margin: '10px 0'}
@@ -56,12 +55,16 @@ exports.Listing = rclass
         student_info    : rtypes.object.isRequired
         student_id      : rtypes.string.isRequired
         subdir          : rtypes.string
-        grading         : rtypes.instanceOf(Grading).isRequired
         without_grade   : rtypes.bool
         collected_files : rtypes.bool
 
     getInitialState: ->
         active_autogrades : immutable.Set()
+
+    shouldComponentUpdate: (next) ->
+        misc.is_different(@props, next, \
+            ['assignment', 'listing', 'num_pages', 'page_number', 'student_info',
+            'student_id', 'subdir' ,'without_grade', 'collected_files'])
 
     filepath: (filename) ->
         path_join(@props.subdir, filename)
