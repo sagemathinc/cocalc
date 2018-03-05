@@ -604,7 +604,7 @@ exports.TimeAgoElement = rclass
             @render_timeago_element(d)
 
     render_absolute: (d) ->
-        <span style={color: '#666'}>{d.toLocaleString()}</span>
+        <span>{d.toLocaleString()}</span>
 
     render: ->
         d = if misc.is_date(@props.date) then @props.date else new Date(@props.date)
@@ -620,8 +620,8 @@ exports.TimeAgoElement = rclass
         else
             @render_timeago(d)
 
-exports.TimeAgo = rclass
-    displayName : 'Misc-TimeAgo'
+TimeAgoWrapper = rclass
+    displayName : 'Misc-TimeAgoWrapper'
 
     propTypes :
         popover   : rtypes.bool
@@ -648,6 +648,34 @@ exports.TimeAgo = rclass
             live              = {@props.live}
             time_ago_absolute = {@props.other_settings?.get('time_ago_absolute') ? false}
         />
+
+# The TimeAgoWrapper above is absolutely really necessary **until** the react rewrite is completely
+# done.  The reason is that currently we have some non-redux new react stuff that has timeago init,
+# e.g., for the TimeTravel view.
+exports.TimeAgo = rclass
+    displayName : 'Misc-TimeAgo-redux'
+
+    propTypes :
+        popover   : rtypes.bool
+        placement : rtypes.string
+        tip       : rtypes.string     # optional body of the tip popover with title the original time.
+        live      : rtypes.bool       # whether or not to auto-update
+        date      : rtypes.oneOfType([rtypes.string, rtypes.object, rtypes.number])  # date object or something that convert to date
+
+    shouldComponentUpdate: (props) ->
+        return is_different_date(@props.date, props.date) or \
+               misc.is_different(@props, props, ['popover', 'placement', 'tip', 'live'])
+
+    render: ->
+        <Redux redux={redux}>
+            <TimeAgoWrapper
+                date      = {@props.date}
+                popover   = {@props.popover}
+                placement = {@props.placement}
+                tip       = {@props.tip}
+                live      = {@props.live}
+            />
+        </Redux>
 
 # Important:
 # widget can be controlled or uncontrolled -- use default_value for an *uncontrolled* widget
