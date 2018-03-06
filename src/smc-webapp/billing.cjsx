@@ -1040,7 +1040,14 @@ CouponAdder = rclass
         e?.preventDefault()
         @actions('billing').get_coupon(@state.coupon_id) if @state.coupon_id
 
+    render_well_header: ->
+        if @props.applied_coupons?.size > 0
+            <h5 style={color:'green'}><Icon name='check' /> Coupon added!</h5>
+        else
+            <h5 style={color:'#666'}><Icon name='plus' /> Add a coupon?</h5>
+
     render: ->
+
         # TODO: (Here or elsewhere) Your final cost is:
         #       $2 for the first month
         #       $7/mo after the first
@@ -1055,7 +1062,7 @@ CouponAdder = rclass
             bsStyle = 'primary'
 
         <Well>
-            <h5 style={color:'#666'}><Icon name='plus' /> Add a coupon?</h5>
+            {@render_well_header()}
             {<CouponList applied_coupons={@props.applied_coupons} /> if @props.applied_coupons?.size > 0}
             {<FormGroup style={marginTop:'5px'}>
                 <InputGroup>
