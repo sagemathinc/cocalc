@@ -1832,11 +1832,13 @@ exports.CourseActions = class CourseActions extends Actions
         #            first call after deleting grading should be +1, otherwise student_id stays undefined
         store = @get_store()
         return if not store?
-        grading = store.get('grading')
 
-        only_not_graded = opts.without_grade   ? grading?.only_not_graded
-        only_collected  = opts.collected_files ? grading?.only_collected
-        student_filter  = grading?.student_filter
+        {Grading} = require('./grading/models')
+        grading   = store.get('grading') ? new Grading()
+
+        only_not_graded = opts.without_grade   ? grading.only_not_graded
+        only_collected  = opts.collected_files ? grading.only_collected
+        student_filter  = grading.student_filter
 
         if opts.direction == 1 or opts.direction == -1
             [next_student_id, cnt] = store.grading_next_student(
@@ -1851,7 +1853,6 @@ exports.CourseActions = class CourseActions extends Actions
             next_student_id = opts.student_id
 
         # this switches to grading mode, but no listing
-        {Grading} = require('./grading/models')
         data = new Grading(
             student_id      : next_student_id
             assignment_id   : opts.assignment.get('assignment_id')
@@ -1861,11 +1862,11 @@ exports.CourseActions = class CourseActions extends Actions
             student_filter  : student_filter
             only_not_graded : only_not_graded
             only_collected  : only_collected
-            page_number     : 0   # store.grading_get_page_number()
+            page_number     : 0
             listing         : null
         )
 
-        grading = grading?.merge(data) ? data
+        grading = grading.merge(data)
         @grading_update(store, grading)
         # sets a "cursor" pointing to this assignment and student, signal for others
         @grading_update_activity()
@@ -1913,7 +1914,12 @@ exports.CourseActions = class CourseActions extends Actions
         store = @get_store()
         return if not store?
         grading = store.get('grading')
-        @setState(grading:grading.set(key, value)) if grading?
+        return if not grading?
+        grading = grading.set(key, value)
+        if key in ['only_not_graded', 'only_collected']
+            @grading_update(store, grading)
+        else
+            @setState(grading:grading)
 
     grading_set_cursors: (cursors) =>
         @grading_set_entry('cursors', immutable.fromJS(cursors))

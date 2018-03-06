@@ -100,7 +100,7 @@ exports.GradingStudentAssignment = rclass
         state = _init_state(@props)
         state.active_autogrades = immutable.Set()
         show_all_files = @props.grading.show_all_files
-        state = misc.merge(state, @props.grading.get_listing_files(show_all_files))
+        state = misc.merge(state, @props.grading.get_listing_files())
         store = @props.redux.getStore(@props.name)
         return state
 
@@ -113,7 +113,7 @@ exports.GradingStudentAssignment = rclass
         page_changed       = @props.grading?.page_number != next.grading?.page_number
         if listing_changed or show_files_changed or page_changed
             show_all_files = @props.grading?.show_all_files
-            @setState(next.grading.get_listing_files(show_all_files))
+            @setState(next.grading.get_listing_files())
 
 
     componentDidMount: ->
@@ -178,7 +178,6 @@ exports.GradingStudentAssignment = rclass
         actions.grading_set_entry('only_not_graded', only_not_graded)
 
     set_only_collected: (only_collected) ->
-        @setState(student_list_first_selected:false)
         actions = @actions(@props.name)
         actions.grading_set_entry('only_collected', only_collected)
 

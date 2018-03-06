@@ -76,7 +76,7 @@ exports.Grading = class Grading extends GradingRecord
                 return false
         return current_idx
 
-    get_listing_files: (show_all_files) ->
+    get_listing_files: ->
         if not @listing?
             return {listing:undefined}
 
@@ -85,7 +85,7 @@ exports.Grading = class Grading extends GradingRecord
         {compute_file_masks} = require('../../project_store')
         compute_file_masks(listing_js)
         files      = immutable.fromJS(listing_js)
-        if not (show_all_files ? false)
+        if not @show_all_files
             files  = files.filterNot(course_specific_files)
         else
             files = files.withMutations (files) ->
