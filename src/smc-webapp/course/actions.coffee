@@ -1905,8 +1905,8 @@ exports.CourseActions = class CourseActions extends Actions
         return if not store?
         grading = store.get('grading')
         return if not grading?
-        @setState(grading:grading.set('student_filter', string))
-        assignment = store.get_assignment(grading.get('assignment_id'))
+        grading = grading.set('student_filter', string)
+        @grading_update(store, grading)
 
     # utility method to set just a key in the grading state
     grading_set_entry: (key, value) =>

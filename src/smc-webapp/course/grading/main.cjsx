@@ -336,8 +336,8 @@ exports.GradingStudentAssignment = rclass
                 <StudentList
                     name             = {@props.name}
                     store            = {@state.store}
-                    grading          = {@props.grading}
                     assignment       = {@props.assignment}
+                    cursors          = {@props.grading.cursors}
                     student_list     = {@props.grading.student_list}
                     student_filter   = {@props.grading.student_filter}
                     student_id       = {@props.grading.student_id}

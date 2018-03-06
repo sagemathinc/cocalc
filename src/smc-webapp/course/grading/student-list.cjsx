@@ -45,15 +45,15 @@ exports.StudentList = rclass
     propTypes:
         name            : rtypes.string.isRequired
         store           : rtypes.object.isRequired
-        grading         : rtypes.instanceOf(Grading).isRequired
         assignment      : rtypes.immutable.Map
+        cursors         : rtypes.immutable.Map
         student_list    : rtypes.immutable.List
         student_filter  : rtypes.string
         student_id      : rtypes.string
         account_id      : rtypes.string
 
     shouldComponentUpdate: (next) ->
-        x = misc.is_different(@props, next, ['grading', 'assignment', 'student_filter', 'student_id', 'account_id'])
+        x = misc.is_different(@props, next, ['cursors', 'assignment', 'student_filter', 'student_id', 'account_id'])
         y = not @props.student_list.equals(next.student_list)
         return x or y
 
@@ -91,7 +91,7 @@ exports.StudentList = rclass
                         ref         = {'stundent_filter'}
                         type        = {'text'}
                         placeholder = {'any text...'}
-                        value       = {@props.student_filter}
+                        value       = {@props.student_filter ? ''}
                         onChange    = {(e)=>@set_student_filter(e.target.value)}
                         onKeyDown   = {@on_key_down_student_filter}
                     />
@@ -132,9 +132,10 @@ exports.StudentList = rclass
     render_student_list_presenece: (student_id) ->
         # presence of other teachers
         # cursors are only relevant for the last 10 minutes (componentDidMount updates with a timer)
+        return if not @props.cursors?
         min_10_ago = misc.server_minutes_ago(10)
         presence = []
-        whoelse = @props.grading.getIn(['cursors', @props.assignment.get('assignment_id'), student_id])
+        whoelse = @props.cursors.getIn([@props.assignment.get('assignment_id'), student_id])
         whoelse?.map (time, account_id) =>
             return if account_id == @props.account_id or time < min_10_ago
             presence.push(

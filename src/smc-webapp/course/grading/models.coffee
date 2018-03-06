@@ -58,7 +58,7 @@ GradingRecord = immutable.Record
     page_number     : 0         # if there are more files in the listing than "PAGE_SIZE", this tells us the page at which we are
     listing         : null      # an immutable.js map, "files": a sorted and processed list, like they are in project_store (entries have a "mask" field); and "error": e.g. "no_dir"
     show_all_files  : false     # if true, we want to see all files including those which are masked
-    cursors         : null,     # information about other collaborators also grading an assignment (i.e. real-time presence information)
+    cursors         : null,     # information about other collaborators also grading an assignment (i.e. realtime presence information)
     'Grading'
 
 exports.Grading = class Grading extends GradingRecord
