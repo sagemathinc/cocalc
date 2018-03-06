@@ -142,6 +142,12 @@ exports.StudentAssignmentInfo = rclass
         edited_grade    : @props.grade ? ''
         edited_comments : @props.comments ? ''
 
+    componentWillReceiveProps: (nextProps) ->
+        @setState(
+            edited_grade    : nextProps.grade ? ''
+            edited_comments : nextProps.comments ? ''
+        )
+
     getDefaultProps: ->
         grade             : ''
         comments          : ''
