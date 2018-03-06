@@ -252,7 +252,7 @@ redux.createStore
         ping                  : rtypes.number
         avgping               : rtypes.number
         connection_status     : rtypes.string
-        new_version           : rtypes.object
+        new_version           : rtypes.immutable.Map
         fullscreen            : rtypes.oneOf(['default', 'kiosk'])
         cookie_warning        : rtypes.bool
         local_storage_warning : rtypes.bool

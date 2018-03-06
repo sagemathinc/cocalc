@@ -60,6 +60,8 @@ class SupportStore extends Store
 
 class SupportActions extends Actions
 
+    # TODO: the public api of actions is not supposed to return anything.  An action *DOES* stuff.
+    # These get_store and get should be private.
     get_store: =>
         @redux.getStore('support')
 
@@ -335,12 +337,15 @@ SupportInfo = rclass
         url          : rtypes.string.isRequired
         err          : rtypes.string.isRequired
 
+    shouldComponentUpdate: (props) ->
+        return misc.is_different(@props, props, ['state', 'url', 'err'])
+
     error: () ->
         <Alert bsStyle='danger' style={fontWeight:'bold'}>
             <p>
             Sorry, there has been an error creating the ticket.
             <br/>
-            Please email <HelpEmailLink /> directly!
+            Please email <HelpEmailLink /> directly!  (NOTE: You can click "Help" again to reopen the support ticket form and copy your content to email.)
             </p>
             <p>Error message:</p>
             <pre>{@props.err}</pre>
@@ -446,6 +451,9 @@ SupportFooter = rclass
         submit   : rtypes.func.isRequired
         show_form: rtypes.bool.isRequired
         valid    : rtypes.bool.isRequired
+
+    shouldComponentUpdate: (props) ->
+        return misc.is_different(@props, props, ['show_form', 'valid'])
 
     render: ->
         if @props.show_form

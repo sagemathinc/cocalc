@@ -100,11 +100,11 @@ CourseEditor = rclass ({name}) ->
         "#{name}" :
             error       : rtypes.string
             tab         : rtypes.string
-            activity    : rtypes.object    # status messages about current activity happening (e.g., things being assigned)
-            students    : rtypes.immutable
-            assignments : rtypes.immutable
-            handouts    : rtypes.immutable
-            settings    : rtypes.immutable
+            activity    : rtypes.immutable.Map    # status messages about current activity happening (e.g., things being assigned)
+            students    : rtypes.immutable.Map
+            assignments : rtypes.immutable.Map
+            handouts    : rtypes.immutable.Map
+            settings    : rtypes.immutable.Map
             unsaved     : rtypes.bool
         users :
             user_map    : rtypes.immutable
@@ -117,9 +117,15 @@ CourseEditor = rclass ({name}) ->
         project_id  : rtypes.string.isRequired
         path        : rtypes.string.isRequired
 
+    shouldComponentUpdate: (props) ->
+        return misc.is_different(@props, props, ['error', 'tab', 'activity', 'students', 'assignments', 'handouts', 'settings', 'unsaved', 'user_map', 'project_map'])
+
     render_activity: ->
-        <ActivityDisplay activity={misc.values(@props.activity)} trunc={80}
-            on_clear={=>@actions(@props.name).clear_activity()} />
+        <ActivityDisplay
+            activity = {misc.values(@props.activity?.toJS())}
+            trunc    = {80}
+            on_clear = {=>@actions(@props.name).clear_activity()}
+        />
 
     render_error: ->
         <ErrorDisplay error={@props.error}

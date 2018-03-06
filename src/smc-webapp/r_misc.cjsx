@@ -124,6 +124,13 @@ exports.Icon = Icon = rclass
         onMouseOver: rtypes.func
         onMouseOut : rtypes.func
 
+    shouldComponentUpdate: (next) ->  # we exclude style changes for speed reasons (and style is rarely used); always update if there are children
+        return @props.children? or \
+               misc.is_different(@props, next, ['name', 'size', 'rotate', 'flip', 'spin', 'pulse', 'fixedWidth', \
+                                          'stack', 'inverse', 'className']) or \
+               not misc.is_equal(@props.style, next.style)
+
+
     getDefaultProps: ->
         name    : 'square-o'
         onClick : ->
@@ -158,7 +165,15 @@ exports.Icon = Icon = rclass
             classNames += ' fa-inverse'
         if className
             classNames += " #{className}"
-        return <i style={style} className={classNames} onMouseOver={@props.onMouseOver} onMouseOut={@props.onMouseOut} onClick={@props.onClick}>{@props.children}</i>
+        <i
+            style       = {style}
+            className   = {classNames}
+            onMouseOver = {@props.onMouseOver}
+            onMouseOut  = {@props.onMouseOut}
+            onClick     = {@props.onClick}
+        >
+                {@props.children}
+        </i>
 
 # this Octicon icon class requires the CSS file in octicons/octicons/octicons.css (see landing.coffee)
 exports.Octicon = rclass
@@ -467,7 +482,7 @@ exports.LabeledRow = LabeledRow = rclass
 
     propTypes :
         label      : rtypes.any.isRequired
-        style      : rtypes.object
+        style      : rtypes.object            # NOTE: for perf reasons, we do not update if only the style changes!
         label_cols : rtypes.number    # number between 1 and 11 (default: 4)
 
     getDefaultProps: ->
@@ -536,6 +551,20 @@ timeago_formatter = (value, unit, suffix, date) ->
 
 TimeAgo = require('react-timeago').default
 
+# date0 and date1 are string, Date object or number
+# This is just used for updates, so is_different if there
+# is a chance they are different
+exports.is_different_date = is_different_date = (date0, date1) ->
+    t0 = typeof(date0)
+    t1 = typeof(date1)
+    if t0 != t1
+        return true
+    switch t0
+        when 'object'
+            return date0 - date1 != 0
+        else
+            return date0 != date1
+
 # this "element" can also be used without being connected to a redux store - e.g. for the "shared" statically rendered pages
 exports.TimeAgoElement = rclass
     displayName : 'Misc-TimeAgoElement'
@@ -546,6 +575,7 @@ exports.TimeAgoElement = rclass
         tip               : rtypes.string     # optional body of the tip popover with title the original time.
         live              : rtypes.bool       # whether or not to auto-update
         time_ago_absolute : rtypes.bool
+        date              : rtypes.oneOfType([rtypes.string, rtypes.object, rtypes.number])  # date object or something that convert to date
 
     getDefaultProps: ->
         popover   : true
@@ -575,7 +605,7 @@ exports.TimeAgoElement = rclass
             @render_timeago_element(d)
 
     render_absolute: (d) ->
-        <span style={color: '#666'}>{d.toLocaleString()}</span>
+        <span>{d.toLocaleString()}</span>
 
     render: ->
         d = if misc.is_date(@props.date) then @props.date else new Date(@props.date)
@@ -599,10 +629,16 @@ TimeAgoWrapper = rclass
         placement : rtypes.string
         tip       : rtypes.string     # optional body of the tip popover with title the original time.
         live      : rtypes.bool       # whether or not to auto-update
+        date      : rtypes.oneOfType([rtypes.string, rtypes.object, rtypes.number])  # date object or something that convert to date
 
     reduxProps :
         account :
-            other_settings : rtypes.object
+            other_settings : rtypes.immutable.Map
+
+    shouldComponentUpdate: (props) ->
+        return is_different_date(@props.date, props.date) or \
+               misc.is_different(@props, props, ['popover', 'placement', 'tip', 'live']) or \
+               @props.other_settings?.get('time_ago_absolute') != props.other_settings?.get('time_ago_absolute')
 
     render: ->
         <exports.TimeAgoElement
@@ -611,10 +647,12 @@ TimeAgoWrapper = rclass
             placement         = {@props.placement}
             tip               = {@props.tip}
             live              = {@props.live}
-            time_ago_absolute = {@props.other_settings?.time_ago_absolute ? false}
+            time_ago_absolute = {@props.other_settings?.get('time_ago_absolute') ? false}
         />
 
-# TODO is the wrapper above really necessary?
+# The TimeAgoWrapper above is absolutely really necessary **until** the react rewrite is completely
+# done.  The reason is that currently we have some non-redux new react stuff that has timeago init,
+# e.g., for the TimeTravel view.
 exports.TimeAgo = rclass
     displayName : 'Misc-TimeAgo-redux'
 
@@ -623,6 +661,11 @@ exports.TimeAgo = rclass
         placement : rtypes.string
         tip       : rtypes.string     # optional body of the tip popover with title the original time.
         live      : rtypes.bool       # whether or not to auto-update
+        date      : rtypes.oneOfType([rtypes.string, rtypes.object, rtypes.number])  # date object or something that convert to date
+
+    shouldComponentUpdate: (props) ->
+        return is_different_date(@props.date, props.date) or \
+               misc.is_different(@props, props, ['popover', 'placement', 'tip', 'live'])
 
     render: ->
         <Redux redux={redux}>
@@ -647,7 +690,7 @@ exports.TimeAgo = rclass
 exports.SearchInput = rclass
     displayName : 'Misc-SearchInput'
 
-    propTypes :
+    propTypes :   # style, and the on_ functions changes do not cause component update
         style           : rtypes.object
         autoFocus       : rtypes.bool
         autoSelect      : rtypes.bool
@@ -662,6 +705,11 @@ exports.SearchInput = rclass
         on_clear        : rtypes.func    # invoked without arguments when input box is cleared (eg. via esc or clicking the clear button)
         clear_on_submit : rtypes.bool    # if true, will clear search box on every submit (default: false)
         buttonAfter     : rtypes.object
+
+    shouldComponentUpdate: (props, state) ->
+        return misc.is_different(@state, state, ['value', 'ctrl_down']) or \
+               misc.is_different(@props, props, ['clear_on_submit', 'autoFocus', 'autoSelect', 'placeholder', \
+                                                 'default_value',  'value'])
 
     getInitialState: ->
         value     : (@props.value || @props.default_value) ? ''
@@ -887,10 +935,13 @@ exports.ActivityDisplay = rclass
     displayName : 'ActivityDisplay'
 
     propTypes :
-        activity : rtypes.array.isRequired   # array of strings
+        activity : rtypes.array.isRequired   # array of strings  -- only changing this causes re-render
         trunc    : rtypes.number             # truncate activity messages at this many characters (default: 80)
         on_clear : rtypes.func               # if given, called when a clear button is clicked
         style    : rtypes.object             # additional styles to be merged onto activity_style
+
+    shouldComponentUpdate: (next) ->
+        return misc.is_different_array(@props.activity, next.activity)
 
     render_items: ->
         n = @props.trunc ? 80
@@ -916,16 +967,24 @@ exports.Tip = Tip = rclass
     displayName : 'Tip'
 
     propTypes :
-        title     : rtypes.oneOfType([rtypes.string, rtypes.node]).isRequired
+        title     : rtypes.oneOfType([rtypes.string, rtypes.node]).isRequired  # not checked for update
         placement : rtypes.string   # 'top', 'right', 'bottom', left' -- defaults to 'right'
-        tip       : rtypes.oneOfType([rtypes.string, rtypes.node])
+        tip       : rtypes.oneOfType([rtypes.string, rtypes.node])              # not checked for update
         size      : rtypes.string   # "xsmall", "small", "medium", "large"
         delayShow : rtypes.number
         delayHide : rtypes.number
         rootClose : rtypes.bool
         icon      : rtypes.string
         id        : rtypes.string   # can be used for screen readers (otherwise defaults to title)
-        style     : rtypes.object
+        style     : rtypes.object   # changing not checked when updating.
+        stable    : rtypes.bool     # if true, children assumed to never change
+
+    shouldComponentUpdate: (props, state) ->
+        return not @props.stable or \
+               @props.always_update or \
+               @state.display_trigger != state.display_trigger or \
+               misc.is_different(@props, props, ['placement', 'size', 'delayShow', \
+                                                 'delayHide', 'rootClose', 'icon', 'id'])
 
     getDefaultProps: ->
         placement : 'right'
@@ -1243,7 +1302,7 @@ exports.NonMemberProjectWarning = (opts) ->
         if total > 0
             suggestion = <span>Your {total} members-only hosting {misc.plural(total,'upgrade')} are already in use on other projects.  You can <a href={url} target='_blank' style={cursor:'pointer'}>purchase further upgrades </a> by adding a subscription (you can add the same subscription multiple times), or disable member-only hosting for another project to free a spot up for this one.</span>
         else
-            suggestion = <span><Space /><a href={url} target='_blank' style={cursor:'pointer'}>Subscriptions start at only $7/month.</a></span>
+            suggestion = <span><Space /><a href={url} target='_blank' style={cursor:'pointer'}>Subscriptions start at only $14/month.</a></span>
 
     <Alert bsStyle='warning' style={marginTop:'10px'}>
         <h4><Icon name='exclamation-triangle'/>  Warning: this project is <strong>running on a free server</strong></h4>
@@ -1266,7 +1325,7 @@ exports.NoNetworkProjectWarning = (opts) ->
         if total > 0
             suggestion = <span>Your {total} internet access {misc.plural(total,'upgrade')} are already in use on other projects.  You can <a href={url} target='_blank' style={cursor:'pointer'}>purchase further upgrades </a> by adding a subscription (you can add the same subscription multiple times), or disable an internet access upgrade for another project to free a spot up for this one.</span>
         else
-            suggestion = <span><Space /><a href={url} target='_blank' style={cursor:'pointer'}>Subscriptions start at only $7/month.</a></span>
+            suggestion = <span><Space /><a href={url} target='_blank' style={cursor:'pointer'}>Subscriptions start at only $14/month.</a></span>
 
     <Alert bsStyle='warning' style={marginTop:'10px'}>
         <h4><Icon name='exclamation-triangle'/>  Warning: this project <strong>does not have full internet access</strong></h4>
@@ -1712,7 +1771,7 @@ exports.UpgradeAdjustor = rclass
                         onClick  = {=>@save_upgrade_quotas(remaining)}
                         disabled = {@props.disable_submit or not @valid_changed_upgrade_inputs(current, limits)}
                     >
-                        <Icon name='arrow-circle-up' /> {if @props.submit_text then @props.submit_text else "Submit changes"}
+                        <Icon name='arrow-circle-up' /> {if @props.submit_text then @props.submit_text else "Save changes"}
                     </Button>
                     <Button onClick={@props.cancel_upgrading}>
                         Cancel

@@ -45,7 +45,7 @@ exports.AssignmentsPanel = rclass ({name}) ->
     reduxProps :
         "#{name}":
             expanded_assignments   : rtypes.immutable.Set
-            active_assignment_sort : rtypes.object
+            active_assignment_sort : rtypes.immutable.Map
             active_student_sort    : rtypes.immutable.Map
             expanded_peer_configs  : rtypes.immutable.Set
 
@@ -71,15 +71,15 @@ exports.AssignmentsPanel = rclass ({name}) ->
             search_key  : 'path'
             search      : @state.search.trim()
 
-        if @props.active_assignment_sort.column_name == "due_date"
+        if @props.active_assignment_sort.get('column_name') == "due_date"
             f = (a) -> [a.due_date ? 0, a.path?.toLowerCase()]
-        else if @props.active_assignment_sort.column_name == "dir_name"
+        else if @props.active_assignment_sort.get('column_name') == "dir_name"
             f = (a) -> [a.path?.toLowerCase(), a.due_date ? 0]
 
         {list, deleted, num_deleted} = util.order_list
             list             : list
             compare_function : (a,b) => misc.cmp_array(f(a), f(b))
-            reverse          : @props.active_assignment_sort.is_descending
+            reverse          : @props.active_assignment_sort.get('is_descending')
             include_deleted  : @state.show_deleted
 
         return {shown_assignments:list, deleted_assignments:deleted, num_omitted:num_omitted, num_deleted:num_deleted}
@@ -90,8 +90,8 @@ exports.AssignmentsPanel = rclass ({name}) ->
             {display_name}
             <Space/>
             {<Icon style={marginRight:'10px'}
-                name={if @props.active_assignment_sort.is_descending then 'caret-up' else 'caret-down'}
-            /> if @props.active_assignment_sort.column_name == column_name}
+                name={if @props.active_assignment_sort.get('is_descending') then 'caret-up' else 'caret-down'}
+            /> if @props.active_assignment_sort.get('column_name') == column_name}
         </a>
 
     render_assignment_table_header: ->
@@ -109,13 +109,13 @@ exports.AssignmentsPanel = rclass ({name}) ->
         for x,i in assignments
             <Assignment
                     key                 = {x.assignment_id}
+                    project_id          = {@props.project_id}
+                    name                = {@props.name}
+                    redux               = {@props.redux}
                     assignment          = {@props.all_assignments.get(x.assignment_id)}
                     background          = {if i%2==0 then "#eee"}
-                    project_id          = {@props.project_id}
-                    redux               = {@props.redux}
                     students            = {@props.students}
                     user_map            = {@props.user_map}
-                    name                = {@props.name}
                     is_expanded         = {@props.expanded_assignments.has(x.assignment_id)}
                     active_student_sort = {@props.active_student_sort}
                     expand_peer_config  = {@props.expanded_peer_configs.has(x.assignment_id)}
@@ -186,21 +186,24 @@ Assignment = rclass
 
     propTypes :
         name                : rtypes.string.isRequired
-        assignment          : rtypes.immutable.Map.isRequired
         project_id          : rtypes.string.isRequired
         redux               : rtypes.object.isRequired
+
+        assignment          : rtypes.immutable.Map.isRequired
+        background          : rtypes.string
         students            : rtypes.object.isRequired
         user_map            : rtypes.object.isRequired
-        background          : rtypes.string
         is_expanded         : rtypes.bool
         active_student_sort : rtypes.immutable.Map
         expand_peer_config  : rtypes.bool
 
-    shouldComponentUpdate: (nextProps, nextState) ->
-        return @state != nextState or @props.assignment != nextProps.assignment or @props.students != nextProps.students or @props.user_map != nextProps.user_map or @props.background != nextProps.background or @props.is_expanded != nextProps.is_expanded or @props.active_student_sort != nextProps.active_student_sort or @props.expand_peer_config  != nextProps.expand_peer_config
+    getInitialState: ->  {} # there are many keys used in state; we assume @state not null in code below.
 
-    getInitialState: ->
-        confirm_delete : false
+    shouldComponentUpdate: (nextProps, nextState) ->
+        # state is an object with tons of keys and values true/false
+        return not misc.is_equal(@state, nextState) or \
+               misc.is_different(@props, nextProps, ['assignment', 'students', 'user_map', 'background', \
+                             'is_expanded', 'active_student_sort', 'expand_peer_config'])
 
     _due_date: ->
         due_date = @props.assignment.get('due_date')  # a string
@@ -402,15 +405,51 @@ Assignment = rclass
 
     render_copy_cancel: (step) ->
         cancel = =>
-            @setState("copy_confirm_#{step}":false, "copy_confirm_all_#{step}":false, copy_confirm:false)
+            @setState(
+                "copy_confirm_#{step}"            : false
+                "copy_confirm_all_#{step}"        : false
+                copy_confirm                      : false
+                copy_assignment_confirm_overwrite : false
+            )
         <Button key='cancel' onClick={cancel}>Close</Button>
 
-    copy_assignment: (step, new_only) ->
+    render_copy_assignment_confirm_overwrite: (step) ->
+        return if not @state.copy_assignment_confirm_overwrite
+        do_it = =>
+            @copy_assignment(step, false, true)
+            @setState(
+                copy_assignment_confirm_overwrite      : false
+                copy_assignment_confirm_overwrite_text : ''
+            )
+        <div style={marginTop:'15px'}>
+            Type in "OVERWRITE" if you are sure you want to overwrite any work they may have.
+            <FormGroup>
+                <FormControl
+                    autoFocus
+                    type        = 'text'
+                    ref         = 'copy_assignment_confirm_overwrite_field'
+                    onChange    = {(e)=>@setState(copy_assignment_confirm_overwrite_text : e.target.value)}
+                    style       = {marginTop : '1ex'}
+                />
+            </FormGroup>
+            <ButtonToolbar style={textAlign: 'center', marginTop: '15px'}>
+                <Button
+                    disabled = {@state.copy_assignment_confirm_overwrite_text != 'OVERWRITE'}
+                    bsStyle  = 'danger'
+                    onClick  = {do_it}
+                >
+                    <Icon name='exclamation-triangle' /> Confirm replacing files
+                </Button>
+                {@render_copy_cancel(step)}
+            </ButtonToolbar>
+        </div>
+
+    copy_assignment: (step, new_only, overwrite) ->
         # assign assignment to all (non-deleted) students
         actions = @props.redux.getActions(@props.name)
         switch step
             when 'assignment'
-                actions.copy_assignment_to_all_students(@props.assignment, new_only)
+                actions.copy_assignment_to_all_students(@props.assignment, new_only, overwrite)
             when 'collect'
                 actions.copy_assignment_from_all_students(@props.assignment, new_only)
             when 'peer_assignment'
@@ -450,7 +489,13 @@ Assignment = rclass
     copy_confirm_all_caution: (step) ->
         switch step
             when 'assignment'
-                return <span>This will recopy all of the files to them.  CAUTION: if you update a file that a student has also worked on, their work will get copied to a backup file ending in a tilde, or possibly only be available in snapshots <a target='_blank' href='https://github.com/sagemathinc/cocalc/wiki/CourseCopy'>(more details)</a>.</span>
+                return <span>
+                            This will recopy all of the files to them.{' '}
+                            CAUTION: if you update a file that a student has also worked on, their work will get copied to a backup file ending in a tilde,{' '}
+                            or possibly only be available in snapshots.{' '}
+                            Select "Replace student files!" in case you do <b>not</b> want to create any backups and also <b>delete</b> all other files in the assignment directory of their projects.{' '}
+                            <a target='_blank' href='https://github.com/sagemathinc/cocalc/wiki/CourseCopy'>(more details)</a>.
+                       </span>
             when 'collect'
                 return "This will recollect all of the homework from them.  CAUTION: if you have graded/edited a file that a student has updated, your work will get copied to a backup file ending in a tilde, or possibly only be available in snapshots."
             when 'return_graded'
@@ -461,14 +506,33 @@ Assignment = rclass
                 return 'This will recollect all of the peer-graded homework from the students.  CAUTION: if you have graded/edited a previously collected file that a student has updated, your work will get copied to a backup file ending in a tilde, or possibly only be available in snapshots.'
 
     render_copy_confirm_overwrite_all: (step, status) ->
-        <div key="copy_confirm_overwrite_all" style={marginTop:'15px'}>
+        <div key={"copy_confirm_overwrite_all"} style={marginTop:'15px'}>
             <div style={marginBottom:'15px'}>
                 {@copy_confirm_all_caution(step)}
             </div>
             <ButtonToolbar>
-                <Button key='all' bsStyle='danger' onClick={=>@copy_assignment(step, false)}>Yes, do it</Button>
+                <Button
+                    key        = {'all'}
+                    bsStyle    = {'warning'}
+                    disabled   = {@state.copy_assignment_confirm_overwrite}
+                    onClick    = {=>@copy_assignment(step, false)}
+                >
+                    Yes, do it (with backup)
+                </Button>
+                {
+                    if step == 'assignment'
+                        <Button
+                            key      = {'all-overwrite'}
+                            bsStyle  = {'warning'}
+                            onClick  = {=>@setState(copy_assignment_confirm_overwrite:true)}
+                            disabled = {@state.copy_assignment_confirm_overwrite}
+                        >
+                            Replace student files!
+                        </Button>
+                }
                 {@render_copy_cancel(step)}
             </ButtonToolbar>
+            {@render_copy_assignment_confirm_overwrite(step)}
         </div>
 
     render_copy_confirm_to_all_or_new: (step, status) ->
@@ -857,6 +921,9 @@ StudentListForAssignment = rclass
         user_map            : rtypes.object.isRequired
         background          : rtypes.string
         active_student_sort : rtypes.immutable.Map
+
+    shouldComponentUpdate: (props) ->
+        return misc.is_different(@props, props, ['assignment', 'students', 'user_map', 'background', 'active_student_sort'])
 
     render_student_info: (student_id) ->
         store = @props.redux.getStore(@props.name)

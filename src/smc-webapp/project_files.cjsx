@@ -612,7 +612,10 @@ pager_range = (page_size, page_number) ->
 FileListing = rclass
     displayName: 'ProjectFiles-FileListing'
 
-    propTypes:
+    propTypes:  # TODO: everything but actions/redux should be immutable JS data, and use shouldComponentUpdate
+        actions                : rtypes.object.isRequired
+        redux                  : rtypes.object
+
         active_file_sort       : rtypes.object
         listing                : rtypes.array.isRequired
         file_map               : rtypes.object.isRequired
@@ -622,17 +625,15 @@ FileListing = rclass
         page_number            : rtypes.number
         page_size              : rtypes.number
         public_view            : rtypes.bool
-        actions                : rtypes.object.isRequired
-        create_folder          : rtypes.func.isRequired
-        create_file            : rtypes.func.isRequired
+        create_folder          : rtypes.func.isRequired   # TODO: should be action!
+        create_file            : rtypes.func.isRequired   # TODO: should be action!
         selected_file_index    : rtypes.number
         project_id             : rtypes.string
         show_upload            : rtypes.bool
         shift_is_down          : rtypes.bool
-        sort_by                : rtypes.func
+        sort_by                : rtypes.func              # TODO: should be data
         library                : rtypes.object
         other_settings         : rtypes.immutable
-        redux                  : rtypes.object
 
     getDefaultProps: ->
         file_search           : ''
@@ -1047,6 +1048,11 @@ ProjectFilesActionBox = rclass
     reduxProps :
         projects :
             get_project_select_list : rtypes.func
+            # get_total_project_quotas relys on this data
+            # Will be removed by #1084
+            project_map                       : rtypes.immutable.Map
+            get_total_project_quotas          : rtypes.func
+
         account :
             get_user_type : rtypes.func
         customize :
@@ -1479,7 +1485,7 @@ ProjectFilesActionBox = rclass
 
     share_click: ->
         description = ReactDOM.findDOMNode(@refs.share_description).value
-        @props.actions.set_public_path(@props.checked_files.first(), description)
+        @props.actions.set_public_path(@props.checked_files.first(), {description: description})
 
     stop_sharing_click: ->
         @props.actions.disable_public_path(@props.checked_files.first())
@@ -1508,13 +1514,40 @@ ProjectFilesActionBox = rclass
 
     render_share_defn: ->
         <div style={color:'#555'}>
-            Use sharing to make a file or directory <a href="https://cocalc.com/share" target="_blank"><b><i>visible to the world.</i></b></a>  If you would like to collaborate and chat with other people on documents in this project, go the project Settings tab and "Add people to project".
+            Use sharing to make a file or directory <a href="https://cocalc.com/share" target="_blank"><b><i>visible to the world.</i></b></a> Learn more about sharing files <a href="https://github.com/sagemathinc/cocalc/wiki/share" target="_blank"><b><i>here.</i></b></a> If you would like to collaborate and chat with other people on documents in this project, go the project Settings tab and "Add people to project".
         </div>
 
-    show_help: ->
-        window.open(WIKI_SHARE_HELP_URL, "_blank").focus()
+    set_public_file_unlisting_to: (new_value) ->
+        description = ReactDOM.findDOMNode(@refs.share_description).value
+        @props.actions.set_public_path(@props.checked_files.first(), {description : description, unlisted : new_value})
+
+    render_unlisting_checkbox: (single_file_data) ->
+        is_unlisted = !!(single_file_data.public?.unlisted)
+
+        <form>
+            <Checkbox
+                checked  = {is_unlisted}
+                onChange = {=>@set_public_file_unlisting_to(not is_unlisted)} >
+                <i>Unlisted:</i> Only allow those with a link to view this.
+            </Checkbox>
+        </form>
+
+    render_share_error: ->
+        <Alert bsStyle={'danger'} style={padding:'30px', marginBottom:'30px'}>
+            <h3>
+                Publicly sharing files requires internet access
+            </h3>
+            <div style={fontSize:'12pt'}>
+                You <b>must</b> first enable the 'Internet access' upgrade in project
+                settings in order to publicly share files from this project.
+            </div>
+        </Alert>
 
     render_share: ->
+        quotas = @props.get_total_project_quotas(@props.project_id)
+        if not quotas?.network
+            return @render_share_error()
+
         # currently only works for a single selected file
         single_file = @props.checked_files.first()
         single_file_data = @props.file_map[misc.path_split(single_file).tail]
@@ -1580,9 +1613,6 @@ ProjectFilesActionBox = rclass
                             <Button bsStyle='warning' onClick={@stop_sharing_click} disabled={not single_file_data.is_public or parent_is_public}>
                                 <Icon name='shield' /> Make item private
                             </Button>
-                            <Button bsStyle='info' onClick={@show_help}>
-                                <Icon name='question-circle' /> Help
-                            </Button>
                         </ButtonGroup>
                         <Button onClick={@cancel_action}>
                             Close
@@ -1593,6 +1623,11 @@ ProjectFilesActionBox = rclass
                     {<ButtonToolbar>
                         {@render_social_buttons(single_file)}
                     </ButtonToolbar> if show_social_media}
+                </Col>
+            </Row>
+            <Row>
+                <Col sm={12}>
+                    {@render_unlisting_checkbox(single_file_data)}
                 </Col>
             </Row>
         </div>
@@ -1990,19 +2025,22 @@ error_style =
     right       : '5px'
     boxShadow   : '5px 5px 5px grey'
 
+# TODO: change/rewrite ProjectFiles to not have any rtypes.objects and
+# add a shouldComponentUpdate!!
 exports.ProjectFiles = rclass ({name}) ->
     displayName : 'ProjectFiles'
 
     reduxProps :
         projects :
-            project_map                       : rtypes.immutable
+            project_map                       : rtypes.immutable.Map
             date_when_course_payment_required : rtypes.func
             get_my_group                      : rtypes.func
             get_total_project_quotas          : rtypes.func
         account :
-            other_settings : rtypes.immutable
+            other_settings : rtypes.immutable.Map
+            is_logged_in   : rtypes.bool
         billing :
-            customer      : rtypes.object
+            customer       : rtypes.object
 
         "#{name}" :
             active_file_sort      : rtypes.object
@@ -2185,14 +2223,14 @@ exports.ProjectFiles = rclass ({name}) ->
     render_access_error: ->
         public_view = @props.get_my_group(@props.project_id) == 'public'
         if public_view
-            if @props.redux.getStore('account')?.is_logged_in()
+            if @props.is_logged_in
                 <ErrorDisplay style={maxWidth:'100%'} bsStyle="warning" title="Showing only public files" error={"You are viewing a project that you are not a collaborator on. To view non-public files or edit files in this project you need to ask a collaborator of the project to add you."} />
             else
                 <div>
                     <ErrorDisplay style={maxWidth:'100%'}  bsStyle="warning" title="Showing only public files" error={"You are not logged in. To view non-public files or edit files in this project you will need to sign in. If you are not a collaborator then you need to ask a collaborator of the project to add you to access non public files."} />
                 </div>
         else
-            if @props.redux.getStore('account')?.is_logged_in()
+            if @props.is_logged_in
                 <ErrorDisplay title="Directory is not public" error={"You are trying to access a non public project that you are not a collaborator on. You need to ask a collaborator of the project to add you."} />
             else
                 <div>
@@ -2219,7 +2257,7 @@ exports.ProjectFiles = rclass ({name}) ->
                 else
                     if error == 'no_instance' or (require('./customize').commercial and quotas? and not quotas?.member_host)
                         # the second part of the or is to blame it on the free servers...
-                        e = <ErrorDisplay title="Project unavailable" error={"This project seems to not be responding.   Free projects are hosted on massively overloaded computers, which are rebooted at least once per day and periodically become unavailable.   To increase the robustness of your projects, please become a paying customer (US $7/month) by entering your credit card in the Billing tab next to account settings, then move your projects to a members only server. \n\n#{error if not quotas?.member_host}"} />
+                        e = <ErrorDisplay title="Project unavailable" error={"This project seems to not be responding.   Free projects are hosted on massively overloaded computers, which are rebooted at least once per day and periodically become unavailable.   To increase the robustness of your projects, please become a paying customer (US $14/month) by entering your credit card in the Billing tab next to account settings, then move your projects to a members only server. \n\n#{error if not quotas?.member_host}"} />
                     else
                         e = <ErrorDisplay title="Directory listing error" error={error} />
             return <div>

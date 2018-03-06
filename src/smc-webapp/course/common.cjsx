@@ -30,12 +30,18 @@ misc = require('smc-util/misc')
 
 {Button, ButtonToolbar, ButtonGroup, FormControl, FormGroup, InputGroup, Row, Col} = require('react-bootstrap')
 
-{ErrorDisplay, Icon, MarkdownInput, Space, TimeAgo, Tip, SearchInput} = require('../r_misc')
+{ErrorDisplay, Icon, MarkdownInput, Space, TimeAgo, Tip, SearchInput, is_different_date} = require('../r_misc')
 
 immutable = require('immutable')
 
 exports.BigTime = BigTime = rclass
     displayName : "CourseEditor-BigTime"
+
+    propTypes:
+        date : rtypes.oneOfType([rtypes.string, rtypes.object, rtypes.number])
+
+    shouldComponentUpdate: (props) ->
+        return is_different_date(@props.date, props.date)
 
     render: ->
         date = @props.date
@@ -131,6 +137,12 @@ exports.StudentAssignmentInfo = rclass
         editing_grade   : false
         edited_grade    : @props.grade ? ''
         edited_comments : @props.comments ? ''
+
+    componentWillReceiveProps: (nextProps) ->
+        @setState(
+            edited_grade    : nextProps.grade ? ''
+            edited_comments : nextProps.comments ? ''
+        )
 
     getDefaultProps: ->
         grade    : ''
@@ -232,7 +244,12 @@ exports.StudentAssignmentInfo = rclass
                  Cancel
             </Button>
             if name.toLowerCase() == 'assign'
-                v.push <div style={margin:'5px'}><a target='_blank' href='https://github.com/sagemathinc/cocalc/wiki/CourseCopy'>What happens when I assign again?</a></div>
+                # inline-block because buttons above are float:left
+                v.push <div style={margin:'5px', display: 'inline-block'}>
+                           <a target='_blank' href='https://github.com/sagemathinc/cocalc/wiki/CourseCopy'>
+                               What happens when I assign again?
+                           </a>
+                       </div>
             return v
         else
             <Button key="copy" bsStyle='warning' onClick={=>@setState("#{key}":true)}>

@@ -45,34 +45,40 @@ editor_chat = require('./editor_chat')
 {SMC_Dropwrapper} = require('./smc-dropzone')
 
 Message = rclass
-    displayName: "Message"
+    displayName: 'Message'
 
     propTypes:
-        message        : rtypes.object.isRequired  # immutable.js message object
-        history        : rtypes.object
+        actions        : rtypes.object
+
+        focus_end      : rtypes.func
+        get_user_name  : rtypes.func
+
+        message        : rtypes.immutable.Map.isRequired  # immutable.js message object
+        history        : rtypes.immutable.List
         account_id     : rtypes.string.isRequired
         date           : rtypes.string
         sender_name    : rtypes.string
         editor_name    : rtypes.string
-        user_map       : rtypes.object
+        user_map       : rtypes.immutable.Map
         project_id     : rtypes.string    # optional -- improves relative links if given
         file_path      : rtypes.string    # optional -- (used by renderer; path containing the chat log)
         font_size      : rtypes.number
         show_avatar    : rtypes.bool
-        get_user_name  : rtypes.func
         is_prev_sender : rtypes.bool
         is_next_sender : rtypes.bool
-        actions        : rtypes.object
         show_heads     : rtypes.bool
-        focus_end      : rtypes.func
         saved_mesg     : rtypes.string
-        close_input    : rtypes.func
 
     getInitialState: ->
         edited_message : newest_content(@props.message)
         history_size   : @props.message.get('history').size
         show_history   : false
         new_changes    : false
+
+    shouldComponentUpdate: (next, next_state) ->
+        return misc.is_different(@props, next, ['message', 'user_map', 'account_id', 'show_avatar', \
+                   'is_prev_sender', 'is_next_sender', 'editor_name', 'saved_mesg', 'sender_name']) or \
+               misc.is_different(@state, next_state, ['edited_message', 'show_history', 'new_changes'])
 
     componentWillReceiveProps: (newProps) ->
         if @state.history_size != @props.message.get('history').size
@@ -83,19 +89,6 @@ Message = rclass
         else
             changes = true
         @setState(new_changes : changes)
-
-    shouldComponentUpdate: (next, next_state) ->
-        return @props.message != next.message or
-               @props.user_map != next.user_map or
-               @props.account_id != next.account_id or
-               @props.show_avatar != next.show_avatar or
-               @props.is_prev_sender != next.is_prev_sender or
-               @props.is_next_sender != next.is_next_sender or
-               @props.editor_name != next.editor_name or
-               @props.saved_mesg != next.saved_mesg or
-               @state.edited_message != next_state.edited_message or
-               @state.show_history != next_state.show_history or
-               ((not @props.is_prev_sender) and (@props.sender_name != next.sender_name))
 
     componentDidMount: ->
         if @refs.editedMessage
@@ -175,7 +168,6 @@ Message = rclass
 
     edit_message: ->
         @props.actions.set_editing(@props.message, true)
-        @props.close_input(@props.date, @props.account_id, @props.saved_mesg)
 
     on_keydown: (e) ->
         if e.keyCode==27 # ESC
@@ -353,16 +345,6 @@ ChatLog = rclass
         else
             account_name = "Unknown"
 
-    close_edit_inputs: (current_message_date, id, saved_message) ->
-        sorted_dates = @props.messages.keySeq().sort(misc.cmp_Date).toJS()
-        for date in sorted_dates
-            historyContent = @props.messages.get(date).get('history').first()?.get('content') ? ''
-            if date != current_message_date and @props.messages.get(date).get('editing')?.has(id)
-                if historyContent != saved_message
-                    @props.actions.send_edit(@props.messages.get(date), saved_message)
-                else
-                    @props.actions.set_editing(@props.messages.get(date), false)
-
     list_messages: ->
         is_next_message_sender = (index, dates, messages) ->
             if index + 1 == dates.length
@@ -416,8 +398,7 @@ ChatLog = rclass
                      editor_name      = {last_editor_name}
                      actions          = {@props.actions}
                      focus_end        = {@props.focus_end}
-                     saved_mesg       = {@props.saved_mesg}
-                     close_input      = {@close_edit_inputs}
+                     saved_mesg       = {if message.getIn(['editing', @props.account_id]) then @props.saved_mesg}
                      set_scroll       = {@props.set_scroll}
                     />
 
@@ -655,7 +636,7 @@ exports.ChatRoom = rclass ({name}) ->
 
     render_search: ->
         <SearchInput
-            placeholder   = "Find messages..."
+            placeholder   = {"Find messages..."}
             default_value = {@props.search}
             on_change     = {underscore.debounce(((value)=>@props.actions.setState(search:value)), 500)}
             style         = {margin:0}
