@@ -57,14 +57,15 @@ exports.Listing = rclass
         subdir          : rtypes.string
         without_grade   : rtypes.bool
         collected_files : rtypes.bool
+        show_all_files  : rtypes.bool
 
     getInitialState: ->
         active_autogrades : immutable.Set()
 
-    shouldComponentUpdate: (next) ->
-        misc.is_different(@props, next, \
-            ['assignment', 'listing', 'num_pages', 'page_number', 'student_info',
-            'student_id', 'subdir' ,'without_grade', 'collected_files'])
+    #shouldComponentUpdate: (next) ->
+    #    misc.is_different(@props, next, \
+    #        ['assignment', 'listing', 'num_pages', 'page_number', 'student_info',
+    #        'student_id', 'subdir' ,'without_grade', 'collected_files', 'show_all_files'])
 
     filepath: (filename) ->
         path_join(@props.subdir, filename)
@@ -151,7 +152,7 @@ exports.Listing = rclass
         @actions(@props.name).grading_toggle_show_all_files()
 
     render_toggle_show_all_files: ->
-        visible = @props.store.grading_get_show_all_files()
+        visible = @props.show_all_files
         icon    = if visible then 'eye' else 'eye-slash'
         <div style={padding:'0', flex:'0', marginRight: '15px'}>
             <ButtonGroup style={marginBottom:'5px', display:'flex'}>

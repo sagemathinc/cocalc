@@ -44,11 +44,15 @@ course_specific_files = (entry) ->
 # Models
 
 GradingRecord = immutable.Record
-    student_id      : null      # the currently student
+    student_id      : null      # the current student
+    total_points    : 0         # number of total points for this student
     assignment_id   : null      # the UUID string
+    student_list    : []        # the list of students
+    current_idx     : null      # a number, the index where the @student_id is positioned in the @student_list
+    all_points      : []        # list of numbers, which are the sum of points for each student
     end_of_list     : false     # true, if at the end of student list
     subdir          : ''        # for a collected directory of files, in which (relative) subdirectory are we?
-    student_filter  : null      # string, if set the student are filtered by their name
+    student_filter  : ''        # string, if set the student are filtered by their name
     only_not_graded : true      # by default, we want to only see student who did not recieve a grade yet
     only_collected  : true      # by default, we only want to see students where the assignments are collected
     page_number     : 0         # if there are more files in the listing than "PAGE_SIZE", this tells us the page at which we are
@@ -58,6 +62,19 @@ GradingRecord = immutable.Record
     'Grading'
 
 exports.Grading = class Grading extends GradingRecord
+
+    toggle_show_all_files: ->
+        visible = @show_all_files
+        return @merge(show_all_files: !visible, page_number: 0)
+
+    get_current_idx : ->
+        current_idx = null
+        @student_list?.forEach (student, idx) ->
+            id = student.get('student_id')
+            if @student_id == id
+                current_idx = idx
+                return false
+        return current_idx
 
     get_listing_files: (show_all_files) ->
         if not @listing?

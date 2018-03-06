@@ -66,11 +66,14 @@ exports.GradingStats = rclass
     displayName : "CourseEditor-GradingStudentAssignment-GradingStats"
 
     propTypes :
-        all_points : rtypes.arrayOf(rtypes.number)
+        all_points : rtypes.immutable.List
+
+    shouldComponentUpdate: (next) ->
+        return not @props.all_points.equals(next.all_points)
 
     render: ->
-        return <div/> if (not @props.all_points?) or @props.all_points.length < 5
-        data = misc.five_number_quantiles(@props.all_points, true)
+        return <div/> if (not @props.all_points?) or @props.all_points.size < 5
+        data = misc.five_number_quantiles(@props.all_points.toJS(), true)
         spread = data.max.value - data.min.value + 1
         spaces = {}
         prev = 0

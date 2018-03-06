@@ -47,10 +47,15 @@ exports.StudentList = rclass
         store           : rtypes.object.isRequired
         grading         : rtypes.instanceOf(Grading).isRequired
         assignment      : rtypes.immutable.Map
-        student_list    : rtypes.arrayOf(rtypes.object)
+        student_list    : rtypes.immutable.List
         student_filter  : rtypes.string
         student_id      : rtypes.string
         account_id      : rtypes.string
+
+    shouldComponentUpdate: (next) ->
+        x = misc.is_different(@props, next, ['grading', 'assignment', 'student_filter', 'student_id', 'account_id'])
+        y = not @props.student_list.equals(next.student_list)
+        return x or y
 
     student_list_entry_click: (student_id) ->
         @actions(@props.name).grading(

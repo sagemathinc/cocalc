@@ -48,22 +48,13 @@ styles = require('../styles')
 {StudentList}   = require('./student-list')
 {ROW_STYLE, LIST_STYLE, LIST_ENTRY_STYLE, FLEX_LIST_CONTAINER, EMPTY_LISTING_TEXT, PAGE_SIZE} = require('./const')
 
-# util functions
 
-_current_idx = (student_list, student_id) ->
-    current_idx = null
-    student_list.map (student, idx) ->
-        id = student.get('student_id')
-        if student_id == id
-            current_idx = idx
-    return current_idx
 
 exports._init_state = _init_state = (props) ->
     store      = props.redux.getStore(props.name)
     student_id = props.grading.student_id
     return
         store           : store
-        student_id      : student_id
         student_info    : if student_id? then store.student_assignment_info(student_id, props.assignment)
         subdir          : props.grading.subdir
         student_filter  : props.grading.student_filter
@@ -77,7 +68,6 @@ exports._update_state = _update_state = (props, next, state) ->
         grade      = state.store.get_grade(props.assignment, student_id)
         comment    = state.store.get_comments(props.assignment, student_id)
         ret =
-            student_id      : student_id
             grade_value     : grade
             grade_comments  : comment
             edited_grade    : grade
@@ -109,13 +99,9 @@ exports.GradingStudentAssignment = rclass
     getInitialState: ->
         state = _init_state(@props)
         state.active_autogrades = immutable.Set()
-        show_all_files = state.store.grading_get_show_all_files()
+        show_all_files = @props.grading.show_all_files
         state = misc.merge(state, @props.grading.get_listing_files(show_all_files))
         store = @props.redux.getStore(@props.name)
-        [student_list, all_points] = store.grading_get_student_list(@props.assignment)
-        state.student_list = student_list
-        state.all_points   = all_points
-        state.current_idx  = _current_idx(student_list, state.student_id)
         return state
 
     componentWillReceiveProps: (next) ->
@@ -126,16 +112,9 @@ exports.GradingStudentAssignment = rclass
         show_files_changed = @props.grading?.show_all_files != next.grading?.show_all_files
         page_changed       = @props.grading?.page_number != next.grading?.page_number
         if listing_changed or show_files_changed or page_changed
-            show_all_files = @state.store.grading_get_show_all_files()
+            show_all_files = @props.grading?.show_all_files
             @setState(next.grading.get_listing_files(show_all_files))
 
-        if @props.grading != next.grading or @props.assignment != next.assignment
-            [student_list, all_points] = @state.store.grading_get_student_list(next.assignment)
-            @setState(
-                student_list : student_list
-                all_points   : all_points
-                current_idx  : _current_idx(student_list, x.student_id)
-            )
 
     componentDidMount: ->
         show_entry       =  =>
@@ -155,16 +134,16 @@ exports.GradingStudentAssignment = rclass
 
     componentDidUpdate: (prevProps, prevState) ->
         # only scroll when current_idx in the student list changes
-        if prevState.current_idx != @state.current_idx
+        if prevProps.grading?.current_idx != @props.grading?.current_idx
             @scrollToStudent()
 
     collect_student_path: ->
-        return path_join(@props.assignment.get('collect_path'), @state.student_id, @state.subdir)
+        return path_join(@props.assignment.get('collect_path'), @props.grading.student_id, @state.subdir)
 
     jump: (direction, without_grade, collected_files) ->
         @actions(@props.name).grading(
             assignment       : @props.assignment
-            student_id       : @state.student_id
+            student_id       : @props.grading.student_id
             direction        : direction
             without_grade    : without_grade
             collected_files  : collected_files
@@ -184,15 +163,15 @@ exports.GradingStudentAssignment = rclass
     render_info: ->
         if @props.grading.end_of_list
             <span>End of student list</span>
-        else if @state.student_id?
-            student_name = @state.store.get_student_name(@state.student_id, true)
+        else if @props.grading.student_id?
+            student_name = @state.store.get_student_name(@props.grading.student_id, true)
             <span style={fontSize:'120%'}>Student <b>{student_name?.full ? 'N/A'}</b></span>
 
     get_only_not_graded: ->
-        @state.store.grading_get_filter_button('only_not_graded')
+        @props.grading.only_not_graded
 
     get_only_collected: ->
-        @state.store.grading_get_filter_button('only_collected')
+        @props.grading.only_collected
 
     set_only_not_graded: (only_not_graded) ->
         actions = @actions(@props.name)
@@ -238,7 +217,7 @@ exports.GradingStudentAssignment = rclass
                     <Button
                         onClick  = {=>@pick_next(-1)}
                         bsStyle  = {'default'}
-                        disabled = {@state.current_idx == 0}
+                        disabled = {@props.grading.current_idx == 0}
                     >
                         <Icon name={'step-backward'} />
                     </Button>
@@ -268,8 +247,6 @@ exports.GradingStudentAssignment = rclass
         open_new_tab(url)
 
     render_points: ->
-        total = @state.store.get_points_total(@props.assignment, @state.student_id)
-        pct   = misc.percentRank(@state.all_points, total, true)
         <Row>
             <Col md={10} style={textAlign: 'center'}>
                 <ButtonGroup>
@@ -282,15 +259,23 @@ exports.GradingStudentAssignment = rclass
                         style    = {fontWeight: 'bold', color:'black', paddingLeft:'20px', paddingRight:'20px'}
                         disabled = {true}
                     >
-                        {total ? 0}
+                        {@props.grading.total_points}
                     </Button>
-                    {<Button
-                        style     = {color: COLORS.GRAY}
-                        onClick   = {=>@percentile_rank_help()}
-                    >
-                        {misc.round1(pct)}%
-                        <span className='hidden-md'> percentile</span>
-                    </Button> if @state.all_points.length >= 5}
+                    {
+                        if @props.grading.all_points.size >= 5
+                            pct = misc.percentRank(
+                                @props.grading.all_points.toJS(),
+                                @props.grading.total_points,
+                                true
+                            )
+                            <Button
+                                style     = {color: COLORS.GRAY}
+                                onClick   = {=>@percentile_rank_help()}
+                            >
+                                {misc.round1(pct)}%
+                                <span className='hidden-md'> percentile</span>
+                            </Button>
+                    }
                 </ButtonGroup>
             </Col>
         </Row>
@@ -333,7 +318,7 @@ exports.GradingStudentAssignment = rclass
         </Col>
 
     render: ->
-        if not @state.student_id?
+        if not @props.grading.student_id?
             return <div>No student to grade, because there are no collected assignments…</div>
 
         if @props.grading.end_of_list
@@ -353,9 +338,9 @@ exports.GradingStudentAssignment = rclass
                     store            = {@state.store}
                     grading          = {@props.grading}
                     assignment       = {@props.assignment}
-                    student_list     = {@state.student_list}
-                    student_filter   = {@state.student_filter}
-                    student_id       = {@state.student_id}
+                    student_list     = {@props.grading.student_list}
+                    student_filter   = {@props.grading.student_filter}
+                    student_id       = {@props.grading.student_id}
                     account_id       = {@props.account_id}
                 />
             </Col>
@@ -364,14 +349,14 @@ exports.GradingStudentAssignment = rclass
                     {@render_nav()}
                     <Col md={5}>
                         {@render_points()}
-                        <GradingStats all_points={@state.all_points} />
+                        <GradingStats all_points={@props.grading.all_points} />
                     </Col>
                     <Grade
                         actions    = {@actions(@props.name)}
                         store      = {@state.store}
                         assignment = {@props.assignment}
                         grading    = {@props.grading}
-                        student_id = {@state.student_id}
+                        student_id = {@props.grading.student_id}
                     />
                 </Row>
                 {###
@@ -386,10 +371,11 @@ exports.GradingStudentAssignment = rclass
                     num_pages        = {@state.num_pages}
                     student_info     = {@state.student_info}
                     listing          = {@state.listing}
-                    student_id       = {@state.student_id}
+                    student_id       = {@props.grading.student_id}
                     subdir           = {@state.subdir}
                     without_grade    = {@get_only_not_graded()}
                     collected_files  = {@get_only_collected()}
+                    show_all_files   = {@props.grading.show_all_files}
                 />
             </Col>
         </Row>

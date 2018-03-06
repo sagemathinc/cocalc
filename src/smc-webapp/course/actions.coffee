@@ -908,6 +908,7 @@ exports.CourseActions = class CourseActions extends Actions
         points_map[student_id] = student_points_map
         obj.points = points_map
         @_set(obj)
+        @grading_update(store, store.get('grading'))
 
     set_active_assignment_sort: (column_name) =>
         store = @get_store()
@@ -1831,42 +1832,41 @@ exports.CourseActions = class CourseActions extends Actions
         #            first call after deleting grading should be +1, otherwise student_id stays undefined
         store = @get_store()
         return if not store?
+        grading = store.get('grading')
 
-        only_not_graded = store.grading_get_filter_button('only_not_graded')
-        only_collected  = store.grading_get_filter_button('only_collected')
+        only_not_graded = opts.without_grade   ? grading?.only_not_graded
+        only_collected  = opts.collected_files ? grading?.only_collected
+        student_filter  = grading?.student_filter
 
         if opts.direction == 1 or opts.direction == -1
             [next_student_id, cnt] = store.grading_next_student(
                 assignment            : opts.assignment
                 current_student_id    : opts.student_id
                 direction             : opts.direction
-                without_grade         : opts.without_grade   ? only_not_graded
-                collected_files       : opts.collected_files ? only_collected
+                without_grade         : only_not_graded
+                collected_files       : only_collected
             )
         else
             # previous is null/undefined, stick with same student ... e.g. directory changes
-            cnt = store.getIn(['grading', 'progress']) ? 1
             next_student_id = opts.student_id
 
         # this switches to grading mode, but no listing
         {Grading} = require('./grading/models')
         data = new Grading(
-            student_id      : next_student_id ? opts.student_id
-            progress        : cnt
+            student_id      : next_student_id
             assignment_id   : opts.assignment.get('assignment_id')
             listing         : null
             end_of_list     : not (next_student_id?)
             subdir          : opts.subdir
-            student_filter  : store.grading_get_student_filter()
+            student_filter  : student_filter
             only_not_graded : only_not_graded
             only_collected  : only_collected
             page_number     : 0   # store.grading_get_page_number()
             listing         : null
         )
 
-        grading = store.get('grading')
         grading = grading?.merge(data) ? data
-        @setState(grading : grading)
+        @grading_update(store, grading)
         # sets a "cursor" pointing to this assignment and student, signal for others
         @grading_update_activity()
 
@@ -1881,11 +1881,23 @@ exports.CourseActions = class CourseActions extends Actions
             listing = immutable.fromJS(listing)
             @grading_set_entry('listing', listing)
 
+    grading_update: (store, grading) =>
+        ret = store.grading_get_student_list(grading)
+        return if not ret?
+        [student_list, all_points] = ret
+        total_points = store.get_points_total(grading.assignment_id, grading.student_id)
+        grading = grading.merge(
+            student_list  : student_list
+            all_points    : all_points
+            total_points  : total_points
+        )
+        grading = grading.set('current_idx', grading.get_current_idx())
+        @setState(grading : grading)
+
     # teacher departs from the dialog
     grading_stop: () =>
         @setState(grading : null)
         @grading_remove_activity()
-        @grading_set_student_filter('')
 
     # additonally filter student list by a substring
     grading_set_student_filter: (string) =>
@@ -1909,10 +1921,10 @@ exports.CourseActions = class CourseActions extends Actions
     grading_toggle_show_all_files: =>
         store = @get_store()
         return if not store?
-        visible = store.grading_get_show_all_files()
-        @grading_set_entry('show_all_files', !visible)
-        # also reset visible page number to zero
-        @grading_set_entry('page_number', 0)
+        grading = store.get('grading')
+        return if not grading?
+        grading = grading.toggle_show_all_files()
+        @setState(grading:grading)
 
     grading_update_activity: (opts) =>
         store = @get_store()

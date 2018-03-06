@@ -190,7 +190,7 @@ exports.CourseStore = class CourseStore extends Store
         return points?.get(filepath) ? 0
 
     get_points_total: (assignment, student) =>
-        student_id = @get_student(student)?.get('student_id')
+        student_id = @get_student_id(student)
         points     = @get_assignment(assignment)?.getIn(['points', student_id])
         return null if (not points?) or (points.size == 0)
         return points.reduce(((a, b) -> a+b), 0)
@@ -513,18 +513,6 @@ exports.CourseStore = class CourseStore extends Store
                 return [student_id, cnt]
         return [null, 0]
 
-    grading_get_filter_button: (key) =>
-        @getIn(['grading', key]) ? true
-
-    grading_get_student_filter: =>
-        @getIn(['grading', 'student_filter']) ? ''
-
-    grading_get_page_number: =>
-        @getIn(['grading', 'page_number']) ? 0
-
-    grading_get_show_all_files: =>
-        @getIn(['grading', 'show_all_files']) ? false
-
     grading_get_listing: (assignment, student_id, subdir, cb) =>
         project_id = @get('course_project_id')
         collect_path = "#{assignment.get('collect_path')}/#{student_id}"
@@ -558,11 +546,13 @@ exports.CourseStore = class CourseStore extends Store
             cb(err, locals.listing)
         )
 
-    grading_get_student_list: (assignment) =>
+    grading_get_student_list: (grading) =>
+        return if not grading?
+        assignment      = @get_assignment(grading.assignment_id)
         return if not assignment?
-        student_filter  = @grading_get_student_filter()
-        only_not_graded = @grading_get_filter_button('only_not_graded')
-        only_collected  = @grading_get_filter_button('only_collected')
+        student_filter  = grading.student_filter
+        only_not_graded = grading.only_not_graded
+        only_collected  = grading.only_collected
 
         matching = (id, name) =>
             pick_student = true
