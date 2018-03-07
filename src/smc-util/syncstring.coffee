@@ -927,13 +927,9 @@ class SyncDoc extends EventEmitter
         @_evaluator?.close()
         delete @_evaluator
 
-    reconnect: (cb) =>
-        @close()
-        @connect(cb)
-
     connect: (cb) =>
         if not @_closed
-            cb("already connected")
+            cb?("already connected")
             return
         query =
             syncstrings :
@@ -1768,8 +1764,14 @@ class SyncDoc extends EventEmitter
             return
         return @_syncstring_table?.get_one()?.get('read_only')
 
+    # This should only be called after the syncstring is initialized (hence connected), since
+    # otherwise @_syncstring_table isn't defined yet (it gets defined during connect).
     wait_until_read_only_known: (cb) =>
+        if @_closed
+            cb("syncstring is closed")
+            return
         if not @_syncstring_table?
+            # should never happen
             cb("@_syncstring_table must be defined")
             return
         @_syncstring_table.wait
@@ -1857,12 +1859,6 @@ class SyncDoc extends EventEmitter
                         # closed during save
                         cb()
                         return
-                    if err
-                        # TODO: This should in theory never be necessary, and I've resisted adding
-                        # it for five years.  However, here it is:
-                        console.warn("'#{@_path}': failed to save to disk; initiating syncstring reconnect")
-                        @reconnect (err) =>
-                            console.warn("'#{@_path}': reconnect got ", err)
                     cb(err)
 
     # Save this file to disk, if it is associated with a project and has a filename.

@@ -23,7 +23,7 @@
 The Landing Page
 ###
 {rclass, React, ReactDOM, redux, rtypes} = require('./smc-react')
-{Alert, Button, ButtonToolbar, Col, Modal, Grid, Row, FormControl, FormGroup, Well, ClearFix} = require('react-bootstrap')
+{Alert, Button, ButtonToolbar, Col, Modal, Grid, Row, FormControl, FormGroup, Well, ClearFix, Checkbox} = require('react-bootstrap')
 {ErrorDisplay, Icon, Loading, ImmutablePureRenderMixin, Footer, UNIT, COLORS, ExampleBox} = require('./r_misc')
 {HelpEmailLink, SiteName, SiteDescription, TermsOfService, AccountCreationEmailInstructions} = require('./customize')
 
@@ -106,31 +106,108 @@ SignUp = rclass
         has_remember_me : rtypes.bool
         get_api_key     : rtypes.string
 
+    getInitialState: ->
+        terms_checkbox : false
+        first_name     : ''
+        last_name      : ''
+        email          : ''
+        password       : ''
+        user_token     : ''
+
     make_account: (e) ->
         e.preventDefault()
-        first_name = ReactDOM.findDOMNode(@refs.first_name).value
-        last_name  = ReactDOM.findDOMNode(@refs.last_name).value
-        email      = ReactDOM.findDOMNode(@refs.email).value
-        password   = ReactDOM.findDOMNode(@refs.password).value
-        token      = ReactDOM.findDOMNode(@refs.token)?.value
-        @actions('account').create_account(first_name, last_name, email, password, token)
+        @actions('account').create_account(@state.first_name, @state.last_name, @state.email, @state.password, @state.user_token)
 
-    display_error: (field)->
+    render_error: (field)->
         err = @props.sign_up_error?.get(field)
         if err?
             <div style={ERROR_STYLE}>{err}</div>
 
-    display_passports: ->
+    render_passports: ->
         if not @props.strategies?
             return <Loading />
         if @props.strategies.size > 1
-            return <Passports strategies={@props.strategies} get_api_key={@props.get_api_key} />
+            <div>
+                <Passports strategies={@props.strategies} get_api_key={@props.get_api_key} />
+                Or sign up via email
+                <br/>
+            </div>
 
-    display_token_input: ->
+
+    render_token_input: ->
         if @props.token
             <FormGroup>
-                <FormControl ref='token' type='text' placeholder='Enter the secret token' />
+                <FormControl
+                    type        = 'text'
+                    placeholder = 'Enter the secret token'
+                    onChange    = {(e)=>@setState(user_token: e.target.value)}
+                    />
             </FormGroup>
+
+    render_terms: ->
+        <FormGroup style={fontSize: '12pt', margin:'20px'}>
+            <Checkbox
+                onChange = {(e)=>@setState(terms_checkbox: e.target.checked)}
+                >
+                <TermsOfService />
+            </Checkbox>
+        </FormGroup>
+
+    render_creation_form: ->
+        <div>
+            {@render_token_input()}
+            {@render_error("token")}
+            {@render_error("generic")}                   {### a generic error ###}
+            {@render_error("account_creation_failed")}
+            {@render_passports() if @state.terms_checkbox}
+            <form style={marginTop: 20, marginBottom: 20} onSubmit={@make_account}>
+                <FormGroup>
+                    {@render_error("first_name")}
+                    <FormControl
+                        type        = 'text'
+                        autoFocus   = {false}
+                        placeholder = 'First name'
+                        onChange    = {(e)=>@setState(first_name: e.target.value)}
+                        maxLength   = {120} />
+                </FormGroup>
+                <FormGroup>
+                    {@render_error("last_name")}
+                    <FormControl
+                        type        = 'text'
+                        autoFocus   = {false}
+                        placeholder = 'Last name'
+                        onChange    = {(e)=>@setState(last_name: e.target.value)}
+                        maxLength   = {120} />
+                </FormGroup>
+                <FormGroup>
+                    {@render_error("email_address")}
+                    <FormControl
+                        type        = 'email'
+                        placeholder = 'Email address'
+                        maxLength   = {254}
+                        onChange    = {(e)=>@setState(email: e.target.value)}
+                        />
+                </FormGroup>
+                <FormGroup>
+                    {@render_error("password")}
+                    <FormControl
+                        type        = 'password'
+                        placeholder = 'Choose a password'
+                        maxLength   = {64}
+                        onChange    = {(e)=>@setState(password: e.target.value)}
+                        />
+                </FormGroup>
+                <Button
+                    style    = {marginBottom: UNIT, marginTop: UNIT}
+                    disabled = {@props.signing_up}
+                    bsStyle  = {'success'}
+                    bsSize   = {'large'}
+                    type     = {'submit'}
+                    block >
+                        {<Icon name="spinner" spin /> if @props.signing_up} Sign up!
+                </Button>
+            </form>
+        </div>
 
     render: ->
         well_style =
@@ -144,51 +221,10 @@ SignUp = rclass
         #    well_style.color           = 'white'
         #    well_class = 'webapp-landing-sign-up-highlight'
         <Well style={well_style} className={well_class}>
-            <TermsOfService style={fontWeight:'bold', textAlign: "center"} />
-            <br />
-            {@display_token_input()}
-            {@display_error("token")}
-            {@display_error("generic")}                   {### a generic error ###}
-            {@display_error("account_creation_failed")}
-            {@display_passports()}
+            {### <TermsOfService style={fontWeight:'bold', textAlign: "center"} />  <br /> ###}
             <AccountCreationEmailInstructions />
-            <form style={marginTop: 20, marginBottom: 20} onSubmit={@make_account}>
-                <FormGroup>
-                    {@display_error("first_name")}
-                    <FormControl
-                        ref         = 'first_name'
-                        type        = 'text'
-                        autoFocus   = {false}
-                        placeholder = 'First name'
-                        maxLength   = {120} />
-                </FormGroup>
-                <FormGroup>
-                    {@display_error("last_name")}
-                    <FormControl
-                        ref         = 'last_name'
-                        type        = 'text'
-                        autoFocus   = {false}
-                        placeholder = 'Last name'
-                        maxLength   = {120} />
-                </FormGroup>
-                <FormGroup>
-                    {@display_error("email_address")}
-                    <FormControl ref='email' type='email' placeholder='Email address' maxLength={254} />
-                </FormGroup>
-                <FormGroup>
-                    {@display_error("password")}
-                    <FormControl ref='password' type='password' placeholder='Choose a password' maxLength={64} />
-                </FormGroup>
-                <Button
-                    style    = {marginBottom: UNIT, marginTop: UNIT}
-                    disabled = {@props.signing_up}
-                    bsStyle  = "success"
-                    bsSize   = 'large'
-                    type     = 'submit'
-                    block >
-                        {<Icon name="spinner" spin /> if @props.signing_up} Sign up!
-                </Button>
-            </form>
+            {@render_terms()}
+            {@render_creation_form() if @state.terms_checkbox}
             <div style={textAlign: "center"}>
                 Email <HelpEmailLink /> if you need help.
             </div>
