@@ -430,6 +430,9 @@ class exports.Actions extends Actions
             cm.replaceSelection(copypaste.get_buffer())
             cm.focus()
 
+    set_error: (error) =>
+        @setState(error: error)
+
     print: =>
         @setState(printing: true)
         convert_to_pdf.convert

@@ -78,6 +78,7 @@ exports.cm_options = (opts) ->
             "Ctrl-G"       : (cm) -> cm.execCommand('findNext')
             "Shift-Cmd-G"  : (cm) -> cm.execCommand('findPrev')
             "Shift-Ctrl-G" : (cm) -> cm.execCommand('findPrev')
+            "Shift-Enter"  : -> actions.set_error("You can only evaluate code in a file that ends with the extension 'sagews' or 'ipynb'.   Create a Sage Worksheet or Jupyter notebook instead.")
         for k, v of actionKeys
             extraKeys[k] = v
 
