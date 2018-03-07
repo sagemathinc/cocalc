@@ -1,6 +1,9 @@
 ###
 Conversion between Markdown and HTML
+
+Has the option to render math inside the markdown
 ###
+
 {defaults} = require('smc-util/misc')
 {macros}   = require('./math_katex')
 katex = require('@iktakahiro/markdown-it-katex')

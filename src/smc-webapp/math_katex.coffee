@@ -1,5 +1,14 @@
 ###
-explain this :-)
+Replaces instances of mathmode tex inside HTML as a string with Katex
+
+Use:
+
+```coffee
+katex = require('./math_katex')
+html = '<div>$\frac{23}{x}$</div>'
+has_math = katex.render(html)
+```
+
 ###
 
 katex = require('katex')
