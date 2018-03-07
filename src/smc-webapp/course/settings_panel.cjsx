@@ -189,7 +189,7 @@ exports.SettingsPanel = rclass
 
     shouldComponentUpdate: (props, state) ->
         return state.show_students_pay_dialog != @state.show_students_pay_dialog or \
-               misc.is_different(@props, props, ['settings', 'project_map'])
+               misc.is_different(@props, props, ['settings', 'project_map', 'shared_project_id'])
 
     getInitialState: ->
         show_students_pay_dialog : false
