@@ -492,7 +492,7 @@ class CodeMirrorEditor extends FileEditor
             extraKeys["Shift-Enter"] = =>
                 alert_message
                     type    : "error"
-                    message : "You can only evaluate code in a file that ends with the extension 'sagews'.   Create a Sage Worksheet instead."
+                    message : "You can only evaluate code in a file that ends with the extension 'sagews' or 'ipynb'.   Create a Sage Worksheet or Jupyter notebook instead."
 
         # Layouts:
         #   0 - one single editor
