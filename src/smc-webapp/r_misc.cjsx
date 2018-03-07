@@ -900,12 +900,12 @@ exports.Markdown = rclass
 
     to_html: ->
         if @props.value
-            return markdown.markdown_to_html(@props.value, {process_math : false})
+            return markdown.markdown_to_html(@props.value, {process_math : true})
 
     render: ->
         <HTML
             value            = {@to_html()}
-            auto_render_math = {true}
+            auto_render_math = {false}
             style            = {@props.style}
             project_id       = {@props.project_id}
             file_path        = {@props.file_path}

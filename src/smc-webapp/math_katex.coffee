@@ -1,3 +1,7 @@
+###
+explain this :-)
+###
+
 katex = require('katex')
 {remove_math} = require('smc-util/mathjax-utils')
 {replace_all} = require('smc-util/misc')
@@ -7,6 +11,7 @@ replace_math = (text, math) ->
     return text.replace(/@@(\d+)@@/g, math_group_process)
 
 # get these from sage/misc/latex.py
+# This same info is **also** in cocalc/src/mathjax-config.coffee
 exports.macros =
     "\\Bold"  : "\\mathbb{#1}"
     "\\ZZ"    : "\\Bold{Z}"
@@ -46,7 +51,7 @@ replace_scripts = (html) ->
     return html
 
 exports.render = (html) ->
-    #console.log "Rendering Katex directly via lib version: #{require('katex/package.json')._id}"
+    #console.log "Rendering Katex directly via lib version: #{require('katex/package.json')._id} \nhtml:#{html}"
 
     html = replace_scripts(html)
 
@@ -55,7 +60,8 @@ exports.render = (html) ->
     katex_opts =
         macros : exports.macros
 
-    math = for s in math
+    new_math = []
+    for s in math
         katex_opts.displayMode = false
 
         if s.slice(0,2) == '$$'
@@ -76,8 +82,8 @@ exports.render = (html) ->
         s = replace_all(s, '&gt;', '>')
 
         try
-            katex.renderToString(s, katex_opts)
+            new_math.push(katex.renderToString(s, katex_opts))
         catch
-            '<code class="katex" style="color: #cc0000">' + s + '</code>'
+            new_math.push('<code class="cocalc-katex" style="color: #cc0000">' + s + '</code>')
 
-    return replace_math(text, math)
+    return replace_math(text, new_math)

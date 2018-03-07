@@ -1,40 +1,25 @@
 ###
 Conversion between Markdown and HTML
-
-Automatically parses math with Katex
 ###
 {defaults} = require('smc-util/misc')
-{macros}   = require(('./math_katex'))
+{macros}   = require('./math_katex')
+katex = require('@iktakahiro/markdown-it-katex')
+create_processor = require('markdown-it')
 
-unified       = require('unified')
+md_with_math = create_processor
+    html : true
+    typographer : true
+.use(katex, {macros : macros})
 
-markdown      = require('remark-parse')
-math          = require('remark-math')
-remark2rehype = require('remark-rehype')
-
-raw           = require('rehype-raw')
-katex         = require('rehype-katex')
-stringify     = require('rehype-stringify')
-
-katex_markdown_processor = unified()
-    .use(markdown)
-    .use(math)
-    .use(remark2rehype, {allowDangerousHTML: true})
-    .use(raw)
-    .use(katex, {macros: macros})
-    .use(stringify)
-
-markdown_processor = unified()
-    .use(markdown)
-    .use(remark2rehype, {allowDangerousHTML: true})
-    .use(raw)
-    .use(stringify)
+md_no_math = create_processor
+    html : true
+    typographer : true
 
 exports.markdown_to_html = (markdown_string, opts) ->
     opts = defaults opts,
         process_math : false
 
     if opts.process_math
-        return katex_markdown_processor.processSync(markdown_string).toString()
+        return md_with_math.render(markdown_string)
     else
-        return markdown_processor.processSync(markdown_string).toString()
+        return md_no_math.render(markdown_string)
