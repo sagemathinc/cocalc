@@ -21,14 +21,12 @@
 
 # CoCalc libraries
 {defaults, required} = misc = require('smc-util/misc')
-{webapp_client}      = require('../../webapp_client')
-{Avatar}             = require('../../other-users')
 {COLORS}             = require('smc-util/theme')
 
 # React libraries
 {React, rclass, rtypes} = require('../../smc-react')
-{DateTimePicker, ErrorDisplay, Icon, LabeledRow, Loading, MarkdownInput, Space, Tip, NumberInput} = require('../../r_misc')
-{Alert, Button, ButtonToolbar, ButtonGroup, Form, FormControl, FormGroup, ControlLabel, InputGroup, Checkbox, Row, Col, Panel, Breadcrumb} = require('react-bootstrap')
+{Space, Tip} = require('../../r_misc')
+{Row, Col} = require('react-bootstrap')
 
 boxstyle =
     color        : COLORS.GRAY

@@ -39,6 +39,14 @@ _         = require('underscore')
 {Grading} = require('./models')
 {ROW_STYLE, LIST_STYLE, LIST_ENTRY_STYLE, FLEX_LIST_CONTAINER, EMPTY_LISTING_TEXT, PAGE_SIZE} = require('./const')
 
+student_list_entries_style = misc.merge({cursor:'pointer'}, LIST_ENTRY_STYLE)
+
+avatar_style =
+    display        : 'inline-block'
+    marginRight    : '10px'
+    marginTop      : '-5px'
+    marginBottom   : '-5px'
+
 exports.StudentList = rclass
     displayName : 'CourseEditor-GradingStudentAssignment-StudentList'
 
@@ -53,7 +61,7 @@ exports.StudentList = rclass
         account_id      : rtypes.string
 
     shouldComponentUpdate: (next) ->
-        x = misc.is_different(@props, next, ['cursors', 'assignment', 'student_filter', 'student_id', 'account_id'])
+        x = misc.is_different(@props, next, ['assignment', 'cursors', 'student_filter', 'student_id', 'account_id'])
         y = not @props.student_list.equals(next.student_list)
         return x or y
 
@@ -80,7 +88,7 @@ exports.StudentList = rclass
     student_list_filter: ->
         disabled = @props.student_filter?.length == 0 ? true
 
-        <form key={'filter_list'} style={{}}>
+        <form key={'filter_list'}>
             <FormGroup>
                 <InputGroup>
                     <InputGroup.Addon>
@@ -119,15 +127,14 @@ exports.StudentList = rclass
 
         show_grade  = grade_val?.length > 0
         show_points = points? or is_collected
-        grade  = if show_grade  then misc.trunc(grade_val, 15) else 'N/G'
-        points = if show_points then ", #{points ? 0} pts."    else ''
+        return null if (not show_points) and (not show_grade)
+        info = []
+        if show_grade then info.push(misc.trunc(grade_val, 15))
+        if show_points then info.push("#{points ? 0} pts.")
 
-        if show_points or show_grade
-            <span style={info_style}>
-                {grade}{points}
-            </span>
-        else
-            null
+        <span style={info_style}>
+            {info.join(', ')}
+        </span>
 
     render_student_list_presenece: (student_id) ->
         # presence of other teachers
@@ -135,7 +142,8 @@ exports.StudentList = rclass
         return if not @props.cursors?
         min_10_ago = misc.server_minutes_ago(10)
         presence = []
-        whoelse = @props.cursors.getIn([@props.assignment.get('assignment_id'), student_id])
+        assignment_id = @props.assignment.get('assignment_id')
+        whoelse = @props.cursors.getIn([assignment_id, student_id])
         whoelse?.map (time, account_id) =>
             return if account_id == @props.account_id or time < min_10_ago
             presence.push(
@@ -148,7 +156,7 @@ exports.StudentList = rclass
             return
 
         style =
-            marginLeft    : '10px'
+            marginLeft     : '10px'
             display        : 'inline-block'
             marginTop      : '-5px'
             marginBottom   : '-5px'
@@ -160,13 +168,6 @@ exports.StudentList = rclass
 
 
     render_student_list_entries: ->
-        style        = misc.merge({cursor:'pointer'}, LIST_ENTRY_STYLE)
-        avatar_style =
-            display        : 'inline-block'
-            marginRight    : '10px'
-            marginTop      : '-5px'
-            marginBottom   : '-5px'
-
         list = @props.student_list.map (student) =>
             student_id   = student.get('student_id')
             account_id   = student.get('account_id')
@@ -183,7 +184,7 @@ exports.StudentList = rclass
                 key        = {student_id}
                 className  = {"list-group-item " + active}
                 onClick    = {=>@student_list_entry_click(student_id)}
-                style      = {style}
+                style      = {student_list_entries_style}
             >
                 <span style={float:'left'}>
                     {<div style={avatar_style}>
@@ -198,8 +199,8 @@ exports.StudentList = rclass
                 {@render_student_list_entries_info(active, grade_val, points, is_collected)}
             </li>
 
-        if list.length == 0
-            list.push(<div style={EMPTY_LISTING_TEXT}>No student matches…</div>)
+        if list.size == 0
+            list.push(<li style={EMPTY_LISTING_TEXT}>No student matches…</li>)
         return list
 
     render: ->

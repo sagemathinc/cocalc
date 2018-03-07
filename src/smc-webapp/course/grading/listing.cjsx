@@ -50,6 +50,7 @@ exports.Listing = rclass
         store           : rtypes.object.isRequired
         assignment      : rtypes.immutable.Map
         listing         : rtypes.immutable.Map
+        listing_files   : rtypes.immutable.List
         num_pages       : rtypes.number
         page_number     : rtypes.number
         student_info    : rtypes.object.isRequired
@@ -62,10 +63,10 @@ exports.Listing = rclass
     getInitialState: ->
         active_autogrades : immutable.Set()
 
-    #shouldComponentUpdate: (next) ->
-    #    misc.is_different(@props, next, \
-    #        ['assignment', 'listing', 'num_pages', 'page_number', 'student_info',
-    #        'student_id', 'subdir' ,'without_grade', 'collected_files', 'show_all_files'])
+    shouldComponentUpdate: (next) ->
+        misc.is_different(@props, next, \
+            ['assignment', 'listing', 'listing_files', 'num_pages', 'page_number', 'student_info',
+            'student_id', 'subdir' ,'without_grade', 'collected_files', 'show_all_files'])
 
     filepath: (filename) ->
         path_join(@props.subdir, filename)
@@ -77,12 +78,10 @@ exports.Listing = rclass
         @actions(@props.name).open_assignment(type, @props.assignment, @props.student_id, filepath)
 
     open_directory: (path) ->
-        @setState(subdir : path)
         @actions(@props.name).grading(
             assignment       : @props.assignment
             student_id       : @props.student_id
             direction        : 0
-            without_grade    : false
             subdir           : path
         )
 
@@ -341,7 +340,7 @@ exports.Listing = rclass
         error = @props.listing.get('error')
         return @listing_error(error) if error?
 
-        files = @props.listing.get('files')
+        files = @props.listing_files
         if files?.size > 0
             begin = PAGE_SIZE * (@props.page_number ? 0)
             end   = begin + PAGE_SIZE

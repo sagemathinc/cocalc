@@ -56,15 +56,12 @@ exports._init_state = _init_state = (props) ->
     return
         store           : store
         student_info    : if student_id? then store.student_assignment_info(student_id, props.assignment)
-        subdir          : props.grading.subdir
         student_filter  : props.grading.student_filter
-        page_number     : props.grading.page_number
 
 exports._update_state = _update_state = (props, next, state) ->
     if misc.is_different(props, next, ['grading', 'assignment'])
         student_id = next.grading.student_id
         return if not student_id?
-        subdir     = next.grading.subdir
         grade      = state.store.get_grade(props.assignment, student_id)
         comment    = state.store.get_comments(props.assignment, student_id)
         ret =
@@ -73,11 +70,6 @@ exports._update_state = _update_state = (props, next, state) ->
             edited_grade    : grade
             edited_comments : comment
             student_info    : if student_id? then state.store.student_assignment_info(student_id, props.assignment)
-            subdir          : subdir
-            page_number     : next.grading.page_number
-        # reset file listing pager to 0 when switching directories or student
-        if props.grading.subdir != subdir or student_id != props.grading.student_id
-            ret.page_number = 0
         return ret
 
 
@@ -96,25 +88,17 @@ exports.GradingStudentAssignment = rclass
         account :
             account_id  : rtypes.string
 
+    shouldComponentUpdate: (next) ->
+        misc.is_different(@props, next, ['assignment', 'students', 'user_map', 'grading'])
+
     getInitialState: ->
         state = _init_state(@props)
         state.active_autogrades = immutable.Set()
-        show_all_files = @props.grading.show_all_files
-        state = misc.merge(state, @props.grading.get_listing_files())
-        store = @props.redux.getStore(@props.name)
         return state
 
     componentWillReceiveProps: (next) ->
         x = _update_state(@props, next, @state)
         @setState(x) if x?
-
-        listing_changed    = @props.grading?.listing != next.grading?.listing
-        show_files_changed = @props.grading?.show_all_files != next.grading?.show_all_files
-        page_changed       = @props.grading?.page_number != next.grading?.page_number
-        if listing_changed or show_files_changed or page_changed
-            show_all_files = @props.grading?.show_all_files
-            @setState(next.grading.get_listing_files())
-
 
     componentDidMount: ->
         show_entry       =  =>
@@ -138,7 +122,7 @@ exports.GradingStudentAssignment = rclass
             @scrollToStudent()
 
     collect_student_path: ->
-        return path_join(@props.assignment.get('collect_path'), @props.grading.student_id, @state.subdir)
+        return path_join(@props.assignment.get('collect_path'), @props.grading.student_id, @props.grading.subdir)
 
     jump: (direction, without_grade, collected_files) ->
         @actions(@props.name).grading(
@@ -317,11 +301,11 @@ exports.GradingStudentAssignment = rclass
         </Col>
 
     render: ->
-        if not @props.grading.student_id?
-            return <div>No student to grade, because there are no collected assignments…</div>
-
         if @props.grading.end_of_list
             return @render_end_of_list()
+
+        if not @props.grading.student_id?
+            return <div>No student left to grade…</div>
 
         flexcolumn =
             display        : 'flex'
@@ -366,12 +350,13 @@ exports.GradingStudentAssignment = rclass
                     name             = {@props.name}
                     store            = {@state.store}
                     assignment       = {@props.assignment}
-                    page_number      = {@state.page_number}
-                    num_pages        = {@state.num_pages}
+                    page_number      = {@props.grading.page_number}
+                    num_pages        = {@props.grading.num_pages}
                     student_info     = {@state.student_info}
-                    listing          = {@state.listing}
+                    listing          = {@props.grading.listing}
+                    listing_files    = {@props.grading.listing_files}
                     student_id       = {@props.grading.student_id}
-                    subdir           = {@state.subdir}
+                    subdir           = {@props.grading.subdir}
                     without_grade    = {@get_only_not_graded()}
                     collected_files  = {@get_only_collected()}
                     show_all_files   = {@props.grading.show_all_files}

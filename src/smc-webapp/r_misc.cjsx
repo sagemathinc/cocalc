@@ -441,13 +441,17 @@ exports.NumberInput = NumberInput = rclass
     getInitialState: ->
         number : @props.number
 
-    saveNumber: (n) ->
+    sanitizeN: (n) ->
         if "#{n}" == "NaN"
             n = @props.number
         if n < @props.min
             n = @props.min
         else if n > @props.max
             n = @props.max
+        return n
+
+    saveNumber: (n) ->
+        n = @sanitizeN(n)
         @setState(number:n)
         @props.on_change(n)
 
@@ -465,7 +469,11 @@ exports.NumberInput = NumberInput = rclass
 
     plusminus_click: (e, delta) ->
         if e.shiftKey then delta *= @speedup
-        @saveNumber(@state.number + delta)
+        @setState((prevState, props) =>
+            n = @sanitizeN(prevState.number + delta)
+            setTimeout((-> props.on_change(n)), 1)
+            return {number:n}
+        )
 
     plusminus: (delta) ->
         return null if not @props.plusminus?

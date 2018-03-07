@@ -56,7 +56,9 @@ GradingRecord = immutable.Record
     only_not_graded : true      # by default, we want to only see student who did not recieve a grade yet
     only_collected  : true      # by default, we only want to see students where the assignments are collected
     page_number     : 0         # if there are more files in the listing than "PAGE_SIZE", this tells us the page at which we are
+    num_pages       : 1         # total number of pages
     listing         : null      # an immutable.js map, "files": a sorted and processed list, like they are in project_store (entries have a "mask" field); and "error": e.g. "no_dir"
+    listing_files   : null      # an immutable.js list, derived from listing.get('files') in get_listing_files
     show_all_files  : false     # if true, we want to see all files including those which are masked
     cursors         : null,     # information about other collaborators also grading an assignment (i.e. realtime presence information)
     'Grading'
@@ -66,6 +68,8 @@ exports.Grading = class Grading extends GradingRecord
     toggle_show_all_files: ->
         visible = @show_all_files
         return @merge(show_all_files: !visible, page_number: 0)
+
+    get_cursor_student_ids: ->
 
     get_current_idx : ->
         current_idx = null
@@ -95,11 +99,10 @@ exports.Grading = class Grading extends GradingRecord
                         files.setIn([idx, 'mask'], true)
                     return null
 
-        listing    = @listing.set('files', files)
         num_pages  = Math.max(1, ((files?.size ? 0) // PAGE_SIZE))
 
         data =
-            listing       : listing
+            listing_files : files
             num_pages     : num_pages
         if (@page_number ? 0) > num_pages
             data.page_number = 0

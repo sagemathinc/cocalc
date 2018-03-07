@@ -486,10 +486,13 @@ exports.CourseStore = class CourseStore extends Store
             direction             : 1
             without_grade         : true   # not yet graded?
             collected_files       : true   # has collected files?
+            cursors               : null   # for skipping students others are currently grading
         # direction: 1 or -1
         # student_to_grade: if true, only return a student who does not have a grade yet
-        assignment = @get_assignment(opts.assignment)
-        students   = @get_sorted_students()
+        assignment         = @get_assignment(opts.assignment)
+        students           = @get_sorted_students()
+        assignment_cursors = opts.cursors?.get(assignment.get('assignment_id'))
+
         if opts.direction == -1
             students = students.reverse()
         skip = opts.current_student_id?
@@ -509,7 +512,8 @@ exports.CourseStore = class CourseStore extends Store
             x = @has_last_collected(assignment, student_id)
             is_collected = (not opts.collected_files) or (x)
             has_no_grade = (not opts.without_grade) or (not @has_grade(assignment, student_id))
-            if has_no_grade and is_collected
+            not_skipped  = not (assignment_cursors?.has(student_id))
+            if has_no_grade and is_collected and not_skipped
                 return [student_id, cnt]
         return [null, 0]
 

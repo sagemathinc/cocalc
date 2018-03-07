@@ -50,8 +50,8 @@ exports.Grade = rclass
         grade_comments  : ''
 
     componentWillReceiveProps: (next) ->
-        if @props.grading != next.grading or @props.assignment != next.assignment
-            return if not @props.student_id?
+        return if not @props.student_id?
+        if misc.is_different(@props, next, ['grading', 'assignment'])
             grade      = @props.store.get_grade(@props.assignment, @props.student_id)
             comment    = @props.store.get_comments(@props.assignment, @props.student_id)
             @setState(

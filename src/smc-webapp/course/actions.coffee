@@ -131,10 +131,12 @@ exports.CourseActions = class CourseActions extends Actions
         if not cur.equals(t)  # something definitely changed
             @setState(t)
             @setState(unsaved:@syncdb?.has_unsaved_changes())
+            @grading_update(store, store.get('grading'))
 
     _syncdb_cursor_activity: =>
         next_cursors = @syncdb.get_cursors()
-        grading_cursors = {} # assignment_id → student_id → account_id
+        # assignment_id → student_id → account_id
+        grading_cursors = {}
         next_cursors.forEach (info, account_id) ->
             info.get('locs').forEach (loc) ->
                 switch loc.get('type')
@@ -142,13 +144,13 @@ exports.CourseActions = class CourseActions extends Actions
                         student_id      = loc.get('student_id')
                         assignment_id   = loc.get('assignment_id')
                         time            = new Date(info.get('time'))
-                        grading_cursors ?= {}
                         grading_cursors[assignment_id] ?= {}
                         grading_cursors[assignment_id][student_id] ?= {}
                         grading_cursors[assignment_id][student_id][account_id] = time
             return
 
-        @grading_set_cursors(grading_cursors)
+        grading_cursors = immutable.fromJS(grading_cursors)
+        @grading_set_entry('cursors', grading_cursors)
 
     handle_projects_store_update: (state) =>
         store = @get_store()
@@ -908,7 +910,6 @@ exports.CourseActions = class CourseActions extends Actions
         points_map[student_id] = student_points_map
         obj.points = points_map
         @_set(obj)
-        @grading_update(store, store.get('grading'))
 
     set_active_assignment_sort: (column_name) =>
         store = @get_store()
@@ -1836,9 +1837,10 @@ exports.CourseActions = class CourseActions extends Actions
         {Grading} = require('./grading/models')
         grading   = store.get('grading') ? new Grading()
 
-        only_not_graded = opts.without_grade   ? grading.only_not_graded
-        only_collected  = opts.collected_files ? grading.only_collected
-        student_filter  = grading.student_filter
+        only_not_graded  = opts.without_grade   ? grading.only_not_graded
+        only_collected   = opts.collected_files ? grading.only_collected
+        student_filter   = grading.student_filter
+        assignment_id    = opts.assignment.get('assignment_id')
 
         if opts.direction == 1 or opts.direction == -1
             [next_student_id, cnt] = store.grading_next_student(
@@ -1847,6 +1849,7 @@ exports.CourseActions = class CourseActions extends Actions
                 direction             : opts.direction
                 without_grade         : only_not_graded
                 collected_files       : only_collected
+                cursors               : grading.cursors
             )
         else
             # previous is null/undefined, stick with same student ... e.g. directory changes
@@ -1855,7 +1858,7 @@ exports.CourseActions = class CourseActions extends Actions
         # this switches to grading mode, but no listing
         data = new Grading(
             student_id      : next_student_id
-            assignment_id   : opts.assignment.get('assignment_id')
+            assignment_id   : assignment_id
             listing         : null
             end_of_list     : not (next_student_id?)
             subdir          : opts.subdir
@@ -1864,8 +1867,11 @@ exports.CourseActions = class CourseActions extends Actions
             only_collected  : only_collected
             page_number     : 0
             listing         : null
+            listing_files   : null
+            show_all_files  : grading.show_all_files
         )
 
+        # ... and merge with exisiting state
         grading = grading.merge(data)
         @grading_update(store, grading)
         # sets a "cursor" pointing to this assignment and student, signal for others
@@ -1883,16 +1889,21 @@ exports.CourseActions = class CourseActions extends Actions
             @grading_set_entry('listing', listing)
 
     grading_update: (store, grading) =>
+        return if not grading?
         ret = store.grading_get_student_list(grading)
         return if not ret?
         [student_list, all_points] = ret
-        total_points = store.get_points_total(grading.assignment_id, grading.student_id)
         grading = grading.merge(
             student_list  : student_list
             all_points    : all_points
-            total_points  : total_points
         )
+        total_points = store.get_points_total(grading.assignment_id, grading.student_id)
+        if (total_points ? 0) == 0
+            grading = grading.remove('total_points')
+        else
+            grading = grading.set('total_points', total_points)
         grading = grading.set('current_idx', grading.get_current_idx())
+        grading = grading.merge(grading.get_listing_files())
         @setState(grading : grading)
 
     # teacher departs from the dialog
@@ -1916,13 +1927,10 @@ exports.CourseActions = class CourseActions extends Actions
         grading = store.get('grading')
         return if not grading?
         grading = grading.set(key, value)
-        if key in ['only_not_graded', 'only_collected']
+        if key in ['only_not_graded', 'only_collected', 'listing']
             @grading_update(store, grading)
         else
             @setState(grading:grading)
-
-    grading_set_cursors: (cursors) =>
-        @grading_set_entry('cursors', immutable.fromJS(cursors))
 
     grading_toggle_show_all_files: =>
         store = @get_store()
@@ -1930,7 +1938,7 @@ exports.CourseActions = class CourseActions extends Actions
         grading = store.get('grading')
         return if not grading?
         grading = grading.toggle_show_all_files()
-        @setState(grading:grading)
+        @grading_update(store, grading)
 
     grading_update_activity: (opts) =>
         store = @get_store()
