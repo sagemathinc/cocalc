@@ -156,6 +156,10 @@ class exports.Actions extends Actions
         return
 
     close_frame: (id) =>
+        if tree_ops.is_leaf(@_get_tree())
+            # closing the only node, so just close whole document
+            @redux.getProjectActions(@project_id).close_tab(@path)
+            return
         @_tree_op('delete_node', id)
         @save_scroll_position(id)
         delete @_cm_selections?[id]
@@ -273,7 +277,7 @@ class exports.Actions extends Actions
             @delete_trailing_whitespace()
         @_do_save =>
             # do it again...
-            setTimeout(@_do_save, 3000)
+            setTimeout(@_do_save, 2000)
 
         if explicit
             @_active_cm()?.focus()

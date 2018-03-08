@@ -59,7 +59,7 @@ exports.FrameTitleBar = rclass
         @_last_render = new Date()
 
     click_close: ->
-        if new Date() - @_last_render < 150
+        if new Date() - @_last_render < 200
             # avoid accidental click -- easily can happen otherwise.
             return
         @props.actions.close_frame(@props.id)
@@ -77,7 +77,6 @@ exports.FrameTitleBar = rclass
             style    = {if not show_full then close_style}
             key      = {'close'}
             bsSize   = {@button_size()}
-            disabled = {@props.is_only}
             onClick  = {@click_close} >
             <Icon name={'times'}/>
         </Button>

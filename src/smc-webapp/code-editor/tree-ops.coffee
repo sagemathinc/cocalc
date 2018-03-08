@@ -68,6 +68,17 @@ exports.get_leaf_ids = (tree) ->
             ids[node.get('id')] = true
     return ids
 
+
+###
+# not used...
+exports.num_leaves = (tree) ->
+    n = 0
+    walk tree, (node) ->
+        if exports.is_leaf(node)
+            n += 1
+    return n
+###
+
 # Ensure ids are unique (changing tree if necessary).
 # We assume every node has an id, and that they are all strings.
 exports.ensure_ids_are_unique = (tree) ->
@@ -115,7 +126,7 @@ exports.is_leaf = (node) ->
 # Get node in the tree with given id
 exports.get_node = (tree, id) ->
     if not tree?
-        return false
+        return
     the_node = undefined
     process = (node) ->
         if the_node? or not node?
