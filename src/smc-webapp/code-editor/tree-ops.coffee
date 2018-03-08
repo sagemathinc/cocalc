@@ -48,6 +48,26 @@ exports.assign_ids = (tree) ->
         return node
     return process(tree)
 
+# call f on each node of tree
+walk = (tree, f) ->
+    process = (node) ->
+        if not node?
+            return
+        f(node)
+        for x in ['first', 'second']
+            child = node.get(x)
+            if child?
+                process(child)
+    process(tree)
+
+# Return map from leaf ids to true
+exports.get_leaf_ids = (tree) ->
+    ids = {}
+    walk tree, (node) ->
+        if exports.is_leaf(node)
+            ids[node.get('id')] = true
+    return ids
+
 # Ensure ids are unique (changing tree if necessary).
 # We assume every node has an id, and that they are all strings.
 exports.ensure_ids_are_unique = (tree) ->

@@ -102,13 +102,19 @@ class exports.Actions extends Actions
     set_active_id: (active_id) =>
         local = @store.get('local_view_state')
         if local?.get('active_id') == active_id
-            # already set -- nother more to do
+            # already set -- nothing more to do
             return
         if tree_ops.is_leaf_id(local?.get('frame_tree'), active_id)
             @setState(local_view_state : @store.get('local_view_state').set('active_id', active_id))
             @_save_local_view_state()
             @focus()
         return
+
+    _get_tree: =>
+        @store.getIn(['local_view_state', 'frame_tree'])
+
+    _get_leaf_ids: =>
+        tree_ops.get_leaf_ids(@_get_tree())
 
     _tree_op: (op, args...) =>
         local = @store.get('local_view_state')
@@ -157,7 +163,12 @@ class exports.Actions extends Actions
         setTimeout(@focus, 1)
 
     split_frame: (direction, id) =>
+        ids0 = @_get_leaf_ids()
         @_tree_op('split_leaf', id ? @store.getIn(['local_view_state', 'active_id']), direction)
+        for i,_ of @_get_leaf_ids()
+            if not ids0[i]
+                id = i  # this is a new id
+                break
         @set_active_id(id)
 
     set_frame_full: (id) =>
@@ -262,7 +273,7 @@ class exports.Actions extends Actions
             @delete_trailing_whitespace()
         @_do_save =>
             # do it again...
-            setTimeout((=>if @_syncstring?.has_unsaved_changes() then @_do_save()), 3000)
+            setTimeout(@_do_save, 3000)
 
         if explicit
             @_active_cm()?.focus()

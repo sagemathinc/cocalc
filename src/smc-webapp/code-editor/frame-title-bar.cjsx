@@ -77,6 +77,7 @@ exports.FrameTitleBar = rclass
             style    = {if not show_full then close_style}
             key      = {'close'}
             bsSize   = {@button_size()}
+            disabled = {@props.is_only}
             onClick  = {@click_close} >
             <Icon name={'times'}/>
         </Button>
@@ -87,7 +88,7 @@ exports.FrameTitleBar = rclass
             {@render_split_row() if is_active and not @props.is_full}
             {@render_split_col() if is_active and not @props.is_full}
             {@render_full()      if is_active and not @props.is_only}
-            {@render_x()         if not @props.is_only}
+            {@render_x()}
         </ButtonGroup>
 
     render_full: ->
@@ -115,7 +116,7 @@ exports.FrameTitleBar = rclass
             key      = {'split-row'}
             title    = {'Split frame horizontally into two rows'}
             bsSize   = {@button_size()}
-            onClick  = {=>if @props.is_full then @props.actions.set_frame_full() else @props.actions.split_frame('row', @props.id)} >
+            onClick  = {(e)=>e.stopPropagation(); if @props.is_full then @props.actions.set_frame_full() else @props.actions.split_frame('row', @props.id)} >
             <Icon name='columns' rotate={'90'} />
         </Button>
 
@@ -124,7 +125,7 @@ exports.FrameTitleBar = rclass
             key      = {'split-col'}
             title    = {'Split frame vertically into two columns'}
             bsSize   = {@button_size()}
-            onClick  = {=>if @props.is_full then @props.actions.set_frame_full() else @props.actions.split_frame('col', @props.id)} >
+            onClick  = {(e)=>e.stopPropagation(); if @props.is_full then @props.actions.set_frame_full() else @props.actions.split_frame('col', @props.id)} >
             <Icon name='columns' />
         </Button>
 
