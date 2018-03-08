@@ -171,6 +171,7 @@ class exports.Actions extends Actions
         @_tree_op('split_leaf', id ? @store.getIn(['local_view_state', 'active_id']), direction)
         for i,_ of @_get_leaf_ids()
             if not ids0[i]
+                @copy_scroll_position(id, i)
                 id = i  # this is a new id
                 break
         @set_active_id(id)
@@ -196,6 +197,11 @@ class exports.Actions extends Actions
             scroll = scroll.set(id, immutable.fromJS(info))
         @setState(local_view_state : local.set('scroll', scroll))
         @_save_local_view_state()
+
+    copy_scroll_position: (id1, id2) =>
+        info = @store.getIn(['local_view_state', 'scroll', id1])
+        if info?
+            @save_scroll_position(id2, info)
 
     enable_key_handler: =>
         if @_state == 'closed'
