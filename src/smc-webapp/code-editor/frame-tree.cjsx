@@ -19,7 +19,6 @@ or
 
     id        : a UUID that uniquely determines this particular node in the frame tree
     type      : 'cm'
-    scroll    : optional scroll position info
     path      : path to file being edited
     font_size : font size of this file
     read_only : is it read only or not?
@@ -62,7 +61,7 @@ exports.FrameTree = FrameTree = rclass
         active_id  : rtypes.string
         full_id    : rtypes.string
         frame_tree : rtypes.immutable.isRequired
-        scroll     : rtypes.immutable.isRequired    # IMPORTANT: change does NOT cause re-render (uncontrolled)
+        cm_state   : rtypes.immutable.isRequired    # IMPORTANT: change does NOT cause re-render (uncontrolled); only used for full initial render, on purpose
         font_size  : rtypes.number.isRequired
         is_only    : rtypes.bool
         cursors    : rtypes.immutable.Map
@@ -80,7 +79,7 @@ exports.FrameTree = FrameTree = rclass
         <FrameTree
             actions             = {@props.actions}
             frame_tree          = {desc}
-            scroll              = {@props.scroll}
+            cm_state            = {@props.cm_state}
             active_id           = {@props.active_id}
             project_id          = {@props.project_id}
             font_size           = {@props.font_size}
@@ -110,7 +109,7 @@ exports.FrameTree = FrameTree = rclass
             read_only = {desc.get('read_only')}
             font_size = {desc.get('font_size') ? @props.font_size}
             path      = {desc.get('path')}
-            scroll    = {@props.scroll.get(desc.get('id'))}
+            cm_state  = {@props.cm_state.get(desc.get('id'))}
             is_current= {desc.get('id') == @props.active_id}
             cursors   = {@props.cursors}
         />

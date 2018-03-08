@@ -15,8 +15,8 @@ misc                 = require('smc-util/misc')
 {Cursors}            = require('../jupyter/cursors')
 
 {cm_options}         = require('./cm-options')
+codemirror_util      = require('./codemirror-util')
 doc                  = require('./doc')
-
 
 STYLE =
     width        : '100%'
@@ -36,7 +36,7 @@ exports.CodemirrorEditor = rclass
         path      : rtypes.string.isRequired
         font_size : rtypes.number.isRequired
         cursors   : rtypes.immutable.Map
-        scroll    : rtypes.immutable.Map
+        cm_state  : rtypes.immutable.Map
         read_only : rtypes.bool
         is_current: rtypes.bool
 
@@ -72,7 +72,8 @@ exports.CodemirrorEditor = rclass
         # 2. We have to do the scrollTo in the next render loop, since otherwise
         # the getScrollInfo function below will return the sizing data about
         # the cm instance before the above css font-size change has been rendered.
-        scroll_before = @cm.getScrollInfo()
+        @cm.refresh()
+        state = codemirror_util.get_state(@cm)
         elt = $(@cm.getWrapperElement()).find('.CodeMirror-scroll')
         elt.css('opacity', 0)  # reduce some ugly jumpiness
         f = =>
@@ -80,15 +81,12 @@ exports.CodemirrorEditor = rclass
                 return
             elt.css('opacity', 1)
             @cm.refresh()
-            scroll_after = @cm.getScrollInfo()
-            x = (scroll_before.left / scroll_before.width) * scroll_after.width
-            y = (((scroll_before.top+scroll_before.clientHeight/2) / scroll_before.height) * scroll_after.height) - scroll_after.clientHeight/2
-            @cm.scrollTo(x, y)
+            codemirror_util.restore_scroll_viewport_change(@cm, state)
         setTimeout(f, 0)
 
     componentWillUnmount: ->
         if @cm?
-            @save_scroll_position()
+            @save_syncstring()
             @_cm_destroy()
 
     _cm_undo: ->
@@ -115,14 +113,14 @@ exports.CodemirrorEditor = rclass
         side_effect = @cm._setValueNoJump
         @props.actions.set_cursor_locs(locs, side_effect)
 
-    save_scroll_position: ->
+    # Save the UI state of the CM (not the actual content) -- scroll position, selections, etc.
+    save_cm_state: ->
         if not @cm?
             return
-        info = misc.copy_with(@cm.getScrollInfo(), ['left', 'top', 'clientHeight', 'height', 'width'])
-        info.sel = @cm.listSelections()
-        @props.actions.save_scroll_position(@props.id, info)
+        @props.actions.save_cm_state(@props.id, codemirror_util.get_state(@cm))
 
-    save_state: ->
+    # Save the underlying syncstring content.
+    save_syncstring: ->
         if not @cm?
             return
         @props.actions.set_syncstring_to_codemirror()
@@ -155,11 +153,11 @@ exports.CodemirrorEditor = rclass
         e.attr('style', e.attr('style') + '; height:100%; font-family:monospace !important;')
         # see http://stackoverflow.com/questions/2655925/apply-important-css-style-using-jquery
 
-        @save_state_throttle = throttle(@save_state, SAVE_INTERVAL_MS, {leading:false})
+        @save_syncstring_throttle = throttle(@save_syncstring, SAVE_INTERVAL_MS, {leading:false})
 
         @cm.on 'change', (instance, changeObj) =>
             if changeObj.origin? and changeObj.origin != 'setValue'
-                @save_state_throttle()
+                @save_syncstring_throttle()
                 @props.actions.exit_undo_mode()
 
         @cm.on 'focus', =>
@@ -171,12 +169,12 @@ exports.CodemirrorEditor = rclass
             if @_style_active_line
                 @cm?.setOption('styleActiveLine', false)
 
-        save_scroll = debounce(@save_scroll_position, 500)
+        save_cm_state = debounce(@save_cm_state, 500)
 
-        @cm.on 'scroll', save_scroll
+        @cm.on 'scroll', save_cm_state
 
         @cm.on 'cursorActivity', @_cm_cursor
-        @cm.on 'cursorActivity', save_scroll
+        @cm.on 'cursorActivity', save_cm_state
 
         # replace undo/redo by our sync aware versions
         @cm.undo = @_cm_undo
@@ -189,15 +187,8 @@ exports.CodemirrorEditor = rclass
 
         @props.actions.set_cm(@props.id, @cm)
 
-        if @props.scroll?
-            sel = @props.scroll.get('sel')?.toJS()
-            if sel?
-                @cm.setSelections(sel)
-            scroll_before = @props.scroll.toJS()
-            scroll_after  = @cm.getScrollInfo()
-            x = (scroll_before.left / scroll_before.width) * scroll_after.width
-            y = (((scroll_before.top+scroll_before.clientHeight/2) / scroll_before.height) * scroll_after.height) - scroll_after.clientHeight/2
-            @cm.scrollTo(x, y)
+        if @props.cm_state?
+            codemirror_util.restore_state(@cm, @props.cm_state.toJS())
 
         @cm.setOption('readOnly', @props.read_only)
         @setState(has_cm: true)

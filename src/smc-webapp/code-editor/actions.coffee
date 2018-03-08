@@ -66,8 +66,8 @@ class exports.Actions extends Actions
         if not local_view_state.has('version') # may use to deprecate in case we change format.
             local_view_state = local_view_state.set('version', 1)
 
-        if not local_view_state.has('scroll')
-            local_view_state = local_view_state.set('scroll', immutable.Map())
+        if not local_view_state.has('cm_state')
+            local_view_state = local_view_state.set('cm_state', immutable.Map())
 
         if not local_view_state.has("font_size")
             font_size = @redux.getStore('account')?.get('font_size') ? 14
@@ -161,7 +161,7 @@ class exports.Actions extends Actions
             @redux.getProjectActions(@project_id).close_tab(@path)
             return
         @_tree_op('delete_node', id)
-        @save_scroll_position(id)
+        @save_cm_state(id)
         delete @_cm_selections?[id]
         delete @_cm?[id]
         setTimeout(@focus, 1)
@@ -171,7 +171,7 @@ class exports.Actions extends Actions
         @_tree_op('split_leaf', id ? @store.getIn(['local_view_state', 'active_id']), direction)
         for i,_ of @_get_leaf_ids()
             if not ids0[i]
-                @copy_scroll_position(id, i)
+                @copy_cm_state(id, i)
                 id = i  # this is a new id
                 break
         @set_active_id(id)
@@ -184,24 +184,25 @@ class exports.Actions extends Actions
         @_save_local_view_state()
         setTimeout(@focus, 1)
 
-    save_scroll_position: (id, info) =>
+    save_cm_state: (id, new_cm_state) =>
+        console.log id, new_cm_state
         local  = @store.get('local_view_state')
         if not local?
             return
-        scroll = local.get('scroll') ? immutable.Map()
-        if not info?
-            if not scroll.has(id)
+        cm_state = local.get('cm_state') ? immutable.Map()
+        if not new_cm_state?
+            if not cm_state.has(id)
                 return
-            scroll = scroll.delete(id)
+            cm_state = cm_state.delete(id)
         else
-            scroll = scroll.set(id, immutable.fromJS(info))
-        @setState(local_view_state : local.set('scroll', scroll))
+            cm_state = cm_state.set(id, immutable.fromJS(new_cm_state))
+        @setState(local_view_state : local.set('cm_state', cm_state))
         @_save_local_view_state()
 
-    copy_scroll_position: (id1, id2) =>
-        info = @store.getIn(['local_view_state', 'scroll', id1])
+    copy_cm_state: (id1, id2) =>
+        info = @store.getIn(['local_view_state', 'cm_state', id1])
         if info?
-            @save_scroll_position(id2, info)
+            @save_cm_state(id2, info)
 
     enable_key_handler: =>
         if @_state == 'closed'
