@@ -46,6 +46,7 @@
     "json-stable-stringify": "^1.0",
     "lodash": "^4.17.4",
     "markdown-it": "^8.4.1",
+    "markdown-it-task-lists": "^2.1.1",
     "mathjax": "^2.7.3",
     "md5": "^2",
     "mocha": "^2.5.3",
