@@ -71,7 +71,7 @@ exports.RamWarning = rclass ({name}) ->
 
         <Alert bsStyle='danger' style={alert_style}>
             <Icon name='exclamation-triangle' /> WARNING: This project is running low on memory.{' '}
-            Upgrade memory in <a onClick={=>@actions(project_id: @props.project_id).set_active_tab('settings')} style={cursor:'pointer'}>settings</a>,{' '}
+            Upgrade Shared RAM memory in <a onClick={=>@actions(project_id: @props.project_id).set_active_tab('settings')} style={cursor:'pointer'}>settings</a>,{' '}
             restart your project or kill some processes.{' '}
             (<a href={'https://github.com/sagemathinc/cocalc/wiki/My-Project-Is-Running-Out-of-Memory'} target={'_blank'} style={cursor:'pointer'}>more information</a>; memory usage is updated about once per minute.)
         </Alert>
