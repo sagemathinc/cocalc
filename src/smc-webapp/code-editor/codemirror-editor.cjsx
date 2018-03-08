@@ -67,22 +67,10 @@ exports.CodemirrorEditor = rclass
     cm_update_font_size: ->
         if not @cm?
             return
-        # 1. It's important to move the scroll position upon zooming -- otherwise the cursor line
+        # It's important to move the scroll position upon zooming -- otherwise the cursor line
         # move UP/DOWN after zoom, which is very annoying.
-        # 2. We have to do the scrollTo in the next render loop, since otherwise
-        # the getScrollInfo function below will return the sizing data about
-        # the cm instance before the above css font-size change has been rendered.
-        @cm.refresh()
         state = codemirror_util.get_state(@cm)
-        elt = $(@cm.getWrapperElement()).find('.CodeMirror-scroll')
-        elt.css('opacity', 0)  # reduce some ugly jumpiness
-        f = =>
-            if not @cm?
-                return
-            elt.css('opacity', 1)
-            @cm.refresh()
-            codemirror_util.restore_scroll_viewport_change(@cm, state)
-        setTimeout(f, 0)
+        codemirror_util.restore_state(@cm, state)  # actual restore happens in next refresh cycle after render.
 
     componentWillUnmount: ->
         if @cm?

@@ -9,49 +9,31 @@ editor height, and the Codemirror API not providing a simple way to deal with th
 
 misc = require('smc-util/misc')
 
-VERSION = 1
-
-exports.get_state0 = (cm) ->
-    state = misc.copy_with(cm.getScrollInfo(), ['left', 'top', 'clientHeight', 'height', 'width'])
-    state.sel = cm.listSelections()
-    state.ver = VERSION
-    return state
-
-exports.restore_state0 = (cm, state) ->
-    if state.ver < VERSION  # ignore
-        return
-    scroll_before = state
-    scroll_after  = cm.getScrollInfo()
-    x = (scroll_before.left / scroll_before.width) * scroll_after.width
-    y = (((scroll_before.top+scroll_before.clientHeight/2) / scroll_before.height) * scroll_after.height) - scroll_after.clientHeight/2
-    cm.scrollTo(x, y)
-    sel = state.sel
-    if sel?
-        cm.setSelections(sel)
-
-exports.restore_scroll_viewport_change = (cm, state) ->
-    scroll_before = state
-    scroll_after  = cm.getScrollInfo()
-    x = (scroll_before.left / scroll_before.width) * scroll_after.width
-    y = (((scroll_before.top+scroll_before.clientHeight/2) / scroll_before.height) * scroll_after.height) - scroll_after.clientHeight/2
-    cm.scrollTo(x, y)
+VERSION = 2
 
 exports.get_state = (cm) ->
-    #state = misc.copy_with(cm.getScrollInfo(), ['left', 'top', 'clientHeight', 'height', 'width'])
-    state = cm.getScrollInfo()
-    state.sel = cm.listSelections()
-    state.ver = VERSION
+    state =
+        pos: misc.copy_with(cm.coordsChar(cm.getScrollInfo(), 'local'), ['line', 'ch'])
+        sel: cm.listSelections()
+        ver: VERSION
     return state
 
 exports.restore_state = (cm, state) ->
-    if state.ver < VERSION  # ignore
+    if not state? or state.ver < VERSION  # ignore
         return
-    if not cm.getOption('lineWrapping')
-        # easy case -- no line wrapping
-        cm.scrollTo(state.left, state.top)
-    else
-        # harder
-        exports.restore_scroll_viewport_change(cm, state)
+
+    if state.pos?
+        elt = $(cm.getWrapperElement()).find('.CodeMirror-scroll')
+        elt.css('opacity', 0)
+        # We **have to** do the scrollTo in the next render loop, since otherwise
+        # the coords below will return the sizing data about
+        # the cm instance before the above css font-size change has been rendered.
+        # The opacity business avoids some really painful "flicker".
+        f = ->
+            elt.css('opacity', 1)
+            cm.scrollTo(0, cm.cursorCoords(state.pos, 'local').top)
+        cm.refresh()
+        setTimeout(f, 0)
 
     sel = state.sel
     if sel?
