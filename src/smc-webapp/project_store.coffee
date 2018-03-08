@@ -1115,7 +1115,7 @@ class ProjectActions extends Actions
             src           : required     # Should be an array of source paths
             dest          : required
             id            : undefined
-            only_contents : false
+            only_contents : false        # true for duplicating files
 
         with_slashes = opts.src.map(@_convert_to_displayed_path)
 
@@ -1124,7 +1124,7 @@ class ProjectActions extends Actions
             action : 'copied'
             files  : with_slashes[0...3]
             count  : if opts.src.length > 3 then opts.src.length
-            dest   : opts.dest + '/'
+            dest   : opts.dest + (if opts.only_contents then '' else '/')
 
         if opts.only_contents
             opts.src = with_slashes
