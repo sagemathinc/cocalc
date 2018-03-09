@@ -219,7 +219,7 @@ class exports.Actions extends Actions
         f = =>
             do_set()
             setTimeout(do_set, 3000)
-        @set_save_status = underscore.debounce(f, 500, true)
+        @set_save_status = underscore.throttle(f, 750, true)
         @_syncstring.on('metadata-change', @set_save_status)
         @_syncstring.on('connected',       @set_save_status)
 

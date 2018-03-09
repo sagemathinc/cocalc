@@ -128,9 +128,13 @@ exports.CodemirrorEditor = rclass
         @_style_active_line = options.styleActiveLine
         options.styleActiveLine = false
 
-        @cm = CodeMirror.fromTextArea(node, options)
+        # Needed e.g., for vim ":w" support; obviously this is global, so be careful.
+        CodeMirror.commands.save ?= (cm) -> cm._actions?.save(true)
 
-        d   = doc.get(path: @props.path, cm: @cm)
+        @cm = CodeMirror.fromTextArea(node, options)
+        @cm._actions = @props.actions
+
+        d = doc.get(path: @props.path, cm: @cm)
         if d?
             @cm.swapDoc(d)
 

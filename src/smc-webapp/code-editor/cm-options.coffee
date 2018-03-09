@@ -67,7 +67,6 @@ exports.cm_options = (opts) ->
             "Alt-S"        : -> actions.save(true)
             "Ctrl-S"       : -> actions.save(true)
             "Cmd-P"        : -> actions.print()
-            "Ctrl-P"       : -> actions.print()
             "Shift-Ctrl-." : -> actions.increase_font_size(frame_id)
             "Shift-Ctrl-," : -> actions.decrease_font_size(frame_id)
             "Shift-Cmd-."  : -> actions.increase_font_size(frame_id)
@@ -83,6 +82,8 @@ exports.cm_options = (opts) ->
             "Shift-Enter"  : -> actions.set_error("You can only evaluate code in a file that ends with the extension 'sagews' or 'ipynb'.   Create a Sage Worksheet or Jupyter notebook instead.")
         for k, v of actionKeys
             extraKeys[k] = v
+        if opts.bindings != 'emacs'
+            extraKeys['Ctrl-P'] = -> actions.print()
 
     if opts.match_xml_tags
         extraKeys['Ctrl-J'] = "toMatchingTag"
