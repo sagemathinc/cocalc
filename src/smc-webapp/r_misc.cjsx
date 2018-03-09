@@ -1044,7 +1044,7 @@ exports.Tip = Tip = rclass
         rootClose : rtypes.bool
         icon      : rtypes.string
         id        : rtypes.string   # can be used for screen readers (otherwise defaults to title)
-        style     : rtypes.object   # changing not checked when updating.
+        style     : rtypes.object   # changing not checked when updating if stable is true
         stable    : rtypes.bool     # if true, children assumed to never change
 
     shouldComponentUpdate: (props, state) ->

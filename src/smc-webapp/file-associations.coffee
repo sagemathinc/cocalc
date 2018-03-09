@@ -277,6 +277,13 @@ archive_association =
     opts   : {}
     name   : 'archive'
 
+# Fallback for any type not otherwise explicitly specified
+file_associations[''] =
+    editor : 'codemirror'
+    icon   : 'fa-file-code-o'
+    opts   : {mode:'text', indent_unit:4, tab_size:4}
+    name   : ''
+
 for ext in 'zip gz bz2 z lz xz lzma tgz tbz tbz2 tb2 taz tz tlz txz lzip'.split(' ')
     file_associations[ext] = archive_association
 

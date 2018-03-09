@@ -10,9 +10,8 @@ underscore     = require('underscore')
 misc           = require('smc-util/misc')
 keyboard       = require('./keyboard')
 copypaste      = require('../copy-paste-buffer')
-convert_to_pdf = require('./convert-to-pdf')
-browser_print  = require('./browser-print')
 tree_ops       = require('./tree-ops')
+print          = require('./print')
 
 class exports.Actions extends Actions
     _init: (project_id, path, syncstring, store) =>
@@ -185,7 +184,6 @@ class exports.Actions extends Actions
         setTimeout(@focus, 1)
 
     save_cm_state: (id, new_cm_state) =>
-        console.log id, new_cm_state
         local  = @store.get('local_view_state')
         if not local?
             return
@@ -456,12 +454,13 @@ class exports.Actions extends Actions
         @setState(error: error)
 
     print: =>
-        @setState(printing: true)
-        convert_to_pdf.convert
-            path  : @path
-            cb    : (err, pdf) =>
-                @setState(printing: false)
-                if err
-                    @setState(error: err)
-                else
-                    browser_print.print(pdf:pdf)
+        cm = @_get_cm()
+        if not cm?
+            return
+        error = print.print
+            value   : cm.getValue()
+            options : cm.options
+            path    : @path
+        if error
+            @setState(error: error)
+        cm.focus()

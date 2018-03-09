@@ -55,16 +55,16 @@ rows_drag_bar_drag_hover = misc.merge(misc.copy(rows_drag_bar), drag_hover)
 exports.FrameTree = FrameTree = rclass
     displayName: 'CodeEditor-FrameTree'
 
-    propTypes :
-        actions    : rtypes.object.isRequired
-        project_id : rtypes.string        # assumed to never change -- all frames in same project
-        active_id  : rtypes.string
-        full_id    : rtypes.string
-        frame_tree : rtypes.immutable.isRequired
-        cm_state   : rtypes.immutable.isRequired    # IMPORTANT: change does NOT cause re-render (uncontrolled); only used for full initial render, on purpose
-        font_size  : rtypes.number.isRequired
-        is_only    : rtypes.bool
-        cursors    : rtypes.immutable.Map
+    propTypes               :
+        actions             : rtypes.object.isRequired
+        project_id          : rtypes.string        # assumed to never change -- all frames in same project
+        active_id           : rtypes.string
+        full_id             : rtypes.string
+        frame_tree          : rtypes.immutable.isRequired
+        cm_state            : rtypes.immutable.isRequired    # IMPORTANT: change does NOT cause re-render (uncontrolled); only used for full initial render, on purpose
+        font_size           : rtypes.number.isRequired
+        is_only             : rtypes.bool
+        cursors             : rtypes.immutable.Map
         has_unsaved_changes : rtypes.bool
 
     getInitialState: ->
@@ -104,14 +104,14 @@ exports.FrameTree = FrameTree = rclass
 
     render_codemirror: (desc) ->
         <CodemirrorEditor
-            actions   = {@props.actions}
-            id        = {desc.get('id')}
-            read_only = {desc.get('read_only')}
-            font_size = {desc.get('font_size') ? @props.font_size}
-            path      = {desc.get('path')}
-            cm_state  = {@props.cm_state.get(desc.get('id'))}
-            is_current= {desc.get('id') == @props.active_id}
-            cursors   = {@props.cursors}
+            actions     = {@props.actions}
+            id          = {desc.get('id')}
+            read_only   = {desc.get('read_only')}
+            font_size   = {desc.get('font_size') ? @props.font_size}
+            path        = {desc.get('path')}
+            cm_state    = {@props.cm_state.get(desc.get('id'))}
+            is_current  = {desc.get('id') == @props.active_id}
+            cursors     = {@props.cursors}
         />
 
     render_one: (desc) ->

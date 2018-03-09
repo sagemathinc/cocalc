@@ -1791,11 +1791,15 @@ exports.open_new_tab = (url, popup=false) ->
         tab = window.open(url, '', 'menubar=yes,toolbar=no,resizable=yes,scrollbars=yes,height=640,width=800')
     else
         tab = window.open(url)
-    if not tab?.closed? or tab.closed   # either ab isn't even defined (or doesn't have close method) -- or already closed -- popup blocked
+    if not tab?.closed? or tab.closed   # either tab isn't even defined (or doesn't have close method) -- or already closed -- popup blocked
         {alert_message} = require('./alerts')
+        if url
+            message = "Either enable popups for this website or <a href='#{url}' target='_blank'>click on this link</a>."
+        else
+            message = "Enable popups for this website and try again."
         alert_message
-            title   : "Pop-ups blocked."
-            message : "Either enable pop-ups for this website or <a href='#{url}' target='_blank'>click on this link</a>."
+            title   : "Popups blocked."
+            message : message
             type    : 'info'
             timeout : 15
         return null

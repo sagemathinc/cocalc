@@ -39,17 +39,17 @@ exports.FrameTitleBar = rclass
     displayName: 'CodeEditor-FrameTitleBar'
 
     propTypes :
-        actions    : rtypes.object.isRequired
-        path       : rtypes.string  # assumed to not change for now
-        project_id : rtypes.string  # assumed to not change for now
+        actions             : rtypes.object.isRequired
+        path                : rtypes.string  # assumed to not change for now
+        project_id          : rtypes.string  # assumed to not change for now
 
-        active_id  : rtypes.string
-        id         : rtypes.string
-        deletable  : rtypes.bool
-        read_only  : rtypes.bool
+        active_id           : rtypes.string
+        id                  : rtypes.string
+        deletable           : rtypes.bool
+        read_only           : rtypes.bool
         has_unsaved_changes : rtypes.bool
-        is_full    : rtypes.bool
-        is_only    : rtypes.bool    # is the only frame
+        is_full             : rtypes.bool
+        is_only             : rtypes.bool    # is the only frame
 
     shouldComponentUpdate: (next) ->
         return misc.is_different(@props, next, ['active_id', 'id', 'deletable', 'is_full', 'is_only', \
@@ -235,10 +235,12 @@ exports.FrameTitleBar = rclass
             </Button>
         </ButtonGroup>
 
+    show_labels: ->
+        return @props.is_only or @props.is_full
 
     render_save_timetravel_group: ->
         disabled = not @props.has_unsaved_changes or @props.read_only
-        labels   = @props.is_only or @props.is_full
+        labels   = @show_labels()
         <ButtonGroup key={'save-group'}>
             <Button
                 key      = {'save'}
@@ -256,31 +258,19 @@ exports.FrameTitleBar = rclass
                 bsStyle = {'info'}
                 bsSize  = {@button_size()}
                 onClick = {@props.actions.time_travel} >
-                <Icon name='history' />
-                {if labels then 'TimeTravel'}
+                <Icon name='history' /> <VisibleMDLG>{if labels then 'TimeTravel'}</VisibleMDLG>
             </Button>
         </ButtonGroup>
 
-    render_print_spinner: ->
-        if @props.printing
-            <span>
-                <Space />
-                <Spinner />
-            </span>
-
     render_print: ->
-        <Tip
-            placement = {'left'}
-            title     = {'Print file to PDF.'}>
-            <Button
-                bsSize   = {@button_size()}
-                key      = {'print'}
-                onClick  = {@props.actions.print}
-                disabled = {@props.read_only} >
-                <Icon name={'print'} />
-                {@render_print_spinner()}
-            </Button>
-        </Tip>
+        <Button
+            bsSize   = {@button_size()}
+            key      = {'print'}
+            onClick  = {@props.actions.print}
+            title    = {'Print file to PDF'}
+            >
+            <Icon name={'print'} /> <VisibleMDLG>{if @show_labels() then 'Print'}</VisibleMDLG>
+        </Button>
 
     render_file_menu: ->
         if not (@props.is_only or @props.is_full)
@@ -314,6 +304,8 @@ exports.FrameTitleBar = rclass
             {@render_zoom_group()}
             {<Space />}
             {@render_find_replace_group()}
+            {<Space/>}
+            {@render_print()}
         </div>
 
     render_path: ->

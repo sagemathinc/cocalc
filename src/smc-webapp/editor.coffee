@@ -2069,11 +2069,6 @@ exports.register_nonreact_editors = () ->
     # Make non-react editors available in react rewrite
     reg = require('./editor_react_wrapper').register_nonreact_editor
 
-    reg
-        ext       : ''  # fallback for any type not otherwise explicitly specified
-        f         : (project_id, path, opts) -> codemirror_session_editor(project_id, path, opts)
-        is_public : false
-
     # wrapper for registering private and public editors
     register = (is_public, cls, extensions) ->
         require.ensure [], ->
