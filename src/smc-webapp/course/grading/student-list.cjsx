@@ -144,6 +144,7 @@ exports.StudentList = rclass
         assignment_id = @props.assignment.get('assignment_id')
         whoelse = @props.cursors.getIn([assignment_id, student_id])
         whoelse?.map (time, account_id) =>
+            # filter myself and old cursors
             return if account_id == @props.account_id or time < min_10_ago
             presence.push(
                 <Avatar
@@ -155,15 +156,16 @@ exports.StudentList = rclass
             return
 
         style =
-            marginLeft     : '10px'
+            marginRight    : '10px'
             display        : 'inline-block'
             marginTop      : '-5px'
             marginBottom   : '-5px'
+            float          : 'right'
 
         if presence.length > 0
-            <div style={style}>
+            <span style={style}>
                 {presence}
-            </div>
+            </span>
 
 
     render_student_list_entries: ->
@@ -193,9 +195,9 @@ exports.StudentList = rclass
                         />
                     </div> if account_id?}
                     {name}
-                    {@render_student_list_presenece(student_id)}
                 </span>
                 {@render_student_list_entries_info(active, grade_val, points, is_collected)}
+                {@render_student_list_presenece(student_id)}
             </li>
 
         if list.size == 0
@@ -212,7 +214,11 @@ exports.StudentList = rclass
                 {@student_list_filter()}
             </Row>
             <Row style={FLEX_LIST_CONTAINER} key={2}>
-                <ul className='list-group' ref='student_list' style={LIST_STYLE}>
+                <ul
+                    className = {'list-group'}
+                    ref       = {'student_list'}
+                    style     = {LIST_STYLE}
+                >
                     {@render_student_list_entries()}
                 </ul>
             </Row>

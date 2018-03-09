@@ -44,16 +44,16 @@ exports.Grade = rclass
 
     getInitialState: ->
         editing_grade   : false
-        edited_grade    : @props.store.get_grade(@props.assignment, @props.student_id)
-        edited_comments : @props.store.get_comments(@props.assignment, @props.student_id)
+        edited_grade    : ''
+        edited_comments : ''
         grade_value     : ''
         grade_comments  : ''
 
-    componentWillReceiveProps: (next) ->
+    componentWillReceiveProps: (props) ->
         return if not @props.student_id?
-        if misc.is_different(@props, next, ['assignment'])
-            grade      = @props.store.get_grade(@props.assignment, @props.student_id)
-            comment    = @props.store.get_comments(@props.assignment, @props.student_id)
+        if misc.is_different(@props, props, ['assignment', 'student_id'])
+            grade      = props.store.get_grade(props.assignment, props.student_id)
+            comment    = props.store.get_comments(props.assignment, props.student_id)
             @setState(
                 grade_value     : grade
                 grade_comments  : comment
@@ -61,10 +61,10 @@ exports.Grade = rclass
                 edited_comments : comment
             )
 
-    shouldComponentUpdate: (next, state) ->
+    shouldComponentUpdate: (props, state) ->
         s = misc.is_different(@state, state, ['editing_grade', 'edited_grade', 'edited_comments', 'grade_value', 'grade_comments'])
-        x = misc.is_different(@props, next, ['assignment', 'student_id'])
-        y = @props.list_of_grades? and (not @props.list_of_grades.equals(next.list_of_grades))
+        x = misc.is_different(@props, props, ['assignment', 'student_id'])
+        y = @props.list_of_grades? and (not @props.list_of_grades.equals(props.list_of_grades))
         return s or x or y
 
     save_grade: (e, grade) ->

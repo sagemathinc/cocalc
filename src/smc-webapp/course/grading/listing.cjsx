@@ -241,7 +241,7 @@ exports.Listing = rclass
 
     render_points_subdir: (subdir) ->
         p = @props.store.get_points_subdir(@props.assignment, @props.student_id, subdir)
-        return "Sum: #{p} #{misc.plural('pt', p)}."
+        return "Sum: #{p} #{misc.plural(p, 'pt')}."
 
     open_subdir: (subdir) ->
         if @props.subdir.length > 0
