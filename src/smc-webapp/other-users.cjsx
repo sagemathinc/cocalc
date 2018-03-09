@@ -64,7 +64,7 @@ exports.Avatar = Avatar = rclass
         activity   : rtypes.object   # if given; is most recent activity -- {project_id:?, path:?, last_used:?} object;
                                      # When defined, fade out over time; click goes to that file.
         no_tooltip : rtypes.bool     # if true, do not show a tooltip with full name info
-        no_loading : rtypes.bool     # if true do not show a loading indicator (show nothing)
+        no_loading : rtypes.bool     # if true, do not show a loading indicator (show nothing)
 
     getDefaultProps: ->
         size      : 30
@@ -119,7 +119,13 @@ exports.Avatar = Avatar = rclass
     get_cursor_line: ->
         return if not @props.activity?
         {project_id, path} = @props.activity
-        line = redux.getProjectStore(project_id).get_users_cursors(path, @props.account_id)?[0]?['y']
+        cursors = redux.getProjectStore(project_id).get_users_cursors(path, @props.account_id)
+        if not cursors?
+            return
+        # TODO -- will just assume immutable.js when react rewrite is done.
+        if cursors.toJS?
+            cursors = cursors.toJS()
+        line = cursors[0]?['y']
         if line?
             return line + 1
         else

@@ -46,8 +46,7 @@ exports.DescriptionEditor = rclass
         return @props.task_id    != next.task_id    or \
                @props.desc       != next.desc       or \
                @props.font_size  != next.font_size  or \
-               @props.is_current != next.is_current or \
-               @props.font_size  != next.font_size
+               @props.is_current != next.is_current
 
     componentDidMount: ->
         @init_codemirror(@props.desc)

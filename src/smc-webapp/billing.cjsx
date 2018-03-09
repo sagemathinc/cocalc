@@ -968,7 +968,11 @@ AddSubscription = rclass
                     {<ConfirmPaymentMethod
                         is_recurring = {@is_recurring()}
                     /> if @props.selected_plan isnt ''}
-                    {<CouponAdder applied_coupons={@props.applied_coupons} coupon_error={@props.coupon_error} />}
+                    <Row>
+                        <Col sm={5} smOffset={7}>
+                            {<CouponAdder applied_coupons={@props.applied_coupons} coupon_error={@props.coupon_error} />}
+                        </Col>
+                    </Row>
                     {@render_create_subscription_buttons()}
                 </Well>
                 <ExplainResources type='shared'/>
@@ -1036,7 +1040,14 @@ CouponAdder = rclass
         e?.preventDefault()
         @actions('billing').get_coupon(@state.coupon_id) if @state.coupon_id
 
+    render_well_header: ->
+        if @props.applied_coupons?.size > 0
+            <h5 style={color:'green'}><Icon name='check' /> Coupon added!</h5>
+        else
+            <h5 style={color:'#666'}><Icon name='plus' /> Add a coupon?</h5>
+
     render: ->
+
         # TODO: (Here or elsewhere) Your final cost is:
         #       $2 for the first month
         #       $7/mo after the first
@@ -1045,8 +1056,13 @@ CouponAdder = rclass
         else
             placeholder_text = 'Enter your code here...'
 
+        if @state.coupon_id == ''
+            bsStyle = undefined
+        else
+            bsStyle = 'primary'
+
         <Well>
-            <h5 style={color:'#666'}><Icon name='plus' /> Add a coupon?</h5>
+            {@render_well_header()}
             {<CouponList applied_coupons={@props.applied_coupons} /> if @props.applied_coupons?.size > 0}
             {<FormGroup style={marginTop:'5px'}>
                 <InputGroup>
@@ -1058,16 +1074,16 @@ CouponAdder = rclass
                         placeholder = {placeholder_text}
                         onChange    = {(e) => @setState(coupon_id : e.target.value)}
                         onKeyDown   = {@key_down}
+                        onBlur      = {@submit}
                     />
                     <InputGroup.Button>
-                        <Button onClick={@submit} disabled={@state.coupon_id == ''}>
-                            <Icon name='check' />
+                        <Button onClick={@submit} disabled={@state.coupon_id == ''} bsStyle={bsStyle} >
+                            Apply
                         </Button>
                     </InputGroup.Button>
                 </InputGroup>
             </FormGroup> if @props.applied_coupons?.size == 0}
             {<SkinnyError error_text={@props.coupon_error} on_close={@actions('billing').clear_coupon_error} /> if @props.coupon_error}
-            {<div style={color:'rgb(153, 153, 153)', fontWeight:'200'}>No coupons applied</div> if @props.applied_coupons?.size == 0}
         </Well>
 
 CouponList = rclass

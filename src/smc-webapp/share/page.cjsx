@@ -77,7 +77,7 @@ exports.Page = rclass
                     crossOrigin = "anonymous" />
 
                 {### codemirror CDN -- https://cdnjs.com/libraries/codemirror ###}
-                <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.31.0/codemirror.min.css" />
+                <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.35.0/codemirror.min.css" />
 
                 {@render_favicon()}
                 {@render_css()}

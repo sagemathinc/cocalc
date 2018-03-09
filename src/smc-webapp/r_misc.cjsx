@@ -262,12 +262,12 @@ exports.ErrorDisplay = ErrorDisplay = rclass
     displayName : 'Misc-ErrorDisplay'
 
     propTypes :
-        error   : rtypes.oneOfType([rtypes.string,rtypes.object])
+        error           : rtypes.oneOfType([rtypes.string,rtypes.object])
         error_component : rtypes.any
-        title   : rtypes.string
-        style   : rtypes.object
-        bsStyle : rtypes.string
-        onClose : rtypes.func       # TODO: change to on_close everywhere...?
+        title           : rtypes.string
+        style           : rtypes.object
+        bsStyle         : rtypes.string
+        onClose         : rtypes.func       # TODO: change to on_close everywhere...?
 
     render_close_button: ->
         <CloseX on_close={@props.onClose} style={fontSize:'11pt'} />
@@ -294,6 +294,10 @@ exports.ErrorDisplay = ErrorDisplay = rclass
             {@render_title() if @props.title}
             {error}
         </Alert>
+
+exports.Spinner = rclass
+    render : ->
+        <Icon name='spinner' spin={true} />
 
 exports.Footer = rclass
     displayName : "Footer"
@@ -604,7 +608,7 @@ exports.TimeAgoElement = rclass
             @render_timeago_element(d)
 
     render_absolute: (d) ->
-        <span style={color: '#666'}>{d.toLocaleString()}</span>
+        <span>{d.toLocaleString()}</span>
 
     render: ->
         d = if misc.is_date(@props.date) then @props.date else new Date(@props.date)
@@ -620,8 +624,8 @@ exports.TimeAgoElement = rclass
         else
             @render_timeago(d)
 
-exports.TimeAgo = rclass
-    displayName : 'Misc-TimeAgo'
+TimeAgoWrapper = rclass
+    displayName : 'Misc-TimeAgoWrapper'
 
     propTypes :
         popover   : rtypes.bool
@@ -648,6 +652,34 @@ exports.TimeAgo = rclass
             live              = {@props.live}
             time_ago_absolute = {@props.other_settings?.get('time_ago_absolute') ? false}
         />
+
+# The TimeAgoWrapper above is absolutely really necessary **until** the react rewrite is completely
+# done.  The reason is that currently we have some non-redux new react stuff that has timeago init,
+# e.g., for the TimeTravel view.
+exports.TimeAgo = rclass
+    displayName : 'Misc-TimeAgo-redux'
+
+    propTypes :
+        popover   : rtypes.bool
+        placement : rtypes.string
+        tip       : rtypes.string     # optional body of the tip popover with title the original time.
+        live      : rtypes.bool       # whether or not to auto-update
+        date      : rtypes.oneOfType([rtypes.string, rtypes.object, rtypes.number])  # date object or something that convert to date
+
+    shouldComponentUpdate: (props) ->
+        return is_different_date(@props.date, props.date) or \
+               misc.is_different(@props, props, ['popover', 'placement', 'tip', 'live'])
+
+    render: ->
+        <Redux redux={redux}>
+            <TimeAgoWrapper
+                date      = {@props.date}
+                popover   = {@props.popover}
+                placement = {@props.placement}
+                tip       = {@props.tip}
+                live      = {@props.live}
+            />
+        </Redux>
 
 # Important:
 # widget can be controlled or uncontrolled -- use default_value for an *uncontrolled* widget
@@ -1012,7 +1044,7 @@ exports.Tip = Tip = rclass
         rootClose : rtypes.bool
         icon      : rtypes.string
         id        : rtypes.string   # can be used for screen readers (otherwise defaults to title)
-        style     : rtypes.object   # changing not checked when updating.
+        style     : rtypes.object   # changing not checked when updating if stable is true
         stable    : rtypes.bool     # if true, children assumed to never change
 
     shouldComponentUpdate: (props, state) ->
@@ -1338,7 +1370,7 @@ exports.NonMemberProjectWarning = (opts) ->
         if total > 0
             suggestion = <span>Your {total} members-only hosting {misc.plural(total,'upgrade')} are already in use on other projects.  You can <a href={url} target='_blank' style={cursor:'pointer'}>purchase further upgrades </a> by adding a subscription (you can add the same subscription multiple times), or disable member-only hosting for another project to free a spot up for this one.</span>
         else
-            suggestion = <span><Space /><a href={url} target='_blank' style={cursor:'pointer'}>Subscriptions start at only $7/month.</a></span>
+            suggestion = <span><Space /><a href={url} target='_blank' style={cursor:'pointer'}>Subscriptions start at only $14/month.</a></span>
 
     <Alert bsStyle='warning' style={marginTop:'10px'}>
         <h4><Icon name='exclamation-triangle'/>  Warning: this project is <strong>running on a free server</strong></h4>
@@ -1361,7 +1393,7 @@ exports.NoNetworkProjectWarning = (opts) ->
         if total > 0
             suggestion = <span>Your {total} internet access {misc.plural(total,'upgrade')} are already in use on other projects.  You can <a href={url} target='_blank' style={cursor:'pointer'}>purchase further upgrades </a> by adding a subscription (you can add the same subscription multiple times), or disable an internet access upgrade for another project to free a spot up for this one.</span>
         else
-            suggestion = <span><Space /><a href={url} target='_blank' style={cursor:'pointer'}>Subscriptions start at only $7/month.</a></span>
+            suggestion = <span><Space /><a href={url} target='_blank' style={cursor:'pointer'}>Subscriptions start at only $14/month.</a></span>
 
     <Alert bsStyle='warning' style={marginTop:'10px'}>
         <h4><Icon name='exclamation-triangle'/>  Warning: this project <strong>does not have full internet access</strong></h4>
@@ -1422,16 +1454,23 @@ exports.ProjectState = rclass
 # info button inside the editor when editing a file. links you back to the file listing with the action prompted
 # TODO: move this somewhere else once editor is rewritten
 {DropdownButton, MenuItem} = require('react-bootstrap')
-EditorFileInfoDropdown = rclass
+exports.EditorFileInfoDropdown = EditorFileInfoDropdown = rclass
     displayName : 'Misc-EditorFileInfoDropdown'
 
     propTypes :
         filename  : rtypes.string.isRequired # expects the full path name
         actions   : rtypes.object.isRequired
         is_public : rtypes.bool
+        bsSize    : rtypes.string
+        label     : rtypes.string
+        style     : rtypes.object
+
+    shouldComponentUpdate: (next) ->
+        return next.filename != @props.filename or next.is_public != next.is_public
 
     getDefaultProps: ->
         is_public : false
+        style     : {marginRight:'2px'}
 
     handle_click: (name) ->
         @props.actions.show_file_action_panel
@@ -1457,16 +1496,23 @@ EditorFileInfoDropdown = rclass
         for name, icon of items
             @render_menu_item(name, icon)
 
-    render_dropdown_button: (bsSize, className) ->
-        <DropdownButton style={marginRight:'2px'} id='file_info_button' bsStyle='info' bsSize={bsSize} title={<Icon name='info-circle' />} className={className}>
-            {@render_menu_items()}
-        </DropdownButton>
+    render_title: ->
+        <span>
+            <span className={'hidden-xs'}>
+                <Icon name={'file'}/> {@props.label ? ''}
+                <Space />
+            </span>
+        </span>
 
     render: ->
-        <div>
-            {@render_dropdown_button('large', 'pull-left visible-xs')}
-            {@render_dropdown_button(null, 'pull-left hidden-xs')}
-        </div>
+        <DropdownButton
+            style   = {@props.style}
+            id      = 'file_info_button'
+            title   = {@render_title()}
+            bsSize  = {@props.bsSize}
+            >
+            {@render_menu_items()}
+        </DropdownButton>
 
 exports.render_file_info_dropdown = (filename, actions, dom_node, is_public) ->
     ReactDOM.render(<EditorFileInfoDropdown filename={filename} actions={actions} is_public={is_public} />, dom_node)
@@ -1869,3 +1915,25 @@ exports.CopyToClipBoard = rclass
                 {@render_button_after() unless @props.hide_after}
             </InputGroup>
         </FormGroup>
+
+# See https://getbootstrap.com/docs/3.3/css/
+# HiddenXS = hide if width < 768px
+exports.HiddenXS = rclass
+    render: ->
+        <span className={'hidden-xs'}>
+            {@props.children}
+        </span>
+
+# VisibleMDLG = visible on medium or large devices (anything with width > 992px)
+exports.VisibleMDLG = rclass
+    render: ->
+        <span className={'visible-md-inline visible-lg-inline'}>
+            {@props.children}
+        </span>
+
+# VisibleMDLG = visible on medium or large devices (anything with width > 992px)
+exports.VisibleLG = rclass
+    render: ->
+        <span className={'visible-lg-inline'}>
+            {@props.children}
+        </span>

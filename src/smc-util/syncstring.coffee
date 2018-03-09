@@ -247,6 +247,19 @@ class SortedPatchList extends EventEmitter
             t += n
         return new Date(t)
 
+    _ensure_time_field_is_valid: (patch, field) ->
+        # Ensure patch[field] is a valid Date object or undefined; if neither, returns true,
+        # which means this patch is hopeless corrupt and should be ignored
+        # (should be impossible given postgres data types)
+        val = patch[field]
+        if not val? or misc.is_date(val)
+            return
+        try
+            patch[field] = misc.ISO_to_Date(val)
+            return false
+        catch err
+            return true # BAD
+
     add: (patches) =>
         if patches.length == 0
             # nothing to do
@@ -256,15 +269,11 @@ class SortedPatchList extends EventEmitter
         oldest = undefined
         for x in patches
             if x?
-                if not misc.is_date(x.time)
-                    # ensure that time is not a string representation of a time
-                    try
-                        x.time = misc.ISO_to_Date(x.time)
-                        if isNaN(x.time) # ignore bad times
-                            continue
-                    catch err
-                        # ignore invalid times
-                        continue
+                # ensure that time and prev fields is a valid Date object
+                if @_ensure_time_field_is_valid(x, 'time')
+                    continue
+                if @_ensure_time_field_is_valid(x, 'prev')
+                    continue
                 t   = x.time - 0
                 cur = @_times[t]
                 if cur?
@@ -311,17 +320,20 @@ class SortedPatchList extends EventEmitter
     there is one; this is used to update snapshots in case of offline changes
     getting inserted into the changelog.
 
-    If without is defined, it must be an array of Date objects; in that case
+    If without_times is defined, it must be an array of Date objects; in that case
     the current value of the string is computed, but with all the patches
-    at the given times in "without" ignored.  This is used elsewhere as a building
-    block to implement undo.
+    at the given times in "without_times" ignored.  This is used elsewhere
+    as a building block to implement undo.
     ###
     value: (time, force=false, without_times=undefined) =>
         #start_time = new Date()
-        # If the time is specified, verify that it is valid; otherwise, convert it to a valid time.
+
         if time? and not misc.is_date(time)
+            # If the time is specified, verify that it is valid; otherwise, convert it to a valid time.
             time = misc.ISO_to_Date(time)
+
         if without_times?
+            # Process without_times to get a map from time numbers to true.
             if not misc.is_array(without_times)
                 throw Error("without_times must be an array")
             if without_times.length > 0
@@ -340,7 +352,8 @@ class SortedPatchList extends EventEmitter
                 else
                     without_times = v # change to map from time in ms to true.
 
-        prev_cutoff = @newest_snapshot_time()
+        prev_cutoff = @newest_snapshot_time()   # we do not discard patch due to prev if prev is before this.
+
         # Determine oldest cached value
         oldest_cached_time = @_cache.oldest_time()  # undefined if nothing cached
         # If the oldest cached value exists and is at least as old as the requested
@@ -359,7 +372,7 @@ class SortedPatchList extends EventEmitter
                 if time? and x.time > time
                     # Done -- no more patches need to be applied
                     break
-                if not x.prev? or @_times[x.prev - 0] or +x.prev >= +prev_cutoff
+                if not x.prev? or @_times[x.prev - 0] or +x.prev <= +prev_cutoff
                     if not without? or (without? and not without_times[+x.time])
                         # apply patch x to update value to be closer to what we want
                         value = value.apply_patch(x.patch)
@@ -398,7 +411,7 @@ class SortedPatchList extends EventEmitter
                     break
                 # Apply a patch to move us forward.
                 #console.log("applying patch #{i}")
-                if not x.prev? or @_times[x.prev - 0] or +x.prev >= +prev_cutoff
+                if not x.prev? or @_times[x.prev - 0] or +x.prev <= +prev_cutoff
                     if not without? or (without? and not without_times[+x.time])
                         value = value.apply_patch(x.patch)
                 cache_time = x.time
@@ -416,10 +429,11 @@ class SortedPatchList extends EventEmitter
         return value
 
     # VERY Slow -- only for consistency checking purposes and debugging.
-    # If force=true, don't use snapshots.
+    # If snapshots=false, don't use snapshots.
     _value_no_cache: (time, snapshots=true) =>
         value = @_from_str('') # default in case no snapshots
         start = 0
+        prev_cutoff = @newest_snapshot_time()
         if snapshots and @_patches.length > 0  # otherwise the [..] notation below has surprising behavior
             for i in [@_patches.length-1 .. 0]
                 if (not time? or +@_patches[i].time <= +time) and @_patches[i].snapshot?
@@ -435,7 +449,10 @@ class SortedPatchList extends EventEmitter
             if time? and x.time > time
                 # Done -- no more patches need to be applied
                 break
-            value = value.apply_patch(x.patch)
+            if not x.prev? or @_times[x.prev - 0] or +x.prev <= +prev_cutoff
+                value = value.apply_patch(x.patch)
+            else
+                console.log 'skipping patch due to prev', x
         return value
 
     # For testing/debugging.  Go through the complete patch history and
@@ -495,7 +512,7 @@ class SortedPatchList extends EventEmitter
             opts.log("-----------------------------------------------------\n", i, x.user_id, tm,  misc.trunc_middle(JSON.stringify(x.patch), opts.trunc))
             if not s?
                 s = @_from_str(x.snapshot ? '')
-            if not x.prev? or @_times[x.prev - 0] or +x.prev >= +prev_cutoff
+            if not x.prev? or @_times[x.prev - 0] or +x.prev <= +prev_cutoff
                 t = s.apply_patch(x.patch)
             else
                 opts.log("prev=#{x.prev} missing, so not applying")
@@ -561,7 +578,7 @@ class SyncDoc extends EventEmitter
         super()
         @_opts = opts = defaults opts,
             save_interval     : 1500
-            cursor_interval   : 2000
+            cursor_interval   : 1000
             patch_interval    : 1000       # debouncing of incoming upstream patches
             file_use_interval : 'default'  # throttles: default is 60s for everything except .sage-chat files, where it is 10s.
             string_id         : undefined
@@ -632,12 +649,13 @@ class SyncDoc extends EventEmitter
 
         if opts.cursors
             # Initialize throttled cursors functions
-            set_cursor_locs = (locs) =>
+            set_cursor_locs = (locs, side_effect) =>
                 x =
                     string_id : @_string_id
                     user_id   : @_user_id
                     locs      : locs
-                    time      : @_client.server_time()
+                if not side_effect
+                    x.time = @_client.server_time()
                 @_cursors?.set(x, 'none')
             @_throttled_set_cursor_locs = underscore.throttle(set_cursor_locs, @_opts.cursor_interval)
 
@@ -894,7 +912,6 @@ class SyncDoc extends EventEmitter
         if @_project_autosave?
             clearInterval(@_project_autosave)
             delete @_project_autosave
-        delete @_cursor_throttled
         delete @_cursor_map
         delete @_users
         @_syncstring_table?.close()
@@ -910,13 +927,9 @@ class SyncDoc extends EventEmitter
         @_evaluator?.close()
         delete @_evaluator
 
-    reconnect: (cb) =>
-        @close()
-        @connect(cb)
-
     connect: (cb) =>
         if not @_closed
-            cb("already connected")
+            cb?("already connected")
             return
         query =
             syncstrings :
@@ -1196,7 +1209,7 @@ class SyncDoc extends EventEmitter
                     user_id   : null
                     locs      : null
                     time      : null
-            @_cursors = @_client.sync_table(query)
+            @_cursors = @_client.sync_table(query, [], @_opts.cursor_interval)
             @_cursors.once 'connected', =>
                 # cursors now initialized; first initialize the local @_cursor_map,
                 # which tracks positions of cursors by account_id:
@@ -1208,14 +1221,6 @@ class SyncDoc extends EventEmitter
             # @_other_cursors is an immutable.js map from account_id's
             # to list of cursor positions of *other* users (starts undefined).
             @_cursor_map = undefined
-            @_cursor_throttled = {}  # throttled event emitters for each account_id
-            emit_cursor_throttled = (account_id) =>
-                t = @_cursor_throttled[account_id]
-                if not t?
-                    f = () =>
-                        @emit('cursor_activity', account_id)
-                    t = @_cursor_throttled[account_id] = underscore.throttle(f, @_opts.cursor_interval)
-                t()
 
             @_cursors.on 'change', (keys) =>
                 if @_closed
@@ -1223,13 +1228,13 @@ class SyncDoc extends EventEmitter
                 for k in keys
                     account_id = @_users[JSON.parse(k)?[1]]
                     @_cursor_map = @_cursor_map.set(account_id, @_cursors.get(k))
-                    emit_cursor_throttled(account_id)
+                    @emit('cursor_activity', account_id)
 
     # Set this users cursors to the given locs.  This function is
     # throttled, so calling it many times is safe, and all but
     # the last call is discarded.
     # NOTE: no-op if only one user or cursors not enabled for this doc
-    set_cursor_locs: (locs) =>
+    set_cursor_locs: (locs, side_effect) =>
         if @_closed
             return
         if @_users.length <= 2
@@ -1238,7 +1243,7 @@ class SyncDoc extends EventEmitter
             # own cursors - just other user's cursors.  This simple optimization will save tons
             # of bandwidth, since many files are never opened by more than one user.
             return
-        @_throttled_set_cursor_locs?(locs)
+        @_throttled_set_cursor_locs?(locs, side_effect)
         return
 
     # returns immutable.js map from account_id to list of cursor positions, if cursors are enabled.
@@ -1453,8 +1458,8 @@ class SyncDoc extends EventEmitter
         return not @_last_snapshot or @_load_full_history_done
 
     load_full_history: (cb) =>
-        dbg = @dbg("load_full_history")
-        dbg()
+        #dbg = @dbg("load_full_history")
+        #dbg()
         if @has_full_history()
             #dbg("nothing to do, since complete history definitely already loaded")
             cb?()
@@ -1759,8 +1764,14 @@ class SyncDoc extends EventEmitter
             return
         return @_syncstring_table?.get_one()?.get('read_only')
 
+    # This should only be called after the syncstring is initialized (hence connected), since
+    # otherwise @_syncstring_table isn't defined yet (it gets defined during connect).
     wait_until_read_only_known: (cb) =>
+        if @_closed
+            cb("syncstring is closed")
+            return
         if not @_syncstring_table?
+            # should never happen
             cb("@_syncstring_table must be defined")
             return
         @_syncstring_table.wait
@@ -1848,12 +1859,6 @@ class SyncDoc extends EventEmitter
                         # closed during save
                         cb()
                         return
-                    if err
-                        # TODO: This should in theory never be necessary, and I've resisted adding
-                        # it for five years.  However, here it is:
-                        console.warn("'#{@_path}': failed to save to disk; initiating syncstring reconnect")
-                        @reconnect (err) =>
-                            console.warn("'#{@_path}': reconnect got ", err)
                     cb(err)
 
     # Save this file to disk, if it is associated with a project and has a filename.

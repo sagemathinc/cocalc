@@ -1489,7 +1489,6 @@ ProjectFilesActionBox = rclass
 
     stop_sharing_click: ->
         @props.actions.disable_public_path(@props.checked_files.first())
-        @props.actions.set_file_action()
 
     render_share_warning: ->
         <Alert bsStyle='warning' style={wordWrap:'break-word'}>
@@ -1589,6 +1588,10 @@ ProjectFilesActionBox = rclass
                     </FormGroup>
                     {@render_share_warning() if parent_is_public}
                 </Col>
+                <Col sm={4} style={color:'#666'}>
+                    <h4>Items</h4>
+                    {@render_selected_files_list()}
+                </Col>
                 {<Col sm={4} style={color:'#666'}>
                     <h4>Shared publicly</h4>
                     <CopyToClipBoard
@@ -1597,10 +1600,6 @@ ProjectFilesActionBox = rclass
                         hide_after    = {true}
                     />
                 </Col> if single_file_data.is_public}
-                <Col sm={4} style={color:'#666'}>
-                    <h4>Items</h4>
-                    {@render_selected_files_list()}
-                </Col>
             </Row>
             <Row>
                 <Col sm={4}>
@@ -2257,7 +2256,7 @@ exports.ProjectFiles = rclass ({name}) ->
                 else
                     if error == 'no_instance' or (require('./customize').commercial and quotas? and not quotas?.member_host)
                         # the second part of the or is to blame it on the free servers...
-                        e = <ErrorDisplay title="Project unavailable" error={"This project seems to not be responding.   Free projects are hosted on massively overloaded computers, which are rebooted at least once per day and periodically become unavailable.   To increase the robustness of your projects, please become a paying customer (US $7/month) by entering your credit card in the Billing tab next to account settings, then move your projects to a members only server. \n\n#{error if not quotas?.member_host}"} />
+                        e = <ErrorDisplay title="Project unavailable" error={"This project seems to not be responding.   Free projects are hosted on massively overloaded computers, which are rebooted at least once per day and periodically become unavailable.   To increase the robustness of your projects, please become a paying customer (US $14/month) by entering your credit card in the Billing tab next to account settings, then move your projects to a members only server. \n\n#{error if not quotas?.member_host}"} />
                     else
                         e = <ErrorDisplay title="Directory listing error" error={error} />
             return <div>

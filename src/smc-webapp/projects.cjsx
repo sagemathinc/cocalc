@@ -1351,7 +1351,7 @@ exports.ProjectsPage = ProjectsPage = rclass
             else
                 return <div style={fontSize:'40px', textAlign:'center', color:'#999999'} > <Loading />  </div>
         visible_projects = @visible_projects()
-        <div className='container-content' style={overflow:'auto'}>
+        <div className='container-content' style={flex: '1', overflow:'auto'}>
             <Grid fluid className='constrained' style={minHeight:"75vh"}>
                 <Well style={marginTop:'1em',overflow:'hidden'}>
                     <Row>
