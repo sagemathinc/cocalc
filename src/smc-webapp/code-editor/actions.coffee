@@ -211,15 +211,31 @@ class exports.Actions extends Actions
     disable_key_handler: =>
         @redux.getActions('page').erase_active_key_handler(@_key_handler)
 
+    # Set has_unsaved_changes to the given value; also, if
+    # time is given, do not allow @set_save_status to change it
+    # for that many ms.
+    set_has_unsaved_changes: (value, time) =>
+        if @_lock_unsaved_changes
+            return
+        @setState(has_unsaved_changes: !!value)
+        if time?
+            @_lock_unsaved_changes = true
+            f = =>
+                @_lock_unsaved_changes = false
+                @set_save_status()
+            setTimeout(f, time)
+
     _init_has_unsaved_changes: =>  # basically copies from tasks/actions.coffee -- opportunity to refactor
         do_set = =>
+            if @_lock_unsaved_changes
+                return
             @setState
                 has_unsaved_changes     : @_syncstring?.has_unsaved_changes()
                 has_uncommitted_changes : @_syncstring?.has_uncommitted_changes()
         f = =>
             do_set()
             setTimeout(do_set, 3000)
-        @set_save_status = underscore.throttle(f, 750, true)
+        @set_save_status = underscore.debounce(f, 500)
         @_syncstring.on('metadata-change', @set_save_status)
         @_syncstring.on('connected',       @set_save_status)
 
@@ -273,17 +289,17 @@ class exports.Actions extends Actions
             cb?(err)
 
     save: (explicit) =>
-        @setState(has_unsaved_changes:false)
+        @set_has_unsaved_changes(false, 3000)
         # TODO: what about markdown, where do not want this...
         # and what about multiple syncstrings...
-        # TODO: Maybe just move this to some explicit menu of actions, which also includes several other formatting actions.
+        # TODO: Maybe just move this to some explicit menu of actions, which also includes
+        # several other formatting actions.
         # Doing this automatically is fraught with error, since cursors aren't precise...
         if explicit and @redux.getStore('account')?.getIn(['editor_settings', 'strip_trailing_whitespace'])
             @delete_trailing_whitespace()
         @_do_save =>
             # do it again...
-            setTimeout(@_do_save, 2000)
-
+            setTimeout(@_do_save, 500)
         if explicit
             @_active_cm()?.focus()
 
