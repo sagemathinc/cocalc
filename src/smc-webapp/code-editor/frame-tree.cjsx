@@ -202,6 +202,13 @@ exports.FrameTree = FrameTree = rclass
             </div>
         </div>
 
+    safari_hack: ->
+        if not $.browser.safari
+            return
+        # Workaround a major and annoying bug in Safari:
+        #     https://github.com/philipwalton/flexbugs/issues/132
+        $(ReactDOM.findDOMNode(@)).find(".cocalc-codemirror-editor-div").make_height_defined()
+
     render_rows_drag_bar: ->
         reset = =>
             if @refs.rows_drag_bar?
@@ -214,6 +221,7 @@ exports.FrameTree = FrameTree = rclass
             pos     = (clientY - elt.offsetTop) / elt.offsetHeight
             reset()
             @props.actions.set_frame_tree(id:@props.frame_tree.get('id'), pos:pos)
+            @safari_hack()
 
         <Draggable
             ref     = {'rows_drag_bar'}

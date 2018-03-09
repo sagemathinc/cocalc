@@ -114,10 +114,17 @@ exports.CodemirrorEditor = rclass
         @props.actions.set_syncstring_to_codemirror()
         @props.actions.syncstring_save()
 
+    safari_hack: ->
+        if not $.browser.safari
+            return
+        $(ReactDOM.findDOMNode(@)).make_height_defined()
+
     init_codemirror: ->
         node = $(ReactDOM.findDOMNode(@)).find("textarea")[0]
         if not node?
             return
+
+        @safari_hack()
 
         options = cm_options
             filename        : @props.path
@@ -197,7 +204,7 @@ exports.CodemirrorEditor = rclass
         style.fontSize = "#{@props.font_size}px"
         <div
             style     = {style}
-            className = 'smc-vfill' >
+            className = 'smc-vfill cocalc-codemirror-editor-div' >
             {@render_cursors()}
             <textarea />
         </div>
