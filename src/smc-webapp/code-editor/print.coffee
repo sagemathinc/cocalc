@@ -26,7 +26,7 @@ exports.print = (opts) ->
     options = immutable.fromJS(opts.options)
     options = options.delete('lineNumbers')   # doesn't work yet
 
-    # We add a trailing whitespace, since some printers grey the last line.
+    # We add a trailing whitespace, since some printers grey the last line (e.g., chrome, but not firefox)
     value = opts.value + '\n'
     C = React.createElement(CodeMirrorStatic, {value:value, options:options})
     s = ReactDOMServer.renderToStaticMarkup(C)

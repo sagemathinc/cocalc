@@ -182,7 +182,8 @@ exports.FrameTree = FrameTree = rclass
             style_second : {display:'flex', flex:1-pos}
 
         if flex_direction == 'row'
-            data.outer_style = {display:'flex', flexDirection:'row', flex:1}
+            # overflow:'hidden' is NOT needed on chrome, but *is* needed on Firefox.
+            data.outer_style = {display:'flex', flexDirection:'row', flex:1, overflow:'hidden'}
         else
             data.outer_style = undefined
         return data
