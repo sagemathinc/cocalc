@@ -335,11 +335,11 @@ exports.GradingStudentAssignment = rclass
                         <GradingStats all_points={@props.grading.all_points} />
                     </Col>
                     <Grade
-                        actions    = {@actions(@props.name)}
-                        store      = {@state.store}
-                        assignment = {@props.assignment}
-                        grading    = {@props.grading}
-                        student_id = {@props.grading.student_id}
+                        actions        = {@actions(@props.name)}
+                        store          = {@state.store}
+                        assignment     = {@props.assignment}
+                        student_id     = {@props.grading.student_id}
+                        list_of_grades = {@props.grading.list_of_grades}
                     />
                 </Row>
                 {###

@@ -25,7 +25,7 @@
 # React libraries
 {React, rclass, rtypes} = require('../../smc-react')
 {DateTimePicker, ErrorDisplay, Icon, LabeledRow, Loading, MarkdownInput, Space, Tip, NumberInput} = require('../../r_misc')
-{Alert, Button, ButtonToolbar, ButtonGroup, Form, FormControl, FormGroup, ControlLabel, InputGroup, Checkbox, Row, Col, Panel, Breadcrumb} = require('react-bootstrap')
+{Alert, Button, ButtonToolbar, ButtonGroup, Form, FormControl, FormGroup, ControlLabel, InputGroup, Checkbox, Row, Col, Panel, Dropdown, DropdownButton, MenuItem} = require('react-bootstrap')
 
 # grading specific
 {Grading} = require('./models')
@@ -36,11 +36,11 @@ exports.Grade = rclass
     displayName : 'CourseEditor-GradingStudentAssignment-Grade'
 
     propTypes :
-        actions       : rtypes.object.isRequired
-        store         : rtypes.object.isRequired
-        assignment    : rtypes.immutable.Map
-        grading       : rtypes.instanceOf(Grading).isRequired
-        student_id    : rtypes.string.isRequired
+        actions        : rtypes.object.isRequired
+        store          : rtypes.object.isRequired
+        assignment     : rtypes.immutable.Map
+        student_id     : rtypes.string.isRequired
+        list_of_grades : rtypes.immutable.OrderedSet
 
     getInitialState: ->
         editing_grade   : false
@@ -51,7 +51,7 @@ exports.Grade = rclass
 
     componentWillReceiveProps: (next) ->
         return if not @props.student_id?
-        if misc.is_different(@props, next, ['grading', 'assignment'])
+        if misc.is_different(@props, next, ['assignment'])
             grade      = @props.store.get_grade(@props.assignment, @props.student_id)
             comment    = @props.store.get_comments(@props.assignment, @props.student_id)
             @setState(
@@ -61,9 +61,14 @@ exports.Grade = rclass
                 edited_comments : comment
             )
 
-    save_grade: (e) ->
+    shouldComponentUpdate: (next) ->
+        x = misc.is_different(@props, next, ['assignment', 'student_id'])
+        y = @props.list_of_grades? and (not @props.list_of_grades.equals(next.list_of_grades))
+        return x or y
+
+    save_grade: (e, grade) ->
         e?.preventDefault?()
-        @props.actions.set_grade(@props.assignment, @props.student_id, @state.edited_grade)
+        @props.actions.set_grade(@props.assignment, @props.student_id, grade ? @state.edited_grade)
         @props.actions.set_comments(@props.assignment, @props.student_id, @state.edited_comments)
         @setState(editing_grade : false)
 
@@ -85,6 +90,28 @@ exports.Grade = rclass
     save_disabled: ->
         @state.edited_grade == @state.grade_value and @state.edited_comments == @state.grade_comments
 
+    grade_selected: (grade) ->
+        @save_grade(null, grade)
+
+    render_grade_dropdown_entries: ->
+        @props.list_of_grades.map (grade) =>
+            <MenuItem key={grade} eventKey={grade} onSelect={@grade_selected}>{grade}</MenuItem>
+
+    render_grade_dropdown: ->
+        <DropdownButton
+            componentClass = {InputGroup.Button}
+            title          = {''}
+            id             = {'course-grading-select-grade'}
+            pullRight
+        >
+        {
+            if @props.list_of_grades?.size > 0
+                @render_grade_dropdown_entries()
+            else
+                <MenuItem disabled>No known grades.</MenuItem>
+        }
+        </DropdownButton>
+
     grade_value_edit: ->
         <form key={'grade'} onSubmit={@save_grade}>
             <FormGroup>
@@ -102,6 +129,7 @@ exports.Grade = rclass
                         onKeyDown   = {@on_key_down_grade_editor}
                         onBlur      = {@save_grade}
                     />
+                    {@render_grade_dropdown()}
                     <InputGroup.Button>
                         <Button
                             bsStyle  = {'success'}
@@ -138,7 +166,8 @@ exports.Grade = rclass
         />
 
     render: ->
-        <Col md={4}>
+        # no clue why z-index 1 is necessary. otherwise the dropdown menu is behind the buttons below ...
+        <Col md={4} style={zIndex: '1'}>
             <Row>
                 {@grade_value_edit()}
             </Row>

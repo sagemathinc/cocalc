@@ -64,9 +64,11 @@ exports.Listing = rclass
         active_autogrades : immutable.Set()
 
     shouldComponentUpdate: (next) ->
-        misc.is_different(@props, next, \
-            ['assignment', 'listing', 'listing_files', 'num_pages', 'page_number', 'student_info',
+        x = misc.is_different(@props, next, \
+            ['assignment', 'listing', 'num_pages', 'page_number', 'student_info',
             'student_id', 'subdir' ,'without_grade', 'collected_files', 'show_all_files'])
+        y = @props.listing_files? and (not @props.listing_files.equals(next.listing_files))
+        return x or y
 
     filepath: (filename) ->
         path_join(@props.subdir, filename)
@@ -239,7 +241,7 @@ exports.Listing = rclass
 
     render_points_subdir: (subdir) ->
         p = @props.store.get_points_subdir(@props.assignment, @props.student_id, subdir)
-        return "Sum: #{p} pts."
+        return "Sum: #{p} #{misc.plural('pt', p)}."
 
     open_subdir: (subdir) ->
         if @props.subdir.length > 0

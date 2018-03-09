@@ -60,6 +60,7 @@ GradingRecord = immutable.Record
     listing         : null      # an immutable.js map, "files": a sorted and processed list, like they are in project_store (entries have a "mask" field); and "error": e.g. "no_dir"
     listing_files   : null      # an immutable.js list, derived from listing.get('files') in get_listing_files
     show_all_files  : false     # if true, we want to see all files including those which are masked
+    list_of_grades  : null      # distinctly known grades (must be a SortedSet)
     cursors         : null,     # information about other collaborators also grading an assignment (i.e. realtime presence information)
     'Grading'
 

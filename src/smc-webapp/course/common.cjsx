@@ -230,7 +230,7 @@ exports.StudentAssignmentInfo = rclass
 
     render_edit_points: ->
         style  = {float:'right', color:COLORS.GRAY}
-        points = "#{@props.points ? 0} pts."
+        points = "#{@props.points ? 0} #{misc.plural(@props.points, 'pt')}."
         if @props.edit_points
             <Tip
                 title    = {"Points for this collected assignment"}

@@ -117,7 +117,6 @@ exports.StudentList = rclass
             </FormGroup>
         </form>
 
-
     render_student_list_entries_info: (active, grade_val, points, is_collected) ->
         col = if active then COLORS.GRAY_LL else COLORS.GRAY
         info_style =
@@ -130,7 +129,7 @@ exports.StudentList = rclass
         return null if (not show_points) and (not show_grade)
         info = []
         if show_grade then info.push(misc.trunc(grade_val, 15))
-        if show_points then info.push("#{points ? 0} pts.")
+        if show_points then info.push("#{points ? 0} #{misc.plural(points, 'pt')}.")
 
         <span style={info_style}>
             {info.join(', ')}

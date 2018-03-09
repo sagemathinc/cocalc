@@ -19,7 +19,9 @@
 #
 ###############################################################################
 
+# Global libraries
 async       = require('async')
+immutable   = require('immutable')
 
 # React libraries
 {Actions, Store}  = require('../smc-react')
@@ -586,3 +588,10 @@ exports.CourseStore = class CourseStore extends Store
         # we assume throughout the code that all_points is sorted!
         all_points.sort((a, b) -> a - b)
         return [list, all_points]
+
+    get_list_of_grades: (assignment_id) ->
+        assignment = @get_assignment(assignment_id)
+        return if not assignment?
+        grades     = assignment.get('grades')
+        values     = immutable.Set(grades.values())
+        return values.sortBy((a) -> a.toLowerCase())

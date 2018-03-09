@@ -1902,7 +1902,10 @@ exports.CourseActions = class CourseActions extends Actions
             grading = grading.remove('total_points')
         else
             grading = grading.set('total_points', total_points)
-        grading = grading.set('current_idx', grading.get_current_idx())
+        grading = grading.merge(
+            current_idx    : grading.get_current_idx()
+            list_of_grades : store.get_list_of_grades(grading.assignment_id)
+        )
         grading = grading.merge(grading.get_listing_files())
         @setState(grading : grading)
 

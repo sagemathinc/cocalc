@@ -76,12 +76,13 @@ create_immutable_type_required_chain = (validate) ->
             return validate(props, propName, componentName, location)
 
     # To add more immutable.js types, mimic code below.
-    check_immutable_chain = allow_isRequired check_type.bind(null, undefined)
-    check_immutable_chain.Map = allow_isRequired check_type.bind(null, "Map")
-    check_immutable_chain.List = allow_isRequired check_type.bind(null, "List")
-    check_immutable_chain.Set = allow_isRequired check_type.bind(null, "Set")
-    check_immutable_chain.Stack = allow_isRequired check_type.bind(null, "Stack")
-    check_immutable_chain.category = "IMMUTABLE"
+    check_immutable_chain             = allow_isRequired check_type.bind(null, undefined)
+    check_immutable_chain.Map         = allow_isRequired check_type.bind(null, "Map")
+    check_immutable_chain.List        = allow_isRequired check_type.bind(null, "List")
+    check_immutable_chain.Set         = allow_isRequired check_type.bind(null, "Set")
+    check_immutable_chain.OrderedSet  = allow_isRequired check_type.bind(null, "OrderedSet")
+    check_immutable_chain.Stack       = allow_isRequired check_type.bind(null, "Stack")
+    check_immutable_chain.category    = "IMMUTABLE"
 
     return check_immutable_chain
 
