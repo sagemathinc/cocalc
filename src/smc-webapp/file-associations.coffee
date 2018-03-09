@@ -62,7 +62,6 @@ codemirror_associations =
     rb     : 'text/x-ruby'
     ru     : 'text/x-ruby'
     sage   : 'python'
-    sagews : 'sagews'
     scala  : 'text/x-scala'
     scm    : 'text/x-scheme'
     sh     : 'shell'
@@ -290,6 +289,10 @@ for ext in 'zip gz bz2 z lz xz lzma tgz tbz tbz2 tb2 taz tz tlz txz lzip'.split(
 file_associations['sage'].name = "sage code"
 file_associations['sage'].icon = 'cc-icon-sagemath-bold'
 
-file_associations['sagews'].name = "sage worksheet"
-file_associations['sagews'].exclude_from_menu = true
-file_associations['sagews'].icon = 'cc-icon-sagemath-file'
+file_associations['sagews'] =
+    editor            : 'sagews'
+    binary            : false
+    icon              : 'cc-icon-sagemath-file'
+    opts              : {mode:'sagews'}
+    name              : 'sagews'
+    exclude_from_menu : true

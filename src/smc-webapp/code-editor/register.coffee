@@ -16,7 +16,7 @@ misc                   = require('smc-util/misc')
 
 exports.register = ->
     register_file_editor
-        ext       : (key for key, value of file_associations when value.editor == 'codemirror' and key != 'sagews')
+        ext       : (key for key, value of file_associations when value.editor == 'codemirror')
 
         is_public : false
 
@@ -38,8 +38,8 @@ exports.register = ->
                 before_change_hook : actions.set_syncstring_to_codemirror
                 after_change_hook  : actions.set_codemirror_to_syncstring
 
-            if window.smc?
-                window.a = actions # for DEBUGGING
+            #if window.smc?
+            #    window.a = actions # for DEBUGGING
 
             actions._init(project_id, path, syncstring, store)
 
