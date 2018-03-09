@@ -49,7 +49,6 @@ exports.print = (opts) ->
     if w.window.print?
         f = ->
             w.window.print()
-            w.window.close()
         # Wait until the render is done, then display print dialog.
-        w.window.setTimeout(f, 0)
+        w.window.setTimeout(f, 250)
     return
