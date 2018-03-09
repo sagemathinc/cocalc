@@ -1472,7 +1472,7 @@ class CodeMirrorEditor extends FileEditor
                 return true
 
     examples_dialog_handler: () =>
-        # @examples_dialog is this ExampleActions object
+        # @examples_dialog is an ExampleActions object, unique for each editor instance
         if not @examples_dialog?
             $target = @mode_display.parent().find('.react-target')
             {render_examples_dialog} = require('./examples')
@@ -1493,14 +1493,17 @@ class CodeMirrorEditor extends FileEditor
         # ATTN: to make this work properly, code and descr need to have a newline at the end (stripped by default)
         if insert.descr?
             @syncdoc?.insert_new_cell(line)
-            cm.replaceRange("%md\n#{insert.descr}\n", {line : line+1, ch:0})
+            # insert a "hidden" markdown cell and evaluate it
+            cm.replaceRange("%md(hide=True)\n#{insert.descr}\n", {line : line+1, ch:0})
             @action_key(execute: true, advance:false, split:false)
         line = cm.getCursor().line
+        # next, we insert the code cell and prefix it with a mode change, iff the mode is different from the current one
         @syncdoc?.insert_new_cell(line)
         cell = "#{code}\n"
         if lang != @_current_mode
             cell = "%#{lang}\n#{cell}"
         cm.replaceRange(cell, {line : line+1, ch:0})
+        # and we evaluate and sync all this, too…
         @action_key(execute: true, advance:false, split:false)
         @syncdoc?.sync()
 

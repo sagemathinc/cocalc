@@ -24,6 +24,11 @@
 # with descriptions. It returns an object, containing the code and the language:
 # {"code": "...", "lang" : "..."} via a given callback.
 #
+# The canonical project creating the appropriate datastructure is
+# https://github.com/sagemathinc/cocalc-assistant
+
+REPO_URL = 'https://github.com/sagemathinc/cocalc-assistant'
+
 # Usage:
 # w = render_examples_dialog(target, project_id, filename, lang)
 #     * target: jquery dom object, where react is put into
@@ -31,8 +36,7 @@
 #     * lang is the mode (sage, r, python, ...)
 # use 'w.set_handler' to set the handler that's used for inserting the selected document
 # API (implemented in ExamplesActions)
-# w.show([lang]) -- show dialog again (same state!) and if
-#                        language given, a selection of it is triggered
+# w.show([lang]) -- show dialog again (same state!) and in csae a language given, a selection of it is triggered
 
 _ = require("underscore")
 {defaults, required, optional} = misc = require('smc-util/misc')
@@ -41,8 +45,6 @@ misc_page = require('./misc_page')
 markdown = require('./markdown')
 
 exports.ICON_NAME = 'magic'
-
-REPO_URL = 'https://github.com/sagemathinc/cocalc-assistant'
 
 # the json from the server, where the entries for the documents are
 # double-nested objects (two hiearchies of categories) mapping to title/code/description documents
@@ -70,98 +72,32 @@ lang2name = (lang) ->
 
 # Redux stuff
 
+INIT_STATE =
+    cat0                : null # idx integer
+    cat1                : null # idx integer
+    cat2                : null # idx integer
+    catlist0            : []
+    catlist1            : []
+    catlist2            : []
+    code                : ''
+    setup_code          : undefined
+    descr               : ''
+    hits                : []
+    search_str          : null
+    search_sel          : null
+    submittable         : false
+    cat1_top            : ["Introduction", "Tutorial", "Help"]
+    unknown_lang        : false
+
 class ExamplesStore extends Store
+    getInitialState: ->
+        INIT_STATE
 
-class ExamplesActions extends Actions
-    get: (key) ->
-        @redux.getStore(@name).get(key)
+    stateTypes:
+        test_state  : rtypes.number
+        descr       : rtypes.string
 
-    set: (update) ->
-        @setState(update)
-
-    show: (lang) =>
-        lang ?= 'sage'
-        if lang != @get('lang')
-            @init(lang)
-        else
-            @set(show: true)
-
-    reset: ->
-        # a better documentation of this is in the RExamples component at the bottom
-        # cat1_top: move certain categories to the top of the list -- see sort functions in @get_catlistN
-        # TODO this is something that should be part of the "data" itself, not hardcoded here at all
-        @set
-            cat0                : null # idx integer
-            cat1                : null # idx integer
-            cat2                : null # idx integer
-            catlist0            : []
-            catlist1            : []
-            catlist2            : []
-            code                : ''
-            setup_code          : undefined
-            descr               : ''
-            hits                : []
-            search_str          : null
-            search_sel          : null
-            submittable         : false
-            cat1_top            : ["Introduction", "Tutorial", "Help"]
-            unknown_lang        : false
-
-    hide: =>
-        @set(show: false)
-
-    init: (lang) ->
-        return if not lang?
-        if not @get('initialized')
-            @reset()
-            @set(lang:lang)
-            @load_data()
-        else if @get('lang') != lang
-            @select_lang(lang)
-        @set(
-            show                : true
-            initialized         : true
-            prepend_setup_code  : @get('prepend_setup_code') ? true
-        )
-
-    init_data: (data) ->
-        @set(data: data)
-        nav_entries = []
-        for key, v of data
-            if _.keys(v).length > 0
-                nav_entries.push(key)
-        @set(nav_entries: nav_entries)
-        @select_lang(@get('lang'))
-
-    set_handler: (handler) ->
-        @set(handler:handler)
-
-    insert: (descr) ->
-        # this is the essential task of the example dialog:
-        # call the callback with the selected code snippet
-        code               = @get('code')
-        setup_code         = @get('setup_code')
-        prepend_setup_code = @get('prepend_setup_code')
-        if setup_code?.length > 0 and prepend_setup_code
-            code = "#{setup_code}\n#{code}"
-        data =
-            code  : code
-            lang  : @get('lang')
-            descr : if descr then @get('descr') else null
-        @get('handler')?(data)
-
-    load_data: () ->
-        if not DATA?
-            require.ensure [], =>
-                # DATA is a global variable!
-                # this file is supposed to be in webapp-lib/examples/examples.json
-                # follow "./install.py examples" to see how the makefile is called during build
-                DATA = require('webapp-lib/examples/examples.json')
-                @init_data(DATA)
-        else
-            @init_data(DATA)
-
-    data_lang: () ->
+    data_lang: ->
         @get('data').get(@get('lang'))
 
     # First categories list, depends on selected language, sort order depends on cat1_top
@@ -193,6 +129,80 @@ class ExamplesActions extends Actions
         k1 = @get_catlist1()[@get('cat1')]
         return @data_lang().getIn([k0, k1, 'entries']).map((el) -> el.get(0)).toArray()
 
+
+class ExamplesActions extends Actions
+    _init: (store) ->
+        @store = store
+
+    get: (key) ->
+        @store.get(key)
+
+    set: (update) ->
+        @setState(update)
+
+    show: (lang) =>
+        lang ?= 'sage'
+        if lang != @get('lang')
+            @init(lang)
+        else
+            @set(show: true)
+
+    reset: ->
+        @set(INIT_STATE)
+
+    hide: =>
+        @set(show: false)
+
+    init: (lang) ->
+        return if not lang?
+        if not @get('initialized')
+            @reset()
+            @set(lang:lang)
+            @load_data()
+        else if @get('lang') != lang
+            @select_lang(lang)
+        @set
+            show                : true
+            initialized         : true
+            prepend_setup_code  : @get('prepend_setup_code') ? true
+
+    init_data: (data) ->
+        @set(data: data)
+        nav_entries = []
+        for key, v of data
+            if _.keys(v).length > 0
+                nav_entries.push(key)
+        @set(nav_entries: nav_entries)
+        @select_lang(@get('lang'))
+
+    set_handler: (handler) ->
+        @set(handler:handler)
+
+    insert: (descr) ->
+        # this is the essential task of the example dialog:
+        # call the callback with the selected code snippet
+        code               = @get('code')
+        setup_code         = @get('setup_code')
+        prepend_setup_code = @get('prepend_setup_code')
+        if (prepend_setup_code) and (setup_code?.length > 0)
+            code = "#{setup_code}\n#{code}"
+        ret =
+            code  : code
+            lang  : @get('lang')
+            descr : if descr then @get('descr') else null
+        @get('handler')?(ret)
+
+    load_data: () ->
+        if not DATA?
+            require.ensure [], =>
+                # DATA is a global variable!
+                # this file is supposed to be in webapp-lib/examples/examples.json
+                # follow "./install.py examples" to see how the makefile is called during build
+                DATA = require('webapp-lib/examples/examples.json')
+                @init_data(DATA)
+        else
+            @init_data(DATA)
+
     # when a language is selected, this resets the category selections
     select_lang: (lang) ->
         lang ?= @get('lang')
@@ -200,7 +210,7 @@ class ExamplesActions extends Actions
         data = @get('data')
         if data.has(lang)
             @set(lang: lang)
-            catlist0 = @get_catlist0()
+            catlist0 = @store.get_catlist0()
             @set(catlist0 : catlist0)
             if catlist0.length == 1
                 @set_selected_category(0, 0)
@@ -216,7 +226,7 @@ class ExamplesActions extends Actions
         @set(search_str : search_str)
         str = search_str.toLowerCase()
         hits = []
-        data_lang = @data_lang()
+        data_lang = @store.data_lang()
         EnoughResultsException = {}
         try
             data_lang.forEach (data1, lvl1) ->
@@ -238,7 +248,7 @@ class ExamplesActions extends Actions
     # a specific search result is selected and the corresponding document is set to be shown to the user
     search_selected: (idx) ->
         [lvl1, lvl2, lvl3, title, descr, inDescr] = @get('hits').get(idx).toArray()
-        doc = @data_lang().getIn([lvl1, lvl2, 'entries', lvl3])
+        doc = @store.data_lang().getIn([lvl1, lvl2, 'entries', lvl3])
         @show_doc(doc)
         @set(search_sel : idx)
 
@@ -284,15 +294,15 @@ class ExamplesActions extends Actions
             if dir < 0 then list.length - 1 else 0
         # dealing with some corner cases first
         if not cat0?
-            catlist0 = @get_catlist0()
+            catlist0 = @store.get_catlist0()
             if catlist0?.length > 0
                 @set_selected_category(0, top_or_bottom(catlist0))
         else if not cat1?
-            catlist1 = @get_catlist1()
+            catlist1 = @store.get_catlist1()
             if catlist1?.length > 0
                 @set_selected_category(1, top_or_bottom(catlist1))
         else if not cat2?
-            catlist2 = @get_catlist2()
+            catlist2 = @store.get_catlist2()
             if catlist2?.length > 0
                 @set_selected_category(2, top_or_bottom(catlist2))
         else # cat0 1 and 2 are defined (i.e. we have a selection)
@@ -330,21 +340,20 @@ class ExamplesActions extends Actions
     # it is able to handle negative indices (wraps around nicely) and it also expands
     # subcategories, if there is only one choice.
     set_selected_category: (level, idx) ->
-        lang = @data_lang()
+        lang = @store.data_lang()
         switch level
             when 0, 1
-                @set(
+                @set
                     code        : ''
                     descr       : ''
                     cat2        : null
                     submittable : false
                     setup_code  : ''
-                )
 
         switch level
             when 0
                 @set(cat0: if idx == -1 then @get('catlist0').size - 1 else idx)
-                catlist1 = @get_catlist1()
+                catlist1 = @store.get_catlist1()
                 @set
                     cat1       : null
                     cat2       : null
@@ -356,7 +365,7 @@ class ExamplesActions extends Actions
             when 1
                 cat0     = @get('cat0')
                 @set(cat1 : if idx == -1 then @get('catlist1').size - 1 else idx)
-                catlist2 = @get_catlist2()
+                catlist2 = @store.get_catlist2()
                 @set
                     cat2       : undefined
                     catlist2   : catlist2
@@ -443,6 +452,7 @@ ExamplesHeader = rclass
         </Nav>
 
     render_search: ->
+        bsStyle = if @props.search_str?.length > 0 then 'warning' else 'default'
         <FormGroup>
             <InputGroup className = {'webapp-examples-search'}>
                 <FormControl
@@ -454,7 +464,10 @@ ExamplesHeader = rclass
                     onChange    = {@search}
                 />
                 <InputGroup.Button>
-                    <Button onClick={@search_clear}>
+                    <Button
+                        onClick  = {@search_clear}
+                        bsStyle  = {bsStyle}
+                    >
                         <Icon name={'times-circle'} />
                     </Button>
                 </InputGroup.Button>
@@ -712,38 +725,43 @@ RExamples = (name) -> rclass
         @props.actions.set(prepend_setup_code:value)
 
     render: ->
-        <Modal show      = {@props.show}
-               onKeyUp   = {@handle_dialog_keyup}
-               onHide    = {@close}
-               bsSize    = {'large'}
-               className = {'webapp-examples'}
+        <Modal
+            show      = {@props.show}
+            onKeyUp   = {@handle_dialog_keyup}
+            onHide    = {@close}
+            bsSize    = {'large'}
+            className = {'webapp-examples'}
         >
             <Modal.Header closeButton className={'modal-header'}>
-               <ExamplesHeader actions      = {@props.actions}
-                               lang_select  = {@props.lang_select}
-                               unknown_lang = {@props.unknown_lang}
-                               lang         = {@props.lang}
-                               search_str   = {@props.search_str}
-                               nav_entries  = {@props.nav_entries} />
+               <ExamplesHeader
+                   actions      = {@props.actions}
+                   lang_select  = {@props.lang_select}
+                   unknown_lang = {@props.unknown_lang}
+                   lang         = {@props.lang}
+                   search_str   = {@props.search_str}
+                   nav_entries  = {@props.nav_entries}
+               />
             </Modal.Header>
 
-            <ExamplesBody actions            = {@props.actions}
-                          lang               = {@props.lang}
-                          unknown_lang       = {@props.unknown_lang}
-                          code               = {@props.code}
-                          setup_code         = {@props.setup_code}
-                          prepend_setup_code = {@props.prepend_setup_code}
-                          descr              = {@props.descr}
-                          cat0               = {@props.cat0}
-                          cat1               = {@props.cat1}
-                          cat2               = {@props.cat2}
-                          catlist0           = {@props.catlist0}
-                          catlist1           = {@props.catlist1}
-                          catlist2           = {@props.catlist2}
-                          search_str         = {@props.search_str}
-                          search_sel         = {@props.search_sel}
-                          hits               = {@props.hits}
-                          data               = {@props.data} />
+            <ExamplesBody
+                actions            = {@props.actions}
+                lang               = {@props.lang}
+                unknown_lang       = {@props.unknown_lang}
+                code               = {@props.code}
+                setup_code         = {@props.setup_code}
+                prepend_setup_code = {@props.prepend_setup_code}
+                descr              = {@props.descr}
+                cat0               = {@props.cat0}
+                cat1               = {@props.cat1}
+                cat2               = {@props.cat2}
+                catlist0           = {@props.catlist0}
+                catlist1           = {@props.catlist1}
+                catlist2           = {@props.catlist2}
+                search_str         = {@props.search_str}
+                search_sel         = {@props.search_sel}
+                hits               = {@props.hits}
+                data               = {@props.data}
+            />
 
             <Modal.Footer>
                 <Button
@@ -797,8 +815,9 @@ exports.instantiate_assistant = (project_id, path) ->
     name = redux_name(project_id, path)
     actions = redux.getActions(name)
     if not actions?
+        store   = redux.createStore(name, ExamplesStore, {})
         actions = redux.createActions(name, ExamplesActions)
-        store   = redux.createStore(name)
+        actions._init(store)
     return actions
 
 exports.instantiate_component = (project_id, path, actions) ->
@@ -817,8 +836,9 @@ exports.render_examples_dialog = (opts) ->
     name = redux_name(opts.project_id, opts.path)
     actions = redux.getActions(name)
     if not actions?
+        store   = redux.createStore(name, ExamplesStore, {})
         actions = redux.createActions(name, ExamplesActions)
-        store   = redux.createStore(name)
+        actions._init(store)
     actions.init(opts.lang)
     actions.set(lang_select:true)
     W = RExamples(name)
