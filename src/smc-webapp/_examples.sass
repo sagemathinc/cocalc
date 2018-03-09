@@ -30,10 +30,20 @@ $code-height: 230px
           > span > p
             margin: 0
 
+      > div > ul.list-group
+        border          : 1px solid $COL_GRAY_DDD
+        border-radius   : 5px
+        > li
+          border        : none
+          border-bottom : 1px solid $COL_GRAY_LL
+          margin        : 0
+          border-radius : 0
+
     div.webapp-examples-descr,
     pre.code
-      height : $code-height
-      overflow : auto
+      height            : $code-height
+      overflow          : auto
+      border-color      : $COL_GRAY_DDD
       +enable-user-select
       .attr,
       .attr a

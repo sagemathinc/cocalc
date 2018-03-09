@@ -38,22 +38,24 @@ REPO_URL = 'https://github.com/sagemathinc/cocalc-assistant'
 # API (implemented in ExamplesActions)
 # w.show([lang]) -- show dialog again (same state!) and in csae a language given, a selection of it is triggered
 
-_ = require("underscore")
+# global libs
+_         = require('underscore')
+immutable = require('immutable')
+# react elements
+{React, ReactDOM, redux, Redux, Actions, Store, rtypes, rclass} = require('./smc-react')
+{Col, Row, Panel, Button, FormGroup, Checkbox, FormControl, Well, Alert, Modal, Table, Nav, NavItem, ListGroup, ListGroupItem, InputGroup} = require('react-bootstrap')
+{Loading, Icon, Markdown, Space} = require('./r_misc')
+# cocalc libs
 {defaults, required, optional} = misc = require('smc-util/misc')
 misc_page = require('./misc_page')
-
 markdown = require('./markdown')
 
+# used elsewhere, to make sure we use the same iconography everywhere
 exports.ICON_NAME = 'magic'
 
 # the json from the server, where the entries for the documents are
 # double-nested objects (two hiearchies of categories) mapping to title/code/description documents
 DATA = null
-
-# react elements
-{React, ReactDOM, redux, Redux, Actions, Store, rtypes, rclass} = require('./smc-react')
-{Col, Row, Panel, Button, FormGroup, Checkbox, FormControl, Well, Alert, Modal, Table, Nav, NavItem, ListGroup, ListGroupItem, InputGroup} = require('react-bootstrap')
-{Loading, Icon, Markdown, Space} = require('./r_misc')
 
 redux_name = (project_id, path) ->
     return "examples-#{project_id}-#{path}"
@@ -89,13 +91,29 @@ INIT_STATE =
     cat1_top            : ["Introduction", "Tutorial", "Help"]
     unknown_lang        : false
 
-class ExamplesStore extends Store
-    getInitialState: ->
-        INIT_STATE
+makeExamplesStore = (NAME) ->
+    name: NAME
 
     stateTypes:
-        test_state  : rtypes.number
-        descr       : rtypes.string
+        cat0                : rtypes.number      # index of selected first category (left)
+        cat1                : rtypes.number      # index of selected second category (second from left)
+        cat2                : rtypes.number      # index of selected third category (document titles)
+        catlist0            : rtypes.arrayOf(rtypes.string)  # list of first category entries
+        catlist1            : rtypes.arrayOf(rtypes.string)  # list of second level categories
+        catlist2            : rtypes.arrayOf(rtypes.string)  # third level are the document titles
+        code                : rtypes.string      # displayed content of selected document
+        setup_code          : rtypes.string      # optional, common code in the sub-category
+        prepend_setup_code  : rtypes.bool        # if true, setup code is prepended to code
+        descr               : rtypes.string      # markdown-formatted content of document description
+        hits                : rtypes.arrayOf(rtypes.array)  # search results
+        search_str          : rtypes.string      # substring to search for -- or undefined
+        search_sel          : rtypes.number      # index of selected matched documents
+        submittable         : rtypes.bool        # if true, the buttons at the bottom are active
+        cat1_top            : rtypes.arrayOf(rtypes.string)
+        unknown_lang        : rtypes.bool        # true if there is no known set of documents for the language
+
+    getInitialState: ->
+        INIT_STATE
 
     data_lang: ->
         @get('data').get(@get('lang'))
@@ -205,6 +223,7 @@ class ExamplesActions extends Actions
 
     # when a language is selected, this resets the category selections
     select_lang: (lang) ->
+        return if lang? == @get('lang')
         lang ?= @get('lang')
         @reset()
         data = @get('data')
@@ -256,8 +275,7 @@ class ExamplesActions extends Actions
     search_cursor: (dir) ->
         # searching and then cursor-selecting search results
         # dir: +1 → downward / -1 → upward
-        if not @get('hits')?
-            return
+        return if not @get('hits')?
         l = @get('hits').size
         if not @get('search_sel')?
             if dir > 0
@@ -382,6 +400,19 @@ class ExamplesActions extends Actions
                 @show_doc(doc)
 
 # The top part of the dialog. Shows the Title (maybe with the Language), a selector for the language, and search
+outer_style =
+    display        : 'flex'
+    flexWrap       : 'nowrap'
+    justifyContent : 'space-between'
+
+inner_style = immutable.Map
+    marginLeft  : '10px'
+    marginRight : '10px'
+
+title_style  = inner_style.merge({flex: '0 0 auto'}).toJS()
+nav_style    = inner_style.merge({flex: '1 0 auto'}).toJS()
+search_style = inner_style.merge({flex: '0 1 auto', marginRight: '50px'}).toJS()
+
 ExamplesHeader = rclass
     displayName : 'ExamplesHeader'
 
@@ -477,22 +508,22 @@ ExamplesHeader = rclass
     render: ->
         return null if (not @props.lang?) or (not @props.lang_select?)
         show_lang_nav = @props.lang_select and not @props.unknown_lang
-        # ATTN col's sm values should sum up to 11 in both cases
-        <Row>
-            <Col sm={if show_lang_nav then 2 else 5}>
+        <div style={outer_style}>
+            <div style={title_style}>
                 <h2>
                     <Icon name={exports.ICON_NAME} />
                     <Space/>
                     {lang2name(@props.lang) if not @props.lang_select} Assistant
                 </h2>
-            </Col>
-            <Col sm={if show_lang_nav then 7 else 2}>
+            </div>
+            <div style={nav_style}>
                 {@render_nav() if show_lang_nav}
-            </Col>
-            <Col sm={if show_lang_nav then 2 else 4}>
+            </div>
+            <div style={search_style}>
                 {@render_search() if not @props.unknown_lang}
-            </Col>
-        </Row>
+            </div>
+        </div>
+
 
 ExamplesBody = rclass
     displayName : 'ExamplesBody'
@@ -810,14 +841,18 @@ RExamples = (name) -> rclass
 
 ### Public API ###
 
+init_action_and_store = (name) ->
+    store   = redux.createStore(makeExamplesStore(name))
+    actions = redux.createActions(name, ExamplesActions)
+    actions._init(store)
+    return [actions, store]
+
 # The following two exports are used in jupyter/main and ./register
 exports.instantiate_assistant = (project_id, path) ->
     name = redux_name(project_id, path)
     actions = redux.getActions(name)
     if not actions?
-        store   = redux.createStore(name, ExamplesStore, {})
-        actions = redux.createActions(name, ExamplesActions)
-        actions._init(store)
+        [actions, store] = init_action_and_store(name)
     return actions
 
 exports.instantiate_component = (project_id, path, actions) ->
@@ -836,9 +871,7 @@ exports.render_examples_dialog = (opts) ->
     name = redux_name(opts.project_id, opts.path)
     actions = redux.getActions(name)
     if not actions?
-        store   = redux.createStore(name, ExamplesStore, {})
-        actions = redux.createActions(name, ExamplesActions)
-        actions._init(store)
+        [actions, store] = init_action_and_store(name)
     actions.init(opts.lang)
     actions.set(lang_select:true)
     W = RExamples(name)
