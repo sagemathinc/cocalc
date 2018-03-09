@@ -47,6 +47,9 @@ Passports = rclass
     propTypes :
         strategies  : rtypes.immutable.List
         get_api_key : rtypes.string
+        small_size  : rtypes.bool
+        no_header   : rtypes.bool
+        style       : rtypes.object
 
     styles :
         facebook :
@@ -68,16 +71,25 @@ Passports = rclass
         url = "#{window.app_base_url}/auth/#{name}"
         if @props.get_api_key
             url += "?get_api_key=#{@props.get_api_key}"
+        if @props.small_size
+            size = undefined
+        else
+            size = '2x'
         <a href={url} key={name}>
-            <Icon size='2x' name='stack' href={url}>
+            <Icon size={size} name='stack' href={url}>
                 {<Icon name='circle' stack='2x' style={color: @styles[name].backgroundColor} /> if name isnt 'github'}
                 <Icon name={name} stack='1x' size={'2x' if name is 'github'} style={color: @styles[name].color} />
             </Icon>
         </a>
 
+    render_heading: ->
+        if @props.no_heading
+            return
+        <h3 style={marginTop: 0}>Connect with</h3>
+
     render: ->
-        <div style={textAlign: 'center'}>
-            <h3 style={marginTop: 0}>Connect with</h3>
+        <div style={@props.style}>
+            {@render_heading()}
             <div>
                 {@render_strategy(name) for name in @props.strategies?.toJS() ? []}
             </div>
@@ -98,13 +110,13 @@ SignUp = rclass
 
     propTypes :
         strategies      : rtypes.immutable.List
+        get_api_key     : rtypes.string
         sign_up_error   : rtypes.immutable.Map
         token           : rtypes.bool
         has_account     : rtypes.bool
         signing_up      : rtypes.bool
         style           : rtypes.object
         has_remember_me : rtypes.bool
-        get_api_key     : rtypes.string
 
     getInitialState: ->
         terms_checkbox : false
@@ -128,18 +140,21 @@ SignUp = rclass
             return <Loading />
         if @props.strategies.size > 1
             <div>
-                <Passports strategies={@props.strategies} get_api_key={@props.get_api_key} />
+                <Passports
+                    strategies  = {@props.strategies}
+                    get_api_key = {@props.get_api_key}
+                    style       = {textAlign: 'center'}
+                />
                 Or sign up via email
                 <br/>
             </div>
-
 
     render_token_input: ->
         if @props.token
             <FormGroup>
                 <FormControl
-                    type        = 'text'
-                    placeholder = 'Enter the secret token'
+                    type        = {'text'}
+                    placeholder = {'Enter the secret token'}
                     onChange    = {(e)=>@setState(user_token: e.target.value)}
                     />
             </FormGroup>
@@ -239,6 +254,8 @@ SignIn = rclass
         has_account   : rtypes.bool
         xs            : rtypes.bool
         color         : rtypes.string
+        strategies    : rtypes.immutable.List
+        get_api_key   : rtypes.string
 
     componentDidMount: ->
         @actions('page').set_sign_in_func(@sign_in)
@@ -261,6 +278,16 @@ SignIn = rclass
                 error   = {@props.sign_in_error}
                 onClose = {=>@actions('account').setState(sign_in_error: undefined)}
             />
+
+    render_passports: ->
+        <div>
+            <Passports
+                strategies  = {@props.strategies}
+                get_api_key = {@props.get_api_key}
+                small_size  = {true}
+                no_heading  = {true}
+            />
+        </div>
 
     remove_error: ->
         if @props.sign_in_error
@@ -333,6 +360,11 @@ SignIn = rclass
                         <div style={marginTop: '1ex'}>
                             <a onClick={@display_forgot_password} style={color:@props.color, cursor: "pointer", fontSize:@forgot_font_size()} >Forgot Password?</a>
                         </div>
+                    </Col>
+                </Row>
+                <Row>
+                    <Col xs={12}>
+                        {@render_passports()}
                     </Col>
                 </Row>
                 <Row className='form-inline pull-right' style={clear : "right"}>
@@ -690,6 +722,8 @@ exports.LandingPage = rclass
                               fontSize : '11pt',\
                               float    : "right"} >
                       <SignIn
+                          strategies    = {@props.strategies}
+                          get_api_key   = {@props.get_api_key}
                           signing_in    = {@props.signing_in}
                           sign_in_error = {@props.sign_in_error}
                           has_account   = {@props.has_account}
@@ -736,11 +770,11 @@ exports.LandingPage = rclass
                     <SignUp
                         sign_up_error   = {@props.sign_up_error}
                         strategies      = {@props.strategies}
+                        get_api_key     = {@props.get_api_key}
                         token           = {@props.token}
                         has_remember_me = {@props.has_remember_me}
                         signing_up      = {@props.signing_up}
                         has_account     = {@props.has_account}
-                        get_api_key     = {@props.get_api_key}
                         />
                 </Col>
                 <Col sm={6}>

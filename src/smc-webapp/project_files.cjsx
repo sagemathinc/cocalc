@@ -1489,7 +1489,6 @@ ProjectFilesActionBox = rclass
 
     stop_sharing_click: ->
         @props.actions.disable_public_path(@props.checked_files.first())
-        @props.actions.set_file_action()
 
     render_share_warning: ->
         <Alert bsStyle='warning' style={wordWrap:'break-word'}>
@@ -1589,6 +1588,10 @@ ProjectFilesActionBox = rclass
                     </FormGroup>
                     {@render_share_warning() if parent_is_public}
                 </Col>
+                <Col sm={4} style={color:'#666'}>
+                    <h4>Items</h4>
+                    {@render_selected_files_list()}
+                </Col>
                 {<Col sm={4} style={color:'#666'}>
                     <h4>Shared publicly</h4>
                     <CopyToClipBoard
@@ -1597,10 +1600,6 @@ ProjectFilesActionBox = rclass
                         hide_after    = {true}
                     />
                 </Col> if single_file_data.is_public}
-                <Col sm={4} style={color:'#666'}>
-                    <h4>Items</h4>
-                    {@render_selected_files_list()}
-                </Col>
             </Row>
             <Row>
                 <Col sm={4}>

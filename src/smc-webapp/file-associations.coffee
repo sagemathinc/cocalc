@@ -62,7 +62,6 @@ codemirror_associations =
     rb     : 'text/x-ruby'
     ru     : 'text/x-ruby'
     sage   : 'python'
-    sagews : 'sagews'
     scala  : 'text/x-scala'
     scm    : 'text/x-scheme'
     sh     : 'shell'
@@ -104,7 +103,7 @@ for ext, mode of codemirror_associations
         name   : name
 
 # noext = means file with no extension but the given name.
-file_associations['noext-Dockerfile'] =
+file_associations['noext-dockerfile'] =
     editor : 'codemirror'
     binary : false
     icon   : 'fa-ship'
@@ -187,7 +186,7 @@ file_associations['css'] =
     opts   : {mode:'css', indent_unit:4, tab_size:4}
     name   : "CSS"
 
-for m in ['noext-makefile', 'noext-Makefile', 'noext-GNUmakefile', 'make', 'build']
+for m in ['noext-makefile', 'noext-gnumakefile', 'make', 'build']
     file_associations[m] =
         editor : 'codemirror'
         icon   : 'fa-cogs'
@@ -277,12 +276,23 @@ archive_association =
     opts   : {}
     name   : 'archive'
 
+# Fallback for any type not otherwise explicitly specified
+file_associations[''] =
+    editor : 'codemirror'
+    icon   : 'fa-file-code-o'
+    opts   : {mode:'text', indent_unit:4, tab_size:4}
+    name   : ''
+
 for ext in 'zip gz bz2 z lz xz lzma tgz tbz tbz2 tb2 taz tz tlz txz lzip'.split(' ')
     file_associations[ext] = archive_association
 
 file_associations['sage'].name = "sage code"
 file_associations['sage'].icon = 'cc-icon-sagemath-bold'
 
-file_associations['sagews'].name = "sage worksheet"
-file_associations['sagews'].exclude_from_menu = true
-file_associations['sagews'].icon = 'cc-icon-sagemath-file'
+file_associations['sagews'] =
+    editor            : 'sagews'
+    binary            : false
+    icon              : 'cc-icon-sagemath-file'
+    opts              : {mode:'sagews'}
+    name              : 'sagews'
+    exclude_from_menu : true

@@ -1268,7 +1268,8 @@ class exports.Connection extends EventEmitter
 
         #console.log("Executing -- #{opts.command}, #{misc.to_json(opts.args)} in '#{opts.path}'")
         @call
-            message : message.project_exec
+            allow_post : false     # since it may take too long
+            message    : message.project_exec
                 project_id  : opts.project_id
                 path        : opts.path
                 command     : opts.command
@@ -1277,8 +1278,8 @@ class exports.Connection extends EventEmitter
                 max_output  : opts.max_output
                 bash        : opts.bash
                 err_on_exit : opts.err_on_exit
-            timeout : opts.network_timeout
-            cb      : (err, mesg) ->
+            timeout    : opts.network_timeout
+            cb         : (err, mesg) ->
                 #console.log("Executing #{opts.command}, #{misc.to_json(opts.args)} -- got back: #{err}, #{misc.to_json(mesg)}")
                 if err
                     opts.cb(err, mesg)

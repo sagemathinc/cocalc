@@ -84,7 +84,7 @@ exports.merge = (dest, objs...) ->
     for obj in objs
         for k, v of obj
             dest[k] = v
-    dest
+    return dest
 
 # Makes new object that is shallow copy merge of all objects.
 exports.merge_copy = (objs...) ->
@@ -1277,7 +1277,7 @@ exports.is_different = (a, b, fields, why) ->
         for field in fields
             if b[field]?
                 if why
-                    console.log field, a?[field], b[field]
+                    console.log 'is_different', field, a?[field], b[field]
                 return true
         return false
     if not b?
@@ -1285,14 +1285,14 @@ exports.is_different = (a, b, fields, why) ->
         for field in fields
             if a[field]?
                 if why
-                    console.log field, a[field], b?[field]
+                    console.log 'is_different', field, a[field], b?[field]
                 return true  # different
         return false  # same
 
     for field in fields
         if a[field] != b[field]
             if why
-                console.log field, a[field], b[field]
+                console.log 'is_different', field, a[field], b[field]
             return true
     return false
 

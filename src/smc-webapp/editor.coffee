@@ -2064,15 +2064,10 @@ html_md_exts = (ext for ext, opts of file_associations when opts.editor == 'html
 
 {LatexEditor} = require('./latex/editor')
 
-exports.register_nonreact_editors = () ->
+exports.register_nonreact_editors = ->
 
     # Make non-react editors available in react rewrite
     reg = require('./editor_react_wrapper').register_nonreact_editor
-
-    reg
-        ext       : ''  # fallback for any type not otherwise explicitly specified
-        f         : (project_id, path, opts) -> codemirror_session_editor(project_id, path, opts)
-        is_public : false
 
     # wrapper for registering private and public editors
     register = (is_public, cls, extensions) ->
@@ -2104,3 +2099,10 @@ exports.register_nonreact_editors = () ->
     register(true, PublicCodeMirrorEditor,  [''])
     register(true, PublicHTML,              ['html'])
     register(true, PublicSagews,            ['sagews'])
+
+    # Editing Sage worksheets
+    reg
+        ext       : 'sagews'
+        f         : (project_id, path, opts) -> codemirror_session_editor(project_id, path, opts)
+        is_public : false
+

@@ -37,7 +37,7 @@
 #smc-startup-banner .banner-error {
   width: 350px;
   opacity: 0.0;
-  animation: banner-error ease-in 31s forwards;
+  animation: banner-error ease-in 60s forwards;
   float: left;
   border-radius: 5px;
   padding: 15px 0;
@@ -49,7 +49,7 @@
   background-color: #4474c0;
   margin-bottom: 5px;
   opacity: 1.0;
-  animation: banner-red 31s forwards;
+  animation: banner-red 60s forwards;
 }
 @keyframes banner-red {
     0% {background-color: #4474c0;}
@@ -57,7 +57,7 @@
   100% {background-color: #bf1919;}
 }
 #smc-startup-banner .banner-blink img {
-  animation: banner-blink 31s forwards;
+  animation: banner-blink 60s forwards;
 }
 @keyframes banner-blink {
      0% {opacity: 1.0;}

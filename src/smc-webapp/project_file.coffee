@@ -45,6 +45,7 @@ require('./editor_pdf')
 require('./editor_time')
 require('./jupyter/register')
 require('./tasks/register')
+require('./code-editor/register')
 
 # Public editors
 require('./public/editor_image')
