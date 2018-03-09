@@ -5,7 +5,7 @@ Top-level react component for editing code
 misc                    = require('smc-util/misc')
 
 {React, rclass, rtypes} = require('../smc-react')
-{Loading}               = require('../r_misc')
+{ErrorDisplay, Loading} = require('../r_misc')
 {FrameTree}             = require('./frame-tree')
 {IS_IPAD}               = require('../feature')
 
@@ -71,8 +71,11 @@ exports.Editor = rclass ({name}) ->
     render_error: ->
         if not @props.error
             return
-        # TODO
-        <div style={color:'red'}>{@props.error}</div>
+        <ErrorDisplay
+            error   = {@props.error}
+            onClose = {=>@props.actions.set_error('')}
+            style   = {maxWidth: '100%', margin: '1ex'}
+        />
 
     render_ipad_footer: ->
         if IS_IPAD

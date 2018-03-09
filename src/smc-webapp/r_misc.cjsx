@@ -262,12 +262,12 @@ exports.ErrorDisplay = ErrorDisplay = rclass
     displayName : 'Misc-ErrorDisplay'
 
     propTypes :
-        error   : rtypes.oneOfType([rtypes.string,rtypes.object])
+        error           : rtypes.oneOfType([rtypes.string,rtypes.object])
         error_component : rtypes.any
-        title   : rtypes.string
-        style   : rtypes.object
-        bsStyle : rtypes.string
-        onClose : rtypes.func       # TODO: change to on_close everywhere...?
+        title           : rtypes.string
+        style           : rtypes.object
+        bsStyle         : rtypes.string
+        onClose         : rtypes.func       # TODO: change to on_close everywhere...?
 
     render_close_button: ->
         <CloseX on_close={@props.onClose} style={fontSize:'11pt'} />
