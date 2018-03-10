@@ -1,17 +1,18 @@
 ###
-Handle images and videos
-
- - image types -- see https://developer.mozilla.org/en-US/docs/Web/HTML/Element/img
- - video types --
-
-
+Handle viewing images and videos
 ###
 
-{ImageViewer} = require('./image')
-{register_file_editor} = require('../project_file')
+{MediaViewer}            = require('./viewer')
+{register_file_editor}   = require('../project_file')
+{IMAGE_EXTS, VIDEO_EXTS} = require('../file-associations')
 
 register_file_editor
-    ext       : ['jpg', 'jpeg', 'png', 'bmp', 'gif', 'apng', 'svg', 'ico']
+    ext       : IMAGE_EXTS
     icon      : 'file-image-o'
-    component : ImageViewer
+    component : MediaViewer
+
+register_file_editor
+    ext       : VIDEO_EXTS
+    icon      : 'file-video-o'
+    component : MediaViewer
 

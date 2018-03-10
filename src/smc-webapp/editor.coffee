@@ -1775,64 +1775,6 @@ class Terminal extends FileEditor
     _show: () =>
         @console?.resize()
 
-class Media extends FileEditor
-    constructor: (project_id, filename, url, opts) ->
-        super(project_id, filename)
-        @opts = opts
-        @mode = if @ext in VIDEO_EXTS then 'video' else 'image'
-        @element = templates.find(".webapp-editor-image").clone()
-        @element.find(".webapp-editor-image-title").text(@filename)
-
-        refresh = @element.find('a[href="#refresh"]')
-        refresh.click () =>
-            refresh.icon_spin(true)
-            @update (err) =>
-                refresh.icon_spin(false)
-            return false
-
-        @element.find('a[href="#close"]').click () =>
-            return false
-
-        if url?
-            @element.find(".webapp-editor-image-container").find("span").hide()
-            @set_src(url)
-        else
-            @update()
-
-    set_src: (src) =>
-        switch @mode
-            when 'image'
-                @element.find("img").attr('src', src)
-                @element.find('video').hide()
-            when 'video'
-                @element.find('img').hide()
-                @element.find('video').attr('src', src).show()
-
-    update: (cb) =>
-        @element.find('a[href="#refresh"]').icon_spin(start:true)
-        webapp_client.read_file_from_project
-            project_id : @project_id
-            timeout    : 30
-            path       : @filename
-            cb         : (err, mesg) =>
-                @element.find('a[href="#refresh"]').icon_spin(false)
-                @element.find(".webapp-editor-image-container").find("span").hide()
-                if err
-                    alert_message(type:"error", message:"Communications issue loading #{@filename} -- #{err}")
-                    cb?(err)
-                else if mesg.event == 'error'
-                    alert_message(type:"error", message:"Error getting #{@filename} -- #{to_json(mesg.error)}")
-                    cb?(mesg.event)
-                else
-                    @set_src(mesg.url + "?random=#{Math.random()}")
-                    cb?()
-
-    show: () =>
-        if not @is_active()
-            return
-        @element.show()
-
-
 class PublicHTML extends FileEditor
     constructor: (project_id, filename, content, opts) ->
         super(project_id, filename)
@@ -2087,7 +2029,6 @@ exports.register_nonreact_editors = ->
     register(false, HTML_MD_Editor,   html_md_exts)
     register(false, LatexEditor,      ['tex', 'rnw'])
     register(false, Terminal,         ['term', 'sage-term'])
-    #register(false, Media,            ['png', 'jpg', 'jpeg', 'gif', 'svg', 'bmp'].concat(VIDEO_EXTS))
 
     {HistoryEditor} = require('./editor_history')
     register(false, HistoryEditor,    ['sage-history'])
