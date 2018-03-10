@@ -222,7 +222,7 @@ exports.JupyterEditor = rclass ({name}) ->
         />
 
     render_assistent_dialog: ->
-        {instantiate_component} = require('../examples')
+        {instantiate_component} = require('../assistant/main')
         store             = @props.actions.store
         return null if not store?
         project_id        = store.get('project_id')

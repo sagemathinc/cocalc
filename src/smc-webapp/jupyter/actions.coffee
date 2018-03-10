@@ -76,7 +76,7 @@ class exports.JupyterActions extends Actions
         @_account_id = client.client_id()   # project or account's id
 
         if not @_is_project
-            {instantiate_assistant} = require('../examples')
+            {instantiate_assistant} = require('../assistant/main')
             assistant_actions = instantiate_assistant(project_id, path)
             @setState(assistant_actions:assistant_actions)
 

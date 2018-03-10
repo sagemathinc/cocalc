@@ -1475,7 +1475,7 @@ class CodeMirrorEditor extends FileEditor
         # @examples_dialog is an ExampleActions object, unique for each editor instance
         if not @examples_dialog?
             $target = @mode_display.parent().find('.react-target')
-            {render_examples_dialog} = require('./examples')
+            {render_examples_dialog} = require('./assistant/main')
             @examples_dialog = render_examples_dialog(
                 target     : $target[0]
                 project_id : @project_id

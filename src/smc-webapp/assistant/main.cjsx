@@ -42,9 +42,9 @@ REPO_URL = 'https://github.com/sagemathinc/cocalc-assistant'
 _         = require('underscore')
 immutable = require('immutable')
 # react elements
-{React, ReactDOM, redux, Redux, Actions, Store, rtypes, rclass} = require('./smc-react')
 {Col, Row, Panel, Button, FormGroup, Checkbox, FormControl, Well, Alert, Modal, Table, Nav, NavItem, ListGroup, ListGroupItem, InputGroup} = require('react-bootstrap')
-{Loading, Icon, Markdown, Space} = require('./r_misc')
+{React, ReactDOM, redux, Redux, Actions, Store, rtypes, rclass} = require('../smc-react')
+{Loading, Icon, Markdown, Space} = require('../r_misc')
 # cocalc libs
 {defaults, required, optional} = misc = require('smc-util/misc')
 
@@ -264,6 +264,7 @@ class ExamplesActions extends Actions
 
     # a specific search result is selected and the corresponding document is set to be shown to the user
     search_selected: (idx) ->
+        # why is @get('hits') immutable ?
         [lvl1, lvl2, lvl3, title, descr, inDescr] = @get('hits').get(idx).toArray()
         doc = @store.data_lang().getIn([lvl1, lvl2, 'entries', lvl3])
         @show_doc(doc)
@@ -282,7 +283,7 @@ class ExamplesActions extends Actions
                 new_sel = l - 1
         else
             l = @get('hits').size
-            new_sel = (@get('search_sel') + dir) % l
+            new_sel = (@get('search_sel') + dir) %% l
             if new_sel < 0
                 new_sel = l - 1
         @set(search_sel : new_sel)
@@ -608,7 +609,7 @@ ExamplesBody = rclass
         {
             @props.hits.map (hit, idx) =>
                 [lvl1, lvl2, lvl3, title, descr, inDescr] = hit
-                click    = @search_result_selection.bind(@, idx)
+                click = @search_result_selection.bind(@, idx)
                 # highlight the match in the title
                 title_hl = title.replace(new RegExp(ss, "gi"), "<span class='hl'>#{ss}</span>")
                 # if the hit is in the description, highlight it too
@@ -622,14 +623,15 @@ ExamplesBody = rclass
                     if j < descr.length
                         snippet = snippet + '...'
                 active = if @props.search_sel == idx then 'active' else ''
+                title_hl += ':' if snippet?.length > 0
+                title = <span style={fontWeight: 'bold'} dangerouslySetInnerHTML={__html : title_hl}></span>
+                snip = <span className={'snippet'} dangerouslySetInnerHTML={__html : snippet}></span> if snippet?.length > 0
                 <li
                     key          = {idx}
                     className    = {"list-group-item " + active}
                     onClick      = {click}
                 >
-                    {lvl1} → {lvl2} → <span style={fontWeight: 'bold'} dangerouslySetInnerHTML={__html : title_hl}></span>
-                    {' '}
-                    {<span className={'snippet'} dangerouslySetInnerHTML={__html : snippet}></span> if snippet?.length > 0}
+                    {lvl1} → {lvl2} → {title} {snip}
                 </li>
         }
         </ul>

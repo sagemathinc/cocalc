@@ -470,7 +470,7 @@ exports.commands = (actions) ->
         f : -> actions.show_keyboard_shortcuts()
 
     'show code assistant':
-        i : require('smc-webapp/examples.cjsx').ICON_NAME
+        i : require('smc-webapp/assistant/main.cjsx').ICON_NAME
         m : 'Show code assistant'
         f : -> actions.show_code_assistant()
 
