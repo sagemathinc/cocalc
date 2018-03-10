@@ -46,9 +46,10 @@ require('./editor_time')
 require('./jupyter/register')
 require('./tasks/register')
 require('./code-editor/register')
+require('./media-viewer/register')
 
 # Public editors
-require('./public/editor_image')
+#require('./public/editor_image')
 
 # Raw data editors
 require('./editor-data/generic')
