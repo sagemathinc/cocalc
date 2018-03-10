@@ -555,7 +555,7 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
     render_file_tabs: (is_public) ->
         shrink_fixed_tabs = $(window).width() < (376 + (@props.open_files_order.size + @props.num_ghost_file_tabs) * 250)
 
-        <div className="smc-file-tabs" ref="projectNav" style={width:'100%', height:'32px'}>
+        <div className="smc-file-tabs" ref="projectNav" style={width:'100%', height:'32px', borderBottom: "1px solid #e1e1e1"}>
             <div style={display:'flex'}>
                 {<Nav
                     bsStyle   = "pills"
