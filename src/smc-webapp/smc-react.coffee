@@ -590,7 +590,9 @@ switch MODE
         rclass = (x) ->
             x._render = x.render
             x.render = () ->
-                console.log x.displayName
+                props = underscore.object([k, v] for k, v of misc.copy_without(@props ? {}, ['children']) when v?)
+                state = underscore.object([k, v] for k, v of (@state ? {}) when v?)
+                console.log x.displayName, 'props', props, 'state', state
                 return @_render()
             return react_component(x)
     else
