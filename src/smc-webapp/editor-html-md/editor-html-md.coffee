@@ -545,6 +545,8 @@ class exports.HTML_MD_Editor extends editor.FileEditor
                     file_path   : @file_path()
                 )
 
+                @preview_content.mathjax()
+
                 @preview_content.find("table").addClass('table')  # bootstrap table
 
                 #@preview_content.find(".smc-html-cursor").scrollintoview()

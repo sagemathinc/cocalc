@@ -826,6 +826,21 @@ exports.HTML = HTML = rclass
             not underscore.isEqual(@props.style, next.style) or \
             @props.safeHTML != next.safeHTML
 
+    _update_mathjax: (cb) ->
+        if not @_is_mounted  # see https://github.com/sagemathinc/cocalc/issues/1689
+            cb()
+            return
+        if @_needs_mathjax
+            $(ReactDOM.findDOMNode(@)).mathjax
+                hide_when_rendering : false
+                cb : () =>
+                    # Awkward code, since cb may be called more than once if there
+                    # where more than one node.
+                    cb?()
+                    cb = undefined
+        else
+            cb()
+
     _update_links: ->
         if not @_is_mounted
             return
@@ -840,8 +855,18 @@ exports.HTML = HTML = rclass
         $(ReactDOM.findDOMNode(@)).find("table").addClass('table')
 
     update_content: ->
-        @_update_links()   # this MUST be after update_escaped_chars -- see https://github.com/sagemathinc/cocalc/issues/1391
-        @_update_tables()
+        if not @_is_mounted
+            return
+
+        if @_needs_mathjax
+            @_update_mathjax =>
+                if not @_is_mounted
+                    return
+                @_update_links()
+                @_update_tables()
+        else
+            @_update_links()   # this MUST be after update_escaped_chars -- see https://github.com/sagemathinc/cocalc/issues/1391
+            @_update_tables()
 
     componentDidUpdate: ->
         @update_content()
@@ -862,8 +887,11 @@ exports.HTML = HTML = rclass
             else
                 html = require('./misc_page').sanitize_html(@props.value, true, true, @props.post_hook)
 
+            @_needs_mathjax = true
+
             if @props.auto_render_math
-                html = math_katex.render(html)
+                {html, is_complete} = math_katex.render(html)
+                @_needs_mathjax = not is_complete # don't mathjax if Katex is good enough
 
             {__html: html}
         else

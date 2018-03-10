@@ -70,9 +70,10 @@ exports.render = (html) ->
         macros : exports.macros
 
     new_math = []
+    is_complete = true
     for s in math
         katex_opts.displayMode = false
-
+        unstripped = s
         if s.slice(0,2) == '$$'
             s = s.slice(2,s.length-2)
             katex_opts.displayMode = true
@@ -93,6 +94,7 @@ exports.render = (html) ->
         try
             new_math.push(katex.renderToString(s, katex_opts))
         catch
-            new_math.push('<code class="cocalc-katex" style="color: #cc0000">' + s + '</code>')
+            is_complete = false
+            new_math.push('<div class="cocalc-katex-error" style="color: #cc0000">' + unstripped + '</div>')
 
-    return replace_math(text, new_math)
+    return {html: replace_math(text, new_math), is_complete: is_complete}
