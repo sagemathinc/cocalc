@@ -124,12 +124,12 @@ ProjectTab = rclass
                     onMouseOut  = {(e)=>@actions('page').clear_ghost_tabs();@setState(x_hovered:false)}
                 />
             </div>
-            <span style={project_name_styles}>
+            <div style={project_name_styles}>
                 <Tip title={misc.trunc(title,32)} tip={desc} placement='bottom' size='small' always_update={true}>
                     <Icon name={icon} style={fontSize:'20px'} />
                     <span style={marginLeft: 5, position:'relative', top:-2}>{misc.trunc(title,24)}</span>
                 </Tip>
-            </span>
+            </div>
         </SortableNavTab>
 
 FullProjectsNav = rclass
@@ -324,10 +324,10 @@ DropdownProjectsNav = rclass
 
         <Nav style={margin:'0', flex:'1', fontSize:'20px', padding:'15px'}>
             <NavItem onClick={(e)=>e.stopPropagation();e.preventDefault();@actions('page').set_active_tab(project_id)}>
-                <span style={project_name_styles}>
+                <div style={project_name_styles}>
                     <Icon name={icon} style={fontSize:'20px'} />
                     <span style={marginLeft: "5px"}>{misc.trunc(title,24)}</span>
-                </span>
+                </div>
                 <Icon
                     name = 'times'
                     style = {whiteSpace:'nowrap', fontSize:'12pt'}
