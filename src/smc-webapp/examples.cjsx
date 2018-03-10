@@ -47,8 +47,6 @@ immutable = require('immutable')
 {Loading, Icon, Markdown, Space} = require('./r_misc')
 # cocalc libs
 {defaults, required, optional} = misc = require('smc-util/misc')
-misc_page = require('./misc_page')
-markdown = require('./markdown')
 
 # used elsewhere, to make sure we use the same iconography everywhere
 exports.ICON_NAME = 'magic'
@@ -427,6 +425,13 @@ ExamplesHeader = rclass
     getDefaultProps: ->
         search_str : ''
 
+    shouldComponentUpdate: (props, state) ->
+        ret = misc.is_different(@props, props, [
+            'lang', 'search_str', 'search_sel', 'unknown_lang'
+        ])
+        ret or= misc.is_different_array(props.nav_entries, @props.nav_entries)
+        return ret
+
     langSelect: (key) ->
         @props.actions.select_lang(key)
 
@@ -533,9 +538,9 @@ ExamplesBody = rclass
         data                : rtypes.immutable
         lang                : rtypes.string
         code                : rtypes.string
+        descr               : rtypes.string
         setup_code          : rtypes.string
         prepend_setup_code  : rtypes.bool
-        descr               : rtypes.string
         cat0                : rtypes.number
         cat1                : rtypes.number
         cat2                : rtypes.number
@@ -550,6 +555,18 @@ ExamplesBody = rclass
     getDefaultProps: ->
         search_str : ''
 
+    shouldComponentUpdate: (props, state) ->
+        ret = misc.is_different(@props, props, [
+            'data', 'lang', 'code', 'descr', 'setup_code', 'prepend_setup_code',
+            'cat0', 'cat1', 'cat2',
+            'search_str', 'search_sel', 'unknown_lang'
+        ])
+        ret or= misc.is_different_array(props.hits, @props.hits)
+        ret or= misc.is_different_array(props.catlist0, @props.catlist0)
+        ret or= misc.is_different_array(props.catlist1, @props.catlist1)
+        ret or= misc.is_different_array(props.catlist2, @props.catlist2)
+        return ret
+
     componentDidMount: ->
         @scrollTo0 = _.debounce((() -> $(ReactDOM.findDOMNode(@refs.list_0)).find('.active').scrollintoview()), 50)
         @scrollTo1 = _.debounce((() -> $(ReactDOM.findDOMNode(@refs.list_1)).find('.active').scrollintoview()), 50)
@@ -557,10 +574,10 @@ ExamplesBody = rclass
         @scrollToS = _.debounce((() -> $(ReactDOM.findDOMNode(@refs.search_results_list)).find('.active').scrollintoview()), 50)
 
     componentDidUpdate: (props, state) ->
-        @scrollTo0()
-        @scrollTo1()
-        @scrollTo2()
-        @scrollToS()
+        @scrollTo0() if props.cat0 != @props.cat0
+        @scrollTo1() if props.cat1 != @props.cat1
+        @scrollTo2() if props.cat2 != @props.cat2
+        @scrollToS() if props.search_sel != @props.search_sel
 
     category_selection: (level, idx) ->
         @props.actions.set_selected_category(level, idx)
@@ -619,25 +636,22 @@ ExamplesBody = rclass
 
     render_top: ->
         searching = @props.search_str?.length > 0
-        if not @props.data?
-            <Row key={'top'}>
-                <Col sm={8} smOffset={4}>
-                    <ul className={'list-group'}>
-                        <li></li><li></li>
-                        <li><Loading /></li>
-                    </ul>
+        <Row key={'top'}>
+        {
+            if not @props.data?
+                <Col md={12} style={textAlign: 'center'}>
+                    <Loading />
                 </Col>
-            </Row>
-        else if searching
-            <Row key={'top'}>
+            else if searching
                 <Col sm={12}>{@render_search_results()}</Col>
-            </Row>
-        else
-            <Row key={'top'}>
-                <Col sm={3}>{@category_list(0)}</Col>
-                <Col sm={3}>{@category_list(1)}</Col>
-                <Col sm={6}>{@category_list(2)}</Col>
-            </Row>
+            else
+                [
+                    <Col sm={3} key={0}>{@category_list(0)}</Col>
+                    <Col sm={3} key={1}>{@category_list(1)}</Col>
+                    <Col sm={6} key={2}>{@category_list(2)}</Col>
+                ]
+        }
+        </Row>
 
     render_bottom: ->
         # TODO syntax highlighting
@@ -693,9 +707,9 @@ RExamples = (name) -> rclass
             lang                : rtypes.string      # the currently selected language
             lang_select         : rtypes.bool        # show buttons to allow selecting the language
             code                : rtypes.string      # displayed content of selected document
+            descr               : rtypes.string      # markdown-formatted content of document description
             setup_code          : rtypes.string      # optional, common code in the sub-category
             prepend_setup_code  : rtypes.bool        # if true, setup code is prepended to code
-            descr               : rtypes.string      # markdown-formatted content of document description
             data                : rtypes.immutable   # this is the processed "raw" data, see Actions::load_data
             nav_entries         : rtypes.arrayOf(rtypes.string)  # languages at the top, iff lang_select is true
             catlist0            : rtypes.arrayOf(rtypes.string)  # list of first category entries
@@ -710,13 +724,22 @@ RExamples = (name) -> rclass
             hits                : rtypes.arrayOf(rtypes.array)  # search results
             unknown_lang        : rtypes.bool        # true if there is no known set of documents for the language
 
+
     propTypes :
-        cb      : rtypes.func
         actions : rtypes.object.isRequired
 
-    getInitialState: ->
-        search      : ''
-        lang_select : true
+    shouldComponentUpdate: (props, state) ->
+        ret = misc.is_different(@props, props, [
+            'show', 'lang', 'code', 'descr', 'setup_code', 'prepend_setup_code', 'data',
+            'cat0', 'cat1', 'cat2',
+            'search_str', 'search_sel', 'unknown_lang', 'submittable'
+        ])
+        ret or= misc.is_different_array(props.hits, @props.hits)
+        ret or= misc.is_different_array(props.nav_entries, @props.nav_entries)
+        ret or= misc.is_different_array(props.catlist0, @props.catlist0)
+        ret or= misc.is_different_array(props.catlist1, @props.catlist1)
+        ret or= misc.is_different_array(props.catlist2, @props.catlist2)
+        return ret
 
     close: ->
         @props.actions.hide()
