@@ -56,7 +56,7 @@ exports.MediaViewer = rclass
         <ButtonBar refresh = {=>@setState(param: Math.random())}/>
 
     render: ->
-        <div style={marginTop:'1px', flex: 1, flexDirection: 'column', display:'flex'}>
+        <div style={marginTop:'1px'} className={'smc-vfill'}>
             {@render_buttonbar()}
             {@render_content()}
         </div>

@@ -24,7 +24,7 @@ exports.ButtonBar = rclass
         return false
 
     render: ->
-        <div>
+        <div style={padding: '0 1px'}>
             <Button
                 title   = {'Reload this, showing the latest version on disk.'}
                 onClick = {@props.refresh}
