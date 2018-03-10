@@ -98,7 +98,12 @@ class exports.Actions extends Actions
         @_save_local_view_state()
         return
 
-    set_active_id: (active_id) =>
+    set_active_id: (active_id, block_ms) =>
+        if @_ignore_set_active_id
+            return
+        if block_ms
+            @_ignore_set_active_id = true
+            setTimeout((=>@_ignore_set_active_id=false), block_ms)
         local = @store.get('local_view_state')
         if local?.get('active_id') == active_id
             # already set -- nothing more to do
@@ -173,7 +178,11 @@ class exports.Actions extends Actions
                 @copy_cm_state(id, i)
                 id = i  # this is a new id
                 break
-        @set_active_id(id)
+        # The block_ms=1 here is since the set can cause a bunch of rendering to happen
+        # which causes some other cm to focus, which changes the id.  Instead of a flicker
+        # and changing it back, we just prevent any id change for 1ms, which covers
+        # the render cycle.
+        @set_active_id(id, 1)
 
     set_frame_full: (id) =>
         local = @store.get('local_view_state').set('full_id', id)

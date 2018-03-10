@@ -160,7 +160,7 @@ exports.CodemirrorEditor = rclass
                 @props.actions.exit_undo_mode()
 
         @cm.on 'focus', =>
-            #@props.actions.set_active_id(@props.id)
+            @props.actions.set_active_id(@props.id)
             if @_style_active_line
                 @cm?.setOption('styleActiveLine', true)
 
