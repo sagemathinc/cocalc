@@ -214,15 +214,10 @@ for ext in ['png', 'jpg', 'jpeg', 'gif', 'svg', 'bmp']
         binary : true
         exclude_from_menu : true
 
-exports.VIDEO_EXTS = VIDEO_EXTS = ['webm', 'mp4', 'avi', 'mkv', 'ogv', 'ogm']
-for ext in VIDEO_EXTS
-    file_associations[ext] =
-        editor : 'media'
-        icon   : 'fa-file-video-o'
-        opts   : {}
-        name   : ext
-        binary : true
-        exclude_from_menu : true
+# See https://developer.mozilla.org/en-US/docs/Web/HTML/Element/img
+exports.IMAGE_EXTS = ['jpg', 'jpeg', 'png', 'bmp', 'gif', 'apng', 'svg', 'ico']
+
+exports.VIDEO_EXTS = ['webm', 'mp4', 'avi', 'mkv', 'ogv', 'ogm', '3gp']
 
 file_associations['pdf'] =
     editor : 'pdf'

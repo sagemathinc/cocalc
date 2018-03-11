@@ -136,7 +136,7 @@ FileTab = rclass
             marginTop  : '-3px'
 
         if @state.x_hovered
-            x_button_styles.color = 'red'
+            x_button_styles.color = 'lightblue'
 
         text_color = "white" if @props.is_active
 
@@ -426,14 +426,14 @@ ProjectContentViewer = rclass
                     {@render_drag_bar(@props.file_path)}
                     <div
                         ref = 'side_chat_container'
-                        style={flexBasis:"#{chat_width*100}%", border:'1px solid lightgrey', position:'relative'}>
+                        style={flexBasis:"#{chat_width*100}%", position:'relative'}>
                         {@render_side_chat(@props.file_path)}
                     </div>
                 </div>
         else
             # just the editor
             content =\
-                <div style={position: 'absolute', height:'100%', width:'100%', border:'1px solid lightgrey'}>
+                <div style={position: 'absolute', height:'100%', width:'100%'}>
                     {editor}
                 </div>
 
@@ -555,7 +555,7 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
     render_file_tabs: (is_public) ->
         shrink_fixed_tabs = $(window).width() < (376 + (@props.open_files_order.size + @props.num_ghost_file_tabs) * 250)
 
-        <div className="smc-file-tabs" ref="projectNav" style={width:'100%', height:'32px'}>
+        <div className="smc-file-tabs" ref="projectNav" style={width:'100%', height:'32px', borderBottom: "1px solid #e1e1e1"}>
             <div style={display:'flex'}>
                 {<Nav
                     bsStyle   = "pills"
