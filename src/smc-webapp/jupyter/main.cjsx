@@ -221,13 +221,14 @@ exports.JupyterEditor = rclass ({name}) ->
             keyboard_shortcuts = {@props.keyboard_shortcuts}
         />
 
-    render_assistent_dialog: ->
+    render_assistant_dialog: ->
         {instantiate_component} = require('../assistant/main')
         store             = @props.actions.store
         return null if not store?
         project_id        = store.get('project_id')
         path              = store.get('path')
-        assistant_actions = store.get('assistant_actions')
+        # assistant is initialized in JupyterActions::_init
+        assistant_actions = @props.actions.assistant_actions
         return instantiate_component(project_id, path, assistant_actions)
 
     render_json_viewer: ->
@@ -271,7 +272,7 @@ exports.JupyterEditor = rclass ({name}) ->
             {@render_edit_cell_metadata()}
             {@render_find_and_replace()}
             {@render_keyboard_shortcuts()}
-            {@render_assistent_dialog()}
+            {@render_assistant_dialog()}
             {@render_confirm_dialog()}
             {@render_heading()}
             {@render_main_view()}

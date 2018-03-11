@@ -75,10 +75,10 @@ class exports.JupyterActions extends Actions
         store._is_project = @_is_project
         @_account_id = client.client_id()   # project or account's id
 
-        if not @_is_project
+        # this initializes actions+store for the assistant -- are "sub-actions" a thing?
+        if not @_is_project   # this is also only a UI specific action
             {instantiate_assistant} = require('../assistant/main')
-            assistant_actions = instantiate_assistant(project_id, path)
-            @setState(assistant_actions:assistant_actions)
+            @assistant_actions = instantiate_assistant(project_id, path)
 
         @setState
             view_mode           : 'normal'
@@ -1577,23 +1577,22 @@ class exports.JupyterActions extends Actions
         @focus_unlock()
 
     show_code_assistant: =>
+        return if not @assistant_actions?
         @blur_lock()
 
-        # special case: sage is "python", but the assistant needs "sage"
+        # special case: sage is language "python", but the assistant needs "sage"
         if misc.startswith(@store.get('kernel'), 'sage')
             lang = 'sage'
         else
             lang = @store.getIn(['kernel_info', 'language'])
 
-        assistant_actions = @store.get('assistant_actions')
-        if assistant_actions?
-            assistant_actions.init(lang)
-            assistant_actions.set(
-                show            : true
-                lang            : lang
-                lang_select     : false
-                handler         : @code_assistant_handler
-            )
+        @assistant_actions.init(lang)
+        @assistant_actions.set(
+            show            : true
+            lang            : lang
+            lang_select     : false
+            handler         : @code_assistant_handler
+        )
 
     code_assistant_handler: (data) =>
         @focus_unlock()
@@ -1604,7 +1603,6 @@ class exports.JupyterActions extends Actions
             descr_cell = @insert_cell(1)
             @set_cell_input(descr_cell, descr)
             @set_cell_type(descr_cell, cell_type='markdown')
-            #@run_cell(descr_cell)
 
         code_cell = @insert_cell(1)
         @set_cell_input(code_cell, code)
