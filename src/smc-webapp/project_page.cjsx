@@ -437,12 +437,9 @@ ProjectContentViewer = rclass
                     {editor}
                 </div>
 
-        # Finally render it
-        <div style={position:'relative', height:0, flex:1}>
-            {content}
-        </div>
+        return content
 
-    render : ->
+    render_tab_content : ->
         switch @props.active_tab_name
             when 'files'
                 <ProjectFiles name={@props.project_name} project_id={@props.project_id} />
@@ -459,6 +456,11 @@ ProjectContentViewer = rclass
                     <Loading />
                 else
                     @render_editor_tab()
+
+    render: ->
+        <div style={overflowY:'scroll', overflowX:'hidden', flex:1, height:0, position:'relative'}>
+            {@render_tab_content()}
+        </div>
 
 
 exports.ProjectPage = ProjectPage = rclass ({name}) ->

@@ -941,6 +941,7 @@ ProjectFilesActions = rclass
         style =
             color      : '#999'
             height     : '22px'
+            margin     : '3px 20px'
 
         if checked is 0
             <div style={style}>
@@ -2348,7 +2349,7 @@ exports.ProjectFiles = rclass ({name}) ->
             {start_index, end_index} = pager_range(file_listing_page_size, @props.page_number)
             visible_listing = listing[start_index...end_index]
 
-        <div style={padding:'15px'}>
+        <div style={padding:'5px'}>
             {if pay? then @render_course_payment_warning(pay)}
             {@render_error()}
             {@render_activity()}
