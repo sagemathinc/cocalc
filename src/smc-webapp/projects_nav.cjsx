@@ -297,7 +297,7 @@ DropdownProjectsNav = rclass
 
         <Nav
             className = 'smc-dropdown-projects'
-            style     = {display:'flex', margin:'0', flex:'1', fontSize:'25px', textAlign:'center', padding:'5px'}
+            style     = {display:'flex', margin:'0', flex:'1', fontSize:'25px', textAlign:'center', padding:'5px', zIndex: 1, background: 'white'}
             >
             <NavDropdown
                 id        = "smc-top-project-nav-dropdown"
