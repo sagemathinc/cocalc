@@ -1261,6 +1261,7 @@ class exports.Connection extends EventEmitter
             max_output      : undefined
             bash            : false
             err_on_exit     : true
+            allow_post      : true       # set to false if genuinely could take a long time (but this requires websocket be setup, so more likely to fail)
             cb              : required   # cb(err, {stdout:..., stderr:..., exit_code:...}).
 
         if not opts.network_timeout?
@@ -1268,7 +1269,7 @@ class exports.Connection extends EventEmitter
 
         #console.log("Executing -- #{opts.command}, #{misc.to_json(opts.args)} in '#{opts.path}'")
         @call
-            allow_post : false     # since it may take too long
+            allow_post : opts.allow_post
             message    : message.project_exec
                 project_id  : opts.project_id
                 path        : opts.path
