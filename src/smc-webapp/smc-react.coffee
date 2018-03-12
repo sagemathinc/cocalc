@@ -556,6 +556,7 @@ react_component = (x) ->
 
 MODE = 'default'  # one of 'default', 'count', 'verbose', 'time'
 #MODE = 'verbose'
+#MODE = 'trace'
 #MODE = 'count'
 if not smc?
     MODE = 'default'  # never enable in prod
@@ -588,8 +589,15 @@ switch MODE
                 console.log r.displayName, "took", t1 - t0, "ms of time"
             return r
     when 'verbose'
-        {react_debug_verbose} = require('./smc-react-debug')
-        rclass = react_debug_verbose(react_component)
+        rclass = (x) ->
+            x._render = x.render
+            x.render = () ->
+                console.log x.displayName
+                return @_render()
+            return react_component(x)
+    when 'trace'
+        {react_debug_trace} = require('./smc-react-debug')
+        rclass = react_debug_trace(react_component)
     else
         rclass = react_component
 
