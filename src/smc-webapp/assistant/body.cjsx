@@ -139,11 +139,13 @@ exports.ExamplesBody = rclass
         <Row key={'top'}>
         {
             if not @props.data?
-                <Col md={12} style={textAlign: 'center'}>
-                    <Loading />
+                <Col md={12} className={'webapp-examples-loading'}>
+                    <Loading style={fontSize:'150%'} />
                 </Col>
             else if searching
-                <Col sm={12}>{@render_search_results()}</Col>
+                <Col sm={12}>
+                    {@render_search_results()}
+                </Col>
             else
                 [
                     <Col sm={3} key={0}>{@category_list(0)}</Col>
@@ -177,12 +179,14 @@ exports.ExamplesBody = rclass
         ]
 
     render_unknown_lang: ->
+        {REPO_URL} = require('./main')
+
         <Row>
             <Col sm={12}>
                 Selected language <code>{@props.lang}</code> has no data.
                 You can help by contributing more content at{' '}
                 <a href={REPO_URL} target={'_blank'}>
-                    {'sagemathinc/cocalc-assistant'}
+                    {REPO_URL.split('/')[-2...].join('/')}
                 </a>.
             </Col>
         </Row>
