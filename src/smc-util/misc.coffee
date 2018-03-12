@@ -1297,17 +1297,7 @@ exports.is_different = (a, b, fields, why) ->
     return false
 
 exports.is_different_array = (a, b) ->
-    ad = a?; bd = b?
-    if (not ad) and (not bd)
-        return false
-    if ad isnt bd
-        return true
-    if a.length != b.length
-        return true
-    for i in [0...a.length]
-        if a[i] != b[i]
-            return true
-    return false
+    return not underscore.isEqual(a,b)
 
 #####################
 # temporary location for activity_log code, shared by front and backend.
