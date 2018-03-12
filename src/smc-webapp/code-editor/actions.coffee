@@ -448,6 +448,9 @@ class exports.Actions extends Actions
     goto_line: (id) =>
         @_get_cm(id)?.execCommand('jumpToLine')
 
+    auto_indent: (id) =>
+        @_get_cm(id)?.execCommand('indentAuto')
+
     programmatical_goto_line: (line) =>  # used when clicking on other user avatar.
         cm = @_get_cm()
         if not cm?

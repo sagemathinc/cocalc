@@ -235,6 +235,19 @@ exports.FrameTitleBar = rclass
             </Button>
         </ButtonGroup>
 
+    render_format_group: ->
+        <ButtonGroup key={'format-group'}>
+            <Button
+                key      = {'auto-indent'}
+                title    = {'Automatically format selected code'}
+                onClick  = {@props.actions.auto_indent}
+                disabled = {@props.read_only}
+                bsSize   = {@button_size()}
+                >
+                <Icon name='magic' />
+            </Button>
+        </ButtonGroup>
+
     show_labels: ->
         return @props.is_only or @props.is_full
 
@@ -304,6 +317,8 @@ exports.FrameTitleBar = rclass
             {@render_zoom_group()}
             {<Space />}
             {@render_find_replace_group()}
+            {<Space />}
+            {@render_format_group()}
             {<Space/>}
             {@render_print()}
         </div>
