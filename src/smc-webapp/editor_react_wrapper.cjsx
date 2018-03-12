@@ -96,6 +96,11 @@ exports.register_nonreact_editor = (opts) ->
         icon      : undefined
         is_public : false
 
+    if window?.smc?
+        # make it much clearer which extensions use non-react editors
+        window.smc.nonreact ?= []
+        window.smc.nonreact.push({ext:opts.ext, is_public:opts.is_public})
+
     require('project_file').register_file_editor
         ext       : opts.ext
         is_public : opts.is_public
