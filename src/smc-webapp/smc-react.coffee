@@ -556,9 +556,11 @@ react_component = (x) ->
 
 MODE = 'default'  # one of 'default', 'count', 'verbose', 'time'
 #MODE = 'verbose'
+#MODE = 'trace'
 #MODE = 'count'
 if not smc?
     MODE = 'default'  # never enable in prod
+
 switch MODE
     when 'count'
         # Use these in the console:
@@ -593,6 +595,9 @@ switch MODE
                 console.log x.displayName
                 return @_render()
             return react_component(x)
+    when 'trace'
+        {react_debug_trace} = require('./smc-react-debug')
+        rclass = react_debug_trace(react_component)
     else
         rclass = react_component
 
