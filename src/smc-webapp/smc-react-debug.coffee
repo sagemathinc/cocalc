@@ -22,6 +22,8 @@
 underscore = require('underscore')
 misc       = require('smc-util/misc')
 
+# NOTE: react has its own profiling tools, which we are not using below https://reactjs.org/docs/perf.html
+
 exports.react_debug_trace = (react_component, mintime_s = 0.01) ->
     renderings      = []
     time_window_ms  = 10 * 1000 # we take the last ~10 seconds into account

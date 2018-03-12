@@ -554,12 +554,17 @@ react_component = (x) ->
             C = connect_component(x.reduxProps)(C)
     return C
 
-MODE = 'default'  # one of 'default', 'count', 'verbose', 'time'
-#MODE = 'verbose'
-#MODE = 'trace'
-#MODE = 'count'
+MODE = 'default'   # one of 'default', 'count', 'verbose', 'time'
+#MODE = 'verbose'  # print every CoCalc component that is rendered when rendered
+#MODE = 'trace'     # print only components that take some time, along with timing info
+#MODE = 'count'    # collect count of number of times each component is rendered; call get_render_count and reset_render_count to see.
+#MODE = 'time'      # show every single component render and how long it took
+
 if not smc?
     MODE = 'default'  # never enable in prod
+
+if MODE != 'default'
+    console.log("smc-react MODE='#{MODE}'")
 
 switch MODE
     when 'count'
@@ -598,8 +603,10 @@ switch MODE
     when 'trace'
         {react_debug_trace} = require('./smc-react-debug')
         rclass = react_debug_trace(react_component)
-    else
+    when 'default'
         rclass = react_component
+    else
+        throw Error("UNKNOWN smc-react MODE='#{MODE}'")
 
 Redux = createReactClass
     propTypes :
