@@ -1473,6 +1473,10 @@ class CodeMirrorEditor extends FileEditor
 
     examples_dialog_handler: () =>
         # @examples_dialog is an ExampleActions object, unique for each editor instance
+        lang = @_current_mode
+        # special case sh → bash
+        if lang == 'sh' then lang = 'bash'
+
         if not @examples_dialog?
             $target = @mode_display.parent().find('.react-target')
             {render_examples_dialog} = require('./assistant/main')
@@ -1480,10 +1484,10 @@ class CodeMirrorEditor extends FileEditor
                 target     : $target[0]
                 project_id : @project_id
                 path       : @filename
-                lang       : @_current_mode
+                lang       : lang
             )
         else
-            @examples_dialog.show(@_current_mode)
+            @examples_dialog.show(lang)
         @examples_dialog.set_handler(@example_insert_handler)
 
     example_insert_handler: (insert) =>
@@ -1501,6 +1505,8 @@ class CodeMirrorEditor extends FileEditor
         @syncdoc?.insert_new_cell(line)
         cell = "#{code}\n"
         if lang != @_current_mode
+            # special case: %sh for bash language
+            if lang == 'bash' then lang = 'sh'
             cell = "%#{lang}\n#{cell}"
         cm.replaceRange(cell, {line : line+1, ch:0})
         # and we evaluate and sync all this, too…
