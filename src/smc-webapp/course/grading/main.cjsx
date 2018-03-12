@@ -48,31 +48,6 @@ styles = require('../styles')
 {StudentList}   = require('./student-list')
 {ROW_STYLE, LIST_STYLE, LIST_ENTRY_STYLE, FLEX_LIST_CONTAINER, EMPTY_LISTING_TEXT, PAGE_SIZE} = require('./const')
 
-
-
-exports._init_state = _init_state = (props) ->
-    store      = props.redux.getStore(props.name)
-    student_id = props.grading.student_id
-    return
-        store           : store
-        student_info    : if student_id? then store.student_assignment_info(student_id, props.assignment)
-        student_filter  : props.grading.student_filter
-
-exports._update_state = _update_state = (props, next, state) ->
-    if misc.is_different(props, next, ['grading', 'assignment'])
-        student_id = next.grading.student_id
-        return if not student_id?
-        grade      = state.store.get_grade(props.assignment, student_id)
-        comment    = state.store.get_comments(props.assignment, student_id)
-        ret =
-            grade_value     : grade
-            grade_comments  : comment
-            edited_grade    : grade
-            edited_comments : comment
-            student_info    : if student_id? then state.store.student_assignment_info(student_id, props.assignment)
-        return ret
-
-
 exports.GradingStudentAssignment = rclass
     displayName : "CourseEditor-GradingStudentAssignment"
 
@@ -92,13 +67,9 @@ exports.GradingStudentAssignment = rclass
         misc.is_different(@props, next, ['assignment', 'students', 'user_map', 'grading'])
 
     getInitialState: ->
-        state = _init_state(@props)
-        state.active_autogrades = immutable.Set()
-        return state
-
-    componentWillReceiveProps: (next) ->
-        x = _update_state(@props, next, @state)
-        @setState(x) if x?
+        return
+            store : @props.redux.getStore(@props.name)
+            #active_autogrades : immutable.Set()
 
     componentDidMount: ->
         show_entry       =  =>
@@ -343,7 +314,7 @@ exports.GradingStudentAssignment = rclass
                     />
                 </Row>
                 {###
-                Info: <code>{misc.to_json(@state.student_info)}</code>.
+                Info: <code>{misc.to_json(@props.grading.student_info)}</code>.
                 <br/>
                 ###}
                 <Listing
@@ -352,7 +323,7 @@ exports.GradingStudentAssignment = rclass
                     assignment       = {@props.assignment}
                     page_number      = {@props.grading.page_number}
                     num_pages        = {@props.grading.num_pages}
-                    student_info     = {@state.student_info}
+                    student_info     = {@props.grading.student_info}
                     listing          = {@props.grading.listing}
                     listing_files    = {@props.grading.listing_files}
                     student_id       = {@props.grading.student_id}

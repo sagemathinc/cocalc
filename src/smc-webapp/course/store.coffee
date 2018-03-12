@@ -107,7 +107,7 @@ exports.CourseStore = class CourseStore extends Store
             full = full_name + " <#{email}>"
         else
             full = full_name
-        if full_name == 'Unknown User' and email?
+        if full_name == 'Unknown Name' and email?
             full_name = email
         if not include_email
             return full_name
@@ -274,10 +274,10 @@ exports.CourseStore = class CourseStore extends Store
 
     # get info about relation between a student and a given assignment
     student_assignment_info: (student, assignment) =>
-        assignment = @get_assignment(assignment)
-        student = @get_student(student)
-        student_id = student.get('student_id')
-        status = @get_assignment_status(assignment)
+        assignment  = @get_assignment(assignment)
+        student     = @get_student(student)
+        student_id  = student.get('student_id')
+        status      = @get_assignment_status(assignment)
         info =                         # RHS -- important to be undefined if no info -- assumed in code
             last_assignment      : assignment.get('last_assignment')?.get(student_id)?.toJS()
             last_collect         : assignment.get('last_collect')?.get(student_id)?.toJS()

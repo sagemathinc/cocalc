@@ -30,7 +30,6 @@
 {Alert, Button, ButtonToolbar, ButtonGroup, Form, FormControl, FormGroup, ControlLabel, InputGroup, Checkbox, Row, Col, Panel, Breadcrumb} = require('react-bootstrap')
 
 # Grading specific code
-{_init_state, _update_state} = require('./main')
 {Grading} = require('./models')
 
 exports.GradingStudentAssignmentHeader = rclass

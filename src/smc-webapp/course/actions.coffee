@@ -1890,9 +1890,9 @@ exports.CourseActions = class CourseActions extends Actions
 
     grading_update: (store, grading) =>
         return if not grading?
-        ret = store.grading_get_student_list(grading)
-        return if not ret?
-        [student_list, all_points] = ret
+        x = store.grading_get_student_list(grading)
+        return if not x?
+        [student_list, all_points] = x
         grading = grading.merge(
             student_list  : student_list
             all_points    : all_points
@@ -1902,9 +1902,14 @@ exports.CourseActions = class CourseActions extends Actions
             grading = grading.remove('total_points')
         else
             grading = grading.set('total_points', total_points)
+        if grading.student_id?
+            student_info = store.student_assignment_info(grading.student_id, grading.assignment_id)
+        else
+            student_info = undefined
         grading = grading.merge(
             current_idx    : grading.get_current_idx()
             list_of_grades : store.get_list_of_grades(grading.assignment_id)
+            student_info   : student_info
         )
         grading = grading.merge(grading.get_listing_files())
         @setState(grading : grading)

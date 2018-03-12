@@ -45,6 +45,7 @@ course_specific_files = (entry) ->
 
 GradingRecord = immutable.Record
     student_id      : null      # the current student
+    student_info    : null      # additional information about the given student
     total_points    : 0         # number of total points for this student
     assignment_id   : null      # the UUID string
     student_list    : []        # the list of students
