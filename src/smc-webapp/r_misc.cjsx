@@ -804,7 +804,8 @@ exports.HTML = HTML = rclass
     propTypes :
         value            : rtypes.string
         style            : rtypes.object
-        auto_render_math : rtypes.bool
+        auto_render_math : rtypes.bool     # optional -- used to render math with katex and mathjax as a fallback
+        use_mathjax      : rtypes.bool     # optional -- used to render math only with mathjax if auto_render_math is false
         project_id       : rtypes.string   # optional -- can be used to improve link handling (e.g., to images)
         file_path        : rtypes.string   # optional -- ...
         className        : rtypes.string   # optional class
@@ -887,7 +888,8 @@ exports.HTML = HTML = rclass
             else
                 html = require('./misc_page').sanitize_html(@props.value, true, true, @props.post_hook)
 
-            @_needs_mathjax = true
+            if @props.use_mathjax
+                @_needs_mathjax = true
 
             if @props.auto_render_math
                 {html, is_complete} = math_katex.render(html)
@@ -934,6 +936,7 @@ exports.Markdown = rclass
         <HTML
             value            = {@to_html()}
             auto_render_math = {false}
+            use_mathjax      = {true}
             style            = {@props.style}
             project_id       = {@props.project_id}
             file_path        = {@props.file_path}

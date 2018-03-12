@@ -95,6 +95,6 @@ exports.render = (html) ->
             new_math.push(katex.renderToString(s, katex_opts))
         catch
             is_complete = false
-            new_math.push('<div class="cocalc-katex-error" style="color: #cc0000">' + unstripped + '</div>')
+            new_math.push('<div class="cocalc-katex-error">' + unstripped + '</div>')
 
     return {html: replace_math(text, new_math), is_complete: is_complete}

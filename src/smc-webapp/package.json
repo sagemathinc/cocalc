@@ -5,6 +5,7 @@
   "main": "index.js",
   "directories": {},
   "dependencies": {
+    "@cocalc/markdown-it-katex": "^3.0.3",
     "@iktakahiro/markdown-it-katex": "^3.0.3",
     "@zippytech/react-notify-resize": "^3.0.0",
     "ansi-to-react": "^2.0.1",
