@@ -593,5 +593,6 @@ exports.CourseStore = class CourseStore extends Store
         assignment = @get_assignment(assignment_id)
         return if not assignment?
         grades     = assignment.get('grades')
-        values     = immutable.Set(grades.values())
+        # initially, there are no grades
+        values     = immutable.Set(grades?.values() ? [])
         return values.sortBy((a) -> a.toLowerCase())
