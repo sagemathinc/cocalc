@@ -16,7 +16,6 @@
     "coffee-loader": "^0.9.0",
     "coffeelint": "^2.0.7",
     "coffeescript": "^2.1.0",
-    "copy-webpack-plugin": "^4",
     "crypto-browserify": "^3.12.0",
     "css-loader": "^0.23.1",
     "extract-text-webpack-plugin": "^2",
