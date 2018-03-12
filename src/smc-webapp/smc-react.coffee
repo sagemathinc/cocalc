@@ -557,7 +557,7 @@ react_component = (x) ->
 MODE = 'default'  # one of 'default', 'count', 'verbose', 'time'
 #MODE = 'verbose'
 #MODE = 'count'
-if not window.smc?
+if not smc?
     MODE = 'default'  # never enable in prod
 
 switch MODE
@@ -588,36 +588,8 @@ switch MODE
                 console.log r.displayName, "took", t1 - t0, "ms of time"
             return r
     when 'verbose'
-        renderings   = []
-        time_window  = 10 * 1000 # we take the last ~10 seconds into account
-        rclass = (x) ->
-            x._render = x.render
-            x.render = () ->
-                # measure time
-                t0 = performance.now()
-                r  = @_render()
-                t1 = performance.now()
-                dt = t1 - t0
-                renderings.push([t0, dt])
-                # … and only keep what's in the time_window
-                while renderings.length > 0
-                    if renderings[0][0] < t1 - time_window
-                        renderings.shift()
-                    else
-                        break
-                # and adjust the minute interval to the actual interval
-                t_start  = renderings[0][0]
-                timespan = (t1 - t_start)
-                rate = renderings.length / (timespan / 1000)
-                # … and what percentage of that time was this?
-                pct = renderings.reduce(((x, y) -> x + y[1]), 0) / timespan
-                # finally, add additional info to know what this rendering was all about
-                props = underscore.object([k, v] for k, v of (@props ? {}) when v? and (k not in ['children', 'redux', 'actions']))
-                state = underscore.object([k, v] for k, v of (@state ? {}) when v?)
-                timeinfo = "[took #{misc.round2(dt)}secs, #{misc.round2(rate)} renderings/minute, #{misc.round2(100 * pct)}% time spent]"
-                console.log(x.displayName, timeinfo, '\nprops:', props, '\nstate:', state)
-                return r
-            return react_component(x)
+        {react_debug_verbose} = require('./smc-react-debug')
+        rclass = react_debug_verbose(react_component)
     else
         rclass = react_component
 
