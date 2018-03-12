@@ -798,8 +798,17 @@ exports.SearchInput = rclass
             </InputGroup>
         </FormGroup>
 
+# rendered_mathjax is used for backend pre-rendering of mathjax by the share server.
+rendered_mathjax = undefined
+exports.set_rendered_mathjax = (value, html) ->
+    rendered_mathjax ?= {}
+    if rendered_mathjax[value]?
+        rendered_mathjax[value].ref += 1
+    else
+        rendered_mathjax[value] = {html:html, ref:1}
+
 exports.HTML = HTML = rclass
-    displayName : 'Misc-HTML'
+    displayName : 'Misc-HTML' # this name is assumed and USED in the smc-hub/share/mathjax-support to identify this component; do NOT change!
 
     propTypes :
         value            : rtypes.string
@@ -883,6 +892,14 @@ exports.HTML = HTML = rclass
 
     render_html: ->
         if @props.value
+            if @props.auto_render_math and rendered_mathjax?
+                x = rendered_mathjax?[@props.value]
+                if x?
+                    x.ref -= 1
+                    if x.ref <= 0
+                        delete rendered_mathjax?[@props.value]
+                    return {__html:x.html}
+
             if @props.safeHTML
                 html = require('./misc_page').sanitize_html_safe(@props.value, @props.post_hook)
             else
@@ -917,6 +934,7 @@ exports.Markdown = rclass
         file_path      : rtypes.string   # optional -- ...
         className      : rtypes.string   # optional class
         safeHTML       : rtypes.bool     # optional -- default true, if true scripts and unsafe attributes are removed from sanitized html
+
         href_transform : rtypes.func     # optional function used to first transform href target strings
         post_hook      : rtypes.func     # see docs to HTML
 
