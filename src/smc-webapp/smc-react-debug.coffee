@@ -38,7 +38,7 @@ exports.react_debug_verbose = (react_component, mintime_s = 0.01) ->
             return r if dt < mintime_s
 
             # … and only keep what's in the time_window
-            while renderings.length > 0
+            while renderings.length > 1
                 if renderings[0][0] < t1 - time_window_ms
                     renderings.shift()
                 else
