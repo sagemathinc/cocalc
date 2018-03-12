@@ -442,11 +442,6 @@ class LinkFilesIntoTargetPlugin
 #policies = glob.sync(path.join(INPUT, 'policies', '*.html'))
 #linkFilesIntoTargetPlugin = new LinkFilesToTargetPlugin(policies, OUTPUT)
 
-###
-CopyWebpackPlugin = require('copy-webpack-plugin')
-copyWebpackPlugin = new CopyWebpackPlugin []
-###
-
 # this is like C's #ifdef for the source code. It is particularly useful in the
 # source code of CoCalc's webapp, such that it knows about itself's version and where
 # mathjax is. The version&date is shown in the hover-title in the footer (year).
@@ -530,7 +525,6 @@ else
         pug2app,
         #commonsChunkPlugin,
         #extractCSS,
-        #copyWebpackPlugin
         #webpackSHAHash,
         #new PrintChunksPlugin(),
         mathjaxVersionedSymlink,
