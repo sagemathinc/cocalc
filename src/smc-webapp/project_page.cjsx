@@ -419,7 +419,7 @@ ProjectContentViewer = rclass
                 <div
                     style = {position: 'absolute', height:'100%', width:'100%', display:'flex'}
                     ref   = 'editor_container'
-                    >
+                >
                     <div style={flex:1, overflow:'hidden', height:'100%', width:'100%'}>
                         {editor}
                     </div>
@@ -458,7 +458,7 @@ ProjectContentViewer = rclass
                     @render_editor_tab()
 
     render: ->
-        <div style={overflowY:'scroll', overflowX:'hidden', flex:1, height:0, position:'relative'}>
+        <div style={overflowY:'auto', overflowX:'hidden', flex:1, height:0, position:'relative'}>
             {@render_tab_content()}
         </div>
 
