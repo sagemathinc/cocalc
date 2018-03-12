@@ -273,7 +273,7 @@ exports.from_json_socket = (x) ->
 
 
 # convert object x to a JSON string, removing any keys that have "pass" in them and
-# any values that are potentially big -- this is meant to only be used for loging.
+# any values that are potentially big -- this is meant to only be used for logging.
 exports.to_safe_str = (x) ->
     obj = {}
     for key, value of x
@@ -1297,17 +1297,7 @@ exports.is_different = (a, b, fields, why) ->
     return false
 
 exports.is_different_array = (a, b) ->
-    ad = a?; bd = b?
-    if not ad and bd
-        return true
-    if ad and not bd
-        return true
-    if a.length != b.length
-        return true
-    for i in [0...a.length]
-        if a[i] != b[i]
-            return true
-    return false
+    return not underscore.isEqual(a,b)
 
 #####################
 # temporary location for activity_log code, shared by front and backend.
@@ -1677,10 +1667,10 @@ exports.is_zero_map = (map) ->
 # Doesn't modify map.  If map is an array, just returns it
 # with no change even if it has undefined values.
 exports.map_without_undefined = map_without_undefined = (map) ->
-    if is_array(map)
-        return map
     if not map?
         return
+    if is_array(map)
+        return map
     new_map = {}
     for k, v of map
         if not v?

@@ -99,7 +99,7 @@ exports.alert_message = (opts={}) ->
 check_for_clock_skew = () ->
     local_time = new Date()
     s = Math.ceil(Math.abs(webapp_client.server_time() - local_time)/1000)
-    if s > 30
+    if s > 120
         exports.alert_message(type:'error', timeout:9999,  message:"Your computer's clock is off by about #{s} seconds!  You MUST set it correctly then refresh your browser.  Expect nothing to work until you fix this.")
 
 # Wait until after the page is loaded and clock sync'd before checking for skew.

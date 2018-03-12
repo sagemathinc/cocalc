@@ -100,6 +100,7 @@ exports.Task = rclass
                 task_id   = {@props.task.get('task_id')}
                 due_date  = {@props.task.get('due_date')}
                 editing   = {@props.editing_due_date}
+                is_done   = {!!@props.task.get('done')}
                 />
         </span>
 
