@@ -1124,7 +1124,6 @@ exports.CourseActions = class CourseActions extends Actions
             assignment = store.get_assignment(assignment)
             obj = {table:'assignments', assignment_id:assignment.get('assignment_id')}
             x = @_get_one(obj)?[type] ? {}
-            console.log "Got #{x}", x
             student_id = student.get('student_id')
             x[student_id] = {time: misc.mswalltime()}
             if err
