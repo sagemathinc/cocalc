@@ -18,7 +18,7 @@ exports.print = (opts) ->
         options    : required
         path       : required
 
-    w = window.open('', misc.uuid(),
+    w = window.open('', '_blank',
                     'menubar=yes,toolbar=no,resizable=yes,scrollbars=yes,height=640,width=800')
     if not w?.closed? or w.closed
         return "Popup blocked.  Please unblock popups for this site."
