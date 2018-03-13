@@ -53,7 +53,7 @@ exports.Listing = rclass
         listing_files   : rtypes.immutable.List
         num_pages       : rtypes.number
         page_number     : rtypes.number
-        student_info    : rtypes.object.isRequired
+        student_info    : rtypes.immutable.isRequired
         student_id      : rtypes.string.isRequired
         subdir          : rtypes.string
         without_grade   : rtypes.bool
@@ -383,9 +383,9 @@ exports.Listing = rclass
         return (if more? then [listing, more] else listing)
 
     listing_controls: ->
-        last_collect  = @props.student_info?.last_collect
-        if last_collect?.time?
-            time      = <BigTime date={last_collect.time} />
+        last_collect_time  = @props.student_info.getIn(['last_collect', 'time'])
+        if last_collect_time
+            time      = <BigTime date={last_collect_time} />
         else
             time      = "never"
 
