@@ -267,7 +267,8 @@ exports.SettingsPanel = rclass
                 else
                     actions.set_error("Error writing '#{path}' -- '#{err}'")
 
-    save_grades_to_csv: ->
+    # deprecated version 1
+    save_to_csv_v1: ->
         store = @props.redux.getStore(@props.name)
         assignments = store.get_sorted_assignments()
         students = store.get_sorted_students()
@@ -291,7 +292,7 @@ exports.SettingsPanel = rclass
             content += line + '\n'
         @write_file(@path('csv'), content)
 
-    save_points_to_csv: ->
+    save_to_csv_v2: ->
         store = @props.redux.getStore(@props.name)
         assignments = store.get_sorted_assignments()
         students = store.get_sorted_students()
@@ -324,7 +325,8 @@ exports.SettingsPanel = rclass
         content += "exported = datetime.strptime('#{timestamp}', '%Y-%m-%dT%H:%M:%S.%fZ')\n"
         return content
 
-    save_grades_to_py: ->
+    # deprecated version 1
+    save_to_py_v1: ->
         ###
         example:
         course = 'title'
@@ -358,52 +360,40 @@ exports.SettingsPanel = rclass
         content += ']\n'
         @write_file(@path('py'), content)
 
-    save_points_to_py: ->
+    save_to_py_v2: ->
         store = @props.redux.getStore(@props.name)
-        assignments = store.get_sorted_assignments()
-        students = store.get_sorted_students()
         content = @save_py_header()
-        data = {}
-        for assignment in assignments
-            apth = assignment.get('path')
-            data[apth] = a_data = {}
-            for student in students
-                id = student.get('student_id')
-                a_data[id] = student_data = {}
-                student_data.name    = store.get_student_name(student)
-                student_data.email   = store.get_student_email(student) ? ''
-                student_data.grade   = store.get_grade(assignment, student) ? ''
-                student_data.comment = store.get_comments(assignment, student) ? ''
-                student_data.points  = point_data = {}
-                assignment.getIn(['points', id])?.forEach (points, filepath) ->
-                    return if points == 0
-                    point_data[filepath] = points
-
+        data = store.get_export_course_data()
         content += "points = #{JSON.stringify(data, null, 2)}\n"
         @write_file(@path('py', 'export_points_'), content)
+
+    save_to_json_v2: ->
+        store = @props.redux.getStore(@props.name)
+        data = store.get_export_course_data()
+        content = "#{JSON.stringify(data, null, 2)}\n"
+        @write_file(@path('json', 'export_points_'), content)
 
     render_save_grades: ->
         <Panel header={@render_grades_header()}>
             <Row>
-                <Col md={6}>
-                    <div style={marginBottom:'10px'}>Save <b>grades</b> to... </div>
+                <Col md={12}>
+                    <div style={marginBottom:'10px'}>Save grades and points to... </div>
                     <ButtonToolbar>
-                        <Button onClick={@save_grades_to_csv}><Icon name='file-text-o'/> CSV file...</Button>
-                        <Button onClick={@save_grades_to_py}><Icon name='file-code-o'/> Python file...</Button>
-                    </ButtonToolbar>
-                </Col>
-                <Col md={6}>
-                    <div style={marginBottom:'10px'}>Save <b>points</b> to... </div>
-                    <ButtonToolbar>
-                        <Button onClick={@save_points_to_csv}><Icon name='file-text-o'/> CSV file...</Button>
-                        <Button onClick={@save_points_to_py}><Icon name='file-code-o'/> Python file...</Button>
+                        <Button onClick={@save_to_csv_v2}><Icon name='file-text-o'/> CSV file</Button>
+                        <Button onClick={@save_to_py_v2}><Icon name='file-code-o'/> Python file</Button>
+                        <Button onClick={@save_to_json_v2}><Icon name='file-code-o'/> JSON file</Button>
                     </ButtonToolbar>
                 </Col>
             </Row>
             <hr/>
             <span style={color:COLORS.GRAY}>
-                Export all the grades you have recorded
-                for students in your course to a csv or Python file.
+                Export all the grades and points you have recorded
+                for students in your course to a CSV, Python or JSON file.
+                More information: <a href={'https://github.com/sagemathinc/cocalc/wiki/CourseExportFiles'} target={'_blank'}>file format documentation</a>.
+                <br/>
+                Get the previous version 1 formats:{' '}
+                <a style={cursor:'pointer'} onClick={@save_to_csv_v1}>CSV file</a> and{' '}
+                <a style={cursor:'pointer'} onClick={@save_to_py_v1}>Python file</a>.
                 <br/>
                 In Microsoft Excel, you can {' '}
                 <a target="_blank" href="https://support.office.com/en-us/article/Import-or-export-text-txt-or-csv-files-5250ac4c-663c-47ce-937b-339e391393ba">
