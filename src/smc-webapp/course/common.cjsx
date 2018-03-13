@@ -304,7 +304,10 @@ exports.StudentAssignmentInfo = rclass
             error = "Try to #{name.toLowerCase()} again:\n" + error
         <ErrorDisplay key='error' error={error} style={maxHeight: '140px', overflow:'auto'}/>
 
-    render_last: (name, obj, type, enable_copy, copy_tip, open_tip) ->
+    render_last: (name, obj, type, enable_copy, copy_tip, open_tip, opts) ->
+        opts = defaults opts,
+            omit_errors : false
+
         open = => @open(type, @props.info.assignment_id, @props.info.student_id)
         copy = => @copy(type, @props.info.assignment_id, @props.info.student_id)
         stop = => @stop(type, @props.info.assignment_id, @props.info.student_id)
@@ -319,7 +322,7 @@ exports.StudentAssignmentInfo = rclass
                 v.push(@render_copy(name, copy, copy_tip))
         if obj.time
             v.push(@render_last_time(name, obj.time))
-        if obj.error
+        if obj.error and not opts.omit_errors
             v.push(@render_error(name, obj.error))
         return v
 
@@ -359,12 +362,12 @@ exports.StudentAssignmentInfo = rclass
                     <Col md={width} key='last_assignment'>
                         {@render_last('Assign', @props.info.last_assignment, 'assigned', true,
                            "Copy the assignment from your project to this student's project so they can do their homework.",
-                           "Open the student's copy of this assignment directly in their project.  You will be able to see them type, chat with them, leave them hints, etc.")}
+                           "Open the student's copy of this assignment directly in their project.  You will be able to see them type, chat with them, leave them hints, etc.", {omit_errors : skip_assignment})}
                     </Col>
                     <Col md={width} key='last_collect'>
                         {@render_last('Collect', @props.info.last_collect, 'collected', @props.info.last_assignment? or skip_assignment,
                            "Copy the assignment from your student's project back to your project so you can grade their work.",
-                           "Open the copy of your student's work in your own project, so that you can grade their work.") if skip_assignment or not @props.info.last_assignment?.error}
+                           "Open the copy of your student's work in your own project, so that you can grade their work.", {omit_errors : skip_collect}) if skip_assignment or not @props.info.last_assignment?.error}
                     </Col>
                     {@render_peer_assign()  if peer_grade and @props.info.peer_assignment and not @props.info.last_collect?.error}
                     {@render_peer_collect() if peer_grade and @props.info.peer_collect and not @props.info.peer_assignment?.error}
