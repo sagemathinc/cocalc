@@ -941,6 +941,7 @@ ProjectFilesActions = rclass
         style =
             color      : '#999'
             height     : '22px'
+            margin     : '3px 20px'
 
         if checked is 0
             <div style={style}>
@@ -1489,7 +1490,6 @@ ProjectFilesActionBox = rclass
 
     stop_sharing_click: ->
         @props.actions.disable_public_path(@props.checked_files.first())
-        @props.actions.set_file_action()
 
     render_share_warning: ->
         <Alert bsStyle='warning' style={wordWrap:'break-word'}>
@@ -1589,6 +1589,10 @@ ProjectFilesActionBox = rclass
                     </FormGroup>
                     {@render_share_warning() if parent_is_public}
                 </Col>
+                <Col sm={4} style={color:'#666'}>
+                    <h4>Items</h4>
+                    {@render_selected_files_list()}
+                </Col>
                 {<Col sm={4} style={color:'#666'}>
                     <h4>Shared publicly</h4>
                     <CopyToClipBoard
@@ -1597,10 +1601,6 @@ ProjectFilesActionBox = rclass
                         hide_after    = {true}
                     />
                 </Col> if single_file_data.is_public}
-                <Col sm={4} style={color:'#666'}>
-                    <h4>Items</h4>
-                    {@render_selected_files_list()}
-                </Col>
             </Row>
             <Row>
                 <Col sm={4}>
@@ -2349,7 +2349,7 @@ exports.ProjectFiles = rclass ({name}) ->
             {start_index, end_index} = pager_range(file_listing_page_size, @props.page_number)
             visible_listing = listing[start_index...end_index]
 
-        <div style={padding:'15px'}>
+        <div style={padding:'5px'}>
             {if pay? then @render_course_payment_warning(pay)}
             {@render_error()}
             {@render_activity()}

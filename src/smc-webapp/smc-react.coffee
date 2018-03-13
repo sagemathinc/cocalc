@@ -434,6 +434,19 @@ class AppRedux
             console.warn("getProjectReferences: INVALID project_id -- #{project_id}")
         return project_store?.deleteStoreActionsTable(project_id, @)
 
+    getEditorStore: (project_id, path) =>
+        if not misc.is_valid_uuid_string(project_id)
+            console.trace()
+            console.warn("getEditorStore: INVALID project_id -- #{project_id}")
+        return @getStore(exports.redux_name(project_id, path))
+
+    getEditorActions: (project_id, path) =>
+        if not misc.is_valid_uuid_string(project_id)
+            console.trace()
+            console.warn("getEditorActions: INVALID project_id -- #{project_id}")
+        return @getActions(exports.redux_name(project_id, path))
+
+
 redux = new AppRedux()
 
 computed = (rtype) =>
@@ -458,13 +471,16 @@ connect_component = (spec) =>
         if not state?
             return props
         for store_name, info of spec
-            if store_name=='undefined'  # gets turned into this string when making a common mistake
+            if store_name == 'undefined'  # gets turned into this string when making a common mistake
                 console.warn("spec = ", spec)
                 throw Error("store_name of spec *must* be defined")
+            store = redux.getStore(store_name)
+            if not store?
+                throw Error("store '#{store_name}' *must* be defined")
             for prop, type of info
-                if redux.getStore(store_name).__converted?
-                    val = redux.getStore(store_name)[prop]
-                    if not Object.getOwnPropertyDescriptor(redux.getStore(store_name), prop)?.get?
+                if store.__converted?
+                    val = store[prop]
+                    if not Object.getOwnPropertyDescriptor(store, prop)?.get?
                         if DEBUG
                             console.warn("Requested reduxProp `#{prop}` from store `#{store_name}` but it is not defined in its stateTypes nor reduxProps")
                         val = state.getIn([store_name, prop])
@@ -538,11 +554,18 @@ react_component = (x) ->
             C = connect_component(x.reduxProps)(C)
     return C
 
-MODE = 'default'  # one of 'default', 'count', 'verbose', 'time'
-#MODE = 'verbose'
-#MODE = 'count'
+MODE = 'default'   # one of 'default', 'count', 'verbose', 'time'
+#MODE = 'verbose'  # print every CoCalc component that is rendered when rendered
+#MODE = 'trace'     # print only components that take some time, along with timing info
+#MODE = 'count'    # collect count of number of times each component is rendered; call get_render_count and reset_render_count to see.
+#MODE = 'time'      # show every single component render and how long it took
+
 if not smc?
     MODE = 'default'  # never enable in prod
+
+if MODE != 'default'
+    console.log("smc-react MODE='#{MODE}'")
+
 switch MODE
     when 'count'
         # Use these in the console:
@@ -577,8 +600,13 @@ switch MODE
                 console.log x.displayName
                 return @_render()
             return react_component(x)
-    else
+    when 'trace'
+        {react_debug_trace} = require('./smc-react-debug')
+        rclass = react_debug_trace(react_component)
+    when 'default'
         rclass = react_component
+    else
+        throw Error("UNKNOWN smc-react MODE='#{MODE}'")
 
 Redux = createReactClass
     propTypes :

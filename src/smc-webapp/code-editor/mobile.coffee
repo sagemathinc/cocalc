@@ -5,15 +5,12 @@ external keyboard devices more usable, e.g., iPad.
 Basically, certain browsers intercept or don't properly send the control or cmd
 keys to the browser javascript.  However, the option=alt key isn't used for
 much, so we add it for many keyboard shortcuts here.
-
-TODO/DEPRECATED: once the new react rewrite is done, delete this.  There is a modified copy
-of it in code-editor/mobile.coffee.
 ###
 
 misc = require('smc-util/misc')
 copypaste = require('../copy-paste-buffer')
 
-exports.extra_alt_keys = (extraKeys, editor, opts) ->
+exports.extra_alt_keys = (extraKeys, actions, frame_id, opts) ->
     misc.merge extraKeys,
         "Shift-Alt-L" : (cm) => cm.align_assignments()
         'Alt-Z'       : (cm) => cm.undo()
@@ -28,36 +25,17 @@ exports.extra_alt_keys = (extraKeys, editor, opts) ->
         'Shift-Alt-D' : (cm) => cm.execCommand('duplicateLine')
         'Alt-G'       : (cm) => cm.execCommand('findNext')
         'Shift-Alt-G' : (cm) => cm.execCommand('findPrev')
-        'Alt-Up'      : (cm) => cm.execCommand('goPageUp')
-        'Alt-Down'    : (cm) => cm.execCommand('goPageDown')
+        'Cmd-Up'      : (cm) => cm.execCommand('goPageUp')
+        'Cmd-Down'    : (cm) => cm.execCommand('goPageDown')
         'Alt-K'       : (cm) => cm.execCommand('goPageUp')
         'Alt-J'       : (cm) => cm.execCommand('goPageDown')
         'Alt-P'       : (cm) => cm.execCommand('goLineUp')
         'Alt-N'       : (cm) => cm.execCommand('goLineDown')
-
-    if editor?.goto_line?
-        extraKeys['Alt-L'] = (cm) => editor.goto_line(cm)
-    if editor?.toggle_split_view?
-        extraKeys['Alt-I'] = (cm) => editor.toggle_split_view(cm)
-    if editor?.copy?
-        extraKeys['Alt-C'] = (cm) => editor.copy(cm)  # gets overwritten for vim mode, of course
-    else
-        extraKeys['Alt-C'] = (cm) => copypaste.set_buffer(cm.getSelection())
-
-    if editor?.cut?
-        extraKeys['Alt-X'] = (cm) => editor.cut(cm)
-    else
-        extraKeys['Alt-X'] = (cm) =>
-            copypaste.set_buffer(cm.getSelection())
-            cm.replaceSelection('')
-    if editor?.paste?
-        extraKeys['Alt-V'] = (cm) => editor.paste(cm)
-    else
-        extraKeys['Alt-V'] = (cm) => cm.replaceSelection(copypaste.get_buffer())
-    if editor?.click_save_button?
-        extraKeys['Alt-S'] = (cm) => editor.click_save_button()
-    else if editor?.save?
-        extraKeys['Alt-S'] = (cm) => editor.save()
+        'Alt-L'       : (cm) => cm.execCommand('jumpToLine')
+        'Alt-C'       : (cm) => actions.copy(frame_id)  # gets overwritten for vim mode, of course
+        'Alt-X'       : (cm) => actions.cut(frame_id)
+        'Alt-V'       : (cm) => actions.paste(frame_id)
+        'Alt-S'       : (cm) => actions.save(true)
 
     if opts.bindings == 'vim'
         # An additional key to get to visual mode in vim (added for ipad Smart Keyboard)
@@ -67,3 +45,4 @@ exports.extra_alt_keys = (extraKeys, editor, opts) ->
             cm.execCommand('goPageDown')
         extraKeys["Alt-B"] = (cm) =>
             cm.execCommand('goPageUp')
+

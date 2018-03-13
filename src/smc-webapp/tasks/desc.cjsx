@@ -67,6 +67,7 @@ exports.Description = rclass
         <div
             onDoubleClick = {@edit}
             onClick       = {if not @props.desc then @edit}
+            onTouchStart  = {@edit}
             >
             <DescriptionRendered
                 actions           = {@props.actions}

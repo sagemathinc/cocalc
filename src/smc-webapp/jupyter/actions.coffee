@@ -930,13 +930,13 @@ class exports.JupyterActions extends Actions
         @set_cur_id_from_index(i)
         return
 
-    set_cursor_locs: (locs=[]) =>
+    set_cursor_locs: (locs=[], side_effect) =>
         if locs.length == 0
             # don't remove on blur -- cursor will fade out just fine
             return
         @_cursor_locs = locs  # remember our own cursors for splitting cell
         # syncdb not always set -- https://github.com/sagemathinc/cocalc/issues/2107
-        @syncdb?.set_cursor_locs(locs)
+        @syncdb?.set_cursor_locs(locs, side_effect)
 
     split_current_cell: =>
         cursor = @_cursor_locs?[0]

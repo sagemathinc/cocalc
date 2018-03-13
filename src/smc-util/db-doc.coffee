@@ -794,9 +794,9 @@ class exports.SyncDB extends EventEmitter
         @_doc.save()
         return
 
-    set_cursor_locs: (locs) =>
+    set_cursor_locs: (locs, side_effect) =>
         @_check()
-        @_doc.set_cursor_locs(locs)
+        @_doc.set_cursor_locs(locs, side_effect)
         return
 
     get_cursors: =>
