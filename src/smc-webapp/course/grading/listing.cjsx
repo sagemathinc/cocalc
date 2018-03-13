@@ -155,22 +155,19 @@ exports.Listing = rclass
     render_toggle_show_all_files: ->
         visible = @props.show_all_files
         icon    = if visible then 'eye' else 'eye-slash'
-        <div style={padding:'0', flex:'0', marginRight: '15px'}>
-            <ButtonGroup style={marginBottom:'5px', display:'flex'}>
-                <Tip
-                    title     = {'Show/hide files'}
-                    tip       = {'By default, less important files are hidden from the files listing.'}
-                    placement = {'top'}
-                >
-                    <Button
-                        onClick    = {=>@toggle_show_all_files()}
-                        style      = {whiteSpace: 'nowrap'}
-                    >
-                        <Icon name={icon} />
-                    </Button>
-                </Tip>
-            </ButtonGroup>
-        </div>
+
+        <Button
+            onClick    = {=>@toggle_show_all_files()}
+            style      = {whiteSpace: 'nowrap'}
+        >
+            <Tip
+                title     = {'Show/hide files'}
+                tip       = {'By default, less important files are hidden from the files listing.'}
+                placement = {'top'}
+            >
+                <Icon name={icon} />
+            </Tip>
+        </Button>
 
     # TODO this is pure demo
     autograde: (ext, filename) ->
@@ -395,13 +392,13 @@ exports.Listing = rclass
 
         <Row key={'controls'}>
             <div style={display: 'flex', flexDirection: 'row'}>
-                {@render_toggle_show_all_files()}
                 {@render_listing_pager()}
                 <div style={padding:'0', flex:'1'}>
                     {@render_listing_path()}
                 </div>
                 <div style={padding:'0', flex:'0'}>
                     <ButtonGroup style={marginBottom:'5px', display:'flex'}>
+                        {@render_toggle_show_all_files()}
                         <Button
                             style    = {whiteSpace:'nowrap'}
                             disabled = {disabled}
