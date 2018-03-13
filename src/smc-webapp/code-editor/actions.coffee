@@ -321,7 +321,6 @@ class exports.Actions extends Actions
         window.open(WIKI_HELP_URL, "_blank").focus()
 
     undo: =>
-        # TODO: do we need explicit exit of undo mode anywhere??!
         @_syncstring?.undo()
 
     redo: =>
