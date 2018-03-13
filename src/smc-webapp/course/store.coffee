@@ -484,21 +484,27 @@ exports.CourseStore = class CourseStore extends Store
     get_export_course_data: ->
         assignments = @get_sorted_assignments()
         students = @get_sorted_students()
-        data = {}
+        data = {students : {}, assignments : {}}
+
+        for student in students
+            id = student.get('student_id')
+            student_data = data.students[id] = {}
+            student_data.name    = @get_student_name(student)
+            student_data.email   = @get_student_email(student) ? ''
+
         for assignment in assignments
             apth = assignment.get('path')
-            data[apth] = a_data = {}
+            a_data = data.assignments[apth] = []
             for student in students
-                id = student.get('student_id')
-                a_data[id] = student_data = {}
-                student_data.name    = @get_student_name(student)
-                student_data.email   = @get_student_email(student) ? ''
-                student_data.grade   = @get_grade(assignment, student) ? ''
-                student_data.comment = @get_comments(assignment, student) ? ''
-                student_data.points  = point_data = {}
+                student_data =
+                    student : student.get('student_id')
+                    grade   : @get_grade(assignment, student) ? ''
+                    comment : @get_comments(assignment, student) ? ''
+                    points  : {}
                 assignment.getIn(['points', id])?.forEach (points, filepath) ->
                     return if points == 0
-                    point_data[filepath] = points
+                    student_data.points[filepath] = points
+                a_data.push(student_data)
         return data
 
     grading_next_student: (opts) =>

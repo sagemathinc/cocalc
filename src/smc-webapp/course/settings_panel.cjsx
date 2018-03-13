@@ -360,16 +360,11 @@ exports.SettingsPanel = rclass
         content += ']\n'
         @write_file(@path('py'), content)
 
-    save_to_py_v2: ->
-        store = @props.redux.getStore(@props.name)
-        content = @save_py_header()
-        data = store.get_export_course_data()
-        content += "points = #{JSON.stringify(data, null, 2)}\n"
-        @write_file(@path('py', 'export_points_'), content)
-
     save_to_json_v2: ->
         store = @props.redux.getStore(@props.name)
         data = store.get_export_course_data()
+        data.title = @props.settings.get('title')
+        data.timestamp = (webapp_client.server_time()).toISOString()
         content = "#{JSON.stringify(data, null, 2)}\n"
         @write_file(@path('json', 'export_points_'), content)
 
@@ -380,7 +375,6 @@ exports.SettingsPanel = rclass
                     <div style={marginBottom:'10px'}>Save grades and points to... </div>
                     <ButtonToolbar>
                         <Button onClick={@save_to_csv_v2}><Icon name='file-text-o'/> CSV file</Button>
-                        <Button onClick={@save_to_py_v2}><Icon name='file-code-o'/> Python file</Button>
                         <Button onClick={@save_to_json_v2}><Icon name='file-code-o'/> JSON file</Button>
                     </ButtonToolbar>
                 </Col>
@@ -388,7 +382,7 @@ exports.SettingsPanel = rclass
             <hr/>
             <span style={color:COLORS.GRAY}>
                 Export all the grades and points you have recorded
-                for students in your course to a CSV, Python or JSON file.
+                for students in your course to a CSV or JSON file.
                 More information: <a href={'https://github.com/sagemathinc/cocalc/wiki/CourseExportFiles'} target={'_blank'}>file format documentation</a>.
                 <br/>
                 Get the previous version 1 formats:{' '}
