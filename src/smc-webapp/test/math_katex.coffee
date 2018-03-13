@@ -10,7 +10,7 @@ describe 'math processing', ->
         rendered_math = math_katex.render(target_string)
         rendered_by_katex = katex.renderToString(math_string)
 
-        expect(rendered_math)
+        expect(rendered_math.html)
             .toEqual(rendered_by_katex)
 
 
@@ -24,4 +24,4 @@ describe 'markdown math', ->
         rendered_by_katex = katex.renderToString(math_string)
 
         expect(rendered_math)
-            .toEqual("<p><span class=\"inlineMath\">" + rendered_by_katex + "</span></p>")
+            .toEqual("<p>" + rendered_by_katex + "</p>\n")
