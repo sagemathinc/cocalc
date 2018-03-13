@@ -57,6 +57,16 @@ exports.FileTab = rclass
         e.preventDefault()
         @actions(project_id: @props.project_id).close_tab(path)
 
+    click: (e) ->
+        actions = @actions(project_id: @props.project_id)
+        if @props.file_tab and (e.ctrlKey or e.shiftKey or e.metaKey)
+            # shift/ctrl/option clicking on *file* tab opens in a new popout window.
+            actions.open_file
+                path               : misc.tab_to_path(@props.name)
+                new_browser_window : true
+        else
+            actions.set_active_tab(@props.name)
+
     render : ->
         styles = {}
 
@@ -96,7 +106,7 @@ exports.FileTab = rclass
             ref     = 'tab'
             style   = {styles}
             active  = {@props.is_active}
-            onClick = {=>@actions(project_id: @props.project_id).set_active_tab(@props.name)}
+            onClick = {@click}
         >
             <div style={width:'100%', color:text_color, cursor : 'pointer'}>
                 <div style={x_button_styles}>

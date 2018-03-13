@@ -1782,15 +1782,15 @@ exports.drag_stop_iframe_enable = ->
     $("iframe:visible").css('pointer-events', 'auto')
 
 exports.open_popup_window = (url) ->
-    exports.open_new_tab(url, popup=true)
+    exports.open_new_tab(url, true)
 
 # open new tab and check if user allows popups. if yes, return the tab -- otherwise show an alert and return null
 exports.open_new_tab = (url, popup=false) ->
-    # if popup=true, it opens a small overlay window instead of a new tab
+    # if popup=true, it opens a smaller overlay window instead of a new tab (though depends on browser)
     if popup
-        tab = window.open(url, '', 'menubar=yes,toolbar=no,resizable=yes,scrollbars=yes,height=640,width=800')
+        tab = window.open(url, '_blank', 'menubar=yes,toolbar=no,resizable=yes,scrollbars=yes,height=640,width=800')
     else
-        tab = window.open(url)
+        tab = window.open(url, '_blank')
     if not tab?.closed? or tab.closed   # either tab isn't even defined (or doesn't have close method) -- or already closed -- popup blocked
         {alert_message} = require('./alerts')
         if url
