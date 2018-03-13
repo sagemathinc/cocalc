@@ -363,7 +363,7 @@ exports.StudentAssignmentInfo = rclass
                     <Col md={width} key='last_collect'>
                         {@render_last('Collect', @props.info.last_collect, 'collected', @props.info.last_assignment? or skip_assignment,
                            "Copy the assignment from your student's project back to your project so you can grade their work.",
-                           "Open the copy of your student's work in your own project, so that you can grade their work.") if not @props.info.last_assignment?.error}
+                           "Open the copy of your student's work in your own project, so that you can grade their work.") if skip_assignment or not @props.info.last_assignment?.error}
                     </Col>
                     {@render_peer_assign()  if peer_grade and @props.info.peer_assignment and not @props.info.last_collect?.error}
                     {@render_peer_collect() if peer_grade and @props.info.peer_collect and not @props.info.peer_assignment?.error}
