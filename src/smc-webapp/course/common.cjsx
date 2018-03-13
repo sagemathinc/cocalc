@@ -27,6 +27,7 @@ misc = require('smc-util/misc')
 
 # React libraries
 {React, rclass, rtypes, Actions, ReactDOM}  = require('../smc-react')
+Fragment = React.Fragment
 
 {Button, ButtonToolbar, ButtonGroup, FormControl, FormGroup, InputGroup, Row, Col} = require('react-bootstrap')
 
