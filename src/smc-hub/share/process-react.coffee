@@ -93,8 +93,11 @@ reactTreeWalker = require('react-tree-walker').default
 exports.process_react_component = (component, viewer, cb) ->
     work = []
     visitor = (element, instance, context) ->
-        if element.props?.has_mathjax?
-            if not element.props.has_mathjax
+        if element.props?.auto_render_math?
+            console.log "======\nSETTING RENDERED MATHJAX\n======="
+            console.log "Visiting #{(item for item in element.props)} #{element.props.auto_render_math} #{element.type.displayName}"
+            console.log "Item has mathjax"
+            if not element.props.auto_render_math
                 return false
             if element.type?.displayName == 'Misc-HTML' and element.props.value
                 work.push(element.props.value)
@@ -105,6 +108,7 @@ exports.process_react_component = (component, viewer, cb) ->
         f = (html, cb) ->
             process html, viewer, (err, html2) ->
                 if not err
+                    console.log "SETTING RENDERED MATHJAX TO #{html2}"
                     set_rendered_mathjax(html, html2)
                 cb()
         async.map(work, f, cb)

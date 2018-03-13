@@ -786,7 +786,7 @@ class TaskList
                     desc0 += desc.slice(x0[1], x[0]) + "<span class='webapp-tasks-hash smc-tasks-hashtag-#{(desc.slice(x[0], x[1])).substring(1).toLowerCase()}'>" + desc.slice(x[0], x[1]) + '</span>'
                     x0 = x
                 desc = desc0 + desc.slice(x0[1])
-
+            has_math = markdown.has_math(desc)
             x = markdown.markdown_to_html(desc, {process_math : true})
             desc = x
 
@@ -796,7 +796,10 @@ class TaskList
         task.element.find(".webapp-tasks-desc-column").css({fontSize: "#{@default_font_size ? 14}px"})
         e = task.element.find(".webapp-task-desc")
         e.html(desc)
-
+        if has_math
+            # .mathjax() does the above optimization, but it first does e.html(), so is a slight waste -- most
+            # items have no math, so this is worth it...
+            e.mathjax()
         if desc.indexOf('[ ]') != -1 or desc.indexOf('[x]') != -1
 
             # Make [ ] or [x]'s magically work, like on github.

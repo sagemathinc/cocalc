@@ -818,17 +818,17 @@ exports.HTML = HTML = rclass
         value            : rtypes.string
         style            : rtypes.object
         auto_render_math : rtypes.bool     # optional -- used to render math with katex and mathjax as a fallback
-        use_mathjax      : rtypes.bool     # optional -- used to render math only with mathjax if auto_render_math is false
+        only_mathjax     : rtypes.bool     # optional -- used to render math only with mathjax if auto_render_math is true
         project_id       : rtypes.string   # optional -- can be used to improve link handling (e.g., to images)
         file_path        : rtypes.string   # optional -- ...
         className        : rtypes.string   # optional class
         safeHTML         : rtypes.bool     # optional -- default true, if true scripts and unsafe attributes are removed from sanitized html
         href_transform   : rtypes.func     # optional function that link/src hrefs are fed through
         post_hook        : rtypes.func     # optional function post_hook(elt), which should mutate elt, where elt is
-                                         # the jQuery wrapped set that is created (and discarded!) in the course of
-                                         # sanitizing input.  Use this as an opportunity to modify the HTML structure
-                                         # before it is exported to text and given to react.   Obviously, you can't
-                                         # install click handlers here.
+                                           # the jQuery wrapped set that is created (and discarded!) in the course of
+                                           # sanitizing input.  Use this as an opportunity to modify the HTML structure
+                                           # before it is exported to text and given to react.   Obviously, you can't
+                                           # install click handlers here.
 
     getDefaultProps: ->
         auto_render_math : true
@@ -909,12 +909,12 @@ exports.HTML = HTML = rclass
             else
                 html = require('./misc_page').sanitize_html(@props.value, true, true, @props.post_hook)
 
-            if @props.use_mathjax
+            if @props.auto_render_math
                 @_needs_mathjax = true
 
-            if @props.auto_render_math
-                {html, is_complete} = math_katex.render(html)
-                @_needs_mathjax = not is_complete # don't mathjax if Katex is good enough
+                if not @props.only_mathjax
+                    {html, is_complete} = math_katex.render(html)
+                    @_needs_mathjax = not is_complete
 
             {__html: html}
         else
@@ -951,14 +951,15 @@ exports.Markdown = rclass
         safeHTML : true
 
     to_html: ->
+        process_math = !rendered_mathjax? # Check if we're on share server
         if @props.value
-            return markdown.markdown_to_html(@props.value, {process_math : true})
+            return markdown.markdown_to_html(@props.value, {process_math : process_math})
 
     render: ->
         <HTML
             value            = {@to_html()}
-            auto_render_math = {false}
-            use_mathjax      = {true}
+            auto_render_math = {true}
+            only_mathjax     = {true}
             style            = {@props.style}
             project_id       = {@props.project_id}
             file_path        = {@props.file_path}

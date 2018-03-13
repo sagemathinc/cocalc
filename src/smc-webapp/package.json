@@ -6,7 +6,6 @@
   "directories": {},
   "dependencies": {
     "@cocalc/markdown-it-katex": "^3.0.3",
-    "@iktakahiro/markdown-it-katex": "^3.0.3",
     "@zippytech/react-notify-resize": "^3.0.0",
     "ansi-to-react": "^2.0.1",
     "async": "^2.0.0",
@@ -28,7 +27,6 @@
     "font-awesome": "^4.4.0",
     "formidable": "^1.0.17",
     "globalize": "^0.1.1",
-    "hast-util-from-parse5": "^2.1.0",
     "history": "^1.17.0",
     "htmlparser": "^1.7.7",
     "immutable": "^3.8.1",
@@ -55,7 +53,6 @@
     "nodeunit": "^0.9.0",
     "octicons": "^3.5.0",
     "onecolor": "^3.0.4",
-    "parse5": "^4.0.0",
     "pnotify": "^3.0.0",
     "prom-client": "^10.1.1",
     "prop-types": "^15.6.0",
