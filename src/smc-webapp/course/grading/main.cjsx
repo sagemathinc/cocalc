@@ -48,6 +48,7 @@ styles = require('../styles')
 {StudentList}   = require('./student-list')
 {ROW_STYLE, LIST_STYLE, LIST_ENTRY_STYLE, FLEX_LIST_CONTAINER, EMPTY_LISTING_TEXT, PAGE_SIZE} = require('./const')
 
+
 exports.GradingStudentAssignment = rclass
     displayName : "CourseEditor-GradingStudentAssignment"
 
@@ -295,6 +296,7 @@ exports.GradingStudentAssignment = rclass
                     student_filter   = {@props.grading.student_filter}
                     student_id       = {@props.grading.student_id}
                     account_id       = {@props.account_id}
+                    anonymous        = {@props.grading.anonymous}
                 />
             </Col>
             <Col md={9} style={flexcolumn}>

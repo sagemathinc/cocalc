@@ -62,7 +62,8 @@ GradingRecord = immutable.Record
     listing_files   : null      # an immutable.js list, derived from listing.get('files') in get_listing_files
     show_all_files  : false     # if true, we want to see all files including those which are masked
     list_of_grades  : null      # distinctly known grades (must be a SortedSet)
-    cursors         : null,     # information about other collaborators also grading an assignment (i.e. realtime presence information)
+    cursors         : null      # information about other collaborators also grading an assignment (i.e. realtime presence information)
+    anonymous       : false,    # if true, student names are hidden in the UI (simply to avoid bias a little bit)
     'Grading'
 
 exports.Grading = class Grading extends GradingRecord
@@ -70,6 +71,9 @@ exports.Grading = class Grading extends GradingRecord
     toggle_show_all_files: ->
         visible = @show_all_files
         return @merge(show_all_files: !visible, page_number: 0)
+
+    toggle_anonymous: ->
+        return @merge(anonymous: !@anonymous)
 
     get_current_idx : ->
         current_idx = null

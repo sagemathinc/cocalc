@@ -1864,8 +1864,8 @@ exports.CourseActions = class CourseActions extends Actions
             # previous is null/undefined, stick with same student ... e.g. directory changes
             next_student_id = opts.student_id
 
-        # this switches to grading mode, but no listing
-        data = new Grading(
+        # merge all previous information and switch to grading mode, but no listing yet
+        grading = grading.merge(
             student_id      : next_student_id
             assignment_id   : assignment_id
             listing         : null
@@ -1877,11 +1877,7 @@ exports.CourseActions = class CourseActions extends Actions
             page_number     : 0
             listing         : null
             listing_files   : null
-            show_all_files  : grading.show_all_files
         )
-
-        # ... and merge with exisiting state
-        grading = grading.merge(data)
         @grading_update(store, grading)
         # sets a "cursor" pointing to this assignment and student, signal for others
         @grading_update_activity()
@@ -1901,20 +1897,19 @@ exports.CourseActions = class CourseActions extends Actions
         return if not grading?
         x = store.grading_get_student_list(grading)
         return if not x?
-        [student_list, all_points] = x
-        grading = grading.merge(
-            student_list  : student_list
-            all_points    : all_points
-        )
+        grading = grading.merge(x)
         total_points = store.get_points_total(grading.assignment_id, grading.student_id)
+
         if (total_points ? 0) == 0
             grading = grading.remove('total_points')
         else
             grading = grading.set('total_points', total_points)
+
         if grading.student_id?
             student_info = store.student_assignment_info(grading.student_id, grading.assignment_id)
         else
             student_info = undefined
+
         grading = grading.merge(
             current_idx    : grading.get_current_idx()
             list_of_grades : store.get_list_of_grades(grading.assignment_id)
@@ -1955,6 +1950,16 @@ exports.CourseActions = class CourseActions extends Actions
         grading = store.get('grading')
         return if not grading?
         grading = grading.toggle_show_all_files()
+        @grading_update(store, grading)
+
+    grading_toggle_anonymous: =>
+        store = @get_store()
+        return if not store?
+        grading = store.get('grading')
+        return if not grading?
+        grading = grading
+                    .toggle_anonymous()
+                    .set('student_filter', '')
         @grading_update(store, grading)
 
     grading_update_activity: (opts) =>

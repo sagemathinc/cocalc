@@ -35,8 +35,8 @@ _         = require('underscore')
 {Alert, Button, ButtonToolbar, ButtonGroup, Form, FormControl, FormGroup, ControlLabel, InputGroup, Checkbox, Row, Col, Panel, Breadcrumb} = require('react-bootstrap')
 
 # grading specific
-{BigTime} = require('../common')
-{Grading} = require('./models')
+{BigTime}    = require('../common')
+{Grading}    = require('./models')
 {ROW_STYLE, LIST_STYLE, LIST_ENTRY_STYLE, FLEX_LIST_CONTAINER, EMPTY_LISTING_TEXT, PAGE_SIZE} = require('./const')
 
 student_list_entries_style = misc.merge({cursor:'pointer'}, LIST_ENTRY_STYLE)
@@ -59,9 +59,10 @@ exports.StudentList = rclass
         student_filter  : rtypes.string
         student_id      : rtypes.string
         account_id      : rtypes.string
+        anonymous       : rtypes.bool
 
     shouldComponentUpdate: (props) ->
-        update = misc.is_different(@props, props, ['assignment', 'cursors', 'student_filter', 'student_id', 'account_id'])
+        update = misc.is_different(@props, props, ['assignment', 'cursors', 'student_filter', 'student_id', 'account_id', 'anonymous'])
         update or= not @props.student_list.equals(props.student_list)
         return update
 
@@ -174,7 +175,10 @@ exports.StudentList = rclass
         list = @props.student_list.map (student) =>
             student_id   = student.get('student_id')
             account_id   = student.get('account_id')
-            name         = @props.store.get_student_name(student)
+            if @props.anonymous
+                name     = misc.anonymize(student_id)
+            else
+                name     = @props.store.get_student_name(student)
             points       = @props.store.get_points_total(@props.assignment, student_id)
             is_collected = @props.store.student_assignment_info(student_id, @props.assignment)?.last_collect?.time?
 
@@ -195,7 +199,7 @@ exports.StudentList = rclass
                             size       = {22}
                             account_id = {account_id}
                         />
-                    </div> if account_id?}
+                    </div> if account_id? and (not @props.anonymous)}
                     {name}
                 </span>
                 {@render_student_list_entries_info(active, grade_val, points, is_collected)}
@@ -211,10 +215,7 @@ exports.StudentList = rclass
             display        : 'flex'
             flexDirection  : 'column'
 
-        [
-            <Row key={1}>
-                {@student_list_filter()}
-            </Row>
+        ret = [
             <Row style={FLEX_LIST_CONTAINER} key={2}>
                 <ul
                     className = {'list-group'}
@@ -224,4 +225,19 @@ exports.StudentList = rclass
                     {@render_student_list_entries()}
                 </ul>
             </Row>
+            <Row style={color:COLORS.GRAY} key={3}>
+                <Checkbox
+                    checked  = {@props.anonymous}
+                    onChange = {=>@actions(@props.name).grading_toggle_anonymous()}
+                >
+                    Anonymize students
+                </Checkbox>
+            </Row>
         ]
+        if not @props.anonymous
+            ret.unshift(
+                <Row key={1}>
+                    {@student_list_filter()}
+                </Row>
+            )
+        return ret

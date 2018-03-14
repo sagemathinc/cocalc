@@ -2242,3 +2242,7 @@ exports.percentRank = (list, n, sorted=false) ->
             S += 1
 
     return 100.0 * (L + (0.5 * S)) / N
+
+# derive a deterministic but anonymous name from a string (usually a uuid, though)
+exports.anonymize = (uuid, max_length=30) ->
+    uuid.split('-')[..max_length].join('')

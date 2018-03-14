@@ -47,6 +47,7 @@ exports.FLEX_LIST_CONTAINER =
     overflowY      : 'auto'
     border         : "1px solid #{COLORS.GRAY_L}"
     borderRadius   : '5px'
+    flexGrow       : '1'
 
 exports.EMPTY_LISTING_TEXT =
     fontSize       : '120%'

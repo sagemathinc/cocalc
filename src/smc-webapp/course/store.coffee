@@ -620,7 +620,7 @@ exports.CourseStore = class CourseStore extends Store
 
         # we assume throughout the code that all_points is sorted!
         all_points.sort((a, b) -> a - b)
-        return [list, all_points]
+        return {student_list:list, all_points:all_points}
 
     get_list_of_grades: (assignment_id) ->
         assignment = @get_assignment(assignment_id)

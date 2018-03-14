@@ -30,7 +30,7 @@
 {Alert, Button, ButtonToolbar, ButtonGroup, Form, FormControl, FormGroup, ControlLabel, InputGroup, Checkbox, Row, Col, Panel, Breadcrumb} = require('react-bootstrap')
 
 # Grading specific code
-{Grading} = require('./models')
+{Grading}    = require('./models')
 
 exports.GradingStudentAssignmentHeader = rclass ({name}) ->
     displayName : "CourseEditor-GradingStudentAssignmentHeader"
@@ -46,7 +46,7 @@ exports.GradingStudentAssignmentHeader = rclass ({name}) ->
         redux        : rtypes.object.isRequired
 
     shouldComponentUpdate: (props) ->
-        update = misc.is_different(@props.grading, props.grading, ['end_of_list', 'student_id', 'cursors'])
+        update = misc.is_different(@props.grading, props.grading, ['end_of_list', 'student_id', 'cursors', 'anonymous'])
         return update
 
     getInitialState: ->
@@ -77,14 +77,19 @@ exports.GradingStudentAssignmentHeader = rclass ({name}) ->
             {presence}
         </h4>
 
+    student_name: ->
+        if @props.grading.anonymous
+            return misc.anonymize(@props.grading.student_id)
+        else
+            student_info = @state.store.get_student_name(@props.grading.student_id, true)
+            return student_info?.full ? 'N/A'
+
     render_title: ->
-        student_info = @state.store.get_student_name(@props.grading.student_id, true)
-        student_name = student_info?.full ? 'N/A'
         if @props.grading.end_of_list
             <h4>End</h4>
         else
             <h4>
-                Grading student <b>{student_name}</b>
+                Grading student <b>{@student_name()}</b>
             </h4>
 
     render: ->
