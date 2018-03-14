@@ -62,10 +62,10 @@ exports.Grade = rclass
             )
 
     shouldComponentUpdate: (props, state) ->
-        s = misc.is_different(@state, state, ['editing_grade', 'edited_grade', 'edited_comments', 'grade_value', 'grade_comments'])
-        x = misc.is_different(@props, props, ['assignment', 'student_id'])
-        y = @props.list_of_grades? and (not @props.list_of_grades.equals(props.list_of_grades))
-        return s or x or y
+        update = misc.is_different(@state, state, ['editing_grade', 'edited_grade', 'edited_comments', 'grade_value', 'grade_comments'])
+        update or= misc.is_different(@props, props, ['assignment', 'student_id'])
+        update or= @props.list_of_grades? and (not @props.list_of_grades.equals(props.list_of_grades))
+        return update
 
     save_grade: (e, grade) ->
         e?.preventDefault?()
@@ -138,7 +138,7 @@ exports.Grade = rclass
                             disabled = {@save_disabled()}
                             style    = {whiteSpace:'nowrap'}
                         >
-                            <Icon name='graduation-cap'/>
+                            <Icon name='gavel'/>
                         </Button>
                     </InputGroup.Button>
                 </InputGroup>

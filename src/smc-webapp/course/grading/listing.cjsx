@@ -228,12 +228,13 @@ exports.Listing = rclass
             number          = {points}
             bsSize          = {'small'}
             min             = {0}
-            max             = {99999}
+            max             = {1000000}
             bsSize          = {'small'}
             formgroupstyle  = {'marginBottom' : 0}
             on_change       = {(val)=>@save_points(filename, val)}
             plusminus       = {true}
             select_on_click = {true}
+            mantissa_length = {2}
         />
 
     render_points_subdir: (subdir) ->

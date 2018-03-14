@@ -436,11 +436,15 @@ exports.NumberInput = NumberInput = rclass
         plusminus       : rtypes.bool
         select_on_click : rtypes.bool
         bsSize          : rtypes.string
+        mantissa_length : rtypes.number   # default: 0 (i.e. truncate to integer), or pick a number from 1 to 8
 
     componentWillReceiveProps: (next_props) ->
         if @props.number != next_props.number
             # so when the props change the state stays in sync (e.g., so save button doesn't appear, etc.)
             @setState(number : next_props.number)
+
+    componentDidMount: ->
+        @on_change_debounce = _.debounce(((n)=>@props.on_change(n)), 50, true)
 
     getInitialState: ->
         number : @props.number
@@ -461,7 +465,10 @@ exports.NumberInput = NumberInput = rclass
 
     saveChange: (e) ->
         e?.preventDefault()
-        n = parseInt(@state.number)
+        if (not @props.mantissa_length) or (@props.mantissa_length == 0)
+            n = parseInt(@state.number)
+        else
+            n = misc.roundN(parseFloat(@state.number), @props.mantissa_length)
         @saveNumber(n)
 
     # TODO remove?
@@ -475,17 +482,17 @@ exports.NumberInput = NumberInput = rclass
         if e.shiftKey then delta *= @speedup
         @setState((prevState, props) =>
             n = @sanitizeN(prevState.number + delta)
-            setTimeout((-> props.on_change(n)), 1)
+            @on_change_debounce(n)
             return {number:n}
         )
 
     plusminus: (delta) ->
         return null if not @props.plusminus?
         if delta > 0
-            name = 'plus'
+            name     = 'plus'
             disabled = @props.number == @props.max
         else
-            name = 'minus'
+            name     = 'minus'
             disabled = @props.number == @props.min
 
         <Tip
@@ -521,7 +528,7 @@ exports.NumberInput = NumberInput = rclass
                             ref      = 'input'
                             bsSize   = {@props.bsSize}
                             value    = {@state.number ? @props.number}
-                            onChange = {=>@setState(number:ReactDOM.findDOMNode(@refs.input).value)}
+                            onChange = {(e)=>@setState(number:e.target.value)}
                             onBlur   = {@saveChange}
                             onKeyDown= {(e)=>if e.keyCode == 27 then @setState(number:@props.number)}
                             onClick  = {@onClickHandler}

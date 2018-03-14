@@ -128,8 +128,10 @@ exports.StudentList = rclass
         show_points = points? or is_collected
         return null if (not show_points) and (not show_grade)
         info = []
-        if show_grade then info.push(misc.trunc(grade_val, 15))
-        if show_points then info.push("#{points ? 0} #{misc.plural(points, 'pt')}.")
+        if show_grade
+            info.push(misc.trunc(grade_val, 15))
+        if show_points
+            info.push("#{misc.round2(points) ? 0} #{misc.plural(points, 'pt')}.")
 
         <span style={info_style}>
             {info.join(', ')}

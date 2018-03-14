@@ -63,13 +63,12 @@ exports.GradingStudentAssignment = rclass
         account :
             account_id  : rtypes.string
 
-    shouldComponentUpdate: (next) ->
-        misc.is_different(@props, next, ['assignment', 'students', 'user_map', 'grading'])
+    shouldComponentUpdate: (props) ->
+        misc.is_different(@props, props, ['assignment', 'students', 'user_map', 'grading'])
 
     getInitialState: ->
-        return
-            store : @props.redux.getStore(@props.name)
-            #active_autogrades : immutable.Set()
+        store : @props.redux.getStore(@props.name)
+        #active_autogrades : immutable.Set()
 
     componentDidMount: ->
         show_entry       =  =>
@@ -213,7 +212,7 @@ exports.GradingStudentAssignment = rclass
                         style    = {fontWeight: 'bold', color:'black', paddingLeft:'20px', paddingRight:'20px'}
                         disabled = {true}
                     >
-                        {@props.grading.total_points}
+                        {misc.round2(@props.grading.total_points)}
                     </Button>
                     {
                         if @props.grading.all_points.size >= 5

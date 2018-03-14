@@ -71,8 +71,6 @@ exports.Grading = class Grading extends GradingRecord
         visible = @show_all_files
         return @merge(show_all_files: !visible, page_number: 0)
 
-    get_cursor_student_ids: ->
-
     get_current_idx : ->
         current_idx = null
         @student_list?.forEach (student, idx) ->
