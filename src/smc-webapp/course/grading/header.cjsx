@@ -56,10 +56,11 @@ exports.GradingStudentAssignmentHeader = rclass ({name}) ->
         @actions(@props.name).grading_stop()
 
     render_presence: ->
-        return if (not @props.grading.cursors?) or (not @props.grading.assignment?)
+        return if (not @props.grading.cursors?) or (not @props.grading.assignment_id?) or (not @props.grading.student_id?)
         min_10_ago = misc.server_minutes_ago(10)
         presence = []
-        assignment_id = @props.grading.assignment.get('assignment_id')
+        assignment_id = @props.grading.assignment_id
+        student_id    = @props.grading.student_id
         whoelse       = @props.grading.cursors.getIn([assignment_id, student_id])
         whoelse?.map (time, account_id) =>
             # filter myself and old cursors
@@ -67,11 +68,12 @@ exports.GradingStudentAssignmentHeader = rclass ({name}) ->
             presence.push(
                 <Avatar
                     key        = {account_id}
-                    size       = {22}
+                    size       = {24}
                     account_id = {account_id}
                 />
             )
         <h4>
+            {"Also grading this student: " if presence.length > 0}
             {presence}
         </h4>
 

@@ -60,10 +60,10 @@ exports.StudentList = rclass
         student_id      : rtypes.string
         account_id      : rtypes.string
 
-    shouldComponentUpdate: (next) ->
-        x = misc.is_different(@props, next, ['assignment', 'cursors', 'student_filter', 'student_id', 'account_id'])
-        y = not @props.student_list.equals(next.student_list)
-        return x or y
+    shouldComponentUpdate: (props) ->
+        update = misc.is_different(@props, props, ['assignment', 'cursors', 'student_filter', 'student_id', 'account_id'])
+        update or= not @props.student_list.equals(props.student_list)
+        return update
 
     student_list_entry_click: (student_id) ->
         @actions(@props.name).grading(
