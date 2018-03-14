@@ -1039,6 +1039,7 @@ exports.CourseActions = class CourseActions extends Actions
         if not store? or not @_store_is_initialized()
             return finish("store not yet initialized")
         grade = store.get_grade(assignment, student)
+        points = store.get_points(assignment, student)
         comments = store.get_comments(assignment, student)
         if not student = store.get_student(student)
             return finish("no student")
@@ -1076,8 +1077,16 @@ exports.CourseActions = class CourseActions extends Actions
                     # write their grade to a file
                     if grade?   # likely undefined when skip_grading true & peer_graded true
                         content += "\n\n    #{grade}"
-                        if comments?
+                        if comments?.length > 0
                             content += "\n\nInstructor comments:\n\n    #{comments}"
+                    if points?.size > 0
+                        listofpoints = ("  #{name}: #{p}" for name, p of points.toJS()).join('\n')
+                        content += """
+                                   \n\nPOINTS:\n
+                                   During grading, these points were given to your files:
+
+                                   #{listofpoints}
+                                   """ + '\n'
                     if peer_graded
                         content += """
                                    \n\n\nPEER GRADED:\n

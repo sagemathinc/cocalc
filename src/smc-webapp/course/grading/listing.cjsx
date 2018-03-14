@@ -223,7 +223,7 @@ exports.Listing = rclass
 
     render_points_input: (filename) ->
         filepath = @filepath(filename)
-        points   = @props.store.get_points(@props.assignment, @props.student_id, filepath)
+        points   = @props.store.get_points_filepath(@props.assignment, @props.student_id, filepath)
         <NumberInput
             number          = {points}
             bsSize          = {'small'}

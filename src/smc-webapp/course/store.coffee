@@ -186,14 +186,17 @@ exports.CourseStore = class CourseStore extends Store
     get_comments: (assignment, student) =>
         return @get_assignment(assignment)?.get('comments')?.get(@get_student_id(student))
 
-    get_points: (assignment, student, filepath) =>
+    get_points: (assignment, student) =>
         student_id = @get_student_id(student)
-        points     = @get_assignment(assignment)?.get('points')?.get(student_id)
+        points     = @get_assignment(assignment)?.getIn(['points', student_id])
+        return points
+
+    get_points_filepath: (assignment, student, filepath) =>
+        points = @get_points(assignment, student)
         return points?.get(filepath) ? 0
 
     get_points_total: (assignment, student) =>
-        student_id = @get_student_id(student)
-        points     = @get_assignment(assignment)?.getIn(['points', student_id])
+        points = @get_points(assignment, student)
         return null if (not points?) or (points.size == 0)
         return points.reduce(((a, b) -> a+b), 0)
 
