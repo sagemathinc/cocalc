@@ -167,7 +167,8 @@ exports.AddCollaborators = rclass
                 <Button style={marginBottom:'10px'} onClick={@write_email_invite}>
                     <Icon name='envelope' /> No matches. Send email invitation...
                 </Button>
-            else # no hit, but at least one existing collaborator
+            else
+                # no hit, but at least one existing collaborator
                 collabs = ("#{r.first_name} #{r.last_name}" for r in existing).join(', ')
                 <Alert bsStyle='info'>
                     Existing collaborator(s): {collabs}
