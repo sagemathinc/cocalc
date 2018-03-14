@@ -1811,7 +1811,7 @@ exports.UpgradeAdjustor = rclass
             maximum = require('smc-util/schema').PROJECT_UPGRADES.max_per_project
             limits = misc.map_limit(limits, maximum)
 
-            <Alert bsStyle='warning'>
+            <Alert bsStyle='warning' style={@props.style}>
                 <h3><Icon name='arrow-circle-up' /> Adjust your project quota contributions</h3>
 
                 <span style={color:"#666"}>Adjust <i>your</i> contributions to the quotas on this project (disk space, memory, cores, etc.).  The total quotas for this project are the sum of the contributions of all collaborators and the free base quotas.  Go to "Account --> Upgrades" to see how your upgrades are currently allocated.
