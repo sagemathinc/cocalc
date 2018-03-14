@@ -1621,11 +1621,13 @@ exports.UpgradeAdjustor = rclass
         upgrades_you_can_use                 : rtypes.object
         upgrades_you_applied_to_all_projects : rtypes.object
         upgrades_you_applied_to_this_project : rtypes.object
+        omit_header                          : rtypes.bool
 
     getDefaultProps: ->
         upgrades_you_can_use                 : {}
         upgrades_you_applied_to_all_projects : {}
         upgrades_you_applied_to_this_project : {}
+        omit_header                          : false
 
     getInitialState: ->
         state = {}
@@ -1871,12 +1873,14 @@ exports.UpgradeAdjustor = rclass
             maximum = require('smc-util/schema').PROJECT_UPGRADES.max_per_project
             limits = misc.map_limit(limits, maximum)
 
-            <Alert bsStyle='warning'>
-                <h3><Icon name='arrow-circle-up' /> Adjust your project quota contributions</h3>
+            <Alert bsStyle='warning' style={@props.style}>
+                {<React.Fragment>
+                    <h3><Icon name='arrow-circle-up' /> Adjust your project quota contributions</h3>
 
-                <span style={color:"#666"}>Adjust <i>your</i> contributions to the quotas on this project (disk space, memory, cores, etc.).  The total quotas for this project are the sum of the contributions of all collaborators and the free base quotas.  Go to "Account --> Upgrades" to see how your upgrades are currently allocated.
-                </span>
-                <hr/>
+                    <span style={color:"#666"}>Adjust <i>your</i> contributions to the quotas on this project (disk space, memory, cores, etc.).  The total quotas for this project are the sum of the contributions of all collaborators and the free base quotas.  Go to "Account --> Upgrades" to see how your upgrades are currently allocated.
+                    </span>
+                    <hr/>
+                </React.Fragment> if not @props.omit_header}
                 <Row>
                     <Col md={2}>
                         <b style={fontSize:'12pt'}>Quota</b>
