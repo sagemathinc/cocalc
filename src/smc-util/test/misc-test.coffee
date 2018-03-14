@@ -141,6 +141,10 @@ describe 'rounding', ->
         misc.roundN(-1.991, N).should.eql -1.991
         misc.roundN(-1.99991, N).should.eql -1.9999
         misc.roundN(-1.999991, N).should.eql -2
+    it 'rounding and corner cases', ->
+        x = parseFloat('0.1200000000000001')
+        misc.roundN(x, 2).should.eql 0.12
+        misc.round2(x).should.eql 0.12
 
 describe 'percentRank', ->
     l = [1, 1, 2, 3, 5, 8, 13]
