@@ -64,6 +64,7 @@ exports.Editor = rclass ({name}) ->
                 font_size           = {local.get('font_size')}
                 is_only             = {frame_tree.get('type') != 'node'}
                 cursors             = {@props.cursors}
+                read_only           = {@props.read_only}
                 has_unsaved_changes = {@props.has_unsaved_changes}
                 />
         </div>

@@ -321,7 +321,6 @@ class exports.Actions extends Actions
         window.open(WIKI_HELP_URL, "_blank").focus()
 
     undo: =>
-        # TODO: do we need explicit exit of undo mode anywhere??!
         @_syncstring?.undo()
 
     redo: =>
@@ -447,6 +446,9 @@ class exports.Actions extends Actions
 
     goto_line: (id) =>
         @_get_cm(id)?.execCommand('jumpToLine')
+
+    auto_indent: (id) =>
+        @_get_cm(id)?.execCommand('indentAuto')
 
     programmatical_goto_line: (line) =>  # used when clicking on other user avatar.
         cm = @_get_cm()

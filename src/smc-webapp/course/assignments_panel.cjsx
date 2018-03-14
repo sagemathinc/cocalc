@@ -388,6 +388,7 @@ Assignment = rclass
                 done     = {status.assignment}
                 not_done = {status.not_assignment}
                 step     = 'assigned'
+                skipped  = {@props.assignment.get('skip_assignment')}
                 />
         ]
 
@@ -588,6 +589,7 @@ Assignment = rclass
                 done     = {status.collect}
                 not_done = {status.not_collect}
                 step     = 'collected'
+                skipped  = {@props.assignment.get('skip_collect')}
                 />
         ]
 

@@ -35,6 +35,8 @@ misc      = require('smc-util/misc')
 {project_tasks} = require('./project_tasks')
 {types, defaults, required} = misc
 
+misc_page = require('./misc_page')
+
 {Actions, rtypes, computed, depends, Table, register_project_store, redux}  = require('./smc-react')
 
 exports.file_actions = file_actions =
@@ -155,16 +157,18 @@ class ProjectActions extends Actions
             current_path += '/'
         @push_state('files/' + current_path)
 
-    push_state: (url) =>
+    _url_in_project: (local_url) =>
+        return '/projects/' + @project_id + '/' + misc.encode_path(local_url)
+
+    push_state: (local_url) =>
+        if not local_url?
+            local_url = @_last_history_state
+        if not local_url?
+            local_url = ''
+        @_last_history_state = local_url
         {set_url} = require('./history')
-        if not url?
-            url = @_last_history_state
-        if not url?
-            url = ''
-        @_last_history_state = url
-        set_url('/projects/' + @project_id + '/' + misc.encode_path(url))
-        {analytics_pageview} = require('./misc_page')
-        analytics_pageview(window.location.pathname)
+        set_url(@_url_in_project(local_url))
+        misc_page.analytics_pageview(window.location.pathname)
 
     move_file_tab: (opts) =>
         {old_index, new_index, open_files_order} = defaults opts,
@@ -178,7 +182,6 @@ class ProjectActions extends Actions
         new_list = temp_list.splice(new_index, 0, item)
         @setState(open_files_order:new_list)
         @redux.getActions('page').save_session()
-
 
     # Closes a file tab
     # Also closes file references.
@@ -354,6 +357,15 @@ class ProjectActions extends Actions
             foreground_project : true
             chat               : undefined
             chat_width         : undefined
+            new_browser_window : false     # open in entirely new browser window with a new random session.
+
+        if opts.new_browser_window
+            # options other than path don't do anything yet.
+            url  = (window.app_base_url ? '') + @_url_in_project('files/' + opts.path)
+            url += '?session=' + misc.uuid().slice(0,8)
+            url += '&fullscreen=default'
+            window.open(url, '_blank', 'height=640,width=800')
+            return
 
         @_ensure_project_is_open (err) =>
             if err
@@ -1312,7 +1324,7 @@ class ProjectActions extends Actions
                         count  : if opts.paths.length > 3 then opts.paths.length
 
     download_file: (opts) =>
-        {download_file, open_new_tab} = require('./misc_page')
+        {download_file, open_new_tab} = misc_page
         opts = defaults opts,
             path    : required
             log     : false

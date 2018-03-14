@@ -404,7 +404,7 @@ exports.FullscreenButton = rclass
             cursor     : 'pointer'
 
         if @props.fullscreen
-            icon_style.background = '#f0ad4e'
+            icon_style.background = '#fff'
             icon_style.opacity    = .7
             icon_style.border     = '1px solid grey'
 

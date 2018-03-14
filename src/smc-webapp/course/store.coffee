@@ -280,10 +280,14 @@ exports.CourseStore = class CourseStore extends Store
         #
         # Compute and return an object that has fields (deleted students are ignored)
         #
-        #  assignment          - number of students who have received assignment
+        #  assignment          - number of students who have received assignment includes
+        #                        all students if skip_assignment is true
         #  not_assignment      - number of students who have NOT received assignment
-        #  collect             - number of students from whom we have collected assignment
+        #                        always 0 if skip_assignment is true
+        #  collect             - number of students from whom we have collected assignment includes
+        #                        all students if skip_collect is true
         #  not_collect         - number of students from whom we have NOT collected assignment but we sent it to them
+        #                        always 0 if skip_assignment is true
         #  peer_assignment     - number of students who have received peer assignment
         #                        (only present if peer grading enabled; similar for peer below)
         #  not_peer_assignment - number of students who have NOT received peer assignment
@@ -326,7 +330,7 @@ exports.CourseStore = class CourseStore extends Store
             previous = true
             for t in STEPS(peer)
                 x = assignment.get("last_#{t}")?.get(student_id)
-                if x? and not x.get('error')
+                if x? and not x.get('error') or assignment.get("skip_#{t}")
                     previous = true
                     info[t] += 1
                 else

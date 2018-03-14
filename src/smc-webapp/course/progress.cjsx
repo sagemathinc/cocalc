@@ -22,6 +22,7 @@ exports.Progress = rclass
         done     : rtypes.number
         not_done : rtypes.number
         step     : rtypes.string
+        skipped  : rtypes.bool    # Show skipped text
 
     render_checkbox: ->
         if @props.not_done == 0
@@ -29,6 +30,16 @@ exports.Progress = rclass
                 <Icon name='check-circle' />
                 <Space/>
             </span>
+
+    render_status: ->
+        if not @props.skipped
+            <React.Fragment>
+                ({@props.done} / {@props.not_done + @props.done} {@props.step})
+            </React.Fragment>
+        else
+            <React.Fragment>
+                Skipped
+            </React.Fragment>
 
     render: ->
         if not @props.done? or not @props.not_done? or not @props.step?
@@ -39,5 +50,5 @@ exports.Progress = rclass
             style = progress_info
         <span style={style}>
             {@render_checkbox()}
-            ({@props.done} / {@props.not_done + @props.done} {@props.step})
+            {@render_status()}
         </span>

@@ -66,6 +66,7 @@ exports.FrameTree = FrameTree = rclass
         is_only             : rtypes.bool
         cursors             : rtypes.immutable.Map
         has_unsaved_changes : rtypes.bool
+        read_only           : rtypes.bool   # if true, then whole document considered read only (individual frames can still be via desc)
 
     getInitialState: ->
         drag_hover: false
@@ -86,6 +87,7 @@ exports.FrameTree = FrameTree = rclass
             is_only             = {false}
             cursors             = {@props.cursors}
             has_unsaved_changes = {@props.has_unsaved_changes}
+            read_only           = {@props.read_only}
         />
 
     render_titlebar: (desc) ->
@@ -98,7 +100,7 @@ exports.FrameTree = FrameTree = rclass
             id                  = {desc.get('id')}
             path                = {desc.get('path')}
             deletable           = {desc.get('deletable') ? true}
-            read_only           = {desc.get('read_only')}
+            read_only           = {desc.get('read_only') or @props.read_only}
             has_unsaved_changes = {@props.has_unsaved_changes}
         />
 
@@ -106,7 +108,7 @@ exports.FrameTree = FrameTree = rclass
         <CodemirrorEditor
             actions     = {@props.actions}
             id          = {desc.get('id')}
-            read_only   = {desc.get('read_only')}
+            read_only   = {desc.get('read_only') or @props.read_only}
             font_size   = {desc.get('font_size') ? @props.font_size}
             path        = {desc.get('path')}
             cm_state    = {@props.cm_state.get(desc.get('id'))}
