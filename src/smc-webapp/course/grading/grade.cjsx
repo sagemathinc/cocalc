@@ -138,7 +138,7 @@ exports.Grade = rclass
                             disabled = {@save_disabled()}
                             style    = {whiteSpace:'nowrap'}
                         >
-                            <Icon name='save'/>
+                            <Icon name='graduation-cap'/>
                         </Button>
                     </InputGroup.Button>
                 </InputGroup>
