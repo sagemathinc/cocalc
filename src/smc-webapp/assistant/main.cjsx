@@ -417,11 +417,6 @@ exports.instantiate_assistant = (project_id, path) ->
         [actions, store] = init_action_and_store(name)
     return actions
 
-exports.instantiate_component = (project_id, path, actions) ->
-    name = redux_name(project_id, path)
-    W = ExamplesDialog(name)
-    return <Redux redux={redux}><W actions={actions}/></Redux>
-
 # and this one below is used in editor.coffee for sagews worksheets.
 # "target" is a DOM element somewhere in the buttonbar of the editor's html
 exports.render_examples_dialog = (opts) ->
@@ -436,6 +431,8 @@ exports.render_examples_dialog = (opts) ->
         [actions, store] = init_action_and_store(name)
     actions.init(opts.lang)
     actions.set(lang_select:true)
-    W = ExamplesDialog(name)
-    ReactDOM.render(<Redux redux={redux}><W actions={actions}/></Redux>, opts.target)
+    dialog = <Redux redux={redux}>
+                 <ExamplesDialog actions={actions} name={name}/>
+             </Redux>
+    ReactDOM.render(dialog, opts.target)
     return actions

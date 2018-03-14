@@ -76,17 +76,6 @@ exports.JupyterEditor = rclass ({name}) ->
             metadata            : rtypes.immutable.Map
             trust               : rtypes.bool
 
-    componentWillMount: ->
-        # instantiate assistant dialog subcomponent → returned in @render_assistant_dialog
-        {instantiate_component} = require('../assistant/main')
-        store             = @props.actions.store
-        return null if not store?
-        project_id        = store.get('project_id')
-        path              = store.get('path')
-        # assistant actions are already initialized in JupyterActions::_init
-        assistant_actions = @props.actions.assistant_actions
-        @assistant_dialog = instantiate_component(project_id, path, assistant_actions)
-
     render_error: ->
         if @props.error
             <ErrorDisplay
@@ -233,7 +222,12 @@ exports.JupyterEditor = rclass ({name}) ->
         />
 
     render_assistant_dialog: ->
-        @assistant_dialog
+        {ExamplesDialog} = require('smc-webapp/assistant/dialog')
+
+        <ExamplesDialog
+            name     = {@props.actions.assistant_actions.name}
+            actions  = {@props.actions.assistant_actions}
+        />
 
     render_json_viewer: ->
         <JSONView

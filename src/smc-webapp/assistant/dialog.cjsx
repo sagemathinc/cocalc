@@ -35,7 +35,7 @@ immutable = require('immutable')
 {ExamplesFooter} = require('./footer')
 
 # The root element of the Assistant dialog.
-exports.ExamplesDialog = (name) -> rclass
+exports.ExamplesDialog = rclass ({name}) ->
     displayName : 'Examples'
 
     reduxProps :
