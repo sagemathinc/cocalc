@@ -27,6 +27,7 @@ misc = require('smc-util/misc')
 
 # React libraries
 {React, rclass, rtypes, Actions, ReactDOM}  = require('../smc-react')
+Fragment = React.Fragment
 
 {Button, ButtonToolbar, ButtonGroup, FormControl, FormGroup, InputGroup, Row, Col} = require('react-bootstrap')
 
@@ -216,17 +217,17 @@ exports.StudentAssignmentInfo = rclass
                     @save_grade()
 
 
-    render_grade_col: (width) ->
+    render_grade_col: ->
         bsStyle = if not (@props.grade).trim() then 'primary'
         text = if (@props.grade).trim() then 'Edit grade' else 'Enter grade'
 
-        <Col md={width} key='grade'>
+        <Fragment>
             <Tip title="Enter student's grade" tip="Enter the grade that you assigned to your student on this assignment here.  You can enter anything (it doesn't have to be a number).">
                 <Button key='edit' onClick={@edit_grade} bsStyle={bsStyle}>{text}</Button>
             </Tip>
             {@render_grade()}
             {@render_comments()}
-        </Col>
+        </Fragment>
 
     render_last_time: (name, time) ->
         <div key='time' style={color:"#666"}>
@@ -303,7 +304,10 @@ exports.StudentAssignmentInfo = rclass
             error = "Try to #{name.toLowerCase()} again:\n" + error
         <ErrorDisplay key='error' error={error} style={maxHeight: '140px', overflow:'auto'}/>
 
-    render_last: (name, obj, type, enable_copy, copy_tip, open_tip) ->
+    render_last: (name, obj, type, enable_copy, copy_tip, open_tip, opts) ->
+        opts = defaults opts,
+            omit_errors : false
+
         open = => @open(type, @props.info.assignment_id, @props.info.student_id)
         copy = => @copy(type, @props.info.assignment_id, @props.info.student_id)
         stop = => @stop(type, @props.info.assignment_id, @props.info.student_id)
@@ -318,19 +322,19 @@ exports.StudentAssignmentInfo = rclass
                 v.push(@render_copy(name, copy, copy_tip))
         if obj.time
             v.push(@render_last_time(name, obj.time))
-        if obj.error
+        if obj.error and not opts.omit_errors
             v.push(@render_error(name, obj.error))
         return v
 
     render_peer_assign: ->
-        <Col md={2} key='peer-assign'>
+        <Col md={2} key='peer_assign'>
             {@render_last('Peer Assign', @props.info.last_peer_assignment, 'peer-assigned', @props.info.last_collect?,
                "Copy collected assignments from your project to this student's project so they can grade them.",
                "Open the student's copies of this assignment directly in their project, so you can see what they are peer grading.")}
         </Col>
 
     render_peer_collect: ->
-        <Col md={2} key='peer-collect'>
+        <Col md={2} key='peer_collect'>
             {@render_last('Peer Collect', @props.info.last_peer_collect, 'peer-collected', @props.info.last_peer_assignment?,
                "Copy the peer-graded assignments from various student projects back to your project so you can assign their official grade.",
                "Open your copy of your student's peer grading work in your own project, so that you can grade their work.")}
@@ -342,11 +346,12 @@ exports.StudentAssignmentInfo = rclass
         skip_assignment = @props.assignment.get('skip_assignment')
         skip_collect = @props.assignment.get('skip_collect')
         if peer_grade
-            show_grade_col = !skip_grading and @props.info.last_peer_collect
-            show_return_graded = @props.grade or (skip_grading and @props.info.last_peer_collect)
+            show_grade_col = !skip_grading and @props.info.last_peer_collect and not @props.info.last_peer_collect.error
+            show_return_graded = @props.grade or (skip_grading and @props.info.last_peer_collect and not @props.info.last_peer_collect.error)
         else
-            show_grade_col = (!skip_grading and @props.info.last_collect) or skip_collect
-            show_return_graded = @props.grade or (skip_grading and @props.info.last_collect) or (skip_grading and skip_collect)
+            show_grade_col = (!skip_grading and @props.info.last_collect and not @props.info.last_collect.error) or skip_collect
+            show_return_graded = @props.grade or (skip_grading and @props.info.last_collect and not @props.info.last_collect.error) or (skip_grading and skip_collect)
+
         width = if peer_grade then 2 else 3
         <Row style={borderTop:'1px solid #aaa', paddingTop:'5px', paddingBottom: '5px'}>
             <Col md={2} key="title">
@@ -357,16 +362,18 @@ exports.StudentAssignmentInfo = rclass
                     <Col md={width} key='last_assignment'>
                         {@render_last('Assign', @props.info.last_assignment, 'assigned', true,
                            "Copy the assignment from your project to this student's project so they can do their homework.",
-                           "Open the student's copy of this assignment directly in their project.  You will be able to see them type, chat with them, leave them hints, etc.")}
+                           "Open the student's copy of this assignment directly in their project.  You will be able to see them type, chat with them, leave them hints, etc.", {omit_errors : skip_assignment})}
                     </Col>
-                    <Col md={width} key='collect'>
+                    <Col md={width} key='last_collect'>
                         {@render_last('Collect', @props.info.last_collect, 'collected', @props.info.last_assignment? or skip_assignment,
                            "Copy the assignment from your student's project back to your project so you can grade their work.",
-                           "Open the copy of your student's work in your own project, so that you can grade their work.")}
+                           "Open the copy of your student's work in your own project, so that you can grade their work.", {omit_errors : skip_collect}) if skip_assignment or not @props.info.last_assignment?.error}
                     </Col>
-                    {@render_peer_assign()  if peer_grade and @props.info.peer_assignment}
-                    {@render_peer_collect() if peer_grade and @props.info.peer_collect}
-                    {if show_grade_col then @render_grade_col(width) else <Col md={width} key='grade'></Col>}
+                    {@render_peer_assign()  if peer_grade and @props.info.peer_assignment and not @props.info.last_collect?.error}
+                    {@render_peer_collect() if peer_grade and @props.info.peer_collect and not @props.info.peer_assignment?.error}
+                    <Col md={width} key='grade'>
+                        {@render_grade_col() if show_grade_col}
+                    </Col>
                     <Col md={width} key='return_graded'>
                         {@render_last('Return', @props.info.last_return_graded, 'graded', @props.info.last_collect? or skip_collect,
                            "Copy the graded assignment back to your student's project.",
