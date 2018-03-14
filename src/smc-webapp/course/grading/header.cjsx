@@ -32,17 +32,22 @@
 # Grading specific code
 {Grading} = require('./models')
 
-exports.GradingStudentAssignmentHeader = rclass
+exports.GradingStudentAssignmentHeader = rclass ({name}) ->
     displayName : "CourseEditor-GradingStudentAssignmentHeader"
+
+    reduxProps :
+        "#{name}":
+            grading     : rtypes.instanceOf(Grading)
+        account :
+            account_id  : rtypes.string
 
     propTypes :
         name         : rtypes.string.isRequired
         redux        : rtypes.object.isRequired
-        end_of_list  : rtypes.bool
-        student_id   : rtypes.string
 
-    shouldComponentUpdate: (next) ->
-        misc.is_different(@props, next, ['end_of_list', 'student_id'])
+    shouldComponentUpdate: (props) ->
+        update = misc.is_different(@props.grading, props.grading, ['end_of_list', 'student_id', 'cursors'])
+        return update
 
     getInitialState: ->
         store : @props.redux.getStore(@props.name)
@@ -50,8 +55,30 @@ exports.GradingStudentAssignmentHeader = rclass
     exit: ->
         @actions(@props.name).grading_stop()
 
-    render_title: (student_name) ->
-        if @props.end_of_list
+    render_presence: ->
+        return if (not @props.grading.cursors?) or (not @props.grading.assignment?)
+        min_10_ago = misc.server_minutes_ago(10)
+        presence = []
+        assignment_id = @props.grading.assignment.get('assignment_id')
+        whoelse       = @props.grading.cursors.getIn([assignment_id, student_id])
+        whoelse?.map (time, account_id) =>
+            # filter myself and old cursors
+            return if account_id == @props.account_id or time < min_10_ago
+            presence.push(
+                <Avatar
+                    key        = {account_id}
+                    size       = {22}
+                    account_id = {account_id}
+                />
+            )
+        <h4>
+            {presence}
+        </h4>
+
+    render_title: ->
+        student_info = @state.store.get_student_name(@props.grading.student_id, true)
+        student_name = student_info?.full ? 'N/A'
+        if @props.grading.end_of_list
             <h4>End</h4>
         else
             <h4>
@@ -59,13 +86,14 @@ exports.GradingStudentAssignmentHeader = rclass
             </h4>
 
     render: ->
-        student_info = @state.store.get_student_name(@props.student_id, true)
-        student_name = student_info?.full ? 'N/A'
         <Row>
-            <Col md={9}>
-                {@render_title(student_name)}
+            <Col md={7}>
+                {@render_title()}
             </Col>
             <Col md={3} style={textAlign:'right'}>
+                {@render_presence()}
+            </Col>
+            <Col md={2} style={textAlign:'right'}>
                 <Button
                     onClick  = {@exit}
                     bsStyle  = {'warning'}

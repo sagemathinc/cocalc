@@ -349,8 +349,6 @@ Assignment = rclass
                 <GradingStudentAssignmentHeader
                     redux          = {@props.redux}
                     name           = {@props.name}
-                    student_id     = {@props.grading.student_id}
-                    end_of_list    = {@props.grading.end_of_list}
                 />
             panel_body  =
                 <GradingStudentAssignment

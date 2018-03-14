@@ -107,7 +107,7 @@ exports.CourseStore = class CourseStore extends Store
             full = full_name + " <#{email}>"
         else
             full = full_name
-        if full_name == 'Unknown Name' and email?
+        if full_name == 'Unknown User' and email?
             full_name = email
         if not include_email
             return full_name
