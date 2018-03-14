@@ -175,6 +175,7 @@ DisableStudentCollaboratorsPanel = rclass ->
             </span>
         </Panel>
 
+# The "Settings"Panel is called "Configuration", to avoid the constant mixup with project "Settings"
 exports.SettingsPanel = rclass
     displayName : "CourseEditorSettings"
 
@@ -552,9 +553,9 @@ exports.SettingsPanel = rclass
 
 exports.SettingsPanel.Header = rclass
     render: ->
-        <Tip delayShow={1300} title="Settings"
+        <Tip delayShow={1300} title="Configuration"
              tip="Configure various things about your course here, including the title and description.  You can also export all grades in various formats from this page.">
             <span>
-                <Icon name="wrench"/> Settings
+                <Icon name="cog"/> Configuration
             </span>
         </Tip>
