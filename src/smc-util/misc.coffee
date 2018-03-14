@@ -1053,9 +1053,6 @@ exports.hash_string = (s) ->
         i++
     return hash
 
-
-
-
 exports.parse_hashtags = (t) ->
     # return list of pairs (i,j) such that t.slice(i,j) is a hashtag (starting with #).
     v = []
@@ -2243,6 +2240,23 @@ exports.percentRank = (list, n, sorted=false) ->
 
     return 100.0 * (L + (0.5 * S)) / N
 
+animals = 'alligator anteater armadillo auroch axolotl badger bat beaver buffalo camel chameleon cheetah chipmunk chinchilla chupacabra cormorant coyote crow dingo dinosaur dog dolphin dragon duck elephant ferret fox frog giraffe gopher grizzly hedgehog hippo hyena jackal ibex ifrit iguana kangaroo koala kraken lemur leopard liger lion llama manatee mink monkey moose narwhal nyan cat orangutan otter panda penguin platypus python pumpkin quagga rabbit raccoon rhino shark sheep shrew skunk slow loris squirrel tiger turtle walrus wolf wolverine wombat'.split(' ').map(exports.capitalize)
+
+adjectives = 'white black red green yellow orange blue gray pink adaptable adorable adventurous affable affectionate agile agreeable ambitious amiable amicable amusing brave bright broad-minded calm careful charming communicative compassionate conscientious considerate convivial courageous courteous creative decisive determined diligent diplomatic discreet dynamic easygoing emotional energetic enthusiastic exuberant fair-minded faithful fearless forceful frank friendly funny generous gentle good gregarious hard-working helpful honest humorous imaginative impartial independent intellectual intelligent intuitive inventive kind loud loving loyal modest neat nice optimistic passionate patient persistent pioneering philosophical placid plucky polite powerful practical pro-active quick-witted quiet rational reliable reserved resourceful romantic self-confident self-disciplined sensible sensitive shy sincere sociable straightforward swift sympathetic thoughtful tidy tough unassuming understanding versatile warmhearted willing witty'.split(' ').map(exports.capitalize)
+
 # derive a deterministic but anonymous name from a string (usually a uuid, though)
-exports.anonymize = (uuid, max_length=30) ->
-    uuid.split('-')[..max_length].join('')
+exports.anonymize = (str, opts) ->
+    opts = defaults opts,
+        max_length : 30
+        mode       : 'animals'
+
+    switch opts.mode
+        when 'animals'
+            N = animals.length
+            M = adjectives.length
+            A = exports.hash_string(str[...-1])
+            B = exports.hash_string(str[1...])
+            return "#{adjectives[B %% M]} #{animals[A %% N]}"
+
+        when 'uuid'
+            return str.split('-')[..opts.max_length].join('')
