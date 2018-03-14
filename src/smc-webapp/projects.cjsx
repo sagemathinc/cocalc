@@ -695,9 +695,14 @@ class ProjectsStore extends Store
         return @getIn(['project_map', project_id, 'users', webapp_client.account_id, 'upgrades'])?.toJS()
 
     # Get the individual users contributions to the project's upgrades
+    # mapping (or undefined) =
+    #     memory  :
+    #         account_id         : 1000
+    #         another_account_id : 2000
+    #     network :
+    #         account_id : 1
+    # etc. with other upgrades and maps of account ids to upgrade amount
     get_upgrades_to_project: (project_id) =>
-        # mapping (or undefined)
-        #    {memory:{account_id:1000, another_account_id:2000, ...}, network:{account_id:1, ...}, ...}
         users = @getIn(['project_map', project_id, 'users'])?.toJS()
         if not users?
             return
@@ -710,9 +715,10 @@ class ProjectsStore extends Store
         return upgrades
 
     # Get the sum of all the upgrades given to the project by all users
+    # mapping (or undefined) =
+    #    memory  : 3000
+    #    network : 2
     get_total_project_upgrades: (project_id) =>
-        # mapping (or undefined)
-        #    {memory:3000, network:2, ...}
         users = @getIn(['project_map', project_id, 'users'])?.toJS()
         if not users?
             return
