@@ -202,8 +202,9 @@ exports.ProjectUpgradesTable = ProjectUpgradesTable = rclass
             submit_upgrade_quotas                = {(new_quotas) => @submit_upgrade_quotas({new_quotas, project_id})}
             cancel_upgrading                     = {()=>@toggle_adjustor(project_id)}
             style = {
-                margin : '25px 0px'
+                margin : '25px 0px 0px 0px'
             }
+            omit_header = {true}
         />
 
     render_upgraded_project: (project_id, upgrades, darker) ->
