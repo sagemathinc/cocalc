@@ -1524,6 +1524,16 @@ exports.round2 = round2 = (num) ->
     # padding to fix floating point issue (see http://stackoverflow.com/questions/11832914/round-to-at-most-2-decimal-places-in-javascript)
     Math.round((num + 0.00001) * 100) / 100
 
+exports.roundN = (num, l) ->
+    switch l
+        when 1
+            return exports.round1(num)
+        when 2
+            return exports.round2(num)
+
+    expo = Math.pow(10, l)
+    return Math.round((num + Math.pow(10, -l-2)) * expo) / expo
+
 # like seconds2hms, but only up to minute-resultion
 exports.seconds2hm = seconds2hm = (secs, longform) ->
     return seconds2hms(secs, longform, false)

@@ -88,6 +88,60 @@ describe "sinon", ->
 
 # start testing misc.coffee
 
+describe 'rounding', ->
+    it 'round1', ->
+        misc.round1(1.234).should.eql 1.2
+        misc.round1(0.910).should.eql 0.9
+        misc.round1(1.999999).should.eql 2
+        misc.round1(8.1).should.eql 8.1
+        misc.round1(-1.9).should.eql -1.9
+    it 'round2', ->
+        misc.round2(1.234).should.eql 1.23
+        misc.round2(1.239).should.eql 1.24
+        misc.round2(0.910).should.eql 0.91
+        misc.round2(1.999999).should.eql 2
+        misc.round2(8.1).should.eql 8.1
+        misc.round2(8.19).should.eql 8.19
+        misc.round2(8.199).should.eql 8.2
+        misc.round2(-1.9).should.eql -1.9
+        misc.round2(-1.99).should.eql -1.99
+        misc.round2(-1.991).should.eql -1.99
+    it 'roundN=1 is like round1', ->
+        N = 1
+        misc.roundN(1.234, N).should.eql 1.2
+        misc.roundN(0.910, N).should.eql 0.9
+        misc.roundN(1.999999, N).should.eql 2
+        misc.roundN(8.1, N).should.eql 8.1
+        misc.roundN(-1.9, N).should.eql -1.9
+    it 'roundN=2 is like round2', ->
+        N = 2
+        misc.roundN(1.234, N).should.eql 1.23
+        misc.roundN(1.239, N).should.eql 1.24
+        misc.roundN(0.910, N).should.eql 0.91
+        misc.roundN(1.999999, N).should.eql 2
+        misc.roundN(8.1, N).should.eql 8.1
+        misc.roundN(8.19, N).should.eql 8.19
+        misc.roundN(8.199, N).should.eql 8.2
+        misc.roundN(-1.9, N).should.eql -1.9
+        misc.roundN(-1.99, N).should.eql -1.99
+        misc.roundN(-1.991, N).should.eql -1.99
+    it 'roundN=4', ->
+        N = 4
+        misc.roundN(1.234123, N).should.eql 1.2341
+        misc.roundN(1.239, N).should.eql 1.239
+        misc.roundN(0.910, N).should.eql 0.91
+        misc.roundN(1.999999, N).should.eql 2
+        misc.roundN(8.1, N).should.eql 8.1
+        misc.roundN(8.19, N).should.eql 8.19
+        misc.roundN(8.199, N).should.eql 8.199
+        misc.roundN(8.1999, N).should.eql 8.1999
+        misc.roundN(8.19999, N).should.eql 8.2
+        misc.roundN(-1.9, N).should.eql -1.9
+        misc.roundN(-1.99, N).should.eql -1.99
+        misc.roundN(-1.991, N).should.eql -1.991
+        misc.roundN(-1.99991, N).should.eql -1.9999
+        misc.roundN(-1.999991, N).should.eql -2
+
 describe 'percentRank', ->
     l = [1, 1, 2, 3, 5, 8, 13]
     p = misc.percentRank
