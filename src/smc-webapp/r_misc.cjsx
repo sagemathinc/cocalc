@@ -452,10 +452,16 @@ exports.NumberInput = NumberInput = rclass
     sanitizeN: (n) ->
         if "#{n}" == "NaN"
             n = @props.number
+        # clip
         if n < @props.min
             n = @props.min
         else if n > @props.max
             n = @props.max
+        # rounding to lenth of mantissa
+        if (@props.mantissa_length ? 0) == 0
+            n = parseInt(n)
+        else
+            n = misc.roundN(parseFloat(n), @props.mantissa_length)
         return n
 
     saveNumber: (n) ->
@@ -465,11 +471,7 @@ exports.NumberInput = NumberInput = rclass
 
     saveChange: (e) ->
         e?.preventDefault()
-        if (not @props.mantissa_length) or (@props.mantissa_length == 0)
-            n = parseInt(@state.number)
-        else
-            n = misc.roundN(parseFloat(@state.number), @props.mantissa_length)
-        @saveNumber(n)
+        @saveNumber(@state.number)
 
     # TODO remove?
     render_save_button: ->
