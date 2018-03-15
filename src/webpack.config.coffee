@@ -392,6 +392,10 @@ setNODE_ENV         = new webpack.DefinePlugin
                                 'BUILD_TS'        : JSON.stringify(BUILD_TS)
                                 'DEBUG'           : JSON.stringify(DEBUG)
 
+# Writes a JSON file containing the main webpack-assets and their filenames.
+{StatsWriterPlugin} = require("webpack-stats-plugin")
+statsWriterPlugin   = new StatsWriterPlugin(filename: "webpack-stats.json")
+
 # https://webpack.js.org/guides/migrating/#uglifyjsplugin-minimize-loaders
 loaderOptions = new webpack.LoaderOptionsPlugin(
     minimize: true
@@ -447,8 +451,6 @@ plugins = plugins.concat([assetsPlugin, statsWriterPlugin])
 
 if PRODMODE
     console.log "production mode: enabling compression"
-    # https://webpack.github.io/docs/list-of-plugins.html#commonschunkplugin
-    # plugins.push new webpack.optimize.CommonsChunkPlugin(name: "lib")
     # configuration for the number of chunks and their minimum size
     plugins.push new webpack.optimize.LimitChunkCountPlugin(maxChunks: 5)
     plugins.push new webpack.optimize.MinChunkSizePlugin(minChunkSize: 30000)
@@ -506,8 +508,6 @@ if CDN_BASE_URL?
 else
     publicPath = path.join(BASE_URL, misc_node.OUTPUT_DIR) + '/'
 
-# TODO webpack2: the module.loaders syntax changed, but this here isn't deprecated
-# https://webpack.js.org/guides/migrating/#module-loaders-is-now-module-rules
 module.exports =
     cache: true
 
@@ -538,26 +538,20 @@ module.exports =
                     { loader: 'coffee-loader' }
                 ]
             },
-            { test: /\.less$/,   use: ["style-loader", "css-loader", "less-loader?#{cssConfig}"]}, #loader : extractTextLess }, #
-            { test: /\.scss$/,   use: ["style-loader", "css-loader", "sass-loader?#{cssConfig}"]}, #loader : extractTextScss }, #
-            { test: /\.sass$/,   use: ["style-loader", "css-loader", "sass-loader?#{cssConfig}&indentedSyntax"]}, # ,loader : extractTextSass }, #
-            { test: /\.json$/,   use: ['json-loader'] },
+            { test: /\.less$/,   use: ["style-loader", "css-loader", "less-loader?#{cssConfig}"] },
+            { test: /\.scss$/,   use: ["style-loader", "css-loader", "sass-loader?#{cssConfig}"] },
+            { test: /\.sass$/,   use: ["style-loader", "css-loader", "sass-loader?#{cssConfig}&indentedSyntax"] },
             { test: /\.png$/,    loader: "file-loader?#{pngconfig}" },
             { test: /\.ico$/,    loader: "file-loader?#{icoconfig}" },
             { test: /\.svg(\?[a-z0-9\.-=]+)?$/,    loader: "url-loader?#{svgconfig}" },
             { test: /\.(jpg|jpeg|gif)$/,    loader: "file-loader?name=#{hashname}"},
-            # .html only for files in smc-webapp!
             { test: /\.html$/, include: [path.resolve(__dirname, 'smc-webapp')], use: ["raw-loader", "html-minify?conservativeCollapse"]},
-            # { test: /\.html$/, include: [path.resolve(__dirname, 'webapp-lib')], loader: "html-loader"},
             { test: /\.hbs$/,    loader: "handlebars-loader" },
             { test: /\.woff(2)?(\?[a-z0-9\.-=]+)?$/, loader: "url-loader?#{woffconfig}" },
-            # this is the previous file-loader config for ttf and eot fonts -- but see #1974 which for me looks like a webpack sillyness
-            #{ test: /\.(ttf|eot)(\?[a-z0-9\.-=]+)?$/, loader: "file-loader?name=#{hashname}" },
-            #{ test: /\.(ttf|eot)$/, loader: "file-loader?name=#{hashname}" },
             { test: /\.ttf(\?[a-z0-9\.-=]+)?$/, loader: "url-loader?limit=10000&mimetype=application/octet-stream" },
             { test: /\.eot(\?[a-z0-9\.-=]+)?$/, loader: "file-loader?name=#{hashname}" },
             # ---
-            { test: /\.css$/, use: ["style-loader", "css-loader?#{cssConfig}"]}, # loader: extractTextCss }, #
+            { test: /\.css$/, use: ["style-loader", "css-loader?#{cssConfig}"]},
             { test: /\.pug$/, loader: 'pug-loader' },
         ]
 
@@ -571,8 +565,5 @@ module.exports =
                       path.resolve(__dirname, 'smc-webapp'),
                       path.resolve(__dirname, 'smc-webapp/node_modules'),
                       path.resolve(__dirname, 'node_modules')]
-        #alias:
-        #    "jquery-ui": "jquery-ui/jquery-ui.js", # bind version of jquery-ui
-        #    modules: path.join(__dirname, "node_modules") # bind to modules;
 
     plugins: plugins
