@@ -235,6 +235,7 @@ base_url_html = BASE_URL # do *not* modify BASE_URL, it's needed with a '/' down
 while base_url_html and base_url_html[base_url_html.length-1] == '/'
     base_url_html = base_url_html.slice(0, base_url_html.length-1)
 
+
 # this is the main app.html file, which should be served without any caching
 # config: https://github.com/jantimon/html-webpack-plugin#configuration
 pug2app = new HtmlWebpackPlugin(
@@ -256,6 +257,7 @@ pug2app = new HtmlWebpackPlugin(
                         minify           : htmlMinifyOpts
                         GOOGLE_ANALYTICS : GOOGLE_ANALYTICS
 )
+
 
 # static html pages
 # they only depend on the css chunk
@@ -374,6 +376,7 @@ if COMP_ENV
                         BASE_URL         : base_url_html
                         PREFIX           : '../'
         ))
+
 
 # global css loader configuration
 cssConfig = JSON.stringify(minimize: true, discardComments: {removeAll: true}, mergeLonghand: true, sourceMap: false)
@@ -515,6 +518,8 @@ module.exports =
     # **do** use cheap-module-eval-source-map; it produces too large files, but who cares since we are not
     # using this in production.  DO NOT use 'source-map', which is VERY slow.
     devtool: if SOURCE_MAP then '#cheap-module-eval-source-map'
+
+    mode: if PRODMODE then 'production' else 'development'
 
     entry: entries
 

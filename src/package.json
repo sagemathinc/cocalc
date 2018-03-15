@@ -7,9 +7,12 @@
     "doc": "doc"
   },
   "dependencies": {
+    "@babel/core": "^7.0.0-beta.41",
+    "@babel/plugin-transform-react-jsx": "^7.0.0-beta.41",
+    "@babel/preset-env": "^7.0.0-beta.41",
     "assets-webpack-plugin": "^3.5",
     "babel-core": "^6.26.0",
-    "babel-loader": "^7.1.2",
+    "babel-loader": "^8.0.0-beta.2",
     "babel-preset-react-app": "^3.1.0",
     "clean-webpack-plugin": "^0.1",
     "coffee-cache": "^1.0.2",
@@ -18,40 +21,43 @@
     "coffeescript": "^2.1.0",
     "crypto-browserify": "^3.12.0",
     "css-loader": "^0.23.1",
-    "extract-text-webpack-plugin": "^2",
-    "file-loader": "^1.1.4",
+    "extract-text-webpack-plugin": "^3.0.2",
     "forever": "^0.15.3",
     "handlebars": "^4.0.5",
     "handlebars-loader": "^1.1.4",
     "html-loader": "^0.5.1",
     "html-minify-loader": "^1.1.0",
-    "html-webpack-plugin": "^2",
+    "html-webpack-plugin": "^3.0.6",
     "imports-loader": "^0.6.5",
-    "json-loader": "^0.5.4",
     "jstransformer-coffee-script": "^1.1.0",
     "jstransformer-markdown-it": "^2.0.0",
     "jstransformer-sass": "^0.1.1",
     "less": "^2.7.1",
-    "less-loader": "^4",
+    "less-loader": "^4.1.0",
     "node-cjsx": "^1.0.0",
     "node-glob": "^1.2.0",
-    "node-sass": "^3.7.0",
-    "pug": "^2.0.0-rc.2",
-    "pug-loader": "^2",
-    "sass-loader": "^6",
+    "node-sass": "^4.8.2",
+    "pug": "^2.0.1",
+    "pug-loader": "^2.3.0",
+    "sass-loader": "^6.0.7",
     "script-loader": "^0.7",
     "style-loader": "^0.13.1",
     "uglify-js": "^2.6.2",
     "url-loader": "^0.6",
-    "webpack": "^3",
-    "webpack-dev-server": "^2",
+    "webpack": "^4.1.1",
+    "webpack-cli": "^2.0.12",
+    "webpack-dev-middleware": "^3.0.1",
+    "webpack-dev-server": "^3.1.1",
     "webpack-path-rewriter": "^1",
     "webpack-sha-hash": "^2",
     "webpack-stats-plugin": "^0.1"
   },
   "babel": {
     "presets": [
-      "react-app"
+      "@babel/preset-env"
+    ],
+    "plugins": [
+      "@babel/plugin-transform-react-jsx"
     ]
   },
   "scripts": {
@@ -94,6 +100,6 @@
   },
   "homepage": "https://github.com/sagemathinc/cocalc",
   "devDependencies": {
-    "file-loader": "^0.8.5"
+    "file-loader": "^1.1.11"
   }
 }
