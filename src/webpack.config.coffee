@@ -188,11 +188,6 @@ class MathjaxVersionedSymlink
 
 mathjaxVersionedSymlink = new MathjaxVersionedSymlink()
 
-# deterministic hashing for assets
-# TODO this sha-hash lib sometimes crashes. switch to https://github.com/erm0l0v/webpack-md5-hash and try if that works!
-#WebpackSHAHash = require('webpack-sha-hash')
-#webpackSHAHash = new WebpackSHAHash()
-
 # cleanup like "make distclean"
 # otherwise, compiles create an evergrowing pile of files
 CleanWebpackPlugin = require('clean-webpack-plugin')
@@ -380,67 +375,8 @@ if COMP_ENV
                         PREFIX           : '../'
         ))
 
-#video chat is done differently, this is kept for reference.
-## video chat: not possible to render to html, while at the same time also supporting query parameters for files in the url
-## maybe at some point https://github.com/webpack/webpack/issues/536 has an answer
-#videoChatSide = new HtmlWebpackPlugin
-#                        filename : "webrtc/group_chat_side.html"
-#                        inject   : 'head'
-#                        template : 'webapp-lib/webrtc/group_chat_side.html'
-#                        chunks   : ['css']
-#                        minify   : htmlMinifyOpts
-#videoChatCell = new HtmlWebpackPlugin
-#                        filename : "webrtc/group_chat_cell.html"
-#                        inject   : 'head'
-#                        template : 'webapp-lib/webrtc/group_chat_cell.html'
-#                        chunks   : ['css']
-#                        minify   : htmlMinifyOpts
-
 # global css loader configuration
 cssConfig = JSON.stringify(minimize: true, discardComments: {removeAll: true}, mergeLonghand: true, sourceMap: false)
-
-###
-# ExtractText for CSS should work, but doesn't. Also not necessary for our purposes ...
-# Configuration left as a comment for future endeavours.
-
-# https://webpack.github.io/docs/stylesheets.html
-ExtractTextPlugin = require("extract-text-webpack-plugin")
-
-# merge + minify of included CSS files
-extractCSS = new ExtractTextPlugin("styles-[hash].css")
-extractTextCss  = ExtractTextPlugin.extract("style", "css?sourceMap&#{cssConfig}")
-extractTextSass = ExtractTextPlugin.extract("style", "css?#{cssConfig}!sass?sourceMap&indentedSyntax")
-extractTextScss = ExtractTextPlugin.extract("style", "css?#{cssConfig}!sass?sourceMap")
-extractTextLess = ExtractTextPlugin.extract("style", "css?#{cssConfig}!less?sourceMap")
-###
-
-# Custom plugin, to handle the quirky situation of extra *.html files.
-# It was originally used to copy auxiliary .html files, but since there is
-# no processing of the included style/js files (hashing them), it cannot be used.
-# maybe it will be useful for something else in the future...
-class LinkFilesIntoTargetPlugin
-    constructor: (@files, @target) ->
-
-    apply: (compiler) ->
-        compiler.plugin "done", (comp) =>
-            #console.log('compilation:', _.keys(comp.compilation))
-            _.forEach @files, (fn) =>
-                if fn[0] != '/'
-                    src = path.join(path.resolve(__dirname, INPUT), fn)
-                    dst = path.join(@target, fn)
-                else
-                    src = fn
-                    fnrelative = fn[INPUT.length + 1 ..]
-                    dst = path.join(@target, fnrelative)
-                dst = path.resolve(__dirname, dst)
-                console.log("hard-linking file:", src, "→", dst)
-                dst_dir = path.dirname(dst)
-                if not fs.existsSync(dst_dir)
-                    fs.mkdir(dst_dir)
-                fs.linkSync(src, dst) # mysteriously, that doesn't work
-
-#policies = glob.sync(path.join(INPUT, 'policies', '*.html'))
-#linkFilesIntoTargetPlugin = new LinkFilesToTargetPlugin(policies, OUTPUT)
 
 # this is like C's #ifdef for the source code. It is particularly useful in the
 # source code of CoCalc's webapp, such that it knows about itself's version and where
@@ -455,34 +391,6 @@ setNODE_ENV         = new webpack.DefinePlugin
                                 'BUILD_DATE'      : JSON.stringify(BUILD_DATE)
                                 'BUILD_TS'        : JSON.stringify(BUILD_TS)
                                 'DEBUG'           : JSON.stringify(DEBUG)
-
-# This is not used, but maybe in the future.
-# Writes a JSON file containing the main webpack-assets and their filenames.
-{StatsWriterPlugin} = require("webpack-stats-plugin")
-statsWriterPlugin   = new StatsWriterPlugin(filename: "webpack-stats.json")
-
-# https://webpack.github.io/docs/shimming-modules.html
-# do *not* require('jquery') but $ = window.$
-# this here doesn't work, b/c some modifications/plugins simply do not work when this is set
-# rather, webapp-lib.coffee defines the one and only global jquery instance!
-#provideGlobals      = new webpack.ProvidePlugin
-#                                        '$'             : 'jquery'
-#                                        'jQuery'        : 'jquery'
-#                                        "window.jQuery" : "jquery"
-#                                        "window.$"      : "jquery"
-
-# this is for debugging: adding it prints out a long long json of everything
-# that ends up inside the chunks. that way, one knows exactly where which part did end up.
-# (i.e. if require.ensure really creates chunkfiles, etc.)
-class PrintChunksPlugin
-    apply: (compiler) ->
-        compiler.plugin 'compilation', (compilation, params) ->
-            compilation.plugin 'after-optimize-chunk-assets', (chunks) ->
-                console.log(chunks.map (c) ->
-                        id: c.id
-                        name: c.name
-                        includes: c.modules.map (m) ->  m.request
-                )
 
 # https://webpack.js.org/guides/migrating/#uglifyjsplugin-minimize-loaders
 loaderOptions = new webpack.LoaderOptionsPlugin(
@@ -504,7 +412,6 @@ loaderOptions = new webpack.LoaderOptionsPlugin(
 
 plugins = [
     cleanWebpackPlugin,
-    #provideGlobals,
     setNODE_ENV,
     banner,
     loaderOptions
@@ -523,12 +430,7 @@ else
         smc  : 'webapp-smc.coffee'
     plugins = plugins.concat([
         pug2app,
-        #commonsChunkPlugin,
-        #extractCSS,
-        #webpackSHAHash,
-        #new PrintChunksPlugin(),
         mathjaxVersionedSymlink,
-        #linkFilesIntoTargetPlugin,
     ])
 
 if DEVMODE
