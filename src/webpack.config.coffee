@@ -213,7 +213,7 @@ HtmlWebpackPlugin = require('html-webpack-plugin')
 # we need our own chunk sorter, because just by dependency doesn't work
 # this way, we can be 100% sure
 smcChunkSorter = (a, b) ->
-    order = ['css', 'lib', 'smc']
+    order = ['css', 'fill', 'lib', 'smc']
     if order.indexOf(a.names[0]) < order.indexOf(b.names[0])
         return -1
     else
@@ -433,6 +433,7 @@ else
     # ATTN don't alter or add names here, without changing the sorting function above!
     entries =
         css  : 'webapp-css.coffee'
+        fill : '@babel/polyfill'
         lib  : 'webapp-lib.coffee'
         smc  : 'webapp-smc.coffee'
     plugins = plugins.concat([
