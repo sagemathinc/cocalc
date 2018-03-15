@@ -60,15 +60,16 @@ init_redux = (course_filename, redux, course_project_id) ->
         return
 
     initial_store_state =
-        course_filename        : course_filename
-        course_project_id      : course_project_id
-        expanded_students      : immutable.Set() # Set of student id's (string) which should be expanded on render
-        expanded_assignments   : immutable.Set() # Set of assignment id's (string) which should be expanded on render
-        expanded_handouts      : immutable.Set() # Set of handout id's (string) which should be expanded on render
-        expanded_peer_configs  : immutable.Set() # Set of assignment configs (key = assignment_id) which should be expanded on render
-        active_student_sort    : {column_name : "last_name", is_descending : false}
-        active_assignment_sort : {column_name : "due_date", is_descending : false}
-        settings               : {allow_collabs : true}
+        course_filename          : course_filename
+        course_project_id        : course_project_id
+        expanded_students        : immutable.Set() # Set of student id's (string) which should be expanded on render
+        expanded_assignments     : immutable.Set() # Set of assignment id's (string) which should be expanded on render
+        expanded_handouts        : immutable.Set() # Set of handout id's (string) which should be expanded on render
+        expanded_peer_configs    : immutable.Set() # Set of peer grading configs (key = assignment_id) which should be expanded on render
+        expanded_grading_configs : immutable.Set() # Set of grading configs (key = assignment_id) which should be expanded on render
+        active_student_sort      : {column_name : "last_name", is_descending : false}
+        active_assignment_sort   : {column_name : "due_date", is_descending : false}
+        settings                 : {allow_collabs : true}
 
     actions = redux.createActions(the_redux_name, CourseActions)
     store = redux.createStore(the_redux_name, CourseStore, initial_store_state)

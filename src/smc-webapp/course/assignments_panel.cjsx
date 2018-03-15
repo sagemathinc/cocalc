@@ -47,11 +47,12 @@ exports.AssignmentsPanel = rclass ({name}) ->
 
     reduxProps :
         "#{name}":
-            expanded_assignments   : rtypes.immutable.Set
-            active_assignment_sort : rtypes.immutable.Map
-            active_student_sort    : rtypes.immutable.Map
-            expanded_peer_configs  : rtypes.immutable.Set
-            grading                : rtypes.instanceOf(Grading)
+            expanded_assignments     : rtypes.immutable.Set
+            active_assignment_sort   : rtypes.immutable.Map
+            active_student_sort      : rtypes.immutable.Map
+            expanded_peer_configs    : rtypes.immutable.Set
+            expanded_grading_configs : rtypes.immutable.Set
+            grading                  : rtypes.instanceOf(Grading)
 
     propTypes :
         name            : rtypes.string.isRequired
@@ -112,18 +113,19 @@ exports.AssignmentsPanel = rclass ({name}) ->
     render_assignments: (assignments) ->
         for x,i in assignments
             <Assignment
-                key                 = {x.assignment_id}
-                project_id          = {@props.project_id}
-                name                = {@props.name}
-                redux               = {@props.redux}
-                assignment          = {@props.all_assignments.get(x.assignment_id)}
-                background          = {if i%2==0 then "#eee"}
-                students            = {@props.students}
-                user_map            = {@props.user_map}
-                is_expanded         = {@props.expanded_assignments.has(x.assignment_id)}
-                active_student_sort = {@props.active_student_sort}
-                expand_peer_config  = {@props.expanded_peer_configs.has(x.assignment_id)}
-                grading             = {@props.grading}
+                key                   = {x.assignment_id}
+                project_id            = {@props.project_id}
+                name                  = {@props.name}
+                redux                 = {@props.redux}
+                assignment            = {@props.all_assignments.get(x.assignment_id)}
+                background            = {if i%2==0 then "#eee"}
+                students              = {@props.students}
+                user_map              = {@props.user_map}
+                is_expanded           = {@props.expanded_assignments.has(x.assignment_id)}
+                active_student_sort   = {@props.active_student_sort}
+                expand_peer_config    = {@props.expanded_peer_configs.has(x.assignment_id)}
+                expand_grading_config = {@props.expanded_grading_configs.has(x.assignment_id)}
+                grading               = {@props.grading}
             />
 
     render_show_deleted: (num_deleted, num_shown) ->
@@ -190,17 +192,18 @@ Assignment = rclass
     displayName : "CourseEditor-Assignment"
 
     propTypes :
-        project_id          : rtypes.string.isRequired
-        redux               : rtypes.object.isRequired
+        project_id            : rtypes.string.isRequired
+        redux                 : rtypes.object.isRequired
 
-        assignment          : rtypes.immutable.Map.isRequired
-        background          : rtypes.string
-        students            : rtypes.object.isRequired
-        user_map            : rtypes.object.isRequired
-        is_expanded         : rtypes.bool
-        active_student_sort : rtypes.immutable.Map
-        expand_peer_config  : rtypes.bool
-        grading             : rtypes.instanceOf(Grading)
+        assignment            : rtypes.immutable.Map.isRequired
+        background            : rtypes.string
+        students              : rtypes.object.isRequired
+        user_map              : rtypes.object.isRequired
+        is_expanded           : rtypes.bool
+        active_student_sort   : rtypes.immutable.Map
+        expand_peer_config    : rtypes.bool
+        expand_grading_config : rtypes.bool
+        grading               : rtypes.instanceOf(Grading)
 
     getInitialState: ->  {} # there are many keys used in state; we assume @state not null in code below.
 
@@ -208,7 +211,7 @@ Assignment = rclass
         # state is an object with tons of keys and values true/false
         return not misc.is_equal(@state, nextState) or \
                misc.is_different(@props, nextProps, ['assignment', 'students', 'user_map', 'background', \
-                             'is_expanded', 'active_student_sort', 'expand_peer_config', 'grading'])
+                             'is_expanded', 'active_student_sort', 'expand_peer_config', 'grading', 'expand_grading_config'])
 
     _due_date: ->
         due_date = @props.assignment.get('due_date')  # a string
@@ -266,8 +269,9 @@ Assignment = rclass
 
         bottom =
             borderBottom  : '1px solid grey'
-            paddingBottom : '15px'
-            marginBottom  : '15px'
+            paddingBottom : '10px'
+            marginBottom  : '10px'
+
         v.push <Row key='header3' style={bottom}>
             <Col md={2}>
                 {@render_open_button()}
@@ -280,7 +284,9 @@ Assignment = rclass
                     <Col md={6} key='delete'>
                         <Row>
                             <Col md={7}>
-                                {@render_peer_button(status)}
+                                {@render_grading_config_button()}
+                                <Space />
+                                {@render_peer_button()}
                             </Col>
                             <Col md={5}>
                                 <span className='pull-right'>
@@ -299,10 +305,18 @@ Assignment = rclass
                     {@render_configure_peer()}
                 </Col>
             </Row>
+
         if @state.confirm_delete
             v.push <Row key='header2-delete' style={bottom}>
                 <Col md={10} mdOffset={2}>
                     {@render_confirm_delete()}
+                </Col>
+            </Row>
+
+        if @props.expand_grading_config
+            v.push <Row key='header2-grading' style={bottom}>
+                <Col md={10} mdOffset={2}>
+                    {@render_configure_grading()}
                 </Col>
             </Row>
 
@@ -930,16 +944,43 @@ Assignment = rclass
             <Button onClick={=>@actions(@props.name).toggle_item_expansion('peer_config', @props.assignment.get('assignment_id'))}>
                 Close
             </Button>
-
         </Alert>
 
-    render_peer_button: (status) ->
+    render_peer_button: ->
         if @props.assignment.get('peer_grade')?.get('enabled')
             icon = 'check-square-o'
         else
             icon = 'square-o'
-        <Button disabled={@props.expand_peer_config } onClick={=>@actions(@props.name).toggle_item_expansion('peer_config', @props.assignment.get('assignment_id'))}>
+        <Button
+            disabled    = {@props.expand_peer_config }
+            onClick     = {=>@actions(@props.name).toggle_item_expansion('peer_config', @props.assignment.get('assignment_id'))}
+        >
             <Icon name={icon} /> Peer Grading...
+        </Button>
+
+    toggle_configure_grading: ->
+        aid = @props.assignment.get('assignment_id')
+        @actions(@props.name).toggle_item_expansion('grading_config', aid)
+
+    render_configure_grading: ->
+        <Alert bsStyle='warning'>
+            <h3><Icon name="gavel"/> Configure grading</h3>
+
+            <div style={color:COLORS.GRAY_D}>
+                Configure grading ...
+            </div>
+
+            <Button onClick={@toggle_configure_grading}>
+                Close
+            </Button>
+        </Alert>
+
+    render_grading_config_button: ->
+        <Button
+            disabled    = {@props.expand_grading_config}
+            onClick     = {@toggle_configure_grading}
+        >
+            <Icon name={'gavel'} /> Configure Grading...
         </Button>
 
     render_summary_due_date: ->
