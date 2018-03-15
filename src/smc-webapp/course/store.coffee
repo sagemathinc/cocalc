@@ -308,6 +308,14 @@ exports.CourseStore = class CourseStore extends Store
     has_grade: (assignment, student_id) =>
         return !!@get_assignment(assignment)?.get("grades")?.get(student_id)
 
+    get_grading_mode: (assignment) =>
+        a = @get_assignment(assignment)
+        return a?.getIn(['config', 'mode']) ? 'manual'
+
+    get_grading_maxpoints: (assignment) =>
+        a = @get_assignment(assignment)
+        return a?.getIn(['config', 'maxpoints']) ? 100
+
     get_assignment_status: (assignment) =>
         #
         # Compute and return an object that has fields (deleted students are ignored)

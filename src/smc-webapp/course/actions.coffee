@@ -945,6 +945,11 @@ exports.CourseActions = class CourseActions extends Actions
             cur[k] = v
         @_set_assignment_field(assignment, 'peer_grade', cur)
 
+    set_assignment_config: (assignment, config) =>
+        cur = assignment.get('config') ? immutable.Map()
+        cur = cur.merge(config)
+        @_set_assignment_field(assignment, 'config', cur)
+
     set_skip: (assignment, step, value) =>
         store = @get_store()
         return if not store?

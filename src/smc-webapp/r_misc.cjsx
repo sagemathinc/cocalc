@@ -405,11 +405,11 @@ exports.TextInput = rclass
 
     render_save_button: ->
         if @state.text? and @state.text != @props.text
-            <Button  style={marginBottom:'15px'} bsStyle='success' onClick={@saveChange}><Icon name='save' /> Save</Button>
+            <Button  style={marginBottom:'15px'} bsStyle={'success'} onClick={@saveChange}><Icon name={'save'} /> Save</Button>
 
     render_input: ->
         <FormGroup>
-            <FormControl type={@props.type ? 'text'} ref='input' rows={@props.rows}
+            <FormControl type={@props.type ? 'text'} ref={'input'} rows={@props.rows}
                        componentClass={if @props.type == 'textarea' then 'textarea' else 'input'}
                        value={if @state.text? then @state.text else @props.text}
                        onChange={=>@setState(text:ReactDOM.findDOMNode(@refs.input).value)}
@@ -503,7 +503,7 @@ exports.NumberInput = NumberInput = rclass
         >
             <Button
                 disabled = {disabled}
-                bsSize   = {@props.bsSize ? 'normal'}
+                bsSize   = {@props.bsSize}
                 onClick  = {(e)=>@plusminus_click(e, delta)}
             >
                 <Icon name={name} />
@@ -526,8 +526,8 @@ exports.NumberInput = NumberInput = rclass
                     <FormGroup stlye={fgstyle}>
                         {@plusminus(-1)}
                         <FormControl
-                            type     = 'text'
-                            ref      = 'input'
+                            type     = {'text'}
+                            ref      = {'input'}
                             bsSize   = {@props.bsSize}
                             value    = {@state.number ? @props.number}
                             onChange = {(e)=>@setState(number:e.target.value)}

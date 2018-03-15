@@ -36,7 +36,7 @@ _         = require('underscore')
 
 # grading specific
 {BigTime} = require('../common')
-{ROW_STYLE, LIST_STYLE, LIST_ENTRY_STYLE, FLEX_LIST_CONTAINER, EMPTY_LISTING_TEXT, PAGE_SIZE} = require('./const')
+{ROW_STYLE, LIST_STYLE, LIST_ENTRY_STYLE, FLEX_LIST_CONTAINER, EMPTY_LISTING_TEXT, PAGE_SIZE, MAXPOINTS} = require('./const')
 
 listing_colstyle  = {margin: '10px 0'}
 listing_colstyle2 = misc.merge({overflow: 'hidden', textOverflow: 'ellipsis'}, listing_colstyle)
@@ -228,7 +228,7 @@ exports.Listing = rclass
             number          = {points}
             bsSize          = {'small'}
             min             = {0}
-            max             = {1000000}
+            max             = {MAXPOINTS}
             bsSize          = {'small'}
             formgroupstyle  = {'marginBottom' : 0}
             on_change       = {(val)=>@save_points(filename, val)}

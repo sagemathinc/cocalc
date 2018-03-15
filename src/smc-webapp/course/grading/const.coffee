@@ -26,6 +26,8 @@
 # for the files listing
 exports.PAGE_SIZE = 10
 
+exports.MAXPOINTS = 1000000
+
 # styles
 
 exports.ROW_STYLE =

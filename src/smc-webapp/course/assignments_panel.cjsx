@@ -283,12 +283,12 @@ Assignment = rclass
                     </Col>
                     <Col md={6} key='delete'>
                         <Row>
-                            <Col md={7}>
+                            <Col md={9} style={whiteSpace:'nowrap'}>
                                 {@render_grading_config_button()}
                                 <Space />
                                 {@render_peer_button()}
                             </Col>
-                            <Col md={5}>
+                            <Col md={3}>
                                 <span className='pull-right'>
                                     {@render_delete_button()}
                                 </span>
@@ -946,11 +946,14 @@ Assignment = rclass
             </Button>
         </Alert>
 
-    render_peer_button: ->
-        if @props.assignment.get('peer_grade')?.get('enabled')
-            icon = 'check-square-o'
+    checked_icon: (checked) ->
+        if checked
+            return 'check-square-o'
         else
-            icon = 'square-o'
+            return 'square-o'
+
+    render_peer_button: ->
+        icon = @checked_icon(@props.assignment.get('peer_grade')?.get('enabled'))
         <Button
             disabled    = {@props.expand_peer_config }
             onClick     = {=>@actions(@props.name).toggle_item_expansion('peer_config', @props.assignment.get('assignment_id'))}
@@ -958,18 +961,79 @@ Assignment = rclass
             <Icon name={icon} /> Peer Grading...
         </Button>
 
+    set_grading_mode: (mode) ->
+        a = @props.redux.getActions(@props.name)
+        a.set_assignment_config(@props.assignment, {mode:mode})
+
+    render_configure_grading_mode: ->
+        store      = @props.redux.getStore(@props.name)
+        mode       = store.get_grading_mode(@props.assignment)
+
+        <div style={color:COLORS.GRAY_D, marginBottom:'10px'}>
+            <div style={marginBottom:'10px'}>
+                In <b>manual</b> mode you can assign an arbitrary grade
+                (a letter, a number, or a short text) to the assignment of a student.
+            </div>
+            <div style={marginBottom:'10px'}>
+                Whereas in <b>points</b> mode, the grade is filled in for you.
+                It is the sum of all points given to the collected files
+                of an assignment of a student.
+                For example, when you assess <b>10 points</b> to <code>notebook1.ipynb</code>{' '}
+                and <b>15 points</b> to <code>worksheet2.sagews</code>,
+                this sums up to a total of <b>25 points</b>.
+                Below, you also enter the maxium number of points for this assignment (e.g. 30).
+                The grade shown to the student will be <b>25/30</b>.
+                (Also, you can assign points beyond the maxium as extra credits.)
+            </div>
+            <div>
+                <Button onClick = {=>@set_grading_mode('manual')}>
+                    <Icon name={@checked_icon(mode == 'manual')} /> Manual
+                </Button>
+                <Space />
+                <Button onClick = {=>@set_grading_mode('points')}>
+                    <Icon name={@checked_icon(mode == 'points')} /> Points
+                </Button>
+            </div>
+        </div>
+
+    set_grading_maxpoints: (points) ->
+        a = @props.redux.getActions(@props.name)
+        a.set_assignment_config(@props.assignment, {maxpoints:points})
+
+    render_configure_grading_maxpoints: ->
+        store      = @props.redux.getStore(@props.name)
+        mode       = store.get_grading_mode(@props.assignment)
+        return null if mode != 'points'
+        maxpoints  = store.get_grading_maxpoints(@props.assignment)
+        MAXPOINTS  = require('./grading/const').MAXPOINTS
+
+        <div style={color:COLORS.GRAY_D, marginBottom:'10px'}>
+            <LabeledRow
+                label_cols = {6}
+                label      = {'Maxium number of points'}
+            >
+                <NumberInput
+                    on_change       = {(n) => @set_grading_maxpoints(n)}
+                    min             = {1}
+                    max             = {MAXPOINTS}
+                    number          = {maxpoints}
+                    plusminus       = {true}
+                    select_on_click = {true}
+                />
+            </LabeledRow>
+        </div>
+
     toggle_configure_grading: ->
         aid = @props.assignment.get('assignment_id')
         @actions(@props.name).toggle_item_expansion('grading_config', aid)
 
     render_configure_grading: ->
+        config = @props.assignment.getIn(['config', 'mode'])
+
         <Alert bsStyle='warning'>
             <h3><Icon name="gavel"/> Configure grading</h3>
-
-            <div style={color:COLORS.GRAY_D}>
-                Configure grading ...
-            </div>
-
+            {@render_configure_grading_mode()}
+            {@render_configure_grading_maxpoints()}
             <Button onClick={@toggle_configure_grading}>
                 Close
             </Button>
