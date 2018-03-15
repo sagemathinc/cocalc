@@ -69,7 +69,7 @@ exports.StudentAssignmentInfoHeader = rclass
                 tip   = 'This column gives status information about collecting homework from students, and lets you collect from one student at a time.'
             when 'grade'
                 title = 'Grade'
-                tip   = 'Record homework grade" tip="Use this column to record the grade the student received on the assignment. Once the grade is recorded, you can return the assignment.  You can also export grades to a file in the Settings tab.'
+                tip   = 'Record homework grade" tip="Use this column to record the grade the student received on the assignment. Once the grade is recorded, you can return the assignment.  You can also export grades to a file in the Configuration tab.'
 
             when 'peer-assign'
                 title = 'Assign Peer Grading'
