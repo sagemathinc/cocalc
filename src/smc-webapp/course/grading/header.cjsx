@@ -112,6 +112,7 @@ exports.GradingStudentAssignmentHeader = rclass ({name}) ->
                 >
                     <Icon name='question-circle'/>
                 </Button>
+                <Space />
                 <Button
                     onClick  = {@exit}
                     bsStyle  = {'warning'}

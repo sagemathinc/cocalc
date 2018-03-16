@@ -52,12 +52,15 @@ exports.Grade = rclass
         max_points     : rtypes.number.isRequired
 
     getInitialState: ->
-        editing_grade   : false
-        edited_grade    : ''
-        edited_comments : ''
-        grade_value     : ''
-        grade_comments  : ''
-        grade_help      : false
+        grade      = @props.store.get_grade(props.assignment, props.student_id)
+        comment    = @props.store.get_comments(props.assignment, props.student_id)
+        return
+            editing_grade   : false
+            grade_help      : false
+            grade_value     : grade
+            grade_comments  : comment
+            edited_grade    : grade
+            edited_comments : comment
 
     componentWillReceiveProps: (props) ->
         return if not @props.student_id?
