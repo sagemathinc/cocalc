@@ -1043,14 +1043,15 @@ exports.CourseActions = class CourseActions extends Actions
         store = @get_store()
         if not store? or not @_store_is_initialized()
             return finish("store not yet initialized")
-        grade = store.get_grade(assignment, student)
-        points = store.get_points(assignment, student)
-        comments = store.get_comments(assignment, student)
         if not student = store.get_student(student)
             return finish("no student")
         if not assignment = store.get_assignment(assignment)
             return finish("no assignment")
-        student_name = store.get_student_name(student)
+
+        points             = store.get_points(assignment, student)
+        comments           = store.get_comments(assignment, student)
+        grade              = store.get_grade_wrt_mode(assignment, student)
+        student_name       = store.get_student_name(student)
         student_project_id = student.get('project_id')
 
         # if skip_grading is true, this means there *might* no be a "grade" given,
