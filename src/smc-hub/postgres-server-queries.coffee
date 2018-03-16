@@ -882,28 +882,40 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
 
     user_search: (opts) =>
         opts = defaults opts,
-            query : required     # comma separated list of email addresses or strings such as 'foo bar' (find everything where foo and bar are in the name)
-            limit : 50           # limit on string queries; email query always returns 0 or 1 result per email address
-            cb    : required     # cb(err, list of {id:?, first_name:?, last_name:?, email_address:?}), where the
-                                 # email_address *only* occurs in search queries that are by email_address -- we do not reveal
-                                 # email addresses of users queried by name.
+            query  : required     # comma separated list of email addresses or strings such as 'foo bar' (find everything where foo and bar are in the name)
+            limit  : 50           # limit on string queries; email query always returns 0 or 1 result per email address
+            active : '6 months'   # for name search (not email), only return users active this recently.
+            cb     : required     # cb(err, list of {id:?, first_name:?, last_name:?, email_address:?}), where the
+                                  # email_address *only* occurs in search queries that are by email_address -- we do not reveal
+                                  # email addresses of users queried by name.
         {string_queries, email_queries} = misc.parse_user_search(opts.query)
-        results = []
         dbg = @_dbg("user_search")
         dbg("query = #{misc.to_json(opts.query)}")
+
+        locals =
+             results : []
+
+        process = (rows) ->
+            if not rows?
+                return
+            locals.results.push(rows...)
+
         async.parallel([
             (cb) =>
                 if email_queries.length == 0
                     cb(); return
                 dbg("do email queries -- with exactly two targeted db queries (even if there are hundreds of addresses)")
                 @_query
-                    query : 'SELECT account_id, first_name, last_name, email_address FROM accounts'
-                    where : 'email_address = ANY($::TEXT[])' : email_queries
+                    query : 'SELECT account_id, first_name, last_name, email_address, last_active, created, email_address_verified FROM accounts'
+                    where :
+                        'email_address = ANY($::TEXT[])' : email_queries
+                        'deleted is $'                   : null
                     cb    : all_results (err, rows) =>
-                        cb(err, if rows? then results.push(rows...))
+                        process(rows)
+                        cb(err)
             (cb) =>
                 dbg("do all string queries")
-                if string_queries.length == 0 or (opts.limit? and results.length >= opts.limit)
+                if string_queries.length == 0
                     # nothing to do
                     cb(); return
                 # substring search on first and last name.
@@ -922,16 +934,30 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                         params.push("#{s}%")  # require string to name to start with string -- makes searching way faster and is more useful too
                         i += 1
                     where.push("(#{v.join(' AND ')})")
-                query = 'SELECT account_id, first_name, last_name FROM accounts'
+                query = 'SELECT account_id, first_name, last_name, last_active, created FROM accounts'
                 query += " WHERE deleted IS NOT TRUE AND (#{where.join(' OR ')})"
+                if opts.active
+                    # name search only includes active users
+                    query += " AND ((last_active >= NOW() - INTERVAL '#{opts.active}') OR (created >= NOW() - INTERVAL '#{opts.active}')) "
                 query += " LIMIT $#{i}::INTEGER"; i += 1
                 params.push(opts.limit)
                 @_query
                     query  : query
                     params : params
                     cb     : all_results (err, rows) =>
-                        cb(err, if rows? then results.push(rows...))
-            ], (err) => opts.cb(err, results))
+                        process(rows)
+                        cb(err)
+            ], (err) =>
+                locals.results.sort (a, b) ->
+                    a0 = (a.first_name + ' ' + a.last_name).toLowerCase()
+                    b0 = (b.first_name + ' ' + b.last_name).toLowerCase()
+                    c = misc.cmp(a0, b0)
+                    if c
+                        return c
+                    return -misc.cmp_Date(a.last_active ? a.created ? 0, b.last_active ? b.created ? 0)
+
+                opts.cb(err, locals.results)
+            )
 
     _account_where: (opts) =>
         if opts.account_id?
