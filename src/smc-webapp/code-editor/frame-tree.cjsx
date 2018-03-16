@@ -114,6 +114,7 @@ exports.FrameTree = FrameTree = rclass
             cm_state    = {@props.cm_state.get(desc.get('id'))}
             is_current  = {desc.get('id') == @props.active_id}
             cursors     = {@props.cursors}
+            content     = {desc.get('content')}
         />
 
     render_one: (desc) ->

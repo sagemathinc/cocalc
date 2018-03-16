@@ -29,7 +29,6 @@ class exports.Actions extends Actions
         else
             @_init_syncstring()
 
-
         @setState
             is_public        : is_public
             local_view_state : @_load_local_view_state()
@@ -37,6 +36,15 @@ class exports.Actions extends Actions
         @_save_local_view_state = underscore.debounce((=>@__save_local_view_state?()), 1500)
 
     _init_content: =>
+        webapp_client.public_get_text_file
+            project_id         : @project_id
+            path               : @path
+            cb                 : (err, data) =>
+                if err
+                    @set_error("Error loading -- #{err}")
+                else
+                    @set_frame_tree_leafs(content: data)
+                    @setState(is_loaded : true)
 
     _init_syncstring: =>
         @_syncstring = webapp_client.sync_string
@@ -49,7 +57,7 @@ class exports.Actions extends Actions
 
         @_syncstring.once 'init', (err) =>
             if err
-                @set_error("Error opening '#{@path}' -- #{err}")
+                @set_error("Error opening -- #{err}")
 
         @_syncstring.once('init', @_syncstring_metadata)
         @_syncstring.on('metadata-change', @_syncstring_metadata)
@@ -186,6 +194,9 @@ class exports.Actions extends Actions
         @_save_local_view_state()
         return
 
+    set_frame_tree_leafs: (obj) =>
+        @_tree_op('set_leafs', obj)
+
     close_frame: (id) =>
         if tree_ops.is_leaf(@_get_tree())
             # closing the only node, so just close whole document
@@ -276,6 +287,8 @@ class exports.Actions extends Actions
         @_syncstring.on('connected',       @set_save_status)
 
     _syncstring_metadata: =>
+        if not @_syncstring?
+            return
         read_only = @_syncstring.get_read_only()
         if read_only != @store.get('read_only')
             @setState(read_only: read_only)
@@ -325,6 +338,8 @@ class exports.Actions extends Actions
             cb?(err)
 
     save: (explicit) =>
+        if @_is_public
+            return
         @set_has_unsaved_changes(false, 3000)
         # TODO: what about markdown, where do not want this...
         # and what about multiple syncstrings...

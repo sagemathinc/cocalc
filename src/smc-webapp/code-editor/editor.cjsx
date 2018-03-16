@@ -27,10 +27,12 @@ exports.Editor = rclass ({name}) ->
             local_view_state        : rtypes.immutable.Map.isRequired
             error                   : rtypes.string
             cursors                 : rtypes.immutable.Map
+            is_public               : rtypes.bool
+            content                 : rtypes.string
 
     shouldComponentUpdate: (next) ->
         return misc.is_different(@props, next, ['has_unsaved_changes', 'has_uncommitted_changes', 'read_only',
-                        'load_time_estimate', 'is_loaded', 'error', 'cursors', 'local_view_state'])
+                        'load_time_estimate', 'is_loaded', 'error', 'cursors', 'local_view_state', 'is_public', 'content'])
 
     componentDidMount: ->
         @props.actions.enable_key_handler()

@@ -47,5 +47,5 @@ register = (is_public) ->
             # TODO: this should be the default, right?
             redux.getActions(redux_name(project_id, path))?.save()
 
-for is_public in [false]
+for is_public in [true, false]
     register(is_public)

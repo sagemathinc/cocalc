@@ -39,6 +39,7 @@ exports.CodemirrorEditor = rclass
         cm_state  : rtypes.immutable.Map
         read_only : rtypes.bool
         is_current: rtypes.bool
+        content   : rtypes.string  # if given, use this static value
 
     reduxProps :
         account :
@@ -49,7 +50,7 @@ exports.CodemirrorEditor = rclass
 
     shouldComponentUpdate: (props, state) ->
         return misc.is_different(@state, state, ['has_cm']) or \
-               misc.is_different(@props, props, ['editor_settings', 'font_size', 'cursors', 'read_only'])
+               misc.is_different(@props, props, ['editor_settings', 'font_size', 'cursors', 'read_only', 'content'])
 
     componentDidMount: ->
         @init_codemirror()
@@ -59,6 +60,8 @@ exports.CodemirrorEditor = rclass
             @cm_update_font_size()
         if @props.read_only != next.read_only
             @cm?.setOption('readOnly', next.read_only)
+        if @props.content != next.content
+            @cm?.setValue(@props.content)
 
     cm_refresh: ->
         @cm?.refresh()
@@ -73,7 +76,7 @@ exports.CodemirrorEditor = rclass
         codemirror_util.restore_state(@cm, state)  # actual restore happens in next refresh cycle after render.
 
     componentWillUnmount: ->
-        if @cm?
+        if @cm? and not @props.content?
             @save_syncstring()
             @_cm_destroy()
 
@@ -135,15 +138,21 @@ exports.CodemirrorEditor = rclass
         @_style_active_line = options.styleActiveLine
         options.styleActiveLine = false
 
+        if @props.content?
+            options.readOnly = true
+
         # Needed e.g., for vim ":w" support; obviously this is global, so be careful.
         CodeMirror.commands.save ?= (cm) -> cm._actions?.save(true)
 
         @cm = CodeMirror.fromTextArea(node, options)
         @cm._actions = @props.actions
 
-        d = doc.get(path: @props.path, cm: @cm)
-        if d?
-            @cm.swapDoc(d)
+        if @props.content?
+            @cm.setValue(@props.content)
+        else
+            d = doc.get(path: @props.path, cm: @cm)
+            if d?
+                @cm.swapDoc(d)
 
         e = $(@cm.getWrapperElement())
         e.addClass('smc-vfill')
@@ -151,6 +160,10 @@ exports.CodemirrorEditor = rclass
         # they've configured as "monospace" in their browser.  So we force that back:
         e.attr('style', e.attr('style') + '; height:100%; font-family:monospace !important;')
         # see http://stackoverflow.com/questions/2655925/apply-important-css-style-using-jquery
+
+        if @props.content?
+            @setState(has_cm: true)
+            return
 
         @save_syncstring_throttle = throttle(@save_syncstring, SAVE_INTERVAL_MS, {leading:false})
 
