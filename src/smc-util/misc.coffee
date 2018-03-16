@@ -59,6 +59,8 @@ exports.RUNNING_IN_NODE = process?.title == 'node'
 # We explicitly export these again for backwards compatibility
 exports.required = required; exports.defaults = defaults; exports.types = types
 
+lru_cache = require("lru-cache")({max: 1000})
+
 # startswith(s, x) is true if s starts with the string x or any of the strings in x.
 # It is false if s is not a string.
 exports.startswith = (s, x) ->
@@ -1052,6 +1054,7 @@ exports.hash_string = (s) ->
         hash |= 0 # convert to 32-bit integer
         i++
     return hash
+
 
 exports.parse_hashtags = (t) ->
     # return list of pairs (i,j) such that t.slice(i,j) is a hashtag (starting with #).
@@ -2252,11 +2255,16 @@ exports.anonymize = (str, opts) ->
 
     switch opts.mode
         when 'animals'
-            N = animals.length
-            M = adjectives.length
-            A = exports.hash_string(str[...-1])
-            B = exports.hash_string(str[1...])
-            return "#{adjectives[B %% M]} #{animals[A %% N]}"
+            key  = "anonymize::animals::#{str}"
+            name = lru_cache.get(key)
+            return name if name?
+            N    = animals.length
+            M    = adjectives.length
+            A    = exports.hash_string(str[...-1])
+            B    = exports.hash_string(str[1...])
+            name = "#{adjectives[B %% M]} #{animals[A %% N]}"
+            lru_cache.set(key, name)
+            return name
 
         when 'uuid'
             return str.split('-')[..opts.max_length].join('')
