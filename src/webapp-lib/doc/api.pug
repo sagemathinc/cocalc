@@ -8,7 +8,7 @@ block vars
     var subtitle = "API";
     var api_root = '/api/v1/';
     var api_doc = require('smc-util/message').documentation;
-    var markdown = require('marked');
+    var markdown = require('smc-webapp/markdown').markdown_to_html;
 
 block header
   script(type="text/javascript")
