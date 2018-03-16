@@ -515,7 +515,7 @@ else
 module.exports =
     cache: true
 
-    # https://webpack.github.io/docs/configuration.html#devtool
+    # https://webpack.js.org/configuration/devtool/#devtool
     # **do** use cheap-module-eval-source-map; it produces too large files, but who cares since we are not
     # using this in production.  DO NOT use 'source-map', which is VERY slow.
     devtool: if SOURCE_MAP then '#cheap-module-eval-source-map'
