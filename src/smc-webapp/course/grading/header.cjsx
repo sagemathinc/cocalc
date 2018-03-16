@@ -32,6 +32,7 @@
 # Grading specific code
 {Grading}    = require('./models')
 
+
 exports.GradingStudentAssignmentHeader = rclass ({name}) ->
     displayName : "CourseEditor-GradingStudentAssignmentHeader"
 
@@ -54,6 +55,10 @@ exports.GradingStudentAssignmentHeader = rclass ({name}) ->
 
     exit: ->
         @actions(@props.name).grading_stop()
+
+    open_grading_help: ->
+        {open_new_tab} = require('smc-webapp/misc_page')
+        open_new_tab('https://github.com/sagemathinc/cocalc/wiki/CourseGrading')
 
     render_presence: ->
         return if (not @props.grading.cursors?) or (not @props.grading.assignment_id?) or (not @props.grading.student_id?)
@@ -100,7 +105,13 @@ exports.GradingStudentAssignmentHeader = rclass ({name}) ->
             <Col md={3} style={textAlign:'right'}>
                 {@render_presence()}
             </Col>
-            <Col md={2} style={textAlign:'right'}>
+            <Col md={2} style={textAlign:'right', whiteSpace:'nowrap'}>
+                <Button
+                    onClick  = {@open_grading_help}
+                    bsStyle  = {'default'}
+                >
+                    <Icon name='question-circle'/>
+                </Button>
                 <Button
                     onClick  = {@exit}
                     bsStyle  = {'warning'}

@@ -604,10 +604,14 @@ Student = rclass
         # peer_grade_layout: if true, the header has two more rows for peer grading
         store = @props.redux.getStore(@props.name)
         for assignment in store.get_sorted_assignments()
-            grade    = store.get_grade(assignment, @props.student)
-            comments = store.get_comments(assignment, @props.student)
-            info     = store.student_assignment_info(@props.student, assignment)
-            points   = store.get_points_total(assignment, @props.student)
+            grade        = store.get_grade(assignment, @props.student)
+            comments     = store.get_comments(assignment, @props.student)
+            info         = store.student_assignment_info(@props.student, assignment)
+            points       = store.get_points_total(assignment, @props.student)
+            grading_mode = store.get_grading_mode(assignment)
+            total_points = store.get_points_total(assignment, @props.student)
+            max_points   = store.get_grading_maxpoints(assignment)
+
             <StudentAssignmentInfo
                 key               = {assignment.get('assignment_id')}
                 title             = {@render_title(assignment)}
@@ -620,6 +624,9 @@ Student = rclass
                 edit_points       = {false}
                 comments          = {comments}
                 info              = {info}
+                grading_mode      = {grading_mode}
+                total_points      = {total_points}
+                max_points        = {max_points}
             />
 
     render_assignments_info: ->

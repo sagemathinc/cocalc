@@ -314,7 +314,7 @@ exports.Listing = rclass
         ]
 
     listing_rowstyle: (idx) ->
-        col = if idx %% 2 == 0 then 'white' else COLORS.GRAY_LL
+        col = if idx %% 2 == 0 then 'white' else COLORS.GRAY_LLL
         style =
             background     : col
             paddingTop     : '5px'

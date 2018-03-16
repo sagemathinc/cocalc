@@ -137,6 +137,9 @@ exports.StudentAssignmentInfo = rclass
         edit_points       : rtypes.bool
         comments          : rtypes.string
         info              : rtypes.object.isRequired
+        grading_mode      : rtypes.string.isRequired
+        total_points      : rtypes.number.isRequired
+        max_points        : rtypes.number.isRequired
 
     getInitialState: ->
         editing_grade   : false
@@ -180,7 +183,16 @@ exports.StudentAssignmentInfo = rclass
             direction   : 0
         )
 
-    render_grade: ->
+    render_grade_points: ->
+        {grade2str} = require('./grading/grade')
+        grade = grade2str(@props.total_points, @props.max_points)
+
+        <div key='grade' onClick={@edit_grade}>
+            <strong>Grade</strong>: {grade}<br/>
+            {<span><strong>Comments</strong>:</span> if @props.comments}
+        </div>
+
+    render_grade_manual: ->
         if @state.editing_grade
             <form key='grade' onSubmit={@save_grade} style={marginTop:'15px'}>
                 <FormGroup>
@@ -201,6 +213,13 @@ exports.StudentAssignmentInfo = rclass
                     <strong>Grade</strong>: {@props.grade}<br/>
                     {<span><strong>Comments</strong>:</span> if @props.comments}
                 </div>
+
+    render_grade: ->
+        switch @props.grading_mode
+            when 'manual'
+                return @render_grade_manual()
+            when 'points'
+                return @render_grade_points()
 
     render_comments: ->
         <MarkdownInput
@@ -231,7 +250,7 @@ exports.StudentAssignmentInfo = rclass
 
     render_edit_points: ->
         style  = {float:'right', color:COLORS.GRAY}
-        points = "#{@props.points ? 0} #{misc.plural(@props.points, 'pt')}."
+        points = "#{misc.round2(@props.points ? 0)} #{misc.plural(@props.points, 'pt')}."
         if @props.edit_points
             <Tip
                 title    = {"Points for this collected assignment"}

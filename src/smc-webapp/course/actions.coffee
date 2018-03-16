@@ -1085,7 +1085,7 @@ exports.CourseActions = class CourseActions extends Actions
                         if comments?.length > 0
                             content += "\n\nInstructor comments:\n\n    #{comments}"
                     if points?.size > 0
-                        listofpoints = ("  #{name}: #{p}" for name, p of points.toJS()).join('\n')
+                        listofpoints = ("  #{name}: #{misc.round2(p)}" for name, p of points.toJS()).join('\n')
                         content += """
                                    \n\nPOINTS:\n
                                    During grading, these points were given to your files:

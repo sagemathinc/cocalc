@@ -1102,18 +1102,22 @@ StudentListForAssignment = rclass
 
     render_student_info: (student_id) ->
         store = @props.redux.getStore(@props.name)
+
         <StudentAssignmentInfo
-              key         = {student_id}
-              title       = {misc.trunc_middle(store.get_student_name(student_id), 40)}
-              name        = {@props.name}
-              student     = {student_id}
-              assignment  = {@props.assignment}
-              grade       = {store.get_grade(@props.assignment, student_id)}
-              points      = {store.get_points_total(@props.assignment, student_id)}
-              edit_points = {true}
-              comments    = {store.get_comments(@props.assignment, student_id)}
-              info        = {store.student_assignment_info(student_id, @props.assignment)}
-          />
+            key            = {student_id}
+            title          = {misc.trunc_middle(store.get_student_name(student_id), 40)}
+            name           = {@props.name}
+            student        = {student_id}
+            assignment     = {@props.assignment}
+            grade          = {store.get_grade(@props.assignment, student_id)}
+            points         = {store.get_points_total(@props.assignment, student_id)}
+            edit_points    = {true}
+            comments       = {store.get_comments(@props.assignment, student_id)}
+            info           = {store.student_assignment_info(student_id, @props.assignment)}
+            grading_mode   = {store.get_grading_mode(@props.assignment)}
+            total_points   = {store.get_points_total(@props.assignment, student_id)}
+            max_points     = {store.get_grading_maxpoints(@props.assignment)}
+        />
 
     render_students: ->
         v = util.parse_students(@props.students, @props.user_map, @props.redux)

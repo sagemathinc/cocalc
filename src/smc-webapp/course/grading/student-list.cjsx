@@ -172,7 +172,7 @@ exports.StudentList = rclass
 
 
     render_student_list_entries: ->
-        list = @props.student_list.map (student) =>
+        list = @props.student_list.map (student, idx) =>
             student_id   = student.get('student_id')
             account_id   = student.get('account_id')
             if @props.anonymous
@@ -187,11 +187,17 @@ exports.StudentList = rclass
             active       = if current then 'active' else ''
             grade_val    = @props.store.get_grade(@props.assignment, student_id)
 
+            if not active
+                bgcol = if idx %% 2 == 0 then 'white' else COLORS.GRAY_LLL
+                style = misc.merge({background:bgcol}, student_list_entries_style)
+            else
+                style = student_list_entries_style
+
             <li
                 key        = {student_id}
                 className  = {"list-group-item " + active}
                 onClick    = {=>@student_list_entry_click(student_id)}
-                style      = {student_list_entries_style}
+                style      = {style}
             >
                 <span style={float:'left'}>
                     {<div style={avatar_style}>
@@ -199,7 +205,7 @@ exports.StudentList = rclass
                             size       = {22}
                             account_id = {account_id}
                         />
-                    </div> if account_id? and (not @props.anonymous)}
+                    </div> if (account_id?) and (not @props.anonymous)}
                     {name}
                 </span>
                 {@render_student_list_entries_info(active, grade_val, points, is_collected)}

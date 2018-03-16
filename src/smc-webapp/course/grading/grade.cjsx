@@ -32,6 +32,12 @@
 {GRADE_COMMENT_STYLE} = require('./const')
 
 
+exports.grade2str = grade2str = (total_points, max_points) ->
+    grade = "#{misc.round2(total_points)} / #{max_points}"
+    pct   = 100 * total_points / max_points
+    grade += " (#{misc.round1(pct)}%)"
+    return grade
+
 exports.Grade = rclass
     displayName : 'CourseEditor-GradingStudentAssignment-Grade'
 
@@ -41,6 +47,9 @@ exports.Grade = rclass
         assignment     : rtypes.immutable.Map
         student_id     : rtypes.string.isRequired
         list_of_grades : rtypes.immutable.OrderedSet
+        grading_mode   : rtypes.string.isRequired
+        total_points   : rtypes.number.isRequired
+        max_points     : rtypes.number.isRequired
 
     getInitialState: ->
         editing_grade   : false
@@ -48,6 +57,7 @@ exports.Grade = rclass
         edited_comments : ''
         grade_value     : ''
         grade_comments  : ''
+        grade_help      : false
 
     componentWillReceiveProps: (props) ->
         return if not @props.student_id?
@@ -62,8 +72,8 @@ exports.Grade = rclass
             )
 
     shouldComponentUpdate: (props, state) ->
-        update = misc.is_different(@state, state, ['editing_grade', 'edited_grade', 'edited_comments', 'grade_value', 'grade_comments'])
-        update or= misc.is_different(@props, props, ['assignment', 'student_id'])
+        update = misc.is_different(@state, state, ['editing_grade', 'edited_grade', 'edited_comments', 'grade_value', 'grade_comments', 'grade_help'])
+        update or= misc.is_different(@props, props, ['assignment', 'student_id', 'grading_mode', 'total_points', 'max_points'])
         update or= @props.list_of_grades? and (not @props.list_of_grades.equals(props.list_of_grades))
         return update
 
@@ -145,6 +155,35 @@ exports.Grade = rclass
             </FormGroup>
         </form>
 
+    grade_points_mode: ->
+        grade = grade2str(@props.total_points, @props.max_points)
+
+        <form key={'grade'} onSubmit={->}>
+            <FormGroup>
+                <InputGroup>
+                    <InputGroup.Addon>
+                        Grade
+                    </InputGroup.Addon>
+                    <FormControl
+                        autoFocus   = {false}
+                        disabled    = {true}
+                        type        = {'text'}
+                        value       = {grade}
+                        style       = {textAlign: 'right'}
+                    />
+                    <InputGroup.Button>
+                        <Button
+                            bsStyle  = {'default'}
+                            style    = {whiteSpace:'nowrap'}
+                            onClick  = {=>@setState(grade_help:true)}
+                        >
+                            <Icon name='question-circle'/>
+                        </Button>
+                    </InputGroup.Button>
+                </InputGroup>
+            </FormGroup>
+        </form>
+
     grade_comment_edit: ->
         style = GRADE_COMMENT_STYLE
 
@@ -166,15 +205,45 @@ exports.Grade = rclass
             rendered_style   = {style}
         />
 
-    render: ->
-        # no clue why z-index 1 is necessary. otherwise the dropdown menu is behind the buttons below ...
-        <Col md={4} style={zIndex: '1'}>
-            <Row>
-                {@grade_value_edit()}
+    render_ui: ->
+        [
+            <Row key={0}>
+            {
+                switch @props.grading_mode
+                    when 'manual'
+                        @grade_value_edit()
+                    when 'points'
+                        @grade_points_mode()
+            }
             </Row>
-            <Row>
+            <Row key={1}>
                 <b>Comment:</b>
                 <br/>
                 {@grade_comment_edit()}
             </Row>
+        ]
+
+    render_help: ->
+        <Alert bsStyle={'warning'}>
+            <h5>Points mode</h5>
+            <div>
+                The grade is the total number of points.
+                You can confgure this by closing this grading editor and click on "Configure Grading".
+            </div>
+            <div style={textAlign:'right'}>
+                <Button onClick = {=>@setState(grade_help:false)}>
+                    Close
+                </Button>
+            </div>
+        </Alert>
+
+    render: ->
+        # no clue why z-index 1 is necessary. otherwise the dropdown menu is behind the buttons of the component below ...
+        <Col md={4} style={zIndex: '1'}>
+        {
+            if @state.grade_help
+                @render_help()
+            else
+                @render_ui()
+        }
         </Col>

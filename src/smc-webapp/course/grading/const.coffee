@@ -39,7 +39,7 @@ exports.LIST_STYLE =
 
 exports.LIST_ENTRY_STYLE =
     border         : '0'
-    borderBottom   : "1px solid #{COLORS.GRAY_L}"
+    borderBottom   : "1px solid #{COLORS.GRAY_LLL}"
     overflow       : 'hidden'
     whiteSpace     : 'nowrap'
 
