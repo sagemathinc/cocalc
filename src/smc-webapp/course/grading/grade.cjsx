@@ -51,9 +51,13 @@ exports.Grade = rclass
         total_points   : rtypes.number.isRequired
         max_points     : rtypes.number.isRequired
 
+    grade_and_comment: (props) ->
+        grade   = props.store.get_grade(props.assignment, props.student_id)
+        comment = props.store.get_comments(props.assignment, props.student_id)
+        return [grade, comment]
+
     getInitialState: ->
-        grade      = @props.store.get_grade(props.assignment, props.student_id)
-        comment    = @props.store.get_comments(props.assignment, props.student_id)
+        [grade, comment] = @grade_and_comment(@props)
         return
             editing_grade   : false
             grade_help      : false
@@ -65,8 +69,7 @@ exports.Grade = rclass
     componentWillReceiveProps: (props) ->
         return if not @props.student_id?
         if misc.is_different(@props, props, ['assignment', 'student_id'])
-            grade      = props.store.get_grade(props.assignment, props.student_id)
-            comment    = props.store.get_comments(props.assignment, props.student_id)
+            [grade, comment] = @grade_and_comment(props)
             @setState(
                 grade_value     : grade
                 grade_comments  : comment
