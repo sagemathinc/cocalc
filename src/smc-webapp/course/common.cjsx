@@ -183,14 +183,6 @@ exports.StudentAssignmentInfo = rclass
             direction   : 0
         )
 
-    render_grade_points: ->
-        {grade2str} = require('./grading/grade')
-        grade = grade2str(@props.total_points, @props.max_points)
-
-        <div key='grade' onClick={@edit_grade}>
-            <strong>Grade</strong>: {grade}<br/>
-            {<span><strong>Comments</strong>:</span> if @props.comments}
-        </div>
 
     render_grade_manual: ->
         if @state.editing_grade
@@ -214,18 +206,12 @@ exports.StudentAssignmentInfo = rclass
                     {<span><strong>Comments</strong>:</span> if @props.comments}
                 </div>
 
-    render_grade: ->
-        switch @props.grading_mode
-            when 'manual'
-                return @render_grade_manual()
-            when 'points'
-                return @render_grade_points()
-
-    render_comments: ->
+    render_comments: (edit_button_text) ->
         <MarkdownInput
             autoFocus        = {false}
             editing          = {@state.editing_grade}
-            hide_edit_button = {true}
+            hide_edit_button = {not (edit_button_text?.length > 0)}
+            edit_button_text = {edit_button_text}
             save_disabled    = {@state.edited_grade == @props.grade and @state.edited_comments == @props.comments}
             rows             = {5}
             placeholder      = 'Comments (optional)'
@@ -267,7 +253,7 @@ exports.StudentAssignmentInfo = rclass
         else
             <span style={style}>{points}</span>
 
-    render_grade_col: ->
+    render_grade_col_manual: ->
         bsStyle = if not (@props.grade).trim() then 'primary'
         text = if (@props.grade).trim() then 'Edit grade' else 'Enter grade'
 
@@ -276,9 +262,36 @@ exports.StudentAssignmentInfo = rclass
                 <Button key={'edit'} onClick={@edit_grade} bsStyle={bsStyle}>{text}</Button>
             </Tip>
             {@render_edit_points()}
-            {@render_grade()}
+            {@render_grade_manual()}
             {@render_comments()}
         </Fragment>
+
+    render_grade_col_points: ->
+        {grade2str} = require('./grading/grade')
+        grade_points = grade2str(@props.total_points, @props.max_points)
+        if grade_points == @props.grade
+            grade_text = @props.grade
+        else
+            grade_text = '(unconfirmed)'
+
+        if not @props.comments
+            edit_button_text = 'Add comment…'
+
+        <Fragment>
+            {@render_edit_points()}
+            <div key='grade'>
+                <strong>Grade</strong>: {grade_text}<br/>
+                {<span><strong>Comments</strong>:</span> if @props.comments}
+            </div>
+            {@render_comments(edit_button_text)}
+        </Fragment>
+
+    render_grade_col: ->
+        switch @props.grading_mode
+            when 'manual'
+                return @render_grade_col_manual()
+            when 'points'
+                return @render_grade_col_points()
 
     render_last_time: (name, time) ->
         <div key='time' style={color:"#666"}>

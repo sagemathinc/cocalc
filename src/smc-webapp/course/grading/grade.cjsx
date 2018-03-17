@@ -90,11 +90,6 @@ exports.Grade = rclass
         @props.actions.set_comments(@props.assignment, @props.student_id, @state.edited_comments)
         @setState(editing_grade : false)
 
-    save_points_grade: (e) ->
-        e?.preventDefault?()
-        grade = grade2str(@props.total_points, @props.max_points)
-        @save_grade(null, grade)
-
     grade_cancel: ->
         @setState(
             edited_grade    : @state.grade_value
@@ -200,7 +195,7 @@ exports.Grade = rclass
                     <InputGroup.Button>
                         <Button
                             bsStyle  = {style}
-                            onClick  = {@save_points_grade}
+                            onClick  = {(e)=>@save_grade(e, grade)}
                             disabled = {is_graded}
                             style    = {whiteSpace:'nowrap'}
                         >
