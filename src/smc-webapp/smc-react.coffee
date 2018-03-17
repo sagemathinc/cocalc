@@ -632,6 +632,7 @@ exports.rtypes   = rtypes    # has extra rtypes.immutable, needed for reduxProps
 exports.computed = computed
 exports.depends  = depends
 exports.React    = React
+exports.Fragment = React.Fragment
 exports.Redux    = Redux
 exports.redux    = redux     # global redux singleton
 exports.Actions  = Actions
