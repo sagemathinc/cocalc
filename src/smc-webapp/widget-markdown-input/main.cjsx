@@ -24,18 +24,24 @@ exports.MarkdownInput = rclass
     displayName : 'WidgetMarkdownInput'
 
     propTypes :
-        persist_id     : rtypes.string # A unique id to identify the input. Required if you want automatic persistence
-        attach_to      : rtypes.string # Removes record when given store name is destroyed. Only use with persist_id
-        default_value  : rtypes.string
-        editing        : rtypes.bool   # Used to control the edit/display state. CANNOT be used with persist_id
-        save_disabled  : rtypes.bool   # Used to control the save button
-        on_change      : rtypes.func   # called with the new value when the value while editing changes
-        on_save        : rtypes.func   # called when saving from editing and switching back
-        on_edit        : rtypes.func   # called when editing starts
-        on_cancel      : rtypes.func   # called when cancel button clicked
-        rows           : rtypes.number
-        placeholder    : rtypes.string
-        rendered_style : rtypes.object
+        persist_id       : rtypes.string # A unique id to identify the input. Required if you want automatic persistence
+        attach_to        : rtypes.string # Removes record when given store name is destroyed. Only use with persist_id
+        default_value    : rtypes.string
+        editing          : rtypes.bool   # Used to control the edit/display state. CANNOT be used with persist_id
+        save_disabled    : rtypes.bool   # Used to control the save button
+        on_change        : rtypes.func   # called with the new value when the value while editing changes
+        on_save          : rtypes.func   # called when saving from editing and switching back
+        on_edit          : rtypes.func   # called when editing starts
+        on_cancel        : rtypes.func   # called when cancel button clicked
+        rows             : rtypes.number
+        placeholder      : rtypes.string
+        rendered_style   : rtypes.object
+        hide_edit_button : rtypes.bool   # if true, no edit button is shown
+        edit_button_text : rtypes.string
+
+    getDefaultProps: ->
+        edit_button_text : 'Edit'
+        hide_edit_button : false
 
     reduxProps:
         markdown_inputs :
@@ -144,6 +150,6 @@ exports.MarkdownInput = rclass
                 style = undefined
             <div>
                 <div onClick={@edit} dangerouslySetInnerHTML={html} style={style}></div>
-                {<Button onClick={@edit}>Edit</Button> if not @props.hide_edit_button}
+                {<Button onClick={@edit}>{@props.edit_button_text}</Button> if not @props.hide_edit_button}
             </div>
 
