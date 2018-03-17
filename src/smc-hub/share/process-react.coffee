@@ -34,12 +34,14 @@ mathjax.config(
 
 {process_internal_links} = require('./process-internal-links')
 
+katex = require('smc-webapp/math_katex')
+
 replace_math = (text, math) ->
     math_group_process = (match, n) -> math[n]
     return text.replace(/@@(\d+)@@/g, math_group_process)
 
 # Sage's Jupyter kernel does this...
-SCRIPT = '<script type="math/tex; mode=display">'
+SCRIPT = '<script type="math/tex; mode=display">\\newcommand{\\Bold}[1]{\\mathbf{#1}}'
 replace_scripts = (html) ->
     i = 0
     while true
@@ -59,6 +61,13 @@ process = (html, viewer, cb) ->
 
     [text, math] = remove_math(html, true)
     f = (i, cb) ->
+        {html, is_complete} = katex.render(math[i])
+
+        if is_complete
+            math[i] = html
+            cb()
+            return
+
         s = math[i]
         display = false
         if s.slice(0,2) == '$$'

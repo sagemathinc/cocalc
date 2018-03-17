@@ -66,6 +66,7 @@ exports.render = (html) ->
 
     [text, math] = remove_math(html, true)
     text = replace_all(text, '\\$', '$')   # make \$ not involved in math just be $.
+
     katex_opts =
         macros : exports.macros
 
