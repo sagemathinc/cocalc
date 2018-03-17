@@ -77,7 +77,7 @@ exports.Grading = class Grading extends GradingRecord
 
     get_current_idx : ->
         current_idx = null
-        @student_list?.forEach (student, idx) ->
+        @student_list?.forEach (student, idx) =>
             id = student.get('student_id')
             if @student_id == id
                 current_idx = idx

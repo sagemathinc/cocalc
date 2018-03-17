@@ -184,18 +184,18 @@ exports.CourseStore = class CourseStore extends Store
     get_grade: (assignment, student) =>
         return @get_assignment(assignment)?.get('grades')?.get(@get_student_id(student))
 
-    # this returns the grade with respect to the current grading mode
-    get_grade_wrt_mode: (assignment, student) =>
-        grading_mode = @get_grading_mode(assignment)
-        switch grading_mode
-            when 'manual'
-                grade        = @get_grade(assignment, student)
-            when 'points'
-                total_points = @get_points_total(assignment, student)
-                max_points   = @get_grading_maxpoints(assignment)
-                {grade2str}  = require('./grading/grade')
-                grade        = grade2str(total_points, max_points)
-        return grade
+    ## this returns the grade with respect to the current grading mode
+    #get_grade_wrt_mode: (assignment, student) =>
+    #    grading_mode = @get_grading_mode(assignment)
+    #    switch grading_mode
+    #        when 'manual'
+    #            grade        = @get_grade(assignment, student)
+    #        when 'points'
+    #            total_points = @get_points_total(assignment, student)
+    #            max_points   = @get_grading_maxpoints(assignment)
+    #            {grade2str}  = require('./grading/grade')
+    #            grade        = grade2str(total_points, max_points)
+    #    return grade
 
     get_comments: (assignment, student) =>
         return @get_assignment(assignment)?.get('comments')?.get(@get_student_id(student))
@@ -526,7 +526,7 @@ exports.CourseStore = class CourseStore extends Store
             for student in students
                 student_data =
                     student : student.get('student_id')
-                    grade   : @get_grade_wrt_mode(assignment, student) ? ''
+                    grade   : @get_grade(assignment, student) ? ''
                     comment : @get_comments(assignment, student) ? ''
                     points  : {}
                 assignment.getIn(['points', id])?.forEach (points, filepath) ->

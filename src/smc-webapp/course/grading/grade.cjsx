@@ -21,6 +21,7 @@
 
 # CoCalc libraries
 {defaults, required} = misc = require('smc-util/misc')
+{COLORS}             = require('smc-util/theme')
 
 # React libraries
 {React, rclass, rtypes} = require('../../smc-react')
@@ -88,6 +89,11 @@ exports.Grade = rclass
         @props.actions.set_grade(@props.assignment, @props.student_id, grade ? @state.edited_grade)
         @props.actions.set_comments(@props.assignment, @props.student_id, @state.edited_comments)
         @setState(editing_grade : false)
+
+    save_points_grade: (e) ->
+        e?.preventDefault?()
+        grade = grade2str(@props.total_points, @props.max_points)
+        @save_grade(null, grade)
 
     grade_cancel: ->
         @setState(
@@ -162,7 +168,21 @@ exports.Grade = rclass
         </form>
 
     grade_points_mode: ->
-        grade = grade2str(@props.total_points, @props.max_points)
+        grade     = grade2str(@props.total_points, @props.max_points)
+        is_graded = (@state.grade_value ? '').length > 0 and (grade == @state.grade_value)
+
+        if is_graded
+            text       = 'Done'
+            icon       = 'check-circle'
+            style      = 'success'
+            tstyle     = {textAlign: 'right'}
+            grade_text = @state.grade_value ? ''
+        else
+            text       = 'Confirm'
+            icon       = 'gavel'
+            style      = 'danger'
+            tstyle     = {textAlign: 'right', backgroundColor:COLORS.BS_RED, color: 'white'}
+            grade_text = grade
 
         <form key={'grade'} onSubmit={->}>
             <FormGroup>
@@ -174,9 +194,19 @@ exports.Grade = rclass
                         autoFocus   = {false}
                         disabled    = {true}
                         type        = {'text'}
-                        value       = {grade}
-                        style       = {textAlign: 'right'}
+                        value       = {grade_text}
+                        style       = {tstyle}
                     />
+                    <InputGroup.Button>
+                        <Button
+                            bsStyle  = {style}
+                            onClick  = {@save_points_grade}
+                            disabled = {is_graded}
+                            style    = {whiteSpace:'nowrap'}
+                        >
+                            <Icon name={icon}/> {text}
+                        </Button>
+                    </InputGroup.Button>
                     <InputGroup.Button>
                         <Button
                             bsStyle  = {'default'}
@@ -233,8 +263,8 @@ exports.Grade = rclass
         <Alert bsStyle={'warning'}>
             <h5>Points mode</h5>
             <div>
-                The grade is the total number of points.
-                You can confgure this by closing this grading editor and click on "Configure Grading".
+                Click to confirm that the grade is the total number of points.
+                You can confgure the maximum by closing this grading editor and click on "Configure Grading".
             </div>
             <div style={textAlign:'right'}>
                 <Button onClick = {=>@setState(grade_help:false)}>

@@ -104,12 +104,6 @@ exports.GradingStudentAssignment = rclass
             collected_files  : collected_files
         )
 
-    previous: (without_grade, collected_files) ->
-        @jump(-1, without_grade, collected_files)
-
-    next: (without_grade, collected_files) ->
-        @jump(+1, without_grade, collected_files)
-
     pick_next: (direction=1) ->
         without_grade   = @get_only_not_graded()
         collected_files = @get_only_collected()

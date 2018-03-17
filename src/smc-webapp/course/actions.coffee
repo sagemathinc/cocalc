@@ -1050,7 +1050,7 @@ exports.CourseActions = class CourseActions extends Actions
 
         points             = store.get_points(assignment, student)
         comments           = store.get_comments(assignment, student)
-        grade              = store.get_grade_wrt_mode(assignment, student)
+        grade              = store.get_grade(assignment, student)
         student_name       = store.get_student_name(student)
         student_project_id = student.get('project_id')
 

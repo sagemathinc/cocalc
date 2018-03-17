@@ -281,7 +281,7 @@ exports.SettingsPanel = rclass
         content += ("\"grade: #{assignment.get('path')}\"" for assignment in assignments).join(',') + ','
         content += ("\"comments: #{assignment.get('path')}\"" for assignment in assignments).join(',') + '\n'
         for student in store.get_sorted_students()
-            grades   = ("\"#{store.get_grade_wrt_mode(assignment, student) ? ''}\"" for assignment in assignments).join(',')
+            grades   = ("\"#{store.get_grade(assignment, student) ? ''}\"" for assignment in assignments).join(',')
             grades   = grades.replace(/\n/g, "\\n")
             comments = ("\"#{store.get_comments(assignment, student) ? ''}\"" for assignment in assignments).join(',')
             comments = comments.replace(/\n/g, "\\n")
@@ -309,7 +309,7 @@ exports.SettingsPanel = rclass
                 name     = store.get_student_name(student)
                 email    = store.get_student_email(student) ? ''
                 id       = student.get('student_id')
-                grade    = store.get_grade_wrt_mode(assignment, student) ? ''
+                grade    = store.get_grade(assignment, student) ? ''
                 assignment.getIn(['points', id])?.forEach (points, filepath) ->
                     return if points == 0
                     line = [name, id, email, apth, grade, filepath]
@@ -347,7 +347,7 @@ exports.SettingsPanel = rclass
         content += 'students = [\n'
 
         for student in store.get_sorted_students()
-            grades   = (("'#{store.get_grade_wrt_mode(assignment, student) ? ''}'") for assignment in assignments).join(',')
+            grades   = (("'#{store.get_grade(assignment, student) ? ''}'") for assignment in assignments).join(',')
             grades   = grades.replace(/\n/g, "\\n")
             comments = (("'#{store.get_comments(assignment, student) ? ''}'") for assignment in assignments).join(',')
             comments = comments.replace(/\n/g, "\\n")

@@ -82,8 +82,6 @@ exports.StudentList = rclass
         switch e.keyCode
             when 27
                 @set_student_filter('')
-            when 13
-                @pick_next()
                 e?.preventDefault?()
 
     student_list_filter: ->
