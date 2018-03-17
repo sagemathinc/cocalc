@@ -1182,7 +1182,7 @@ exports.define_codemirror_extensions = () ->
                     src = $("<div>").html(src).text()
                     done = true
                 else if mode == 'md'
-                    src = $("<div>").html(markdown.markdown_to_html(src).s).text()
+                    src = $("<div>").html(markdown.markdown_to_html(src)).text()
                     done = true
 
             if not done?

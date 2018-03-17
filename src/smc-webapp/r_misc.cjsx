@@ -25,6 +25,7 @@ async = require('async')
 {HelpEmailLink, SiteName, CompanyName, PricingUrl, PolicyTOSPageUrl, PolicyIndexPageUrl, PolicyPricingPageUrl} = require('./customize')
 {UpgradeRestartWarning} = require('./upgrade_restart_warning')
 copy_to_clipboard = require('copy-to-clipboard')
+math_katex = require('./math_katex')
 
 # injected by webpack, but not for react-static renderings (ATTN don't assign to uppercase vars!)
 smc_version = SMC_VERSION ? 'N/A'
@@ -810,50 +811,40 @@ exports.set_rendered_mathjax = (value, html) ->
     else
         rendered_mathjax[value] = {html:html, ref:1}
 
-
-exports.HTML = rclass
-    displayName : 'Misc-HTML'   # this name is assumed and USED in the smc-hub/share/mathjax-support to identify this component; do NOT change!
+exports.HTML = HTML = rclass
+    displayName : 'Misc-HTML' # this name is assumed and USED in the smc-hub/share/mathjax-support to identify this component; do NOT change!
 
     propTypes :
-        value          : rtypes.string
-        style          : rtypes.object
-        has_mathjax    : rtypes.bool
-        project_id     : rtypes.string   # optional -- can be used to improve link handling (e.g., to images)
-        file_path      : rtypes.string   # optional -- ...
-        className      : rtypes.string   # optional class
-        safeHTML       : rtypes.bool     # optional -- default true, if true scripts and unsafe attributes are removed from sanitized html
-        href_transform : rtypes.func     # optional function that link/src hrefs are fed through
-        post_hook      : rtypes.func     # optional function post_hook(elt), which should mutate elt, where elt is
-                                         # the jQuery wrapped set that is created (and discarded!) in the course of
-                                         # sanitizing input.  Use this as an opportunity to modify the HTML structure
-                                         # before it is exported to text and given to react.   Obviously, you can't
-                                         # install click handlers here.
-        highlight      : rtypes.immutable.Set
+        value            : rtypes.string
+        style            : rtypes.object
+        auto_render_math : rtypes.bool     # optional -- used to render math with katex and mathjax as a fallback
+        only_mathjax     : rtypes.bool     # optional -- used to render math only with mathjax if auto_render_math is true
+        project_id       : rtypes.string   # optional -- can be used to improve link handling (e.g., to images)
+        file_path        : rtypes.string   # optional -- ...
+        className        : rtypes.string   # optional class
+        safeHTML         : rtypes.bool     # optional -- default true, if true scripts and unsafe attributes are removed from sanitized html
+        href_transform   : rtypes.func     # optional function that link/src hrefs are fed through
+        post_hook        : rtypes.func     # optional function post_hook(elt), which should mutate elt, where elt is
+                                           # the jQuery wrapped set that is created (and discarded!) in the course of
+                                           # sanitizing input.  Use this as an opportunity to modify the HTML structure
+                                           # before it is exported to text and given to react.   Obviously, you can't
+                                           # install click handlers here.
 
     getDefaultProps: ->
-        has_mathjax : true
-        safeHTML    : true
+        auto_render_math : true
+        safeHTML         : true
 
     shouldComponentUpdate: (next) ->
         return @props.value != next.value or \
-             @props.highlight != next.highlight or \
-             not underscore.isEqual(@props.style, next.style) or \
-             @props.safeHTML != next.safeHTML
-
-    ###
-    # Seems no longer necessary and *DOES* break massively on Safari! -- see https://github.com/sagemathinc/cocalc/issues/1895
-    _update_escaped_chars: ->
-        if not @_is_mounted
-            return
-        node = $(ReactDOM.findDOMNode(@))
-        node.html(node[0].innerHTML.replace(/\\\$/g, '$'))
-    ###
+            @props.auto_render_math != next.auto_render_math or \
+            not underscore.isEqual(@props.style, next.style) or \
+            @props.safeHTML != next.safeHTML
 
     _update_mathjax: (cb) ->
         if not @_is_mounted  # see https://github.com/sagemathinc/cocalc/issues/1689
             cb()
             return
-        if @props.has_mathjax
+        if @_needs_mathjax
             $(ReactDOM.findDOMNode(@)).mathjax
                 hide_when_rendering : false
                 cb : () =>
@@ -877,23 +868,19 @@ exports.HTML = rclass
             return
         $(ReactDOM.findDOMNode(@)).find("table").addClass('table')
 
-    _update_highlight: ->
-        if not @_is_mounted or not @props.highlight?
-            return
-        # Use jquery-highlight, which is a pretty serious walk of the DOM tree, etc.
-        $(ReactDOM.findDOMNode(@)).highlight(@props.highlight.toJS())
-
     update_content: ->
         if not @_is_mounted
             return
-        # orchestrates the _update_* methods
-        @_update_mathjax =>
-            if not @_is_mounted
-                return
-            #@_update_escaped_chars()
+
+        if @_needs_mathjax
+            @_update_mathjax =>
+                if not @_is_mounted
+                    return
+                @_update_links()
+                @_update_tables()
+        else
             @_update_links()   # this MUST be after update_escaped_chars -- see https://github.com/sagemathinc/cocalc/issues/1391
             @_update_tables()
-            @_update_highlight()
 
     componentDidUpdate: ->
         @update_content()
@@ -909,7 +896,7 @@ exports.HTML = rclass
 
     render_html: ->
         if @props.value
-            if @props.has_mathjax and rendered_mathjax?
+            if @props.auto_render_math and rendered_mathjax?
                 x = rendered_mathjax?[@props.value]
                 if x?
                     x.ref -= 1
@@ -921,16 +908,21 @@ exports.HTML = rclass
                 html = require('./misc_page').sanitize_html_safe(@props.value, @props.post_hook)
             else
                 html = require('./misc_page').sanitize_html(@props.value, true, true, @props.post_hook)
+
+            if @props.auto_render_math
+                @_needs_mathjax = true
+
+                if not @props.only_mathjax
+                    {html, is_complete} = math_katex.render(html)
+                    @_needs_mathjax = not is_complete
+
             {__html: html}
         else
             {__html: ''}
 
 
     render: ->
-        # the random key is the whole span (hence the html) does get rendered whenever
-        # this component is updated.  Otherwise, it will NOT re-render except when the value changes.
         <span
-            key                     = {Math.random()}
             className               = {@props.className}
             dangerouslySetInnerHTML = {@render_html()}
             style                   = {@props.style}>
@@ -946,13 +938,12 @@ exports.Markdown = rclass
         file_path      : rtypes.string   # optional -- ...
         className      : rtypes.string   # optional class
         safeHTML       : rtypes.bool     # optional -- default true, if true scripts and unsafe attributes are removed from sanitized html
+
         href_transform : rtypes.func     # optional function used to first transform href target strings
         post_hook      : rtypes.func     # see docs to HTML
-        highlight      : rtypes.immutable.Set
 
     shouldComponentUpdate: (next) ->
         return @props.value != next.value or \
-             @props.highlight != next.highlight or \
              not underscore.isEqual(@props.style, next.style) or \
              @props.safeHTML != next.safeHTML
 
@@ -960,27 +951,22 @@ exports.Markdown = rclass
         safeHTML : true
 
     to_html: ->
+        process_math = !rendered_mathjax? # Check if we're on share server
         if @props.value
-            # change escaped characters back for markdown processing
-            v = @props.value.replace(/&gt;/g, '>').replace(/&lt;/g, '<')
-            return markdown.markdown_to_html(v)
-        else
-            {s: '', has_mathjax: false}
+            return markdown.markdown_to_html(@props.value, {process_math : process_math})
 
     render: ->
-        HTML = exports.HTML
-        value = @to_html()
         <HTML
-            value          = {value.s}
-            has_mathjax    = {value.has_mathjax}
-            style          = {@props.style}
-            project_id     = {@props.project_id}
-            file_path      = {@props.file_path}
-            className      = {@props.className}
-            href_transform = {@props.href_transform}
-            post_hook      = {@props.post_hook}
-            highlight      = {@props.highlight}
-            safeHTML       = {@props.safeHTML} />
+            value            = {@to_html()}
+            auto_render_math = {true}
+            only_mathjax     = {true}
+            style            = {@props.style}
+            project_id       = {@props.project_id}
+            file_path        = {@props.file_path}
+            className        = {@props.className}
+            href_transform   = {@props.href_transform}
+            post_hook        = {@props.post_hook}
+            safeHTML         = {@props.safeHTML} />
 
 activity_style =
     float           : 'right'
