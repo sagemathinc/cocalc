@@ -624,7 +624,7 @@ exports.is_redux_actions = (obj) -> obj instanceof Actions
 
 # Canonical name to use for Redux store associated to a given project/path.
 # TODO: this code is also in many editors -- make them all just use this.
-exports.redux_name = (project_id, path) -> "editor-#{project_id}-#{path}"
+exports.redux_name = (project_id, path, is_public=false) -> "editor-#{project_id}-#{path}-#{is_public}"
 
 
 exports.rclass   = rclass    # use rclass instead of createReactClass to get access to reduxProps support
