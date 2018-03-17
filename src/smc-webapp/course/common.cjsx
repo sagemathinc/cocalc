@@ -267,9 +267,11 @@ exports.StudentAssignmentInfo = rclass
         </Fragment>
 
     render_grade_col_points: ->
-        {grade2str} = require('./grading/grade')
-        grade_points = grade2str(@props.total_points, @props.max_points)
-        if grade_points == @props.grade
+        {grade2str}     = require('./grading/grade')
+        grade_points    = grade2str(@props.total_points, @props.max_points)
+        grade_confirmed = grade_points == @props.grade
+
+        if grade_confirmed
             grade_text = @props.grade
         else
             grade_text = '(unconfirmed)'
@@ -280,6 +282,12 @@ exports.StudentAssignmentInfo = rclass
         <Fragment>
             {@render_edit_points()}
             <div key='grade'>
+                {
+                    if not grade_confirmed
+                        <span style={color:COLORS.BS_RED}>
+                            <Icon name={'times-circle'} />{' '}
+                        </span>
+                }
                 <strong>Grade</strong>: {grade_text}<br/>
                 {<span><strong>Comments</strong>:</span> if @props.comments}
             </div>
