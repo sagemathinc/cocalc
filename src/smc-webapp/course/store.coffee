@@ -548,12 +548,13 @@ exports.CourseStore = class CourseStore extends Store
         assignment         = @get_assignment(opts.assignment)
         students           = @get_sorted_students()
         assignment_cursors = opts.cursors?.get(assignment.get('assignment_id'))
+        minutes_10_ago     = misc.server_minutes_ago(10)
 
         if opts.direction == -1
             students = students.reverse()
         skip = opts.current_student_id?
         cnt  = if opts.direction == -1 then students.length + 1 else 0
-        for student in students
+        for student, idx in students
             student_id = student.get('student_id')
             cnt += opts.direction
             if skip and student_id != opts.current_student_id
@@ -564,13 +565,24 @@ exports.CourseStore = class CourseStore extends Store
                     continue
 
             # collected_files and without_grade is true by default
-            # then, only return a student without a grade but with collected files
+            # in that case, only return a student without a grade but with collected files
             x = @has_last_collected(assignment, student_id)
             is_collected = (not opts.collected_files) or (x)
             has_no_grade = (not opts.without_grade) or (not @has_grade(assignment, student_id))
-            not_skipped  = not (assignment_cursors?.has(student_id))
-            if has_no_grade and is_collected and not_skipped
+            cursor_time  = assignment_cursors?.get(student_id)
+            concurrent_grading = cursor_time? and cursor_time > minutes_10_ago
+            if has_no_grade and is_collected and (not concurrent_grading)
                 return [student_id, cnt]
+
+            # when stepping backwards, it's more natural to always end up at the start
+            if (idx == students.length - 1) and (opts.direction < 0)
+                return @grading_next_student(
+                    assignment          : opts.assignment
+                    current_student_id  : student_id
+                    direction           : 1
+                    without_grade       : opts.without_grade
+                    collected_files     : opts.collected_files
+                )
         return [null, 0]
 
     grading_get_listing: (assignment, student_id, subdir, cb) =>
