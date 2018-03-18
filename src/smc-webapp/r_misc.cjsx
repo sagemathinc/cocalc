@@ -445,7 +445,8 @@ exports.NumberInput = NumberInput = rclass
             @setState(number : next_props.number)
 
     componentDidMount: ->
-        @on_change_debounce = _.debounce(((n)=>@props.on_change(n)), 50, true)
+        {debounce} = require('underscore')
+        @on_change_debounce = debounce(((n)=>@props.on_change(n)), 50, true)
 
     getInitialState: ->
         number : @props.number
