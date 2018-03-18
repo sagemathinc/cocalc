@@ -310,12 +310,12 @@ exports.SettingsPanel = rclass
                 email    = store.get_student_email(student) ? ''
                 id       = student.get('student_id')
                 grade    = store.get_grade(assignment, student) ? ''
-                continue if not (grade?.length == 0)
+                continue if grade.length == 0
                 points   = assignment.getIn(['points', id])
-                if points? and misc.keys(points).lenght > 0
+                if points? and misc.keys(points).length > 0
                     points.forEach (points, filepath) ->
                         line = [name, id, email, apth, grade, filepath]
-                        # points is an integer, hence without quotes!
+                        # points is a number, hence without quotes!
                         content += ("\"#{x}\"" for x in line).join(',') + ",#{points}\n"
                 else
                     line = [name, id, email, apth, grade]
