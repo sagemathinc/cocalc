@@ -204,7 +204,7 @@ exports.Grade = rclass
                             onClick  = {(e)=>@save_grade(e, '')}
                             disabled = {not is_graded}
                         >
-                            <Icon name={'times-circle'} />
+                            <Icon name={'trash'} />
                         </Button>
                     </InputGroup.Button>
                     <InputGroup.Button>
