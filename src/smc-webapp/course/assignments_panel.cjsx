@@ -328,8 +328,8 @@ Assignment = rclass
         buttons = []
         insert_skip_button = =>
             b1 = @render_grading_button(status)
-            b2 = @render_skip_grading_button(status)
-            buttons.push(<Col md={width} key='grading_buttons'>{b2} {b1}</Col>)
+            b2 = @render_skip_grading_button(status, true)
+            buttons.push(<Col md={width} key={'grading_buttons'}>{b1} {b2}</Col>)
 
         for name in STEPS(peer)
             b = @["render_#{name}_button"](status)
@@ -729,7 +729,7 @@ Assignment = rclass
     toggle_skip_grading: ->
         @actions(@props.name).set_skip(@props.assignment, 'grading', not @props.assignment.get('skip_grading'))
 
-    render_skip_grading_button: (status) ->
+    render_skip_grading_button: (status, float_right) ->
         if status.collect == 0
             # No button if nothing collected.
             return
@@ -738,8 +738,11 @@ Assignment = rclass
             icon = 'check-square-o'
         else
             icon = 'square-o'
+        props = {style : {float:'right'}} if float_right
         <Button
-            onClick={@toggle_skip_grading} >
+            onClick  = {@toggle_skip_grading}
+            {...props}
+        >
             <Icon name={icon} /> Skip
         </Button>
 
@@ -753,9 +756,7 @@ Assignment = rclass
         icon     = 'play'
         handler  = =>
             # student_id is set to null on purpose (starts fresh)
-            @actions(@props.name).grading(
-                assignment       : @props.assignment
-            )
+            @actions(@props.name).grading(assignment : @props.assignment)
 
         if status.graded > 0
             if status.not_graded == 0
@@ -775,14 +776,14 @@ Assignment = rclass
             title     = {'Open grading dialog'}
             tip       = {'Go through the collected files of your students, assign points, and grade them.'}
             placement = {'bottom'}
-            style     = {float:'right'}
         >
             <Button
                 onClick  = {handler}
                 bsStyle  = {bsStyle}
                 disabled = {disabled}
             >
-                <Icon name={icon} /> {activity} Grading…
+                <Icon name={icon} />
+                <span className={'hidden-lg'}> {activity}</span> Grading…
             </Button>
         </Tip>
 
