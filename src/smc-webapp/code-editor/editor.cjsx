@@ -50,7 +50,7 @@ exports.Editor = rclass ({name}) ->
         local = @props.local_view_state
         frame_tree = local.get('frame_tree')
         cm_state   = local.get('cm_state')
-        if not @props.is_loaded or not frame_tree? or not cm_state?
+        if not @props.is_loaded or not frame_tree? or not cm_state? or (@props.is_public and not @props.content?)
             return @render_loading()
         <div
             className = {'smc-vfill'}
@@ -68,6 +68,8 @@ exports.Editor = rclass ({name}) ->
                 cursors             = {@props.cursors}
                 read_only           = {@props.read_only}
                 has_unsaved_changes = {@props.has_unsaved_changes}
+                is_public           = {@props.is_public}
+                content             = {@props.content}
                 />
         </div>
 

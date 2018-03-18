@@ -22,7 +22,7 @@ class exports.Actions extends Actions
         @project_id = project_id
         @path       = path
         @store      = store
-        @_is_public = is_public
+        @is_public = is_public
 
         if is_public
             @_init_content()
@@ -36,6 +36,7 @@ class exports.Actions extends Actions
         @_save_local_view_state = underscore.debounce((=>@__save_local_view_state?()), 1500)
 
     _init_content: =>
+        @setState(is_loaded : false)
         webapp_client.public_get_text_file
             project_id         : @project_id
             path               : @path
@@ -43,8 +44,15 @@ class exports.Actions extends Actions
                 if err
                     @set_error("Error loading -- #{err}")
                 else
-                    @set_frame_tree_leafs(content: data)
-                    @setState(is_loaded : true)
+                    @setState(content: data)
+                @setState(is_loaded: true)
+
+    reload: =>
+        if not @store.get('is_loaded')
+            # already loading
+            return
+        # this sets is_loaded to false... loads, then sets to true.
+        @_init_content()
 
     _init_syncstring: =>
         @_syncstring = webapp_client.sync_string
@@ -338,7 +346,7 @@ class exports.Actions extends Actions
             cb?(err)
 
     save: (explicit) =>
-        if @_is_public
+        if @is_public
             return
         @set_has_unsaved_changes(false, 3000)
         # TODO: what about markdown, where do not want this...

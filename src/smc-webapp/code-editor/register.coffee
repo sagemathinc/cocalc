@@ -32,7 +32,7 @@ register = (is_public) ->
             return name
 
         remove    : (path, redux, project_id) ->
-            name = redux_name(project_id, path)
+            name = redux_name(project_id, path, is_public)
             actions = redux.getActions(name)
             if actions?
                 actions.close()

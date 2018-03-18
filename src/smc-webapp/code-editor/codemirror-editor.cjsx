@@ -39,7 +39,7 @@ exports.CodemirrorEditor = rclass
         cm_state  : rtypes.immutable.Map
         read_only : rtypes.bool
         is_current: rtypes.bool
-        content   : rtypes.string  # if given, use this static value
+        content   : rtypes.string  # if defined, use this static value and editor is read-only
 
     reduxProps :
         account :
@@ -161,9 +161,21 @@ exports.CodemirrorEditor = rclass
         e.attr('style', e.attr('style') + '; height:100%; font-family:monospace !important;')
         # see http://stackoverflow.com/questions/2655925/apply-important-css-style-using-jquery
 
+
+        save_cm_state = debounce(@save_cm_state, 500)
+        @cm.on('scroll', save_cm_state)
+
+        if @props.cm_state?
+            codemirror_util.restore_state(@cm, @props.cm_state.toJS())
+
+        @setState(has_cm: true)
+
+        @props.actions.set_cm(@props.id, @cm)
+
         if @props.content?
-            @setState(has_cm: true)
             return
+
+        # After this only stuff that we use for the non-public version!
 
         @save_syncstring_throttle = throttle(@save_syncstring, SAVE_INTERVAL_MS, {leading:false})
 
@@ -181,10 +193,6 @@ exports.CodemirrorEditor = rclass
             if @_style_active_line
                 @cm?.setOption('styleActiveLine', false)
 
-        save_cm_state = debounce(@save_cm_state, 500)
-
-        @cm.on 'scroll', save_cm_state
-
         @cm.on 'cursorActivity', @_cm_cursor
         @cm.on 'cursorActivity', save_cm_state
 
@@ -197,13 +205,7 @@ exports.CodemirrorEditor = rclass
 
         setTimeout((=>@cm_refresh(); if @props.is_current then @cm?.focus()), 0)
 
-        @props.actions.set_cm(@props.id, @cm)
-
-        if @props.cm_state?
-            codemirror_util.restore_state(@cm, @props.cm_state.toJS())
-
         @cm.setOption('readOnly', @props.read_only)
-        @setState(has_cm: true)
 
     render_cursors: ->
         if @props.cursors? and @cm? and @state.has_cm
