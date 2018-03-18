@@ -71,9 +71,7 @@ exports.PublicPath = rclass
         else if ext == 'ipynb'
             name   = file_editors.initialize(path, redux, undefined, true, @props.content)
             Viewer = file_editors.generate(path, redux, undefined, true)
-            elt = <Redux redux={redux}>
-                <Viewer name={name} />
-            </Redux>
+            elt    = <Viewer name={name} />
             f = ->
                 file_editors.remove(path, redux, undefined, true)
             # TODO: should really happen after render; however, don't know how yet... so just wait a bit and do it.
@@ -88,7 +86,9 @@ exports.PublicPath = rclass
         else
             elt = <pre>{@props.content}</pre>
 
-        return elt
+        <Redux redux={redux}>
+            {elt}
+        </Redux>
 
     render: ->
         if @props.viewer == 'embed'
