@@ -35,6 +35,19 @@ Fragment = React.Fragment
 
 immutable = require('immutable')
 
+exports.RedCross = RedCross = rclass
+    displayName : 'CourseEditor-RedCross'
+    render: ->
+        <span style={color:COLORS.BS_RED}>
+            <Icon name={'times-circle'} />
+        </span>
+
+exports.GreenCheckmark = GreenCheckmark = rclass
+    displayName : 'CourseEditor-GreenCheckmark'
+    render : ->
+        <span style={color:COLORS.BS_GREEN_DD}>
+            <Icon name={'check-circle'} />
+        </span>
 
 exports.BigTime = BigTime = rclass
     displayName : "CourseEditor-BigTime"
@@ -284,9 +297,7 @@ exports.StudentAssignmentInfo = rclass
             <div key='grade'>
                 {
                     if not grade_confirmed
-                        <span style={color:COLORS.BS_RED}>
-                            <Icon name={'times-circle'} />{' '}
-                        </span>
+                        <Fragment><RedCross />{' '}</Fragment>
                 }
                 <strong>Grade</strong>: {grade_text}<br/>
                 {<span><strong>Comments</strong>:</span> if @props.comments}

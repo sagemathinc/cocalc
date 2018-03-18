@@ -63,7 +63,8 @@ GradingRecord = immutable.Record
     show_all_files  : false     # if true, we want to see all files including those which are masked
     list_of_grades  : null      # distinctly known grades (must be a SortedSet)
     cursors         : null      # information about other collaborators also grading an assignment (i.e. realtime presence information)
-    anonymous       : false,    # if true, student names are hidden in the UI (simply to avoid bias a little bit)
+    anonymous       : false     # if true, student names are hidden in the UI (simply to avoid bias a little bit)
+    mode            : 'manual'  # manual or points, derived from store.get_grading_mode(assignment_id)
     'Grading'
 
 exports.Grading = class Grading extends GradingRecord

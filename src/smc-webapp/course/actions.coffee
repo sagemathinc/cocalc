@@ -1916,10 +1916,12 @@ exports.CourseActions = class CourseActions extends Actions
         else
             student_info = undefined
 
+        grading_mode = store.get_grading_mode(grading.assignment_id)
         grading = grading.merge(
             current_idx    : grading.get_current_idx()
             list_of_grades : store.get_list_of_grades(grading.assignment_id)
             student_info   : student_info
+            mode           : grading_mode
         )
         grading = grading.merge(grading.get_listing_files())
         @setState(grading : grading)

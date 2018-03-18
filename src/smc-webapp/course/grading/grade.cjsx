@@ -167,24 +167,21 @@ exports.Grade = rclass
         is_graded = (@state.grade_value ? '').length > 0 and (grade == @state.grade_value)
 
         if is_graded
-            text       = 'Done'
+            text       = 'Graded'
             icon       = 'check-circle'
             style      = 'success'
             tstyle     = {textAlign: 'right'}
             grade_text = @state.grade_value ? ''
         else
-            text       = 'Confirm'
+            text       = 'Grade'
             icon       = 'gavel'
-            style      = 'danger'
-            tstyle     = {textAlign: 'right', backgroundColor:COLORS.BS_RED, color: 'white'}
+            style      = 'warning'
+            tstyle     = {textAlign: 'right', backgroundColor:COLORS.BS_ORANGE, color: 'white'}
             grade_text = grade
 
         <form key={'grade'} onSubmit={->}>
             <FormGroup>
                 <InputGroup>
-                    <InputGroup.Addon>
-                        Grade
-                    </InputGroup.Addon>
                     <FormControl
                         autoFocus   = {false}
                         disabled    = {true}
@@ -200,6 +197,14 @@ exports.Grade = rclass
                             style    = {whiteSpace:'nowrap'}
                         >
                             <Icon name={icon}/> {text}
+                        </Button>
+                    </InputGroup.Button>
+                    <InputGroup.Button>
+                        <Button
+                            onClick  = {(e)=>@save_grade(e, '')}
+                            disabled = {not is_graded}
+                        >
+                            <Icon name={'times-circle'} />
                         </Button>
                     </InputGroup.Button>
                     <InputGroup.Button>

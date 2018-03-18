@@ -291,6 +291,8 @@ exports.GradingStudentAssignment = rclass
                     student_id       = {@props.grading.student_id}
                     account_id       = {@props.account_id}
                     anonymous        = {@props.grading.anonymous}
+                    grading_mode     = {@props.grading.mode}
+                    max_points       = {@state.store.get_grading_maxpoints(@props.assignment)}
                 />
             </Col>
             <Col md={9} style={flexcolumn}>
@@ -306,7 +308,7 @@ exports.GradingStudentAssignment = rclass
                         assignment     = {@props.assignment}
                         student_id     = {@props.grading.student_id}
                         list_of_grades = {@props.grading.list_of_grades}
-                        grading_mode   = {@state.store.get_grading_mode(@props.assignment)}
+                        grading_mode   = {@props.grading.mode}
                         total_points   = {@state.store.get_points_total(@props.assignment, @props.grading.student_id)}
                         max_points     = {@state.store.get_grading_maxpoints(@props.assignment)}
                     />

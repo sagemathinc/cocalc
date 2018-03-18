@@ -278,10 +278,10 @@ Assignment = rclass
             </Col>
             <Col md={10}>
                 <Row>
-                    <Col md={6} style={fontSize:'14px'} key='due'>
+                    <Col md={5} style={fontSize:'14px'} key='due'>
                         {@render_due()}
                     </Col>
-                    <Col md={6} key='delete'>
+                    <Col md={7} key='delete'>
                         <Row>
                             <Col md={9} style={whiteSpace:'nowrap'}>
                                 {@render_grading_config_button()}

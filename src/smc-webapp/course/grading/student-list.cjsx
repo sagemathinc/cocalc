@@ -31,13 +31,15 @@ _         = require('underscore')
 
 # React libraries
 {React, rclass, rtypes} = require('../../smc-react')
+Fragment = React.Fragment
 {DateTimePicker, ErrorDisplay, Icon, LabeledRow, Loading, MarkdownInput, Space, Tip, NumberInput} = require('../../r_misc')
 {Alert, Button, ButtonToolbar, ButtonGroup, Form, FormControl, FormGroup, ControlLabel, InputGroup, Checkbox, Row, Col, Panel, Breadcrumb} = require('react-bootstrap')
 
 # grading specific
-{BigTime}    = require('../common')
-{Grading}    = require('./models')
+{BigTime, GreenCheckmark, RedCross} = require('../common')
+{Grading} = require('./models')
 {ROW_STYLE, LIST_STYLE, LIST_ENTRY_STYLE, FLEX_LIST_CONTAINER, EMPTY_LISTING_TEXT, PAGE_SIZE} = require('./const')
+{grade2str} = require('./grade')
 
 student_list_entries_style = misc.merge({cursor:'pointer'}, LIST_ENTRY_STYLE)
 
@@ -60,9 +62,11 @@ exports.StudentList = rclass
         student_id      : rtypes.string
         account_id      : rtypes.string
         anonymous       : rtypes.bool
+        grading_mode    : rtypes.string.isRequired
+        max_points      : rtypes.number.isRequired
 
     shouldComponentUpdate: (props) ->
-        update = misc.is_different(@props, props, ['assignment', 'cursors', 'student_filter', 'student_id', 'account_id', 'anonymous'])
+        update = misc.is_different(@props, props, ['assignment', 'cursors', 'student_filter', 'student_id', 'account_id', 'anonymous', 'grading_mode', 'max_points'])
         update or= not @props.student_list.equals(props.student_list)
         return update
 
@@ -109,7 +113,7 @@ exports.StudentList = rclass
                             disabled = {disabled}
                             style    = {whiteSpace:'nowrap'}
                         >
-                            <Icon name='times-circle'/>
+                            <Icon name={'times-circle'} />
                         </Button>
                     </InputGroup.Button>
                 </InputGroup>
@@ -123,7 +127,7 @@ exports.StudentList = rclass
             display        : 'inline-block'
             float          : 'right'
 
-        show_grade  = grade_val?.length > 0
+        show_grade  = (@props.grading_mode == 'manual') and (grade_val?.length > 0)
         show_points = points? or is_collected
         return null if (not show_points) and (not show_grade)
         info = []
@@ -132,8 +136,15 @@ exports.StudentList = rclass
         if show_points
             info.push("#{misc.round2(points) ? 0} #{misc.plural(points, 'pt')}.")
 
+        if @props.grading_mode == 'points'
+            grade     = grade2str(points, @props.max_points)
+            is_graded = (grade_val ? '').length > 0 and (grade == grade_val)
+            if is_graded
+                extra = <Fragment>{' '}<GreenCheckmark /></Fragment>
+
         <span style={info_style}>
             {info.join(', ')}
+            {extra if extra?}
         </span>
 
     render_student_list_presenece: (student_id) ->

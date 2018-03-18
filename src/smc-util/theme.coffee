@@ -71,6 +71,7 @@ COLORS =
     BS_GREEN_D    : '#449d44'
     BS_GREEN_DD   : '#398439'
     BS_RED        : '#dc3545'
+    BS_ORANGE     : '#f0ad4e'
 
 # The definitions below add semantic meaning by using the colors
 
