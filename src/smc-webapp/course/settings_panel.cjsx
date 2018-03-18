@@ -310,11 +310,16 @@ exports.SettingsPanel = rclass
                 email    = store.get_student_email(student) ? ''
                 id       = student.get('student_id')
                 grade    = store.get_grade(assignment, student) ? ''
-                assignment.getIn(['points', id])?.forEach (points, filepath) ->
-                    return if points == 0
-                    line = [name, id, email, apth, grade, filepath]
-                    # points is an integer, hence without quotes!
-                    content += ("\"#{x}\"" for x in line).join(',') + ",#{points}\n"
+                continue if not (grade?.length == 0)
+                points   = assignment.getIn(['points', id])
+                if points? and misc.keys(points).lenght > 0
+                    points.forEach (points, filepath) ->
+                        line = [name, id, email, apth, grade, filepath]
+                        # points is an integer, hence without quotes!
+                        content += ("\"#{x}\"" for x in line).join(',') + ",#{points}\n"
+                else
+                    line = [name, id, email, apth, grade]
+                    content += ("\"#{x}\"" for x in line).join(',') + ",,\n"
 
         @write_file(@path('csv', 'export_points_'), content)
 

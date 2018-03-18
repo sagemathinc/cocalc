@@ -297,21 +297,21 @@ exports.Listing = rclass
 
     listing_directory_row: (filename, time) ->
         subdirpath = path_join(@props.subdir, filename)
-        [
-            <Col key={0} md={4} style={listing_colstyle2}>{@open_subdir(subdirpath)}</Col>
-            <Col key={1} md={2} style={listing_colstyle}>{time}</Col>
-            <Col key={2} md={4} style={listing_colstyle}>{@render_points_subdir(subdirpath)}</Col>
-            <Col key={3} md={2}></Col>
-        ]
+        <React.Fragment>
+            <Col md={4} style={listing_colstyle2}>{@open_subdir(subdirpath)}</Col>
+            <Col md={2} style={listing_colstyle}>{time}</Col>
+            <Col md={4} style={listing_colstyle}>{@render_points_subdir(subdirpath)}</Col>
+            <Col md={2}></Col>
+        </React.Fragment>
 
     listing_file_row: (filename, time, masked) ->
-        [
-            <Col key={0} md={4} style={listing_colstyle2}>{@open_file(filename, masked)}</Col>
-            <Col key={1} md={2} style={listing_colstyle}>{time}</Col>
-            <Col key={2} md={4}>{@render_points_input(filename)}</Col>
-            # <Col key={3} md={3}>{@render_autograde(filename)}</Col>
-            <Col key={5} md={2} style={textAlign:'right'}>{@render_open_student_file(filename)}</Col>
-        ]
+        <React.Fragment>
+            <Col md={4} style={listing_colstyle2}>{@open_file(filename, masked)}</Col>
+            <Col md={2} style={listing_colstyle}>{time}</Col>
+            <Col md={4}>{@render_points_input(filename)}</Col>
+            {### <Col md={3}>{@render_autograde(filename)}</Col> ###}
+            <Col md={2} style={textAlign:'right'}>{@render_open_student_file(filename)}</Col>
+        </React.Fragment>
 
     listing_rowstyle: (idx) ->
         col = if idx %% 2 == 0 then 'white' else COLORS.GRAY_LLL
@@ -429,8 +429,8 @@ exports.Listing = rclass
         </Row>
 
     render: ->
-        [
-            @listing_controls()
-            @listing_header()
-            @listing()
-        ]
+        <React.Fragment>
+            {@listing_controls()}
+            {@listing_header()}
+            {@listing()}
+        </React.Fragment>
