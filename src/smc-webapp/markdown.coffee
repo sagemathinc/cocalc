@@ -1,48 +1,46 @@
 ###
 Conversion between Markdown and HTML
+
+Has the option to render math inside the markdown
 ###
 
-marked = require('marked')
-
-misc = require('smc-util/misc')
+misc                        = require('smc-util/misc')
+{macros}                    = require('./math_katex')
+create_processor            = require('markdown-it')
+katex                       = require('@cocalc/markdown-it-katex')
+task_lists                  = require('markdown-it-task-lists')
 {remove_math, replace_math} = require('smc-util/mathjax-utils')
-
-marked.setOptions
-    renderer    : new marked.Renderer()
-    gfm         : true
-    tables      : true
-    breaks      : false
-    pedantic    : false
-    sanitize    : false
-    smartLists  : true
-    smartypants : false
 
 checkboxes = (s) ->
     s = misc.replace_all(s, '[ ]', "<i class='fa fa-square-o'></i>")
     return misc.replace_all(s, '[x]', "<i class='fa fa-check-square-o'></i>")
 
-exports.markdown_to_html = markdown_to_html = (s) ->
-    # See https://github.com/sagemathinc/cocalc/issues/1801
-    [text, math] = remove_math(s)
-    if math.length > 0
-        has_mathjax = true
-    text = checkboxes(text)
-    html = marked(text)
-    s = replace_math(html, math)
-    return {s:s, has_mathjax:has_mathjax}
+md_with_katex = create_processor
+    html : true
+    typographer : true
+.use(katex, {macros : macros, "throwOnError" : true})
+.use(task_lists)
 
-opts =
-    gfm_code  : true
-    li_bullet :'-'
-    h_atx_suf : false
-    h1_setext : false
-    h2_setext : false
-    br_only   : true
+md_no_math = create_processor
+    html : true
+    typographer : true
+.use(task_lists)
 
-reMarked = require('remarked')
-if reMarked?
-    # html_to_markdown is used only in browser frontend where reMarked is available.
-    #reMarker = new reMarked(opts)
-    reMarked.setOptions(opts)
-    exports.html_to_markdown = (s) ->
-        return reMarker.render(s)
+exports.has_math = (markdown_string) ->
+    [text, math] = remove_math(html, true)
+    return math.length > 0
+
+exports.markdown_to_html = (markdown_string, opts) ->
+    opts = misc.defaults opts,
+        process_math : false
+
+    markdown_string = checkboxes(markdown_string)
+
+    if opts.process_math
+        return md_with_katex.render(markdown_string)
+    else
+        # Assume it'll be rendered by mathjax later...
+        # See https://github.com/sagemathinc/cocalc/issues/1801
+        [text, math] = remove_math(markdown_string)
+        html = md_no_math.render(text)
+        return replace_math(html, math)
