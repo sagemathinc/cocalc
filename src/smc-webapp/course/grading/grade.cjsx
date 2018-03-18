@@ -175,8 +175,8 @@ exports.Grade = rclass
         else
             text       = 'Grade'
             icon       = 'gavel'
-            style      = 'warning'
-            tstyle     = {textAlign: 'right', backgroundColor:COLORS.BS_ORANGE, color: 'white'}
+            style      = 'danger'
+            tstyle     = {textAlign: 'right', fontWeight: 'bold', color: COLORS.BS_RED}
             grade_text = grade
 
         <form key={'grade'} onSubmit={->}>
@@ -227,18 +227,20 @@ exports.Grade = rclass
             style.cursor = 'pointer'
 
         <MarkdownInput
-            autoFocus        = {false}
-            editing          = {@state.editing_grade}
-            hide_edit_button = {@state.edited_comments?.length > 0}
-            save_disabled    = {@save_disabled()}
-            rows             = {3}
-            placeholder      = {'Comments (optional, visible to student)'}
-            default_value    = {@state.edited_comments}
-            on_edit          = {=>@setState(editing_grade:true)}
-            on_change        = {(value)=>@setState(edited_comments:value)}
-            on_save          = {@save_grade}
-            on_cancel        = {@grade_cancel}
-            rendered_style   = {style}
+            autoFocus          = {false}
+            editing            = {@state.editing_grade}
+            hide_edit_button   = {@state.edited_comments?.length > 0}
+            save_disabled      = {@save_disabled()}
+            rows               = {3}
+            placeholder        = {'Comments (optional, visible to student)'}
+            default_value      = {@state.edited_comments}
+            on_edit            = {=>@setState(editing_grade:true)}
+            on_change          = {(value)=>@setState(edited_comments:value)}
+            on_save            = {@save_grade}
+            on_cancel          = {@grade_cancel}
+            rendered_style     = {style}
+            edit_button_text   = {'Add comment…'}
+            edit_button_bsSize = {'small'}
         />
 
     render_ui: ->
@@ -253,8 +255,10 @@ exports.Grade = rclass
             }
             </Row>
             <Row key={1}>
-                <b>Comment:</b>
-                <br/>
+                {
+                    if @state.grade_comments?.length > 0
+                        <div><b>Comment:</b></div>
+                }
                 {@grade_comment_edit()}
             </Row>
         ]

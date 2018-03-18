@@ -219,20 +219,30 @@ exports.StudentAssignmentInfo = rclass
                 </div>
 
     render_comments: (edit_button_text) ->
+        save_disabled = @state.edited_grade == @props.grade and \
+            @state.edited_comments == @props.comments
+
+        rendered_style =
+            maxHeight    : '4em'
+            overflowY    : 'auto'
+            padding      : '5px'
+            border       : '1px solid #888'
+
         <MarkdownInput
-            autoFocus        = {false}
-            editing          = {@state.editing_grade}
-            hide_edit_button = {not (edit_button_text?.length > 0)}
-            edit_button_text = {edit_button_text}
-            save_disabled    = {@state.edited_grade == @props.grade and @state.edited_comments == @props.comments}
-            rows             = {5}
-            placeholder      = 'Comments (optional)'
-            default_value    = {@state.edited_comments}
-            on_edit          = {=>@setState(editing_grade:true)}
-            on_change        = {(value)=>@setState(edited_comments:value)}
-            on_save          = {@save_grade}
-            on_cancel        = {=>@setState(editing_grade:false)}
-            rendered_style   = {maxHeight:'4em', overflowY:'auto', padding:'5px', border: '1px solid #888'}
+            autoFocus          = {false}
+            editing            = {@state.editing_grade}
+            hide_edit_button   = {not (edit_button_text?.length > 0)}
+            edit_button_text   = {edit_button_text}
+            save_disabled      = {save_disabled}
+            rows               = {5}
+            placeholder        = 'Comments (optional)'
+            default_value      = {@state.edited_comments}
+            on_edit            = {=>@setState(editing_grade:true)}
+            on_change          = {(value)=>@setState(edited_comments:value)}
+            on_save            = {@save_grade}
+            on_cancel          = {=>@setState(editing_grade:false)}
+            rendered_style     = {rendered_style}
+            edit_button_bsSize = {'small'}
         />
 
     on_key_down_grade_editor: (e) ->

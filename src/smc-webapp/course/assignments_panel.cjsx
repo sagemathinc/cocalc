@@ -1029,8 +1029,12 @@ Assignment = rclass
 
     render_configure_grading: ->
         config = @props.assignment.getIn(['config', 'mode'])
+        {GradingHelpButton} = require('./grading/main')
 
         <Alert bsStyle='warning'>
+            <div style={float:'right'}>
+                <GradingHelpButton show_help={true}/>
+            </div>
             <h3><Icon name="gavel"/> Configure grading</h3>
             {@render_configure_grading_mode()}
             {@render_configure_grading_maxpoints()}

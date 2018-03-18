@@ -48,6 +48,28 @@ styles = require('../styles')
 {StudentList}   = require('./student-list')
 {ROW_STYLE, LIST_STYLE, LIST_ENTRY_STYLE, FLEX_LIST_CONTAINER, EMPTY_LISTING_TEXT, PAGE_SIZE} = require('./const')
 
+exports.GradingHelpButton = rclass
+    displayName: 'CourseEditor-GradingStudentAssignment-HelpButton'
+
+    propTypes:
+        show_help : rtypes.bool
+
+    getDefaultProps: ->
+        show_help : false
+
+    open_grading_help: ->
+        {open_new_tab} = require('smc-webapp/misc_page')
+        open_new_tab('https://github.com/sagemathinc/cocalc/wiki/CourseGrading')
+
+    render : ->
+        <Button
+            onClick  = {@open_grading_help}
+            bsStyle  = {'default'}
+        >
+            <Icon name='question-circle'/>
+            {' Help' if @props.show_help}
+        </Button>
+
 
 exports.GradingStudentAssignment = rclass
     displayName : "CourseEditor-GradingStudentAssignment"

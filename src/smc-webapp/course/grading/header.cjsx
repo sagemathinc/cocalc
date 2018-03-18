@@ -56,10 +56,6 @@ exports.GradingStudentAssignmentHeader = rclass ({name}) ->
     exit: ->
         @actions(@props.name).grading_stop()
 
-    open_grading_help: ->
-        {open_new_tab} = require('smc-webapp/misc_page')
-        open_new_tab('https://github.com/sagemathinc/cocalc/wiki/CourseGrading')
-
     render_presence: ->
         return if (not @props.grading.cursors?) or (not @props.grading.assignment_id?) or (not @props.grading.student_id?)
         min_10_ago = misc.server_minutes_ago(10)
@@ -98,6 +94,7 @@ exports.GradingStudentAssignmentHeader = rclass ({name}) ->
             </h4>
 
     render: ->
+        {GradingHelpButton} = require('./main')
         <Row>
             <Col md={7}>
                 {@render_title()}
@@ -106,12 +103,7 @@ exports.GradingStudentAssignmentHeader = rclass ({name}) ->
                 {@render_presence()}
             </Col>
             <Col md={2} style={textAlign:'right', whiteSpace:'nowrap'}>
-                <Button
-                    onClick  = {@open_grading_help}
-                    bsStyle  = {'default'}
-                >
-                    <Icon name='question-circle'/>
-                </Button>
+                <GradingHelpButton />
                 <Space />
                 <Button
                     onClick  = {@exit}
