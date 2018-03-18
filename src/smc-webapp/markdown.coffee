@@ -15,16 +15,16 @@ checkboxes = (s) ->
     s = misc.replace_all(s, '[ ]', "<i class='fa fa-square-o'></i>")
     return misc.replace_all(s, '[x]', "<i class='fa fa-check-square-o'></i>")
 
-md_with_katex = create_processor
-    html : true
+OPTIONS =
+    html        : true
     typographer : true
-.use(katex, {macros : macros, "throwOnError" : true})
+    linkify     : true
+
+md_with_katex = create_processor(OPTIONS)\
+.use(katex, {macros : macros, "throwOnError" : true})\
 .use(task_lists)
 
-md_no_math = create_processor
-    html : true
-    typographer : true
-.use(task_lists)
+md_no_math = create_processor(OPTIONS).use(task_lists)
 
 exports.has_math = (markdown_string) ->
     [text, math] = remove_math(html, true)
