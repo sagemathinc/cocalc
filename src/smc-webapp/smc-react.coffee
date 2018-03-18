@@ -465,6 +465,10 @@ rclass
     reduxProps:
         store_name :
             prop     : type
+
+WARNING: If store not yet defined, then props will all be undefined for that store!  There
+is no warning/error in this case.
+
 ###
 connect_component = (spec) =>
     map_state_to_props = (state) ->
@@ -476,16 +480,14 @@ connect_component = (spec) =>
                 console.warn("spec = ", spec)
                 throw Error("store_name of spec *must* be defined")
             store = redux.getStore(store_name)
-            if not store?
-                throw Error("store '#{store_name}' *must* be defined")
             for prop, type of info
-                if store.__converted?
+                if store?.__converted?
                     val = store[prop]
                     if not Object.getOwnPropertyDescriptor(store, prop)?.get?
                         if DEBUG
                             console.warn("Requested reduxProp `#{prop}` from store `#{store_name}` but it is not defined in its stateTypes nor reduxProps")
                         val = state.getIn([store_name, prop])
-                else # TODOJ: remove when all stores are converted
+                else # TODOJ: remove *if* all stores are ever converted  (which may or may not be desirable/needed)
                     val = state.getIn([store_name, prop])
                 # TODO: improve detection of values which are instances of immutable record factories
                 is_record = val?.__proto__.__proto__?.constructor?.name == 'Record'
@@ -497,6 +499,7 @@ connect_component = (spec) =>
     return connect(map_state_to_props)
 
 ###
+
 Takes an object to create a reactClass or a function which returns such an object.
 
 Objects should be shaped like a react class save for a few exceptions:
@@ -508,6 +511,7 @@ x.reduxProps =
 x.actions must not be defined.
 
 ###
+
 react_component = (x) ->
     if typeof x == 'function'
         # Creates a react class that wraps the eventual component.

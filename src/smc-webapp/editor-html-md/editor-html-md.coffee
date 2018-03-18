@@ -40,6 +40,7 @@ printing        = require('../printing')
 
 templates       = $("#webapp-editor-templates")
 
+redux_account = require('../redux_account')
 
 class exports.HTML_MD_Editor extends editor.FileEditor
 
@@ -446,7 +447,7 @@ class exports.HTML_MD_Editor extends editor.FileEditor
 
     md_to_html: (cb) =>
         source = @_get()
-        html = require('../markdown').markdown_to_html(source, {process_math : true})
+        html = require('../markdown').markdown_to_html(source, {katex : redux_account.USE_KATEX})
         cb(undefined, html)
 
     rmd_to_html: (cb) =>

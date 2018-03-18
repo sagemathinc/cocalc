@@ -32,11 +32,11 @@ exports.has_math = (markdown_string) ->
 
 exports.markdown_to_html = (markdown_string, opts) ->
     opts = misc.defaults opts,
-        process_math : false
+        katex : false
 
     markdown_string = checkboxes(markdown_string)
 
-    if opts.process_math
+    if opts.katex
         return md_with_katex.render(markdown_string)
     else
         # Assume it'll be rendered by mathjax later...

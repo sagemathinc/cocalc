@@ -887,7 +887,7 @@ exports.HTML = HTML = rclass
     propTypes :
         value            : rtypes.string
         style            : rtypes.object
-        auto_render_math : rtypes.bool     # optional -- used to render math with katex and mathjax as a fallback
+        auto_render_math : rtypes.bool     # optional -- used to detect and render math
         only_mathjax     : rtypes.bool     # optional -- used to render math only with mathjax if auto_render_math is true
         project_id       : rtypes.string   # optional -- can be used to improve link handling (e.g., to images)
         file_path        : rtypes.string   # optional -- ...
@@ -905,12 +905,13 @@ exports.HTML = HTML = rclass
         auto_render_math : true
         safeHTML         : true
 
+    reduxProps :
+        account :
+            other_settings : rtypes.immutable.Map
+
     shouldComponentUpdate: (next) ->
-        return @props.value != next.value or \
-            @props.auto_render_math != next.auto_render_math or \
-            not underscore.isEqual(@props.style, next.style) or \
-            @props.highlight != next.highlight or \
-            @props.safeHTML  != next.safeHTML
+        return misc.is_different(@props, next, ['value', 'auto_render_math', 'highlight', 'safeHTML']) or \
+               not underscore.isEqual(@props.style, next.style)
 
     _update_mathjax: (cb) ->
         if not @_is_mounted  # see https://github.com/sagemathinc/cocalc/issues/1689
@@ -975,30 +976,30 @@ exports.HTML = HTML = rclass
         @_is_mounted = false
 
     render_html: ->
-        if @props.value
-            if @props.auto_render_math and rendered_mathjax?
-                x = rendered_mathjax?[@props.value]
-                if x?
-                    x.ref -= 1
-                    if x.ref <= 0
-                        delete rendered_mathjax?[@props.value]
-                    return {__html:x.html}
+        if not @props.value
+            return {__html: ''}
 
-            if @props.safeHTML
-                html = require('./misc_page').sanitize_html_safe(@props.value, @props.post_hook)
-            else
-                html = require('./misc_page').sanitize_html(@props.value, true, true, @props.post_hook)
+        if @props.auto_render_math and rendered_mathjax?
+            x = rendered_mathjax?[@props.value]
+            if x?
+                x.ref -= 1
+                if x.ref <= 0
+                    delete rendered_mathjax?[@props.value]
+                return {__html:x.html}
 
-            if @props.auto_render_math
-                @_needs_mathjax = true
-
-                if not @props.only_mathjax
-                    {html, is_complete} = math_katex.render(html)
-                    @_needs_mathjax = not is_complete
-
-            {__html: html}
+        if @props.safeHTML
+            html = require('./misc_page').sanitize_html_safe(@props.value, @props.post_hook)
         else
-            {__html: ''}
+            html = require('./misc_page').sanitize_html(@props.value, true, true, @props.post_hook)
+
+        if @props.auto_render_math
+            @_needs_mathjax = true
+            if @props.other_settings?.get('katex')
+                # try using katex:
+                {html, is_complete} = math_katex.render(html)
+                @_needs_mathjax = not is_complete
+
+        return {__html: html}
 
     render: ->
         # the random key is the whole span (hence the html) does get rendered whenever
@@ -1014,36 +1015,39 @@ exports.Markdown = rclass
     displayName : 'Misc-Markdown'
 
     propTypes :
-        value          : rtypes.string
-        style          : rtypes.object
-        project_id     : rtypes.string   # optional -- can be used to improve link handling (e.g., to images)
-        file_path      : rtypes.string   # optional -- ...
-        className      : rtypes.string   # optional class
-        safeHTML       : rtypes.bool     # optional -- default true, if true scripts and unsafe attributes are removed from sanitized html
+        value            : rtypes.string
+        style            : rtypes.object
+        project_id       : rtypes.string   # optional -- can be used to improve link handling (e.g., to images)
+        file_path        : rtypes.string   # optional -- ...
+        className        : rtypes.string   # optional class
+        safeHTML         : rtypes.bool     # optional -- default true, if true scripts and unsafe attributes are removed from sanitized html
 
-        href_transform : rtypes.func     # optional function used to first transform href target strings
-        post_hook      : rtypes.func     # see docs to HTML
-        highlight      : rtypes.immutable.Set
+        href_transform   : rtypes.func     # optional function used to first transform href target strings
+        post_hook        : rtypes.func     # see docs to HTML
+        highlight        : rtypes.immutable.Set
+        auto_render_math : rtypes.bool     # render math
 
-    shouldComponentUpdate: (next) ->
-        return @props.value   != next.value or \
-             @props.safeHTML  != next.safeHTML or \
-             @props.highlight != next.highlight or \
-             not underscore.isEqual(@props.style, next.style)
+    reduxProps :
+        account :
+            other_settings : rtypes.immutable.Map
 
     getDefaultProps: ->
-        safeHTML : true
+        auto_render_math : true
+        safeHTML         : true
+
+    shouldComponentUpdate: (next) ->
+        return misc.is_different(@props, next, ['value', 'auto_render_math', 'highlight', 'safeHTML']) or \
+               not underscore.isEqual(@props.style, next.style)
 
     to_html: ->
-        process_math = !rendered_mathjax? # Check if we're on share server
-        if @props.value
-            return markdown.markdown_to_html(@props.value, {process_math : process_math})
+        if not @props.value
+            return
+        return markdown.markdown_to_html(@props.value)
 
     render: ->
         <HTML
             value            = {@to_html()}
-            auto_render_math = {true}
-            only_mathjax     = {true}
+            auto_render_math = {@props.auto_render_math}
             style            = {@props.style}
             project_id       = {@props.project_id}
             file_path        = {@props.file_path}
