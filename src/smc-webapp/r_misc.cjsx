@@ -829,6 +829,7 @@ exports.HTML = HTML = rclass
                                            # sanitizing input.  Use this as an opportunity to modify the HTML structure
                                            # before it is exported to text and given to react.   Obviously, you can't
                                            # install click handlers here.
+        highlight        : rtypes.immutable.Set
 
     getDefaultProps: ->
         auto_render_math : true
@@ -838,7 +839,8 @@ exports.HTML = HTML = rclass
         return @props.value != next.value or \
             @props.auto_render_math != next.auto_render_math or \
             not underscore.isEqual(@props.style, next.style) or \
-            @props.safeHTML != next.safeHTML
+            @props.highlight != next.highlight or \
+            @props.safeHTML  != next.safeHTML
 
     _update_mathjax: (cb) ->
         if not @_is_mounted  # see https://github.com/sagemathinc/cocalc/issues/1689
@@ -854,6 +856,12 @@ exports.HTML = HTML = rclass
                     cb = undefined
         else
             cb()
+
+    _update_highlight: ->
+        if not @_is_mounted or not @props.highlight?
+            return
+        # Use jquery-highlight, which is a pretty serious walk of the DOM tree, etc.
+        $(ReactDOM.findDOMNode(@)).highlight(@props.highlight.toJS())
 
     _update_links: ->
         if not @_is_mounted
@@ -878,9 +886,11 @@ exports.HTML = HTML = rclass
                     return
                 @_update_links()
                 @_update_tables()
+                @_update_highlight()
         else
-            @_update_links()   # this MUST be after update_escaped_chars -- see https://github.com/sagemathinc/cocalc/issues/1391
+            @_update_links()
             @_update_tables()
+            @_update_highlight()
 
     componentDidUpdate: ->
         @update_content()
@@ -920,9 +930,11 @@ exports.HTML = HTML = rclass
         else
             {__html: ''}
 
-
     render: ->
+        # the random key is the whole span (hence the html) does get rendered whenever
+        # this component is updated.  Otherwise, it will NOT re-render except when the value changes.
         <span
+            key                     = {Math.random()}
             className               = {@props.className}
             dangerouslySetInnerHTML = {@render_html()}
             style                   = {@props.style}>
@@ -941,11 +953,13 @@ exports.Markdown = rclass
 
         href_transform : rtypes.func     # optional function used to first transform href target strings
         post_hook      : rtypes.func     # see docs to HTML
+        highlight      : rtypes.immutable.Set
 
     shouldComponentUpdate: (next) ->
-        return @props.value != next.value or \
-             not underscore.isEqual(@props.style, next.style) or \
-             @props.safeHTML != next.safeHTML
+        return @props.value   != next.value or \
+             @props.safeHTML  != next.safeHTML or \
+             @props.highlight != next.highlight or \
+             not underscore.isEqual(@props.style, next.style)
 
     getDefaultProps: ->
         safeHTML : true
@@ -966,7 +980,9 @@ exports.Markdown = rclass
             className        = {@props.className}
             href_transform   = {@props.href_transform}
             post_hook        = {@props.post_hook}
+            highlight        = {@props.highlight}
             safeHTML         = {@props.safeHTML} />
+
 
 activity_style =
     float           : 'right'

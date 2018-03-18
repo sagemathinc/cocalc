@@ -4,12 +4,16 @@ Conversion between Markdown and HTML
 Has the option to render math inside the markdown
 ###
 
-{defaults} = require('smc-util/misc')
-{macros}   = require('./math_katex')
-create_processor = require('markdown-it')
-katex = require('@cocalc/markdown-it-katex')
-task_lists = require('markdown-it-task-lists')
+misc                        = require('smc-util/misc')
+{macros}                    = require('./math_katex')
+create_processor            = require('markdown-it')
+katex                       = require('@cocalc/markdown-it-katex')
+task_lists                  = require('markdown-it-task-lists')
 {remove_math, replace_math} = require('smc-util/mathjax-utils')
+
+checkboxes = (s) ->
+    s = misc.replace_all(s, '[ ]', "<i class='fa fa-square-o'></i>")
+    return misc.replace_all(s, '[x]', "<i class='fa fa-check-square-o'></i>")
 
 md_with_katex = create_processor
     html : true
@@ -27,8 +31,10 @@ exports.has_math = (markdown_string) ->
     return math.length > 0
 
 exports.markdown_to_html = (markdown_string, opts) ->
-    opts = defaults opts,
+    opts = misc.defaults opts,
         process_math : false
+
+    markdown_string = checkboxes(markdown_string)
 
     if opts.process_math
         return md_with_katex.render(markdown_string)
