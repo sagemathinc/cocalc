@@ -434,17 +434,17 @@ class AppRedux
             console.warn("getProjectReferences: INVALID project_id -- #{project_id}")
         return project_store?.deleteStoreActionsTable(project_id, @)
 
-    getEditorStore: (project_id, path) =>
+    getEditorStore: (project_id, path, is_public) =>
         if not misc.is_valid_uuid_string(project_id)
             console.trace()
             console.warn("getEditorStore: INVALID project_id -- #{project_id}")
-        return @getStore(exports.redux_name(project_id, path))
+        return @getStore(exports.redux_name(project_id, path, is_public))
 
-    getEditorActions: (project_id, path) =>
+    getEditorActions: (project_id, path, is_public) =>
         if not misc.is_valid_uuid_string(project_id)
             console.trace()
             console.warn("getEditorActions: INVALID project_id -- #{project_id}")
-        return @getActions(exports.redux_name(project_id, path))
+        return @getActions(exports.redux_name(project_id, path, is_public))
 
 
 redux = new AppRedux()
@@ -627,7 +627,11 @@ exports.is_redux_actions = (obj) -> obj instanceof Actions
 
 # Canonical name to use for Redux store associated to a given project/path.
 # TODO: this code is also in many editors -- make them all just use this.
-exports.redux_name = (project_id, path, is_public=false) -> "editor-#{project_id}-#{path}-#{is_public}"
+exports.redux_name = (project_id, path, is_public) ->
+    if is_public
+        return "public-#{project_id}-#{path}"
+    else
+        return "editor-#{project_id}-#{path}"
 
 
 exports.rclass   = rclass    # use rclass instead of createReactClass to get access to reduxProps support
@@ -635,6 +639,7 @@ exports.rtypes   = rtypes    # has extra rtypes.immutable, needed for reduxProps
 exports.computed = computed
 exports.depends  = depends
 exports.React    = React
+exports.Fragment = React.Fragment
 exports.Redux    = Redux
 exports.redux    = redux     # global redux singleton
 exports.Actions  = Actions

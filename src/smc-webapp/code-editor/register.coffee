@@ -32,7 +32,7 @@ register = (is_public) ->
             return name
 
         remove    : (path, redux, project_id) ->
-            name = redux_name(project_id, path)
+            name = redux_name(project_id, path, is_public)
             actions = redux.getActions(name)
             if actions?
                 actions.close()
@@ -47,5 +47,5 @@ register = (is_public) ->
             # TODO: this should be the default, right?
             redux.getActions(redux_name(project_id, path))?.save()
 
-for is_public in [false]
+for is_public in [true, false]
     register(is_public)

@@ -50,10 +50,11 @@ exports.FrameTitleBar = rclass
         has_unsaved_changes : rtypes.bool
         is_full             : rtypes.bool
         is_only             : rtypes.bool    # is the only frame
+        is_public           : rtypes.bool    # public view of a file
 
     shouldComponentUpdate: (next) ->
         return misc.is_different(@props, next, ['active_id', 'id', 'deletable', 'is_full', 'is_only', \
-                     'read_only', 'has_unsaved_changes'])
+                     'read_only', 'has_unsaved_changes', 'is_public'])
 
     componentWillReceiveProps: ->
         @_last_render = new Date()
@@ -73,11 +74,12 @@ exports.FrameTitleBar = rclass
     render_x: ->
         show_full = @props.is_full or @props.active_id == @props.id
         <Button
-            title    = {'Close this frame'}
-            style    = {if not show_full then close_style}
-            key      = {'close'}
-            bsSize   = {@button_size()}
-            onClick  = {@click_close} >
+            title   = {'Close this frame'}
+            style   = {if not show_full then close_style}
+            key     = {'close'}
+            bsSize  = {@button_size()}
+            onClick = {@click_close}
+        >
             <Icon name={'times'}/>
         </Button>
 
@@ -94,111 +96,131 @@ exports.FrameTitleBar = rclass
         if @props.is_full
             <Button
                 disabled = {@props.is_only}
-                title   = {'Show all frames'}
-                key     = {'compress'}
-                bsSize  = {@button_size()}
-                onClick = {=> @props.actions.set_frame_full()} >
+                title    = {'Show all frames'}
+                key      = {'compress'}
+                bsSize   = {@button_size()}
+                onClick  = {=> @props.actions.set_frame_full()}
+            >
                 <Icon name={'compress'}/>
             </Button>
         else
             <Button
                 disabled = {@props.is_only}
-                key     = {'expand'}
-                title   = {'Show only this frame'}
-                bsSize  = {@button_size()}
-                onClick = {=> @props.actions.set_frame_full(@props.id)} >
+                key      = {'expand'}
+                title    = {'Show only this frame'}
+                bsSize   = {@button_size()}
+                onClick  = {=> @props.actions.set_frame_full(@props.id)}
+            >
                 <Icon name={'expand'}/>
             </Button>
 
     render_split_row: ->
         <Button
-            key      = {'split-row'}
-            title    = {'Split frame horizontally into two rows'}
-            bsSize   = {@button_size()}
-            onClick  = {(e)=>e.stopPropagation(); if @props.is_full then @props.actions.set_frame_full() else @props.actions.split_frame('row', @props.id)} >
+            key     = {'split-row'}
+            title   = {'Split frame horizontally into two rows'}
+            bsSize  = {@button_size()}
+            onClick = {(e)=>e.stopPropagation(); if @props.is_full then @props.actions.set_frame_full() else @props.actions.split_frame('row', @props.id)}
+        >
             <Icon name='columns' rotate={'90'} />
         </Button>
 
     render_split_col: ->
         <Button
-            key      = {'split-col'}
-            title    = {'Split frame vertically into two columns'}
-            bsSize   = {@button_size()}
-            onClick  = {(e)=>e.stopPropagation(); if @props.is_full then @props.actions.set_frame_full() else @props.actions.split_frame('col', @props.id)} >
+            key     = {'split-col'}
+            title   = {'Split frame vertically into two columns'}
+            bsSize  = {@button_size()}
+            onClick = {(e)=>e.stopPropagation(); if @props.is_full then @props.actions.set_frame_full() else @props.actions.split_frame('col', @props.id)}
+        >
             <Icon name='columns' />
         </Button>
 
     render_zoom_out: ->
         <Button
             key     = {'font-increase'}
-            title    = {'Decrease font size'}
+            title   = {'Decrease font size'}
             bsSize  = {@button_size()}
             onClick = {=>@props.actions.decrease_font_size(@props.id)}
-            >
+        >
             <Icon style={fontSize:'5pt'} name={'font'} />
         </Button>
 
     render_zoom_in: ->
         <Button
             key     = {'font-decrease'}
-            title    = {'Increase font size'}
+            title   = {'Increase font size'}
             onClick = {=>@props.actions.increase_font_size(@props.id)}
             bsSize  = {@button_size()}
-            >
+        >
             <Icon style={fontSize:'9pt'} name={'font'} />
+        </Button>
+
+    render_replace: ->
+        <Button
+            key      = {'replace'}
+            title    = {'Replace text'}
+            onClick  = {=>@props.actions.replace(@props.id)}
+            disabled = {@props.read_only}
+            bsSize   = {@button_size()}
+        >
+            <Icon name='exchange' />
         </Button>
 
     render_find_replace_group: ->
         <ButtonGroup key={'find-group'}>
             <Button
-                key      = {'find'}
-                title    = {'Find text'}
-                onClick  = {=>@props.actions.find(@props.id)}
-                bsSize   = {@button_size()}>
+                key     = {'find'}
+                title   = {'Find text'}
+                onClick = {=>@props.actions.find(@props.id)}
+                bsSize  = {@button_size()}
+            >
                 <Icon name='search' />
             </Button>
+            {@render_replace() if not @props.is_public}
             <Button
-                key      = {'replace'}
-                title    = {'Replace text'}
-                onClick  = {=>@props.actions.replace(@props.id)}
-                disabled = {@props.read_only}
-                bsSize   = {@button_size()}>
-                <Icon name='exchange' />
-            </Button>
-            <Button
-                key      = {'goto-line'}
-                title    = {'Jump to line'}
-                onClick  = {=>@props.actions.goto_line(@props.id)}
-                bsSize   = {@button_size()}>
+                key     = {'goto-line'}
+                title   = {'Jump to line'}
+                onClick = {=>@props.actions.goto_line(@props.id)}
+                bsSize  = {@button_size()}
+            >
                 <Icon name='bolt' />
             </Button>
         </ButtonGroup>
 
+    render_cut: ->
+        <Button
+            key      = {'cut'}
+            title    = {'Cut selected text'}
+            onClick  = {=>@props.actions.cut(@props.id)}
+            disabled = {@props.read_only}
+            bsSize   = {@button_size()}
+        >
+            <Icon name={'scissors'} />
+        </Button>
+
+    render_paste: ->
+        <Button
+            key      = {'paste'}
+            title    = {'Paste buffer'}
+            onClick  = {debounce((=>@props.actions.paste(@props.id)), 200, true)}
+            disabled = {@props.read_only}
+            bsSize   = {@button_size()}
+        >
+            <Icon name={'paste'} />
+        </Button>
+
+
     render_copy_group: ->
         <ButtonGroup key={'copy'}>
+            {@render_cut() if not @props.is_public}
             <Button
-                key      = {'cut'}
-                title    = {'Cut selected text'}
-                onClick  = {=>@props.actions.cut(@props.id)}
-                disabled = {@props.read_only}
-                bsSize   = {@button_size()}>
-                <Icon name={'scissors'} />
-            </Button>
-            <Button
-                key      = {'copy'}
-                title    = {'Copy selected text'}
-                onClick  = {=>@props.actions.copy(@props.id)}
-                bsSize  = {@button_size()}>
+                key     = {'copy'}
+                title   = {'Copy selected text'}
+                onClick = {=>@props.actions.copy(@props.id)}
+                bsSize  = {@button_size()}
+            >
                 <Icon name={'copy'} />
             </Button>
-            <Button
-                key     = {'paste'}
-                title    = {'Paste buffer'}
-                onClick = {debounce((=>@props.actions.paste(@props.id)), 200, true)}
-                disabled = {@props.read_only}
-                bsSize  = {@button_size()}>
-                <Icon name={'paste'} />
-            </Button>
+            {@render_paste() if not @props.is_public}
         </ButtonGroup>
 
     render_zoom_group: ->
@@ -221,7 +243,7 @@ exports.FrameTitleBar = rclass
                 onClick  = {@props.actions.undo}
                 disabled = {@props.read_only}
                 bsSize   = {@button_size()}
-                >
+            >
                 <Icon name='undo' />
             </Button>
             <Button
@@ -230,7 +252,7 @@ exports.FrameTitleBar = rclass
                 onClick  = {@props.actions.redo}
                 disabled = {@props.read_only}
                 bsSize   = {@button_size()}
-                >
+            >
                 <Icon name='repeat' />
             </Button>
         </ButtonGroup>
@@ -243,7 +265,7 @@ exports.FrameTitleBar = rclass
                 onClick  = {@props.actions.auto_indent}
                 disabled = {@props.read_only}
                 bsSize   = {@button_size()}
-                >
+            >
                 <Icon name='magic' />
             </Button>
         </ButtonGroup>
@@ -251,37 +273,66 @@ exports.FrameTitleBar = rclass
     show_labels: ->
         return @props.is_only or @props.is_full
 
+    render_timetravel: (labels) ->
+        <Button
+            key     = {'timetravel'}
+            title   = {'Show complete edit history'}
+            bsStyle = {'info'}
+            bsSize  = {@button_size()}
+            onClick = {@props.actions.time_travel}
+        >
+            <Icon name='history' /> <VisibleMDLG>{if labels then 'TimeTravel'}</VisibleMDLG>
+        </Button>
+
+    # only for public view
+    render_reload: (labels) ->
+        <Button
+            key     = {'timetravel'}
+            title   = {'Show complete edit history'}
+            bsSize  = {@button_size()}
+            onClick = {@props.actions.reload}
+        >
+            <Icon name='repeat' /> <VisibleMDLG>{if labels then 'Reload'}</VisibleMDLG>
+        </Button>
+
+    render_save: (labels) ->
+        disabled = not @props.has_unsaved_changes or @props.read_only or @props.is_public
+        if labels
+            if @props.is_public
+                label = 'Public'
+            else if @props.read_only
+                label = 'Readonly'
+            else
+                label = 'Save'
+        else
+            label = ''
+        <Button
+            key      = {'save'}
+            title    = {"Save file to disk"}
+            bsStyle  = {'success'}
+            bsSize   = {@button_size()}
+            disabled = {disabled}
+            onClick  = {=>@props.actions.save(true)}
+        >
+            <Icon name='save' /> <VisibleMDLG>{label}</VisibleMDLG>
+            {<UncommittedChanges has_uncommitted_changes={@props.has_uncommitted_changes} delay_ms={8000} /> if not disabled}
+        </Button>
+
     render_save_timetravel_group: ->
-        disabled = not @props.has_unsaved_changes or @props.read_only
         labels   = @show_labels()
         <ButtonGroup key={'save-group'}>
-            <Button
-                key      = {'save'}
-                title    = {"Save file to disk"}
-                bsStyle  = {'success'}
-                bsSize   = {@button_size()}
-                disabled = {disabled}
-                onClick  = {=>@props.actions.save(true)} >
-                <Icon name='save' /> <VisibleMDLG>{if @props.read_only then 'Readonly' else if labels then 'Save' else ''}</VisibleMDLG>
-                {<UncommittedChanges has_uncommitted_changes={@props.has_uncommitted_changes} delay_ms={8000} /> if not disabled}
-            </Button>
-            <Button
-                key     = {'timetravel'}
-                title   = {'Show complete edit history'}
-                bsStyle = {'info'}
-                bsSize  = {@button_size()}
-                onClick = {@props.actions.time_travel} >
-                <Icon name='history' /> <VisibleMDLG>{if labels then 'TimeTravel'}</VisibleMDLG>
-            </Button>
+            {@render_save(labels)}
+            {@render_timetravel(labels) if not @props.is_public}
+            {@render_reload(labels) if @props.is_public}
         </ButtonGroup>
 
     render_print: ->
         <Button
-            bsSize   = {@button_size()}
-            key      = {'print'}
-            onClick  = {@props.actions.print}
-            title    = {'Print file to PDF'}
-            >
+            bsSize  = {@button_size()}
+            key     = {'print'}
+            onClick = {@props.actions.print}
+            title   = {'Print file to PDF'}
+        >
             <Icon name={'print'} /> <VisibleMDLG>{if @show_labels() then 'Print'}</VisibleMDLG>
         </Button>
 
@@ -312,13 +363,13 @@ exports.FrameTitleBar = rclass
             {<Space/>}
             {@render_copy_group()}
             {<Space/>}
-            {@render_undo_redo_group()}
+            {@render_undo_redo_group() if not @props.is_public}
             {<Space />}
             {@render_zoom_group()}
             {<Space />}
             {@render_find_replace_group()}
             {<Space />}
-            {@render_format_group()}
+            {@render_format_group() if not @props.is_public}
             {<Space/>}
             {@render_print()}
         </div>
@@ -337,7 +388,7 @@ exports.FrameTitleBar = rclass
         # This is complicated below (with the flex display) in order to have a drop down menu that actually appears
         # and *ALSO* have buttons that vanish when there are many of them (via scrolling around).
         <div style={display:'flex'}>
-            {@render_file_menu()}
+            {@render_file_menu() if not @props.is_public}
             {@render_buttons()}
         </div>
 

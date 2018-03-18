@@ -580,7 +580,7 @@ exports.CourseActions = class CourseActions extends Actions
                     title   = s.getIn(['settings', 'title'])
                     subject = "#{SiteName} Invitation to Course #{title}"
                     body    = body.replace(/{title}/g, title).replace(/{name}/g, name)
-                    body    = markdownlib.markdown_to_html(body).s
+                    body    = markdownlib.markdown_to_html(body)
                     @redux.getActions('projects').invite_collaborators_by_email(student_project_id, x, body, subject, true, replyto, name)
             else
                 @redux.getActions('projects').invite_collaborator(student_project_id, x)

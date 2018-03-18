@@ -1031,6 +1031,7 @@ class exports.Connection extends EventEmitter
             cb         : undefined
 
         @call
+            error_event : true
             message :
                 message.write_text_file_to_project
                     project_id : opts.project_id
@@ -1047,6 +1048,7 @@ class exports.Connection extends EventEmitter
             timeout    : DEFAULT_TIMEOUT
 
         @call
+            error_event : true
             message :
                 message.read_text_file_from_project
                     project_id : opts.project_id
@@ -1206,6 +1208,7 @@ class exports.Connection extends EventEmitter
             timeout    : DEFAULT_TIMEOUT
 
         @call
+            error_event : true
             message :
                 message.public_get_text_file
                     project_id : opts.project_id

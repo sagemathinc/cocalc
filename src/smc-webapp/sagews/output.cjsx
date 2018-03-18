@@ -38,7 +38,7 @@ exports.CellOutput = rclass
         <Markdown key={key} value={value} />
 
     render_html: (value, key) ->
-        <HTML key={key} value={value} />
+        <HTML key={key} value={value} auto_render_math={true} />
 
     render_interact: (value, key) ->
         <div key={key}>
@@ -92,7 +92,7 @@ exports.CellOutput = rclass
         if value.display
             html = "$#{html}$"
         <div key={key}>
-            <HTML value={html} />
+            <HTML value={html} auto_render_math={true} />
         </div>
 
     render_raw_input: (value, key) ->
