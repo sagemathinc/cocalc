@@ -52,6 +52,9 @@ exports.FormatBar = rclass
             {@render_button('insertorderedlist', 'Insert ordered list', 'list-ol')}
             {@render_button('link', 'Insert link', 'link')}
             {@render_button('image', 'Insert image', 'image')}
+            {@render_button('table', 'Insert table', 'table')}
+            {@render_button('horizontalRule', 'Insert horizontal rule', '', <span>&mdash;</span>)}
+            {@render_button('SpecialChar', 'Insert special character...', '', <span>&Omega;</span>)}
         </ButtonGroup>
 
     render_format_buttons: ->
@@ -62,7 +65,7 @@ exports.FormatBar = rclass
             {@render_button('justifyright', 'Right justify current text', 'align-right')}
             {@render_button('justifyfull', 'Fully justify current text', 'align-justify')}
             {@render_button('outdent', 'Move selected text to the left', 'outdent')}
-            {@render_button('indent', 'Indent selected text to the right', 'indent')}
+            {@render_button('indent', 'Quote selected text', 'indent')}
             {@render_button('unformat', 'Remove formatting from selected text', 'remove')}
         </ButtonGroup>
 
@@ -148,7 +151,7 @@ exports.FormatBar = rclass
             items.push(item)
         <DropdownButton
           pullRight
-          title = {'Color'}
+          title = {<Icon name={'paint-brush'}/>}
           key   = {'font-color'}
           id    = {'font-color'}
         >
@@ -156,7 +159,7 @@ exports.FormatBar = rclass
         </DropdownButton>
 
     render_font_dropdowns: ->
-        <ButtonGroup key={'font-dropdowns'} style={float:'right'}>
+        <ButtonGroup key={'font-dropdowns'} style={float:'right', marginRight: '1px'}>
             {@render_font_family_dropdown()}
             {@render_font_size_dropdown()}
             {@render_heading_dropdown()}

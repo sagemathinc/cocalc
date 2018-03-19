@@ -387,7 +387,7 @@ exports.commands =
                 trim    : false
         horizontalRule:
             wrap:
-                left  : "\n------------------\n"
+                left  : "\n---\n"
                 right : ""
         table :
             wrap:
