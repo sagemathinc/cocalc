@@ -7,6 +7,8 @@ Task description:
 
 {Button} = require('react-bootstrap')
 
+{Icon} = require('../r_misc')
+
 {React, rclass, rtypes}  = require('../smc-react')
 
 {DescriptionRendered} = require('./desc-rendered')
@@ -67,7 +69,6 @@ exports.Description = rclass
         <div
             onDoubleClick = {@edit}
             onClick       = {if not @props.desc then @edit}
-            onTouchStart  = {@edit}
             >
             <DescriptionRendered
                 actions           = {@props.actions}
@@ -82,10 +83,22 @@ exports.Description = rclass
                 />
         </div>
 
+    render_edit_button: ->
+        if not @props.is_current or @props.editing
+            return
+        <Button
+            onClick = {@edit} 
+            style   = {marginBottom:'5px'}
+            title   = {'Edit this task (click or enter key)'}
+        >
+            <Icon name={'edit'} /> Edit
+        </Button>
+
     render: ->
         if @props.read_only or not @props.actions?
             return @render_desc()
         <div>
             {@render_editor()}
             {@render_desc()}
+            {@render_edit_button()}
         </div>
