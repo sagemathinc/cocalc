@@ -75,12 +75,12 @@ exports.lang2name = (lang) ->
 # Redux stuff
 
 INIT_STATE =
-    cat0                : null # idx integer
-    cat1                : null # idx integer
-    cat2                : null # idx integer
-    catlist0            : []
-    catlist1            : []
-    catlist2            : []
+    category0           : null # idx integer
+    category1           : null # idx integer
+    category2           : null # idx integer
+    category_list0      : []
+    category_list1      : []
+    category_list2      : []
     code                : ''
     setup_code          : undefined
     descr               : ''
@@ -88,19 +88,19 @@ INIT_STATE =
     search_str          : null
     search_sel          : null
     submittable         : false
-    cat1_top            : ["Introduction", "Tutorial", "Help"]
+    category1_top       : ["Introduction", "Tutorial", "Help"]
     unknown_lang        : false
 
 makeExamplesStore = (NAME) ->
     name: NAME
 
     stateTypes:
-        cat0                : rtypes.number      # index of selected first category (left)
-        cat1                : rtypes.number      # index of selected second category (second from left)
-        cat2                : rtypes.number      # index of selected third category (document titles)
-        catlist0            : rtypes.arrayOf(rtypes.string)  # list of first category entries
-        catlist1            : rtypes.arrayOf(rtypes.string)  # list of second level categories
-        catlist2            : rtypes.arrayOf(rtypes.string)  # third level are the document titles
+        category0           : rtypes.number      # index of selected first category (left)
+        category1           : rtypes.number      # index of selected second category (second from left)
+        category2           : rtypes.number      # index of selected third category (document titles)
+        category_list0      : rtypes.arrayOf(rtypes.string)  # list of first category entries
+        category_list1      : rtypes.arrayOf(rtypes.string)  # list of second level categories
+        category_list2      : rtypes.arrayOf(rtypes.string)  # third level are the document titles
         code                : rtypes.string      # displayed content of selected document
         setup_code          : rtypes.string      # optional, common code in the sub-category
         prepend_setup_code  : rtypes.bool        # if true, setup code is prepended to code
@@ -109,7 +109,7 @@ makeExamplesStore = (NAME) ->
         search_str          : rtypes.string      # substring to search for -- or undefined
         search_sel          : rtypes.number      # index of selected matched documents
         submittable         : rtypes.bool        # if true, the buttons at the bottom are active
-        cat1_top            : rtypes.arrayOf(rtypes.string)
+        category1_top            : rtypes.arrayOf(rtypes.string)
         unknown_lang        : rtypes.bool        # true if there is no known set of documents for the language
 
     getInitialState: ->
@@ -118,33 +118,33 @@ makeExamplesStore = (NAME) ->
     data_lang: ->
         @get('data').get(@get('lang'))
 
-    # First categories list, depends on selected language, sort order depends on cat1_top
-    get_catlist0: () ->
-        cat0 = @data_lang().keySeq().toArray()
-        top = @get('cat1_top')
-        cat0ordering = (el) ->
+    # First categories list, depends on selected language, sort order depends on category1_top
+    get_category_list0: () ->
+        category0 = @data_lang().keySeq().toArray()
+        top = @get('category1_top')
+        category0ordering = (el) ->
             i = - top.reverse().indexOf(el)
             return [i, el]
-        return _.sortBy(cat0, cat0ordering)
+        return _.sortBy(category0, category0ordering)
 
     # Second level categories list, depends on selected index of first level
-    # Sorted by cat1_top and a possible 'sortweight'
-    get_catlist1: () ->
-        k0 = @get_catlist0()[@get('cat0')]
-        cat1data = @data_lang().get(k0)
-        cat1 = cat1data.keySeq().toArray()
-        top = @get('cat1_top')
-        cat1ordering = (el) ->
-            so = cat1data?.getIn([el, 'sortweight']) ? 0.0
+    # Sorted by category1_top and a possible 'sortweight'
+    get_category_list1: () ->
+        k0 = @get_category_list0()[@get('category0')]
+        category1data = @data_lang().get(k0)
+        category1 = category1data.keySeq().toArray()
+        top = @get('category1_top')
+        category1ordering = (el) ->
+            so = category1data?.getIn([el, 'sortweight']) ? 0.0
             i = - top.reverse().indexOf(el)
             return [so, i, el]
-        return _.sortBy(cat1, cat1ordering)
+        return _.sortBy(category1, category1ordering)
 
     # The titles of the selected documents are exactly as they're in the original data (they're an array)
     # That way, it's possible to create a coherent narrative from top to bottom
-    get_catlist2: () ->
-        k0 = @get_catlist0()[@get('cat0')]
-        k1 = @get_catlist1()[@get('cat1')]
+    get_category_list2: () ->
+        k0 = @get_category_list0()[@get('category0')]
+        k1 = @get_category_list1()[@get('category1')]
         return @data_lang().getIn([k0, k1, 'entries']).map((el) -> el.get(0)).toArray()
 
 
@@ -229,9 +229,9 @@ class ExamplesActions extends Actions
         data = @get('data')
         if data.has(lang)
             @set(lang: lang)
-            catlist0 = @store.get_catlist0()
-            @set(catlist0 : catlist0)
-            if catlist0.length == 1
+            category_list0 = @store.get_category_list0()
+            @set(category_list0 : category_list0)
+            if category_list0.length == 1
                 @set_selected_category(0, 0)
         else
             @set(unknown_lang:true)
@@ -305,55 +305,55 @@ class ExamplesActions extends Actions
         # dir: only 1 or -1!
         # +1 → downward, higher idx number, first in list
         # -1 → upwards, lower index, last in list
-        cat0 = @get('cat0')
-        cat1 = @get('cat1')
-        cat2 = @get('cat2')
-        # console.log 'cat0', cat0, 'cat1', cat1, 'cat2', cat2
+        category0 = @get('category0')
+        category1 = @get('category1')
+        category2 = @get('category2')
+        # console.log 'category0', category0, 'category1', category1, 'category2', category2
         top_or_bottom = (list) ->
             if dir < 0 then list.length - 1 else 0
         # dealing with some corner cases first
-        if not cat0?
-            catlist0 = @store.get_catlist0()
-            if catlist0?.length > 0
-                @set_selected_category(0, top_or_bottom(catlist0))
-        else if not cat1?
-            catlist1 = @store.get_catlist1()
-            if catlist1?.length > 0
-                @set_selected_category(1, top_or_bottom(catlist1))
-        else if not cat2?
-            catlist2 = @store.get_catlist2()
-            if catlist2?.length > 0
-                @set_selected_category(2, top_or_bottom(catlist2))
-        else # cat0 1 and 2 are defined (i.e. we have a selection)
-            l0 = @get('catlist0').size
-            l1 = @get('catlist1').size
-            l2 = @get('catlist2').size
-            cat2_next = cat2 + dir
+        if not category0?
+            category_list0 = @store.get_category_list0()
+            if category_list0?.length > 0
+                @set_selected_category(0, top_or_bottom(category_list0))
+        else if not category1?
+            category_list1 = @store.get_category_list1()
+            if category_list1?.length > 0
+                @set_selected_category(1, top_or_bottom(category_list1))
+        else if not category2?
+            category_list2 = @store.get_category_list2()
+            if category_list2?.length > 0
+                @set_selected_category(2, top_or_bottom(category_list2))
+        else # category0 1 and 2 are defined (i.e. we have a selection)
+            l0 = @get('category_list0').size
+            l1 = @get('category_list1').size
+            l2 = @get('category_list2').size
+            category2_next = category2 + dir
 
             # the next two blocks take care of carry in cat 2 and 1
             # trick: to accomodate for lists of varying length, an index
             # of -1 is fine -- see @set_selected_category
-            if cat2_next < 0
-                cat1_next = cat1 - 1
-            else if cat2_next >= l2
-                cat2_next = 0
-                cat1_next = cat1 + 1
+            if category2_next < 0
+                category1_next = category1 - 1
+            else if category2_next >= l2
+                category2_next = 0
+                category1_next = category1 + 1
 
-            if cat1_next < 0
-                cat0_next = cat0 - 1
-            else if cat1_next >= l1
-                cat1_next = 0
-                cat0_next = cat0 + 1
+            if category1_next < 0
+                category0_next = category0 - 1
+            else if category1_next >= l1
+                category1_next = 0
+                category0_next = category0 + 1
 
-            if cat0_next?
-                # wrap cat0 around (no curry)
-                cat0_next = (cat0_next) % l0
-                if cat0_next < 0
-                    cat0_next = l0 - 1
-                @set_selected_category(0, cat0_next)
-            if cat1_next?
-                @set_selected_category(1, cat1_next)
-            @set_selected_category(2, cat2_next)
+            if category0_next?
+                # wrap category0 around (no curry)
+                category0_next = (category0_next) % l0
+                if category0_next < 0
+                    category0_next = l0 - 1
+                @set_selected_category(0, category0_next)
+            if category1_next?
+                @set_selected_category(1, category1_next)
+            @set_selected_category(2, category2_next)
 
     # this sets a selected category for a given level.
     # it is able to handle negative indices (wraps around nicely) and it also expands
@@ -365,39 +365,39 @@ class ExamplesActions extends Actions
                 @set
                     code        : ''
                     descr       : ''
-                    cat2        : null
+                    category2   : null
                     submittable : false
                     setup_code  : ''
 
         switch level
             when 0
-                @set(cat0: if idx == -1 then @get('catlist0').size - 1 else idx)
-                catlist1 = @store.get_catlist1()
+                @set(category0: if idx == -1 then @get('category_list0').size - 1 else idx)
+                category_list1 = @store.get_category_list1()
                 @set
-                    cat1       : null
-                    cat2       : null
-                    catlist1   : catlist1
-                    catlist2   : []
-                if catlist1.length == 1
+                    category1       : null
+                    category2       : null
+                    category_list1  : category_list1
+                    category_list2  : []
+                if category_list1.length == 1
                     @set_selected_category(1, 0)
 
             when 1
-                cat0     = @get('cat0')
-                @set(cat1 : if idx == -1 then @get('catlist1').size - 1 else idx)
-                catlist2 = @store.get_catlist2()
+                category0 = @get('category0')
+                @set(category1 : if idx == -1 then @get('category_list1').size - 1 else idx)
+                category_list2 = @store.get_category_list2()
                 @set
-                    cat2       : undefined
-                    catlist2   : catlist2
-                if catlist2.length == 1
+                    category2        : undefined
+                    category_list2   : category_list2
+                if category_list2.length == 1
                     @set_selected_category(2, 0)
 
             when 2
-                k0    = @get('catlist0').get(@get('cat0'))
-                k1    = @get('catlist1').get(@get('cat1'))
-                idx   = if idx == -1 then @get('catlist2').size - 1 else idx
+                k0    = @get('category_list0').get(@get('category0'))
+                k1    = @get('category_list1').get(@get('category1'))
+                idx   = if idx == -1 then @get('category_list2').size - 1 else idx
                 doc   = lang.getIn([k0, k1, 'entries', idx])
                 setup = lang.getIn([k0, k1, 'setup'])
-                @set(cat2:idx, setup_code:setup)
+                @set(category2:idx, setup_code:setup)
                 @show_doc(doc)
 
 

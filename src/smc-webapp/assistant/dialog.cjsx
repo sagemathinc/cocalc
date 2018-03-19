@@ -49,12 +49,12 @@ exports.ExamplesDialog = rclass ({name}) ->
             prepend_setup_code  : rtypes.bool        # if true, setup code is prepended to code
             data                : rtypes.immutable   # this is the processed "raw" data, see Actions::load_data
             nav_entries         : rtypes.arrayOf(rtypes.string)  # languages at the top, iff lang_select is true
-            catlist0            : rtypes.arrayOf(rtypes.string)  # list of first category entries
-            catlist1            : rtypes.arrayOf(rtypes.string)  # list of second level categories
-            catlist2            : rtypes.arrayOf(rtypes.string)  # third level are the document titles
-            cat0                : rtypes.number      # index of selected first category (left)
-            cat1                : rtypes.number      # index of selected second category (second from left)
-            cat2                : rtypes.number      # index of selected third category (document titles)
+            category_list0      : rtypes.arrayOf(rtypes.string)  # list of first category entries
+            category_list1      : rtypes.arrayOf(rtypes.string)  # list of second level categories
+            category_list2      : rtypes.arrayOf(rtypes.string)  # third level are the document titles
+            category0           : rtypes.number      # index of selected first category (left)
+            category1           : rtypes.number      # index of selected second category (second from left)
+            category2           : rtypes.number      # index of selected third category (document titles)
             search_str          : rtypes.string      # substring to search for -- or undefined
             search_sel          : rtypes.number      # index of selected matched documents
             submittable         : rtypes.bool        # if true, the buttons at the bottom are active
@@ -67,13 +67,13 @@ exports.ExamplesDialog = rclass ({name}) ->
     shouldComponentUpdate: (props, state) ->
         ret = misc.is_different(@props, props, [
             'show', 'lang', 'code', 'descr', 'setup_code', 'prepend_setup_code', 'data',
-            'cat0', 'cat1', 'cat2', 'search_str', 'search_sel', 'unknown_lang', 'submittable'
+            'category0', 'category1', 'category2', 'search_str', 'search_sel', 'unknown_lang', 'submittable'
         ])
         ret or= misc.is_different_array(props.hits, @props.hits)
         ret or= misc.is_different_array(props.nav_entries, @props.nav_entries)
-        ret or= misc.is_different_array(props.catlist0, @props.catlist0)
-        ret or= misc.is_different_array(props.catlist1, @props.catlist1)
-        ret or= misc.is_different_array(props.catlist2, @props.catlist2)
+        ret or= misc.is_different_array(props.category_list0, @props.category_list0)
+        ret or= misc.is_different_array(props.category_list1, @props.category_list1)
+        ret or= misc.is_different_array(props.category_list2, @props.category_list2)
         return ret
 
     close: ->
@@ -129,12 +129,12 @@ exports.ExamplesDialog = rclass ({name}) ->
                 setup_code         = {@props.setup_code}
                 prepend_setup_code = {@props.prepend_setup_code}
                 descr              = {@props.descr}
-                cat0               = {@props.cat0}
-                cat1               = {@props.cat1}
-                cat2               = {@props.cat2}
-                catlist0           = {@props.catlist0}
-                catlist1           = {@props.catlist1}
-                catlist2           = {@props.catlist2}
+                category0          = {@props.category0}
+                category1          = {@props.category1}
+                category2          = {@props.category2}
+                category_list0     = {@props.category_list0}
+                category_list1     = {@props.category_list1}
+                category_list2     = {@props.category_list2}
                 search_str         = {@props.search_str}
                 search_sel         = {@props.search_sel}
                 hits               = {@props.hits}

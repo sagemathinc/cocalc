@@ -41,12 +41,12 @@ exports.ExamplesBody = rclass
         descr               : rtypes.string
         setup_code          : rtypes.string
         prepend_setup_code  : rtypes.bool
-        cat0                : rtypes.number
-        cat1                : rtypes.number
-        cat2                : rtypes.number
-        catlist0            : rtypes.arrayOf(rtypes.string)
-        catlist1            : rtypes.arrayOf(rtypes.string)
-        catlist2            : rtypes.arrayOf(rtypes.string)
+        category0           : rtypes.number
+        category1           : rtypes.number
+        category2           : rtypes.number
+        category_list0      : rtypes.arrayOf(rtypes.string)
+        category_list1      : rtypes.arrayOf(rtypes.string)
+        category_list2      : rtypes.arrayOf(rtypes.string)
         search_str          : rtypes.string
         search_sel          : rtypes.number
         hits                : rtypes.arrayOf(rtypes.array)
@@ -58,12 +58,12 @@ exports.ExamplesBody = rclass
     shouldComponentUpdate: (props, state) ->
         ret = misc.is_different(@props, props, [
             'data', 'lang', 'code', 'descr', 'setup_code', 'prepend_setup_code',
-            'cat0', 'cat1', 'cat2', 'search_str', 'search_sel', 'unknown_lang'
+            'category0', 'category1', 'category2', 'search_str', 'search_sel', 'unknown_lang'
         ])
         ret or= misc.is_different_array(props.hits, @props.hits)
-        ret or= misc.is_different_array(props.catlist0, @props.catlist0)
-        ret or= misc.is_different_array(props.catlist1, @props.catlist1)
-        ret or= misc.is_different_array(props.catlist2, @props.catlist2)
+        ret or= misc.is_different_array(props.category_list0, @props.category_list0)
+        ret or= misc.is_different_array(props.category_list1, @props.category_list1)
+        ret or= misc.is_different_array(props.category_list2, @props.category_list2)
         return ret
 
     componentDidMount: ->
@@ -73,18 +73,18 @@ exports.ExamplesBody = rclass
         @scrollToS = _.debounce((() -> $(ReactDOM.findDOMNode(@refs.search_results_list)).find('.active').scrollintoview()), 50)
 
     componentDidUpdate: (props, state) ->
-        @scrollTo0() if props.cat0 != @props.cat0
-        @scrollTo1() if props.cat1 != @props.cat1
-        @scrollTo2() if props.cat2 != @props.cat2
+        @scrollTo0() if props.category0 != @props.category0
+        @scrollTo1() if props.category1 != @props.category1
+        @scrollTo2() if props.category2 != @props.category2
         @scrollToS() if props.search_sel != @props.search_sel
 
     category_selection: (level, idx) ->
         @props.actions.set_selected_category(level, idx)
 
     # level could be 0, 1 or 2
-    category_list: (level) ->
-        cat  = @props["cat#{level}"]
-        list = @props["catlist#{level}"]
+    render_category_list: (level) ->
+        cat  = @props["category#{level}"]
+        list = @props["category_list#{level}"]
         list ?= []
         # don't use ListGroup & ListGroupItem with onClick, because then there are div/buttons (instead of ul/li) and layout is f'up
         <ul className={'list-group'} ref={"list_#{level}"}>
@@ -148,9 +148,9 @@ exports.ExamplesBody = rclass
                 </Col>
             else
                 [
-                    <Col sm={3} key={0}>{@category_list(0)}</Col>
-                    <Col sm={3} key={1}>{@category_list(1)}</Col>
-                    <Col sm={6} key={2}>{@category_list(2)}</Col>
+                    <Col sm={3} key={0}>{@render_category_list(0)}</Col>
+                    <Col sm={3} key={1}>{@render_category_list(1)}</Col>
+                    <Col sm={6} key={2}>{@render_category_list(2)}</Col>
                 ]
         }
         </Row>
@@ -173,10 +173,10 @@ exports.ExamplesBody = rclass
 
     # top is the selector or search results list; bottom displays a selected document
     render_body: ->
-        [
-            @render_top()
-            @render_bottom()
-        ]
+        <React.Fragment>
+            {@render_top()}
+            {@render_bottom()}
+        </React.Fragment>
 
     render_unknown_lang: ->
         {REPO_URL} = require('./main')
