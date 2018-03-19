@@ -92,9 +92,13 @@ exports.ExamplesBody = rclass
         <ul className={'list-group'} ref={"list_#{level}"}>
         {
             list.map (name, idx) =>
-                click  = @category_selection.bind(@, level, idx)
+                click  = => @category_selection(level, idx)
                 active = if idx == category then 'active' else ''
-                <li className={"list-group-item " + active} onClick={click} key={idx}>
+                <li
+                    className  = {"list-group-item " + active}
+                    onClick    = {click}
+                    key        = {idx}
+                >
                     <Markdown value={name} />
                 </li>
         }
