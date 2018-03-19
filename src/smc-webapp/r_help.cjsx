@@ -139,6 +139,9 @@ HelpPageUsageSection = rclass
             </span>
 
     render: ->
+        # TODO: it would be nice to change the share link to
+        #     https://cocalc.com/share/7561f68d-3d97-4530-b97e-68af2fb4ed13/stats.html
+        # but this seems stale for some reason sometimes.
         <Col sm={12} md={6}>
             <h3>
                 <Icon name='dashboard' /> Statistics
