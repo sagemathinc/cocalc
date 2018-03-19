@@ -1927,26 +1927,6 @@ class FileEditorWrapper extends FileEditor
         @element?.hide()
         @wrapped?.hide?()
 
-###
-# Task list
-###
-
-class TaskList extends FileEditorWrapper
-    init_wrapped: () =>
-        @element = $("<div><span>&nbsp;&nbsp;Loading...</span></div>")
-        require.ensure [], () =>
-            tasks = require('./tasks')
-            elt = tasks.task_list(@project_id, @filename, {})
-            @element.replaceWith(elt)
-            @element = elt
-            @wrapped = elt.data('task_list')
-            @show()  # need to do this due to async loading -- otherwise once it appears it isn't the right size, which is BAD.
-
-    mount: () =>
-        if not @mounted
-            $(document.body).append(@element)
-            @mounted = true
-        return @mounted
 
 ###
 # Jupyter notebook
@@ -2049,12 +2029,10 @@ exports.register_nonreact_editors = ->
 
     {HistoryEditor} = require('./editor_history')
     register(false, HistoryEditor,    ['sage-history'])
-    #register(false, TaskList,         ['tasks'])
     exports.switch_to_ipynb_classic = ->
         register(false, JupyterNotebook,  ['ipynb'])
 
     # "Editors" for read-only public files
-    register(true, PublicCodeMirrorEditor,  [''])
     register(true, PublicHTML,              ['html'])
     register(true, PublicSagews,            ['sagews'])
 

@@ -67,6 +67,8 @@ exports.FrameTree = FrameTree = rclass
         cursors             : rtypes.immutable.Map
         has_unsaved_changes : rtypes.bool
         read_only           : rtypes.bool   # if true, then whole document considered read only (individual frames can still be via desc)
+        is_public           : rtypes.bool
+        content             : rtypes.string
 
     getInitialState: ->
         drag_hover: false
@@ -74,7 +76,7 @@ exports.FrameTree = FrameTree = rclass
     shouldComponentUpdate: (next, state) ->
         return @state.drag_hover != state.drag_hover or \
                misc.is_different(@props, next, ['frame_tree', 'active_id', 'full_id', 'is_only', \
-                      'cursors', 'has_unsaved_changes'])
+                      'cursors', 'has_unsaved_changes', 'is_public', 'content'])
 
     render_frame_tree: (desc) ->
         <FrameTree
@@ -88,6 +90,8 @@ exports.FrameTree = FrameTree = rclass
             cursors             = {@props.cursors}
             has_unsaved_changes = {@props.has_unsaved_changes}
             read_only           = {@props.read_only}
+            is_public           = {@props.is_public}
+            content             = {@props.content}
         />
 
     render_titlebar: (desc) ->
@@ -102,6 +106,7 @@ exports.FrameTree = FrameTree = rclass
             deletable           = {desc.get('deletable') ? true}
             read_only           = {desc.get('read_only') or @props.read_only}
             has_unsaved_changes = {@props.has_unsaved_changes}
+            is_public           = {@props.is_public}
         />
 
     render_codemirror: (desc) ->
@@ -114,6 +119,7 @@ exports.FrameTree = FrameTree = rclass
             cm_state    = {@props.cm_state.get(desc.get('id'))}
             is_current  = {desc.get('id') == @props.active_id}
             cursors     = {@props.cursors}
+            content     = {@props.content}
         />
 
     render_one: (desc) ->

@@ -27,7 +27,6 @@ misc            = require('smc-util/misc')
 misc_page       = require('./misc_page')
 {webapp_client} = require('./webapp_client')
 feature         = require('./feature')
-{markdown_to_html} = require('./markdown')
 {HelpEmailLink, SiteName, SmcWikiUrl} = require('./customize')
 
 STATE =
@@ -218,7 +217,6 @@ class SupportActions extends Actions
                 email_address: @get('email')
                 subject      : @get('subject')
                 body         : @get('body')
-                #body         : markdown_to_html(@get('body')).s # html doesn't work
                 tags         : tags
                 location     : @location()
                 account_id   : account_id
