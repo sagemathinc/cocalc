@@ -83,15 +83,17 @@ exports.ExamplesBody = rclass
 
     # level could be 0, 1 or 2
     render_category_list: (level) ->
-        cat  = @props["category#{level}"]
-        list = @props["category_list#{level}"]
+        [category, list] = switch level
+            when 0 then [@props.category0, @props.category_list0]
+            when 1 then [@props.category1, @props.category_list1]
+            when 2 then [@props.category2, @props.category_list2]
         list ?= []
         # don't use ListGroup & ListGroupItem with onClick, because then there are div/buttons (instead of ul/li) and layout is f'up
         <ul className={'list-group'} ref={"list_#{level}"}>
         {
             list.map (name, idx) =>
                 click  = @category_selection.bind(@, level, idx)
-                active = if idx == cat then 'active' else ''
+                active = if idx == category then 'active' else ''
                 <li className={"list-group-item " + active} onClick={click} key={idx}>
                     <Markdown value={name} />
                 </li>
