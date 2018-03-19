@@ -136,11 +136,15 @@ exports.StudentList = rclass
         if show_points
             info.push("#{misc.round2(points) ? 0} #{misc.plural(points, 'pt')}.")
 
-        if @props.grading_mode == 'points'
-            grade     = grade2str(points, @props.max_points)
-            is_graded = (grade_val ? '').length > 0 and (grade == grade_val)
-            if is_graded
-                extra = <Fragment>{' '}<GreenCheckmark /></Fragment>
+        switch @props.grading_mode
+            when 'points'
+                grade     = grade2str(points, @props.max_points)
+                is_graded = ((grade_val ? '').length > 0) and (grade == grade_val)
+                if is_graded
+                    extra = <Fragment>{' '}<GreenCheckmark /></Fragment>
+            when 'manual'
+                if show_grade
+                    extra = <Fragment>{' '}<GreenCheckmark /></Fragment>
 
         <span style={info_style}>
             {info.join(', ')}
