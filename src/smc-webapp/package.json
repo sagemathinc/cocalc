@@ -20,6 +20,7 @@
     "copy-to-clipboard": "^3.0.8",
     "create-react-class": "^15.6.2",
     "crypto-browserify": "^3.12.0",
+    "css-color-names": "0.0.4",
     "d3": "^3.5.6",
     "delims": "^0.4.2",
     "eonasdan-bootstrap-datetimepicker": "^4.15.35",
