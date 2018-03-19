@@ -1,5 +1,5 @@
 ###
-Editor Actions
+Code Editor Actions
 ###
 
 WIKI_HELP_URL   = "https://github.com/sagemathinc/cocalc/wiki/editor"  # TODO -- write this
