@@ -65,6 +65,7 @@ GradingRecord = immutable.Record
     cursors         : null      # information about other collaborators also grading an assignment (i.e. realtime presence information)
     anonymous       : false     # if true, student names are hidden in the UI (simply to avoid bias a little bit)
     mode            : 'manual'  # manual or points, derived from store.get_grading_mode(assignment_id)
+    discussion      : null,     # this is either a string to the "path" (indicating to show the chat) or null
     'Grading'
 
 exports.Grading = class Grading extends GradingRecord
@@ -75,6 +76,12 @@ exports.Grading = class Grading extends GradingRecord
 
     toggle_anonymous: ->
         return @merge(anonymous: !@anonymous)
+
+    toggle_show_discussion: (path) ->
+        if @discussion
+            return @merge(discussion : null)
+        else
+            return @merge(discussion: path)
 
     get_current_idx : ->
         current_idx = null

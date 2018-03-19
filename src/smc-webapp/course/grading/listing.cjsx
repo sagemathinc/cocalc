@@ -28,9 +28,10 @@ _         = require('underscore')
 {defaults, required} = misc = require('smc-util/misc')
 {COLORS}             = require('smc-util/theme')
 {Avatar}             = require('../../other-users')
+{SideChat}           = require('../../side_chat')
 
 # React libraries
-{React, rclass, rtypes} = require('../../smc-react')
+{React, rclass, rtypes, redux} = require('../../smc-react')
 {DateTimePicker, ErrorDisplay, Icon, LabeledRow, Loading, MarkdownInput, Space, Tip, NumberInput} = require('../../r_misc')
 {Alert, Button, ButtonToolbar, ButtonGroup, Form, FormControl, FormGroup, ControlLabel, InputGroup, Checkbox, Row, Col, Panel, Breadcrumb} = require('react-bootstrap')
 
@@ -59,6 +60,9 @@ exports.Listing = rclass
         without_grade   : rtypes.bool
         collected_files : rtypes.bool
         show_all_files  : rtypes.bool
+        discussion      : rtypes.string
+        path            : rtypes.string.isRequired
+        project_id      : rtypes.string.isRequired
 
     getInitialState: ->
         active_autogrades : immutable.Set()
@@ -66,7 +70,8 @@ exports.Listing = rclass
     shouldComponentUpdate: (next) ->
         x = misc.is_different(@props, next, \
             ['assignment', 'listing', 'num_pages', 'page_number', 'student_info',
-            'student_id', 'subdir' ,'without_grade', 'collected_files', 'show_all_files'])
+            'student_id', 'subdir' ,'without_grade', 'collected_files',
+            'show_all_files', 'discussion'])
         y = @props.listing_files? and (not @props.listing_files.equals(next.listing_files))
         return x or y
 
@@ -151,6 +156,11 @@ exports.Listing = rclass
 
     toggle_show_all_files: ->
         @actions(@props.name).grading_toggle_show_all_files()
+
+    toggle_discussion: ->
+        apath = @props.assignment.get('path')
+        path  = "#{@props.path}-#{apath}-#{@props.student_id}"
+        @actions(@props.name).grading_toggle_show_discussion(path)
 
     render_toggle_show_all_files: ->
         visible = @props.show_all_files
@@ -380,6 +390,25 @@ exports.Listing = rclass
         more = @listing_more_files_info()
         return (if more? then [listing, more] else listing)
 
+    render_discussion_button: ->
+        if @props.discussion
+            bsStyle = 'warning'
+            text    = 'Listing'
+        else
+            bsStyle = 'default'
+            text    = 'Discussion'
+
+        <div style={padding:'0', flex:'0', marginRight: '15px'}>
+            <ButtonGroup>
+                <Button
+                    onClick   = {@toggle_discussion}
+                    bsStyle   = {bsStyle}
+                >
+                    {text}
+                </Button>
+            </ButtonGroup>
+        </div>
+
     listing_controls: ->
         last_collect_time  = @props.student_info.getIn(['last_collect', 'time'])
         if last_collect_time
@@ -393,9 +422,10 @@ exports.Listing = rclass
 
         <Row key={'controls'}>
             <div style={display: 'flex', flexDirection: 'row'}>
-                {@render_listing_pager()}
+                {@render_discussion_button()}
+                {@render_listing_pager() if not @props.discussion}
                 <div style={padding:'0', flex:'1'}>
-                    {@render_listing_path()}
+                    {@render_listing_path() if not @props.discussion}
                 </div>
                 <div style={padding:'0', flex:'0'}>
                     <ButtonGroup style={marginBottom:'5px', display:'flex'}>
@@ -428,9 +458,25 @@ exports.Listing = rclass
             </div>
         </Row>
 
+    discussion: ->
+        <Row style={FLEX_LIST_CONTAINER} key={'discussion'}>
+            <SideChat
+                path       = {misc.meta_file(@props.discussion, 'chat')}
+                redux      = {redux}
+                project_id = {@props.project_id}
+            />
+        </Row>
+
     render: ->
         <React.Fragment>
             {@listing_controls()}
-            {@listing_header()}
-            {@listing()}
+            {
+                if @props.discussion
+                    @discussion()
+                else
+                    <React.Fragment>
+                        {@listing_header()}
+                        {@listing()}
+                    </React.Fragment>
+            }
         </React.Fragment>

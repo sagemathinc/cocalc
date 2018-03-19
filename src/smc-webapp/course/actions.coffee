@@ -1883,6 +1883,7 @@ exports.CourseActions = class CourseActions extends Actions
             page_number     : 0
             listing         : null
             listing_files   : null
+            discussion      : null
         )
         @grading_update(store, grading)
         # sets a "cursor" pointing to this assignment and student, signal for others
@@ -1968,6 +1969,18 @@ exports.CourseActions = class CourseActions extends Actions
         grading = grading
                     .toggle_anonymous()
                     .set('student_filter', '')
+        @grading_update(store, grading)
+
+    grading_toggle_show_discussion: (path) =>
+        store = @get_store()
+        return if not store?
+        grading = store.get('grading')
+        return if not grading?
+        grading = grading.toggle_show_discussion(path)
+        if grading.discussion?
+            chat_register = require('../chat/register')
+            chat_path     = misc.meta_file(path, 'chat')
+            chat_register.init(chat_path, @redux, store.get('course_project_id'))
         @grading_update(store, grading)
 
     grading_update_activity: (opts) =>

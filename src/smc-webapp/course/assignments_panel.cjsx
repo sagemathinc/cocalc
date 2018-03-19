@@ -62,6 +62,7 @@ exports.AssignmentsPanel = rclass ({name}) ->
         all_assignments : rtypes.object.isRequired
         students        : rtypes.object.isRequired
         user_map        : rtypes.object.isRequired
+        path            : rtypes.string.isRequired
 
     getInitialState: ->
         err           : undefined  # error message to display at top.
@@ -126,6 +127,7 @@ exports.AssignmentsPanel = rclass ({name}) ->
                 expand_peer_config    = {@props.expanded_peer_configs.has(x.assignment_id)}
                 expand_grading_config = {@props.expanded_grading_configs.has(x.assignment_id)}
                 grading               = {@props.grading}
+                path                  = {@props.path}
             />
 
     render_show_deleted: (num_deleted, num_shown) ->
@@ -204,6 +206,7 @@ Assignment = rclass
         expand_peer_config    : rtypes.bool
         expand_grading_config : rtypes.bool
         grading               : rtypes.instanceOf(Grading)
+        path                  : rtypes.string.isRequired
 
     getInitialState: ->  {} # there are many keys used in state; we assume @state not null in code below.
 
@@ -372,6 +375,8 @@ Assignment = rclass
                     students       = {@props.students}
                     user_map       = {@props.user_map}
                     grading        = {@props.grading}
+                    path           = {@props.path}
+                    project_id     = {@props.project_id}
                 />
         else
             header      = @render_more_header()

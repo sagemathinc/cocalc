@@ -197,8 +197,16 @@ CourseEditor = rclass ({name}) ->
 
     render_assignments: ->
         if @props.redux? and @props.assignments? and @props.user_map? and @props.students?
-            <AssignmentsPanel actions={@props.redux.getActions(@props.name)} redux={@props.redux} all_assignments={@props.assignments}
-                name={@props.name} project_id={@props.project_id} user_map={@props.user_map} students={@props.students} />
+            <AssignmentsPanel
+                actions={@props.redux.getActions(@props.name)}
+                redux={@props.redux}
+                all_assignments={@props.assignments}
+                name={@props.name}
+                project_id={@props.project_id}
+                user_map={@props.user_map}
+                students={@props.students}
+                path={@props.path}
+            />
         else
             return <Loading />
 
