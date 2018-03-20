@@ -118,13 +118,14 @@ exports.ExamplesBody = rclass
                 title_hl = title.replace(new RegExp(ss, "gi"), "<span class='hl'>#{ss}</span>")
                 # if the hit is in the description, highlight it too
                 if inDescr != -1
-                    i = Math.max(0, inDescr-30)
-                    j = Math.min(descr.length, inDescr+30+ss.length)
-                    t = descr[inDescr...inDescr+ss.length]
-                    snippet = descr[i..j].replace(new RegExp(ss, "gi"), "<span class='hl'>#{t}</span>")
-                    if i > 0
+                    context = 30
+                    start_idx = Math.max(0, inDescr - context)
+                    end_idx   = Math.min(descr.length, inDescr + context + ss.length)
+                    hit_str = descr[inDescr...inDescr+ss.length]
+                    snippet = descr[start_idx..end_idx].replace(new RegExp(ss, "gi"), "<span class='hl'>#{hit_str}</span>")
+                    if start_idx > 0
                         snippet = '...' + snippet
-                    if j < descr.length
+                    if end_idx < descr.length
                         snippet = snippet + '...'
                 active = if @props.search_sel == idx then 'active' else ''
                 title_hl += ':' if snippet?.length > 0
