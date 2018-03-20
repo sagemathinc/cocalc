@@ -709,6 +709,7 @@ exports.SearchInput = rclass
         on_clear        : rtypes.func    # invoked without arguments when input box is cleared (eg. via esc or clicking the clear button)
         clear_on_submit : rtypes.bool    # if true, will clear search box on every submit (default: false)
         buttonAfter     : rtypes.object
+        input_class     : rtypes.string  # className for the InputGroup element
 
     shouldComponentUpdate: (props, state) ->
         return misc.is_different(@state, state, ['value', 'ctrl_down']) or \
@@ -785,7 +786,7 @@ exports.SearchInput = rclass
 
     render: ->
         <FormGroup style={@props.style}>
-            <InputGroup>
+            <InputGroup className={@props.input_class}>
                 <FormControl
                     autoFocus   = {@props.autoFocus}
                     ref         = 'input'

@@ -25,7 +25,7 @@ immutable = require('immutable')
 # react elements
 {Col, Row, Panel, Button, FormGroup, Checkbox, FormControl, Well, Alert, Modal, Table, Nav, NavItem, ListGroup, ListGroupItem, InputGroup} = require('react-bootstrap')
 {React, ReactDOM, redux, Redux, Actions, Store, rtypes, rclass} = require('../smc-react')
-{Loading, Icon, Markdown, Space} = require('../r_misc')
+{Loading, Icon, Markdown, Space, SearchInput} = require('../r_misc')
 # cocalc libs
 {defaults, required, optional} = misc = require('smc-util/misc')
 {ICON_NAME} = require('./common')
@@ -67,34 +67,8 @@ exports.ExamplesHeader = rclass
     langSelect: (key) ->
         @props.actions.select_lang(key)
 
-    search: (evt) ->
-        evt.preventDefault()
-        evt.stopPropagation()
-        @props.actions.search(evt.target.value)
-
-    handle_search_keyup: (evt) ->
-        if not @props.search_str?.length
-            return true
-        switch evt.keyCode
-            when 27 # ESC
-                if @props.search_str?.length > 0
-                    @props.actions.search('')
-                else
-                    return true
-            when 38
-                @props.actions.search_cursor(-1)
-            when 40
-                @props.actions.search_cursor(+1)
-            else
-                # let them propagate up to the dialog's key handler
-                return true
-        evt.preventDefault() # which
-        evt.stopPropagation() # does
-        evt.nativeEvent.stopImmediatePropagation() # what ?!
-        return false
-
-    search_clear: ->
-        @props.actions.search('')
+    search: (value) ->
+        @props.actions.search(value)
 
     # a horizontal list of clickable language categories
     render_nav: ->
@@ -121,27 +95,15 @@ exports.ExamplesHeader = rclass
         </Nav>
 
     render_search: ->
-        bsStyle = if @props.search_str?.length > 0 then 'warning' else 'default'
-        <FormGroup>
-            <InputGroup className = {'webapp-examples-search'}>
-                <FormControl
-                    ref         = {'search'}
-                    type        = {'text'}
-                    placeholder = {'Search'}
-                    value       = {@props.search_str ? ''}
-                    onKeyUp     = {@handle_search_keyup}
-                    onChange    = {@search}
-                />
-                <InputGroup.Button>
-                    <Button
-                        onClick  = {@search_clear}
-                        bsStyle  = {bsStyle}
-                    >
-                        <Icon name={'times-circle'} />
-                    </Button>
-                </InputGroup.Button>
-            </InputGroup>
-        </FormGroup>
+        <SearchInput
+            placeholder = {'Search'}
+            value       = {@props.search_str ? ''}
+            on_escape   = {=>@props.actions.search('')}
+            on_change   = {@search}
+            on_up       = {=>@props.actions.search_cursor(-1)}
+            on_down     = {=>@props.actions.search_cursor(+1)}
+            input_class = {'webapp-examples-search'}
+        />
 
     render: ->
         return null if (not @props.lang?) or (not @props.lang_select?)

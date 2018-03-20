@@ -114,7 +114,7 @@ exports.ExamplesBody = rclass
             hit_str = title[position...position+ss.length]
             title   = <React.Fragment>
                           {title[...position]}
-                          <span class='hl'>{hit_str}</span>
+                          <span className={'hl'}>{hit_str}</span>
                           {title[position+ss.length...]}
                       </React.Fragment>
 
@@ -132,7 +132,7 @@ exports.ExamplesBody = rclass
             snippet   = <React.Fragment>
                             {'...' if start_idx > 0}
                             {descr[start_idx...inDescr]}
-                            <span className='hl'>{hit_str}</span>
+                            <span className={'hl'}>{hit_str}</span>
                             {descr[inDescr+ss.length..end_idx]}
                             {'...' if end_idx < descr.length}
                         </React.Fragment>
