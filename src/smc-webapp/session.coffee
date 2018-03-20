@@ -55,6 +55,7 @@ class SessionManager
             restore_session_state(@redux, @_state)
         catch err
             console.warn("FAILED to restore state", err)
+            @_save_to_local_storage()   # set back to a valid state
         delete @_ignore
         return
 

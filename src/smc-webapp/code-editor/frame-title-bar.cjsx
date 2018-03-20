@@ -3,7 +3,7 @@ FrameTitleBar - title bar in a frame, in the frame tree
 ###
 
 {debounce} = require('underscore')
-{ButtonGroup, Button}   = require('react-bootstrap')
+{ButtonGroup, Button, DropdownButton, MenuItem}   = require('react-bootstrap')
 {React, rclass, rtypes, redux} = require('../smc-react')
 {Icon, Space, Tip, VisibleMDLG,
  EditorFileInfoDropdown}= require('../r_misc')
@@ -51,10 +51,12 @@ exports.FrameTitleBar = rclass
         is_full             : rtypes.bool
         is_only             : rtypes.bool    # is the only frame
         is_public           : rtypes.bool    # public view of a file
+        types               : rtypes.immutable.List
+        type                : rtypes.string
 
     shouldComponentUpdate: (next) ->
         return misc.is_different(@props, next, ['active_id', 'id', 'deletable', 'is_full', 'is_only', \
-                     'read_only', 'has_unsaved_changes', 'is_public'])
+                     'read_only', 'has_unsaved_changes', 'is_public', 'type', 'types'])
 
     componentWillReceiveProps: ->
         @_last_render = new Date()
@@ -83,9 +85,41 @@ exports.FrameTitleBar = rclass
             <Icon name={'times'}/>
         </Button>
 
+    select_type: (type) ->
+        @props.actions.set_frame_type?(@props.id, type)
+
+    render_types: ->
+        if not @props.types? or @props.types.size == 0 or not @props.actions.set_frame_type?
+            return
+        selected_type = @props.type ? @props.types.get(0)
+        selected_icon = ''
+        items = []
+        @props.types.forEach (t) =>
+            if selected_type == t.get('type')
+                selected_icon = t.get('icon')
+            item = <MenuItem
+                        selected = {selected_type == t.get('type')}
+                        key      = {t.get('type')}
+                        eventKey = {t.get('type')}
+                        onSelect = {@select_type}
+                    >
+                    <Icon name={t.get('icon')}/> {t.get('name')}
+                </MenuItem>
+            items.push(item)
+            return
+        <DropdownButton
+          title  = {<Icon name={selected_icon}/>}
+          key    = {'types'}
+          id     = {'types'}
+          bsSize = {@button_size()}
+        >
+            {items}
+        </DropdownButton>
+
     render_control: ->
         is_active = @props.active_id == @props.id
         <ButtonGroup style={float:'right'} key={'close'}>
+            {@render_types()     if is_active}
             {@render_split_row() if is_active and not @props.is_full}
             {@render_split_col() if is_active and not @props.is_full}
             {@render_full()      if is_active and not @props.is_only}

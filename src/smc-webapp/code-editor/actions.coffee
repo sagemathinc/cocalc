@@ -441,6 +441,10 @@ class exports.Actions extends Actions
         if not cm? or not @_syncstring?
             return
         @_syncstring.from_str(cm.getValue())
+        # NOTE: above is the only place where syncstring is changed, and when *we* change syncstring,
+        # no change event is fired.  However, derived classes may want to update some preview when
+        # syncstring changes, so we explicitly emit a change here:
+        @_syncstring.emit('change')
 
     set_codemirror_to_syncstring: =>
         cm = @_get_cm()
@@ -541,3 +545,7 @@ class exports.Actions extends Actions
         if error
             @setState(error: error)
         cm.focus()
+
+    # This is only used in derived classes right now
+    set_frame_type: (id, type) =>
+        @set_frame_tree(id:id, type:type)

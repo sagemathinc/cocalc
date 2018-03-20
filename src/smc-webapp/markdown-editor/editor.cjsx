@@ -7,6 +7,10 @@ Top-level react component for editing markdown documents
 {FormatBar} = require('./format-bar')
 
 CodeEditor = require('../code-editor/editor').Editor
+{RenderedMarkdown} = require('./rendered-markdown')
+
+LEAF_COMPONENTS =
+    md : RenderedMarkdown
 
 exports.Editor = rclass ({name}) ->
     displayName: 'MardownEditor-Editor'
@@ -29,10 +33,11 @@ exports.Editor = rclass ({name}) ->
 
     render_code_editor: ->
         <CodeEditor
-            name       = {name}
-            actions    = {@props.actions}
-            path       = {@props.path}
-            project_id = {@props.project_id}
+            name            = {name}
+            actions         = {@props.actions}
+            path            = {@props.path}
+            project_id      = {@props.project_id}
+            leaf_components = {LEAF_COMPONENTS}
             />
 
     render: ->

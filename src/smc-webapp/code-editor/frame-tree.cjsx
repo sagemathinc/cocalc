@@ -69,6 +69,9 @@ exports.FrameTree = FrameTree = rclass
         read_only           : rtypes.bool   # if true, then whole document considered read only (individual frames can still be via desc)
         is_public           : rtypes.bool
         content             : rtypes.string
+        value               : rtypes.string
+        types               : rtypes.immutable.List
+        leaf_components     : rtypes.object   # optional map from types to React components that implement editor/viewer
 
     getInitialState: ->
         drag_hover: false
@@ -76,7 +79,7 @@ exports.FrameTree = FrameTree = rclass
     shouldComponentUpdate: (next, state) ->
         return @state.drag_hover != state.drag_hover or \
                misc.is_different(@props, next, ['frame_tree', 'active_id', 'full_id', 'is_only', \
-                      'cursors', 'has_unsaved_changes', 'is_public', 'content'])
+                      'cursors', 'has_unsaved_changes', 'is_public', 'content', 'value'])
 
     render_frame_tree: (desc) ->
         <FrameTree
@@ -92,6 +95,9 @@ exports.FrameTree = FrameTree = rclass
             read_only           = {@props.read_only}
             is_public           = {@props.is_public}
             content             = {@props.content}
+            types               = {@props.types}
+            value               = {@props.value}
+            leaf_components     = {@props.leaf_components}
         />
 
     render_titlebar: (desc) ->
@@ -107,31 +113,40 @@ exports.FrameTree = FrameTree = rclass
             read_only           = {desc.get('read_only') or @props.read_only}
             has_unsaved_changes = {@props.has_unsaved_changes}
             is_public           = {@props.is_public}
+            types               = {@props.types}
+            type                = {desc.get('type')}
         />
 
-    render_codemirror: (desc) ->
-        <CodemirrorEditor
+    render_leaf: (desc, Leaf) ->
+        <Leaf
             actions     = {@props.actions}
             id          = {desc.get('id')}
             read_only   = {desc.get('read_only') or @props.read_only}
             font_size   = {desc.get('font_size') ? @props.font_size}
             path        = {desc.get('path')}
+            project_id  = {@props.project_id}
             cm_state    = {@props.cm_state.get(desc.get('id'))}
             is_current  = {desc.get('id') == @props.active_id}
             cursors     = {@props.cursors}
             content     = {@props.content}
+            value       = {@props.value}
         />
 
     render_one: (desc) ->
-        switch desc?.get('type')
+        type = desc?.get('type')
+        switch type
             when 'node'
                 return @render_frame_tree(desc)
             when 'cm'
-                child = @render_codemirror(desc)
+                child = @render_leaf(desc, CodemirrorEditor)
             else
-                # fix this disaster next time around.
-                setTimeout((=>@props.actions?.reset_frame_tree()), 1)
-                return <div>Invalid frame tree {misc.to_json(desc)}</div>
+                C = @props.leaf_components?[type]
+                if C?
+                    child = @render_leaf(desc, C)
+                else
+                    # fix this disaster next time around.
+                    setTimeout((=>@props.actions?.reset_frame_tree()), 1)
+                    return <div>Invalid frame tree {misc.to_json(desc)}</div>
         <div
             className    = {'smc-vfill'}
             onClick      = {=>@props.actions.set_active_id(desc.get('id'))}
