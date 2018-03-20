@@ -62,7 +62,7 @@ exports.FrameTree = FrameTree = rclass
         active_id           : rtypes.string
         full_id             : rtypes.string
         frame_tree          : rtypes.immutable.isRequired
-        cm_state            : rtypes.immutable.isRequired    # IMPORTANT: change does NOT cause re-render (uncontrolled); only used for full initial render, on purpose
+        editor_state        : rtypes.immutable.isRequired    # IMPORTANT: change does NOT cause re-render (uncontrolled); only used for full initial render, on purpose, i.e., setting scroll positions.
         font_size           : rtypes.number.isRequired
         is_only             : rtypes.bool
         cursors             : rtypes.immutable.Map
@@ -87,7 +87,7 @@ exports.FrameTree = FrameTree = rclass
         <FrameTree
             actions             = {@props.actions}
             frame_tree          = {desc}
-            cm_state            = {@props.cm_state}
+            editor_state        = {@props.editor_state}
             active_id           = {@props.active_id}
             project_id          = {@props.project_id}
             path                = {@props.path}
@@ -128,7 +128,7 @@ exports.FrameTree = FrameTree = rclass
             font_size        = {desc.get('font_size') ? @props.font_size}
             path             = {desc.get('path') ? @props.path}
             project_id       = {desc.get('project_id') ? @props.project_id}
-            cm_state         = {@props.cm_state.get(desc.get('id'))}
+            editor_state         = {@props.editor_state.get(desc.get('id'))}
             is_current       = {desc.get('id') == @props.active_id}
             cursors          = {@props.cursors}
             content          = {@props.content}

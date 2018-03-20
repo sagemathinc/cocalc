@@ -15,22 +15,22 @@ CodeEditor  = require('../code-editor/editor').Editor
 EDITOR_SPEC =
     cm        :
         short     : 'Code'
-        name      : 'Editable source code'
+        name      : 'Source code'
         icon      : 'code'
         component : CodemirrorEditor
     markdown :
         short     : 'View'
-        name      : 'Read only view'
+        name      : 'View'
         icon      : 'eye'
         component : RenderedMarkdown
     prosemirror :
-        short     : 'Prose'
-        name      : 'Editable rendered (ProseMirror)'
+        short     : 'Editable'
+        name      : 'Editable view'
         icon      : 'compass'
         component : ProseMirror
     content_editable :
         short     : 'Content'
-        name      : 'Editable rendered (ContentEditable)'
+        name      : 'ContentEditable TEST'
         icon      : 'crosshairs'
         component : ContentEditable
 

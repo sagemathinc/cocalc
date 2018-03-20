@@ -57,10 +57,10 @@ exports.Editor = rclass ({name}) ->
         </div>
 
     render_frame_tree: ->
-        local = @props.local_view_state
-        frame_tree = local.get('frame_tree')
-        cm_state   = local.get('cm_state')
-        if not @props.is_loaded or not frame_tree? or not cm_state? or (@props.is_public and not @props.content?)
+        local        = @props.local_view_state
+        frame_tree   = local.get('frame_tree')
+        editor_state = local.get('editor_state')
+        if not @props.is_loaded or not frame_tree? or not editor_state? or (@props.is_public and not @props.content?)
             return @render_loading()
         <div
             className = {'smc-vfill'}
@@ -68,7 +68,7 @@ exports.Editor = rclass ({name}) ->
             <FrameTree
                 actions             = {@props.actions}
                 frame_tree          = {frame_tree}
-                cm_state            = {cm_state}
+                editor_state        = {editor_state}
                 project_id          = {@props.project_id}
                 path                = {@props.path}
                 active_id           = {local.get('active_id')}

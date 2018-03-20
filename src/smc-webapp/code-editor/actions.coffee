@@ -123,8 +123,8 @@ class exports.Actions extends Actions
         if not local_view_state.has('version') # may use to deprecate in case we change format.
             local_view_state = local_view_state.set('version', 1)
 
-        if not local_view_state.has('cm_state')
-            local_view_state = local_view_state.set('cm_state', immutable.Map())
+        if not local_view_state.has('editor_state')
+            local_view_state = local_view_state.set('editor_state', immutable.Map())
 
         if not local_view_state.has("font_size")
             font_size = @redux.getStore('account')?.get('font_size') ? 14
@@ -228,7 +228,7 @@ class exports.Actions extends Actions
             @reset_local_view_state()
             return
         @_tree_op('delete_node', id)
-        @save_cm_state(id)
+        @save_editor_state(id)
         delete @_cm_selections?[id]
         delete @_cm?[id]
         setTimeout(@focus, 1)
@@ -238,7 +238,7 @@ class exports.Actions extends Actions
         @_tree_op('split_leaf', id ? @store.getIn(['local_view_state', 'active_id']), direction)
         for i,_ of @_get_leaf_ids()
             if not ids0[i]
-                @copy_cm_state(id, i)
+                @copy_editor_state(id, i)
                 id = i  # this is a new id
                 break
         # The block_ms=1 here is since the set can cause a bunch of rendering to happen
@@ -255,24 +255,24 @@ class exports.Actions extends Actions
         @_save_local_view_state()
         setTimeout(@focus, 1)
 
-    save_cm_state: (id, new_cm_state) =>
+    save_editor_state: (id, new_editor_state) =>
         local  = @store.get('local_view_state')
         if not local?
             return
-        cm_state = local.get('cm_state') ? immutable.Map()
-        if not new_cm_state?
-            if not cm_state.has(id)
+        editor_state = local.get('editor_state') ? immutable.Map()
+        if not new_editor_state?
+            if not editor_state.has(id)
                 return
-            cm_state = cm_state.delete(id)
+            editor_state = editor_state.delete(id)
         else
-            cm_state = cm_state.set(id, immutable.fromJS(new_cm_state))
-        @setState(local_view_state : local.set('cm_state', cm_state))
+            editor_state = editor_state.set(id, immutable.fromJS(new_editor_state))
+        @setState(local_view_state : local.set('editor_state', editor_state))
         @_save_local_view_state()
 
-    copy_cm_state: (id1, id2) =>
-        info = @store.getIn(['local_view_state', 'cm_state', id1])
+    copy_editor_state: (id1, id2) =>
+        info = @store.getIn(['local_view_state', 'editor_state', id1])
         if info?
-            @save_cm_state(id2, info)
+            @save_editor_state(id2, info)
 
     enable_key_handler: =>
         if @_state == 'closed'

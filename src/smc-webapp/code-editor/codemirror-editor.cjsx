@@ -36,7 +36,7 @@ exports.CodemirrorEditor = rclass
         path             : rtypes.string.isRequired
         font_size        : rtypes.number.isRequired
         cursors          : rtypes.immutable.Map
-        cm_state         : rtypes.immutable.Map
+        editor_state     : rtypes.immutable.Map
         read_only        : rtypes.bool
         is_current       : rtypes.bool
         content          : rtypes.string  # if defined, use this static value and editor is read-only
@@ -113,10 +113,10 @@ exports.CodemirrorEditor = rclass
         @props.actions.set_cursor_locs(locs, side_effect)
 
     # Save the UI state of the CM (not the actual content) -- scroll position, selections, etc.
-    save_cm_state: ->
+    save_editor_state: ->
         if not @cm?
             return
-        @props.actions.save_cm_state(@props.id, codemirror_util.get_state(@cm))
+        @props.actions.save_editor_state(@props.id, codemirror_util.get_state(@cm))
 
     # Save the underlying syncstring content.
     save_syncstring: ->
@@ -172,11 +172,11 @@ exports.CodemirrorEditor = rclass
         # see http://stackoverflow.com/questions/2655925/apply-important-css-style-using-jquery
 
 
-        save_cm_state = debounce(@save_cm_state, 500)
-        @cm.on('scroll', save_cm_state)
+        save_editor_state = debounce(@save_editor_state, 500)
+        @cm.on('scroll', save_editor_state)
 
-        if @props.cm_state?
-            codemirror_util.restore_state(@cm, @props.cm_state.toJS())
+        if @props.editor_state?
+            codemirror_util.restore_state(@cm, @props.editor_state.toJS())
 
         @setState(has_cm: true)
 
@@ -204,7 +204,7 @@ exports.CodemirrorEditor = rclass
                 @cm?.setOption('styleActiveLine', false)
 
         @cm.on 'cursorActivity', @_cm_cursor
-        @cm.on 'cursorActivity', save_cm_state
+        @cm.on 'cursorActivity', save_editor_state
 
         # replace undo/redo by our sync aware versions
         @cm.undo = @_cm_undo
