@@ -36,13 +36,14 @@ outer_style =
     flexWrap       : 'nowrap'
     justifyContent : 'space-between'
 
-inner_style = immutable.Map
+inner_style =
     marginLeft  : '10px'
     marginRight : '10px'
 
-title_style  = inner_style.merge({flex: '0 0 auto'}).toJS()
-nav_style    = inner_style.merge({flex: '1 0 auto'}).toJS()
-search_style = inner_style.merge({flex: '0 1 auto', marginRight: '50px'}).toJS()
+# this is similar to Object.assign, but compatible with IE
+title_style  = _.defaults({flex: '0 0 auto'}, inner_style)
+nav_style    = _.defaults({flex: '1 0 auto'}, inner_style)
+search_style = _.defaults({flex: '0 1 auto', marginRight: '50px'}, inner_style)
 
 exports.ExamplesHeader = rclass
     displayName : 'ExamplesHeader'
