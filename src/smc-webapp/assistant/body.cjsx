@@ -107,36 +107,62 @@ exports.ExamplesBody = rclass
     search_result_selection: (idx) ->
         @props.actions.search_selected(idx)
 
-    render_search_results: ->
+    render_search_title: (title) ->
         ss = @props.search_str
+        position = title.toLowerCase().indexOf(ss.toLowerCase())
+        if position != -1
+            hit_str = title[position...position+ss.length]
+            title   = <React.Fragment>
+                          {title[...position]}
+                          <span class='hl'>{hit_str}</span>
+                          {title[position+ss.length...]}
+                      </React.Fragment>
+
+        <span style={fontWeight: 'bold'}>
+            {title}
+        </span>
+
+    render_search_snippet: (descr, inDescr) ->
+        ss      = @props.search_str
+        context = 30 # characters shown around the search result
+        if inDescr != -1
+            start_idx = Math.max(0, inDescr - context)
+            end_idx   = Math.min(descr.length, inDescr + context + ss.length)
+            hit_str   = descr[inDescr...inDescr+ss.length]
+            snippet   = <React.Fragment>
+                            {'...' if start_idx > 0}
+                            {descr[start_idx...inDescr]}
+                            <span className='hl'>{hit_str}</span>
+                            {descr[inDescr+ss.length..end_idx]}
+                            {'...' if end_idx < descr.length}
+                        </React.Fragment>
+        else
+            snippet = descr[...context]
+            snippet += '...' if descr.length >= context
+
+        <span className={'snippet'}>
+            {snippet}
+        </span>
+
+    render_search_hit: (title, descr, inDescr) ->
+        title   = @render_search_title(title)
+        snippet = @render_search_snippet(descr, inDescr)
+        return [title, snippet]
+
+    render_search_results: ->
         <ul className={'list-group'} ref={'search_results_list'}>
         {
             @props.hits.map (hit, idx) =>
                 [lvl1, lvl2, lvl3, title, descr, inDescr] = hit
-                click = @search_result_selection.bind(@, idx)
-                # highlight the match in the title
-                title_hl = title.replace(new RegExp(ss, "gi"), "<span class='hl'>#{ss}</span>")
-                # if the hit is in the description, highlight it too
-                if inDescr != -1
-                    context = 30
-                    start_idx = Math.max(0, inDescr - context)
-                    end_idx   = Math.min(descr.length, inDescr + context + ss.length)
-                    hit_str = descr[inDescr...inDescr+ss.length]
-                    snippet = descr[start_idx..end_idx].replace(new RegExp(ss, "gi"), "<span class='hl'>#{hit_str}</span>")
-                    if start_idx > 0
-                        snippet = '...' + snippet
-                    if end_idx < descr.length
-                        snippet = snippet + '...'
+                click = => @search_result_selection(idx)
+                [title, snippet] = @render_search_hit(title, descr, inDescr)
                 active = if @props.search_sel == idx then 'active' else ''
-                title_hl += ':' if snippet?.length > 0
-                title = <span style={fontWeight: 'bold'} dangerouslySetInnerHTML={__html : title_hl}></span>
-                snip = <span className={'snippet'} dangerouslySetInnerHTML={__html : snippet}></span> if snippet?.length > 0
                 <li
                     key          = {idx}
-                    className    = {"list-group-item " + active}
+                    className    = {"list-group-item #{active}"}
                     onClick      = {click}
                 >
-                    {lvl1} → {lvl2} → {title} {snip}
+                    {lvl1} → {lvl2} → {title}: {snippet}
                 </li>
         }
         </ul>
@@ -154,11 +180,11 @@ exports.ExamplesBody = rclass
                     {@render_search_results()}
                 </Col>
             else
-                [
-                    <Col sm={3} key={0}>{@render_category_list(0)}</Col>
-                    <Col sm={3} key={1}>{@render_category_list(1)}</Col>
-                    <Col sm={6} key={2}>{@render_category_list(2)}</Col>
-                ]
+                <React.Fragment>
+                    <Col sm={3}>{@render_category_list(0)}</Col>
+                    <Col sm={3}>{@render_category_list(1)}</Col>
+                    <Col sm={6}>{@render_category_list(2)}</Col>
+                </React.Fragment>
         }
         </Row>
 
