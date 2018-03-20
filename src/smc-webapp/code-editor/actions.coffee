@@ -26,7 +26,7 @@ class exports.Actions extends Actions
         @is_public = is_public
 
         if is_public
-            @_init_content()
+            @_init_public_content()
         else
             @_init_syncstring()
 
@@ -36,7 +36,9 @@ class exports.Actions extends Actions
 
         @_save_local_view_state = underscore.debounce((=>@__save_local_view_state?()), 1500)
 
-    _init_content: =>
+    # Init setting of content exactly once based on reading file from disk
+    # via public api.
+    _init_public_content: =>
         @setState(is_loaded : false)
         webapp_client.public_get_text_file
             project_id         : @project_id
@@ -48,12 +50,24 @@ class exports.Actions extends Actions
                     @setState(content: data)
                 @setState(is_loaded: true)
 
+    # Init setting of value whenever syncstring changes -- only used in derived classes
+    _init_syncstring_value: =>
+        @_syncstring.on 'change', =>
+            @setState(value: @_syncstring.to_str())
+
+    # Init spellchecking whenever syncstring saves -- only used in derived classes, where
+    # spelling makes sense...
+    _init_spellcheck: =>
+        @update_misspelled_words()
+        @_syncstring.on 'save-to-disk', =>
+            @update_misspelled_words()
+
     reload: =>
         if not @store.get('is_loaded')
             # already loading
             return
         # this sets is_loaded to false... loads, then sets to true.
-        @_init_content()
+        @_init_public_content()
 
     _init_syncstring: =>
         @_syncstring = webapp_client.sync_string
@@ -571,3 +585,12 @@ class exports.Actions extends Actions
                     if not words.equals(@store.get('misspelled_words'))
                         @setState(misspelled_words: words)
         return
+
+    format_action: (cmd, args) =>
+        console.log 'format_action', cmd, args
+        cm = @_get_cm()
+        if not cm?
+            return
+        cm.edit_selection({cmd:cmd, args:args})
+        cm.focus()
+        @set_syncstring_to_codemirror()

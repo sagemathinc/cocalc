@@ -10,8 +10,8 @@ tree_ops  = require('../code-editor/tree-ops')
 class exports.Actions extends Actions
     _init: (args...) =>
         super._init(args...)   # call the _init for the parent class
-        @_syncstring.on 'change', =>
-            @setState(value: @_syncstring.to_str())
+        @_init_syncstring_value()
+        @_init_spellcheck()
 
     _default_frame_tree: =>
         frame_tree = immutable.fromJS
@@ -24,12 +24,4 @@ class exports.Actions extends Actions
         frame_tree = tree_ops.assign_ids(frame_tree)
         frame_tree = tree_ops.ensure_ids_are_unique(frame_tree)
         return frame_tree
-
-    format_action: (cmd, args) =>
-        console.log 'format_action', cmd, args
-        cm = @_get_cm()
-        if not cm?
-            return
-        cm.edit_selection({cmd:cmd, args:args})
-        cm.focus()
-        @set_syncstring_to_codemirror()
+        

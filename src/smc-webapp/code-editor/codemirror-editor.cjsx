@@ -66,11 +66,14 @@ exports.CodemirrorEditor = rclass
         if @props.content != next.content
             @cm.setValue(@props.content)
         if @props.misspelled_words != next.misspelled_words
-            @cm.spellcheck_highlight(next.misspelled_words?.toJS() ? [])
+            @cm_highlight_misspelled_words(next.misspelled_words)
 
     cm_refresh: ->
         @cm?.refresh()
         setTimeout((=>@cm?.refresh()), 0)
+
+    cm_highlight_misspelled_words: (words) ->
+        @cm.spellcheck_highlight(words?.toJS() ? [])
 
     cm_update_font_size: ->
         if not @cm?
@@ -150,6 +153,8 @@ exports.CodemirrorEditor = rclass
         CodeMirror.commands.save ?= (cm) -> cm._actions?.save(true)
 
         @cm = CodeMirror.fromTextArea(node, options)
+        @cm_highlight_misspelled_words(@props.misspelled_words)
+
         @cm._actions = @props.actions
 
         if @props.content?
