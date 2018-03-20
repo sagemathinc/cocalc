@@ -97,9 +97,7 @@ exports.ExamplesDialog = rclass ({name}) ->
                 @props.actions.search_cursor(dir)
             else
                 @props.actions.select_cursor(dir)
-        evt.preventDefault() # which
-        evt.stopPropagation() # does
-        evt.nativeEvent.stopImmediatePropagation() # what ?!
+        evt?.preventDefault()
         return false
 
     render: ->
