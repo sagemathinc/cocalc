@@ -196,6 +196,7 @@ Data = rclass
                 project_id     = {@props.project_id}
                 file_path      = {@props.directory}
                 safeHTML       = {not @props.trust}
+                checkboxes     = {true}
             />
         </div>
 
