@@ -185,9 +185,7 @@ class exports.Actions extends Actions
         return
 
     _default_frame_tree: =>
-        frame_tree = immutable.fromJS
-            type : 'cm'
-            path : @path
+        frame_tree = immutable.fromJS(type : 'cm')
         frame_tree = tree_ops.assign_ids(frame_tree)
         frame_tree = tree_ops.ensure_ids_are_unique(frame_tree)
         return frame_tree

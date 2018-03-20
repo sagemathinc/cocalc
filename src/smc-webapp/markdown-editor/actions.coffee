@@ -2,7 +2,10 @@
 Markdown Editor Actions
 ###
 
-{Actions}       = require('../code-editor/actions')
+immutable = require('immutable')
+
+tree_ops  = require('../code-editor/tree-ops')
+{Actions} = require('../code-editor/actions')
 
 class exports.Actions extends Actions
     _init: (args...) =>
@@ -13,6 +16,18 @@ class exports.Actions extends Actions
 
         @setState
             types: [{name:'Edit', type:'cm', icon:'edit'}, {name:'View', type:'md', icon:'eye'}]
+
+    _default_frame_tree: =>
+        frame_tree = immutable.fromJS
+            direction : 'col'
+            type      : 'node'
+            first     :
+                type : 'cm'
+            second    :
+                type : 'md'
+        frame_tree = tree_ops.assign_ids(frame_tree)
+        frame_tree = tree_ops.ensure_ids_are_unique(frame_tree)
+        return frame_tree
 
     format_action: (cmd, args) =>
         console.log 'format_action', cmd, args

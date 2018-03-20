@@ -70,6 +70,7 @@ exports.Editor = rclass ({name}) ->
                 frame_tree          = {frame_tree}
                 cm_state            = {cm_state}
                 project_id          = {@props.project_id}
+                path                = {@props.path}
                 active_id           = {local.get('active_id')}
                 full_id             = {local.get('full_id')}
                 font_size           = {local.get('font_size')}

@@ -57,6 +57,7 @@ exports.FrameTree = FrameTree = rclass
 
     propTypes               :
         actions             : rtypes.object.isRequired
+        path                : rtypes.string        # assumed to never change -- all frames in same project
         project_id          : rtypes.string        # assumed to never change -- all frames in same project
         active_id           : rtypes.string
         full_id             : rtypes.string
@@ -79,7 +80,7 @@ exports.FrameTree = FrameTree = rclass
     shouldComponentUpdate: (next, state) ->
         return @state.drag_hover != state.drag_hover or \
                misc.is_different(@props, next, ['frame_tree', 'active_id', 'full_id', 'is_only', \
-                      'cursors', 'has_unsaved_changes', 'is_public', 'content', 'value'])
+                      'cursors', 'has_unsaved_changes', 'is_public', 'content', 'value', 'project_id', 'path'])
 
     render_frame_tree: (desc) ->
         <FrameTree
@@ -88,6 +89,7 @@ exports.FrameTree = FrameTree = rclass
             cm_state            = {@props.cm_state}
             active_id           = {@props.active_id}
             project_id          = {@props.project_id}
+            path                = {@props.path}
             font_size           = {@props.font_size}
             is_only             = {false}
             cursors             = {@props.cursors}
@@ -105,10 +107,10 @@ exports.FrameTree = FrameTree = rclass
             actions             = {@props.actions}
             active_id           = {@props.active_id}
             project_id          = {desc.get('project_id') ? @props.project_id}
+            path                = {desc.get('path') ? @props.path}
             is_full             = {desc.get('id') == @props.full_id and not @props.is_only}
             is_only             = {@props.is_only}
             id                  = {desc.get('id')}
-            path                = {desc.get('path')}
             deletable           = {desc.get('deletable') ? true}
             read_only           = {desc.get('read_only') or @props.read_only}
             has_unsaved_changes = {@props.has_unsaved_changes}
@@ -123,8 +125,8 @@ exports.FrameTree = FrameTree = rclass
             id          = {desc.get('id')}
             read_only   = {desc.get('read_only') or @props.read_only}
             font_size   = {desc.get('font_size') ? @props.font_size}
-            path        = {desc.get('path')}
-            project_id  = {@props.project_id}
+            path        = {desc.get('path') ? @props.path}
+            project_id  = {desc.get('project_id') ? @props.project_id}
             cm_state    = {@props.cm_state.get(desc.get('id'))}
             is_current  = {desc.get('id') == @props.active_id}
             cursors     = {@props.cursors}

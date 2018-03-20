@@ -31,7 +31,7 @@ exports.RenderedMarkdown = rclass
         value      : rtypes.string
 
     render: ->
-        <div style={overflow:'auto', width:'100%'}>
+        <div style={overflow:'auto', width:'100%', fontSize:"#{@props.font_size}px"}>
             <div style={maxWidth: MAX_WIDTH, margin: '0 auto', padding:'10px'}>
                 <Markdown
                     value      = {@props.value}
