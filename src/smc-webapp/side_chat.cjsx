@@ -354,7 +354,7 @@ ChatLog = rclass
 
 log_container_style =
     overflowY       : 'auto'
-    flex            : 1
+    flex            : '1'
     backgroundColor : '#fafafa'
 
 ChatRoom = rclass ({name}) ->
@@ -381,14 +381,22 @@ ChatRoom = rclass ({name}) ->
             project_map : rtypes.immutable.Map
 
     propTypes:
-        redux       : rtypes.object.isRequired
-        actions     : rtypes.object.isRequired
-        name        : rtypes.string.isRequired
-        project_id  : rtypes.string.isRequired
-        file_use_id : rtypes.string.isRequired
-        path        : rtypes.string
+        redux        : rtypes.object.isRequired
+        actions      : rtypes.object.isRequired
+        name         : rtypes.string.isRequired
+        project_id   : rtypes.string.isRequired
+        file_use_id  : rtypes.string.isRequired
+        path         : rtypes.string
+        show_help    : rtypes.bool
+        show_collabs : rtypes.bool
+        input_height : rtypes.oneOf(['default', 'small'])
 
-    mark_as_read: ->
+    getDefaultProps: ->
+        show_help    : true
+        show_collabs  : true
+        input_height : 'default'
+
+    _mark_as_read: ->
         info = @props.redux.getStore('file_use').get_file_info(@props.project_id, misc.original_path(@props.path))
         if not info? or info.is_unseenchat  # only mark chat as read if it is unseen
             f = @props.redux.getActions('file_use').mark_file
@@ -413,9 +421,10 @@ ChatRoom = rclass ({name}) ->
         e.preventDefault()
 
     componentDidMount: ->
+        @mark_as_read = underscore.throttle(@_mark_as_read, 3000)
         scroll_to_position(@refs.log_container, @props.saved_position,
                            @props.offset, @props.height, @props.use_saved_position, @props.actions)
-        @mark_as_read() # The act of opening/displaying the chat marks it as seen...
+        @_mark_as_read() # The act of opening/displaying the chat marks it as seen...
                         # since this happens when the user shows it.
 
     componentWillReceiveProps: (next) ->
@@ -476,9 +485,20 @@ ChatRoom = rclass ({name}) ->
         </div>
 
     render_project_users: ->
+        return null if not @props.show_collabs
         <div style={margin:'5px 15px'}>
             {@render_collab_list()}
             {@render_add_collab()}
+        </div>
+
+    render_help: ->
+        return null if not @props.show_help
+        url = 'https://help.github.com/articles/getting-started-with-writing-and-formatting-on-github/'
+        url2 = 'https://en.wikibooks.org/wiki/LaTeX/Mathematics'
+        <div style={color:"#888", padding:'5px'}>
+            Shift+enter to send. Double click to edit.
+            Use <a href={url} target='_blank'>Markdown</a> and{' '}
+            <a href={url2} target='_blank'>LaTeX</a>.
         </div>
 
     on_focus: ->
@@ -490,17 +510,33 @@ ChatRoom = rclass ({name}) ->
         if not @props.messages? or not @props.redux?
             return <Loading/>
 
-        mark_as_read = underscore.throttle(@mark_as_read, 3000)
+        style =
+            width           : '100%'
+            display         : 'flex'
+            flex            : '1'
+            flexDirection   : 'column'
+            backgroundColor : '#efefef'
+
+        switch @props.input_height
+            when 'default'
+                height         = '6em'
+                componentClass = 'textarea'
+                send           = ''
+            when 'small'
+                height         = 'auto'
+                componentClass = 'input'
+                send           = 'Send'
 
         # WARNING: making autofocus true would interfere with chat and terminals -- where chat and terminal are both focused at same time sometimes (esp on firefox).
 
-        <div style       = {height:'100%', width:'100%', position:'absolute', display:'flex', flexDirection:'column', backgroundColor:'#efefef'}
-             onMouseMove = {mark_as_read}
-             onFocus     = {@on_focus}
-             >
+        <div
+            style       = {style}
+            onMouseMove = {@mark_as_read}
+            onFocus     = {@on_focus}
+        >
             {@render_project_users()}
             <div style   = {log_container_style}
-                 ref     = 'log_container'
+                 ref     = {'log_container'}
                  onScroll= {@on_scroll}>
                 <ChatLog
                     messages     = {@props.messages}
@@ -510,16 +546,17 @@ ChatRoom = rclass ({name}) ->
                     font_size    = {@props.font_size}
                     file_path    = {if @props.path? then misc.path_split(@props.path).head}
                     actions      = {@props.actions}
-                    show_heads   = {false} />
+                    show_heads   = {false}
+                />
             </div>
             <div style={marginTop:'auto', padding:'5px', paddingLeft:'15px', paddingRight:'15px'}>
-                <div style={display:'flex', height:'6em'}>
+                <div style={display:'flex', height:height}>
                     <FormControl
                         style          = {width:'85%', height:'100%'}
                         autoFocus      = {false}
-                        componentClass = 'textarea'
-                        ref            = 'input'
-                        onKeyDown      = {(e) => mark_as_read(); @on_keydown(e)}
+                        componentClass = {componentClass}
+                        ref            = {'input'}
+                        onKeyDown      = {(e) => @mark_as_read(); @on_keydown(e)}
                         value          = {@props.input}
                         placeholder    = {'Type a message...'}
                         onChange       = {(e) => @props.actions.set_input(e.target.value);}
@@ -528,13 +565,12 @@ ChatRoom = rclass ({name}) ->
                         style    = {width:'15%', height:'100%'}
                         onClick  = {@button_send_chat}
                         disabled = {@props.input==''}
-                        bsStyle  = 'success' >
-                        <Icon name='chevron-circle-right'/>
+                        bsStyle  = {'success'}
+                    >
+                        <Icon name='chevron-circle-right'/> {send}
                     </Button>
                 </div>
-                <div style={color:"#888", padding:'5px'}>
-                    Shift+enter to send. Double click to edit. Use <a href='https://help.github.com/articles/getting-started-with-writing-and-formatting-on-github/' target='_blank'>Markdown</a> and <a href="https://en.wikibooks.org/wiki/LaTeX/Mathematics" target='_blank'>LaTeX</a>.
-                </div>
+                {@render_help()}
             </div>
         </div>
 
@@ -551,7 +587,23 @@ exports.SideChat = ({path, redux, project_id}) ->
         project_id  = {project_id}
         path        = {path}
         file_use_id = {file_use_id}
-        />
+    />
+
+exports.EmbeddedChat = ({path, redux, project_id}) ->
+    name        = redux_name(project_id, path)
+    file_use_id = require('smc-util/schema').client_db.sha1(project_id, path)
+    actions     = redux.getActions(name)
+    <ChatRoom
+        redux        = {redux}
+        actions      = {redux.getActions(name)}
+        name         = {name}
+        project_id   = {project_id}
+        path         = {path}
+        file_use_id  = {file_use_id}
+        show_help    = {false}
+        show_collabs = {false}
+        input_height = {'small'}
+    />
 
 # Fitting the side chat into non-react parts of SMC:
 

@@ -28,7 +28,7 @@ _         = require('underscore')
 {defaults, required} = misc = require('smc-util/misc')
 {COLORS}             = require('smc-util/theme')
 {Avatar}             = require('../../other-users')
-{SideChat}           = require('../../side_chat')
+{EmbeddedChat}       = require('../../side_chat')
 
 # React libraries
 {React, rclass, rtypes, redux} = require('../../smc-react')
@@ -460,7 +460,7 @@ exports.Listing = rclass
 
     discussion: ->
         <Row style={FLEX_LIST_CONTAINER} key={'discussion'}>
-            <SideChat
+            <EmbeddedChat
                 path       = {misc.meta_file(@props.discussion, 'chat')}
                 redux      = {redux}
                 project_id = {@props.project_id}
