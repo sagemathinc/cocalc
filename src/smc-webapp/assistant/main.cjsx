@@ -50,9 +50,6 @@ immutable = require('immutable')
 # assistant libs
 {ExamplesDialog} = require('./dialog')
 
-# used elsewhere, to make sure we use the same iconography everywhere
-exports.ICON_NAME = 'magic'
-
 # the json from the server, where the entries for the documents are
 # double-nested objects (two hiearchies of categories) mapping to title/code/description documents
 DATA = null
@@ -60,17 +57,6 @@ DATA = null
 redux_name = (project_id, path) ->
     return "examples-#{project_id}-#{path}"
 
-# convert a language like "python" or "r" (usually short and lowercase) to a canonical name
-# TODO this should probably be part of the "data", or a more global function somewhere in the webapp.
-exports.lang2name = (lang) ->
-    if lang == 'python'
-        return 'Python'
-    else if lang == 'gap'
-        return 'GAP'
-    else if lang == 'sage' or misc.startswith(lang, 'sage-')
-        return 'SageMath'
-    else
-        return lang.charAt(0).toUpperCase() + lang[1..]
 
 # Redux stuff
 

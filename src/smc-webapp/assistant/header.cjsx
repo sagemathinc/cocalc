@@ -28,6 +28,7 @@ immutable = require('immutable')
 {Loading, Icon, Markdown, Space} = require('../r_misc')
 # cocalc libs
 {defaults, required, optional} = misc = require('smc-util/misc')
+{ICON_NAME} = require('./common')
 
 # The top part of the dialog. Shows the Title (maybe with the Language), a selector for the language, and search
 outer_style =
@@ -58,9 +59,9 @@ exports.ExamplesHeader = rclass
         search_str : ''
 
     shouldComponentUpdate: (props, state) ->
-        ret = misc.is_different(@props, props, ['lang', 'search_str', 'search_sel', 'unknown_lang'])
-        ret or= misc.is_different_array(props.nav_entries, @props.nav_entries)
-        return ret
+        update = misc.is_different(@props, props, ['lang', 'search_str', 'search_sel', 'unknown_lang'])
+        update or= misc.is_different_array(props.nav_entries, @props.nav_entries)
+        return update
 
     langSelect: (key) ->
         @props.actions.select_lang(key)
@@ -97,7 +98,6 @@ exports.ExamplesHeader = rclass
     # a horizontal list of clickable language categories
     render_nav: ->
         entries = @props.nav_entries ? []
-        {lang2name} = require('./main')
 
         <Nav
             bsStyle   = {'pills'}
@@ -108,7 +108,7 @@ exports.ExamplesHeader = rclass
         >
             {
                 entries.map (key, idx) ->
-                    name = lang2name(key)
+                    name    = misc.jupyter_language_to_name(key)
                     <NavItem
                         key      = {idx}
                         eventKey = {key}
@@ -145,14 +145,13 @@ exports.ExamplesHeader = rclass
     render: ->
         return null if (not @props.lang?) or (not @props.lang_select?)
         show_lang_nav = @props.lang_select and not @props.unknown_lang
-        {ICON_NAME, lang2name} = require('./main')
 
         <div style={outer_style}>
             <div style={title_style}>
                 <h2>
                     <Icon name={ICON_NAME} />
                     <Space/>
-                    {lang2name(@props.lang) if not @props.lang_select} Assistant
+                    {misc.jupyter_language_to_name(@props.lang) if not @props.lang_select} Assistant
                 </h2>
             </div>
             <div style={nav_style}>
