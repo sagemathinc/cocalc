@@ -42,7 +42,6 @@ exports.FrameTitleBar = rclass
         actions             : rtypes.object.isRequired
         path                : rtypes.string  # assumed to not change for now
         project_id          : rtypes.string  # assumed to not change for now
-
         active_id           : rtypes.string
         id                  : rtypes.string
         deletable           : rtypes.bool
@@ -51,12 +50,12 @@ exports.FrameTitleBar = rclass
         is_full             : rtypes.bool
         is_only             : rtypes.bool    # is the only frame
         is_public           : rtypes.bool    # public view of a file
-        types               : rtypes.immutable.List
-        type                : rtypes.string
+        type                : rtypes.string.isRequired
+        editor_spec         : rtypes.object  # describes editor options; assumed to never change
 
     shouldComponentUpdate: (next) ->
         return misc.is_different(@props, next, ['active_id', 'id', 'deletable', 'is_full', 'is_only', \
-                     'read_only', 'has_unsaved_changes', 'is_public', 'type', 'types'])
+                     'read_only', 'has_unsaved_changes', 'is_public', 'type'])
 
     componentWillReceiveProps: ->
         @_last_render = new Date()
@@ -89,29 +88,36 @@ exports.FrameTitleBar = rclass
         @props.actions.set_frame_type?(@props.id, type)
 
     render_types: ->
-        if not @props.types? or @props.types.size == 0 or not @props.actions.set_frame_type?
+        if not @props.editor_spec?
             return
-        selected_type = @props.type ? @props.types.get(0)
-        selected_icon = ''
+
+        selected_type  = @props.type
+        selected_icon  = ''
+        selected_short = ''
         items = []
-        @props.types.forEach (t) =>
-            if selected_type == t.get('type')
-                selected_icon = t.get('icon')
+        for type, spec of @props.editor_spec
+            if selected_type == type
+                selected_icon  = spec.icon
+                selected_short = spec.short
             item = <MenuItem
-                        selected = {selected_type == t.get('type')}
-                        key      = {t.get('type')}
-                        eventKey = {t.get('type')}
+                        selected = {selected_type == type}
+                        key      = {type}
+                        eventKey = {type}
                         onSelect = {@select_type}
                     >
-                    <Icon name={t.get('icon')}/> {t.get('name')}
+                    <Icon name={spec.icon}/> {spec.name}
                 </MenuItem>
             items.push(item)
-            return
+
+        title = <Icon name={selected_icon} />
+        if selected_short and @show_labels()
+            title = <span>{title} {selected_short}</span>
         <DropdownButton
-          title  = {<Icon name={selected_icon}/>}
-          key    = {'types'}
-          id     = {'types'}
-          bsSize = {@button_size()}
+          pullRight = {true}
+          title     = {title}
+          key       = {'types'}
+          id        = {'types'}
+          bsSize    = {@button_size()}
         >
             {items}
         </DropdownButton>

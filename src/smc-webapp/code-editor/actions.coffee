@@ -129,6 +129,10 @@ class exports.Actions extends Actions
 
         return local_view_state
 
+    reset_local_view_state: =>
+        delete localStorage[@name]
+        @setState(local_view_state : @_load_local_view_state())
+
     set_local_view_state: (obj, update_visible=true) =>
         if @_state == 'closed'
             return
@@ -205,8 +209,8 @@ class exports.Actions extends Actions
 
     close_frame: (id) =>
         if tree_ops.is_leaf(@_get_tree())
-            # closing the only node, so just close whole document
-            @redux.getProjectActions(@project_id).close_tab(@path)
+            # closing the only node, so reset to default
+            @reset_local_view_state()
             return
         @_tree_op('delete_node', id)
         @save_cm_state(id)
@@ -438,7 +442,10 @@ class exports.Actions extends Actions
         cm = @_get_cm()
         if not cm? or not @_syncstring?
             return
-        @_syncstring.from_str(cm.getValue())
+        @set_syncstring(cm.getValue())
+
+    set_syncstring: (value) =>
+        @_syncstring.from_str(value)
         # NOTE: above is the only place where syncstring is changed, and when *we* change syncstring,
         # no change event is fired.  However, derived classes may want to update some preview when
         # syncstring changes, so we explicitly emit a change here:

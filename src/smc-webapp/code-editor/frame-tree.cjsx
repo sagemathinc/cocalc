@@ -71,8 +71,7 @@ exports.FrameTree = FrameTree = rclass
         is_public           : rtypes.bool
         content             : rtypes.string
         value               : rtypes.string
-        types               : rtypes.immutable.List
-        leaf_components     : rtypes.object   # optional map from types to React components that implement editor/viewer
+        editor_spec         : rtypes.object   # optional map from types to object that specify the different editors related to the master file (assumed to not change!)
 
     getInitialState: ->
         drag_hover: false
@@ -97,9 +96,8 @@ exports.FrameTree = FrameTree = rclass
             read_only           = {@props.read_only}
             is_public           = {@props.is_public}
             content             = {@props.content}
-            types               = {@props.types}
             value               = {@props.value}
-            leaf_components     = {@props.leaf_components}
+            editor_spec         = {@props.editor_spec}
         />
 
     render_titlebar: (desc) ->
@@ -115,8 +113,8 @@ exports.FrameTree = FrameTree = rclass
             read_only           = {desc.get('read_only') or @props.read_only}
             has_unsaved_changes = {@props.has_unsaved_changes}
             is_public           = {@props.is_public}
-            types               = {@props.types}
             type                = {desc.get('type')}
+            editor_spec         = {@props.editor_spec}
         />
 
     render_leaf: (desc, Leaf) ->
@@ -136,19 +134,17 @@ exports.FrameTree = FrameTree = rclass
 
     render_one: (desc) ->
         type = desc?.get('type')
-        switch type
-            when 'node'
-                return @render_frame_tree(desc)
-            when 'cm'
-                child = @render_leaf(desc, CodemirrorEditor)
-            else
-                C = @props.leaf_components?[type]
-                if C?
-                    child = @render_leaf(desc, C)
-                else
-                    # fix this disaster next time around.
-                    setTimeout((=>@props.actions?.reset_frame_tree()), 1)
-                    return <div>Invalid frame tree {misc.to_json(desc)}</div>
+        if type == 'node'
+            return @render_frame_tree(desc)
+        C = @props.editor_spec?[type]?.component
+        if C?
+            child = @render_leaf(desc, C)
+        else if type == 'cm' # minimal support
+            child = @render_leaf(desc, CodemirrorEditor)
+        else
+            # fix this disaster next time around.
+            setTimeout((=>@props.actions?.reset_frame_tree()), 1)
+            return <div>Invalid frame tree {misc.to_json(desc)}</div>
         <div
             className    = {'smc-vfill'}
             onClick      = {=>@props.actions.set_active_id(desc.get('id'), 10)}

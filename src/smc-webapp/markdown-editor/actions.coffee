@@ -10,12 +10,8 @@ tree_ops  = require('../code-editor/tree-ops')
 class exports.Actions extends Actions
     _init: (args...) =>
         super._init(args...)   # call the _init for the parent class
-        console.log 'install syncstring change handler'
         @_syncstring.on 'change', =>
             @setState(value: @_syncstring.to_str())
-
-        @setState
-            types: [{name:'Edit', type:'cm', icon:'edit'}, {name:'View', type:'md', icon:'eye'}]
 
     _default_frame_tree: =>
         frame_tree = immutable.fromJS
@@ -24,7 +20,7 @@ class exports.Actions extends Actions
             first     :
                 type : 'cm'
             second    :
-                type : 'md'
+                type : 'markdown'
         frame_tree = tree_ops.assign_ids(frame_tree)
         frame_tree = tree_ops.ensure_ids_are_unique(frame_tree)
         return frame_tree

@@ -5,12 +5,35 @@ Top-level react component for editing markdown documents
 {React, rclass, rtypes} = require('../smc-react')
 
 {FormatBar} = require('./format-bar')
+CodeEditor  = require('../code-editor/editor').Editor
 
-CodeEditor = require('../code-editor/editor').Editor
 {RenderedMarkdown} = require('./rendered-markdown')
+{ProseMirror}      = require('./prosemirror')
+{ContentEditable}  = require('./content-editable')
+{CodemirrorEditor} = require('../code-editor/codemirror-editor')
 
-LEAF_COMPONENTS =
-    md : RenderedMarkdown
+EDITOR_SPEC =
+    cm        :
+        short     : 'Code'
+        name      : 'Editable source code'
+        icon      : 'code'
+        component : CodemirrorEditor
+    markdown :
+        short     : 'View'
+        name      : 'Read only view'
+        icon      : 'eye'
+        component : RenderedMarkdown
+    prosemirror :
+        short     : 'Prose'
+        name      : 'Editable rendered (ProseMirror)'
+        icon      : 'compass'
+        component : ProseMirror
+    content_editable :
+        short     : 'Content'
+        name      : 'Editable rendered (ContentEditable)'
+        icon      : 'crosshairs'
+        component : ContentEditable
+
 
 exports.Editor = rclass ({name}) ->
     displayName: 'MardownEditor-Editor'
@@ -37,7 +60,7 @@ exports.Editor = rclass ({name}) ->
             actions         = {@props.actions}
             path            = {@props.path}
             project_id      = {@props.project_id}
-            leaf_components = {LEAF_COMPONENTS}
+            editor_spec     = {EDITOR_SPEC}
             />
 
     render: ->

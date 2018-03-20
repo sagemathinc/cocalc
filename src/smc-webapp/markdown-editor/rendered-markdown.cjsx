@@ -13,10 +13,7 @@ It also:
 {Loading, Markdown} = require('../r_misc')
 {React, rclass, rtypes}     = require('../smc-react')
 
-# If the user makes the viewport really wide, it is very hard to read
-# the markdown, so we max the width out at 900px.  I have no idea if 900px
-# is a good choice...
-MAX_WIDTH = '900px'
+options = require('./options')
 
 exports.RenderedMarkdown = rclass
     displayName: 'MarkdownEditor-RenderedMarkdown'
@@ -32,7 +29,7 @@ exports.RenderedMarkdown = rclass
 
     render: ->
         <div style={overflow:'auto', width:'100%', fontSize:"#{@props.font_size}px"}>
-            <div style={maxWidth: MAX_WIDTH, margin: '0 auto', padding:'10px'}>
+            <div style={maxWidth: options.MAX_WIDTH, margin: '0 auto', padding:'10px'}>
                 <Markdown
                     value      = {@props.value}
                     project_id = {@props.project_id}

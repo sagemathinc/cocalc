@@ -12,17 +12,17 @@ misc                    = require('smc-util/misc')
 ###
 
 NOTES:
-  - leaf_components is an optional map from type names to react components (changing doesn't update component).
+  - editor_spec is an optional map from type names to react components (changing doesn't update component).
     Set this when there are non-codemirror editor leafs in the frame tree.
 ###
 exports.Editor = rclass ({name}) ->
     displayName: 'CodeEditor-Editor'
 
     propTypes :
-        actions         : rtypes.object.isRequired
-        path            : rtypes.string.isRequired
-        project_id      : rtypes.string.isRequired
-        leaf_components : rtypes.object
+        actions     : rtypes.object.isRequired
+        path        : rtypes.string.isRequired
+        project_id  : rtypes.string.isRequired
+        editor_spec : rtypes.object
 
     reduxProps :
         "#{name}" :
@@ -37,7 +37,6 @@ exports.Editor = rclass ({name}) ->
             is_public               : rtypes.bool
             value                   : rtypes.string
             content                 : rtypes.string
-            types                   : rtypes.immutable.List
 
     shouldComponentUpdate: (next) ->
         return misc.is_different(@props, next, ['has_unsaved_changes', 'has_uncommitted_changes', 'read_only',
@@ -81,8 +80,7 @@ exports.Editor = rclass ({name}) ->
                 is_public           = {@props.is_public}
                 content             = {@props.content}
                 value               = {@props.value}
-                types               = {@props.types}
-                leaf_components     = {@props.leaf_components}
+                editor_spec         = {@props.editor_spec}
                 />
         </div>
 
