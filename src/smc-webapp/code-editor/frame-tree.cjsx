@@ -149,8 +149,8 @@ exports.FrameTree = FrameTree = rclass
                     return <div>Invalid frame tree {misc.to_json(desc)}</div>
         <div
             className    = {'smc-vfill'}
-            onClick      = {=>@props.actions.set_active_id(desc.get('id'))}
-            onTouchStart = {=>@props.actions.set_active_id(desc.get('id'))}
+            onClick      = {=>@props.actions.set_active_id(desc.get('id'), 10)}
+            onTouchStart = {=>@props.actions.set_active_id(desc.get('id'), 10)}
         >
             {@render_titlebar(desc)}
             {child}

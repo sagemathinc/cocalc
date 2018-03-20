@@ -256,7 +256,10 @@ ProjectContentViewer = rclass
         if not Editor?
             <Loading />
         else
-            <div ref='editor_inner_container' style={height:'100%', display:'flex', flexDirection:'column', overflowX:'hidden', willChange: 'transform'}>
+            <div
+                ref       = 'editor_inner_container'
+                className = 'smc-vfill'
+                style     = {height:'100%', willChange: 'transform'}>
                 <Editor
                     name         = {redux_name}
                     path         = {path}

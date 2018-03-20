@@ -21,3 +21,4 @@ class exports.Actions extends Actions
             return
         cm.edit_selection({cmd:cmd, args:args})
         cm.focus()
+        @set_syncstring_to_codemirror()
