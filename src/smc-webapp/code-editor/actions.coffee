@@ -4,27 +4,68 @@ Editor Actions
 
 WIKI_HELP_URL   = "https://github.com/sagemathinc/cocalc/wiki/editor"  # TODO -- write this
 
-immutable      = require('immutable')
-underscore     = require('underscore')
-{Actions}      = require('../smc-react')
-misc           = require('smc-util/misc')
-keyboard       = require('./keyboard')
-copypaste      = require('../copy-paste-buffer')
-tree_ops       = require('./tree-ops')
-print          = require('./print')
+immutable       = require('immutable')
+underscore      = require('underscore')
+
+schema          = require('smc-util/schema')
+
+{webapp_client} = require('../webapp_client')
+{Actions}       = require('../smc-react')
+misc            = require('smc-util/misc')
+keyboard        = require('./keyboard')
+copypaste       = require('../copy-paste-buffer')
+tree_ops        = require('./tree-ops')
+print           = require('./print')
 
 class exports.Actions extends Actions
-    _init: (project_id, path, syncstring, store) =>
+    _init: (project_id, path, is_public, store) =>
         @project_id = project_id
         @path       = path
-        @_syncstring = syncstring
         @store      = store
+        @is_public = is_public
+
+        if is_public
+            @_init_content()
+        else
+            @_init_syncstring()
+
+        @setState
+            is_public        : is_public
+            local_view_state : @_load_local_view_state()
 
         @_save_local_view_state = underscore.debounce((=>@__save_local_view_state?()), 1500)
 
-        @_init_has_unsaved_changes()
-        @setState
-            local_view_state : @_load_local_view_state()
+    _init_content: =>
+        @setState(is_loaded : false)
+        webapp_client.public_get_text_file
+            project_id         : @project_id
+            path               : @path
+            cb                 : (err, data) =>
+                if err
+                    @set_error("Error loading -- #{err}")
+                else
+                    @setState(content: data)
+                @setState(is_loaded: true)
+
+    reload: =>
+        if not @store.get('is_loaded')
+            # already loading
+            return
+        # this sets is_loaded to false... loads, then sets to true.
+        @_init_content()
+
+    _init_syncstring: =>
+        @_syncstring = webapp_client.sync_string
+            id                 : schema.client_db.sha1(@project_id, @path)
+            project_id         : @project_id
+            path               : @path
+            cursors            : true
+            before_change_hook : @set_syncstring_to_codemirror
+            after_change_hook  : @set_codemirror_to_syncstring
+
+        @_syncstring.once 'init', (err) =>
+            if err
+                @set_error("Error opening -- #{err}")
 
         @_syncstring.once('init', @_syncstring_metadata)
         @_syncstring.on('metadata-change', @_syncstring_metadata)
@@ -34,6 +75,8 @@ class exports.Actions extends Actions
         @_syncstring.on('init', @_syncstring_change)
 
         @_syncstring.once('load-time-estimate', (est) => @setState(load_time_estimate: est))
+
+        @_init_has_unsaved_changes()
 
     close: =>
         if @_state == 'closed'
@@ -159,6 +202,9 @@ class exports.Actions extends Actions
         @_save_local_view_state()
         return
 
+    set_frame_tree_leafs: (obj) =>
+        @_tree_op('set_leafs', obj)
+
     close_frame: (id) =>
         if tree_ops.is_leaf(@_get_tree())
             # closing the only node, so just close whole document
@@ -249,6 +295,8 @@ class exports.Actions extends Actions
         @_syncstring.on('connected',       @set_save_status)
 
     _syncstring_metadata: =>
+        if not @_syncstring?
+            return
         read_only = @_syncstring.get_read_only()
         if read_only != @store.get('read_only')
             @setState(read_only: read_only)
@@ -298,6 +346,8 @@ class exports.Actions extends Actions
             cb?(err)
 
     save: (explicit) =>
+        if @is_public
+            return
         @set_has_unsaved_changes(false, 3000)
         # TODO: what about markdown, where do not want this...
         # and what about multiple syncstrings...

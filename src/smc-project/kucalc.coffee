@@ -136,12 +136,26 @@ cgroup_stats = (status, cb) ->
                 catch
                     cb(null, 0.0)
 
+        oom : (cb) ->
+            fs.readFile '/sys/fs/cgroup/memory/memory.oom_control', 'utf8', (err, data) ->
+                if err
+                    cb(err)
+                    return
+                try
+                    for line in data.split('\n')
+                        # search string includes a trailing space, otherwise it matches 'oom_kill_disable'!
+                        if misc.startswith(line, 'oom_kill ')
+                            cb(null, parseInt(line.split(' ')[1]))
+                            return
+                cb(null, 0)
+
     }, (err, res) ->
         kib = 1024 # convert to kibibyte
         status.memory.rss  += (res.memory.total_rss ? 0 + stats.total_rss_huge ? 0) / kib
         status.memory.cache = (res.memory.cache ? 0) / kib
         status.memory.limit = (res.memory.hierarchical_memory_limit ? 0) / kib
         status.cpu.usage    = res.cpu
+        status.oom_kills    = res.oom
         cb()
     )
 

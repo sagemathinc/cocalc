@@ -166,7 +166,7 @@ class exports.LatexEditor extends editor.FileEditor
         @help = @element.find('.webapp-editor-latex-help')
         markdown = require('../markdown')
         {help_md} = require('./help')
-        @help.html(markdown.markdown_to_html(help_md).s)
+        @help.html(markdown.markdown_to_html(help_md))
         @_pages['help'] = @help
 
         @_init_buttons()

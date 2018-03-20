@@ -6,7 +6,7 @@ Add collaborators to a project
 
 {Alert, Button, ButtonToolbar, FormControl, FormGroup, Well, Checkbox} = require('react-bootstrap')
 
-{Icon, LabeledRow, Loading, MarkdownInput, SearchInput, ErrorDisplay} = require('../r_misc')
+{Icon, LabeledRow, Loading, MarkdownInput, SearchInput, ErrorDisplay, TimeAgoElement} = require('../r_misc')
 
 {webapp_client}      = require('../webapp_client')
 
@@ -20,6 +20,8 @@ exports.AddCollaborators = rclass
     reduxProps :
         account :
             get_fullname : rtypes.func
+        users :
+            user_map    : rtypes.immutable
 
     getInitialState: ->
         search           : ''          # search that user has typed in so far
@@ -51,8 +53,34 @@ exports.AddCollaborators = rclass
                 @setState(searching:false, err:err, select:select, email_to:undefined)
 
     render_options: (select) ->
+        if @props.user_map?
+            x = []; y = []
+            for r in select
+                if @props.user_map.get(r.account_id)
+                    x.push(r)
+                else
+                    y.push(r)
+            select = x.concat(y)
+
         for r in select
             name = r.first_name + ' ' + r.last_name
+
+            # Extra display is a bit ugly, but we need to do it for now.  Need to make
+            # react rendered version of this that is much nicer (with pictures!) someday.
+            extra = []
+            if @props.user_map?.get(r.account_id)
+                extra.push("Collaborator")
+            if r.last_active
+                extra.push("Last active: #{new Date(r.last_active).toLocaleDateString()}")
+            if r.created
+                extra.push("Created: #{new Date(r.created).toLocaleDateString()}")
+            if r.email_address
+                if r.email_address_verified?[r.email_address]
+                    extra.push("Email verified: YES")
+                else
+                    extra.push("Email verified: NO")
+            if extra.length > 0
+                name += "  (#{extra.join(', ')})"
             <option key={r.account_id} value={r.account_id} label={name}>{name}</option>
 
     invite_collaborator: (account_id) ->
@@ -176,7 +204,12 @@ exports.AddCollaborators = rclass
         else
             <div style={marginBottom:'10px'}>
                 <FormGroup>
-                    <FormControl componentClass='select' multiple ref='select' onClick={@select_list_clicked}>
+                    <FormControl
+                        componentClass = {'select'}
+                        multiple       = {true}
+                        ref            = {'select'}
+                        onClick        = {@select_list_clicked}
+                    >
                         {@render_options(select)}
                     </FormControl>
                 </FormGroup>

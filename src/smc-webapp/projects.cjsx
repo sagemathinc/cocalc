@@ -360,7 +360,7 @@ class ProjectsActions extends Actions
 
         # convert body from markdown to html, which is what the backend expects
         if body?
-            body = markdown.markdown_to_html(body).s
+            body = markdown.markdown_to_html(body)
 
         webapp_client.project_invite_collaborator
             project_id   : project_id
@@ -392,7 +392,7 @@ class ProjectsActions extends Actions
         link2proj = "https://#{window.location.hostname}/projects/#{project_id}/"
 
         # convert body from markdown to html, which is what the backend expects
-        body = markdown.markdown_to_html(body).s
+        body = markdown.markdown_to_html(body)
 
         webapp_client.invite_noncloud_collaborators
             project_id   : project_id

@@ -27,10 +27,12 @@ exports.Editor = rclass ({name}) ->
             local_view_state        : rtypes.immutable.Map.isRequired
             error                   : rtypes.string
             cursors                 : rtypes.immutable.Map
+            is_public               : rtypes.bool
+            content                 : rtypes.string
 
     shouldComponentUpdate: (next) ->
         return misc.is_different(@props, next, ['has_unsaved_changes', 'has_uncommitted_changes', 'read_only',
-                        'load_time_estimate', 'is_loaded', 'error', 'cursors', 'local_view_state'])
+                        'load_time_estimate', 'is_loaded', 'error', 'cursors', 'local_view_state', 'is_public', 'content'])
 
     componentDidMount: ->
         @props.actions.enable_key_handler()
@@ -48,7 +50,7 @@ exports.Editor = rclass ({name}) ->
         local = @props.local_view_state
         frame_tree = local.get('frame_tree')
         cm_state   = local.get('cm_state')
-        if not @props.is_loaded or not frame_tree? or not cm_state?
+        if not @props.is_loaded or not frame_tree? or not cm_state? or (@props.is_public and not @props.content?)
             return @render_loading()
         <div
             className = {'smc-vfill'}
@@ -66,6 +68,8 @@ exports.Editor = rclass ({name}) ->
                 cursors             = {@props.cursors}
                 read_only           = {@props.read_only}
                 has_unsaved_changes = {@props.has_unsaved_changes}
+                is_public           = {@props.is_public}
+                content             = {@props.content}
                 />
         </div>
 

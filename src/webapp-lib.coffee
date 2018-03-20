@@ -111,7 +111,6 @@ require("script-loader!jsbeautify/beautify-html.min.js")
 
 require("async")
 require("events")
-require("marked")
 require("redux")
 require("react")
 require("react-redux")

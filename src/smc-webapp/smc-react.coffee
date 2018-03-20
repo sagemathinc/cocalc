@@ -434,17 +434,17 @@ class AppRedux
             console.warn("getProjectReferences: INVALID project_id -- #{project_id}")
         return project_store?.deleteStoreActionsTable(project_id, @)
 
-    getEditorStore: (project_id, path) =>
+    getEditorStore: (project_id, path, is_public) =>
         if not misc.is_valid_uuid_string(project_id)
             console.trace()
             console.warn("getEditorStore: INVALID project_id -- #{project_id}")
-        return @getStore(exports.redux_name(project_id, path))
+        return @getStore(exports.redux_name(project_id, path, is_public))
 
-    getEditorActions: (project_id, path) =>
+    getEditorActions: (project_id, path, is_public) =>
         if not misc.is_valid_uuid_string(project_id)
             console.trace()
             console.warn("getEditorActions: INVALID project_id -- #{project_id}")
-        return @getActions(exports.redux_name(project_id, path))
+        return @getActions(exports.redux_name(project_id, path, is_public))
 
 
 redux = new AppRedux()
@@ -464,6 +464,10 @@ rclass
     reduxProps:
         store_name :
             prop     : type
+
+WARNING: If store not yet defined, then props will all be undefined for that store!  There
+is no warning/error in this case.
+
 ###
 connect_component = (spec) =>
     map_state_to_props = (state) ->
@@ -475,16 +479,14 @@ connect_component = (spec) =>
                 console.warn("spec = ", spec)
                 throw Error("store_name of spec *must* be defined")
             store = redux.getStore(store_name)
-            if not store?
-                throw Error("store '#{store_name}' *must* be defined")
             for prop, type of info
-                if store.__converted?
+                if store?.__converted?
                     val = store[prop]
                     if not Object.getOwnPropertyDescriptor(store, prop)?.get?
                         if DEBUG
                             console.warn("Requested reduxProp `#{prop}` from store `#{store_name}` but it is not defined in its stateTypes nor reduxProps")
                         val = state.getIn([store_name, prop])
-                else # TODOJ: remove when all stores are converted
+                else # TODOJ: remove *if* all stores are ever converted  (which may or may not be desirable/needed)
                     val = state.getIn([store_name, prop])
                 if type.category == "IMMUTABLE"
                     props[prop] = val
@@ -494,6 +496,7 @@ connect_component = (spec) =>
     return connect(map_state_to_props)
 
 ###
+
 Takes an object to create a reactClass or a function which returns such an object.
 
 Objects should be shaped like a react class save for a few exceptions:
@@ -505,6 +508,7 @@ x.reduxProps =
 x.actions must not be defined.
 
 ###
+
 react_component = (x) ->
     if typeof x == 'function'
         # Creates a react class that wraps the eventual component.
@@ -624,7 +628,11 @@ exports.is_redux_actions = (obj) -> obj instanceof Actions
 
 # Canonical name to use for Redux store associated to a given project/path.
 # TODO: this code is also in many editors -- make them all just use this.
-exports.redux_name = (project_id, path) -> "editor-#{project_id}-#{path}"
+exports.redux_name = (project_id, path, is_public) ->
+    if is_public
+        return "public-#{project_id}-#{path}"
+    else
+        return "editor-#{project_id}-#{path}"
 
 
 exports.rclass   = rclass    # use rclass instead of createReactClass to get access to reduxProps support
@@ -632,6 +640,7 @@ exports.rtypes   = rtypes    # has extra rtypes.immutable, needed for reduxProps
 exports.computed = computed
 exports.depends  = depends
 exports.React    = React
+exports.Fragment = React.Fragment
 exports.Redux    = Redux
 exports.redux    = redux     # global redux singleton
 exports.Actions  = Actions
