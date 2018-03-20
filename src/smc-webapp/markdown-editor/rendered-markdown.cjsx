@@ -15,6 +15,9 @@ It also:
 {Loading, Markdown} = require('../r_misc')
 {React, ReactDOM, rclass, rtypes}     = require('../smc-react')
 
+{process_checkboxes} = require('../tasks/desc-rendering')
+{apply_without_math} = require('smc-util/mathjax-utils-2')
+
 options = require('./options')
 
 exports.RenderedMarkdown = rclass
@@ -49,17 +52,30 @@ exports.RenderedMarkdown = rclass
             if elt?
                 $(elt).scrollTop(scroll)
 
+    on_click: (e) ->  # same idea as in tasks/desc-rendered.cjsx
+        data = e.target?.dataset
+        if not data?
+            return
+        if data.checkbox?
+            e.stopPropagation()
+            @props.actions.toggle_markdown_checkbox(@props.id, parseInt(data.index), data.checkbox == 'true')
+
     render: ->
+        value = @props.value
+        if not value?
+            return <Loading />
+        value = apply_without_math(value, process_checkboxes)
         <div
             style    = {overflowY:'scroll', width:'100%', fontSize:"#{@props.font_size}px"}
             ref      = {'scroll'}
             onScroll = {throttle(@on_scroll, 250)}
+            onClick  = {@on_click}
         >
             <div
                 style    = {maxWidth: options.MAX_WIDTH, margin: '0 auto', padding:'10px'}
             >
                 <Markdown
-                    value      = {@props.value}
+                    value      = {value}
                     project_id = {@props.project_id}
                     file_path  = {@props.path}
                 />
