@@ -37,11 +37,12 @@ exports.Editor = rclass ({name}) ->
             is_public               : rtypes.bool
             value                   : rtypes.string
             content                 : rtypes.string
+            misspelled_words        : rtypes.immutable.Set
 
     shouldComponentUpdate: (next) ->
         return misc.is_different(@props, next, ['has_unsaved_changes', 'has_uncommitted_changes', 'read_only',
                         'load_time_estimate', 'is_loaded', 'error', 'cursors', 'local_view_state', 'is_public',
-                        'content', 'value'])
+                        'content', 'value', 'misspelled_words'])
 
     componentDidMount: ->
         @props.actions.enable_key_handler()
@@ -81,6 +82,7 @@ exports.Editor = rclass ({name}) ->
                 content             = {@props.content}
                 value               = {@props.value}
                 editor_spec         = {@props.editor_spec}
+                misspelled_words    = {@props.misspelled_words}
                 />
         </div>
 

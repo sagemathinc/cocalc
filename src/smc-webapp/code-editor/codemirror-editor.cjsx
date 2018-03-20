@@ -31,15 +31,16 @@ exports.CodemirrorEditor = rclass
     displayName: 'CodeEditor-CodemirrorEditor'
 
     propTypes :
-        id        : rtypes.string.isRequired
-        actions   : rtypes.object.isRequired
-        path      : rtypes.string.isRequired
-        font_size : rtypes.number.isRequired
-        cursors   : rtypes.immutable.Map
-        cm_state  : rtypes.immutable.Map
-        read_only : rtypes.bool
-        is_current: rtypes.bool
-        content   : rtypes.string  # if defined, use this static value and editor is read-only
+        id               : rtypes.string.isRequired
+        actions          : rtypes.object.isRequired
+        path             : rtypes.string.isRequired
+        font_size        : rtypes.number.isRequired
+        cursors          : rtypes.immutable.Map
+        cm_state         : rtypes.immutable.Map
+        read_only        : rtypes.bool
+        is_current       : rtypes.bool
+        content          : rtypes.string  # if defined, use this static value and editor is read-only
+        misspelled_words : rtypes.immutable.Set
 
     reduxProps :
         account :
@@ -58,10 +59,14 @@ exports.CodemirrorEditor = rclass
     componentWillReceiveProps: (next) ->
         if @props.font_size != next.font_size
             @cm_update_font_size()
+        if not @cm?
+            return
         if @props.read_only != next.read_only
-            @cm?.setOption('readOnly', next.read_only)
+            @cm.setOption('readOnly', next.read_only)
         if @props.content != next.content
-            @cm?.setValue(@props.content)
+            @cm.setValue(@props.content)
+        if @props.misspelled_words != next.misspelled_words
+            @cm.spellcheck_highlight(next.misspelled_words?.toJS() ? [])
 
     cm_refresh: ->
         @cm?.refresh()

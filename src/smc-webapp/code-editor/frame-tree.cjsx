@@ -72,6 +72,7 @@ exports.FrameTree = FrameTree = rclass
         content             : rtypes.string
         value               : rtypes.string
         editor_spec         : rtypes.object   # optional map from types to object that specify the different editors related to the master file (assumed to not change!)
+        misspelled_words    : rtypes.immutable.Set
 
     getInitialState: ->
         drag_hover: false
@@ -79,7 +80,8 @@ exports.FrameTree = FrameTree = rclass
     shouldComponentUpdate: (next, state) ->
         return @state.drag_hover != state.drag_hover or \
                misc.is_different(@props, next, ['frame_tree', 'active_id', 'full_id', 'is_only', \
-                      'cursors', 'has_unsaved_changes', 'is_public', 'content', 'value', 'project_id', 'path'])
+                      'cursors', 'has_unsaved_changes', 'is_public', 'content', 'value', \
+                      'project_id', 'path', 'misspelled_words'])
 
     render_frame_tree: (desc) ->
         <FrameTree
@@ -98,6 +100,7 @@ exports.FrameTree = FrameTree = rclass
             content             = {@props.content}
             value               = {@props.value}
             editor_spec         = {@props.editor_spec}
+            misspelled_words    = {@props.misspelled_words}
         />
 
     render_titlebar: (desc) ->
@@ -119,17 +122,18 @@ exports.FrameTree = FrameTree = rclass
 
     render_leaf: (desc, Leaf) ->
         <Leaf
-            actions     = {@props.actions}
-            id          = {desc.get('id')}
-            read_only   = {desc.get('read_only') or @props.read_only}
-            font_size   = {desc.get('font_size') ? @props.font_size}
-            path        = {desc.get('path') ? @props.path}
-            project_id  = {desc.get('project_id') ? @props.project_id}
-            cm_state    = {@props.cm_state.get(desc.get('id'))}
-            is_current  = {desc.get('id') == @props.active_id}
-            cursors     = {@props.cursors}
-            content     = {@props.content}
-            value       = {@props.value}
+            actions          = {@props.actions}
+            id               = {desc.get('id')}
+            read_only        = {desc.get('read_only') or @props.read_only}
+            font_size        = {desc.get('font_size') ? @props.font_size}
+            path             = {desc.get('path') ? @props.path}
+            project_id       = {desc.get('project_id') ? @props.project_id}
+            cm_state         = {@props.cm_state.get(desc.get('id'))}
+            is_current       = {desc.get('id') == @props.active_id}
+            cursors          = {@props.cursors}
+            content          = {@props.content}
+            value            = {@props.value}
+            misspelled_words = {@props.misspelled_words}
         />
 
     render_one: (desc) ->

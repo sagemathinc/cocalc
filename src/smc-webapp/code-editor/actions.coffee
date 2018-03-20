@@ -16,6 +16,7 @@ keyboard        = require('./keyboard')
 copypaste       = require('../copy-paste-buffer')
 tree_ops        = require('./tree-ops')
 print           = require('./print')
+spell_check     = require('./spell-check')
 
 class exports.Actions extends Actions
     _init: (project_id, path, is_public, store) =>
@@ -554,3 +555,19 @@ class exports.Actions extends Actions
     # This is only used in derived classes right now
     set_frame_type: (id, type) =>
         @set_frame_tree(id:id, type:type)
+
+    # Runs spellchecker on the backend last saved file, then
+    # sets the mispelled_words part of the state to the immutable
+    # Set of those words.  They can then be rendered by any editor/view.
+    update_misspelled_words: =>
+        spell_check.misspelled_words
+            project_id : @project_id
+            path       : @path
+            cb         : (err, words) =>
+                if err
+                    @setState(error: err)
+                else
+                    words = immutable.Set(words)
+                    if not words.equals(@store.get('misspelled_words'))
+                        @setState(misspelled_words: words)
+        return
