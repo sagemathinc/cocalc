@@ -8,6 +8,7 @@ tree_ops  = require('../code-editor/tree-ops')
 {Actions} = require('../code-editor/actions')
 
 {toggle_checkbox} = require('../tasks/desc-rendering')
+{print_markdown} = require('./print')
 
 class exports.Actions extends Actions
     _init: (args...) =>
@@ -36,3 +37,16 @@ class exports.Actions extends Actions
         @_syncstring.from_str(value)
         @set_codemirror_to_syncstring()
         @setState(value: value)
+
+    print: (id) =>
+        node = @_get_frame_node(id)
+        if node.get('type') == 'cm'
+            super.print(id)
+            return
+        error = print_markdown
+            value      : @store.get('value')
+            project_id : @project_id
+            path       : @path
+            font_size  : node.get("font_size")
+        if error
+            @setState(error: error)

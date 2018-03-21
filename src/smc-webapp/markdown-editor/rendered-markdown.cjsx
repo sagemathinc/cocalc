@@ -10,6 +10,8 @@ It also:
    - [ ] checkbox in markdown are interactive (can click them, which edits file)
 ###
 
+{path_split} = require('smc-util/misc')
+
 {throttle} = require('underscore')
 
 {Loading, Markdown} = require('../r_misc')
@@ -72,12 +74,12 @@ exports.RenderedMarkdown = rclass
             onClick  = {@on_click}
         >
             <div
-                style    = {maxWidth: options.MAX_WIDTH, margin: '0 auto', padding:'10px'}
+                style = {maxWidth: options.MAX_WIDTH, margin: '0 auto', padding:'10px'}
             >
                 <Markdown
                     value      = {value}
                     project_id = {@props.project_id}
-                    file_path  = {@props.path}
+                    file_path  = {path_split(@props.path).head}
                 />
             </div>
         </div>

@@ -1,5 +1,5 @@
 ###
-Convert a file on the backend to PDF..
+Convert a code file to printable form, entirely on the frontend.
 ###
 
 immutable            = require('immutable')
@@ -17,6 +17,7 @@ exports.print = (opts) ->
         value      : required
         options    : required
         path       : required
+        font_size  : '9pt'
 
     w = window.open('', '_blank',
                     'menubar=yes,toolbar=no,resizable=yes,scrollbars=yes,height=640,width=800')
@@ -43,7 +44,7 @@ exports.print = (opts) ->
         <meta name="google" content="notranslate"/>
         <style>#{CODEMIRROR_CSS}</style>
     </head>
-    <body style='font-size:9pt'>
+    <body style='font-size:#{opts.font_size}'>
         #{s}
     </body>
 </html>

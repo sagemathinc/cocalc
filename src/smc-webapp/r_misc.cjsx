@@ -969,10 +969,6 @@ exports.Markdown = rclass
         content_editable : rtypes.bool     # if true, makes rendered Markdown contenteditable
         checkboxes       : rtypes.bool     # if true, replace "[ ]" and "[ ]" by nice rendered versions.
 
-    reduxProps :
-        account :
-            other_settings : rtypes.immutable.Map
-
     getDefaultProps: ->
         auto_render_math : true
         safeHTML         : true

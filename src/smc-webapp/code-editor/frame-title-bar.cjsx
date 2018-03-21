@@ -370,7 +370,7 @@ exports.FrameTitleBar = rclass
         <Button
             bsSize  = {@button_size()}
             key     = {'print'}
-            onClick = {@props.actions.print}
+            onClick = {=>@props.actions.print(@props.id)}
             title   = {'Print file to PDF'}
         >
             <Icon name={'print'} /> <VisibleMDLG>{if @show_labels() then 'Print'}</VisibleMDLG>

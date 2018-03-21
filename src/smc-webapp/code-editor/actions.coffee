@@ -222,6 +222,13 @@ class exports.Actions extends Actions
     set_frame_tree_leafs: (obj) =>
         @_tree_op('set_leafs', obj)
 
+    # This is only used in derived classes right now
+    set_frame_type: (id, type) =>
+        @set_frame_tree(id:id, type:type)
+
+    _get_frame_node: (id) =>
+        return tree_ops.get_node(@_get_tree(), id)
+
     close_frame: (id) =>
         if tree_ops.is_leaf(@_get_tree())
             # closing the only node, so reset to default
@@ -554,21 +561,18 @@ class exports.Actions extends Actions
     set_error: (error) =>
         @setState(error: error)
 
-    print: =>
+    print: (id) =>
         cm = @_get_cm()
         if not cm?
             return
         error = print.print
-            value   : cm.getValue()
-            options : cm.options
-            path    : @path
+            value     : cm.getValue()
+            options   : cm.options
+            path      : @path
+            font_size : @_get_frame_node(id)?.get('font_size')
         if error
             @setState(error: error)
         cm.focus()
-
-    # This is only used in derived classes right now
-    set_frame_type: (id, type) =>
-        @set_frame_tree(id:id, type:type)
 
     # Runs spellchecker on the backend last saved file, then
     # sets the mispelled_words part of the state to the immutable
