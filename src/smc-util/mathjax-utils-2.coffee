@@ -11,7 +11,7 @@ Additional mathjax utilities (in coffeescript).
 exports.apply_without_math = (string, v) ->
     if not is_array(v)
         v = [v]
-    [string, math] = remove_math(string)
+    [string, math] = remove_math(string, true)  # true so doesn't mess with &, etc.
     for f in v
         string = f(string)
     return replace_math(string, math)
