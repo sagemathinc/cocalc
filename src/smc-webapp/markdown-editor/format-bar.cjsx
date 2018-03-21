@@ -9,7 +9,7 @@ misc = require('smc-util/misc')
 {ButtonGroup, Button, DropdownButton, MenuItem}   = require('react-bootstrap')
 
 buttonbar               = require('../buttonbar')
-{React, rclass, rtypes} = require('../smc-react')
+{React, rclass, rtypes, Fragment} = require('../smc-react')
 {Icon, Space}           = require('../r_misc')
 
 
@@ -58,16 +58,21 @@ exports.FormatBar = rclass
         </ButtonGroup>
 
     render_format_buttons: ->
-        <ButtonGroup key={'format'}>
-            {@render_button('format_code', 'Format selected text as code', 'code')}
-            {@render_button('justifyleft', 'Left justify current text', 'align-left')}
-            {@render_button('justifycenter', 'Center current text', 'align-center')}
-            {@render_button('justifyright', 'Right justify current text', 'align-right')}
-            {@render_button('justifyfull', 'Fully justify current text', 'align-justify')}
-            {@render_button('outdent', 'Move selected text to the left', 'outdent')}
-            {@render_button('indent', 'Quote selected text', 'indent')}
-            {@render_button('unformat', 'Remove formatting from selected text', 'remove')}
-        </ButtonGroup>
+        <Fragment>
+            <ButtonGroup key={'format'}>
+                {@render_button('format_code', 'Format selected text as code', 'code')}
+                {@render_button('justifyleft', 'Left justify current text', 'align-left')}
+                {@render_button('justifycenter', 'Center current text', 'align-center')}
+                {@render_button('justifyright', 'Right justify current text', 'align-right')}
+                {@render_button('justifyfull', 'Fully justify current text', 'align-justify')}
+            </ButtonGroup>
+            <Space/>
+            <ButtonGroup key={'format2'}>
+                {@render_button('outdent', 'Move selected text to the left', 'outdent')}
+                {@render_button('indent', 'Quote selected text', 'indent')}
+                {@render_button('unformat', 'Remove formatting from selected text', 'remove')}
+            </ButtonGroup>
+        </Fragment>
 
     render_font_family_dropdown: ->
         items = []
@@ -144,7 +149,7 @@ exports.FormatBar = rclass
         for x in v
             color = x[0]; code = x[1]
             item = <MenuItem key={color} eventKey={code}
-                             onSelect={(code)=>@props.actions.format_action('font_color', code)}
+                             onSelect={(code)=>@props.actions.format_action('color', code)}
                     >
                     <span style={background: code}><Space/><Space/><Space/><Space/></span> {color}
                 </MenuItem>

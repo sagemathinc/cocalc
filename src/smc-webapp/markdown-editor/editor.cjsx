@@ -26,6 +26,8 @@ EDITOR_SPEC =
         icon      : 'eye'
         component : RenderedMarkdown
         buttons   : set(['print', 'decrease_font_size', 'increase_font_size', 'save', 'time_travel'])
+
+###
     prosemirror :
         short     : 'Editable'
         name      : 'Editable view'
@@ -38,7 +40,7 @@ EDITOR_SPEC =
         icon      : 'crosshairs'
         component : ContentEditable
         buttons   : set(['print', 'decrease_font_size', 'increase_font_size', 'save', 'time_travel'])
-
+###
 
 exports.Editor = rclass ({name}) ->
     displayName: 'MardownEditor-Editor'
