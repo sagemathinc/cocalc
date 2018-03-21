@@ -107,6 +107,7 @@ INPUT         = path.resolve(__dirname, WEBAPP_LIB)
 OUTPUT        = path.resolve(__dirname, misc_node.OUTPUT_DIR)
 DEVEL         = "development"
 NODE_ENV      = process.env.NODE_ENV || DEVEL
+NODE_DEBUG    = process.env.NODE_DEBUG
 PRODMODE      = NODE_ENV != DEVEL
 COMP_ENV      = (process.env.CC_COMP_ENV || PRODMODE) and (fs.existsSync('webapp-lib/compute-components.json'))
 CDN_BASE_URL  = process.env.CDN_BASE_URL    # CDN_BASE_URL must have a trailing slash
@@ -135,6 +136,7 @@ else
 console.log "SMC_VERSION      = #{SMC_VERSION}"
 console.log "SMC_GIT_REV      = #{GIT_REV}"
 console.log "NODE_ENV         = #{NODE_ENV}"
+console.log "NODE_DEBUG       = #{NODE_DEBUG}"
 console.log "COMP_ENV         = #{COMP_ENV}"
 console.log "BASE_URL         = #{BASE_URL}"
 console.log "CDN_BASE_URL     = #{CDN_BASE_URL}"
@@ -459,38 +461,32 @@ if PRODMODE
     plugins.push new webpack.optimize.LimitChunkCountPlugin(maxChunks: 5)
     plugins.push new webpack.optimize.MinChunkSizePlugin(minChunkSize: 30000)
 
-if PRODMODE or MINIFY
-    # to get source maps working in production mode, one has to figure out how
-    # to get inSourceMap/outSourceMap working here.
-    plugins.push new webpack.optimize.UglifyJsPlugin
-                                sourceMap: false
-                                minimize: true
-                                output:
-                                    comments: new RegExp("This file is part of #{TITLE}","g") # to keep the banner inserted above
-                                mangle:
-                                    except       : ['$super', '$', 'exports', 'require']
-                                    screw_ie8    : true
-                                compress:
-                                    screw_ie8    : true
-                                    warnings     : false
-                                    properties   : true
-                                    sequences    : true
-                                    dead_code    : true
-                                    conditionals : true
-                                    comparisons  : true
-                                    evaluate     : true
-                                    booleans     : true
-                                    unused       : true
-                                    loops        : true
-                                    hoist_funs   : true
-                                    cascade      : true
-                                    if_return    : true
-                                    join_vars    : true
-                                    drop_debugger: true
-                                    negate_iife  : true
-                                    unsafe       : true
-                                    side_effects : true
-
+UglifyJsPlugin = require('uglifyjs-webpack-plugin')
+minimizer = new UglifyJsPlugin
+    uglifyOptions:
+        output:
+            comments: new RegExp("This file is part of #{TITLE}","g") # to keep the banner inserted above
+        mangle:
+            properties:
+                reserved       : ['$super', '$', 'exports', 'require']
+        compress:
+            booleans     : true
+            comparisons  : true
+            conditionals : true
+            dead_code    : true
+            drop_debugger: true
+            evaluate     : true
+            hoist_funs   : true
+            if_return    : true
+            join_vars    : true
+            loops        : true
+            negate_iife  : true
+            properties   : true
+            sequences    : true
+            side_effects : true
+            unsafe       : true
+            unused       : true
+            warnings     : false
 
 # tuning generated filenames and the configs for the aux files loader.
 # FIXME this setting isn't picked up properly
@@ -521,6 +517,9 @@ module.exports =
     devtool: if SOURCE_MAP then '#cheap-module-eval-source-map'
 
     mode: if PRODMODE then 'production' else 'development'
+
+    optimization:
+        minimizer: [minimizer]
 
     entry: entries
 

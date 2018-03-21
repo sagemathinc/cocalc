@@ -44,6 +44,7 @@
     "script-loader": "^0.7",
     "style-loader": "^0.13.1",
     "uglify-js": "^2.6.2",
+    "uglifyjs-webpack-plugin": "^1.2.4",
     "url-loader": "^0.6",
     "webpack": "^4.1.1",
     "webpack-cli": "^2.0.12",
