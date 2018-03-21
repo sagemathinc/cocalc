@@ -591,10 +591,40 @@ class exports.Actions extends Actions
         return
 
     format_action: (cmd, args) =>
-        console.log 'format_action', cmd, args
         cm = @_get_cm()
         if not cm?
+            # format bar only makes sense when some cm is there...
             return
-        cm.edit_selection({cmd:cmd, args:args})
-        cm.focus()
-        @set_syncstring_to_codemirror()
+        ###  -- disabled; using codemirror pluging for now instead
+        if cmd in ['link', 'image', 'SpecialChar']
+            if @store.getIn(['format_bar', cmd])?
+                # Doing the formatting action
+                @format_dialog_action(cmd)
+            else
+                # This causes a dialog to appear, which will set relevant part of store and call format_action again
+                @set_format_bar(cmd, {})
+            return
+        ###
+        cm.edit_selection
+            cmd  : cmd
+            args : args
+            cb   : =>
+                if @_state != 'closed'
+                    cm.focus()
+                    @set_syncstring_to_codemirror()
+
+    ###
+    format_dialog_action: (cmd) ->
+        state = @store.getIn(['format_bar', cmd])
+        @set_format_bar(cmd)  # clear state for cmd.
+
+    set_format_bar: (key, val) =>
+        format_bar = @store.get('format_bar') ? immutable.Map()
+        if not val?
+            format_bar = format_bar.delete(key)
+        else
+            if not immutable.Map.isMap(val)
+                val = immutable.fromJS(val)
+            format_bar = format_bar.set(key, val)
+        @setState(format_bar: format_bar)
+    ###

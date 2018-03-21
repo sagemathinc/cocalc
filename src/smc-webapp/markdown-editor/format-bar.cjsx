@@ -2,6 +2,8 @@
 The format bar
 ###
 
+{debounce} = require('underscore')
+
 css_colors = require('css-color-names')
 
 misc = require('smc-util/misc')
@@ -12,16 +14,18 @@ buttonbar               = require('../buttonbar')
 {React, rclass, rtypes, Fragment} = require('../smc-react')
 {Icon, Space}           = require('../r_misc')
 
-
 FONT_SIZES = 'xx-small x-small small medium large x-large xx-large'.split(' ')
+
+# {InsertLink} = require('./insert-link')
 
 exports.FormatBar = rclass
     propTypes :
         actions : rtypes.object.isRequired
+        # store   : rtypes.immutable.Map      # state about format bar stored in external store
 
-    shouldComponentUpdate: ->
-        # never update -- expensive and not needed!
+    shouldComponentUpdate: (next) ->
         return false
+        #return @props.store != next.store
 
     render_button: (name, title, icon, label='') ->
         icon ?= name  # if icon not given, use name for it.
@@ -174,6 +178,20 @@ exports.FormatBar = rclass
             {@render_colors_dropdown()}
         </ButtonGroup>
 
+    ###
+    render_insert_link: ->
+        store = @props.store?.get('link')
+        if not store?
+            return
+        set = (state) =>
+            @props.actions.set_format_bar('link', state)
+        <InsertLink
+            set       = {set}
+            on_submit = {=> @props.actions.format_action('link')}
+            store     = {store}
+        />
+    ###
+
     render: ->
         <div style={background: '#f8f8f8', margin: '0 1px'}>
             {@render_font_dropdowns()}
@@ -187,4 +205,5 @@ exports.FormatBar = rclass
                 {@render_format_buttons()}
                 <Space/>
             </div>
+            {###@render_insert_link()###}
         </div>

@@ -1003,6 +1003,7 @@ exports.define_codemirror_extensions = () ->
             cmd  : required
             args : undefined
             mode : undefined
+            cb   : undefined  # called after done; if there is a dialog, this could be a while.
         cm = @
         default_mode = opts.mode
         if not default_mode?
@@ -1028,6 +1029,7 @@ exports.define_codemirror_extensions = () ->
                 j = src0.lastIndexOf(right)
                 if j != -1
                     #console.log('strip match')
+                    opts.cb?()
                     return src.slice(0,i) + src.slice(i+left.length,j) + src.slice(j+right.length)
 
         selections = cm.listSelections()
@@ -1045,6 +1047,7 @@ exports.define_codemirror_extensions = () ->
             data_for_mode = EDIT_COMMANDS[mode1]
             if not data_for_mode?
                 console.warn("mode '#{mode1}' is not defined!")
+                opts.cb?()
                 return
             how = data_for_mode[cmd]
             if not how?
@@ -1128,6 +1131,15 @@ exports.define_codemirror_extensions = () ->
                 done = true
 
             switch cmd
+                when 'link'
+                    cm.insert_link(cb:opts.cb)
+                    return
+                when 'image'
+                    cm.insert_image(cb:opts.cb)
+                    return
+                when 'SpecialChar'
+                    cm.insert_special_char(cb:opts.cb)
+                    return
                 when 'font_size'
                     if mode in ['html', 'md', 'mediawiki']
                         for i in [1..7]
@@ -1224,6 +1236,7 @@ exports.define_codemirror_extensions = () ->
                     console.warn("CodeMirror/edit_selection: unknown for mode1='#{mode1}' and cmd='#{cmd}'")
 
                 #console.log("not implemented")
+                opts.cb?()
                 return "not implemented"
 
             if src == src0
@@ -1244,6 +1257,7 @@ exports.define_codemirror_extensions = () ->
                     # now select the new range
                     delta = src.length - src0.length
                     cm.extendSelection(from, {line:to.line, ch:to.ch+delta})
+            opts.cb?()
 
 
     CodeMirror.defineExtension 'insert_link', (opts={}) ->

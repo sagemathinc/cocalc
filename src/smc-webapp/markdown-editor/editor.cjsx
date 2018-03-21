@@ -54,15 +54,20 @@ exports.Editor = rclass ({name}) ->
         account :
             editor_settings : rtypes.immutable
         "#{name}" :
-            is_public : rtypes.bool
+            is_public  : rtypes.bool
+            format_bar : rtypes.immutable.Map    # optional extra state of the format bar, stored in the Store
 
     shouldComponentUpdate: (next) ->
-        return @props.editor_settings?.get('extra_button_bar') != next.editor_settings?.get('extra_button_bar')
+        return @props.editor_settings?.get('extra_button_bar') != next.editor_settings?.get('extra_button_bar') or \
+            @props.format_bar != next.format_bar
 
     render_format_bar: ->
         if not @props.editor_settings?.get('extra_button_bar') or @props.is_public
             return
-        <FormatBar actions={@props.actions} />
+        <FormatBar
+            actions = {@props.actions}
+            store   = {@props.format_bar}
+            />
 
     render_editor: ->
         <Editor
