@@ -25,7 +25,6 @@ exports.misspelled_words = (opts) ->
         else
             mode = 'none'
     command = "cat '#{opts.path}'|aspell --mode=#{mode} --lang=#{opts.lang} list|sort|uniq"
-    console.log command
     webapp_client.exec
         project_id  : opts.project_id
         command     : command

@@ -9,6 +9,12 @@ misc                    = require('smc-util/misc')
 {FrameTree}             = require('./frame-tree')
 {IS_IPAD}               = require('../feature')
 
+exports.set = (v) ->  # used for specifying buttons...
+    s = {}
+    for x in v
+        s[x] = true
+    return s
+
 ###
 
 NOTES:

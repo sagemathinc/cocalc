@@ -5,7 +5,7 @@ Top-level react component for editing markdown documents
 {React, rclass, rtypes} = require('../smc-react')
 
 {FormatBar} = require('./format-bar')
-CodeEditor  = require('../code-editor/editor').Editor
+{Editor, set} = require('../code-editor/editor')
 
 {RenderedMarkdown} = require('./rendered-markdown')
 {ProseMirror}      = require('./prosemirror')
@@ -18,21 +18,26 @@ EDITOR_SPEC =
         name      : 'Source code'
         icon      : 'code'
         component : CodemirrorEditor
+        buttons   : set(['print', 'decrease_font_size', 'increase_font_size', 'save', 'time_travel', 'replace', 'find', 'goto_line', \
+                         'cut', 'paste', 'copy', 'undo', 'redo'])
     markdown :
         short     : 'View'
         name      : 'View'
         icon      : 'eye'
         component : RenderedMarkdown
+        buttons   : set(['print', 'decrease_font_size', 'increase_font_size', 'save', 'time_travel'])
     prosemirror :
         short     : 'Editable'
         name      : 'Editable view'
         icon      : 'compass'
         component : ProseMirror
+        buttons   : set(['print', 'decrease_font_size', 'increase_font_size', 'save', 'time_travel'])
     content_editable :
         short     : 'Content'
         name      : 'ContentEditable TEST'
         icon      : 'crosshairs'
         component : ContentEditable
+        buttons   : set(['print', 'decrease_font_size', 'increase_font_size', 'save', 'time_travel'])
 
 
 exports.Editor = rclass ({name}) ->
@@ -54,8 +59,8 @@ exports.Editor = rclass ({name}) ->
             return
         <FormatBar actions={@props.actions} />
 
-    render_code_editor: ->
-        <CodeEditor
+    render_editor: ->
+        <Editor
             name            = {name}
             actions         = {@props.actions}
             path            = {@props.path}
@@ -66,5 +71,5 @@ exports.Editor = rclass ({name}) ->
     render: ->
         <div className='smc-vfill'>
             {@render_format_bar()}
-            {@render_code_editor()}
+            {@render_editor()}
         </div>
