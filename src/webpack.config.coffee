@@ -182,11 +182,13 @@ class MathjaxVersionedSymlink
         symto = path.resolve(__dirname, "#{MATHJAX_LIB}")
         console.log("mathjax symlink: pointing to #{symto}")
         mksymlink = (dir, cb) ->
-            fs.exists dir,  (exists, cb) ->
-                if not exists
+            fs.access dir, (err) ->
+                if err
                     fs.symlink(symto, dir, cb)
-        compiler.plugin "done", (compilation, cb) ->
-            async.concat([MATHJAX_ROOT, misc_node.MATHJAX_NOVERS], mksymlink, -> cb())
+        done = (compilation) ->
+            async.concat([MATHJAX_ROOT, misc_node.MATHJAX_NOVERS], mksymlink)
+        plugin = name: 'MathjaxVersionedSymlink'
+        compiler.hooks.done.tap(plugin, done)
 
 mathjaxVersionedSymlink = new MathjaxVersionedSymlink()
 
