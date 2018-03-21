@@ -23,7 +23,7 @@
 immutable = require('immutable')
 
 # grading specific
-{PAGE_SIZE} = require('./const')
+{PAGE_SIZE} = require('./common')
 
 # utils
 

@@ -46,7 +46,7 @@ styles = require('../styles')
 {GradingStats}  = require('./stats')
 {Listing}       = require('./listing')
 {StudentList}   = require('./student-list')
-{ROW_STYLE, LIST_STYLE, LIST_ENTRY_STYLE, FLEX_LIST_CONTAINER, EMPTY_LISTING_TEXT, PAGE_SIZE} = require('./const')
+{ROW_STYLE, LIST_STYLE, LIST_ENTRY_STYLE, FLEX_LIST_CONTAINER, EMPTY_LISTING_TEXT, PAGE_SIZE} = require('./common')
 
 exports.GradingHelpButton = rclass
     displayName: 'CourseEditor-GradingStudentAssignment-HelpButton'

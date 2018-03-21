@@ -1011,7 +1011,7 @@ Assignment = rclass
         mode       = store.get_grading_mode(@props.assignment)
         return null if mode != 'points'
         maxpoints  = store.get_grading_maxpoints(@props.assignment)
-        MAXPOINTS  = require('./grading/const').MAXPOINTS
+        MAXPOINTS  = require('./grading/common').MAXPOINTS
 
         <div style={color:COLORS.GRAY_D, marginBottom:'10px'}>
             <LabeledRow

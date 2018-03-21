@@ -37,7 +37,7 @@ _         = require('underscore')
 
 # grading specific
 {BigTime} = require('../common')
-{ROW_STYLE, LIST_STYLE, LIST_ENTRY_STYLE, FLEX_LIST_CONTAINER, EMPTY_LISTING_TEXT, PAGE_SIZE, MAXPOINTS} = require('./const')
+{ROW_STYLE, LIST_STYLE, LIST_ENTRY_STYLE, FLEX_LIST_CONTAINER, EMPTY_LISTING_TEXT, PAGE_SIZE, MAXPOINTS} = require('./common')
 
 listing_colstyle  = {margin: '10px 0'}
 listing_colstyle2 = misc.merge({overflow: 'hidden', textOverflow: 'ellipsis'}, listing_colstyle)
@@ -68,13 +68,12 @@ exports.Listing = rclass
         active_autogrades : immutable.Set()
 
     shouldComponentUpdate: (next) ->
-        x = misc.is_different(@props, next, \
+        update = misc.is_different(@props, next, \
             ['assignment', 'listing', 'num_pages', 'page_number', 'student_info',
             'student_id', 'subdir' ,'without_grade', 'collected_files',
             'show_all_files', 'discussion'])
-        y = @props.listing_files? and (not @props.listing_files.equals(next.listing_files))
-        return x or y
-
+        update or= @props.listing_files? and (not @props.listing_files.equals(next.listing_files))
+        return update
     filepath: (filename) ->
         path_join(@props.subdir, filename)
 
@@ -116,9 +115,11 @@ exports.Listing = rclass
                     </Breadcrumb.Item>
                 )
 
-        <Breadcrumb bsSize='small' style={margin: '0 15px 15px 0'}>
-            {crumbs}
-        </Breadcrumb>
+        <div style={flex:'1', padding:'0'}>
+            <Breadcrumb bsSize='small' style={margin: '0 15px 15px 0'}>
+                {crumbs}
+            </Breadcrumb>
+        </div>
 
     listing_page: (offset) ->
         p = @props.page_number + offset
@@ -378,7 +379,8 @@ exports.Listing = rclass
         page      = (@props.page_number ? 1) + 1
         return null if num_pages == 1 or page >= num_pages
         <Row style={color:COLORS.GRAY} key={'listing_bottom'}>
-            More files are on the <a style={cursor:'pointer'} onClick={=>@listing_page(+1)}>next page</a> …
+            More files are on the{' '}
+            <a style={cursor:'pointer'} onClick={=>@listing_page(+1)}>next page</a> …
         </Row>
 
     listing: ->
@@ -409,52 +411,76 @@ exports.Listing = rclass
             </ButtonGroup>
         </div>
 
-    listing_controls: ->
+    render_discussion_info: ->
+        outer_style =
+            flex            : '1'
+            padding         : '0'
+            display         : 'flex'
+            alignItems      : 'center'
+            justifyContent  : 'center'
+
+        inner_style =
+            color           : COLORS.GRAY
+            fontSize        : 'small'
+
+        <div style={outer_style}>
+            <div style={inner_style}>
+                (This is a private discussion. It is not shared with the student.)
+            </div>
+        </div>
+
+    render_listing_buttons: ->
         last_collect_time  = @props.student_info.getIn(['last_collect', 'time'])
         if last_collect_time
             time      = <BigTime date={last_collect_time} />
         else
             time      = "never"
 
-        # enable button only when we have listing information and some files without errors
+        # enable collected button only when we have listing information and some files without errors
         disabled = not @props.listing?
         disabled or= (@props.listing?.get('error')?.length > 0) ? false
 
+        <div style={padding:'0', flex:'0'}>
+            <ButtonGroup style={marginBottom:'5px', display:'flex'}>
+                {@render_toggle_show_all_files()}
+                <Button
+                    style    = {whiteSpace:'nowrap'}
+                    disabled = {disabled}
+                    onClick  = {=>@open_assignment('collected')}
+                >
+                    <Tip
+                        title     = {'Open the collected files right here in your own project.'}
+                        placement = {'bottom'}
+                    >
+                        <Icon name='folder-open-o' /><span className='hidden-md'> Collected</span> {time}
+                    </Tip>
+                </Button>
+                <Button
+                    onClick = {=>@open_assignment('assigned')}
+                    style   = {whiteSpace:'nowrap'}
+                >
+                    <Tip
+                        title     = {"Open this directory of files in the student's project."}
+                        placement = {'bottom'}
+                    >
+                        Student <Icon name='external-link' />
+                    </Tip>
+                </Button>
+            </ButtonGroup>
+        </div>
+
+    listing_controls: ->
         <Row key={'controls'}>
             <div style={display: 'flex', flexDirection: 'row'}>
                 {@render_discussion_button()}
                 {@render_listing_pager() if not @props.discussion}
-                <div style={padding:'0', flex:'1'}>
-                    {@render_listing_path() if not @props.discussion}
-                </div>
-                <div style={padding:'0', flex:'0'}>
-                    <ButtonGroup style={marginBottom:'5px', display:'flex'}>
-                        {@render_toggle_show_all_files()}
-                        <Button
-                            style    = {whiteSpace:'nowrap'}
-                            disabled = {disabled}
-                            onClick  = {=>@open_assignment('collected')}
-                        >
-                            <Tip
-                                title     = {'Open the collected files right here in your own project.'}
-                                placement = {'bottom'}
-                            >
-                                <Icon name='folder-open-o' /><span className='hidden-md'> Collected</span> {time}
-                            </Tip>
-                        </Button>
-                        <Button
-                            onClick = {=>@open_assignment('assigned')}
-                            style   = {whiteSpace:'nowrap'}
-                        >
-                            <Tip
-                                title     = {"Open this directory of files in the student's project."}
-                                placement = {'bottom'}
-                            >
-                                Student <Icon name='external-link' />
-                            </Tip>
-                        </Button>
-                    </ButtonGroup>
-                </div>
+                {
+                    if @props.discussion
+                        @render_discussion_info()
+                    else
+                        @render_listing_path()
+                }
+                {@render_listing_buttons()}
             </div>
         </Row>
 

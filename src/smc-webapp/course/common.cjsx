@@ -289,7 +289,7 @@ exports.StudentAssignmentInfo = rclass
         </Fragment>
 
     render_grade_col_points: ->
-        {grade2str}     = require('./grading/grade')
+        {grade2str}     = require('./grading/common')
         grade_points    = grade2str(@props.total_points, @props.max_points)
         grade_confirmed = grade_points == @props.grade
 

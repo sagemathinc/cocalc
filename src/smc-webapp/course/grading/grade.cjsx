@@ -30,14 +30,8 @@
 
 # grading specific
 {Grading} = require('./models')
-{GRADE_COMMENT_STYLE} = require('./const')
+{GRADE_COMMENT_STYLE, grade2str} = require('./common')
 
-
-exports.grade2str = grade2str = (total_points, max_points) ->
-    grade = "#{misc.round2(total_points)} / #{max_points}"
-    pct   = 100 * total_points / max_points
-    grade += " (#{misc.round1(pct)}%)"
-    return grade
 
 exports.Grade = rclass
     displayName : 'CourseEditor-GradingStudentAssignment-Grade'

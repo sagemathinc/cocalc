@@ -19,7 +19,17 @@
 #
 ###############################################################################
 
+# CoCalc libraries
+misc     = require('smc-util/misc')
 {COLORS} = require('smc-util/theme')
+
+# shared util functions
+
+exports.grade2str = (total_points, max_points) ->
+    grade = "#{misc.round2(total_points)} / #{max_points}"
+    pct   = 100 * total_points / max_points
+    grade += " (#{misc.round1(pct)}%)"
+    return grade
 
 # shared configuration constants
 

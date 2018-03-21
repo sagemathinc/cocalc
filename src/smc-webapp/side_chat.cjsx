@@ -29,7 +29,7 @@ misc = require('smc-util/misc')
 misc_page = require('./misc_page')
 {defaults, required} = misc
 {webapp_client} = require('./webapp_client')
-
+{Avatar} = require('./other-users')
 {alert_message} = require('./alerts')
 
 # React libraries
@@ -86,16 +86,15 @@ Message = rclass
         @setState(new_changes : changes)
 
     shouldComponentUpdate: (next, next_state) ->
-        return @props.message != next.message or
-               @props.user_map != next.user_map or
-               @props.account_id != next.account_id or
-               @props.is_prev_sender != next.is_prev_sender or
-               @props.is_next_sender != next.is_next_sender or
-               @props.editor_name != next.editor_name or
-               @props.saved_mesg != next.saved_mesg or
-               @state.edited_message != next_state.edited_message or
-               @state.show_history != next_state.show_history or
-               ((not @props.is_prev_sender) and (@props.sender_name != next.sender_name))
+        update = misc.is_different(@props, next, \
+            ['message', 'user_map', 'account_id', 'is_prev_sender',
+            'is_next_sender', 'editor_name', 'saved_mesg']
+        )
+        update or= misc.is_different(@state, next_state, \
+            ['edited_message', 'show_history']
+        )
+        update or= ((not @props.is_prev_sender) and (@props.sender_name != next.sender_name))
+        return update
 
     componentDidMount: ->
         if @refs.editedMessage
@@ -220,7 +219,9 @@ Message = rclass
         else
             message_style.marginRight = '10%'
 
-        <Col key={1} xs={11} style={width: "100%"}>
+        xs = if @props.show_avatar then 11 else 12
+
+        <Col key={1} xs={xs}>
             {show_user_name(@props.sender_name) if not @props.is_prev_sender and not sender_is_viewer(@props.account_id, @props.message)}
             <Well style={message_style} bsSize="small" className="smc-chat-message"  onDoubleClick = {@edit_message}>
                 <span style={lighten}>
@@ -244,8 +245,8 @@ Message = rclass
                 <FormControl
                     autoFocus      = {true}
                     rows           = {4}
-                    componentClass = 'textarea'
-                    ref            = 'editedMessage'
+                    componentClass = {'textarea'}
+                    ref            = {'editedMessage'}
                     onKeyDown      = {@on_keydown}
                     value          = {@state.edited_message}
                     onChange       = {(e)=>@setState(edited_message: e.target.value)}
@@ -253,9 +254,41 @@ Message = rclass
             </FormGroup>
         </form>
 
+    # All the columns
+    avatar_column: ->
+        account = @props.user_map?.get(@props.message.get('sender_id'))?.toJS()
+        if @props.is_prev_sender
+            margin_top = '5px'
+        else
+            margin_top = '15px'
+
+        if sender_is_viewer(@props.account_id, @props.message)
+            textAlign = 'left'
+            marginRight = '11px'
+        else
+            textAlign = 'right'
+            marginLeft = '11px'
+
+        style =
+            display       : "inline-block"
+            marginTop     : margin_top
+            marginLeft    : marginLeft
+            marginRight   : marginRight
+            padding       : '0px'
+            textAlign     : textAlign
+            verticalAlign : "middle"
+            width         : '4%'
+
+        # TODO: do something better when we don't know the user (or when sender account_id is bogus)
+        <Col key={0} xsHidden={true} sm={1} style={style} >
+            <div>
+                {<Avatar size={24} account_id={account.account_id} /> if account? and @props.show_avatar}
+            </div>
+        </Col>
+
     render: ->
         if @props.include_avatar_col
-            cols = [@avatar_column(), @content_column(), blank_column()]
+            cols = [@content_column(), @avatar_column()]
             # mirror right-left for sender's view
             if sender_is_viewer(@props.account_id, @props.message)
                 cols = cols.reverse()
@@ -370,13 +403,13 @@ ChatRoom = rclass ({name}) ->
             saved_mesg         : rtypes.string
             use_saved_position : rtypes.bool
             add_collab         : rtypes.bool
-        users :
-            user_map : rtypes.immutable
+        users  :
+            user_map    : rtypes.immutable
         account :
-            account_id : rtypes.string
-            font_size  : rtypes.number
+            account_id  : rtypes.string
+            font_size   : rtypes.number
         file_use :
-            file_use : rtypes.immutable
+            file_use    : rtypes.immutable
         projects :
             project_map : rtypes.immutable.Map
 
@@ -390,11 +423,13 @@ ChatRoom = rclass ({name}) ->
         show_help    : rtypes.bool
         show_collabs : rtypes.bool
         input_height : rtypes.oneOf(['default', 'small'])
+        show_heads   : rtypes.bool
 
     getDefaultProps: ->
         show_help    : true
-        show_collabs  : true
+        show_collabs : true
         input_height : 'default'
+        show_heads   : false
 
     _mark_as_read: ->
         info = @props.redux.getStore('file_use').get_file_info(@props.project_id, misc.original_path(@props.path))
@@ -440,9 +475,14 @@ ChatRoom = rclass ({name}) ->
             icon = <Icon name='caret-down'/>
         else
             icon = <Icon name='caret-right'/>
-        <div
-            style   = {fontSize:'15pt', width:'16px', display:'inline-block', cursor:'pointer'}
-        >
+
+        style =
+            fontSize    : '15pt'
+            width       : '16px'
+            display     : 'inline-block'
+            cursor      : 'pointer'
+
+        <div style = {style}>
             {icon}
         </div>
 
@@ -473,7 +513,6 @@ ChatRoom = rclass ({name}) ->
         if not @props.add_collab
             style =
                 maxHeight    : '1.7em'
-                whiteSpace   : 'nowrap'
                 overflow     : 'hidden'
                 textOverflow : 'ellipsis'
         <div style   = {style}
@@ -510,34 +549,47 @@ ChatRoom = rclass ({name}) ->
         if not @props.messages? or not @props.redux?
             return <Loading/>
 
-        style =
+        main_style =
             width           : '100%'
             display         : 'flex'
             flex            : '1'
             flexDirection   : 'column'
             backgroundColor : '#efefef'
 
+        bottom_style =
+            marginTop       : 'auto'
+            padding         : '5px'
+            paddingLeft     : '15px'
+            paddingRight    : '15px'
+
         switch @props.input_height
             when 'default'
-                height         = '6em'
-                componentClass = 'textarea'
-                send           = ''
+                main_style.height = '100%'
+                height            = '6em'
+                componentClass    = 'textarea'
+                send              = ''
+                input_style       = {width:'85%', height:'100%'}
+                send_style        = {width:'15%', height:'100%'}
             when 'small'
-                height         = 'auto'
-                componentClass = 'input'
-                send           = 'Send'
+                height            = 'auto'
+                componentClass    = 'input'
+                send              = 'Send'
+                input_style       = {width:'80%', padding: '10px'}
+                send_style        = {width:'20%'}
 
         # WARNING: making autofocus true would interfere with chat and terminals -- where chat and terminal are both focused at same time sometimes (esp on firefox).
 
         <div
-            style       = {style}
+            style       = {main_style}
             onMouseMove = {@mark_as_read}
             onFocus     = {@on_focus}
         >
             {@render_project_users()}
-            <div style   = {log_container_style}
-                 ref     = {'log_container'}
-                 onScroll= {@on_scroll}>
+            <div
+                style    = {log_container_style}
+                ref      = {'log_container'}
+                onScroll = {@on_scroll}
+             >
                 <ChatLog
                     messages     = {@props.messages}
                     account_id   = {@props.account_id}
@@ -546,13 +598,13 @@ ChatRoom = rclass ({name}) ->
                     font_size    = {@props.font_size}
                     file_path    = {if @props.path? then misc.path_split(@props.path).head}
                     actions      = {@props.actions}
-                    show_heads   = {false}
+                    show_heads   = {@props.show_heads}
                 />
             </div>
-            <div style={marginTop:'auto', padding:'5px', paddingLeft:'15px', paddingRight:'15px'}>
+            <div style={bottom_style}>
                 <div style={display:'flex', height:height}>
                     <FormControl
-                        style          = {width:'85%', height:'100%'}
+                        style          = {input_style}
                         autoFocus      = {false}
                         componentClass = {componentClass}
                         ref            = {'input'}
@@ -562,7 +614,7 @@ ChatRoom = rclass ({name}) ->
                         onChange       = {(e) => @props.actions.set_input(e.target.value);}
                     />
                     <Button
-                        style    = {width:'15%', height:'100%'}
+                        style    = {send_style}
                         onClick  = {@button_send_chat}
                         disabled = {@props.input==''}
                         bsStyle  = {'success'}
@@ -593,6 +645,7 @@ exports.EmbeddedChat = ({path, redux, project_id}) ->
     name        = redux_name(project_id, path)
     file_use_id = require('smc-util/schema').client_db.sha1(project_id, path)
     actions     = redux.getActions(name)
+    # show_heads should be true, but something is broken
     <ChatRoom
         redux        = {redux}
         actions      = {redux.getActions(name)}
@@ -603,6 +656,7 @@ exports.EmbeddedChat = ({path, redux, project_id}) ->
         show_help    = {false}
         show_collabs = {false}
         input_height = {'small'}
+        show_heads   = {false}
     />
 
 # Fitting the side chat into non-react parts of SMC:

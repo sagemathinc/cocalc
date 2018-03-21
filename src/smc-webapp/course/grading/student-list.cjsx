@@ -38,8 +38,7 @@ Fragment = React.Fragment
 # grading specific
 {BigTime, GreenCheckmark, RedCross} = require('../common')
 {Grading} = require('./models')
-{ROW_STYLE, LIST_STYLE, LIST_ENTRY_STYLE, FLEX_LIST_CONTAINER, EMPTY_LISTING_TEXT, PAGE_SIZE} = require('./const')
-{grade2str} = require('./grade')
+{ROW_STYLE, LIST_STYLE, LIST_ENTRY_STYLE, FLEX_LIST_CONTAINER, EMPTY_LISTING_TEXT, PAGE_SIZE, grade2str} = require('./common')
 
 student_list_entries_style = misc.merge({cursor:'pointer'}, LIST_ENTRY_STYLE)
 
