@@ -15,7 +15,7 @@ Top-level react component for editing markdown documents
 EDITOR_SPEC =
     cm        :
         short     : 'Code'
-        name      : 'Source code'
+        name      : 'Code'
         icon      : 'code'
         component : CodemirrorEditor
         buttons   : set(['print', 'decrease_font_size', 'increase_font_size', 'save', 'time_travel', 'replace', 'find', 'goto_line', \
@@ -34,7 +34,7 @@ EDITOR_SPEC =
         buttons   : set(['print', 'decrease_font_size', 'increase_font_size', 'save', 'time_travel'])
     content_editable :
         short     : 'Content'
-        name      : 'ContentEditable TEST'
+        name      : 'ContentEditable (test)'
         icon      : 'crosshairs'
         component : ContentEditable
         buttons   : set(['print', 'decrease_font_size', 'increase_font_size', 'save', 'time_travel'])
@@ -53,6 +53,9 @@ exports.Editor = rclass ({name}) ->
             editor_settings : rtypes.immutable
         "#{name}" :
             is_public : rtypes.bool
+
+    shouldComponentUpdate: (next) ->
+        return @props.editor_settings?.get('extra_button_bar') != next.editor_settings?.get('extra_button_bar')
 
     render_format_bar: ->
         if not @props.editor_settings?.get('extra_button_bar') or @props.is_public
