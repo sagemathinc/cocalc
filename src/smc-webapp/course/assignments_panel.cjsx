@@ -375,7 +375,6 @@ Assignment = rclass
                     students       = {@props.students}
                     user_map       = {@props.user_map}
                     grading        = {@props.grading}
-                    path           = {@props.path}
                     project_id     = {@props.project_id}
                 />
         else

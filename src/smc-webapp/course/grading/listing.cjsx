@@ -60,8 +60,8 @@ exports.Listing = rclass
         without_grade   : rtypes.bool
         collected_files : rtypes.bool
         show_all_files  : rtypes.bool
-        discussion      : rtypes.string
-        path            : rtypes.string.isRequired
+        discussion_path : rtypes.string
+        discussion_show : rtypes.bool
         project_id      : rtypes.string.isRequired
 
     getInitialState: ->
@@ -71,7 +71,7 @@ exports.Listing = rclass
         update = misc.is_different(@props, next, \
             ['assignment', 'listing', 'num_pages', 'page_number', 'student_info',
             'student_id', 'subdir' ,'without_grade', 'collected_files',
-            'show_all_files', 'discussion'])
+            'show_all_files', 'discussion_show', 'discussion_path'])
         update or= @props.listing_files? and (not @props.listing_files.equals(next.listing_files))
         return update
     filepath: (filename) ->
@@ -158,10 +158,8 @@ exports.Listing = rclass
     toggle_show_all_files: ->
         @actions(@props.name).grading_toggle_show_all_files()
 
-    toggle_discussion: ->
-        apath = @props.assignment.get('path')
-        path  = "#{@props.path}-#{apath}-#{@props.student_id}"
-        @actions(@props.name).grading_toggle_show_discussion(path)
+    toggle_discussion: (show) ->
+        @actions(@props.name).grading_toggle_show_discussion(show)
 
     render_toggle_show_all_files: ->
         visible = @props.show_all_files
@@ -345,8 +343,7 @@ exports.Listing = rclass
                    </div>
 
     listing_entries: ->
-        if not @props.listing?
-            return <div style={EMPTY_LISTING_TEXT}><Loading /></div>
+        return @render_loading() if not @props.listing?
 
         error = @props.listing.get('error')
         return @listing_error(error) if error?
@@ -392,21 +389,30 @@ exports.Listing = rclass
         more = @listing_more_files_info()
         return (if more? then [listing, more] else listing)
 
-    render_discussion_button: ->
-        if @props.discussion
-            bsStyle = 'warning'
-            text    = 'Listing'
-        else
-            bsStyle = 'default'
-            text    = 'Discussion'
-
+    render_switch_mode_buttons: ->
         <div style={padding:'0', flex:'0', marginRight: '15px'}>
-            <ButtonGroup>
+            <ButtonGroup style={marginBottom:'5px', display:'flex'}>
                 <Button
-                    onClick   = {@toggle_discussion}
-                    bsStyle   = {bsStyle}
+                    onClick   = {=>@toggle_discussion(false)}
+                    active    = {not @props.discussion_show}
                 >
-                    {text}
+                    <Tip
+                        title     = {'Show collected files of student assignment.'}
+                        placement = {'bottom'}
+                    >
+                        <Icon name={'copy'} />
+                    </Tip>
+                </Button>
+                <Button
+                    onClick   = {=>@toggle_discussion(true)}
+                    active    = {@props.discussion_show}
+                >
+                    <Tip
+                        title     = {'Show associated private discussion.'}
+                        placement = {'bottom'}
+                    >
+                        <Icon name={'comments'} />
+                    </Tip>
                 </Button>
             </ButtonGroup>
         </div>
@@ -429,7 +435,20 @@ exports.Listing = rclass
             </div>
         </div>
 
-    render_listing_buttons: ->
+    render_show_student_files_button: ->
+        <Button
+            onClick = {=>@open_assignment('assigned')}
+            style   = {whiteSpace:'nowrap'}
+        >
+            <Tip
+                title     = {"Open this directory of files in the student's project."}
+                placement = {'bottom'}
+            >
+                Student <Icon name='external-link' />
+            </Tip>
+        </Button>
+
+    render_open_collected_files_button: ->
         last_collect_time  = @props.student_info.getIn(['last_collect', 'time'])
         if last_collect_time
             time      = <BigTime date={last_collect_time} />
@@ -440,42 +459,35 @@ exports.Listing = rclass
         disabled = not @props.listing?
         disabled or= (@props.listing?.get('error')?.length > 0) ? false
 
+        <Button
+            style    = {whiteSpace:'nowrap'}
+            disabled = {disabled}
+            onClick  = {=>@open_assignment('collected')}
+        >
+            <Tip
+                title     = {'Open the collected files right here in your own project.'}
+                placement = {'bottom'}
+            >
+                <Icon name='folder-open-o' /><span className='hidden-md'> Collected</span> {time}
+            </Tip>
+        </Button>
+
+    render_listing_buttons: ->
         <div style={padding:'0', flex:'0'}>
             <ButtonGroup style={marginBottom:'5px', display:'flex'}>
-                {@render_toggle_show_all_files()}
-                <Button
-                    style    = {whiteSpace:'nowrap'}
-                    disabled = {disabled}
-                    onClick  = {=>@open_assignment('collected')}
-                >
-                    <Tip
-                        title     = {'Open the collected files right here in your own project.'}
-                        placement = {'bottom'}
-                    >
-                        <Icon name='folder-open-o' /><span className='hidden-md'> Collected</span> {time}
-                    </Tip>
-                </Button>
-                <Button
-                    onClick = {=>@open_assignment('assigned')}
-                    style   = {whiteSpace:'nowrap'}
-                >
-                    <Tip
-                        title     = {"Open this directory of files in the student's project."}
-                        placement = {'bottom'}
-                    >
-                        Student <Icon name='external-link' />
-                    </Tip>
-                </Button>
+                {@render_toggle_show_all_files() if not @props.discussion_show}
+                {@render_open_collected_files_button() if not @props.discussion_show}
+                {@render_show_student_files_button()}
             </ButtonGroup>
         </div>
 
     listing_controls: ->
         <Row key={'controls'}>
             <div style={display: 'flex', flexDirection: 'row'}>
-                {@render_discussion_button()}
-                {@render_listing_pager() if not @props.discussion}
+                {@render_switch_mode_buttons()}
+                {@render_listing_pager() if not @props.discussion_show}
                 {
-                    if @props.discussion
+                    if @props.discussion_show
                         @render_discussion_info()
                     else
                         @render_listing_path()
@@ -486,18 +498,26 @@ exports.Listing = rclass
 
     discussion: ->
         <Row style={FLEX_LIST_CONTAINER} key={'discussion'}>
-            <EmbeddedChat
-                path       = {misc.meta_file(@props.discussion, 'chat')}
-                redux      = {redux}
-                project_id = {@props.project_id}
-            />
+        {
+            if not @props.discussion_path?
+                @render_loading()
+            else
+                <EmbeddedChat
+                    path       = {@props.discussion_path}
+                    redux      = {redux}
+                    project_id = {@props.project_id}
+                />
+        }
         </Row>
+
+    render_loading: ->
+        <div style={EMPTY_LISTING_TEXT}><Loading /></div>
 
     render: ->
         <React.Fragment>
             {@listing_controls()}
             {
-                if @props.discussion
+                if @props.discussion_show
                     @discussion()
                 else
                     <React.Fragment>

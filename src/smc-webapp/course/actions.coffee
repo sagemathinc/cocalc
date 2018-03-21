@@ -25,10 +25,10 @@ markdownlib = require('../markdown')
 immutable   = require('immutable')
 
 # CoCalc libraries
-misc = require('smc-util/misc')
-{defaults, required} = misc
-schema = require('smc-util/schema')
-{webapp_client} = require('../webapp_client')
+{defaults, required} = misc = require('smc-util/misc')
+schema               = require('smc-util/schema')
+{webapp_client}      = require('../webapp_client')
+chat_register        = require('../chat/register')
 
 # Course Library
 {STEPS, previous_step, step_direction, step_verb, step_ready} = require('./util')
@@ -1852,6 +1852,7 @@ exports.CourseActions = class CourseActions extends Actions
         {Grading} = require('./grading/models')
         grading   = store.get('grading') ? new Grading()
 
+        old_student_id   = grading.student_id
         only_not_graded  = opts.without_grade   ? grading.only_not_graded
         only_collected   = opts.collected_files ? grading.only_collected
         student_filter   = grading.student_filter
@@ -1883,11 +1884,16 @@ exports.CourseActions = class CourseActions extends Actions
             page_number     : 0
             listing         : null
             listing_files   : null
-            discussion      : null
+            discussion_show : grading.discussion_show
+            discussion_path : null
         )
         @grading_update(store, grading)
         # sets a "cursor" pointing to this assignment and student, signal for others
         @grading_update_activity()
+
+        if old_student_id != next_student_id
+            @grading_cleanup_discussion(opts.assignment.get('path'), old_student_id)
+        @grading_activate_discussion(opts.assignment.get('path'), next_student_id)
 
         # Phase 2: get the collected files listing
         store.grading_get_listing opts.assignment, next_student_id, opts.subdir, (err, listing) =>
@@ -1929,6 +1935,11 @@ exports.CourseActions = class CourseActions extends Actions
 
     # teacher departs from the dialog
     grading_stop: () =>
+        store = @get_store()
+        return if not store?
+        grading = store.get('grading')
+        apath = store.get_assignment(grading.assignment_id).get('path')
+        @grading_cleanup_discussion(apath, grading.student_id)
         @setState(grading : null)
         @grading_remove_activity()
 
@@ -1971,17 +1982,31 @@ exports.CourseActions = class CourseActions extends Actions
                     .set('student_filter', '')
         @grading_update(store, grading)
 
-    grading_toggle_show_discussion: (path) =>
+    grading_toggle_show_discussion: (show) =>
         store = @get_store()
         return if not store?
         grading = store.get('grading')
         return if not grading?
-        grading = grading.toggle_show_discussion(path)
-        if grading.discussion?
-            chat_register = require('../chat/register')
-            chat_path     = misc.meta_file(path, 'chat')
-            chat_register.init(chat_path, @redux, store.get('course_project_id'))
-        @grading_update(store, grading)
+        # ignore if there are no changes
+        return if grading.discussion_show == show
+        @grading_update(store, grading.toggle_show_discussion(show))
+
+    grading_cleanup_discussion: (assignment_path, student_id) =>
+        store = @get_store()
+        return if not store?
+        #if DEBUG then console.log("grading discussion cleanup", student_id)
+        chat_path = store.grading_get_discussion_path(assignment_path, student_id)
+        chat_register.remove(chat_path, @redux, store.get('course_project_id'))
+
+    grading_activate_discussion: (assignment_path, student_id) =>
+        store = @get_store()
+        return if not store?
+        #if DEBUG then console.log("grading discussion activation", student_id)
+        chat_path = store.grading_get_discussion_path(assignment_path, student_id)
+        chat_register.init(chat_path, @redux, store.get('course_project_id'))
+        grading = store.get('grading')
+        return if not grading?
+        @setState(grading : grading.set_discussion(chat_path))
 
     grading_update_activity: (opts) =>
         store = @get_store()

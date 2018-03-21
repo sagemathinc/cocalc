@@ -657,6 +657,12 @@ exports.CourseStore = class CourseStore extends Store
         all_points.sort((a, b) -> a - b)
         return {student_list:list, all_points:all_points}
 
+    grading_get_discussion_path: (assignment_path, student_id) ->
+        return if (not assignment_path?) or (not student_id?)
+        course_filename = @get('course_filename')
+        path  = "#{course_filename}-#{assignment_path}-#{student_id}"
+        return misc.meta_file(path, 'chat')
+
     get_list_of_grades: (assignment_id) ->
         assignment = @get_assignment(assignment_id)
         return if not assignment?

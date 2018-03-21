@@ -81,7 +81,6 @@ exports.GradingStudentAssignment = rclass
         students        : rtypes.object.isRequired
         user_map        : rtypes.object.isRequired
         grading         : rtypes.instanceOf(Grading).isRequired
-        path            : rtypes.string.isRequired
         project_id      : rtypes.string.isRequired
 
     reduxProps:
@@ -355,8 +354,8 @@ exports.GradingStudentAssignment = rclass
                     without_grade    = {@get_only_not_graded()}
                     collected_files  = {@get_only_collected()}
                     show_all_files   = {@props.grading.show_all_files}
-                    discussion       = {@props.grading.discussion}
-                    path             = {@props.path}
+                    discussion_show  = {@props.grading.discussion_show}
+                    discussion_path  = {@props.grading.discussion_path}
                     project_id       = {@props.project_id}
                 />
             </Col>
