@@ -74,7 +74,7 @@ exports.GradingStudentAssignmentHeader = rclass ({name}) ->
                 />
             )
         <h4>
-            {"Also grading this student: " if presence.length > 0}
+            {"Also present: " if presence.length > 0}
             {presence}
         </h4>
 

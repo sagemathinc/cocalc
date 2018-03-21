@@ -251,7 +251,7 @@ exports.Grade = rclass
             <Row key={1}>
                 {
                     if @state.grade_comments?.length > 0
-                        <div><b>Comment:</b></div>
+                        <div><b>Comment visible to student:</b></div>
                 }
                 {@grade_comment_edit()}
             </Row>

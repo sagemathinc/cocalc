@@ -434,10 +434,18 @@ exports.NumberInput = NumberInput = rclass
         unit            : rtypes.string
         disabled        : rtypes.bool
         formgroupstyle  : rtypes.object
-        plusminus       : rtypes.bool
+        plusminus       : rtypes.bool     # if true, show [+] and [-] buttons for convenient adjustments (e.g. mobile devices)
+        speedup         : rtypes.number   # multiplicates the delta of these +/- change buttons
         select_on_click : rtypes.bool
         bsSize          : rtypes.string
-        mantissa_length : rtypes.number   # default: 0 (i.e. truncate to integer), or pick a number from 1 to 8
+        mantissa_length : rtypes.number   # default 0: means to truncate to integer, or pick a number from 1 to 8
+        allow_empty     : rtypes.bool     # if allowed, deleting the number leads to "number" to be "undefined/null"
+
+    getDefaultProps: ->
+        plusminus       : false
+        mantissa_length : 0
+        allow_empty     : false
+        speedup         : 10
 
     componentWillReceiveProps: (next_props) ->
         if @props.number != next_props.number
@@ -451,23 +459,23 @@ exports.NumberInput = NumberInput = rclass
     getInitialState: ->
         number : @props.number
 
-    sanitizeN: (n) ->
+    sanitize: (n) ->
         if "#{n}" == "NaN"
             n = @props.number
-        # clip
+        # clip min/max
         if n < @props.min
             n = @props.min
         else if n > @props.max
             n = @props.max
         # rounding to lenth of mantissa
-        if (@props.mantissa_length ? 0) == 0
+        if @props.mantissa_length == 0
             n = parseInt(n)
         else
             n = misc.roundN(parseFloat(n), @props.mantissa_length)
         return n
 
     saveNumber: (n) ->
-        n = @sanitizeN(n)
+        n = @sanitize(n)
         @setState(number:n)
         @props.on_change(n)
 
@@ -480,18 +488,16 @@ exports.NumberInput = NumberInput = rclass
         if @state.number? and @state.number != @props.number
             <Button className='pull-right' bsStyle='success' onClick={@saveChange}><Icon name='save' /> Save</Button>
 
-    speedup: 10
-
     plusminus_click: (e, delta) ->
-        if e.shiftKey then delta *= @speedup
+        if e.shiftKey then delta *= @props.speedup
         @setState((prevState, props) =>
-            n = @sanitizeN(prevState.number + delta)
+            n = @sanitize(prevState.number + delta)
             @on_change_debounce(n)
             return {number:n}
         )
 
     plusminus: (delta) ->
-        return null if not @props.plusminus?
+        return null if not @props.plusminus
         if delta > 0
             name     = 'plus'
             disabled = @props.number == @props.max
@@ -500,7 +506,7 @@ exports.NumberInput = NumberInput = rclass
             disabled = @props.number == @props.min
 
         <Tip
-            title     = {"Hold down your shift key while clicking to increase changes by #{@speedup}x."}
+            title     = {"Hold down your shift key while clicking to increase changes by #{@props.speedup}x."}
             placement = {'bottom'}
         >
             <Button
@@ -524,7 +530,7 @@ exports.NumberInput = NumberInput = rclass
 
         <Row>
             <Col xs={xs}>
-                <Form onSubmit={@saveChange} inline={@props.plusminus?}>
+                <Form onSubmit={@saveChange} inline={@props.plusminus}>
                     <FormGroup stlye={fgstyle}>
                         {@plusminus(-1)}
                         <FormControl

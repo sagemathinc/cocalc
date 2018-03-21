@@ -460,7 +460,7 @@ ChatRoom = rclass ({name}) ->
         scroll_to_position(@refs.log_container, @props.saved_position,
                            @props.offset, @props.height, @props.use_saved_position, @props.actions)
         @_mark_as_read() # The act of opening/displaying the chat marks it as seen...
-                        # since this happens when the user shows it.
+                         # since this happens when the user shows it.
 
     componentWillReceiveProps: (next) ->
         if (@props.messages != next.messages or @props.input != next.input) and is_at_bottom(@props.saved_position, @props.offset, @props.height)
@@ -552,9 +552,17 @@ ChatRoom = rclass ({name}) ->
         main_style =
             width           : '100%'
             display         : 'flex'
-            flex            : '1'
             flexDirection   : 'column'
             backgroundColor : '#efefef'
+
+        if @props.input_height == 'default'
+            main_style.flex = '1'
+
+        if @props.input_height == 'small'
+            if window.$.browser.firefox
+                main_style.height = '100%'
+            else
+                main_style.flex   = '1'
 
         bottom_style =
             marginTop       : 'auto'
@@ -659,7 +667,7 @@ exports.EmbeddedChat = ({path, redux, project_id}) ->
         show_heads   = {false}
     />
 
-# Fitting the side chat into non-react parts of SMC:
+# Fitting the side chat into non-react parts of CoCalc:
 
 render = (redux, project_id, path) ->
     name = redux_name(project_id, path)

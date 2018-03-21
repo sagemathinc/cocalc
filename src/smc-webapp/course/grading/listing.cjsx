@@ -29,6 +29,8 @@ _         = require('underscore')
 {COLORS}             = require('smc-util/theme')
 {Avatar}             = require('../../other-users')
 {EmbeddedChat}       = require('../../side_chat')
+editor_chat          = require('../../editor_chat')
+chat_redux_name      = editor_chat.redux_name
 
 # React libraries
 {React, rclass, rtypes, redux} = require('../../smc-react')
@@ -42,6 +44,28 @@ _         = require('underscore')
 listing_colstyle  = {margin: '10px 0'}
 listing_colstyle2 = misc.merge({overflow: 'hidden', textOverflow: 'ellipsis'}, listing_colstyle)
 
+ChatMessageCount = rclass ({chat_name}) ->
+    displayName : 'CourseEditor-GradingStudentAssignment-MessageCount'
+
+    reduxProps:
+        "#{chat_name}":
+            messages        : rtypes.immutable
+
+    propTypes:
+        highlight : rtypes.bool
+
+    getDefaultProps: ->
+        highlight : false
+
+    render: ->
+        N     = @props.messages?.size ? 0
+        return null if N == 0
+        style = {}
+        if N > 0 and @props.highlight
+            #style.color      = COLORS.BS_RED
+            style.fontWeight = 'bold'
+
+        <span style={style}>{N} {misc.plural(N, 'msg')}.</span>
 
 exports.Listing = rclass
     displayName : 'CourseEditor-GradingStudentAssignment-Listing'
@@ -66,6 +90,14 @@ exports.Listing = rclass
 
     getInitialState: ->
         active_autogrades : immutable.Set()
+        opened_discussion : false
+
+    componentWillReceiveProps: (props) ->
+        if @props.student_id != props.student_id
+            @setState(opened_discussion : props.discussion_show)
+        else
+            if props.discussion_show
+                @setState(opened_discussion : true)
 
     shouldComponentUpdate: (next) ->
         update = misc.is_different(@props, next, \
@@ -390,6 +422,8 @@ exports.Listing = rclass
         return (if more? then [listing, more] else listing)
 
     render_switch_mode_buttons: ->
+        chat_name = chat_redux_name(@props.project_id, @props.discussion_path)
+
         <div style={padding:'0', flex:'0', marginRight: '15px'}>
             <ButtonGroup style={marginBottom:'5px', display:'flex'}>
                 <Button
@@ -406,12 +440,17 @@ exports.Listing = rclass
                 <Button
                     onClick   = {=>@toggle_discussion(true)}
                     active    = {@props.discussion_show}
+                    style     = {whiteSpace:'nowrap'}
                 >
                     <Tip
                         title     = {'Show associated private discussion.'}
                         placement = {'bottom'}
                     >
-                        <Icon name={'comments'} />
+                        <Icon name={'comments'} />{' '}
+                        <ChatMessageCount
+                            highlight = {(not @props.discussion_show) and (not @state.opened_discussion)}
+                            chat_name = {chat_name}
+                        />
                     </Tip>
                 </Button>
             </ButtonGroup>
