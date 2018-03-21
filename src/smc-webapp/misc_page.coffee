@@ -1017,7 +1017,7 @@ exports.define_codemirror_extensions = () ->
         #console.log("edit_selection '#{misc.to_json(opts)}', mode='#{default_mode}'")
 
         # FUTURE: will have to make this more sophisticated, so it can
-        # deal with nesting.
+        # deal with nesting, spans, etc.
         strip = (src, left, right) ->
             #console.log("strip:'#{src}','#{left}','#{right}'")
             left  = left.toLowerCase()
@@ -1055,9 +1055,6 @@ exports.define_codemirror_extensions = () ->
                     # Sage fallback in python mode. FUTURE: There should be a Sage mode.
                     mode1 = "sage"
                 how = EDIT_COMMANDS[mode1][cmd]
-
-            if DEBUG and not how?
-                console.warn("CodeMirror/edit_selection: unknown 'how' for mode1='#{mode1}' and cmd='#{cmd}'")
 
             # trim whitespace
             i = 0
@@ -1130,62 +1127,102 @@ exports.define_codemirror_extensions = () ->
                     src = "#{src}\n#{how.insert}"
                 done = true
 
-            if cmd == 'font_size'
-                if mode in ['html', 'md', 'mediawiki']
-                    for i in [1..7]
-                        src1 = strip(src, "<font size=#{i}>", '</font>')
-                        if src1
-                            src = src1
-                    if args != '3'
-                        src = "<font size=#{args}>#{src}</font>"
-                else if mode == 'tex'
-                    # we need 6 latex sizes, for size 1 to 7 (default 3, at index 2)
-                    latex_sizes = ['tiny', 'footnotesize', 'normalsize', 'large', 'LARGE', 'huge', 'Huge']
-                    i = parseInt(args)
-                    if i in [1..7]
-                        size = latex_sizes[i - 1]
-                        src = "{\\#{size} #{src}}"
+            switch cmd
+                when 'font_size'
+                    if mode in ['html', 'md', 'mediawiki']
+                        for i in [1..7]
+                            src1 = strip(src, "<font size=#{i}>", '</font>')
+                            if src1
+                                src = src1
+                        if args != '3'
+                            src = "<font size=#{args}>#{src}</font>"
+                        done = true
+                    else if mode == 'tex'
+                        # we need 6 latex sizes, for size 1 to 7 (default 3, at index 2)
+                        latex_sizes = ['tiny', 'footnotesize', 'normalsize', 'large', 'LARGE', 'huge', 'Huge']
+                        i = parseInt(args)
+                        if i in [1..7]
+                            size = latex_sizes[i - 1]
+                            src = "{\\#{size} #{src}}"
+                        done = true
 
-            if cmd == 'color'
-                if mode in ['html', 'md', 'mediawiki']
-                    src0 = src.toLowerCase().trim()
-                    if src0.slice(0,12) == "<font color="
-                        i = src.indexOf('>')
-                        j = src.lastIndexOf('<')
-                        src = src.slice(i+1,j)
-                    src = "<font color=#{args}>#{src}</font>"
+                when 'font_size_new'
+                    if mode in ['html', 'md', 'mediawiki']
+                        src0 = src.toLowerCase().trim()
+                        if misc.startswith(src0, "<span style='font-size")
+                            i = src.indexOf('>')
+                            j = src.lastIndexOf('<')
+                            src = src.slice(i+1,j)
+                        if args != 'medium'
+                            src = "<span style='font-size:#{args}'>#{src}</span>"
+                        done = true
+                    else if mode == 'tex'
+                        # we need 6 latex sizes, for size 1 to 7 (default 3, at index 2)
+                        latex_sizes = ['tiny', 'footnotesize', 'normalsize', 'large', 'LARGE', 'huge', 'Huge']
+                        i = parseInt(args)
+                        if i in [1..7]
+                            size = latex_sizes[i - 1]
+                            src = "{\\#{size} #{src}}"
+                        done = true
 
-            if cmd == 'background-color'
-                if mode in ['html', 'md', 'mediawiki']
-                    src0 = src.toLowerCase().trim()
-                    if src0.slice(0,23) == "<span style='background"
-                        i = src.indexOf('>')
-                        j = src.lastIndexOf('<')
-                        src = src.slice(i+1,j)
-                    src = "<span style='background-color:#{args}'>#{src}</span>"
+                when 'color'
+                    if mode in ['html', 'md', 'mediawiki']
+                        src0 = src.toLowerCase().trim()
+                        if misc.startswith(src0, "<span style='color")
+                            i = src.indexOf('>')
+                            j = src.lastIndexOf('<')
+                            src = src.slice(i+1,j)
+                        src = "<span style='color:#{args}'>#{src}</span>"
+                        done = true
 
-            if cmd == 'font_face'
-                if mode in ['html', 'md', 'mediawiki']
-                    for face in FONT_FACES
-                        src1 = strip(src, "<font face='#{face}'>", '</font>')
-                        if src1
-                            src = src1
-                    src = "<font face='#{args}'>#{src}</font>"
+                when 'background-color'
+                    if mode in ['html', 'md', 'mediawiki']
+                        src0 = src.toLowerCase().trim()
+                        if misc.startswith(src0, "<span style='background")
+                            i = src.indexOf('>')
+                            j = src.lastIndexOf('<')
+                            src = src.slice(i+1,j)
+                        src = "<span style='background-color:#{args}'>#{src}</span>"
+                        done = true
 
-            if cmd == 'clean'
-                if mode == 'html'
-                    src = html_beautify($("<div>").html(src).html())
-                    done = true
+                when 'font_face'  # old -- still used in some old non-react editors
+                    if mode in ['html', 'md', 'mediawiki']
+                        for face in FONT_FACES
+                            src1 = strip(src, "<font face='#{face}'>", '</font>')
+                            if src1
+                                src = src1
+                        src = "<font face='#{args}'>#{src}</font>"
+                        done = true
 
-            if cmd == 'unformat'
-                if mode == 'html'
-                    src = $("<div>").html(src).text()
-                    done = true
-                else if mode == 'md'
-                    src = $("<div>").html(markdown.markdown_to_html(src)).text()
-                    done = true
+                when 'font_family'  # new -- html5 style
+                    if mode in ['html', 'md', 'mediawiki']
+                        src0 = src.toLowerCase().trim()
+                        if misc.startswith(src0, "<span style='font-family")
+                            i = src.indexOf('>')
+                            j = src.lastIndexOf('<')
+                            src = src.slice(i+1,j)
+                        if not src
+                            src = '    '
+                        src = "<span style='font-family:#{args}'>#{src}</span>"
+                        done = true
+
+                when 'clean'
+                    if mode == 'html'
+                        src = html_beautify($("<div>").html(src).html())
+                        done = true
+
+                when 'unformat'
+                    if mode == 'html'
+                        src = $("<div>").html(src).text()
+                        done = true
+                    else if mode == 'md'
+                        src = $("<div>").html(markdown.markdown_to_html(src)).text()
+                        done = true
 
             if not done?
+                if DEBUG and not how?
+                    console.warn("CodeMirror/edit_selection: unknown for mode1='#{mode1}' and cmd='#{cmd}'")
+
                 #console.log("not implemented")
                 return "not implemented"
 

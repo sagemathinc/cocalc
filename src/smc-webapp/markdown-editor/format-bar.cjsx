@@ -50,10 +50,15 @@ exports.FormatBar = rclass
             {@render_button('display_equation', 'Insert displayed LaTeX math', '', '$$')}
             {@render_button('insertunorderedlist', 'Insert unordered list', 'list')}
             {@render_button('insertorderedlist', 'Insert ordered list', 'list-ol')}
-            {@render_button('link', 'Insert link', 'link')}
-            {@render_button('image', 'Insert image', 'image')}
+            {@render_button('quote', 'Make selected text into a quotation', 'quote-left')}
             {@render_button('table', 'Insert table', 'table')}
             {@render_button('horizontalRule', 'Insert horizontal rule', '', <span>&mdash;</span>)}
+        </ButtonGroup>
+
+    render_insert_dialog_buttons: ->
+        <ButtonGroup key={'insert-dialog'}>
+            {@render_button('link', 'Insert link', 'link')}
+            {@render_button('image', 'Insert image', 'image')}
             {@render_button('SpecialChar', 'Insert special character...', '', <span>&Omega;</span>)}
         </ButtonGroup>
 
@@ -68,9 +73,7 @@ exports.FormatBar = rclass
             </ButtonGroup>
             <Space/>
             <ButtonGroup key={'format2'}>
-                {@render_button('outdent', 'Move selected text to the left', 'outdent')}
-                {@render_button('indent', 'Quote selected text', 'indent')}
-                {@render_button('unformat', 'Remove formatting from selected text', 'remove')}
+                {@render_button('unformat', 'Remove all formatting from selected text', 'remove')}
             </ButtonGroup>
         </Fragment>
 
@@ -96,7 +99,7 @@ exports.FormatBar = rclass
         items = []
         for size in FONT_SIZES
             item = <MenuItem key={size} eventKey={size}
-                             onSelect={(size)=>@props.actions.format_action('font_size', size)}
+                             onSelect={(size)=>@props.actions.format_action('font_size_new', size)}
                     >
                     <span style={fontSize:size}>{size} {if size=='medium' then '(default)'}</span>
                 </MenuItem>
@@ -128,7 +131,7 @@ exports.FormatBar = rclass
                 when 6
                     c = <h6>{label}</h6>
             item = <MenuItem key={heading} eventKey={heading}
-                       onSelect={(heading)=>@props.actions.format_action('heading', heading)}
+                       onSelect={(heading)=>@props.actions.format_action("format_heading_#{heading}")}
                    >
                        {c}
                     </MenuItem>
@@ -178,6 +181,8 @@ exports.FormatBar = rclass
                 {@render_text_style_buttons()}
                 <Space/>
                 {@render_insert_buttons()}
+                <Space/>
+                {@render_insert_dialog_buttons()}
                 <Space/>
                 {@render_format_buttons()}
                 <Space/>
