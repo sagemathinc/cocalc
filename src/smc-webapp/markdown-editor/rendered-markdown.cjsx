@@ -33,6 +33,7 @@ exports.RenderedMarkdown = rclass
         font_size    : rtypes.number.isRequired
         read_only    : rtypes.bool
         value        : rtypes.string
+        content      : rtypes.string         # used instead of file is public
         editor_state : rtypes.immutable.Map
 
     on_scroll: ->
@@ -55,6 +56,8 @@ exports.RenderedMarkdown = rclass
                 $(elt).scrollTop(scroll)
 
     on_click: (e) ->  # same idea as in tasks/desc-rendered.cjsx
+        if @props.read_only
+            return
         data = e.target?.dataset
         if not data?
             return
@@ -63,7 +66,7 @@ exports.RenderedMarkdown = rclass
             @props.actions.toggle_markdown_checkbox(@props.id, parseInt(data.index), data.checkbox == 'true')
 
     render: ->
-        value = @props.value
+        value = @props.value ? @props.content
         if not value?
             return <Loading />
         value = apply_without_math(value, process_checkboxes)

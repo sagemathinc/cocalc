@@ -13,17 +13,21 @@ tree_ops  = require('../code-editor/tree-ops')
 class exports.Actions extends Actions
     _init: (args...) =>
         super._init(args...)   # call the _init for the parent class
-        @_init_syncstring_value()
-        @_init_spellcheck()
+        if not @is_public
+            @_init_syncstring_value()
+            @_init_spellcheck()
 
     _default_frame_tree: =>
-        frame_tree = immutable.fromJS
-            direction : 'col'
-            type      : 'node'
-            first     :
-                type : 'cm'
-            second    :
-                type : 'markdown'
+        if @is_public
+            frame_tree = immutable.fromJS(type : 'markdown')
+        else
+            frame_tree = immutable.fromJS
+                direction : 'col'
+                type      : 'node'
+                first     :
+                    type : 'cm'
+                second    :
+                    type : 'markdown'
         frame_tree = tree_ops.assign_ids(frame_tree)
         frame_tree = tree_ops.ensure_ids_are_unique(frame_tree)
         return frame_tree
@@ -50,6 +54,7 @@ class exports.Actions extends Actions
         # since only one markdown viewer is in the DOM at once.
         elt = $("#frame-#{id}")
         if elt.length == 1   # in case there were two (impossible) we don't do this and fall back to directly computing the html.
+
             html = elt.html()
         else
             value = @store.get('value')

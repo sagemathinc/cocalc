@@ -124,7 +124,7 @@ exports.FrameTree = FrameTree = rclass
         <Leaf
             actions          = {@props.actions}
             id               = {desc.get('id')}
-            read_only        = {desc.get('read_only') or @props.read_only}
+            read_only        = {desc.get('read_only') or @props.read_only or @props.is_public}
             font_size        = {desc.get('font_size') ? @props.font_size}
             path             = {desc.get('path') ? @props.path}
             project_id       = {desc.get('project_id') ? @props.project_id}

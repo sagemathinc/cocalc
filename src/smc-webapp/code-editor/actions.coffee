@@ -23,7 +23,7 @@ class exports.Actions extends Actions
         @project_id = project_id
         @path       = path
         @store      = store
-        @is_public = is_public
+        @is_public  = is_public
 
         if is_public
             @_init_public_content()
