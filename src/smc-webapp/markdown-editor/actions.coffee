@@ -40,6 +40,7 @@ class exports.Actions extends Actions
         value = toggle_checkbox(@_syncstring.to_str(), index, checked)
         @_syncstring.from_str(value)
         @set_codemirror_to_syncstring()
+        @_syncstring.save()
         @setState(value: value)
 
     print: (id) =>

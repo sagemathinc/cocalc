@@ -232,7 +232,7 @@ exports.FrameTree = FrameTree = rclass
             return
         # Workaround a major and annoying bug in Safari:
         #     https://github.com/philipwalton/flexbugs/issues/132
-        $(ReactDOM.findDOMNode(@)).find(".cocalc-codemirror-editor-div").make_height_defined()
+        $(ReactDOM.findDOMNode(@)).find(".cocalc-editor-div").make_height_defined()
 
     render_rows_drag_bar: ->
         reset = =>

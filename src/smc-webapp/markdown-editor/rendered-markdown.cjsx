@@ -70,14 +70,16 @@ exports.RenderedMarkdown = rclass
         if not value?
             return <Loading />
         value = apply_without_math(value, process_checkboxes)
+        # the cocalc-editor-div is needed for a safari hack only
         <div
-            style    = {overflowY:'scroll', width:'100%', fontSize:"#{@props.font_size}px"}
-            ref      = {'scroll'}
-            onScroll = {throttle(@on_scroll, 250)}
-            onClick  = {@on_click}
+            style     = {overflowY:'scroll', width:'100%', fontSize:"#{@props.font_size}px", border:'1px solid lightgrey'}
+            ref       = {'scroll'}
+            onScroll  = {throttle(@on_scroll, 250)}
+            onClick   = {@on_click}
+            className = {'cocalc-editor-div'}
         >
             <div
-                style = {maxWidth: options.MAX_WIDTH, margin: '0 auto', padding:'10px'}
+                style = {maxWidth: options.MAX_WIDTH, margin: '10px auto', padding:'0 10px'}
             >
                 <Markdown
                     id         = {"frame-#{@props.id}"}

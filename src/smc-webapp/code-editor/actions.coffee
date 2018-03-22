@@ -612,6 +612,7 @@ class exports.Actions extends Actions
                 if @_state != 'closed'
                     cm.focus()
                     @set_syncstring_to_codemirror()
+                    @_syncstring.save()
 
     ###
     format_dialog_action: (cmd) ->

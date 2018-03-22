@@ -18,7 +18,6 @@ title_bar_style =
     borderLeft    : '1px solid rgb(204,204,204)'
     borderRight   : '1px solid rgb(204,204,204)'
     padding       : '1px'
-    #overflow      : 'hidden'
 
 path_style =
     whiteSpace   : 'nowrap'
@@ -118,7 +117,6 @@ exports.FrameTitleBar = rclass
         if selected_short and @show_labels()
             title = <span>{title} {selected_short}</span>
         <DropdownButton
-          pullRight = {true}
           title     = {title}
           key       = {'types'}
           id        = {'types'}
@@ -487,8 +485,19 @@ exports.FrameTitleBar = rclass
         if is_active
             style = misc.copy(title_bar_style)
             style.background = '#f8f8f8'
+
         else
             style = title_bar_style
+
+        if $.browser.safari  # ugly hack....
+            # for some reason this is really necessary on safari, but
+            # breaks on everything else!
+            if not is_active
+                style = misc.copy(style)
+            if @props.is_only or @props.is_full
+                style.minHeight = '36px'
+            else
+                style.minHeight = '32px'
 
         <div style = {style}>
             {@render_control()}

@@ -229,7 +229,7 @@ exports.CodemirrorEditor = rclass
         style.fontSize = "#{@props.font_size}px"
         <div
             style     = {style}
-            className = 'smc-vfill cocalc-codemirror-editor-div' >
+            className = 'smc-vfill cocalc-editor-div' >
             {@render_cursors()}
             <textarea />
         </div>
