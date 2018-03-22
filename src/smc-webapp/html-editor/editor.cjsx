@@ -29,9 +29,9 @@ EDITOR_SPEC =
     iframe :
         short     : 'IFrame'
         name      : 'IFrame (unsanitized)'
-        icon      : 'globe'
+        icon      : 'safari'
         component : IFrameHTML
-        buttons   : set(['print', 'save', 'time_travel', 'reload', 'private-reload'])
+        buttons   : set(['print', 'save', 'time_travel', 'reload'])
 
 exports.Editor = rclass ({name}) ->
     displayName: 'HTMLEditor-Editor'

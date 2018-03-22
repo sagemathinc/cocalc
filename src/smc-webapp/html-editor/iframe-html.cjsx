@@ -26,13 +26,13 @@ exports.IFrameHTML = rclass
         is_fullscreen: rtypes.bool
         project_id   : rtypes.string
         path         : rtypes.string
-        reload       : rtypes.number
+        save_to_disk : rtypes.number
 
     shouldComponentUpdate: (next) ->
-        return misc.is_different(@props, next, ['id', 'is_fullscreen', 'project_id', 'path', 'reload'])
+        return misc.is_different(@props, next, ['id', 'is_fullscreen', 'project_id', 'path', 'save_to_disk'])
 
     componentWillReceiveProps: (next) ->
-        if @props.reload != next.reload
+        if @props.save_to_disk != next.save_to_disk
             @reload_iframe()
 
     on_scroll: ->
@@ -77,20 +77,12 @@ exports.IFrameHTML = rclass
     maximize: ->
         @props.actions.set_frame_full(@props.id)
 
-    render_fullscreen_message: ->
-        <Alert bsStyle="warning" style={margin:'15px'}>
-            IFrame display currently only supported with a single editor view.
-            <br/><br/>
-            Close other views or <a style={cursor:'pointer'} onClick={@maximize}>maximize this view</a>.
-        </Alert>
-
     render: ->
         # the cocalc-editor-div is needed for a safari hack only
         <div
             style     = {STYLE}
             className = {'cocalc-editor-div smc-vfill'}
         >
-            {@render_fullscreen_message() if not @props.is_fullscreen}
             {@render_iframe()}
         </div>
 

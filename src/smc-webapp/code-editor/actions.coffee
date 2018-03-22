@@ -70,10 +70,6 @@ class exports.Actions extends Actions
         @_syncstring.on 'save-to-disk', =>
             @update_misspelled_words()
 
-    private_reload: =>
-        # sets a random value in the store, which editors can use to cause a reload of some content
-        @setState(reload: Math.random())
-
     reload: =>
         if not @store.get('is_loaded')
             # already loading
@@ -102,6 +98,10 @@ class exports.Actions extends Actions
         @_syncstring.on('init', @_syncstring_change)
 
         @_syncstring.once('load-time-estimate', (est) => @setState(load_time_estimate: est))
+
+        @_syncstring.on 'save-to-disk', =>
+            # incremenet save_to_disk counter, so that react components can react to save_to_disk event happening.
+            @setState(save_to_disk: (@store.get('save_to_disk') ? 0) + 1)
 
         @_init_has_unsaved_changes()
 

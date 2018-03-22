@@ -75,7 +75,7 @@ exports.FrameTree = FrameTree = rclass ({name}) ->
 
     reduxProps :
         "#{name}" :
-            reload           : rtypes.number
+            save_to_disk     : rtypes.number
             misspelled_words : rtypes.immutable.Set
 
     getInitialState: ->
@@ -85,7 +85,7 @@ exports.FrameTree = FrameTree = rclass ({name}) ->
         return @state.drag_hover != state.drag_hover or \
                misc.is_different(@props, next, ['frame_tree', 'active_id', 'full_id', 'is_only', \
                       'cursors', 'has_unsaved_changes', 'is_public', 'content', 'value', \
-                      'project_id', 'path', 'misspelled_words', 'reload'])
+                      'project_id', 'path', 'misspelled_words', 'save_to_disk'])
 
     render_frame_tree: (desc) ->
         <FrameTree
@@ -139,7 +139,7 @@ exports.FrameTree = FrameTree = rclass ({name}) ->
             value            = {@props.value}
             misspelled_words = {@props.misspelled_words}
             is_fullscreen    = {@props.is_only or desc.get('id') == @props.full_id}
-            reload           = {@props.reload}
+            save_to_disk     = {@props.save_to_disk}
         />
 
     render_one: (desc) ->
