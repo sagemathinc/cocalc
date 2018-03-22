@@ -79,6 +79,12 @@ exports.init_express_http_server = (opts) ->
     app    = express()
     app.use(cookieParser())
 
+    # Enable compression, as
+    # suggested by http://expressjs.com/en/advanced/best-practice-performance.html#use-gzip-compression
+    # NOTE "Express runs everything in order" -- https://github.com/expressjs/compression/issues/35#issuecomment-77076170
+    compression = require('compression')
+    app.use(compression())
+
     # Very large limit, since can be used to send, e.g., large single patches, and
     # the default is only 100kb!  https://github.com/expressjs/body-parser#limit-2
     router.use(body_parser.json({limit: '3mb'}))
@@ -486,11 +492,6 @@ exports.init_express_http_server = (opts) ->
         # this upgrade is never hit, since the main site (that is
         # proxying to this server) is already trying to do something.
         # I don't know if this sort of multi-level proxying is even possible.
-
-    # Enable compression, as
-    # suggested by http://expressjs.com/en/advanced/best-practice-performance.html#use-gzip-compression
-    compression = require('compression')
-    app.use(compression())
 
     http_server = http.createServer(app)
     return {http_server:http_server, express_router:router}

@@ -85,6 +85,28 @@ exports.cm_options = (opts) ->
         if opts.bindings != 'emacs'
             extraKeys['Ctrl-P'] = -> actions.print()
 
+    if actions? and not opts.read_only and opts.bindings != 'emacs'  # emacs bindings really conflict with these
+        # Extra codemirror keybindings -- for some of our plugins
+        # inspired by http://www.door2windows.com/list-of-all-keyboard-shortcuts-for-sticky-notes-in-windows-7/
+        keybindings =
+            bold          : 'Cmd-B Ctrl-B'
+            italic        : 'Cmd-I Ctrl-I'
+            underline     : 'Cmd-U Ctrl-U'
+            comment       : 'Shift-Ctrl-3'
+            strikethrough : 'Shift-Cmd-X Shift-Ctrl-X'
+            subscript     : "Cmd-= Ctrl-="
+            superscript   : "Shift-Cmd-= Shift-Ctrl-="
+
+        # use a closure to bind cmd.
+        f = (key, cmd) ->
+            extraKeys[key] = (cm) =>
+                cm.edit_selection(cmd : cmd)
+                actions.set_syncstring_to_codemirror()
+
+        for cmd, keys of keybindings
+            for key in keys.split(' ')
+                f(key, cmd)
+
     if opts.match_xml_tags
         extraKeys['Ctrl-J'] = "toMatchingTag"
 

@@ -1,5 +1,5 @@
 ###
-Convert a file on the backend to PDF..
+Convert a code file to printable form, entirely on the frontend.
 ###
 
 immutable            = require('immutable')
@@ -17,6 +17,7 @@ exports.print = (opts) ->
         value      : required
         options    : required
         path       : required
+        font_size  : '9pt'
 
     w = window.open('', '_blank',
                     'menubar=yes,toolbar=no,resizable=yes,scrollbars=yes,height=640,width=800')
@@ -28,7 +29,12 @@ exports.print = (opts) ->
 
     # We add a trailing whitespace, since some printers grey the last line (e.g., chrome, but not firefox)
     value = opts.value + '\n'
-    C = React.createElement(CodeMirrorStatic, {value:value, options:options})
+    props =
+        value     : value
+        options   : options
+        style     : {background:'white', padding:'7%', width:'auto'}
+        no_border : true
+    C = React.createElement(CodeMirrorStatic, props)
     s = ReactDOMServer.renderToStaticMarkup(C)
 
     t = """
@@ -38,7 +44,7 @@ exports.print = (opts) ->
         <meta name="google" content="notranslate"/>
         <style>#{CODEMIRROR_CSS}</style>
     </head>
-    <body style='font-size:9pt'>
+    <body style='font-size:#{opts.font_size}'>
         #{s}
     </body>
 </html>

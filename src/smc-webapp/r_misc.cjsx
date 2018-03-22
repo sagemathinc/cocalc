@@ -831,6 +831,8 @@ exports.HTML = HTML = rclass
                                            # before it is exported to text and given to react.   Obviously, you can't
                                            # install click handlers here.
         highlight        : rtypes.immutable.Set
+        content_editable : rtypes.bool     # if true, makes rendered HTML contenteditable
+        id               : rtypes.string
 
     getDefaultProps: ->
         auto_render_math : true
@@ -935,12 +937,23 @@ exports.HTML = HTML = rclass
     render: ->
         # the random key is the whole span (hence the html) does get rendered whenever
         # this component is updated.  Otherwise, it will NOT re-render except when the value changes.
-        <span
-            key                     = {Math.random()}
-            className               = {@props.className}
-            dangerouslySetInnerHTML = {@render_html()}
-            style                   = {@props.style}>
-        </span>
+        if @props.content_editable
+            <div
+                id                      = {@props.id}
+                contentEditable         = {true}
+                key                     = {Math.random()}
+                className               = {@props.className}
+                dangerouslySetInnerHTML = {@render_html()}
+                style                   = {@props.style} >
+            </div>
+        else
+            <span
+                id                      = {@props.id}
+                key                     = {Math.random()}
+                className               = {@props.className}
+                dangerouslySetInnerHTML = {@render_html()}
+                style                   = {@props.style} >
+            </span>
 
 exports.Markdown = rclass
     displayName : 'Misc-Markdown'
@@ -957,26 +970,26 @@ exports.Markdown = rclass
         post_hook        : rtypes.func     # see docs to HTML
         highlight        : rtypes.immutable.Set
         auto_render_math : rtypes.bool     # render math
-
-    reduxProps :
-        account :
-            other_settings : rtypes.immutable.Map
+        content_editable : rtypes.bool     # if true, makes rendered Markdown contenteditable
+        checkboxes       : rtypes.bool     # if true, replace "[ ]" and "[ ]" by nice rendered versions.
+        id               : rtypes.string
 
     getDefaultProps: ->
         auto_render_math : true
         safeHTML         : true
 
     shouldComponentUpdate: (next) ->
-        return misc.is_different(@props, next, ['value', 'auto_render_math', 'highlight', 'safeHTML']) or \
+        return misc.is_different(@props, next, ['value', 'auto_render_math', 'highlight', 'safeHTML', 'checkboxes']) or \
                not underscore.isEqual(@props.style, next.style)
 
     to_html: ->
         if not @props.value
             return
-        return markdown.markdown_to_html(@props.value)
+        return markdown.markdown_to_html(@props.value, {checkboxes:@props.checkboxes})
 
     render: ->
         <HTML
+            id               = {@props.id}
             value            = {@to_html()}
             auto_render_math = {@props.auto_render_math}
             style            = {@props.style}
@@ -986,7 +999,8 @@ exports.Markdown = rclass
             href_transform   = {@props.href_transform}
             post_hook        = {@props.post_hook}
             highlight        = {@props.highlight}
-            safeHTML         = {@props.safeHTML} />
+            safeHTML         = {@props.safeHTML}
+            content_editable = {@props.content_editable} />
 
 
 activity_style =
