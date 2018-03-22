@@ -5,14 +5,16 @@ Component that shows rendered HTML in an iFrame, so safe and no mangling needed.
 misc = require('smc-util/misc')
 
 {Alert} = require('react-bootstrap')
-{path_split} = require('smc-util/misc')
 
 {throttle} = require('underscore')
 
-{Loading, HTML} = require('../r_misc')
-{React, ReactDOM, rclass, rtypes}     = require('../smc-react')
+{HTML} = require('../r_misc')
+{React, ReactDOM, rclass, rtypes} = require('../smc-react')
 
-options = require('./options')
+STYLE =
+    overflowY : 'scroll'
+    width     : '100%'
+    borderTop : '1px solid lightgrey'
 
 exports.IFrameHTML = rclass
     displayName: 'HTMLEditor-IFrameHTML'
@@ -20,12 +22,18 @@ exports.IFrameHTML = rclass
     propTypes :
         id           : rtypes.string.isRequired
         actions      : rtypes.object.isRequired
-        content      : rtypes.string
         editor_state : rtypes.immutable.Map
         is_fullscreen: rtypes.bool
+        project_id   : rtypes.string
+        path         : rtypes.string
+        reload       : rtypes.number
 
     shouldComponentUpdate: (next) ->
-        return misc.is_different(@props, next, ['id', 'content', 'is_fullscreen'])
+        return misc.is_different(@props, next, ['id', 'is_fullscreen', 'project_id', 'path', 'reload'])
+
+    componentWillReceiveProps: (next) ->
+        if @props.reload != next.reload
+            @reload_iframe()
 
     on_scroll: ->
         elt = ReactDOM.findDOMNode(@refs.iframe)
@@ -34,14 +42,6 @@ exports.IFrameHTML = rclass
         scroll = $(elt).contents().scrollTop()
         @props.actions.save_editor_state(@props.id, {scroll:scroll})
 
-    componentDidMount: ->
-        @props.actions.reload()
-        @set_iframe_content()
-        @init_scroll_handler()
-
-    componentDidUpdate: ->
-        @set_iframe_content()
-
     init_scroll_handler: ->
         iframe = ReactDOM.findDOMNode(@refs.iframe)
         if iframe?
@@ -49,33 +49,30 @@ exports.IFrameHTML = rclass
 
     restore_scroll: ->
         scroll = @props.editor_state?.get('scroll')
+        elt = ReactDOM.findDOMNode(@refs.iframe)
+        if not elt?
+            return
+        elt = $(elt)
         if scroll?
-            elt = ReactDOM.findDOMNode(@refs.iframe)
-            if elt?
-                e = $(elt)
-                e.contents().scrollTop(scroll)
-                e.css('opacity', 1)
+            elt.contents().scrollTop(scroll)
+        elt.css('opacity',1)
 
     render_iframe: ->
         <iframe
             ref     = {'iframe'}
-            src     = {'about:blank'}
+            src     = {"#{window.app_base_url}/#{@props.project_id}/raw/#{@props.path}"}
             width   = {'100%'}
             height  = {'100%'}
-            style   = {border:0}
-            onLoad  = {@restore_scroll}
+            style   = {border:0, opacity:0}
+            onLoad  = {=> @restore_scroll(); @init_scroll_handler()}
             >
         </iframe>
 
-    set_iframe_content: ->
+    reload_iframe: ->
         elt = ReactDOM.findDOMNode(@refs.iframe)
         if not elt?
             return
-        doc = elt.contentWindow.document
-        $(elt).css('opacity',0)
-        doc.open()
-        doc.write(@props.content)
-        doc.close()
+        elt.contentDocument.location.reload(true)
 
     maximize: ->
         @props.actions.set_frame_full(@props.id)
@@ -88,14 +85,12 @@ exports.IFrameHTML = rclass
         </Alert>
 
     render: ->
-        if not @props.is_fullscreen
-            return @render_fullscreen_message()
         # the cocalc-editor-div is needed for a safari hack only
         <div
-            style     = {overflowY:'scroll', width:'100%', fontSize:"#{@props.font_size}px"}
+            style     = {STYLE}
             className = {'cocalc-editor-div smc-vfill'}
         >
-            {<Loading /> if not @props.content}
+            {@render_fullscreen_message() if not @props.is_fullscreen}
             {@render_iframe()}
         </div>
 

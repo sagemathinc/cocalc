@@ -378,6 +378,19 @@ exports.FrameTitleBar = rclass
             <Icon name='repeat' /> <VisibleMDLG>{if labels then 'Reload'}</VisibleMDLG>
         </Button>
 
+    # only for private view
+    render_private_reload: (labels) ->
+        if not @is_visible('private-reload')
+            return
+        <Button
+            key     = {'reload'}
+            title   = {'Reload this file'}
+            bsSize  = {@button_size()}
+            onClick = {@props.actions.private_reload}
+        >
+            <Icon name='repeat' /> <VisibleMDLG>{if labels then 'Reload'}</VisibleMDLG>
+        </Button>
+
     render_save: (labels) ->
         if not @is_visible('save')
             return
@@ -408,7 +421,8 @@ exports.FrameTitleBar = rclass
         <ButtonGroup key={'save-group'}>
             {@render_save(labels)}
             {@render_timetravel(labels) if not @props.is_public}
-            {@render_reload(labels) if @props.is_public or @props.editor_spec?[@props.type]?.content}
+            {@render_reload(labels) if @props.is_public}
+            {@render_private_reload(labels) if not @props.is_public}
         </ButtonGroup>
 
     render_print: ->

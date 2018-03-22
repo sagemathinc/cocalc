@@ -70,6 +70,10 @@ class exports.Actions extends Actions
         @_syncstring.on 'save-to-disk', =>
             @update_misspelled_words()
 
+    private_reload: =>
+        # sets a random value in the store, which editors can use to cause a reload of some content
+        @setState(reload: Math.random())
+
     reload: =>
         if not @store.get('is_loaded')
             # already loading

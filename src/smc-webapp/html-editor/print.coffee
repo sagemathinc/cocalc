@@ -16,14 +16,14 @@ BLOCKED = undefined
 
 exports.print_html = (opts) ->
     opts = defaults opts,
-        value      : undefined   # one of value or html must be given; html is best!
+        value      : undefined   # one of value or html or src must be given; html is best!
         html       : undefined
-        wrap       : true        # if true, wrap with some basic styles and head - assumes is just a fragment
+        src        : ''         # if given URL to print.
         path       : required
         project_id : required
         font_size  : '10pt'
 
-    w = window.open('', '_blank',
+    w = window.open(opts.src, '_blank',
                     'menubar=yes,toolbar=no,resizable=yes,scrollbars=yes,height=640,width=800')
 
     if not w?.closed? or w.closed
@@ -35,6 +35,21 @@ exports.print_html = (opts) ->
             return "If you have a window already opened printing a document, close it first."
     BLOCKED = false
 
+    write_content(w, opts)
+    print_window(w)
+    return
+
+print_window = (w) ->
+    if not w.window.print?
+        return
+    f = ->
+        w.window.print()
+    # Wait until the render is (probably) done, then display print dialog.
+    w.window.setTimeout(f, 100)
+
+write_content = (w, opts) ->
+    if opts.src
+        return
     split = path_split(opts.path)
 
     if not opts.html?
@@ -76,9 +91,4 @@ exports.print_html = (opts) ->
 """
     w.document.write(html)
     w.document.close()
-    if w.window.print?
-        f = ->
-            w.window.print()
-        # Wait until the render is (probably) done, then display print dialog.
-        w.window.setTimeout(f, 100)
-    return
+

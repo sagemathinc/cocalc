@@ -34,13 +34,11 @@ class exports.Actions extends Actions
             super.print(id)
             return
 
-        html = value = wrap = undefined
+        html = value = src = undefined
 
         if node.get('type') == 'iframe'
-            html = @store.get('content')
-            wrap = false
+            src = "#{window.app_base_url}/#{@project_id}/raw/#{@path}"
         else
-            wrap = true
             elt = $("#frame-#{id}")  # see remark in markdown actions, which is similar
             if elt.length == 1   # in case there were two (impossible) we don't do this and fall back to directly computing the html.
                 html = elt.html()
@@ -50,7 +48,7 @@ class exports.Actions extends Actions
         error = print_html
             value      : value
             html       : html
-            wrap       : wrap
+            src        : src
             project_id : @project_id
             path       : @path
             font_size  : node.get("font_size")

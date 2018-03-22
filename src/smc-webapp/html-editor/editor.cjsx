@@ -31,8 +31,7 @@ EDITOR_SPEC =
         name      : 'IFrame (unsanitized)'
         icon      : 'globe'
         component : IFrameHTML
-        content   : true    # only use content, not value or syncstring, and always show reload button.
-        buttons   : set(['print', 'save', 'time_travel', 'reload'])
+        buttons   : set(['print', 'save', 'time_travel', 'reload', 'private-reload'])
 
 exports.Editor = rclass ({name}) ->
     displayName: 'HTMLEditor-Editor'
