@@ -205,13 +205,14 @@ exports.CourseStore = class CourseStore extends Store
         points     = @get_assignment(assignment)?.getIn(['points', student_id])
         return points
 
+    # could return undefined, intentionally, to signal there are no points
     get_points_filepath: (assignment, student, filepath) =>
         points = @get_points(assignment, student)
-        return points?.get(filepath) ? 0
+        return points?.get(filepath)
 
     get_points_total: (assignment, student) =>
         points = @get_points(assignment, student)
-        return points?.reduce(((a, b) -> a+b), 0) ? 0
+        return points?.reduce(((a, b) -> a + b), 0) ? 0
 
     get_points_subdir: (assignment, student, subdir) =>
         reducer = (cur, val, path) ->

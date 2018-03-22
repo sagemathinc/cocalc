@@ -276,6 +276,8 @@ exports.Listing = rclass
             plusminus       = {true}
             select_on_click = {true}
             mantissa_length = {2}
+            allow_empty     = {true}
+            empty_text      = {'(no points)'}
         />
 
     render_points_subdir: (subdir) ->

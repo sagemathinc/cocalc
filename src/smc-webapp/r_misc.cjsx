@@ -53,7 +53,7 @@ exports.UNIT = UNIT = 15
 exports.BS_BLUE_BGRND = theme.COLORS.BS_BLUE_BGRND
 
 # This is the applications color scheme
-exports.COLORS = theme.COLORS
+exports.COLORS = COLORS = theme.COLORS
 
 # Checks whether two immutable variables (either ImmutableJS objects or actual
 # immutable types) are equal. Gives a warning and returns false (no matter what) if either variable is mutable.
@@ -427,7 +427,7 @@ exports.NumberInput = NumberInput = rclass
     displayName : 'Misc-NumberInput'
 
     propTypes :
-        number          : rtypes.number.isRequired
+        number          : rtypes.number
         min             : rtypes.number.isRequired
         max             : rtypes.number.isRequired
         on_change       : rtypes.func.isRequired
@@ -438,19 +438,29 @@ exports.NumberInput = NumberInput = rclass
         speedup         : rtypes.number   # multiplicates the delta of these +/- change buttons
         select_on_click : rtypes.bool
         bsSize          : rtypes.string
-        mantissa_length : rtypes.number   # default 0: means to truncate to integer, or pick a number from 1 to 8
-        allow_empty     : rtypes.bool     # if allowed, deleting the number leads to "number" to be "undefined/null"
+        mantissa_length : rtypes.oneOf([0..8]) # default 0: means to truncate to integer, or pick a number from 1 to 8
+        allow_empty     : rtypes.bool          # if allowed, deleting the number leads to "number" to be "undefined/null"
+        empty_text      : rtypes.string        # optional text to display (in lighter color) when there is no value
 
     getDefaultProps: ->
         plusminus       : false
         mantissa_length : 0
         allow_empty     : false
         speedup         : 10
+        empty_text      : '(no number)'
 
     componentWillReceiveProps: (next_props) ->
         if @props.number != next_props.number
             # so when the props change the state stays in sync (e.g., so save button doesn't appear, etc.)
             @setState(number : next_props.number)
+
+    shouldComponentUpdate: (props, state) ->
+        update = misc.is_different(@props, props, \
+            ['number', 'min', 'max', 'unit', 'disabled', 'plusminus', 'speedup', \
+            'select_on_click', 'mantissa_length', 'empty_text', 'allow_empty']
+        )
+        update or= @state.number != state.number
+        return update
 
     componentDidMount: ->
         {debounce} = require('underscore')
@@ -460,8 +470,15 @@ exports.NumberInput = NumberInput = rclass
         number : @props.number
 
     sanitize: (n) ->
-        if "#{n}" == "NaN"
-            n = @props.number
+        if (not n?) or (n == '') or (n == @props.empty_text)
+            if @props.allow_empty
+                return undefined
+            else
+                n = 0
+
+        if "#{n}" == 'NaN'
+            n = (@props.number ? 0)
+
         # clip min/max
         if n < @props.min
             n = @props.min
@@ -491,7 +508,10 @@ exports.NumberInput = NumberInput = rclass
     plusminus_click: (e, delta) ->
         if e.shiftKey then delta *= @props.speedup
         @setState((prevState, props) =>
-            n = @sanitize(prevState.number + delta)
+            if delta < 0 and props.allow_empty and props.number == props.min
+                n = undefined
+            else
+                n = @sanitize((prevState.number ? 0) + delta)
             @on_change_debounce(n)
             return {number:n}
         )
@@ -502,8 +522,15 @@ exports.NumberInput = NumberInput = rclass
             name     = 'plus'
             disabled = @props.number == @props.max
         else
-            name     = 'minus'
-            disabled = @props.number == @props.min
+            if @props.allow_empty and @props.number == @props.min
+                disabled = false
+                name     = 'trash'
+            else if @props.allow_empty and (not @props.number?)
+                disabled = true
+                name     = 'ban'
+            else
+                disabled = @props.number == @props.min
+                name     = 'minus'
 
         <Tip
             title     = {"Hold down your shift key while clicking to increase changes by #{@props.speedup}x."}
@@ -522,39 +549,45 @@ exports.NumberInput = NumberInput = rclass
         if @props.select_on_click
             e.target.select()
 
-    render: ->
+    render_unit: (xs) ->
+        return null if not @props.unit?
         unit = if @props.unit? then "#{@props.unit}" else ''
-        xs   = if @props.unit? then 6                else 12
+        <Col xs={xs} className="lighten">
+            {unit}
+        </Col>
+
+    render: ->
+        xs      = if @props.unit? then 6 else 12
         fgstyle = @props.formgroupstyle ? {}
         fgstyle.whiteSpace = 'nowrap'
+
+        value      = @state.number ? @props.number
+        form_style = {textAlign:'right'}
+        if not value?
+            form_style.color = COLORS.GRAY_L
 
         <Row>
             <Col xs={xs}>
                 <Form onSubmit={@saveChange} inline={@props.plusminus}>
-                    <FormGroup stlye={fgstyle}>
+                    <FormGroup style={fgstyle}>
                         {@plusminus(-1)}
                         <FormControl
                             type     = {'text'}
                             ref      = {'input'}
                             bsSize   = {@props.bsSize}
-                            value    = {@state.number ? @props.number}
+                            value    = {value ? @props.empty_text}
                             onChange = {(e)=>@setState(number:e.target.value)}
                             onBlur   = {@saveChange}
                             onKeyDown= {(e)=>if e.keyCode == 27 then @setState(number:@props.number)}
                             onClick  = {@onClickHandler}
                             disabled = {@props.disabled}
-                            style    = {textAlign:'right'}
+                            style    = {form_style}
                         />
                         {@plusminus(+1)}
                     </FormGroup>
                 </Form>
             </Col>
-            {
-                if @props.unit?
-                    <Col xs={xs} className="lighten">
-                        {unit}
-                    </Col>
-            }
+            {@render_unit(xs)}
         </Row>
 
 exports.LabeledRow = LabeledRow = rclass

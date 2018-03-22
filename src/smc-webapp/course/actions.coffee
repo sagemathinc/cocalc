@@ -903,7 +903,8 @@ exports.CourseActions = class CourseActions extends Actions
         obj                 = {table:'assignments', assignment_id:assignment.get('assignment_id')}
         points_map          = @_get_one(obj).points ? {}
         student_points_map  = points_map[student_id] ? {}
-        if points == 0
+        # only delete if points is undefined/null, otherwise record the value, even "0"
+        if not points?
             delete student_points_map[filepath]
         else
             student_points_map[filepath] = points
