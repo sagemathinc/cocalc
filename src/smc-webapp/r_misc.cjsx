@@ -1146,7 +1146,7 @@ exports.SaveButton = rclass
 
     render: ->
         <Button bsStyle='success' disabled={@props.saving or not @props.unsaved} onClick={@props.on_click}>
-            <Icon name='save' /> Sav{if @props.saving then <span>ing... <Icon name='cc-icon-cocalc-ring' spin /></span> else <span>e</span>}
+            <Icon name='save' /> <VisibleMDLG>Sav{if @props.saving then <span>ing... <Icon name='cc-icon-cocalc-ring' spin /></span> else <span>e</span>}</VisibleMDLG>
         </Button>
 
 # Component to attempt opening an smc path in a project
@@ -1949,7 +1949,7 @@ exports.HiddenXS = rclass
         </span>
 
 # VisibleMDLG = visible on medium or large devices (anything with width > 992px)
-exports.VisibleMDLG = rclass
+exports.VisibleMDLG = VisibleMDLG = rclass
     render: ->
         <span className={'visible-md-inline visible-lg-inline'}>
             {@props.children}
