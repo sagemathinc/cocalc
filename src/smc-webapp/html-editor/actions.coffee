@@ -33,15 +33,24 @@ class exports.Actions extends Actions
         if node.get('type') == 'cm'
             super.print(id)
             return
-        html = value = undefined
-        elt = $("#frame-#{id}")  # see remark in markdown actions, which is similar
-        if elt.length == 1   # in case there were two (impossible) we don't do this and fall back to directly computing the html.
-            html = elt.html()
+
+        html = value = wrap = undefined
+
+        if node.get('type') == 'iframe'
+            html = @store.get('content')
+            wrap = false
         else
-            value = @store.get('value')
+            wrap = true
+            elt = $("#frame-#{id}")  # see remark in markdown actions, which is similar
+            if elt.length == 1   # in case there were two (impossible) we don't do this and fall back to directly computing the html.
+                html = elt.html()
+            else
+                value = @store.get('value')
+
         error = print_html
             value      : value
             html       : html
+            wrap       : wrap
             project_id : @project_id
             path       : @path
             font_size  : node.get("font_size")

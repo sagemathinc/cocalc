@@ -28,44 +28,51 @@ exports.IFrameHTML = rclass
         return misc.is_different(@props, next, ['id', 'content', 'is_fullscreen'])
 
     on_scroll: ->
-        elt = ReactDOM.findDOMNode(@refs.scroll)
+        elt = ReactDOM.findDOMNode(@refs.iframe)
         if not elt?
             return
-        scroll = $(elt).scrollTop()
+        scroll = $(elt).contents().scrollTop()
         @props.actions.save_editor_state(@props.id, {scroll:scroll})
 
     componentDidMount: ->
         @props.actions.reload()
         @set_iframe_content()
-        @restore_scroll()
-        setTimeout(@restore_scroll, 200)
-        setTimeout(@restore_scroll, 500)
+        @init_scroll_handler()
 
     componentDidUpdate: ->
         @set_iframe_content()
 
+    init_scroll_handler: ->
+        iframe = ReactDOM.findDOMNode(@refs.iframe)
+        if iframe?
+            iframe.contentDocument.addEventListener('scroll', throttle(@on_scroll, 150))
+
     restore_scroll: ->
         scroll = @props.editor_state?.get('scroll')
         if scroll?
-            elt = ReactDOM.findDOMNode(@refs.scroll)
+            elt = ReactDOM.findDOMNode(@refs.iframe)
             if elt?
-                $(elt).scrollTop(scroll)
+                e = $(elt)
+                e.contents().scrollTop(scroll)
+                e.css('opacity', 1)
 
     render_iframe: ->
         <iframe
             ref     = {'iframe'}
-            id      = {"frame-#{@props.id}"}
             src     = {'about:blank'}
             width   = {'100%'}
             height  = {'100%'}
             style   = {border:0}
-            />
+            onLoad  = {@restore_scroll}
+            >
+        </iframe>
 
     set_iframe_content: ->
         elt = ReactDOM.findDOMNode(@refs.iframe)
         if not elt?
             return
         doc = elt.contentWindow.document
+        $(elt).css('opacity',0)
         doc.open()
         doc.write(@props.content)
         doc.close()
@@ -81,17 +88,14 @@ exports.IFrameHTML = rclass
         </Alert>
 
     render: ->
-        #if not @props.is_fullscreen
-        #    return @render_fullscreen_message()
-        if not @props.content
-            return <Loading />
+        if not @props.is_fullscreen
+            return @render_fullscreen_message()
         # the cocalc-editor-div is needed for a safari hack only
         <div
             style     = {overflowY:'scroll', width:'100%', fontSize:"#{@props.font_size}px"}
-            ref       = {'scroll'}
-            onScroll  = {throttle(@on_scroll, 250)}
             className = {'cocalc-editor-div smc-vfill'}
         >
+            {<Loading /> if not @props.content}
             {@render_iframe()}
         </div>
 

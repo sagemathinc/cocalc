@@ -18,6 +18,7 @@ exports.print_html = (opts) ->
     opts = defaults opts,
         value      : undefined   # one of value or html must be given; html is best!
         html       : undefined
+        wrap       : true        # if true, wrap with some basic styles and head - assumes is just a fragment
         path       : required
         project_id : required
         font_size  : '10pt'
@@ -47,7 +48,8 @@ exports.print_html = (opts) ->
     else
         html = opts.html
 
-    t = """
+    if opts.wrap
+        html = """
 <html lang="en">
     <head>
         <title>#{split.tail}</title>
@@ -72,7 +74,7 @@ exports.print_html = (opts) ->
     </body>
 </html>
 """
-    w.document.write(t)
+    w.document.write(html)
     w.document.close()
     if w.window.print?
         f = ->
