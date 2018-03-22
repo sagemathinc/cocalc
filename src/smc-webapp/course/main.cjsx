@@ -34,7 +34,7 @@ misc = require('smc-util/misc')
 
 {Button, ButtonToolbar, ButtonGroup, Row, Col, Panel, Tabs, Tab} = require('react-bootstrap')
 
-{ActivityDisplay, ErrorDisplay, Icon, Loading, SaveButton} = require('../r_misc')
+{ActivityDisplay, ErrorDisplay, Icon, Loading, SaveButton, VisibleMDLG} = require('../r_misc')
 
 # Course components
 {CourseStore}        = require('./store')
@@ -93,6 +93,11 @@ remove_redux = (course_filename, redux, course_project_id) ->
     delete syncdbs[the_redux_name]
     return the_redux_name
 
+COURSE_EDITOR_STYLE =
+    height    : '100%'
+    overflowY : 'scroll'
+    padding   : '7px'
+
 CourseEditor = rclass ({name}) ->
     displayName : "CourseEditor-Main"
 
@@ -149,11 +154,6 @@ CourseEditor = rclass ({name}) ->
         <Button className='smc-small-only' style={float:'right', marginLeft:'15px'}
                 onClick={@show_files}><Icon name='toggle-up'/> Files</Button>
 
-    render_title: ->
-        <h4 className='smc-big-only' style={float:'right', marginTop: '5px', marginBottom: '0px'}>
-            {misc.trunc(@props.settings?.get('title'),40)}
-        </h4>
-
     show_timetravel: ->
         @props.redux?.getProjectActions(@props.project_id).open_file
             path               : misc.history_path(@props.path)
@@ -167,10 +167,10 @@ CourseEditor = rclass ({name}) ->
         <div style={float:'right', marginRight:'15px'}>
             <ButtonGroup>
                 <Button onClick={@save_to_disk}    bsStyle='success' disabled={not @props.unsaved}>
-                    <Icon name='save'/>    Save
+                    <Icon name='save'/> <VisibleMDLG>Save</VisibleMDLG>
                 </Button>
                 <Button onClick={@show_timetravel} bsStyle='info'>
-                    <Icon name='history'/> TimeTravel
+                    <Icon name='history'/> <VisibleMDLG>TimeTravel</VisibleMDLG>
                 </Button>
             </ButtonGroup>
         </div>
@@ -235,34 +235,41 @@ CourseEditor = rclass ({name}) ->
         else
             return <Loading />
 
+    render_tabs: ->
+        <Tabs
+            id        = {'course-tabs'}
+            animation = {false}
+            activeKey = {@props.tab}
+            onSelect  = {(key)=>@actions(@props.name).set_tab(key)}
+        >
+            <Tab eventKey={'students'} title={<StudentsPanel.Header n={@num_students()} />}>
+                {@render_students()}
+            </Tab>
+            <Tab eventKey={'assignments'} title={<AssignmentsPanel.Header n={@num_assignments()}/>}>
+                {@render_assignments()}
+            </Tab>
+            <Tab eventKey={'handouts'} title={<HandoutsPanel.Header n={@num_handouts()}/>}>
+                {@render_handouts()}
+            </Tab>
+            <Tab eventKey={'settings'} title={<SettingsPanel.Header />}>
+                <div style={marginTop:'1em'}></div>
+                {@render_settings()}
+            </Tab>
+            <Tab eventKey={'shared_project'} title={<SharedProjectPanel.Header project_exists={!!@props.settings?.get('shared_project_id')}/>}>
+                <div style={marginTop:'1em'}></div>
+                {@render_shared_project()}
+            </Tab>
+        </Tabs>
+
     render: ->
-        <div style={padding:"7px 7px 7px 7px"}>
+        <div style={COURSE_EDITOR_STYLE}>
             {@render_pay_banner()}
             {@render_save_button() if @props.show_save_button}
             {@render_error() if @props.error}
             {@render_activity() if @props.activity?}
             {@render_files_button()}
-            {@render_title()}
             {@render_save_timetravel()}
-            <Tabs id='course-tabs' animation={false} activeKey={@props.tab} onSelect={(key)=>@actions(@props.name).set_tab(key)}>
-                <Tab eventKey={'students'} title={<StudentsPanel.Header n={@num_students()} />}>
-                    {@render_students()}
-                </Tab>
-                <Tab eventKey={'assignments'} title={<AssignmentsPanel.Header n={@num_assignments()}/>}>
-                    {@render_assignments()}
-                </Tab>
-                <Tab eventKey={'handouts'} title={<HandoutsPanel.Header n={@num_handouts()}/>}>
-                    {@render_handouts()}
-                </Tab>
-                <Tab eventKey={'settings'} title={<SettingsPanel.Header />}>
-                    <div style={marginTop:'1em'}></div>
-                    {@render_settings()}
-                </Tab>
-                <Tab eventKey={'shared_project'} title={<SharedProjectPanel.Header project_exists={!!@props.settings?.get('shared_project_id')}/>}>
-                    <div style={marginTop:'1em'}></div>
-                    {@render_shared_project()}
-                </Tab>
-            </Tabs>
+            {@render_tabs()}
         </div>
 
 require('project_file').register_file_editor
