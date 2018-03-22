@@ -204,10 +204,15 @@ class exports.Actions extends Actions
         return
 
     _default_frame_tree: =>
-        frame_tree = immutable.fromJS(type : 'cm')
+        frame_tree = immutable.fromJS(@_raw_default_frame_tree())
         frame_tree = tree_ops.assign_ids(frame_tree)
         frame_tree = tree_ops.ensure_ids_are_unique(frame_tree)
         return frame_tree
+
+    # define this in derived classes.
+    _raw_default_frame_tree: =>
+        return {type : 'cm'}
+
 
     set_frame_tree: (obj) =>
         @_tree_op('set', obj)

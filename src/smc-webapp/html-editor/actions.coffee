@@ -1,5 +1,5 @@
 ###
-Markdown Editor Actions
+HTML Editor Actions
 ###
 
 immutable = require('immutable')
@@ -8,7 +8,7 @@ tree_ops  = require('../code-editor/tree-ops')
 {Actions} = require('../code-editor/actions')
 
 {toggle_checkbox} = require('../tasks/desc-rendering')
-{print_markdown} = require('./print')
+{print_html} = require('./print')
 
 class exports.Actions extends Actions
     _init: (args...) =>
@@ -19,25 +19,14 @@ class exports.Actions extends Actions
 
     _raw_default_frame_tree: =>
         if @is_public
-            type : 'markdown'
+            return {type : 'html'}
         else
             direction : 'col'
             type      : 'node'
             first     :
                 type : 'cm'
             second    :
-                type : 'markdown'
-
-    toggle_markdown_checkbox: (id, index, checked) =>
-        # Ensure that an editor state is saved into the
-        # (TODO: make more generic, since other editors will exist that are not just codemirror...)
-        @set_syncstring_to_codemirror()
-        # Then do the checkbox toggle.
-        value = toggle_checkbox(@_syncstring.to_str(), index, checked)
-        @_syncstring.from_str(value)
-        @set_codemirror_to_syncstring()
-        @_syncstring.save()
-        @setState(value: value)
+                type : 'html'
 
     print: (id) =>
         node = @_get_frame_node(id)
@@ -45,17 +34,12 @@ class exports.Actions extends Actions
             super.print(id)
             return
         html = value = undefined
-        # This is kind of hackish, but it works really well.
-        # The one issue would be if the same random 8-letter id happened
-        # to be used twice in the same session. This is impossible right now,
-        # since only one markdown viewer is in the DOM at once.
-        elt = $("#frame-#{id}")
+        elt = $("#frame-#{id}")  # see remark in markdown actions, which is similar
         if elt.length == 1   # in case there were two (impossible) we don't do this and fall back to directly computing the html.
-
             html = elt.html()
         else
             value = @store.get('value')
-        error = print_markdown
+        error = print_html
             value      : value
             html       : html
             project_id : @project_id
