@@ -72,7 +72,7 @@ exports.RenderedMarkdown = rclass
         value = apply_without_math(value, process_checkboxes)
         # the cocalc-editor-div is needed for a safari hack only
         <div
-            style     = {overflowY:'scroll', width:'100%', fontSize:"#{@props.font_size}px", border:'1px solid lightgrey'}
+            style     = {overflowY:'scroll', width:'100%', fontSize:"#{@props.font_size}px"}
             ref       = {'scroll'}
             onScroll  = {throttle(@on_scroll, 250)}
             onClick   = {@on_click}
