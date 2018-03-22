@@ -27,6 +27,7 @@ or
 
 Draggable                         = require('react-draggable')
 misc                              = require('smc-util/misc')
+misc_page                         = require('../misc_page')
 {React, ReactDOM, rclass, rtypes} = require('../smc-react')
 {CodemirrorEditor}                = require('./codemirror-editor')
 feature                           = require('../feature')
@@ -177,6 +178,7 @@ exports.FrameTree = FrameTree = rclass ({name}) ->
                 $(ReactDOM.findDOMNode(@refs.cols_drag_bar)).css('transform','')
 
         handle_stop = (evt, ui) =>
+            misc_page.drag_stop_iframe_enable()
             clientX = ui.node.offsetLeft + ui.x + drag_offset
             elt     = ReactDOM.findDOMNode(@refs.cols_container)
             pos     = (clientX - elt.offsetLeft) / elt.offsetWidth
@@ -185,10 +187,11 @@ exports.FrameTree = FrameTree = rclass ({name}) ->
 
         # the preventDefault below prevents the text and scroll of what is in the frame from getting messed up during the drag.
         <Draggable
-            ref     = {'cols_drag_bar'}
-            axis    = {'x'}
-            onStop  = {handle_stop}
+            ref         = {'cols_drag_bar'}
+            axis        = {'x'}
+            onStop      = {handle_stop}
             onMouseDown = {(e) => e.preventDefault()}
+            onStart     = {misc_page.drag_start_iframe_disable}
             >
             <div
                 style        = {if @state.drag_hover then cols_drag_bar_drag_hover else cols_drag_bar}
@@ -247,6 +250,7 @@ exports.FrameTree = FrameTree = rclass ({name}) ->
                 $(ReactDOM.findDOMNode(@refs.rows_drag_bar)).css('transform','')
 
         handle_stop = (evt, ui) =>
+            misc_page.drag_stop_iframe_enable()
             clientY = ui.node.offsetTop + ui.y + drag_offset
             elt     = ReactDOM.findDOMNode(@refs.rows_container)
             pos     = (clientY - elt.offsetTop) / elt.offsetHeight
@@ -255,10 +259,11 @@ exports.FrameTree = FrameTree = rclass ({name}) ->
             @safari_hack()
 
         <Draggable
-            ref     = {'rows_drag_bar'}
-            axis    = {'y'}
-            onStop  = {handle_stop}
+            ref         = {'rows_drag_bar'}
+            axis        = {'y'}
+            onStop      = {handle_stop}
             onMouseDown = {(e) => e.preventDefault()}
+            onStart     = {misc_page.drag_start_iframe_disable}
             >
             <div
                 style        = {if @state.drag_hover then rows_drag_bar_drag_hover else rows_drag_bar}

@@ -60,7 +60,7 @@ exports.IFrameHTML = rclass
     render_iframe: ->
         <iframe
             ref     = {'iframe'}
-            src     = {"#{window.app_base_url}/#{@props.project_id}/raw/#{@props.path}"}
+            src     = {"#{window.app_base_url}/#{@props.project_id}/raw/#{@props.path}?param=#{@props.save_to_disk}"}
             width   = {'100%'}
             height  = {'100%'}
             style   = {border:0, opacity:0}

@@ -14,24 +14,25 @@ Top-level react component for editing HTML documents
 EDITOR_SPEC =
     cm        :
         short     : 'Source'
-        name      : 'Source HTML'
+        name      : 'Source Code'
         icon      : 'code'
         component : CodemirrorEditor
         buttons   : set(['print', 'decrease_font_size', 'increase_font_size', 'save', 'time_travel', 'replace', 'find', 'goto_line', \
                          'cut', 'paste', 'copy', 'undo', 'redo', 'reload'])
-    html :
-        short     : 'View'
-        name      : 'HTML (sanitized)'
-        icon      : 'html5'
-        component : RenderedHTML
-        buttons   : set(['print', 'decrease_font_size', 'increase_font_size', 'save', 'time_travel', 'reload'])
 
     iframe :
-        short     : 'IFrame'
-        name      : 'IFrame (unsanitized)'
+        short     : 'HTML'
+        name      : 'Full HTML IFrame'
         icon      : 'safari'
         component : IFrameHTML
         buttons   : set(['print', 'save', 'time_travel', 'reload'])
+
+    html :
+        short     : 'Preview'
+        name      : 'Sanitized Preview'
+        icon      : 'html5'
+        component : RenderedHTML
+        buttons   : set(['print', 'decrease_font_size', 'increase_font_size', 'save', 'time_travel', 'reload'])
 
 exports.Editor = rclass ({name}) ->
     displayName: 'HTMLEditor-Editor'

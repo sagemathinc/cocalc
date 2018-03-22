@@ -26,7 +26,7 @@ class exports.Actions extends Actions
             first     :
                 type : 'cm'
             second    :
-                type : 'html'
+                type : 'iframe'
 
     print: (id) =>
         node = @_get_frame_node(id)
