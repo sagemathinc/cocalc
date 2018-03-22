@@ -85,6 +85,7 @@ remove_redux = (course_filename, redux, course_project_id) ->
     if not actions?
         # already cleaned up and removed.
         return
+    actions.grading_cleanup_all_discussions()
     redux.getStore('projects').removeListener('change', actions.handle_projects_store_update)
 
     # Remove the store and actions.

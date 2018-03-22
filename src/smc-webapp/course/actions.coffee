@@ -1939,7 +1939,7 @@ exports.CourseActions = class CourseActions extends Actions
         return if not store?
         grading = store.get('grading')
         apath = store.get_assignment(grading.assignment_id).get('path')
-        @grading_cleanup_discussion(apath, grading.student_id)
+        @grading_cleanup_all_discussions()
         @setState(grading : null)
         @grading_remove_activity()
 
@@ -1997,6 +1997,14 @@ exports.CourseActions = class CourseActions extends Actions
         #if DEBUG then console.log("grading discussion cleanup", student_id)
         chat_path = store.grading_get_discussion_path(assignment_path, student_id)
         chat_register.remove(chat_path, @redux, store.get('course_project_id'))
+        store.grading_remove_discussion(chat_path)
+
+    grading_cleanup_all_discussions: =>
+        store = @get_store()
+        return if not store?
+        store._open_discussions.forEach (chat_path) =>
+            chat_register.remove(chat_path, @redux, store.get('course_project_id'))
+        delete store._open_discussions
 
     grading_activate_discussion: (assignment_path, student_id) =>
         store = @get_store()
@@ -2004,6 +2012,7 @@ exports.CourseActions = class CourseActions extends Actions
         #if DEBUG then console.log("grading discussion activation", student_id)
         chat_path = store.grading_get_discussion_path(assignment_path, student_id)
         chat_register.init(chat_path, @redux, store.get('course_project_id'))
+        store.grading_register_discussion(chat_path)
         grading = store.get('grading')
         return if not grading?
         @setState(grading : grading.set_discussion(chat_path))

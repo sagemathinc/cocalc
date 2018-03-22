@@ -663,6 +663,15 @@ exports.CourseStore = class CourseStore extends Store
         path  = "#{course_filename}-#{assignment_path}-#{student_id}"
         return misc.meta_file(path, 'chat')
 
+    # this is used to keep track of openen discussions, used for cleaning up later
+    grading_register_discussion: (chat_path) ->
+        @_open_discussions ?= immutable.Set()
+        @_open_discussions = @_open_discussions.add(chat_path)
+
+    grading_remove_discussion: (chat_path) ->
+        return if not @_open_discussions?
+        @_open_discussions = @_open_discussions.remove(chat_path)
+
     get_list_of_grades: (assignment_id) ->
         assignment = @get_assignment(assignment_id)
         return if not assignment?
