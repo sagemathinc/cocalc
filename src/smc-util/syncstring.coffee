@@ -657,7 +657,7 @@ class SyncDoc extends EventEmitter
                 if not side_effect
                     x.time = @_client.server_time()
                 @_cursors?.set(x, 'none')
-            @_throttled_set_cursor_locs = underscore.throttle(set_cursor_locs, @_opts.cursor_interval)
+            @_throttled_set_cursor_locs = underscore.throttle(set_cursor_locs, @_opts.cursor_interval, {leading:true, trailing:true})
 
     set_doc: (value) =>
         if not value?.apply_patch?
