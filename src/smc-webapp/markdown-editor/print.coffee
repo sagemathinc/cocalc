@@ -10,27 +10,48 @@ ReactDOMServer       = require('react-dom/server')
 
 {open_new_tab}       = require('smc-webapp/misc_page')
 
+# If true, then a popup was blocked before
+# If false, then a popup worked before
+# If undefined, do not know.
+BLOCKED = undefined
+
 exports.print_markdown = (opts) ->
     opts = defaults opts,
-        value      : required
+        value      : undefined   # one of value or html must be given; html is best!
+        html       : undefined
         path       : required
         project_id : required
         font_size  : '10pt'
 
     w = window.open('', '_blank',
                     'menubar=yes,toolbar=no,resizable=yes,scrollbars=yes,height=640,width=800')
+
     if not w?.closed? or w.closed
-        return "Popup blocked.  Please unblock popups for this site."
+        if BLOCKED or not BLOCKED?    # no history or definitely blocks
+            BLOCKED = true
+            return "Popup blocked.  Please unblock popups for this site."
+        else
+            # definitely doesn't block -- this happens when window already opened and printing.
+            return "If you have a window already opened printing a document, close it first."
+    BLOCKED = false
 
     split = path_split(opts.path)
-    props =
-        value      : opts.value
-        project_id : opts.project_id
-        file_path  : split.head
 
-    C = React.createElement(Redux, {redux:redux}, React.createElement(Markdown, props))
+    if not opts.html?
+        # Use value and determine the markdown if html is not given.
+        # This works "OK", but is NOT perfect.  E.g., local img links
+        # inside cocalc are not properly rewritten, as
+        # of this writing, since that happens in the DOM as an async
+        # jQuery step.  However, maybe that *will* get implemented later!
+        props =
+            value      : opts.value
+            project_id : opts.project_id
+            file_path  : split.head
 
-    s = ReactDOMServer.renderToStaticMarkup(C)
+        C = React.createElement(Redux, {redux:redux}, React.createElement(Markdown, props))
+        html = ReactDOMServer.renderToStaticMarkup(C)
+    else
+        html = opts.html
 
     t = """
 <html lang="en">
@@ -53,7 +74,7 @@ exports.print_markdown = (opts) ->
 
     </head>
     <body style='font-size:#{opts.font_size}; margin:7%'>
-        #{s}
+        #{html}
     </body>
 </html>
 """

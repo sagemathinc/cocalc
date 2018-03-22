@@ -43,8 +43,19 @@ class exports.Actions extends Actions
         if node.get('type') == 'cm'
             super.print(id)
             return
+        html = value = undefined
+        # This is kind of hackish, but it works really well.
+        # The one issue would be if the same random 8-letter id happened
+        # to be used twice in the same session. This is impossible right now,
+        # since only one markdown viewer is in the DOM at once.
+        elt = $("#frame-#{id}")
+        if elt.length == 1   # in case there were two (impossible) we don't do this and fall back to directly computing the html.
+            html = elt.html()
+        else
+            value = @store.get('value')
         error = print_markdown
-            value      : @store.get('value')
+            value      : value
+            html       : html
             project_id : @project_id
             path       : @path
             font_size  : node.get("font_size")

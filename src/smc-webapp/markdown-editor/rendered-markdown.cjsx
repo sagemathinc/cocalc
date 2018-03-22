@@ -77,6 +77,7 @@ exports.RenderedMarkdown = rclass
                 style = {maxWidth: options.MAX_WIDTH, margin: '0 auto', padding:'10px'}
             >
                 <Markdown
+                    id         = {"frame-#{@props.id}"}
                     value      = {value}
                     project_id = {@props.project_id}
                     file_path  = {path_split(@props.path).head}

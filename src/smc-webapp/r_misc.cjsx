@@ -831,6 +831,7 @@ exports.HTML = HTML = rclass
                                            # install click handlers here.
         highlight        : rtypes.immutable.Set
         content_editable : rtypes.bool     # if true, makes rendered HTML contenteditable
+        id               : rtypes.string
 
     getDefaultProps: ->
         auto_render_math : true
@@ -937,18 +938,20 @@ exports.HTML = HTML = rclass
         # this component is updated.  Otherwise, it will NOT re-render except when the value changes.
         if @props.content_editable
             <div
+                id                      = {@props.id}
                 contentEditable         = {true}
                 key                     = {Math.random()}
                 className               = {@props.className}
                 dangerouslySetInnerHTML = {@render_html()}
-                style                   = {@props.style}>
+                style                   = {@props.style} >
             </div>
         else
             <span
+                id                      = {@props.id}
                 key                     = {Math.random()}
                 className               = {@props.className}
                 dangerouslySetInnerHTML = {@render_html()}
-                style                   = {@props.style}>
+                style                   = {@props.style} >
             </span>
 
 exports.Markdown = rclass
@@ -968,6 +971,7 @@ exports.Markdown = rclass
         auto_render_math : rtypes.bool     # render math
         content_editable : rtypes.bool     # if true, makes rendered Markdown contenteditable
         checkboxes       : rtypes.bool     # if true, replace "[ ]" and "[ ]" by nice rendered versions.
+        id               : rtypes.string
 
     getDefaultProps: ->
         auto_render_math : true
@@ -984,6 +988,7 @@ exports.Markdown = rclass
 
     render: ->
         <HTML
+            id               = {@props.id}
             value            = {@to_html()}
             auto_render_math = {@props.auto_render_math}
             style            = {@props.style}
