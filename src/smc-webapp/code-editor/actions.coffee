@@ -1,5 +1,5 @@
 ###
-Editor Actions
+Code Editor Actions
 ###
 
 WIKI_HELP_URL   = "https://github.com/sagemathinc/cocalc/wiki/editor"  # TODO -- write this
@@ -16,16 +16,17 @@ keyboard        = require('./keyboard')
 copypaste       = require('../copy-paste-buffer')
 tree_ops        = require('./tree-ops')
 print           = require('./print')
+spell_check     = require('./spell-check')
 
 class exports.Actions extends Actions
     _init: (project_id, path, is_public, store) =>
         @project_id = project_id
         @path       = path
         @store      = store
-        @is_public = is_public
+        @is_public  = is_public
 
         if is_public
-            @_init_content()
+            @_init_public_content()
         else
             @_init_syncstring()
 
@@ -35,7 +36,9 @@ class exports.Actions extends Actions
 
         @_save_local_view_state = underscore.debounce((=>@__save_local_view_state?()), 1500)
 
-    _init_content: =>
+    # Init setting of content exactly once based on reading file from disk
+    # via public api.
+    _init_public_content: =>
         @setState(is_loaded : false)
         webapp_client.public_get_text_file
             project_id         : @project_id
@@ -47,12 +50,24 @@ class exports.Actions extends Actions
                     @setState(content: data)
                 @setState(is_loaded: true)
 
+    # Init setting of value whenever syncstring changes -- only used in derived classes
+    _init_syncstring_value: =>
+        @_syncstring.on 'change', =>
+            @setState(value: @_syncstring.to_str())
+
+    # Init spellchecking whenever syncstring saves -- only used in derived classes, where
+    # spelling makes sense...
+    _init_spellcheck: =>
+        @update_misspelled_words()
+        @_syncstring.on 'save-to-disk', =>
+            @update_misspelled_words()
+
     reload: =>
         if not @store.get('is_loaded')
             # already loading
             return
         # this sets is_loaded to false... loads, then sets to true.
-        @_init_content()
+        @_init_public_content()
 
     _init_syncstring: =>
         @_syncstring = webapp_client.sync_string
@@ -108,8 +123,8 @@ class exports.Actions extends Actions
         if not local_view_state.has('version') # may use to deprecate in case we change format.
             local_view_state = local_view_state.set('version', 1)
 
-        if not local_view_state.has('cm_state')
-            local_view_state = local_view_state.set('cm_state', immutable.Map())
+        if not local_view_state.has('editor_state')
+            local_view_state = local_view_state.set('editor_state', immutable.Map())
 
         if not local_view_state.has("font_size")
             font_size = @redux.getStore('account')?.get('font_size') ? 14
@@ -128,6 +143,10 @@ class exports.Actions extends Actions
             local_view_state = local_view_state.set('active_id', tree_ops.get_some_leaf_id(frame_tree))
 
         return local_view_state
+
+    reset_local_view_state: =>
+        delete localStorage[@name]
+        @setState(local_view_state : @_load_local_view_state())
 
     set_local_view_state: (obj, update_visible=true) =>
         if @_state == 'closed'
@@ -185,9 +204,7 @@ class exports.Actions extends Actions
         return
 
     _default_frame_tree: =>
-        frame_tree = immutable.fromJS
-            type : 'cm'
-            path : @path
+        frame_tree = immutable.fromJS(type : 'cm')
         frame_tree = tree_ops.assign_ids(frame_tree)
         frame_tree = tree_ops.ensure_ids_are_unique(frame_tree)
         return frame_tree
@@ -205,13 +222,20 @@ class exports.Actions extends Actions
     set_frame_tree_leafs: (obj) =>
         @_tree_op('set_leafs', obj)
 
+    # This is only used in derived classes right now
+    set_frame_type: (id, type) =>
+        @set_frame_tree(id:id, type:type)
+
+    _get_frame_node: (id) =>
+        return tree_ops.get_node(@_get_tree(), id)
+
     close_frame: (id) =>
         if tree_ops.is_leaf(@_get_tree())
-            # closing the only node, so just close whole document
-            @redux.getProjectActions(@project_id).close_tab(@path)
+            # closing the only node, so reset to default
+            @reset_local_view_state()
             return
         @_tree_op('delete_node', id)
-        @save_cm_state(id)
+        @save_editor_state(id)
         delete @_cm_selections?[id]
         delete @_cm?[id]
         setTimeout(@focus, 1)
@@ -221,7 +245,7 @@ class exports.Actions extends Actions
         @_tree_op('split_leaf', id ? @store.getIn(['local_view_state', 'active_id']), direction)
         for i,_ of @_get_leaf_ids()
             if not ids0[i]
-                @copy_cm_state(id, i)
+                @copy_editor_state(id, i)
                 id = i  # this is a new id
                 break
         # The block_ms=1 here is since the set can cause a bunch of rendering to happen
@@ -238,24 +262,24 @@ class exports.Actions extends Actions
         @_save_local_view_state()
         setTimeout(@focus, 1)
 
-    save_cm_state: (id, new_cm_state) =>
+    save_editor_state: (id, new_editor_state) =>
         local  = @store.get('local_view_state')
         if not local?
             return
-        cm_state = local.get('cm_state') ? immutable.Map()
-        if not new_cm_state?
-            if not cm_state.has(id)
+        editor_state = local.get('editor_state') ? immutable.Map()
+        if not new_editor_state?
+            if not editor_state.has(id)
                 return
-            cm_state = cm_state.delete(id)
+            editor_state = editor_state.delete(id)
         else
-            cm_state = cm_state.set(id, immutable.fromJS(new_cm_state))
-        @setState(local_view_state : local.set('cm_state', cm_state))
+            editor_state = editor_state.set(id, immutable.fromJS(new_editor_state))
+        @setState(local_view_state : local.set('editor_state', editor_state))
         @_save_local_view_state()
 
-    copy_cm_state: (id1, id2) =>
-        info = @store.getIn(['local_view_state', 'cm_state', id1])
+    copy_editor_state: (id1, id2) =>
+        info = @store.getIn(['local_view_state', 'editor_state', id1])
         if info?
-            @save_cm_state(id2, info)
+            @save_editor_state(id2, info)
 
     enable_key_handler: =>
         if @_state == 'closed'
@@ -440,7 +464,14 @@ class exports.Actions extends Actions
         cm = @_get_cm()
         if not cm? or not @_syncstring?
             return
-        @_syncstring.from_str(cm.getValue())
+        @set_syncstring(cm.getValue())
+
+    set_syncstring: (value) =>
+        @_syncstring.from_str(value)
+        # NOTE: above is the only place where syncstring is changed, and when *we* change syncstring,
+        # no change event is fired.  However, derived classes may want to update some preview when
+        # syncstring changes, so we explicitly emit a change here:
+        @_syncstring.emit('change')
 
     set_codemirror_to_syncstring: =>
         cm = @_get_cm()
@@ -530,14 +561,71 @@ class exports.Actions extends Actions
     set_error: (error) =>
         @setState(error: error)
 
-    print: =>
+    print: (id) =>
         cm = @_get_cm()
         if not cm?
             return
         error = print.print
-            value   : cm.getValue()
-            options : cm.options
-            path    : @path
+            value     : cm.getValue()
+            options   : cm.options
+            path      : @path
+            font_size : @_get_frame_node(id)?.get('font_size')
         if error
             @setState(error: error)
         cm.focus()
+
+    # Runs spellchecker on the backend last saved file, then
+    # sets the mispelled_words part of the state to the immutable
+    # Set of those words.  They can then be rendered by any editor/view.
+    update_misspelled_words: =>
+        spell_check.misspelled_words
+            project_id : @project_id
+            path       : @path
+            cb         : (err, words) =>
+                if err
+                    @setState(error: err)
+                else
+                    words = immutable.Set(words)
+                    if not words.equals(@store.get('misspelled_words'))
+                        @setState(misspelled_words: words)
+        return
+
+    format_action: (cmd, args) =>
+        cm = @_get_cm()
+        if not cm?
+            # format bar only makes sense when some cm is there...
+            return
+        ###  -- disabled; using codemirror pluging for now instead
+        if cmd in ['link', 'image', 'SpecialChar']
+            if @store.getIn(['format_bar', cmd])?
+                # Doing the formatting action
+                @format_dialog_action(cmd)
+            else
+                # This causes a dialog to appear, which will set relevant part of store and call format_action again
+                @set_format_bar(cmd, {})
+            return
+        ###
+        cm.edit_selection
+            cmd  : cmd
+            args : args
+            cb   : =>
+                if @_state != 'closed'
+                    cm.focus()
+                    @set_syncstring_to_codemirror()
+                    @_syncstring.save()
+
+    ###
+    format_dialog_action: (cmd) ->
+        state = @store.getIn(['format_bar', cmd])
+        @set_format_bar(cmd)  # clear state for cmd.
+
+    set_format_bar: (key, val) =>
+        format_bar = @store.get('format_bar') ? immutable.Map()
+        if not val?
+            format_bar = format_bar.delete(key)
+        else
+            if not immutable.Map.isMap(val)
+                val = immutable.fromJS(val)
+            format_bar = format_bar.set(key, val)
+        @setState(format_bar: format_bar)
+    ###

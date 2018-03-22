@@ -46,6 +46,7 @@ require('./stopwatch/register')
 require('./jupyter/register')
 require('./tasks/register')
 require('./code-editor/register')
+require('./markdown-editor/register')
 require('./media-viewer/register')
 
 # Public editors

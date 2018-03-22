@@ -31,15 +31,16 @@ exports.CodemirrorEditor = rclass
     displayName: 'CodeEditor-CodemirrorEditor'
 
     propTypes :
-        id        : rtypes.string.isRequired
-        actions   : rtypes.object.isRequired
-        path      : rtypes.string.isRequired
-        font_size : rtypes.number.isRequired
-        cursors   : rtypes.immutable.Map
-        cm_state  : rtypes.immutable.Map
-        read_only : rtypes.bool
-        is_current: rtypes.bool
-        content   : rtypes.string  # if defined, use this static value and editor is read-only
+        id               : rtypes.string.isRequired
+        actions          : rtypes.object.isRequired
+        path             : rtypes.string.isRequired
+        font_size        : rtypes.number.isRequired
+        cursors          : rtypes.immutable.Map
+        editor_state     : rtypes.immutable.Map
+        read_only        : rtypes.bool
+        is_current       : rtypes.bool
+        content          : rtypes.string  # if defined, use this static value and editor is read-only
+        misspelled_words : rtypes.immutable.Set
 
     reduxProps :
         account :
@@ -58,14 +59,21 @@ exports.CodemirrorEditor = rclass
     componentWillReceiveProps: (next) ->
         if @props.font_size != next.font_size
             @cm_update_font_size()
+        if not @cm?
+            return
         if @props.read_only != next.read_only
-            @cm?.setOption('readOnly', next.read_only)
+            @cm.setOption('readOnly', next.read_only)
         if @props.content != next.content
-            @cm?.setValue(@props.content)
+            @cm.setValue(@props.content)
+        if @props.misspelled_words != next.misspelled_words
+            @cm_highlight_misspelled_words(next.misspelled_words)
 
     cm_refresh: ->
         @cm?.refresh()
         setTimeout((=>@cm?.refresh()), 0)
+
+    cm_highlight_misspelled_words: (words) ->
+        @cm.spellcheck_highlight(words?.toJS() ? [])
 
     cm_update_font_size: ->
         if not @cm?
@@ -105,10 +113,10 @@ exports.CodemirrorEditor = rclass
         @props.actions.set_cursor_locs(locs, side_effect)
 
     # Save the UI state of the CM (not the actual content) -- scroll position, selections, etc.
-    save_cm_state: ->
+    save_editor_state: ->
         if not @cm?
             return
-        @props.actions.save_cm_state(@props.id, codemirror_util.get_state(@cm))
+        @props.actions.save_editor_state(@props.id, codemirror_util.get_state(@cm))
 
     # Save the underlying syncstring content.
     save_syncstring: ->
@@ -145,6 +153,8 @@ exports.CodemirrorEditor = rclass
         CodeMirror.commands.save ?= (cm) -> cm._actions?.save(true)
 
         @cm = CodeMirror.fromTextArea(node, options)
+        @cm_highlight_misspelled_words(@props.misspelled_words)
+
         @cm._actions = @props.actions
 
         if @props.content?
@@ -162,11 +172,11 @@ exports.CodemirrorEditor = rclass
         # see http://stackoverflow.com/questions/2655925/apply-important-css-style-using-jquery
 
 
-        save_cm_state = debounce(@save_cm_state, 500)
-        @cm.on('scroll', save_cm_state)
+        save_editor_state = debounce(@save_editor_state, 500)
+        @cm.on('scroll', save_editor_state)
 
-        if @props.cm_state?
-            codemirror_util.restore_state(@cm, @props.cm_state.toJS())
+        if @props.editor_state?
+            codemirror_util.restore_state(@cm, @props.editor_state.toJS())
 
         @setState(has_cm: true)
 
@@ -194,7 +204,7 @@ exports.CodemirrorEditor = rclass
                 @cm?.setOption('styleActiveLine', false)
 
         @cm.on 'cursorActivity', @_cm_cursor
-        @cm.on 'cursorActivity', save_cm_state
+        @cm.on 'cursorActivity', save_editor_state
 
         # replace undo/redo by our sync aware versions
         @cm.undo = @_cm_undo
@@ -219,7 +229,7 @@ exports.CodemirrorEditor = rclass
         style.fontSize = "#{@props.font_size}px"
         <div
             style     = {style}
-            className = 'smc-vfill cocalc-codemirror-editor-div' >
+            className = 'smc-vfill cocalc-editor-div' >
             {@render_cursors()}
             <textarea />
         </div>

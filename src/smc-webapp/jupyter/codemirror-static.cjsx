@@ -24,7 +24,6 @@ BLURRED_STYLE =
     wordWrap      : 'break-word'
     wordBreak     : 'normal'
     border        : 0
-    paddingLeft   : '4px'
 
 exports.CodeMirrorStatic = rclass
     displayName : 'CodeMirrorStatic'
@@ -38,6 +37,7 @@ exports.CodeMirrorStatic = rclass
         complete         : rtypes.immutable.Map
         set_click_coords : rtypes.func
         style            : rtypes.object   # optional style that is merged into BLURRED_STYLE
+        no_border        : rtypes.bool     # if given, do not draw border around whole thing
 
     focus: (event) ->
         if not @props.actions?  or not @props.id? # read only
@@ -132,8 +132,14 @@ exports.CodeMirrorStatic = rclass
             </div>
 
     render: ->
-        <div
-            style={width:'100%', border:'1px solid rgb(207, 207, 207)', borderRadius: '2px', position:'relative', overflowX:'auto'}>
+        style =
+            width        : '100%'
+            borderRadius : '2px'
+            position     : 'relative'
+            overflowX    : 'auto'
+        if not @props.no_border
+            style.border = '1px solid rgb(207, 207, 207)'
+        <div style={style}>
             {@render_code()}
         </div>
 

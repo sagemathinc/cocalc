@@ -3,6 +3,7 @@ Utility/parsing functions used in rendering task description.
 ###
 
 {replace_all_function, parse_hashtags} = require('smc-util/misc')
+{apply_without_math} = require('smc-util/mathjax-utils-2')
 
 # Make clever use of replace_all_function to toggle the state of a checkbox.
 exports.toggle_checkbox = (string, index, checked) ->
@@ -13,8 +14,11 @@ exports.toggle_checkbox = (string, index, checked) ->
     else
         cur  = '[ ]'
         next = '[x]'
-    return replace_all_function(string, cur, (i) -> if i == index then next else cur)
 
+    return apply_without_math string, (x) ->
+        return replace_all_function(x, cur, (i) -> if i == index then next else cur)
+
+# assumes value is the text output by remove_math!
 exports.process_hashtags = (value, selected_hashtags) ->
     # replace hashtags by a span with appropriate class
     v = parse_hashtags(value)
@@ -35,6 +39,7 @@ exports.process_hashtags = (value, selected_hashtags) ->
         x0 = x
     value = value0 + value.slice(x0[1])
 
+# assumes value is the text output by remove_math!
 exports.process_checkboxes = (value) ->
     value = replace_all_function value, '[ ]', (index) ->
         "<i class='fa fa-square-o'       data-index='#{index}' data-checkbox='false'></i>"

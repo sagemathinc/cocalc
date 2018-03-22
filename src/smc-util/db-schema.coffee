@@ -1248,7 +1248,11 @@ class ClientDB
         @r = {}
 
     sha1: (args...) =>
-        v = ((if typeof(x) == 'string' then x else JSON.stringify(x)) for x in args).join('')
+        try
+            v = ((if typeof(x) == 'string' then x else JSON.stringify(x)) for x in args).join('')
+        catch err
+            console?.warn?("args=", args)
+            throw err
         return sha1(v)
 
     _user_set_query_project_users: (obj) =>

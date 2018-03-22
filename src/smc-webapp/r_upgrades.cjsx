@@ -264,7 +264,7 @@ exports.ProjectUpgradesTable = ProjectUpgradesTable = rclass
     render: ->
         upgraded_projects = @props.get_projects_upgraded_by()
         if not misc.len(upgraded_projects)
-            return
+            return null
         <Panel header={@render_header()}>
             <Row key='header'>
                 <Col sm={4}>

@@ -9,6 +9,7 @@ Rendered view of the description of a single task
 {process_hashtags, process_checkboxes, header_part} = require('./desc-rendering')
 
 {path_split} = require('smc-util/misc')
+{apply_without_math} = require('smc-util/mathjax-utils-2')
 
 exports.DescriptionRendered = rclass
     propTypes :
@@ -35,9 +36,11 @@ exports.DescriptionRendered = rclass
             return <span style={color:'#666'}>Enter a description...</span>
         if not @props.full_desc
             value = header_part(value)
-        value = process_hashtags(value, @props.selected_hashtags)
+        v = [process_checkboxes]
         if @props.actions?
-            value = process_checkboxes(value)
+            v.push((x) => process_hashtags(x, @props.selected_hashtags))
+        value = apply_without_math(value, v)
+
         <Markdown
             value      = {value}
             project_id = {@props.project_id}
