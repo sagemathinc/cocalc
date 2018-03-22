@@ -86,6 +86,7 @@ exports.RenderedMarkdown = rclass
                     value      = {value}
                     project_id = {@props.project_id}
                     file_path  = {path_split(@props.path).head}
+                    safeHTML   = {true}
                 />
             </div>
         </div>

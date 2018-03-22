@@ -134,6 +134,7 @@ exports.FrameTree = FrameTree = rclass
             content          = {@props.content}
             value            = {@props.value}
             misspelled_words = {@props.misspelled_words}
+            is_fullscreen    = {@props.is_only or desc.get('id') == @props.full_id}
         />
 
     render_one: (desc) ->
@@ -228,7 +229,7 @@ exports.FrameTree = FrameTree = rclass
         </div>
 
     safari_hack: ->
-        if not $.browser.safari
+        if not $.browser?.safari
             return
         # Workaround a major and annoying bug in Safari:
         #     https://github.com/philipwalton/flexbugs/issues/132

@@ -8,11 +8,12 @@ Top-level react component for editing HTML documents
 {Editor, set}           = require('../code-editor/editor')
 
 {RenderedHTML}          = require('./rendered-html')
+{IFrameHTML}            = require('./iframe-html')
 {CodemirrorEditor}      = require('../code-editor/codemirror-editor')
 
 EDITOR_SPEC =
     cm        :
-        short     : 'HTML'
+        short     : 'Source'
         name      : 'Source HTML'
         icon      : 'code'
         component : CodemirrorEditor
@@ -20,10 +21,18 @@ EDITOR_SPEC =
                          'cut', 'paste', 'copy', 'undo', 'redo', 'reload'])
     html :
         short     : 'View'
-        name      : 'Rendered HTML'
-        icon      : 'eye'
+        name      : 'HTML (sanitized)'
+        icon      : 'html5'
         component : RenderedHTML
         buttons   : set(['print', 'decrease_font_size', 'increase_font_size', 'save', 'time_travel', 'reload'])
+
+    iframe :
+        short     : 'IFrame'
+        name      : 'IFrame (unsanitized)'
+        icon      : 'globe'
+        component : IFrameHTML
+        content   : true    # only use content, not value or syncstring, and always show reload button.
+        buttons   : set(['print', 'save', 'time_travel', 'reload'])
 
 exports.Editor = rclass ({name}) ->
     displayName: 'HTMLEditor-Editor'

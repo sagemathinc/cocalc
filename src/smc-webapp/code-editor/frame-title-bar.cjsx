@@ -408,7 +408,7 @@ exports.FrameTitleBar = rclass
         <ButtonGroup key={'save-group'}>
             {@render_save(labels)}
             {@render_timetravel(labels) if not @props.is_public}
-            {@render_reload(labels) if @props.is_public}
+            {@render_reload(labels) if @props.is_public or @props.editor_spec?[@props.type]?.content}
         </ButtonGroup>
 
     render_print: ->
@@ -489,7 +489,7 @@ exports.FrameTitleBar = rclass
         else
             style = title_bar_style
 
-        if $.browser.safari  # ugly hack....
+        if $.browser?.safari  # ugly hack....
             # for some reason this is really necessary on safari, but
             # breaks on everything else!
             if not is_active

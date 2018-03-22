@@ -44,6 +44,11 @@ exports.RenderedHTML = rclass
             if elt?
                 $(elt).scrollTop(scroll)
 
+    post_hook: (elt) ->
+        #  make html even more sane for editing inside cocalc (not an iframe)
+        elt.find('link').remove()   # gets rid of external CSS style
+        elt.find('style').remove()  # gets rid of inline CSS style
+
     render: ->
         value = @props.value ? @props.content
         if not value?
@@ -63,6 +68,8 @@ exports.RenderedHTML = rclass
                     value      = {value}
                     project_id = {@props.project_id}
                     file_path  = {path_split(@props.path).head}
+                    safeHTML   = {true}
+                    post_hook  = {@post_hook}
                 />
             </div>
         </div>
