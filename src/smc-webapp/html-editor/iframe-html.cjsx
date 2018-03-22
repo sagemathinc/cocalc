@@ -43,9 +43,13 @@ exports.IFrameHTML = rclass
         @props.actions.save_editor_state(@props.id, {scroll:scroll})
 
     init_scroll_handler: ->
-        iframe = ReactDOM.findDOMNode(@refs.iframe)
-        if iframe?
-            iframe.contentDocument.addEventListener('scroll', throttle(@on_scroll, 150))
+        ReactDOM.findDOMNode(@refs.iframe)?.contentDocument.addEventListener('scroll', throttle(@on_scroll, 150))
+
+    click_iframe: ->
+        @props.actions.set_active_id(@props.id, 50)
+
+    init_click_handler: ->
+        ReactDOM.findDOMNode(@refs.iframe)?.contentDocument.addEventListener('click', @click_iframe)
 
     restore_scroll: ->
         scroll = @props.editor_state?.get('scroll')
@@ -64,7 +68,7 @@ exports.IFrameHTML = rclass
             width   = {'100%'}
             height  = {'100%'}
             style   = {border:0, opacity:0}
-            onLoad  = {=> @restore_scroll(); @init_scroll_handler()}
+            onLoad  = {=> @restore_scroll(); @init_scroll_handler(); @init_click_handler()}
             >
         </iframe>
 

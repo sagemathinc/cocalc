@@ -29,7 +29,7 @@ EDITOR_SPEC =
 
     html :
         short     : 'Preview'
-        name      : 'Sanitized Preview'
+        name      : 'Realtime Preview'
         icon      : 'html5'
         component : RenderedHTML
         buttons   : set(['print', 'decrease_font_size', 'increase_font_size', 'save', 'time_travel', 'reload'])
