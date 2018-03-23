@@ -27,6 +27,7 @@ or
 
 Draggable                         = require('react-draggable')
 misc                              = require('smc-util/misc')
+misc_page                         = require('../misc_page')
 {React, ReactDOM, rclass, rtypes} = require('../smc-react')
 {CodemirrorEditor}                = require('./codemirror-editor')
 feature                           = require('../feature')
@@ -52,7 +53,7 @@ rows_drag_bar = misc.merge(misc.copy(cols_drag_bar), {cursor:'ns-resize'})
 
 rows_drag_bar_drag_hover = misc.merge(misc.copy(rows_drag_bar), drag_hover)
 
-exports.FrameTree = FrameTree = rclass
+exports.FrameTree = FrameTree = rclass ({name}) ->
     displayName: 'CodeEditor-FrameTree'
 
     propTypes               :
@@ -72,7 +73,11 @@ exports.FrameTree = FrameTree = rclass
         content             : rtypes.string
         value               : rtypes.string
         editor_spec         : rtypes.object   # optional map from types to object that specify the different editors related to the master file (assumed to not change!)
-        misspelled_words    : rtypes.immutable.Set
+
+    reduxProps :
+        "#{name}" :
+            save_to_disk     : rtypes.number
+            misspelled_words : rtypes.immutable.Set
 
     getInitialState: ->
         drag_hover: false
@@ -81,10 +86,11 @@ exports.FrameTree = FrameTree = rclass
         return @state.drag_hover != state.drag_hover or \
                misc.is_different(@props, next, ['frame_tree', 'active_id', 'full_id', 'is_only', \
                       'cursors', 'has_unsaved_changes', 'is_public', 'content', 'value', \
-                      'project_id', 'path', 'misspelled_words'])
+                      'project_id', 'path', 'misspelled_words', 'save_to_disk'])
 
     render_frame_tree: (desc) ->
         <FrameTree
+            name                = {@props.name}
             actions             = {@props.actions}
             frame_tree          = {desc}
             editor_state        = {@props.editor_state}
@@ -100,7 +106,6 @@ exports.FrameTree = FrameTree = rclass
             content             = {@props.content}
             value               = {@props.value}
             editor_spec         = {@props.editor_spec}
-            misspelled_words    = {@props.misspelled_words}
         />
 
     render_titlebar: (desc) ->
@@ -128,12 +133,14 @@ exports.FrameTree = FrameTree = rclass
             font_size        = {desc.get('font_size') ? @props.font_size}
             path             = {desc.get('path') ? @props.path}
             project_id       = {desc.get('project_id') ? @props.project_id}
-            editor_state         = {@props.editor_state.get(desc.get('id'))}
+            editor_state     = {@props.editor_state.get(desc.get('id'))}
             is_current       = {desc.get('id') == @props.active_id}
             cursors          = {@props.cursors}
             content          = {@props.content}
             value            = {@props.value}
             misspelled_words = {@props.misspelled_words}
+            is_fullscreen    = {@props.is_only or desc.get('id') == @props.full_id}
+            save_to_disk     = {@props.save_to_disk}
         />
 
     render_one: (desc) ->
@@ -171,6 +178,7 @@ exports.FrameTree = FrameTree = rclass
                 $(ReactDOM.findDOMNode(@refs.cols_drag_bar)).css('transform','')
 
         handle_stop = (evt, ui) =>
+            misc_page.drag_stop_iframe_enable()
             clientX = ui.node.offsetLeft + ui.x + drag_offset
             elt     = ReactDOM.findDOMNode(@refs.cols_container)
             pos     = (clientX - elt.offsetLeft) / elt.offsetWidth
@@ -179,10 +187,11 @@ exports.FrameTree = FrameTree = rclass
 
         # the preventDefault below prevents the text and scroll of what is in the frame from getting messed up during the drag.
         <Draggable
-            ref     = {'cols_drag_bar'}
-            axis    = {'x'}
-            onStop  = {handle_stop}
+            ref         = {'cols_drag_bar'}
+            axis        = {'x'}
+            onStop      = {handle_stop}
             onMouseDown = {(e) => e.preventDefault()}
+            onStart     = {misc_page.drag_start_iframe_disable}
             >
             <div
                 style        = {if @state.drag_hover then cols_drag_bar_drag_hover else cols_drag_bar}
@@ -228,7 +237,7 @@ exports.FrameTree = FrameTree = rclass
         </div>
 
     safari_hack: ->
-        if not $.browser.safari
+        if not $?.browser?.safari
             return
         # Workaround a major and annoying bug in Safari:
         #     https://github.com/philipwalton/flexbugs/issues/132
@@ -241,6 +250,7 @@ exports.FrameTree = FrameTree = rclass
                 $(ReactDOM.findDOMNode(@refs.rows_drag_bar)).css('transform','')
 
         handle_stop = (evt, ui) =>
+            misc_page.drag_stop_iframe_enable()
             clientY = ui.node.offsetTop + ui.y + drag_offset
             elt     = ReactDOM.findDOMNode(@refs.rows_container)
             pos     = (clientY - elt.offsetTop) / elt.offsetHeight
@@ -249,10 +259,11 @@ exports.FrameTree = FrameTree = rclass
             @safari_hack()
 
         <Draggable
-            ref     = {'rows_drag_bar'}
-            axis    = {'y'}
-            onStop  = {handle_stop}
+            ref         = {'rows_drag_bar'}
+            axis        = {'y'}
+            onStop      = {handle_stop}
             onMouseDown = {(e) => e.preventDefault()}
+            onStart     = {misc_page.drag_start_iframe_disable}
             >
             <div
                 style        = {if @state.drag_hover then rows_drag_bar_drag_hover else rows_drag_bar}
@@ -291,3 +302,4 @@ exports.FrameTree = FrameTree = rclass
             return @render_cols()
         else
             return @render_rows()
+

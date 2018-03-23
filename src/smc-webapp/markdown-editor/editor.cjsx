@@ -15,14 +15,14 @@ Top-level react component for editing markdown documents
 EDITOR_SPEC =
     cm        :
         short     : 'Code'
-        name      : 'Code'
+        name      : 'Source Code'
         icon      : 'code'
         component : CodemirrorEditor
         buttons   : set(['print', 'decrease_font_size', 'increase_font_size', 'save', 'time_travel', 'replace', 'find', 'goto_line', \
                          'cut', 'paste', 'copy', 'undo', 'redo', 'reload'])
     markdown :
         short     : 'View'
-        name      : 'View'
+        name      : 'Rendered View'
         icon      : 'eye'
         component : RenderedMarkdown
         buttons   : set(['print', 'decrease_font_size', 'increase_font_size', 'save', 'time_travel', 'reload'])

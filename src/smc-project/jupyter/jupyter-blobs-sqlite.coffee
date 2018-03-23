@@ -4,6 +4,8 @@ Jupyter in-memory blob store, which hooks into the raw http server.
 
 fs = require('fs')
 
+winston = require('winston')
+
 misc      = require('smc-util/misc')
 misc_node = require('smc-util-node/misc_node')
 Database  = require('better-sqlite3')
@@ -15,6 +17,25 @@ BASE64_TYPES = ['image/png', 'image/jpeg', 'application/pdf', 'base64']
 
 class BlobStore
     constructor: ->
+        winston.debug("jupyter BlobStore: constructor")
+        try
+            @_init()
+            winston.debug("jupyter BlobStore: #{DB_FILE} opened fine")
+        catch err
+            winston.debug("jupyter BlobStore: #{DB_FILE} open error - #{err}")
+            # File may be corrupt/broken/etc. -- in this case, remove and try again.
+            # This database is only an image *cache*, so this is fine.
+            # See https://github.com/sagemathinc/cocalc/issues/2766
+            # Using sync is also fine, since this only happens once
+            # during initialization.
+            winston.debug("jupyter BlobStore: resetting database cache")
+            try
+                fs.unlinkSync(DB_FILE)
+            catch err
+                winston.debug("Error trying to delete #{DB_FILE}... ignoring: ", err)
+            @_init()
+
+    _init: =>
         @_db = new Database(DB_FILE)
         @_db.prepare('CREATE TABLE IF NOT EXISTS blobs (sha1 TEXT, data BLOB, type TEXT, ipynb TEXT, time INTEGER)').run()
         @_clean()  # do this once on start

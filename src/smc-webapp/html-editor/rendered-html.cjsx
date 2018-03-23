@@ -1,40 +1,29 @@
 ###
-Component that shows rendered markdown.
-
-It also:
-
-   - [ ] tracks and restores scroll position
-   - [ ] is scrollable
-   - [ ] is zoomable
-   - [ ] math is properly typeset
-   - [ ] checkbox in markdown are interactive (can click them, which edits file)
+Component that shows rendered HTML.
 ###
 
 misc = require('smc-util/misc')
 
 {throttle} = require('underscore')
 
-{Loading, Markdown} = require('../r_misc')
+{Loading, HTML} = require('../r_misc')
 {React, ReactDOM, rclass, rtypes}     = require('../smc-react')
-
-{process_checkboxes} = require('../tasks/desc-rendering')
-{apply_without_math} = require('smc-util/mathjax-utils-2')
 
 options = require('./options')
 
-exports.RenderedMarkdown = rclass
-    displayName: 'MarkdownEditor-RenderedMarkdown'
+exports.RenderedHTML = rclass
+    displayName: 'HTMLEditor-RenderedHTML'
 
     propTypes :
-        actions      : rtypes.object.isRequired
         id           : rtypes.string.isRequired
+        actions      : rtypes.object.isRequired
         path         : rtypes.string.isRequired
         project_id   : rtypes.string.isRequired
         font_size    : rtypes.number.isRequired
         read_only    : rtypes.bool
         value        : rtypes.string
         content      : rtypes.string         # used instead of file is public
-        editor_state : rtypes.immutable.Map  # only used for initial render
+        editor_state : rtypes.immutable.Map
 
     shouldComponentUpdate: (next) ->
         return misc.is_different(@props, next, ['id', 'project_id', 'path', 'font_size', 'read_only', 'value', 'content'])
@@ -58,39 +47,34 @@ exports.RenderedMarkdown = rclass
             if elt?
                 $(elt).scrollTop(scroll)
 
-    on_click: (e) ->  # same idea as in tasks/desc-rendered.cjsx
-        if @props.read_only
-            return
-        data = e.target?.dataset
-        if not data?
-            return
-        if data.checkbox?
-            e.stopPropagation()
-            @props.actions.toggle_markdown_checkbox(@props.id, parseInt(data.index), data.checkbox == 'true')
+    post_hook: (elt) ->
+        #  make html even more sane for editing inside cocalc (not an iframe)
+        elt.find('link').remove()   # gets rid of external CSS style
+        elt.find('style').remove()  # gets rid of inline CSS style
 
     render: ->
         value = @props.value ? @props.content
         if not value?
             return <Loading />
-        value = apply_without_math(value, process_checkboxes)
         # the cocalc-editor-div is needed for a safari hack only
         <div
             style     = {overflowY:'scroll', width:'100%', fontSize:"#{@props.font_size}px"}
             ref       = {'scroll'}
             onScroll  = {throttle(@on_scroll, 250)}
-            onClick   = {@on_click}
             className = {'cocalc-editor-div'}
         >
             <div
                 style = {maxWidth: options.MAX_WIDTH, margin: '10px auto', padding:'0 10px'}
             >
-                <Markdown
+                <HTML
                     id         = {"frame-#{@props.id}"}
                     value      = {value}
                     project_id = {@props.project_id}
                     file_path  = {misc.path_split(@props.path).head}
                     safeHTML   = {true}
+                    post_hook  = {@post_hook}
                 />
             </div>
         </div>
+
 

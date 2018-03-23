@@ -17,20 +17,16 @@ class exports.Actions extends Actions
             @_init_syncstring_value()
             @_init_spellcheck()
 
-    _default_frame_tree: =>
+    _raw_default_frame_tree: =>
         if @is_public
-            frame_tree = immutable.fromJS(type : 'markdown')
+            type : 'markdown'
         else
-            frame_tree = immutable.fromJS
-                direction : 'col'
-                type      : 'node'
-                first     :
-                    type : 'cm'
-                second    :
-                    type : 'markdown'
-        frame_tree = tree_ops.assign_ids(frame_tree)
-        frame_tree = tree_ops.ensure_ids_are_unique(frame_tree)
-        return frame_tree
+            direction : 'col'
+            type      : 'node'
+            first     :
+                type : 'cm'
+            second    :
+                type : 'markdown'
 
     toggle_markdown_checkbox: (id, index, checked) =>
         # Ensure that an editor state is saved into the
