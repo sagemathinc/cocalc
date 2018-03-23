@@ -58,7 +58,7 @@ exports.FrameTitleBar = rclass
         @_last_render = new Date()
 
     is_visible: (action_name) ->
-        if not @props.editor_spec?[@props.type]?.buttons
+        if not @props.editor_spec?[@props.type]?.buttons?
             return true
         return @props.editor_spec[@props.type].buttons[action_name]
 

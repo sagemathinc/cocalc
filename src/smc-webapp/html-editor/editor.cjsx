@@ -17,16 +17,16 @@ EDITOR_SPEC =
         name      : 'Source Code'
         icon      : 'code'
         component : CodemirrorEditor
-        buttons   : set(['print', 'decrease_font_size', 'increase_font_size', 'save', 'time_travel', 'replace', 'find', 'goto_line', \
-                         'cut', 'paste', 'copy', 'undo', 'redo', 'reload'])
-
+        buttons   : set(['print', 'save', 'time_travel', 'reload'])
+        buttons   : set(['print', 'decrease_font_size', 'increase_font_size', 'save', \
+                         'time_travel', 'replace', 'find', 'goto_line', \
+                         'cut', 'paste', 'copy', 'undo', 'redo', 'reload', 'auto_indent'])
     iframe :
         short     : 'HTML'
         name      : 'HTML IFrame'
         icon      : 'compass'
         component : IFrameHTML
         buttons   : set(['print', 'save', 'time_travel', 'reload'])
-
     html :
         short     : 'Preview'
         name      : 'Quick Preview'
@@ -63,11 +63,11 @@ exports.Editor = rclass ({name}) ->
 
     render_editor: ->
         <Editor
-            name            = {name}
-            actions         = {@props.actions}
-            path            = {@props.path}
-            project_id      = {@props.project_id}
-            editor_spec     = {EDITOR_SPEC}
+            name        = {name}
+            actions     = {@props.actions}
+            path        = {@props.path}
+            project_id  = {@props.project_id}
+            editor_spec = {EDITOR_SPEC}
             />
 
     render: ->

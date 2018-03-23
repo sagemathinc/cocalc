@@ -302,3 +302,4 @@ exports.FrameTree = FrameTree = rclass ({name}) ->
             return @render_cols()
         else
             return @render_rows()
+
