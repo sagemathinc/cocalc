@@ -27,8 +27,6 @@ exports.IFrameHTML = rclass
         path         : rtypes.string
         save_to_disk : rtypes.number
 
-    shouldComponentUpdate: (next) ->
-        return misc.is_different(@props, next, ['id', 'is_fullscreen', 'project_id', 'path', 'save_to_disk'])
 
     componentWillReceiveProps: (next) ->
         if @props.save_to_disk != next.save_to_disk

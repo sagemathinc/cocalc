@@ -2,7 +2,7 @@
 Component that shows rendered HTML.
 ###
 
-{path_split} = require('smc-util/misc')
+misc = require('smc-util/misc')
 
 {throttle} = require('underscore')
 
@@ -24,6 +24,9 @@ exports.RenderedHTML = rclass
         value        : rtypes.string
         content      : rtypes.string         # used instead of file is public
         editor_state : rtypes.immutable.Map
+
+    shouldComponentUpdate: (next) ->
+        return misc.is_different(@props, next, ['id', 'project_id', 'path', 'font_size', 'read_only', 'value', 'content'])
 
     on_scroll: ->
         elt = ReactDOM.findDOMNode(@refs.scroll)
@@ -67,7 +70,7 @@ exports.RenderedHTML = rclass
                     id         = {"frame-#{@props.id}"}
                     value      = {value}
                     project_id = {@props.project_id}
-                    file_path  = {path_split(@props.path).head}
+                    file_path  = {misc.path_split(@props.path).head}
                     safeHTML   = {true}
                     post_hook  = {@post_hook}
                 />

@@ -172,10 +172,11 @@ SUPPORT_LINKS =
         href : 'mailto:' + HELP_EMAIL
         link : HELP_EMAIL
         text : 'Please include the URL link to the relevant project or file!'
-    live_demo :
-        icon : 'comments-o'
-        link : "Request a live demo about how to teach a course"
-        href : LIVE_DEMO_REQUEST
+    frequently_asked_questions :
+        icon : 'question-circle'
+        bold : true
+        href : WIKI_URL
+        link : <span><SiteName/> documentation</span>
     teaching :
         icon : 'graduation-cap'
         href : 'https://tutorial.cocalc.com/'
@@ -185,11 +186,6 @@ SUPPORT_LINKS =
         href : PolicyPricingPageUrl
         link : 'Pricing and subscription options'
         commercial: true
-    frequently_asked_questions :
-        icon : 'question-circle'
-        bold : true
-        href : WIKI_URL
-        link : <span><SiteName/> documentation</span>
     docker_image:
         icon : 'window-maximize'
         href : 'https://github.com/sagemathinc/cocalc/blob/master/src/dev/docker/README.md'
@@ -202,6 +198,10 @@ SUPPORT_LINKS =
         icon : 'gears'
         href : "#{BASE_URL}/doc/api.html"
         link :  <span><SiteName/> API</span>
+    live_demo :
+        icon : 'comments-o'
+        link : "Request a live demo about how to teach a course"
+        href : LIVE_DEMO_REQUEST
 
 CONNECT_LINKS =
     share :
