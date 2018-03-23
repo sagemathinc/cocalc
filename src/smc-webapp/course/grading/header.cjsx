@@ -23,6 +23,7 @@
 {defaults, required} = misc = require('smc-util/misc')
 {webapp_client}      = require('../../webapp_client')
 {Avatar}             = require('../../other-users')
+{COLORS}             = require('smc-util/theme')
 
 # React libraries
 {React, rclass, rtypes} = require('../../smc-react')
@@ -45,9 +46,11 @@ exports.GradingStudentAssignmentHeader = rclass ({name}) ->
     propTypes :
         name         : rtypes.string.isRequired
         redux        : rtypes.object.isRequired
+        assignment   : rtypes.object.isRequired
 
     shouldComponentUpdate: (props) ->
         update = misc.is_different(@props.grading, props.grading, ['end_of_list', 'student_id', 'cursors', 'anonymous'])
+        update or= misc.is_different(@props, props, ['assignment'])
         return update
 
     getInitialState: ->
@@ -86,12 +89,16 @@ exports.GradingStudentAssignmentHeader = rclass ({name}) ->
             return student_info?.full ? 'N/A'
 
     render_title: ->
+        apath = <span style={color:COLORS.GRAY}>
+            ({@props.assignment.get('path')})
+        </span>
+
         if @props.grading.end_of_list
             <h4>End</h4>
         else
-            <h4>
-                Grading student <b>{@student_name()}</b>
-            </h4>
+            <h5>
+                Grading <b>{@student_name()}</b> {apath}
+            </h5>
 
     render: ->
         {GradingHelpButton} = require('./main')

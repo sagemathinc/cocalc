@@ -438,10 +438,12 @@ ChatRoom = rclass ({name}) ->
             f(@props.project_id, @props.path, 'read')
             f(@props.project_id, @props.path, 'chatseen')
 
-    on_keydown: (e) ->
+    on_keydown: (e, componentClass) ->
+        @mark_as_read()
         if e.keyCode == 27  # ESC
             @props.actions.set_input('')
-        else if e.keyCode == 13 and e.shiftKey # shift + enter
+        # shift + enter for larger textarea. just "return" for single line input.
+        else if e.keyCode == 13 and (e.shiftKey or componentClass == 'input')
             @button_send_chat(e)
         else if e.keyCode == 38 and @props.input == ''  # up arrow and empty
             @props.actions.set_to_last_input()
@@ -616,7 +618,7 @@ ChatRoom = rclass ({name}) ->
                         autoFocus      = {false}
                         componentClass = {componentClass}
                         ref            = {'input'}
-                        onKeyDown      = {(e) => @mark_as_read(); @on_keydown(e)}
+                        onKeyDown      = {(e) => @on_keydown(e, componentClass)}
                         value          = {@props.input}
                         placeholder    = {'Type a message...'}
                         onChange       = {(e) => @props.actions.set_input(e.target.value);}

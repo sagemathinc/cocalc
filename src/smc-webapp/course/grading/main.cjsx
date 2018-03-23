@@ -301,7 +301,7 @@ exports.GradingStudentAssignment = rclass
             marginRight    : '15px'
 
         <Row
-            style={height: '70vh', display: 'flex'}
+            style={height: '80vh', display: 'flex'}
         >
             <Col md={3} style={misc.merge({marginLeft:'15px'}, flexcolumn)}>
                 <StudentList

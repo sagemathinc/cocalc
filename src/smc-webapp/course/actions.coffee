@@ -2008,6 +2008,7 @@ exports.CourseActions = class CourseActions extends Actions
         delete store._open_discussions
 
     grading_activate_discussion: (assignment_path, student_id) =>
+        return if not student_id?
         store = @get_store()
         return if not store?
         #if DEBUG then console.log("grading discussion activation", student_id)

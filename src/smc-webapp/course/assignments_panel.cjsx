@@ -38,9 +38,11 @@ styles = require('./styles')
 {GradingStudentAssignment} = require('./grading/main')
 {GradingStudentAssignmentHeader} = require('./grading/header')
 {Grading} = require('./grading/models')
+{AssignmentNote} = require('./assignment_note')
 
 {Progress} = require('./progress')
 {SkipCopy} = require('./skip')
+
 
 exports.AssignmentsPanel = rclass ({name}) ->
     displayName : "CourseEditorAssignments"
@@ -156,19 +158,20 @@ exports.AssignmentsPanel = rclass ({name}) ->
             else
                 @props.actions.add_assignment(path)
 
-    render: ->
+
+    render_assignments_main: ->
         {shown_assignments, deleted_assignments, num_omitted, num_deleted} = @compute_assignment_list()
         add_assignment = @yield_adder(deleted_assignments)
 
         header =
             <FoldersToolbar
-                search        = {@state.search}
-                search_change = {(value) => @setState(search:value)}
-                num_omitted   = {num_omitted}
-                project_id    = {@props.project_id}
-                items         = {@props.all_assignments}
-                add_folders   = {(paths)=>paths.map(add_assignment)}
-                item_name     = {"assignment"}
+                search           = {@state.search}
+                search_change    = {(value) => @setState(search:value)}
+                num_omitted      = {num_omitted}
+                project_id       = {@props.project_id}
+                items            = {@props.all_assignments}
+                add_folders      = {(paths)=>paths.map(add_assignment)}
+                item_name        = {"assignment"}
                 plural_item_name = {"assignments"}
             />
 
@@ -177,6 +180,40 @@ exports.AssignmentsPanel = rclass ({name}) ->
             {@render_assignments(shown_assignments)}
             {@render_show_deleted(num_deleted, shown_assignments.length) if num_deleted}
         </Panel>
+
+    render_grading_main: ->
+        assignment = @props.all_assignments.get(@props.grading.assignment_id)
+
+        header      =
+            <GradingStudentAssignmentHeader
+                redux          = {@props.redux}
+                name           = {@props.name}
+                assignment     = {assignment}
+            />
+
+        <Panel header={header}>
+            <GradingStudentAssignment
+                redux          = {@props.redux}
+                name           = {@props.name}
+                assignment     = {assignment}
+                students       = {@props.students}
+                user_map       = {@props.user_map}
+                grading        = {@props.grading}
+                project_id     = {@props.project_id}
+            />
+            <AssignmentNote
+                redux          = {@props.redux}
+                name           = {@props.name}
+                assignment     = {assignment}
+            />
+        </Panel>
+
+    render: ->
+        if @props.grading?
+            @render_grading_main()
+        else
+            @render_assignments_main()
+
 
 exports.AssignmentsPanel.Header = rclass
     propTypes :
@@ -245,24 +282,6 @@ Assignment = rclass
         date ?= @_due_date()
         @props.redux.getActions(@props.name).set_due_date(@props.assignment, date?.toISOString())
 
-    render_note: ->
-        <Row key='note' style={styles.note}>
-            <Col xs={2}>
-                <Tip title="Notes about this assignment" tip="Record notes about this assignment here. These notes are only visible to you, not to your students.  Put any instructions to students about assignments in a file in the directory that contains the assignment.">
-                    Private Assignment Notes<br /><span style={color:"#666"}></span>
-                </Tip>
-            </Col>
-            <Col xs={10}>
-                <MarkdownInput
-                    persist_id    = {@props.assignment.get('path') + @props.assignment.get('assignment_id') + "note"}
-                    attach_to     = {@props.name}
-                    rows          = {6}
-                    placeholder   = 'Private notes about this assignment (not visible to students)'
-                    default_value = {@props.assignment.get('note')}
-                    on_save       = {(value)=>@props.redux.getActions(@props.name).set_assignment_note(@props.assignment, value)}
-                />
-            </Col>
-        </Row>
 
     render_more_header: ->
         status = @props.redux.getStore(@props.name).get_assignment_status(@props.assignment)
@@ -361,39 +380,27 @@ Assignment = rclass
         return v
 
     render_more: ->
-        if @props.grading?.assignment_id == @props.assignment.get('assignment_id')
-            header      =
-                <GradingStudentAssignmentHeader
-                    redux          = {@props.redux}
-                    name           = {@props.name}
-                />
-            panel_body  =
-                <GradingStudentAssignment
-                    redux          = {@props.redux}
-                    name           = {@props.name}
-                    assignment     = {@props.assignment}
-                    students       = {@props.students}
-                    user_map       = {@props.user_map}
-                    grading        = {@props.grading}
-                    project_id     = {@props.project_id}
-                />
-        else
-            header      = @render_more_header()
-            panel_body  =
-                <StudentListForAssignment
-                    redux               = {@props.redux}
-                    name                = {@props.name}
-                    assignment          = {@props.assignment}
-                    students            = {@props.students}
-                    user_map            = {@props.user_map}
-                    active_student_sort = {@props.active_student_sort}
-                />
+
+        header      = @render_more_header()
+        panel_body  =
+            <StudentListForAssignment
+                redux               = {@props.redux}
+                name                = {@props.name}
+                assignment          = {@props.assignment}
+                students            = {@props.students}
+                user_map            = {@props.user_map}
+                active_student_sort = {@props.active_student_sort}
+            />
 
         <Row key='more'>
             <Col sm={12}>
                 <Panel header={header} style={marginTop:'15px'}>
                     {panel_body}
-                    {@render_note()}
+                    <AssignmentNote
+                        redux          = {@props.redux}
+                        name           = {@props.name}
+                        assignment     = {@props.assignment}
+                    />
                 </Panel>
             </Col>
         </Row>

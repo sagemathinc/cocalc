@@ -238,8 +238,8 @@ exports.Grade = rclass
         />
 
     render_ui: ->
-        [
-            <Row key={0}>
+        <React.Fragment>
+            <Row>
             {
                 switch @props.grading_mode
                     when 'manual'
@@ -248,14 +248,14 @@ exports.Grade = rclass
                         @grade_points_mode()
             }
             </Row>
-            <Row key={1}>
+            <Row>
                 {
                     if @state.grade_comments?.length > 0
                         <div><b>Comment</b> (visible to student)</div>
                 }
                 {@grade_comment_edit()}
             </Row>
-        ]
+        </React.Fragment>
 
     render_help: ->
         <Alert bsStyle={'warning'}>
