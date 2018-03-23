@@ -468,9 +468,7 @@ minimizer = new UglifyJsPlugin
     uglifyOptions:
         output:
             comments: new RegExp("This file is part of #{TITLE}","g") # to keep the banner inserted above
-        mangle:
-            properties:
-                reserved       : ['$super', '$', 'exports', 'require']
+        mangle: true
         compress:
             booleans     : true
             comparisons  : true
@@ -478,7 +476,7 @@ minimizer = new UglifyJsPlugin
             dead_code    : true
             drop_debugger: true
             evaluate     : true
-            hoist_funs   : true
+            hoist_funs   : false # was true
             if_return    : true
             join_vars    : true
             loops        : true
@@ -486,7 +484,7 @@ minimizer = new UglifyJsPlugin
             properties   : true
             sequences    : true
             side_effects : true
-            unsafe       : true
+            unsafe       : false # was true
             unused       : true
             warnings     : false
 
