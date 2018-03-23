@@ -217,7 +217,7 @@ HtmlWebpackPlugin = require('html-webpack-plugin')
 # we need our own chunk sorter, because just by dependency doesn't work
 # this way, we can be 100% sure
 smcChunkSorter = (a, b) ->
-    order = ['css', 'fill', 'lib', 'smc']
+    order = ['css', 'fill', 'smc']
     if order.indexOf(a.names[0]) < order.indexOf(b.names[0])
         return -1
     else
@@ -438,7 +438,6 @@ else
     entries =
         css  : 'webapp-css.coffee'
         fill : '@babel/polyfill'
-        lib  : 'webapp-lib.coffee'
         smc  : 'webapp-smc.coffee'
     plugins = plugins.concat([
         pug2app,
@@ -455,7 +454,11 @@ if DEVMODE
 else
     plugins = plugins.concat(staticPages)
 
-plugins = plugins.concat([assetsPlugin, statsWriterPlugin])
+BundleAnalyzerPlugin = require('webpack-bundle-analyzer').BundleAnalyzerPlugin
+bundleAnalyzerPlugin = new BundleAnalyzerPlugin({analyzerMode: 'static'})
+
+plugins = plugins.concat([assetsPlugin, statsWriterPlugin, bundleAnalyzerPlugin])
+
 
 if PRODMODE
     console.log "production mode: enabling compression"
