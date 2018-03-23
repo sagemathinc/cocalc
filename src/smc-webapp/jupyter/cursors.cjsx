@@ -22,7 +22,7 @@ exports.Cursor = Cursor = rclass
     shouldComponentUpdate: (props, state) ->
         if @props.time != props.time
             @show_name(2000)
-        return @props.name != props.name or @props.color != props.color or @state.show_name != state.show_name
+        return misc.is_different(@props, props, ['name', 'color']) or @state.show_name != state.show_name
 
     getInitialState: ->
         show_name : true
@@ -86,32 +86,45 @@ PositionedCursor = rclass
         time       : rtypes.number
 
     shouldComponentUpdate: (next) ->
-        return @props.line  != next.line or \
-               @props.ch    != next.ch   or \
-               @props.name  != next.name or \
-               @props.color != next.color or \
-               @props.time  != next.time
+        return misc.is_different(@props, next, ['line', 'ch', 'name', 'color', 'time'])
 
     _render_cursor: (props) ->
         ReactDOM.render(<Cursor name={props.name} color={props.color} top={'-1.2em'} time={@props.time}/>, @_elt)
 
     componentDidMount: ->
+        @_mounted = true
         @_elt = document.createElement("div")
         @_elt.style.position   = 'absolute'
         @_elt.style['z-index'] = '5'
         @_render_cursor(@props)
         @props.codemirror.addWidget({line : @props.line, ch:@props.ch}, @_elt, false)
 
+    _position_cursor: ->
+        if not @_mounted or not @_pos? or not @_elt?
+            return
+        # move the cursor widget to pos:
+        # A *big* subtlety here is that if one user holds down a key and types a lot, then their
+        # cursor will move *before* their new text arrives.  This sadly leaves the cursor
+        # being placed in a position that does not yet exist, hence fails.   To address this,
+        # if the position does not exist, we retry.
+        x = @props.codemirror.getLine(@_pos.line)
+        if not x? or @_pos.ch > x.length
+            # oh crap, impossible to position cursor!  Try again in 1s.
+            setTimeout(@_position_cursor, 1000)
+        else
+            @props.codemirror.addWidget(@_pos, @_elt, false)
+
     componentWillReceiveProps: (next) ->
         if not @_elt?
             return
         if @props.line != next.line or @props.ch != next.ch
-            # move the widget
-            @props.codemirror.addWidget({line:next.line, ch:next.ch}, @_elt, false)
-        # Then always update how widget is rendered (this will at least cause it to display for 2 seconds after move/change).
+            @_pos = {line:next.line, ch:next.ch}
+            @_position_cursor()
+        # Always update how widget is rendered (this will at least cause it to display for 2 seconds after move/change).
         @_render_cursor(next)
 
     componentWillUnmount: ->
+        @_mounted = false
         if @_elt?
             ReactDOM.unmountComponentAtNode(@_elt)
             @_elt.remove()
@@ -161,6 +174,9 @@ exports.Cursors = rclass
             user_map: rtypes.immutable.Map
         account:
             account_id : rtypes.string
+
+    shouldComponentUpdate: (props) ->
+        return misc.is_different(@props, props, ['cursors', 'user_map', 'account_id'])
 
     profile: (account_id) ->
         user = @props.user_map.get(account_id)

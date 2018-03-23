@@ -21,7 +21,7 @@
 {defaults, required} = require('smc-util/misc')
 {React, rclass, rtypes}  = require('../smc-react')
 {Alert, Button, ButtonToolbar, ButtonGroup, Input, Row, Col, Panel} = require('react-bootstrap')
-{Icon, Tip} = require('../r_misc')
+{HiddenXS, Icon, Tip, VisibleMDLG} = require('../r_misc')
 
 exports.SharedProjectPanel = rclass
     displayName : "CourseEditor-SharedProject"
@@ -141,6 +141,6 @@ exports.SharedProjectPanel.Header = rclass
         <Tip delayShow={1300} title="Shared project"
              tip={tip}>
             <span>
-                <Icon name="users"/> Shared Project
+                <Icon name="share-alt"/> <HiddenXS>Shared <VisibleMDLG>Project</VisibleMDLG></HiddenXS>
             </span>
         </Tip>

@@ -32,9 +32,8 @@ exports.has_math = (markdown_string) ->
 
 exports.markdown_to_html = (markdown_string, opts) ->
     opts = misc.defaults opts,
-        katex : false
-
-    markdown_string = checkboxes(markdown_string)
+        katex      : false
+        checkboxes : false   # if true, replace checkboxes by nice rendered version; only used if katex is false.
 
     if opts.katex
         return md_with_katex.render(markdown_string)
@@ -42,5 +41,7 @@ exports.markdown_to_html = (markdown_string, opts) ->
         # Assume it'll be rendered by mathjax later...
         # See https://github.com/sagemathinc/cocalc/issues/1801
         [text, math] = remove_math(markdown_string)
+        if opts.checkboxes
+            text = checkboxes(text)
         html = md_no_math.render(text)
         return replace_math(html, math)

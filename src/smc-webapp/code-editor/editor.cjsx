@@ -9,13 +9,26 @@ misc                    = require('smc-util/misc')
 {FrameTree}             = require('./frame-tree')
 {IS_IPAD}               = require('../feature')
 
+exports.set = (v) ->  # used for specifying buttons...
+    s = {}
+    for x in v
+        s[x] = true
+    return s
+
+###
+
+NOTES:
+  - editor_spec is an optional map from type names to react components (changing doesn't update component).
+    Set this when there are non-codemirror editor leafs in the frame tree.
+###
 exports.Editor = rclass ({name}) ->
     displayName: 'CodeEditor-Editor'
 
     propTypes :
-        actions    : rtypes.object.isRequired
-        path       : rtypes.string.isRequired
-        project_id : rtypes.string.isRequired
+        actions     : rtypes.object.isRequired
+        path        : rtypes.string.isRequired
+        project_id  : rtypes.string.isRequired
+        editor_spec : rtypes.object
 
     reduxProps :
         "#{name}" :
@@ -28,11 +41,13 @@ exports.Editor = rclass ({name}) ->
             error                   : rtypes.string
             cursors                 : rtypes.immutable.Map
             is_public               : rtypes.bool
+            value                   : rtypes.string
             content                 : rtypes.string
 
     shouldComponentUpdate: (next) ->
         return misc.is_different(@props, next, ['has_unsaved_changes', 'has_uncommitted_changes', 'read_only',
-                        'load_time_estimate', 'is_loaded', 'error', 'cursors', 'local_view_state', 'is_public', 'content'])
+                        'load_time_estimate', 'is_loaded', 'error', 'cursors', 'local_view_state', 'is_public',
+                        'content', 'value'])
 
     componentDidMount: ->
         @props.actions.enable_key_handler()
@@ -47,20 +62,21 @@ exports.Editor = rclass ({name}) ->
         </div>
 
     render_frame_tree: ->
-        local = @props.local_view_state
-        frame_tree = local.get('frame_tree')
-        cm_state   = local.get('cm_state')
-        if not @props.is_loaded or not frame_tree? or not cm_state? or (@props.is_public and not @props.content?)
+        local        = @props.local_view_state
+        frame_tree   = local.get('frame_tree')
+        editor_state = local.get('editor_state')
+        if not @props.is_loaded or not frame_tree? or not editor_state? or (@props.is_public and not @props.content?)
             return @render_loading()
         <div
             className = {'smc-vfill'}
-            style     = {background: 'lightgrey'}
             >
             <FrameTree
+                name                = {name}
                 actions             = {@props.actions}
                 frame_tree          = {frame_tree}
-                cm_state            = {cm_state}
+                editor_state        = {editor_state}
                 project_id          = {@props.project_id}
+                path                = {@props.path}
                 active_id           = {local.get('active_id')}
                 full_id             = {local.get('full_id')}
                 font_size           = {local.get('font_size')}
@@ -70,6 +86,8 @@ exports.Editor = rclass ({name}) ->
                 has_unsaved_changes = {@props.has_unsaved_changes}
                 is_public           = {@props.is_public}
                 content             = {@props.content}
+                value               = {@props.value}
+                editor_spec         = {@props.editor_spec}
                 />
         </div>
 
@@ -82,13 +100,13 @@ exports.Editor = rclass ({name}) ->
             style   = {maxWidth: '100%', margin: '1ex'}
         />
 
-    render_ipad_footer: ->
-        if IS_IPAD
-            <div style={height:'90px'}></div>
+    #render_ipad_footer: ->
+    #    if IS_IPAD
+    #        <div style={height:'90px'}></div>
 
     render: ->
-        <div className={'smc-vfill'} style={background:'#efefef'}>
+        <div className={'smc-vfill'}>
             {@render_error()}
             {@render_frame_tree()}
-            {@render_ipad_footer()}
+            {### @render_ipad_footer() ###}
         </div>

@@ -23,34 +23,38 @@ STYLE =
     overflow     : 'auto'
     marginbottom : '1ex'
     minheight    : '2em'
-    border       : '1px solid #ccc'
-    borderRadius : '3px'
+    border       : '0px'
     background   : '#fff'
 
 exports.CodemirrorEditor = rclass
     displayName: 'CodeEditor-CodemirrorEditor'
 
     propTypes :
-        id        : rtypes.string.isRequired
-        actions   : rtypes.object.isRequired
-        path      : rtypes.string.isRequired
-        font_size : rtypes.number.isRequired
-        cursors   : rtypes.immutable.Map
-        cm_state  : rtypes.immutable.Map
-        read_only : rtypes.bool
-        is_current: rtypes.bool
-        content   : rtypes.string  # if defined, use this static value and editor is read-only
+        id               : rtypes.string.isRequired
+        actions          : rtypes.object.isRequired
+        path             : rtypes.string.isRequired
+        font_size        : rtypes.number.isRequired
+        cursors          : rtypes.immutable.Map
+        editor_state     : rtypes.immutable.Map
+        read_only        : rtypes.bool
+        is_current       : rtypes.bool
+        is_public        : rtypes.bool
+        content          : rtypes.string  # if defined and is_public, use this static value and editor is read-only
+        misspelled_words : rtypes.immutable.Set
 
     reduxProps :
         account :
             editor_settings : rtypes.immutable.Map.isRequired
+
+    getDefaultProps: ->
+        content : ''
 
     getInitialState: ->
         has_cm : false
 
     shouldComponentUpdate: (props, state) ->
         return misc.is_different(@state, state, ['has_cm']) or \
-               misc.is_different(@props, props, ['editor_settings', 'font_size', 'cursors', 'read_only', 'content'])
+               misc.is_different(@props, props, ['editor_settings', 'font_size', 'cursors', 'read_only', 'content', 'is_public'])
 
     componentDidMount: ->
         @init_codemirror()
@@ -58,14 +62,21 @@ exports.CodemirrorEditor = rclass
     componentWillReceiveProps: (next) ->
         if @props.font_size != next.font_size
             @cm_update_font_size()
+        if not @cm?
+            return
         if @props.read_only != next.read_only
-            @cm?.setOption('readOnly', next.read_only)
-        if @props.content != next.content
-            @cm?.setValue(@props.content)
+            @cm.setOption('readOnly', next.read_only)
+        if @props.is_public and @props.content != next.content
+            @cm.setValue(@props.content)
+        if @props.misspelled_words != next.misspelled_words
+            @cm_highlight_misspelled_words(next.misspelled_words)
 
     cm_refresh: ->
         @cm?.refresh()
         setTimeout((=>@cm?.refresh()), 0)
+
+    cm_highlight_misspelled_words: (words) ->
+        @cm.spellcheck_highlight(words?.toJS() ? [])
 
     cm_update_font_size: ->
         if not @cm?
@@ -76,7 +87,7 @@ exports.CodemirrorEditor = rclass
         codemirror_util.restore_state(@cm, state)  # actual restore happens in next refresh cycle after render.
 
     componentWillUnmount: ->
-        if @cm? and not @props.content?
+        if @cm? and not @props.is_public?
             @save_syncstring()
             @_cm_destroy()
 
@@ -105,10 +116,10 @@ exports.CodemirrorEditor = rclass
         @props.actions.set_cursor_locs(locs, side_effect)
 
     # Save the UI state of the CM (not the actual content) -- scroll position, selections, etc.
-    save_cm_state: ->
+    save_editor_state: ->
         if not @cm?
             return
-        @props.actions.save_cm_state(@props.id, codemirror_util.get_state(@cm))
+        @props.actions.save_editor_state(@props.id, codemirror_util.get_state(@cm))
 
     # Save the underlying syncstring content.
     save_syncstring: ->
@@ -118,7 +129,7 @@ exports.CodemirrorEditor = rclass
         @props.actions.syncstring_save()
 
     safari_hack: ->
-        if not $.browser.safari
+        if not $?.browser?.safari
             return
         $(ReactDOM.findDOMNode(@)).make_height_defined()
 
@@ -138,16 +149,20 @@ exports.CodemirrorEditor = rclass
         @_style_active_line = options.styleActiveLine
         options.styleActiveLine = false
 
-        if @props.content?
+        if @props.is_public
             options.readOnly = true
 
         # Needed e.g., for vim ":w" support; obviously this is global, so be careful.
         CodeMirror.commands.save ?= (cm) -> cm._actions?.save(true)
 
         @cm = CodeMirror.fromTextArea(node, options)
+
+        if not @props.is_public
+            @cm_highlight_misspelled_words(@props.misspelled_words)
+
         @cm._actions = @props.actions
 
-        if @props.content?
+        if @props.is_public
             @cm.setValue(@props.content)
         else
             d = doc.get(path: @props.path, cm: @cm)
@@ -162,17 +177,17 @@ exports.CodemirrorEditor = rclass
         # see http://stackoverflow.com/questions/2655925/apply-important-css-style-using-jquery
 
 
-        save_cm_state = debounce(@save_cm_state, 500)
-        @cm.on('scroll', save_cm_state)
+        save_editor_state = debounce(@save_editor_state, 500)
+        @cm.on('scroll', save_editor_state)
 
-        if @props.cm_state?
-            codemirror_util.restore_state(@cm, @props.cm_state.toJS())
+        if @props.editor_state?
+            codemirror_util.restore_state(@cm, @props.editor_state.toJS())
 
         @setState(has_cm: true)
 
         @props.actions.set_cm(@props.id, @cm)
 
-        if @props.content?
+        if @props.is_public
             return
 
         # After this only stuff that we use for the non-public version!
@@ -194,7 +209,7 @@ exports.CodemirrorEditor = rclass
                 @cm?.setOption('styleActiveLine', false)
 
         @cm.on 'cursorActivity', @_cm_cursor
-        @cm.on 'cursorActivity', save_cm_state
+        @cm.on 'cursorActivity', save_editor_state
 
         # replace undo/redo by our sync aware versions
         @cm.undo = @_cm_undo
@@ -219,7 +234,7 @@ exports.CodemirrorEditor = rclass
         style.fontSize = "#{@props.font_size}px"
         <div
             style     = {style}
-            className = 'smc-vfill cocalc-codemirror-editor-div' >
+            className = 'smc-vfill cocalc-editor-div' >
             {@render_cursors()}
             <textarea />
         </div>

@@ -27,6 +27,7 @@ or
 
 Draggable                         = require('react-draggable')
 misc                              = require('smc-util/misc')
+misc_page                         = require('../misc_page')
 {React, ReactDOM, rclass, rtypes} = require('../smc-react')
 {CodemirrorEditor}                = require('./codemirror-editor')
 feature                           = require('../feature')
@@ -52,16 +53,17 @@ rows_drag_bar = misc.merge(misc.copy(cols_drag_bar), {cursor:'ns-resize'})
 
 rows_drag_bar_drag_hover = misc.merge(misc.copy(rows_drag_bar), drag_hover)
 
-exports.FrameTree = FrameTree = rclass
+exports.FrameTree = FrameTree = rclass ({name}) ->
     displayName: 'CodeEditor-FrameTree'
 
     propTypes               :
         actions             : rtypes.object.isRequired
+        path                : rtypes.string        # assumed to never change -- all frames in same project
         project_id          : rtypes.string        # assumed to never change -- all frames in same project
         active_id           : rtypes.string
         full_id             : rtypes.string
         frame_tree          : rtypes.immutable.isRequired
-        cm_state            : rtypes.immutable.isRequired    # IMPORTANT: change does NOT cause re-render (uncontrolled); only used for full initial render, on purpose
+        editor_state        : rtypes.immutable.isRequired    # IMPORTANT: change does NOT cause re-render (uncontrolled); only used for full initial render, on purpose, i.e., setting scroll positions.
         font_size           : rtypes.number.isRequired
         is_only             : rtypes.bool
         cursors             : rtypes.immutable.Map
@@ -69,6 +71,13 @@ exports.FrameTree = FrameTree = rclass
         read_only           : rtypes.bool   # if true, then whole document considered read only (individual frames can still be via desc)
         is_public           : rtypes.bool
         content             : rtypes.string
+        value               : rtypes.string
+        editor_spec         : rtypes.object   # optional map from types to object that specify the different editors related to the master file (assumed to not change!)
+
+    reduxProps :
+        "#{name}" :
+            save_to_disk     : rtypes.number
+            misspelled_words : rtypes.immutable.Set
 
     getInitialState: ->
         drag_hover: false
@@ -76,15 +85,18 @@ exports.FrameTree = FrameTree = rclass
     shouldComponentUpdate: (next, state) ->
         return @state.drag_hover != state.drag_hover or \
                misc.is_different(@props, next, ['frame_tree', 'active_id', 'full_id', 'is_only', \
-                      'cursors', 'has_unsaved_changes', 'is_public', 'content'])
+                      'cursors', 'has_unsaved_changes', 'is_public', 'content', 'value', \
+                      'project_id', 'path', 'misspelled_words', 'save_to_disk'])
 
     render_frame_tree: (desc) ->
         <FrameTree
+            name                = {@props.name}
             actions             = {@props.actions}
             frame_tree          = {desc}
-            cm_state            = {@props.cm_state}
+            editor_state        = {@props.editor_state}
             active_id           = {@props.active_id}
             project_id          = {@props.project_id}
+            path                = {@props.path}
             font_size           = {@props.font_size}
             is_only             = {false}
             cursors             = {@props.cursors}
@@ -92,6 +104,8 @@ exports.FrameTree = FrameTree = rclass
             read_only           = {@props.read_only}
             is_public           = {@props.is_public}
             content             = {@props.content}
+            value               = {@props.value}
+            editor_spec         = {@props.editor_spec}
         />
 
     render_titlebar: (desc) ->
@@ -99,43 +113,53 @@ exports.FrameTree = FrameTree = rclass
             actions             = {@props.actions}
             active_id           = {@props.active_id}
             project_id          = {desc.get('project_id') ? @props.project_id}
+            path                = {desc.get('path') ? @props.path}
             is_full             = {desc.get('id') == @props.full_id and not @props.is_only}
             is_only             = {@props.is_only}
             id                  = {desc.get('id')}
-            path                = {desc.get('path')}
             deletable           = {desc.get('deletable') ? true}
             read_only           = {desc.get('read_only') or @props.read_only}
             has_unsaved_changes = {@props.has_unsaved_changes}
             is_public           = {@props.is_public}
+            type                = {desc.get('type')}
+            editor_spec         = {@props.editor_spec}
         />
 
-    render_codemirror: (desc) ->
-        <CodemirrorEditor
-            actions     = {@props.actions}
-            id          = {desc.get('id')}
-            read_only   = {desc.get('read_only') or @props.read_only}
-            font_size   = {desc.get('font_size') ? @props.font_size}
-            path        = {desc.get('path')}
-            cm_state    = {@props.cm_state.get(desc.get('id'))}
-            is_current  = {desc.get('id') == @props.active_id}
-            cursors     = {@props.cursors}
-            content     = {@props.content}
+    render_leaf: (desc, Leaf) ->
+        <Leaf
+            actions          = {@props.actions}
+            id               = {desc.get('id')}
+            read_only        = {desc.get('read_only') or @props.read_only or @props.is_public}
+            font_size        = {desc.get('font_size') ? @props.font_size}
+            path             = {desc.get('path') ? @props.path}
+            project_id       = {desc.get('project_id') ? @props.project_id}
+            editor_state     = {@props.editor_state.get(desc.get('id'))}
+            is_current       = {desc.get('id') == @props.active_id}
+            cursors          = {@props.cursors}
+            content          = {@props.content}
+            value            = {@props.value}
+            misspelled_words = {@props.misspelled_words}
+            is_fullscreen    = {@props.is_only or desc.get('id') == @props.full_id}
+            save_to_disk     = {@props.save_to_disk}
         />
 
     render_one: (desc) ->
-        switch desc?.get('type')
-            when 'node'
-                return @render_frame_tree(desc)
-            when 'cm'
-                child = @render_codemirror(desc)
-            else
-                # fix this disaster next time around.
-                setTimeout((=>@props.actions?.reset_frame_tree()), 1)
-                return <div>Invalid frame tree {misc.to_json(desc)}</div>
+        type = desc?.get('type')
+        if type == 'node'
+            return @render_frame_tree(desc)
+        C = @props.editor_spec?[type]?.component
+        if C?
+            child = @render_leaf(desc, C)
+        else if type == 'cm' # minimal support
+            child = @render_leaf(desc, CodemirrorEditor)
+        else
+            # fix this disaster next time around.
+            setTimeout((=>@props.actions?.reset_frame_tree()), 1)
+            return <div>Invalid frame tree {misc.to_json(desc)}</div>
         <div
             className    = {'smc-vfill'}
-            onClick      = {=>@props.actions.set_active_id(desc.get('id'))}
-            onTouchStart = {=>@props.actions.set_active_id(desc.get('id'))}
+            onClick      = {=>@props.actions.set_active_id(desc.get('id'), 10)}
+            onTouchStart = {=>@props.actions.set_active_id(desc.get('id'), 10)}
         >
             {@render_titlebar(desc)}
             {child}
@@ -154,6 +178,7 @@ exports.FrameTree = FrameTree = rclass
                 $(ReactDOM.findDOMNode(@refs.cols_drag_bar)).css('transform','')
 
         handle_stop = (evt, ui) =>
+            misc_page.drag_stop_iframe_enable()
             clientX = ui.node.offsetLeft + ui.x + drag_offset
             elt     = ReactDOM.findDOMNode(@refs.cols_container)
             pos     = (clientX - elt.offsetLeft) / elt.offsetWidth
@@ -162,10 +187,11 @@ exports.FrameTree = FrameTree = rclass
 
         # the preventDefault below prevents the text and scroll of what is in the frame from getting messed up during the drag.
         <Draggable
-            ref     = {'cols_drag_bar'}
-            axis    = {'x'}
-            onStop  = {handle_stop}
+            ref         = {'cols_drag_bar'}
+            axis        = {'x'}
+            onStop      = {handle_stop}
             onMouseDown = {(e) => e.preventDefault()}
+            onStart     = {misc_page.drag_start_iframe_disable}
             >
             <div
                 style        = {if @state.drag_hover then cols_drag_bar_drag_hover else cols_drag_bar}
@@ -211,11 +237,11 @@ exports.FrameTree = FrameTree = rclass
         </div>
 
     safari_hack: ->
-        if not $.browser.safari
+        if not $?.browser?.safari
             return
         # Workaround a major and annoying bug in Safari:
         #     https://github.com/philipwalton/flexbugs/issues/132
-        $(ReactDOM.findDOMNode(@)).find(".cocalc-codemirror-editor-div").make_height_defined()
+        $(ReactDOM.findDOMNode(@)).find(".cocalc-editor-div").make_height_defined()
 
     render_rows_drag_bar: ->
         reset = =>
@@ -224,6 +250,7 @@ exports.FrameTree = FrameTree = rclass
                 $(ReactDOM.findDOMNode(@refs.rows_drag_bar)).css('transform','')
 
         handle_stop = (evt, ui) =>
+            misc_page.drag_stop_iframe_enable()
             clientY = ui.node.offsetTop + ui.y + drag_offset
             elt     = ReactDOM.findDOMNode(@refs.rows_container)
             pos     = (clientY - elt.offsetTop) / elt.offsetHeight
@@ -232,10 +259,11 @@ exports.FrameTree = FrameTree = rclass
             @safari_hack()
 
         <Draggable
-            ref     = {'rows_drag_bar'}
-            axis    = {'y'}
-            onStop  = {handle_stop}
+            ref         = {'rows_drag_bar'}
+            axis        = {'y'}
+            onStop      = {handle_stop}
             onMouseDown = {(e) => e.preventDefault()}
+            onStart     = {misc_page.drag_start_iframe_disable}
             >
             <div
                 style        = {if @state.drag_hover then rows_drag_bar_drag_hover else rows_drag_bar}
