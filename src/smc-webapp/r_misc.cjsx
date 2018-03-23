@@ -518,6 +518,8 @@ exports.NumberInput = NumberInput = rclass
 
     plusminus: (delta) ->
         return null if not @props.plusminus
+        title = "Hold down your shift key while clicking to accellerate changes by #{@props.speedup}x."
+
         if delta > 0
             name     = 'plus'
             disabled = @props.number == @props.max
@@ -525,15 +527,17 @@ exports.NumberInput = NumberInput = rclass
             if @props.allow_empty and @props.number == @props.min
                 disabled = false
                 name     = 'trash'
+                title    = 'Remove the value.'
             else if @props.allow_empty and (not @props.number?)
                 disabled = true
                 name     = 'ban'
+                title    = 'No value set.'
             else
                 disabled = @props.number == @props.min
                 name     = 'minus'
 
         <Tip
-            title     = {"Hold down your shift key while clicking to increase changes by #{@props.speedup}x."}
+            title     = {title}
             placement = {'bottom'}
         >
             <Button
