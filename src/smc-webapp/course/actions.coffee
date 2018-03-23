@@ -1850,17 +1850,20 @@ exports.CourseActions = class CourseActions extends Actions
         store = @get_store()
         return if not store?
 
-        {Grading} = require('./grading/models')
-        grading   = store.get('grading') ? new Grading()
+        # initialization: start with a new grading object or the current one
+        {Grading}        = require('./grading/models')
+        grading          = store.get('grading') ? new Grading()
 
+        # merge passed in opts data with already existing information
         old_student_id   = grading.student_id
         only_not_graded  = opts.without_grade   ? grading.only_not_graded
         only_collected   = opts.collected_files ? grading.only_collected
         student_filter   = grading.student_filter
         assignment_id    = opts.assignment.get('assignment_id')
 
-        if opts.direction == 1 or opts.direction == -1
-            [next_student_id, cnt] = store.grading_next_student(
+        # pick first/next student to grade
+        if opts.direction in [-1, 1]
+            next_student_id = store.grading_next_student(
                 assignment            : opts.assignment
                 current_student_id    : opts.student_id
                 direction             : opts.direction
@@ -1868,8 +1871,20 @@ exports.CourseActions = class CourseActions extends Actions
                 collected_files       : only_collected
                 cursors               : grading.cursors
             )
+            # But: what if we search for students without a grade yet, but all are graded?
+            # Relax this criteria and try again …
+            if (not next_student_id?) and only_not_graded
+                only_not_graded = false # relax search filter
+                next_student_id = store.grading_next_student(
+                    assignment            : opts.assignment
+                    current_student_id    : opts.student_id
+                    direction             : opts.direction
+                    without_grade         : only_not_graded
+                    collected_files       : only_collected
+                    cursors               : grading.cursors
+                )
         else
-            # previous is null/undefined, stick with same student ... e.g. directory changes
+            # i.e. stick with same student ... e.g. only the (sub-) directory changes
             next_student_id = opts.student_id
 
         # merge all previous information and switch to grading mode, but no listing yet
@@ -1907,6 +1922,7 @@ exports.CourseActions = class CourseActions extends Actions
             listing = immutable.fromJS(listing)
             @grading_set_entry('listing', listing)
 
+    # update routine to set derived data field in the grading object in a consistent way
     grading_update: (store, grading) =>
         return if not grading?
         x = store.grading_get_student_list(grading)
@@ -1995,7 +2011,6 @@ exports.CourseActions = class CourseActions extends Actions
     grading_cleanup_discussion: (assignment_path, student_id) =>
         store = @get_store()
         return if not store?
-        #if DEBUG then console.log("grading discussion cleanup", student_id)
         chat_path = store.grading_get_discussion_path(assignment_path, student_id)
         chat_register.remove(chat_path, @redux, store.get('course_project_id'))
         store.grading_remove_discussion(chat_path)
@@ -2003,7 +2018,7 @@ exports.CourseActions = class CourseActions extends Actions
     grading_cleanup_all_discussions: =>
         store = @get_store()
         return if not store?
-        store._open_discussions.forEach (chat_path) =>
+        store._open_discussions?.forEach (chat_path) =>
             chat_register.remove(chat_path, @redux, store.get('course_project_id'))
         delete store._open_discussions
 
@@ -2019,6 +2034,7 @@ exports.CourseActions = class CourseActions extends Actions
         return if not grading?
         @setState(grading : grading.set_discussion(chat_path))
 
+    # set the "cursor" to the assignment+student currently being graded
     grading_update_activity: (opts) =>
         store = @get_store()
         return if not store?
@@ -2034,6 +2050,7 @@ exports.CourseActions = class CourseActions extends Actions
         # argument must be an array, and we only have one cursor (at least, at the time of writing)
         @syncdb?.set_cursor_locs([location])
 
+    # teacher moved to another student or closed the grading dialog
     grading_remove_activity: =>
         return if @syncdb?.is_closed() or not @_loaded()
         # argument must be an array, not null!

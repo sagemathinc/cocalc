@@ -510,6 +510,8 @@ exports.CourseStore = class CourseStore extends Store
         else
             return true
 
+    # this builds a "data" object containing information about all students and
+    # graded assignments. it's used in particular for the json export in the course settings
     get_export_course_data: ->
         assignments = @get_sorted_assignments()
         students    = @get_sorted_students()
@@ -538,6 +540,9 @@ exports.CourseStore = class CourseStore extends Store
                 a_data.push(student_data)
         return data
 
+    # select the first/next student among all collected assignments
+    # first: current_student_id is undefined and it should return the first one
+    # next: current_student_id is a student_id and it returns the next or previous student
     grading_next_student: (opts) =>
         opts = defaults opts,
             assignment            : required
@@ -556,10 +561,10 @@ exports.CourseStore = class CourseStore extends Store
         if opts.direction == -1
             students = students.reverse()
         skip = opts.current_student_id?
-        cnt  = if opts.direction == -1 then students.length + 1 else 0
+        #cnt  = if opts.direction == -1 then students.length + 1 else 0
         for student, idx in students
             student_id = student.get('student_id')
-            cnt += opts.direction
+            #cnt += opts.direction
             if skip and student_id != opts.current_student_id
                 continue
             else
@@ -575,7 +580,7 @@ exports.CourseStore = class CourseStore extends Store
             cursor_time  = assignment_cursors?.get(student_id)
             concurrent_grading = cursor_time? and cursor_time > minutes_10_ago
             if has_no_grade and is_collected and (not concurrent_grading)
-                return [student_id, cnt]
+                return student_id
 
             # when stepping backwards, it's more natural to always end up at the start
             if (idx == students.length - 1) and (opts.direction < 0)
@@ -586,10 +591,11 @@ exports.CourseStore = class CourseStore extends Store
                     without_grade       : opts.without_grade
                     collected_files     : opts.collected_files
                 )
-        return [null, 0]
+        return null
 
+    # this retrieves the listing information for a specific collected assignment
     grading_get_listing: (assignment, student_id, subdir, cb) =>
-        project_id = @get('course_project_id')
+        project_id   = @get('course_project_id')
         collect_path = "#{assignment.get('collect_path')}/#{student_id}"
 
         locals =
@@ -621,18 +627,21 @@ exports.CourseStore = class CourseStore extends Store
             cb(err, locals.listing)
         )
 
+    # returns a list of all students according to the configuration of the grading object
+    # "all_points" is intentionally for all students, regardless of filtering
     grading_get_student_list: (grading) =>
         return if not grading?
         assignment      = @get_assignment(grading.assignment_id)
         return if not assignment?
         student_filter  = grading.student_filter
+        search_string   = student_filter.toLowerCase()
         only_not_graded = grading.only_not_graded
         only_collected  = grading.only_collected
 
         matching = (id, name) =>
             pick_student = true
             if student_filter?.length > 0
-                pick_student and= name.toLowerCase().indexOf(student_filter.toLowerCase()) >= 0
+                pick_student and= name.toLowerCase().indexOf(search_string) >= 0
             if only_not_graded
                 pick_student and= not @has_grade(assignment, id)
             if only_collected
@@ -658,6 +667,7 @@ exports.CourseStore = class CourseStore extends Store
         all_points.sort((a, b) -> a - b)
         return {student_list:list, all_points:all_points}
 
+    # derive the path to the discussion chat file from the assignment and student_id
     grading_get_discussion_path: (assignment_path, student_id) ->
         return if (not assignment_path?) or (not student_id?)
         course_filename = @get('course_filename')
@@ -673,6 +683,8 @@ exports.CourseStore = class CourseStore extends Store
         return if not @_open_discussions?
         @_open_discussions = @_open_discussions.remove(chat_path)
 
+    # builds the set of all distinct grades entered for manual grading.
+    # used for populating the drop-down menu
     get_list_of_grades: (assignment_id) ->
         assignment = @get_assignment(assignment_id)
         return if not assignment?
