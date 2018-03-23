@@ -23,8 +23,7 @@ STYLE =
     overflow     : 'auto'
     marginbottom : '1ex'
     minheight    : '2em'
-    border       : '1px solid #ccc'
-    borderRadius : '3px'
+    border       : '0px'
     background   : '#fff'
 
 exports.CodemirrorEditor = rclass

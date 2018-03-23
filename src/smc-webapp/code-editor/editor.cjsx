@@ -100,13 +100,13 @@ exports.Editor = rclass ({name}) ->
             style   = {maxWidth: '100%', margin: '1ex'}
         />
 
-    render_ipad_footer: ->
-        if IS_IPAD
-            <div style={height:'90px'}></div>
+    #render_ipad_footer: ->
+    #    if IS_IPAD
+    #        <div style={height:'90px'}></div>
 
     render: ->
         <div className={'smc-vfill'}>
             {@render_error()}
             {@render_frame_tree()}
-            {@render_ipad_footer()}
+            {### @render_ipad_footer() ###}
         </div>

@@ -14,7 +14,6 @@ misc = require('smc-util/misc')
 STYLE =
     overflowY : 'scroll'
     width     : '100%'
-    borderTop : '1px solid lightgrey'
 
 exports.IFrameHTML = rclass
     displayName: 'HTMLEditor-IFrameHTML'
@@ -34,6 +33,9 @@ exports.IFrameHTML = rclass
     componentWillReceiveProps: (next) ->
         if @props.save_to_disk != next.save_to_disk
             @reload_iframe()
+
+    componentDidMount: ->
+        @safari_hack()
 
     on_scroll: ->
         elt = ReactDOM.findDOMNode(@refs.iframe)
@@ -80,6 +82,11 @@ exports.IFrameHTML = rclass
 
     maximize: ->
         @props.actions.set_frame_full(@props.id)
+
+    safari_hack: ->
+        if not $.browser?.safari
+            return
+        $(ReactDOM.findDOMNode(@)).make_height_defined()
 
     render: ->
         # the cocalc-editor-div is needed for a safari hack only

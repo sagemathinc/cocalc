@@ -13,7 +13,7 @@ Top-level react component for editing HTML documents
 
 EDITOR_SPEC =
     cm        :
-        short     : 'Source'
+        short     : 'Code'
         name      : 'Source Code'
         icon      : 'code'
         component : CodemirrorEditor
@@ -22,14 +22,14 @@ EDITOR_SPEC =
 
     iframe :
         short     : 'HTML'
-        name      : 'Full HTML IFrame'
-        icon      : 'safari'
+        name      : 'HTML IFrame'
+        icon      : 'compass'
         component : IFrameHTML
         buttons   : set(['print', 'save', 'time_travel', 'reload'])
 
     html :
         short     : 'Preview'
-        name      : 'Realtime Preview'
+        name      : 'Quick Preview'
         icon      : 'html5'
         component : RenderedHTML
         buttons   : set(['print', 'decrease_font_size', 'increase_font_size', 'save', 'time_travel', 'reload'])

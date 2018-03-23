@@ -13,11 +13,9 @@ FrameTitleBar - title bar in a frame, in the frame tree
 misc       = require('smc-util/misc')
 
 title_bar_style =
-    background    : '#ddd'
-    borderTop     : '1px solid rgb(204,204,204)'
-    borderLeft    : '1px solid rgb(204,204,204)'
-    borderRight   : '1px solid rgb(204,204,204)'
-    padding       : '1px'
+    background : '#ddd'
+    border     : '1px solid rgb(204,204,204)'
+    padding    : '1px'
 
 path_style =
     whiteSpace   : 'nowrap'
@@ -114,7 +112,7 @@ exports.FrameTitleBar = rclass
             items.push(item)
 
         title = <Icon name={selected_icon} />
-        if selected_short and @show_labels()
+        if selected_short
             title = <span>{title} {selected_short}</span>
         <DropdownButton
           title     = {title}
