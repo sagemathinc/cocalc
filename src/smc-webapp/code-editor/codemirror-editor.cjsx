@@ -129,7 +129,7 @@ exports.CodemirrorEditor = rclass
         @props.actions.syncstring_save()
 
     safari_hack: ->
-        if not $.browser?.safari
+        if not $?.browser?.safari
             return
         $(ReactDOM.findDOMNode(@)).make_height_defined()
 

@@ -237,7 +237,7 @@ exports.FrameTree = FrameTree = rclass ({name}) ->
         </div>
 
     safari_hack: ->
-        if not $.browser?.safari
+        if not $?.browser?.safari
             return
         # Workaround a major and annoying bug in Safari:
         #     https://github.com/philipwalton/flexbugs/issues/132

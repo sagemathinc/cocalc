@@ -84,7 +84,7 @@ exports.IFrameHTML = rclass
         @props.actions.set_frame_full(@props.id)
 
     safari_hack: ->
-        if not $.browser?.safari
+        if not $?.browser?.safari
             return
         $(ReactDOM.findDOMNode(@)).make_height_defined()
 

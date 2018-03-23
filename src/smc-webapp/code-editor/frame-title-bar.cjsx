@@ -487,7 +487,7 @@ exports.FrameTitleBar = rclass
         else
             style = title_bar_style
 
-        if $.browser?.safari  # ugly hack....
+        if $?.browser?.safari  # ugly hack....
             # for some reason this is really necessary on safari, but
             # breaks on everything else!
             if not is_active
