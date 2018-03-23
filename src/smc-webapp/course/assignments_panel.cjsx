@@ -32,13 +32,14 @@ misc = require('smc-util/misc')
 # CoCalc and course components
 util = require('./util')
 styles = require('./styles')
-{DateTimePicker, ErrorDisplay, Icon, LabeledRow, Loading, MarkdownInput, Space, Tip, NumberInput} = require('../r_misc')
+{DateTimePicker, ErrorDisplay, Icon, LabeledRow, Loading, MarkdownInput, Space, Tip, NumberInput, CheckedIcon} = require('../r_misc')
 {STEPS, step_direction, step_verb, step_ready} = util
 {BigTime, FoldersToolbar, StudentAssignmentInfo, StudentAssignmentInfoHeader} = require('./common')
 {GradingStudentAssignment} = require('./grading/main')
 {GradingStudentAssignmentHeader} = require('./grading/header')
 {Grading} = require('./grading/models')
 {AssignmentNote} = require('./assignment_note')
+{ConfigureGrading} = require('./grading/configure_grading')
 
 {Progress} = require('./progress')
 {SkipCopy} = require('./skip')
@@ -338,7 +339,12 @@ Assignment = rclass
         if @props.expand_grading_config
             v.push <Row key='header2-grading' style={bottom}>
                 <Col md={10} mdOffset={2}>
-                    {@render_configure_grading()}
+                    <ConfigureGrading
+                        redux         = {@props.redux}
+                        name          = {@props.name}
+                        assignment    = {@props.assignment}
+                        close         = {@toggle_configure_grading}
+                    />
                 </Col>
             </Row>
 
@@ -958,102 +964,18 @@ Assignment = rclass
             </Button>
         </Alert>
 
-    checked_icon: (checked) ->
-        if checked
-            return 'check-square-o'
-        else
-            return 'square-o'
-
     render_peer_button: ->
-        icon = @checked_icon(@props.assignment.get('peer_grade')?.get('enabled'))
+        icon = <CheckedIcon checked={@props.assignment.get('peer_grade')?.get('enabled')} />
         <Button
             disabled    = {@props.expand_peer_config }
             onClick     = {=>@actions(@props.name).toggle_item_expansion('peer_config', @props.assignment.get('assignment_id'))}
         >
-            <Icon name={icon} /> Peer Grading...
+            {icon} Peer Grading...
         </Button>
-
-    set_grading_mode: (mode) ->
-        a = @props.redux.getActions(@props.name)
-        a.set_assignment_config(@props.assignment, {mode:mode})
-
-    render_configure_grading_mode: ->
-        store      = @props.redux.getStore(@props.name)
-        mode       = store.get_grading_mode(@props.assignment)
-
-        <div style={color:COLORS.GRAY_D, marginBottom:'10px'}>
-            <div style={marginBottom:'10px'}>
-                In <b>manual</b> mode you can assign an arbitrary grade
-                (a letter, a number, or a short text) to the assignment of a student.
-            </div>
-            <div style={marginBottom:'10px'}>
-                Whereas in <b>points</b> mode, the grade is filled in for you.
-                It is the sum of all points given to the collected files
-                of an assignment of a student.
-                For example, when you assess <b>10 points</b> to <code>notebook1.ipynb</code>{' '}
-                and <b>15 points</b> to <code>worksheet2.sagews</code>,
-                this sums up to a total of <b>25 points</b>.
-                Below, you also enter the maxium number of points for this assignment (e.g. 30).
-                The grade shown to the student will be <b>25/30</b>.
-                (Also, you can assign points beyond the maxium as extra credits.)
-            </div>
-            <div>
-                <Button onClick = {=>@set_grading_mode('manual')}>
-                    <Icon name={@checked_icon(mode == 'manual')} /> Manual
-                </Button>
-                <Space />
-                <Button onClick = {=>@set_grading_mode('points')}>
-                    <Icon name={@checked_icon(mode == 'points')} /> Points
-                </Button>
-            </div>
-        </div>
-
-    set_grading_maxpoints: (points) ->
-        a = @props.redux.getActions(@props.name)
-        a.set_assignment_config(@props.assignment, {maxpoints:points})
-
-    render_configure_grading_maxpoints: ->
-        store      = @props.redux.getStore(@props.name)
-        mode       = store.get_grading_mode(@props.assignment)
-        return null if mode != 'points'
-        maxpoints  = store.get_grading_maxpoints(@props.assignment)
-        MAXPOINTS  = require('./grading/common').MAXPOINTS
-
-        <div style={color:COLORS.GRAY_D, marginBottom:'10px'}>
-            <LabeledRow
-                label_cols = {6}
-                label      = {'Maxium number of points'}
-            >
-                <NumberInput
-                    on_change       = {(n) => @set_grading_maxpoints(n)}
-                    min             = {1}
-                    max             = {MAXPOINTS}
-                    number          = {maxpoints}
-                    plusminus       = {true}
-                    select_on_click = {true}
-                />
-            </LabeledRow>
-        </div>
 
     toggle_configure_grading: ->
         aid = @props.assignment.get('assignment_id')
         @actions(@props.name).toggle_item_expansion('grading_config', aid)
-
-    render_configure_grading: ->
-        config = @props.assignment.getIn(['config', 'mode'])
-        {GradingHelpButton} = require('./grading/main')
-
-        <Alert bsStyle='warning'>
-            <div style={float:'right'}>
-                <GradingHelpButton show_help={true}/>
-            </div>
-            <h3><Icon name="gavel"/> Configure grading</h3>
-            {@render_configure_grading_mode()}
-            {@render_configure_grading_maxpoints()}
-            <Button onClick={@toggle_configure_grading}>
-                Close
-            </Button>
-        </Alert>
 
     render_grading_config_button: ->
         <Button

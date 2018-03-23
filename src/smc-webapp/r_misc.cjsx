@@ -1536,6 +1536,22 @@ exports.NoNetworkProjectWarning = (opts) ->
         </p>
     </Alert>
 
+exports.CheckedIcon = rclass
+    displayName : 'Misc-CheckedIcon'
+
+    propTypes :
+        checked   : rtypes.bool
+
+    getDefaultProps: ->
+        checked   : false
+
+    shouldComponentUpdate: (props) ->
+        return misc.is_different(@props, props, ['checked'])
+
+    render : ->
+        name = if @props.checked then 'check-square-o' else 'square-o'
+        <Icon name={name} />
+
 exports.LoginLink = rclass
     displayName : 'Misc-LoginLink'
 
