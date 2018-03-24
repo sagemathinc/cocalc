@@ -459,13 +459,6 @@ bundleAnalyzerPlugin = new BundleAnalyzerPlugin({analyzerMode: 'static'})
 
 plugins = plugins.concat([assetsPlugin, statsWriterPlugin, bundleAnalyzerPlugin])
 
-
-if PRODMODE
-    console.log "production mode: enabling compression"
-    # configuration for the number of chunks and their minimum size
-    plugins.push new webpack.optimize.LimitChunkCountPlugin(maxChunks: 5)
-    plugins.push new webpack.optimize.MinChunkSizePlugin(minChunkSize: 30000)
-
 UglifyJsPlugin = require('uglifyjs-webpack-plugin')
 minimizer = new UglifyJsPlugin
     uglifyOptions:
