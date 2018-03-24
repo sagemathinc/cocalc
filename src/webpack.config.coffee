@@ -439,6 +439,13 @@ else
         css  : 'webapp-css.coffee'
         fill : '@babel/polyfill'
         smc  : 'webapp-smc.coffee'
+        # code splitting: we take all of our vendor code and put it in a separate bundle (vendor.min.js)
+        # this way it will have better caching/cache hits since it changes infrequently
+        vendor: [
+            # local packages
+            './webapp-lib/primus/primus-engine.min.js'
+            # npm packages are added to vendor code separately in splitChunks config below
+        ]
     plugins = plugins.concat([
         pug2app,
         mathjaxVersionedSymlink,
