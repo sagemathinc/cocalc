@@ -76,10 +76,10 @@ exports.GradingStudentAssignmentHeader = rclass ({name}) ->
                     account_id = {account_id}
                 />
             )
-        <h4>
+        <h5>
             {"Also present: " if presence.length > 0}
             {presence}
-        </h4>
+        </h5>
 
     student_name: ->
         if @props.grading.anonymous
@@ -89,12 +89,12 @@ exports.GradingStudentAssignmentHeader = rclass ({name}) ->
             return student_info?.full ? 'N/A'
 
     render_title: ->
-        apath = <span style={color:COLORS.GRAY}>
+        apath = <span style={color:COLORS.GRAY} className={'hidden-md'}>
             ({@props.assignment.get('path')})
         </span>
 
         if @props.grading.end_of_list
-            <h4>End</h4>
+            <h5>End</h5>
         else
             <h5>
                 Grading <b>{@student_name()}</b> {apath}
@@ -102,14 +102,15 @@ exports.GradingStudentAssignmentHeader = rclass ({name}) ->
 
     render: ->
         {GradingHelpButton} = require('./main')
-        <Row>
-            <Col md={7}>
+
+        <div style={display:'flex'}>
+            <div style={flex:'1 0 auto'}>
                 {@render_title()}
-            </Col>
-            <Col md={3} style={textAlign:'right'}>
+            </div>
+            <div style={flex:'1 1 auto', textAlign:'right'}>
                 {@render_presence()}
-            </Col>
-            <Col md={2} style={textAlign:'right', whiteSpace:'nowrap'}>
+            </div>
+            <div style={flex:'1 0 auto', textAlign:'right', whiteSpace:'nowrap'}>
                 <GradingHelpButton />
                 <Space />
                 <Button
@@ -118,5 +119,6 @@ exports.GradingStudentAssignmentHeader = rclass ({name}) ->
                 >
                     <Icon name={'sign-out'} /> Close Grading
                 </Button>
-            </Col>
-        </Row>
+            </div>
+        </div>
+
