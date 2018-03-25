@@ -117,7 +117,7 @@ exports.FileTab = rclass
                     /> if @props.file_tab}
                 </div>
                 <div style={label_styles}>
-                    <Tip title={@props.tooltip} placement='bottom' size='small'>
+                    <Tip title={@props.tooltip} stable={true} placement='bottom' size='small'>
                         <Icon style={icon_style} name={@props.icon} /> {@props.label if not @props.shrink}
                     </Tip>
                 </div>

@@ -23,8 +23,7 @@ STYLE =
     overflow     : 'auto'
     marginbottom : '1ex'
     minheight    : '2em'
-    border       : '1px solid #ccc'
-    borderRadius : '3px'
+    border       : '0px'
     background   : '#fff'
 
 exports.CodemirrorEditor = rclass
@@ -39,19 +38,23 @@ exports.CodemirrorEditor = rclass
         editor_state     : rtypes.immutable.Map
         read_only        : rtypes.bool
         is_current       : rtypes.bool
-        content          : rtypes.string  # if defined, use this static value and editor is read-only
+        is_public        : rtypes.bool
+        content          : rtypes.string  # if defined and is_public, use this static value and editor is read-only
         misspelled_words : rtypes.immutable.Set
 
     reduxProps :
         account :
             editor_settings : rtypes.immutable.Map.isRequired
 
+    getDefaultProps: ->
+        content : ''
+
     getInitialState: ->
         has_cm : false
 
     shouldComponentUpdate: (props, state) ->
         return misc.is_different(@state, state, ['has_cm']) or \
-               misc.is_different(@props, props, ['editor_settings', 'font_size', 'cursors', 'read_only', 'content'])
+               misc.is_different(@props, props, ['editor_settings', 'font_size', 'cursors', 'read_only', 'content', 'is_public'])
 
     componentDidMount: ->
         @init_codemirror()
@@ -63,7 +66,7 @@ exports.CodemirrorEditor = rclass
             return
         if @props.read_only != next.read_only
             @cm.setOption('readOnly', next.read_only)
-        if @props.content != next.content
+        if @props.is_public and @props.content != next.content
             @cm.setValue(@props.content)
         if @props.misspelled_words != next.misspelled_words
             @cm_highlight_misspelled_words(next.misspelled_words)
@@ -84,7 +87,7 @@ exports.CodemirrorEditor = rclass
         codemirror_util.restore_state(@cm, state)  # actual restore happens in next refresh cycle after render.
 
     componentWillUnmount: ->
-        if @cm? and not @props.content?
+        if @cm? and not @props.is_public?
             @save_syncstring()
             @_cm_destroy()
 
@@ -126,7 +129,7 @@ exports.CodemirrorEditor = rclass
         @props.actions.syncstring_save()
 
     safari_hack: ->
-        if not $.browser.safari
+        if not $?.browser?.safari
             return
         $(ReactDOM.findDOMNode(@)).make_height_defined()
 
@@ -146,18 +149,20 @@ exports.CodemirrorEditor = rclass
         @_style_active_line = options.styleActiveLine
         options.styleActiveLine = false
 
-        if @props.content?
+        if @props.is_public
             options.readOnly = true
 
         # Needed e.g., for vim ":w" support; obviously this is global, so be careful.
         CodeMirror.commands.save ?= (cm) -> cm._actions?.save(true)
 
         @cm = CodeMirror.fromTextArea(node, options)
-        @cm_highlight_misspelled_words(@props.misspelled_words)
+
+        if not @props.is_public
+            @cm_highlight_misspelled_words(@props.misspelled_words)
 
         @cm._actions = @props.actions
 
-        if @props.content?
+        if @props.is_public
             @cm.setValue(@props.content)
         else
             d = doc.get(path: @props.path, cm: @cm)
@@ -182,7 +187,7 @@ exports.CodemirrorEditor = rclass
 
         @props.actions.set_cm(@props.id, @cm)
 
-        if @props.content?
+        if @props.is_public
             return
 
         # After this only stuff that we use for the non-public version!

@@ -13,11 +13,9 @@ FrameTitleBar - title bar in a frame, in the frame tree
 misc       = require('smc-util/misc')
 
 title_bar_style =
-    background    : '#ddd'
-    borderTop     : '1px solid rgb(204,204,204)'
-    borderLeft    : '1px solid rgb(204,204,204)'
-    borderRight   : '1px solid rgb(204,204,204)'
-    padding       : '1px'
+    background : '#ddd'
+    border     : '1px solid rgb(204,204,204)'
+    padding    : '1px'
 
 path_style =
     whiteSpace   : 'nowrap'
@@ -60,7 +58,7 @@ exports.FrameTitleBar = rclass
         @_last_render = new Date()
 
     is_visible: (action_name) ->
-        if not @props.editor_spec?[@props.type]?.buttons
+        if not @props.editor_spec?[@props.type]?.buttons?
             return true
         return @props.editor_spec[@props.type].buttons[action_name]
 
@@ -114,7 +112,7 @@ exports.FrameTitleBar = rclass
             items.push(item)
 
         title = <Icon name={selected_icon} />
-        if selected_short and @show_labels()
+        if selected_short
             title = <span>{title} {selected_short}</span>
         <DropdownButton
           title     = {title}
@@ -489,7 +487,7 @@ exports.FrameTitleBar = rclass
         else
             style = title_bar_style
 
-        if $.browser.safari  # ugly hack....
+        if $?.browser?.safari  # ugly hack....
             # for some reason this is really necessary on safari, but
             # breaks on everything else!
             if not is_active

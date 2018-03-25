@@ -26,7 +26,7 @@ class exports.Actions extends Actions
         @is_public  = is_public
 
         if is_public
-            @_init_public_content()
+            @_init_content()
         else
             @_init_syncstring()
 
@@ -36,9 +36,17 @@ class exports.Actions extends Actions
 
         @_save_local_view_state = underscore.debounce((=>@__save_local_view_state?()), 1500)
 
-    # Init setting of content exactly once based on reading file from disk
-    # via public api.
-    _init_public_content: =>
+    # Init setting of content exactly once based on
+    # reading file from disk via public api, or setting
+    # from syncstring as a responde to explicit user action.
+    _init_content: =>
+        if not @is_public
+            # Get via the syncstring.
+            content = @_syncstring.to_str()
+            if content != @store.get('content')
+                @setState(content: content)
+            return
+        # Get by loading from backend as a public file
         @setState(is_loaded : false)
         webapp_client.public_get_text_file
             project_id         : @project_id
@@ -67,7 +75,7 @@ class exports.Actions extends Actions
             # already loading
             return
         # this sets is_loaded to false... loads, then sets to true.
-        @_init_public_content()
+        @_init_content()
 
     _init_syncstring: =>
         @_syncstring = webapp_client.sync_string
@@ -90,6 +98,10 @@ class exports.Actions extends Actions
         @_syncstring.on('init', @_syncstring_change)
 
         @_syncstring.once('load-time-estimate', (est) => @setState(load_time_estimate: est))
+
+        @_syncstring.on 'save-to-disk', =>
+            # incremenet save_to_disk counter, so that react components can react to save_to_disk event happening.
+            @setState(save_to_disk: (@store.get('save_to_disk') ? 0) + 1)
 
         @_init_has_unsaved_changes()
 
@@ -204,10 +216,15 @@ class exports.Actions extends Actions
         return
 
     _default_frame_tree: =>
-        frame_tree = immutable.fromJS(type : 'cm')
+        frame_tree = immutable.fromJS(@_raw_default_frame_tree())
         frame_tree = tree_ops.assign_ids(frame_tree)
         frame_tree = tree_ops.ensure_ids_are_unique(frame_tree)
         return frame_tree
+
+    # define this in derived classes.
+    _raw_default_frame_tree: =>
+        return {type : 'cm'}
+
 
     set_frame_tree: (obj) =>
         @_tree_op('set', obj)

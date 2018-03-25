@@ -200,18 +200,18 @@ exports.NotificationBell = rclass
 exports.ConnectionIndicator = rclass
     displayName : 'ConnectionIndicator'
 
+    propTypes :
+        actions  : rtypes.object
+        ping     : rtypes.number
+        status   : rtypes.string
+        on_click : rtypes.func
+
     reduxProps :
         page :
             avgping           : rtypes.number
             connection_status : rtypes.string
         account :
             mesg_info         : rtypes.immutable.Map
-
-    propTypes :
-        ping     : rtypes.number
-        status   : rtypes.string
-        actions  : rtypes.object
-        on_click : rtypes.func
 
     shouldComponentUpdate: (next) ->
         return misc.is_different(@props, next, ['avgping', 'connection_status', 'ping', 'status', 'mesg_info'])
@@ -221,6 +221,7 @@ exports.ConnectionIndicator = rclass
             <Tip
                 title     = {'Most recently recorded roundtrip time to the server.'}
                 placement = {'left'}
+                stable    = {true}
                 >
                 {Math.floor(@props.avgping)}ms
             </Tip>

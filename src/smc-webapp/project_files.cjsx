@@ -431,7 +431,7 @@ TerminalModeDisplay = rclass
             <Col sm={2}>
             </Col>
             <Col sm={8}>
-                <Alert style={marginTop: '5px', fontWeight : 'bold'} bsStyle='danger'>
+                <Alert style={marginTop: '5px', fontWeight : 'bold'} bsStyle='info'>
                 Warning: You are in terminal mode.<br/>
                 This was caused by the leading / in your file search. If you want to just see your folders, enter a space in front of the /.<br/>
                 Terminal mode inside the search bar is experimental and comes with no guarantees about its usability or future existence.

@@ -259,7 +259,7 @@ ProjectContentViewer = rclass
             <div
                 ref       = {'editor_inner_container'}
                 className = {'smc-vfill'}
-                style     = {height:'100%', willChange: 'transform', overflowY:'auto'}>
+                style     = {height:'100%', willChange: 'transform'}>
                 <Editor
                     name         = {redux_name}
                     path         = {path}
