@@ -2,15 +2,9 @@
 Markdown Editor Actions
 ###
 
-{webapp_client} = require('../webapp_client')
-
-tree_ops  = require('../code-editor/tree-ops')
-{Actions} = require('../code-editor/actions')
-
-{toggle_checkbox} = require('../tasks/desc-rendering')
-
-# TODO: refactor more
-{print_markdown} = require('../markdown-editor/print')
+{Actions}   = require('../code-editor/actions')
+{print_rst} = require('./print')
+rst2html    = require('./rst2html')
 
 class exports.Actions extends Actions
     _init: (args...) =>
@@ -25,14 +19,15 @@ class exports.Actions extends Actions
         @_run_rst2html()
 
     _run_rst2html: =>
-        webapp_client.exec
-            command    : 'rst2html'
-            args       : [@path, @path.slice(0,@path.length-3) + 'html']
+        rst2html.convert
+            path       : @path
             project_id : @project_id
-            cb         : (err, output) =>
-                console.log err, output
-                # horrible hack for now...
-                @setState(save_to_disk: (@store.get('save_to_disk') ? 0) + 1)
+            cb         : (err) =>
+                if err
+                    @set_error(err)
+                else
+                    @set_error()
+                    @set_reload('rst')
 
     _raw_default_frame_tree: =>
         if @is_public
@@ -45,22 +40,17 @@ class exports.Actions extends Actions
             second    :
                 type : 'rst'
 
-    print: (id) =>   # TODO: refactor more
+    print: (id) =>
         node = @_get_frame_node(id)
-        if node.get('type') == 'cm'
+        type = node.get('type')
+        if type == 'cm'
             super.print(id)
             return
-        html = value = undefined
-        elt = $("#frame-#{id}")
-        if elt.length == 1   # in case there were two (impossible) we don't do this and fall back to directly computing the html.
-            html = elt.html()
-        else
-            value = @store.get('value')
-        error = print_markdown
-            value      : value
-            html       : html
-            project_id : @project_id
-            path       : @path
-            font_size  : node.get("font_size")
-        if error
-            @setState(error: error)
+        if type != 'rst'
+            # no other types support printing
+            @set_error('printing of #{type} not implemented')
+            return
+        err = print_rst(project_id: @project_id, path: @path)
+        if err
+            @setState(error: err)
+

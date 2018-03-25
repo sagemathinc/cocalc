@@ -101,9 +101,13 @@ class exports.Actions extends Actions
 
         @_syncstring.on 'save-to-disk', =>
             # incremenet save_to_disk counter, so that react components can react to save_to_disk event happening.
-            @setState(save_to_disk: (@store.get('save_to_disk') ? 0) + 1)
+            @set_reload('save_to_disk')
 
         @_init_has_unsaved_changes()
+
+    set_reload: (type) =>
+        reload = @store.get('reload') ? immutable.Map()
+        @setState(reload: reload.set(type, (reload.get(type) ? 0) + 1))
 
     close: =>
         if @_state == 'closed'

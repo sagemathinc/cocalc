@@ -25,14 +25,21 @@ exports.IFrameHTML = rclass
         is_fullscreen: rtypes.bool
         project_id   : rtypes.string
         path         : rtypes.string
-        save_to_disk : rtypes.number
+        reload       : rtypes.number
+        font_size    : rtypes.number
+
+    shouldComponentUpdate: (next) ->
+        return misc.is_different(@props, next, ['reload', 'font_size'])
 
     componentWillReceiveProps: (next) ->
-        if @props.save_to_disk != next.save_to_disk
+        if @props.reload != next.reload
             @reload_iframe()
+        if @props.font_size != next.font_size
+            @set_font_size(next.font_size)
 
     componentDidMount: ->
         @safari_hack()
+        @set_font_size(@props.font_size)
 
     on_scroll: ->
         elt = ReactDOM.findDOMNode(@refs.iframe)
@@ -60,14 +67,14 @@ exports.IFrameHTML = rclass
             elt.contents().scrollTop(scroll)
         elt.css('opacity',1)
 
-    render_iframe: ->
+    render_iframe: ->  # param below is just to avoid caching.
         <iframe
             ref     = {'iframe'}
-            src     = {"#{window.app_base_url}/#{@props.project_id}/raw/#{@props.path}?param=#{@props.save_to_disk}"}
+            src     = {"#{window.app_base_url}/#{@props.project_id}/raw/#{@props.path}?param=#{@props.reload}"}
             width   = {'100%'}
             height  = {'100%'}
             style   = {border:0, opacity:0}
-            onLoad  = {=> @restore_scroll(); @init_scroll_handler(); @init_click_handler()}
+            onLoad  = {=> @set_font_size(); @restore_scroll(); @init_scroll_handler(); @init_click_handler()}
             >
         </iframe>
 
@@ -75,7 +82,14 @@ exports.IFrameHTML = rclass
         elt = ReactDOM.findDOMNode(@refs.iframe)
         if not elt?
             return
+        $(elt).css('opacity', 0)
         elt.contentDocument.location.reload(true)
+
+    set_font_size: (font_size) ->
+        elt = ReactDOM.findDOMNode(@refs.iframe)
+        if not elt?
+            return
+        $(elt).contents().find('body').css('font-size',"#{font_size ? @props.font_size}px")
 
     maximize: ->
         @props.actions.set_frame_full(@props.id)
@@ -93,5 +107,6 @@ exports.IFrameHTML = rclass
         >
             {@render_iframe()}
         </div>
+
 
 

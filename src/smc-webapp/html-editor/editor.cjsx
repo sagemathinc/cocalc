@@ -26,7 +26,8 @@ EDITOR_SPEC =
         name      : 'HTML IFrame'
         icon      : 'compass'
         component : IFrameHTML
-        buttons   : set(['print', 'save', 'time_travel', 'reload'])
+        buttons   : set(['print', 'save', 'time_travel', 'reload', 'decrease_font_size', 'increase_font_size'])
+
     html :
         short     : 'Preview'
         name      : 'Quick Preview'

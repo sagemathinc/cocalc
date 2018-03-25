@@ -14,6 +14,11 @@ class exports.Actions extends Actions
         if not @is_public
             @_init_syncstring_value()
             @_init_spellcheck()
+            @_init_iframe_reload()
+
+    _init_iframe_reload: =>
+        @_syncstring.on 'save-to-disk', =>
+            @set_reload('iframe')
 
     _raw_default_frame_tree: =>
         if @is_public

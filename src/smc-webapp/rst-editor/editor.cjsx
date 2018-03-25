@@ -8,6 +8,7 @@ misc = require('smc-util/misc')
 
 {FormatBar}             = require('../markdown-editor/format-bar')
 {Editor, set}           = require('../code-editor/editor')
+{aux_file}              = require('../code-editor/util')
 
 {IFrameHTML}            = require('../html-editor/iframe-html')
 {CodemirrorEditor}      = require('../code-editor/codemirror-editor')
@@ -27,7 +28,7 @@ EDITOR_SPEC =
         icon      : 'eye'
         component : IFrameHTML
         buttons   : set(['print', 'decrease_font_size', 'increase_font_size', 'save', 'time_travel', 'reload'])
-        path      : (path) -> path.slice(0, path.length-3) + 'html'
+        path      : (path) -> aux_file(path, 'html')
 
 # TODO: refactor this with html and md editors!
 
