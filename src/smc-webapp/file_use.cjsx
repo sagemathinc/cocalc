@@ -262,6 +262,7 @@ class FileUseStore extends Store
         assignment = discuss[... -student_id.length - 1]
         y.path = "#{course_discuss[0]}.course"
         y.course_discussion = [assignment, student_id]
+        y.orig_path = y.path
 
     _update_cache: =>
         if not @get('file_use')?
@@ -374,7 +375,7 @@ open_file_use_entry = (info, redux) ->
     if not redux? or not info?.project_id? or not info?.path?
         return
     # mark this file_use entry read
-    redux.getActions('file_use').mark_file(info.project_id, info.path, 'read')
+    redux.getActions('file_use').mark_file(info.project_id, info.orig_path ? info.path, 'read')
     redux.getActions('page').toggle_show_file_use()
     # open the file
     require.ensure [], =>
@@ -385,6 +386,7 @@ open_file_use_entry = (info, redux) ->
             foreground         : true
             foreground_project : true
             chat               : info.show_chat
+            payload            : {'course_discussion': info.course_discussion}
 
 file_use_style =
     border  : '1px solid #aaa'

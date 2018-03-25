@@ -383,6 +383,7 @@ class ProjectActions extends Actions
             chat               : undefined
             chat_width         : undefined
             new_browser_window : false     # open in entirely new browser window with a new random session.
+            payload            : undefined # optional, some extra information
 
         if opts.new_browser_window
             # options other than path don't do anything yet.
@@ -512,6 +513,10 @@ class ProjectActions extends Actions
                         if opts.foreground
                             @foreground_project()
                             @set_active_tab(misc.path_to_tab(opts.path))
+
+                        if opts.payload?
+                            a = redux.getEditorActions(@project_id, opts.path)
+                            a.dispatch_payload?(opts.payload)
         return
 
     get_scroll_saver_for: (path) =>

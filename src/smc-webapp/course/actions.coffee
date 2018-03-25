@@ -152,6 +152,31 @@ exports.CourseActions = class CourseActions extends Actions
         grading_cursors = immutable.fromJS(grading_cursors)
         @grading_set_entry('cursors', grading_cursors)
 
+    dispatch_payload: (payload) =>
+        store = @get_store()
+        return if not store?
+        if payload?.course_discussion?
+            [apath, student_id] = payload.course_discussion
+
+            async.series([
+                (cb) =>
+                    store.wait
+                        until   : (store) => store.get_assignments()
+                        timeout : 60
+                        cb      : cb
+                (cb) =>
+                        assignment = store.get_assignment_by_path(apath)
+                        @grading(
+                            assignment      : assignment
+                            student_id      : student_id
+                            direction       : 0
+                            discussion_show : true
+                        )
+                        @set_tab('assignments')
+            ])
+            return
+
+
     handle_projects_store_update: (state) =>
         store = @get_store()
         return if not store?
@@ -1845,6 +1870,7 @@ exports.CourseActions = class CourseActions extends Actions
             without_grade    : undefined   # not yet graded?
             collected_files  : undefined   # already collected files?
             subdir           : ''
+            discussion_show  : undefined
         # direction: 0, +1 or -1, which student in the list to pick next
         #            first call after deleting grading should be +1, otherwise student_id stays undefined
         store = @get_store()
@@ -1858,6 +1884,7 @@ exports.CourseActions = class CourseActions extends Actions
         old_student_id   = grading.student_id
         only_not_graded  = opts.without_grade   ? grading.only_not_graded
         only_collected   = opts.collected_files ? grading.only_collected
+        discussion_show  = opts.discussion_show ? grading.discussion_show
         student_filter   = grading.student_filter
         assignment_id    = opts.assignment.get('assignment_id')
 
@@ -1900,7 +1927,7 @@ exports.CourseActions = class CourseActions extends Actions
             page_number     : 0
             listing         : null
             listing_files   : null
-            discussion_show : grading.discussion_show
+            discussion_show : discussion_show
             discussion_path : null
         )
         @grading_update(store, grading)

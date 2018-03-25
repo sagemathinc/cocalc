@@ -236,6 +236,14 @@ exports.CourseStore = class CourseStore extends Store
     get_assignments: =>
         return @get('assignments')
 
+    get_assignment_by_path: (path) =>
+        ret = null
+        @get_assignments().forEach (assignment) ->
+            if assignment.get('path') == path
+                ret = assignment
+                return false
+        return ret
+
     get_sorted_assignments: =>
         v = []
         @get_assignments().map (assignment, id) =>
