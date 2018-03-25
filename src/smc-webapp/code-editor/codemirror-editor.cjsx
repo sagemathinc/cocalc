@@ -230,7 +230,6 @@ exports.CodemirrorEditor = rclass
                 codemirror = {@cm} />
 
     render: ->
-        console.log @props.is_public
         style = misc.copy(STYLE)
         style.fontSize = "#{@props.font_size}px"
         <div
