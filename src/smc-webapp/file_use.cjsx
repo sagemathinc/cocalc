@@ -54,6 +54,7 @@ misc = require('smc-util/misc')
 {required, defaults} = misc
 {webapp_client} = require('./webapp_client')
 editor = require('./editor')
+{get_user_name} = require('./editor_chat')
 
 sha1 = require('smc-util/schema').client_db.sha1
 
@@ -250,6 +251,18 @@ class FileUseStore extends Store
             @_update_cache()
         return @_cache?.file_use_map
 
+    _course_discussion: (y) =>
+        # detect and dissect student discussions in course files
+        path = y.path
+        course_discuss = path.split('.course-')
+        return if course_discuss.length != 2
+        discuss = course_discuss[1]
+        student_id = discuss.split('-')[-5..].join('-')
+        return if not misc.is_valid_uuid_string(student_id)
+        assignment = discuss[... -student_id.length - 1]
+        y.path = "#{course_discuss[0]}.course"
+        y.course_discussion = [assignment, student_id]
+
     _update_cache: =>
         if not @get('file_use')?
             return
@@ -268,6 +281,7 @@ class FileUseStore extends Store
             y = x.toJS()
             y.search = @_search(y)
             @_process_users(y)
+            @_course_discussion(y)
             v.push(y)
             file_use_map[id] = y
         w0 = []
@@ -388,10 +402,11 @@ FileUse = rclass
         redux       : rtypes.object
         cursor      : rtypes.bool
 
-    shouldComponentUpdate: (nextProps) ->
-        a = @props.info != nextProps.info or @props.cursor != nextProps.cursor or \
-            @props.user_map != nextProps.user_map or @props.project_map != nextProps.project_map
-        return a
+    shouldComponentUpdate: (props) ->
+        update = misc.is_different(@props, props, \
+            ['info', 'cursor', 'user_map', 'project_map']
+        )
+        return update
 
     render_users: ->
         if @info.users?
@@ -432,6 +447,13 @@ FileUse = rclass
     render_what_is_happening: ->
         if not @info.users?
             return @render_last_edited()
+        if @info.course_discussion
+            [assignment, student_id] = @info.course_discussion
+            student = get_user_name(student_id, @props.user_map)
+            if student and student != 'Unknown'
+                return <span>discussion about {student} in "{assignment}" b</span>
+            else
+                return <span>discussion in "{assignment}" by</span>
         if @info.show_chat
             return <span>discussed by </span>
         return <span>edited by </span>
