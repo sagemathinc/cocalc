@@ -1,5 +1,5 @@
 ###
-Markdown Editor Actions
+Rst Editor Actions
 ###
 
 {Actions}   = require('../code-editor/actions')
@@ -13,6 +13,8 @@ class exports.Actions extends Actions
             @_init_syncstring_value()
             @_init_spellcheck()  # TODO: need to "detex" (?)
             @_init_rst2html()
+        else
+            @_init_content()
 
     _init_rst2html: =>
         @_syncstring.on('save-to-disk', @_run_rst2html)
@@ -26,12 +28,11 @@ class exports.Actions extends Actions
                 if err
                     @set_error(err)
                 else
-                    @set_error()
                     @set_reload('rst')
 
     _raw_default_frame_tree: =>
         if @is_public
-            type : 'rst'
+            type : 'cm'
         else
             direction : 'col'
             type      : 'node'

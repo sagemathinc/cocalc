@@ -123,7 +123,7 @@ exports.CodemirrorEditor = rclass
 
     # Save the underlying syncstring content.
     save_syncstring: ->
-        if not @cm?
+        if not @cm? or @props.is_public
             return
         @props.actions.set_syncstring_to_codemirror()
         @props.actions.syncstring_save()
@@ -230,6 +230,7 @@ exports.CodemirrorEditor = rclass
                 codemirror = {@cm} />
 
     render: ->
+        console.log @props.is_public
         style = misc.copy(STYLE)
         style.fontSize = "#{@props.font_size}px"
         <div

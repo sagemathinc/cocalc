@@ -1,5 +1,6 @@
 ###
-Convert Rst file to HTML.
+Convert Rst file to hidden HTML file, which gets displayed in an iframe with
+src pointed to this file (via raw server).
 ###
 
 {flatten}            = require('underscore')

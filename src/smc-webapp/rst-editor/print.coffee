@@ -1,5 +1,5 @@
 ###
-Print rst content
+Print Rst content
 ###
 
 {required, defaults} = require('smc-util/misc')

@@ -139,6 +139,7 @@ exports.FrameTree = FrameTree = rclass ({name}) ->
             actions          = {@props.actions}
             id               = {desc.get('id')}
             read_only        = {desc.get('read_only') or @props.read_only or @props.is_public}
+            is_public        = {@props.is_public}
             font_size        = {desc.get('font_size') ? @props.font_size}
             path             = {path}
             fullscreen_style = {fullscreen_style}
