@@ -29,6 +29,9 @@ EDITOR_SPEC =
         component : IFrameHTML
         buttons   : set(['print', 'decrease_font_size', 'increase_font_size', 'save', 'time_travel', 'reload'])
         path      : (path) -> aux_file(path, 'html')
+        fullscreen_style :  # set via jquery
+            'max-width' : '900px'
+            'margin'    : 'auto'
 
 # TODO: refactor this with html and md editors!
 

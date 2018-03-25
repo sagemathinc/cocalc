@@ -129,6 +129,11 @@ exports.FrameTree = FrameTree = rclass ({name}) ->
         path = desc.get('path') ? @props.path
         if spec?.path?
             path = spec.path(path)
+        if spec?.fullscreen_style?
+            # this is set via jquery's .css...
+            fullscreen_style = spec.fullscreen_style
+        else
+            fullscreen_style = undefined
 
         <Leaf
             actions          = {@props.actions}
@@ -136,6 +141,7 @@ exports.FrameTree = FrameTree = rclass ({name}) ->
             read_only        = {desc.get('read_only') or @props.read_only or @props.is_public}
             font_size        = {desc.get('font_size') ? @props.font_size}
             path             = {path}
+            fullscreen_style = {fullscreen_style}
             project_id       = {desc.get('project_id') ? @props.project_id}
             editor_state     = {@props.editor_state.get(desc.get('id'))}
             is_current       = {desc.get('id') == @props.active_id}

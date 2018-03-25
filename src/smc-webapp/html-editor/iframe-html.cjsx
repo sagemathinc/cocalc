@@ -19,14 +19,15 @@ exports.IFrameHTML = rclass
     displayName: 'HTMLEditor-IFrameHTML'
 
     propTypes :
-        id           : rtypes.string.isRequired
-        actions      : rtypes.object.isRequired
-        editor_state : rtypes.immutable.Map
-        is_fullscreen: rtypes.bool
-        project_id   : rtypes.string
-        path         : rtypes.string
-        reload       : rtypes.number
-        font_size    : rtypes.number
+        id            : rtypes.string.isRequired
+        actions       : rtypes.object.isRequired
+        editor_state  : rtypes.immutable.Map
+        is_fullscreen : rtypes.bool
+        project_id    : rtypes.string
+        path          : rtypes.string
+        reload        : rtypes.number
+        font_size     : rtypes.number
+        style         : rtypes.object   # should be static; change does NOT cause update.
 
     shouldComponentUpdate: (next) ->
         return misc.is_different(@props, next, ['reload', 'font_size'])
@@ -35,11 +36,11 @@ exports.IFrameHTML = rclass
         if @props.reload != next.reload
             @reload_iframe()
         if @props.font_size != next.font_size
-            @set_font_size(next.font_size)
+            @set_iframe_style(next.font_size)
 
     componentDidMount: ->
         @safari_hack()
-        @set_font_size(@props.font_size)
+        @set_iframe_style(@props.font_size)
 
     on_scroll: ->
         elt = ReactDOM.findDOMNode(@refs.iframe)
@@ -74,7 +75,7 @@ exports.IFrameHTML = rclass
             width   = {'100%'}
             height  = {'100%'}
             style   = {border:0, opacity:0}
-            onLoad  = {=> @set_font_size(); @restore_scroll(); @init_scroll_handler(); @init_click_handler()}
+            onLoad  = {=> @set_iframe_style(); @restore_scroll(); @init_scroll_handler(); @init_click_handler()}
             >
         </iframe>
 
@@ -85,11 +86,14 @@ exports.IFrameHTML = rclass
         $(elt).css('opacity', 0)
         elt.contentDocument.location.reload(true)
 
-    set_font_size: (font_size) ->
+    set_iframe_style: (font_size) ->
         elt = ReactDOM.findDOMNode(@refs.iframe)
         if not elt?
             return
-        $(elt).contents().find('body').css('font-size',"#{font_size ? @props.font_size}px")
+        body = $(elt).contents().find('body')
+        body.css('font-size', "#{font_size ? @props.font_size}px")
+        if @props.is_fullscreen and @props.fullscreen_style?
+            body.css(@props.fullscreen_style)
 
     maximize: ->
         @props.actions.set_frame_full(@props.id)
