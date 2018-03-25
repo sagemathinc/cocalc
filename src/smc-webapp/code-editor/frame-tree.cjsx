@@ -125,13 +125,17 @@ exports.FrameTree = FrameTree = rclass ({name}) ->
             editor_spec         = {@props.editor_spec}
         />
 
-    render_leaf: (desc, Leaf) ->
+    render_leaf: (desc, Leaf, spec) ->
+        path = desc.get('path') ? @props.path
+        if spec?.path?
+            path = spec.path(path)
+
         <Leaf
             actions          = {@props.actions}
             id               = {desc.get('id')}
             read_only        = {desc.get('read_only') or @props.read_only or @props.is_public}
             font_size        = {desc.get('font_size') ? @props.font_size}
-            path             = {desc.get('path') ? @props.path}
+            path             = {path}
             project_id       = {desc.get('project_id') ? @props.project_id}
             editor_state     = {@props.editor_state.get(desc.get('id'))}
             is_current       = {desc.get('id') == @props.active_id}
@@ -147,9 +151,10 @@ exports.FrameTree = FrameTree = rclass ({name}) ->
         type = desc?.get('type')
         if type == 'node'
             return @render_frame_tree(desc)
-        C = @props.editor_spec?[type]?.component
+        spec = @props.editor_spec?[type]
+        C = spec?.component
         if C?
-            child = @render_leaf(desc, C)
+            child = @render_leaf(desc, C, spec)
         else if type == 'cm' # minimal support
             child = @render_leaf(desc, CodemirrorEditor)
         else

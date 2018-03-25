@@ -27,7 +27,6 @@ exports.IFrameHTML = rclass
         path         : rtypes.string
         save_to_disk : rtypes.number
 
-
     componentWillReceiveProps: (next) ->
         if @props.save_to_disk != next.save_to_disk
             @reload_iframe()
