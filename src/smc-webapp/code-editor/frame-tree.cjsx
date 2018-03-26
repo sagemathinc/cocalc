@@ -78,6 +78,7 @@ exports.FrameTree = FrameTree = rclass ({name}) ->
         "#{name}" :
             reload           : rtypes.immutable.Map
             misspelled_words : rtypes.immutable.Set
+            resize           : rtypes.number       # if changes, means that frames have been resized, so may need refreshing; passed to leaf.
 
     getInitialState: ->
         drag_hover: false
@@ -86,7 +87,7 @@ exports.FrameTree = FrameTree = rclass ({name}) ->
         return @state.drag_hover != state.drag_hover or \
                misc.is_different(@props, next, ['frame_tree', 'active_id', 'full_id', 'is_only', \
                       'cursors', 'has_unsaved_changes', 'is_public', 'content', 'value', \
-                      'project_id', 'path', 'misspelled_words', 'reload'])
+                      'project_id', 'path', 'misspelled_words', 'reload', 'resize'])
 
     render_frame_tree: (desc) ->
         <FrameTree
@@ -152,6 +153,7 @@ exports.FrameTree = FrameTree = rclass ({name}) ->
             misspelled_words = {@props.misspelled_words}
             is_fullscreen    = {@props.is_only or desc.get('id') == @props.full_id}
             reload           = {@props.reload?.get(type)}
+            resize           = {@props.resize}
         />
 
     render_one: (desc) ->
@@ -196,6 +198,7 @@ exports.FrameTree = FrameTree = rclass ({name}) ->
             pos     = (clientX - elt.offsetLeft) / elt.offsetWidth
             reset()
             @props.actions.set_frame_tree(id:@props.frame_tree.get('id'), pos:pos)
+            @props.actions.set_resize()
 
         # the preventDefault below prevents the text and scroll of what is in the frame from getting messed up during the drag.
         <Draggable
@@ -268,6 +271,7 @@ exports.FrameTree = FrameTree = rclass ({name}) ->
             pos     = (clientY - elt.offsetTop) / elt.offsetHeight
             reset()
             @props.actions.set_frame_tree(id:@props.frame_tree.get('id'), pos:pos)
+            @props.actions.set_resize()
             @safari_hack()
 
         <Draggable

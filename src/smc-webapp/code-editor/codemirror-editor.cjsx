@@ -41,6 +41,7 @@ exports.CodemirrorEditor = rclass
         is_public        : rtypes.bool
         content          : rtypes.string  # if defined and is_public, use this static value and editor is read-only
         misspelled_words : rtypes.immutable.Set
+        resize           : rtypes.number
 
     reduxProps :
         account :
@@ -54,7 +55,8 @@ exports.CodemirrorEditor = rclass
 
     shouldComponentUpdate: (props, state) ->
         return misc.is_different(@state, state, ['has_cm']) or \
-               misc.is_different(@props, props, ['editor_settings', 'font_size', 'cursors', 'read_only', 'content', 'is_public'])
+               misc.is_different(@props, props, ['editor_settings', 'font_size', 'cursors', 'read_only',
+                           'content', 'is_public', 'resize', 'editor_state'])
 
     componentDidMount: ->
         @init_codemirror()
@@ -70,10 +72,14 @@ exports.CodemirrorEditor = rclass
             @cm.setValue(@props.content)
         if @props.misspelled_words != next.misspelled_words
             @cm_highlight_misspelled_words(next.misspelled_words)
+        if @props.resize != next.resize or @props.editor_state != next.editor_state
+            @cm_refresh()
+
+    _cm_refresh: ->
+        @cm?.refresh()
 
     cm_refresh: ->
-        @cm?.refresh()
-        setTimeout((=>@cm?.refresh()), 0)
+        setTimeout(@_cm_refresh, 0)
 
     cm_highlight_misspelled_words: (words) ->
         @cm.spellcheck_highlight(words?.toJS() ? [])
@@ -88,6 +94,7 @@ exports.CodemirrorEditor = rclass
 
     componentWillUnmount: ->
         if @cm? and not @props.is_public?
+            @save_editor_state()
             @save_syncstring()
             @_cm_destroy()
 

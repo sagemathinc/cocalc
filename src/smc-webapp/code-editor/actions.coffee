@@ -109,6 +109,9 @@ class exports.Actions extends Actions
         reload = @store.get('reload') ? immutable.Map()
         @setState(reload: reload.set(type, (reload.get(type) ? 0) + 1))
 
+    set_resize: =>
+        @setState(resize: (@store.get('resize') ? 0) + 1)
+
     close: =>
         if @_state == 'closed'
             return
@@ -228,7 +231,6 @@ class exports.Actions extends Actions
     # define this in derived classes.
     _raw_default_frame_tree: =>
         return {type : 'cm'}
-
 
     set_frame_tree: (obj) =>
         @_tree_op('set', obj)
