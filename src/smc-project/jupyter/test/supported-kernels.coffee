@@ -213,6 +213,43 @@ describe 'test the scala kernel --', ->
     it 'closes the kernel', ->
         kernel.close()
 
+describe 'test the gap kernel --', ->
+    @timeout(10000)
+    kernel = undefined
+    it 'evaluates 3^74', (done) ->
+        kernel = common.kernel('gap')
+        kernel.execute_code
+            code : '3^74'
+            all  : true
+            cb   : (err, v) ->
+                if err
+                    done(err)
+                else
+                    expect(output(v)).toEqual("202755595904452569706561330872953769")
+                    done()
+
+    it 'closes the kernel', ->
+        kernel.close()
+
+describe 'test the pari kernel --', ->
+    # if test succeeds, it usually does so in under 3 seconds
+    # otherwise, kernel has stalled during startup
+    @timeout(5000)
+    kernel = undefined
+    it 'evaluates nextprime(33)', (done) ->
+        kernel = common.kernel('pari_jupyter')
+        kernel.execute_code
+            code : 'nextprime(33)'
+            all  : true
+            cb   : (err, v) ->
+                if err
+                    done(err)
+                else
+                    expect(output(v)).toEqual({ 'text/plain': '37' })
+                    done()
+
+    it 'closes the kernel', ->
+        kernel.close()
 
 
 
