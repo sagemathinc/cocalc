@@ -123,7 +123,7 @@ exports.CodemirrorEditor = rclass
 
     # Save the underlying syncstring content.
     save_syncstring: ->
-        if not @cm?
+        if not @cm? or @props.is_public
             return
         @props.actions.set_syncstring_to_codemirror()
         @props.actions.syncstring_save()

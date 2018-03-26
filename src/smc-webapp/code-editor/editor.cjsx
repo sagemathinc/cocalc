@@ -97,7 +97,7 @@ exports.Editor = rclass ({name}) ->
         <ErrorDisplay
             error   = {@props.error}
             onClose = {=>@props.actions.set_error('')}
-            style   = {maxWidth: '100%', margin: '1ex'}
+            style   = {maxWidth: '100%', margin: '1ex', maxHeight: '30%', overflowY: 'scroll'}
         />
 
     #render_ipad_footer: ->

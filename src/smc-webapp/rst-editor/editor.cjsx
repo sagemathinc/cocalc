@@ -1,15 +1,18 @@
 ###
-Top-level react component for editing HTML documents
+Top-level react component for editing markdown documents
 ###
+
+misc = require('smc-util/misc')
 
 {React, rclass, rtypes} = require('../smc-react')
 
 {FormatBar}             = require('../markdown-editor/format-bar')
 {Editor, set}           = require('../code-editor/editor')
+{aux_file}              = require('../code-editor/util')
 
-{RenderedHTML}          = require('./rendered-html')
-{IFrameHTML}            = require('./iframe-html')
+{IFrameHTML}            = require('../html-editor/iframe-html')
 {CodemirrorEditor}      = require('../code-editor/codemirror-editor')
+
 
 EDITOR_SPEC =
     cm        :
@@ -17,26 +20,23 @@ EDITOR_SPEC =
         name      : 'Source Code'
         icon      : 'code'
         component : CodemirrorEditor
-        buttons   : set(['print', 'save', 'time_travel', 'reload'])
-        buttons   : set(['print', 'decrease_font_size', 'increase_font_size', 'save', \
-                         'time_travel', 'replace', 'find', 'goto_line', \
-                         'cut', 'paste', 'copy', 'undo', 'redo', 'reload', 'auto_indent'])
-    iframe :
-        short     : 'HTML'
-        name      : 'HTML IFrame'
-        icon      : 'compass'
+        buttons   : set(['print', 'decrease_font_size', 'increase_font_size', 'save', 'time_travel', 'replace', 'find', 'goto_line', \
+                         'cut', 'paste', 'copy', 'undo', 'redo', 'reload'])
+    rst :
+        short     : 'View'
+        name      : 'Rendered View'
+        icon      : 'eye'
         component : IFrameHTML
-        buttons   : set(['print', 'save', 'time_travel', 'reload', 'decrease_font_size', 'increase_font_size'])
-
-    html :
-        short     : 'Preview'
-        name      : 'Quick Preview'
-        icon      : 'html5'
-        component : RenderedHTML
         buttons   : set(['print', 'decrease_font_size', 'increase_font_size', 'save', 'time_travel', 'reload'])
+        path      : (path) -> aux_file(path, 'html')
+        fullscreen_style :  # set via jquery
+            'max-width' : '900px'
+            'margin'    : 'auto'
+
+# TODO: refactor this with html and md editors!
 
 exports.Editor = rclass ({name}) ->
-    displayName: 'HTMLEditor-Editor'
+    displayName: 'RstEditor-Editor'
 
     propTypes :
         actions    : rtypes.object.isRequired
@@ -64,11 +64,11 @@ exports.Editor = rclass ({name}) ->
 
     render_editor: ->
         <Editor
-            name        = {name}
-            actions     = {@props.actions}
-            path        = {@props.path}
-            project_id  = {@props.project_id}
-            editor_spec = {EDITOR_SPEC}
+            name            = {name}
+            actions         = {@props.actions}
+            path            = {@props.path}
+            project_id      = {@props.project_id}
+            editor_spec     = {EDITOR_SPEC}
             />
 
     render: ->

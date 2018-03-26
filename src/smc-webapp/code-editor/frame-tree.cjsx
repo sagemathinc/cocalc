@@ -76,7 +76,7 @@ exports.FrameTree = FrameTree = rclass ({name}) ->
 
     reduxProps :
         "#{name}" :
-            save_to_disk     : rtypes.number
+            reload           : rtypes.immutable.Map
             misspelled_words : rtypes.immutable.Set
 
     getInitialState: ->
@@ -86,7 +86,7 @@ exports.FrameTree = FrameTree = rclass ({name}) ->
         return @state.drag_hover != state.drag_hover or \
                misc.is_different(@props, next, ['frame_tree', 'active_id', 'full_id', 'is_only', \
                       'cursors', 'has_unsaved_changes', 'is_public', 'content', 'value', \
-                      'project_id', 'path', 'misspelled_words', 'save_to_disk'])
+                      'project_id', 'path', 'misspelled_words', 'reload'])
 
     render_frame_tree: (desc) ->
         <FrameTree
@@ -125,13 +125,24 @@ exports.FrameTree = FrameTree = rclass ({name}) ->
             editor_spec         = {@props.editor_spec}
         />
 
-    render_leaf: (desc, Leaf) ->
+    render_leaf: (type, desc, Leaf, spec) ->
+        path = desc.get('path') ? @props.path
+        if spec?.path?
+            path = spec.path(path)
+        if spec?.fullscreen_style?
+            # this is set via jquery's .css...
+            fullscreen_style = spec.fullscreen_style
+        else
+            fullscreen_style = undefined
+
         <Leaf
             actions          = {@props.actions}
             id               = {desc.get('id')}
             read_only        = {desc.get('read_only') or @props.read_only or @props.is_public}
+            is_public        = {@props.is_public}
             font_size        = {desc.get('font_size') ? @props.font_size}
-            path             = {desc.get('path') ? @props.path}
+            path             = {path}
+            fullscreen_style = {fullscreen_style}
             project_id       = {desc.get('project_id') ? @props.project_id}
             editor_state     = {@props.editor_state.get(desc.get('id'))}
             is_current       = {desc.get('id') == @props.active_id}
@@ -140,18 +151,19 @@ exports.FrameTree = FrameTree = rclass ({name}) ->
             value            = {@props.value}
             misspelled_words = {@props.misspelled_words}
             is_fullscreen    = {@props.is_only or desc.get('id') == @props.full_id}
-            save_to_disk     = {@props.save_to_disk}
+            reload           = {@props.reload?.get(type)}
         />
 
     render_one: (desc) ->
         type = desc?.get('type')
         if type == 'node'
             return @render_frame_tree(desc)
-        C = @props.editor_spec?[type]?.component
+        spec = @props.editor_spec?[type]
+        C = spec?.component
         if C?
-            child = @render_leaf(desc, C)
+            child = @render_leaf(type, desc, C, spec)
         else if type == 'cm' # minimal support
-            child = @render_leaf(desc, CodemirrorEditor)
+            child = @render_leaf(type, desc, CodemirrorEditor)
         else
             # fix this disaster next time around.
             setTimeout((=>@props.actions?.reset_frame_tree()), 1)
