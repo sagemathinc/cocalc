@@ -284,6 +284,8 @@ class exports.Actions extends Actions
         setTimeout(@focus, 1)
 
     save_editor_state: (id, new_editor_state) =>
+        if @_state == 'closed'
+            return
         local  = @store.get('local_view_state')
         if not local?
             return
