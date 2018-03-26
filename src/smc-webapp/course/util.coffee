@@ -190,3 +190,6 @@ exports.pick_student_sorter = (sort) ->
         when "last_name" then sort_on_string_field("last_name")
         when "last_active" then sort_on_numerical_field("last_active")
         when "hosting" then sort_on_numerical_field("hosting")
+
+# string indicating that there is no account
+exports.NO_ACCOUNT = '<NO_ACCOUNT>'

@@ -31,7 +31,7 @@ misc = require('smc-util/misc')
 {defaults, required} = misc
 
 # Course Library
-{STEPS, previous_step, step_direction, step_verb, step_ready} = require('./util')
+{NO_ACCOUNT, STEPS, previous_step, step_direction, step_verb, step_ready} = require('./util')
 
 # Upgrades
 project_upgrades = require('./project-upgrades')
@@ -119,6 +119,11 @@ exports.CourseStore = class CourseStore extends Store
             return 'student'
         return student.get('email_address')
 
+    get_student_account_id: (student) =>
+        student = @get_student(student)
+        return if not student?
+        return student.get('account_id')
+
     get_student_ids: (opts) =>
         opts = defaults opts,
             deleted : false
@@ -171,6 +176,14 @@ exports.CourseStore = class CourseStore extends Store
 
     get_student_project_id: (student) =>
         return @get_student(student)?.get('project_id')
+
+    get_student_by_account_id: (account_id) =>
+        ret = null
+        @get_students().forEach (student) ->
+            if student.get('account_id') == account_id
+                ret = student.get('student_id')
+                return false
+        return ret
 
     get_sorted_students: =>
         v = []
@@ -675,11 +688,12 @@ exports.CourseStore = class CourseStore extends Store
         all_points.sort((a, b) -> a - b)
         return {student_list:list, all_points:all_points}
 
-    # derive the path to the discussion chat file from the assignment and student_id
-    grading_get_discussion_path: (assignment_path, student_id) ->
-        return if (not assignment_path?) or (not student_id?)
+    # derive the path to the discussion chat file from the assignment and student's account_id
+    grading_get_discussion_path: (assignment_path, account_id) ->
+        return if (not assignment_path?)
+        return NO_ACCOUNT if (not account_id?)
         course_filename = @get('course_filename')
-        path  = "#{course_filename}-#{assignment_path}-#{student_id}"
+        path  = "#{course_filename}-#{assignment_path}-#{account_id}"
         return misc.meta_file(path, 'chat')
 
     # this is used to keep track of openen discussions, used for cleaning up later

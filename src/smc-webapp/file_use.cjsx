@@ -257,12 +257,12 @@ class FileUseStore extends Store
         course_discuss = path.split('.course-')
         return if course_discuss.length != 2
         discuss = course_discuss[1]
-        student_id = discuss.split('-')[-5..].join('-')
-        return if not misc.is_valid_uuid_string(student_id)
-        assignment = discuss[... -student_id.length - 1]
-        y.path = "#{course_discuss[0]}.course"
-        y.course_discussion = [assignment, student_id]
+        account_id = discuss.split('-')[-5..].join('-')
+        return if not misc.is_valid_uuid_string(account_id)
+        assignment = discuss[... -account_id.length - 1]
         y.orig_path = y.path
+        y.path = "#{course_discuss[0]}.course"
+        y.course_discussion = [assignment, account_id]
 
     _update_cache: =>
         if not @get('file_use')?
@@ -375,7 +375,7 @@ open_file_use_entry = (info, redux) ->
     if not redux? or not info?.project_id? or not info?.path?
         return
     # mark this file_use entry read
-    redux.getActions('file_use').mark_file(info.project_id, info.orig_path ? info.path, 'read')
+    redux.getActions('file_use').mark_file(info.project_id, info.path, 'read')
     redux.getActions('page').toggle_show_file_use()
     # open the file
     require.ensure [], =>
@@ -450,12 +450,13 @@ FileUse = rclass
         if not @info.users?
             return @render_last_edited()
         if @info.course_discussion
-            [assignment, student_id] = @info.course_discussion
-            student = get_user_name(student_id, @props.user_map)
+            # assignment_path and student's account_id
+            [assignment, account_id] = @info.course_discussion
+            student = get_user_name(account_id, @props.user_map)
             if student and student != 'Unknown'
-                return <span>discussion about {student} in "{assignment}" b</span>
+                return <span>discussion about "{student}" in "{assignment}" by </span>
             else
-                return <span>discussion in "{assignment}" by</span>
+                return <span>discussion in "{assignment}" by </span>
         if @info.show_chat
             return <span>discussed by </span>
         return <span>edited by </span>

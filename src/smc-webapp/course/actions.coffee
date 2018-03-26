@@ -31,7 +31,7 @@ schema               = require('smc-util/schema')
 chat_register        = require('../chat/register')
 
 # Course Library
-{STEPS, previous_step, step_direction, step_verb, step_ready} = require('./util')
+{STEPS, previous_step, step_direction, step_verb, step_ready, NO_ACCOUNT} = require('./util')
 
 # React libraries
 {Actions, Store}  = require('../smc-react')
@@ -156,7 +156,7 @@ exports.CourseActions = class CourseActions extends Actions
         store = @get_store()
         return if not store?
         if payload?.course_discussion?
-            [apath, student_id] = payload.course_discussion
+            [apath, account_id] = payload.course_discussion
 
             async.series([
                 (cb) =>
@@ -165,7 +165,14 @@ exports.CourseActions = class CourseActions extends Actions
                         timeout : 60
                         cb      : cb
                 (cb) =>
+                    store.wait
+                        until   : (store) => store.get_students()
+                        timeout : 60
+                        cb      : cb
+                (cb) =>
                         assignment = store.get_assignment_by_path(apath)
+                        student_id = store.get_student_by_account_id(account_id)
+
                         @grading(
                             assignment      : assignment
                             student_id      : student_id
@@ -175,7 +182,6 @@ exports.CourseActions = class CourseActions extends Actions
                         @set_tab('assignments')
             ])
             return
-
 
     handle_projects_store_update: (state) =>
         store = @get_store()
@@ -1931,12 +1937,17 @@ exports.CourseActions = class CourseActions extends Actions
             discussion_path : null
         )
         @grading_update(store, grading)
-        # sets a "cursor" pointing to this assignment and student, signal for others
+        # sets a "cursor" pointing to this assignment and student, signal for other teachers
         @grading_update_activity()
 
+        # close discussion when student changes
         if old_student_id != next_student_id
-            @grading_cleanup_discussion(opts.assignment.get('path'), old_student_id)
-        @grading_activate_discussion(opts.assignment.get('path'), next_student_id)
+            old_account_id = store.get_student_account_id(old_student_id)
+            @grading_cleanup_discussion(opts.assignment.get('path'), old_account_id)
+
+        # activate associated discussion
+        next_account_id = store.get_student_account_id(next_student_id)
+        @grading_activate_discussion(opts.assignment.get('path'), next_account_id)
 
         # Phase 2: get the collected files listing
         store.grading_get_listing opts.assignment, next_student_id, opts.subdir, (err, listing) =>
@@ -2035,10 +2046,11 @@ exports.CourseActions = class CourseActions extends Actions
         return if grading.discussion_show == show
         @grading_update(store, grading.toggle_show_discussion(show))
 
-    grading_cleanup_discussion: (assignment_path, student_id) =>
+    grading_cleanup_discussion: (assignment_path, account_id) =>
+        return if not account_id?
         store = @get_store()
         return if not store?
-        chat_path = store.grading_get_discussion_path(assignment_path, student_id)
+        chat_path = store.grading_get_discussion_path(assignment_path, account_id)
         chat_register.remove(chat_path, @redux, store.get('course_project_id'))
         store.grading_remove_discussion(chat_path)
 
@@ -2049,14 +2061,15 @@ exports.CourseActions = class CourseActions extends Actions
             chat_register.remove(chat_path, @redux, store.get('course_project_id'))
         delete store._open_discussions
 
-    grading_activate_discussion: (assignment_path, student_id) =>
-        return if not student_id?
+    grading_activate_discussion: (assignment_path, account_id) =>
         store = @get_store()
         return if not store?
-        #if DEBUG then console.log("grading discussion activation", student_id)
-        chat_path = store.grading_get_discussion_path(assignment_path, student_id)
-        chat_register.init(chat_path, @redux, store.get('course_project_id'))
-        store.grading_register_discussion(chat_path)
+        if not account_id?
+            chat_path = NO_ACCOUNT
+        else
+            chat_path = store.grading_get_discussion_path(assignment_path, account_id)
+            chat_register.init(chat_path, @redux, store.get('course_project_id'))
+            store.grading_register_discussion(chat_path)
         grading = store.get('grading')
         return if not grading?
         @setState(grading : grading.set_discussion(chat_path))

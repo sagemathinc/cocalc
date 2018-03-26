@@ -37,6 +37,9 @@ chat_redux_name      = editor_chat.redux_name
 {DateTimePicker, ErrorDisplay, Icon, LabeledRow, Loading, MarkdownInput, Space, Tip, NumberInput} = require('../../r_misc')
 {Alert, Button, ButtonToolbar, ButtonGroup, Form, FormControl, FormGroup, ControlLabel, InputGroup, Checkbox, Row, Col, Panel, Breadcrumb} = require('react-bootstrap')
 
+# course specific
+{NO_ACCOUNT} = require('../util')
+
 # grading specific
 {BigTime} = require('../common')
 {ROW_STYLE, LIST_STYLE, LIST_ENTRY_STYLE, FLEX_LIST_CONTAINER, EMPTY_LISTING_TEXT, PAGE_SIZE, MAXPOINTS} = require('./common')
@@ -542,6 +545,11 @@ exports.Listing = rclass
         {
             if not @props.discussion_path?
                 @render_loading()
+            else if @props.discussion_path == NO_ACCOUNT
+                <Alert bsStyle={'info'}>
+                    There exists no account for this student yet.
+                    The student needs to register first!
+                </Alert>
             else
                 <EmbeddedChat
                     path       = {@props.discussion_path}
