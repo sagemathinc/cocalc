@@ -255,6 +255,7 @@ schema.accounts =
                     jupyter_classic           : false
                     show_exec_warning         : true
                 other_settings  :
+                    katex             : true
                     confirm_close     : false
                     mask_files        : true
                     page_size         : 50
@@ -1248,7 +1249,11 @@ class ClientDB
         @r = {}
 
     sha1: (args...) =>
-        v = ((if typeof(x) == 'string' then x else JSON.stringify(x)) for x in args).join('')
+        try
+            v = ((if typeof(x) == 'string' then x else JSON.stringify(x)) for x in args).join('')
+        catch err
+            console?.warn?("args=", args)
+            throw err
         return sha1(v)
 
     _user_set_query_project_users: (obj) =>

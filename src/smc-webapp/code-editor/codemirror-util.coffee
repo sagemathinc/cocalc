@@ -32,7 +32,7 @@ exports.restore_state = (cm, state) ->
         f = ->
             elt.css('opacity', 1)
             cm.scrollTo(0, cm.cursorCoords(state.pos, 'local').top)
-        cm.refresh()
+            cm.refresh()
         setTimeout(f, 0)
 
     sel = state.sel

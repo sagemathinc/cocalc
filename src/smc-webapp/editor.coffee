@@ -1910,26 +1910,6 @@ class FileEditorWrapper extends FileEditor
         @element?.hide()
         @wrapped?.hide?()
 
-###
-# Task list
-###
-
-class TaskList extends FileEditorWrapper
-    init_wrapped: () =>
-        @element = $("<div><span>&nbsp;&nbsp;Loading...</span></div>")
-        require.ensure [], () =>
-            tasks = require('./tasks')
-            elt = tasks.task_list(@project_id, @filename, {})
-            @element.replaceWith(elt)
-            @element = elt
-            @wrapped = elt.data('task_list')
-            @show()  # need to do this due to async loading -- otherwise once it appears it isn't the right size, which is BAD.
-
-    mount: () =>
-        if not @mounted
-            $(document.body).append(@element)
-            @mounted = true
-        return @mounted
 
 ###
 # Jupyter notebook
@@ -2004,6 +1984,9 @@ class JupyterNBViewerEmbedded extends FileEditor
 {HTML_MD_Editor} = require('./editor-html-md/editor-html-md')
 html_md_exts = (ext for ext, opts of file_associations when opts.editor == 'html-md')
 
+# TODO: so new react editors gets used instead...
+html_md_exts = (ext for ext in html_md_exts when ext != 'md' and ext != 'html' and ext != 'rst')
+
 {LatexEditor} = require('./latex/editor')
 
 exports.register_nonreact_editors = ->
@@ -2032,12 +2015,10 @@ exports.register_nonreact_editors = ->
 
     {HistoryEditor} = require('./editor_history')
     register(false, HistoryEditor,    ['sage-history'])
-    #register(false, TaskList,         ['tasks'])
     exports.switch_to_ipynb_classic = ->
         register(false, JupyterNotebook,  ['ipynb'])
 
     # "Editors" for read-only public files
-    register(true, PublicCodeMirrorEditor,  [''])
     register(true, PublicHTML,              ['html'])
     register(true, PublicSagews,            ['sagews'])
 

@@ -30,6 +30,26 @@ exports.set = (tree, obj) ->
         return node
     return process(tree)
 
+exports.set_leafs = (tree, obj) ->
+    if misc.len(obj) < 1  # nothing to do
+        return tree
+    process = (node) ->
+        if not node?
+            return node
+        if exports.is_leaf(node)
+            # change it
+            for k, v of obj
+                node = node.set(k, immutable.fromJS(v))
+            return node
+        # walk further
+        for x in ['first', 'second']
+            sub0 = node.get(x)
+            sub1 = process(sub0)
+            if sub0 != sub1 # changed
+                node = node.set(x, sub1)
+        return node
+    return process(tree)
+
 generate_id = ->
     return misc.uuid().slice(0,8)
 

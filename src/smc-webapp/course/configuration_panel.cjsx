@@ -32,7 +32,7 @@ misc = require('smc-util/misc')
     Panel, Well, FormGroup, FormControl, Checkbox} = require('react-bootstrap')
 
 # CoCalc Components
-{Calendar, Icon, LabeledRow, Loading, MarkdownInput,
+{Calendar, HiddenXS, Icon, LabeledRow, Loading, MarkdownInput,
      Space, TextInput, TimeAgo, Tip} = require('../r_misc')
 
 {StudentProjectUpgrades} = require('./upgrades')
@@ -555,6 +555,6 @@ exports.ConfigurationPanel.Header = rclass
         <Tip delayShow={1300} title="Configuration"
              tip="Configure various things about your course here, including the title and description.  You can also export all grades in various formats from this page.">
             <span>
-                <Icon name='cogs'/> Configuration
+                <Icon name='cogs'/> <HiddenXS>Configuration</HiddenXS>
             </span>
         </Tip>

@@ -8,6 +8,7 @@ PAGE_SIZE            = 100
 os_path              = require('path')
 
 {React}              = require('smc-webapp/smc-react')
+
 express              = require('express')
 misc                 = require('smc-util/misc')
 {defaults, required} = misc
@@ -24,6 +25,7 @@ util                 = require('./util')
 # This MUST be loaded last, e.g,. it overwrites some of the jQuery plugins
 # (mathjax from misc_page) that are implicitly loaded by the above requires.
 require('./process-react')
+
 
 # this reads it from disk
 google_analytics     = require('./util').google_analytics_token()

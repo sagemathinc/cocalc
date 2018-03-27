@@ -1119,6 +1119,14 @@ OtherSettings = rclass
             Display timestamps as absolute points in time – otherwise they are relative to the current time.
         </Checkbox>
 
+    render_katex: ->
+        <Checkbox
+            checked  = {!!@props.other_settings.get('katex')}
+            ref      = 'katex'
+            onChange = {(e)=>@on_change('katex', e.target.checked)}>
+            KaTeX: render using <a href="https://khan.github.io/KaTeX/" target="_blank">KaTeX</a> when possible, instead of <a href="https://www.mathjax.org/" target="_blank">MathJax</a>
+        </Checkbox>
+
     render_confirm: ->
         if not require('./feature').IS_MOBILE
             <Checkbox
@@ -1195,6 +1203,7 @@ OtherSettings = rclass
             {@render_confirm()}
             {@render_first_steps()}
             {@render_time_ago_absolute()}
+            {@render_katex()}
             {@render_mask_files()}
             {@render_no_free_warnings()}
             {@render_default_file_sort()}

@@ -210,20 +210,17 @@ exports.ProjectUpgradesTable = ProjectUpgradesTable = rclass
     render_upgraded_project: (project_id, upgrades, darker) ->
         {ProjectTitle} = require('./projects')
         <Row key={project_id} style={backgroundColor:'#eee' if darker}>
-            <Col sm={3}>
+            <Col sm={4}>
                 <ProjectTitle
                     project_id={project_id}
                     project_map={@props.project_map}
                     handle_click={(e)=>@open_project_settings(e, project_id)}
                 />
             </Col>
-                <Col sm={1}>
-                    <a onClick={@generate_on_click_adjust(project_id)} role='button'>
-                        Adjust...
-                    </a>
-                </Col>
             <Col sm={8}>
-                {@render_upgrades_to_project(project_id, upgrades)}
+                <a onClick={@generate_on_click_adjust(project_id)} role='button'>
+                    {@render_upgrades_to_project(project_id, upgrades)}
+                </a>
             </Col>
             {@render_upgrade_adjustor(project_id) if @state.show_adjustor.get(project_id)}
         </Row>
@@ -267,7 +264,7 @@ exports.ProjectUpgradesTable = ProjectUpgradesTable = rclass
     render: ->
         upgraded_projects = @props.get_projects_upgraded_by()
         if not misc.len(upgraded_projects)
-            return
+            return null
         <Panel header={@render_header()}>
             <Row key='header'>
                 <Col sm={4}>

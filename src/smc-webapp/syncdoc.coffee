@@ -542,6 +542,7 @@ class SynchronizedDocument2 extends SynchronizedDocument
         @_syncstring?.close()
         # TODO -- this doesn't work...
         for cm in [@codemirror, @codemirror1]
+            continue if not cm?
             cm.setOption("mode", "text/x-csrc")
             cmElem = cm.getWrapperElement()
             cmElem.parentNode.removeChild(cmElem)

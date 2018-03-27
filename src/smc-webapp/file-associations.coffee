@@ -44,7 +44,7 @@ codemirror_associations =
     json   : 'javascript'
     lua    : 'lua'
     m      : 'text/x-octave'
-    md     : 'gfm2'
+    md     : 'gfm'
     ml     : 'text/x-ocaml'
     mysql  : 'text/x-sql'
     patch  : 'text/x-diff'
@@ -56,7 +56,7 @@ codemirror_associations =
     py     : 'python'
     pyx    : 'python'
     r      : 'r'
-    rmd    : 'gfm2'
+    rmd    : 'gfm'
     rnw    : 'stex2'
     rst    : 'rst'
     rb     : 'text/x-ruby'
@@ -135,13 +135,13 @@ file_associations['html'] =
 file_associations['md'] =
     editor : 'html-md'
     icon   : 'cc-icon-markdown'
-    opts   : {indent_unit:4, tab_size:4, mode:'gfm2'}
+    opts   : {indent_unit:4, tab_size:4, mode:'gfm'}
     name   : "markdown"
 
 file_associations['rmd'] =
     editor : 'html-md'
     icon   : 'cc-icon-r'
-    opts   : {indent_unit:4, tab_size:4, mode:'gfm2'}
+    opts   : {indent_unit:4, tab_size:4, mode:'gfm'}
     name   : "Rmd"
 
 file_associations['java'] =

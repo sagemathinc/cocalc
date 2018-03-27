@@ -181,10 +181,11 @@ Data = rclass
     render_html: (value) ->
         <div>
             <HTML
-                value      = {value}
-                project_id = {@props.project_id}
-                file_path  = {@props.directory}
-                safeHTML   = {not @props.trust}
+                value            = {value}
+                auto_render_math = {true}
+                project_id       = {@props.project_id}
+                file_path        = {@props.directory}
+                safeHTML         = {not @props.trust}
             />
         </div>
 
@@ -195,6 +196,7 @@ Data = rclass
                 project_id     = {@props.project_id}
                 file_path      = {@props.directory}
                 safeHTML       = {not @props.trust}
+                checkboxes     = {true}
             />
         </div>
 

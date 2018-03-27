@@ -26,8 +26,7 @@ misc = require('smc-util/misc')
 {webapp_client} = require('../webapp_client')
 
 # React libraries
-{React, rclass, rtypes, Actions, ReactDOM}  = require('../smc-react')
-Fragment = React.Fragment
+{React, Fragment, rclass, rtypes, Actions, ReactDOM}  = require('../smc-react')
 
 {Button, ButtonToolbar, ButtonGroup, FormControl, FormGroup, InputGroup, Row, Col} = require('react-bootstrap')
 
@@ -304,40 +303,55 @@ exports.StudentAssignmentInfo = rclass
             error = "Try to #{name.toLowerCase()} again:\n" + error
         <ErrorDisplay key='error' error={error} style={maxHeight: '140px', overflow:'auto'}/>
 
-    render_last: (name, obj, type, enable_copy, copy_tip, open_tip, opts) ->
+    render_last: (opts) ->
         opts = defaults opts,
+            name        : required
+            type        : required
+            data        : {}
+            enable_copy : false
+            copy_tip    : ''
+            open_tip    : ''
             omit_errors : false
 
-        open = => @open(type, @props.info.assignment_id, @props.info.student_id)
-        copy = => @copy(type, @props.info.assignment_id, @props.info.student_id)
-        stop = => @stop(type, @props.info.assignment_id, @props.info.student_id)
-        obj ?= {}
+        open = => @open(opts.type, @props.info.assignment_id, @props.info.student_id)
+        copy = => @copy(opts.type, @props.info.assignment_id, @props.info.student_id)
+        stop = => @stop(opts.type, @props.info.assignment_id, @props.info.student_id)
         v = []
-        if enable_copy
-            if obj.start
-                v.push(@render_open_copying(name, open, stop))
-            else if obj.time
-                v.push(@render_open_recopy(name, open, copy, copy_tip, open_tip))
+        if opts.enable_copy
+            if opts.data.start
+                v.push(@render_open_copying(opts.name, open, stop))
+            else if opts.data.time
+                v.push(@render_open_recopy(opts.name, open, copy, opts.copy_tip, opts.open_tip))
             else
-                v.push(@render_copy(name, copy, copy_tip))
-        if obj.time
-            v.push(@render_last_time(name, obj.time))
-        if obj.error and not opts.omit_errors
-            v.push(@render_error(name, obj.error))
+                v.push(@render_copy(opts.name, copy, opts.copy_tip))
+        if opts.data.time
+            v.push(@render_last_time(opts.name, opts.data.time))
+        if opts.data.error and not opts.omit_errors
+            v.push(@render_error(opts.name, opts.data.error))
         return v
 
     render_peer_assign: ->
         <Col md={2} key='peer_assign'>
-            {@render_last('Peer Assign', @props.info.last_peer_assignment, 'peer-assigned', @props.info.last_collect?,
-               "Copy collected assignments from your project to this student's project so they can grade them.",
-               "Open the student's copies of this assignment directly in their project, so you can see what they are peer grading.")}
+            {@render_last
+                name        : 'Peer Assign'
+                data        : @props.info.last_peer_assignment
+                type        : 'peer-assigned'
+                enable_copy : @props.info.last_collect?
+                copy_tip    : "Copy collected assignments from your project to this student's project so they can grade them."
+                open_tip    : "Open the student's copies of this assignment directly in their project, so you can see what they are peer grading."
+            }
         </Col>
 
     render_peer_collect: ->
         <Col md={2} key='peer_collect'>
-            {@render_last('Peer Collect', @props.info.last_peer_collect, 'peer-collected', @props.info.last_peer_assignment?,
-               "Copy the peer-graded assignments from various student projects back to your project so you can assign their official grade.",
-               "Open your copy of your student's peer grading work in your own project, so that you can grade their work.")}
+            {@render_last
+                name        : 'Peer Collect'
+                data        : @props.info.last_peer_collect
+                type        : 'peer-collected'
+                enable_copy : @props.info.last_peer_assignment?
+                copy_tip    : "Copy the peer-graded assignments from various student projects back to your project so you can assign their official grade."
+                open_tip    : "Open your copy of your student's peer grading work in your own project, so that you can grade their work."
+            }
         </Col>
 
     render: ->
@@ -360,14 +374,27 @@ exports.StudentAssignmentInfo = rclass
             <Col md={10} key="rest">
                 <Row>
                     <Col md={width} key='last_assignment'>
-                        {@render_last('Assign', @props.info.last_assignment, 'assigned', true,
-                           "Copy the assignment from your project to this student's project so they can do their homework.",
-                           "Open the student's copy of this assignment directly in their project.  You will be able to see them type, chat with them, leave them hints, etc.", {omit_errors : skip_assignment})}
+                        {@render_last
+                            name        : 'Assign'
+                            data        : @props.info.last_assignment
+                            type        : 'assigned'
+                            enable_copy : true
+                            copy_tip    : "Copy the assignment from your project to this student's project so they can do their homework."
+                            open_tip    : "Open the student's copy of this assignment directly in their project. " +
+                                          "You will be able to see them type, chat with them, leave them hints, etc."
+                            omit_errors : skip_assignment
+                        }
                     </Col>
                     <Col md={width} key='last_collect'>
-                        {@render_last('Collect', @props.info.last_collect, 'collected', @props.info.last_assignment? or skip_assignment,
-                           "Copy the assignment from your student's project back to your project so you can grade their work.",
-                           "Open the copy of your student's work in your own project, so that you can grade their work.", {omit_errors : skip_collect}) if skip_assignment or not @props.info.last_assignment?.error}
+                        {if skip_assignment or not @props.info.last_assignment?.error then @render_last
+                                name        : 'Collect'
+                                data        : @props.info.last_collect
+                                type        : 'collected'
+                                enable_copy : @props.info.last_assignment? or skip_assignment
+                                copy_tip    : "Copy the assignment from your student's project back to your project so you can grade their work."
+                                open_tip    : "Open the copy of your student's work in your own project, so that you can grade their work."
+                                omit_errors : skip_collect
+                        }
                     </Col>
                     {@render_peer_assign()  if peer_grade and @props.info.peer_assignment and not @props.info.last_collect?.error}
                     {@render_peer_collect() if peer_grade and @props.info.peer_collect and not @props.info.peer_assignment?.error}
@@ -375,9 +402,14 @@ exports.StudentAssignmentInfo = rclass
                         {@render_grade_col() if show_grade_col}
                     </Col>
                     <Col md={width} key='return_graded'>
-                        {@render_last('Return', @props.info.last_return_graded, 'graded', @props.info.last_collect? or skip_collect,
-                           "Copy the graded assignment back to your student's project.",
-                           "Open the copy of your student's work that you returned to them. This opens the returned assignment directly in their project.") if show_return_graded}
+                        {if show_return_graded then @render_last
+                            name        : 'Return'
+                            data        : @props.info.last_return_graded
+                            type        : 'graded'
+                            enable_copy : @props.info.last_collect? or skip_collect
+                            copy_tip    : "Copy the graded assignment back to your student's project."
+                            open_tip    : "Open the copy of your student's work that you returned to them. " +
+                                          "This opens the returned assignment directly in their project." }
                     </Col>
                 </Row>
             </Col>

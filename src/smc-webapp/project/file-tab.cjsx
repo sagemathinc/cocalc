@@ -10,7 +10,7 @@ misc = require('smc-util/misc')
 
 {NavItem} = require('react-bootstrap')
 
-{COLORS, Icon, Tip} = require('../r_misc')
+{COLORS, Icon} = require('../r_misc')
 
 exports.DEFAULT_FILE_TAB_STYLES =
     width        : 250
@@ -89,7 +89,7 @@ exports.FileTab = rclass
         label_styles =
             whiteSpace   : 'nowrap'
             overflow     : 'hidden'
-            textOverflow : 'ellipsis'
+            # textOverflow : 'ellipsis'   # removed, since it ends up wasting precious space!
 
         x_button_styles =
             float      : 'right'
@@ -117,9 +117,7 @@ exports.FileTab = rclass
                     /> if @props.file_tab}
                 </div>
                 <div style={label_styles}>
-                    <Tip title={@props.tooltip} placement='bottom' size='small'>
-                        <Icon style={icon_style} name={@props.icon} /> {@props.label if not @props.shrink}
-                    </Tip>
+                    <Icon style={icon_style} name={@props.icon} /> {@props.label if not @props.shrink}
                 </div>
             </div>
         </NavItem>

@@ -19,6 +19,8 @@
 #
 ###############################################################################
 
+$ = window.$
+
 ###
 project page react component
 ###
@@ -242,11 +244,11 @@ ProjectContentViewer = rclass
     restore_scroll_position: ->
         saved_scroll = @props.opened_file?.get('component')?.scroll_position
         if saved_scroll?
-            @refs.editor_inner_container.scrollTop = saved_scroll
+            $(@refs.editor_inner_container).children()[0].scrollTop = saved_scroll
 
     save_scroll_position: ->
         if @refs.editor_inner_container? and @props.save_scroll?
-            val = @refs.editor_inner_container.scrollTop
+            val = $(@refs.editor_inner_container).children()[0].scrollTop
             @props.save_scroll(val)
 
     render_editor: (path) ->
@@ -256,7 +258,10 @@ ProjectContentViewer = rclass
         if not Editor?
             <Loading />
         else
-            <div ref='editor_inner_container' style={height:'100%', display:'flex', flexDirection:'column', overflowX:'hidden', willChange: 'transform'}>
+            <div
+                ref       = {'editor_inner_container'}
+                className = {'smc-vfill'}
+                style     = {height:'100%', willChange: 'transform'}>
                 <Editor
                     name         = {redux_name}
                     path         = {path}
