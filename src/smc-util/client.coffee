@@ -1250,9 +1250,21 @@ class exports.Connection extends EventEmitter
                 else
                     opts.cb(undefined, resp.result)
 
-    ######################################################################
-    # Execute a program in a given project
-    ######################################################################
+    ###
+    Execute code in a given project.
+
+    Aggregate option -- use like this:
+
+        webapp.exec
+            aggregate: timestamp (or something else sequential)
+
+    means: if there are multiple attempts to run the given command with the same
+    time, they are all aggregated and run only one time by the project.   If requests
+    comes in with a newer time, they all run in another group after the first
+    one finishes.    The timestamp will usually come from something like the "last save
+    time" (which is stored in the db), which they client will know.  This is used, e.g.,
+    for operations like "run rst2html on this file whenever it is saved."
+    ###
     exec: (opts) ->
         opts = defaults opts,
             project_id      : required
@@ -1263,8 +1275,9 @@ class exports.Connection extends EventEmitter
             network_timeout : undefined
             max_output      : undefined
             bash            : false
+            aggregate       : undefined  # see comment above.
             err_on_exit     : true
-            allow_post      : true       # set to false if genuinely could take a long time (but this requires websocket be setup, so more likely to fail)
+            allow_post      : true       # set to false if genuinely could take a long time (e.g., more than about 5s?); but this requires websocket be setup, so more likely to fail or be slower.
             cb              : required   # cb(err, {stdout:..., stderr:..., exit_code:...}).
 
         if not opts.network_timeout?
@@ -1282,6 +1295,7 @@ class exports.Connection extends EventEmitter
                 max_output  : opts.max_output
                 bash        : opts.bash
                 err_on_exit : opts.err_on_exit
+                aggregate   : opts.aggregate
             timeout    : opts.network_timeout
             cb         : (err, mesg) ->
                 #console.log("Executing #{opts.command}, #{misc.to_json(opts.args)} -- got back: #{err}, #{misc.to_json(mesg)}")
