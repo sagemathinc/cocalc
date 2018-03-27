@@ -24,6 +24,8 @@ as a result.
 SYNCSTRING_MAX_AGE_M = 20
 #SYNCSTRING_MAX_AGE_M = 1 # TESTING
 
+{PROJECT_HUB_HEARTBEAT_INTERVAL_S} = require('smc-util/heartbeat')
+
 # CRITICAL: The above SYNCSTRING_MAX_AGE_M idle timeout does *NOT* apply to Sage worksheet
 # syncstrings, since they also maintain the sage session, put output into the
 # syncstring, etc.  It's critical that those only close when the user explicitly
@@ -42,7 +44,7 @@ winston = require('winston')
 winston.remove(winston.transports.Console)
 winston.add(winston.transports.Console, {level: 'debug', timestamp:true, colorize:true})
 
-require('coffee-script/register')
+require('coffeescript/register')
 
 message    = require('smc-util/message')
 misc       = require('smc-util/misc')
@@ -61,6 +63,8 @@ kucalc = require('./kucalc')
 
 {Watcher} = require('./watcher')
 
+blobs = require('./blobs')
+
 {defaults, required} = misc
 
 DEBUG = false
@@ -76,7 +80,9 @@ else
 
 
 class exports.Client extends EventEmitter
-    constructor: (@project_id) ->
+    constructor: (project_id) ->
+        super()
+        @project_id = project_id
         @dbg('constructor')()
         @setMaxListeners(300)  # every open file/table/sync db listens for connect event, which adds up.
         # initialize two caches
@@ -91,6 +97,9 @@ class exports.Client extends EventEmitter
 
         if kucalc.IN_KUCALC
             kucalc.init(@)
+            # always make verbose in kucalc, since logs are taken care of by the k8s
+            # logging infrastructure...
+            DEBUG = true
 
     ###
     _test_ping: () =>
@@ -325,8 +334,14 @@ class exports.Client extends EventEmitter
         if not x?
             dbg()
             x = @_hub_client_sockets[socket.id] = {socket:socket, callbacks:{}, activity:new Date()}
-            socket.on 'end', =>
-                dbg("end")
+            locals =
+                heartbeat_interval : undefined
+            socket_end = =>
+                if not locals.heartbeat_interval?
+                    return
+                dbg("ending socket")
+                clearInterval(locals.heartbeat_interval)
+                locals.heartbeat_interval = undefined
                 if x.callbacks?
                     for id, cb of x.callbacks
                         cb?('socket closed')
@@ -337,6 +352,19 @@ class exports.Client extends EventEmitter
                     @_connected = false
                     dbg("lost all active sockets")
                     @emit('disconnected')
+                socket.end()
+
+            socket.on('end', socket_end)
+
+            check_heartbeat = =>
+                if not socket.heartbeat? or new Date() - socket.heartbeat >= 1.5*PROJECT_HUB_HEARTBEAT_INTERVAL_S*1000
+                    dbg("heartbeat failed")
+                    socket_end()
+                else
+                    dbg("heartbeat -- socket is working")
+
+            locals.heartbeat_interval = setInterval(check_heartbeat, 1.5*PROJECT_HUB_HEARTBEAT_INTERVAL_S*1000)
+
             if misc.len(@_hub_client_sockets) >= 1
                 dbg("CONNECTED!")
                 @_connected = true
@@ -366,16 +394,12 @@ class exports.Client extends EventEmitter
     # to get the same hub if you call this twice!  Returns undefined if there
     # are currently no connections from any hub to us (in which case, the project
     # must wait).
-    get_hub_socket: () =>
+    get_hub_socket: =>
         v = misc.values(@_hub_client_sockets)
         if v.length == 0
             return
         v.sort (a,b) -> misc.cmp(a.activity ? 0, b.activity ? 0)
         return v[v.length-1].socket
-
-    # Return a list of *all* the socket connections from hubs to this local_hub
-    get_all_hub_sockets = () =>
-        return (x.socket for x in misc.values(@_hub_client_sockets))
 
     # Send a message to some hub server and await a response (if cb defined).
     call: (opts) =>
@@ -474,26 +498,6 @@ class exports.Client extends EventEmitter
                 timeout : 30
                 socket  : socket
                 cb      : opts.cb
-
-    # Get a list of the ids of changefeeds that remote hubs are pushing to this project.
-    # This just does its best and if there is an error/timeout trying to get ids from a hub,
-    # assumes that hub isn't working anymore.
-    query_get_changefeed_ids: (opts) =>
-        opts = defaults opts,
-            timeout : 30
-            cb      : required    # opts.cb(undefined, [ids...])
-        ids = []
-        f = (socket, cb) =>
-            @call  # getting a message back with this id cancels listening
-                message : message.query_get_changefeed_ids()
-                timeout : opts.timeout
-                socket  : socket
-                cb      : (err, resp) =>
-                    if not err
-                        ids = ids.concat(resp.changefeed_ids)
-                    cb()
-        async.map @get_all_hub_sockets(), f, () =>
-            opts.cb(undefined, ids)
 
     # Get the synchronized table defined by the given query.
     sync_table: (query, options, debounce_interval=2000, throttle_changes=undefined) =>
@@ -683,5 +687,44 @@ class exports.Client extends EventEmitter
         dbg("watching file '#{path}'")
         return new Watcher(path, opts.interval, opts.debounce)
 
+    # Save a blob to the central db blobstore.
+    # The sha1 is optional.
+    save_blob: (opts) =>
+        opts = defaults opts,
+            blob : required   # Buffer of data
+            sha1 : undefined
+            uuid : undefined  # if given is uuid derived from sha1
+            cb   : undefined  # (err, resp)
+        if opts.uuid?
+            uuid = opts.uuid
+        else
+            uuid = misc_node.uuidsha1(opts.blob, opts.sha1)
+        dbg = @dbg("save_blob(uuid='#{uuid}')")
+        hub = @get_hub_socket()
+        if not hub?
+            dbg("fail -- no global hubs")
+            opts.cb?('no global hubs are connected to the local hub, so nowhere to send file')
+            return
+        dbg("sending blob mesg")
+        hub.write_mesg('blob', {uuid:uuid, blob:opts.blob})
+        dbg("waiting for response")
+        blobs.receive_save_blob_message
+            sha1 : uuid
+            cb   : (resp) =>
+                if resp?.error
+                    dbg("fail -- '#{resp.error}'")
+                    opts.cb?(resp.error, resp)
+                else
+                    dbg("success")
+                    opts.cb?(undefined, resp)
 
+    get_blob: (opts) =>
+        opts = defaults opts,
+            blob : required   # Buffer of data
+            sha1 : undefined
+            uuid : undefined  # if given is uuid derived from sha1
+            cb   : undefined  # (err, resp)
+        dbg = @dbg("get_blob")
+        dbg(opts.sha1)
+        opts.cb?('get_blob: not implemented')
 

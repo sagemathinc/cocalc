@@ -5,49 +5,56 @@ Component that shows a warning message if has_uncommitted_changes is true for mo
 
 {React, ReactDOM, rclass, rtypes}  = require('../smc-react')
 
+{Tip} = require('../r_misc')
+
 STYLE =
     backgroundColor : 'red'
+    color           : 'white'
     padding         : '5px'
+    fontWeight      : 'bold'
     marginLeft      : '5px'
     marginRight     : '-5px'
     borderRadius    : '3px'
 
-danger = 'DANGER: File NOT sent to server and not saved to disk.  You will lose work if you close this file.'
-
 exports.UncommittedChanges = rclass
     propTypes:
-        has_uncommitted_changes  : rtypes.bool
-        delay_ms                 : rtypes.number
+        has_uncommitted_changes : rtypes.bool
+        delay_ms                : rtypes.number   # assumed to not change
+
+    getDefaultProps: ->
+        delay_ms : 5000
 
     getInitialState: ->
         counter : 0
 
+    shouldComponentUpdate: (props, state) ->
+        return @props.has_uncommitted_changes != props.has_uncommitted_changes or @state.counter != state.counter
+
     _check: ->
         if @_mounted and @props.has_uncommitted_changes
-            # force re-render
+            # forces a re-render
             @setState(counter : @state.counter+1)
 
-    shouldComponentUpdate: (next, next_state) ->
-        if next_state?.counter != @state.counter
-            return true
-        @_last_change = new Date()
-        setTimeout(@_check, @props.delay_ms ? 5000 + 1)
-        return next.has_uncommitted_changes != @props.has_uncommitted_changes
+    componentWillUpdate: (new_props) ->
+        if new_props.has_uncommitted_changes != @props.has_uncommitted_changes
+            @_last_change = new Date()
+        if new_props.has_uncommitted_changes
+            setTimeout(@_check, @props.delay_ms + 10)
 
     componentWillUnmount: ->
         @_mounted = false
 
     componentDidMount: ->
         @_mounted = true
+        @_last_change = new Date()  # from truly undefined to known
+        setTimeout(@_check, @props.delay_ms + 10)
 
     render: ->
-        if not @props.has_uncommitted_changes or (new Date() - @_last_change < (@props.delay_ms ? 5000))
+        if not @props.has_uncommitted_changes
             return <span/>
-        # actually render it.
-        <span
-            style = {STYLE}
-            title = {danger}
-        >
+        @_last_change ?= new Date()
+        if new Date() - @_last_change < @props.delay_ms
+            return <span/>
+        <span style={STYLE}>
             NOT saved!
         </span>
-

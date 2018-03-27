@@ -34,6 +34,8 @@ winston = require('winston')
 async   = require('async')
 path    = require('path')
 
+shell_escape = require('shell-escape')
+
 misc = require('smc-util/misc')
 {walltime, defaults, required, to_json} = misc
 message = require('smc-util/message')
@@ -356,8 +358,12 @@ exports.sha1 = (data) ->
     return sha1sum.digest('hex')
 
 # Compute a uuid v4 from the Sha-1 hash of data.
-exports.uuidsha1 = (data) ->
-    s = exports.sha1(data)
+# Optionally, if sha1 is given, just uses that, rather than recomputing it.
+exports.uuidsha1 = (data, sha1) ->
+    if sha1
+        s = sha1
+    else
+        s = exports.sha1(data)
     i = -1
     return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) ->
         i += 1
@@ -380,13 +386,15 @@ async          = require('async')
 fs             = require('fs')
 child_process  = require 'child_process'
 
+
 exports.execute_code = execute_code = (opts) ->
     opts = defaults opts,
         command    : required
         args       : []
         path       : undefined   # defaults to home directory; where code is executed from
         timeout    : 10          # timeout in *seconds*
-        ulimit_timeout : true    # if set, use ulimit to ensure a cpu timeout -- don't use when launching a daemon!
+        ulimit_timeout : true    # If set, use ulimit to ensure a cpu timeout -- don't use when launching a daemon!
+                                 # This has no effect if bash not true.
         err_on_exit: true        # if true, then a nonzero exit code will result in cb(error_message)
         max_output : undefined   # bound on size of stdout and stderr; further output ignored
         bash       : false       # if true, ignore args and evaluate command as a bash command
@@ -404,6 +412,10 @@ exports.execute_code = execute_code = (opts) ->
     s = opts.command.split(/\s+/g) # split on whitespace
     if opts.args.length == 0 and s.length > 1
         opts.bash = true
+    else if opts.bash and opts.args.length > 0
+        # Selected bash, but still passed in args.
+        opts.command = shell_escape([opts.command].concat(opts.args))
+        opts.args = []
 
     if not opts.home?
         opts.home = process.env.HOME
@@ -477,6 +489,12 @@ exports.execute_code = execute_code = (opts) ->
 
             try
                 r = child_process.spawn(opts.command, opts.args, o)
+                if not r.stdout? or not r.stderr?
+                    # The docs/examples at https://nodejs.org/api/child_process.html#child_process_child_process_spawn_command_args_options
+                    # suggest that r.stdout and r.stderr are always defined.  However, this is
+                    # definitely NOT the case in edge cases, as we have observed.
+                    c("error creating child process -- couldn't spawn child process")
+                    return
             catch e
                 # Yes, spawn can cause this error if there is no memory, and there's no event! --  Error: spawn ENOMEM
                 c("error #{misc.to_json(e)}")
@@ -552,8 +570,8 @@ exports.execute_code = execute_code = (opts) ->
                             r.kill("SIGKILL")  # this does not kill the process group :-(
                         catch e
                             # Exceptions can happen, which left uncaught messes up calling code bigtime.
-                        if opts.verbose
-                            winston.debug("execute_code: r.kill raised an exception.")
+                            if opts.verbose
+                                winston.debug("execute_code: r.kill raised an exception.")
                         if not callback_done
                             callback_done = true
                             c("killed command '#{opts.command} #{opts.args.join(' ')}'")
@@ -809,35 +827,6 @@ ensure_containing_directory_exists = (path, cb) ->   # cb(err)
             )
 
 exports.ensure_containing_directory_exists = ensure_containing_directory_exists
-
-
-# Determine if path (file or directory) is writable -- this works even if permissions are right but
-# filesystem is read only, e.g., ~/.zfs/snapshot/...
-# It's an error if the path doesn't exist.
-exports.is_file_readonly = (opts) ->
-    opts = defaults opts,
-        path : required
-        cb   : required    # cb(err, true if read only (false otherwise))
-
-    if process.platform == 'darwin'
-        # TODO: there is no -writable option to find on OS X, which breaks this; for now skip check
-        opts.cb(undefined, false)
-        return
-
-    readonly = undefined
-    # determine if file is writable
-    execute_code
-        command     : 'find'
-        args        : [opts.path, '-maxdepth', '0', '-writable']
-        err_on_exit : false
-        cb          : (err, output) =>
-            if err
-                opts.cb(err)
-            else if output.stderr or output.exit_code
-                opts.cb("no such path '#{opts.path}'")
-            else
-                readonly = output.stdout.length == 0
-                opts.cb(undefined, readonly)
 
 # like in sage, a quick way to save/load JSON-able objects to disk; blocking and not compressed.
 exports.saveSync = (obj, filename) ->

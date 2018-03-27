@@ -40,7 +40,7 @@ exports.About = rclass
 
     render_faq: ->
         <span>
-            Read <a href='https://github.com/sagemathinc/cocalc/wiki/sagejupyter' target='_new'>documentation</a> or create a <ShowSupportLink />.
+            Read <a href='https://github.com/sagemathinc/cocalc/wiki/sagejupyter' target='_new'>documentation</a>, create a <ShowSupportLink />, or see the latest <a href='https://github.com/sagemathinc/cocalc/wiki/JupyterClassicModern' target='_blank'>status  of Jupyter in CoCalc.</a>
         </span>
 
     render_features: ->
@@ -63,7 +63,7 @@ exports.About = rclass
     render: ->
         <Modal show={@props.about} bsSize="large" onHide={@close} >
             <Modal.Header closeButton>
-                <Modal.Title><Icon name='question-circle'/> About CoCalc Jupyter Notebook</Modal.Title>
+                <Modal.Title><Icon name='question-circle'/> About CoCalc Jupyter notebook</Modal.Title>
             </Modal.Header>
             <Modal.Body>
 

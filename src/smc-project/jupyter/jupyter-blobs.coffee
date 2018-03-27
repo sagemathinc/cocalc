@@ -1,5 +1,7 @@
 ###
 Jupyter in-memory blob store, which hooks into the raw http server.
+
+DEPRECATED: jupyter-blob-sqlite.coffee is much better!
 ###
 
 fs = require('fs')
@@ -16,8 +18,9 @@ class BlobStore
 
     # data could, e.g., be a uuencoded image
     # We return the sha1 hash of it, and store it, along with a reference count.
-    # ipynb = optional some original data that is also stored and will be
+    # ipynb = (optional) text that is also stored and will be
     #         returned when get_ipynb is called
+    #         This is used for some iframe support code.
     save: (data, type, ipynb) =>
         if type in BASE64_TYPES
             data = new Buffer.from(data, 'base64')
@@ -72,13 +75,13 @@ class BlobStore
         router.get base, (req, res) =>
             sha1s = misc.to_json(@keys())
             res.send(sha1s)
+
         router.get base + '*', (req, res) =>
             filename = req.path.slice(base.length)
             sha1 = req.query.sha1
             res.type(filename)
             res.send(@get(sha1))
         return router
-
 
 exports.blob_store = new BlobStore()
 

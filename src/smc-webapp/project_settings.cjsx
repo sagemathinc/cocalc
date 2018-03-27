@@ -1,4 +1,4 @@
-###############################################################################
+##############################################################################
 #
 #    CoCalc: Collaborative Calculation in the Cloud
 #
@@ -17,7 +17,12 @@
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
-###############################################################################
+##############################################################################
+
+###
+ATTENTION!  If you want to refactor this code before working on it (I hope you do!),
+put stuff in the new directory project/
+###
 
 immutable  = require('immutable')
 underscore = require('underscore')
@@ -31,15 +36,22 @@ misc                 = require('smc-util/misc')
 {project_tasks}      = require('./project_tasks')
 
 {Alert, Panel, Col, Row, Button, ButtonGroup, ButtonToolbar, FormControl, FormGroup, Well, Checkbox} = require('react-bootstrap')
-{ErrorDisplay, MessageDisplay, Icon, LabeledRow, Loading, MarkdownInput, ProjectState, SearchInput, TextInput,
- NumberInput, DeletedProjectWarning, NonMemberProjectWarning, NoNetworkProjectWarning, Space, Tip, UPGRADE_ERROR_STYLE, UpgradeAdjustor} = require('./r_misc')
+{ErrorDisplay, MessageDisplay, Icon, LabeledRow, Loading, ProjectState, SearchInput, TextInput,
+ NumberInput, DeletedProjectWarning, NonMemberProjectWarning, NoNetworkProjectWarning, Space, TimeAgo, Tip, UPGRADE_ERROR_STYLE, UpgradeAdjustor} = require('./r_misc')
 {React, ReactDOM, Actions, Store, Table, redux, rtypes, rclass, Redux}  = require('./smc-react')
 {User} = require('./users')
 
 {HelpEmailLink}   = require('./customize')
 {ShowSupportLink} = require('./support')
+{SSHKeyAdder, SSHKeyList} = require('./widget-ssh-keys/main')
 
 {PROJECT_UPGRADES} = require('smc-util/schema')
+
+{AddCollaborators} = require('./collaborators/add-to-project')
+
+{ProjectSettingsPanel} = require('./project/project-settings-support')
+{JupyterServerPanel}   = require('./project/plain-jupyter-server')
+
 
 URLBox = rclass
     displayName : 'URLBox'
@@ -51,21 +63,6 @@ URLBox = rclass
             url = url.slice(0,i)
         # note -- use of Input below is completely broken on Firefox! Do not naively change this back!!!!
         <pre style={fontSize:'11px'}>{url}</pre>
-
-ProjectSettingsPanel = rclass
-    displayName : 'ProjectSettingsPanel'
-
-    propTypes :
-        icon  : rtypes.string.isRequired
-        title : rtypes.string.isRequired
-
-    render_header: ->
-        <h3><Icon name={@props.icon} /> {@props.title}</h3>
-
-    render: ->
-        <Panel header={@render_header()}>
-            {@props.children}
-        </Panel>
 
 TitleDescriptionPanel = rclass
     displayName : 'ProjectSettings-TitleDescriptionPanel'
@@ -87,7 +84,7 @@ TitleDescriptionPanel = rclass
             <LabeledRow label='Description'>
                 <TextInput
                     type      = 'textarea'
-                    rows      = 2
+                    rows      = {2}
                     text      = {@props.description}
                     on_change = {(desc)=>@props.actions.set_project_description(@props.project_id, desc)}
                 />
@@ -101,6 +98,7 @@ QuotaConsole = rclass
         project_id                   : rtypes.string.isRequired
         project_settings             : rtypes.object            # settings contains the base values for quotas
         project_status               : rtypes.object
+        project_state                : rtypes.string            # opened, running, starting, stopping, etc.  -- only show memory usage when project_state == 'running'
         user_map                     : rtypes.object.isRequired
         quota_params                 : rtypes.object.isRequired # from the schema
         account_groups               : rtypes.array.isRequired
@@ -132,26 +130,37 @@ QuotaConsole = rclass
                     new_state[name] = misc.round2(settings.get(name) * data.display_factor)
                 @setState(new_state)
 
-    render_quota_row: (quota, base_value=0, upgrades, params_data) ->
+    render_quota_row: (name, quota, base_value=0, upgrades, params_data) ->
         factor = params_data.display_factor
         unit   = params_data.display_unit
+
+        text = (val) ->
+            amount = misc.round2(val * factor)
+            if name == 'mintime'
+                return misc.seconds2hm(val)
+            else
+                return "#{amount} #{misc.plural(amount, unit)}"
 
         upgrade_list = []
         if upgrades?
             for id, val of upgrades
-                amount = misc.round2(val * factor)
                 li =
                     <li key={id}>
-                        {amount} {misc.plural(amount, unit)} given by <User account_id={id} user_map={@props.user_map} />
+                        {text(val)} given by <User account_id={id} user_map={@props.user_map} />
                     </li>
                 upgrade_list.push(li)
 
         amount = misc.round2(base_value * factor)
-        if amount
+        if base_value
             # amount given by free project
-            upgrade_list.unshift(<li key='free'>{amount} {misc.plural(amount, unit)} given by free project</li>)
+            upgrade_list.unshift(<li key='free'>{text(base_value)} given by free project</li>)
 
-        <LabeledRow label={<Tip title={params_data.display} tip={params_data.desc}>{params_data.display}</Tip>} key={params_data.display}>
+        <LabeledRow
+            label = {<Tip title={params_data.display}
+            tip   = {params_data.desc}>{params_data.display}</Tip>}
+            key   = {params_data.display}
+            style = {borderBottom:'1px solid #ccc'}
+            >
             {if @state.editing then quota.edit else quota.view}
             <ul style={color:'#666'}>
                 {upgrade_list}
@@ -217,7 +226,7 @@ QuotaConsole = rclass
         if 'admin' in @props.account_groups
             if @state.editing
                 <Row>
-                    <Col sm=6 smOffset=6>
+                    <Col sm={6} smOffset={6}>
                         <ButtonToolbar style={float:'right'}>
                             <Button onClick={@save_admin_editing} bsStyle='warning' disabled={not @valid_admin_inputs()}>
                                 <Icon name='thumbs-up' /> Done
@@ -230,7 +239,7 @@ QuotaConsole = rclass
                 </Row>
             else
                 <Row>
-                    <Col sm=6 smOffset=6>
+                    <Col sm={6} smOffset={6}>
                         <Button onClick={@start_admin_editing} bsStyle='warning' style={float:'right'}>
                             <Icon name='pencil' /> Admin edit...
                         </Button>
@@ -257,12 +266,26 @@ QuotaConsole = rclass
         else
             # not using react component so the input stays inline
             <input
-                size     = 5
+                size     = {5}
                 type     = 'text'
                 ref      = {label}
                 value    = {@state[label]}
                 style    = {@admin_input_validation_styles(@state[label])}
                 onChange = {(e)=>@setState("#{label}":e.target.value)} />
+
+    render_disk_used: (disk) ->
+        if not disk
+            return
+        <span>
+            <Space/> (<b>{disk} MB</b> used)
+        </span>
+
+    render_memory_used: (memory) ->
+        if @props.project_state not in ['running', 'saving']
+            return
+        <span>
+            <Space/> (<b>{memory} MB</b> used)
+        </span>
 
     render: ->
         settings     = @props.project_settings
@@ -292,19 +315,23 @@ QuotaConsole = rclass
         # the keys in quotas have to match those in PROJECT_UPGRADES.field_order
         quotas =
             disk_quota  :
-                view : <span><b>{r(total_quotas['disk_quota'] * quota_params['disk_quota'].display_factor)} MB</b> disk space available - <b>{disk} MB</b> used</span>
-                edit : <span><b>{@render_input('disk_quota')} MB</b> disk space available - <b>{disk} MB</b> used</span>
+                view : <span><b>{r(total_quotas['disk_quota'] * quota_params['disk_quota'].display_factor)} MB</b> disk usage limit {@render_disk_used(disk)}</span>
+                edit : <span><b>{@render_input('disk_quota')} MB</b> disk space limit <Space/> {@render_disk_used(disk)}</span>
             memory      :
-                view : <span><b>{r(total_quotas['memory'] * quota_params['memory'].display_factor)} MB</b> RAM memory available - <b>{memory} MB</b> used</span>
-                edit : <span><b>{@render_input('memory')} MB</b> RAM memory available - <b>{memory} MB</b> used</span>
+                view : <span><b>{r(total_quotas['memory'] * quota_params['memory'].display_factor)} MB</b> shared RAM memory limit {@render_memory_used(memory)}</span>
+                edit : <span><b>{@render_input('memory')} MB</b> RAM memory limit {@render_memory_used(memory)} </span>
+            memory_request :
+                view : <span><b>{r(total_quotas['memory_request'] * quota_params['memory_request'].display_factor)} MB</b> dedicated RAM</span>
+                edit : <span><b>{@render_input('memory_request')} MB</b> dedicated RAM memory</span>
             cores       :
-                view : <b>{r(total_quotas['cores'] * quota_params['cores'].display_factor)} {misc.plural(total_quotas['cores'] * quota_params['cores'].display_factor, 'core')}</b>
+                view : <span><b>{r(total_quotas['cores'] * quota_params['cores'].display_factor)} {misc.plural(total_quotas['cores'] * quota_params['cores'].display_factor, 'core')}</b></span>
                 edit : <b>{@render_input('cores')} cores</b>
             cpu_shares  :
-                view : <b>{r(total_quotas['cpu_shares'] * quota_params['cpu_shares'].display_factor)} {misc.plural(total_quotas['cpu_shares'] * quota_params['cpu_shares'].display_factor, 'share')}</b>
-                edit : <b>{@render_input('cpu_shares')} {misc.plural(total_quotas['cpu_shares'], 'share')}</b>
+                view : <b>{r(total_quotas['cpu_shares'] * quota_params['cpu_shares'].display_factor)} {misc.plural(total_quotas['cpu_shares'] * quota_params['cpu_shares'].display_factor, 'core')}</b>
+                edit : <b>{@render_input('cpu_shares')} {misc.plural(total_quotas['cpu_shares'], 'core')}</b>
             mintime     :
-                view : <span><b>{r(misc.round2(total_quotas['mintime'] * quota_params['mintime'].display_factor))} {misc.plural(total_quotas['mintime'] * quota_params['mintime'].display_factor, 'hour')}</b> of non-interactive use before project stops</span>
+                # no display factor multiplication, because mintime is in seconds
+                view : <span><b>{misc.seconds2hm(total_quotas['mintime'], true)}</b> of non-interactive use before project stops</span>
                 edit : <span><b>{@render_input('mintime')} hours</b> of non-interactive use before project stops</span>
             network     :
                 view : <b>{if @props.project_settings.get('network') or total_quotas['network'] then 'Yes' else 'Blocked'}</b>
@@ -317,7 +344,7 @@ QuotaConsole = rclass
 
         <div>
             {@render_admin_edit_buttons()}
-            {@render_quota_row(quotas[name], settings.get(name), upgrades[name], quota_params[name]) for name in PROJECT_UPGRADES.field_order}
+            {@render_quota_row(name, quotas[name], settings.get(name), upgrades[name], quota_params[name]) for name in PROJECT_UPGRADES.field_order}
         </div>
 
 UsagePanel = rclass
@@ -344,7 +371,7 @@ UsagePanel = rclass
 
     render_upgrades_button: ->
         <Row>
-            <Col sm=12>
+            <Col sm={12}>
                 <Button bsStyle='primary' disabled={@state.show_adjustor} onClick={=>@setState(show_adjustor : true)} style={float: 'right', marginBottom : '5px'}>
                     <Icon name='arrow-circle-up' /> Adjust your quotas...
                 </Button>
@@ -369,6 +396,7 @@ UsagePanel = rclass
                 project_id                   = {@props.project_id}
                 project_settings             = {@props.project.get('settings')}
                 project_status               = {@props.project.get('status')}
+                project_state                = {@props.project.get('state')?.get('state')}
                 user_map                     = {@props.user_map}
                 quota_params                 = {require('smc-util/schema').PROJECT_UPGRADES.params}
                 account_groups               = {@props.account_groups}
@@ -409,7 +437,7 @@ HideDeletePanel = rclass
     # account_id : String
     # project    : immutable.Map
     user_has_applied_upgrades: (account_id, project) ->
-         project.getIn(['users', account_id, 'upgrades'])?.some (val) => val > 0
+        project.getIn(['users', account_id, 'upgrades'])?.some (val) => val > 0
 
     delete_message: ->
         if @props.project.get('deleted')
@@ -474,10 +502,10 @@ HideDeletePanel = rclass
         hidden = user.get('hide')
         <ProjectSettingsPanel title='Hide or delete project' icon='warning'>
             <Row>
-                <Col sm=8>
+                <Col sm={8}>
                     {@hide_message()}
                 </Col>
-                <Col sm=4>
+                <Col sm={4}>
                     <Button bsStyle='warning' onClick={@toggle_hide_project} style={float: 'right'}>
                         <Icon name='eye-slash' /> {if hidden then 'Unhide' else 'Hide'} Project
                     </Button>
@@ -485,15 +513,15 @@ HideDeletePanel = rclass
             </Row>
             <hr />
             <Row>
-                <Col sm=8>
+                <Col sm={8}>
                     {@delete_message()}
                 </Col>
-                <Col sm=4>
+                <Col sm={4}>
                     {@render_delete_undelete_button(@props.project.get('deleted'), @state.show_delete_conf)}
                 </Col>
             </Row>
             {<Row style={marginTop:'10px'} >
-                <Col sm=12>
+                <Col sm={12}>
                     {@render_expanded_delete_info()}
                 </Col>
             </Row> if @state.show_delete_conf and not @props.project.get('deleted')}
@@ -537,7 +565,7 @@ SageWorksheetPanel = rclass
     render: ->
         <ProjectSettingsPanel title='Sage worksheet server' icon='refresh'>
             <Row>
-                <Col sm=8>
+                <Col sm={8}>
                     Restart this Sage Worksheet server. <br />
                     <span style={color: '#666'}>
                         Existing worksheet sessions are unaffected; restart this
@@ -545,7 +573,7 @@ SageWorksheetPanel = rclass
                         will use the new version of Sage.
                     </span>
                 </Col>
-                <Col sm=4>
+                <Col sm={4}>
                     <Button bsStyle='warning' disabled={@state.loading} onClick={@restart_worksheet}>
                         <Icon name='refresh' spin={@state.loading} /> Restart Sage Worksheet Server
                     </Button>
@@ -554,35 +582,6 @@ SageWorksheetPanel = rclass
             {@render_message()}
         </ProjectSettingsPanel>
 
-JupyterServerPanel = rclass
-    displayName : 'ProjectSettings-JupyterServer'
-
-    propTypes :
-        project_id : rtypes.string.isRequired
-
-    render_jupyter_link: ->
-        <a href="/#{@props.project_id}/port/jupyter/" target='_blank'>
-            Plain Jupyter Server
-        </a>
-
-    render: ->
-        <ProjectSettingsPanel title='Jupyter notebook server' icon='list-alt'>
-            <span style={color: '#666'}>
-                The Jupyter notebook server is a Python process that runs in your
-                project that provides backed support for Jupyter notebooks with
-                synchronized editing and TimeTravel.   You can also just
-                use your Jupyter notebook directly via the link below.
-                This does not support multiple users or TimeTravel.
-            </span>
-            <div style={textAlign:'center', fontSize:'14pt', margin: '15px'}>
-                {@render_jupyter_link()}
-            </div>
-            <span style={color: '#666'}>
-                <b>
-                (The first time you click the above link it <i>will probably fail</i>; refresh and try again.)
-                </b>
-            </span>
-        </ProjectSettingsPanel>
 
 ProjectControlPanel = rclass
     displayName : 'ProjectSettings-ProjectControlPanel'
@@ -592,7 +591,8 @@ ProjectControlPanel = rclass
         show_ssh : false
 
     propTypes :
-        project : rtypes.object.isRequired
+        project           : rtypes.object.isRequired
+        allow_ssh         : rtypes.bool
 
     open_authorized_keys: (e) ->
         e.preventDefault()
@@ -616,14 +616,14 @@ ProjectControlPanel = rclass
             if @state.show_ssh
                 <div>
                     SSH into your project: <span style={color:'#666'}>First add your public key to <a onClick={@open_authorized_keys} href=''>~/.ssh/authorized_keys</a>, then use the following username@host:</span>
-                    {# WARNING: previous use of <FormControl> here completely breaks copy on Firefox.}
-                    <pre>{"#{misc.replace_all(project_id, '-', '')}@#{host}.sagemath.com"} </pre>
+                    {### WARNING: previous use of <FormControl> here completely breaks copy on Firefox. ###}
+                    <pre>{"#{misc.replace_all(project_id, '-', '')}@#{host}.cocalc.com"} </pre>
                     <a href="https://github.com/sagemathinc/cocalc/wiki/AllAboutProjects#create-ssh-key" target="_blank">
                     <Icon name='life-ring'/> How to create SSH keys</a>
                 </div>
             else
                 <Row>
-                    <Col sm=12>
+                    <Col sm={12}>
                         <Button bsStyle='info' onClick={=>@setState(show_ssh : true)} style={float:'right'}>
                             <Icon name='terminal' /> SSH into your project...
                         </Button>
@@ -632,14 +632,20 @@ ProjectControlPanel = rclass
 
     render_state: ->
         <span style={fontSize : '12pt', color: '#666'}>
-            <ProjectState state={@props.project.get('state')?.get('state')} />
+            <ProjectState show_desc={true} state={@props.project.get('state')?.get('state')} />
+        </span>
+
+    render_idle_timeout: ->
+        # get_idle_timeout_horizon depends on the project object, so this will update properly....
+        date = redux.getStore('projects').get_idle_timeout_horizon(@props.project.get('project_id'))
+        if not date  # e.g., viewing as admin...
+            return
+        return <span style={color:'#666'}>
+            <Icon name='hourglass-half' /> <b>About <TimeAgo date={date}/></b> project will stop unless somebody actively edits.
         </span>
 
     restart_project: ->
         @actions('projects').restart_project(@props.project.get('project_id'))
-
-    save_project: ->
-        @actions('projects').save_project(@props.project.get('project_id'))
 
     stop_project: ->
         @actions('projects').stop_project(@props.project.get('project_id'))
@@ -674,16 +680,62 @@ ProjectControlPanel = rclass
             <Button bsStyle='warning' disabled={'stop' not in commands} onClick={(e)=>e.preventDefault(); @stop_project()}>
                 <Icon name={COMPUTE_STATES.stopping.icon} /> Stop
             </Button>
-            <Button bsStyle='success' disabled={'save' not in commands} onClick={(e)=>e.preventDefault(); @save_project()}>
-                <Icon name={COMPUTE_STATES.saving.icon} /> Save
-            </Button>
         </ButtonToolbar>
+
+    show_host: ->
+        host = @props.project.get('host')?.get('host')
+        if host
+            <LabeledRow key='host' label='Host'>
+                <pre>{host}.sagemath.com</pre>
+            </LabeledRow>
+
+    render_idle_timeout_row: ->
+        if @props.project.getIn(['state', 'state']) != 'running'
+            return
+        <LabeledRow key='idle-timeout' label='Idle Timeout' style={@rowstyle()}>
+            {@render_idle_timeout()}
+        </LabeledRow>
+
+    render_uptime: ->
+        # start_ts is e.g. 1508576664416
+        start_ts = @props.project.getIn(['status', 'start_ts'])
+        return if not start_ts?
+        return if @props.project.getIn(['state', 'state']) != 'running'
+        delta_s = (misc.server_time().getTime() - start_ts) / 1000
+        uptime_str = misc.seconds2hms(delta_s, true)
+        <LabeledRow key='uptime' label='Uptime' style={@rowstyle()}>
+            <span style={color:'#666'}>
+                 <Icon name='clock-o' /> project started <b>{uptime_str}</b> ago
+            </span>
+        </LabeledRow>
+
+    render_cpu_usage: ->
+        cpu = @props.project.getIn(['status', 'cpu', 'usage'])
+        return if not cpu?
+        return if @props.project.getIn(['state', 'state']) != 'running'
+        cpu_str = misc.seconds2hms(cpu, true)
+        <LabeledRow key='cpu-usage' label='CPU Usage' style={@rowstyle(true)}>
+            <span style={color:'#666'}>
+                <Icon name='calculator' /> used <b>{cpu_str}</b> of CPU time since project started
+            </span>
+        </LabeledRow>
+
+    rowstyle: (delim) ->
+        style =
+            marginBottom:  '5px'
+            paddingBottom: '10px'
+        if delim
+            style.borderBottom = '1px solid #ccc'
+        return style
 
     render: ->
         <ProjectSettingsPanel title='Project control' icon='gears'>
-            <LabeledRow key='state' label='State'>
+            <LabeledRow key='state' label='State' style={@rowstyle(true)}>
                 {@render_state()}
             </LabeledRow>
+            {@render_idle_timeout_row()}
+            {@render_uptime()}
+            {@render_cpu_usage()}
             <LabeledRow key='action' label='Actions'>
                 {@render_action_buttons()}
             </LabeledRow>
@@ -691,194 +743,11 @@ ProjectControlPanel = rclass
             <LabeledRow key='project_id' label='Project id'>
                 <pre>{@props.project.get('project_id')}</pre>
             </LabeledRow>
-            <LabeledRow key='host' label='Host'>
-                <pre>{@props.project.get('host')?.get('host')}.sagemath.com</pre>
-            </LabeledRow>
+            {@show_host() if @props.allow_ssh}
             If your project is not working, please create a <ShowSupportLink />.
-            <hr />
-            {@ssh_notice()}
+            {<hr /> if @props.allow_ssh}
+            {@ssh_notice() if @props.allow_ssh}
         </ProjectSettingsPanel>
-
-CollaboratorsSearch = rclass
-    displayName : 'ProjectSettings-CollaboratorsSearch'
-
-    propTypes :
-        project : rtypes.object.isRequired
-
-    reduxProps :
-        account :
-            get_fullname : rtypes.func
-
-    getInitialState: ->
-        search           : ''          # search that user has typed in so far
-        select           : undefined   # list of results for doing the search -- turned into a selector
-        selected_entries : undefined   # list of actually selected entries in the selector list
-        searching        : false       # currently carrying out a search
-        err              : ''          # display an error in case something went wrong doing a search
-        email_to         : ''          # if set, adding user via email to this address
-        email_body       : ''          # with this body.
-
-    reset: ->
-        @setState(@getInitialState())
-
-    do_search: (search) ->
-        search = search.trim()
-        @setState(search: search, selected_entries : undefined)  # this gets used in write_email_invite, and whether to render the selection list.
-        if @state.searching
-             # already searching
-             return
-        if search.length == 0
-             @setState(err:undefined, select:undefined)
-             return
-        @setState(searching:true)
-        webapp_client.user_search
-            query : search
-            limit : 50
-            cb    : (err, select) =>
-                @setState(searching:false, err:err, select:select)
-
-    render_options: (select) ->
-        for r in select
-            name = r.first_name + ' ' + r.last_name
-            <option key={r.account_id} value={r.account_id} label={name}>{name}</option>
-
-    invite_collaborator: (account_id) ->
-        @actions('projects').invite_collaborator(@props.project.get('project_id'), account_id)
-
-    add_selected: (select) ->
-        @reset()
-        # handle case, where just one name is listed → clicking on "add" would clear everything w/o inviting
-        if (not @state.selected_entries? or @state.selected_entries?.length == 0) and select?.length == 1
-            @invite_collaborator(select[0].account_id)
-        else
-            for option in @state.selected_entries
-                @invite_collaborator(option.getAttribute('value'))
-
-    select_list_clicked: ->
-        selected_names = ReactDOM.findDOMNode(@refs.select).selectedOptions
-        @setState(selected_entries: selected_names)
-
-    write_email_invite: ->
-        name = @props.get_fullname()
-        project_id = @props.project.get('project_id')
-        title = @props.project.get('title')
-        host = window.location.hostname
-        target = "[project '#{title}'](https://#{host}/projects/#{project_id})"
-        body = "Hello!\n\nPlease collaborate with me using [CoCalc](https://#{host}) on #{target}.  \n\nBest wishes,\n\n#{name}"
-        @setState(email_to: @state.search, email_body: body)
-
-    send_email_invite: ->
-        subject      = "CoCalc Invitation to #{@props.project.get('title')}"
-        replyto      = redux.getStore('account').get_email_address()
-        replyto_name = redux.getStore('account').get_fullname()
-        @actions('projects').invite_collaborators_by_email(@props.project.get('project_id'),
-                                                                         @state.email_to,
-                                                                         @state.email_body,
-                                                                         subject,
-                                                                         false,
-                                                                         replyto,
-                                                                         replyto_name)
-        @setState(email_to:'',email_body:'')
-
-    render_send_email: ->
-        if not @state.email_to
-            return
-        <div>
-            <hr />
-            <Well>
-                Enter one or more email addresses separated by commas:
-                <FormGroup>
-                    <FormControl
-                        autoFocus
-                        type     = 'text'
-                        value    = {@state.email_to}
-                        ref      = 'email_to'
-                        onChange = {=>@setState(email_to:ReactDOM.findDOMNode(@refs.email_to).value)}
-                        />
-                </FormGroup>
-                <div style={border:'1px solid lightgrey', padding: '10px', borderRadius: '5px', backgroundColor: 'white', marginBottom: '15px'}>
-                    <MarkdownInput
-                        default_value = {@state.email_body}
-                        rows          = 8
-                        on_save       = {(value)=>@setState(email_body:value, email_body_editing:false)}
-                        on_cancel     = {(value)=>@setState(email_body_editing:false)}
-                        on_edit       = {=>@setState(email_body_editing:true)}
-                        />
-                </div>
-                <ButtonToolbar>
-                    <Button bsStyle='primary' onClick={@send_email_invite} disabled={!!@state.email_body_editing}>Send Invitation</Button>
-                    <Button onClick={=>@setState(email_to:'',email_body:'', email_body_editing:false)}>Cancel</Button>
-                </ButtonToolbar>
-            </Well>
-        </div>
-
-    render_search: ->
-        if @state.search and (@state.searching or @state.select)
-            <div style={marginBottom:'10px'}>Search for '{@state.search}'</div>
-
-    render_select_list: ->
-        if @state.searching
-            return <Loading />
-        if @state.err
-            return <ErrorDisplay error={@state.err} onClose={=>@setState(err:'')} />
-        if not @state.select? or not @state.search.trim()
-            return
-        select = []
-        existing = []
-        for r in @state.select
-            if @props.project.get('users').get(r.account_id)?
-                existing.push(r)
-            else
-                select.push(r)
-        if select.length == 0
-            if existing.length == 0
-                <Button style={marginBottom:'10px'} onClick={@write_email_invite}>
-                    <Icon name='envelope' /> No matches. Send email invitation...
-                </Button>
-            else # no hit, but at least one existing collaborator
-                collabs = ("#{r.first_name} #{r.last_name}" for r in existing).join(', ')
-                <Alert bsStyle='info'>
-                    Existing collaborator(s): {collabs}
-                </Alert>
-        else
-            <div style={marginBottom:'10px'}>
-                <FormGroup>
-                    <FormControl componentClass='select' multiple ref='select' onClick={@select_list_clicked}>
-                        {@render_options(select)}
-                    </FormControl>
-                </FormGroup>
-                {@render_select_list_button(select)}
-            </div>
-
-
-    render_select_list_button: (select) ->
-        nb_selected = @state.selected_entries?.length ? 0
-        btn_text = switch select.length
-            when 0 then "No user found"
-            when 1 then "Invite user"
-            else switch nb_selected
-                when 0 then "Select a name above"
-                when 1 then "Invite selected user"
-                else "Invite #{nb_selected} users"
-        disabled = select.length == 0 or (select.length >= 2 and nb_selected == 0)
-        <Button onClick={=>@add_selected(select)} disabled={disabled}><Icon name='user-plus' /> {btn_text}</Button>
-
-
-    render: ->
-        <div>
-            <LabeledRow label='Add collaborators'>
-                <SearchInput
-                    on_submit       = {@do_search}
-                    default_value   = {@state.search}
-                    placeholder     = 'Search by name or email address...'
-                    on_change       = {(value) => @setState(select:undefined)}
-                    on_clear        = {@reset}
-                />
-            </LabeledRow>
-            {@render_search()}
-            {@render_select_list()}
-            {@render_send_email()}
-        </div>
 
 exports.CollaboratorsList = CollaboratorsList = rclass
     displayName : 'ProjectSettings-CollaboratorsList'
@@ -936,11 +805,11 @@ exports.CollaboratorsList = CollaboratorsList = rclass
     render_user: (user) ->
         <div key={user.account_id}>
             <Row>
-                <Col sm=8>
+                <Col sm={8}>
                     <User account_id={user.account_id} user_map={@props.user_map} last_active={user.last_active} />
                     <span><Space/>({user.group})</span>
                 </Col>
-                <Col sm=4>
+                <Col sm={4}>
                     {@user_remove_button(user.account_id, user.group)}
                 </Col>
             </Row>
@@ -967,24 +836,71 @@ CollaboratorsPanel = rclass
         user_map : rtypes.object
 
     render: ->
-        <ProjectSettingsPanel title='Collaborators' icon='user'>
+        <ProjectSettingsPanel title='Add people to project' icon='user'>
             <div key='mesg'>
-                <span style={color:'#666'}>
-                    Collaborators can <b>modify anything</b> in this project, except backups.
-                    They can add and remove other collaborators, but cannot remove owners.
+                <span style={color:'#333', fontSize:'12pt'}>
+                    Who would you like to work with on this project?  Anybody listed here can simultaneously work with you
+                    on any notebooks and terminals in this project, and add other people to this project.
                 </span>
             </div>
             <hr />
-            <CollaboratorsSearch key='search' project={@props.project} />
+            <AddCollaborators key='search' project={@props.project} />
             {<hr /> if @props.project.get('users')?.size > 1}
             <CollaboratorsList key='list' project={@props.project} user_map={@props.user_map} />
         </ProjectSettingsPanel>
+
+SSHPanel = rclass
+    displayName: 'ProjectSettings-SSHPanel'
+
+    propTypes :
+        project    : rtypes.immutable.Map.isRequired
+        user_map   : rtypes.immutable.Map
+        account_id : rtypes.string
+
+    add_ssh_key: (opts) ->
+        opts.project_id = @props.project.get('project_id')
+        @actions('projects').add_ssh_key_to_project(opts)
+
+    delete_ssh_key: (fingerprint) ->
+        @actions('projects').delete_ssh_key_from_project
+            fingerprint : fingerprint
+            project_id  : @props.project.get('project_id')
+
+    render_ssh_notice: ->
+        user = misc.replace_all(@props.project.get('project_id'), '-', '')
+        addr = "#{user}@ssh.cocalc.com"
+        <div>
+            <span>Use the following username@host:</span>
+            <pre>{addr}</pre>
+            <a href="https://github.com/sagemathinc/cocalc/wiki/AllAboutProjects#create-ssh-key" target="_blank">
+                <Icon name='life-ring'/> How to create SSH keys
+            </a>
+        </div>
+
+    render: ->
+        <div>
+            <SSHKeyList
+                ssh_keys   = {@props.project.getIn(['users', webapp_client.account_id, 'ssh_keys'])}
+                delete_key = {@delete_ssh_key}
+            >
+            <div>
+            <span>NOTE: If you want to use the same ssh key for all your projects, add a key using the "SSH keys" tab under Account Settings. If you have done that, there is no need to configure an ssh key here.</span>
+            </div>
+                <SSHKeyAdder
+                    add_ssh_key  = {@add_ssh_key}
+                    toggleable   = {true}
+                    style        = {marginBottom:'10px'}
+                    account_id   = {@props.account_id} />
+            {@render_ssh_notice()}
+            </SSHKeyList>
+        </div>
 
 ProjectSettingsBody = rclass ({name}) ->
     displayName : 'ProjectSettings-ProjectSettingsBody'
 
     propTypes :
         project_id    : rtypes.string.isRequired
+        account_id    : rtypes.string.isRequired
         project       : rtypes.immutable.Map.isRequired
         user_map      : rtypes.immutable.Map.isRequired
         customer      : rtypes.object
@@ -996,6 +912,8 @@ ProjectSettingsBody = rclass ({name}) ->
         account :
             get_total_upgrades : rtypes.func
             groups : rtypes.array
+        customize :
+            kucalc : rtypes.string
         projects :
             get_course_info : rtypes.func
             get_total_upgrades_you_have_applied : rtypes.func
@@ -1023,12 +941,11 @@ ProjectSettingsBody = rclass ({name}) ->
         {commercial} = require('./customize')
 
         <div>
-            {if commercial and total_project_quotas? and not total_project_quotas.member_host then <NonMemberProjectWarning upgrade_type='member_host' upgrades_you_can_use={upgrades_you_can_use} upgrades_you_applied_to_all_projects={upgrades_you_applied_to_all_projects} course_info={course_info} account_id={webapp_client.account_id} email_address={@props.email_address}/>}
+            {if commercial and total_project_quotas? and not total_project_quotas.member_host then <NonMemberProjectWarning upgrade_type='member_host' upgrades_you_can_use={upgrades_you_can_use} upgrades_you_applied_to_all_projects={upgrades_you_applied_to_all_projects} course_info={course_info} account_id={webapp_client.account_id} email_address={@props.email_address} />}
             {if commercial and total_project_quotas? and not total_project_quotas.network then <NoNetworkProjectWarning upgrade_type='network' upgrades_you_can_use={upgrades_you_can_use} upgrades_you_applied_to_all_projects={upgrades_you_applied_to_all_projects} /> }
-            {if @props.project.get('deleted') then <DeletedProjectWarning />}
             <h1 style={marginTop:"0px"}><Icon name='wrench' /> Settings and configuration</h1>
             <Row>
-                <Col sm=6>
+                <Col sm={6}>
                     <TitleDescriptionPanel
                         project_id    = {id}
                         project_title = {@props.project.get('title') ? ''}
@@ -1046,13 +963,15 @@ ProjectSettingsBody = rclass ({name}) ->
                         total_project_quotas                 = {total_project_quotas}
                         all_upgrades_to_this_project         = {all_upgrades_to_this_project} />
 
-                    <HideDeletePanel       key='hidedelete'    project={@props.project} />
+                    <HideDeletePanel key='hidedelete' project={@props.project} />
+                    {<SSHPanel key='ssh-keys' project={@props.project} user_map={@props.user_map} account_id={@props.account_id} /> if @props.kucalc == 'yes'}
+
                 </Col>
-                <Col sm=6>
+                <Col sm={6}>
                     <CollaboratorsPanel  project={@props.project} user_map={@props.user_map} />
-                    <ProjectControlPanel   key='control'       project={@props.project} />
-                    <SageWorksheetPanel    key='worksheet'     project={@props.project} />
-                    <JupyterServerPanel    key='jupyter'        project_id={@props.project_id} />
+                    <ProjectControlPanel key='control' project={@props.project} allow_ssh={@props.kucalc != 'yes'} />
+                    <SageWorksheetPanel  key='worksheet' project={@props.project} />
+                    <JupyterServerPanel  key='jupyter' project_id={@props.project_id} />
                 </Col>
             </Row>
         </div>
@@ -1070,6 +989,7 @@ exports.ProjectSettings = rclass ({name}) ->
             stripe_customer : rtypes.immutable
             email_address   : rtypes.string
             user_type       : rtypes.string    # needed for projects get_my_group call in render
+            account_id      : rtypes.string
         billing :
             customer : rtypes.immutable  # similar to stripe_customer
 
@@ -1122,6 +1042,7 @@ exports.ProjectSettings = rclass ({name}) ->
                 {@render_admin_message() if @state.admin_project?}
                 <ProjectSettingsBody
                     project_id    = {@props.project_id}
+                    account_id    = {@props.account_id}
                     project       = {project}
                     user_map      = {@props.user_map}
                     customer      = {@props.customer}

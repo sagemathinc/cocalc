@@ -23,12 +23,18 @@
 # Question: can we use redux to implement the same API as r.cjsx exports (which was built on Flummox).
 ###############################################################################
 
+# Important: code below now assumes that a global variable called "DEBUG" is **defined**!
+if not DEBUG?
+    DEBUG = false
+
 {EventEmitter}   = require('events')
 async            = require('async')
 immutable        = require('immutable')
 underscore       = require('underscore')
 React            = require('react')
 redux_lib        = require('redux')
+createReactClass = require('create-react-class')
+PropTypes        = require('prop-types')
 {createSelector} = require('reselect')
 
 
@@ -75,6 +81,10 @@ class Actions
     setState: (obj, nothing_else) =>
         if nothing_else?
             throw Error("setState takes exactly one argument, which must be an object")
+        if DEBUG and @redux.getStore(@name).__converted
+            for key of obj
+                if not Object.getOwnPropertyDescriptor(@redux.getStore(@name), key)?.get?
+                    console.warn("`#{key}` is not declared in stateTypes of store name `#{@name}`")
         @redux._set_state({"#{@name}": obj})
         return
 
@@ -104,7 +114,10 @@ Note: you cannot name a property "state" or "props"
 ###
 class Store extends EventEmitter
     # TODOJ: remove @name when fully switched over
-    constructor: (@name, @redux, store_def) ->
+    constructor: (name, redux, store_def) ->
+        super()
+        @name = name
+        @redux = redux
         @setMaxListeners(150)
         if not store_def?
             return
@@ -232,6 +245,7 @@ action_set_state = (change) ->
     action =
         type   : 'SET_STATE'
         change : immutable.fromJS(change)   # guaranteed immutable.js all the way down
+        # Deeply nested objects need to be converted with fromJS before being put in the store
 
 action_remove_store = (name) ->
     action =
@@ -255,7 +269,15 @@ redux_app = (state, action) ->
             return state
 
 class AppRedux
-    constructor: () ->
+    constructor: ->
+        @_tables = {}
+        @_redux_store = redux_lib.createStore(redux_app)
+        @_stores  = {}
+        @_actions = {}
+        @_redux_store.subscribe(@_redux_store_change)
+
+    # Only used by tests to completely reset the global redux instance
+    __reset: ->
         @_tables = {}
         @_redux_store = redux_lib.createStore(redux_app)
         @_stores  = {}
@@ -412,6 +434,19 @@ class AppRedux
             console.warn("getProjectReferences: INVALID project_id -- #{project_id}")
         return project_store?.deleteStoreActionsTable(project_id, @)
 
+    getEditorStore: (project_id, path, is_public) =>
+        if not misc.is_valid_uuid_string(project_id)
+            console.trace()
+            console.warn("getEditorStore: INVALID project_id -- #{project_id}")
+        return @getStore(exports.redux_name(project_id, path, is_public))
+
+    getEditorActions: (project_id, path, is_public) =>
+        if not misc.is_valid_uuid_string(project_id)
+            console.trace()
+            console.warn("getEditorActions: INVALID project_id -- #{project_id}")
+        return @getActions(exports.redux_name(project_id, path, is_public))
+
+
 redux = new AppRedux()
 
 computed = (rtype) =>
@@ -429,6 +464,10 @@ rclass
     reduxProps:
         store_name :
             prop     : type
+
+WARNING: If store not yet defined, then props will all be undefined for that store!  There
+is no warning/error in this case.
+
 ###
 connect_component = (spec) =>
     map_state_to_props = (state) ->
@@ -436,13 +475,18 @@ connect_component = (spec) =>
         if not state?
             return props
         for store_name, info of spec
-            if store_name=='undefined'  # gets turned into this string when making a common mistake
+            if store_name == 'undefined'  # gets turned into this string when making a common mistake
                 console.warn("spec = ", spec)
                 throw Error("store_name of spec *must* be defined")
+            store = redux.getStore(store_name)
             for prop, type of info
-                if redux.getStore(store_name).__converted?
-                    val = redux.getStore(store_name)[prop]
-                else # TODOJ: remove when all stores are converted
+                if store?.__converted?
+                    val = store[prop]
+                    if not Object.getOwnPropertyDescriptor(store, prop)?.get?
+                        if DEBUG
+                            console.warn("Requested reduxProp `#{prop}` from store `#{store_name}` but it is not defined in its stateTypes nor reduxProps")
+                        val = state.getIn([store_name, prop])
+                else # TODOJ: remove *if* all stores are ever converted  (which may or may not be desirable/needed)
                     val = state.getIn([store_name, prop])
                 if type.category == "IMMUTABLE"
                     props[prop] = val
@@ -452,6 +496,7 @@ connect_component = (spec) =>
     return connect(map_state_to_props)
 
 ###
+
 Takes an object to create a reactClass or a function which returns such an object.
 
 Objects should be shaped like a react class save for a few exceptions:
@@ -463,12 +508,13 @@ x.reduxProps =
 x.actions must not be defined.
 
 ###
+
 react_component = (x) ->
     if typeof x == 'function'
         # Creates a react class that wraps the eventual component.
         # It calls the generator function with props as a parameter
         # and caches the result based on reduxProps
-        cached = React.createClass
+        cached = createReactClass
             # This only caches per Component. No memory leak, but could be faster for multiple components with the same signature
             render : () ->
                 @cache ?= {}
@@ -505,47 +551,70 @@ react_component = (x) ->
 
         x.actions = redux.getActions
 
-        C = React.createClass(x)
+        C = createReactClass(x)
         if x.reduxProps?
             # Make the ones comming from redux get automatically injected, as long
             # as this component is in a heierarchy wrapped by <Redux redux={redux}>...</Redux>
             C = connect_component(x.reduxProps)(C)
     return C
 
-COUNT = false
-TIME = false
-if COUNT
-    # Use these in the console:
-    #  reset_render_count()
-    #  JSON.stringify(get_render_count())
-    render_count = {}
-    rclass = (x) ->
-        x._render = x.render
-        x.render = () ->
-            render_count[x.displayName] = (render_count[x.displayName] ? 0) + 1
-            return @_render()
-        return react_component(x)
-    window.get_render_count = ->
-        total = 0
-        for k,v of render_count
-            total += v
-        return {counts:render_count, total:total}
-    window.reset_render_count = ->
-        render_count = {}
-else if TIME
-    rclass = (x) =>
-        t0 = performance.now()
-        r = react_component(x)
-        t1 = performance.now()
-        if t1 - t0 > 1
-            console.log r.displayName, "took", t1 - t0, "ms of time"
-        return r
-else
-    rclass = react_component
+MODE = 'default'   # one of 'default', 'count', 'verbose', 'time'
+#MODE = 'verbose'  # print every CoCalc component that is rendered when rendered
+#MODE = 'trace'     # print only components that take some time, along with timing info
+#MODE = 'count'    # collect count of number of times each component is rendered; call get_render_count and reset_render_count to see.
+#MODE = 'time'      # show every single component render and how long it took
 
-Redux = React.createClass
+if not smc?
+    MODE = 'default'  # never enable in prod
+
+if MODE != 'default'
+    console.log("smc-react MODE='#{MODE}'")
+
+switch MODE
+    when 'count'
+        # Use these in the console:
+        #  reset_render_count()
+        #  JSON.stringify(get_render_count())
+        render_count = {}
+        rclass = (x) ->
+            x._render = x.render
+            x.render = () ->
+                render_count[x.displayName] = (render_count[x.displayName] ? 0) + 1
+                return @_render()
+            return react_component(x)
+        window.get_render_count = ->
+            total = 0
+            for k,v of render_count
+                total += v
+            return {counts:render_count, total:total}
+        window.reset_render_count = ->
+            render_count = {}
+    when 'time'
+        rclass = (x) =>
+            t0 = performance.now()
+            r = react_component(x)
+            t1 = performance.now()
+            if t1 - t0 > 1
+                console.log r.displayName, "took", t1 - t0, "ms of time"
+            return r
+    when 'verbose'
+        rclass = (x) ->
+            x._render = x.render
+            x.render = () ->
+                console.log x.displayName
+                return @_render()
+            return react_component(x)
+    when 'trace'
+        {react_debug_trace} = require('./smc-react-debug')
+        rclass = react_debug_trace(react_component)
+    when 'default'
+        rclass = react_component
+    else
+        throw Error("UNKNOWN smc-react MODE='#{MODE}'")
+
+Redux = createReactClass
     propTypes :
-        redux : React.PropTypes.object.isRequired
+        redux : PropTypes.object.isRequired
     render: ->
         React.createElement(Provider, {store: @props.redux._redux_store}, @props.children)
         # The lines above are just the non-cjsx version of this:
@@ -559,13 +628,19 @@ exports.is_redux_actions = (obj) -> obj instanceof Actions
 
 # Canonical name to use for Redux store associated to a given project/path.
 # TODO: this code is also in many editors -- make them all just use this.
-exports.redux_name = (project_id, path) -> "editor-#{project_id}-#{path}"
+exports.redux_name = (project_id, path, is_public) ->
+    if is_public
+        return "public-#{project_id}-#{path}"
+    else
+        return "editor-#{project_id}-#{path}"
 
-exports.rclass   = rclass    # use rclass instead of React.createClass to get access to reduxProps support
+
+exports.rclass   = rclass    # use rclass instead of createReactClass to get access to reduxProps support
 exports.rtypes   = rtypes    # has extra rtypes.immutable, needed for reduxProps to leave value as immutable
 exports.computed = computed
 exports.depends  = depends
 exports.React    = React
+exports.Fragment = React.Fragment
 exports.Redux    = Redux
 exports.redux    = redux     # global redux singleton
 exports.Actions  = Actions
@@ -573,9 +648,10 @@ exports.Table    = Table
 exports.Store    = Store
 exports.ReactDOM = require('react-dom')
 
-if DEBUG? and DEBUG
+if DEBUG
     smc?.redux = redux  # for convenience in the browser (mainly for debugging)
-    exports._internals =
+
+__internals =
         AppRedux                 : AppRedux
         harvest_import_functions : harvest_import_functions
         harvest_own_functions    : harvest_own_functions
@@ -583,7 +659,23 @@ if DEBUG? and DEBUG
         connect_component        : connect_component
         react_component          : react_component
 
+if process?.env?.SMC_TEST
+    exports.__internals = __internals
 
+###
+Given
+spec =
+    foo :
+       bar : ...
+       stuff : ...
+    foo2 :
+       other : ...
 
-
-
+the redux_fields function returns ['bar', 'stuff', 'other'].
+###
+exports.redux_fields = (spec) ->
+    v = []
+    for _, val of spec
+        for key, _ of val
+            v.push(key)
+    return v

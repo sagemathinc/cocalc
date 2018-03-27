@@ -176,6 +176,9 @@ exports.CourseStore = class CourseStore extends Store
     get_grade: (assignment, student) =>
         return @get_assignment(assignment)?.get('grades')?.get(@get_student(student)?.get('student_id'))
 
+    get_comments: (assignment, student) =>
+        return @get_assignment(assignment)?.get('comments')?.get(@get_student(student)?.get('student_id'))
+
     get_due_date: (assignment) =>
         due_date = @get_assignment(assignment)?.get('due_date')
         if due_date?
@@ -271,16 +274,20 @@ exports.CourseStore = class CourseStore extends Store
         return x.get('time')
 
     has_grade: (assignment, student_id) =>
-        return @get_assignment(assignment)?.get("grades")?.get(student_id)
+        return !!@get_assignment(assignment)?.get("grades")?.get(student_id)
 
     get_assignment_status: (assignment) =>
         #
         # Compute and return an object that has fields (deleted students are ignored)
         #
-        #  assignment          - number of students who have received assignment
+        #  assignment          - number of students who have received assignment includes
+        #                        all students if skip_assignment is true
         #  not_assignment      - number of students who have NOT received assignment
-        #  collect             - number of students from whom we have collected assignment
+        #                        always 0 if skip_assignment is true
+        #  collect             - number of students from whom we have collected assignment includes
+        #                        all students if skip_collect is true
         #  not_collect         - number of students from whom we have NOT collected assignment but we sent it to them
+        #                        always 0 if skip_assignment is true
         #  peer_assignment     - number of students who have received peer assignment
         #                        (only present if peer grading enabled; similar for peer below)
         #  not_peer_assignment - number of students who have NOT received peer assignment
@@ -288,7 +295,7 @@ exports.CourseStore = class CourseStore extends Store
         #  not_peer_collect    - number of students from whome we have NOT collected peer grading
         #  return_graded       - number of students to whom we've returned assignment
         #  not_return_graded   - number of students to whom we've NOT returned assignment
-        #                        but we collected it from them *and* assigned a grade
+        #                        but we collected it from them *and* either assigned a grade or skip grading
         #
         # This function caches its result and only recomputes values when the store changes,
         # so it should be safe to call in render.
@@ -311,6 +318,9 @@ exports.CourseStore = class CourseStore extends Store
 
         # Is peer grading enabled?
         peer = assignment.get('peer_grade')?.get('enabled')
+        skip_grading = assignment.get('skip_grading') ? false
+
+        # if DEBUG then console.log('get_assignment_status/assignment', assignment)
 
         info = {}
         for t in STEPS(peer)
@@ -320,13 +330,14 @@ exports.CourseStore = class CourseStore extends Store
             previous = true
             for t in STEPS(peer)
                 x = assignment.get("last_#{t}")?.get(student_id)
-                if x? and not x.get('error')
+                if x? and not x.get('error') or assignment.get("skip_#{t}")
                     previous = true
                     info[t] += 1
                 else
                     # add one only if the previous step *was* done (and in
                     # the case of returning, they have a grade)
-                    if previous and (t!='return_graded' or @has_grade(assignment, student_id))
+                    graded = @has_grade(assignment, student_id) or skip_grading
+                    if (previous and t != 'return_graded') or graded
                         info["not_#{t}"] += 1
                     previous = false
 

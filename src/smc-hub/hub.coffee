@@ -26,7 +26,7 @@ many Sage sessions, and PostgreSQL database.  There are
 many HUBs running.
 ###
 
-require('coffee-cache')
+require('coffee2-cache')
 
 DEBUG = false
 
@@ -42,6 +42,8 @@ path_module    = require('path')
 underscore     = require('underscore')
 {EventEmitter} = require('events')
 mime           = require('mime')
+winston        = require('./winston-metrics').get_logger('hub')
+memory         = require('smc-util-node/memory')
 
 program = undefined  # defined below -- can't import with nodev6 at module level when hub.coffee used as a module.
 
@@ -60,7 +62,7 @@ misc    = require('smc-util/misc')
 {defaults, required} = misc
 message    = require('smc-util/message')     # message protocol between front-end and back-end
 client_lib = require('smc-util/client')
-{Client}   = require('./client')
+client     = require('./client')
 sage       = require('./sage')               # sage server
 auth       = require('./auth')
 base_url   = require('./base-url')
@@ -80,14 +82,14 @@ hub_register = require('./hub_register')
 # and also report number of connected clients
 REGISTER_INTERVAL_S = 45   # every 45 seconds
 
-smc_version = {}
-init_smc_version = () ->
-    smc_version = require('./hub-version')
+init_smc_version = (db, cb) ->
+    server_settings = require('./server-settings')(db)
+    server_settings.table.once('init', cb)
     # winston.debug("init smc_version: #{misc.to_json(smc_version.version)}")
-    smc_version.on 'change', (version) ->
-        winston.debug("smc_version changed -- sending updates to clients")
+    server_settings.table.on 'change', ->
+        winston.debug("version changed -- sending updates to clients")
         for id, c of clients
-            if c.smc_version < version.version
+            if c.smc_version < server_settings.version.version_recommended_browser
                 c.push_version_update()
 
 to_json = misc.to_json
@@ -98,12 +100,6 @@ async   = require("async")
 
 Cookies = require('cookies')            # https://github.com/jed/cookies
 
-winston = require('winston')            # logging -- https://github.com/flatiron/winston
-
-# Set the log level
-winston.remove(winston.transports.Console)
-if not process.env.SMC_TEST
-    winston.add(winston.transports.Console, {level: 'debug', timestamp:true, colorize:true})
 
 # module scope variables:
 database           = null
@@ -150,28 +146,6 @@ normalize_path = (path) ->
     #    path = undefined
     return {path:path, action:action}
 
-path_activity_cache = {}
-path_activity = (opts) ->
-    opts = defaults opts,
-        account_id : required
-        project_id : required
-        path       : required
-        client     : required
-        cb         : undefined
-
-    {path, action} = normalize_path(opts.path)
-    winston.debug("path_activity(#{opts.account_id},#{opts.project_id},#{path}): #{action}")
-    if not path?
-        opts.cb?()
-        return
-
-    opts.client.touch
-        project_id : opts.project_id
-        path       : path
-        action     : action
-        force      : action == 'chat'
-        cb         : opts.cb
-
 ##############################
 # Create the Primus realtime socket server
 ##############################
@@ -182,65 +156,20 @@ init_primus_server = (http_server) ->
     opts =
         pathname    : path_module.join(BASE_URL, '/hub')
     primus_server = new Primus(http_server, opts)
-    winston.debug("primus_server: listening on #{opts.pathname}")
+    dbg = (args...) -> winston.debug('primus_server:', args...)
+    dbg("listening on #{opts.pathname}")
 
     primus_server.on "connection", (conn) ->
         # Now handle the connection
-        winston.debug("primus_server: new connection from #{conn.address.ip} -- #{conn.id}")
-        primus_conn_sent_data = false
-        f = (data) ->
-            primus_conn_sent_data = true
-            id = data.toString()
-            winston.debug("primus_server: got id='#{id}'")
-            conn.removeListener('data',f)
-            C = clients[id]
-            #winston.debug("primus client ids=#{misc.to_json(misc.keys(clients))}")
-            if C?
-                if C.closed
-                    winston.debug("primus_server: '#{id}' matches expired Client -- deleting")
-                    delete clients[id]
-                    C = undefined
-                else
-                    winston.debug("primus_server: '#{id}' matches existing Client -- re-using")
-
-                    # In case the connection hadn't been officially ended yet the changefeeds might
-                    # have been left open sending messages that won't get through. So ensure the client
-                    # must recreate them all before continuing.
-                    C.query_cancel_all_changefeeds()
-
-                    cookies = new Cookies(conn.request)
-                    if C._remember_me_value == cookies.get(BASE_URL + 'remember_me')
-                        old_id = C.conn.id
-                        C.conn.removeAllListeners()
-                        C.conn.end()
-                        C.conn = conn
-                        conn.id = id
-                        conn.write(conn.id)
-                        C.install_conn_handlers()
-                    else
-                        winston.debug("primus_server: '#{id}' matches but cookies do not match, so not re-using")
-                        C = undefined
-            if not C?
-                winston.debug("primus_server: '#{id}' unknown, so making a new Client with id #{conn.id}")
-                conn.write(conn.id)
-                clients[conn.id] = new Client
-                    conn           : conn
-                    logger         : winston
-                    database       : database
-                    compute_server : compute_server
-                    host           : program.host
-                    port           : program.port
-
-        conn.on("data",f)
-
-        # Given the client up to 15s to send info about itself.  If get nothing, just
-        # end the connection.
-        no_data = ->
-            if conn? and not primus_conn_sent_data
-                winston.debug("primus_server: #{conn.id} sent no data after 15s, so closing")
-                conn.end()
-        setTimeout(no_data, 15000)
-
+        dbg("new connection from #{conn.address.ip} -- #{conn.id}")
+        clients[conn.id] = new client.Client
+            conn           : conn
+            logger         : winston
+            database       : database
+            compute_server : compute_server
+            host           : program.host
+            port           : program.port
+        dbg("num_clients=#{misc.len(clients)}")
 
 #######################################################
 # Pushing a message to clients; querying for clients.
@@ -348,43 +277,15 @@ push_to_clients = (opts) ->
 
 
 reset_password = (email_address, cb) ->
-    read = require('read')
-    passwd0 = passwd1 = undefined
-    account_id = undefined
     async.series([
         (cb) ->
             connect_to_database
                 pool : 1
                 cb   : cb
         (cb) ->
-            database.get_account
+            database.reset_password
                 email_address : email_address
-                columns       : ['account_id']
-                cb            : (err, data) ->
-                    if err
-                        cb(err)
-                    else
-                        account_id = data.account_id
-                        cb()
-        (cb) ->
-            read {prompt:'Password: ', silent:true}, (err, passwd) ->
-                passwd0 = passwd; cb(err)
-        (cb) ->
-            read {prompt:'Retype password: ', silent:true}, (err, passwd) ->
-                if err
-                    cb(err)
-                else
-                    passwd1 = passwd
-                    if passwd1 != passwd0
-                        cb("Passwords do not match.")
-                    else
-                        cb()
-        (cb) ->
-            # change the user's password in the database.
-            database.change_password
-                account_id    : account_id
-                password_hash : auth.password_hash(passwd0)
-                cb            : cb
+                cb : cb
     ], (err) ->
         if err
             winston.debug("Error -- #{err}")
@@ -410,8 +311,8 @@ connect_to_database = (opts) ->
         opts.cb(); return
     dbg("connecting...")
     database = require('./postgres').db
-        host     : program.database_nodes.split(',')[0]  # postgres has only one master server
-        database : program.keyspace
+        host            : program.database_nodes.split(',')[0]  # postgres has only one master server
+        database        : program.keyspace
         concurrent_warn : program.db_concurrent_warn
     database.connect(cb:opts.cb)
 
@@ -433,8 +334,9 @@ init_compute_server = (cb) ->
         # This is used by the database when handling certain writes to make sure
         # that the there is a connection to the corresponding project, so that
         # the project can respond.
-        database.ensure_connection_to_project = (project_id) ->
-            local_hub_connection.connect_to_project(project_id, database, compute_server)
+        database.ensure_connection_to_project = (project_id, cb) ->
+            winston.debug("ensure_connection_to_project -- project_id=#{project_id}")
+            local_hub_connection.connect_to_project(project_id, database, compute_server, cb)
         cb?()
 
     if program.kucalc
@@ -504,11 +406,18 @@ stripe_sync = (dump_only, cb) ->
 #############################################
 BASE_URL = ''
 metric_blocked  = undefined
+uncaught_exception_total = undefined
 
 exports.start_server = start_server = (cb) ->
     winston.debug("start_server")
 
     winston.debug("dev = #{program.dev}")
+    if program.dev
+        # So cookies work over http, which dev mode can allow (e.g., on localhost).
+        client.COOKIE_OPTIONS.secure = false
+    else
+        # Be very sure cookies do NOT work unless over https.  IMPORTANT.
+        client.COOKIE_OPTIONS.secure = true
 
     BASE_URL = base_url.init(program.base_url)
     winston.debug("base_url='#{BASE_URL}'")
@@ -516,7 +425,7 @@ exports.start_server = start_server = (cb) ->
     fs.writeFileSync(path_module.join(SMC_ROOT, 'data', 'base_url'), BASE_URL)
 
     # the order of init below is important
-    winston.debug("port = #{program.port}, proxy_port=#{program.proxy_port}")
+    winston.debug("port = #{program.port}, proxy_port=#{program.proxy_port}, share_port=#{program.share_port}")
     winston.info("using database #{program.keyspace}")
     hosts = program.database_nodes.split(',')
     http_server = express_router = undefined
@@ -529,7 +438,9 @@ exports.start_server = start_server = (cb) ->
         # record that something blocked for over 10ms
         winston.debug("BLOCKED for #{ms}ms")
 
-    init_smc_version()
+    # Log heap memory usage info
+    memory.init(winston.debug)
+
 
     async.series([
         (cb) ->
@@ -541,6 +452,7 @@ exports.start_server = start_server = (cb) ->
                     cb(err)
                 else
                     metric_blocked = MetricsRecorder.new_counter('blocked_ms_total', 'accumulates the "blocked" time in the hub [ms]')
+                    uncaught_exception_total =  MetricsRecorder.new_counter('uncaught_exception_total', 'counts "BUG"s')
                     cb()
             )
         (cb) ->
@@ -561,6 +473,9 @@ exports.start_server = start_server = (cb) ->
                 database.update_schema(cb:cb)
             else
                 cb()
+        (cb) ->
+            # This must happen *AFTER* update_schema above.
+            init_smc_version(database, cb)
         (cb) ->
             if not program.port
                 cb(); return
@@ -585,9 +500,24 @@ exports.start_server = start_server = (cb) ->
                 dev            : program.dev
                 compute_server : compute_server
                 database       : database
+                cookie_options : client.COOKIE_OPTIONS
             {http_server, express_router} = x
             winston.debug("starting express webserver listening on #{program.host}:#{program.port}")
             http_server.listen(program.port, program.host, cb)
+        (cb) ->
+            if not program.share_port
+                cb(); return
+            t0 = new Date()
+            winston.debug("initializing the share server on port #{program.share_port}")
+            winston.debug("...... (takes about 10 seconds) ......")
+            x = require('./share/server').init
+                database       : database
+                base_url       : BASE_URL
+                share_path     : program.share_path
+                logger         : winston
+            winston.debug("Time to initialize share server (jsdom, etc.): #{(new Date() - t0)/1000} seconds")
+            winston.debug("starting share express webserver listening on #{program.share_host}:#{program.port}")
+            x.http_server.listen(program.share_port, program.host, cb)
         (cb) ->
             if not program.port
                 cb(); return
@@ -626,7 +556,7 @@ exports.start_server = start_server = (cb) ->
                     port           : program.proxy_port
                     host           : program.host
 
-            if program.port
+            if program.port or program.share_port or program.proxy_port
                 # Register periodically with the database.
                 hub_register.start
                     database   : database
@@ -677,6 +607,8 @@ command_line = () ->
     program.usage('[start/stop/restart/status/nodaemon] [options]')
         .option('--port <n>', 'port to listen on (default: 5000; 0 -- do not start)', ((n)->parseInt(n)), 5000)
         .option('--proxy_port <n>', 'port that the proxy server listens on (default: 0 -- do not start)', ((n)->parseInt(n)), 0)
+        .option('--share_path [string]', 'path that the share server finds shared files at (default: "")', String, '')
+        .option('--share_port <n>', 'port that the share server listens on (default: 0 -- do not start)', ((n)->parseInt(n)), 0)
         .option('--log_level [level]', "log level (default: debug) useful options include INFO, WARNING and DEBUG", String, "debug")
         .option('--host [string]', 'host of interface to bind to (default: "127.0.0.1")', String, "127.0.0.1")
         .option('--pidfile [string]', 'store pid in this file (default: "data/pids/hub.pid")', String, "data/pids/hub.pid")
@@ -694,7 +626,7 @@ command_line = () ->
         .option('--base_url [string]', 'Base url, so https://sitenamebase_url/', String, '')  # '' or string that starts with /
         .option('--local', 'If option is specified, then *all* projects run locally as the same user as the server and store state in .sagemathcloud-local instead of .sagemathcloud; also do not kill all processes on project restart -- for development use (default: false, since not given)', Boolean, false)
         .option('--foreground', 'If specified, do not run as a deamon')
-        .option('--kucalc', 'if given, assume running in the KuCalc kubernetes environment')
+        .option('--kucalc', 'if given, assume running in the KuCalc kubernetes environment')
         .option('--dev', 'if given, then run in VERY UNSAFE single-user local dev mode')
         .option('--single', 'if given, then run in LESS SAFE single-machine mode')
         .option('--db_pool <n>', 'number of db connections in pool (default: 1)', ((n)->parseInt(n)), 1)
@@ -713,6 +645,7 @@ command_line = () ->
             winston.debug(err.stack)
             winston.debug("BUG ****************************************************************************")
             database?.uncaught_exception(err)
+            uncaught_exception_total?.inc(1)
 
         if program.passwd
             winston.debug("Resetting password")
@@ -745,7 +678,7 @@ command_line = () ->
                      console.log("User added to project.")
                 process.exit()
         else
-            console.log("Running hub; pidfile=#{program.pidfile}, port=#{program.port}, proxy_port=#{program.proxy_port}")
+            console.log("Running hub; pidfile=#{program.pidfile}, port=#{program.port}, proxy_port=#{program.proxy_port}, share_port=#{program.share_port}")
             # logFile = /dev/null to prevent huge duplicated output that is already in program.logfile
             if program.foreground
                 start_server (err) ->

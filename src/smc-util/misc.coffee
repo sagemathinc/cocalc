@@ -60,7 +60,10 @@ exports.RUNNING_IN_NODE = process?.title == 'node'
 exports.required = required; exports.defaults = defaults; exports.types = types
 
 # startswith(s, x) is true if s starts with the string x or any of the strings in x.
+# It is false if s is not a string.
 exports.startswith = (s, x) ->
+    if typeof(s) != 'string'
+        return false
     if typeof(x) == "string"
         return s?.indexOf(x) == 0
     else
@@ -81,7 +84,7 @@ exports.merge = (dest, objs...) ->
     for obj in objs
         for k, v of obj
             dest[k] = v
-    dest
+    return dest
 
 # Makes new object that is shallow copy merge of all objects.
 exports.merge_copy = (objs...) ->
@@ -130,6 +133,8 @@ exports.search_split = (search) ->
 # s = lower case string
 # v = array of terms as output by search_split above
 exports.search_match = (s, v) ->
+    if not s?
+        return false
     for x in v
         if s.indexOf(x) == -1
             return false
@@ -180,8 +185,9 @@ exports.uuid = ->
         v = if c == 'x' then r else r & 0x3 | 0x8
         v.toString 16
 
+uuid_regexp = new RegExp(/[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}/i)
 exports.is_valid_uuid_string = (uuid) ->
-    return typeof(uuid) == "string" and uuid.length == 36 and /[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}/i.test(uuid)
+    return typeof(uuid) == "string" and uuid.length == 36 and uuid_regexp.test(uuid)
     # /[0-9a-f]{22}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i.test(uuid)
 
 exports.assert_uuid = (uuid) =>
@@ -267,7 +273,7 @@ exports.from_json_socket = (x) ->
 
 
 # convert object x to a JSON string, removing any keys that have "pass" in them and
-# any values that are potentially big -- this is meant to only be used for loging.
+# any values that are potentially big -- this is meant to only be used for logging.
 exports.to_safe_str = (x) ->
     obj = {}
     for key, value of x
@@ -359,6 +365,9 @@ exports.len = (obj) ->
 # return the keys of an object, e.g., {a:5, xyz:'10'} -> ['a', 'xyz']
 exports.keys = underscore.keys
 
+# does the given object (first arg) have the given key (second arg)?
+exports.has_key = underscore.has
+
 # returns the values of a map
 exports.values = underscore.values
 
@@ -447,6 +456,7 @@ exports.copy = (obj) ->
     return r
 
 # copy of map but without some keys
+# I.e., restrict a function to the complement of a subset of the domain.
 exports.copy_without = (obj, without) ->
     if typeof(without) == 'string'
         without = [without]
@@ -457,6 +467,7 @@ exports.copy_without = (obj, without) ->
     return r
 
 # copy of map but only with some keys
+# I.e., restrict a function to a subset of the domain.
 exports.copy_with = (obj, w) ->
     if typeof(w) == 'string'
         w = [w]
@@ -741,15 +752,15 @@ exports.retry_until_success = (opts) ->
                     opts.cb?("not_public")
                     return
                 if err and opts.warn?
-                    opts.warn("retry_until_success(#{opts.name}) -- err=#{err}")
+                    opts.warn("retry_until_success(#{opts.name}) -- err=#{JSON.stringify(err)}")
                 if opts.log?
-                    opts.log("retry_until_success(#{opts.name}) -- err=#{err}")
+                    opts.log("retry_until_success(#{opts.name}) -- err=#{JSON.stringify(err)}")
                 if opts.max_tries? and opts.max_tries <= tries
-                    opts.cb?("maximum tries (=#{opts.max_tries}) exceeded - last error #{err}")
+                    opts.cb?("maximum tries (=#{opts.max_tries}) exceeded - last error #{JSON.stringify(err)}")
                     return
                 delta = Math.min(opts.max_delay, opts.factor * delta)
                 if opts.max_time? and (new Date() - start_time) + delta > opts.max_time
-                    opts.cb?("maximum time (=#{opts.max_time}ms) exceeded - last error #{err}")
+                    opts.cb?("maximum time (=#{opts.max_time}ms) exceeded - last error #{JSON.stringify(err)}")
                     return
                 setTimeout(g, delta)
             else
@@ -1148,32 +1159,43 @@ exports.path_is_in_public_paths = (path, paths) ->
 # returns a string in paths if path is public because of that string
 # Otherwise, returns undefined.
 # IMPORTANT: a possible returned string is "", which is falsey but defined!
+# paths can be an array or object (with keys the paths)
 exports.containing_public_path = (path, paths) ->
-    if paths.length == 0
-        return
-    if not path?
+    if not paths? or not path?
         return
     if path.indexOf('../') != -1
         # just deny any potentially trickiery involving relative path segments (TODO: maybe too restrictive?)
         return
-    for p in paths
-        if p == ""  # the whole project is public, which matches everything
-            return ""
-        if path == p
-            # exact match
-            return p
-        if path.slice(0,p.length+1) == p + '/'
-            return p
+    if is_array(paths)
+        for p in paths   # array so "in"
+            if p == ""  # the whole project is public, which matches everything
+                return ""
+            if path == p
+                # exact match
+                return p
+            if path.slice(0,p.length+1) == p + '/'
+                return p
+    else if is_object(paths)
+        for p of paths    # object and want keys, so *of*
+            if p == ""  # the whole project is public, which matches everything
+                return ""
+            if path == p
+                # exact match
+                return p
+            if path.slice(0,p.length+1) == p + '/'
+                return p
+    else
+        throw Error("paths must be undefined, an array, or a map")
     if exports.filename_extension(path) == "zip"
         # is path something_public.zip ?
         return exports.containing_public_path(path.slice(0,path.length-4), paths)
     return undefined
 
 # encode a UNIX path, which might have # and % in it.
+# Maybe alternatively, (encodeURIComponent(p) for p in path.split('/')).join('/') ?
 exports.encode_path = (path) ->
     path = encodeURI(path)  # doesn't escape # and ?, since they are special for urls (but not unix paths)
     return path.replace(/#/g,'%23').replace(/\?/g,'%3F')
-
 
 # This adds a method _call_with_lock to obj, which makes it so it's easy to make it so only
 # one method can be called at a time of an object -- all calls until completion
@@ -1208,6 +1230,9 @@ exports.call_lock = (opts) ->
             obj._call_unlock()
             cb?(args...)
 
+# "Performs an optimized deep comparison between the two objects, to determine if they should be considered equal."
+exports.is_equal = underscore.isEqual
+
 exports.cmp = (a,b) ->
     if a < b
         return -1
@@ -1241,6 +1266,38 @@ timestamp_cmp0 = (a,b,field='timestamp') ->
 
 exports.field_cmp = (field) ->
     return (a, b) -> exports.cmp(a[field], b[field])
+
+# Return true if and only if a[field] != b[field] for some field.
+# Here we literally just use !=, so do not use this for non-atomic values!
+exports.is_different = (a, b, fields, why) ->
+    if not a?
+        if not b?
+            return false  # they are the same
+        # a not defined but b is
+        for field in fields
+            if b[field]?
+                if why
+                    console.log 'is_different', field, a?[field], b[field]
+                return true
+        return false
+    if not b?
+        # a is defined or would be handled above
+        for field in fields
+            if a[field]?
+                if why
+                    console.log 'is_different', field, a[field], b?[field]
+                return true  # different
+        return false  # same
+
+    for field in fields
+        if a[field] != b[field]
+            if why
+                console.log 'is_different', field, a[field], b[field]
+            return true
+    return false
+
+exports.is_different_array = (a, b) ->
+    return not underscore.isEqual(a,b)
 
 #####################
 # temporary location for activity_log code, shared by front and backend.
@@ -1317,6 +1374,18 @@ exports.activity_log = (opts) -> new ActivityLog(opts)
 # see http://stackoverflow.com/questions/1144783/replacing-all-occurrences-of-a-string-in-javascript
 exports.replace_all = (string, search, replace) ->
     string.split(search).join(replace)
+
+# Similar to misc.replace_all, except it takes as input a function replace_f, which
+# returns what to replace the i-th copy of search in string with.
+exports.replace_all_function = (string, search, replace_f) ->
+    v = string.split(search)
+    w = []
+    for i in [0...v.length]
+        w.push(v[i])
+        if i < v.length - 1
+            w.push(replace_f(i))
+    return w.join('')
+
 
 exports.remove_c_comments = (s) ->
     while true
@@ -1455,16 +1524,51 @@ exports.round2 = round2 = (num) ->
     # padding to fix floating point issue (see http://stackoverflow.com/questions/11832914/round-to-at-most-2-decimal-places-in-javascript)
     Math.round((num + 0.00001) * 100) / 100
 
-exports.seconds2hms = seconds2hms = (secs) ->
-    s = round2(secs % 60)
+# like seconds2hms, but only up to minute-resultion
+exports.seconds2hm = seconds2hm = (secs, longform) ->
+    return seconds2hms(secs, longform, false)
+
+# dear future developer: look into test/misc-test.coffee to see how the expected output is defined.
+exports.seconds2hms = seconds2hms = (secs, longform, show_seconds=true) ->
+    longform ?= false
+    if secs < 10
+        s = round2(secs % 60)
+    else if secs < 60
+        s = round1(secs % 60)
+    else
+        s = Math.round(secs % 60)
     m = Math.floor(secs / 60) % 60
     h = Math.floor(secs / 60 / 60)
-    if h == 0 and m == 0
-        return "#{s}s"
+    if (h == 0 and m == 0) and show_seconds
+        if longform
+            return "#{s} #{exports.plural(s, 'second')}"
+        else
+            return "#{s}s"
     if h > 0
-        return "#{h}h#{m}m#{s}s"
-    if m > 0
-        return "#{m}m#{s}s"
+        if longform
+            ret = "#{h} #{exports.plural(h, 'hour')}"
+            if m > 0
+                ret += " #{m} #{exports.plural(m, 'minute')}"
+            return ret
+        else
+            if show_seconds
+                return "#{h}h#{m}m#{s}s"
+            else
+                return "#{h}h#{m}m"
+    if (m > 0) or (not show_seconds)
+        if show_seconds
+            if longform
+                ret = "#{m} #{exports.plural(m, 'minute')}"
+                if s > 0
+                    ret += " #{s} #{exports.plural(s, 'second')}"
+                return ret
+            else
+                return "#{m}m#{s}s"
+        else
+            if longform
+                return "#{m} #{exports.plural(m, 'minute')}"
+            else
+                return "#{m}m"
 
 # returns the number parsed from the input text, or undefined if invalid
 # rounds to the nearest 0.01 if round_number is true (default : true)
@@ -1563,10 +1667,10 @@ exports.is_zero_map = (map) ->
 # Doesn't modify map.  If map is an array, just returns it
 # with no change even if it has undefined values.
 exports.map_without_undefined = map_without_undefined = (map) ->
-    if is_array(map)
-        return map
     if not map?
         return
+    if is_array(map)
+        return map
     new_map = {}
     for k, v of map
         if not v?
@@ -1579,8 +1683,6 @@ exports.map_mutate_out_undefined = (map) ->
     for k, v of map
         if not v?
             delete map[k]
-
-
 
 # foreground; otherwise, return false.
 exports.should_open_in_foreground = (e) ->
@@ -1773,10 +1875,13 @@ exports.peer_grading_demo = (S = 10, N = 2) ->
 exports.ticket_id_to_ticket_url = (tid) ->
     return "https://sagemathcloud.zendesk.com/requests/#{tid}"
 
+# Checks if the string only makes sense (heuristically) as downloadable url
+exports.is_only_downloadable = (string) ->
+    string.indexOf('://') != -1 or exports.startswith(string, 'git@github.com')
+
 # Apply various transformations to url's before downloading a file using the "+ New" from web thing:
 # This is useful, since people often post a link to a page that *hosts* raw content, but isn't raw
 # content, e.g., ipython nbviewer, trac patches, github source files (or repos?), etc.
-
 exports.transform_get_url = (url) ->  # returns something like {command:'wget', args:['http://...']}
     URL_TRANSFORMS =
         'http://trac.sagemath.org/attachment/ticket/'  :'http://trac.sagemath.org/raw-attachment/ticket/'
@@ -2047,4 +2152,25 @@ exports.sanitize_html_attributes = ($, node) ->
         # remove attribute value start with "javascript:" pseudo protocol, possible unsafe, e.g. href="javascript:alert(1)"
         if attrName?.indexOf('on') == 0 or attrValue?.indexOf('javascript:') == 0
             $(node).removeAttr(attrName)
+
+# common UTM parameters
+# changes must also be done in webapp-lib/_inc_analytics.pug
+exports.utm_keys = ['source', 'medium', 'campaign', 'term', 'content']
+exports.utm_cookie_name = 'CC_UTM'
+
+# referrer
+exports.referrer_cookie_name = 'CC_REF'
+
+
+exports.human_readable_size = (bytes) ->
+    if bytes < 1000
+        return "#{bytes} bytes"
+    if bytes < 1000000
+        b = Math.floor(bytes/100)
+        return "#{b/10} KB"
+    if bytes < 1000000000
+        b = Math.floor(bytes/100000)
+        return "#{b/10} MB"
+    b = Math.floor(bytes/100000000)
+    return "#{b/10} GB"
 

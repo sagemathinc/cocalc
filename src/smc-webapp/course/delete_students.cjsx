@@ -31,9 +31,14 @@ exports.DeleteStudentsPanel = rclass
 
     render_confirm_delete_student_projects: ->
         <Well style={marginTop:'10px'}>
-            All student projects will be deleted.  Are you absolutely sure?
+            All student projects will be deleted and are no longer accessible by the student.  (You will still have access to the deleted projects in the Projects page.) Are you absolutely sure?
             <ButtonToolbar style={marginTop:'10px'}>
-                <Button bsStyle='danger' onClick={=>@setState(delete_student_projects_confirm:false); @props.delete()}>YES, DELETE all Student Projects</Button>
+                <Button
+                    bsStyle='danger'
+                    onClick={=>@setState(delete_student_projects_confirm:false); @props.delete()}
+                >
+                    YES, DELETE all Student Projects
+                </Button>
                 <Button onClick={=>@setState(delete_student_projects_confirm:false)}>Cancel</Button>
             </ButtonToolbar>
         </Well>
@@ -45,7 +50,8 @@ exports.DeleteStudentsPanel = rclass
             <hr/>
             <span style={color:'#666'}>
                 If for some reason you would like to delete all the student projects
-                created for this course, you may do so by clicking below.
-                Be careful!
+                created for this course, you may do so by clicking above.
+                Be careful!<br/>
+                Students will be removed from the deleted projects.
             </span>
         </Panel>

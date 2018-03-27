@@ -27,16 +27,18 @@ _             = require('underscore')
 {redux, rclass, React, ReactDOM, rtypes, Actions, Store}  = require('./smc-react')
 
 {Button, ButtonToolbar, FormControl, FormGroup, Row, Col, Accordion, Panel, Well, Alert, ButtonGroup, InputGroup} = require('react-bootstrap')
-{ActivityDisplay, ErrorDisplay, Icon, Loading, SelectorInput, r_join, Space, TimeAgo, Tip, Footer} = require('./r_misc')
+{ActivityDisplay, CloseX, ErrorDisplay, Icon, Loading, SelectorInput, r_join, SkinnyError, Space, TimeAgo, Tip, Footer} = require('./r_misc')
 {HelpEmailLink, SiteName, PolicyPricingPageUrl, PolicyPrivacyPageUrl, PolicyCopyrightPageUrl} = require('./customize')
 
 {PROJECT_UPGRADES} = require('smc-util/schema')
+
+STUDENT_COURSE_PRICE = require('smc-util/upgrade-spec').upgrades.subscription.student_course.price.month4
 
 load_stripe = (cb) ->
     if Stripe?
         cb()
     else
-        $.getScript("https://js.stripe.com/v2/").done(->cb()).fail(->cb('Unable to load Stripe support'))
+        $.getScript("https://js.stripe.com/v2/").done(->cb()).fail(->cb('Unable to load Stripe support; make sure your browser is not blocking stripe.com.'))
 
 last_subscription_attempt = null
 
@@ -88,10 +90,12 @@ class BillingActions extends Actions
     _action: (action, desc, opts) =>
         @setState(action: desc)
         cb = opts.cb
-        opts.cb = (err) =>
+        opts.cb = (err, value) =>
             @setState(action:'')
-            if err
-                @setState(error:err)
+            if action == 'get_coupon'
+                cb(err, value)
+            else if err
+                @setState(error:JSON.stringify(err))
                 cb?(err)
             else
                 @update_customer(cb)
@@ -139,12 +143,47 @@ class BillingActions extends Actions
     create_subscription: (plan='standard') =>
         {webapp_client} = require('./webapp_client')   # do not put at top level, since some code runs on server
         lsa = last_subscription_attempt
-        if lsa? and lsa > misc.server_minutes_ago(2)
+        if lsa? and lsa.plan == plan and lsa.timestamp > misc.server_minutes_ago(2)
             @setState(action:'', error: 'Too many subscription attempts in the last minute.  Please **REFRESH YOUR BROWSER** THEN  DOUBLE CHECK YOUR SUBSCRIPTION LIST!')
         else
             @setState(error: '')
-            @_action('create_subscription', 'Create a subscription', plan : plan)
-            last_subscription_attempt = misc.server_time()
+            # TODO: Support multiple coupons.
+            if store.get('applied_coupons').size > 0
+                coupon = store.get('applied_coupons').first()
+            opts =
+                plan      : plan
+                coupon_id : coupon?.id
+            @_action('create_subscription', 'Create a subscription', opts)
+            last_subscription_attempt = {timestamp:misc.server_time(), plan:plan}
+            @track_subscription(plan)
+
+    get_coupon: (id) =>
+        cb = (err, coupon) =>
+            if err
+                @setState(coupon_error: JSON.stringify(err))
+            else
+                applied_coupons = store.get('applied_coupons').set(coupon.id, coupon)
+                @setState(applied_coupons : applied_coupons, coupon_error:'')
+
+        opts =
+            coupon_id : id
+            cb        : cb
+        @_action('get_coupon', "Getting coupon: #{id}", opts)
+
+    clear_coupon_error: =>
+        @setState(coupon_error : '')
+
+    remove_all_coupons: =>
+        @setState(applied_coupons : {}, coupon_error : '')
+
+    remove_coupon: (id) =>
+        @setState(applied_coupons : store.get('applied_coupons').delete(id))
+
+    # conversion tracking (commercial only)
+    track_subscription: (plan) =>
+        usd = 7.00 # TODO derive this from the plan
+        {track_conversion} = require('./misc_page')
+        track_conversion('subscription', usd)
 
     # Cancel all subscriptions, remove credit cards, etc. -- this is not a normal action, and is used
     # only when deleting an account.  We allow it a callback.
@@ -169,7 +208,7 @@ class BillingActions extends Actions
 
 
 actions = redux.createActions('billing', BillingActions)
-store   = redux.createStore('billing')
+store   = redux.createStore('billing', Store, {applied_coupons:{}})
 
 validate =
     valid   : {border:'1px solid green'}
@@ -209,10 +248,10 @@ AddPaymentMethod = rclass
         if field == 'State' and @state.new_payment_info.address_country != "United States"
             return
         <Row key={field}>
-            <Col sm=4>
+            <Col sm={4}>
                 {field}
             </Col>
-            <Col sm=8>
+            <Col sm={8}>
                 {control}
             </Col>
         </Row>
@@ -230,7 +269,7 @@ AddPaymentMethod = rclass
                 <FormControl
                     autoFocus
                     ref         = 'input_card_number'
-                    style       = @style('number')
+                    style       = {@style('number')}
                     type        = 'text'
                     size        = '20'
                     placeholder = '1234 5678 9012 3456'
@@ -250,7 +289,7 @@ AddPaymentMethod = rclass
                 ref         = 'input_cvc'
                 style       = {misc.merge({width:'5em'}, @style('cvc'))}
                 type        = 'text'
-                size        = 4
+                size        = '4'
                 placeholder = '···'
                 onChange    = {=>@set_input_info('cvc', 'input_cvc')}
                 disabled    = {@state.submitting}
@@ -267,8 +306,8 @@ AddPaymentMethod = rclass
 
     render_input_cvc: ->
         <Row>
-            <Col md=3>{@render_input_cvc_input()}</Col>
-            <Col md=9>{@render_input_cvc_help()}</Col>
+            <Col md={3}>{@render_input_cvc_input()}</Col>
+            <Col md={9}>{@render_input_cvc_help()}</Col>
         </Row>
 
     valid: (name) ->
@@ -383,7 +422,7 @@ AddPaymentMethod = rclass
 
     render_tax_notice: ->
         <Row>
-            <Col sm=12>
+            <Col sm={12}>
                 <Alert bsStyle='info'>
                     <h4><Icon name='exclamation-triangle' /> Notice </h4>
                     <p>Sales tax is applied in the state of Washington</p>
@@ -394,14 +433,14 @@ AddPaymentMethod = rclass
     render_input_state_zip: ->
         <div>
             <Row>
-                <Col sm=7>
+                <Col sm={7}>
                     <SelectorInput
                         options   = {STATES}
                         on_change = {(state)=>@set_input_info('address_state', '', state)}
                         disabled  = {@state.submitting}
                     />
                 </Col>
-                <Col sm=5>
+                <Col sm={5}>
                     {@render_input_zip()}
                 </Col>
             </Row>
@@ -424,10 +463,10 @@ AddPaymentMethod = rclass
     render_payment_method_buttons: ->
         <div>
             <Row>
-                <Col sm=4>
+                <Col sm={4}>
                     {powered_by_stripe()}
                 </Col>
-                <Col sm=8>
+                <Col sm={8}>
                     <ButtonToolbar className='pull-right'>
                         <Button
                             onClick  = {@submit_payment_method}
@@ -441,7 +480,7 @@ AddPaymentMethod = rclass
                 </Col>
             </Row>
             <div style={color:"#666", marginTop:'15px'}>
-                (PayPal or wire transfers are also possible -- email <HelpEmailLink/>.)
+                (PayPal or wire transfers for non-recurring subscriptions above $50 are also possible. Please email <HelpEmailLink/>.)
             </div>
         </div>
 
@@ -451,7 +490,7 @@ AddPaymentMethod = rclass
 
     render: ->
         <Row>
-            <Col sm=6 smOffset=3>
+            <Col sm={6} smOffset={3}>
                 <Well style={boxShadow:'5px 5px 5px lightgray', zIndex:2}>
                     {@render_error()}
                     {@render_payment_method_fields()}
@@ -483,13 +522,13 @@ PaymentMethod = rclass
     render_confirm_default: ->
         <Alert bsStyle='warning'>
             <Row>
-                <Col md=5 mdOffset=2>
+                <Col md={5} mdOffset={2}>
                     <p>Are you sure you want to set this payment card to be the default?</p>
                     <p>All future payments will be made with the card that is the default <b>at the time of renewal</b>.
                     Changing your default card right before a subscription renewal will cause the <Space/>
                     new default to be charged instead of the previous one.</p>
                 </Col>
-                <Col md=5>
+                <Col md={5}>
                     <ButtonToolbar>
                         <Button onClick={=>@setState(confirm_default:false)}>Cancel</Button>
                         <Button onClick={=>@setState(confirm_default:false);@props.set_as_default()} bsStyle='warning'>
@@ -503,10 +542,10 @@ PaymentMethod = rclass
     render_confirm_delete: ->
         <Alert bsStyle='danger'>
             <Row>
-                <Col md=5 mdOffset=2>
+                <Col md={5} mdOffset={2}>
                     Are you sure you want to delete this payment method?
                 </Col>
-                <Col md=5>
+                <Col md={5}>
                     <ButtonToolbar>
                         <Button onClick={=>@setState(confirm_delete:false)}>Cancel</Button>
                         <Button bsStyle='danger' onClick={=>@setState(confirm_delete:false);@props.delete_method()}>
@@ -519,22 +558,22 @@ PaymentMethod = rclass
 
     render_card: ->
         <Row>
-            <Col md=2>
+            <Col md={2}>
                 <Icon name={@icon_name()} /> {@props.source.brand}
             </Col>
-            <Col md=1>
+            <Col md={1}>
                 <em>····</em>{@props.source.last4}
             </Col>
-            <Col md=1>
+            <Col md={1}>
                 {@props.source.exp_month}/{@props.source.exp_year}
             </Col>
-            <Col md=2>
+            <Col md={2}>
                 {@props.source.name}
             </Col>
-            <Col md=1>
+            <Col md={1}>
                 {@props.source.country}
             </Col>
-            <Col md=2>
+            <Col md={2}>
                 {@props.source.address_state}
                 <Space/><Space/>
                 {@props.source.address_zip}
@@ -543,7 +582,7 @@ PaymentMethod = rclass
         </Row>
 
     render_action_buttons: ->
-        <Col md=3>
+        <Col md={3}>
             <ButtonToolbar style={float: "right"}>
                 {<Button
                     onClick  = {=>@setState(confirm_default:true)}
@@ -592,10 +631,10 @@ PaymentMethods = rclass
 
     render_header: ->
         <Row>
-            <Col sm=6>
-                <Icon name='credit-card' /> Payment Methods
+            <Col sm={6}>
+                <Icon name='credit-card' /> Payment methods
             </Col>
-            <Col sm=6>
+            <Col sm={6}>
                 {@render_add_payment_method_button()}
             </Col>
         </Row>
@@ -680,7 +719,7 @@ exports.ProjectQuotaFreeTable = ProjectQuotaFreeTable = rclass
         </div>
 
     render_header: ->
-      <div style={paddingLeft:"10px"}>
+        <div style={paddingLeft:"10px"}>
             <Icon name='battery-empty' />{' '}
             <span style={fontWeight:'bold'}>Free plan</span>
         </div>
@@ -729,11 +768,11 @@ PlanInfo = rclass
     render_plan_info_line: (name, value, data) ->
         <div key={name} style={marginBottom:'5px', marginLeft:'10px'}>
             <Tip title={data.display} tip={data.desc}>
-                <span style={fontWeight:'bold',color:'#666'}>
+                <span style={fontWeight:'bold',color:'#444'}>
                     {value * data.pricing_factor} {misc.plural(value * data.pricing_factor, data.pricing_unit)}
                 </span>
                 <Space/>
-                <span style={color:'#999'}>
+                <span style={color:'#666'}>
                     {data.display}
                 </span>
             </Tip>
@@ -760,12 +799,19 @@ PlanInfo = rclass
             </h3>
 
     render_plan_name: (plan_data) ->
+        if plan_data.desc?
+            name = plan_data.desc
+            if name.indexOf('\n') != -1
+                v = name.split('\n')
+                name = <span>{v[0].trim()}<br/>{v[1].trim()}</span>
+        else
+            name = misc.capitalize(@props.plan).replace(/_/g,' ') + ' plan'
         <div style={paddingLeft:"10px"}>
-            <Icon name={plan_data.icon} /> <span style={fontWeight:'bold'}>{misc.capitalize(@props.plan).replace(/_/g,' ')} plan</span>
+            <Icon name={plan_data.icon} /> <span style={fontWeight:'bold'}>{name}</span>
         </div>
 
     render: ->
-        plan_data = PROJECT_UPGRADES.membership[@props.plan]
+        plan_data = PROJECT_UPGRADES.subscription[@props.plan]
         if not plan_data?
             return <div>Unknown plan type: {@props.plan}</div>
 
@@ -779,7 +825,6 @@ PlanInfo = rclass
 
         <Panel
             style     = {style}
-            className = 'smc-grow'
             header    = {@render_plan_name(plan_data)}
             bsStyle   = {if @props.selected then 'primary' else 'info'}
             onClick   = {=>@props.on_click?()}
@@ -798,9 +843,11 @@ AddSubscription = rclass
     displayName : 'AddSubscription'
 
     propTypes :
-        on_close      : rtypes.func.isRequired
-        selected_plan : rtypes.string
-        actions       : rtypes.object.isRequired
+        on_close        : rtypes.func.isRequired
+        selected_plan   : rtypes.string
+        actions         : rtypes.object.isRequired
+        applied_coupons : rtypes.immutable.Map
+        coupon_error    : rtypes.string
 
     getDefaultProps: ->
         selected_plan : ''
@@ -809,7 +856,7 @@ AddSubscription = rclass
         selected_button : 'month'
 
     is_recurring: ->
-        not PROJECT_UPGRADES.membership[@props.selected_plan.split('-')[0]].cancel_at_period_end
+        not PROJECT_UPGRADES.subscription[@props.selected_plan.split('-')[0]].cancel_at_period_end
 
     submit_create_subscription: ->
         plan = @props.selected_plan
@@ -852,11 +899,11 @@ AddSubscription = rclass
 
     render_renewal_info: ->
         if @props.selected_plan
-            renews = not PROJECT_UPGRADES.membership[@props.selected_plan.split('-')[0]].cancel_at_period_end
+            renews = not PROJECT_UPGRADES.subscription[@props.selected_plan.split('-')[0]].cancel_at_period_end
             length = PROJECT_UPGRADES.period_names[@state.selected_button]
             <p style={marginBottom:'1ex', marginTop:'1ex'}>
                 {<span>This subscription will <b>automatically renew</b> every {length}.  You can cancel automatic renewal at any time.</span> if renews}
-                {<span>You will be <b>charged only once</b> for the course package, which lasts {length}.  It does <b>not automatically renew</b>.</span> if not renews}
+                {<span>You will be <b>charged only once</b> for the course package, which lasts {if length == 'year' then 'a '}{length}.  It does <b>not automatically renew</b>.</span> if not renews}
             </p>
 
     render_subscription_grid: ->
@@ -880,30 +927,35 @@ AddSubscription = rclass
             {@render_dedicated_resources() if @state.selected_button is 'dedicated_resources'}
         ###
 
-    render_create_subscription_confirm: ->
+    render_create_subscription_confirm: (plan_data) ->
         if @is_recurring()
             subscription = " and you will be signed up for a recurring subscription"
+        name = plan_data.desc ? misc.capitalize(@props.selected_plan).replace(/_/g,' ') + ' plan'
         <Alert>
             <h4><Icon name='check' /> Confirm your selection </h4>
-            <p>You have selected the <span style={fontWeight:'bold'}>{misc.capitalize(@props.selected_plan).replace(/_/g,' ')} subscription</span>.</p>
+            <p>You have selected a <span style={fontWeight:'bold'}>{name} subscription</span>.</p>
             {@render_renewal_info()}
-            <p>By clicking 'Add Subscription' your payment card will be immediately charged{subscription}.</p>
+            <p>By clicking 'Add Subscription or Course Package' below, your payment card will be immediately charged{subscription}.</p>
         </Alert>
 
     render_create_subscription_buttons: ->
         <Row>
-            <Col sm=4>
+            <Col sm={4}>
                 {powered_by_stripe()}
             </Col>
-            <Col sm=8>
+            <Col sm={8}>
                 <ButtonToolbar className='pull-right'>
                     <Button
                         bsStyle  = 'primary'
+                        bsSize   = 'large'
                         onClick  = {=>(@submit_create_subscription();@props.on_close())}
                         disabled = {@props.selected_plan is ''} >
-                        <Icon name='check' /> Add Subscription
+                        <Icon name='check' /> Add Subscription or Course Package
                     </Button>
-                    <Button onClick={@props.on_close}>
+                    <Button
+                        onClick  = {@props.on_close}
+                        bsSize   = 'large'
+                        >
                         Cancel
                     </Button>
                 </ButtonToolbar>
@@ -911,14 +963,20 @@ AddSubscription = rclass
         </Row>
 
     render: ->
+        plan_data = PROJECT_UPGRADES.subscription[@props.selected_plan.split('-')[0]]
         <Row>
-            <Col sm=10 smOffset=1>
+            <Col sm={10} smOffset={1}>
                 <Well style={boxShadow:'5px 5px 5px lightgray', zIndex:1}>
                     {@render_create_subscription_options()}
-                    {@render_create_subscription_confirm() if @props.selected_plan isnt ''}
+                    {@render_create_subscription_confirm(plan_data) if @props.selected_plan isnt ''}
                     {<ConfirmPaymentMethod
                         is_recurring = {@is_recurring()}
                     /> if @props.selected_plan isnt ''}
+                    <Row>
+                        <Col sm={5} smOffset={7}>
+                            {<CouponAdder applied_coupons={@props.applied_coupons} coupon_error={@props.coupon_error} />}
+                        </Col>
+                    </Row>
                     {@render_create_subscription_buttons()}
                 </Well>
                 <ExplainResources type='shared'/>
@@ -942,11 +1000,9 @@ ConfirmPaymentMethod = rclass
 
     render_recurring_payment_confirmation: ->
         <span>
-            <p>The initial payment will be processed with the card below.</p>
-            <p>Future payments will be made with your default card<Space/>
-            <b>at the time of renewal</b>.
-            Changing your default card right before renewal will cause the <Space/>
-            new default to be charged instead of the previous one.</p>
+            <p>The initial payment will be processed with the card below.
+            Future payments will be made with whichever card you have set as your default<Space/>
+            <b>at the time of renewal</b>.</p>
         </span>
 
     render: ->
@@ -965,6 +1021,103 @@ ConfirmPaymentMethod = rclass
             </Well>
         </Alert>
 
+CouponAdder = rclass
+    displayName : 'CouponAdder'
+
+    propTypes:
+        applied_coupons : rtypes.immutable.Map
+        coupon_error    : rtypes.string
+
+    getInitialState: ->
+        coupon_id : ''
+
+    # Remove typed coupon if it got successfully added to the list
+    componentWillReceiveProps: (next_props) ->
+        if next_props.applied_coupons.has(@state.coupon_id)
+            @setState(coupon_id : '')
+
+    key_down: (e) ->
+        if e.keyCode == 13
+            @submit()
+
+    submit: (e) ->
+        e?.preventDefault()
+        @actions('billing').get_coupon(@state.coupon_id) if @state.coupon_id
+
+    render_well_header: ->
+        if @props.applied_coupons?.size > 0
+            <h5 style={color:'green'}><Icon name='check' /> Coupon added!</h5>
+        else
+            <h5 style={color:'#666'}><Icon name='plus' /> Add a coupon?</h5>
+
+    render: ->
+
+        # TODO: (Here or elsewhere) Your final cost is:
+        #       $2 for the first month
+        #       $7/mo after the first
+        if @props.applied_coupons?.size > 0
+            placeholder_text = 'Enter another code?'
+        else
+            placeholder_text = 'Enter your code here...'
+
+        if @state.coupon_id == ''
+            bsStyle = undefined
+        else
+            bsStyle = 'primary'
+
+        <Well>
+            {@render_well_header()}
+            {<CouponList applied_coupons={@props.applied_coupons} /> if @props.applied_coupons?.size > 0}
+            {<FormGroup style={marginTop:'5px'}>
+                <InputGroup>
+                    <FormControl
+                        value       = {@state.coupon_id}
+                        ref         = 'coupon_adder'
+                        type        = 'text'
+                        size        = '7'
+                        placeholder = {placeholder_text}
+                        onChange    = {(e) => @setState(coupon_id : e.target.value)}
+                        onKeyDown   = {@key_down}
+                        onBlur      = {@submit}
+                    />
+                    <InputGroup.Button>
+                        <Button onClick={@submit} disabled={@state.coupon_id == ''} bsStyle={bsStyle} >
+                            Apply
+                        </Button>
+                    </InputGroup.Button>
+                </InputGroup>
+            </FormGroup> if @props.applied_coupons?.size == 0}
+            {<SkinnyError error_text={@props.coupon_error} on_close={@actions('billing').clear_coupon_error} /> if @props.coupon_error}
+        </Well>
+
+CouponList = rclass
+    displayName : 'CouponList'
+
+    propTypes:
+        applied_coupons : rtypes.immutable.Map
+
+    render: ->
+        # TODO: Support multiple coupons
+        coupon = @props.applied_coupons.first()
+        <CouponInfo coupon={coupon}/>
+
+CouponInfo = rclass
+    displayName : 'CouponInfo'
+
+    propTypes:
+        coupon : rtypes.object
+
+    render: ->
+        <Row>
+            <Col md={4}>
+                {@props.coupon.id}
+            </Col>
+            <Col md={8}>
+                {@props.coupon.metadata.description}
+                <CloseX on_close={=>@actions('billing').remove_coupon(@props.coupon.id)} />
+            </Col>
+        </Row>
+
 
 exports.SubscriptionGrid = SubscriptionGrid = rclass
     displayName : 'SubscriptionGrid'
@@ -978,7 +1131,7 @@ exports.SubscriptionGrid = SubscriptionGrid = rclass
         is_static : false
 
     is_selected: (plan, period) ->
-        if @props.period is 'year'
+        if @props.period?.slice(0, 4) is 'year'
             return @props.selected_plan is "#{plan}-year"
         else
             return @props.selected_plan is plan
@@ -1009,7 +1162,7 @@ exports.SubscriptionGrid = SubscriptionGrid = rclass
         for row in PROJECT_UPGRADES.live_subscriptions
             v = []
             for x in row
-                price_keys = _.keys(PROJECT_UPGRADES.membership[x].price)
+                price_keys = _.keys(PROJECT_UPGRADES.subscription[x].price)
                 if _.intersection(periods, price_keys).length > 0
                     v.push(x)
             if v.length > 0
@@ -1037,7 +1190,7 @@ exports.ExplainResources = ExplainResources = rclass
     render_shared: ->
         <div>
             <Row>
-                <Col md=8 sm=12>
+                <Col md={8} sm={12}>
                     <a name="projects"></a>
                     <h4>Projects</h4>
                     <div>
@@ -1045,7 +1198,7 @@ exports.ExplainResources = ExplainResources = rclass
                     You may create any number of independent projects.
                     They form your personal workspaces,
                     where you privately store your files, computational worksheets, and data.
-                    You typically run computations through the web-interface,
+                    You typically run computations through a web browser,
                     either via a worksheet, notebook, or by executing a program in a terminal
                     (you can also ssh into any project).
                     You can also invite collaborators to work with you inside a project,
@@ -1056,14 +1209,11 @@ exports.ExplainResources = ExplainResources = rclass
 
                     <h4>Shared Resources</h4>
                     <div>
-                    Each projects runs on a server, where it shares disk space, CPU, and RAM with other projects.
-                    Initially, projects run with default free quotas on heavily used free machines that are rebooted frequently.
+                    Each project runs on a server, where it shares disk space, CPU, and RAM with other projects.
+                    Initially, projects run with default quotas on heavily used machines that are rebooted frequently.
                     You can upgrade any quota on any project on which you collaborate, and you can move projects
                     to faster very stable <em>members-only computers</em>,
                     where there is much less competition for resources.
-                    If a project on a free computer is not used for a few weeks, it gets moved to secondary storage, and
-                    starting it up will take longer; in contrast, projects on members-only computers always start
-                    up very quickly.
                     </div>
                     <Space/>
 
@@ -1078,10 +1228,10 @@ exports.ExplainResources = ExplainResources = rclass
                     </li>
                     <li>Project collaborators can collectively contribute to the same project,
                         in order to increase the quotas of their common project
-                        &mdash; these contributions benefit all project collaborators.</li>
-                    <li>You can remove your contributions to any project (owner or collaborator) at any time.</li>
-                    <li>You may also subscribe to the same subscription more than once,
-                        in order to increase your total amount of quota upgrades.</li>
+                        &mdash; these contributions add together to benefit all project collaborators equally.</li>
+                    <li>You can remove your contributions to any project at any time.</li>
+                    <li>You may also purchase multiple plans more than once,
+                        in order to increase the total amount of upgrades available to you.</li>
                     </ul>
                     </div>
                     <Space/>
@@ -1093,12 +1243,12 @@ exports.ExplainResources = ExplainResources = rclass
                     </div>
                     <Space/>
                 </Col>
-                <Col md=4 sm=12>
+                <Col md={4} sm={12}>
                     <Row>
-                        <Col md=12 sm=6>
+                        <Col md={12} sm={6}>
                             <ProjectQuotaFreeTable/>
                         </Col>
-                        <Col md=12 sm=6>
+                        <Col md={12} sm={6}>
                             <ProjectQuotaBoundsTable/>
                         </Col>
                     </Row>
@@ -1108,7 +1258,7 @@ exports.ExplainResources = ExplainResources = rclass
 
     render_dedicated: ->
         <div>
-            <h4>Dedicated Resources</h4>
+            <h4>Dedicated resources</h4>
             You may also rent dedicated computers.
             Projects on such a machine of your choice get full use of the hard disk, CPU and RAM,
             and do <em>not</em> have to compete with other users for resources.
@@ -1149,8 +1299,7 @@ exports.ExplainPlan = ExplainPlan = rclass
                 <p>
                 We offer course packages to support teaching using <SiteName/>.
                 They start right after purchase and last for the indicated period and do <b>not auto-renew</b>.
-                Following <a href="https://tutorial.cocalc.com/" target="_blank">this
-                guide</a>, create a course file.
+                Following <a href="https://tutorial.cocalc.com/" target="_blank">this guide</a>, create a course file.
                 Each time you add a student to your course, a project will be automatically created for that student.
                 You can create and distribute assignments,
                 students work on assignments inside their project (where you can see their progress
@@ -1159,24 +1308,31 @@ exports.ExplainPlan = ExplainPlan = rclass
                 </p>
 
                 <p>
-                Paying is optional, but will ensure that your students have a better
+                Payment is required. This will ensure that your students have a better
                 experience, network access, and receive priority support.  The cost
-                is <b>between $4 and $9 per student</b>, depending on class size and whether
+                is <b>between $4 and ${STUDENT_COURSE_PRICE} per student</b>, depending on class size and whether
                 you or your students pay.  <b>Start right now:</b> <i>you can fully setup your class
                 and add students immediately before you pay us anything!</i>
 
                 </p>
 
-                <h4>Your or your institution pays</h4>
-                You or your institution may pay for one of the course plans.  You then use your plan to upgrade
-                all projects in the course in the settings tab of the course file.
+                <h4>You or your institution pays</h4>
+                You or your institution may pay for one of the course plans.
+                You then use your plan to upgrade all projects in the course in the settings tab of the course file.
 
                 <h4>Students pay</h4>
                 In the settings tab of your course, you require that all students
-                pay a one-time $9 fee to move their
+                pay a one-time ${STUDENT_COURSE_PRICE} fee to move their
                 projects to members only hosts and enable full internet access.
 
                 <br/>
+
+                <h4>Basic or Standard?</h4>
+                Our basic plans work well for cases where you are only doing
+                small computations or just need internet access and better hosting uptime.
+
+                However, we find that many data science and computational science courses
+                run much smoother with the additional RAM and CPU found in the standard plan.
 
                 <br/>
 
@@ -1195,10 +1351,10 @@ exports.ExplainPlan = ExplainPlan = rclass
 # ~~~ FAQ START
 
 # some variables used in the text below
-faq_course_120 = 2 * PROJECT_UPGRADES.membership.medium_course.benefits.member_host
-faq_academic_students =  PROJECT_UPGRADES.membership.small_course.benefits.member_host
-faq_academic_nb_standard = Math.ceil(faq_academic_students / PROJECT_UPGRADES.membership.standard.benefits.member_host)
-faq_academic_full = faq_academic_nb_standard * 4 * PROJECT_UPGRADES.membership.standard.price.month
+faq_course_120 = 2 * PROJECT_UPGRADES.subscription.medium_course.benefits.member_host
+faq_academic_students =  PROJECT_UPGRADES.subscription.small_course.benefits.member_host
+faq_academic_nb_standard = Math.ceil(faq_academic_students / PROJECT_UPGRADES.subscription.standard.benefits.member_host)
+faq_academic_full = faq_academic_nb_standard * 4 * PROJECT_UPGRADES.subscription.standard.price.month
 faq_idle_time_free_h = require('smc-util/schema').DEFAULT_QUOTAS.mintime / 60 / 60
 
 # the structured react.js FAQ text
@@ -1326,8 +1482,8 @@ FAQS =
     private:
         q: <span>Which plan offers <b>"private" file storage</b>?</span>
         a: <span>All our plans (free and paid) host your files privately by default.
-            Please read our <a target="_blank" href=PolicyPrivacyPageUrl>Privacy Policy</a> and {" "}
-            <a target="_blank" href=PolicyCopyrightPageUrl>Copyright Notice</a>.
+            Please read our <a target="_blank" href={PolicyPrivacyPageUrl}>Privacy Policy</a> and {" "}
+            <a target="_blank" href={PolicyCopyrightPageUrl}>Copyright Notice</a>.
            </span>
     git:
         q: <span>Can I work with <b>Git</b> &mdash; including GitHub, Bitbucket, GitLab, etc.?</span>
@@ -1419,17 +1575,17 @@ Subscription = rclass
         sub = @props.subscription
         cancellable = not (sub.cancel_at_period_end or @state.cancelling or @state.confirm_cancel)
         <Row style={paddingBottom: '5px', paddingTop:'5px'}>
-            <Col md=4>
+            <Col md={4}>
                 {@quantity()} {sub.plan.name} ({misc.stripe_amount(sub.plan.amount, sub.plan.currency)} for {plan_interval(sub.plan)})
             </Col>
-            <Col md=2>
+            <Col md={2}>
                 {misc.capitalize(sub.status)}
             </Col>
-            <Col md=4 style={color:'#666'}>
+            <Col md={4} style={color:'#666'}>
                 {misc.stripe_date(sub.current_period_start)} – {misc.stripe_date(sub.current_period_end)} (start: {misc.stripe_date(sub.start)})
                 {@render_cancel_at_end()}
             </Col>
-            <Col md=2>
+            <Col md={2}>
                 {<Button style={float:'right'} onClick={=>@setState(confirm_cancel:true)}>Cancel...</Button> if cancellable}
             </Col>
         </Row>
@@ -1439,10 +1595,10 @@ Subscription = rclass
             return
         <Alert bsStyle='warning'>
             <Row style={borderBottom:'1px solid #999', paddingBottom:'15px', paddingTop:'15px'}>
-                <Col md=6>
+                <Col md={6}>
                     Are you sure you want to cancel this subscription?  If you cancel your subscription, it will run to the end of the subscription period, but will not be renewed when the current (already paid for) period ends; any upgrades provided by this subscription will be disabled.    If you need further clarification or need a refund, please email  <HelpEmailLink/>.
                 </Col>
-                <Col md=6>
+                <Col md={6}>
                     <Button onClick={=>@setState(confirm_cancel:false)}>Make no change</Button>
                     <div style={float:'right'}>
                         <Button bsStyle='danger' onClick={=>@setState(confirm_cancel:false);@cancel_subscription()}>CANCEL: do not auto-renew my subscription</Button>
@@ -1462,13 +1618,20 @@ Subscriptions = rclass
     displayName : 'Subscriptions'
 
     propTypes :
-        subscriptions : rtypes.object
-        sources       : rtypes.object.isRequired
-        selected_plan : rtypes.string
-        redux         : rtypes.object.isRequired
+        subscriptions   : rtypes.object
+        sources         : rtypes.object.isRequired
+        selected_plan   : rtypes.string
+        redux           : rtypes.object.isRequired
+        applied_coupons : rtypes.immutable.Map
+        coupon_error    : rtypes.string
 
     getInitialState: ->
         state : 'view'    # view -> add_new ->         # FUTURE: ??
+
+    close_add_subscription: ->
+        @setState(state : 'view')
+        set_selected_plan('')
+        @actions('billing').remove_all_coupons()
 
     render_add_subscription_button: ->
         <Button
@@ -1476,21 +1639,23 @@ Subscriptions = rclass
             disabled  = {@state.state isnt 'view' or @props.sources.total_count is 0}
             onClick   = {=>@setState(state : 'add_new')}
             className = 'pull-right' >
-            <Icon name='plus-circle' /> Add Subscription...
+            <Icon name='plus-circle' /> Add Subscription or Course Package...
         </Button>
 
     render_add_subscription: ->
         <AddSubscription
-            on_close      = {=>@setState(state : 'view'); set_selected_plan('')}
-            selected_plan = {@props.selected_plan}
-            actions       = {@props.redux.getActions('billing')} />
+            on_close        = {@close_add_subscription}
+            selected_plan   = {@props.selected_plan}
+            actions         = {@props.redux.getActions('billing')}
+            applied_coupons = {@props.applied_coupons}
+            coupon_error    = {@props.coupon_error} />
 
     render_header: ->
         <Row>
-            <Col sm=6>
-                <Icon name='list-alt' /> Subscriptions
+            <Col sm={6}>
+                <Icon name='list-alt' /> Subscriptions and Course Packages
             </Col>
-            <Col sm=6>
+            <Col sm={6}>
                 {@render_add_subscription_button()}
             </Col>
         </Row>
@@ -1545,25 +1710,25 @@ Invoice = rclass
 
     render_line_item: (line, n) ->
         <Row key={line.id} style={borderBottom:'1px solid #aaa'}>
-            <Col sm=1>
+            <Col sm={1}>
                 {n}.
             </Col>
-            <Col sm=9>
+            <Col sm={9}>
                 {@render_line_description(line)}
             </Col>
-            <Col sm=2>
+            <Col sm={2}>
                 {render_amount(line.amount, @props.invoice.currency)}
             </Col>
         </Row>
 
     render_tax: ->
         <Row key='tax' style={borderBottom:'1px solid #aaa'}>
-            <Col sm=1>
+            <Col sm={1}>
             </Col>
-            <Col sm=9>
+            <Col sm={9}>
                 WA State Sales Tax ({@props.invoice.tax_percent}%)
             </Col>
-            <Col sm=2>
+            <Col sm={2}>
                 {render_amount(@props.invoice.tax, @props.invoice.currency)}
             </Col>
         </Row>
@@ -1585,20 +1750,20 @@ Invoice = rclass
 
     render: ->
         <Row style={borderBottom:'1px solid #999'}>
-            <Col md=1>
+            <Col md={1}>
                 {render_amount(@props.invoice.amount_due, @props.invoice.currency)}
             </Col>
-            <Col md=1>
+            <Col md={1}>
                 {@render_paid_status()}
             </Col>
-            <Col md=3>
+            <Col md={3}>
                 {misc.stripe_date(@props.invoice.date)}
             </Col>
-            <Col md=6>
+            <Col md={6}>
                 {@render_description()}
                 {@render_line_items()}
             </Col>
-            <Col md=1>
+            <Col md={1}>
                 <a onClick={@download_invoice} href=""><Icon name="cloud-download" /></a>
             </Col>
         </Row>
@@ -1612,7 +1777,7 @@ InvoiceHistory = rclass
 
     render_header: ->
         <span>
-            <Icon name="list-alt" /> Invoices and Receipts
+            <Icon name="list-alt" /> Invoices and receipts
         </span>
 
     render_invoices: ->
@@ -1666,11 +1831,11 @@ exports.PayCourseFee = PayCourseFee = rclass
     render_buy_button: ->
         if @props.redux.getStore('billing').get(@key())
             <Button bsStyle='primary' disabled={true}>
-                <Icon name="cc-icon-cocalc-ring" spin /> Paying the one-time $9 fee for this course...
+                <Icon name="cc-icon-cocalc-ring" spin /> Paying the one-time ${STUDENT_COURSE_PRICE} fee for this course...
             </Button>
         else
             <Button onClick={=>@setState(confirm:true)} disabled={@state.confirm} bsStyle='primary'>
-                Pay the one-time $9 fee for this course...
+                Pay the one-time ${STUDENT_COURSE_PRICE} fee for this course...
             </Button>
 
     render_confirm_button: ->
@@ -1678,12 +1843,12 @@ exports.PayCourseFee = PayCourseFee = rclass
             if @props.redux.getStore('account').get_total_upgrades().network > 0
                 network = " and full internet access enabled"
             <Well style={marginTop:'1em'}>
-                You will be charged a one-time $9 fee to move your project to a
+                You will be charged a one-time ${STUDENT_COURSE_PRICE} fee to move your project to a
                 members-only server and enable full internet access.
                 <br/><br/>
                 <ButtonToolbar>
                     <Button onClick={@buy_subscription} bsStyle='primary'>
-                        Pay $9 fee
+                        Pay ${STUDENT_COURSE_PRICE} fee
                     </Button>
                     <Button onClick={=>@setState(confirm:false)}>Cancel</Button>
                 </ButtonToolbar>
@@ -1744,13 +1909,15 @@ BillingPage = rclass
 
     reduxProps :
         billing :
-            customer      : rtypes.object
-            invoices      : rtypes.object
-            error         : rtypes.string
-            action        : rtypes.string
-            loaded        : rtypes.bool
-            no_stripe     : rtypes.bool     # if true, stripe definitely isn't configured on the server
-            selected_plan : rtypes.string
+            customer        : rtypes.object
+            invoices        : rtypes.object
+            error           : rtypes.oneOfType([rtypes.string, rtypes.object])
+            action          : rtypes.string
+            loaded          : rtypes.bool
+            no_stripe       : rtypes.bool     # if true, stripe definitely isn't configured on the server
+            selected_plan   : rtypes.string
+            applied_coupons : rtypes.immutable.Map
+            coupon_error    : rtypes.string
         projects :
             project_map : rtypes.immutable # used, e.g., for course project payments; also computing available upgrades
         account :
@@ -1763,9 +1930,7 @@ BillingPage = rclass
 
     render_action: ->
         if @props.action
-            <div style={position:'relative', top:'-70px'}>   {# probably ActivityDisplay should manage its own position better. }
-                <ActivityDisplay activity ={[@props.action]} on_clear={=>@props.redux.getActions('billing').clear_action()} />
-            </div>
+            <ActivityDisplay style={position:'fixed', right:'45px', top:'85px'} activity ={[@props.action]} on_clear={=>@props.redux.getActions('billing').clear_action()} />
 
     render_error: ->
         if @props.error
@@ -1793,10 +1958,10 @@ BillingPage = rclass
                 # no payment sources yet; no subscriptions either: a new user (probably)
                 <span>
                     Click "Add Payment Method..." to add your credit card, then
-                    click "Add Subscription..." and
+                    click "Add Subscription or Course Package..." and
                     choose from either a monthly, yearly or semester-long plan.
                     You will <b>not be charged</b> until you select a specific subscription then click
-                    "Add Subscription".
+                    "Add Subscription or Course Package".
                     {help}
                 </span>
             else
@@ -1806,17 +1971,18 @@ BillingPage = rclass
                     purchase or renew your subscriptions.  Without a credit card
                     any current subscriptions will run to completion, but will not renew.
                     If you have any questions about subscriptions or billing (e.g., about
-                    using PayPal or wire transfers instead), please email <HelpEmailLink /> immediately.
+                    using PayPal or wire transfers for non-recurring subscriptions above $50,
+                    please email <HelpEmailLink /> immediately.
                 </span>
 
         else if subs == 0
             # have a payment source, but no subscriptions
             <span>
-                Click "Add Subscription...", then
+                Click "Add Subscription or Course Package...", then
                 choose from either a monthly, yearly or semester-long plan (you may sign up for the
                 same subscription more than once to increase the number of upgrades).
                 You will be charged only after you select a specific subscription and click
-                "Add Subscription".
+                "Add Subscription or Course Package".
                 {help}
             </span>
         else if invoices == 0
@@ -1837,7 +2003,7 @@ BillingPage = rclass
 
     render_info_link: ->
         <div style={marginTop:'1em', marginBottom:'1em', color:"#666"}>
-            We offer many <a href=PolicyPricingPageUrl target='_blank'> pricing and subscription options</a>.
+            We offer many <a href={PolicyPricingPageUrl} target='_blank'> pricing and subscription options</a>.
             <Space/>
             {@render_suggested_next_step()}
         </div>
@@ -1849,10 +2015,12 @@ BillingPage = rclass
 
     render_subscriptions: ->
         <Subscriptions
-            subscriptions = {@props.customer.subscriptions}
-            sources       = {@props.customer.sources}
-            selected_plan = {@props.selected_plan}
-            redux         = {@props.redux} />
+            subscriptions   = {@props.customer.subscriptions}
+            applied_coupons = {@props.applied_coupons}
+            coupon_error    = {@props.coupon_error}
+            sources         = {@props.customer.sources}
+            selected_plan   = {@props.selected_plan}
+            redux           = {@props.redux} />
 
     render_page: ->
         cards    = @props.customer?.sources?.total_count ? 0
@@ -1870,7 +2038,7 @@ BillingPage = rclass
             if @props.is_simplified and subs > 0
                 <div>
                     <PaymentMethods redux={@props.redux} sources={@props.customer.sources} default={@props.customer.default_source} />
-                    {<Panel header={@get_panel_header('list-alt', 'Subscriptions')} eventKey='2'>
+                    {<Panel header={@get_panel_header('list-alt', 'Subscriptions and Course Packages')} eventKey='2'>
                         {@render_subscriptions()}
                     </Panel> if not @props.for_course}
                 </div>
@@ -1938,7 +2106,6 @@ exports.render_static_pricing_page = () ->
         <hr/>
         <ExplainPlan type='personal'/>
         <SubscriptionGrid period='month year' is_static={true}/>
-        {# <Space/><ExplainResources type='dedicated'/> }
         <hr/>
         <ExplainPlan type='course'/>
         <SubscriptionGrid period='month4 year1' is_static={true}/>

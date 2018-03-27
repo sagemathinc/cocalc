@@ -32,18 +32,21 @@ misc = require('smc-util/misc')
 {redux} = require('./smc-react')
 {FileEditor, codemirror_session_editor} = require('./editor')
 
-sagews  = require('./sagews')
+sagews  = require('./sagews/sagews')
 jupyter = require('./editor_jupyter')
 {jupyter_history_viewer_jquery_shim} = require('./jupyter/history-viewer')
-tasks   = require('./tasks')
+{tasks_history_viewer_jquery_shim} = require('./tasks/history-viewer')
 
 templates = $("#webapp-editor-templates")
 
+{file_associations} = require('./file-associations')
+
 class exports.HistoryEditor extends FileEditor
-    constructor: (@project_id, @filename, content, opts) ->
-        if window.smc?
-            window.h = @ # for debugging
-        super(@project_id, @filename)
+    constructor: (project_id, filename, content, opts) ->
+        super(project_id, filename)
+        #if window.smc?
+        #    window.h = @ # for debugging
+        @_use_timeago = not redux.getStore('account').getIn(['other_settings', 'time_ago_absolute'])
         @init_paths()
         @element  = templates.find(".webapp-editor-history").clone()
         async.series([
@@ -124,17 +127,20 @@ class exports.HistoryEditor extends FileEditor
     init_view_doc: (opts, cb) =>
         opts.mode = ''
         opts.read_only = true
+        @_use_react = false
         switch @ext
             when 'ipynb'
                 if @jupyter_classic()
                     @view_doc = jupyter.jupyter_notebook(@, @_open_file_path, opts).data("jupyter_notebook")
                     @element.find("a[href=\"#show-diff\"]").hide()
                 else
+                    @_use_react = true
                     @view_doc = jupyter_history_viewer_jquery_shim(@syncstring)
                     @diff_doc = codemirror_session_editor(@project_id, @filename, opts)
             when 'tasks'
-                @view_doc = tasks.task_list(undefined, undefined, {viewer:true}).data('task_list')
+                @view_doc = tasks_history_viewer_jquery_shim(@syncstring)
                 @diff_doc = codemirror_session_editor(@project_id, @filename, opts)
+                @_use_react = true
             else
                 @view_doc = codemirror_session_editor(@project_id, @filename, opts)
 
@@ -208,6 +214,12 @@ class exports.HistoryEditor extends FileEditor
                 path       : @_open_file_path
                 foreground : true
 
+        open_snapshots = () =>
+            redux.getProjectActions(@project_id).open_directory(".snapshots")
+
+        @element.find("a[href=\"#snapshots\"]").click () =>
+            open_snapshots()
+
         @element.find("a[href=\"#file\"]").click(open_file)
 
         @element.find("a[href=\"#revert\"]").click () =>
@@ -274,7 +286,7 @@ class exports.HistoryEditor extends FileEditor
     set_doc: (time) =>
         if not time?
             return
-        if @ext == 'ipynb' and not @jupyter_classic()
+        if @_use_react
             @view_doc.set_version(time)
         else
             val = @syncstring.version(time).to_str()
@@ -293,7 +305,7 @@ class exports.HistoryEditor extends FileEditor
             # nothing to do if syncstring isn't opened/initialized yet.
             return
         # Set the doc to show a diff from time0 to time1
-        if @ext == 'ipynb' and not @jupyter_classic()
+        if @_use_react
             v0 = @view_doc.to_str(time0)
             v1 = @view_doc.to_str(time1)
         else
@@ -403,7 +415,7 @@ class exports.HistoryEditor extends FileEditor
         @slider.slider("option", "value", @revision_num)
         @update_buttons()
         t = time.toLocaleString()
-        @element.find(".webapp-editor-history-revision-time").text($.timeago(t)).attr('title', t)
+        @element.find(".webapp-editor-history-revision-time").text(if @_use_timeago then $.timeago(t) else t).attr('title', t)
         @element.find(".webapp-editor-history-revision-number").text(", revision #{num+1} (of #{@length})")
         account_id = @syncstring.account_id(time)
         time_sent  = @syncstring.time_sent(time)
@@ -451,9 +463,9 @@ class exports.HistoryEditor extends FileEditor
         @diff_slider.slider("option", "values", [num1, num2])
         @update_buttons()
         t1 = time1.toLocaleString()
-        @element.find(".webapp-editor-history-revision-time").text($.timeago(t1)).attr('title', t1)
+        @element.find(".webapp-editor-history-revision-time").text(if @_use_timeago then $.timeago(t1) else t1).attr('title', t1)
         t2 = time2.toLocaleString()
-        @element.find(".webapp-editor-history-revision-time2").text($.timeago(t2)).attr('title', t2)
+        @element.find(".webapp-editor-history-revision-time2").text(if @_use_timeago then $.timeago(t2) else t2).attr('title', t2)
         @element.find(".webapp-editor-history-revision-number").text(", revisions #{num1+1} to #{num2+1} (of #{@length})")
         return [time1, time2]
 
@@ -466,8 +478,8 @@ class exports.HistoryEditor extends FileEditor
             return
         @length = @syncstring.all_versions().length
         @revision_num = @length - 1
-        if @ext != "" and require('./editor').file_associations[@ext]?.opts.mode?
-            @view_doc.codemirror?.setOption("mode", require('./editor').file_associations[@ext].opts.mode)
+        if @ext != "" and file_associations[@ext]?.opts.mode?
+            @view_doc.codemirror?.setOption("mode", file_associations[@ext].opts.mode)
 
         # debounce actually setting the document content just a little
         set_doc = underscore.debounce(((time)=>@set_doc(time)), 150)

@@ -63,282 +63,13 @@ require('./console')
  len, path_split, uuid} = require('smc-util/misc')
 
 syncdoc  = require('./syncdoc')
-sagews   = require('./sagews')
+sagews   = require('./sagews/sagews')
 printing = require('./printing')
 
 copypaste = require('./copy-paste-buffer')
 {extra_alt_keys} = require('mobile/codemirror')
 
-codemirror_associations =
-    c      : 'text/x-c'
-    'c++'  : 'text/x-c++src'
-    cql    : 'text/x-sql'
-    cpp    : 'text/x-c++src'
-    cc     : 'text/x-c++src'
-    tcc    : 'text/x-c++src'
-    conf   : 'nginx'   # should really have a list of different types that end in .conf and autodetect based on heuristics, letting user change.
-    csharp : 'text/x-csharp'
-    'c#'   : 'text/x-csharp'
-    clj    : 'text/x-clojure'
-    cljs   : 'text/x-clojure'
-    cljc   : 'text/x-clojure'
-    edn    : 'text/x-clojure'
-    elm    : 'text/x-elm'
-    cjsx   : 'text/cjsx'
-    coffee : 'coffeescript'
-    css    : 'css'
-    diff   : 'text/x-diff'
-    dtd    : 'application/xml-dtd'
-    e      : 'text/x-eiffel'
-    ecl    : 'ecl'
-    f      : 'text/x-fortran'    # https://github.com/mgaitan/CodeMirror/tree/be73b866e7381da6336b258f4aa75fb455623338/mode/fortran
-    f90    : 'text/x-fortran'
-    f95    : 'text/x-fortran'
-    h      : 'text/x-c++hdr'
-    hpp    : 'text/x-c++hdr'
-    hs     : 'text/x-haskell'
-    lhs    : 'text/x-haskell'
-    html   : 'htmlmixed'
-    jade   : 'text/x-pug'
-    java   : 'text/x-java'
-    jl     : 'text/x-julia'
-    js     : 'javascript'
-    jsx    : 'jsx'
-    json   : 'javascript'
-    lua    : 'lua'
-    m      : 'text/x-octave'
-    md     : 'gfm2'
-    ml     : 'text/x-ocaml'
-    mysql  : 'text/x-sql'
-    patch  : 'text/x-diff'
-    gp     : 'text/pari'
-    go     : 'text/x-go'
-    pari   : 'text/pari'
-    php    : 'php'
-    pl     : 'text/x-perl'
-    pug    : 'text/x-pug'
-    py     : 'python'
-    pyx    : 'python'
-    r      : 'r'
-    rmd    : 'gfm2'
-    rnw    : 'stex2'
-    rst    : 'rst'
-    rb     : 'text/x-ruby'
-    ru     : 'text/x-ruby'
-    sage   : 'python'
-    sagews : 'sagews'
-    scala  : 'text/x-scala'
-    scm    : 'text/x-scheme'
-    sh     : 'shell'
-    spyx   : 'python'
-    sql    : 'text/x-sql'
-    ss     : 'text/x-scheme'
-    sty    : 'stex2'
-    txt    : 'text'
-    tex    : 'stex2'
-    ts     : 'application/typescript'
-    toml   : 'text/x-toml'
-    bib    : 'stex'
-    bbl    : 'stex'
-    xml    : 'xml'
-    xsl    : 'xsl'
-    yaml   : 'yaml'
-    ''     : 'text'
-
-file_associations = exports.file_associations = {}
-for ext, mode of codemirror_associations
-    name = mode
-    i = name.indexOf('x-')
-    if i != -1
-        name = name.slice(i+2)
-    name = name.replace('src','')
-    icon = switch mode
-        when 'python'
-            'cc-icon-python'
-        when 'coffeescript'
-            'fa-coffee'
-        else
-            'fa-file-code-o'
-    if ext in ['r', 'rmd']
-        icon = 'cc-icon-r'
-    file_associations[ext] =
-        editor : 'codemirror'
-        binary : false
-        icon   : icon
-        opts   : {mode:mode}
-        name   : name
-
-# noext = means file with no extension but the given name.
-file_associations['noext-Dockerfile'] =
-    editor : 'codemirror'
-    binary : false
-    icon   : 'fa-ship'
-    opts   : {mode:'dockerfile', indent_unit:2, tab_size:2}
-    name   : 'Dockerfile'
-
-file_associations['tex'] =
-    editor : 'latex'
-    icon   : 'cc-icon-tex-file'
-    opts   : {mode:'stex2', indent_unit:4, tab_size:4}
-    name   : "LaTeX"
-#file_associations['tex'] =  # WARNING: only for TESTING!!!
-#    editor : 'html-md'
-#    icon   : 'fa-file-code-o'
-#    opts   : {indent_unit:4, tab_size:4, mode:'stex2'}
-
-file_associations['rnw'] =
-    editor : 'latex'
-    icon   : 'cc-icon-tex-file'
-    opts   : {mode:'stex2', indent_unit:4, tab_size:4}
-    name   : "R/knitr LaTeX"
-
-file_associations['html'] =
-    editor : 'html-md'
-    icon   : 'fa-file-code-o'
-    opts   : {indent_unit:4, tab_size:4, mode:'htmlmixed'}
-    name   : "html"
-
-file_associations['md'] =
-    editor : 'html-md'
-    icon   : 'cc-icon-markdown'
-    opts   : {indent_unit:4, tab_size:4, mode:'gfm2'}
-    name   : "markdown"
-
-file_associations['rmd'] =
-    editor : 'html-md'
-    icon   : 'cc-icon-r'
-    opts   : {indent_unit:4, tab_size:4, mode:'gfm2'}
-    name   : "Rmd"
-
-file_associations['java'] =
-    editor : 'html-md'
-    icon   : 'fa-file-code-o'
-    opts   : {indent_unit:4, tab_size:4, mode:'text/x-java'}
-    name   : "Java"
-
-file_associations['rst'] =
-    editor : 'html-md'
-    icon   : 'fa-file-code-o'
-    opts   : {indent_unit:4, tab_size:4, mode:'rst'}
-    name   : "ReST"
-
-file_associations['mediawiki'] = file_associations['wiki'] =
-    editor : 'html-md'
-    icon   : 'fa-file-code-o'
-    opts   : {indent_unit:4, tab_size:4, mode:'mediawiki'}
-    name   : "MediaWiki"
-
-file_associations['sass'] =
-    editor : 'codemirror'
-    icon   : 'fa-file-code-o'
-    opts   : {mode:'text/x-sass', indent_unit:2, tab_size:2}
-    name   : "SASS"
-
-file_associations['css'] =
-    editor : 'codemirror'
-    icon   : 'fa-file-code-o'
-    opts   : {mode:'css', indent_unit:4, tab_size:4}
-    name   : "CSS"
-
-for m in ['noext-makefile', 'noext-Makefile', 'noext-GNUmakefile', 'make', 'build']
-    file_associations[m] =
-        editor : 'codemirror'
-        icon   : 'fa-cogs'
-        opts   : {mode:'makefile', indent_unit:4, tab_size:4, spaces_instead_of_tabs: false}
-        name   : "Makefile"
-
-file_associations['term'] =
-    editor : 'terminal'
-    icon   : 'fa-terminal'
-    opts   : {}
-    name   : "Terminal"
-
-file_associations['ipynb'] =
-    editor : 'ipynb'
-    icon   : 'cc-icon-ipynb'
-    opts   : {}
-    name   : "Jupyter Notebook"
-
-for ext in ['png', 'jpg', 'jpeg', 'gif', 'svg']
-    file_associations[ext] =
-        editor : 'media'
-        icon   : 'fa-file-image-o'
-        opts   : {}
-        name   : ext
-        binary : true
-        exclude_from_menu : true
-
-VIDEO_EXTS = ['webm', 'mp4', 'avi', 'mkv']
-for ext in VIDEO_EXTS
-    file_associations[ext] =
-        editor : 'media'
-        icon   : 'fa-file-video-o'
-        opts   : {}
-        name   : ext
-        binary : true
-        exclude_from_menu : true
-
-file_associations['pdf'] =
-    editor : 'pdf'
-    icon   : 'fa-file-pdf-o'
-    opts   : {}
-    name   : 'pdf'
-    binary : true
-    exclude_from_menu : true
-
-file_associations['tasks'] =
-    editor : 'tasks'
-    icon   : 'fa-tasks'
-    opts   : {}
-    name   : 'task list'
-
-file_associations['course'] =
-    editor : 'course'
-    icon   : 'fa-graduation-cap'
-    opts   : {}
-    name   : 'course'
-
-file_associations['sage-chat'] =
-    editor : 'chat'
-    icon   : 'fa-comment'
-    opts   : {}
-    name   : 'chat'
-
-file_associations['sage-git'] =
-    editor : 'git'
-    icon   : 'fa-git-square'
-    opts   : {}
-    name   : 'git'
-
-file_associations['sage-template'] =
-    editor : 'template'
-    icon   : 'fa-clone'
-    opts   : {}
-    name   : 'template'
-
-file_associations['sage-history'] =
-    editor : 'history'
-    icon   : 'fa-history'
-    opts   : {}
-    name   : 'sage history'
-    exclude_from_menu : true
-
-# For tar, see http://en.wikipedia.org/wiki/Tar_%28computing%29
-archive_association =
-    editor : 'archive'
-    icon   : 'fa-file-archive-o'
-    opts   : {}
-    name   : 'archive'
-
-for ext in 'zip gz bz2 z lz xz lzma tgz tbz tbz2 tb2 taz tz tlz txz lzip'.split(' ')
-    file_associations[ext] = archive_association
-
-file_associations['sage'].name = "sage code"
-file_associations['sage'].icon = 'cc-icon-sagemath-bold'
-
-file_associations['sagews'].name = "sage worksheet"
-file_associations['sagews'].exclude_from_menu = true
-file_associations['sagews'].icon = 'cc-icon-sagemath-file'
+{file_associations, VIDEO_EXTS} = require('./file-associations')
 
 initialize_new_file_type_list = () ->
     file_types_so_far = {}
@@ -373,118 +104,8 @@ exports.file_icon_class = file_icon_class = (ext) ->
     assoc = exports.file_options('x.' + ext)
     return assoc.icon
 
-# Multiplex'd worksheet mode
-
-{MARKERS} = require('smc-util/sagews')
-
-exports.sagews_decorator_modes = sagews_decorator_modes = [
-    ['cjsx'        , 'text/cjsx'],
-    ['coffeescript', 'coffeescript'],
-    ['cython'      , 'cython'],
-    ['file'        , 'text'],
-    ['fortran'     , 'text/x-fortran'],
-    ['html'        , 'htmlmixed'],
-    ['javascript'  , 'javascript'],
-    ['java'        , 'text/x-java'],    # !! more specific name must be first!!!! (java vs javascript!)
-    ['latex'       , 'stex']
-    ['lisp'        , 'ecl'],
-    ['md'          , 'gfm2'],
-    ['gp'          , 'text/pari'],
-    ['go'          , 'text/x-go']
-    ['perl'        , 'text/x-perl'],
-    ['python3'     , 'python'],
-    ['python'      , 'python'],
-    ['ruby'        , 'text/x-ruby'],   # !! more specific name must be first or get mismatch!
-    ['r'           , 'r'],
-    ['sage'        , 'python'],
-    ['script'      , 'shell'],
-    ['sh'          , 'shell'],
-    ['julia'       , 'text/x-julia'],
-    ['wiki'        , 'mediawiki'],
-    ['mediawiki'   , 'mediawiki']
-]
-
-# Called immediately below.  It's just nice putting this code in a function.
-define_codemirror_sagews_mode = () ->
-
-    # not using these two gfm2 and htmlmixed2 modes, with their sub-latex mode, since
-    # detection of math isn't good enough.  e.g., \$ causes math mode and $ doesn't seem to...   \$500 and $\sin(x)$.
-    CodeMirror.defineMode "gfm2", (config) ->
-        options = []
-        for x in [['$$','$$'], ['$','$'], ['\\[','\\]'], ['\\(','\\)']]
-            options.push
-                open  : x[0]
-                close : x[1]
-                mode  : CodeMirror.getMode(config, 'stex')
-        return CodeMirror.multiplexingMode(CodeMirror.getMode(config, "gfm"), options...)
-
-    CodeMirror.defineMode "htmlmixed2", (config) ->
-        options = []
-        for x in [['$$','$$'], ['$','$'], ['\\[','\\]'], ['\\(','\\)']]
-            options.push
-                open  : x[0]
-                close : x[1]
-                mode  : CodeMirror.getMode(config, mode)
-        return CodeMirror.multiplexingMode(CodeMirror.getMode(config, "htmlmixed"), options...)
-
-    CodeMirror.defineMode "stex2", (config) ->
-        options = []
-        for x in ['sagesilent', 'sageblock']
-            options.push
-                open  : "\\begin{#{x}}"
-                close : "\\end{#{x}}"
-                mode  : CodeMirror.getMode(config, 'sagews')
-        options.push
-            open  : "\\sage{"
-            close : "}"
-            mode  : CodeMirror.getMode(config, 'sagews')
-        return CodeMirror.multiplexingMode(CodeMirror.getMode(config, "stex"), options...)
-
-    CodeMirror.defineMode "cython", (config) ->
-        # FUTURE: need to figure out how to do this so that the name
-        # of the mode is cython
-        return CodeMirror.multiplexingMode(CodeMirror.getMode(config, "python"))
-
-    CodeMirror.defineMode "sagews", (config) ->
-        options = []
-        close = new RegExp("[#{MARKERS.output}#{MARKERS.cell}]")
-        for x in sagews_decorator_modes
-            # NOTE: very important to close on both MARKERS.output *and* MARKERS.cell,
-            # rather than just MARKERS.cell, or it will try to
-            # highlight the *hidden* output message line, which can
-            # be *enormous*, and could take a very very long time, but is
-            # a complete waste, since we never see that markup.
-            options.push
-                open  : "%" + x[0]
-                start : true    # must be at beginning of line
-                close : close
-                mode  : CodeMirror.getMode(config, x[1])
-
-        return CodeMirror.smc_multiplexing_mode(CodeMirror.getMode(config, "python"), options...)
-
-    ###
-    # ATTN: if that's ever going to be re-activated again,
-    # this needs to be require("script!...") in the spirit of webpack
-    $.get '/static/codemirror-extra/data/sage-completions.txt', (data) ->
-        s = data.split('\n')
-        sagews_hint = (editor) ->
-            console.log("sagews_hint")
-            cur   = editor.getCursor()
-            token = editor.getTokenAt(cur)
-            console.log(token)
-            t = token.string
-            completions = (a for a in s when a.slice(0,t.length) == t)
-            ans =
-                list : completions,
-                from : CodeMirror.Pos(cur.line, token.start)
-                to   : CodeMirror.Pos(cur.line, token.end)
-        CodeMirror.registerHelper("hint", "sagews", sagews_hint)
-    ###
-
-# Initialize all of the codemirror modes and extensions, since the editor may need them.
-# OPTIMIZATION: defer this until we actually open a document that actually relies on codemirror.
-# (one step at a time!)
-define_codemirror_sagews_mode()
+# This defines a bunch of custom modes and gets some info about special case of sagews
+{sagews_decorator_modes} = require('./codemirror/custom-modes')
 misc_page.define_codemirror_extensions()
 
 # Given a text file (defined by content), try to guess
@@ -612,7 +233,10 @@ templates = $("#webapp-editor-templates")
 
 class FileEditor extends EventEmitter
     # ATTN it is crucial to call this constructor in subclasses via super(@project_id, @filename)
-    constructor: (@project_id, @filename) ->
+    constructor: (project_id, filename) ->
+        super()
+        @project_id = project_id
+        @filename = filename
         @ext = misc.filename_extension_notilde(@filename)?.toLowerCase()
         @_show = underscore.debounce(@_show, 50)
 
@@ -701,7 +325,7 @@ class FileEditor extends EventEmitter
 
         @element.show()
         # if above line reveals it, give it a bit time to do the layout first
-        @_show(opts)  # critical -- also do an intial layout!  Otherwise get a horrible messed up animation effect.
+        @_show(opts)  # critical -- also do an initial layout!  Otherwise get a horrible messed up animation effect.
         setTimeout((=> @_show(opts)), 10)
         if DEBUG
             window?.smc?.doc = @  # useful for debugging...
@@ -730,8 +354,8 @@ exports.FileEditor = FileEditor
 #     - 'toggle-split-view' :
 ###############################################
 class CodeMirrorEditor extends FileEditor
-    constructor: (@project_id, @filename, content, opts) ->
-        super(@project_id, @filename)
+    constructor: (project_id, filename, content, opts) ->
+        super(project_id, filename)
         editor_settings = redux.getStore('account').get_editor_settings()
         opts = @opts = defaults opts,
             mode                      : undefined
@@ -789,6 +413,15 @@ class CodeMirrorEditor extends FileEditor
 
         # not really needed due to highlighted tab; annoying.
         #@element.find(".webapp-editor-codemirror-filename").text(filename)
+
+        @show_exec_warning = redux.getStore('account').getIn(['editor_settings', 'show_exec_warning']) ? true
+        if @show_exec_warning and @ext in ['py', 'r', 'sage', 'f90']
+            msg = "<strong>INFO:</strong> you can only run <code>*.#{@ext}</code> files in a terminal or create a worksheet/notebook. <a href='#'>Dismiss</a>"
+            msg_el = @element.find('.webapp-editor-codemirror-message')
+            msg_el.html(msg)
+            msg_el.find('a').click ->
+                msg_el.hide()
+                redux.getTable('account').set(editor_settings:{show_exec_warning:false})
 
         @_video_is_on = @local_storage("video_is_on")
         if not @_video_is_on?
@@ -859,7 +492,7 @@ class CodeMirrorEditor extends FileEditor
             extraKeys["Shift-Enter"] = =>
                 alert_message
                     type    : "error"
-                    message : "You can only evaluate code in a file that ends with the extension 'sagews'.   Create a Sage Worksheet instead."
+                    message : "You can only evaluate code in a file that ends with the extension 'sagews' or 'ipynb'.   Create a Sage Worksheet or Jupyter notebook instead."
 
         # Layouts:
         #   0 - one single editor
@@ -1357,22 +990,25 @@ class CodeMirrorEditor extends FileEditor
         if ext != 'sagews'
             console.error("editor.print called on file with extension '#{ext}' but only supports 'sagews'.")
             return
-    
+
         async.series([
             (cb) =>
                 @save(cb)
             (cb) =>
                 webapp_client.exec
                     project_id  : @project_id
-                    command     : "smc-sagews2ipynb #{@filename}"
-                    bash        : true
-                    err_on_exit : false
+                    command     : "cc-sagews2ipynb"
+                    args        : [@filename]
+                    err_on_exit : true
                     cb          : (err, output) =>
                         if err
-                            alert_message(type:"error", message:"Error occured converting #{@filename}")
+                            alert_message(type:"error", message:"Error occured converting '#{@filename}' -- #{err}")
                         else
+                            path = base + '.ipynb'
+                            if p.head
+                                path = p.head + '/' + path
                             redux.getProjectActions(@project_id).open_file
-                                path               : base + '.ipynb'
+                                path               : path
                                 foreground         : true
         ])
 
@@ -1643,6 +1279,7 @@ class CodeMirrorEditor extends FileEditor
         if @_saving
             return
         @_saving = true
+        @syncdoc?.delete_trailing_whitespace?()  # only delete trailing whitespace on explicit save -- never on AUTOSAVE.
         @save_button.icon_spin(start:true, delay:8000)
         @save (err) =>
             # WARNING: As far as I can tell, this doesn't call FileEditor.save
@@ -1731,6 +1368,9 @@ class CodeMirrorEditor extends FileEditor
 
     _show_codemirror_editors: (height) =>
         # console.log("_show_codemirror_editors: #{@_layout}")
+        if not @codemirror?
+            # already closed so can't show (in syncdoc, .codemirorr is deleted on close)
+            return
         switch @_layout
             when 0
                 p = 1
@@ -2050,8 +1690,8 @@ codemirror_session_editor = exports.codemirror_session_editor = (project_id, fil
     return E
 
 class Terminal extends FileEditor
-    constructor: (@project_id, @filename, content, opts) ->
-        super(@project_id, @filename)
+    constructor: (project_id, filename, content, opts) ->
+        super(project_id, filename)
         @element = $("<div>").hide()
         elt = @element.webapp_console
             title      : "Terminal"
@@ -2096,6 +1736,8 @@ class Terminal extends FileEditor
                         content    : session.session_uuid
                         cb         : cb
 
+                    redux.getProjectActions(@project_id)?.log_opened_time(@filename)
+
         path = misc.path_split(@filename).head
         mesg.params  = {command:'bash', rows:@opts.rows, cols:@opts.cols, path:path, filename:@filename}
         if @opts.session_uuid?
@@ -2133,66 +1775,10 @@ class Terminal extends FileEditor
     _show: () =>
         @console?.resize()
 
-class Media extends FileEditor
-    constructor: (@project_id, @filename, url, @opts) ->
-        super(@project_id, @filename)
-        @mode = if @ext in VIDEO_EXTS then 'video' else 'image'
-        @element = templates.find(".webapp-editor-image").clone()
-        @element.find(".webapp-editor-image-title").text(@filename)
-
-        refresh = @element.find('a[href="#refresh"]')
-        refresh.click () =>
-            refresh.icon_spin(true)
-            @update (err) =>
-                refresh.icon_spin(false)
-            return false
-
-        @element.find('a[href="#close"]').click () =>
-            return false
-
-        if url?
-            @element.find(".webapp-editor-image-container").find("span").hide()
-            @set_src(url)
-        else
-            @update()
-
-    set_src: (src) =>
-        switch @mode
-            when 'image'
-                @element.find("img").attr('src', src)
-                @element.find('video').hide()
-            when 'video'
-                @element.find('img').hide()
-                @element.find('video').attr('src', src).show()
-
-    update: (cb) =>
-        @element.find('a[href="#refresh"]').icon_spin(start:true)
-        webapp_client.read_file_from_project
-            project_id : @project_id
-            timeout    : 30
-            path       : @filename
-            cb         : (err, mesg) =>
-                @element.find('a[href="#refresh"]').icon_spin(false)
-                @element.find(".webapp-editor-image-container").find("span").hide()
-                if err
-                    alert_message(type:"error", message:"Communications issue loading #{@filename} -- #{err}")
-                    cb?(err)
-                else if mesg.event == 'error'
-                    alert_message(type:"error", message:"Error getting #{@filename} -- #{to_json(mesg.error)}")
-                    cb?(mesg.event)
-                else
-                    @set_src(mesg.url + "?random=#{Math.random()}")
-                    cb?()
-
-    show: () =>
-        if not @is_active()
-            return
-        @element.show()
-
-
 class PublicHTML extends FileEditor
-    constructor: (@project_id, @filename, @content, opts) ->
-        super(@project_id, @filename)
+    constructor: (project_id, filename, content, opts) ->
+        super(project_id, filename)
+        @content = content
         @element = templates.find(".webapp-editor-static-html").clone()
         # ATTN: we can't set src='raw-path' because the sever might not run.
         # therefore we retrieve the content and set it directly.
@@ -2240,10 +1826,10 @@ class PublicHTML extends FileEditor
         @iframe.maxheight()
 
 class PublicCodeMirrorEditor extends CodeMirrorEditor
-    constructor: (@project_id, @filename, content, opts, cb) ->
+    constructor: (project_id, filename, content, opts, cb) ->
         opts.read_only = true
         opts.public_access = true
-        super(@project_id, @filename, "Loading...", opts)
+        super(project_id, filename, "Loading...", opts)
         @element.find('a[href="#save"]').hide()       # no need to even put in the button for published
         @element.find('a[href="#readonly"]').hide()   # ...
         webapp_client.public_get_text_file
@@ -2254,21 +1840,23 @@ class PublicCodeMirrorEditor extends CodeMirrorEditor
                 if err
                     content = "Error opening file -- #{err}"
                 @_set(content)
-                cb?(err)
+                cb?(err, @)
 
 class PublicSagews extends PublicCodeMirrorEditor
-    constructor: (@project_id, @filename, content, opts) ->
+    constructor: (project_id, filename, content, opts) ->
         opts.allow_javascript_eval = false
-        super @project_id, @filename, content, opts, (err) =>
-            @element.find('a[href="#split-view"]').hide()  # disable split view
+        super project_id, filename, content, opts, (err, eventual_this) =>
+            eventual_this.element.find('a[href="#split-view"]').hide()  # disable split view
             if not err
-                @syncdoc = new (sagews.SynchronizedWorksheet)(@, {static_viewer:true})
-                @syncdoc.process_sage_updates()
-                @syncdoc.init_hide_show_gutter()
+                eventual_this.syncdoc = new (sagews.SynchronizedWorksheet)(eventual_this, {static_viewer:true})
+                eventual_this.syncdoc.process_sage_updates()
+                eventual_this.syncdoc.init_hide_show_gutter()
 
 class FileEditorWrapper extends FileEditor
-    constructor: (@project_id, @filename, @content, @opts) ->
-        super(@project_id, @filename)
+    constructor: (project_id, filename, content, opts) ->
+        super(project_id, filename)
+        @content = content
+        @opts = opts
         @init_wrapped(@project_id, @filename, @content, @opts)
 
     init_wrapped: () =>
@@ -2322,26 +1910,6 @@ class FileEditorWrapper extends FileEditor
         @element?.hide()
         @wrapped?.hide?()
 
-###
-# Task list
-###
-
-class TaskList extends FileEditorWrapper
-    init_wrapped: () =>
-        @element = $("<div><span>&nbsp;&nbsp;Loading...</span></div>")
-        require.ensure [], () =>
-            tasks = require('./tasks')
-            elt = tasks.task_list(@project_id, @filename, {})
-            @element.replaceWith(elt)
-            @element = elt
-            @wrapped = elt.data('task_list')
-            @show()  # need to do this due to async loading -- otherwise once it appears it isn't the right size, which is BAD.
-
-    mount: () =>
-        if not @mounted
-            $(document.body).append(@element)
-            @mounted = true
-        return @mounted
 
 ###
 # Jupyter notebook
@@ -2372,8 +1940,9 @@ class JupyterNBViewer extends FileEditorWrapper
 class JupyterNBViewerEmbedded extends FileEditor
     # this is like JupyterNBViewer but https://nbviewer.jupyter.org in an iframe
     # it's only used for public files and when not part of the project or anonymous
-    constructor: (@project_id, @filename, @content, opts) ->
-        super(@project_id, @filename)
+    constructor: (project_id, filename, content, opts) ->
+        super(project_id, filename)
+        @content = content
         @element = $(".smc-jupyter-templates .smc-jupyter-nbviewer").clone()
         @init_buttons()
 
@@ -2415,17 +1984,15 @@ class JupyterNBViewerEmbedded extends FileEditor
 {HTML_MD_Editor} = require('./editor-html-md/editor-html-md')
 html_md_exts = (ext for ext, opts of file_associations when opts.editor == 'html-md')
 
+# TODO: so new react editors gets used instead...
+html_md_exts = (ext for ext in html_md_exts when ext != 'md' and ext != 'html' and ext != 'rst')
+
 {LatexEditor} = require('./latex/editor')
 
-exports.register_nonreact_editors = () ->
+exports.register_nonreact_editors = ->
 
     # Make non-react editors available in react rewrite
     reg = require('./editor_react_wrapper').register_nonreact_editor
-
-    reg
-        ext       : ''  # fallback for any type not otherwise explicitly specified
-        f         : (project_id, path, opts) -> codemirror_session_editor(project_id, path, opts)
-        is_public : false
 
     # wrapper for registering private and public editors
     register = (is_public, cls, extensions) ->
@@ -2445,15 +2012,19 @@ exports.register_nonreact_editors = () ->
     register(false, HTML_MD_Editor,   html_md_exts)
     register(false, LatexEditor,      ['tex', 'rnw'])
     register(false, Terminal,         ['term', 'sage-term'])
-    register(false, Media,            ['png', 'jpg', 'jpeg', 'gif', 'svg'].concat(VIDEO_EXTS))
 
     {HistoryEditor} = require('./editor_history')
     register(false, HistoryEditor,    ['sage-history'])
-    register(false, TaskList,         ['tasks'])
     exports.switch_to_ipynb_classic = ->
         register(false, JupyterNotebook,  ['ipynb'])
 
     # "Editors" for read-only public files
-    register(true, PublicCodeMirrorEditor,  [''])
     register(true, PublicHTML,              ['html'])
     register(true, PublicSagews,            ['sagews'])
+
+    # Editing Sage worksheets
+    reg
+        ext       : 'sagews'
+        f         : (project_id, path, opts) -> codemirror_session_editor(project_id, path, opts)
+        is_public : false
+

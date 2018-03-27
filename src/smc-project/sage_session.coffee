@@ -25,7 +25,7 @@ blobs  = require('./blobs')
 # connection requests, after we restart it.  It can
 # take a while, since it pre-imports the sage library
 # at startup, before forking.
-SAGE_SERVER_MAX_STARTUP_TIME_S = 30
+SAGE_SERVER_MAX_STARTUP_TIME_S = 60
 
 _restarting_sage_server = false
 _restarted_sage_server  = 0   # time when we last restarted it
@@ -37,7 +37,7 @@ restart_sage_server = (cb) ->
         return
     t = new Date() - _restarted_sage_server
     if t <= SAGE_SERVER_MAX_STARTUP_TIME_S*1000
-        err = "restarted sage server #{t}ms ago -- still waiting for it to start"
+        err = "restarted sage server #{t}ms ago: not allowing too many restarts too quickly..."
         dbg(err)
         cb(err)
         return
@@ -268,23 +268,17 @@ class SageSession
                         opts.cb?({done:true, error:err})
                 )
     _handle_mesg_blob: (mesg) =>
-        sha1 = mesg.uuid
-        dbg = @dbg("_handle_mesg_blob(sha1='#{sha1}')")
+        uuid = mesg.uuid
+        dbg = @dbg("_handle_mesg_blob(uuid='#{uuid}')")
         dbg()
-        hub = @_client.get_hub_socket()
-        if not hub?
-            error = 'no global hubs are connected to the local hub, so nowhere to send file'
-            dbg(error)
-            resp =  message.save_blob
-                error  : error
-                sha1   : sha1
-            @_socket?.write_mesg('json', resp)
-            return
-        dbg("forwarding blob to hub")
-        hub.write_mesg('blob', mesg)
-        blobs.receive_save_blob_message
-            sha1 : sha1
-            cb   : (resp) =>
+        @_client.save_blob
+            blob : mesg.blob
+            uuid : uuid
+            cb   : (err, resp) =>
+                if err
+                    resp =  message.save_blob
+                        error : err
+                        sha1  : uuid  # dumb - that sha1 should be called uuid...
                 @_socket?.write_mesg('json', resp)
 
     _handle_mesg_json: (mesg) =>

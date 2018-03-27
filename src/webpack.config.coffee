@@ -104,16 +104,16 @@ SMC_REPO      = 'https://github.com/sagemathinc/cocalc'
 SMC_LICENSE   = 'AGPLv3'
 WEBAPP_LIB    = misc_node.WEBAPP_LIB
 INPUT         = path.resolve(__dirname, WEBAPP_LIB)
-OUTPUT        = misc_node.OUTPUT_DIR
+OUTPUT        = path.resolve(__dirname, misc_node.OUTPUT_DIR)
 DEVEL         = "development"
 NODE_ENV      = process.env.NODE_ENV || DEVEL
 PRODMODE      = NODE_ENV != DEVEL
+COMP_ENV      = (process.env.CC_COMP_ENV || PRODMODE) and (fs.existsSync('webapp-lib/compute-components.json'))
 CDN_BASE_URL  = process.env.CDN_BASE_URL    # CDN_BASE_URL must have a trailing slash
 DEVMODE       = not PRODMODE
 MINIFY        = !! process.env.WP_MINIFY
 DEBUG         = '--debug' in process.argv
 SOURCE_MAP    = !! process.env.SOURCE_MAP
-QUICK_BUILD   = !! process.env.SMC_WEBPACK_QUICK
 STATICPAGES   = !! process.env.CC_STATICPAGES  # special mode where just the landing page is built
 date          = new Date()
 BUILD_DATE    = date.toISOString()
@@ -135,6 +135,7 @@ else
 console.log "SMC_VERSION      = #{SMC_VERSION}"
 console.log "SMC_GIT_REV      = #{GIT_REV}"
 console.log "NODE_ENV         = #{NODE_ENV}"
+console.log "COMP_ENV         = #{COMP_ENV}"
 console.log "BASE_URL         = #{BASE_URL}"
 console.log "CDN_BASE_URL     = #{CDN_BASE_URL}"
 console.log "DEBUG            = #{DEBUG}"
@@ -155,13 +156,22 @@ console.log "MATHJAX_URL      = #{MATHJAX_URL}"
 console.log "MATHJAX_ROOT     = #{MATHJAX_ROOT}"
 console.log "MATHJAX_LIB      = #{MATHJAX_LIB}"
 
+# fallback case: if COMP_ENV is false (default) we still need empty json files to satisfy the webpack dependencies
+if not COMP_ENV
+    for fn in ['webapp-lib/compute-components.json', 'webapp-lib/compute-inventory.json']
+        continue if fs.existsSync(fn)
+        fs.writeFileSync(fn, '{}')
+
 # adds a banner to each compiled and minified source .js file
+# webpack2: https://webpack.js.org/guides/migrating/#bannerplugin-breaking-change
 banner = new webpack.BannerPlugin(
-                        """\
-                        This file is part of #{TITLE}.
-                        It was compiled #{BUILD_DATE} at revision #{GIT_REV} and version #{SMC_VERSION}.
-                        See #{SMC_REPO} for its #{SMC_LICENSE} code.
-                        """)
+    banner   : """\
+               This file is part of #{TITLE}.
+               It was compiled #{BUILD_DATE} at revision #{GIT_REV} and version #{SMC_VERSION}.
+               See #{SMC_REPO} for its #{SMC_LICENSE} code.
+               """
+    entryOnly: true
+)
 
 # webpack plugin to do the linking after it's "done"
 class MathjaxVersionedSymlink
@@ -193,7 +203,8 @@ cleanWebpackPlugin = new CleanWebpackPlugin [OUTPUT],
 # assets.json file
 AssetsPlugin = require('assets-webpack-plugin')
 assetsPlugin = new AssetsPlugin
-                        filename   : path.join(OUTPUT, 'assets.json')
+                        path       : OUTPUT
+                        filename   : 'assets.json'
                         fullPath   : no
                         prettyPrint: true
                         metadata:
@@ -237,6 +248,9 @@ pug2app = new HtmlWebpackPlugin(
                         description      : DESCRIPTION
                         BASE_URL         : base_url_html
                         theme            : theme
+                        COMP_ENV         : COMP_ENV
+                        components       : {}   # no data needed, empty is fine
+                        inventory        : {}   # no data needed, empty is fine
                         git_rev          : GIT_REV
                         mathjax          : MATHJAX_URL
                         filename         : 'app.html'
@@ -259,6 +273,9 @@ for [fn_in, fn_out] in [['index.pug', 'index.html']]
                         description      : DESCRIPTION
                         BASE_URL         : base_url_html
                         theme            : theme
+                        COMP_ENV         : COMP_ENV
+                        components       : {}   # no data needed, empty is fine
+                        inventory        : {}   # no data needed, empty is fine
                         git_rev          : GIT_REV
                         mathjax          : MATHJAX_URL
                         filename         : fn_out
@@ -268,24 +285,29 @@ for [fn_in, fn_out] in [['index.pug', 'index.html']]
                         template         : path.join(INPUT, fn_in)
                         minify           : htmlMinifyOpts
                         GOOGLE_ANALYTICS : GOOGLE_ANALYTICS
-                        PREFIX           : ''
                         SCHEMA           : require('smc-util/schema')
                         PREFIX           : if fn_in == 'index.pug' then '' else '../'
     ))
 
 # doc pages
-for dp in (x for x in glob.sync('webapp-lib/doc/*.pug') when path.basename(x)[0] != '_')
+for dp in glob.sync('webapp-lib/doc/*.pug')
+    continue if path.basename(dp)[0] == '_'
+    continue if (path.basename(dp).indexOf('software-') == 0) and (COMP_ENV)
     output_fn = "doc/#{misc.change_filename_extension(path.basename(dp), 'html')}"
     staticPages.push(new HtmlWebpackPlugin(
                         filename         : output_fn
                         date             : BUILD_DATE
                         title            : TITLE
                         theme            : theme
+                        COMP_ENV         : COMP_ENV
+                        components       : {}   # no data needed, empty is fine
+                        inventory        : {}   # no data needed, empty is fine
                         template         : dp
                         chunks           : ['css']
                         inject           : 'head'
                         minify           : htmlMinifyOpts
                         GOOGLE_ANALYTICS : GOOGLE_ANALYTICS
+                        SCHEMA           : require('smc-util/schema')
                         hash             : PRODMODE
                         BASE_URL         : base_url_html
                         PREFIX           : '../'
@@ -299,6 +321,9 @@ for pp in (x for x in glob.sync('webapp-lib/policies/*.pug') when path.basename(
                         date             : BUILD_DATE
                         title            : TITLE
                         theme            : theme
+                        COMP_ENV         : COMP_ENV
+                        components       : {}   # no data needed, empty is fine
+                        inventory        : {}   # no data needed, empty is fine
                         template         : pp
                         chunks           : ['css']
                         inject           : 'head'
@@ -308,6 +333,52 @@ for pp in (x for x in glob.sync('webapp-lib/policies/*.pug') when path.basename(
                         BASE_URL         : base_url_html
                         PREFIX           : '../'
     ))
+
+# build pages for compute environment
+if COMP_ENV
+    components = JSON.parse(fs.readFileSync('webapp-lib/compute-components.json', 'utf8'))
+    #console.log(JSON.stringify(Object.keys(components)))
+    inventory  = JSON.parse(fs.readFileSync('webapp-lib/compute-inventory.json', 'utf8'))
+
+    staticPages.push(new HtmlWebpackPlugin(
+                        filename         : "doc/software.html"
+                        date             : BUILD_DATE
+                        title            : TITLE
+                        theme            : theme
+                        COMP_ENV         : COMP_ENV
+                        components       : components
+                        inventory        : inventory
+                        template         : 'webapp-lib/doc/software.pug'
+                        chunks           : ['css']
+                        inject           : 'head'
+                        minify           : htmlMinifyOpts
+                        GOOGLE_ANALYTICS : GOOGLE_ANALYTICS
+                        hash             : PRODMODE
+                        BASE_URL         : base_url_html
+                        PREFIX           : '../'
+    ))
+
+    for infn in glob.sync('webapp-lib/doc/software-*.pug')
+        sw_env = path.basename(infn).split('-')[1].split('.')[0]
+        output_fn = "doc/software-#{sw_env}.html"
+        staticPages.push(new HtmlWebpackPlugin(
+                        filename         : output_fn
+                        date             : BUILD_DATE
+                        title            : TITLE
+                        theme            : theme
+                        COMP_ENV         : COMP_ENV
+                        components       : components
+                        inventory        : inventory
+                        sw_env           : sw_env
+                        template         : infn
+                        chunks           : ['css']
+                        inject           : 'head'
+                        minify           : htmlMinifyOpts
+                        GOOGLE_ANALYTICS : GOOGLE_ANALYTICS
+                        hash             : PRODMODE
+                        BASE_URL         : base_url_html
+                        PREFIX           : '../'
+        ))
 
 #video chat is done differently, this is kept for reference.
 ## video chat: not possible to render to html, while at the same time also supporting query parameters for files in the url
@@ -326,7 +397,7 @@ for pp in (x for x in glob.sync('webapp-lib/policies/*.pug') when path.basename(
 #                        minify   : htmlMinifyOpts
 
 # global css loader configuration
-cssConfig = JSON.stringify(minimize: true, discardComments: {removeAll: true}, mergeLonghand: true, sourceMap: true)
+cssConfig = JSON.stringify(minimize: true, discardComments: {removeAll: true}, mergeLonghand: true, sourceMap: false)
 
 ###
 # ExtractText for CSS should work, but doesn't. Also not necessary for our purposes ...
@@ -371,23 +442,19 @@ class LinkFilesIntoTargetPlugin
 #policies = glob.sync(path.join(INPUT, 'policies', '*.html'))
 #linkFilesIntoTargetPlugin = new LinkFilesToTargetPlugin(policies, OUTPUT)
 
-###
-CopyWebpackPlugin = require('copy-webpack-plugin')
-copyWebpackPlugin = new CopyWebpackPlugin []
-###
-
 # this is like C's #ifdef for the source code. It is particularly useful in the
-# source code of SMC, such that it knows about itself's version and where
+# source code of CoCalc's webapp, such that it knows about itself's version and where
 # mathjax is. The version&date is shown in the hover-title in the footer (year).
 setNODE_ENV         = new webpack.DefinePlugin
-                                'process.env' :
-                                   'NODE_ENV' : JSON.stringify(NODE_ENV)
-                                'MATHJAX_URL' : JSON.stringify(MATHJAX_URL)
-                                'SMC_VERSION' : JSON.stringify(SMC_VERSION)
-                                'SMC_GIT_REV' : JSON.stringify(GIT_REV)
-                                'BUILD_DATE'  : JSON.stringify(BUILD_DATE)
-                                'BUILD_TS'    : JSON.stringify(BUILD_TS)
-                                'DEBUG'       : JSON.stringify(DEBUG)
+                                'process.env'     :
+                                   'NODE_ENV'       : JSON.stringify(NODE_ENV)
+                                'MATHJAX_URL'     : JSON.stringify(MATHJAX_URL)
+                                'SMC_VERSION'     : JSON.stringify(SMC_VERSION)
+                                'SMC_GIT_REV'     : JSON.stringify(GIT_REV)
+                                'KUCALC_COMP_ENV' : "#{COMP_ENV}"   # true or false, no need to special encode
+                                'BUILD_DATE'      : JSON.stringify(BUILD_DATE)
+                                'BUILD_TS'        : JSON.stringify(BUILD_TS)
+                                'DEBUG'           : JSON.stringify(DEBUG)
 
 # This is not used, but maybe in the future.
 # Writes a JSON file containing the main webpack-assets and their filenames.
@@ -417,13 +484,32 @@ class PrintChunksPlugin
                         includes: c.modules.map (m) ->  m.request
                 )
 
+# https://webpack.js.org/guides/migrating/#uglifyjsplugin-minimize-loaders
+loaderOptions = new webpack.LoaderOptionsPlugin(
+    minimize: true
+    options:
+        'html-minify-loader':
+            empty                : true   # KEEP empty attributes
+            cdata                : true   # KEEP CDATA from scripts
+            comments             : false
+            removeComments       : true
+            minifyJS             : true
+            minifyCSS            : true
+            collapseWhitespace   : true
+            conservativeCollapse : true   # absolutely necessary, also see above in module.loaders/.html
+        #sassLoader:
+        #    includePaths: [path.resolve(__dirname, 'src', 'scss')]
+        #context: '/'
+)
 
 plugins = [
     cleanWebpackPlugin,
     #provideGlobals,
     setNODE_ENV,
-    banner
+    banner,
+    loaderOptions
 ]
+
 
 if STATICPAGES
     plugins = plugins.concat(staticPages)
@@ -439,24 +525,28 @@ else
         pug2app,
         #commonsChunkPlugin,
         #extractCSS,
-        #copyWebpackPlugin
         #webpackSHAHash,
         #new PrintChunksPlugin(),
         mathjaxVersionedSymlink,
         #linkFilesIntoTargetPlugin,
     ])
 
-if not QUICK_BUILD or PRODMODE
+if DEVMODE
+    console.log "******************************************************"
+    console.log "WARNING! For dev you **must** explicitly visit"
+    console.log "     https://cocalc.com/[project_id]/port/[...]/app"
+    console.log "since the / static pages are currently disabled."
+    console.log "See https://github.com/sagemathinc/cocalc/issues/2629"
+    console.log "******************************************************"
+else
     plugins = plugins.concat(staticPages)
-    plugins = plugins.concat([assetsPlugin, statsWriterPlugin])
-    # video chat plugins would be added here
+
+plugins = plugins.concat([assetsPlugin, statsWriterPlugin])
 
 if PRODMODE
     console.log "production mode: enabling compression"
     # https://webpack.github.io/docs/list-of-plugins.html#commonschunkplugin
     # plugins.push new webpack.optimize.CommonsChunkPlugin(name: "lib")
-    plugins.push new webpack.optimize.DedupePlugin()
-    plugins.push new webpack.optimize.OccurenceOrderPlugin()
     # configuration for the number of chunks and their minimum size
     plugins.push new webpack.optimize.LimitChunkCountPlugin(maxChunks: 5)
     plugins.push new webpack.optimize.MinChunkSizePlugin(minChunkSize: 30000)
@@ -512,8 +602,10 @@ woffconfig  = "name=#{hashname}&mimetype=application/font-woff"
 if CDN_BASE_URL?
     publicPath = CDN_BASE_URL
 else
-    publicPath = path.join(BASE_URL, OUTPUT) + '/'
+    publicPath = path.join(BASE_URL, misc_node.OUTPUT_DIR) + '/'
 
+# TODO webpack2: the module.loaders syntax changed, but this here isn't deprecated
+# https://webpack.js.org/guides/migrating/#module-loaders-is-now-module-rules
 module.exports =
     cache: true
 
@@ -531,21 +623,29 @@ module.exports =
         chunkFilename : if PRODMODE then '[id]-[hash].cacheme.js'   else '[id].nocache.js'
         hashFunction  : 'sha256'
 
+    resolveLoader: # Not reccommended. TODO: Track down missing -loader instances
+        moduleExtensions: ["-loader"]
+
     module:
-        loaders: [
-            { test: /pnotify.*\.js$/, loader: "imports?define=>false,global=>window" },
-            { test: /\.cjsx$/,   loaders: ['coffee-loader', 'cjsx-loader'] },
-            { test: /\.coffee$/, loader: 'coffee-loader' },
-            { test: /\.less$/,   loaders: ["style-loader", "css-loader", "less?#{cssConfig}"]}, #loader : extractTextLess }, #
-            { test: /\.scss$/,   loaders: ["style-loader", "css-loader", "sass?#{cssConfig}"]}, #loader : extractTextScss }, #
-            { test: /\.sass$/,   loaders: ["style-loader", "css-loader", "sass?#{cssConfig}&indentedSyntax"]}, # ,loader : extractTextSass }, #
-            { test: /\.json$/,   loaders: ['json-loader'] },
+        rules: [
+            { test: /pnotify.*\.js$/, use: "imports?define=>false,global=>window" },
+            {
+                test: /\.(coffee|cjsx)$/
+                use: [
+                    { loader: 'babel-loader' },
+                    { loader: 'coffee-loader' }
+                ]
+            },
+            { test: /\.less$/,   use: ["style-loader", "css-loader", "less-loader?#{cssConfig}"]}, #loader : extractTextLess }, #
+            { test: /\.scss$/,   use: ["style-loader", "css-loader", "sass-loader?#{cssConfig}"]}, #loader : extractTextScss }, #
+            { test: /\.sass$/,   use: ["style-loader", "css-loader", "sass-loader?#{cssConfig}&indentedSyntax"]}, # ,loader : extractTextSass }, #
+            { test: /\.json$/,   use: ['json-loader'] },
             { test: /\.png$/,    loader: "file-loader?#{pngconfig}" },
             { test: /\.ico$/,    loader: "file-loader?#{icoconfig}" },
             { test: /\.svg(\?[a-z0-9\.-=]+)?$/,    loader: "url-loader?#{svgconfig}" },
             { test: /\.(jpg|jpeg|gif)$/,    loader: "file-loader?name=#{hashname}"},
             # .html only for files in smc-webapp!
-            { test: /\.html$/, include: [path.resolve(__dirname, 'smc-webapp')], loader: "raw!html-minify?conservativeCollapse"},
+            { test: /\.html$/, include: [path.resolve(__dirname, 'smc-webapp')], use: ["raw-loader", "html-minify?conservativeCollapse"]},
             # { test: /\.html$/, include: [path.resolve(__dirname, 'webapp-lib')], loader: "html-loader"},
             { test: /\.hbs$/,    loader: "handlebars-loader" },
             { test: /\.woff(2)?(\?[a-z0-9\.-=]+)?$/, loader: "url-loader?#{woffconfig}" },
@@ -555,32 +655,22 @@ module.exports =
             { test: /\.ttf(\?[a-z0-9\.-=]+)?$/, loader: "url-loader?limit=10000&mimetype=application/octet-stream" },
             { test: /\.eot(\?[a-z0-9\.-=]+)?$/, loader: "file-loader?name=#{hashname}" },
             # ---
-            { test: /\.css$/, loaders: ["style-loader", "css-loader?#{cssConfig}"]}, # loader: extractTextCss }, #
+            { test: /\.css$/, use: ["style-loader", "css-loader?#{cssConfig}"]}, # loader: extractTextCss }, #
             { test: /\.pug$/, loader: 'pug-loader' },
         ]
 
     resolve:
         # So we can require('file') instead of require('file.coffee')
-        extensions : ['', '.js', '.json', '.coffee', '.cjsx', '.scss', '.sass']
-        root       : [path.resolve(__dirname),
+        extensions : ['.js', '.json', '.coffee', '.cjsx', '.scss', '.sass']
+        modules    : [path.resolve(__dirname),
                       path.resolve(__dirname, WEBAPP_LIB),
                       path.resolve(__dirname, 'smc-util'),
                       path.resolve(__dirname, 'smc-util/node_modules'),
                       path.resolve(__dirname, 'smc-webapp'),
-                      path.resolve(__dirname, 'smc-webapp/node_modules')]
+                      path.resolve(__dirname, 'smc-webapp/node_modules'),
+                      path.resolve(__dirname, 'node_modules')]
         #alias:
         #    "jquery-ui": "jquery-ui/jquery-ui.js", # bind version of jquery-ui
         #    modules: path.join(__dirname, "node_modules") # bind to modules;
 
     plugins: plugins
-
-    'html-minify-loader':
-        empty                : true   # KEEP empty attributes
-        cdata                : true   # KEEP CDATA from scripts
-        comments             : false
-        removeComments       : true
-        minifyJS             : true
-        minifyCSS            : true
-        collapseWhitespace   : true
-        conservativeCollapse : true   # absolutely necessary, also see above in module.loaders/.html
-

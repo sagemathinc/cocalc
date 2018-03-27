@@ -19,9 +19,16 @@ exports.DNS                  = 'cocalc.com'
 exports.DOMAIN_NAME          = 'https://' + exports.DNS
 exports.DISCUSSION_GROUP     = 'https://groups.google.com/forum/#!forum/cocalc'
 exports.WIKI_URL             = 'https://github.com/sagemathinc/cocalc/wiki/Portal'
+exports.BLOG_URL             = 'https://blog.sagemath.com/'
+exports.LIVE_DEMO_REQUEST    = 'https://docs.google.com/forms/d/e/1FAIpQLSesDZkGD2XVu8BHKd_sPwn5g7MrLAA8EYRTpB6daedGVMTpkA/viewform'
 exports.HELP_EMAIL           = 'help@sagemath.com'
-exports.TWITTER_HANDLE       = 'co_calc'   # without the @
+exports.TWITTER_HANDLE       = 'cocalc_com'   # without the @
 exports.BILLING_EMAIL        = 'billing@sagemath.com'
+exports.BILLING_ADDRESS      = '''
+                               1212 East Barclay Court
+                               Seattle, WA 98122, USA
+                               '''
+exports.BILLING_TAXID        = 'TAX EIN: 47-3015407'
 exports.COPYRIGHT_AGENT_HTML = '''
                                William Stein (Copyright Agent)<br>
                                c/o SageMath, Inc.<br>
@@ -29,6 +36,10 @@ exports.COPYRIGHT_AGENT_HTML = '''
                                Seattle, WA 98122<br>
                                <a href='mailto:copyright@sagemath.com'>copyright@sagemath.com</a>
                                '''
+# for conversion tracking (commercial only)
+exports.gtag_id              = 'AW-943259268'
+exports.sign_up_id           = '44ZfCImosncQhP3jwQM'
+exports.conversion_id        = 'zttYCNDZsXcQhP3jwQM'
 
 # this is used in smc-hub/email.coffee and hub.coffee to specify the template and ASM groups for sendgrid
 exports.SENDGRID_TEMPLATE_ID    = '0375d02c-945f-4415-a611-7dc3411e2a78'
@@ -54,10 +65,12 @@ COLORS =
     GRAY_L0  : '#e0e0e0'
     GRAY_LL  : '#eeeeee'
     GRAY_LLL : '#f5f5f5'
+    # bootstrap 3 colors
     BS_BLUE_BGRND : "rgb(66, 139, 202)"
     BS_GREEN      : '#5CB85C'
     BS_GREEN_D    : '#449d44'
     BS_GREEN_DD   : '#398439'
+    BS_RED        : '#dc3545'
 
 # The definitions below add semantic meaning by using the colors
 

@@ -14,6 +14,9 @@
   // get rid of bootstrap's width: 100% for .table elements in the editor content
   .table
     width: auto
+.webapp-editor-textedit-buttonbar
+  padding    : 3px 3px 0px 3px
+  background : #efefef
 
 .webapp-editor-close-button-x
   font-size    : 14px
@@ -63,6 +66,10 @@
   font-size    : 11pt
   font-weight  : bold
   color        : #555
+
+.webapp-editor-codemirror-message
+  margin-left  : 3em
+  font-size    : 11pt
 
 .webapp-editor-codemirror-cursor
   position : absolute
@@ -325,7 +332,7 @@
 .sagews-output-cm-wrap
   padding-top    : 1ex  !important
   padding-bottom : 1ex  !important
-  border         : 1px solid #ddd
+  border-top     : 1px solid lightgrey
 
 .sagews-output-edit-button-group
   visibility : hidden
@@ -411,24 +418,6 @@
   background : #eee
 
 // .sagews-output-interact!
-
-.webapp-editor-image
-  padding    : 0px
-  overflow-y : auto
-  left       : 0px
-
-.webapp-editor-image-container
-  overflow         : auto
-  background-color : #fff
-  border           : 1px solid #aaa
-  box-shadow       : 5px 5px 5px 5px #888
-
-.webapp-editor-image-title
-  margin-left  : 3em
-  margin-right : 5em
-  font-size    : 10pt
-  font-weight  : bold
-  color        : #555
 
 
 .webapp-editor-static-html-content
@@ -529,21 +518,19 @@ code
   border-radius : 3px
 
 .webapp-editor-resize-bar-layout-1
-  height        : 5px
+  height        : 7px
   cursor        : ns-resize
-  background    : #ddd
-  border        : 1px solid grey
-  border-radius : 3px
+  background    : #eee
+  border        : 0.5px solid lightgrey
   z-index       : 1
   &:hover
     background : #888
 
 .smc-vertical-drag-bar, .webapp-editor-resize-bar-layout-2, .webapp-editor-latex-resize-bar, .webapp-editor-html-md-resize-bar
   cursor        : ew-resize
-  background    : #ddd
-  width         : 4px
-  border        : 1px solid grey
-  border-radius : 3px
+  background    : #eee
+  width         : 6px
+  border        : 0.5px solid lightgrey
   z-index       : 1
   &:hover
     background : #888
@@ -552,8 +539,6 @@ code
   padding       : 12px
   background    : white
   overflow      : auto
-  border        : 1px solid grey
-  border-radius : 4px
 
 .smc-html-selection
   background-color : lightgrey
@@ -639,22 +624,19 @@ h6 { font-size: 110% }
   background-color : inherit !important
 
 
+/* The overflow:hidden is needed for Firefox. */
 .smc-vfill
   flex           : 1
   display        : flex
   flex-direction : column
   overflow       : hidden
 
-.smc-vflex
-  display        : flex
-  flex-direction : column
-
 .smc-btn-group-nobreak
   display     : flex
   align-items : flex-start
 
 .webapp-editor-codemirror-button-container
-  border: 1px solid lightgrey
+  margin       : 3px
 
 .smc-message-from-viewer a:link, .smc-message-from-viewer a:visited
    color : #FFEB3B
@@ -678,3 +660,4 @@ h6 { font-size: 110% }
    background          : url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAMCAYAAAAkuj5RAAAAAXNSR0IArs4c6QAAAGFJREFUSMft1LsRQFAQheHPowAKoACx3IgEKtaEHujDjORSgWTH/ZOdnZOcM/sgk/kFFWY0qV8foQwS4MKBCS3qR6ixBJvElOobYAtivseIE120FaowJPN75GMu8j/LfMwNjh4HUpwg4LUAAAAASUVORK5CYII=)
    background-position : right
    background-repeat   : no-repeat
+

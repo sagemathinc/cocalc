@@ -28,8 +28,10 @@ immutable  = require('immutable')
 {Col, Row, Button, ButtonGroup, ButtonToolbar, FormControl, FormGroup, InputGroup, Panel, Well} = require('react-bootstrap')
 {Icon, Loading, TimeAgo, PathLink, r_join, SearchInput, Space, Tip} = require('./r_misc')
 {User} = require('./users')
-{file_action_buttons} = require('./project_files')
+{file_actions} = require('./project_store')
 {ProjectTitleAuto} = require('./projects')
+
+{file_associations} = require('./file-associations')
 
 
 LogMessage = rclass
@@ -39,6 +41,20 @@ LogMessage = rclass
         <div>
             This is a log message
         </div>
+
+# This is used for these cases, where `account_id` isn't set. This means, a back-end system process is responsible.
+# In the case of stopping a project, the name is recorded in the event.by field.
+SystemProcess = rclass
+    displayName : 'ProjectLog-SystemProcess'
+
+    propTypes :
+        event : rtypes.any
+
+    render: ->
+        if @props.event.by?
+            <span>System service <code>{@props.event.by}</code></span>
+        else
+            <span>A system service</span>
 
 LogSearch = rclass
     displayName : 'ProjectLog-LogSearch'
@@ -98,15 +114,35 @@ LogEntry = rclass
         backgroundStyle : rtypes.object
         project_id      : rtypes.string
 
+    render_took: ->
+        if not @props.event?.time
+            return
+        <span style={color:'#666'}>
+            <Space />(took {(Math.round(@props.event.time/100)/10).toFixed(1)}s)
+        </span>
+
     render_open_file: ->
         <span>opened<Space/>
             <PathLink
                 path       = {@props.event.filename}
                 full       = {true}
                 style      = {if @props.cursor then selected_item}
-                trunc      = 50
+                trunc      = {50}
                 project_id = {@props.project_id} />
+            {@render_took()}
         </span>
+
+    render_start_project: ->
+        <span>started this project {@render_took()}</span>
+
+    render_project_restart_requested: ->
+        <span>requested to restart this project</span>
+
+    render_project_stop_requested: ->
+        <span>requested to stop this project</span>
+
+    render_project_stopped: ->
+        <span>stopped this project</span>
 
     render_miniterm_command: (cmd) ->
         if cmd.length > 50
@@ -128,7 +164,7 @@ LogEntry = rclass
             full       = {true}
             style      = {if @props.cursor then selected_item}
             key        = {i}
-            trunc      = 50
+            trunc      = {50}
             link       = {link}
             project_id = {project_id ? @props.project_id} />
 
@@ -176,6 +212,10 @@ LogEntry = rclass
                 set <a onClick={@click_set} style={if @props.cursor then selected_item} href=''>{content}</a>
             </span>
 
+    render_library: ->
+        return if not @props.event.target?
+        <span>copied "{@props.event.title}" from the library to {@file_link(@props.event.target, true, 0)}</span>
+
     render_upgrade: ->
         params = require('smc-util/schema').PROJECT_UPGRADES.params
         v = []
@@ -208,8 +248,14 @@ LogEntry = rclass
             return <span>{@props.event}</span>
 
         switch @props.event?.event
-            when 'open_project'
-                return <span>opened this project</span>
+            when 'start_project'
+                return @render_start_project()
+            when 'project_stop_requested'
+                return @render_project_stop_requested()
+            when 'project_restart_requested'
+                return @render_project_restart_requested()
+            when 'project_stopped'
+                return @render_project_stopped()
             when 'open' # open a file
                 return @render_open_file()
             when 'set'
@@ -226,19 +272,30 @@ LogEntry = rclass
                 return @render_invite_user()
             when 'invite_nonuser'
                 return @render_invite_nonuser()
-            else
-                # FUTURE:
-                return <span>{misc.to_json(@props.event)}</span>
+            when 'open_project'  # not used anymore???
+                return <span>opened this project</span>
+            when 'library'
+                return @render_library()
+            # ignore unknown -- would just look mangled to user...
+            #else
+            # FUTURE:
+            #    return <span>{misc.to_json(@props.event)}</span>
 
     render_user: ->
-        <User user_map={@props.user_map} account_id={@props.account_id} />
+        if @props.account_id?
+            <User user_map={@props.user_map} account_id={@props.account_id} />
+        else
+            <SystemProcess event={@props.event} />
 
     icon: ->
-        switch @props.event?.event
+        if not @props.event?.event
+            return 'dot-circle-o'
+
+        switch @props.event.event
             when 'open_project'
                 return 'folder-open-o'
             when 'open' # open a file
-                x = require('./editor').file_associations[@props.event.type]?.icon
+                x = file_associations[@props.event.type]?.icon
                 if x?
                     if x.slice(0,3) == 'fa-'  # temporary -- until change code there?
                         x = x.slice(3)
@@ -249,23 +306,26 @@ LogEntry = rclass
                 return 'wrench'
             when 'file_action'
                 icon = @file_action_icons[@props.event.action]
-                return file_action_buttons[icon]?.icon
+                return file_actions[icon]?.icon
             when 'upgrade'
                 return 'arrow-circle-up'
             when 'invite_user'
                 return 'user'
             when 'invite_nonuser'
                 return 'user'
-            else
-                return 'dot-circle-o'
+
+        if @props.event.event.indexOf('project') != -1
+            return 'edit'
+        else
+            return 'dot-circle-o'
 
     render: ->
         style = if @props.cursor then selected_item else @props.backgroundStyle
         <Row style={underscore.extend({borderBottom:'1px solid lightgrey'}, style)}>
-            <Col sm=1 style={textAlign:'center'}>
+            <Col sm={1} style={textAlign:'center'}>
                 <Icon name={@icon()} style={style} />
             </Col>
-            <Col sm=11>
+            <Col sm={11}>
                 {@render_user()}<Space/>
                 {@render_desc()}<Space/>
                 <TimeAgo style={style} date={@props.time} popover={true} />
@@ -377,7 +437,6 @@ exports.ProjectLog = rclass ({name}) ->
             return
 
         if not immutable.is(next_user_map, @_last_user_map) and @_log?
-            # Update any names that changed in the existing log
             next_user_map.map (val, account_id) =>
                 if not immutable.is(val, @_last_user_map?.get(account_id))
                     for x in @_log
@@ -386,11 +445,25 @@ exports.ProjectLog = rclass ({name}) ->
 
         if not immutable.is(next_project_log, @_last_project_log)
             # The project log changed, so record the new entries
+            # and update any existing entries that changed, e.g., timing information added.
             new_log = []
             next_project_log.map (val, id) =>
-                if not @_last_project_log?.get(id)?
+                e = @_last_project_log?.get(id)
+                if not e?
                     # new entry we didn't have before
                     new_log.push(val.toJS())
+                else if not immutable.is(val, e)
+                    # An existing entry changed; this happens
+                    # when files are opened and the total time to open gets reported.
+                    id = val.get('id')
+                    # find it in the past log:
+                    for x in @_log
+                        if x.id == id
+                            # and process the change
+                            for k, v of val.toJS()
+                                x[k] = v
+                            @process_log_entry(x)
+                            break
             if new_log.length > 1
                 new_log.sort((a,b) -> misc.cmp(b.time, a.time))
                 # combine redundant subsequent events that differ only by time
@@ -468,7 +541,7 @@ exports.ProjectLog = rclass ({name}) ->
 
         <Panel>
             <Row>
-                <Col sm=4>
+                <Col sm={4}>
                     <LogSearch
                         actions          = {@actions(name)}
                         search           = {@props.search}
@@ -478,17 +551,17 @@ exports.ProjectLog = rclass ({name}) ->
                         reset_cursor     = {@reset_cursor}
                     />
                 </Col>
-                <Col sm=4>
+                <Col sm={4}>
                     {@render_paging_buttons(num_pages, @props.page)}
                 </Col>
             </Row>
             <Row>
-                <Col sm=12>
+                <Col sm={12}>
                     <LogMessages log={log} cursor={cursor} user_map={@props.user_map} project_id={@props.project_id} />
                 </Col>
             </Row>
             <Row>
-                <Col sm=4 style={marginTop:'15px'}>
+                <Col sm={4} style={marginTop:'15px'}>
                     {@render_paging_buttons(num_pages, @props.page)}
                 </Col>
             </Row>

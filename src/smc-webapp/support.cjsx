@@ -21,13 +21,12 @@
 $          = window.$
 underscore = _ = require('underscore')
 {React, ReactDOM, Actions, Store, rtypes, rclass, redux, COLOR}  = require('./smc-react')
-{Col, Row, Button, FormControl, FormGroup, Well, Alert, Modal, Table} = require('react-bootstrap')
+{Button, FormControl, FormGroup, Well, Alert, Modal, Table} = require('react-bootstrap')
 {Icon, Markdown, Loading, Space, ImmutablePureRenderMixin, Footer} = require('./r_misc')
 misc            = require('smc-util/misc')
 misc_page       = require('./misc_page')
 {webapp_client} = require('./webapp_client')
 feature         = require('./feature')
-{markdown_to_html} = require('./markdown')
 {HelpEmailLink, SiteName, SmcWikiUrl} = require('./customize')
 
 STATE =
@@ -61,6 +60,8 @@ class SupportStore extends Store
 
 class SupportActions extends Actions
 
+    # TODO: the public api of actions is not supposed to return anything.  An action *DOES* stuff.
+    # These get_store and get should be private.
     get_store: =>
         @redux.getStore('support')
 
@@ -184,7 +185,7 @@ class SupportActions extends Actions
         tags = []
 
         # all upgrades the user has available
-        # that's a sum of membership benefits (see schema.coffee)
+        # that's a sum of subscription benefits (see schema.coffee)
         upgrades = account.get_total_upgrades()
         if upgrades? and misc.sum(_.values(upgrades)) > 0
             tags.push('member')
@@ -216,7 +217,6 @@ class SupportActions extends Actions
                 email_address: @get('email')
                 subject      : @get('subject')
                 body         : @get('body')
-                #body         : markdown_to_html(@get('body')).s # html doesn't work
                 tags         : tags
                 location     : @location()
                 account_id   : account_id
@@ -250,8 +250,8 @@ exports.SupportPage = rclass
 
     open: (ticket_id) ->
         url = misc.ticket_id_to_ticket_url(ticket_id)
-        tab = window.open(url, '_blank')
-        tab.focus()
+        {open_new_tab} = require('smc-webapp/misc_page')
+        open_new_tab(url, '_blank')
 
     render_body: ->
         for i, ticket of @props.support_tickets
@@ -298,7 +298,6 @@ exports.SupportPage = rclass
 
         if @props.support_tickets.length > 0
             <Table responsive style={borderCollapse: "separate", borderSpacing: "0 1em"}>
-                {# <thead>{@render_header()}</thead>}
                 <tbody>{@render_body()}</tbody>
             </Table>
         else
@@ -338,12 +337,15 @@ SupportInfo = rclass
         url          : rtypes.string.isRequired
         err          : rtypes.string.isRequired
 
+    shouldComponentUpdate: (props) ->
+        return misc.is_different(@props, props, ['state', 'url', 'err'])
+
     error: () ->
         <Alert bsStyle='danger' style={fontWeight:'bold'}>
             <p>
             Sorry, there has been an error creating the ticket.
             <br/>
-            Please email <HelpEmailLink /> directly!
+            Please email <HelpEmailLink /> directly!  (NOTE: You can click "Help" again to reopen the support ticket form and copy your content to email.)
             </p>
             <p>Error message:</p>
             <pre>{@props.err}</pre>
@@ -363,7 +365,7 @@ SupportInfo = rclass
           <Button
               bsStyle  = 'success'
               style    = {marginTop:'3em'}
-              tabIndex = 4
+              tabIndex = {4}
               onClick  = {@props.actions.new_ticket}>Create New Ticket</Button>
        </div>
 
@@ -373,26 +375,58 @@ SupportInfo = rclass
             loc  = @props.actions.location()
             fn   = loc.slice(47) # / projects / uuid /
             what = <p>
-                       If you have a problem or question with "{fn}" in
-                       project "{title}", please create a support ticket.
+                       If you have a problem involving "{fn}" in the
+                       project "{title}", please create a support ticket below.
                    </p>
         else
             what = <p>
-                       If you have a problem with a specific project or file,
-                       close this dialog, navigate to it, and then click on
+                       If you have a problem involving a specific project or file,
+                       close this dialog, navigate to that file, then click on
                        {" "}<Icon name='medkit' />{" "}
                        in the top right corner to open it again.
-                       Otherwise, please go ahead.
+                       Otherwise, please fill out this form.
                    </p>
         <div>
+            <ul>
+                <li>
+                    <b>Looking for documentation and help?</b> Go to
+                    the <a href="#{SmcWikiUrl}" target="_blank">CoCalc documentation</a>.
+                </li>
+                <li>
+                    <b>Trying to sign out?</b>  Click on Account on the top right, then click
+                    "Sign out..." in Preferences.
+                </li>
+                <li>
+                    <a target="_blank" href="https://github.com/sagemathinc/cocalc/wiki/MySubscriptionDoesNotWork">Bought a subscription but it does not work?</a>
+                </li>
+                <li>
+                    <a target="_blank" href="https://github.com/sagemathinc/cocalc/wiki/DeleteProject">Files or project seem gone?</a>
+                </li>
+                <li>
+                    <a target="_blank" href="https://github.com/sagemathinc/cocalc/wiki/SageWorksheetWontRun">Sage worksheet or Jupyter notebook is very slow or will not run?</a>
+                </li>
+                <li>
+                    <a target="_blank" href="https://github.com/sagemathinc/cocalc/wiki/KernelTerminated">Jupyter notebook keeps crashing with "Kernel terminated"?</a>
+                </li>
+                <li>
+                    <a target="_blank" href="https://github.com/sagemathinc/cocalc/wiki/SageQuestion">Have a question about how to use Sage?</a>
+                </li>
+                <li>
+                    <b>Requesting that we install software?</b> Fill out the form below and
+                    include a complete example
+                    that we can easily use to verify that we properly installed the software.
+                </li>
+                <li>
+                    <b>Hit a bug or just need to talk with us?</b>  Fill out the form below...
+                </li>
+            </ul>
+
+            <h2>Create a support ticket</h2>
+
             {what}
             <p>
-                Looking for documentation and help? Go to
-                the <a href="#{SmcWikiUrl}" target="_blank">CoCalc documentation</a>.
-            </p>
-            <p>
-                After submitting a ticket, you{"'"}ll get a link, which you may
-                want to save until you receive a confirmation email.
+                After submitting a ticket, you{"'"}ll receive a link, which you should save until
+                you receive a confirmation email.
                 You can also check the status of your ticket under "Support"
                 in your account settings.
             </p>
@@ -418,10 +452,13 @@ SupportFooter = rclass
         show_form: rtypes.bool.isRequired
         valid    : rtypes.bool.isRequired
 
+    shouldComponentUpdate: (props) ->
+        return misc.is_different(@props, props, ['show_form', 'valid'])
+
     render: ->
         if @props.show_form
             btn = <Button bsStyle  = 'primary'
-                          tabIndex = 4
+                          tabIndex = {4}
                           onClick  = {@props.submit}
                           disabled = {not @props.valid}>
                        <Icon name='medkit' /> Get Support
@@ -432,7 +469,7 @@ SupportFooter = rclass
         <Modal.Footer>
             {btn}
             <Button
-                tabIndex  = 5
+                tabIndex  = {5}
                 bsStyle   ='default'
                 onClick   = {@props.close}>Close</Button>
         </Modal.Footer>
@@ -468,7 +505,7 @@ SupportForm = rclass
             </Alert>
         else
             <Alert bsStyle='info'>
-                Please make sure the email address is correct.
+                Please make sure your email address is correct.
             </Alert>
 
         <form>
@@ -477,7 +514,7 @@ SupportForm = rclass
                     label       = 'Your email address'
                     ref         = 'email'
                     type        = 'text'
-                    tabIndex    = 1
+                    tabIndex    = {1}
                     placeholder = 'your_email@address.com'
                     value       = {@props.email}
                     onChange    = {@email_change} />
@@ -489,7 +526,7 @@ SupportForm = rclass
                     ref         = 'subject'
                     autoFocus
                     type        = 'text'
-                    tabIndex    = 2
+                    tabIndex    = {2}
                     label       = 'Message'
                     placeholder = "Subject ..."
                     value       = {@props.subject}
@@ -497,14 +534,16 @@ SupportForm = rclass
             </FormGroup>
             <div style={margin:'10px', color:'#666'}>
                 1. What did you do exactly?  2. What happened?  3. How did this differ from what you expected?
+                <br/>
+                <b><em>If your support request involves any files at all, include the link (the URL in your browser) to the file; otherwise, answering your question may take many extra hours.</em></b>
             </div>
             <FormGroup>
                 <FormControl
                     componentClass = "textarea"
                     ref         = 'body'
-                    tabIndex    = 3
+                    tabIndex    = {3}
                     placeholder = 'Describe the problem ...'
-                    rows        = 6
+                    rows        = {6}
                     value       = {@props.body}
                     onChange    = {@data_change} />
             </FormGroup>
@@ -561,7 +600,7 @@ exports.Support = rclass
 
         <Modal bsSize={"large"} show={@props.show} onHide={@close} animation={false}>
             <Modal.Header closeButton>
-                <Modal.Title>Support Ticket</Modal.Title>
+                <Modal.Title><Icon name='medkit' /> Help</Modal.Title>
             </Modal.Header>
 
             <Modal.Body>

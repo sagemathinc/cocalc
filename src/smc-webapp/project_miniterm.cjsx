@@ -101,7 +101,7 @@ exports.MiniTerminal = MiniTerminal = rclass
                     # computation was cancelled -- ignore result.
                     return
                 if err
-                    @setState(error:err, state:'edit')
+                    @setState(error:JSON.stringify(err), state:'edit')
                 else if output.exit_code != 0 and new Date() - start_time >= .98*EXEC_TIMEOUT
                     # we get no other error except it takes a long time and the exit_code isn't 0.
                     @setState
@@ -146,7 +146,7 @@ exports.MiniTerminal = MiniTerminal = rclass
 
     render_output: (x, style) ->
         if x
-            <pre style=style>
+            <pre style={style}>
                 <a onClick={(e)=>e.preventDefault(); @setState(stdout:'', error:'')}
                    href=''
                    style={right:'10px', top:'0px', color:'#666', fontSize:'14pt', position:'absolute'}>

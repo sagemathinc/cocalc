@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import argparse, os, sys, time
+import argparse, os, sys, time, urllib
 
 SRC = os.path.split(os.path.realpath(__file__))[0]
 
@@ -74,14 +74,40 @@ def install_webapp(*args):
         cmd("cd examples && make")
         for path in ['.', 'smc-util', 'smc-util-node', 'smc-webapp', 'smc-webapp/jupyter']:
             cmd("cd %s; npm --loglevel=warn install"%path)
+
+        # In some contexts (e.g., kubernetes) the postinstall hook doesnot work; so we just
+        # run it again here. :-(
+        cmd("cd smc-webapp; node_modules/.bin/babel --presets=env  node_modules/prom-client -d node_modules/prom-client-js")
+
         # react static step must come *before* webpack step
         cmd("update_react_static")
+
+        # download compute environment information
+        # TOOD python 3: https://docs.python.org/3.5/library/urllib.request.html#urllib.request.urlretrieve
+        if os.environ.get('CC_COMP_ENV') == 'true':
+            print("Downloading compute environment information, because 'CC_COMP_ENV' is true")
+            try:
+                host = 'https://storage.googleapis.com/cocalc-compute-environment/'
+                for fn in ['compute-inventory.json', 'compute-components.json']:
+                    out = os.path.join(SRC, 'webapp-lib', fn)
+                    urllib.urlretrieve(host + fn, out)
+            except Exception as ex:
+                print("WARNING: problem while downloading the compute environment information")
+                print(ex)
+
         # update primus - so client has it.
         install_primus()
         # update term.js
         cmd("cd webapp-lib/term; ./compile")
-        print("Building production webpack -- grab a coffee, this will take about 5 minutes")
-        cmd("npm --loglevel=warn run webpack-production")
+        wtype = 'debug' if (len(args) > 0 and args[0].debug) else 'production'
+        if len(args) > 0 and args[0].debug:
+            wtype = 'debug'
+            est   = 1
+        else:
+            wtype = 'production'
+            est   = 5
+        print("Building {wtype} webpack -- this should take up to {est} minutes".format(wtype=wtype, est=est))
+        cmd("npm --loglevel=warn run webpack-{wtype}".format(wtype=wtype))
         nothing = False
 
     if 'pull' == action:
@@ -126,6 +152,7 @@ def main():
 
     parser_webapp = subparsers.add_parser('webapp', help='install/update any node.js dependencies for smc-[util*/webapp] and use webpack to build production js (takes several minutes!)')
     parser_webapp.add_argument('action', help='either "build" the webapp or "pull/push" compiled files from a repository -- see scripts/webapp-control.sh how this works', choices=['build', 'pull', 'push', 'build-push', 'clean'])
+    parser_webapp.add_argument("--debug", action="store_true", help="if set, build debug version of code (rather than production)")
     parser_webapp.set_defaults(func = install_webapp)
 
     parser_primus = subparsers.add_parser('primus', help='update client-side primus websocket code')

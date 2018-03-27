@@ -8,7 +8,7 @@ async      = require('async')
 
 misc       = require('smc-util/misc')
 theme      = require('smc-util/theme')
-{DOMAIN_NAME, COMPANY_NAME, BILLING_EMAIL, SITE_NAME} = theme
+{DOMAIN_NAME, COMPANY_NAME, BILLING_EMAIL, SITE_NAME, BILLING_ADDRESS, BILLING_TAXID} = theme
 
 misc_node  = require('smc-util-node/misc_node')
 
@@ -81,7 +81,11 @@ render_invoice_to_pdf = (invoice, customer, charge, res, download, cb) ->
     if invoice.paid
         doc.text("Card charged")
 
+    if invoice.description
+        doc.text("Description:")
+
     doc.fillColor('black')
+
     doc.text(misc.stripe_date(invoice.date), c2, y)
     #doc.text(invoice.id.slice(invoice.id.length-6).toLowerCase())
     doc.text("#{invoice.date}")
@@ -90,7 +94,12 @@ render_invoice_to_pdf = (invoice, customer, charge, res, download, cb) ->
     if invoice.paid and charge?.source?
         doc.text("#{charge.source.brand} ending #{charge.source.last4}")
 
-    y += 120
+    if invoice.description
+        doc.text("#{invoice.description}")
+    else
+        doc.text("#{SITE_NAME} compute resources")
+
+    y += 130
     doc.fontSize(24).text("Items", c1, y)
 
     y += 40
@@ -131,10 +140,13 @@ render_invoice_to_pdf = (invoice, customer, charge, res, download, cb) ->
     doc.text("USD $#{invoice.total/100}")
 
     y += 300
+    doc.fontSize(12)
+    doc.text("#{BILLING_ADDRESS.split('\n').join(', ')} -- #{BILLING_TAXID}", c1, y)
+    doc.moveDown()
+    doc.text("Contact us with any questions by emailing #{BILLING_EMAIL}.")
+    doc.moveDown()
     doc.fontSize(14)
-    doc.text("Contact us with any questions by emailing #{BILLING_EMAIL}.", c1, y)
     if not invoice.paid
-        doc.moveDown()
         doc.text("To pay, sign into your account at #{DOMAIN_NAME} and add a payment method in the billing tab under account settings.")
     else
         doc.text("Thank you for using #{SITE_NAME} -- #{DOMAIN_NAME}.")

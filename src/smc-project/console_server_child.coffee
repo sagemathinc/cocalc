@@ -36,6 +36,11 @@ process.on 'message', (opts, socket) ->
         path     : undefined
         filename : undefined
 
+    # I noticed that LATELY sometimes we don't see output until hitting input from the client side.
+    # Setting the socket to immediately send when written to might help.
+    # See https://nodejs.org/api/net.html#net_socket_setnodelay_nodelay
+    socket.setNoDelay()
+
     fn = misc.path_split(opts.filename).tail
     env = misc.merge({SMC_FILENAME: fn}, process.env)
 

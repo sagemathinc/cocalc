@@ -17,5 +17,5 @@ exports.Metadata = rclass
         <Button
             bsSize  = 'small'
             onClick = {@edit}>
-            Edit Metadata...
+            Edit Custom Metadata...
         </Button>

@@ -31,6 +31,7 @@ now = ->
 
 class exports.OutputHandler extends EventEmitter
     constructor: (opts) ->
+        super()
         @_opts = defaults opts,
             cell              : required    # object; the cell whose output (etc.) will get mutated
             max_output_length : undefined   # If given, used to truncate, discard output messages; extra
@@ -98,9 +99,15 @@ class exports.OutputHandler extends EventEmitter
     # Call error if an error occurs.  An appropriate error message is generated.
     # Computation is considered done.
     error: (err) =>
-        @message
-            text : "#{err}"
-            name : "stderr"
+        if err == 'closed'
+            # See https://github.com/sagemathinc/cocalc/issues/2388
+            @message
+                data :
+                    "text/markdown" : "<font color='red'>**Jupyter Kernel terminated:**</font> This might be caused by running out of memory or hitting a bug in some library (e.g., forking too many processes, trying to access invalid memory, etc.). Consider restarting or upgrading your project or running the relevant code directly in a terminal to track down the cause, as [explained here](https://github.com/sagemathinc/cocalc/wiki/KernelTerminated)."
+        else
+            @message
+                text : "#{err}"
+                name : "stderr"
         @done()
 
     # Call done exactly once when done

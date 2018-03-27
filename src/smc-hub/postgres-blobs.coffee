@@ -9,7 +9,10 @@ LICENSE   : AGPLv3
 # Bucket used for cheaper longterm storage of blobs (outside of PostgreSQL).
 # NOTE: We should add this to site configuration, and have it get read once when first
 # needed and cached.  Also it would be editable in admin account settings.
-BLOB_GCLOUD_BUCKET = 'smc-blobs'
+# If this env variable begins with a / it is assumed to be a path in the filesystem,
+# e.g., a remote mount (in practice, we are using gcsfuse to mount gcloud buckets).
+# If it is gs:// then it is a google cloud storage bucket.
+COCALC_BLOB_STORE = process.env.COCALC_BLOB_STORE
 
 async   = require('async')
 snappy  = require('snappy')
@@ -21,9 +24,11 @@ misc_node = require('smc-util-node/misc_node')
 {defaults} = misc = require('smc-util/misc')
 required = defaults.required
 
-{expire_time, one_result, all_results, PostgreSQL} = require('./postgres')
+{expire_time, one_result, all_results} = require('./postgres-base')
 
-class exports.PostgreSQL extends PostgreSQL
+{filesystem_bucket} = require('./filesystem-bucket')
+
+exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
     save_blob: (opts) =>
         opts = defaults opts,
             uuid       : undefined # uuid=sha1-based id coming from blob
@@ -174,8 +179,14 @@ class exports.PostgreSQL extends PostgreSQL
                     blob = x.blob
                     cb()
                 else if x.gcloud
+                    if not COCALC_BLOB_STORE?
+                        cb("no blob store configured -- set the COCALC_BLOB_STORE env variable")
+                        return
                     # blob not available locally, but should be in a Google cloud storage bucket -- try to get it
-                    @gcloud().bucket(name: x.gcloud).read
+                    # NOTE: we now ignore the actual content of x.gcloud -- we don't support spreading blobs
+                    # across multiple buckets... as it isn't needed because buckets are infinite, and it
+                    # is potentially confusing to manage.
+                    @blob_store().read
                         name : opts.uuid
                         cb   : (err, _blob) =>
                             if err
@@ -190,7 +201,8 @@ class exports.PostgreSQL extends PostgreSQL
                                         set   : {blob : blob}
                                         where : "id = $::UUID" : opts.uuid
                 else
-                    # blob not local and not in gcloud -- this shouldn't happen (just view this as "expired" by not setting blob)
+                    # blob not local and not in gcloud -- this shouldn't happen
+                    # (just view this as "expired" by not setting blob)
                     cb()
             (cb) =>
                 if not blob? or not x?.compress?
@@ -231,26 +243,47 @@ class exports.PostgreSQL extends PostgreSQL
     gcloud: () =>
         return @_gcloud ?= require('./smc_gcloud').gcloud()
 
+    blob_store: (bucket) =>
+        if not bucket
+            bucket = COCALC_BLOB_STORE
+        if misc.startswith(bucket, 'gs://')
+            # Google Cloud Storage -- only works if hub has full direct gcloud storage API access, so
+            # NOT in KuCalc or Docker or really anywhere anymore...
+            return @gcloud().bucket(name: bucket.slice('gs://'.length))
+        else
+            # Filesystem -- could be a big NFS volume, remotely mounted gcsfuse, or just
+            # a single big local filesystem -- etc. -- we don't care.
+            return filesystem_bucket(name: bucket)
+
     # Uploads the blob with given sha1 uuid to gcloud storage, if it hasn't already
     # been uploaded there.
     copy_blob_to_gcloud: (opts) =>
         opts = defaults opts,
-            uuid   : required  # uuid=sha1-based uuid coming from blob
-            bucket : BLOB_GCLOUD_BUCKET # name of bucket
+            uuid   : required   # uuid=sha1-based uuid coming from blob
+            bucket : COCALC_BLOB_STORE # name of bucket
             force  : false      # if true, upload even if already uploaded
             remove : false      # if true, deletes blob from database after successful upload to gcloud (to free space)
             cb     : undefined  # cb(err)
+        dbg = @_dbg("copy_blob_to_gcloud(uuid='#{opts.uuid}')")
+        dbg()
         if not misc.is_valid_uuid_string(opts.uuid)
+            dbg("invalid uuid")
             opts.cb?("uuid is invalid")
             return
-        x = undefined
+        if not opts.bucket
+            dbg("invalid bucket")
+            opts.cb?("no blob store configured -- set the COCALC_BLOB_STORE env variable")
+            return
+        locals =
+            x: undefined
         async.series([
             (cb) =>
+                dbg("get blob info from database")
                 @_query
                     query : "SELECT blob, gcloud FROM blobs"
                     where : "id = $::UUID" : opts.uuid
-                    cb    : one_result (err, _x) =>
-                        x = _x
+                    cb    : one_result (err, x) =>
+                        locals.x = x
                         if err
                             cb(err)
                         else if not x?
@@ -262,23 +295,37 @@ class exports.PostgreSQL extends PostgreSQL
                         else
                             cb()
             (cb) =>
-                if x.gcloud? and not opts.force
-                    # already uploaded -- don't need to do anything
-                    cb(); return
-                if not x.blob?
-                    # blob already deleted locally
+                if (locals.x.gcloud? and not opts.force) or not locals.x.blob?
+                    dbg("already uploaded -- don't need to do anything; or already deleted locally")
                     cb(); return
                 # upload to Google cloud storage
-                @gcloud().bucket(name:opts.bucket).write
+                locals.bucket = @blob_store(opts.bucket)
+                locals.bucket.write
                     name    : opts.uuid
-                    content : x.blob
+                    content : locals.x.blob
                     cb      : cb
             (cb) =>
-                if not x.blob?
+                if (locals.x.gcloud? and not opts.force) or not locals.x.blob?
+                    # already uploaded -- don't need to do anything; or already deleted locally
+                    cb(); return
+                dbg("read blob back and compare") # -- we do *NOT* trust GCS with such important data
+                locals.bucket.read
+                    name : opts.uuid
+                    cb   : (err, data) =>
+                        if err
+                            cb(err)
+                        else if not locals.x.blob.equals(data)
+                            dbg("FAILED!")
+                            cb("BLOB write to GCS failed check!")
+                        else
+                            dbg("check succeeded")
+                            cb()
+            (cb) =>
+                if not locals.x.blob?
                     # no blob in db; nothing further to do.
                     cb()
                 else
-                    # We successful upload to gcloud -- set x.gcloud
+                    # We successful upload to gcloud -- set locals.x.gcloud
                     set = {gcloud: opts.bucket}
                     if opts.remove
                         set.blob = null   # remove blob content from database to save space
@@ -298,7 +345,7 @@ class exports.PostgreSQL extends PostgreSQL
 
     I have not written code to restore from these tarballs.  Assuming the database has been restored,
     so there is an entry in the blobs table for each blob, it would suffice to upload the tarballs,
-    then copy their contents straight into the BLOB_GCLOUD_BUCKET gcloud bucket, and that’s it.
+    then copy their contents straight into the COCALC_BLOB_STORE, and that’s it.
     If we don't have the blobs table in the DB, make dummy entries from the blob names in the tarballs.
     ###
     backup_blobs_to_tarball: (opts) =>
@@ -395,13 +442,14 @@ class exports.PostgreSQL extends PostgreSQL
     ###
     copy_all_blobs_to_gcloud: (opts) =>
         opts = defaults opts,
-            bucket    : BLOB_GCLOUD_BUCKET # name of bucket
+            bucket    : COCALC_BLOB_STORE
             limit     : 1000               # copy this many in each batch
             map_limit : 1                  # copy this many at once.
             throttle  : 0                  # wait this many seconds between uploads
             repeat_until_done_s : 0        # if nonzero, waits this many seconds, then calls this function again until nothing gets uploaded.
-            errors    : {}                 # used to accumulate errors
+            errors    : undefined          # object: used to accumulate errors -- if not given, then everything will terminate on first error
             remove    : false
+            cutoff    : '1 month'          # postgresql interval - only copy blobs to gcloud that haven't been accessed at least this long.
             cb        : required
         dbg = @_dbg("copy_all_blobs_to_gcloud")
         dbg()
@@ -409,10 +457,11 @@ class exports.PostgreSQL extends PostgreSQL
         # been copied to Google cloud storage.
         dbg("getting blob id's...")
         @_query
-            query : 'SELECT id, size FROM blobs'
-            where : "expire IS NULL AND gcloud IS NULL"
-            limit : opts.limit
-            cb    : all_results (err, v) =>
+            query    : 'SELECT id, size FROM blobs'
+            where    : "expire IS NULL AND gcloud IS NULL and (last_active <= NOW() - INTERVAL '#{opts.cutoff}' OR last_active IS NULL)"
+            limit    : opts.limit
+            order_by : 'id'
+            cb       : all_results (err, v) =>
                 if err
                     dbg("fail: #{err}")
                     opts.cb(err)
@@ -430,13 +479,19 @@ class exports.PostgreSQL extends PostgreSQL
                             cb     : (err) =>
                                 dbg("**** #{k}/#{n}: finished -- #{err}; size #{x.size/1000}KB; time=#{new Date() - start}ms")
                                 if err
-                                    opts.errors[x.id] = err
+                                    if opts.error?
+                                        opts.errors[x.id] = err
+                                    else
+                                        cb(err)
                                 if opts.throttle
                                     setTimeout(cb, 1000*opts.throttle)
                                 else
                                     cb()
                     async.mapLimit v, opts.map_limit, f, (err) =>
                         dbg("finished this round -- #{err}")
+                        if err and not opts.errors?
+                            opts.cb(err)
+                            return
                         if opts.repeat_until_done_s and v.length > 0
                             dbg("repeat_until_done triggering another round")
                             setTimeout((=> @copy_all_blobs_to_gcloud(opts)), opts.repeat_until_done_s*1000)
@@ -505,7 +560,7 @@ class exports.PostgreSQL extends PostgreSQL
     close_blob: (opts) =>
         opts = defaults opts,
             uuid   : required   # uuid=sha1-based from blob
-            bucket : BLOB_GCLOUD_BUCKET # name of bucket
+            bucket : COCALC_BLOB_STORE
             cb     : undefined   # cb(err)
         if not misc.is_valid_uuid_string(opts.uuid)
             opts.cb?("uuid is invalid")
@@ -557,10 +612,11 @@ class exports.PostgreSQL extends PostgreSQL
             (cb) =>
                 dbg("determine inactive syncstring ids")
                 @_query
-                    query : 'SELECT string_id FROM syncstrings'
-                    where : [{'last_active <= $::TIMESTAMP' : misc.days_ago(opts.age_days)}, 'archived IS NULL']
-                    limit : opts.limit
-                    cb    : all_results 'string_id', (err, v) =>
+                    query    : 'SELECT string_id FROM syncstrings'
+                    where    : [{'last_active <= $::TIMESTAMP' : misc.days_ago(opts.age_days)}, 'archived IS NULL']
+                    limit    : opts.limit
+                    order_by : 'string_id'
+                    cb       : all_results 'string_id', (err, v) =>
                         syncstrings = v
                         cb(err)
             (cb) =>
@@ -597,7 +653,7 @@ class exports.PostgreSQL extends PostgreSQL
             cutoff    : misc.minutes_ago(30)  # never touch anything this new
             cb        : undefined
         dbg = @_dbg("archive_patches(string_id='#{opts.string_id}')")
-        syncstring = patches = blob_uuid = project_id = last_active =undefined
+        syncstring = patches = blob_uuid = project_id = last_active = undefined
         where = {"string_id = $::CHAR(40)" : opts.string_id}
         async.series([
             (cb) =>
@@ -611,7 +667,7 @@ class exports.PostgreSQL extends PostgreSQL
                         else if not x?
                             cb("no such syncstring with id '#{opts.string_id}'")
                         else if x.archived
-                            cb("already archived")
+                            cb("string_id='#{opts.string_id}' already archived as blob id '#{x.archived}'")
                         else
                             project_id = x.project_id
                             last_active = x.last_active
@@ -682,6 +738,9 @@ class exports.PostgreSQL extends PostgreSQL
                     return
                 blob = undefined
                 async.series([
+                    #(cb) =>
+                        # For testing only!
+                    #    setTimeout(cb, 7000)
                     (cb) =>
                         dbg("download blob")
                         @get_blob
@@ -728,7 +787,7 @@ class exports.PostgreSQL extends PostgreSQL
     export_patches: (opts) =>
         opts = defaults opts,
             string_id : required
-            cb        : required   # cb(err, string)
+            cb        : required   # cb(err, array)
         @_query
             query : "SELECT extract(epoch from time)*1000 as epoch, * FROM patches"
             where : {"string_id = $::CHAR(40)" : opts.string_id}
@@ -743,7 +802,7 @@ class exports.PostgreSQL extends PostgreSQL
 
     import_patches: (opts) =>
         opts = defaults opts,
-            patches   : required  # as exported by export_patches
+            patches   : required  # array as exported by export_patches
             string_id : undefined # if given, change the string_id when importing the patches to this
             cb        : undefined
         patches = opts.patches
@@ -779,16 +838,6 @@ class exports.PostgreSQL extends PostgreSQL
                 cb       : cb
         async.mapSeries([0...patches.length/insert_block_size], f, (err) => opts.cb?(err))
 
-    export_syncstring:  (opts) =>
-        opts = defaults opts,
-            string_id : required
-            cb        : undefined
-
-    import_syncstring:  (opts) =>
-        opts = defaults opts,
-            obj : required
-            cb  : undefined
-
     delete_blob: (opts) =>
         opts = defaults opts,
             uuid : required
@@ -808,11 +857,11 @@ class exports.PostgreSQL extends PostgreSQL
                         gcloud = x
                         cb(err)
             (cb) =>
-                if not gcloud
+                if not gcloud or not COCALC_BLOB_STORE
                     cb()
                     return
                 dbg("delete from gcloud")
-                @gcloud().bucket(name:gcloud).delete
+                @blob_store(gcloud).delete
                     name : opts.uuid
                     cb   : cb
             (cb) =>

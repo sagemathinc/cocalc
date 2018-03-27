@@ -16,7 +16,7 @@ communication tools like a chat, course management and more.
 
 ## Very easy install of CoCalc on your computer
 
-You can easily use CoCalc on your own computer for free by **[running a Docker image](https://github.com/sagemathinc/cocalc/blob/master/src/dev/docker/README.md)**.
+You can easily use CoCalc on your own computer for free by **[running a Docker image](https://github.com/sagemathinc/cocalc-docker)**.
 
 ## History
 
@@ -113,7 +113,7 @@ We are grateful to BrowserStack for providing infrastructure to test CoCalc.
 
 * node
 * Postgres
-* `pip install pyyaml`
+* `pip install pyyaml; pip3 install pyyaml`
 
 ## Installation
 

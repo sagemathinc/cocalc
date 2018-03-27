@@ -45,12 +45,14 @@ primary_key =
 # Requires a syncdb to be set later
 # Manages local and sync changes
 exports.CourseActions = class CourseActions extends Actions
-    constructor: (@name, @redux) ->
+    constructor: (name, redux) ->
+        super(name, redux)
         if not @name?
             throw Error("@name must be defined")
         if not @redux?
             throw Error("@redux must be defined")
         @get_store = () => @redux.getStore(@name)
+        # window.course = @
 
     _loaded: =>
         if not @syncdb?
@@ -142,8 +144,38 @@ exports.CourseActions = class CourseActions extends Actions
             @configure_all_projects()
         @_last_collaborator_state = users
 
-    # PUBLIC API
+    _init_who_pay: =>
+        # pre-set either student_pay or institute_pay based on what the user has already done...?
+        # This is only here for transition, and can be deleted in say May 2018.
+        store = @get_store()
+        return if not store?
+        settings = store.get('settings')
+        if settings.get('institute_pay') or settings.get('student_pay')
+            # already done
+            return
+        @set_pay_choice('institute', false)
+        @set_pay_choice('student', false)
+        if settings.get('pay')
+            # evidence of student pay choice
+            @set_pay_choice('student', true)
+            return
+        # is any student project upgraded
+        projects_store = @redux.getStore('projects')
+        institute_pay = true
+        num = 0
+        store.get('students').forEach (student, sid) =>
+            if student.get('deleted')
+                return
+            p = student.get('project_id')
+            if not p? or not projects_store.get_total_project_quotas(p)?.member_host
+                institute_pay = false
+                return false
+            num += 1
+            return
+        if institute_pay and num > 0
+            @set_pay_choice('institute', true)
 
+    # PUBLIC API
     set_error: (error) =>
         if error == ''
             @setState(error:error)
@@ -178,7 +210,7 @@ exports.CourseActions = class CourseActions extends Actions
         else
             @setState(activity:{})
 
-    # Settings
+    # Configuration
     set_title: (title) =>
         @_set(title:title, table:'settings')
         @set_all_student_project_titles(title)
@@ -188,6 +220,9 @@ exports.CourseActions = class CourseActions extends Actions
         @_set(description:description, table:'settings')
         @set_all_student_project_descriptions(description)
         @set_shared_project_description()
+
+    set_pay_choice: (type, value) =>
+        @_set("#{type}_pay":value, table:'settings')
 
     set_upgrade_goal: (upgrade_goal) =>
         @_set(upgrade_goal:upgrade_goal, table:'settings')
@@ -314,7 +349,7 @@ exports.CourseActions = class CourseActions extends Actions
 
     # Takes an item_name and the id of the time
     # item_name should be one of
-    # ['student', 'assignment', 'peer_config', handout']
+    # ['student', 'assignment', 'peer_config', handout', 'skip_grading']
     toggle_item_expansion: (item_name, item_id) =>
         store = @get_store()
         return if not store?
@@ -357,7 +392,7 @@ exports.CourseActions = class CourseActions extends Actions
                         timeout : 60
                         cb      : cb
             ], cb)
-        id = @set_activity(desc:"Creating #{students.length} student projects (do not close this until done)")
+        id = @set_activity(desc:"Creating #{students.length} student projects (do not close the course until done)")
         async.mapLimit student_ids, PARALLEL_LIMIT, f, (err) =>
             @set_activity(id:id)
             if err
@@ -486,14 +521,14 @@ exports.CourseActions = class CourseActions extends Actions
         @redux.getStore('projects').wait_until_project_created token, 30, (err, project_id) =>
             @clear_activity(id)
             if err
-                @set_error("error creating student project -- #{err}")
+                @set_error("error creating student project for #{store.get_student_name(student_id)} -- #{err}")
             else
                 @_set
                     create_project : null
                     project_id     : project_id
                     table          : 'students'
                     student_id     : student_id
-                @configure_project(student_id)
+                @configure_project(student_id, undefined, project_id)
             delete @_creating_student_project
             queue.shift()
             if queue.length > 0
@@ -512,6 +547,8 @@ exports.CourseActions = class CourseActions extends Actions
         s = @get_store()
         if not s?
             return
+        {SITE_NAME} = require('smc-util/theme')
+        SiteName = @redux.getStore('customize').site_name ? SITE_NAME
         body = s.get_email_invite()
         invite = (x) =>
             account_store = @redux.getStore('account')
@@ -520,9 +557,9 @@ exports.CourseActions = class CourseActions extends Actions
             if '@' in x
                 if not do_not_invite_student_by_email
                     title   = s.getIn(['settings', 'title'])
-                    subject = "SageMathCloud Invitation to Course #{title}"
+                    subject = "#{SiteName} Invitation to Course #{title}"
                     body    = body.replace(/{title}/g, title).replace(/{name}/g, name)
-                    body    = markdownlib.markdown_to_html(body).s
+                    body    = markdownlib.markdown_to_html(body)
                     @redux.getActions('projects').invite_collaborators_by_email(student_project_id, x, body, subject, true, replyto, name)
             else
                 @redux.getActions('projects').invite_collaborator(student_project_id, x)
@@ -636,7 +673,8 @@ exports.CourseActions = class CourseActions extends Actions
                 @redux.getActions('projects').set_project_course_info(student_project_id,
                         store.get('course_project_id'), store.get('course_filename'), pay, student_account_id, student_email_address)
 
-    configure_project: (student_id, do_not_invite_student_by_email) =>
+    configure_project: (student_id, do_not_invite_student_by_email, student_project_id) =>
+        # student_project_id is optional. Will be used instead of from student_id store if provided.
         # Configure project for the given student so that it has the right title,
         # description, and collaborators for belonging to the indicated student.
         # - Add student and collaborators on project containing this course to the new project.
@@ -644,7 +682,7 @@ exports.CourseActions = class CourseActions extends Actions
         # - Set the title to [Student name] + [course title] and description to course description.
         store = @get_store()
         return if not store?
-        student_project_id = store.getIn(['students', student_id, 'project_id'])
+        student_project_id = student_project_id ? store.getIn(['students', student_id, 'project_id'])
         if not student_project_id?
             @create_student_project(student_id)
         else
@@ -658,6 +696,8 @@ exports.CourseActions = class CourseActions extends Actions
         return if not store?
         student_project_id = store.getIn(['students', student_id, 'project_id'])
         if student_project_id?
+            student_account_id = store.getIn(['students', student_id, 'account_id'])
+            @redux.getActions('projects').remove_collaborator(student_project_id, student_account_id)
             @redux.getActions('projects').delete_project(student_project_id)
             @_set
                 create_project : null
@@ -678,7 +718,8 @@ exports.CourseActions = class CourseActions extends Actions
         @set_activity(id:id)
         @set_all_student_project_course_info()
 
-    delete_all_student_projects: () =>
+    # Deletes student projects and removes students from those projects
+    delete_all_student_projects: =>
         id = @set_activity(desc:"Deleting all student projects...")
         store = @get_store()
         if not store?
@@ -687,6 +728,25 @@ exports.CourseActions = class CourseActions extends Actions
         for student_id in store.get_student_ids(deleted:false)
             @delete_project(student_id)
         @set_activity(id:id)
+
+    # Delete the shared project, removing students too.
+    delete_shared_project: =>
+        store = @get_store()
+        return if not store?
+        shared_id = store.get_shared_project_id()
+        return if not shared_id
+        project_actions = @redux.getActions('projects')
+        # delete project
+        project_actions.delete_project(shared_id)
+        # remove student collabs
+        for student_id in store.get_student_ids(deleted:false)
+            student_account_id = store.getIn(['students', student_id, 'account_id'])
+            if student_account_id
+                project_actions.remove_collaborator(shared_id, student_account_id)
+        # make the course itself forget about the shared project:
+        @_set
+            table             : 'settings'
+            shared_project_id : ''
 
     # upgrade_goal is a map from the quota type to the goal quota the instructor wishes
     # to get all the students to.
@@ -700,7 +760,8 @@ exports.CourseActions = class CourseActions extends Actions
             return
         id = @set_activity(desc:"Adjusting upgrades on #{misc.len(plan)} student projects...")
         for project_id, upgrades of plan
-            @redux.getActions('projects').apply_upgrades_to_project(project_id, upgrades, false)
+            if project_id?  # avoid race if projects are being created *right* when we try to upgrade them.
+                @redux.getActions('projects').apply_upgrades_to_project(project_id, upgrades, false)
         setTimeout((=>@set_activity(id:id)), 5000)
 
     # Do an admin upgrade to all student projects.  This changes the base quotas for every student
@@ -798,6 +859,17 @@ exports.CourseActions = class CourseActions extends Actions
         obj.grades = grades
         @_set(obj)
 
+    set_comments: (assignment, student, comments) =>
+        store = @get_store()
+        return if not store?
+        assignment    = store.get_assignment(assignment)
+        student       = store.get_student(student)
+        obj           = {table:'assignments', assignment_id:assignment.get('assignment_id')}
+        comments_map = @_get_one(obj).comments ? {}
+        comments_map[student.get('student_id')] = comments
+        obj.comments = comments_map
+        @_set(obj)
+
     set_active_assignment_sort: (column_name) =>
         store = @get_store()
         if not store?
@@ -831,6 +903,12 @@ exports.CourseActions = class CourseActions extends Actions
         for k, v of config
             cur[k] = v
         @_set_assignment_field(assignment, 'peer_grade', cur)
+
+    set_skip: (assignment, step, value) =>
+        store = @get_store()
+        return if not store?
+        assignment = store.get_assignment(assignment)  # just in case is an id
+        @_set_assignment_field(assignment.get('assignment_id'), "skip_#{step}", !!value)
 
     # Synchronous function that makes the peer grading map for the given
     # assignment, if it hasn't already been made.
@@ -920,12 +998,19 @@ exports.CourseActions = class CourseActions extends Actions
         if not store? or not @_store_is_initialized()
             return finish("store not yet initialized")
         grade = store.get_grade(assignment, student)
+        comments = store.get_comments(assignment, student)
         if not student = store.get_student(student)
             return finish("no student")
         if not assignment = store.get_assignment(assignment)
             return finish("no assignment")
         student_name = store.get_student_name(student)
         student_project_id = student.get('project_id')
+
+        # if skip_grading is true, this means there *might* no be a "grade" given,
+        # but instead some grading inside the files or an external tool is used.
+        # therefore, only create the grade file if this is false.
+        skip_grading = assignment.get('skip_grading') ? false
+
         if not student_project_id?
             # nothing to do
             @clear_activity(id)
@@ -940,10 +1025,24 @@ exports.CourseActions = class CourseActions extends Actions
             src_path += '/' + student.get('student_id')
             async.series([
                 (cb) =>
+                    if skip_grading and not peer_graded
+                        content = 'Your instructor is doing grading outside CoCalc, or there is no grading for this assignment.'
+                    else
+                        if grade? or peer_graded
+                            content = "Your grade on this assignment:"
+                        else
+                            content = ''
                     # write their grade to a file
-                    content = "Your grade on this assignment:\n\n    #{grade}"
+                    if grade?   # likely undefined when skip_grading true & peer_graded true
+                        content += "\n\n    #{grade}"
+                        if comments?
+                            content += "\n\nInstructor comments:\n\n    #{comments}"
                     if peer_graded
-                        content += "\n\n\nPEER GRADED:\n\nYour assignment was peer graded by other students.\nYou can find the comments they made in the folders below."
+                        content += """
+                                   \n\n\nPEER GRADED:\n
+                                   Your assignment was peer graded by other students.
+                                   You can find the comments they made in the folders below.
+                                   """
                     webapp_client.write_text_file_to_project
                         project_id : store.get('course_project_id')
                         path       : src_path + '/GRADE.txt'
@@ -970,8 +1069,8 @@ exports.CourseActions = class CourseActions extends Actions
                             bash       : true
                             path       : assignment.get('graded_path')
                             cb         : cb
-                      else
-                          cb(null)
+                    else
+                        cb(null)
             ], finish)
 
     # Copy the given assignment to all non-deleted students, doing several copies in parallel at once.
@@ -983,19 +1082,22 @@ exports.CourseActions = class CourseActions extends Actions
         store = @get_store()
         if not store? or not @_store_is_initialized()
             return error("store not yet initialized")
-        if not assignment = store.get_assignment(assignment)  # correct use of "=" sign!
+        assignment = store.get_assignment(assignment)
+        if not assignment
             return error("no assignment")
         errors = ''
         peer = assignment.get('peer_grade')?.get('enabled')
+        skip_grading = assignment.get('skip_grading') ? false
         f = (student_id, cb) =>
             if not store.last_copied(previous_step('return_graded', peer), assignment, student_id, true)
                 # we never collected the assignment from this student
                 cb(); return
-            if not store.has_grade(assignment, student_id)
-                # we collected but didn't grade it yet
+            has_grade = store.has_grade(assignment, student_id)
+            if (not skip_grading) and (not has_grade)
+                # we collected and do grade, but didn't grade it yet
                 cb(); return
             if new_only
-                if store.last_copied('return_graded', assignment, student_id, true) and store.has_grade(assignment, student_id)
+                if store.last_copied('return_graded', assignment, student_id, true) and (skip_grading or has_grade)
                     # it was already returned
                     cb(); return
             n = misc.mswalltime()
@@ -1073,13 +1175,18 @@ exports.CourseActions = class CourseActions extends Actions
     # Copy the files for the given assignment to the given student. If
     # the student project doesn't exist yet, it will be created.
     # You may also pass in an id for either the assignment or student.
+    # "overwrite" (boolean, optional): if true, the copy operation will overwrite/delete remote files in student projects -- #1483
     # If the store is initialized and the student and assignment both exist,
     # then calling this action will result in this getting set in the store:
     #
     #    assignment.last_assignment[student_id] = {time:?, error:err}
     #
     # where time >= now is the current time in milliseconds.
-    copy_assignment_to_student: (assignment, student) =>
+    copy_assignment_to_student: (assignment, student, opts) =>
+        {overwrite, create_due_date_file} = defaults opts,
+            overwrite            : false
+            create_due_date_file : false
+
         if @_start_copy(assignment, student, 'last_assignment')
             return
         id = @set_activity(desc:"Copying assignment to a student")
@@ -1118,15 +1225,10 @@ exports.CourseActions = class CourseActions extends Actions
                 else
                     cb()
             (cb) =>
-                # write the due date to a file
-                due_date = store.get_due_date(assignment)
-                if not due_date?
-                    cb(); return
-                webapp_client.write_text_file_to_project
-                    project_id : store.get('course_project_id')
-                    path       : src_path + '/DUE_DATE.txt'
-                    content    : "This assignment is due\n\n   #{due_date.toLocaleString()}"
-                    cb         : cb
+                if create_due_date_file
+                    @copy_assignment_create_due_date_file(assignment, store, cb)
+                else
+                    cb()
             (cb) =>
                 @set_activity(id:id, desc:"Copying files to #{student_name}'s project")
                 webapp_client.copy_path_between_projects
@@ -1134,22 +1236,52 @@ exports.CourseActions = class CourseActions extends Actions
                     src_path          : src_path
                     target_project_id : student_project_id
                     target_path       : assignment.get('target_path')
-                    overwrite_newer   : false
-                    delete_missing    : false
-                    backup            : true
+                    overwrite_newer   : !!overwrite        # default is "false"
+                    delete_missing    : !!overwrite        # default is "false"
+                    backup            : not (!!overwrite)  # default is "true"
                     exclude_history   : true
                     cb                : cb
         ], (err) =>
             finish(err)
         )
 
+    # this is part of the assignment disribution, should be done only *once*, not for every student
+    copy_assignment_create_due_date_file: (assignment, store, cb) =>
+        # write the due date to a file
+        due_date    = store.get_due_date(assignment)
+        src_path    = assignment.get('path')
+        due_date_fn = 'DUE_DATE.txt'
+        if not due_date?
+            cb()
+            return
+
+        locals =
+            due_id       : @set_activity(desc:"Creating #{due_date_fn} file...")
+            due_date     : due_date
+            src_path     : src_path
+            content      : "This assignment is due\n\n   #{due_date.toLocaleString()}"
+            project_id   : store.get('course_project_id')
+            path         : src_path + '/' + due_date_fn
+            due_date_fn  : due_date_fn
+
+        webapp_client.write_text_file_to_project
+            project_id : locals.project_id
+            path       : locals.path
+            content    : locals.content
+            cb         : (err) =>
+                @clear_activity(locals.due_id)
+                if err
+                    cb("Problem writing #{due_date_fn} file ('#{err}'). Try again...")
+                else
+                    cb()
 
 
     copy_assignment: (type, assignment_id, student_id) =>
         # type = assigned, collected, graded
         switch type
             when 'assigned'
-                @copy_assignment_to_student(assignment_id, student_id)
+                # create_due_date_file = true
+                @copy_assignment_to_student(assignment_id, student_id, create_due_date_file:true)
             when 'collected'
                 @copy_assignment_from_student(assignment_id, student_id)
             when 'graded'
@@ -1162,10 +1294,19 @@ exports.CourseActions = class CourseActions extends Actions
                 @set_error("copy_assignment -- unknown type: #{type}")
 
     # Copy the given assignment to all non-deleted students, doing several copies in parallel at once.
-    copy_assignment_to_all_students: (assignment, new_only) =>
+    copy_assignment_to_all_students: (assignment, new_only, overwrite) =>
+        store = @get_store()
+        if not store? or not @_store_is_initialized()
+            return finish("store not yet initialized")
         desc = "Copying assignments to all students #{if new_only then 'who have not already received it' else ''}"
         short_desc = "copy to student"
-        @_action_all_students(assignment, new_only, @copy_assignment_to_student, 'assignment', desc, short_desc)
+        async.series([
+            (cb) =>
+                @copy_assignment_create_due_date_file(assignment, store, cb)
+            (cb) =>
+                # by default, doesn't create the due file
+                @_action_all_students(assignment, new_only, @copy_assignment_to_student, 'assignment', desc, short_desc, overwrite)
+        ])
 
     # Copy the given assignment to all non-deleted students, doing several copies in parallel at once.
     copy_assignment_from_all_students: (assignment, new_only) =>
@@ -1183,7 +1324,7 @@ exports.CourseActions = class CourseActions extends Actions
         short_desc = "copy peer grading from students"
         @_action_all_students(assignment, new_only, @peer_collect_from_student, 'peer_collect', desc, short_desc)
 
-    _action_all_students: (assignment, new_only, action, step, desc, short_desc) =>
+    _action_all_students: (assignment, new_only, action, step, desc, short_desc, overwrite) =>
         id = @set_activity(desc:desc)
         error = (err) =>
             @clear_activity(id)
@@ -1203,7 +1344,7 @@ exports.CourseActions = class CourseActions extends Actions
             if new_only and store.last_copied(step, assignment, student_id, true)
                 cb(); return
             n = misc.mswalltime()
-            action(assignment, student_id)
+            action(assignment, student_id, overwrite:overwrite)
             store.wait
                 timeout : 60*15
                 until   : => store.last_copied(step, assignment, student_id) >= n
@@ -1289,7 +1430,7 @@ exports.CourseActions = class CourseActions extends Actions
             cb         : (err) =>
                 if not err
                     # now copy actual stuff to grade
-                    async.map(peers, f, finish)
+                    async.mapLimit(peers, PARALLEL_LIMIT, f, finish)
                 else
                     finish(err)
 
@@ -1361,7 +1502,7 @@ exports.CourseActions = class CourseActions extends Actions
                         cb         : cb
             ], cb)
 
-        async.map(peers, f, finish)
+        async.mapLimit(peers, PARALLEL_LIMIT, f, finish)
 
     # This doesn't really stop it yet, since that's not supported by the backend.
     # It does stop the spinner and let the user try to restart the copy.
@@ -1497,28 +1638,29 @@ exports.CourseActions = class CourseActions extends Actions
             student = store.get_student(student)
             handout = store.get_handout(handout)
             obj = {table:'handouts', handout_id:handout.get('handout_id')}
-            status_map = @_get_one(obj)?.status_map
-            if not status_map?
+            status = @_get_one(obj)?.status
+            if not status?
                 return
-            student_status = (status_map[student.get('student_id')])
+            student_status = (status[student.get('student_id')])
             if not student_status?
                 return
             if student_status.start?
                 delete student_status.start
-                status_map[student.get('student_id')] = student_status
-                obj.status_map = status_map
+                status[student.get('student_id')] = student_status
+                obj.status = status
                 @_set(obj)
 
     # Copy the files for the given handout to the given student. If
     # the student project doesn't exist yet, it will be created.
     # You may also pass in an id for either the handout or student.
+    # "overwrite" (boolean, optional): if true, the copy operation will overwrite/delete remote files in student projects -- #1483
     # If the store is initialized and the student and handout both exist,
     # then calling this action will result in this getting set in the store:
     #
     #    handout.status[student_id] = {time:?, error:err}
     #
     # where time >= now is the current time in milliseconds.
-    copy_handout_to_student: (handout, student) =>
+    copy_handout_to_student: (handout, student, overwrite) =>
         if @_handout_start_copy(handout, student)
             return
         id = @set_activity(desc:"Copying handout to a student")
@@ -1563,9 +1705,9 @@ exports.CourseActions = class CourseActions extends Actions
                     src_path          : src_path
                     target_project_id : student_project_id
                     target_path       : handout.get('target_path')
-                    overwrite_newer   : false
-                    delete_missing    : false
-                    backup            : true
+                    overwrite_newer   : !!overwrite        # default is "false"
+                    delete_missing    : !!overwrite        # default is "false"
+                    backup            : not (!!overwrite)  # default is "true"
                     exclude_history   : true
                     cb                : cb
         ], (err) =>
@@ -1573,7 +1715,7 @@ exports.CourseActions = class CourseActions extends Actions
         )
 
     # Copy the given handout to all non-deleted students, doing several copies in parallel at once.
-    copy_handout_to_all_students: (handout, new_only) =>
+    copy_handout_to_all_students: (handout, new_only, overwrite) =>
         desc = "Copying handouts to all students #{if new_only then 'who have not already received it' else ''}"
         short_desc = "copy to student"
 
@@ -1592,7 +1734,7 @@ exports.CourseActions = class CourseActions extends Actions
             if new_only and store.handout_last_copied(handout, student_id, true)
                 cb(); return
             n = misc.mswalltime()
-            @copy_handout_to_student(handout, student_id)
+            @copy_handout_to_student(handout, student_id, overwrite)
             store.wait
                 timeout : 60*15
                 until   : => store.handout_last_copied(handout, student_id) >= n

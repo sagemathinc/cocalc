@@ -23,13 +23,15 @@ FOCUSED_STYLE =
 
 
 exports.CodeMirrorEditor = rclass
+    displayName : 'CodeMirrorEditor'
+
     propTypes :
         actions          : rtypes.object
         id               : rtypes.string.isRequired
         options          : rtypes.immutable.Map.isRequired
         value            : rtypes.string.isRequired
         font_size        : rtypes.number   # font_size not explicitly used, but it is critical
-                                       # to re-render on change so Codemirror recomputes itself!
+                                           # to re-render on change so Codemirror recomputes itself!
         cursors          : rtypes.immutable.Map
         set_click_coords : rtypes.func.isRequired
         click_coords     : rtypes.object  # coordinates if cell was just clicked on
@@ -81,10 +83,8 @@ exports.CodeMirrorEditor = rclass
     _cm_cursor: ->
         if not @cm? or not @props.actions?
             return
-        if @cm._setValueNoJump   # if true, cursor move is being caused by external setValueNoJump
-            return
         locs = ({x:c.anchor.ch, y:c.anchor.line, id:@props.id} for c in @cm.listSelections())
-        @props.actions.set_cursor_locs(locs)
+        @props.actions.set_cursor_locs(locs, @cm._setValueNoJump)
 
         # See https://github.com/jupyter/notebook/issues/2464 for discussion of this cell_list_top business.
         cell_list_top = @props.actions._cell_list_div?.offset().top
@@ -166,7 +166,7 @@ exports.CodeMirrorEditor = rclass
             return
         cur = @cm.getCursor()
         if cur?.line == @cm.firstLine() and cur?.ch == 0
-            @adjacent_cell(-1)
+            @adjacent_cell(-1, -1)
         else
             CodeMirror.commands.goLineUp(@cm)
 
@@ -176,7 +176,7 @@ exports.CodeMirrorEditor = rclass
         cur = @cm.getCursor()
         n = @cm.lastLine()
         if cur?.line == n and cur?.ch == @cm.getLine(n)?.length
-            @adjacent_cell(0)  # the down arrow goes to the general key handler instead
+            @adjacent_cell(0, 1)
         else
             CodeMirror.commands.goLineDown(@cm)
 
@@ -195,18 +195,13 @@ exports.CodeMirrorEditor = rclass
         cur = @cm.getCursor()
         n = @cm.lastLine()
         if cur?.line == n and cur?.ch == @cm.getLine(n)?.length
-            @adjacent_cell(0, 1)  # the down arrow goes to the general key handler instead
+            @adjacent_cell(0, 1)
         else
             CodeMirror.commands.goPageDown(@cm)
 
     adjacent_cell: (y, delta) ->
-        @props.actions.set_mode('escape')
-        finish = =>
-            if delta?
-                @props.actions.move_cursor(delta)
-            @props.actions.set_mode('edit')
-            @props.actions.set_cursor(@props.actions.store.get('cur_id'), {x:0, y:y})
-        setTimeout(finish, 0)
+        @props.actions.move_cursor(delta)
+        @props.actions.set_cursor(@props.actions.store.get('cur_id'), {x:0, y:y})
 
     tab_nothing_selected: ->
         if not @cm?
@@ -249,9 +244,14 @@ exports.CodeMirrorEditor = rclass
         else
             options0.readOnly = true
 
+        ###
+        # Disabled for efficiency reasons:
+        #   100% for speed reasons, we only use codemirror for cells with cursors
+        #   or the active cell, so don't want to show a gutter.
         if options0.foldGutter
             options0.extraKeys["Ctrl-Q"] = (cm) -> cm.foldCodeSelectionAware()
             options0.gutters = ["CodeMirror-linenumbers", "CodeMirror-foldgutter"]  # TODO: if we later change options to disable folding, the gutter still remains in the editors.
+        ###
 
         @cm = CodeMirror.fromTextArea(node, options0)
         @cm.save = => @props.actions.save()
@@ -291,10 +291,8 @@ exports.CodeMirrorEditor = rclass
             editor =
                 save        : @_cm_save
                 set_cursor  : @_cm_set_cursor
+                tab_key     : @tab_key
             @props.actions.register_input_editor(@props.id, editor)
-
-        if @props.is_focused
-            @cm.focus()
 
         if @props.click_coords?
             # editor clicked on, so restore cursor to that position
@@ -305,8 +303,15 @@ exports.CodeMirrorEditor = rclass
             @cm.setCursor(@props.last_cursor)
             @props.set_last_cursor()
 
-    componentDidMount: ->
-        @init_codemirror(@props.options, @props.value)
+        # Finally, do a refresh in the next render loop, once layout is done.
+        # See https://github.com/sagemathinc/cocalc/issues/2397
+        # Note that this also avoids a significant disturbing flicker delay
+        # even for non-raw cells.  This obviously probably slows down initial
+        # load or switch to of the page, unfortunately.  Such is life.
+        # CRITICAL: Also do the focus only after the refresh, or when
+        # switching from static to non-static, whole page gets badly
+        # repositioned (see https://github.com/sagemathinc/cocalc/issues/2548).
+        setTimeout((=>@cm?.refresh(); if @props.is_focused then @cm?.focus()),1)
 
     componentWillReceiveProps: (next) ->
         if not @cm?

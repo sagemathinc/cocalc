@@ -270,16 +270,28 @@ class exports.PDFLatexDocument
         sha_marker = misc.uuid()
         @_need_to_run ?= {}
         @_need_to_run.latex = false
+        # exclusive lock, wait 5 secs to run or fail, exit code on timeout acquiring lock is 99,
+        # release read lock to avoid stuck subprocesses to interfere, file descriptor 9 points to lockfile (derived from tex file)
+        flock = "flock -x -o -w 5 9 || exit 99;"
         # yes x business recommended by http://tex.stackexchange.com/questions/114805/pdflatex-nonstopmode-with-tikz-stops-compiling
-        latex_cmd = "yes x 2> /dev/null | #{command}; echo '#{sha_marker}'; test -r '#{sagetex_file}' && sha1sum '#{sagetex_file}'"
+        latex_cmd = "( #{flock} yes x 2> /dev/null | #{command}; echo '#{sha_marker}'; test -r '#{sagetex_file}' && sha1sum '#{sagetex_file}' ) 9> '.#{@filename_tex}.lock'"
+        #if DEBUG then console.log("_run_latex cmd:", latex_cmd)
         @_exec
             command     : latex_cmd
             bash        : true
-            timeout     : 30
+            timeout     : 45
             err_on_exit : false
             cb          : (err, output) =>
+                #if DEBUG then console.log("_run_latex done: output=", output, ", err=", err)
                 if err
                     cb?(err)
+                else if output.exit_code == 99
+                    #if DEBUG then console.log("_run_latex: most likely there was a lock-acquiring timeout.")
+                    # TODO schedule a retry?
+                    log = 'Timeout: ongoing concurrent LaTeX operation.'
+                    log += '\n\n' + output.stdout + '\n\n' + output.stderr
+                    @last_latex_log = log
+                    cb?(false, log)
                 else
                     i = output.stdout.lastIndexOf(sha_marker)
                     if i != -1
@@ -390,7 +402,7 @@ patchSynctex(\"#{@filename_tex}\");' | R --no-save"
             err_on_exit : true
             cb          : (err, output) =>
                 if err
-                    console.log("Make sure pdfinfo is installed!  sudo apt-get install poppler-utils.")
+                    console.warn("Make sure pdfinfo is installed!  sudo apt-get install poppler-utils.")
                     cb(err)
                     return
                 v = {}
@@ -404,6 +416,7 @@ patchSynctex(\"#{@filename_tex}\");' | R --no-save"
         before = @num_pages
         @pdfinfo (err, info) =>
             # if err maybe no pdf yet -- just don't do anything
+            @dbg("update_number_of_pdf_pages: #{err}, #{info?.Pages}")
             if not err and info?.Pages?
                 @num_pages = info.Pages
                 # Delete trailing removed pages from our local view of things; otherwise, they won't properly
@@ -518,7 +531,7 @@ patchSynctex(\"#{@filename_tex}\");' | R --no-save"
                 tmp_dir
                     project_id : @project_id
                     path       : "/tmp"
-                    ttl        : 180
+                    ttl        : 60
                     cb         : (err, _tmp) =>
                         tmp = "/tmp/#{_tmp}"
                         cb(err)
@@ -561,6 +574,15 @@ patchSynctex(\"#{@filename_tex}\");' | R --no-save"
                     timeout : 120
                     cb      : (err, output) ->
                         cb(err)
+
+            # delete the copied PDF file, we no longer need it (might use up a lot of disk/memory space)
+            (cb) =>
+                @_exec
+                    command : 'rm'
+                    args    : [pdf]
+                    timeout : 15
+                    err_on_exit : true
+                    cb      : cb
 
             # get the new sha1 hashes
             (cb) =>

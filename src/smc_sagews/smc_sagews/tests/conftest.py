@@ -9,6 +9,9 @@ import hashlib
 import time
 from datetime import datetime
 
+# timeout for socket to sage_server in seconds
+default_timeout = 20
+
 ###
 # much of the code here is copied from sage_server.py
 # cut and paste was done because it takes over 30 sec to import sage_server
@@ -122,6 +125,9 @@ class ConnectionJSON(object):
         elif s[0] == 'b':
             return 'blob', s[1:]
         raise ValueError("unknown message type '%s'"%s[0])
+    def set_timeout(self, timeout):
+        "set socket timeout in seconds"
+        self._conn.settimeout(timeout)
 
 def truncate_text(s, max_size):
     if len(s) > max_size:
@@ -286,6 +292,12 @@ def get_sage_server_info(log_file = default_log_file):
 secret_token = None
 secret_token_path = os.path.join(os.environ['SMC'], 'secret_token')
 
+if 'COCALC_SECRET_TOKEN' in os.environ:
+    secret_token_path = os.environ['COCALC_SECRET_TOKEN']
+else:
+    secret_token_path = os.path.join(os.environ['SMC'], 'secret_token')
+
+
 def client_unlock_connection(sock):
     secret_token = open(secret_token_path).read().strip()
     sock.sendall(secret_token)
@@ -408,6 +420,9 @@ def exec2(request, sagews, test_id):
     If output & patterns are omitted, the cell is not expected to produce a
     stdout result. All arguments after 'code' are optional.
 
+    If argument `timeout` is provided, the default socket timeout
+    for connection to sage_server will be overridden to the value of `timeout` in seconds.
+
     - `` code `` -- string of code to run
 
     - `` output `` -- string or list of strings of output to be matched up to leading & trailing whitespace
@@ -415,6 +430,8 @@ def exec2(request, sagews, test_id):
     - `` pattern `` -- regex to match with expected stdout output
 
     - `` html_pattern `` -- regex to match with expected html output
+
+    - `` timeout `` -- socket timeout in seconds
 
     EXAMPLES:
 
@@ -441,9 +458,14 @@ def exec2(request, sagews, test_id):
         If `output` is a list of strings, `pattern` and `html_pattern` are ignored
 
     """
-    def execfn(code, output = None, pattern = None, html_pattern = None):
+    def execfn(code, output = None, pattern = None, html_pattern = None, timeout = default_timeout):
         m = message.execute_code(code = code, id = test_id)
         m['preparse'] = True
+
+        if timeout is not None:
+            print('overriding socket timeout to {}'.format(timeout))
+            sagews.set_timeout(timeout)
+
         # send block of code to be executed
         sagews.send_json(m)
 
@@ -472,6 +494,42 @@ def exec2(request, sagews, test_id):
             assert 'html' in mesg
             assert re.search(html_pattern, mesg['html']) is not None
 
+    def fin():
+        recv_til_done(sagews, test_id)
+
+    request.addfinalizer(fin)
+    return execfn
+
+@pytest.fixture()
+def execbuf(request, sagews, test_id):
+    r"""
+    Fixture function execbuf.
+    Inner function will execute code, then append messages received
+    from sage_server.
+    As messages are appended, the result is checked for either
+    an exact match, if `output` string is specified, or
+    pattern match, if `pattern` string is given.
+    Test fails if non-`stdout` message is received before
+    match or receive times out.
+    """
+    def execfn(code, output = None, pattern = None):
+        m = message.execute_code(code = code, id = test_id)
+        m['preparse'] = True
+        # send block of code to be executed
+        sagews.send_json(m)
+        outbuf = ''
+        while True:
+            typ, mesg = sagews.recv()
+            assert typ == 'json'
+            assert mesg['id'] == test_id
+            assert 'stdout' in mesg
+            outbuf += mesg['stdout']
+            if output is not None:
+                if output in outbuf:
+                    break
+            elif pattern is not None:
+                if re.search(pattern, outbuf) is not None:
+                    break
     def fin():
         recv_til_done(sagews, test_id)
 
@@ -577,8 +635,7 @@ def sagews(request):
     print("host %s  port %s"%(host, port))
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.connect((host, port))
-    # jupyter kernels can take over 10 seconds to start
-    sock.settimeout(45)
+    sock.settimeout(default_timeout)
     print("connected to socket")
 
     # unlock

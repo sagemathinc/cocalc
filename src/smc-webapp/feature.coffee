@@ -30,12 +30,12 @@ if window?
     $ = window.$
 
     isMobile = exports.isMobile =
-        Android: () -> !! navigator?.userAgent.match(/Android/i)
-        BlackBerry: () -> !! navigator?.userAgent.match(/BlackBerry/i)
-        iOS: () -> !! navigator?.userAgent.match(/iPhone|iPad|iPod/i)
-        Windows: () -> !! navigator?.userAgent.match(/IEMobile/i)
-        tablet: () -> !! navigator?.userAgent.match(/iPad/i) or !! navigator?.userAgent.match(/Tablet/i)
-        any: () -> (isMobile.Android() || isMobile.BlackBerry() || isMobile.iOS() || isMobile.Windows())
+        Android    : -> !! navigator?.userAgent.match(/Android/i)
+        BlackBerry : -> !! navigator?.userAgent.match(/BlackBerry/i)
+        iOS        : -> !! navigator?.userAgent.match(/iPhone|iPad|iPod/i)
+        Windows    : -> !! navigator?.userAgent.match(/IEMobile/i)
+        tablet     : -> !! navigator?.userAgent.match(/iPad/i) or !! navigator?.userAgent.match(/Tablet/i)
+        any        : -> (isMobile.Android() || isMobile.BlackBerry() || isMobile.iOS() || isMobile.Windows())
 
     if not $?
         # don't even have jQuery -- obviously won't have any features -- this happens, e.g., in node.js
@@ -58,13 +58,13 @@ if window?
     $.browser.blink   = ($.browser.chrome || $.browser.opera) && !!window.CSS
     $.browser.edge    = /edge\/\d./i.test(user_agent)
 
-    exports.get_browser = () ->
+    exports.get_browser = ->
         for k, v of $.browser
             if v
                 return k
         return null
 
-    exports.get_mobile = () ->
+    exports.get_mobile = ->
         for k, v of exports.isMobile
             if v()
                 return k
@@ -73,7 +73,7 @@ if window?
 
     # returns true if the page is currently displayed in responsive mode (the window is less than 768px)
     # Use this because CSS and JS display different widths due to scrollbar
-    exports.is_responsive_mode = () ->
+    exports.is_responsive_mode = ->
         return $(".webapp-responsive-mode-test").width() < 768
 
     # MOBILE for us means "responsive skinny" and on a mobile device.
@@ -85,6 +85,8 @@ if window?
     # IS_TOUCH for us means multitouch tablet or mobile.
     exports.IS_TOUCH = exports.isMobile.tablet() or exports.IS_MOBILE
 
+    exports.IS_IPAD  = navigator?.userAgent.match(/iPad/i)
+
     # DEBUG
     # exports.IS_MOBILE = true
 
@@ -94,24 +96,25 @@ if window?
     if DEBUG
         console.log "DEBUG MODE:", DEBUG
 
-    # These checks must be **after** the above functions are defined, since showing
-    # these warnings requires functions like get_browser are already defined.
-    # See https://github.com/sagemathinc/cocalc/issues/1898
     cookies_and_local_storage = ->
         if not navigator?
+            return
+        page = require('./smc-react')?.redux?.getActions('page')
+        if not page?
+            # It's fine to wait until page has loaded and then some before showing a warning
+            # to the user.  This is also necessary to ensure the page actions/store have been defined.
+            setTimeout(cookies_and_local_storage, 2000)
             return
 
         # Check for cookies (see http://stackoverflow.com/questions/6125330/javascript-navigator-cookieenabled-browser-compatibility)
         if not navigator.cookieEnabled
-            require('./smc-react').redux.getActions('page').show_cookie_warning()
+            page.show_cookie_warning()
 
         # Check for local storage
         if not require('smc-util/misc').has_local_storage()
-            require('./smc-react').redux.getActions('page').show_local_storage_warning()
+            page.show_local_storage_warning()
 
-    # It's fine to wait until page has loaded and then some before showing a warning
-    # to the user.  This is also necessary to ensure the page actions/store have been defined.
-    setTimeout(cookies_and_local_storage, 1000)
+    setTimeout(cookies_and_local_storage, 2000)
 
 else
     # Backend.

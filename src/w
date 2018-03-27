@@ -1,6 +1,9 @@
-cd $SALVUS_ROOT
+#!/usr/bin/env python
 
-# use webpack-watch-map instead to get source maps -- this takes sometimes several seconds instead
-# of <1s to update, which is why it is not the default
+import os, time
 
-npm run webpack-watch-map
+s = "cd $SALVUS_ROOT; . smc-env; npm run webpack-watch"
+while True:
+    print(s)
+    os.system(s)
+    time.sleep(3)

@@ -32,6 +32,8 @@ account_page    = require('./account_page')
 misc     = require("misc")
 {redux}   = require('./smc-react')
 
+{reset_password_key} = require('./password-reset')
+
 ################################################
 # Account creation
 ################################################
@@ -46,6 +48,11 @@ load_app = (cb) ->
         require('./file_use.cjsx')   # initialize file_use notifications
         cb()
 
+webapp_client.on 'mesg_info', (info) ->
+    f = -> redux.getActions('account')?.setState(mesg_info: info)
+    # must be scheduled separately, since this notification can be triggered during rendering
+    setTimeout(f, 1)
+
 signed_in = (mesg) ->
     {analytics_event} = require('./misc_page')
     analytics_event('account', 'signed_in')    # user signed in
@@ -57,6 +64,7 @@ signed_in = (mesg) ->
     document.cookie = "#{APP_BASE_URL}has_remember_me=true; expires=#{exp} ;path=/"
     # Record which hub we're connected to.
     redux.getActions('account').setState(hub: mesg.hub)
+    console.log("Signed into #{mesg.hub} at #{new Date()}")
     load_file = window.smc_target and window.smc_target != 'login'
     if first_login
         first_login = false
@@ -83,6 +91,12 @@ webapp_client.on("signed_in", signed_in)
 # Automatically log in
 ################################################
 remember_me = webapp_client.remember_me_key()
+if reset_password_key()
+    # Attempting to do a password reset -- clearly we do NOT want to wait in the hopes
+    # that sign in via a cookie is going to work.  Without deleting this, the reset
+    # password dialog that appears will immediately vanish with a frustrating redirect.
+    delete localStorage[remember_me]
+
 if misc.get_local_storage(remember_me)
     redux.getActions('account').setState(remember_me: true)
     # just in case, always show manual login screen after 45s.
@@ -91,21 +105,16 @@ if misc.get_local_storage(remember_me)
     ), 45000
 webapp_client.on "remember_me_failed", () ->
     redux.getActions('account').setState(remember_me: false)
-    if redux.getStore('account')?.is_logged_in()  # if we thought user was logged in, but the cookie was invalid, force them to sign in again
+    if redux.getStore('account')?.get('is_logged_in')  # if we thought user was logged in, but the cookie was invalid, force them to sign in again
         f = ->
             if not misc.get_local_storage(remember_me)
                 alert_message(type:'info', message:'You might have to sign in again.', timeout:1000000)
         setTimeout(f, 15000)  # give it time to possibly resolve itself.  SMELL: confused about what is going on here...
 
-# check if user has a has_remember_me cookie (regardless if it is valid or not)
-# the "remember_me" is set to be http-only and hence not accessible from javascript (security)
+# Check if user has a has_remember_me cookie (regardless if it is valid or not)
+# the real "remember_me" is set to be http-only and hence not accessible from javascript (security).
 {get_cookie, APP_BASE_URL} = require('./misc_page')
-# for the initial month after the rebranding, we always set this to true to emphasize the sign in bar at the top
-# TODO the following is disabled -- https://github.com/sagemathinc/cocalc/issues/2051
-if false # misc.server_weeks_ago(4) > new Date("2017-05-20")
-    redux.getActions('account').setState(has_remember_me : get_cookie("#{APP_BASE_URL}has_remember_me") == 'true')
-else
-    redux.getActions('account').setState(has_remember_me : true)
+redux.getActions('account').setState(has_remember_me : get_cookie("#{APP_BASE_URL}has_remember_me") == 'true')
 
 # Return a default filename with the given ext (or not extension if ext not given)
 # FUTURE: make this configurable with different schemas.

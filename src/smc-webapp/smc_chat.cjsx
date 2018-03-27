@@ -32,8 +32,8 @@ misc_page = require('./misc_page')
 
 # React libraries
 {React, ReactDOM, rclass, rtypes, Actions, Store}  = require('./smc-react')
-{Icon, Loading, Markdown, TimeAgo, Tip} = require('./r_misc')
-{Button, Col, Grid, FormGroup, FormControl, ListGroup, ListGroupItem, Row, ButtonGroup, Well} = require('react-bootstrap')
+{Icon, Loading, Markdown, SearchInput, TimeAgo, Tip} = require('./r_misc')
+{Alert, Button, Col, Grid, FormGroup, FormControl, ListGroup, ListGroupItem, Row, ButtonGroup, Well} = require('react-bootstrap')
 
 {User} = require('./users')
 
@@ -44,36 +44,41 @@ editor_chat = require('./editor_chat')
 {VideoChatButton} = require('./video-chat')
 {SMC_Dropwrapper} = require('./smc-dropzone')
 
-
 Message = rclass
-    displayName: "Message"
+    displayName: 'Message'
 
     propTypes:
-        message        : rtypes.object.isRequired  # immutable.js message object
-        history        : rtypes.object
+        actions        : rtypes.object
+
+        focus_end      : rtypes.func
+        get_user_name  : rtypes.func
+
+        message        : rtypes.immutable.Map.isRequired  # immutable.js message object
+        history        : rtypes.immutable.List
         account_id     : rtypes.string.isRequired
         date           : rtypes.string
         sender_name    : rtypes.string
         editor_name    : rtypes.string
-        user_map       : rtypes.object
+        user_map       : rtypes.immutable.Map
         project_id     : rtypes.string    # optional -- improves relative links if given
         file_path      : rtypes.string    # optional -- (used by renderer; path containing the chat log)
         font_size      : rtypes.number
         show_avatar    : rtypes.bool
-        get_user_name  : rtypes.func
         is_prev_sender : rtypes.bool
         is_next_sender : rtypes.bool
-        actions        : rtypes.object
         show_heads     : rtypes.bool
-        focus_end      : rtypes.func
         saved_mesg     : rtypes.string
-        close_input    : rtypes.func
 
     getInitialState: ->
         edited_message : newest_content(@props.message)
         history_size   : @props.message.get('history').size
         show_history   : false
         new_changes    : false
+
+    shouldComponentUpdate: (next, next_state) ->
+        return misc.is_different(@props, next, ['message', 'user_map', 'account_id', 'show_avatar', \
+                   'is_prev_sender', 'is_next_sender', 'editor_name', 'saved_mesg', 'sender_name']) or \
+               misc.is_different(@state, next_state, ['edited_message', 'show_history', 'new_changes'])
 
     componentWillReceiveProps: (newProps) ->
         if @state.history_size != @props.message.get('history').size
@@ -84,19 +89,6 @@ Message = rclass
         else
             changes = true
         @setState(new_changes : changes)
-
-    shouldComponentUpdate: (next, next_state) ->
-        return @props.message != next.message or
-               @props.user_map != next.user_map or
-               @props.account_id != next.account_id or
-               @props.show_avatar != next.show_avatar or
-               @props.is_prev_sender != next.is_prev_sender or
-               @props.is_next_sender != next.is_next_sender or
-               @props.editor_name != next.editor_name or
-               @props.saved_mesg != next.saved_mesg or
-               @state.edited_message != next_state.edited_message or
-               @state.show_history != next_state.show_history or
-               ((not @props.is_prev_sender) and (@props.sender_name != next.sender_name))
 
     componentDidMount: ->
         if @refs.editedMessage
@@ -176,7 +168,6 @@ Message = rclass
 
     edit_message: ->
         @props.actions.set_editing(@props.message, true)
-        @props.close_input(@props.date, @props.account_id, @props.saved_mesg)
 
     on_keydown: (e) ->
         if e.keyCode==27 # ESC
@@ -292,7 +283,7 @@ Message = rclass
                 <FormControl
                     style     = {fontSize:@props.font_size}
                     autoFocus = {true}
-                    rows      = 4
+                    rows      = {4}
                     componentClass = 'textarea'
                     ref       = 'editedMessage'
                     onKeyDown = {@on_keydown}
@@ -321,6 +312,8 @@ Message = rclass
                 {cols}
             </Row>
 
+SCROLL_DEBOUNCE_MS = 750
+
 ChatLog = rclass
     displayName: "ChatLog"
 
@@ -336,9 +329,11 @@ ChatLog = rclass
         focus_end    : rtypes.func
         saved_mesg   : rtypes.string
         set_scroll   : rtypes.func
+        search       : rtypes.string
 
     shouldComponentUpdate: (next) ->
         return @props.messages != next.messages or
+               @props.search != next.search or
                @props.user_map != next.user_map or
                @props.account_id != next.account_id or
                @props.saved_mesg != next.saved_mesg
@@ -349,16 +344,6 @@ ChatLog = rclass
             account_name = account.get('first_name') + ' ' + account.get('last_name')
         else
             account_name = "Unknown"
-
-    close_edit_inputs: (current_message_date, id, saved_message) ->
-        sorted_dates = @props.messages.keySeq().sort(misc.cmp_Date).toJS()
-        for date in sorted_dates
-            historyContent = @props.messages.get(date).get('history').first()?.get('content') ? ''
-            if date != current_message_date and @props.messages.get(date).get('editing')?.has(id)
-                if historyContent != saved_message
-                    @props.actions.send_edit(@props.messages.get(date), saved_message)
-                else
-                    @props.actions.set_editing(@props.messages.get(date), false)
 
     list_messages: ->
         is_next_message_sender = (index, dates, messages) ->
@@ -377,15 +362,29 @@ ChatLog = rclass
 
         sorted_dates = @props.messages.keySeq().sort().toJS()
         v = []
+        if @props.search
+            search_terms = misc.search_split(@props.search.toLowerCase())
+        else
+            search_terms = undefined
+
+        not_showing = 0
         for date, i in sorted_dates
-            sender_name = @get_user_name(@props.messages.get(date)?.get('sender_id'))
-            last_editor_name = @get_user_name(@props.messages.get(date)?.get('history').first()?.get('author_id'))
+            message = @props.messages.get(date)
+            first = message?.get('history').first()
+            last_editor_name = @get_user_name(first?.get('author_id'))
+            sender_name = @get_user_name(message?.get('sender_id'))
+            if search_terms?
+                content = first?.get('content') + ' ' + last_editor_name + ' ' + sender_name
+                content = content.toLowerCase()
+                if not misc.search_match(content, search_terms)
+                    not_showing += 1
+                    continue
 
             v.push <Message key={date}
                      account_id       = {@props.account_id}
-                     history          = {@props.messages.get(date).get('history')}
+                     history          = {message.get('history')}
                      user_map         = {@props.user_map}
-                     message          = {@props.messages.get(date)}
+                     message          = {message}
                      date             = {date}
                      project_id       = {@props.project_id}
                      file_path        = {@props.file_path}
@@ -399,10 +398,13 @@ ChatLog = rclass
                      editor_name      = {last_editor_name}
                      actions          = {@props.actions}
                      focus_end        = {@props.focus_end}
-                     saved_mesg       = {@props.saved_mesg}
-                     close_input      = {@close_edit_inputs}
+                     saved_mesg       = {if message.getIn(['editing', @props.account_id]) then @props.saved_mesg}
                      set_scroll       = {@props.set_scroll}
                     />
+
+        if not_showing
+            s = <Alert bsStyle='warning' key='not_showing'>Hiding {not_showing} chats that do not match search for '{@props.search}'.</Alert>
+            v.push(s)
 
         return v
 
@@ -424,6 +426,7 @@ exports.ChatRoom = rclass ({name}) ->
             saved_mesg         : rtypes.string
             saved_position     : rtypes.number
             use_saved_position : rtypes.bool
+            search             : rtypes.string
 
         users :
             user_map : rtypes.immutable
@@ -459,10 +462,29 @@ exports.ChatRoom = rclass ({name}) ->
         for f in ['set_preview_state', 'set_chat_log_state', 'debounce_bottom', 'mark_as_read']
             @[f] = underscore.debounce(@[f], 300)
 
+    fix_scroll_position_after_mount: ->
+        # Optionally set the scroll position back after waiting a moment
+        # for image sizes to load.
+        fix_pos = =>
+            if not @_is_mounted
+                return
+            scroll_to_position(@refs.log_container, @props.saved_position, @props.offset,
+                               @props.height, @props.use_saved_position, @props.actions)
+        # We adjust the scroll position multiple times due to dynamic content (e.g., images)
+        # changing the vertical height as the chat history is rendered.  This can fail
+        # if the dynamic change takes a while, but the failure is a slight scroll position
+        # issue -- if the user is switching tabs back and forth in a session, that is very
+        # unlikely, due to the browser caching the dynamic content.
+        # The user is also unlikely to manually scroll the page then see it jump to
+        # this fixed position within 500ms of mounting.
+        for tm in [0, 200, SCROLL_DEBOUNCE_MS-250]
+            setTimeout(fix_pos, tm)
+
     componentDidMount: ->
-        scroll_to_position(@refs.log_container, @props.saved_position, @props.offset, @props.height, @props.use_saved_position, @props.actions)
+        @_is_mounted = true
+        @fix_scroll_position_after_mount()
         if @props.is_preview
-            if is_at_bottom(@props.saved_position, @props.offset, @props.height)
+            if is_at_bottom(@props_saved_position, @props.offest, @props.height)
                 @debounce_bottom()
         else
             @props.actions.set_is_preview(false)
@@ -488,15 +510,15 @@ exports.ChatRoom = rclass ({name}) ->
             # Up arrow on an empty input
             @props.actions.set_to_last_input()
 
-    on_scroll: (e) ->
-        # TODO: this is so *stupid*; the scroll state should be saved in componentWillUnmount; saving
-        # it every time there is scrolling is absurdly inefficient....  See jupyter/cell-list.cjsx for
-        # how to do this right.
+    componentWillUnmount: ->
+        @_is_mounted = false
+        @save_scroll_position()
+
+    save_scroll_position: ->
         @props.actions.set_use_saved_position(true)
-        #@_use_saved_position = true
         node = ReactDOM.findDOMNode(@refs.log_container)
-        @props.actions.save_scroll_state(node.scrollTop, node.scrollHeight, node.offsetHeight)
-        e.preventDefault()
+        if node?
+            @props.actions.save_scroll_state(node.scrollTop, node.scrollHeight, node.offsetHeight)
 
     button_send_chat: (e) ->
         send_chat(e, @refs.log_container, ReactDOM.findDOMNode(@refs.input).value, @props.actions)
@@ -612,9 +634,21 @@ exports.ChatRoom = rclass ({name}) ->
             label      = {"Video Chat"}
         />
 
+    render_search: ->
+        <SearchInput
+            placeholder   = {"Find messages..."}
+            default_value = {@props.search}
+            on_change     = {underscore.debounce(((value)=>@props.actions.setState(search:value)), 500)}
+            style         = {margin:0}
+        />
+
     render_button_row: ->
-        <Row style={marginBottom:'5px'}>
-            <Col xs={12} md={12} className="pull-right" style={padding:'2px', textAlign:'right'}>
+        # padding in first column is to match the message list itself.
+        <Row style={marginTop:'5px'}>
+            <Col xs={6} md={6} style={padding:'2px'}>
+                {@render_search()}
+            </Col>
+            <Col xs={6} md={6} className="pull-right" style={padding:'2px', textAlign:'right'}>
                 <ButtonGroup>
                     {@render_timetravel_button()}
                     {@render_video_chat_button()}
@@ -634,7 +668,7 @@ exports.ChatRoom = rclass ({name}) ->
 
     append_file: (file) ->
         if file.type.indexOf("image") isnt -1
-            final_insertion_text = "<img src=\".chat-images/#{file.name}\" width='60%'>"
+            final_insertion_text = "<img src=\".chat-images/#{file.name}\" width='100%'>"
         else
             final_insertion_text = "[#{file.name}](#{file.name})"
 
@@ -667,7 +701,10 @@ exports.ChatRoom = rclass ({name}) ->
             {@render_button_row() if not IS_MOBILE}
             <Row className='smc-vfill'>
                 <Col className='smc-vfill' md={12} style={padding:'0px 2px 0px 2px'}>
-                    <Well style={chat_log_style} ref='log_container' onScroll={@on_scroll}>
+                    <Well
+                        style    = {chat_log_style}
+                        ref      = 'log_container'
+                        onScroll = {underscore.debounce(@save_scroll_position,SCROLL_DEBOUNCE_MS)}>
                         <ChatLog
                             messages     = {@props.messages}
                             account_id   = {@props.account_id}
@@ -677,8 +714,9 @@ exports.ChatRoom = rclass ({name}) ->
                             file_path    = {if @props.path? then misc.path_split(@props.path).head}
                             actions      = {@props.actions}
                             saved_mesg   = {@props.saved_mesg}
+                            search       = {@props.search}
                             set_scroll   = {@set_chat_log_state}
-                            show_heads   = true />
+                            show_heads   = {true} />
                         {@render_preview_message() if @props.input.length > 0 and @props.is_preview}
                     </Well>
                 </Col>
@@ -693,7 +731,7 @@ exports.ChatRoom = rclass ({name}) ->
                         <FormGroup>
                             <FormControl
                                 autoFocus   = {not IS_MOBILE or isMobile.Android()}
-                                rows        = 4
+                                rows        = {4}
                                 componentClass = 'textarea'
                                 ref         = 'input'
                                 onKeyDown   = {@keydown}

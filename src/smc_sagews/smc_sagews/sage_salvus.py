@@ -1672,6 +1672,23 @@ capture = Capture(stdout=None, stderr=None, append=False, echo=False)
 
 import sage.misc.cython
 
+def asy(code=None, **kwds):
+    # make a .pdf from .asy code and display it
+    # asy command can also be used to make .eps file
+    import tempfile
+    import subprocess
+    import os
+    fname1 = tempfile.mkstemp(suffix=".asy")[1]
+    fname2 = tempfile.mkstemp(suffix=".png")[1]
+    with open(fname1,"w") as outf1:
+        outf1.write(code + '\n')
+    cmd = "/usr/bin/asy -offscreen -f png -o {} {}".format(fname2, fname1)
+    p = subprocess.call(cmd.split())
+    salvus.file(fname2)
+    os.unlink(fname1)
+    os.unlink(fname2)
+    print('')
+
 def cython(code=None, **kwds):
     """
     Block decorator to easily include Cython code in CoCalc worksheets.
@@ -2601,6 +2618,10 @@ def show(*objs, **kwds):
             if kwds.get('viewer') == 'tachyon':
                 show_3d_plot_using_tachyon(obj, **kwds)
             else:
+                if kwds.get('viewer') == 'threejs':
+                    del kwds['viewer']
+                if kwds.get('online'):
+                    del kwds['online']
                 salvus.threed(obj, **kwds)
                 # graphics.show_3d_plot_using_threejs(obj, **kwds)
         elif isinstance(obj, Tachyon):
@@ -3081,7 +3102,8 @@ def reset(vars=None, attached=False):
     for k in G.keys():
         if k[0] != '_' and type(k) != T:
             try:
-                del G[k]
+                if k != 'salvus':
+                    del G[k]
             except KeyError:
                 pass
     restore()
@@ -3833,15 +3855,28 @@ def java(s):
         except:
             pass
 
-# Julia pexepect interface support
-import julia
-import sage.interfaces
-sage.interfaces.julia = julia # the module
-julia = julia.julia # specific instance
-sage.interfaces.all.julia = julia
+########################################################
+# Julia mode
+########################################################
 
+def julia(code=None,**kwargs):
+    """
+    Block decorator to run Julia over Jupyter bridge.
 
+    To use this, put %julia on a line by itself in a cell so that it applies to
+    the rest of the cell, or put it at the beginning of a line to
+    run just that line using julia.
 
+    State is preserved between cells.
+
+    This is different than the julia command in Sage itself (which you can
+    access via sage.interfaces.julia), which uses a more brittle pexpect interface.
+
+    """
+    if julia.jupyter_kernel is None:
+        julia.jupyter_kernel = jupyter("julia")
+    return julia.jupyter_kernel(code,**kwargs)
+julia.jupyter_kernel = None
 
 # Help command
 import sage.misc.sagedoc

@@ -25,12 +25,11 @@ servers running on project vm's
 ###
 
 async   = require('async')
-winston = require('winston')
+winston = require('./winston-metrics').get_logger('proxy')
 http_proxy = require('http-proxy')
 url     = require('url')
 http    = require('http')
 mime    = require('mime')
-Cookies = require('cookies')
 ms      = require('ms')
 
 misc    = require('smc-util/misc')
@@ -44,15 +43,35 @@ access = require('./access')
 
 DEBUG2 = false
 
+# In the interest of security and "XSS", we strip the "remember_me" cookie from the header before
+# passing anything along via the proxy.
+exports.strip_remember_me_cookie = (cookie) ->
+    if not cookie?
+        return {cookie: cookie, remember_me:undefined}
+    else
+        v = []
+        for c in cookie.split(';')
+            z = c.split('=')
+            if z[0].trim() == 'remember_me'
+                remember_me = z[1].trim()
+            else
+                v.push(c)
+        return {cookie: v.join(';'), remember_me:remember_me}
+
 exports.target_parse_req = target_parse_req = (remember_me, url) ->
     v          = url.split('/')
     project_id = v[1]
-    type       = v[2]  # 'port' or 'raw'
+    type       = v[2]  # 'port' or 'raw' or 'server'
     key        = remember_me + project_id + type
+    internal_url = undefined   # if defined, this is the UTL called
     if type == 'port'
         key += v[3]
         port = v[3]
-    return {key:key, type:type, project_id:project_id, port_number:port}
+    else if type == 'server'
+        key += v[3]
+        port = v[3]
+        internal_url = v.slice(4).join('/')
+    return {key:key, type:type, project_id:project_id, port_number:port, internal_url:internal_url}
 
 exports.jupyter_server_port = jupyter_server_port = (opts) ->
     opts = defaults opts,
@@ -166,9 +185,13 @@ exports.init_http_proxy_server = (opts) ->
                 f = () ->
                     delete _remember_me_cache[key]
                 if has_access
-                    setTimeout(f, 1000*60*6)    # access lasts 6 minutes (i.e., if you revoke privs to a user they could still hit the port for this long)
+                    setTimeout(f, 1000*60*7)
+                    # access lasts 7 minutes (i.e., if you revoke privs to a user they
+                    # could still hit the port for this long)
                 else
-                    setTimeout(f, 1000*60*2)    # not having access lasts 2 minute
+                    setTimeout(f, 1000*10)
+                    # not having access lasts 10 seconds -- maybe they weren't logged in yet..., so don't
+                    # have things broken forever!
                 opts.cb(err, has_access)
 
     _target_cache = {}
@@ -179,11 +202,11 @@ exports.init_http_proxy_server = (opts) ->
         delete _target_cache[key]
 
     target = (remember_me, url, cb) ->
-        {key, type, project_id, port_number} = target_parse_req(remember_me, url)
+        {key, type, project_id, port_number, internal_url} = target_parse_req(remember_me, url)
 
         t = _target_cache[key]
         if t?
-            cb(false, t)
+            cb(false, t, internal_url)
             return
 
         dbg = (m) -> winston.debug("target(#{key}): #{m}")
@@ -232,7 +255,7 @@ exports.init_http_proxy_server = (opts) ->
                                 cb()
             (cb) ->
                 #dbg("determine the port")
-                if type == 'port'
+                if type == 'port' or type == 'server'
                     if port_number == "jupyter"
                         dbg("determine jupyter_server_port")
                         jupyter_server_port
@@ -276,7 +299,7 @@ exports.init_http_proxy_server = (opts) ->
                 else
                     t = {host:host, port:port}
                     _target_cache[key] = t
-                    cb(false, t)
+                    cb(false, t, internal_url)
                     if type == 'raw'
                         # Set a ttl time bomb on this cache entry. The idea is to keep the cache not too big,
                         # but also if a new user is granted permission to the project they didn't have, or the project server
@@ -285,7 +308,10 @@ exports.init_http_proxy_server = (opts) ->
                         # This helps enormously when there is a burst of requests.
                         # Also if project restarts the raw port will change and we don't want to have
                         # fix this via getting an error.
-                        setTimeout((->delete _target_cache[key]), 15000)
+
+                        # Also, if the project stops and starts, the host=ip address could change, so
+                        # we need to timeout so we see that...
+                        setTimeout((->delete _target_cache[key]), 30*1000)
             )
 
     #proxy = http_proxy.createProxyServer(ws:true)
@@ -306,8 +332,13 @@ exports.init_http_proxy_server = (opts) ->
                 winston.debug("http_proxy_server(#{req_url}): #{m}")
         dbg('got request')
 
-        cookies = new Cookies(req, res)
-        remember_me = cookies.get(base_url + 'remember_me')
+        # Before doing anything further with the request on to the proxy, we remove **all** cookies whose
+        # name contains "remember_me", to prevent the project backend from getting at
+        # the user's session cookie, since one project shouldn't be able to get
+        # access to any user's account.
+        x = exports.strip_remember_me_cookie(req.headers['cookie'])
+        remember_me = x.remember_me
+        req.headers['cookie'] = x.cookie
 
         if not remember_me?
             # before giving an error, check on possibility that file is public
@@ -318,7 +349,7 @@ exports.init_http_proxy_server = (opts) ->
 
             return
 
-        target remember_me, req_url, (err, location) ->
+        target remember_me, req_url, (err, location, internal_url) ->
             dbg("got target: #{misc.walltime(tm)}")
             if err
                 public_raw req_url, query, res, (err, is_public) ->
@@ -331,22 +362,38 @@ exports.init_http_proxy_server = (opts) ->
                 if proxy_cache[t]?
                     # we already have the proxy server for this remote location in the cache, so use it.
                     proxy = proxy_cache[t]
-                    dbg("used cached proxy object: #{misc.walltime(tm)}")
+                    dbg("using cached proxy object: #{misc.walltime(tm)}")
                 else
                     dbg("make a new proxy server connecting to this remote location")
-                    proxy = http_proxy.createProxyServer(ws:false, target:t, timeout:3000)
+                    proxy = http_proxy.createProxyServer(ws:false, target:t, timeout:7000)
                     # and cache it.
                     proxy_cache[t] = proxy
                     dbg("created new proxy: #{misc.walltime(tm)}")
                     # setup error handler, so that if something goes wrong with this proxy (it will,
                     # e.g., on project restart), we properly invalidate it.
-                    proxy.on "error", (e) ->
-                        dbg("http proxy error -- #{e}")
+                    remove_from_cache = ->
                         delete proxy_cache[t]
                         invalidate_target_cache(remember_me, req_url)
+                        proxy.close()
+
+                    proxy.on "error", (e) ->
+                        dbg("http proxy error event -- #{e}")
+                        remove_from_cache()
+
+                    proxy.on "close", ->  # only happens with websockets, but...
+                        remove_from_cache()
+
+                    # Always clear after 5 minutes.  This is fine since the proxy is just used
+                    # to handle individual http requests, and the cache is entirely for speed.
+                    # Also, it avoids weird cases, where maybe error/close don't get
+                    # properly called, but the proxy is not working due to network issues.
+                    setTimeout(remove_from_cache, 5*60*1000)
+
                     #proxy.on 'proxyRes', (res) ->
                     #    dbg("(mark: #{misc.walltime(tm)}) got response from the target")
 
+                if internal_url?
+                    req.url = internal_url
                 proxy.web(req, res)
 
     winston.debug("starting proxy server listening on #{opts.host}:#{opts.port}")
@@ -355,9 +402,13 @@ exports.init_http_proxy_server = (opts) ->
     # add websockets support
     _ws_proxy_servers = {}
     http_proxy_server.on 'upgrade', (req, socket, head) ->
+
+        # Strip remember_me cookie from req used for websocket upgrade.
+        req.headers['cookie'] = exports.strip_remember_me_cookie(req.headers['cookie']).cookie
+
         req_url = req.url.slice(base_url.length)  # strip base_url for purposes of determining project location/permissions
         dbg = (m) -> winston.debug("http_proxy_server websocket(#{req_url}): #{m}")
-        target undefined, req_url, (err, location) ->
+        target undefined, req_url, (err, location, internal_url) ->
             if err
                 dbg("websocket upgrade error -- #{err}")
             else
@@ -374,6 +425,8 @@ exports.init_http_proxy_server = (opts) ->
                     _ws_proxy_servers[t] = proxy
                 else
                     dbg("websocket upgrade -- using cache")
+                if internal_url?
+                    req.url = internal_url
                 proxy.ws(req, socket, head)
 
     public_raw_paths_cache = {}
@@ -415,7 +468,7 @@ exports.init_http_proxy_server = (opts) ->
                                 cb(err)
                             else
                                 public_paths = public_raw_paths_cache[project_id] = paths
-                                setTimeout((()=>delete public_raw_paths_cache[project_id]), 15000)  # cache for 15s
+                                setTimeout((()=>delete public_raw_paths_cache[project_id]), 3*60*1000)  # cache a few seconds
                                 cb()
             (cb) ->
                 #winston.debug("public_raw -- path_is_in_public_paths(#{path}, #{misc.to_json(public_paths)})")

@@ -84,7 +84,7 @@ params = ->
     if not page?  # unknown for now
         return ''
     v = []
-    for param in ['fullscreen', 'session']
+    for param in ['fullscreen', 'session', 'get_api_key']
         val = page.get(param)
         if val?
             v.push("#{param}=#{encodeURIComponent(val)}")
@@ -115,7 +115,7 @@ exports.load_target = load_target = (target, ignore_kiosk=false) ->
     #if DEBUG then console.log("history/load_target: #{misc.to_json(arguments)}")
     if not target
         return
-    logged_in = redux.getStore('account')?.is_logged_in()
+    logged_in = redux.getStore('account')?.get('is_logged_in')
     segments = target.split('/')
     switch segments[0]
         when 'help'
@@ -140,6 +140,8 @@ exports.load_target = load_target = (target, ignore_kiosk=false) ->
                 redux.getActions('account').set_active_tab('upgrades')
             if segments[1] == 'support'
                 redux.getActions('account').set_active_tab('support')
+            if segments[1] == 'ssh-keys'
+                redux.getActions('account').set_active_tab('ssh-keys')
         when 'file-use'
             if not logged_in
                 return

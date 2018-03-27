@@ -2,15 +2,15 @@
 Drag'n'Drop dropzone area
 ###
 
-ReactDOMServer = require('react-dom/server')   # for dropzone below
-Dropzone       = require('dropzone')
-DropComponent  = require('react-dropzone-component')
+ReactDOMServer      = require('react-dom/server')   # for dropzone below
+Dropzone            = require('dropzone')
+{DropzoneComponent} = require('react-dropzone-component')
 
 misc           = require('smc-util/misc')
 
 {React, ReactDOM, rclass, rtypes} = require('./smc-react')
 
-{Tip} = require('./r_misc')
+{Icon, Tip} = require('./r_misc')
 
 Dropzone.autoDiscover = false
 
@@ -28,7 +28,7 @@ render_header = ->
         placement = 'bottom'
         tip       = 'Drag and drop files from your computer into the box below to upload them into your project.'>
         <h4 style={color:"#666"}>
-            Drag and drop files.
+            Drag and drop files
         </h4>
     </Tip>
 
@@ -49,8 +49,8 @@ exports.SMC_Dropzone = rclass
                 <img data-dz-thumbnail />
             </div>
             <div className='dz-progress'><span className='dz-upload' data-dz-uploadprogress></span></div>
-            <div className='dz-success-mark'><span><Icon name='check'></span></div>
-            <div className='dz-error-mark'><span><Icon name='times'></span></div>
+            <div className='dz-success-mark'><span><Icon name='check'/></span></div>
+            <div className='dz-error-mark'><span><Icon name='times'/></span></div>
             <div className='dz-error-message'><span data-dz-errormessage></span></div>
         </div>
 
@@ -75,7 +75,7 @@ exports.SMC_Dropzone = rclass
             {@render_close_button() if @props.close_button_onclick?}
             {render_header()}
             <div style={DROPSTYLE}>
-                <DropComponent
+                <DropzoneComponent
                     config        = {postUrl: @postUrl()}
                     eventHandlers = {@props.dropzone_handler}
                     djsConfig     = {previewTemplate: ReactDOMServer.renderToStaticMarkup(@dropzone_template())} />
@@ -171,8 +171,8 @@ exports.SMC_Dropwrapper = rclass
                 <img data-dz-thumbnail />
             </div>
             <div className='dz-progress'><span className='dz-upload' data-dz-uploadprogress></span></div>
-            <div className='dz-success-mark'><span><Icon name='check'></span></div>
-            <div className='dz-error-mark'><span><Icon name='times'></span></div>
+            <div className='dz-success-mark'><span><Icon name='check'/></span></div>
+            <div className='dz-error-mark'><span><Icon name='times'/></span></div>
             <div className='dz-error-message'><span data-dz-errormessage></span></div>
         </div>
 

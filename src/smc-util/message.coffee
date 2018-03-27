@@ -44,7 +44,7 @@ Each API command is invoked using an HTTPS PUT request.
 All commands support request parameters in JSON format, with request header
 `Content-Type: application/json`. Many commands (those that do not
 require lists or objects as parameters)
-also accept request parameters as key-value pairs, i.e. 
+also accept request parameters as key-value pairs, i.e.
 `Content-Type: application/x-www-form-urlencoded`.
 
 Responses are formatted as JSON strings.
@@ -74,17 +74,15 @@ forums.
 
 ### Additional References
 
+- The [CoCalc API tutorial](https://cocalc.com/share/65f06a34-6690-407d-b95c-f51bbd5ee810/Public/README.md?viewer=share) illustrates API calls in Python.
 - The CoCalc PostgreSQL schema definition
-[src/smc-util/db-schema.coffee]
-(https://github.com/sagemathinc/cocalc/blob/master/src/smc-util/db-schema.coffee)
+[src/smc-util/db-schema.coffee](https://github.com/sagemathinc/cocalc/blob/master/src/smc-util/db-schema.coffee)
 has information on tables and fields used with the API `query` request.
 - The API test suite
-[src/smc-hub/test/api/]
-(https://github.com/sagemathinc/cocalc/tree/master/src/smc-hub/test/api)
+[src/smc-hub/test/api/](https://github.com/sagemathinc/cocalc/tree/master/src/smc-hub/test/api)
 contains mocha unit tests for the API messages.
 - The CoCalc message definition file
-[src/smc-util/message.coffee]
-(https://github.com/sagemathinc/cocalc/blob/master/src/smc-util/message.coffee)
+[src/smc-util/message.coffee](https://github.com/sagemathinc/cocalc/blob/master/src/smc-util/message.coffee)
 contains the source for this guide.
 
 ### API Message Reference
@@ -369,9 +367,18 @@ API message2
         agreed_to_terms:
             init   : required
             desc   : 'must be true for request to succeed'
+        utm:
+            init   : undefined
+            desc   : 'UTM parameters'
+        referrer:
+            init   : undefined
+            desc   : 'Referrer URL'
         token:
             init   : undefined   # only required when token is set.
             desc   : 'account creation token - see src/dev/docker/README.md'
+        get_api_key:
+            init   : undefined
+            desc   : 'if set to anything truth-ish, will create (if needed) and return api key with signed_in message'
     desc           : """
 Examples:
 
@@ -458,6 +465,9 @@ message
     email_address  : required
     password       : required
     remember_me    : false
+    utm            : undefined
+    referrer       : undefined
+    get_api_key    : undefined   # same as for create_account
 
 message
     id         : undefined
@@ -487,6 +497,9 @@ message
     email_address  : undefined     # email address they signed in under
     first_name     : undefined
     last_name      : undefined
+    utm            : undefined
+    referrer       : undefined
+    api_key        : undefined     # user's api key, if requested in sign_in or create_account messages.
 
 # client --> hub
 message
@@ -506,9 +519,9 @@ API message2
         id:
             init  : undefined
             desc  : 'A unique UUID for the query'
-        email_address:
+        account_id:
             init  : required
-            desc  : 'email address for account whose password is changed'
+            desc  : 'account id of the account whose password is being changed'
         old_password:
             init  : ""
             desc  : ''
@@ -516,18 +529,24 @@ API message2
             init  : required
             desc  : 'must be between 6 and 64 characters in length'
     desc           : """
-Given email address and old password for an account, set a new password.
+Given account_id and old password for an account, set a new password.
 
 Example:
 ```
   curl -u sk_abcdefQWERTY090900000000: \\
-    -d email_address=... \\
+    -d account_id=... \\
     -d old_password=... \\
     -d new_password=... \\
     https://cocalc.com/api/v1/change_password
   ==> {"event":"changed_password","id":"41ff89c3-348e-4361-ad1d-372b55e1544a"}
 ```
 """
+
+message
+    event         : 'send_verification_email'
+    id            : undefined
+    account_id    : required
+    only_verify   : undefined    # usually true, if false the full "welcome" email is sent
 
 # hub --> client
 # if error is true, that means the password was not changed; would
@@ -1095,10 +1114,6 @@ message
     project_id : required
 
 
-# hub --> client(s)
-message
-    event      : 'project_list_updated'
-
 ## search ---------------------------
 
 # client --> hub
@@ -1131,13 +1146,15 @@ of the two strings and the last name begins with the other.
 String and email queries may be mixed in the list for a single
 user_search call. Searches are case-insensitive.
 
+Security key may be blank.
+
 Note: there is a hard limit of 50 returned items in the results.
 
 Examples:
 
 Search for account by email.
 ```
-  curl -u sk_abcdefQWERTY090900000000: \\
+  curl -u : \\
     -d query=jd@m.local \\
     https://cocalc.com/api/v1/user_search
   ==> {"event":"user_search_results",
@@ -1206,6 +1223,24 @@ API message2
         account_id:
             init  : required
             desc  : 'account_id of invited user'
+        title        :
+            init  : undefined
+            desc  : 'Title of the project'
+        link2proj    :
+            init  : undefined
+            desc  : 'The full URL link to the project'
+        replyto      :
+            init  : undefined
+            desc  : 'Email address of user who is inviting someone'
+        replyto_name :
+            init  : undefined
+            desc  : 'Name of user who is inviting someone'
+        email        :
+            init  : undefined
+            desc  : 'Body of email user is sending (plain text or HTML)'
+        subject      :
+            init  : undefined
+            desc  : 'Subject line of invitiation email'
     desc       : """
 Invite a user who already has a CoCalc account to
 become a collaborator on a project. You must be owner
@@ -1351,7 +1386,7 @@ message
 # Message sent in response to attempt to save a blob
 # to the database.
 #
-# hub --> local_hub --> sage_server
+# hub --> local_hub [--> sage_server]
 #
 #############################################
 message
@@ -1360,7 +1395,6 @@ message
     sha1      : required     # the sha-1 hash of the blob that we just processed
     ttl       : undefined    # ttl in seconds of the blob if saved; 0=infinite
     error     : undefined    # if not saving, a message explaining why.
-
 
 # remove the ttls from blobs in the blobstore.
 # client --> hub
@@ -1493,6 +1527,11 @@ message
     id           : undefined
     path         : required
 
+###
+Heartbeat message for connection from hub to project.
+###
+message
+    event : 'heartbeat'
 
 ###
 Ping/pong -- used for clock sync, etc.
@@ -1506,12 +1545,20 @@ API message2
     desc  : """
 Test API connection, return time as ISO string when server responds to ping.
 
+Security key may be blank.
+
 Examples:
 
 Omitting request id:
 ```
   curl -X POST -u sk_abcdefQWERTY090900000000: https://cocalc.com/api/v1/ping
   ==> {"event":"pong","id":"c74afb40-d89b-430f-836a-1d889484c794","now":"2017-05-24T13:29:11.742Z"}
+```
+
+Omitting request id and using blank security key:
+```
+  curl -X POST -u : https://cocalc.com/api/v1/ping
+  ==>  {"event":"pong","id":"d90f529b-e026-4a60-8131-6ce8b6d4adc8","now":"2017-11-05T21:10:46.585Z"}
 ```
 
 Using `uuid` shell command to create a request id:
@@ -1583,8 +1630,10 @@ Examples:
 Get public directory listing. Directory "Public" is shared and
 contains one file "hello.txt" and one subdirectory "p2".
 
+Security key may be blank.
+
 ```
-  curl -u sk_abcdefQWERTY090900000000: \\
+  curl -u : \\
     -d path=Public \\
     -d project_id=9a19cca3-c53d-4c7c-8c0f-e166aada7bb6 \\
     https://cocalc.com/api/v1/public_get_directory_listing
@@ -1619,11 +1668,13 @@ User does not need to be owner or collaborator in the target project
 and does not need to be logged into CoCalc.
 Argument `path` is relative to home directory in target project.
 
+Security key may be blank.
+
 Examples
 
 Read a public file.
 ```
-  curl -u sk_abcdefQWERTY090900000000: \\
+  curl -u : \\
     -d project_id=e49e86aa-192f-410b-8269-4b89fd934fba \\
     -d path=Public/hello.txt
     https://cocalc.com/api/v1/public_get_text_file
@@ -1743,6 +1794,7 @@ via the API and is intended for use by CoCalc support only:
 
 message
     event        : 'webapp_error'
+    id           : undefined # ignored
     name         : required  # string
     message      : required  # string
     comment      : undefined # string
@@ -1818,11 +1870,11 @@ API message
 
 # Create a subscription to a plan
 API message
-    event    : 'stripe_create_subscription'
-    id       : undefined
-    plan     : required   # name of plan
-    quantity : 1
-    coupon   : undefined
+    event     : 'stripe_create_subscription'
+    id        : undefined
+    plan      : required   # name of plan
+    quantity  : 1
+    coupon_id : undefined
 
 # Delete a subscription to a plan
 API message
@@ -1839,7 +1891,7 @@ API message
     quantity        : undefined   # only give if changing
     projects        : undefined   # change associated projects from what they were to new list
     plan            : undefined   # change plan to this
-    coupon          : undefined   # apply a coupon to this subscription
+    coupon_id       : undefined   # apply a coupon to this subscription
 
 API message
     event          : 'stripe_get_subscriptions'
@@ -1852,6 +1904,17 @@ message
     event         : 'stripe_subscriptions'
     id            : undefined
     subscriptions : undefined
+
+API message
+    event     : 'stripe_get_coupon'
+    id        : undefined
+    coupon_id : required
+
+message
+    event  : 'stripe_coupon'
+    id     : undefined
+    coupon : undefined
+
 
 # charges
 API message
@@ -2048,7 +2111,7 @@ Options for the 'query' API message must be sent as JSON object.
 A query is either _get_ (read from database), or _set_ (write to database).
 A query is _get_ if any query keys are null, otherwise the query is _set_.
 
-Examples of _get_ query:
+#### Examples of _get_ query:
 
 Get title and description for a project, given the project id.
 ```
@@ -2062,6 +2125,27 @@ Get title and description for a project, given the project id.
                             "description":"desc 2"}},
        "multi_response":false}
 ```
+
+Get info on all projects for the account whose security key is provided.
+The information returned may be any of the api-accessible fields in the
+`projects` table. These fields are listed in CoCalc source file
+src/smc-util/db-schema.coffee, under `schema.projects.user_query`.
+In this example, project name and description are returned.
+```
+  curl -u sk_abcdefQWERTY090900000000: -H "Content-Type: application/json" \\
+    -d '{"query":{"projects":[{"project_id":null,"title":null,"description":null}]}}' \\
+    https://cocalc.com/api/v1/query
+  ==> {"event":"query",
+       "id":"8ec4ac73-2595-42d2-ad47-0b9641043b46",
+       "multi_response": False,
+       "query": {"projects": [{"description": "Synthetic Monitoring",
+                         "project_id": "1fa1626e-ce25-4871-9b0e-19191cd03325",
+                         "title": "SYNTHMON"},
+                        {"description": "No Description",
+                         "project_id": "639a6b2e-7499-41b5-ac1f-1701809699a7",
+                         "title": "TESTPROJECT 99"}]}}
+```
+
 
 Get project id, given title and description.
 ```
@@ -2099,7 +2183,7 @@ The project shows the following upgrades:
 - cpu cores:       1
 - memory:          3000 MB
 - idle timeout:    24 hours (86400 seconds)
-- internet access: true 
+- internet access: true
 - cpu shares:      3 (stored in database as 768 = 3 * 256)
 - disk space:      27000 MB
 - member hosting:  true
@@ -2124,7 +2208,42 @@ The project shows the following upgrades:
        "id":"9dd3ef3f-002b-4893-b31f-ff51440c855f"}
 ```
 
-Examples of _set_ query.
+Get editor settings for the present user.
+
+```
+  curl -u sk_abcdefQWERTY090900000000: \\
+    -H "Content-Type: application/json" \\
+    -d '{"query":{"accounts":{"account_id":"29163de6-b5b0-496f-b75d-24be9aa2aa1d","editor_settings":null}}}' \\
+    https://cocalc.com/api/v1/query
+  ==> {"event":"query",
+       "multi_response":false,
+       "id":"9dd3ef3f-002b-4893-b31f-ff51440c855f",
+       "query": {"accounts": {"account_id": "29163de6-b5b0-496f-b75d-24be9aa2aa1d",
+                              "editor_settings": {"auto_close_brackets": True,
+                                                  "auto_close_xml_tags": True,
+                                                  "bindings": "standard",
+                                                  "code_folding": True,
+                                                  "electric_chars": True,
+                                                  "extra_button_bar": True,
+                                                  "first_line_number": 1,
+                                                  "indent_unit": 4,
+                                                  "jupyter_classic": False,
+                                                  "line_numbers": True,
+                                                  "line_wrapping": True,
+                                                  "match_brackets": True,
+                                                  "match_xml_tags": True,
+                                                  "multiple_cursors": True,
+                                                  "show_trailing_whitespace": True,
+                                                  "smart_indent": True,
+                                                  "spaces_instead_of_tabs": True,
+                                                  "strip_trailing_whitespace": False,
+                                                  "tab_size": 4,
+                                                  "theme": "default",
+                                                  "track_revisions": True,
+                                                  "undo_depth": 300}}}}
+```
+
+#### Examples of _set_ query.
 
 Set title and description for a project, given the project id.
 ```
@@ -2158,25 +2277,38 @@ Make a path public (publish a file).
 Add an upgrade to a project. In the "get" example above showing project upgrades,
 change cpu upgrades from 3 to 4. The `users` object is returned as
 read, with `cpu_shares` increased to 1024 = 4 * 256.
+It is not necessary to specify the entire `upgrades` object
+if you are only setting the `cpu_shares` attribute because changes are merged in.
 
 ```
   curl -u sk_abcdefQWERTY090900000000: \\
     -H "Content-Type: application/json" \\
     -d '{"query":{"projects":{"project_id":"29163de6-b5b0-496f-b75d-24be9aa2aa1d", \\
                               "users":{"6c28c5f4-3235-46be-b025-166b4dcaac7e":{ \\
-                                           "group":"owner", \\
-                                           "upgrades: {"cores":1, \\
-                                                       "memory":3000, \\
-                                                       "mintime":86400, \\
-                                                       "network":1, \\
-                                                       "cpu_shares":1024, \\
-                                                       "disk_quota":27000, \\
-                                                       "member_host":1}}}}}}' \\
+                                           "upgrades": {"cpu_shares":1024}}}}}}' \\
     https://cocalc.com/api/v1/query
     ==> {"event":"query",
          "query":{},
          "multi_response":false,
          "id":"ec822d6f-f9fe-443d-9845-9cd5f68bac20"}
+```
+
+Set present user to open Jupyter notebooks in
+"Modern Notebook" as opposed to "Classical Notebook".
+This change not usually needed, because accounts
+default to "Modern Notebook".
+
+It is not necessary to specify the entire `editor_settings` object
+if you are only setting the `jupyter_classic` attribute because changes are merged in.
+```
+  curl -u sk_abcdefQWERTY090900000000: \\
+    -H "Content-Type: application/json" \\
+    -d '{"query":{"accounts":{"account_id":"29163de6-b5b0-496f-b75d-24be9aa2aa1d","editor_settings":{"jupyter_classic":false}}}}' \\
+    https://cocalc.com/api/v1/query
+  ==> {"event":"query",
+       "multi_response":false,
+       "id":"9dd3ef3f-002b-4893-b31f-ff51440c855f",
+       "query": {}}
 ```
 
 
@@ -2207,12 +2339,6 @@ Within file 'db-schema.coffee':
 message
     event : 'query_cancel'
     id    : undefined
-
-# used to a get array of currently active change feed id's
-message
-    event          : 'query_get_changefeed_ids'
-    id             : undefined
-    changefeed_ids : undefined
 
 ###
 API Key management for an account
@@ -2297,3 +2423,70 @@ Revoke a temporary authentication token for an account.
 """
 ###
 
+
+# client --> hub
+API message2
+    event       : 'metrics'
+    fields:
+        metrics :
+            init : required
+            desc : 'object containing the metrics'
+
+API message2
+    event       : 'start_metrics'
+    fields:
+        interval_s :
+            init : required
+            desc : 'tells client that it should submit metrics to the hub every interval_s seconds'
+
+
+# Info about available upgrades for a given user
+API message2
+    event : 'get_available_upgrades'
+    fields:
+        id:
+           init  : undefined
+           desc  : 'A unique UUID for the query'
+    desc         : """
+This request returns information on project upgrdes for the user
+whose API key appears in the request.
+Two objects are returned, total upgrades and available upgrades.
+
+See https://github.com/sagemathinc/cocalc/blob/master/src/smc-util/upgrade-spec.coffee for units
+
+Example:
+```
+  curl -X POST -u sk_abcdefQWERTY090900000000: https://cocalc.com/api/v1/get_available_upgrades
+  ==>
+  {"id":"57fcfd71-b50f-44ef-ba66-1e37cac858ef",
+   "event":"available_upgrades",
+   "total":{
+     "cores":10,
+     "cpu_shares":2048,
+     "disk_quota":200000,
+     "member_host":80,
+     "memory":120000,
+     "memory_request":8000,
+     "mintime":3456000,
+     "network":400},
+     "excess":{},
+   "available":{
+     "cores":6,
+     "cpu_shares":512,
+     "disk_quota":131000,
+     "member_host":51,
+     "memory":94000,
+     "memory_request":8000,
+     "mintime":1733400,
+     "network":372}}
+```
+"""
+
+# client <-- hub
+
+message
+    event      : 'available_upgrades'
+    id         : undefined
+    total      : required  # total upgrades the user has purchased
+    excess     : required  # upgrades where the total allocated exceeds what user has purchased
+    available  : required  # how much of each purchased upgrade is available

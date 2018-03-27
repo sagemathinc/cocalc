@@ -22,9 +22,11 @@
 async      = require('async')
 underscore = require('underscore')
 immutable  = require('immutable')
+os_path    = require('path')
 
 # At most this many of the most recent log messages for a project get loaded:
-MAX_PROJECT_LOG_ENTRIES = 5000
+# TODO: add a button to load the entire log or load more...
+MAX_PROJECT_LOG_ENTRIES = 1000
 
 misc      = require('smc-util/misc')
 {MARKERS} = require('smc-util/sagews')
@@ -33,7 +35,43 @@ misc      = require('smc-util/misc')
 {project_tasks} = require('./project_tasks')
 {types, defaults, required} = misc
 
+misc_page = require('./misc_page')
+
 {Actions, rtypes, computed, depends, Table, register_project_store, redux}  = require('./smc-react')
+
+exports.file_actions = file_actions =
+    compress  :
+        name  : 'Compress'
+        icon  : 'compress'
+        allows_multiple_files : true
+    delete    :
+        name  : 'Delete'
+        icon  : 'trash-o'
+        allows_multiple_files : true
+    rename    :
+        name  : 'Rename'
+        icon  : 'pencil'
+        allows_multiple_files : false
+    duplicate :
+        name  : 'Duplicate'
+        icon  : 'clone'
+        allows_multiple_files : false
+    move      :
+        name  : 'Move'
+        icon  : 'arrows'
+        allows_multiple_files : true
+    copy      :
+        name  : 'Copy'
+        icon  : 'files-o'
+        allows_multiple_files : true
+    share     :
+        name  : 'Share'
+        icon  : 'share-square-o'
+        allows_multiple_files : false
+    download  :
+        name  : 'Download'
+        icon  : 'cloud-download'
+        allows_multiple_files : true
 
 # Register this module with the redux module, so it can be used by the reset of SMC easily.
 register_project_store(exports)
@@ -56,6 +94,13 @@ BANNED_FILE_TYPES             = ['doc', 'docx', 'pdf', 'sws']
 
 FROM_WEB_TIMEOUT_S = 45
 
+# src: where the library files are
+# start: open this file after copying the directory
+LIBRARY =
+    first_steps :
+        src    : '/ext/library/first-steps/src'
+        start  : 'first-steps.tasks'
+
 QUERIES =
     project_log :
         query :
@@ -72,6 +117,11 @@ QUERIES =
             path        : null
             description : null
             disabled    : null
+            unlisted    : null
+            created     : null
+            last_edited : null
+            last_saved  : null
+            counter     : null
 
 must_define = (redux) ->
     if not redux?
@@ -84,6 +134,8 @@ exports.redux_name = key = (project_id, name) ->
         s += "-#{name}"
     return s
 
+_init_library_index_ongoing = {}
+_init_library_index_cache   = {}
 
 class ProjectActions extends Actions
     _ensure_project_is_open: (cb, switch_to) =>
@@ -97,9 +149,6 @@ class ProjectActions extends Actions
     get_store: =>
         return @redux.getStore(@name)
 
-    get_state: (key) =>
-        return @get_store().get(key)
-
     clear_all_activity: =>
         @setState(activity:undefined)
 
@@ -108,16 +157,18 @@ class ProjectActions extends Actions
             current_path += '/'
         @push_state('files/' + current_path)
 
-    push_state: (url) =>
+    _url_in_project: (local_url) =>
+        return '/projects/' + @project_id + '/' + misc.encode_path(local_url)
+
+    push_state: (local_url) =>
+        if not local_url?
+            local_url = @_last_history_state
+        if not local_url?
+            local_url = ''
+        @_last_history_state = local_url
         {set_url} = require('./history')
-        if not url?
-            url = @_last_history_state
-        if not url?
-            url = ''
-        @_last_history_state = url
-        set_url('/projects/' + @project_id + '/' + misc.encode_path(url))
-        {analytics_pageview} = require('./misc_page')
-        analytics_pageview(window.location.pathname)
+        set_url(@_url_in_project(local_url))
+        misc_page.analytics_pageview(window.location.pathname)
 
     move_file_tab: (opts) =>
         {old_index, new_index, open_files_order} = defaults opts,
@@ -132,12 +183,12 @@ class ProjectActions extends Actions
         @setState(open_files_order:new_list)
         @redux.getActions('page').save_session()
 
-
     # Closes a file tab
     # Also closes file references.
     close_tab: (path) =>
-        open_files_order = @get_store().open_files_order
-        active_project_tab = @get_store().active_project_tab
+        return if not store = @get_store()
+        open_files_order = store.open_files_order
+        active_project_tab = store.active_project_tab
         closed_index = open_files_order.indexOf(path)
         size = open_files_order.size
         if misc.path_to_tab(path) == active_project_tab
@@ -162,7 +213,7 @@ class ProjectActions extends Actions
     # Pushes to browser history
     # Updates the URL
     set_active_tab: (key) =>
-        store = @get_store()
+        return if not store = @get_store()
         if store.active_project_tab == key
             # nothing to do
             return
@@ -193,9 +244,9 @@ class ProjectActions extends Actions
                 if is_public != was_public
                     @open_file(path : path)
 
-
     add_a_ghost_file_tab: () =>
-        current_num = @get_store().num_ghost_file_tabs
+        return if not store = @get_store()
+        current_num = store.num_ghost_file_tabs
         @setState(num_ghost_file_tabs : current_num + 1)
 
     clear_ghost_file_tabs: =>
@@ -210,13 +261,11 @@ class ProjectActions extends Actions
             status : undefined    # status update message during the activity -- description of progress
             stop   : undefined    # activity is done  -- can pass a final status message in.
             error  : undefined    # describe an error that happened
-        store = @get_store()
-        if not store?  # if store not initialized we can't set activity
-            return
+        return if not store = @get_store()
         x = store.activity?.toJS()
         if not x?
             x = {}
-        # Actual implemenation of above specified API is VERY minimal for
+        # Actual implementyation of above specified API is VERY minimal for
         # now -- just enough to display something to user.
         if opts.status?
             x[opts.id] = opts.status
@@ -235,24 +284,45 @@ class ProjectActions extends Actions
         return
 
     # report a log event to the backend -- will indirectly result in a new entry in the store...
-    log: (event) =>
+    # Returns the random log entry uuid. If called later with that id, then the time isn't
+    # changed and the event is merely updated.
+    log: (event, id) =>
         if @redux.getStore('projects').get_my_group(@project_id) in ['public', 'admin']
             # Ignore log events for *both* admin and public.
             # Admin gets to be secretive (also their account_id --> name likely wouldn't be known to users).
             # Public users don't log anything.
             return # ignore log events
+        obj =
+            event      : event
+            project_id : @project_id
+        if not id
+            # new log entry
+            id       = misc.uuid()
+            obj.time = misc.server_time()
+        obj.id = id
         require('./webapp_client').webapp_client.query
-            query :
-                project_log :
-                    project_id : @project_id
-                    time       : new Date()
-                    event      : event
-            cb : (err) =>
+            query : {project_log : obj}
+            cb    : (err) =>
                 if err
                     # TODO: what do we want to do if a log doesn't get recorded?
                     # (It *should* keep trying and store that in localStorage, and try next time, etc...
                     #  of course done in a systematic way across everything.)
                     console.warn('error recording a log entry: ', err, event)
+        return id
+
+    log_opened_time: (path) =>
+        # Call log_opened with a path to update the log with the fact that
+        # this file successfully opened and rendered so that the user can
+        # actually see it.  This is used to get a sense for how long things
+        # are taking...
+        data = @_log_open_time?[path]
+        if not data?
+            # never setup log event recording the start of open (this would get set in @open_file)
+            return
+        {id, start} = data
+        # do not allow recording the time more than once, which would be weird.
+        delete @_log_open_time[path]
+        @log({time: misc.server_time() - start}, id)
 
     # Save the given file in this project (if it is open) to disk.
     save_file: (opts) =>
@@ -261,7 +331,8 @@ class ProjectActions extends Actions
         if not @redux.getStore('projects').is_project_open(@project_id)
             return # nothing to do regarding save, since project isn't even open
         # NOTE: someday we could have a non-public relationship to project, but still open an individual file in public mode
-        is_public = @get_store().open_files.getIn([opts.path, 'component'])?.is_public
+        return if not store = @get_store()
+        is_public = store.open_files.getIn([opts.path, 'component'])?.is_public
         project_file.save(opts.path, @redux, @project_id, is_public)
 
     # Save all open files in this project
@@ -272,10 +343,11 @@ class ProjectActions extends Actions
         group = s.get_my_group(@project_id)
         if not group? or group == 'public'
             return # no point in saving if not open enough to even know our group or if our relationship to entire project is "public"
-        @get_store().open_files.filter (val, path) =>
+        return if not store = @get_store()
+        store.open_files.forEach (val, path) =>
             is_public = val.get('component')?.is_public  # might still in theory someday be true.
             project_file.save(path, @redux, @project_id, is_public)
-            return false
+            return
 
     # Open the given file in this project.
     open_file: (opts) =>
@@ -286,12 +358,20 @@ class ProjectActions extends Actions
             chat               : undefined
             chat_width         : undefined
             ignore_kiosk       : false
+            new_browser_window : false     # open in entirely new browser window with a new random session.
 
         #if DEBUG then console.log("ProjectStore::open_file: #{misc.to_json(opts)}")
 
         # intercept any requests if in kiosk mode
-        if (not opts.ignore_kiosk) and redux.getStore('page').get('fullscreen') == 'kiosk'
-            require('./alerts').alert_message(type:"error",message:"Opening files is prohibited.")
+        if (not opts.ignore_kiosk) and (redux.getStore('page').get('fullscreen') == 'kiosk')
+            return
+
+        if opts.new_browser_window
+            # options other than path don't do anything yet.
+            url  = (window.app_base_url ? '') + @_url_in_project('files/' + opts.path)
+            url += '?session=' + misc.uuid().slice(0,8)
+            url += '&fullscreen=default'
+            misc_page.open_new_tab(url, true)
             return
 
         @_ensure_project_is_open (err) =>
@@ -346,10 +426,19 @@ class ProjectActions extends Actions
                         if not is_public
                             # the ? is because if the user is anonymous they don't have a file_use Actions (yet)
                             @redux.getActions('file_use')?.mark_file(@project_id, opts.path, 'open')
-                            @log
+                            event =
                                 event     : 'open'
                                 action    : 'open'
                                 filename  : opts.path
+                            id = @log(event)
+
+                            # Save the log entry id, so it is possible to optionally
+                            # record how long it took for the file to open.  This
+                            # may happen via a call from random places in our codebase,
+                            # since the idea of "finishing opening and rendering" is
+                            # not simple to define.
+                            @_log_open_time ?= {}
+                            @_log_open_time[opts.path] = {id:id, start:misc.server_time()}
 
                             # grab chat state from local storage
                             local_storage = require('./editor').local_storage
@@ -360,9 +449,7 @@ class ProjectActions extends Actions
                             if misc.filename_extension(opts.path) == 'sage-chat'
                                 opts.chat = false
 
-                        store = @get_store()
-                        if not store?  # if store not initialized we can't set activity
-                            return
+                        return if not store = @get_store()
                         open_files = store.open_files
 
                         # Only generate the editor component if we don't have it already
@@ -423,13 +510,17 @@ class ProjectActions extends Actions
     # If the given path is open, and editor supports going to line, moves to the given line.
     # Otherwise, does nothing.
     goto_line: (path, line) =>
-        # Obviously, for now, this only works for non-react editors.
-        # For react editors later, will get their actions and pass this on to them.
-        wrapped_editors.get_editor(@project_id, path)?.programmatical_goto_line?(line)
+        a = redux.getEditorActions(@project_id, path)
+        if not a?
+            # try non-react editor
+            wrapped_editors.get_editor(@project_id, path)?.programmatical_goto_line?(line)
+        else
+            a.programmatical_goto_line?(line)
 
     # Used by open/close chat below.
     _set_chat_state: (path, is_chat_open) =>
-        open_files = @get_store()?.open_files  # store might not be initialized
+        return if not store = @get_store()
+        open_files = store.open_files
         if open_files? and path?
             @setState
                 open_files : open_files.setIn([path, 'is_chat_open'], is_chat_open)
@@ -453,7 +544,8 @@ class ProjectActions extends Actions
         opts = defaults opts,
             path  : required
             width : required     # between 0 and 1
-        open_files = @get_store()?.open_files  # store might not be initialized
+        return if not store = @get_store()
+        open_files = store.open_files
         if open_files?
             width = misc.ensure_bound(opts.width, 0.05, 0.95)
             require('./editor').local_storage?(@project_id, opts.path, 'chat_width', width)
@@ -472,12 +564,14 @@ class ProjectActions extends Actions
             clearTimeout(timer)
 
         set_inactive = () =>
-            current_files = @get_store().open_files
+            return if not store = @get_store()
+            current_files = store.open_files
             @setState(open_files : current_files.setIn([filename, 'has_activity'], false))
 
         @_activity_indicator_timers[filename] = setTimeout(set_inactive, 1000)
 
-        open_files = @get_store().open_files
+        return if not store = @get_store()
+        open_files = store.open_files
         new_files_data = open_files.setIn([filename, 'has_activity'], true)
         @setState(open_files : new_files_data)
 
@@ -527,7 +621,8 @@ class ProjectActions extends Actions
 
     # Closes all files and removes all references
     close_all_files: () =>
-        file_paths = @get_store().open_files
+        return if not store = @get_store()
+        file_paths = store.open_files
         if file_paths.isEmpty()
             return
 
@@ -541,7 +636,7 @@ class ProjectActions extends Actions
     # Closes the file and removes all references.
     # Does not update tabs
     close_file: (path) =>
-        store = @get_store()
+        return if not store = @get_store()
         x = store.open_files_order
         index = x.indexOf(path)
         if index != -1
@@ -572,7 +667,8 @@ class ProjectActions extends Actions
                     path = path.slice(0, -1)
                 @foreground_project()
                 @set_current_path(path)
-                if @get_store().active_project_tab == 'files'
+                return if not store = @get_store()
+                if store.active_project_tab == 'files'
                     @set_url_to_path(path)
                 else
                     @set_active_tab('files')
@@ -591,8 +687,14 @@ class ProjectActions extends Actions
             throw Error("Current path should be a string. Revieved arguments are available in window.cpath_args")
         # Set the current path for this project. path is either a string or array of segments.
 
+        return if not store = @get_store()
+        history_path = store.history_path ? ''
+        if (!history_path.startsWith(path)) or (path.length > history_path.length)
+            history_path = path
+
         @setState
             current_path           : path
+            history_path           : history_path
             page_number            : 0
             most_recent_file_click : undefined
 
@@ -609,9 +711,9 @@ class ProjectActions extends Actions
     # Update the directory listing cache for the given path
     # Use current path if path not provided
     fetch_directory_listing: (opts) =>
-        # This ? below is NEEDED!  -- there's no guarantee the store is defined yet.
+        return if not store = @get_store()
         opts = defaults opts,
-            path         : @get_store()?.current_path
+            path         : store.current_path
             finish_cb    : undefined # WARNING: THINK VERY HARD BEFORE YOU USE THIS
             # In the vast majority of cases, you just want to look at the data.
             # Very rarely should you need something to execute exactly after this
@@ -633,15 +735,23 @@ class ProjectActions extends Actions
         # that we know our relation to this project, namely so that
         # get_my_group is defined.
         id = misc.uuid()
-        @set_activity(id:id, status:"getting file listing for #{misc.trunc_middle(path,30)}...")
-        async.waterfall([
+        if path
+            status = "Loading file list - #{misc.trunc_middle(path,30)}"
+        else
+            status = "Loading file list"
+        @set_activity(id:id, status:status)
+        my_group = undefined
+        the_listing = undefined
+        async.series([
             (cb) =>
                 # make sure that our relationship to this project is known.
                 @redux.getStore('projects').wait
                     until   : (s) => s.get_my_group(@project_id)
                     timeout : 30
-                    cb      : cb
-            (group, cb) =>
+                    cb      : (err, group) =>
+                        my_group = group
+                        cb(err)
+            (cb) =>
                 store = @get_store()
                 if not store?
                     cb("store no longer defined"); return
@@ -650,17 +760,18 @@ class ProjectActions extends Actions
                     project_id : @project_id
                     path       : path
                     hidden     : true
-                    max_time_s : 120  # keep trying for up to 2 minutes
-                    group      : group
-                    cb         : cb
-        ], (err, listing) =>
+                    max_time_s : 15*60  # keep trying for up to 15 minutes
+                    group      : my_group
+                    cb         : (err, listing) =>
+                        the_listing = listing
+                        cb(err)
+        ], (err) =>
             @set_activity(id:id, stop:'')
             # Update the path component of the immutable directory listings map:
-            store = @get_store()
-            #if DEBUG then console.log('ProjectStore::fetch_directory_listing done', store, listing)
-            if not store?
-                return
-            map = store.directory_listings.set(path, if err then misc.to_json(err) else immutable.fromJS(listing.files))
+            return if not store = @get_store()
+            if err and not misc.is_string(err)
+                err = misc.to_json(err)
+            map = store.directory_listings.set(path, if err then err else immutable.fromJS(the_listing.files))
             @setState(directory_listings : map)
             # done! releasing lock, then executing callback(s)
             cbs = @_set_directory_files_lock[_key]
@@ -685,14 +796,16 @@ class ProjectActions extends Actions
     # Increases the selected file index by 1
     # undefined increments to 0
     increment_selected_file_index: =>
-        current_index = @get_store().selected_file_index ? -1
+        return if not store = @get_store()
+        current_index = store.selected_file_index ? -1
         @setState(selected_file_index : current_index + 1)
 
     # Decreases the selected file index by 1.
     # Guaranteed to never set below 0.
     # Does nothing when selected_file_index is undefined
     decrement_selected_file_index: =>
-        current_index = @get_store().selected_file_index
+        return if not store = @get_store()
+        current_index = store.selected_file_index
         if current_index? and current_index > 0
             @setState(selected_file_index : current_index - 1)
 
@@ -708,7 +821,7 @@ class ProjectActions extends Actions
 
     # Set the selected state of all files between the most_recent_file_click and the given file
     set_selected_file_range: (file, checked) =>
-        store = @get_store()
+        return if not store = @get_store()
         most_recent = store.most_recent_file_click
         if not most_recent?
             # nothing had been clicked before, treat as normal click
@@ -726,36 +839,50 @@ class ProjectActions extends Actions
 
     # set the given file to the given checked state
     set_file_checked: (file, checked) =>
-        store = @get_store()
+        return if not store = @get_store()
+        changes = {}
         if checked
-            checked_files = store.checked_files.add(file)
+            changes.checked_files = store.checked_files.add(file)
+            if store.file_action? and changes.checked_files.size > 1 and not file_actions[store.file_action].allows_multiple_files
+                changes.file_action = undefined
         else
-            checked_files = store.checked_files.delete(file)
+            changes.checked_files = store.checked_files.delete(file)
+            if changes.checked_files.size == 0
+                changes.file_action = undefined
 
-        @setState
-            checked_files : checked_files
-            file_action   : undefined
+        @setState(changes)
 
     # check all files in the given file_list
     set_file_list_checked: (file_list) =>
-        @setState
-            checked_files : @get_store().checked_files.union(file_list)
-            file_action   : undefined
+        return if not store = @get_store()
+        changes =
+            checked_files : store.checked_files.union(file_list)
+        if store.file_action? and changes.checked_files.size > 1 and not file_actions[store.file_action].allows_multiple_files
+            changes.file_action = undefined
+
+        @setState(changes)
+
 
     # uncheck all files in the given file_list
     set_file_list_unchecked: (file_list) =>
-        @setState
-            checked_files : @get_store().checked_files.subtract(file_list)
-            file_action   : undefined
+        return if not store = @get_store()
+        changes = {checked_files : store.checked_files.subtract(file_list)}
+
+        if changes.checked_files.size == 0
+            changes.file_action = undefined
+
+        @setState(changes)
 
     # uncheck all files
     set_all_files_unchecked: =>
+        return if not store = @get_store()
         @setState
-            checked_files : @get_store().checked_files.clear()
+            checked_files : store.checked_files.clear()
             file_action   : undefined
 
     _suggest_duplicate_filename: (name) =>
-        store = @get_store()
+        return if not store = @get_store()
+
         files_in_dir = {}
         # This will set files_in_dir to our current view of the files in the current
         # directory (at least the visible ones) or do nothing in case we don't know
@@ -775,9 +902,11 @@ class ProjectActions extends Actions
                 return name
 
     set_file_action: (action, get_basename) =>
+        return if not store = @get_store()
+
         switch action
             when 'move'
-                checked_files = @get_store().checked_files.toArray()
+                checked_files = store.checked_files.toArray()
                 @redux.getActions('projects').fetch_directory_tree(@project_id, exclusions:checked_files)
             when 'copy'
                 @redux.getActions('projects').fetch_directory_tree(@project_id)
@@ -786,6 +915,16 @@ class ProjectActions extends Actions
             when 'rename'
                 @setState(new_name : misc.path_split(get_basename()).tail)
         @setState(file_action : action)
+
+    show_file_action_panel: (opts) =>
+        opts = defaults opts,
+            path   : required
+            action : required
+        path_splitted = misc.path_split(opts.path)
+        @open_directory(path_splitted.head)
+        @set_all_files_unchecked()
+        @set_file_checked(opts.path, true)
+        @set_file_action(opts.action, (-> path_splitted.tail))
 
     get_from_web: (opts) =>
         opts = defaults opts,
@@ -829,9 +968,11 @@ class ProjectActions extends Actions
             zip_args : undefined
             path     : undefined   # default to root of project
             id       : undefined
-        id = opts.id ? misc.uuid()
-        @set_activity(id:id, status:"Creating #{opts.dest} from #{opts.src.length} #{misc.plural(opts.src.length, 'file')}")
+            cb       : undefined
         args = (opts.zip_args ? []).concat(['-rq'], [opts.dest], opts.src)
+        if not opts.cb?
+            id = opts.id ? misc.uuid()
+            @set_activity(id:id, status:"Creating #{opts.dest} from #{opts.src.length} #{misc.plural(opts.src.length, 'file')}")
         webapp_client.exec
             project_id      : @project_id
             command         : 'zip'
@@ -840,24 +981,160 @@ class ProjectActions extends Actions
             network_timeout : 60
             err_on_exit     : true    # this should fail if exit_code != 0
             path            : opts.path
-            cb              : @_finish_exec(id)
+            cb              : opts.cb ? @_finish_exec(id)
 
     # DANGER: ASSUMES PATH IS IN THE DISPLAYED LISTING
     _convert_to_displayed_path: (path) =>
         if path.slice(-1) == '/'
             return path
         else
-            if @get_store().displayed_listing?.file_map[misc.path_split(path).tail]?.isdir
+            if @get_store()?.displayed_listing?.file_map[misc.path_split(path).tail]?.isdir
                 return path + '/'
             else
                 return path
+
+    # this is called once by the project initialization
+    init_library: =>
+        #if DEBUG then console.log("init_library")
+        # Deprecated: this only tests the existence
+        check = (v, k, cb) =>
+            #if DEBUG then console.log("init_library.check", v, k)
+            if not store = @get_store()
+                cb("no store")
+                return
+            if store.library?.get(k)?
+                cb("already done")
+                return
+            src = v.src
+            cmd = "test -e #{src}"
+            webapp_client.exec
+                project_id      : @project_id
+                command         : cmd
+                bash            : true
+                timeout         : 30
+                network_timeout : 120
+                err_on_exit     : false
+                path            : '.'
+                cb              : (err, output) =>
+                    if not err
+                        if not store = @get_store()
+                            cb('no store')
+                            return
+                        library = store.library
+                        library = library.set(k, (output.exit_code == 0))
+                        @setState(library: library)
+                    cb(err)
+
+        async.series([
+            (cb) -> async.eachOfSeries(LIBRARY, check, cb)
+        ])
+
+    init_library_index: ->
+        if _init_library_index_cache[@project_id]?
+            data = _init_library_index_cache[@project_id]
+            return if not store = @get_store()
+            library = store.library.set('examples', data)
+            @setState(library: library)
+            return
+
+        return if _init_library_index_ongoing[@project_id]
+        _init_library_index_ongoing[@project_id] = true
+
+        {webapp_client} = require('./webapp_client')
+
+        index_json_url = webapp_client.read_file_from_project
+            project_id : @project_id
+            path       : '/ext/library/cocalc-examples/index.json'
+
+        fetch = (cb) =>
+            if not @get_store()
+                cb('no store')
+                return
+            $.ajax(
+                url     : index_json_url
+                timeout : 5000
+                success : (data) =>
+                    #if DEBUG then console.log("init_library/datadata
+                    data = immutable.fromJS(data)
+                    if not store = @get_store()
+                        cb('no store')
+                        return
+                    library = store.library.set('examples', data)
+                    @setState(library: library)
+                    _init_library_index_cache[@project_id] = data
+                    cb()
+                ).fail((err) ->
+                    ##if DEBUG then console.log("init_library/index: error reading file: #{misc.to_json(err)}")
+                    cb(err.statusText ? 'error')
+                )
+
+        misc.retry_until_success
+            f           : fetch
+            start_delay : 1000
+            max_delay   : 10000
+            max_time    : 1000*60*3  # try for at most 3 minutes
+            cb          : => _init_library_index_ongoing[@project_id] = false
+
+
+    copy_from_library: (opts) =>
+        opts = defaults opts,
+            entry  : undefined
+            src    : undefined
+            target : undefined
+            start  : undefined
+            docid  : undefined   # for the log
+            title  : undefined   # for the log
+            cb     : undefined
+
+        if opts.entry?
+            lib = LIBRARY[opts.entry]
+            if not lib?
+                @setState(error: "Library entry '#{opts.entry}' unknown")
+                return
+
+        id = opts.id ? misc.uuid()
+        @set_activity(id:id, status:"Copying files from library ...")
+
+        # the rsync command purposely does not preserve the timestamps,
+        # such that they look like "new files" and listed on top under default sorting
+        source = os_path.join((opts.src    ? lib.src), '/')
+        target = os_path.join((opts.target ? opts.entry), '/')
+        start  = opts.start ? lib?.start
+
+        webapp_client.exec
+            project_id      : @project_id
+            command         : 'rsync'
+            args            : ['-rlDx', source, target]
+            timeout         : 120   # how long rsync runs on client
+            network_timeout : 120   # how long network call has until it must return something or get total error.
+            err_on_exit     : true
+            path            : '.'
+            cb              : (err, output) =>
+                (@_finish_exec(id))(err, output)
+                if not err and start?
+                    open_path = os_path.join(target, start)
+                    if open_path[open_path.length - 1] == '/'
+                        @open_directory(open_path)
+                    else
+                        @open_file(path: open_path)
+                    @log
+                        event  : 'library'
+                        action : 'copy'
+                        docid  : opts.docid
+                        source : opts.src
+                        title  : opts.title
+                        target : target
+                opts.cb?(err)
+
+    set_library_is_copying: (status) =>
+        @setState(library_is_copying:status)
 
     copy_paths: (opts) =>
         opts = defaults opts,
             src           : required     # Should be an array of source paths
             dest          : required
             id            : undefined
-            only_contents : false
+            only_contents : false        # true for duplicating files
 
         with_slashes = opts.src.map(@_convert_to_displayed_path)
 
@@ -866,7 +1143,7 @@ class ProjectActions extends Actions
             action : 'copied'
             files  : with_slashes[0...3]
             count  : if opts.src.length > 3 then opts.src.length
-            dest   : opts.dest + '/'
+            dest   : opts.dest + (if opts.only_contents then '' else '/')
 
         if opts.only_contents
             opts.src = with_slashes
@@ -884,10 +1161,23 @@ class ProjectActions extends Actions
         id = opts.id ? misc.uuid()
         @set_activity(id:id, status:"Copying #{opts.src.length} #{misc.plural(opts.src.length, 'file')} to #{opts.dest}")
 
+        args = ['-rltgoDxH']
+
+        # We ensure the target copy is writable if *any* source path starts with .snapshots.
+        # See https://github.com/sagemathinc/cocalc/issues/2497
+        # This is a little lazy, but whatever.
+        for x in opts.src
+            if misc.startswith(x, '.snapshots')
+                args = args.concat(['--perms', '--chmod', 'u+w'])
+                break
+
+        args = args.concat(opts.src)
+        args = args.concat([opts.dest])
+
         webapp_client.exec
             project_id      : @project_id
             command         : 'rsync'  # don't use "a" option to rsync, since on snapshots results in destroying project access!
-            args            : ['-rltgoDxH'].concat(opts.src).concat([opts.dest])
+            args            : args
             timeout         : 120   # how long rsync runs on client
             network_timeout : 120   # how long network call has until it must return something or get total error.
             err_on_exit     : true
@@ -984,7 +1274,8 @@ class ProjectActions extends Actions
 
         check_existence_of = (path) =>
             path = misc.path_split(path)
-            @get_store().get('directory_listings').get(path.head ? "").some((item) => item.get('name') == path.tail)
+            return if not store = @get_store()
+            store.get('directory_listings').get(path.head ? "").some((item) => item.get('name') == path.tail)
 
         opts.src = (path for path in opts.src when check_existence_of path)
 
@@ -1040,7 +1331,7 @@ class ProjectActions extends Actions
                         count  : if opts.paths.length > 3 then opts.paths.length
 
     download_file: (opts) =>
-        {download_file, open_new_tab} = require('./misc_page')
+        {download_file, open_new_tab} = misc_page
         opts = defaults opts,
             path    : required
             log     : false
@@ -1070,9 +1361,6 @@ class ProjectActions extends Actions
 
     show_upload : (show) =>
         @setState(show_upload : show)
-
-    toggle_upload: =>
-        @show_upload(not @get_state('show_upload'))
 
     # Compute the absolute path to the file with given name but with the
     # given extension added to the file (e.g., "md") if the file doesn't have
@@ -1121,7 +1409,7 @@ class ProjectActions extends Actions
         if (name == ".." or name == ".") and not opts.ext?
             @setState(file_creation_error: "Cannot create a file named . or ..")
             return
-        if name.indexOf('://') != -1 or misc.startswith(name, 'git@github.com')
+        if misc.is_only_downloadable(name)
             @new_file_from_web(name, opts.current_path)
             return
         if name[name.length - 1] == '/'
@@ -1182,14 +1470,28 @@ class ProjectActions extends Actions
     ###
     # Actions for PUBLIC PATHS
     ###
-    set_public_path: (path, description) =>
-        obj = {project_id:@project_id, path:path, disabled:false}
-        if description?
-            obj.description = description
+    set_public_path: (path, opts={}) =>
+        obj =
+            project_id  : @project_id
+            path        : path
+            description : opts.description or ""
+            disabled    : false
+            unlisted    : opts.unlisted or false
+        return if not store = @get_store()
+        obj.last_edited = obj.created = now = misc.server_time()
+        # only set created if this obj is new; have to just linearly search through paths right now...
+        store.public_paths?.map (v, k) ->
+            if v.get('path') == path
+                delete obj.created
+                return false
         @redux.getProjectTable(@project_id, 'public_paths').set(obj)
 
     disable_public_path: (path) =>
-        @redux.getProjectTable(@project_id, 'public_paths').set(project_id:@project_id, path:path, disabled:true)
+        @redux.getProjectTable(@project_id, 'public_paths').set
+            project_id  : @project_id
+            path        : path
+            disabled    : true
+            last_edited : misc.server_time()
 
 
     ###
@@ -1197,16 +1499,23 @@ class ProjectActions extends Actions
     ###
 
     toggle_search_checkbox_subdirectories: =>
-        @setState(subdirectories : not @get_store().subdirectories)
+        return if not store = @get_store()
+        @setState(subdirectories : not store.subdirectories)
 
     toggle_search_checkbox_case_sensitive: =>
-        @setState(case_sensitive : not @get_store().case_sensitive)
+        return if not store = @get_store()
+        @setState(case_sensitive : not store.case_sensitive)
 
     toggle_search_checkbox_hidden_files: =>
-        @setState(hidden_files : not @get_store().hidden_files)
+        return if not store = @get_store()
+        @setState(hidden_files : not store.hidden_files)
+
+    toggle_search_checkbox_git_grep: =>
+        return if not store = @get_store()
+        @setState(git_grep : not store.git_grep)
 
     process_results: (err, output, max_results, max_output, cmd) =>
-        store = @get_store()
+        return if not store = @get_store()
         if (err and not output?) or (output? and not output.stdout?)
             @setState(search_error : err)
             return
@@ -1244,7 +1553,7 @@ class ProjectActions extends Actions
                 search_results   : search_results
 
     search: =>
-        store = @get_store()
+        return if not store = @get_store()
 
         query = store.user_input.trim().replace(/"/g, '\\"')
         if query is ''
@@ -1257,16 +1566,24 @@ class ProjectActions extends Actions
         else
             ins = ' -i '
 
+        if store.git_grep
+            if store.subdirectories
+                max_depth = ''
+            else
+                max_depth = '--max-depth=0'
+            cmd = "git rev-parse --is-inside-work-tree && git grep -I -H #{ins} #{max_depth} #{search_query} || "
+        else
+            cmd = ''
         if store.subdirectories
             if store.hidden_files
-                cmd = "rgrep -I -H --exclude-dir=.smc --exclude-dir=.snapshots #{ins} #{search_query} -- *"
+                cmd += "rgrep -I -H --exclude-dir=.smc --exclude-dir=.snapshots #{ins} #{search_query} -- *"
             else
-                cmd = "rgrep -I -H --exclude-dir='.*' --exclude='.*' #{ins} #{search_query} -- *"
+                cmd += "rgrep -I -H --exclude-dir='.*' --exclude='.*' #{ins} #{search_query} -- *"
         else
             if store.hidden_files
-                cmd = "grep -I -H #{ins} #{search_query} -- .* *"
+                cmd += "grep -I -H #{ins} #{search_query} -- .* *"
             else
-                cmd = "grep -I -H #{ins} #{search_query} -- *"
+                cmd += "grep -I -H #{ins} #{search_query} -- *"
 
         cmd += " | grep -v #{MARKERS.cell}"
         max_results = 1000
@@ -1282,8 +1599,8 @@ class ProjectActions extends Actions
         webapp_client.exec
             project_id      : @project_id
             command         : cmd + " | cut -c 1-256"  # truncate horizontal line length (imagine a binary file that is one very long line)
-            timeout         : 10   # how long grep runs on client
-            network_timeout : 15   # how long network call has until it must return something or get total error.
+            timeout         : 20   # how long grep runs on client
+            network_timeout : 25   # how long network call has until it must return something or get total error.
             max_output      : max_output
             bash            : true
             err_on_exit     : true
@@ -1313,18 +1630,24 @@ class ProjectActions extends Actions
                     # Assume that if it's loaded, it's good enough.
                     async.waterfall [
                         (cb) =>
-                            {item, err} = @get_store().get_item_in_path(last, parent_path)
-                            #if DEBUG then console.log("ProjectStore::load_target → waterfall1", item, err)
-                            cb(err, item)
+                            if not store = @get_store()
+                                cb('no store')
+                            else
+                                {item, err} = store.get_item_in_path(last, parent_path)
+                                #if DEBUG then console.log("ProjectStore::load_target → waterfall1", item, err)
+                                cb(err, item)
                         (item, cb) => # Fetch if error or nothing found
                             if not item?
                                 #if DEBUG then console.log("ProjectStore::load_target → fetch_directory_listing", parent_path)
                                 @fetch_directory_listing
                                     path         : parent_path
                                     finish_cb    : =>
-                                        {item, err} = @get_store().get_item_in_path(last, parent_path)
-                                        #if DEBUG then console.log("ProjectStore::load_target → waterfall2/1", item, err)
-                                        cb(err, item)
+                                        if not store = @get_store()
+                                            cb('no store')
+                                        else
+                                            {item, err} = store.get_item_in_path(last, parent_path)
+                                            #if DEBUG then console.log("ProjectStore::load_target → waterfall2/1", item, err)
+                                            cb(err, item)
                             else
                                 #if DEBUG then console.log("ProjectStore::load_target → waterfall2/2", item)
                                 cb(undefined, item)
@@ -1385,17 +1708,22 @@ create_project_store_def = (name, project_id) ->
             @redux.getActions('page').close_project_tab(@project_id)
 
     getInitialState: =>
-        current_path       : ''
-        show_hidden        : false
-        checked_files      : immutable.Set()
-        public_paths       : undefined
-        directory_listings : immutable.Map()
-        user_input         : ''
-        show_upload        : false
-        active_project_tab : 'files'
-        open_files_order   : immutable.List([])
-        open_files         : immutable.Map({})
-        num_ghost_file_tabs: 0
+        current_path           : ''
+        history_path           : ''
+        show_hidden            : false
+        checked_files          : immutable.Set()
+        public_paths           : undefined
+        directory_listings     : immutable.Map()
+        user_input             : ''
+        show_upload            : false
+        active_project_tab     : 'files'
+        open_files_order       : immutable.List([])
+        open_files             : immutable.Map({})
+        num_ghost_file_tabs    : 0
+        library                : immutable.Map({})
+        library_selected       : undefined
+        library_is_copying     : false
+        git_grep               : true
 
     reduxState:
         account:
@@ -1404,6 +1732,7 @@ create_project_store_def = (name, project_id) ->
     stateTypes:
         # Shared
         current_path       : rtypes.string
+        history_path       : rtypes.string
         open_files         : rtypes.immutable.Map
         open_files_order   : rtypes.immutable.List
         public_paths       : rtypes.immutable.List
@@ -1439,6 +1768,10 @@ create_project_store_def = (name, project_id) ->
         # Project New
         default_filename    : rtypes.string
         file_creation_error : rtypes.string
+        library             : rtypes.immutable.Map
+        library_selected    : rtypes.object
+        library_is_copying  : rtypes.bool  # for the copy button, to signal an ongoing copy process
+        library_docs_sorted : computed rtypes.immutable.List
 
         # Project Find
         user_input         : rtypes.string
@@ -1452,6 +1785,7 @@ create_project_store_def = (name, project_id) ->
         case_sensitive     : rtypes.bool
         hidden_files       : rtypes.bool
         info_visible       : rtypes.bool
+        git_grep           : rtypes.bool
 
         # Project Settings
         get_public_path_id : rtypes.func
@@ -1477,7 +1811,7 @@ create_project_store_def = (name, project_id) ->
 
     # cached pre-processed file listing, which should always be up to date when
     # called, and properly depends on dependencies.
-    displayed_listing: depends('active_file_sort', 'current_path', 'directory_listings', 'stripped_public_paths', 'file_search', 'other_settings', 'show_hidden') ->
+    displayed_listing: depends('active_file_sort', 'current_path', 'history_path', 'directory_listings', 'stripped_public_paths', 'file_search', 'other_settings', 'show_hidden') ->
         search_escape_char = '/'
         listing = @directory_listings.get(@current_path)
         if typeof(listing) == 'string'
@@ -1541,14 +1875,32 @@ create_project_store_def = (name, project_id) ->
         if @public_paths?
             return immutable.fromJS(misc.copy_without(x,['id','project_id']) for _,x of @public_paths.toJS())
 
+
+    library_docs_sorted: depends('library') ->
+        docs     = @library.getIn(['examples', 'documents'])
+        metadata = @library.getIn(['examples', 'metadata'])
+
+        if docs?
+            # sort by a triplet: idea is to have the docs sorted by their category,
+            # where some categories have weights (e.g. "introduction" comes first, no matter what)
+            sortfn = (doc) -> [
+                metadata.getIn(['categories', doc.get('category'), 'weight']) ? 0
+                metadata.getIn(['categories', doc.get('category'), 'name']).toLowerCase()
+                doc.get('title')?.toLowerCase() ? doc.get('id')
+            ]
+            return docs.sortBy(sortfn)
+
+
     # Returns the cursor positions for the given project_id/path, if that
-    # file is opened, and supports cursors.   Currently this only works
-    # for old sync'd codemirror editors.  Otherwise, returns undefined.
-    # To do this right, we'll want to have implement redux.getEditorStore(...)
-    # and *MOVE* this method there.
-    # Not a property
+    # file is opened, and supports cursors and is either old (and ...) or
+    # is in react and has store with a cursors key.
     get_users_cursors: (path, account_id) ->
-        return wrapped_editors.get_editor(@project_id, path)?.get_users_cursors?(account_id)
+        store = redux.getEditorStore(@project_id, path)
+        if not store?
+            # try non-react editor
+            return wrapped_editors.get_editor(@project_id, path)?.get_users_cursors?(account_id)
+        else
+            return store.get('cursors')?.get(account_id)
 
     # Not a property
     is_file_open: (path) ->
@@ -1616,24 +1968,24 @@ create_project_store_def = (name, project_id) ->
             item.display_name = "#{tm}"
             item.mtime = (tm - 0)/1000
 
-    _compute_public_files: (x, public_paths, current_path) =>
-        listing = x.listing
-        pub = x.public
-        v = public_paths
-        if v? and v.size > 0
+    # Mutates data to include info on public paths.
+    _compute_public_files: (data, public_paths, current_path) =>
+        listing = data.listing
+        pub = data.public
+        if public_paths? and public_paths.size > 0
             head = if current_path then current_path + '/' else ''
             paths = []
-            map   = {}
-            for x in v.toJS()
-                map[x.path] = x
+            public_path_data = {}
+            for x in public_paths.toJS()
+                public_path_data[x.path] = x
                 paths.push(x.path)
             for x in listing
                 full = head + x.name
                 p = misc.containing_public_path(full, paths)
                 if p?
-                    x.public = map[p]
+                    x.public = public_path_data[p]
                     x.is_public = not x.public.disabled
-                    pub[x.name] = map[p]
+                    pub[x.name] = public_path_data[p]
 
 
     _sort_on_string_field: (field) =>
@@ -1696,6 +2048,12 @@ exports.deleteStoreActionsTable = (project_id, redux) ->
         redux.removeTable(key(project_id, table))
     redux.removeStore(name)
 
+prom_client = require('./prom-client')
+if prom_client.enabled
+    prom_get_dir_listing_h = prom_client.new_histogram(
+        'get_dir_listing_seconds', 'get_directory_listing time',
+         {buckets : [1, 2, 5, 7, 10, 15, 20, 30, 50], labels: ['public', 'state', 'err']})
+
 get_directory_listing = (opts) ->
     opts = defaults opts,
         project_id : required
@@ -1704,34 +2062,78 @@ get_directory_listing = (opts) ->
         max_time_s : required
         group      : required
         cb         : required
+
     {webapp_client} = require('./webapp_client')
+
+    if prom_client.enabled
+        prom_dir_listing_start = misc.server_time()
+        prom_labels = {public: false}
+
     if opts.group in ['owner', 'collaborator', 'admin']
         method = webapp_client.project_directory_listing
+        # Also, make sure project starts running, in case it isn't.
+        state = redux.getStore('projects').getIn(['project_map', opts.project_id, 'state', 'state'])
+        if prom_client.enabled
+            prom_labels.state = state
+        if state != 'running'
+            timeout = .5
+            time0 = misc.server_time()
+            redux.getActions('projects').start_project(opts.project_id)
+        else
+            timeout = 1
     else
-        method = webapp_client.public_project_directory_listing
+        state = time0 = undefined
+        method  = webapp_client.public_project_directory_listing
+        timeout = 15
+        if prom_client.enabled
+            prom_labels.public = true
+
     listing     = undefined
     listing_err = undefined
     f = (cb) ->
+        #console.log 'get_directory_listing.f ', opts.path
         method
             project_id : opts.project_id
             path       : opts.path
             hidden     : opts.hidden
-            timeout    : 15
+            timeout    : timeout
             cb         : (err, x) ->
-                if typeof(err) == 'string' and err.indexOf('error: no such path') != -1
-                    # In this case, the call itself is successful, even when it returns an error; it told
-                    # us there is no such file.
-                    listing_err = err
-                    listing = x
-                    cb()
-                else
-                    listing = x
+                #console.log("f ", err, x)
+                if err
+                    if timeout < 5
+                        timeout *= 1.3
                     cb(err)
+                else
+                    if x?.error
+                        if x.error.code == 'ENOENT'
+                            listing_err = 'no_dir'
+                        else if x.error.code == 'ENOTDIR'
+                            listing_err = 'not_a_dir'
+                        else
+                            listing_err = x.error
+                        cb()
+                    else
+                        listing = x
+                        cb()
 
     misc.retry_until_success
-        f        : f
-        max_time : opts.max_time_s * 1000
-        #log      : console.log
-        cb       : (err) ->
+        f           : f
+        max_time    : opts.max_time_s * 1000
+        start_delay : 100
+        max_delay   : 1000
+        #log         : console.log
+        cb          : (err) ->
+            #console.log opts.path, 'get_directory_listing.success or timeout', err
+            if prom_client.enabled and prom_dir_listing_start?
+                prom_labels.err = !!err
+                tm = (misc.server_time() - prom_dir_listing_start) / 1000
+                if not isNaN(tm)
+                    prom_get_dir_listing_h?.observe(prom_labels, tm)
+
             opts.cb(err ? listing_err, listing)
+            if time0 and state != 'running' and not err
+                # successfully opened, started, and got directory listing
+                redux.getProjectActions(opts.project_id).log
+                    event : 'start_project'
+                    time  : misc.server_time() - time0
 

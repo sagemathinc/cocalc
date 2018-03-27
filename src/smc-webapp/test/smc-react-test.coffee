@@ -1,9 +1,11 @@
 `DEBUG = true`
-{computed, rtypes, _internals} = require('../smc-react')
-{harvest_import_functions, harvest_own_functions, generate_selectors} = _internals
+{computed, depends, rtypes, __internals} = require('../smc-react')
+{harvest_import_functions, harvest_own_functions, generate_selectors} = __internals
 
 # 3rd Party Libraries
 expect = require('expect')
+{createSelector} = require('reselect')
+immutable = require('immutable')
 _ = require('underscore')
 
 # SMC Libraries
@@ -154,58 +156,115 @@ describe 'Functions from harvest_own_functions', ->
 
         expect(result.greetings.toString()).toEqual(original_function)
 
-describe 'generate_selectors', ->
-    store_def =
-        raw_state :
+describe 'selectors lib', ->
+    it 'selects', ->
+        state = immutable.Map
             first_name : "Kimberly"
             last_name  : "Smith"
-        first_name : -> @raw_state.first_name
-        last_name  : -> @raw_state.last_name
+        first_name = -> state.get('first_name')
+        last_name  = -> state.get('last_name')
+        full_name  = -> "#{first_name()} #{last_name()}"
+        short_name = -> full_name().slice(0,5)
+
+        selector = createSelector([first_name, last_name], full_name)
+
+        init_val = selector(state)
+        init_recomps = selector.recomputations()
+        state = state.set('first_name', "Katie")
+        expect(first_name()).toEqual("Katie")
+
+        update_once_val = selector(state)
+        update_once_call_2_val = selector(state)
+
+        expect(init_val).toEqual("Kimberly Smith")
+        expect(update_once_val).toEqual("Katie Smith")
+        expect(update_once_call_2_val).toEqual("Katie Smith")
+        expect(selector.recomputations()).toEqual(init_recomps + 1)
+
+    it 'is composable', ->
+        state = immutable.Map
+            first_name : "Kimberly"
+            last_name  : "Smith"
+        first_name = -> state.get('first_name')
+        last_name  = -> state.get('last_name')
+        full_name  = -> "#{first_name()} #{last_name()}"
+        short_name = -> full_name().slice(0,5)
+
+        s0 = createSelector([first_name, last_name], full_name)
+        selector = createSelector(s0, short_name)
+
+        init_val = selector(state)
+        init_recomps = selector.recomputations()
+        state = state.set('first_name', "Katherine")
+        expect(first_name()).toEqual("Katherine")
+
+        update_once_val = selector(state)
+        update_once_call_2_val = selector(state)
+
+        expect(init_val).toEqual("Kimbe")
+        expect(update_once_val).toEqual("Kathe")
+        expect(update_once_call_2_val).toEqual("Kathe")
+        expect(selector.recomputations()).toEqual(init_recomps + 1)
+
+describe 'generate_selectors', ->
+    store =
+        first_name : -> @state.get('first_name')
+        last_name  : -> @state.get('last_name')
         # Note that the function invocations are necessary unlike when
         # writing actual stores because of the binding method
         full_name  : -> "#{@first_name()} #{@last_name()}"
         short_name : -> @full_name().slice(0,5)
+        setState   : (key, val) -> @state = @state.set(key, val)
 
-    store_def.full_name.dependency_names = ["first_name", "last_name"]
-    store_def.short_name.dependency_names = ["full_name"]
+    store.state = immutable.Map
+        first_name : "Kimberly"
+        last_name  : "Smith"
 
-    [bound_store_def] = misc.bind_objects(store_def, [store_def])
+    store.full_name.dependency_names = ["first_name", "last_name"]
+    store.short_name.dependency_names = ["full_name"]
 
-    first_name_func_string = JSON.stringify(bound_store_def.first_name)
-    store_def = generate_selectors(bound_store_def)
+    [bound_store] = misc.bind_objects(store, [store])
 
-    it 'Ignores input functions (those without arguments)', ->
-        expect JSON.stringify(store_def.first_name)
+    first_name_func_string = JSON.stringify(bound_store.first_name)
+    store = generate_selectors(bound_store)
+
+    it 'ignores input functions (those without arguments)', ->
+        expect JSON.stringify(store.first_name)
         .toEqual first_name_func_string
 
-    it 'Computes values from input functions', ->
-        expect store_def.full_name()
+    it 'computes values from input functions', ->
+        expect store.full_name(store.state)
         .toEqual "Kimberly Smith"
 
-    it 'Computes values from computed values', ->
-        expect store_def.short_name()
+    it 'computes values from computed values', ->
+        expect store.short_name(store.state)
         .toEqual "Kimbe"
 
-    it 'Memoizes computed values', ->
-        initial_comps = store_def.full_name.recomputations()
-        val1 = store_def.full_name()
-        val2 = store_def.full_name()
+    it 'memoizes computed values', ->
+        initial_comps = store.full_name.recomputations()
+        val1 = store.full_name(store.state)
+        val2 = store.full_name(store.state)
         expect val1
         .toEqual val2
 
         expect initial_comps
-        .toEqual store_def.full_name.recomputations()
+        .toEqual store.full_name.recomputations()
 
-    it 'Recomputes once on one input change', ->
-        initial_comps = store_def.short_name.recomputations()
-        val1 = store_def.short_name()
-        store_def.raw_state.first_name = "Katie"
-        val2 = store_def.short_name()
-        val3 = store_def.short_name()
+    it 'recomputes once on one input change', ->
+        initial_comps = store.short_name.recomputations()
+        init_val = store.short_name(store.state)
+        store.state = store.setState('first_name', "Katie")
 
-        expect(val1).toNotEqual(val2)
-        expect(val2).toEqual(val3)
+        expect(store.first_name(store.state)).toEqual("Katie")
+        expect(store.full_name(store.state)).toEqual("Katie Smith")
+
+        update_once_val = store.short_name(store.state)
+        update_once_call_2_val = store.short_name(store.state)
+        update_once_call_3_val = store.short_name(store.state)
+
+        expect(init_val).not.toEqual(update_once_val)
+        expect(update_once_val).toEqual(update_once_call_2_val)
 
         expect initial_comps + 1
-        .toEqual store_def.short_name.recomputations()
+        .toEqual store.short_name.recomputations()
 

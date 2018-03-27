@@ -10,17 +10,21 @@ async = require('async')
 misc                 = require('smc-util/misc')
 {defaults, required} = misc
 
+plans = require('./plans')
+
 exports.stripe_sync = (opts) ->
     opts = defaults opts,
         dump_only : false
-        logger    : undefined
+        logger    : {debug:console.log}
         database  : required
+        target    : undefined
+        limit     : 3  # number at once
         cb        : undefined
 
     dbg = (m) -> opts.logger?.debug("stripe_sync: #{m}")
     dbg()
     users  = undefined
-    target = undefined
+    target = opts.target
 
     async.series([
         (cb) ->
@@ -28,6 +32,12 @@ exports.stripe_sync = (opts) ->
                 logger    : opts.logger
                 database  : opts.database
                 cb        : cb
+        (cb) ->
+            dbg("ensure all plans are defined in stripe")
+            plans.create_missing_plans
+                database : opts.database
+                logger   : opts.logger
+                cb       : cb
         (cb) ->
             dbg("get all customers from the database with stripe -- this is a full scan of the database and will take a while")
             # TODO: we could make this faster by putting an index on the stripe_customer_id field.
@@ -38,6 +48,9 @@ exports.stripe_sync = (opts) ->
                     cb(err)
         (cb) ->
             dbg("dump stripe_customer data to file for statistical analysis")
+            if target?
+                cb()
+                return
             target = "#{process.env.HOME}/stripe/"
             fs.exists target, (exists) ->
                 if not exists
@@ -69,7 +82,7 @@ exports.stripe_sync = (opts) ->
                     stripe      : stripe
                     customer_id : x.stripe_customer_id
                     cb          : cb
-            async.mapLimit(users, 3, f, cb)
+            async.mapLimit(users, opts.limit, f, cb)
     ], (err) ->
         if err
             dbg("error updating customer info -- #{err}")

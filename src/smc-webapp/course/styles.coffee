@@ -23,3 +23,4 @@ exports.show_hide_deleted = (opts) ->
 
     marginTop  : if opts.needs_margin then '15px' else '0px'
     float      : 'right'
+

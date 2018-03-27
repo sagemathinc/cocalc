@@ -13,7 +13,11 @@ misc_node = require('smc-util-node/misc_node')
 
 {jupyter_router} = require('./jupyter/jupyter')
 
+{directory_listing_router} = require('./directory-listing')
+
 {upload_endpoint} = require('./upload')
+
+kucalc = require('./kucalc')
 
 exports.start_raw_server = (opts) ->
     opts = defaults opts,
@@ -30,6 +34,10 @@ exports.start_raw_server = (opts) ->
 
     raw_port_file  = misc_node.abspath("#{data_path}/raw.port")
     raw_server     = express()
+
+    # suggested by http://expressjs.com/en/advanced/best-practice-performance.html#use-gzip-compression
+    compression = require('compression')
+    raw_server.use(compression())
 
     # Needed for POST file to custom path.
     raw_server.use(body_parser.urlencoded({ extended: true }))
@@ -52,19 +60,30 @@ exports.start_raw_server = (opts) ->
                             opts.logger?.debug("WARNING: error creating root symlink -- #{err}")
                         cb()
         (cb) ->
-            if port  # 0 or undefined
+            if port
                 cb()
             else
+                # 0 or undefined -- so generate one that is available
                 misc_node.free_port (err, _port) ->
-                    port = _port; cb(err)
-        (cb) ->
-            fs.writeFile(raw_port_file, port, cb)
+                    if err
+                        cb(err)
+                        return
+                    port = _port
+                    fs.writeFile(raw_port_file, port, cb) # since not specified, write it
         (cb) ->
             base = "#{base_url}/#{project_id}/raw/"
             opts.logger?.info("raw server: port=#{port}, host='#{host}', base='#{base}'")
 
+            if kucalc.IN_KUCALC
+                # Add a /health handler, which is used as a health check for Kubernetes.
+                kucalc.init_health_metrics(raw_server, project_id)
+
             # Setup the /.smc/jupyter/... server, which is used by our jupyter server for blobs, etc.
             raw_server.use(base, jupyter_router(express))
+
+            # Setup the /.smc/directory_listing/... server, which is used to provide directory listings
+            # to the hub (at least in KuCalc).
+            raw_server.use(base, directory_listing_router(express))
 
             # Setup the upload POST endpoint
             raw_server.use(base, upload_endpoint(express, opts.logger))
@@ -81,9 +100,9 @@ exports.start_raw_server = (opts) ->
             raw_server.use(base, express_index(home,  {hidden:true, icons:true}))
             raw_server.use(base, express.static(home, {hidden:true}))
 
-
             # NOTE: It is critical to only listen on the host interface (not localhost),
-            # since otherwise other users on the same VM could listen in.
+            # since otherwise other users on the same VM could listen in.  Doesn't matter
+            # for the main site now due to Docker/Kubernetes/Firewall...
             # We also firewall connections from the other VM hosts above
             # port 1024, so this is safe without authentication.  TODO: should we add some sort of
             # auth (?) just in case?

@@ -1037,6 +1037,7 @@ Terminal.prototype.refresh = function(start, end) {
 };
 
 Terminal.prototype.cursorBlink = function() {
+  return;  /* we use css for this */
   if (Terminal.focus !== this) return;
   this.cursorState ^= 1;
   this.refresh(this.y, this.y);
@@ -1053,6 +1054,7 @@ Terminal.prototype.showCursor = function() {
 };
 
 Terminal.prototype.startBlink = function() {
+  return;  /* we use css for this */
   if (!Terminal.cursorBlink) return;
   var self = this;
   this._blinker = function() {
@@ -1062,6 +1064,7 @@ Terminal.prototype.startBlink = function() {
 };
 
 Terminal.prototype.refreshBlink = function() {
+  return;  /* we use css for this */
   if (!Terminal.cursorBlink) return;
   clearInterval(this._blink);
   this._blink = setInterval(this._blinker, 500);
@@ -2578,6 +2581,9 @@ Terminal.prototype.nextStop = function(x) {
 };
 
 Terminal.prototype.eraseRight = function(x, y) {
+  if(this.ybase + y >= this.lines.length)
+      return
+
   var line = this.lines[this.ybase + y]
     , ch = [this.curAttr, ' ']; // xterm
 
@@ -2593,6 +2599,9 @@ Terminal.prototype.eraseRight = function(x, y) {
 };
 
 Terminal.prototype.eraseLeft = function(x, y) {
+  if(this.ybase + y >= this.lines.length)
+      return
+
   var line = this.lines[this.ybase + y]
     , ch = [this.curAttr, ' ']; // xterm
 
@@ -3066,10 +3075,10 @@ Terminal.prototype.insertChars = function(params) {
   ch = [this.curAttr, ' ']; // xterm
 
   while (param-- && j < this.cols) {
-    // sometimes, row is too large -- TODO no idea how to really fix this -- commented for now
-    // if (this.lines.length <= row) {
-    //     continue;
-    // }
+    // sometimes, row is too large
+    if (row >= this.lines.length) {
+        continue;
+    }
     // Question: How can you possibly have a problem because of running that code? It seems
     // like if you don't have that commented out code, then the next line would
     // cause a traceback? Answer: well, those tracebacks are there right now.

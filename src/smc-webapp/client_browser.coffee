@@ -26,11 +26,13 @@ if not Primus?
 $ = window.$
 _ = require('underscore')
 
+prom_client = require('./prom-client')
+
 client = require('smc-util/client')
 
 misc_page = require('./misc_page')
 
-APP_LOGO_WHITE = misc_page.APP_LOGO_WHITE
+{APP_LOGO_WHITE} = require('./art')
 
 # these idle notifications were in misc_page, but importing it here failed
 
@@ -89,19 +91,33 @@ class Connection extends client.Connection
         # This is used by the base class for marking file use notifications.
         @_redux = require('./smc-react').redux
 
-        # The following two lines disable the idle timeout functionality.
-        # This is disabled since it may be causing a DOS attack
-        # by users... not 100% sure yet.
-        #@set_standby_timeout_m = ->   # make this a no-op
+        # 60 min default. Correct val will get set when user account settings are loaded.
+        # Set here rather than in @_init_idle to avoid any potential race.
+        @_idle_timeout = 15 * 60 * 1000
+
         setTimeout(@_init_idle, 15 * 1000)
+
+        # Start reporting metrics to the backend if requested.
+        if prom_client.enabled
+            @on('start_metrics', prom_client.start_metrics)
+
 
     _setup_window_smc: () =>
         # if we are in DEBUG mode, inject the client into the global window object
+        window.enable_post = =>
+            @_enable_post = true
+        window.disable_post = =>
+            @_enable_post = false
+
+        # Make this the default now.
+        @_enable_post = true
+
         if not DEBUG
             return
         window.smc                     ?= {}
         window.smc.client              = @
         window.smc.misc                = require('smc-util/misc')
+        window.smc.misc_page           = require('./misc_page')
         window.smc.immutable           = require('immutable')
         window.smc.done                = window.smc.misc.done
         window.smc.sha1                = require('sha1')
@@ -109,6 +125,16 @@ class Connection extends client.Connection
         # use to enable/disable verbose synctable logging
         window.smc.synctable_debug     = require('smc-util/synctable').set_debug
         window.smc.idle_trigger        = => @emit('idle', 'away')
+        window.smc.prom_client         = prom_client
+        window.smc.redux               = require('./smc-react').redux
+
+        if require('./feature').IS_TOUCH
+            # Debug mode and on a touch device -- e.g., iPad -- so make it possible to get a
+            # devel console via https://github.com/liriliri/eruda
+            # This pulls eruda from a CDN.
+            document.write('<script src="//cdn.jsdelivr.net/npm/eruda"></script>')
+            document.write('<script>eruda.init();</script>')
+
 
         # Client-side testing code -- we use require.ensure so this stuff only
         # ever gets loaded by the browser if actually used.
@@ -120,6 +146,11 @@ class Connection extends client.Connection
                 require('./test-client/init').clear()
 
     _init_idle: () =>
+        # Do not bother on mobile, since mobile devices already automatically disconnect themselves
+        # very aggressively to save battery life.
+        if require('./feature').IS_TOUCH
+            return
+
         ###
         The @_init_time is a timestamp in the future.
         It is pushed forward each time @_idle_reset is called.
@@ -129,8 +160,6 @@ class Connection extends client.Connection
         A document.body event listener here and one for each jupyter iframe.body (see jupyter.coffee).
         ###
 
-        # 15 min default in case it isn't set (it will get set when user account settings are loaded)
-        @_idle_timeout ?= 15 * 60 * 1000
         @_idle_reset()
         setInterval(@_idle_check, 60 * 1000)
 
@@ -175,20 +204,21 @@ class Connection extends client.Connection
         if not @_idle_time?
             return
         now = (new Date()).getTime()
-        # console.log("idle: checking idle #{@_idle_time} < #{now}")
+        #console.log("idle: checking idle #{@_idle_time} < #{now}")
         if @_idle_time < now
             @emit('idle', 'away')
 
     # Set @_idle_time to the **moment in in the future** at which the user will be
-    # considered idle, and also emit event indicator using is currently active.
+    # considered idle, and also emit event indicating that user is currently active.
     _idle_reset: =>
         @_idle_time = (new Date()).getTime() + @_idle_timeout + 1000
-        # console.log '_idle_reset', new Date(@_idle_time), ' _idle_timeout=', @_idle_timeout
+        #console.log '_idle_reset', new Date(@_idle_time), ' _idle_timeout=', @_idle_timeout
         @emit('idle', 'active')
 
     # Change the standby timeout to a particular time in minutes.
     # This gets called when the user configuration settings are set/loaded.
     set_standby_timeout_m: (time_m) =>
+        # console.log 'set_standby_timeout_m', time_m
         @_idle_timeout = time_m * 60 * 1000
         @_idle_reset()
 
@@ -213,31 +243,32 @@ class Connection extends client.Connection
                 max      : 5000
                 min      : 1000
                 factor   : 1.25
-                retries  : 100000  # why ever stop trying if we're only trying once every 5 seconds?
+                retries  : 100000  # why ever stop trying...?
         conn = new Primus(url, opts)
         ###
 
-        conn = new Primus(url)
+        opts =
+            reconnect:
+                max     : 10000
+                min     : 1000
+                factor  : 1.3
+                retries : 100000
+
+        misc_page.delete_cookie('SMCSERVERID3')
+        @_delete_websocket_cookie()
+        conn = new Primus(url, opts)
 
         @_conn = conn
         conn.on 'open', () =>
             @_connected = true
             @_connection_is_totally_dead = false
-            if @_conn_id?
-                conn.write(@_conn_id)
-            else
-                conn.write("XXXXXXXXXXXXXXXXXXXX")
             protocol = if window.WebSocket? then 'websocket' else 'polling'
             @emit("connected", protocol)
             log("connected; protocol='#{protocol}'")
             @_num_attempts = 0
 
             conn.removeAllListeners('data')
-            f = (data) =>
-                @_conn_id = data.toString()
-                conn.removeListener('data',f)
-                conn.on('data', ondata)
-            conn.on("data", f)
+            conn.on("data", ondata)
 
             if auth_token?
                 @sign_in_using_auth_token
@@ -251,7 +282,7 @@ class Connection extends client.Connection
 
         conn.on 'offline', (evt) =>
             log("offline")
-            @_connected = false
+            @_connected = @_signed_in = false
             @emit("disconnected", "offline")
 
         conn.on 'online', (evt) =>
@@ -268,7 +299,7 @@ class Connection extends client.Connection
 
         conn.on 'close', () =>
             log("closed")
-            @_connected = false
+            @_connected = @_signed_in = false
             @emit("disconnected", "close")
 
         conn.on 'end', =>
@@ -277,14 +308,23 @@ class Connection extends client.Connection
         conn.on 'reconnect scheduled', (opts) =>
             @_num_attempts = opts.attempt
             @emit("disconnected", "close") # This just informs everybody that we *are* disconnected.
-            @emit("connecting")
             conn.removeAllListeners('data')
-            log("reconnect scheduled in #{opts.scheduled} ms  (attempt #{opts.attempt} out of #{opts.retries})")
+            @_delete_websocket_cookie()
+            log("reconnect scheduled (attempt #{opts.attempt} out of #{opts.retries})")
+
+        conn.on 'reconnect', =>
+            @emit("connecting")
 
         conn.on 'incoming::pong', (time) =>
             #log("pong latency=#{conn.latency}")
             if not window.document.hasFocus? or window.document.hasFocus()
                 # networking/pinging slows down when browser not in focus...
+                if conn.latency > 10000
+                    # We get some ridiculous values from Primus when the browser
+                    # tab gains focus after not being in focus for a while (say on ipad but on many browsers)
+                    # that throttle.  Just discard them, since otherwise they lead to ridiculous false
+                    # numbers displayed in the browser.
+                    return
                 @emit "ping", conn.latency
 
         #conn.on 'outgoing::ping', () =>
@@ -298,16 +338,20 @@ class Connection extends client.Connection
         if @_connected
             return @_conn.latency
 
-    _fix_connection: (delete_cookies) =>
-        if delete_cookies
-            console.log("websocket -- deleting haproxy cookies")
-            document.cookie = 'SMCSERVERID3=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;'
+    _delete_websocket_cookie: =>
+        console.log('websocket -- delete cookie')
+        misc_page.delete_cookie('SMCSERVERID3')
+
+    _fix_connection: =>
         console.log("websocket --_fix_connection... ")
+        @_delete_websocket_cookie()
         @_conn.end()
         @_conn.open()
 
     _cookies: (mesg) =>
-        $.ajax(url:mesg.url, data:{id:mesg.id, set:mesg.set, get:mesg.get, value:mesg.value})
+        $.ajax
+            url     : mesg.url
+            data    : {id:mesg.id, set:mesg.set, get:mesg.get, value:mesg.value}
 
     alert_message: (args...) =>
         require('./alerts').alert_message(args...)

@@ -42,7 +42,7 @@ describe 'compute 2+2 using the python2 kernel -- ', ->
                 done()
 
 describe 'compute 2/3 using the python3 kernel -- ', ->
-    @timeout(5000)
+    @timeout(15000)
     kernel = undefined
 
     it 'creates a python3 kernel', ->

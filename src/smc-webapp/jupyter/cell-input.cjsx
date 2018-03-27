@@ -9,7 +9,6 @@ misc = require('smc-util/misc')
 {Markdown} = require('../r_misc')
 
 {CodeMirror} = require('./codemirror')
-{CodeMirrorStatic} = require('./codemirror-static')
 
 {InputPrompt} = require('./prompt')
 
@@ -48,6 +47,8 @@ markdown_post_hook = (elt) ->
         return
 
 exports.CellInput = rclass
+    displayName : 'CellInput'
+
     propTypes:
         actions          : rtypes.object   # not defined = read only
         cm_options       : rtypes.immutable.Map.isRequired
@@ -61,6 +62,7 @@ exports.CellInput = rclass
         complete         : rtypes.immutable.Map              # status of tab completion
         cell_toolbar     : rtypes.string
         trust            : rtypes.bool
+        is_readonly      : rtypes.bool
 
     shouldComponentUpdate: (next) ->
         return \
@@ -94,8 +96,8 @@ exports.CellInput = rclass
         />
 
     handle_md_double_click: ->
-        if not @props.actions?
-            return
+        return if not @props.actions?
+        return if @props.cell.getIn(['metadata', 'editable']) == false
         id = @props.cell.get('id')
         @props.actions.set_md_cell_editing(id)
         @props.actions.set_cur_id(id)
@@ -111,35 +113,31 @@ exports.CellInput = rclass
                 options = @props.cm_options.get('options')
                 options = options.set('mode',{})
                 options = options.set('foldGutter', false)  # no use with no mode
+        if @props.is_readonly
+            options = options.set('readOnly', 'nocursor')
         if @props.cell.get('line_numbers')?
             options = options.set('lineNumbers', @props.cell.get('line_numbers'))
         return options
 
     render_codemirror: (type) ->
-        if @props.actions?
-            <CodeMirror
-                value         = {@props.cell.get('input') ? ''}
-                options       = {@options(type)}
-                actions       = {@props.actions}
-                id            = {@props.cell.get('id')}
-                is_focused    = {@props.is_focused}
-                font_size     = {@props.font_size}
-                cursors       = {@props.cell.get('cursors')}
-            />
-        else
-            <CodeMirrorStatic
-                value         = {@props.cell.get('input') ? ''}
-                options       = {@options(type)}
-                actions       = {@props.actions}
-                id            = {@props.cell.get('id')}
-                font_size     = {@props.font_size}
-            />
+        <CodeMirror
+            value         = {@props.cell.get('input') ? ''}
+            options       = {@options(type)}
+            actions       = {@props.actions}
+            id            = {@props.cell.get('id')}
+            is_focused    = {@props.is_focused}
+            font_size     = {@props.font_size}
+            cursors       = {@props.cell.get('cursors')}
+        />
 
 
     render_markdown: ->
         value = @props.cell.get('input')?.trim()
         if not value
-            value = 'Type *Markdown* and LaTeX: $\\alpha^2$'
+            if not @props.actions?
+                value = ''  # read only (no actions so can't do anything), so no need for instructions about how to edit.
+            else
+                value = 'Type *Markdown* and LaTeX: $\\alpha^2$'
         <div
             onDoubleClick = {@handle_md_double_click}
             style         = {width:'100%', wordWrap: 'break-word', overflow: 'auto'}
@@ -191,13 +189,13 @@ exports.CellInput = rclass
             actions      = {@props.actions}
             cell_toolbar = {@props.cell_toolbar}
             cell         = {@props.cell}
-            />
+        />
 
 
     render_time: ->
         cell = @props.cell
         if cell.get('start')?
-            <div style={position:'relative', zIndex: 1, right: 0, width: '100%', paddingLeft:'5px'}, className='pull-right hidden-xs'>
+            <div style={position:'absolute', zIndex: 1, right: '2px', width: '100%', paddingLeft:'5px'} className='pull-right hidden-xs'>
                 <div style={color:'#999', fontSize:'8pt', position:'absolute', right:'5px', lineHeight: 1.25, top: '1px', textAlign:'right'}>
                     <CellTiming
                         start = {cell.get('start')}
@@ -209,14 +207,13 @@ exports.CellInput = rclass
 
     render: ->
         type = @props.cell.get('cell_type') ? 'code'
-        <div style={display: 'flex', flexDirection: 'row', alignItems: 'stretch'}>
-            {@render_input_prompt(type)}
-            {@render_complete()}
-            <div style={width:'100%'}>
-                {@render_cell_toolbar()}
-                <div>
-                    {@render_time()}
-                    {@render_input_value(type)}
-                </div>
+        <div>
+            {@render_cell_toolbar()}
+            <div style={display: 'flex', flexDirection: 'row', alignItems: 'stretch'}>
+                {@render_input_prompt(type)}
+                {@render_complete()}
+                {@render_input_value(type)}
+                {@render_time()}
             </div>
         </div>
+

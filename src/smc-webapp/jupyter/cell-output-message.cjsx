@@ -32,7 +32,7 @@ STDOUT_STYLE    = OUT_STYLE
 STDERR_STYLE    = misc.merge({backgroundColor:'#fdd'}, STDOUT_STYLE)
 TRACEBACK_STYLE = misc.merge({backgroundColor: '#f9f2f4'}, OUT_STYLE)
 
-Stdout = rclass
+exports.Stdout = Stdout = rclass
     propTypes :
         message : rtypes.immutable.Map.isRequired
 
@@ -46,12 +46,12 @@ Stdout = rclass
             </div>
         else
             <div style={STDOUT_STYLE}>
-                {# This span below is solely to workaround an **ancient** Firefox bug }
-                {# See https://github.com/sagemathinc/cocalc/issues/1958    }
+                {### This span below is solely to workaround an **ancient** Firefox bug ###}
+                {### See https://github.com/sagemathinc/cocalc/issues/1958    ###}
                 <span>{value}</span>
             </div>
 
-Stderr = rclass
+exports.Stderr = Stderr = rclass
     propTypes :
         message : rtypes.immutable.Map.isRequired
 
@@ -119,9 +119,8 @@ TextPlain = rclass
 
     render: ->
         <div style={STDOUT_STYLE}>
-            <span>  {# span?  what? -- See https://github.com/sagemathinc/cocalc/issues/1958 }
-                {@props.value}
-            </span>
+            {### span?  what? -- See https://github.com/sagemathinc/cocalc/issues/1958 ###}
+            <span>{@props.value}</span>
         </div>
 
 UntrustedJavascript = rclass
@@ -179,6 +178,28 @@ Data = rclass
 
     mixins: [ImmutablePureRenderMixin]
 
+    render_html: (value) ->
+        <div>
+            <HTML
+                value            = {value}
+                auto_render_math = {true}
+                project_id       = {@props.project_id}
+                file_path        = {@props.directory}
+                safeHTML         = {not @props.trust}
+            />
+        </div>
+
+    render_markdown: (value) ->
+        <div>
+            <Markdown
+                value          = {value}
+                project_id     = {@props.project_id}
+                file_path      = {@props.directory}
+                safeHTML       = {not @props.trust}
+                checkboxes     = {true}
+            />
+        </div>
+
     render: ->
         type  = undefined
         value = undefined
@@ -197,19 +218,9 @@ Data = rclass
                             else
                                 return <TextPlain value={value}/>
                         when 'html', 'latex'  # put latex as HTML, since jupyter requires $'s anyways.
-                            return <HTML
-                                    value      = {value}
-                                    project_id = {@props.project_id}
-                                    file_path  = {@props.directory}
-                                    safeHTML   = {not @props.trust}
-                                   />
+                            return @render_html(value)
                         when 'markdown'
-                            return <Markdown
-                                    value          = {value}
-                                    project_id     = {@props.project_id}
-                                    file_path      = {@props.directory}
-                                    safeHTML       = {not @props.trust}
-                                />
+                            return @render_markdown(value)
                 when 'image'
                     height = width = undefined
                     @props.message.get('metadata')?.forEach? (value, key) =>
@@ -234,7 +245,7 @@ Data = rclass
                         />
 
                 when 'iframe'
-                   return <IFrame sha1={value} project_id={@props.project_id}/>
+                    return <IFrame sha1={value} project_id={@props.project_id}/>
 
                 when 'application'
                     switch b
@@ -449,13 +460,17 @@ exports.CellOutputMessages = rclass
         v = []
         k = 0
         # TODO: use caching to make this more efficient...
-        # combine stdout and stderr messages...
         for n in [0...@props.output.size]
             mesg = @props.output.get("#{n}")
-            if not mesg?
+            # Make this renderer robust against any possible weird shap of the actual
+            # output object, e.g., undefined or not immmutable js.
+            # Also, we're checking that get is defined --
+            #   see https://github.com/sagemathinc/cocalc/issues/2404
+            if not mesg?.get?
                 continue
             name = mesg.get('name')
             if k > 0 and (name == 'stdout' or name == 'stderr') and v[k-1].get('name') == name
+                # combine adjacent stdout / stderr messages...
                 v[k-1] = v[k-1].set('text', v[k-1].get('text') + mesg.get('text'))
             else
                 v[k] = mesg

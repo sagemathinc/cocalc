@@ -74,13 +74,6 @@ exports.is_enter       = (e) -> e.which is 13 and not e.shiftKey
 exports.is_ctrl_enter  = (e) -> e.which is 13 and e.ctrlKey
 exports.is_escape      = (e) -> e.which is 27
 
-exports.APP_ICON               = require('!file-loader!webapp-lib/cocalc-icon.svg')
-exports.APP_ICON_WHITE         = require('!file-loader!webapp-lib/cocalc-icon-white.svg')
-exports.APP_LOGO               = require('!file-loader!webapp-lib/cocalc-logo.svg')
-exports.APP_LOGO_WHITE         = require('!file-loader!webapp-lib/cocalc-icon-white-transparent.svg')
-exports.APP_LOGO_NAME          = require('!file-loader!webapp-lib/cocalc-font-black.svg')
-exports.APP_LOGO_NAME_WHITE    = require('!file-loader!webapp-lib/cocalc-font-white.svg')
-
 {join} = require('path')
 exports.APP_BASE_URL = window?.app_base_url ? ''
 exports.BASE_URL = if window? then "#{window.location.protocol}//#{join(window.location.hostname, window.app_base_url ? '')}" else theme.DOMAIN_NAME
@@ -118,19 +111,6 @@ local_diff = exports.local_diff = (before, after) ->
 exports.scroll_top = () ->
     # Scroll smoothly to the top of the page.
     $("html, body").animate({ scrollTop: 0 })
-
-
-exports.human_readable_size = (bytes) ->
-    if bytes < 1000
-        return "#{bytes} bytes"
-    if bytes < 1000000
-        b = Math.floor(bytes/100)
-        return "#{b/10} KB"
-    if bytes < 1000000000
-        b = Math.floor(bytes/100000)
-        return "#{b/10} MB"
-    b = Math.floor(bytes/100000000)
-    return "#{b/10} GB"
 
 
 #############################################
@@ -223,7 +203,7 @@ $.fn.extend
             tex                 : undefined
             display             : false
             inline              : false
-            hide_when_rendering : false  # if true, entire element will get hidden until mathjax is rendered
+            hide_when_rendering : false         # if true, entire element will get hidden until mathjax is rendered
             cb                  : undefined     # if defined, gets called as cb(t) for *every* element t in the jquery set!
         @each () ->
             t = $(this)
@@ -743,6 +723,8 @@ exports.define_codemirror_extensions = () ->
 
     # Set the value of the buffer to something new by replacing just the ranges
     # that changed, so that the view/history/etc. doesn't get messed up.
+    # Setting scroll_last to ture sets cursor to last changed position and puts cursors
+    # there; this is used for undo/redo.
     CodeMirror.defineExtension 'setValueNoJump', (value, scroll_last) ->
         if not value?
             # Special case -- trying to set to value=undefined.  This is the sort of thing
@@ -782,6 +764,15 @@ exports.define_codemirror_extensions = () ->
                 @setCursor(last_pos)
 
         delete @_setValueNoJump
+
+        # Just do an expensive double check that the above worked.  I have no reason
+        # to believe the above could ever fail... but maybe it does in some very rare
+        # cases, and if it did, the results would be PAINFUL.  So... we just brutally
+        # do the set if it fails.  This will mess up cursors, etc., but that's a reasonable
+        # price to pay for correctness.
+        if value != @getValue()
+            console.warn("setValueNoJump failed -- just setting value directly")
+            @setValue(value)
 
     CodeMirror.defineExtension 'patchApply', (patch) ->
         ## OPTIMIZATION: this is a very stupid/inefficient way to turn
@@ -1014,6 +1005,7 @@ exports.define_codemirror_extensions = () ->
             cmd  : required
             args : undefined
             mode : undefined
+            cb   : undefined  # called after done; if there is a dialog, this could be a while.
         cm = @
         default_mode = opts.mode
         if not default_mode?
@@ -1028,7 +1020,7 @@ exports.define_codemirror_extensions = () ->
         #console.log("edit_selection '#{misc.to_json(opts)}', mode='#{default_mode}'")
 
         # FUTURE: will have to make this more sophisticated, so it can
-        # deal with nesting.
+        # deal with nesting, spans, etc.
         strip = (src, left, right) ->
             #console.log("strip:'#{src}','#{left}','#{right}'")
             left  = left.toLowerCase()
@@ -1039,6 +1031,7 @@ exports.define_codemirror_extensions = () ->
                 j = src0.lastIndexOf(right)
                 if j != -1
                     #console.log('strip match')
+                    opts.cb?()
                     return src.slice(0,i) + src.slice(i+left.length,j) + src.slice(j+right.length)
 
         selections = cm.listSelections()
@@ -1056,6 +1049,7 @@ exports.define_codemirror_extensions = () ->
             data_for_mode = EDIT_COMMANDS[mode1]
             if not data_for_mode?
                 console.warn("mode '#{mode1}' is not defined!")
+                opts.cb?()
                 return
             how = data_for_mode[cmd]
             if not how?
@@ -1066,9 +1060,6 @@ exports.define_codemirror_extensions = () ->
                     # Sage fallback in python mode. FUTURE: There should be a Sage mode.
                     mode1 = "sage"
                 how = EDIT_COMMANDS[mode1][cmd]
-
-            if DEBUG and not how?
-                console.warn("CodeMirror/edit_selection: unknown 'how' for mode1='#{mode1}' and cmd='#{cmd}'")
 
             # trim whitespace
             i = 0
@@ -1141,63 +1132,113 @@ exports.define_codemirror_extensions = () ->
                     src = "#{src}\n#{how.insert}"
                 done = true
 
-            if cmd == 'font_size'
-                if mode in ['html', 'md', 'mediawiki']
-                    for i in [1..7]
-                        src1 = strip(src, "<font size=#{i}>", '</font>')
-                        if src1
-                            src = src1
-                    if args != '3'
-                        src = "<font size=#{args}>#{src}</font>"
-                else if mode == 'tex'
-                    # we need 6 latex sizes, for size 1 to 7 (default 3, at index 2)
-                    latex_sizes = ['tiny', 'footnotesize', 'normalsize', 'large', 'LARGE', 'huge', 'Huge']
-                    i = parseInt(args)
-                    if i in [1..7]
-                        size = latex_sizes[i - 1]
-                        src = "{\\#{size} #{src}}"
+            switch cmd
+                when 'link'
+                    cm.insert_link(cb:opts.cb)
+                    return
+                when 'image'
+                    cm.insert_image(cb:opts.cb)
+                    return
+                when 'SpecialChar'
+                    cm.insert_special_char(cb:opts.cb)
+                    return
+                when 'font_size'
+                    if mode in ['html', 'md', 'mediawiki']
+                        for i in [1..7]
+                            src1 = strip(src, "<font size=#{i}>", '</font>')
+                            if src1
+                                src = src1
+                        if args != '3'
+                            src = "<font size=#{args}>#{src}</font>"
+                        done = true
+                    else if mode == 'tex'
+                        # we need 6 latex sizes, for size 1 to 7 (default 3, at index 2)
+                        latex_sizes = ['tiny', 'footnotesize', 'normalsize', 'large', 'LARGE', 'huge', 'Huge']
+                        i = parseInt(args)
+                        if i in [1..7]
+                            size = latex_sizes[i - 1]
+                            src = "{\\#{size} #{src}}"
+                        done = true
 
-            if cmd == 'color'
-                if mode in ['html', 'md', 'mediawiki']
-                    src0 = src.toLowerCase().trim()
-                    if src0.slice(0,12) == "<font color="
-                        i = src.indexOf('>')
-                        j = src.lastIndexOf('<')
-                        src = src.slice(i+1,j)
-                    src = "<font color=#{args}>#{src}</font>"
+                when 'font_size_new'
+                    if mode in ['html', 'md', 'mediawiki']
+                        src0 = src.toLowerCase().trim()
+                        if misc.startswith(src0, "<span style='font-size")
+                            i = src.indexOf('>')
+                            j = src.lastIndexOf('<')
+                            src = src.slice(i+1,j)
+                        if args != 'medium'
+                            src = "<span style='font-size:#{args}'>#{src}</span>"
+                        done = true
+                    else if mode == 'tex'
+                        # we need 6 latex sizes, for size 1 to 7 (default 3, at index 2)
+                        latex_sizes = ['tiny', 'footnotesize', 'normalsize', 'large', 'LARGE', 'huge', 'Huge']
+                        i = parseInt(args)
+                        if i in [1..7]
+                            size = latex_sizes[i - 1]
+                            src = "{\\#{size} #{src}}"
+                        done = true
 
-            if cmd == 'background-color'
-                if mode in ['html', 'md', 'mediawiki']
-                    src0 = src.toLowerCase().trim()
-                    if src0.slice(0,23) == "<span style='background"
-                        i = src.indexOf('>')
-                        j = src.lastIndexOf('<')
-                        src = src.slice(i+1,j)
-                    src = "<span style='background-color:#{args}'>#{src}</span>"
+                when 'color'
+                    if mode in ['html', 'md', 'mediawiki']
+                        src0 = src.toLowerCase().trim()
+                        if misc.startswith(src0, "<span style='color")
+                            i = src.indexOf('>')
+                            j = src.lastIndexOf('<')
+                            src = src.slice(i+1,j)
+                        src = "<span style='color:#{args}'>#{src}</span>"
+                        done = true
 
-            if cmd == 'font_face'
-                if mode in ['html', 'md', 'mediawiki']
-                    for face in FONT_FACES
-                        src1 = strip(src, "<font face='#{face}'>", '</font>')
-                        if src1
-                            src = src1
-                    src = "<font face='#{args}'>#{src}</font>"
+                when 'background-color'
+                    if mode in ['html', 'md', 'mediawiki']
+                        src0 = src.toLowerCase().trim()
+                        if misc.startswith(src0, "<span style='background")
+                            i = src.indexOf('>')
+                            j = src.lastIndexOf('<')
+                            src = src.slice(i+1,j)
+                        src = "<span style='background-color:#{args}'>#{src}</span>"
+                        done = true
 
-            if cmd == 'clean'
-                if mode == 'html'
-                    src = html_beautify($("<div>").html(src).html())
-                    done = true
+                when 'font_face'  # old -- still used in some old non-react editors
+                    if mode in ['html', 'md', 'mediawiki']
+                        for face in FONT_FACES
+                            src1 = strip(src, "<font face='#{face}'>", '</font>')
+                            if src1
+                                src = src1
+                        src = "<font face='#{args}'>#{src}</font>"
+                        done = true
 
-            if cmd == 'unformat'
-                if mode == 'html'
-                    src = $("<div>").html(src).text()
-                    done = true
-                else if mode == 'md'
-                    src = $("<div>").html(markdown.markdown_to_html(src).s).text()
-                    done = true
+                when 'font_family'  # new -- html5 style
+                    if mode in ['html', 'md', 'mediawiki']
+                        src0 = src.toLowerCase().trim()
+                        if misc.startswith(src0, "<span style='font-family")
+                            i = src.indexOf('>')
+                            j = src.lastIndexOf('<')
+                            src = src.slice(i+1,j)
+                        if not src
+                            src = '    '
+                        src = "<span style='font-family:#{args}'>#{src}</span>"
+                        done = true
+
+                when 'clean'
+                    if mode == 'html'
+                        src = html_beautify($("<div>").html(src).html())
+                        done = true
+
+                when 'unformat'
+                    if mode == 'html'
+                        src = $("<div>").html(src).text()
+                        done = true
+                    else if mode == 'md'
+                        src = $("<div>").html(markdown.markdown_to_html(src)).text()
+                        done = true
 
             if not done?
+                if DEBUG and not how?
+                    console.warn("CodeMirror/edit_selection: unknown for mode1='#{mode1}' and cmd='#{cmd}'")
+
                 #console.log("not implemented")
+                opts.cb?()
                 return "not implemented"
 
             if src == src0
@@ -1218,6 +1259,7 @@ exports.define_codemirror_extensions = () ->
                     # now select the new range
                     delta = src.length - src0.length
                     cm.extendSelection(from, {line:to.line, ch:to.ch+delta})
+            opts.cb?()
 
 
     CodeMirror.defineExtension 'insert_link', (opts={}) ->
@@ -1653,7 +1695,7 @@ exports.load_coffeescript_compiler = (cb) ->
     else
         require.ensure [], =>
             # this should define window.CoffeeScript as the compiler instance.
-            require("script!coffeescript/coffee-script.js")
+            require("script-loader!coffeescript/lib/coffeescript/index.js")
             console.log("loaded CoffeeScript via require.ensure")
             cb?()
 
@@ -1762,6 +1804,28 @@ exports.analytics_pageview = (args...) ->
 exports.analytics_event = (args...) ->
     exports.analytics('event', args...)
 
+# conversion tracking (commercial only)
+exports.track_conversion = (type, amount) ->
+    return if not require('./customize').commercial
+    return if DEBUG
+
+    theme = require('smc-util/theme')
+    if type == 'create_account'
+        tag = theme.sign_up_id
+        amount = 1 # that's not true
+    else if type == 'subscription'
+        tag = theme.conversion_id
+    else
+        console.warn("unknown conversion type: #{type}")
+        return
+
+    window.gtag?('event', 'conversion',
+        send_to     : "#{theme.gtag_id}/#{tag}"
+        value       : amount
+        currency    : 'USD'
+    )
+
+
 # These are used to disable pointer events for iframes when dragging something that may move over an iframe.
 # See http://stackoverflow.com/questions/3627217/jquery-draggable-and-resizeable-over-iframes-solution
 exports.drag_start_iframe_disable = ->
@@ -1771,22 +1835,26 @@ exports.drag_stop_iframe_enable = ->
     $("iframe:visible").css('pointer-events', 'auto')
 
 exports.open_popup_window = (url) ->
-    exports.open_new_tab(url, popup=true)
+    exports.open_new_tab(url, true)
 
 # open new tab and check if user allows popups. if yes, return the tab -- otherwise show an alert and return null
 exports.open_new_tab = (url, popup=false) ->
-    # if popup=true, it opens a small overlay window instead of a new tab
+    # if popup=true, it opens a smaller overlay window instead of a new tab (though depends on browser)
     if popup
-        tab = window.open(url, '', 'menubar=no,toolbar=no,resizable=yes,scrollbars=yes,height=400,width=600')
+        tab = window.open(url, '_blank', 'menubar=yes,toolbar=no,resizable=yes,scrollbars=yes,height=640,width=800')
     else
-        tab = window.open(url)
-    if(!tab || tab.closed || typeof tab.closed=='undefined')
+        tab = window.open(url, '_blank')
+    if not tab?.closed? or tab.closed   # either tab isn't even defined (or doesn't have close method) -- or already closed -- popup blocked
         {alert_message} = require('./alerts')
+        if url
+            message = "Either enable popups for this website or <a href='#{url}' target='_blank'>click on this link</a>."
+        else
+            message = "Enable popups for this website and try again."
         alert_message
-            title   : "Pop-ups blocked."
-            message : "Either enable pop-ups for this website or <a href='#{url}' target='_blank'>click on this link</a>."
-            type    : 'error'
-            timeout : 10
+            title   : "Popups blocked."
+            message : message
+            type    : 'info'
+            timeout : 15
         return null
     return tab
 
@@ -1794,6 +1862,17 @@ exports.get_cookie = (name) ->
     value = "; " + document.cookie
     parts = value.split("; " + name + "=")
     return parts.pop().split(";").shift() if (parts.length == 2)
+
+exports.delete_cookie = (name) ->
+    document.cookie = name + '=; expires=Thu, 01 Jan 1970 00:00:01 GMT; path=/'
+
+exports.set_cookie = (name, value, days) ->
+    expires = ''
+    if days
+        date = new Date()
+        date.setTime(date.getTime() + (days*24*60*60*1000))
+        expires = "; expires=" + date.toUTCString()
+    document.cookie = name + "=" + value + expires + "; path=/"
 
 # see http://stackoverflow.com/questions/3169786/clear-text-selection-with-javascript
 exports.clear_selection = ->
@@ -1826,3 +1905,45 @@ exports.get_query_params = ->
 
 exports.get_query_param = (p) ->
     return exports.get_query_params()[p]
+
+# If there is UTM information in the known cookie, extract and return it
+# Then, delete this cookie.
+# Reference: https://en.wikipedia.org/wiki/UTM_parameters
+#
+# Parameter                 Purpose/Example
+# utm_source (required)     Identifies which site sent the traffic, and is a required parameter.
+#                           utm_source=Google
+#
+# utm_medium                Identifies what type of link was used,
+#                           such as cost per click or email.
+#                           utm_medium=cpc
+#
+# utm_campaign              Identifies a specific product promotion or strategic campaign.
+#                           utm_campaign=spring_sale
+#
+# utm_term                  Identifies search terms.
+#                           utm_term=running+shoes
+#
+# utm_content               Identifies what specifically was clicked to bring the user to the site,
+#                           such as a banner ad or a text link. It is often used for A/B testing
+#                           and content-targeted ads.
+#                           utm_content=logolink or utm_content=textlink
+
+
+# get eventually available information form the utm cookie
+# delete it afterwards
+exports.get_utm = ->
+    c = exports.get_cookie(misc.utm_cookie_name)
+    return if not c
+    try
+        data = misc.from_json(window.decodeURIComponent(c))
+        if DEBUG then console.log("get_utm cookie data", data)
+        exports.delete_cookie(misc.utm_cookie_name)
+        return data
+
+# get referrer information
+exports.get_referrer = ->
+    c = exports.get_cookie(misc.referrer_cookie_name)
+    return if not c
+    exports.delete_cookie(misc.referrer_cookie_name)
+    return c

@@ -23,6 +23,12 @@
 # Help Page
 ###
 
+if global['BACKEND']  # set in ./render.coffee
+    BASE_URL = require('smc-util/theme').DOMAIN_NAME
+else
+    # browser
+    {BASE_URL} = require('./misc_page')
+
 $ = window.$
 misc = require('smc-util/misc')
 {React, ReactDOM, redux, rtypes, rclass} = require('./smc-react')
@@ -30,14 +36,15 @@ misc = require('smc-util/misc')
 {Icon, Loading, Space, TimeAgo, UNIT, Footer} = require('./r_misc')
 {HelpEmailLink, SiteName, SiteDescription, PolicyPricingPageUrl} = require('./customize')
 {RECENT_TIMES, RECENT_TIMES_KEY} = require('smc-util/schema')
-{COLORS, HELP_EMAIL, WIKI_URL} = require('smc-util/theme')
+{COLORS, HELP_EMAIL, WIKI_URL, TWITTER_HANDLE, LIVE_DEMO_REQUEST, SITE_NAME} = require('smc-util/theme')
+{ComputeEnvironment} = require('./compute_environment')
 
 # List item style
-li_style =
+li_style = exports.li_style =
     lineHeight    : 'inherit'
     marginBottom  : '10px'
 
-exports.HelpPageUsageSection = HelpPageUsageSection = rclass
+HelpPageUsageSection = rclass
     reduxProps :
         server_stats :
             loading             : rtypes.bool.isRequired
@@ -52,7 +59,7 @@ exports.HelpPageUsageSection = HelpPageUsageSection = rclass
     displayName : 'HelpPage-HelpPageUsageSection'
 
     getDefaultProps: ->
-       loading : true
+        loading : true
 
     number_of_active_users: ->
         if @props.hub_servers.length == 0
@@ -132,6 +139,9 @@ exports.HelpPageUsageSection = HelpPageUsageSection = rclass
             </span>
 
     render: ->
+        # TODO: it would be nice to change the share link to
+        #     https://cocalc.com/share/7561f68d-3d97-4530-b97e-68af2fb4ed13/stats.html
+        # but this seems stale for some reason sometimes.
         <Col sm={12} md={6}>
             <h3>
                 <Icon name='dashboard' /> Statistics
@@ -139,7 +149,7 @@ exports.HelpPageUsageSection = HelpPageUsageSection = rclass
             </h3>
             <div>
                 {@render_active_users_stats()}
-                {# @render_active_projects_stats()}
+                {### @render_active_projects_stats() ###}
                 <div style={marginTop: 20, textAlign:'center'}>
                     Recent user activity
                 </div>
@@ -162,6 +172,11 @@ SUPPORT_LINKS =
         href : 'mailto:' + HELP_EMAIL
         link : HELP_EMAIL
         text : 'Please include the URL link to the relevant project or file!'
+    frequently_asked_questions :
+        icon : 'question-circle'
+        bold : true
+        href : WIKI_URL
+        link : <span><SiteName/> documentation</span>
     teaching :
         icon : 'graduation-cap'
         href : 'https://tutorial.cocalc.com/'
@@ -171,11 +186,6 @@ SUPPORT_LINKS =
         href : PolicyPricingPageUrl
         link : 'Pricing and subscription options'
         commercial: true
-    frequently_asked_questions :
-        icon : 'question-circle'
-        bold : true
-        href : WIKI_URL
-        link : <span><SiteName/> documentation</span>
     docker_image:
         icon : 'window-maximize'
         href : 'https://github.com/sagemathinc/cocalc/blob/master/src/dev/docker/README.md'
@@ -184,10 +194,22 @@ SUPPORT_LINKS =
         icon : 'users'
         href : 'https://github.com/sagemathinc/cocalc/wiki/Teaching'
         link :  <span>Courses using <SiteName/></span>
+    cocalc_api :
+        icon : 'gears'
+        href : "#{BASE_URL}/doc/api.html"
+        link :  <span><SiteName/> API</span>
+    live_demo :
+        icon : 'comments-o'
+        link : "Request a live demo about how to teach a course"
+        href : LIVE_DEMO_REQUEST
 
 CONNECT_LINKS =
-    support_mailing_list :
+    share :
         bold : true
+        icon : 'bullhorn'
+        href : "#{BASE_URL}/share"
+        link : 'Shared public files'
+    support_mailing_list :
         icon : 'list-alt'
         href : 'https://groups.google.com/forum/?fromgroups#!forum/cocalc'
         link : <span>Mailing list</span>
@@ -197,8 +219,8 @@ CONNECT_LINKS =
         link : 'News and updates on our blog'
     twitter :
         icon : 'twitter-square'
-        href : 'https://twitter.com/co_calc'
-        link : 'Follow @co_calc on twitter'
+        href : "https://twitter.com/#{TWITTER_HANDLE}"
+        link : "Follow @#{TWITTER_HANDLE} on twitter"
     facebook :
         icon : 'facebook-square'
         href : 'https://www.facebook.com/CoCalcOnline/'
@@ -271,7 +293,7 @@ ABOUT_LINKS =
     legal :
         icon : 'cc-icon-section'
         link : 'Terms of Service, Pricing, Copyright and Privacy policies'
-        href : '/policies/index.html'
+        href : "#{BASE_URL}/policies/index.html"
     developers :
         icon : 'keyboard-o'
         text : <span>
@@ -332,16 +354,20 @@ LinkList = rclass
             {@render_links()}
         </Col>
 
-exports.ThirdPartySoftware = ThirdPartySoftware = rclass
+ThirdPartySoftware = rclass
     displayName : 'Help-ThirdPartySoftware'
     render: ->
-        <LinkList title='Available Software' icon='question-circle' links={THIRD_PARTY} />
+        <LinkList title='Software' icon='question-circle' links={THIRD_PARTY} />
 
 exports.render_static_third_party_software = ->
     <LinkList title='' icon='question-circle' width={12} links={THIRD_PARTY} />
 
 exports.HelpPage = HelpPage = rclass
     displayName : 'HelpPage'
+
+    render_compute_env: ->
+        env = <ComputeEnvironment />
+        return <Row>{env}</Row> if env?
 
     render: ->
         banner_style =
@@ -357,10 +383,10 @@ exports.HelpPage = HelpPage = rclass
 
         {SmcWikiUrl}      = require('./customize')
         {ShowSupportLink} = require('./support')
-        {APP_LOGO}        = require('./misc_page')
+        {APP_LOGO}        = require('./art')
 
         <Row style={padding:'10px', margin:'0px', overflow:'auto'}>
-            <Col sm=10 smOffset=1 md=8 mdOffset=2 xs=12>
+            <Col sm={10} smOffset={1} md={8} mdOffset={2} xs={12}>
                 <h3 style={textAlign: 'center', marginBottom: '30px'}>
                 <img src="#{APP_LOGO}" style={width:'33%', height:'auto'} />
                 <br/>
@@ -375,7 +401,7 @@ exports.HelpPage = HelpPage = rclass
                 </div>
 
                 <Row>
-                    <LinkList title='Help & Support' icon='support' links={SUPPORT_LINKS} />
+                    <LinkList title='Help and support' icon='support' links={SUPPORT_LINKS} />
                     <LinkList title='Connect' icon='plug' links={CONNECT_LINKS} />
                 </Row>
                 <Row style={marginTop:'20px'}>
@@ -385,9 +411,10 @@ exports.HelpPage = HelpPage = rclass
                 <Row>
                     {<LinkList title='About' icon='info-circle' links={ABOUT_LINKS} width={12} /> if require('./customize').commercial}
                 </Row>
+                {@render_compute_env() if KUCALC_COMP_ENV}
             </Col>
-            <Col sm=1 md=2 xsHidden></Col>
-            <Col xs=12 sm=12 md=12>
+            <Col sm={1} md={2} xsHidden></Col>
+            <Col xs={12} sm={12} md={12}>
                 <Footer/>
             </Col>
         </Row>

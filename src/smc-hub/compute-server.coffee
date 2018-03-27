@@ -19,7 +19,7 @@
 #
 ###############################################################################
 
-require('coffee-cache')
+require('coffee2-cache')
 
 ###
 
@@ -51,6 +51,8 @@ message     = require('smc-util/message')
 misc        = require('smc-util/misc')
 
 sqlite      = require('smc-util-node/sqlite')
+
+conf        = require('./conf')
 
 
 # Set the log level
@@ -89,9 +91,9 @@ smc_compute = (opts) =>
         cb      : required
     if DEV
         winston.debug("dev_smc_compute: running #{misc.to_json(opts.args)}")
-        path = require('path')
-        command = path.join(process.env.SALVUS_ROOT, 'smc_pyutil/smc_pyutil/smc_compute.py')
-        PROJECT_PATH = process.env.COCALC_PROJECT_PATH ? path.join(process.env.SALVUS_ROOT, 'data', 'projects')
+        os_path = require('path')
+        command = os_path.join(process.env.SALVUS_ROOT, 'smc_pyutil/smc_pyutil/smc_compute.py')
+        PROJECT_PATH = conf.project_path()
         v = ['--dev', "--projects", PROJECT_PATH]
     else
         winston.debug("smc_compute: running #{misc.to_safe_str(opts.args)}")
@@ -1176,7 +1178,9 @@ start_fake_server = (cb) ->
 {EventEmitter} = require('events')
 
 class FakeDevSocketFromCompute extends EventEmitter
-    constructor: (@socket_from_hub) ->
+    constructor: (socket_from_hub) ->
+        super()
+        @socket_from_hub = socket_from_hub
         @callbacks = {}
 
     write_mesg: (type, resp, cb) =>
@@ -1198,6 +1202,7 @@ class FakeDevSocketFromCompute extends EventEmitter
 
 class FakeDevSocketFromHub extends EventEmitter
     constructor: ->
+        super()
         @_socket = new FakeDevSocketFromCompute(@)
 
     write_mesg: (type, mesg, cb) =>

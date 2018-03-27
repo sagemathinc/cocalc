@@ -1,5 +1,10 @@
 ###
 Simplest possible interesting test.
+
+Obviously no actual project -- kucalc -- or containers or anything are running during this test.
+What we are testing is that the kucalc/ code responds properly to various changes in the database
+state, and also sets the database properly. That's it.  Thus we mock the rest of the system by
+simply making changes to the database explicitly below!
 ###
 
 
@@ -22,7 +27,7 @@ wait = (project, cb) ->
             cb = undefined
 
 describe 'creating compute client -- ', ->
-    @timeout(5000)
+    @timeout(10000)
     before(setup)
     after(teardown)
 
@@ -62,30 +67,16 @@ describe 'test basic foundations of project client -- ', ->
         client.project(project_id: project_id, cb: (err, x) ->
             project = x; done(err))
 
-    it 'confirm the host is correct', ->
-        expect(project.host).toBe("project-#{project_id}")
-
-    it 'confirms nothing is set yet in the synctable', ->
-        expect(project.get().toJS()).toEqual({project_id:project_id})
-
-    it 'gets unitialized state', (done) ->
-        project.state
-            cb : (err, state) ->
-                expect(state).toBe(undefined)
-                done(err)
-
-    state = undefined
-    it 'sets the state', (done) ->
-        state = {state:'closed', time:new Date()}
+    it 'add ip info to the status (mocking manage-action)', (done) ->
         project._query
-            jsonb_set : {state : state}
-            cb        : wait(project, done)
+            jsonb_merge : {state:{ip:'10.9.8.7'}}
+            cb : wait(project, done)
 
-    it 'confirms state is set as required synctable', (done) ->
-        project.state
-            cb : (err, state) ->
-                expect(state).toEqual(state)
-                done(err)
+    it 'confirm the host is correct', ->
+        expect(project.host).toBe("10.9.8.7")
+
+    it 'confirms what is set yet in the synctable', ->
+        expect(project.get().toJS()).toEqual({state:{ip:'10.9.8.7'}, project_id:project_id})
 
     it 'get the default status', (done) ->
         project.status
@@ -108,12 +99,10 @@ describe 'test basic foundations of project client -- ', ->
         project.address
             cb : (err, address) ->
                 expect(err).toBe(undefined)
-                expect(address).toEqual({ host: "project-#{project_id}", port: 6000, secret_token: 'top-secret' })
+                expect(address).toEqual({ host: "10.9.8.7", port: 6000, secret_token: 'top-secret' })
                 done()
-
-    it 'close the project client and verifies that host is no longer defined ', ->
-        project.close()
-        expect(project.host).toBe(undefined)
+        # MOCK: This will start the project running
+        project._query(jsonb_merge : {state:{state:'running'}})
 
 
 describe 'test the lifecyle of project client (mocking the manager) -- ', ->
@@ -135,19 +124,19 @@ describe 'test the lifecyle of project client (mocking the manager) -- ', ->
         ], done)
 
     it 'opens the project', (done) ->
-        # start project opening
+        # start project opening...
         project.open
             cb : (err) ->
                 x = project._action_request()
                 expect((new Date() - x.finished) < 500).toBe(true)
                 done(err)
-        # all that did was change the db, which we confirm now
+        # All the above did was change the db, which we confirm now
         project.once 'change', ->
             x = project._action_request()
             expect(x.action).toBe('open')
-            expect((new Date() - x.started) < 500).toBe(true)
+            expect((new Date() - new Date(x.time)) < 500).toBe(true)
             expect(x.finished).toBe(undefined)
-            # Now set the state to opened; this is what the project manager will do....
+            # MOCK: Now set the state to opened; this is what the project manager will do....
             project._query
                 jsonb_merge :
                     state          : {state:'opened', time:new Date()}
@@ -165,7 +154,7 @@ describe 'test the lifecyle of project client (mocking the manager) -- ', ->
         project.once 'change', ->
             x = project._action_request()
             expect(x.action).toBe('start')
-            expect((new Date() - x.started) < 500).toBe(true)
+            expect((new Date() - new Date(x.time)) < 500).toBe(true)
             expect(x.finished).toBe(undefined)
             project._query
                 jsonb_merge :
@@ -237,8 +226,8 @@ describe 'test the lifecyle of project client (mocking the manager) -- ', ->
                 done()
 
 
-    it 'close the project client (i.e., free up usage)', ->
-        project.close()
+    it 'free up the project client (i.e., free up usage)', ->
+        project.free()
         expect(project.synctable).toBe(undefined)
 
 

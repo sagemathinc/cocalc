@@ -20,9 +20,12 @@
 
 async = require('async')
 
-{React, ReactDOM, rclass, rtypes, is_redux, is_redux_actions, redux, Store, Actions} = require('./smc-react')
-{Alert, Button, ButtonToolbar, Checkbox, Col, FormControl, FormGroup, ControlLabel, InputGroup, OverlayTrigger, Popover, Tooltip, Row, Well} = require('react-bootstrap')
+{React, ReactDOM, rclass, rtypes, is_redux, is_redux_actions, redux, Store, Actions, Redux} = require('./smc-react')
+{Alert, Button, ButtonToolbar, Checkbox, Col, FormControl, FormGroup, ControlLabel, InputGroup, Overlay, OverlayTrigger, Popover, Modal, Tooltip, Row, Well} = require('react-bootstrap')
 {HelpEmailLink, SiteName, CompanyName, PricingUrl, PolicyTOSPageUrl, PolicyIndexPageUrl, PolicyPricingPageUrl} = require('./customize')
+{UpgradeRestartWarning} = require('./upgrade_restart_warning')
+copy_to_clipboard = require('copy-to-clipboard')
+math_katex = require('./math_katex')
 
 # injected by webpack, but not for react-static renderings (ATTN don't assign to uppercase vars!)
 smc_version = SMC_VERSION ? 'N/A'
@@ -98,7 +101,7 @@ exports.SetIntervalMixin =
         @intervals.forEach clearInterval
 
 exports.Space = Space = ->
-    <span>&nbsp</span>
+    <span>&nbsp;</span>
 
 # Font Awesome component -- obviously TODO move to own file
 # Converted from https://github.com/andreypopp/react-fa
@@ -121,6 +124,13 @@ exports.Icon = Icon = rclass
         onMouseOver: rtypes.func
         onMouseOut : rtypes.func
 
+    shouldComponentUpdate: (next) ->  # we exclude style changes for speed reasons (and style is rarely used); always update if there are children
+        return @props.children? or \
+               misc.is_different(@props, next, ['name', 'size', 'rotate', 'flip', 'spin', 'pulse', 'fixedWidth', \
+                                          'stack', 'inverse', 'className']) or \
+               not misc.is_equal(@props.style, next.style)
+
+
     getDefaultProps: ->
         name    : 'square-o'
         onClick : ->
@@ -128,7 +138,7 @@ exports.Icon = Icon = rclass
     render: ->
         {name, size, rotate, flip, spin, pulse, fixedWidth, stack, inverse, className, style} = @props
         # temporary until file_associations can be changed
-        if name.slice(0, 3) == 'cc-'
+        if name.slice(0, 3) == 'cc-' and name isnt 'cc-stripe'
             classNames = "fa #{name}"
             # the cocalc icon font can't do any extra tricks
         else
@@ -155,7 +165,15 @@ exports.Icon = Icon = rclass
             classNames += ' fa-inverse'
         if className
             classNames += " #{className}"
-        return <i style={style} className={classNames} onMouseOver={@props.onMouseOver} onMouseOut={@props.onMouseOut} onClick={@props.onClick}>{@props.children}</i>
+        <i
+            style       = {style}
+            className   = {classNames}
+            onMouseOver = {@props.onMouseOver}
+            onMouseOut  = {@props.onMouseOut}
+            onClick     = {@props.onClick}
+        >
+                {@props.children}
+        </i>
 
 # this Octicon icon class requires the CSS file in octicons/octicons/octicons.css (see landing.coffee)
 exports.Octicon = rclass
@@ -183,11 +201,25 @@ exports.Loading = Loading = rclass
     displayName : 'Misc-Loading'
 
     propTypes :
-        style : rtypes.object
+        style    : rtypes.object
+        text     : rtypes.string
+        estimate : rtypes.immutable.Map  # {time:[time in seconds], type:['new', 'ready', 'archived']}
+
+    getDefaultProps : ->
+        text   : 'Loading...'
+
+    render_estimate: ->
+        if @props.estimate?
+            <div>
+                Loading '{@props.estimate.get('type')}' file.
+                <br/>
+                Estimated time: {@props.estimate.get('time')}s
+            </div>
 
     render: ->
         <span style={@props.style}>
-            <span><Icon name='cc-icon-cocalc-ring' spin /> Loading...</span>
+            <span><Icon name='cc-icon-cocalc-ring' spin /> {@props.text}</span>
+            {@render_estimate()}
         </span>
 
 exports.Saving = Saving = rclass
@@ -212,6 +244,15 @@ exports.CloseX = CloseX = rclass
             <Icon style={@props.style} name='times' />
         </a>
 
+exports.SimpleX = SimpleX = ({onClick}) ->
+    <a href='' onClick={(e)=>e.preventDefault(); onClick()}>
+        <Icon name='times' />
+    </a>
+
+exports.SkinnyError = ({error_text, on_close}) ->
+    <div style={color:'red'}>
+         <SimpleX onClick={on_close} /> {error_text}
+    </div>
 
 error_text_style =
     marginRight : '1ex'
@@ -222,12 +263,12 @@ exports.ErrorDisplay = ErrorDisplay = rclass
     displayName : 'Misc-ErrorDisplay'
 
     propTypes :
-        error   : rtypes.oneOfType([rtypes.string,rtypes.object])
+        error           : rtypes.oneOfType([rtypes.string,rtypes.object])
         error_component : rtypes.any
-        title   : rtypes.string
-        style   : rtypes.object
-        bsStyle : rtypes.string
-        onClose : rtypes.func       # TODO: change to on_close everywhere...?
+        title           : rtypes.string
+        style           : rtypes.object
+        bsStyle         : rtypes.string
+        onClose         : rtypes.func       # TODO: change to on_close everywhere...?
 
     render_close_button: ->
         <CloseX on_close={@props.onClose} style={fontSize:'11pt'} />
@@ -255,6 +296,10 @@ exports.ErrorDisplay = ErrorDisplay = rclass
             {error}
         </Alert>
 
+exports.Spinner = rclass
+    render : ->
+        <Icon name='spinner' spin={true} />
+
 exports.Footer = rclass
     displayName : "Footer"
 
@@ -266,9 +311,9 @@ exports.Footer = rclass
             <Space/>
             <SiteName/> by <CompanyName/>
             {' '} &middot; {' '}
-            <a target="_blank" href=PolicyIndexPageUrl>Policies</a>
+            <a target="_blank" href={PolicyIndexPageUrl}>Policies</a>
             {' '} &middot; {' '}
-            <a target="_blank" href=PolicyTOSPageUrl>Terms of Service</a>
+            <a target="_blank" href={PolicyTOSPageUrl}>Terms of Service</a>
             {' '} &middot; {' '}
             <HelpEmailLink />
             {' '} &middot; {' '}
@@ -288,10 +333,10 @@ exports.MessageDisplay = MessageDisplay = rclass
 
     render: ->
         <Row style={backgroundColor:'white', margin:'1ex', padding:'1ex', border:'1px solid lightgray', dropShadow:'3px 3px 3px lightgray', borderRadius:'3px'}>
-            <Col md=8 xs=8>
+            <Col md={8} xs={8}>
                 <span style={color:'gray', marginRight:'1ex'}>{@props.message}</span>
             </Col>
-            <Col md=4 xs=4>
+            <Col md={4} xs={4}>
                 <Button className='pull-right' onClick={@props.onClose} bsSize='small'>
                     <Icon name='times' />
                 </Button>
@@ -416,7 +461,7 @@ exports.NumberInput = NumberInput = rclass
     render: ->
         unit = if @props.unit? then "#{@props.unit}" else ''
         <Row>
-            <Col xs=6>
+            <Col xs={6}>
                 <form onSubmit={@saveChange}>
                     <FormGroup>
                         <FormControl
@@ -431,7 +476,7 @@ exports.NumberInput = NumberInput = rclass
                     </FormGroup>
                 </form>
             </Col>
-            <Col xs=6 className="lighten">
+            <Col xs={6} className="lighten">
                 {unit}
             </Col>
         </Row>
@@ -441,7 +486,7 @@ exports.LabeledRow = LabeledRow = rclass
 
     propTypes :
         label      : rtypes.any.isRequired
-        style      : rtypes.object
+        style      : rtypes.object            # NOTE: for perf reasons, we do not update if only the style changes!
         label_cols : rtypes.number    # number between 1 and 11 (default: 4)
 
     getDefaultProps: ->
@@ -452,7 +497,7 @@ exports.LabeledRow = LabeledRow = rclass
             <Col xs={@props.label_cols} style={marginTop:'8px'}>
                 {@props.label}
             </Col>
-            <Col xs={12-@props.label_cols}>
+            <Col xs={12-@props.label_cols}  style={marginTop:'8px'}>
                 {@props.children}
             </Col>
         </Row>
@@ -463,40 +508,36 @@ help_text =
   borderRadius   : '5px'
   margin         : '5px'
 
-exports.Help = rclass
+exports.HelpIcon = rclass
     displayName : 'Misc-Help'
 
     propTypes :
-        button_label : rtypes.string.isRequired
         title        : rtypes.string.isRequired
 
     getDefaultProps: ->
-        button_label : 'Help'
         title        : 'Help'
 
     getInitialState: ->
         closed : true
 
-    render_title: ->
-        <span>
-            {@props.title}
-        </span>
+    close: ->
+        @setState(closed : true)
 
     render: ->
         if @state.closed
-            <div>
-                <Button bsStyle='info' onClick={=>@setState(closed:false)}><Icon name='question-circle'/> {@props.button_label}</Button>
-            </div>
-        else
-            <Well style={width:500, zIndex:10, boxShadow:'3px 3px 3px #aaa', position:'absolute'} className='well'>
-                <a href='' style={float:'right'} onClick={(e)=>e.preventDefault();@setState(closed:true)}><Icon name='times'/></a>
-                <h4>{@props.title}
-                </h4>
-                <div style={help_text}>
+            <a onClick={(e)=>e.preventDefault();@setState(closed:false)}><Icon style={color:'#5bc0de'} name='question-circle'/></a>
+        else if not @state.closed
+            <Modal show={not @state.closed} onHide={@close}>
+                <Modal.Header closeButton>
+                    <Modal.Title>{@props.title}</Modal.Title>
+                </Modal.Header>
+                <Modal.Body>
                     {@props.children}
-                </div>
-            </Well>
-
+                </Modal.Body>
+                <Modal.Footer>
+                    <Button onClick={@close}>Close</Button>
+                </Modal.Footer>
+            </Modal>
 
 ###
 # Customized TimeAgo support
@@ -513,38 +554,133 @@ timeago_formatter = (value, unit, suffix, date) ->
     return "#{value} #{unit} #{suffix}"
 
 TimeAgo = require('react-timeago').default
-exports.TimeAgo = rclass
-    displayName : 'Misc-TimeAgo'
+
+# date0 and date1 are string, Date object or number
+# This is just used for updates, so is_different if there
+# is a chance they are different
+exports.is_different_date = is_different_date = (date0, date1) ->
+    t0 = typeof(date0)
+    t1 = typeof(date1)
+    if t0 != t1
+        return true
+    switch t0
+        when 'object'
+            return date0 - date1 != 0
+        else
+            return date0 != date1
+
+# this "element" can also be used without being connected to a redux store - e.g. for the "shared" statically rendered pages
+exports.TimeAgoElement = rclass
+    displayName : 'Misc-TimeAgoElement'
 
     propTypes :
-        popover   : rtypes.bool
-        placement : rtypes.string
-        tip       : rtypes.string     # optional body of the tip popover with title the original time.
+        popover           : rtypes.bool
+        placement         : rtypes.string
+        tip               : rtypes.string     # optional body of the tip popover with title the original time.
+        live              : rtypes.bool       # whether or not to auto-update
+        time_ago_absolute : rtypes.bool
+        date              : rtypes.oneOfType([rtypes.string, rtypes.object, rtypes.number])  # date object or something that convert to date
 
     getDefaultProps: ->
         popover   : true
         minPeriod : 45    # "minPeriod and maxPeriod now accept seconds not milliseconds. This matches the documentation."
         placement : 'top'
         # critical to use minPeriod>>1000, or things will get really slow in the client!!
-        # Also, given our custom formatter, anything more than about 45s is pointless (since we don't show seconds)
+        # Also, given our custom formatter, anything more frequent than about 45s is pointless (since we don't show seconds)
+        time_ago_absolute : false
+
+    render_timeago_element: (d) ->
+        <TimeAgo
+            title     = ''
+            date      = {d}
+            style     = {@props.style}
+            formatter = {timeago_formatter}
+            minPeriod = {@props.minPeriod}
+            live      = {@props.live ? true}
+        />
 
     render_timeago: (d) ->
-        <TimeAgo title='' date={d} style={@props.style} formatter={timeago_formatter} minPeriod={@props.minPeriod} />
-
-    render: ->
-        d = if misc.is_date(@props.date) then @props.date else new Date(@props.date)
-        if isNaN(d)  # http://stackoverflow.com/questions/1353684/detecting-an-invalid-date-date-instance-in-javascript
-            # This can and does happen!  Passing this to the third party TimeAgo component
-            # goes ballistic and crashes react (lame, but whatever).
-            return <div>Invalid Date</div>
         if @props.popover
             s = d.toLocaleString()
             <Tip title={s} tip={@props.tip} id={s} placement={@props.placement}>
-                {@render_timeago(d)}
+                {@render_timeago_element(d)}
             </Tip>
+        else
+            @render_timeago_element(d)
+
+    render_absolute: (d) ->
+        <span>{d.toLocaleString()}</span>
+
+    render: ->
+        d = if misc.is_date(@props.date) then @props.date else new Date(@props.date)
+        try
+            d.toISOString()
+        catch
+            # NOTE: Using isNaN might not work on all browsers, so we use try/except
+            # See https://github.com/sagemathinc/cocalc/issues/2069
+            return <span>Invalid Date</span>
+
+        if @props.time_ago_absolute
+            @render_absolute(d)
         else
             @render_timeago(d)
 
+TimeAgoWrapper = rclass
+    displayName : 'Misc-TimeAgoWrapper'
+
+    propTypes :
+        popover   : rtypes.bool
+        placement : rtypes.string
+        tip       : rtypes.string     # optional body of the tip popover with title the original time.
+        live      : rtypes.bool       # whether or not to auto-update
+        date      : rtypes.oneOfType([rtypes.string, rtypes.object, rtypes.number])  # date object or something that convert to date
+
+    reduxProps :
+        account :
+            other_settings : rtypes.immutable.Map
+
+    shouldComponentUpdate: (props) ->
+        return is_different_date(@props.date, props.date) or \
+               misc.is_different(@props, props, ['popover', 'placement', 'tip', 'live']) or \
+               @props.other_settings?.get('time_ago_absolute') != props.other_settings?.get('time_ago_absolute')
+
+    render: ->
+        <exports.TimeAgoElement
+            date              = {@props.date}
+            popover           = {@props.popover}
+            placement         = {@props.placement}
+            tip               = {@props.tip}
+            live              = {@props.live}
+            time_ago_absolute = {@props.other_settings?.get('time_ago_absolute') ? false}
+        />
+
+# The TimeAgoWrapper above is absolutely really necessary **until** the react rewrite is completely
+# done.  The reason is that currently we have some non-redux new react stuff that has timeago init,
+# e.g., for the TimeTravel view.
+exports.TimeAgo = rclass
+    displayName : 'Misc-TimeAgo-redux'
+
+    propTypes :
+        popover   : rtypes.bool
+        placement : rtypes.string
+        tip       : rtypes.string     # optional body of the tip popover with title the original time.
+        live      : rtypes.bool       # whether or not to auto-update
+        date      : rtypes.oneOfType([rtypes.string, rtypes.object, rtypes.number])  # date object or something that convert to date
+
+    shouldComponentUpdate: (props) ->
+        return is_different_date(@props.date, props.date) or \
+               misc.is_different(@props, props, ['popover', 'placement', 'tip', 'live'])
+
+    render: ->
+        <Redux redux={redux}>
+            <TimeAgoWrapper
+                date      = {@props.date}
+                popover   = {@props.popover}
+                placement = {@props.placement}
+                tip       = {@props.tip}
+                live      = {@props.live}
+            />
+        </Redux>
 
 # Important:
 # widget can be controlled or uncontrolled -- use default_value for an *uncontrolled* widget
@@ -558,7 +694,8 @@ exports.TimeAgo = rclass
 exports.SearchInput = rclass
     displayName : 'Misc-SearchInput'
 
-    propTypes :
+    propTypes :   # style, and the on_ functions changes do not cause component update
+        style           : rtypes.object
         autoFocus       : rtypes.bool
         autoSelect      : rtypes.bool
         placeholder     : rtypes.string
@@ -572,6 +709,11 @@ exports.SearchInput = rclass
         on_clear        : rtypes.func    # invoked without arguments when input box is cleared (eg. via esc or clicking the clear button)
         clear_on_submit : rtypes.bool    # if true, will clear search box on every submit (default: false)
         buttonAfter     : rtypes.object
+
+    shouldComponentUpdate: (props, state) ->
+        return misc.is_different(@state, state, ['value', 'ctrl_down']) or \
+               misc.is_different(@props, props, ['clear_on_submit', 'autoFocus', 'autoSelect', 'placeholder', \
+                                                 'default_value',  'value'])
 
     getInitialState: ->
         value     : (@props.value || @props.default_value) ? ''
@@ -642,7 +784,7 @@ exports.SearchInput = rclass
         @clear_value()
 
     render: ->
-        <FormGroup>
+        <FormGroup style={@props.style}>
             <InputGroup>
                 <FormControl
                     autoFocus   = {@props.autoFocus}
@@ -660,48 +802,56 @@ exports.SearchInput = rclass
             </InputGroup>
         </FormGroup>
 
-exports.HTML = rclass
-    displayName : 'Misc-HTML'
+# rendered_mathjax is used for backend pre-rendering of mathjax by the share server.
+rendered_mathjax = undefined
+exports.set_rendered_mathjax = (value, html) ->
+    rendered_mathjax ?= {}
+    if rendered_mathjax[value]?
+        rendered_mathjax[value].ref += 1
+    else
+        rendered_mathjax[value] = {html:html, ref:1}
+
+exports.HTML = HTML = rclass
+    displayName : 'Misc-HTML' # this name is assumed and USED in the smc-hub/share/mathjax-support to identify this component; do NOT change!
 
     propTypes :
-        value          : rtypes.string
-        style          : rtypes.object
-        has_mathjax    : rtypes.bool
-        project_id     : rtypes.string   # optional -- can be used to improve link handling (e.g., to images)
-        file_path      : rtypes.string   # optional -- ...
-        className      : rtypes.string   # optional class
-        safeHTML       : rtypes.bool     # optional -- default true, if true scripts and unsafe attributes are removed from sanitized html
-        href_transform : rtypes.func     # optional function that link/src hrefs are fed through
-        post_hook      : rtypes.func     # optional function post_hook(elt), which should mutate elt, where elt is
-                                         # the jQuery wrapped set that is created (and discarded!) in the course of
-                                         # sanitizing input.  Use this as an opportunity to modify the HTML structure
-                                         # before it is exported to text and given to react.   Obviously, you can't
-                                         # install click handlers here.
+        value            : rtypes.string
+        style            : rtypes.object
+        auto_render_math : rtypes.bool     # optional -- used to detect and render math
+        only_mathjax     : rtypes.bool     # optional -- used to render math only with mathjax if auto_render_math is true
+        project_id       : rtypes.string   # optional -- can be used to improve link handling (e.g., to images)
+        file_path        : rtypes.string   # optional -- ...
+        className        : rtypes.string   # optional class
+        safeHTML         : rtypes.bool     # optional -- default true, if true scripts and unsafe attributes are removed from sanitized html
+        href_transform   : rtypes.func     # optional function that link/src hrefs are fed through
+        post_hook        : rtypes.func     # optional function post_hook(elt), which should mutate elt, where elt is
+                                           # the jQuery wrapped set that is created (and discarded!) in the course of
+                                           # sanitizing input.  Use this as an opportunity to modify the HTML structure
+                                           # before it is exported to text and given to react.   Obviously, you can't
+                                           # install click handlers here.
+        highlight        : rtypes.immutable.Set
+        content_editable : rtypes.bool     # if true, makes rendered HTML contenteditable
+        id               : rtypes.string
 
     getDefaultProps: ->
-        has_mathjax : true
-        safeHTML    : true
+        auto_render_math : true
+        safeHTML         : true
 
-    shouldComponentUpdate: (newProps) ->
-        return @props.value != newProps.value or \
-             not underscore.isEqual(@props.style, newProps.style) or \
-             @props.safeHTML != newProps.safeHTML
+    reduxProps :
+        account :
+            other_settings : rtypes.immutable.Map
 
-    ###
-    # Seems no longer necessary and *DOES* break massively on Safari! -- see https://github.com/sagemathinc/cocalc/issues/1895
-    _update_escaped_chars: ->
-        if not @_is_mounted
-            return
-        node = $(ReactDOM.findDOMNode(@))
-        node.html(node[0].innerHTML.replace(/\\\$/g, '$'))
-    ###
+    shouldComponentUpdate: (next) ->
+        return misc.is_different(@props, next, ['value', 'auto_render_math', 'highlight', 'safeHTML']) or \
+               not underscore.isEqual(@props.style, next.style)
 
     _update_mathjax: (cb) ->
         if not @_is_mounted  # see https://github.com/sagemathinc/cocalc/issues/1689
             cb()
             return
-        if @props.has_mathjax
+        if @_needs_mathjax
             $(ReactDOM.findDOMNode(@)).mathjax
+                hide_when_rendering : false
                 cb : () =>
                     # Awkward code, since cb may be called more than once if there
                     # where more than one node.
@@ -709,6 +859,12 @@ exports.HTML = rclass
                     cb = undefined
         else
             cb()
+
+    _update_highlight: ->
+        if not @_is_mounted or not @props.highlight?
+            return
+        # Use jquery-highlight, which is a pretty serious walk of the DOM tree, etc.
+        $(ReactDOM.findDOMNode(@)).highlight(@props.highlight.toJS())
 
     _update_links: ->
         if not @_is_mounted
@@ -726,13 +882,18 @@ exports.HTML = rclass
     update_content: ->
         if not @_is_mounted
             return
-        # orchestrates the _update_* methods
-        @_update_mathjax =>
-            if not @_is_mounted
-                return
-            #@_update_escaped_chars()
-            @_update_links()   # this MUST be after update_escaped_chars -- see https://github.com/sagemathinc/cocalc/issues/1391
+
+        if @_needs_mathjax
+            @_update_mathjax =>
+                if not @_is_mounted
+                    return
+                @_update_links()
+                @_update_tables()
+                @_update_highlight()
+        else
+            @_update_links()
             @_update_tables()
+            @_update_highlight()
 
     componentDidUpdate: ->
         @update_content()
@@ -747,60 +908,99 @@ exports.HTML = rclass
         @_is_mounted = false
 
     render_html: ->
-        if @props.value
-            if @props.safeHTML
-                html = require('./misc_page').sanitize_html_safe(@props.value, @props.post_hook)
-            else
-                html = require('./misc_page').sanitize_html(@props.value, true, true, @props.post_hook)
-            {__html: html}
+        if not @props.value
+            return {__html: ''}
+
+        if @props.auto_render_math and rendered_mathjax?
+            x = rendered_mathjax?[@props.value]
+            if x?
+                x.ref -= 1
+                if x.ref <= 0
+                    delete rendered_mathjax?[@props.value]
+                return {__html:x.html}
+
+        if @props.safeHTML
+            html = require('./misc_page').sanitize_html_safe(@props.value, @props.post_hook)
         else
-            {__html: ''}
+            html = require('./misc_page').sanitize_html(@props.value, true, true, @props.post_hook)
+
+        if @props.auto_render_math
+            @_needs_mathjax = true
+            if @props.other_settings?.get('katex')
+                # try using katex:
+                {html, is_complete} = math_katex.render(html)
+                @_needs_mathjax = not is_complete
+
+        return {__html: html}
 
     render: ->
-        <span
-            className               = {@props.className}
-            dangerouslySetInnerHTML = {@render_html()}
-            style                   = {@props.style}>
-        </span>
+        # the random key is the whole span (hence the html) does get rendered whenever
+        # this component is updated.  Otherwise, it will NOT re-render except when the value changes.
+        if @props.content_editable
+            <div
+                id                      = {@props.id}
+                contentEditable         = {true}
+                key                     = {Math.random()}
+                className               = {@props.className}
+                dangerouslySetInnerHTML = {@render_html()}
+                style                   = {@props.style} >
+            </div>
+        else
+            <span
+                id                      = {@props.id}
+                key                     = {Math.random()}
+                className               = {@props.className}
+                dangerouslySetInnerHTML = {@render_html()}
+                style                   = {@props.style} >
+            </span>
 
 exports.Markdown = rclass
     displayName : 'Misc-Markdown'
 
     propTypes :
-        value          : rtypes.string
-        style          : rtypes.object
-        project_id     : rtypes.string   # optional -- can be used to improve link handling (e.g., to images)
-        file_path      : rtypes.string   # optional -- ...
-        className      : rtypes.string   # optional class
-        safeHTML       : rtypes.bool     # optional -- default true, if true scripts and unsafe attributes are removed from sanitized html
-        href_transform : rtypes.func     # optional function used to first transform href target strings
-        post_hook      : rtypes.func     # see docs to HTML
+        value            : rtypes.string
+        style            : rtypes.object
+        project_id       : rtypes.string   # optional -- can be used to improve link handling (e.g., to images)
+        file_path        : rtypes.string   # optional -- ...
+        className        : rtypes.string   # optional class
+        safeHTML         : rtypes.bool     # optional -- default true, if true scripts and unsafe attributes are removed from sanitized html
+
+        href_transform   : rtypes.func     # optional function used to first transform href target strings
+        post_hook        : rtypes.func     # see docs to HTML
+        highlight        : rtypes.immutable.Set
+        auto_render_math : rtypes.bool     # render math
+        content_editable : rtypes.bool     # if true, makes rendered Markdown contenteditable
+        checkboxes       : rtypes.bool     # if true, replace "[ ]" and "[ ]" by nice rendered versions.
+        id               : rtypes.string
 
     getDefaultProps: ->
-        safeHTML : true
+        auto_render_math : true
+        safeHTML         : true
+
+    shouldComponentUpdate: (next) ->
+        return misc.is_different(@props, next, ['value', 'auto_render_math', 'highlight', 'safeHTML', 'checkboxes']) or \
+               not underscore.isEqual(@props.style, next.style)
 
     to_html: ->
-        if @props.value
-            # change escaped characters back for markdown processing
-            v = @props.value.replace(/&gt;/g, '>').replace(/&lt;/g, '<')
-            return markdown.markdown_to_html(v)
-        else
-            {s: '', has_mathjax: false}
+        if not @props.value
+            return
+        return markdown.markdown_to_html(@props.value, {checkboxes:@props.checkboxes})
 
     render: ->
-        HTML = exports.HTML
-        value = @to_html()
-        #if DEBUG then console.log('Markdown.to_html value', value.s, value.has_mathjax)
         <HTML
-            value          = {value.s}
-            has_mathjax    = {value.has_mathjax}
-            style          = {@props.style}
-            project_id     = {@props.project_id}
-            file_path      = {@props.file_path}
-            className      = {@props.className}
-            href_transform = {@props.href_transform}
-            post_hook      = {@props.post_hook}
-            safeHTML       = {@props.safeHTML} />
+            id               = {@props.id}
+            value            = {@to_html()}
+            auto_render_math = {@props.auto_render_math}
+            style            = {@props.style}
+            project_id       = {@props.project_id}
+            file_path        = {@props.file_path}
+            className        = {@props.className}
+            href_transform   = {@props.href_transform}
+            post_hook        = {@props.post_hook}
+            highlight        = {@props.highlight}
+            safeHTML         = {@props.safeHTML}
+            content_editable = {@props.content_editable} />
+
 
 activity_style =
     float           : 'right'
@@ -823,9 +1023,13 @@ exports.ActivityDisplay = rclass
     displayName : 'ActivityDisplay'
 
     propTypes :
-        activity : rtypes.array.isRequired   # array of strings
+        activity : rtypes.array.isRequired   # array of strings  -- only changing this causes re-render
         trunc    : rtypes.number             # truncate activity messages at this many characters (default: 80)
         on_clear : rtypes.func               # if given, called when a clear button is clicked
+        style    : rtypes.object             # additional styles to be merged onto activity_style
+
+    shouldComponentUpdate: (next) ->
+        return misc.is_different_array(@props.activity, next.activity)
 
     render_items: ->
         n = @props.trunc ? 80
@@ -837,7 +1041,10 @@ exports.ActivityDisplay = rclass
 
     render: ->
         if misc.len(@props.activity) > 0
-            <div key='activity' style={activity_style}>
+            if @props.style
+                adjusted_style = Object.assign({}, activity_style, @props.style)
+
+            <div key='activity' style={adjusted_style ? activity_style}>
                 {<CloseX on_close={@props.on_clear} /> if @props.on_clear?}
                 {@render_items() if @props.activity.length > 0}
             </div>
@@ -848,16 +1055,24 @@ exports.Tip = Tip = rclass
     displayName : 'Tip'
 
     propTypes :
-        title     : rtypes.oneOfType([rtypes.string, rtypes.node]).isRequired
+        title     : rtypes.oneOfType([rtypes.string, rtypes.node]).isRequired  # not checked for update
         placement : rtypes.string   # 'top', 'right', 'bottom', left' -- defaults to 'right'
-        tip       : rtypes.oneOfType([rtypes.string, rtypes.node])
+        tip       : rtypes.oneOfType([rtypes.string, rtypes.node])              # not checked for update
         size      : rtypes.string   # "xsmall", "small", "medium", "large"
         delayShow : rtypes.number
         delayHide : rtypes.number
         rootClose : rtypes.bool
         icon      : rtypes.string
         id        : rtypes.string   # can be used for screen readers (otherwise defaults to title)
-        style     : rtypes.object
+        style     : rtypes.object   # changing not checked when updating if stable is true
+        stable    : rtypes.bool     # if true, children assumed to never change
+
+    shouldComponentUpdate: (props, state) ->
+        return not @props.stable or \
+               @props.always_update or \
+               @state.display_trigger != state.display_trigger or \
+               misc.is_different(@props, props, ['placement', 'size', 'delayShow', \
+                                                 'delayHide', 'rootClose', 'icon', 'id'])
 
     getDefaultProps: ->
         placement : 'right'
@@ -931,7 +1146,7 @@ exports.SaveButton = rclass
 
     render: ->
         <Button bsStyle='success' disabled={@props.saving or not @props.unsaved} onClick={@props.on_click}>
-            <Icon name='save' /> Sav{if @props.saving then <span>ing... <Icon name='cc-icon-cocalc-ring' spin /></span> else <span>e</span>}
+            <Icon name='save' /> <VisibleMDLG>Sav{if @props.saving then <span>ing... <Icon name='cc-icon-cocalc-ring' spin /></span> else <span>e</span>}</VisibleMDLG>
         </Button>
 
 # Component to attempt opening an smc path in a project
@@ -980,7 +1195,7 @@ exports.PathLink = rclass
             @render_link(name)
 
 Globalize = require('globalize')
-globalizeLocalizer = require('react-widgets/lib/localizers/globalize')
+globalizeLocalizer = require('react-widgets-globalize')
 globalizeLocalizer(Globalize)
 
 DateTimePicker = require('react-widgets/lib/DateTimePicker')
@@ -998,16 +1213,29 @@ exports.DateTimePicker = rclass
     displayName : 'Misc-DateTimePicker'
 
     propTypes :
-        value     : rtypes.oneOfType([rtypes.string, rtypes.object])
-        on_change : rtypes.func.isRequired
+        value       : rtypes.oneOfType([rtypes.string, rtypes.object])
+        on_change   : rtypes.func.isRequired
+        on_focus    : rtypes.func
+        on_blur     : rtypes.func
+        autoFocus   : rtypes.bool
+        onKeyDown   : rtypes.func
+        defaultOpen : rtypes.oneOf([false, 'time', 'date'])
+
+    getDefaultProps: ->
+        defaultOpen : 'date'
 
     render: ->
         <DateTimePicker
-            step       = {60}
-            editFormat = {'MMM d, yyyy h:mm tt'}
-            parse      = {DATETIME_PARSE_FORMATS}
-            value      = {@props.value}
-            onChange   = {@props.on_change}
+            step        = {60}
+            editFormat  = {'MMM d, yyyy h:mm tt'}
+            format      = {'MMM d, yyyy h:mm tt'}
+            parse       = {DATETIME_PARSE_FORMATS}
+            value       = {@props.value}
+            onChange    = {@props.on_change}
+            onFocus     = {@props.on_focus}
+            onBlur      = {@props.on_blur}
+            autoFocus   = {@props.autoFocus}
+            defaultOpen = {@props.defaultOpen}
         />
 
 Calendar = require('react-widgets/lib/Calendar')
@@ -1025,7 +1253,6 @@ exports.Calendar = rclass
             onChange     = {@props.on_change}
         />
 
-# WARNING: the keys of the input components must not be small negative integers
 exports.r_join = (components, sep=', ') ->
     v = []
     n = misc.len(components)
@@ -1082,8 +1309,6 @@ exports.DirectoryInput = rclass
             onKeyUp      = {@props.on_key_up}
         />
 
-#onChange     = {(value) => @props.on_change(value.trim()); console.log(value)}
-
 # A warning to put on pages when the project is deleted
 # TODO: use this in more places
 exports.DeletedProjectWarning = ->
@@ -1103,13 +1328,13 @@ project_warning_opts = (opts) ->
     total = upgrades_you_can_use?[upgrade_type] ? 0
     used  = upgrades_you_applied_to_all_projects?[upgrade_type] ? 0
     x =
-        total          : total
-        used           : used
-        avail          : total - used
-        course_warning : exports.course_warning(course_info?.get?('pay'))  # no *guarantee* that course_info is immutable.js since just comes from database
-        course_info    : opts.course_info
-        account_id     : account_id
-        email_address  : email_address
+        total                 : total
+        used                  : used
+        avail                 : total - used
+        course_warning        : exports.course_warning(course_info?.get?('pay'))  # no *guarantee* that course_info is immutable.js since just comes from database
+        course_info           : opts.course_info
+        account_id            : account_id
+        email_address         : email_address
     return x
 
 exports.CourseProjectExtraHelp = CourseProjectExtraHelp = ->
@@ -1165,11 +1390,12 @@ exports.NonMemberProjectWarning = (opts) ->
         if total > 0
             suggestion = <span>Your {total} members-only hosting {misc.plural(total,'upgrade')} are already in use on other projects.  You can <a href={url} target='_blank' style={cursor:'pointer'}>purchase further upgrades </a> by adding a subscription (you can add the same subscription multiple times), or disable member-only hosting for another project to free a spot up for this one.</span>
         else
-            suggestion = <span><Space /><a href={url} target='_blank' style={cursor:'pointer'}>Subscriptions start at only $7/month.</a></span>
+            suggestion = <span><Space /><a href={url} target='_blank' style={cursor:'pointer'}>Subscriptions start at only $14/month.</a></span>
 
     <Alert bsStyle='warning' style={marginTop:'10px'}>
         <h4><Icon name='exclamation-triangle'/>  Warning: this project is <strong>running on a free server</strong></h4>
         <p>
+            <Space />
             Projects running on free servers compete for resources with a large number of other free projects.
             The free servers are <b><i>randomly rebooted frequently</i></b>,
             and are often <b><i>much more heavily loaded</i></b> than members-only servers.
@@ -1187,7 +1413,7 @@ exports.NoNetworkProjectWarning = (opts) ->
         if total > 0
             suggestion = <span>Your {total} internet access {misc.plural(total,'upgrade')} are already in use on other projects.  You can <a href={url} target='_blank' style={cursor:'pointer'}>purchase further upgrades </a> by adding a subscription (you can add the same subscription multiple times), or disable an internet access upgrade for another project to free a spot up for this one.</span>
         else
-            suggestion = <span><Space /><a href={url} target='_blank' style={cursor:'pointer'}>Subscriptions start at only $7/month.</a></span>
+            suggestion = <span><Space /><a href={url} target='_blank' style={cursor:'pointer'}>Subscriptions start at only $14/month.</a></span>
 
     <Alert bsStyle='warning' style={marginTop:'10px'}>
         <h4><Icon name='exclamation-triangle'/>  Warning: this project <strong>does not have full internet access</strong></h4>
@@ -1214,46 +1440,62 @@ exports.ProjectState = rclass
     displayName : 'Misc-ProjectState'
 
     propTypes :
-        state : rtypes.string
+        state     : rtypes.string
+        show_desc : rtypes.bool
 
     getDefaultProps: ->
-        state : 'unknown'
+        state     : 'unknown'
+        show_desc : false
 
     render_spinner:  ->
         <span>... <Icon name='cc-icon-cocalc-ring' spin /></span>
+
+    render_desc: (desc) ->
+        if not @props.show_desc
+            return
+        <span>
+            <br/>
+            <span style={fontSize:'11pt'}>
+                {desc}
+            </span>
+        </span>
 
     render: ->
         s = COMPUTE_STATES[@props.state]
         if not s?
             return <Loading />
         {display, desc, icon, stable} = s
-        <Tip title={display} tip={desc}>
+        <span>
             <Icon name={icon} /> {display} {@render_spinner() if not stable}
-        </Tip>
+            {@render_desc(desc)}
+        </span>
 
 
 # info button inside the editor when editing a file. links you back to the file listing with the action prompted
 # TODO: move this somewhere else once editor is rewritten
 {DropdownButton, MenuItem} = require('react-bootstrap')
-EditorFileInfoDropdown = rclass
+exports.EditorFileInfoDropdown = EditorFileInfoDropdown = rclass
     displayName : 'Misc-EditorFileInfoDropdown'
 
     propTypes :
         filename  : rtypes.string.isRequired # expects the full path name
         actions   : rtypes.object.isRequired
         is_public : rtypes.bool
+        bsSize    : rtypes.string
+        label     : rtypes.string
+        style     : rtypes.object
+
+    shouldComponentUpdate: (next) ->
+        return next.filename != @props.filename or next.is_public != next.is_public
 
     getDefaultProps: ->
         is_public : false
+        style     : {marginRight:'2px'}
 
     handle_click: (name) ->
-        path_splitted = misc.path_split(@props.filename)
-        get_basename = ->
-                path_splitted.tail
-        @props.actions.open_directory(path_splitted.head)
-        @props.actions.set_all_files_unchecked()
-        @props.actions.set_file_checked(@props.filename, true)
-        @props.actions.set_file_action(name, get_basename)
+        @props.actions.show_file_action_panel
+            path   : @props.filename
+            action : name
 
     render_menu_item: (name, icon) ->
         <MenuItem onSelect={=>@handle_click(name)} key={name} >
@@ -1268,22 +1510,29 @@ EditorFileInfoDropdown = rclass
                 'copy'     : 'files-o'
         else
             # dynamically create a map from 'key' to 'icon'
-            {file_action_buttons} = require('./project_files')
-            items = _.object(([k, v.icon] for k, v of file_action_buttons))
+            {file_actions} = require('./project_store')
+            items = underscore.object(([k, v.icon] for k, v of file_actions))
 
         for name, icon of items
             @render_menu_item(name, icon)
 
-    render_dropdown_button: (bsSize, className) ->
-        <DropdownButton style={marginRight:'2px'} id='file_info_button' bsStyle='info' bsSize={bsSize} title={<Icon name='info-circle' />} className={className}>
-            {@render_menu_items()}
-        </DropdownButton>
+    render_title: ->
+        <span>
+            <span className={'hidden-xs'}>
+                <Icon name={'file'}/> {@props.label ? ''}
+                <Space />
+            </span>
+        </span>
 
     render: ->
-        <div>
-            {@render_dropdown_button('large', 'pull-left visible-xs')}
-            {@render_dropdown_button(null, 'pull-left hidden-xs')}
-        </div>
+        <DropdownButton
+            style   = {@props.style}
+            id      = 'file_info_button'
+            title   = {@render_title()}
+            bsSize  = {@props.bsSize}
+            >
+            {@render_menu_items()}
+        </DropdownButton>
 
 exports.render_file_info_dropdown = (filename, actions, dom_node, is_public) ->
     ReactDOM.render(<EditorFileInfoDropdown filename={filename} actions={actions} is_public={is_public} />, dom_node)
@@ -1318,7 +1567,7 @@ exports.NoUpgrades = NoUpgrades = rclass
 
 ###
  Takes current upgrades data and quota parameters and provides an interface for the user to update these parameters.
- submit_upgrade_quotas will recieve a javascript object in the same format as quota_params
+ submit_upgrade_quotas will receive a javascript object in the same format as quota_params
  cancel_upgrading takes no arguments and is called when the cancel button is hit.
 ###
 exports.UpgradeAdjustor = rclass
@@ -1332,11 +1581,13 @@ exports.UpgradeAdjustor = rclass
         upgrades_you_can_use                 : rtypes.object
         upgrades_you_applied_to_all_projects : rtypes.object
         upgrades_you_applied_to_this_project : rtypes.object
+        omit_header                          : rtypes.bool
 
     getDefaultProps: ->
         upgrades_you_can_use                 : {}
         upgrades_you_applied_to_all_projects : {}
         upgrades_you_applied_to_this_project : {}
+        omit_header                          : false
 
     getInitialState: ->
         state = {}
@@ -1353,7 +1604,7 @@ exports.UpgradeAdjustor = rclass
 
         return state
 
-     get_quota_info : ->
+    get_quota_info : ->
         # how much upgrade you currently use on this one project
         current = @props.upgrades_you_applied_to_this_project
         # how much unused upgrade you have remaining
@@ -1363,7 +1614,6 @@ exports.UpgradeAdjustor = rclass
         # additionally, the limits are capped by the maximum per project
         maximum = require('smc-util/schema').PROJECT_UPGRADES.max_per_project
         limits = misc.map_limit(limits, maximum)
-
         limits    : limits
         remaining : remaining
         current   : current
@@ -1422,19 +1672,19 @@ exports.UpgradeAdjustor = rclass
             show_remaining = Math.max(show_remaining, 0)
 
             if not @is_upgrade_input_valid(val, limit)
-                label = <div style=UPGRADE_ERROR_STYLE>Uncheck this: you do not have enough upgrades</div>
+                label = <div style={UPGRADE_ERROR_STYLE}>Uncheck this: you do not have enough upgrades</div>
             else
                 label = if val == 0 then 'Enable' else 'Enabled'
 
             <Row key={name} style={marginTop:'5px'}>
-                <Col sm=6>
+                <Col sm={6}>
                     <Tip title={display} tip={desc}>
                         <strong>{display}</strong>
                     </Tip>
                     <br/>
                     You have {show_remaining} unallocated {misc.plural(show_remaining, display_unit)}
                 </Col>
-                <Col sm=6>
+                <Col sm={6}>
                     <form>
                         <Checkbox
                             ref      = {"upgrade_#{name}"}
@@ -1465,9 +1715,9 @@ exports.UpgradeAdjustor = rclass
             if not @is_upgrade_input_valid(val, limit)
                 bs_style = 'error'
                 if misc.parse_number_input(val)?
-                    label = <div style=UPGRADE_ERROR_STYLE>Value too high: not enough upgrades or exceeding limit</div>
+                    label = <div style={UPGRADE_ERROR_STYLE}>Value too high: not enough upgrades or exceeding limit</div>
                 else
-                    label = <div style=UPGRADE_ERROR_STYLE>Please enter a number</div>
+                    label = <div style={UPGRADE_ERROR_STYLE}>Please enter a number</div>
             else
                 label = <span></span>
 
@@ -1485,14 +1735,14 @@ exports.UpgradeAdjustor = rclass
                 remaining_note = <span>You have {remaining_all} unallocated {unit}</span>
 
             <Row key={name} style={marginTop:'5px'}>
-                <Col sm=6>
+                <Col sm={6}>
                     <Tip title={display} tip={desc}>
                         <strong>{display}</strong>
                     </Tip>
                     <br/>
                     {remaining_note}
                 </Col>
-                <Col sm=6>
+                <Col sm={6}>
                     <FormGroup>
                         <InputGroup>
                             <FormControl
@@ -1583,16 +1833,19 @@ exports.UpgradeAdjustor = rclass
             maximum = require('smc-util/schema').PROJECT_UPGRADES.max_per_project
             limits = misc.map_limit(limits, maximum)
 
-            <Alert bsStyle='warning'>
-                <h3><Icon name='arrow-circle-up' /> Adjust your project quota contributions</h3>
+            <Alert bsStyle='warning' style={@props.style}>
+                {<React.Fragment>
+                    <h3><Icon name='arrow-circle-up' /> Adjust your project quota contributions</h3>
 
-                <span style={color:"#666"}>Adjust <i>your</i> contributions to the quotas on this project (disk space, memory, cores, etc.).  The total quotas for this project are the sum of the contributions of all collaborators and the free base quotas.</span>
-                <hr/>
+                    <span style={color:"#666"}>Adjust <i>your</i> contributions to the quotas on this project (disk space, memory, cores, etc.).  The total quotas for this project are the sum of the contributions of all collaborators and the free base quotas.  Go to "Account --> Upgrades" to see how your upgrades are currently allocated.
+                    </span>
+                    <hr/>
+                </React.Fragment> if not @props.omit_header}
                 <Row>
-                    <Col md=1>
+                    <Col md={2}>
                         <b style={fontSize:'12pt'}>Quota</b>
                     </Col>
-                    <Col md=5>
+                    <Col md={4}>
                         <Button
                             bsSize  = 'xsmall'
                             onClick = {@max_upgrades}
@@ -1609,13 +1862,14 @@ exports.UpgradeAdjustor = rclass
                             Remove all upgrades
                         </Button>
                     </Col>
-                    <Col md=6>
+                    <Col md={6}>
                         <b style={fontSize:'12pt'}>Your contribution</b>
                     </Col>
                 </Row>
                 <hr/>
 
                 {@render_upgrade_row(n, quota_params[n], remaining[n], current[n], limits[n]) for n in PROJECT_UPGRADES.field_order}
+                <UpgradeRestartWarning />
                 {@props.children}
                 <ButtonToolbar style={marginTop:'10px'}>
                     <Button
@@ -1623,10 +1877,87 @@ exports.UpgradeAdjustor = rclass
                         onClick  = {=>@save_upgrade_quotas(remaining)}
                         disabled = {@props.disable_submit or not @valid_changed_upgrade_inputs(current, limits)}
                     >
-                        <Icon name='arrow-circle-up' /> {if @props.submit_text then @props.submit_text else "Submit changes"}
+                        <Icon name='arrow-circle-up' /> {if @props.submit_text then @props.submit_text else "Save changes"}
                     </Button>
                     <Button onClick={@props.cancel_upgrading}>
                         Cancel
                     </Button>
                 </ButtonToolbar>
             </Alert>
+
+# Takes a value and makes it highlight on click
+# Has a copy to clipboard button by default on the end
+# See prop descriptions for more details
+exports.CopyToClipBoard = rclass
+    propTypes:
+        value         : rtypes.string
+        button_before : rtypes.element # Optional button to place before the copy text
+        hide_after    : rtypes.bool    # Hide the default after button
+
+    getInitialState: ->
+        show_tooltip : false
+
+    on_button_click: (e) ->
+        @setState(show_tooltip : true)
+        setTimeout(@close_tool_tip, 2000)
+        copy_to_clipboard(@props.value)
+
+    close_tool_tip: ->
+        return if not @state.show_tooltip
+        @setState(show_tooltip : false)
+
+    render_button_after: ->
+        <InputGroup.Button>
+            <Overlay
+                show      = {@state.show_tooltip}
+                target    = {() => ReactDOM.findDOMNode(@refs.clipboard_button)}
+                placement = 'bottom'
+            >
+                <Tooltip id='copied'>Copied!</Tooltip>
+            </Overlay>
+            <Button
+                ref     = "clipboard_button"
+                onClick = {@on_button_click}
+            >
+                <Icon name='clipboard'/>
+            </Button>
+        </InputGroup.Button>
+
+    render: ->
+        <FormGroup>
+            <InputGroup>
+                {<InputGroup.Button>
+                    {@props.button_before}
+                </InputGroup.Button> if @props.button_before?}
+                <FormControl
+                    type     = "text"
+                    readOnly = {true}
+                    style    = {cursor:"default"}
+                    onClick  = {(e)=>e.target.select()}
+                    value    = {@props.value}
+                />
+                {@render_button_after() unless @props.hide_after}
+            </InputGroup>
+        </FormGroup>
+
+# See https://getbootstrap.com/docs/3.3/css/
+# HiddenXS = hide if width < 768px
+exports.HiddenXS = rclass
+    render: ->
+        <span className={'hidden-xs'}>
+            {@props.children}
+        </span>
+
+# VisibleMDLG = visible on medium or large devices (anything with width > 992px)
+exports.VisibleMDLG = VisibleMDLG = rclass
+    render: ->
+        <span className={'visible-md-inline visible-lg-inline'}>
+            {@props.children}
+        </span>
+
+# VisibleMDLG = visible on medium or large devices (anything with width > 992px)
+exports.VisibleLG = rclass
+    render: ->
+        <span className={'visible-lg-inline'}>
+            {@props.children}
+        </span>

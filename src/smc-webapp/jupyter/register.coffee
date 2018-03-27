@@ -6,17 +6,14 @@ Register the Jupyter Notebook editor and viwer with SMC
 
 misc                   = require('smc-util/misc')
 
-{register_file_editor} = require('../project_file')
-{webapp_client}        = require('../webapp_client')
+{register_file_editor} = require('../file-editors')
 {alert_message}        = require('../alerts')
 {redux_name}           = require('../smc-react')
+{webapp_client}        = require('../webapp_client')
 
 {JupyterEditor}        = require('./main')
 {JupyterActions}       = require('./actions')
 {JupyterStore}         = require('./store')
-
-{NBViewer}             = require('./nbviewer')
-{NBViewerActions}      = require('./nbviewer-actions')
 
 exports.register = ->
     register_file_editor
@@ -79,35 +76,10 @@ exports.register = ->
             actions = redux.getActions(name)
             actions?.save()
 
-
-    register_file_editor
-        ext       : ['ipynb']
-
-        is_public : true
-
-        icon      : 'list-alt'
-
-        component : NBViewer
-
-        init      : (path, redux, project_id) ->
-            name = redux_name(project_id, path)
-            if redux.getActions(name)?
-                return name  # already initialized
-            actions = redux.createActions(name, NBViewerActions)
-            store   = redux.createStore(name)
-            actions._init(project_id, path, store, webapp_client)
-            return name
-
-        remove    : (path, redux, project_id) ->
-            name = redux_name(project_id, path)
-            actions = redux.getActions(name)
-            actions?.close()
-            store = redux.getStore(name)
-            if not store?
-                return
-            delete store.state
-            redux.removeStore(name)
-            redux.removeActions(name)
-            return name
-
 exports.register()
+
+# separated out so can be used on backend
+require('./register-nbviewer').register(webapp_client)
+
+# Temporary so long as we support jupyter classic
+require('./jupyter-classic-support')

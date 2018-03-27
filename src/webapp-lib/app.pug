@@ -8,10 +8,10 @@ html(lang="en")
     title= fulltitle
   body
     style.
-      #{require('!css?minimize!app-startup-style.css')}
+      #{require('!css-loader?minimize!app-startup-style.css')}
     div#smc-startup-banner
       div.banner-blink
-        img(src=require('!url?mimetype=image/svg+xml!cocalc-icon-white-transparent.svg'))
+        img(src=require('!url-loader?mimetype=image/svg+xml!cocalc-icon-white-transparent.svg'))
       div.banner-error
         div.message
           | Something bad must have happened.
@@ -29,6 +29,7 @@ html(lang="en")
         script(type="text/javascript" src="base_url.js")
 
     script(type="text/javascript").
+        window.webapp_initial_start_time = (new Date()).getTime();
         function smcLoadStatus(msg) {
         try { document.getElementById("smc-startup-banner-status").innerHTML = msg; } catch(e) {}}
 

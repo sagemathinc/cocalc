@@ -127,6 +127,8 @@ exports.sign_in = (opts) ->
 
     signed_in_mesg = undefined
     account = undefined
+    {api_key_action} = require('./api/manage')   # here, rather than at beginnig of file, due to some circular references...
+
     async.series([
         (cb) ->
             dbg("get account and check credentials")
@@ -159,20 +161,46 @@ exports.sign_in = (opts) ->
                         cb()
         # remember me
         (cb) ->
-            if mesg.remember_me
-                dbg("remember_me -- setting the remember_me cookie")
-                signed_in_mesg = message.signed_in
-                    id            : mesg.id
-                    account_id    : account.account_id
-                    email_address : mesg.email_address
-                    remember_me   : false
-                    hub           : opts.host + ':' + opts.port
-                client.remember_me
-                    account_id    : signed_in_mesg.account_id
-                    email_address : signed_in_mesg.email_address
-                    cb            : cb
-            else
-                cb()
+            if not mesg.remember_me
+                # do not set cookie if already set (and message known)
+                cb(); return
+            dbg("remember_me -- setting the remember_me cookie")
+            signed_in_mesg = message.signed_in
+                id            : mesg.id
+                account_id    : account.account_id
+                email_address : mesg.email_address
+                remember_me   : false
+                hub           : opts.host + ':' + opts.port
+                utm           : mesg.utm
+                referrer      : mesg.referrer
+            client.remember_me
+                account_id    : signed_in_mesg.account_id
+                email_address : signed_in_mesg.email_address
+                cb            : cb
+        (cb) ->
+            if not mesg.get_api_key
+                cb(); return
+            dbg("get_api_key -- also get_api_key")
+            api_key_action
+                database   : opts.database
+                account_id : account.account_id
+                password   : mesg.password
+                action     : 'get'
+                cb       : (err, api_key) =>
+                    signed_in_mesg.api_key = api_key
+                    cb(err)
+        (cb) ->
+            if not mesg.get_api_key or signed_in_mesg.api_key
+                cb(); return
+            dbg("get_api_key -- must generate key since don't already have it")
+            api_key_action
+                database   : opts.database
+                account_id : account.account_id
+                password   : mesg.password
+                action     : 'regenerate'
+                cb       : (err, api_key) =>
+                    signed_in_mesg.api_key = api_key
+                    cb(err)
     ], (err) ->
         if err
             dbg("send error to user (in #{misc.walltime(tm)}seconds) -- #{err}")
@@ -286,16 +314,21 @@ exports.record_sign_in = (opts) ->
         database      : required
         email_address : undefined
         account_id    : undefined
+        utm           : undefined
+        referrer      : undefined
         remember_me   : false
     if not opts.successful
         record_sign_in_fail
             email : opts.email_address
             ip    : opts.ip_address
     else
+        data =
+            ip_address    : opts.ip_address
+            email_address : opts.email_address ? null
+            remember_me   : opts.remember_me
+            account_id    : opts.account_id
+        data.utm      = opts.utm      if opts.utm
+        data.referrer = opts.referrer if opts.referrer
         opts.database.log
             event : 'successful_sign_in'
-            value :
-                ip_address    : opts.ip_address
-                email_address : opts.email_address ? null
-                remember_me   : opts.remember_me
-                account_id    : opts.account_id
+            value : data

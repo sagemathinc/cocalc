@@ -93,10 +93,10 @@ function parseQuery(query) {
 
 if(navigator.platform == "MacIntel") {
     var queryDialog =
-      'Search: <input type="text" style="width: 10em" class="CodeMirror-search-field"/> <span style="color: #666" class="CodeMirror-search-hint">Hit enter, then Next (⌘-G) and Prev (Shift-⌘-G). Use /re/ for regular expression.';
+      'Search: <input type="text" style="width: 10em" class="CodeMirror-search-field"/> <span style="color: #666" class="CodeMirror-search-hint">Next (⌘-G) and Prev (Shift-⌘-G).  Use /re/ for regular expression.';
 } else {
     var queryDialog =
-      'Search: <input type="text" style="width: 10em" class="CodeMirror-search-field"/> <span style="color: #666" class="CodeMirror-search-hint">Hit enter, then Next (Ctrl-G) and Prev (Shift-Ctrl-G). Use /re/ for regular expression.';
+      'Search: <input type="text" style="width: 10em" class="CodeMirror-search-field"/> <span style="color: #666" class="CodeMirror-search-hint">Next (Ctrl-G) and Prev (Shift-Ctrl-G).  Use /re/ for regular expression.';
 }
 
 function startSearch(cm, state, query) {

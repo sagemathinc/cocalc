@@ -51,7 +51,7 @@ class exports.Evaluator
         query =
             eval_inputs :
                 string_id : @string._string_id
-                time      : {'>=': misc.server_seconds_ago(30)}
+                time      : {'>=': misc.server_seconds_ago(60)}
                 input     : null
         @_inputs = @string._client.sync_table(query, undefined, 500)
         @_inputs.once('connected', =>cb())
@@ -60,7 +60,7 @@ class exports.Evaluator
         query =
             eval_outputs :
                 string_id : @string._string_id
-                time      : {'>=': misc.server_seconds_ago(30)}
+                time      : {'>=': misc.server_seconds_ago(60)}
                 output    : null
         @_outputs = @string._client.sync_table(query, undefined, 500)
         @_outputs.setMaxListeners(100)  # in case of many evaluations at once.
@@ -225,6 +225,15 @@ class exports.Evaluator
         @_inputs.on 'change', (keys) =>
             for key in keys
                 @_handle_input_change(key)
+        # CRITICAL: it's very important to handle all the inputs that may have happened just moments before
+        # this object got created.  Why, since the first one is the user trying to frickin' evaluate a cell
+        # in their worksheet to start things running... and they do that usually moments before the worksheet
+        # gets opened on the backend; if we don't do the following, then often this is missed, and great
+        # confusion and frustration ensues.
+        dbg("handle any pending evaluations")
+        @_inputs.get().forEach (val, key) =>
+            @_handle_input_change(key)
+            return
 
     # Runs only in the project
     _evaluate_using_sage: (input, cb) =>
