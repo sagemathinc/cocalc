@@ -2,8 +2,6 @@
 Markdown Editor Actions
 ###
 
-immutable = require('immutable')
-
 tree_ops  = require('../code-editor/tree-ops')
 {Actions} = require('../code-editor/actions')
 

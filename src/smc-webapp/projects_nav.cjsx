@@ -98,7 +98,7 @@ ProjectTab = rclass
         project_name_styles =
             whiteSpace: 'nowrap'
             overflow: 'hidden'
-            textOverflow: 'ellipsis'
+            #textOverflow: 'ellipsis'
 
         if @props.project_id == @props.active_top_tab
             text_color = COLORS.TOP_BAR.TEXT_ACTIVE
@@ -175,12 +175,15 @@ FullProjectsNav = rclass
         />
 
     render: ->
+        # NOTE!!! The margin:'0' in the style in SortableNav below is critical; without
+        # it, when you make the screen skinny, the tabs get mangled looking.  DO NOT
+        # delete without being aware of this!
         <div
             style = {display:'flex', flex:'1', overflow:'hidden', height:'40px', margin:'0'}
         >
             <SortableNav
                 className            = "smc-project-tab-sorter"
-                style                = {display:'flex', overflow: 'hidden'}
+                style                = {display:'flex', overflow: 'hidden', margin:'0'}
                 helperClass          = {'smc-project-tab-floating'}
                 onSortEnd            = {@on_sort_end}
                 axis                 = {'x'}
@@ -230,7 +233,7 @@ OpenProjectMenuItem = rclass
         menu_item_project_name_styles =
             whiteSpace   : 'nowrap'
             overflow     : 'hidden'
-            textOverflow : 'ellipsis'
+            #textOverflow : 'ellipsis'
             marginRight  : '3px'
             width        : '100%'
 
@@ -313,7 +316,7 @@ DropdownProjectsNav = rclass
         project_name_styles =
             whiteSpace   : 'nowrap'
             overflow     : 'hidden'
-            textOverflow : 'ellipsis'
+            #textOverflow : 'ellipsis'
             marginRight  : '3px'
 
         title = @props.project_map?.getIn([project_id, 'title'])

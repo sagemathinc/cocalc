@@ -4,7 +4,7 @@ History viewer for Jupyter notebooks
 
 immutable  = require('immutable')
 
-{React, ReactDOM, rclass, rtypes, redux}  = require('../smc-react')
+{React, ReactDOM, rclass, rtypes, redux, Redux}  = require('../smc-react')
 
 misc         = require('smc-util/misc')
 cell_utils   = require('./cell-utils')
@@ -63,7 +63,7 @@ exports.jupyter_history_viewer_jquery_shim = (syncdb) ->
         hide        : -> elt.hide()
         remove      : -> ReactDOM.unmountComponentAtNode(elt[0])
         set_version : (version) ->
-            ReactDOM.render(<HistoryViewer syncdb={syncdb} version={version} />, elt[0])
+            ReactDOM.render(<Redux redux={redux}><HistoryViewer syncdb={syncdb} version={version} /></Redux>, elt[0])
         to_str      : (version) ->
             ipynb = export_to_ipynb(get_cells(syncdb, version))
             return json_stable(ipynb, {space:1})

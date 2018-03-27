@@ -31,8 +31,8 @@ class exports.Actions extends Actions
             @_init_syncstring()
 
         @setState
-            is_public        : is_public
-            local_view_state : @_load_local_view_state()
+            is_public           : is_public
+            local_view_state    : @_load_local_view_state()
 
         @_save_local_view_state = underscore.debounce((=>@__save_local_view_state?()), 1500)
 
@@ -101,9 +101,16 @@ class exports.Actions extends Actions
 
         @_syncstring.on 'save-to-disk', =>
             # incremenet save_to_disk counter, so that react components can react to save_to_disk event happening.
-            @setState(save_to_disk: (@store.get('save_to_disk') ? 0) + 1)
+            @set_reload('save_to_disk')
 
         @_init_has_unsaved_changes()
+
+    set_reload: (type) =>
+        reload = @store.get('reload') ? immutable.Map()
+        @setState(reload: reload.set(type, (reload.get(type) ? 0) + 1))
+
+    set_resize: =>
+        @setState(resize: (@store.get('resize') ? 0) + 1)
 
     close: =>
         if @_state == 'closed'
@@ -225,7 +232,6 @@ class exports.Actions extends Actions
     _raw_default_frame_tree: =>
         return {type : 'cm'}
 
-
     set_frame_tree: (obj) =>
         @_tree_op('set', obj)
 
@@ -280,6 +286,8 @@ class exports.Actions extends Actions
         setTimeout(@focus, 1)
 
     save_editor_state: (id, new_editor_state) =>
+        if @_state == 'closed'
+            return
         local  = @store.get('local_view_state')
         if not local?
             return
@@ -411,12 +419,6 @@ class exports.Actions extends Actions
     help: =>
         window.open(WIKI_HELP_URL, "_blank").focus()
 
-    undo: =>
-        @_syncstring?.undo()
-
-    redo: =>
-        @_syncstring?.redo()
-
     change_font_size: (delta, id) =>
         local      = @store.getIn('local_view_state')
         id        ?= local.get('active_id')
@@ -508,7 +510,7 @@ class exports.Actions extends Actions
         if not @_syncstring.in_undo_mode()
             @set_syncstring_to_codemirror()
         value = @_syncstring.undo().to_str()
-        cm.setValueNoJump(value)
+        cm.setValueNoJump(value, true)
         cm.focus()
         @set_syncstring_to_codemirror()
         @_syncstring.save()
@@ -525,7 +527,7 @@ class exports.Actions extends Actions
             # can't redo if version not defined/not available.
             return
         value = doc.to_str()
-        cm.setValueNoJump(value)
+        cm.setValueNoJump(value, true)
         cm.focus()
         @set_syncstring_to_codemirror()
         @_syncstring.save()

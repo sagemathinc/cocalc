@@ -947,11 +947,15 @@ AddSubscription = rclass
                 <ButtonToolbar className='pull-right'>
                     <Button
                         bsStyle  = 'primary'
+                        bsSize   = 'large'
                         onClick  = {=>(@submit_create_subscription();@props.on_close())}
                         disabled = {@props.selected_plan is ''} >
                         <Icon name='check' /> Add Subscription or Course Package
                     </Button>
-                    <Button onClick={@props.on_close}>
+                    <Button
+                        onClick  = {@props.on_close}
+                        bsSize   = 'large'
+                        >
                         Cancel
                     </Button>
                 </ButtonToolbar>

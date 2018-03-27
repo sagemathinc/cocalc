@@ -10,7 +10,7 @@ It also:
    - [ ] checkbox in markdown are interactive (can click them, which edits file)
 ###
 
-{path_split} = require('smc-util/misc')
+misc = require('smc-util/misc')
 
 {throttle} = require('underscore')
 
@@ -26,15 +26,18 @@ exports.RenderedMarkdown = rclass
     displayName: 'MarkdownEditor-RenderedMarkdown'
 
     propTypes :
-        id           : rtypes.string.isRequired
         actions      : rtypes.object.isRequired
+        id           : rtypes.string.isRequired
         path         : rtypes.string.isRequired
         project_id   : rtypes.string.isRequired
         font_size    : rtypes.number.isRequired
         read_only    : rtypes.bool
         value        : rtypes.string
         content      : rtypes.string         # used instead of file is public
-        editor_state : rtypes.immutable.Map
+        editor_state : rtypes.immutable.Map  # only used for initial render
+
+    shouldComponentUpdate: (next) ->
+        return misc.is_different(@props, next, ['id', 'project_id', 'path', 'font_size', 'read_only', 'value', 'content'])
 
     on_scroll: ->
         elt = ReactDOM.findDOMNode(@refs.scroll)
@@ -85,7 +88,7 @@ exports.RenderedMarkdown = rclass
                     id         = {"frame-#{@props.id}"}
                     value      = {value}
                     project_id = {@props.project_id}
-                    file_path  = {path_split(@props.path).head}
+                    file_path  = {misc.path_split(@props.path).head}
                     safeHTML   = {true}
                 />
             </div>

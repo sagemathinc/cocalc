@@ -4,13 +4,13 @@ A single file tab that
 There is one of these for each open file in a project.
 ###
 
-{React, ReactDOM, rclass, rtypes} = require('../smc-react')
+{React, ReactDOM, Fragment, rclass, rtypes} = require('../smc-react')
 
 misc = require('smc-util/misc')
 
 {NavItem} = require('react-bootstrap')
 
-{COLORS, Icon, Tip} = require('../r_misc')
+{COLORS, HiddenXS, Icon} = require('../r_misc')
 
 exports.DEFAULT_FILE_TAB_STYLES =
     width        : 250
@@ -89,7 +89,7 @@ exports.FileTab = rclass
         label_styles =
             whiteSpace   : 'nowrap'
             overflow     : 'hidden'
-            textOverflow : 'ellipsis'
+            # textOverflow : 'ellipsis'   # removed, since it ends up wasting precious space!
 
         x_button_styles =
             float      : 'right'
@@ -101,6 +101,11 @@ exports.FileTab = rclass
             x_button_styles.color = 'lightblue'
 
         text_color = 'white' if @props.is_active
+
+        if @props.file_tab
+            label = <Fragment>{@props.label}</Fragment>
+        else
+            label = <HiddenXS>{@props.label if not @props.shrink}</HiddenXS>
 
         <NavItem
             ref     = 'tab'
@@ -117,9 +122,7 @@ exports.FileTab = rclass
                     /> if @props.file_tab}
                 </div>
                 <div style={label_styles}>
-                    <Tip title={@props.tooltip} placement='bottom' size='small'>
-                        <Icon style={icon_style} name={@props.icon} /> {@props.label if not @props.shrink}
-                    </Tip>
+                    <Icon style={icon_style} name={@props.icon} /> {label}
                 </div>
             </div>
         </NavItem>

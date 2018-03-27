@@ -255,6 +255,7 @@ schema.accounts =
                     jupyter_classic           : false
                     show_exec_warning         : true
                 other_settings  :
+                    katex             : true
                     confirm_close     : false
                     mask_files        : true
                     page_size         : 50
