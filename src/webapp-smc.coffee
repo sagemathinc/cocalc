@@ -76,7 +76,6 @@ require("script-loader!jsbeautify/beautify-html.min.js")
 # after this lib.js package, the real smc.js app starts loading
 window.smcLoadStatus("Starting main application ...")
 
-
 # SASS Style file for SMC
 require('./smc-webapp/index.sass')
 

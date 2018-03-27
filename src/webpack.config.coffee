@@ -217,7 +217,7 @@ HtmlWebpackPlugin = require('html-webpack-plugin')
 # we need our own chunk sorter, because just by dependency doesn't work
 # this way, we can be 100% sure
 smcChunkSorter = (a, b) ->
-    order = ['css', 'fill', 'smc']
+    order = ['css', 'fill', 'vendor', 'smc']
     if order.indexOf(a.names[0]) < order.indexOf(b.names[0])
         return -1
     else
@@ -523,6 +523,13 @@ module.exports =
 
     optimization:
         minimizer: [minimizer]
+
+        splitChunks:
+            cacheGroups:
+                commons:
+                    test: /[\\/]node_modules[\\/]/
+                    name: 'vendor'
+                    chunks: 'all'
 
     entry: entries
 
