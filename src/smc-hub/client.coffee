@@ -2259,6 +2259,8 @@ class exports.Client extends EventEmitter
                                 account_id     : @account_id
                                 coupon_history : coupon_history
                                 cb             : cb
+                    else
+                        cb()
             ], (err) =>
                 if err
                     @stripe_error_to_client(id:mesg.id, error:err)
