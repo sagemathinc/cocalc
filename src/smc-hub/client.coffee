@@ -2182,18 +2182,17 @@ class exports.Client extends EventEmitter
                 (cb) =>
                     if not options.coupon
                         cb()
-
-                    if options.coupon
-                        dbg("add coupon to customer history")
-                        @validate_coupon options.coupon, (err, coupon, coupon_history) =>
-                            if err
-                                cb(err)
-                                return
-                            coupon_history[coupon.id] += 1
-                            @database.update_coupon_history
-                                account_id     : @account_id
-                                coupon_history : coupon_history
-                                cb             : cb
+                        return
+                    dbg("add coupon to customer history")
+                    @validate_coupon options.coupon, (err, coupon, coupon_history) =>
+                        if err
+                            cb(err)
+                            return
+                        coupon_history[coupon.id] += 1
+                        @database.update_coupon_history
+                            account_id     : @account_id
+                            coupon_history : coupon_history
+                            cb             : cb
             ], (err) =>
                 if err
                     dbg("fail -- #{err}")
