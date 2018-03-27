@@ -188,6 +188,7 @@ exports.StudentsPanel = rclass ({name}) ->
                 {options}
             </FormControl>
             {@render_add_selector_button(options)}
+            <Space />
             {@render_add_all_students_button(options)}
         </FormGroup>
 
