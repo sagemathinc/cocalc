@@ -4,7 +4,7 @@ Single codemirror-based file editor
 This is a wrapper around a single codemirror editor view.
 ###
 
-SAVE_INTERVAL_MS = 750
+SAVE_INTERVAL_MS = 1000
 
 {React, ReactDOM,
  rclass, rtypes}     = require('../smc-react')
@@ -202,8 +202,8 @@ exports.CodemirrorEditor = rclass
         @save_syncstring_throttle = throttle(@save_syncstring, SAVE_INTERVAL_MS, {leading:false})
 
         @cm.on 'change', (instance, changeObj) =>
+            @save_syncstring_throttle()
             if changeObj.origin? and changeObj.origin != 'setValue'
-                @save_syncstring_throttle()
                 @props.actions.exit_undo_mode()
 
         @cm.on 'focus', =>

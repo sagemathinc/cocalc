@@ -577,9 +577,9 @@ class SyncDoc extends EventEmitter
     constructor: (opts) ->
         super()
         @_opts = opts = defaults opts,
-            save_interval     : 1500
+            save_interval     : 2000
             cursor_interval   : 1000
-            patch_interval    : 1000       # debouncing of incoming upstream patches
+            patch_interval    : 1500       # debouncing of incoming upstream patches
             file_use_interval : 'default'  # throttles: default is 60s for everything except .sage-chat files, where it is 10s.
             string_id         : undefined
             project_id        : required   # project_id that contains the doc
