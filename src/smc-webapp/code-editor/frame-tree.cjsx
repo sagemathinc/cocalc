@@ -56,28 +56,31 @@ rows_drag_bar_drag_hover = misc.merge(misc.copy(rows_drag_bar), drag_hover)
 exports.FrameTree = FrameTree = rclass ({name}) ->
     displayName: 'CodeEditor-FrameTree'
 
+    # TODO: **yes, I'm half done moving some props from here to reduxProps below!**
     propTypes               :
-        actions             : rtypes.object.isRequired
-        path                : rtypes.string        # assumed to never change -- all frames in same project
-        project_id          : rtypes.string        # assumed to never change -- all frames in same project
-        active_id           : rtypes.string
-        full_id             : rtypes.string
-        frame_tree          : rtypes.immutable.isRequired
-        editor_state        : rtypes.immutable.isRequired    # IMPORTANT: change does NOT cause re-render (uncontrolled); only used for full initial render, on purpose, i.e., setting scroll positions.
-        font_size           : rtypes.number.isRequired
-        is_only             : rtypes.bool
-        cursors             : rtypes.immutable.Map
-        has_unsaved_changes : rtypes.bool
-        read_only           : rtypes.bool   # if true, then whole document considered read only (individual frames can still be via desc)
-        is_public           : rtypes.bool
-        content             : rtypes.string
-        value               : rtypes.string
-        editor_spec         : rtypes.object   # optional map from types to object that specify the different editors related to the master file (assumed to not change!)
+        actions                 : rtypes.object.isRequired
+        path                    : rtypes.string        # assumed to never change -- all frames in same project
+        project_id              : rtypes.string        # assumed to never change -- all frames in same project
+        active_id               : rtypes.string
+        full_id                 : rtypes.string
+        frame_tree              : rtypes.immutable.isRequired
+        editor_state            : rtypes.immutable.isRequired    # IMPORTANT: change does NOT cause re-render (uncontrolled); only used for full initial render, on purpose, i.e., setting scroll positions.
+        font_size               : rtypes.number.isRequired
+        is_only                 : rtypes.bool
+        cursors                 : rtypes.immutable.Map
+        read_only               : rtypes.bool   # if true, then whole document considered read only (individual frames can still be via desc)
+        is_public               : rtypes.bool
+        content                 : rtypes.string
+        value                   : rtypes.string
+        editor_spec             : rtypes.object   # optional map from types to object that specify the different editors related to the master file (assumed to not change!)
 
     reduxProps :
         "#{name}" :
-            reload           : rtypes.immutable.Map
-            misspelled_words : rtypes.immutable.Set
+            reload                  : rtypes.immutable.Map
+            resize                  : rtypes.number       # if changes, means that frames have been resized, so may need refreshing; passed to leaf.
+            misspelled_words        : rtypes.immutable.Set
+            has_unsaved_changes     : rtypes.bool
+            has_uncommitted_changes : rtypes.bool
 
     getInitialState: ->
         drag_hover: false
@@ -85,44 +88,44 @@ exports.FrameTree = FrameTree = rclass ({name}) ->
     shouldComponentUpdate: (next, state) ->
         return @state.drag_hover != state.drag_hover or \
                misc.is_different(@props, next, ['frame_tree', 'active_id', 'full_id', 'is_only', \
-                      'cursors', 'has_unsaved_changes', 'is_public', 'content', 'value', \
-                      'project_id', 'path', 'misspelled_words', 'reload'])
+                      'cursors', 'has_unsaved_changes', 'has_uncommitted_changes', 'is_public', 'content', 'value', \
+                      'project_id', 'path', 'misspelled_words', 'reload', 'resize'])
 
     render_frame_tree: (desc) ->
         <FrameTree
-            name                = {@props.name}
-            actions             = {@props.actions}
-            frame_tree          = {desc}
-            editor_state        = {@props.editor_state}
-            active_id           = {@props.active_id}
-            project_id          = {@props.project_id}
-            path                = {@props.path}
-            font_size           = {@props.font_size}
-            is_only             = {false}
-            cursors             = {@props.cursors}
-            has_unsaved_changes = {@props.has_unsaved_changes}
-            read_only           = {@props.read_only}
-            is_public           = {@props.is_public}
-            content             = {@props.content}
-            value               = {@props.value}
-            editor_spec         = {@props.editor_spec}
+            name                    = {@props.name}
+            actions                 = {@props.actions}
+            frame_tree              = {desc}
+            editor_state            = {@props.editor_state}
+            active_id               = {@props.active_id}
+            project_id              = {@props.project_id}
+            path                    = {@props.path}
+            font_size               = {@props.font_size}
+            is_only                 = {false}
+            cursors                 = {@props.cursors}
+            read_only               = {@props.read_only}
+            is_public               = {@props.is_public}
+            content                 = {@props.content}
+            value                   = {@props.value}
+            editor_spec             = {@props.editor_spec}
         />
 
     render_titlebar: (desc) ->
         <FrameTitleBar
-            actions             = {@props.actions}
-            active_id           = {@props.active_id}
-            project_id          = {desc.get('project_id') ? @props.project_id}
-            path                = {desc.get('path') ? @props.path}
-            is_full             = {desc.get('id') == @props.full_id and not @props.is_only}
-            is_only             = {@props.is_only}
-            id                  = {desc.get('id')}
-            deletable           = {desc.get('deletable') ? true}
-            read_only           = {desc.get('read_only') or @props.read_only}
-            has_unsaved_changes = {@props.has_unsaved_changes}
-            is_public           = {@props.is_public}
-            type                = {desc.get('type')}
-            editor_spec         = {@props.editor_spec}
+            actions                 = {@props.actions}
+            active_id               = {@props.active_id}
+            project_id              = {desc.get('project_id') ? @props.project_id}
+            path                    = {desc.get('path') ? @props.path}
+            is_full                 = {desc.get('id') == @props.full_id and not @props.is_only}
+            is_only                 = {@props.is_only}
+            id                      = {desc.get('id')}
+            deletable               = {desc.get('deletable') ? true}
+            read_only               = {desc.get('read_only') or @props.read_only}
+            has_unsaved_changes     = {@props.has_unsaved_changes}
+            has_uncommitted_changes = {@props.has_uncommitted_changes}
+            is_public               = {@props.is_public}
+            type                    = {desc.get('type')}
+            editor_spec             = {@props.editor_spec}
         />
 
     render_leaf: (type, desc, Leaf, spec) ->
@@ -152,6 +155,7 @@ exports.FrameTree = FrameTree = rclass ({name}) ->
             misspelled_words = {@props.misspelled_words}
             is_fullscreen    = {@props.is_only or desc.get('id') == @props.full_id}
             reload           = {@props.reload?.get(type)}
+            resize           = {@props.resize}
         />
 
     render_one: (desc) ->
@@ -196,6 +200,7 @@ exports.FrameTree = FrameTree = rclass ({name}) ->
             pos     = (clientX - elt.offsetLeft) / elt.offsetWidth
             reset()
             @props.actions.set_frame_tree(id:@props.frame_tree.get('id'), pos:pos)
+            @props.actions.set_resize()
 
         # the preventDefault below prevents the text and scroll of what is in the frame from getting messed up during the drag.
         <Draggable
@@ -268,6 +273,7 @@ exports.FrameTree = FrameTree = rclass ({name}) ->
             pos     = (clientY - elt.offsetTop) / elt.offsetHeight
             reset()
             @props.actions.set_frame_tree(id:@props.frame_tree.get('id'), pos:pos)
+            @props.actions.set_resize()
             @safari_hack()
 
         <Draggable

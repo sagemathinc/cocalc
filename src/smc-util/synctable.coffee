@@ -376,9 +376,10 @@ class SyncTable extends EventEmitter
 
     # Return true if there are changes to this synctable that
     # have NOT been confirmed as saved to the backend database.
+    # Returns undefined if not initialized.
     has_uncommitted_changes: () =>
         if not @_value_server? and not @_value_local?
-            return false
+            return
         if @_value_local? and not @_value_server?
             return true
         return not @_value_server.equals(@_value_local)

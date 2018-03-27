@@ -262,7 +262,7 @@ exports.CourseActions = class CourseActions extends Actions
         else
             @setState(activity:{})
 
-    # Settings
+    # Configuration
     set_title: (title) =>
         @_set(title:title, table:'settings')
         @set_all_student_project_titles(title)

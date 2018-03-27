@@ -43,7 +43,7 @@ CourseSync           = require('./sync')
 {StudentsPanel}      = require('./students_panel')
 {AssignmentsPanel}   = require('./assignments_panel')
 {HandoutsPanel}      = require('./handouts_panel')
-{SettingsPanel}      = require('./settings_panel')
+{ConfigurationPanel} = require('./configuration_panel')
 {PayBanner}          = require('./pay-banner')
 {SharedProjectPanel} = require('./shared_project_panel')
 {STEPS, previous_step, step_direction, step_verb, step_ready} = require('./util')
@@ -221,9 +221,9 @@ CourseEditor = rclass ({name}) ->
         else
             return <Loading />
 
-    render_settings: ->
+    render_configuration: ->
         if @props.redux? and @props.settings?
-            <SettingsPanel
+            <ConfigurationPanel
                 redux             = {@props.redux}
                 settings          = {@props.settings}
                 name              = {@props.name}
@@ -261,9 +261,9 @@ CourseEditor = rclass ({name}) ->
             <Tab eventKey={'handouts'} title={<HandoutsPanel.Header n={@num_handouts()}/>}>
                 {@render_handouts()}
             </Tab>
-            <Tab eventKey={'settings'} title={<SettingsPanel.Header />}>
+            <Tab eventKey={'configuration'} title={<ConfigurationPanel.Header />}>
                 <div style={marginTop:'1em'}></div>
-                {@render_settings()}
+                {@render_configuration()}
             </Tab>
             <Tab eventKey={'shared_project'} title={<SharedProjectPanel.Header project_exists={!!@props.settings?.get('shared_project_id')}/>}>
                 <div style={marginTop:'1em'}></div>

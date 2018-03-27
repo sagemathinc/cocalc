@@ -44,7 +44,7 @@ misc            = require('smc-util/misc')
 STUDENT_COURSE_PRICE = require('smc-util/upgrade-spec').upgrades.subscription.student_course.price.month4
 
 StudentProjectsStartStopPanel = rclass ({name}) ->
-    displayName : "CourseEditorSettings-StudentProjectsStartStopPanel"
+    displayName : "CourseEditorConfiguration-StudentProjectsStartStopPanel"
 
     reduxProps :
         "#{name}" :
@@ -176,8 +176,8 @@ DisableStudentCollaboratorsPanel = rclass ->
             </span>
         </Panel>
 
-exports.SettingsPanel = rclass
-    displayName : "CourseEditorSettings"
+exports.ConfigurationPanel = rclass
+    displayName : "CourseEditorConfiguration"
 
     propTypes :
         redux             : rtypes.object.isRequired
@@ -606,11 +606,11 @@ exports.SettingsPanel = rclass
             </Row>
         </div>
 
-exports.SettingsPanel.Header = rclass
+exports.ConfigurationPanel.Header = rclass
     render: ->
-        <Tip delayShow={1300} title="Settings"
+        <Tip delayShow={1300} title="Configuration"
              tip="Configure various things about your course here, including the title and description.  You can also export all grades in various formats from this page.">
             <span>
-                <Icon name="wrench"/> <HiddenXS>Settings</HiddenXS>
+                <Icon name='cogs'/> <HiddenXS>Configuration</HiddenXS>
             </span>
         </Tip>
