@@ -2180,6 +2180,9 @@ class exports.Client extends EventEmitter
                     dbg("Successfully added subscription; now save info in our database about subscriptions....")
                     @database.stripe_update_customer(account_id : @account_id, stripe : @_stripe, customer_id : customer_id, cb: cb)
                 (cb) =>
+                    if not options.coupon
+                        cb()
+
                     if options.coupon
                         dbg("add coupon to customer history")
                         @validate_coupon options.coupon, (err, coupon, coupon_history) =>
@@ -2191,8 +2194,6 @@ class exports.Client extends EventEmitter
                                 account_id     : @account_id
                                 coupon_history : coupon_history
                                 cb             : cb
-                    else
-                        cb()
             ], (err) =>
                 if err
                     dbg("fail -- #{err}")
@@ -2249,6 +2250,9 @@ class exports.Client extends EventEmitter
                 (cb) =>
                     @database.stripe_update_customer(account_id : @account_id, stripe : @_stripe, customer_id : customer_id, cb: cb)
                 (cb) =>
+                    if not mesg.coupon_id
+                        cb()
+
                     if mesg.coupon_id
                         @validate_coupon mesg.coupon_id, (err, coupon, coupon_history) =>
                             if err
@@ -2259,8 +2263,6 @@ class exports.Client extends EventEmitter
                                 account_id     : @account_id
                                 coupon_history : coupon_history
                                 cb             : cb
-                    else
-                        cb()
             ], (err) =>
                 if err
                     @stripe_error_to_client(id:mesg.id, error:err)
