@@ -357,12 +357,7 @@ account_store.on 'change', ->
         webapp_client.set_standby_timeout_m(x)
 
 # Using KATEX?
-# If USE_KATEX=false, then do not attempt to use katex at all
-# by default for rendering HTML/Markdown math.
-# Only make true when/if katex is good; for now, the katex
-# implementation has a lot of subtle problems.
-# This is updated right now via a non-default account setting.
-exports.USE_KATEX = false
+exports.USE_KATEX = true
 account_store.on 'change', ->
     # NOTE: we call this on any change to account settings, which is maybe too extreme.
     exports.USE_KATEX = !!account_store.getIn(['other_settings', 'katex'])
