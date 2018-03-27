@@ -19,7 +19,7 @@ STYLE =
 exports.UncommittedChanges = rclass
     propTypes:
         has_uncommitted_changes : rtypes.bool
-        delay_ms                : rtypes.number
+        delay_ms                : rtypes.number   # assumed to not change
 
     getDefaultProps: ->
         delay_ms : 5000
@@ -27,23 +27,27 @@ exports.UncommittedChanges = rclass
     getInitialState: ->
         counter : 0
 
+    shouldComponentUpdate: (props, state) ->
+        return @props.has_uncommitted_changes != props.has_uncommitted_changes or @state.counter != state.counter
+
     _check: ->
         if @_mounted and @props.has_uncommitted_changes
-            # force re-render
+            # forces a re-render
             @setState(counter : @state.counter+1)
 
-    shouldComponentUpdate: (next, next_state) ->
-        if next_state?.counter != @state.counter
-            return true
-        @_last_change = new Date()
-        setTimeout(@_check, @props.delay_ms + 10)
-        return !!next.has_uncommitted_changes != !!@props.has_uncommitted_changes
+    componentWillUpdate: (new_props) ->
+        if new_props.has_uncommitted_changes != @props.has_uncommitted_changes
+            @_last_change = new Date()
+        if new_props.has_uncommitted_changes
+            setTimeout(@_check, @props.delay_ms + 10)
 
     componentWillUnmount: ->
         @_mounted = false
 
     componentDidMount: ->
         @_mounted = true
+        @_last_change = new Date()  # from truly undefined to known
+        setTimeout(@_check, @props.delay_ms + 10)
 
     render: ->
         if not @props.has_uncommitted_changes

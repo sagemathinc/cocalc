@@ -83,7 +83,6 @@ exports.Editor = rclass ({name}) ->
                 is_only             = {frame_tree.get('type') != 'node'}
                 cursors             = {@props.cursors}
                 read_only           = {@props.read_only}
-                has_unsaved_changes = {@props.has_unsaved_changes}
                 is_public           = {@props.is_public}
                 content             = {@props.content}
                 value               = {@props.value}

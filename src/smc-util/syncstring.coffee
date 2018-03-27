@@ -1797,8 +1797,13 @@ class SyncDoc extends EventEmitter
     # that have not yet been **saved to disk**.  See the other function
     # has_uncommitted_changes below for determining whether there are changes
     # that haven't been commited to the database yet.
+    # Returns *undefined* if initialization not even done yet.
     has_unsaved_changes: () =>
-        return @hash_of_live_version() != @hash_of_saved_version()
+        hash_saved = @hash_of_saved_version()
+        hash_live  = @hash_of_live_version()
+        if not hash_saved? or not hash_live? # don't know yet...
+            return
+        return hash_live != hash_saved
 
     # Returns hash of last version saved to disk (as far as we know).
     hash_of_saved_version: =>
@@ -2024,6 +2029,7 @@ class SyncDoc extends EventEmitter
     # committed to the database (with the commit acknowledged).  This does not
     # mean the file has been written to disk; however, it does mean that it
     # safe for the user to close their browser.
+    # Returns undefined if not yet initialized.
     has_uncommitted_changes: () =>
         return @_patches_table?.has_uncommitted_changes()
 

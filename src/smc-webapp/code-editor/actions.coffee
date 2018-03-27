@@ -31,8 +31,8 @@ class exports.Actions extends Actions
             @_init_syncstring()
 
         @setState
-            is_public        : is_public
-            local_view_state : @_load_local_view_state()
+            is_public           : is_public
+            local_view_state    : @_load_local_view_state()
 
         @_save_local_view_state = underscore.debounce((=>@__save_local_view_state?()), 1500)
 
