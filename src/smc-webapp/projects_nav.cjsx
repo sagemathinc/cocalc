@@ -98,7 +98,7 @@ ProjectTab = rclass
         project_name_styles =
             whiteSpace: 'nowrap'
             overflow: 'hidden'
-            textOverflow: 'ellipsis'
+            #textOverflow: 'ellipsis'
 
         if @props.project_id == @props.active_top_tab
             text_color = COLORS.TOP_BAR.TEXT_ACTIVE
@@ -233,7 +233,7 @@ OpenProjectMenuItem = rclass
         menu_item_project_name_styles =
             whiteSpace   : 'nowrap'
             overflow     : 'hidden'
-            textOverflow : 'ellipsis'
+            #textOverflow : 'ellipsis'
             marginRight  : '3px'
             width        : '100%'
 
@@ -316,7 +316,7 @@ DropdownProjectsNav = rclass
         project_name_styles =
             whiteSpace   : 'nowrap'
             overflow     : 'hidden'
-            textOverflow : 'ellipsis'
+            #textOverflow : 'ellipsis'
             marginRight  : '3px'
 
         title = @props.project_map?.getIn([project_id, 'title'])
