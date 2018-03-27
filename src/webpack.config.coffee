@@ -114,6 +114,7 @@ CDN_BASE_URL  = process.env.CDN_BASE_URL    # CDN_BASE_URL must have a trailing 
 DEVMODE       = not PRODMODE
 MINIFY        = !! process.env.WP_MINIFY
 DEBUG         = '--debug' in process.argv
+MEASURE       = process.env.MEASURE
 SOURCE_MAP    = !! process.env.SOURCE_MAP
 STATICPAGES   = !! process.env.CC_STATICPAGES  # special mode where just the landing page is built
 date          = new Date()
@@ -142,6 +143,7 @@ console.log "BASE_URL         = #{BASE_URL}"
 console.log "CDN_BASE_URL     = #{CDN_BASE_URL}"
 console.log "DEBUG            = #{DEBUG}"
 console.log "MINIFY           = #{MINIFY}"
+console.log "MEASURE          = #{MEASURE}"
 console.log "INPUT            = #{INPUT}"
 console.log "OUTPUT           = #{OUTPUT}"
 console.log "GOOGLE_ANALYTICS = #{GOOGLE_ANALYTICS}"
@@ -461,10 +463,11 @@ if DEVMODE
 else
     plugins = plugins.concat(staticPages)
 
-BundleAnalyzerPlugin = require('webpack-bundle-analyzer').BundleAnalyzerPlugin
-bundleAnalyzerPlugin = new BundleAnalyzerPlugin({analyzerMode: 'static'})
+if PRODMODE
+    # configuration for the number of chunks and their minimum size
+    plugins.push new webpack.optimize.LimitChunkCountPlugin(maxChunks: 5)
 
-plugins = plugins.concat([assetsPlugin, statsWriterPlugin, bundleAnalyzerPlugin])
+plugins = plugins.concat([assetsPlugin, statsWriterPlugin])
 
 UglifyJsPlugin = require('uglifyjs-webpack-plugin')
 minimizer = new UglifyJsPlugin
@@ -510,6 +513,11 @@ if CDN_BASE_URL?
     publicPath = CDN_BASE_URL
 else
     publicPath = path.join(BASE_URL, misc_node.OUTPUT_DIR) + '/'
+
+if MEASURE
+    BundleAnalyzerPlugin = require('webpack-bundle-analyzer').BundleAnalyzerPlugin
+    bundleAnalyzerPlugin = new BundleAnalyzerPlugin({analyzerMode: 'static'})
+    plugins = plugins.concat([bundleAnalyzerPlugin])
 
 module.exports =
     cache: true
