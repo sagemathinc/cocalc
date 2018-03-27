@@ -29,8 +29,8 @@ exports.PayBanner = rclass
             return true
         return false
 
-    show_settings: ->
-        @actions(@props.name)?.set_tab('settings')
+    show_configuration: ->
+        @actions(@props.name)?.set_tab('configuration')
 
     render: ->
         if @paid()
@@ -53,7 +53,7 @@ exports.PayBanner = rclass
         if @props.tab == 'settings'
             mesg = <span>Please select either the student pay or institute pay option below.</span>
         else
-            mesg = <span>Please open the course <a onClick={@show_settings} style={link}>Settings tab of this course</a> and select a pay option.</span>
+            mesg = <span>Please open the course <a onClick={@show_configuration} style={link}>Configuration tab of this course</a> and select a pay option.</span>
 
         <Alert bsStyle='warning' style={style}>
             <Icon name='exclamation-triangle' style={float:'right', marginTop: '3px'}/>
