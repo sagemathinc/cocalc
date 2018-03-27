@@ -450,7 +450,7 @@ Student = rclass
 
     render_student_email: ->
         email = @props.student.get("email_address")
-        return <a href="mailto:#{email}">{email}</a>
+        return <a target={'_blank'} href={"mailto:#{email}"}>{email}</a>
 
     open_project: ->
         @actions('projects').open_project(project_id:@props.student.get('project_id'))
