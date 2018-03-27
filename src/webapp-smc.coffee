@@ -19,7 +19,7 @@ require("jquery-focusable/jquery.focusable.js")  # jquery-focusable is a peer de
 require("jquery-focus-exit/jquery.focusexit.js")  # jquery-focus-exit is a peer dependency.
 require("jquery-mouse-exit/jquery.mouseexit.js")  # jquery-mouse-exit is a peer dependency.
 require("jquery-stick/jquery.stick.js")  # jquery-stick is a peer dependency.
-require("imports?jQuery=jquery!jquery-tooltip/jquery.tooltip.js")
+require("imports-loader?jQuery=jquery!jquery-tooltip/jquery.tooltip.js")
 
 # Hack to make jQuery UI work on mobile devices: http://touchpunch.furf.com/
 # require("script!jquery/plugins/jquery.ui.touch-punch.min.js")

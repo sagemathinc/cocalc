@@ -548,12 +548,9 @@ module.exports =
         chunkFilename : if PRODMODE then '[id]-[hash].cacheme.js'   else '[id].nocache.js'
         hashFunction  : 'sha256'
 
-    resolveLoader: # Not reccommended. TODO: Track down missing -loader instances
-        moduleExtensions: ["-loader"]
-
     module:
         rules: [
-            { test: /pnotify.*\.js$/, use: "imports?define=>false,global=>window" },
+            { test: /pnotify.*\.js$/, use: "imports-loader?define=>false,global=>window" },
             {
                 test: /\.(coffee|cjsx)$/
                 use: [
@@ -568,7 +565,7 @@ module.exports =
             { test: /\.ico$/,    loader: "file-loader?#{icoconfig}" },
             { test: /\.svg(\?[a-z0-9\.-=]+)?$/,    loader: "url-loader?#{svgconfig}" },
             { test: /\.(jpg|jpeg|gif)$/,    loader: "file-loader?name=#{hashname}"},
-            { test: /\.html$/, include: [path.resolve(__dirname, 'smc-webapp')], use: ["raw-loader", "html-minify?conservativeCollapse"]},
+            { test: /\.html$/, include: [path.resolve(__dirname, 'smc-webapp')], use: ["raw-loader", "html-minify-loader?conservativeCollapse"]},
             { test: /\.hbs$/,    loader: "handlebars-loader" },
             { test: /\.woff(2)?(\?[a-z0-9\.-=]+)?$/, loader: "url-loader?#{woffconfig}" },
             { test: /\.ttf(\?[a-z0-9\.-=]+)?$/, loader: "url-loader?limit=10000&mimetype=application/octet-stream" },
