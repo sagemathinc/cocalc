@@ -419,12 +419,6 @@ class exports.Actions extends Actions
     help: =>
         window.open(WIKI_HELP_URL, "_blank").focus()
 
-    undo: =>
-        @_syncstring?.undo()
-
-    redo: =>
-        @_syncstring?.redo()
-
     change_font_size: (delta, id) =>
         local      = @store.getIn('local_view_state')
         id        ?= local.get('active_id')
@@ -516,7 +510,7 @@ class exports.Actions extends Actions
         if not @_syncstring.in_undo_mode()
             @set_syncstring_to_codemirror()
         value = @_syncstring.undo().to_str()
-        cm.setValueNoJump(value)
+        cm.setValueNoJump(value, true)
         cm.focus()
         @set_syncstring_to_codemirror()
         @_syncstring.save()
@@ -533,7 +527,7 @@ class exports.Actions extends Actions
             # can't redo if version not defined/not available.
             return
         value = doc.to_str()
-        cm.setValueNoJump(value)
+        cm.setValueNoJump(value, true)
         cm.focus()
         @set_syncstring_to_codemirror()
         @_syncstring.save()

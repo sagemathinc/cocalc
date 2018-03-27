@@ -723,6 +723,8 @@ exports.define_codemirror_extensions = () ->
 
     # Set the value of the buffer to something new by replacing just the ranges
     # that changed, so that the view/history/etc. doesn't get messed up.
+    # Setting scroll_last to ture sets cursor to last changed position and puts cursors
+    # there; this is used for undo/redo.
     CodeMirror.defineExtension 'setValueNoJump', (value, scroll_last) ->
         if not value?
             # Special case -- trying to set to value=undefined.  This is the sort of thing
