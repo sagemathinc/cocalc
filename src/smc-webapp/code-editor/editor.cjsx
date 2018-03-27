@@ -83,7 +83,6 @@ exports.Editor = rclass ({name}) ->
                 is_only             = {frame_tree.get('type') != 'node'}
                 cursors             = {@props.cursors}
                 read_only           = {@props.read_only}
-                has_unsaved_changes = {@props.has_unsaved_changes}
                 is_public           = {@props.is_public}
                 content             = {@props.content}
                 value               = {@props.value}
@@ -97,7 +96,7 @@ exports.Editor = rclass ({name}) ->
         <ErrorDisplay
             error   = {@props.error}
             onClose = {=>@props.actions.set_error('')}
-            style   = {maxWidth: '100%', margin: '1ex'}
+            style   = {maxWidth: '100%', margin: '1ex', maxHeight: '30%', overflowY: 'scroll'}
         />
 
     #render_ipad_footer: ->

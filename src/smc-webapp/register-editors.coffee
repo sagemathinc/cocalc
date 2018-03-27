@@ -18,6 +18,7 @@ require('./tasks/register')
 require('./code-editor/register')
 require('./markdown-editor/register')
 require('./html-editor/register')
+require('./rst-editor/register')
 require('./media-viewer/register')
 
 # Public editors

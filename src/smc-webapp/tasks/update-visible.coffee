@@ -10,7 +10,8 @@ misc = require('smc-util/misc')
 
 {SORT_INFO, HEADINGS, HEADINGS_DIR} = require('./headings')
 
-DONE_CUTOFF_MS = 45000
+# Show tasks for a few seconds, even after marked done:
+DONE_CUTOFF_MS = 5000
 
 exports.update_visible = (tasks, local_tasks, view, counts, current_task_id) ->
     show_deleted    = !!view.get('show_deleted')

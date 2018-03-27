@@ -36,23 +36,24 @@ exports.FrameTitleBar = rclass
     displayName: 'CodeEditor-FrameTitleBar'
 
     propTypes :
-        actions             : rtypes.object.isRequired
-        path                : rtypes.string  # assumed to not change for now
-        project_id          : rtypes.string  # assumed to not change for now
-        active_id           : rtypes.string
-        id                  : rtypes.string
-        deletable           : rtypes.bool
-        read_only           : rtypes.bool
-        has_unsaved_changes : rtypes.bool
-        is_full             : rtypes.bool
-        is_only             : rtypes.bool    # is the only frame
-        is_public           : rtypes.bool    # public view of a file
-        type                : rtypes.string.isRequired
-        editor_spec         : rtypes.object  # describes editor options; assumed to never change
+        actions                 : rtypes.object.isRequired
+        path                    : rtypes.string  # assumed to not change for now
+        project_id              : rtypes.string  # assumed to not change for now
+        active_id               : rtypes.string
+        id                      : rtypes.string
+        deletable               : rtypes.bool
+        read_only               : rtypes.bool
+        has_unsaved_changes     : rtypes.bool
+        has_uncommitted_changes : rtypes.bool
+        is_full                 : rtypes.bool
+        is_only                 : rtypes.bool    # is the only frame
+        is_public               : rtypes.bool    # public view of a file
+        type                    : rtypes.string.isRequired
+        editor_spec             : rtypes.object  # describes editor options; assumed to never change
 
     shouldComponentUpdate: (next) ->
         return misc.is_different(@props, next, ['active_id', 'id', 'deletable', 'is_full', 'is_only', \
-                     'read_only', 'has_unsaved_changes', 'is_public', 'type'])
+                     'read_only', 'has_unsaved_changes', 'has_uncommitted_changes', 'is_public', 'type'])
 
     componentWillReceiveProps: ->
         @_last_render = new Date()
@@ -398,7 +399,7 @@ exports.FrameTitleBar = rclass
             onClick  = {=>@props.actions.save(true)}
         >
             <Icon name='save' /> <VisibleMDLG>{label}</VisibleMDLG>
-            {<UncommittedChanges has_uncommitted_changes={@props.has_uncommitted_changes} delay_ms={8000} /> if not disabled}
+            <UncommittedChanges has_uncommitted_changes={@props.has_uncommitted_changes} />
         </Button>
 
     render_save_timetravel_group: ->

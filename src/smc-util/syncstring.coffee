@@ -577,9 +577,9 @@ class SyncDoc extends EventEmitter
     constructor: (opts) ->
         super()
         @_opts = opts = defaults opts,
-            save_interval     : 1500
+            save_interval     : 2000
             cursor_interval   : 1000
-            patch_interval    : 1000       # debouncing of incoming upstream patches
+            patch_interval    : 1500       # debouncing of incoming upstream patches
             file_use_interval : 'default'  # throttles: default is 60s for everything except .sage-chat files, where it is 10s.
             string_id         : undefined
             project_id        : required   # project_id that contains the doc
@@ -1797,8 +1797,13 @@ class SyncDoc extends EventEmitter
     # that have not yet been **saved to disk**.  See the other function
     # has_uncommitted_changes below for determining whether there are changes
     # that haven't been commited to the database yet.
+    # Returns *undefined* if initialization not even done yet.
     has_unsaved_changes: () =>
-        return @hash_of_live_version() != @hash_of_saved_version()
+        hash_saved = @hash_of_saved_version()
+        hash_live  = @hash_of_live_version()
+        if not hash_saved? or not hash_live? # don't know yet...
+            return
+        return hash_live != hash_saved
 
     # Returns hash of last version saved to disk (as far as we know).
     hash_of_saved_version: =>
@@ -2024,6 +2029,7 @@ class SyncDoc extends EventEmitter
     # committed to the database (with the commit acknowledged).  This does not
     # mean the file has been written to disk; however, it does mean that it
     # safe for the user to close their browser.
+    # Returns undefined if not yet initialized.
     has_uncommitted_changes: () =>
         return @_patches_table?.has_uncommitted_changes()
 

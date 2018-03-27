@@ -16,11 +16,11 @@ BLOCKED = undefined
 
 exports.print_html = (opts) ->
     opts = defaults opts,
-        value      : undefined   # one of value or html or src must be given; html is best!
+        value      : undefined   # one of value or html or src must be given; html is best....
         html       : undefined
-        src        : ''         # if given URL to print.
-        path       : required
-        project_id : required
+        src        : ''          # if given URL and nonempty, just loads that url -- also
+        path       : undefined   # must be given if src is empty
+        project_id : undefined   # must be given if src is empty
         font_size  : '10pt'
 
     w = window.open(opts.src, '_blank',
