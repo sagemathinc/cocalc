@@ -1271,17 +1271,29 @@ class ProjectActions extends Actions
             id             : undefined
             include_chats  : false       # If we want to copy .filename.sage-chat
 
-        # TODO: Put this somewhere else!
-        get_chat_path = (path) ->
-            misc.meta_file(path, 'chat')
-            #{head, tail} = misc.path_split(path)
-            #misc.normalized_path_join(head ? '', ".#{tail ? ''}.sage-chat")
+        get_chat_path = (path) -> misc.meta_file(path, 'chat')
+
+        collect_course_discussions = (array, path) =>
+            return if not misc.endswith(path, '.course')
+            head_tail = misc.path_split(path)
+            return if not store = @get_store()
+            listing = store.get('directory_listings').get(head_tail.head ? '')
+            discussion_path_prefix = ".#{head_tail.tail}-"
+            listing.map (entry) ->
+                filename = entry.get('name')
+                take     = misc.startswith(filename, discussion_path_prefix)
+                take  and= misc.endswith(filename, '.sage-chat')
+                if take
+                    discussion_path = os_path.join(head_tail.head, filename)
+                    array.push(discussion_path) unless opts.src.includes(discussion_path)
+            return array
 
         if opts.include_chats
             if opts.dest_is_folder
                 for path in opts.src
                     chat_path = get_chat_path(path)
                     opts.src.push(chat_path) unless opts.src.includes(chat_path)
+                    collect_course_discussions(opts.src, path)
 
             else
                 old_chat_path = get_chat_path(opts.src[0])
@@ -1290,7 +1302,23 @@ class ProjectActions extends Actions
                 @move_files
                     src            : [old_chat_path]
                     dest           : new_chat_path
-                    dest_is_folder : opts.dest_is_folder
+                    dest_is_folder : false   # == opts.dest_is_folder
+
+                # also rename associated course discussion files
+                orig_src = opts.src[0]
+                course_discussions = collect_course_discussions([], orig_src)
+                if course_discussions.length > 0
+                    src_head_tail = misc.path_split(orig_src)
+                    dest_head_tail = misc.path_split(opts.dest)
+                    for cd in course_discussions
+                        postfix = cd[(1 + src_head_tail.tail.length)..]
+                        src       = os_path.join(src_head_tail.head, cd)
+                        dest_tail = ".#{dest_head_tail.tail}#{postfix}"
+                        dest      = os_path.join(dest_head_tail.head, dest_tail)
+                        @move_files
+                            src            : [src]
+                            dest           : dest
+                            dest_is_folder : false   # == opts.dest_is_folder
 
         delete opts.include_chats
         delete opts.dest_is_folder
