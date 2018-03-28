@@ -364,6 +364,10 @@ class ProjectActions extends Actions
 
         # intercept any requests if in kiosk mode
         if (not opts.ignore_kiosk) and (redux.getStore('page').get('fullscreen') == 'kiosk')
+            alert_message
+                type    : "error",
+                message : "CoCalc is in Kiosk mode, so you may not open new files.  Please try visiting #{document.location.origin} directly."
+                timeout : 15
             return
 
         if opts.new_browser_window
@@ -407,7 +411,7 @@ class ProjectActions extends Actions
                                         foreground_project : opts.foreground_project
                                         chat               : opts.chat
                                 else
-                                    require('./alerts').alert_message(type:"error",message:"Error converting Sage Notebook sws file -- #{err}")
+                                    alert_message(type:"error",message:"Error converting Sage Notebook sws file -- #{err}")
                             return
 
                         if not is_public and ext == "docx"   # Microsoft Word Document
@@ -420,7 +424,7 @@ class ProjectActions extends Actions
                                         foreground_project : opts.foreground_project
                                         chat               : opts.chat
                                 else
-                                    require('./alerts').alert_message(type:"error",message:"Error converting Microsoft docx file -- #{err}")
+                                    alert_message(type:"error",message:"Error converting Microsoft docx file -- #{err}")
                             return
 
                         if not is_public
