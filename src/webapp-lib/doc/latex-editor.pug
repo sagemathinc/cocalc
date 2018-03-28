@@ -69,7 +69,7 @@ block content
       div.col-md-12.center
         h1 Online LaTeX Editor
       div.col-sm-6
-        img(src=require("webapp-lib/assets/")).fit
+        img(src=require("webapp-lib/assets/latex-editor-01.png")).fit
       div.col-sm-6
         p.
           #{NAME} is an online web service where you can author
@@ -105,7 +105,7 @@ block content
         div.col-md-12
           h2 #[i.fa.fa-heartbeat] Managed LaTeX environments
         div.col-md-6
-          img(src=require("webapp-lib/assets/")).fit
+          img(src=require("webapp-lib/assets/latex-editor-01.png")).fit
         div.col-md-6
           div.
             #{NAME} makes sure that your desired computational environment is available and ready to work with.
@@ -117,7 +117,7 @@ block content
         div.col-md-12
           h2 #[i.fa.fa-users] Full computational environment
         div.col-md-6
-          img(src=require("webapp-lib/assets/")).fit
+          img(src=require("webapp-lib/assets/latex-editor-01.png")).fit
         div.col-md-6
           div.
             What sets #{NAME} apart from other online LaTeX editors is full access to computational software.
@@ -138,7 +138,7 @@ block content
         div.col-md-12
           h2 #[i.fa.fa-users] Collaborative editing
         div.col-md-6
-          img(src=require("webapp-lib/assets/")).fit
+          img(src=require("webapp-lib/assets/latex-editor-01.png")).fit
         div.col-md-6
           div.
             Once you share your project privately with collaborators,
@@ -158,20 +158,15 @@ block content
           h2 #[i.fa.fa-history] Time-Travel
         div.col-md-6
           div
-            +video-player
-              source(src="webapp-lib/assets/" type="video/webm; codecs=vp9")
-              source(src="webapp-lib/assets/" type="video/mp4")
+            img(src=require("webapp-lib/assets/latex-editor-timetravel-01.png")).fit
         div.col-md-6
           div.
             The #[strong Time-travel] feature is specific to the #{NAME} platform.
-            It records all your changes in the LaTeX notebook in fine detail.
+            It records all changes in the LaTeX notebook in fine detail.
             You can go back and forth in time across hundreds of changes to recover your previous edits.
           div.
-            This allows you to easily recover parts of previous versions of your file,
-            by copy/pasting the part you accidentally changed.
-          div.
-            You can also relive the entire process of creating the notebook from the start.
-            This lets you discover how you arrived at a particular solution and see what you (or your student) tried before.
+            This is especially helpful for pinpointing which of the recent changes did cause a #[strong compilation error].
+            Simply tell the interface to show the changes in the past few minutes and you can review the recent changes.
 
     a.anchor#a-chat
     div.container.space#chat
@@ -179,7 +174,7 @@ block content
         div.col-md-12
           h2 #[i.fa.fa-comments-o] Chat panel
         div.col-md-6
-          img(src=require("webapp-lib/assets/")).fit
+          img(src=require("webapp-lib/assets/latex-editor-01.png")).fit
         div.col-md-6
           div.
             A #[strong side-by-side chat] for each LaTeX file
@@ -209,7 +204,7 @@ block content
         div.col-md-12
           h2 #[i.fa.fa-camera-retro] Publishing
         div.col-md-6
-          img(src=require("webapp-lib/assets/")).fit
+          img(src=require("webapp-lib/assets/latex-editor-01.png")).fit
         div.col-md-6
           div.
             #{NAME} helps you #[strong sharing your work with the world].
