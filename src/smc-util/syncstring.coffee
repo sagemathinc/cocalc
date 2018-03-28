@@ -1807,7 +1807,10 @@ class SyncDoc extends EventEmitter
 
     # Returns hash of last version saved to disk (as far as we know).
     hash_of_saved_version: =>
-        return @_syncstring_table?.get_one()?.getIn(['save', 'hash'])
+        table = @_syncstring_table?.get_one()
+        if not table?
+            return
+        return table.getIn(['save', 'hash']) ? 0   # known, but not saved ever.
 
     # Return hash of the live version of the document, or undefined if the document
     # isn't loaded yet.  (TODO: faster version of this for syncdb, which avoids

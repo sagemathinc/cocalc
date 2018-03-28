@@ -78,7 +78,8 @@ signed_in = (mesg) ->
         # The underscore below should make it clear that this is hackish.
         redux.getTable('account')._table.once 'connected', ->
             load_app ->
-                require('./history').load_target(window.smc_target)
+                #if DEBUG then console.log("account/signed_in/load_file -> #{window.smc_target}")
+                require('./history').load_target(window.smc_target, true)
                 window.smc_target = ''
 
 

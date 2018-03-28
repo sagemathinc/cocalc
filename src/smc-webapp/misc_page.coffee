@@ -948,7 +948,7 @@ exports.define_codemirror_extensions = () ->
 
     # $.get '/static/codemirror-extra/data/latex-completions.txt', (data) ->
     require.ensure [], =>
-        data = require('raw!codemirror-extra/data/latex-completions.txt')
+        data = require('raw-loader!codemirror-extra/data/latex-completions.txt')
         s = data.split('\n')
         tex_hint = (editor) ->
             cur   = editor.getCursor()
@@ -1834,14 +1834,24 @@ exports.drag_start_iframe_disable = ->
 exports.drag_stop_iframe_enable = ->
     $("iframe:visible").css('pointer-events', 'auto')
 
-exports.open_popup_window = (url) ->
-    exports.open_new_tab(url, true)
+exports.open_popup_window = (url, opts) ->
+    exports.open_new_tab(url, true, opts)
 
 # open new tab and check if user allows popups. if yes, return the tab -- otherwise show an alert and return null
-exports.open_new_tab = (url, popup=false) ->
+exports.open_new_tab = (url, popup=false, opts) ->
     # if popup=true, it opens a smaller overlay window instead of a new tab (though depends on browser)
+
+    opts = misc.defaults opts,
+        menubar    : 'yes'
+        toolbar    : 'no'
+        resizable  : 'yes'
+        scrollbars : 'yes'
+        width      : '800'
+        height     : '640'
+
     if popup
-        tab = window.open(url, '_blank', 'menubar=yes,toolbar=no,resizable=yes,scrollbars=yes,height=640,width=800')
+        popup_opts = ("#{k}=#{v}" for k, v of opts when v?).join(',')
+        tab = window.open(url, '_blank', popup_opts)
     else
         tab = window.open(url, '_blank')
     if not tab?.closed? or tab.closed   # either tab isn't even defined (or doesn't have close method) -- or already closed -- popup blocked
