@@ -170,12 +170,16 @@ Page = rclass
             </Navbar> if not @props.fullscreen}
             {@render_menu() if (@state.show_menu and (@props.fullscreen != 'kiosk'))}
             {### Children must define their own padding from navbar and screen borders ###}
-            <ActiveAppContent active_top_tab={@props.active_top_tab} render_small={true}/>
+            <ErrorBoundary>
+                <ActiveAppContent active_top_tab={@props.active_top_tab} render_small={true}/>
+            <ErrorBoundary>
         </div>
 
 page =
     <Redux redux={redux}>
-        <Page />
+        <ErrorBoundary>
+            <Page />
+        </ErrorBoundary>
     </Redux>
 
 exports.render = () =>

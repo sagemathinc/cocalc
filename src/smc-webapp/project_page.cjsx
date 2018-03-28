@@ -46,7 +46,7 @@ project_file = require('./project_file')
 {file_associations} = require('./file-associations')
 
 {React, ReactDOM, rclass, redux, rtypes, Redux} = require('./smc-react')
-{DeletedProjectWarning, Icon, Loading, Space} = require('./r_misc')
+{DeletedProjectWarning, ErrorBoundary, Icon, Loading, Space} = require('./r_misc')
 
 {ChatIndicator} = require('./chat-indicator')
 
@@ -215,47 +215,6 @@ fixed_project_pages =
         icon      : 'wrench'
         tooltip   : 'Project settings and controls'
         is_public : false
-
-ProjectError = rclass
-    displayName: 'Project-Error'
-
-    getInitialState: ->
-        error : undefined
-        info  : undefined
-
-    componentDidCatch: (error, info) ->
-        # TODO: Report the error to some backend service...
-        @setState
-            error : error
-            info  : info
-
-    render: ->
-        if @state.info?
-            <Alert
-                bsStyle = 'warning'
-                style   = {margin:'15px'}
-            >
-                <h2 style={color:'rgb(217, 83, 79)'}>
-                    <Icon name='exclamation-triangle'/> Oh noes!! Well this is embarrasing... 😬
-                </h2>
-                <h4>
-                    {"We've already been notified of this error and are hard at work fixing it."}
-                </h4>
-                {"If you'd like to expidite the bug fixing, please file a support ticket describing what you were trying to do when the error occured."}
-                <Button onClick={console.log "TODO"}>
-                    Create Ticket
-                </Button>
-                <details style={whiteSpace:'pre-wrap', cursor:'pointer'} >
-                    <summary>Trace</summary>
-                    <div style={cursor:'pointer'} >
-                        {@state.error?.toString()}
-                        <br/>
-                        {@state.info.componentStack}
-                    </div>
-                </details>
-            </Alert>
-        else
-            @props.children
 
 # Children must define their own padding from navbar and screen borders
 ProjectContentViewer = rclass
@@ -699,7 +658,7 @@ exports.MobileProjectPage = rclass ({name}) ->
                     {@render_one_file_item() if @props.open_files_order.size == 1}
                 </Nav>
             </div> if not @props.fullscreen}
-            <ProjectError>
+            <ErrorBoundary>
                 <ProjectContentViewer
                     project_id      = {@props.project_id}
                     project_name    = {@props.name}
@@ -709,5 +668,5 @@ exports.MobileProjectPage = rclass ({name}) ->
                     group           = {group}
                     save_scroll     = {@actions(name).get_scroll_saver_for(active_path)}
                 />
-            </ProjectError>
+            </ErrorBoundary>
         </div>
