@@ -20,6 +20,10 @@
 ###############################################################################
 
 ###
+IMPORTANT: If you change this file, also update the date in webapp-lib/policies/pricing.pug
+###
+
+###
 Define upgrades to projects.
 
 NOTE: Technically upgrades.subscription should be called upgrades.plans, to better

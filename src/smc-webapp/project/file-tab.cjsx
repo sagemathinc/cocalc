@@ -10,7 +10,7 @@ misc = require('smc-util/misc')
 
 {NavItem} = require('react-bootstrap')
 
-{COLORS, HiddenXS, Icon} = require('../r_misc')
+{COLORS, HiddenXS, Icon, Tip} = require('../r_misc')
 
 exports.DEFAULT_FILE_TAB_STYLES =
     width        : 250
@@ -107,6 +107,12 @@ exports.FileTab = rclass
         else
             label = <HiddenXS>{@props.label if not @props.shrink}</HiddenXS>
 
+        content = <Fragment><Icon style={icon_style} name={@props.icon} /> {label} </Fragment>
+
+        if @props.file_tab
+            # ONLY show for filenames, name file/new/find, etc. since stable.
+            content = <Tip title={@props.tooltip} stable={true} placement={'bottom'} size={'small'}> {content} </Tip>
+
         <NavItem
             ref     = 'tab'
             style   = {styles}
@@ -122,7 +128,7 @@ exports.FileTab = rclass
                     /> if @props.file_tab}
                 </div>
                 <div style={label_styles}>
-                    <Icon style={icon_style} name={@props.icon} /> {label}
+                    {content}
                 </div>
             </div>
         </NavItem>
