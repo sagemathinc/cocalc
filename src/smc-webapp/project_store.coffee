@@ -371,7 +371,7 @@ class ProjectActions extends Actions
             url  = (window.app_base_url ? '') + @_url_in_project('files/' + opts.path)
             url += '?session=' + misc.uuid().slice(0,8)
             url += '&fullscreen=default'
-            misc_page.open_new_tab(url, true)
+            misc_page.open_popup_window(url, {width: 800, height: 640})
             return
 
         @_ensure_project_is_open (err) =>
