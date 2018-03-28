@@ -1846,11 +1846,11 @@ exports.open_new_tab = (url, popup=false, opts) ->
         toolbar    : 'no'
         resizable  : 'yes'
         scrollbars : 'yes'
-        height     : '640'
         width      : '800'
+        height     : '640'
 
     if popup
-        popup_opts = ("#{k}=#{v}" for k, v of opts).join(',')
+        popup_opts = ("#{k}=#{v}" for k, v of opts when v?).join(',')
         tab = window.open(url, '_blank', popup_opts)
     else
         tab = window.open(url, '_blank')
