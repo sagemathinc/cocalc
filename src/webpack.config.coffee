@@ -474,25 +474,6 @@ minimizer = new UglifyJsPlugin
     uglifyOptions:
         output:
             comments: new RegExp("This file is part of #{TITLE}","g") # to keep the banner inserted above
-        mangle: true
-        compress:
-            booleans     : true
-            comparisons  : true
-            conditionals : true
-            dead_code    : true
-            drop_debugger: true
-            evaluate     : true
-            hoist_funs   : false # was true
-            if_return    : true
-            join_vars    : true
-            loops        : true
-            negate_iife  : true
-            properties   : true
-            sequences    : true
-            side_effects : true
-            unsafe       : false # was true
-            unused       : true
-            warnings     : false
 
 # tuning generated filenames and the configs for the aux files loader.
 # FIXME this setting isn't picked up properly
