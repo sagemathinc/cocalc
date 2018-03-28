@@ -15,7 +15,7 @@ misc          = require('smc-util/misc')
 
 {aggregate}   = require('smc-util/aggregate')
 
-exports.execute_code = execute_code = aggregate ['command', 'args', 'path'], (opts) ->
+exports.execute_code = execute_code = aggregate (opts) ->
     opts = defaults opts,
         command    : required
         args       : []
@@ -152,11 +152,11 @@ exports.execute_code = execute_code = aggregate ['command', 'args', 'path'], (op
 
             stderr_is_done = stdout_is_done = false
 
-            r.stderr.on 'end', () ->
+            r.stderr.on 'end', ->
                 stderr_is_done = true
                 finish()
 
-            r.stdout.on 'end', () ->
+            r.stdout.on 'end', ->
                 stdout_is_done = true
                 finish()
 
@@ -174,7 +174,7 @@ exports.execute_code = execute_code = aggregate ['command', 'args', 'path'], (op
                 finish()
 
             callback_done = false
-            finish = () ->
+            finish = ->
                 if stdout_is_done and stderr_is_done and exit_code?
                     if opts.err_on_exit and exit_code != 0
                         if not callback_done
@@ -191,7 +191,7 @@ exports.execute_code = execute_code = aggregate ['command', 'args', 'path'], (op
                             c()
 
             if opts.timeout
-                f = () ->
+                f = ->
                     if r.exitCode == null
                         if opts.verbose
                             winston.debug("execute_code: subprocess did not exit after #{opts.timeout} seconds, so killing with SIGKILL")
@@ -205,20 +205,19 @@ exports.execute_code = execute_code = aggregate ['command', 'args', 'path'], (op
                             callback_done = true
                             c("killed command '#{opts.command} #{opts.args.join(' ')}'")
                 setTimeout(f, opts.timeout*1000)
-
+        (c) ->
+            if info?.path?
+                # Do not litter:
+                fs.unlink(info.path, c)
+            else
+                c()
     ], (err) ->
         if not exit_code?
             exit_code = 1  # don't have one due to SIGKILL
 
-        # TODO:  This is dangerous, e.g., it could print out a secret_token to a log file.
+        # This log message is very dangerous, e.g., it could print out a secret_token to a log file.
+        # So it commented out.  Only include for low level debugging.
         # winston.debug("(time: #{walltime() - start_time}): Done running '#{opts.command} #{opts.args.join(' ')}'; resulted in stdout='#{misc.trunc(stdout,512)}', stderr='#{misc.trunc(stderr,512)}', exit_code=#{exit_code}, err=#{err}")
-        # Do not litter:
-        if info?.path?
-            try
-                fs.unlink(info.path)
-            catch e
-                winston.debug("failed to unlink #{info.path}")
-
 
         if opts.verbose
             winston.debug("finished exec of #{opts.command} (took #{walltime(start_time)}s)")

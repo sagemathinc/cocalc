@@ -1,36 +1,107 @@
 ###
 Async aggregate.
 
-Given a function f that takes an object of the form {foo:?, bar:?, other:?,..., cb:..., aggregate:5}
-and key_fields say ['foo', 'bar'] as input, call f only once with given input
-foo/bar and aggregate<=5.
+Use like this:
+
+    g = aggregate (opts) ->
+        [bunch of code here...]
+
+Given a function f that takes an object of the form
+
+    {foo:?, bar:?, other:?,..., cb:...}
+
+as input -- where everything except cb is JSON-able, make a new function g that
+takes as input
+
+   {foo:?, bar:?, other:?,..., cb:..., aggregate:?}
+
+If you call g without setting aggregate, then f is just called as usual.
+
+If you call g with aggregate set to a nondecreasing input (e.g., sequence
+numbers or timestamp), then f only gets evaluated *once*.   E.g., if you do
+
+    g(x:0, aggregate:0, cb:a)
+    ...
+    g(x:0, aggregate:0, cb:b)
+    g(x:1, aggregate:0, cb:c)
+    ...
+    g(x:0, aggregate:1, cb:d)
+    g(x:0, aggregate:0, cb:e)   # no reason to do this; it's best if aggregate is a nondecreasing sequence.  NOT required though.
+
+Then:
+
+   - f(x:0,cb:?) gets called once and both a and b are called with that one result.
+   - f(x:1,cb:?) gets called once and c called with the result. This happens in
+     parallel with the above call to f(x:0,cb:?).
+   - f(x:0,cb:?) gets called once MORE and d is called with the result.
+     This final call only happens once the call to f(x:0,cb:?) finishes.
+   - g(x:0, aggregate:0, cb:e) results in just getting added to the cb's for f(x:0,cb:?),
+     if that call is still running; if not, f gets called again.
 ###
 
-{copy_with} = require('./misc')
+{copy_without, field_cmp} = require('./misc')
 json_stable = require('json-stable-stringify')
 
-exports.aggregate = (key_fields, f) ->
+exports.aggregate = (f) ->
+    if typeof(f) != 'function'
+        throw Error("f must be a function")
+
     state = {}  # in the closure, so scope is that of this function we are making below.
-    # Construct and return new function: if called with aggregate not
-    # set or false-ish, just calls f.  Othwerwise, aggregates calls.
-    return (opts) ->
-        if not opts.aggregate
-            # default behavior, since aggregate not set
-            f(opts)
-            return
-        key = json_stable(copy_with(opts, key_fields))
+
+    just_call_f = (opts) ->
+        # Fallback behavior **without aggregate**. Used below when aggregate not set.
+        # This just deletes aggregate from opts and calls f.
+        delete opts.aggregate
+        f(opts)
+
+    aggregate_call_f = (opts) ->
+        # Key is a string that determines the inputs to f **that matter**.
+        key = json_stable(copy_without(opts, ['cb', 'aggregate']))
+        # Check state
         current = state[key]
         if current?
-            if current.aggregate >= opts.aggregate
+            # Call already in progress with given exactly the same inputs.
+            if opts.aggregate <= current.aggregate
                 # already running with old enough aggregate value -- just wait and return as part of that
                 current.callbacks.push(opts.cb)
             else
                 # already running, but newer aggregate value.  We will run this one once the current one is done.
                 current.next.push(opts)
             return
+
+        # Setup state, do the call, and call callbacks when done, then possibly
+        # call f again in case new requests came in during the call.
+
         # Nothing is going on right now with the given key.  Evaluate f.
         state[key] =
             aggregate : opts.aggregate   # aggregate value for current run
-            next      : []               # things requested to be run in the future
+            next      : []               # things requested to be run in the future -- these are opts with same key
             callbacks : [opts.cb]        # callbacks to call when this evaluation completes
-        # TODO
+
+        # This gets called when f completes.
+        opts.cb = (args...) ->
+            {callbacks, next} = state[key]
+            delete state[key]
+            # Call all the callbacks for which the result of running f is sufficient.
+            for cb in callbacks
+                cb?(args...)
+            if next.length > 0
+                # Setup new call, since new requests came in during this call to f, which couldn't
+                # be handled via this call.
+                # Sort by aggregate from bigger to small
+                next.sort(field_cmp('aggregate'))
+                next.reverse()
+                # And just do the calls, which will add these to the new state[key].callbacks
+                for opts0 in next
+                    aggregate_call_f(opts0)
+
+        # Finaly actually run f, which eventually calls opts.cb, which is defined directly above.
+        f(opts)
+
+    # Construct and return new function: if called with aggregate not
+    # set or false-ish, just calls f.  Othwerwise, aggregates calls.
+    return (opts) ->
+        if not opts.aggregate?
+            just_call_f(opts)
+        else
+            aggregate_call_f(opts)
