@@ -31,7 +31,7 @@
 # grading specific
 {Grading} = require('./models')
 {MAXPOINTS} = require('./common')
-{GradingHelpButton} = require('./main')
+{GradingHelpButton} = require('./extras')
 
 exports.ConfigureGrading = rclass
     displayName : "CourseEditor-ConfigureGrading"

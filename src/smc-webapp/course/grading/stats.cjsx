@@ -22,6 +22,7 @@
 # CoCalc libraries
 {defaults, required} = misc = require('smc-util/misc')
 {COLORS}             = require('smc-util/theme')
+misc_page            = require('smc-webapp/misc_page')
 
 # React libraries
 {React, rclass, rtypes} = require('../../smc-react')

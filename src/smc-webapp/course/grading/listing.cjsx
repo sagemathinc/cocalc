@@ -39,36 +39,15 @@ chat_redux_name      = editor_chat.redux_name
 
 # course specific
 {NO_ACCOUNT} = require('../util')
+{BigTime} = require('../common')
 
 # grading specific
-{BigTime} = require('../common')
 {ROW_STYLE, LIST_STYLE, LIST_ENTRY_STYLE, FLEX_LIST_CONTAINER, EMPTY_LISTING_TEXT, PAGE_SIZE, MAXPOINTS} = require('./common')
+{ChatMessageCount} = require('./extras')
 
 listing_colstyle  = {margin: '10px 0'}
 listing_colstyle2 = misc.merge({overflow: 'hidden', textOverflow: 'ellipsis'}, listing_colstyle)
 
-ChatMessageCount = rclass ({chat_name}) ->
-    displayName : 'CourseEditor-GradingStudentAssignment-MessageCount'
-
-    reduxProps:
-        "#{chat_name}":
-            messages        : rtypes.immutable
-
-    propTypes:
-        highlight : rtypes.bool
-
-    getDefaultProps: ->
-        highlight : false
-
-    render: ->
-        N     = @props.messages?.size ? 0
-        return null if N == 0
-        style = {}
-        if N > 0 and @props.highlight
-            #style.color      = COLORS.BS_RED
-            style.fontWeight = 'bold'
-
-        <span style={style}>{N} {misc.plural(N, 'msg')}.</span>
 
 exports.Listing = rclass
     displayName : 'CourseEditor-GradingStudentAssignment-Listing'
@@ -547,8 +526,8 @@ exports.Listing = rclass
                 @render_loading()
             else if @props.discussion_path == NO_ACCOUNT
                 <Alert bsStyle={'info'}>
-                    There exists no account for this student yet.
-                    The student needs to register first!
+                    No account exists for this student yet.
+                    The student needs to register first, or sort out any related issues!
                 </Alert>
             else
                 <EmbeddedChat

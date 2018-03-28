@@ -37,7 +37,7 @@ _         = require('underscore')
 # CoCalc and course components
 util   = require('../util')
 styles = require('../styles')
-{DateTimePicker, ErrorDisplay, Icon, LabeledRow, Loading, MarkdownInput, Space, Tip, NumberInput} = require('../../r_misc')
+{DateTimePicker, ErrorDisplay, Icon, LabeledRow, Loading, MarkdownInput, Space, Tip, NumberInput, CheckedIcon} = require('../../r_misc')
 {STEPS, step_direction, step_verb, step_ready} = util
 
 # Grading specific
@@ -46,30 +46,9 @@ styles = require('../styles')
 {GradingStats}  = require('./stats')
 {Listing}       = require('./listing')
 {StudentList}   = require('./student-list')
+{Points}        = require('./points')
+{Navigation}    = require('./nav')
 {ROW_STYLE, LIST_STYLE, LIST_ENTRY_STYLE, FLEX_LIST_CONTAINER, EMPTY_LISTING_TEXT, PAGE_SIZE} = require('./common')
-
-exports.GradingHelpButton = rclass
-    displayName: 'CourseEditor-GradingStudentAssignment-HelpButton'
-
-    propTypes:
-        show_help : rtypes.bool
-
-    getDefaultProps: ->
-        show_help : false
-
-    open_grading_help: ->
-        {open_new_tab} = require('smc-webapp/misc_page')
-        open_new_tab('https://github.com/sagemathinc/cocalc/wiki/CourseGrading')
-
-    render : ->
-        <Button
-            onClick  = {@open_grading_help}
-            bsStyle  = {'default'}
-        >
-            <Icon name='question-circle'/>
-            {' Help' if @props.show_help}
-        </Button>
-
 
 exports.GradingStudentAssignment = rclass
     displayName : "CourseEditor-GradingStudentAssignment"
@@ -118,20 +97,6 @@ exports.GradingStudentAssignment = rclass
     collect_student_path: ->
         return path_join(@props.assignment.get('collect_path'), @props.grading.student_id, @props.grading.subdir)
 
-    jump: (direction, without_grade, collected_files) ->
-        @actions(@props.name).grading(
-            assignment       : @props.assignment
-            student_id       : @props.grading.student_id
-            direction        : direction
-            without_grade    : without_grade
-            collected_files  : collected_files
-        )
-
-    pick_next: (direction=1) ->
-        without_grade   = @get_only_not_graded()
-        collected_files = @get_only_collected()
-        @jump(direction, without_grade, collected_files)
-
     render_info: ->
         if @props.grading.end_of_list
             <span>End of student list</span>
@@ -139,124 +104,12 @@ exports.GradingStudentAssignment = rclass
             student_name = @state.store.get_student_name(@props.grading.student_id, true)
             <span style={fontSize:'120%'}>Student <b>{student_name?.full ? 'N/A'}</b></span>
 
-    get_only_not_graded: ->
-        @props.grading.only_not_graded
-
-    get_only_collected: ->
-        @props.grading.only_collected
-
-    set_only_not_graded: (only_not_graded) ->
-        actions = @actions(@props.name)
-        actions.grading_set_entry('only_not_graded', only_not_graded)
-
-    set_only_collected: (only_collected) ->
-        actions = @actions(@props.name)
-        actions.grading_set_entry('only_collected', only_collected)
-
-    render_filter_only_not_graded: ->
-        only_not_graded = @get_only_not_graded()
-        if only_not_graded
-            icon = 'check-square-o'
-        else
-            icon = 'square-o'
-
-        <Button
-            onClick  = {=>@set_only_not_graded(not only_not_graded)}
-            bsStyle  = {'default'}
-        >
-            <Icon name={icon} /> Not graded
-        </Button>
-
-    render_filter_only_collected: ->
-        only_collected = @get_only_collected()
-        if only_collected
-            icon = 'check-square-o'
-        else
-            icon = 'square-o'
-
-        <Button
-            onClick  = {=>@set_only_collected(not only_collected)}
-            bsStyle  = {'default'}
-        >
-            <Icon name={icon} /> Collected
-        </Button>
-
-    render_nav: () ->
-        <Col md={3}>
-            <Row style={ROW_STYLE}>
-                <ButtonGroup>
-                    <Button
-                        onClick  = {=>@pick_next(-1)}
-                        bsStyle  = {'default'}
-                        disabled = {@props.grading.current_idx == 0}
-                    >
-                        <Icon name={'step-backward'} />
-                    </Button>
-                    <Button
-                        onClick  = {=>@pick_next(+1)}
-                        bsStyle  = {'primary'}
-                    >
-                        <Icon name={'step-forward'} /> Pick next
-                        <span className='hidden-md'> student</span>
-                    </Button>
-                </ButtonGroup>
-            </Row>
-            <Row style={color:COLORS.GRAY}>
-                Filter students by:
-            </Row>
-            <Row style={ROW_STYLE}>
-                <ButtonGroup>
-                    {@render_filter_only_not_graded()}
-                    {@render_filter_only_collected()}
-                </ButtonGroup>
-            </Row>
-        </Col>
-
-    percentile_rank_help: ->
-        url = 'https://en.wikipedia.org/wiki/Percentile_rank'
-        {open_new_tab} = require('smc-webapp/misc_page')
-        open_new_tab(url)
-
-    render_points: ->
-        <Row>
-            <Col md={10} style={textAlign: 'center'}>
-                <ButtonGroup>
-                    <Button
-                        disabled={true}
-                    >
-                        Total points
-                    </Button>
-                    <Button
-                        style    = {fontWeight: 'bold', color:'black', paddingLeft:'20px', paddingRight:'20px'}
-                        disabled = {true}
-                    >
-                        {misc.round2(@props.grading.total_points)}
-                    </Button>
-                    {
-                        if @props.grading.all_points.size >= 5
-                            pct = misc.percentRank(
-                                @props.grading.all_points.toJS(),
-                                @props.grading.total_points,
-                                true
-                            )
-                            <Button
-                                style     = {color: COLORS.GRAY}
-                                onClick   = {=>@percentile_rank_help()}
-                            >
-                                {misc.round1(pct)}%
-                                <span className='hidden-md'> percentile</span>
-                            </Button>
-                    }
-                </ButtonGroup>
-            </Col>
-        </Row>
-
     start_fresh: ->
         @actions(@props.name).grading(
             student_id       : undefined
             assignment       : @props.assignment
-            without_grade    : @get_only_not_graded()
-            collected_files  : @get_only_collected()
+            without_grade    : @props.grading.only_not_graded
+            collected_files  : @props.grading.only_collected
         )
 
     render_end_of_list: ->
@@ -295,6 +148,10 @@ exports.GradingStudentAssignment = rclass
         if not @props.grading.student_id?
             return <div>No student left to grade…</div>
 
+        max_points   = @state.store.get_grading_maxpoints(@props.assignment)
+        total_points = @state.store.get_points_total(
+            @props.assignment, @props.grading.student_id)
+
         flexcolumn =
             display        : 'flex'
             flexDirection  : 'column'
@@ -315,15 +172,27 @@ exports.GradingStudentAssignment = rclass
                     account_id       = {@props.account_id}
                     anonymous        = {@props.grading.anonymous}
                     grading_mode     = {@props.grading.mode}
-                    max_points       = {@state.store.get_grading_maxpoints(@props.assignment)}
+                    max_points       = {max_points}
                 />
             </Col>
             <Col md={9} style={flexcolumn}>
                 <Row style={marginBottom: '15px'}>
-                    {@render_nav()}
+                    <Navigation
+                        name             = {@props.name}
+                        current_idx      = {@props.grading.current_idx}
+                        student_id       = {@props.grading.student_id}
+                        assignment       = {@props.assignment}
+                        only_not_graded  = {@props.grading.only_not_graded}
+                        only_collected   = {@props.grading.only_collected}
+                    />
                     <Col md={5}>
-                        {@render_points()}
-                        <GradingStats all_points={@props.grading.all_points} />
+                        <Points
+                            total_points = {@props.grading.total_points}
+                            all_points   = {@props.grading.all_points}
+                        />
+                        <GradingStats
+                            all_points = {@props.grading.all_points}
+                        />
                     </Col>
                     <Grade
                         actions        = {@actions(@props.name)}
@@ -332,8 +201,8 @@ exports.GradingStudentAssignment = rclass
                         student_id     = {@props.grading.student_id}
                         list_of_grades = {@props.grading.list_of_grades}
                         grading_mode   = {@props.grading.mode}
-                        total_points   = {@state.store.get_points_total(@props.assignment, @props.grading.student_id)}
-                        max_points     = {@state.store.get_grading_maxpoints(@props.assignment)}
+                        total_points   = {total_points}
+                        max_points     = {max_points}
                     />
                 </Row>
                 {###
@@ -351,8 +220,8 @@ exports.GradingStudentAssignment = rclass
                     listing_files    = {@props.grading.listing_files}
                     student_id       = {@props.grading.student_id}
                     subdir           = {@props.grading.subdir}
-                    without_grade    = {@get_only_not_graded()}
-                    collected_files  = {@get_only_collected()}
+                    without_grade    = {@props.grading.only_not_graded}
+                    collected_files  = {@props.grading.only_collected}
                     show_all_files   = {@props.grading.show_all_files}
                     discussion_show  = {@props.grading.discussion_show}
                     discussion_path  = {@props.grading.discussion_path}

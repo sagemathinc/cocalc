@@ -31,7 +31,8 @@
 {Alert, Button, ButtonToolbar, ButtonGroup, Form, FormControl, FormGroup, ControlLabel, InputGroup, Checkbox, Row, Col, Panel, Breadcrumb} = require('react-bootstrap')
 
 # Grading specific code
-{Grading}    = require('./models')
+{Grading}           = require('./models')
+{GradingHelpButton} = require('./extras')
 
 
 exports.GradingStudentAssignmentHeader = rclass ({name}) ->
@@ -101,8 +102,6 @@ exports.GradingStudentAssignmentHeader = rclass ({name}) ->
             </h5>
 
     render: ->
-        {GradingHelpButton} = require('./main')
-
         <div style={display:'flex'}>
             <div style={flex:'1 0 auto'}>
                 {@render_title()}
