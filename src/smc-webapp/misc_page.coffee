@@ -948,7 +948,7 @@ exports.define_codemirror_extensions = () ->
 
     # $.get '/static/codemirror-extra/data/latex-completions.txt', (data) ->
     require.ensure [], =>
-        data = require('raw!codemirror-extra/data/latex-completions.txt')
+        data = require('raw-loader!codemirror-extra/data/latex-completions.txt')
         s = data.split('\n')
         tex_hint = (editor) ->
             cur   = editor.getCursor()

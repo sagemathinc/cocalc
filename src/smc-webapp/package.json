@@ -9,9 +9,6 @@
     "@zippytech/react-notify-resize": "^3.0.0",
     "ansi-to-react": "^2.0.1",
     "async": "^2.0.0",
-    "babel-cli": "^6.26.0",
-    "babel-polyfill": "^6.26.0",
-    "babel-preset-env": "^1.6.0",
     "bootbox": "^4.4.0",
     "bootstrap": "^3.3.6",
     "bootstrap-colorpicker": "^2.3.6",
@@ -80,8 +77,6 @@
     "underscore": "^1.8"
   },
   "devDependencies": {
-    "babel-core": "^6.26.0",
-    "babel-register": "^6.26.0",
     "cjsx-register": "^1.0.5",
     "coffeelint": "^2.1.0",
     "coffeescript": "^2.2.2",
@@ -96,8 +91,7 @@
     "testwapp": "echo 'TEST WEBAPP'; SMC_TEST=true node_modules/.bin/mocha ${BAIL} --reporter ${REPORTER:-progress} test/*.coffee",
     "testjcli": "echo 'TEST JUPYTER CLIENT'; cd jupyter && ../node_modules/.bin/mocha ${BAIL} --reporter ${REPORTER:-progress} test/*.coffee",
     "lint": "node_modules/.bin/coffeelint -f ../smc-util/coffeelint.json -c *.coffee *.cjsx",
-    "coverage": "rm -rf ./coverage/; SMC_TEST=true node_modules/.bin/mocha --require ./coffee-coverage-loader.js && node_modules/.bin/istanbul report text html",
-    "postinstall": "node_modules/.bin/babel --presets=env  node_modules/prom-client -d node_modules/prom-client-js"
+    "coverage": "rm -rf ./coverage/; SMC_TEST=true node_modules/.bin/mocha --require ./coffee-coverage-loader.js && node_modules/.bin/istanbul report text html"
   },
   "repository": {
     "type": "git",
