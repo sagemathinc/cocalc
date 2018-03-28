@@ -61,7 +61,7 @@ class exports.Actions extends Actions
     # Init setting of value whenever syncstring changes -- only used in derived classes
     _init_syncstring_value: =>
         @_syncstring.on 'change', =>
-            @setState(value: @_syncstring.to_str())
+            @setState(value: @_syncstring?.to_str())
 
     # Init spellchecking whenever syncstring saves -- only used in derived classes, where
     # spelling makes sense...

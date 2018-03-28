@@ -153,6 +153,20 @@ exports.StudentsPanel = rclass ({name}) ->
         @actions(@props.name).add_students(students)
         @setState(err:undefined, add_select:undefined, selected_option_nodes:undefined, add_search:'')
 
+    add_all_students: (options) ->
+        students = []
+        for entry in @state.add_select
+            account_id = entry.account_id
+            if misc.is_valid_uuid_string(account_id)
+                students.push(
+                    account_id    : account_id
+                    email_address : entry.email_address
+                )
+            else
+                students.push(email_address : entry.email_address)
+        @actions(@props.name).add_students(students)
+        @setState(err:undefined, add_select:undefined, selected_option_nodes:undefined, add_search:'')
+
     get_add_selector_options: ->
         v = []
         seen = {}
@@ -174,6 +188,8 @@ exports.StudentsPanel = rclass ({name}) ->
                 {options}
             </FormControl>
             {@render_add_selector_button(options)}
+            <Space />
+            {@render_add_all_students_button(options)}
         </FormGroup>
 
     render_add_selector_button: (options) ->
@@ -194,6 +210,16 @@ exports.StudentsPanel = rclass ({name}) ->
                 else "Add #{nb_selected} students"
         disabled = options.length == 0 or (options.length >= 2 and nb_selected == 0)
         <Button onClick={=>@add_selected_students(options)} disabled={disabled}><Icon name='user-plus' /> {btn_text}</Button>
+
+    render_add_all_students_button: (options) ->
+        disabled = (options.length == 0)
+        disabled or= ((@state.selected_option_nodes?.length ? 0) > 0)
+        <Button
+            onClick  = {=>@add_all_students(options)}
+            disabled = {disabled}
+        >
+            <Icon name={'user-plus'} /> Add all students
+        </Button>
 
     render_error: ->
         ed = null
@@ -450,7 +476,7 @@ Student = rclass
 
     render_student_email: ->
         email = @props.student.get("email_address")
-        return <a href="mailto:#{email}">{email}</a>
+        return <a target={'_blank'} href={"mailto:#{email}"}>{email}</a>
 
     open_project: ->
         @actions('projects').open_project(project_id:@props.student.get('project_id'))
