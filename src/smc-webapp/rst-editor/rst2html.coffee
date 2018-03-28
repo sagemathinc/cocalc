@@ -16,6 +16,7 @@ exports.convert = (opts) ->
     opts = defaults opts,
         path       : required
         project_id : required
+        time       : undefined
         cb         : required
     key = opts.project_id + opts.path
     if current_cbs[key]
@@ -27,6 +28,7 @@ exports.convert = (opts) ->
         args        : [opts.path, aux_file(opts.path, 'html')]
         project_id  : opts.project_id
         err_on_exit : true
+        aggregate   : opts.time
         cb          : (err) ->
             if not current_cbs[key]? or current_cbs[key].length == 0
                 return

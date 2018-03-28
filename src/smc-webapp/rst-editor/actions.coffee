@@ -20,10 +20,11 @@ class exports.Actions extends Actions
         @_syncstring.on('save-to-disk', @_run_rst2html)
         @_run_rst2html()
 
-    _run_rst2html: =>
+    _run_rst2html: (time) =>
         rst2html.convert
             path       : @path
             project_id : @project_id
+            time       : time
             cb         : (err) =>
                 if err
                     @set_error(err)

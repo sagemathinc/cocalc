@@ -30,7 +30,7 @@ exports.execute_code = execute_code = aggregate (opts) ->
         uid        : undefined
         gid        : undefined
         env        : undefined   # if given, added to exec environment
-        aggregate  : undefined   # if given aggregates multiple calls with same sequence number into one -- see smc-util/aggregate; typically make this a timestamp for compiling code.
+        aggregate  : undefined   # if given, aggregates multiple calls with same sequence number into one -- see smc-util/aggregate; typically make this a timestamp for compiling code.
         verbose    : true
         cb         : undefined
 
