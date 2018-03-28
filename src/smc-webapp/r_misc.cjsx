@@ -563,7 +563,7 @@ exports.NumberInput = NumberInput = rclass
     render: ->
         xs      = if @props.unit? then 6 else 12
         fgstyle = @props.formgroupstyle ? {}
-        fgstyle.whiteSpace = 'nowrap'
+        fgstyle = misc.merge({whiteSpace : 'nowrap'}, fgstyle)
 
         value      = @state.number ? @props.number
         form_style = {textAlign:'right'}
