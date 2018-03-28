@@ -40,6 +40,9 @@ require('jquery-highlight')
 # Caret Position jQuery plugin
 require('jquery-caret')
 
+# Stripe Payment jQuery plugin
+require("jquery.payment")
+
 # Bootstrap
 require('bootstrap')
 
