@@ -46,9 +46,21 @@ exports.CellList = rclass
             @props.actions.disable_key_handler()
 
     componentDidMount: ->
-        # restore scroll state
+
         if @props.scrollTop?
-            ReactDOM.findDOMNode(@refs.cell_list)?.scrollTop = @props.scrollTop
+            # restore scroll state -- as rendering happens dynamically and asynchronously, and I have no idea how to know
+            # when we are done, we can't just do this once.  Instead, we keep resetting scrollTop until scrollHeight
+            # stops changing or 2s elapses.
+            locals =
+                scrollTop    : @props.scrollTop
+                scrollHeight : 0
+            f = =>
+                elt = ReactDOM.findDOMNode(@refs?.cell_list)
+                if elt? and elt.scrollHeight != locals.scrollHeight  # dynamically rendering actually changed something
+                    elt.scrollTop = locals.scrollTop
+                    locals.scrollHeight = elt.scrollHeight
+            for tm in [0, 250, 750, 1500, 2000]
+                setTimeout(f, tm)
 
         if @props.actions?
             # Enable keyboard handler if necessary
@@ -157,12 +169,16 @@ exports.CellList = rclass
 
         v = []
         @props.cell_list.map (id) =>
+            cell_data  = @props.cells.get(id)
+            # is it possible/better idea to use the @actions.store here?
+            editable   = cell_data.getIn(['metadata', 'editable']) ? true
+            deletable  = cell_data.getIn(['metadata', 'deletable']) ? true
             cell = <Cell
                     key              = {id}
                     actions          = {@props.actions}
                     id               = {id}
                     cm_options       = {@props.cm_options}
-                    cell             = {@props.cells.get(id)}
+                    cell             = {cell_data}
                     is_current       = {id == @props.cur_id}
                     is_selected      = {@props.sel_ids?.contains(id)}
                     is_markdown_edit = {@props.md_edit_ids?.contains(id)}
@@ -175,6 +191,8 @@ exports.CellList = rclass
                     more_output      = {@props.more_output?.get(id)}
                     cell_toolbar     = {@props.cell_toolbar}
                     trust            = {@props.trust}
+                    editable         = {editable}
+                    deletable        = {deletable}
                     />
             if @props.actions?
                 v.push(@render_insert_cell(id))

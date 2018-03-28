@@ -12,11 +12,11 @@ def cmd(s):
 def chdir():
     os.chdir(os.path.split(os.path.abspath(__file__))[0])
 
-def base_url(port=None):
+def base_url(port=None, write=True):
     print("base_url(port=%s)"%port)
     info_file = join(os.environ['SMC'], 'info.json')
     info = json.loads(open(info_file).read())
-    if port is None:
+    if port is None and write:
         write_base_url = True
         port = get_ports()['hub']
     else:

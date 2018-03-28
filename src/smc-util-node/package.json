@@ -4,7 +4,7 @@
   "description": "CoCalc compute server code",
   "main": "index.js",
   "scripts": {
-    "test": "SMC_TEST=true node_modules/.bin/mocha --reporter progress",
+    "test": "SMC_TEST=true node_modules/.bin/mocha --reporter ${REPORTER:-progress} test/*.coffee",
     "coverage": "rm -rf ./coverage/; SMC_TEST=true node_modules/.bin/mocha --require ./coffee-coverage-loader.js && node_modules/.bin/istanbul report text html",
     "lint": "node_modules/.bin/coffeelint -f ../smc-util/coffeelint.json -c *.coffee"
   },
@@ -14,8 +14,9 @@
     "async": "^1.4.2",
     "coffee-cache": "^1.0.2",
     "coffee-register-cache": "0.0.0",
-    "coffee-script": "^1.10.0",
+    "coffeescript": "^2.1.0",
     "jsdom": "^7.2.2",
+    "memwatch-next": "^0.3.0",
     "shell-escape": "^0.2.0",
     "sqlite3": "^3.1.0",
     "temp": "^0.8.3",

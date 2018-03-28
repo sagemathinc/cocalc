@@ -13,7 +13,7 @@ exports.session_manager = (name, redux) ->
 
 class SessionManager
     constructor: (@name, @redux) ->
-        if webapp_client.account_id
+        if webapp_client.is_signed_in()
             @init_local_storage()
         else
             webapp_client.once 'signed_in', =>
@@ -24,10 +24,18 @@ class SessionManager
         {APP_BASE_URL} = require('misc_page')
         prefix = if APP_BASE_URL then ".#{APP_BASE_URL}" else ''
         @_local_storage_name = "session#{prefix}.#{webapp_client.account_id}.#{@name}"
-        @restore()
+
+        # Wait until projects is defined (loaded from db) before trying to restore open projects and their files.
+        # Otherwise things will randomly fail.
+        @redux.getStore('projects').wait
+            until   : (store) -> store.get('project_map')?
+            timeout : 0
+            cb      : =>
+                @restore()
+                @_initialized = true
 
     save: =>
-        if @_ignore
+        if @_ignore or not @_initialized
             return
         @_state = get_session_state(@redux)
         @_save_to_local_storage()
@@ -47,6 +55,7 @@ class SessionManager
             restore_session_state(@redux, @_state)
         catch err
             console.warn("FAILED to restore state", err)
+            @_save_to_local_storage()   # set back to a valid state
         delete @_ignore
         return
 
@@ -66,13 +75,16 @@ get_session_state = (redux) ->
             "#{project_id}" : redux.getProjectStore(project_id).get('open_files_order')?.toJS()
     return state
 
-restore_session_state = (redux, state) ->
+# reset_first is currently not used.  If true, then you get *exactly* the
+# saved session; if not set (the default) the current state and the session are merged.
+restore_session_state = (redux, state, reset_first=false) ->
     if not state?
         return
-
     page = redux.getActions('page')
-    for project_id in redux.getStore('projects').get('open_projects')?.toJS() ? []
-        page.close_project_tab(project_id)
+
+    if reset_first
+        for project_id in redux.getStore('projects').get('open_projects')?.toJS() ? []
+            page.close_project_tab(project_id)
 
     projects = redux.getActions('projects')
     for x in state

@@ -38,6 +38,8 @@ http_proxy   = require('http-proxy')
 http         = require('http')
 winston      = require('winston')
 
+winston      = require('./winston-metrics').get_logger('hub_http_server')
+
 misc         = require('smc-util/misc')
 {defaults, required} = misc
 
@@ -66,31 +68,50 @@ exports.init_express_http_server = (opts) ->
         dev            : false       # if true, serve additional dev stuff, e.g., a proxyserver.
         database       : required
         compute_server : required
+        cookie_options : undefined
     winston.debug("initializing express http server")
     winston.debug("MATHJAX_URL = ", misc_node.MATHJAX_URL)
+
+    server_settings = require('./server-settings')(opts.database)
 
     # Create an express application
     router = express.Router()
     app    = express()
     app.use(cookieParser())
 
-    router.use(body_parser.json())
-    router.use(body_parser.urlencoded({ extended: true }))
+    # Enable compression, as
+    # suggested by http://expressjs.com/en/advanced/best-practice-performance.html#use-gzip-compression
+    # NOTE "Express runs everything in order" -- https://github.com/expressjs/compression/issues/35#issuecomment-77076170
+    compression = require('compression')
+    app.use(compression())
+
+    # Very large limit, since can be used to send, e.g., large single patches, and
+    # the default is only 100kb!  https://github.com/expressjs/body-parser#limit-2
+    router.use(body_parser.json({limit: '3mb'}))
+    router.use(body_parser.urlencoded({extended: true, limit: '3mb'}))
 
     # initialize metrics
     response_time_histogram = MetricsRecorder.new_histogram('http_histogram', 'http server'
-                                  buckets : [0.001, 0.01, 0.1, 1, 2, 10, 20]
+                                  buckets : [0.01, 0.1, 1, 2, 10, 20]
                                   labels: ['path', 'method', 'code']
                               )
-
     # response time metrics
     router.use (req, res, next) ->
         res_finished_h = response_time_histogram.startTimer()
         original_end = res.end
         res.end = ->
             original_end.apply(res, arguments)
-            {dirname} = require('path')
-            dir_path = dirname(req.path).split('/')[1] # for two levels: split('/')[1..2].join('/')
+            {dirname}   = require('path')
+            path_split  = req.path.split('/')
+            # for API paths, we want to have data for each endpoint
+            path_tail   = path_split[path_split.length-3 ..]
+            is_api      = path_tail[0] == 'api' and path_tail[1] == 'v1'
+            if is_api
+                dir_path = path_tail.join('/')
+            else
+                # for regular paths, we ignore the file
+                dir_path = dirname(req.path).split('/')[..1].join('/')
+            #winston.debug('response timing/path_split:', path_tail, is_api, dir_path)
             res_finished_h({path:dir_path, method:req.method, code:res.statusCode})
         next()
 
@@ -166,7 +187,7 @@ exports.init_express_http_server = (opts) ->
         # looks for the has_remember_me value (set by the client in accounts).
         # This could be done in different ways, it's not clear what works best.
         #remember_me = req.cookies[opts.base_url + 'remember_me']
-        has_remember_me = req.cookies[opts.base_url + 'has_remember_me']
+        has_remember_me = req.cookies[auth.remember_me_cookie_name(opts.base_url)]
         if has_remember_me == 'true' # and remember_me?.split('$').length == 4 and not req.query.signed_out?
             res.redirect(opts.base_url + '/app')
         else
@@ -247,6 +268,17 @@ exports.init_express_http_server = (opts) ->
                 else
                     res.send(resp)
 
+    # HTTP-POST-based user queries
+    require('./user-query').init(router, auth.remember_me_cookie_name(opts.base_url), opts.database)
+
+    # HTTP-POST-based user API
+    require('./user-api').init
+        router         : router
+        cookie_name    : auth.remember_me_cookie_name(opts.base_url)
+        database       : opts.database
+        compute_server : opts.compute_server
+        logger         : winston
+
     # stripe invoices:  /invoice/[invoice_id].pdf
     stripe_connections = require('./stripe/connect').get_stripe()
     if stripe_connections?
@@ -299,34 +331,20 @@ exports.init_express_http_server = (opts) ->
         if req.query.set
             # TODO: implement expires as part of query?  not needed for now.
             maxAge = 1000*24*3600*30*6  # 6 months -- long is fine now since we support "sign out everywhere" ?
-            cookies = new Cookies(req, res)
+            cookies = new Cookies(req, res, opts.cookie_options)
             cookies.set(req.query.set, req.query.value, {maxAge:maxAge})
         res.end()
 
     # Used to determine whether or not a token is needed for
     # the user to create an account.
     router.get '/registration', (req, res) ->
-        if not hub_register.database_is_working()
-            res.json({error:"not connected to database"})
-            return
-        opts.database.get_server_setting
-            name : 'account_creation_token'
-            cb   : (err, token) ->
-                if err or not token
-                    res.json({})
-                else
-                    res.json({token:true})
+        if server_settings.all.account_creation_token
+            res.json({token:true})
+        else
+            res.json({})
 
     router.get '/customize', (req, res) ->
-        if not hub_register.database_is_working()
-            res.json({error:"not connected to database"})
-            return
-        opts.database.get_site_settings
-            cb : (err, settings) ->
-                if err or not settings
-                    res.json({})
-                else
-                    res.json(settings)
+        res.json(server_settings.pub)
 
     # Save other paths in # part of URL then redirect to the single page app.
     router.get ['/projects*', '/help*', '/settings*'], (req, res) ->
@@ -341,6 +359,7 @@ exports.init_express_http_server = (opts) ->
             return
         opts.database.get_stats
             update : false   # never update in hub b/c too slow. instead, run $ hub --update_stats via a cronjob every minute
+            ttl    : 30
             cb     : (err, stats) ->
                 res.header('Cache-Control', 'private, no-cache, no-store, must-revalidate')
                 if err
@@ -455,22 +474,15 @@ exports.init_express_http_server = (opts) ->
         app.post(raw_regexp, dev_proxy_raw)
 
         # Also create and expose the share server
-        PROJECT_PATH = conf.project_path()
-        share_server = require('./share/server')
-        share_router = share_server.share_router
-            database : opts.database
-            path     : "#{PROJECT_PATH}/[project_id]"
-            base_url : opts.base_url
-            logger   : winston
-        app.use(opts.base_url + '/share', share_router)
-        ### -- delete
-        raw_router = share_server.raw_router
-            database : opts.database
-            path     : "#{PROJECT_PATH}/[project_id]"
-            logger   : winston
-        app.use(opts.base_url + '/raw',   raw_router)
-        ###
-
+        if false
+            PROJECT_PATH = conf.project_path()
+            share_server = require('./share/server')
+            share_router = share_server.share_router
+                database : opts.database
+                path     : "#{PROJECT_PATH}/[project_id]"
+                base_url : opts.base_url
+                logger   : winston
+            app.use(opts.base_url + '/share', share_router)
 
     app.on 'upgrade', (req, socket, head) ->
         winston.debug("\n\n*** http_server websocket(#{req.url}) ***\n\n")
@@ -480,11 +492,6 @@ exports.init_express_http_server = (opts) ->
         # this upgrade is never hit, since the main site (that is
         # proxying to this server) is already trying to do something.
         # I don't know if this sort of multi-level proxying is even possible.
-
-    # Enable compression, as
-    # suggested by http://expressjs.com/en/advanced/best-practice-performance.html#use-gzip-compression
-    compression = require('compression')
-    app.use(compression())
 
     http_server = http.createServer(app)
     return {http_server:http_server, express_router:router}

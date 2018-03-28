@@ -24,11 +24,9 @@ required = defaults.required
 
 PROJECT_GROUPS = misc.PROJECT_GROUPS
 
+{PROJECT_COLUMNS, one_result, all_results, count_result, expire_time} = require('./postgres-base')
 
-{PostgreSQL, PROJECT_COLUMNS, one_result, all_results, count_result, expire_time} = require('./postgres')
-
-class exports.PostgreSQL extends PostgreSQL
-
+exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
     # write an event to the central_log table
     log: (opts) =>
         opts = defaults opts,
@@ -128,6 +126,7 @@ class exports.PostgreSQL extends PostgreSQL
             smc_git_rev  : undefined
             uptime       : undefined
             start_time   : undefined
+            id           : undefined  # ignored
             cb           : undefined
         @_query
             query       : 'INSERT INTO webapp_errors'
@@ -187,7 +186,6 @@ class exports.PostgreSQL extends PostgreSQL
                 "name = $::TEXT" : opts.name
             cb    : one_result('value', opts.cb)
 
-    # TODO: optimization -- site_settings could be done as a changefeed (and is done as one in rethink.coffee)
     get_site_settings: (opts) =>
         opts = defaults opts,
             cb : required   # (err, settings)
@@ -206,6 +204,10 @@ class exports.PostgreSQL extends PostgreSQL
                             k.value = eval(k.value)
                         x[k.name] = k.value
                     opts.cb(undefined, x)
+
+    server_settings_synctable: (opts={}) =>
+        opts.table = 'server_settings'
+        return @synctable(opts)
 
     set_passport_settings: (opts) =>
         opts = defaults opts,
@@ -880,28 +882,40 @@ class exports.PostgreSQL extends PostgreSQL
 
     user_search: (opts) =>
         opts = defaults opts,
-            query : required     # comma separated list of email addresses or strings such as 'foo bar' (find everything where foo and bar are in the name)
-            limit : 50           # limit on string queries; email query always returns 0 or 1 result per email address
-            cb    : required     # cb(err, list of {id:?, first_name:?, last_name:?, email_address:?}), where the
-                                 # email_address *only* occurs in search queries that are by email_address -- we do not reveal
-                                 # email addresses of users queried by name.
+            query  : required     # comma separated list of email addresses or strings such as 'foo bar' (find everything where foo and bar are in the name)
+            limit  : 50           # limit on string queries; email query always returns 0 or 1 result per email address
+            active : '6 months'   # for name search (not email), only return users active this recently.
+            cb     : required     # cb(err, list of {id:?, first_name:?, last_name:?, email_address:?}), where the
+                                  # email_address *only* occurs in search queries that are by email_address -- we do not reveal
+                                  # email addresses of users queried by name.
         {string_queries, email_queries} = misc.parse_user_search(opts.query)
-        results = []
         dbg = @_dbg("user_search")
         dbg("query = #{misc.to_json(opts.query)}")
+
+        locals =
+             results : []
+
+        process = (rows) ->
+            if not rows?
+                return
+            locals.results.push(rows...)
+
         async.parallel([
             (cb) =>
                 if email_queries.length == 0
                     cb(); return
                 dbg("do email queries -- with exactly two targeted db queries (even if there are hundreds of addresses)")
                 @_query
-                    query : 'SELECT account_id, first_name, last_name, email_address FROM accounts'
-                    where : 'email_address = ANY($::TEXT[])' : email_queries
+                    query : 'SELECT account_id, first_name, last_name, email_address, last_active, created, email_address_verified FROM accounts'
+                    where :
+                        'email_address = ANY($::TEXT[])' : email_queries
+                        'deleted is $'                   : null
                     cb    : all_results (err, rows) =>
-                        cb(err, if rows? then results.push(rows...))
+                        process(rows)
+                        cb(err)
             (cb) =>
                 dbg("do all string queries")
-                if string_queries.length == 0 or (opts.limit? and results.length >= opts.limit)
+                if string_queries.length == 0
                     # nothing to do
                     cb(); return
                 # substring search on first and last name.
@@ -920,16 +934,30 @@ class exports.PostgreSQL extends PostgreSQL
                         params.push("#{s}%")  # require string to name to start with string -- makes searching way faster and is more useful too
                         i += 1
                     where.push("(#{v.join(' AND ')})")
-                query = 'SELECT account_id, first_name, last_name FROM accounts'
+                query = 'SELECT account_id, first_name, last_name, last_active, created FROM accounts'
                 query += " WHERE deleted IS NOT TRUE AND (#{where.join(' OR ')})"
+                if opts.active
+                    # name search only includes active users
+                    query += " AND ((last_active >= NOW() - INTERVAL '#{opts.active}') OR (created >= NOW() - INTERVAL '#{opts.active}')) "
                 query += " LIMIT $#{i}::INTEGER"; i += 1
                 params.push(opts.limit)
                 @_query
                     query  : query
                     params : params
                     cb     : all_results (err, rows) =>
-                        cb(err, if rows? then results.push(rows...))
-            ], (err) => opts.cb(err, results))
+                        process(rows)
+                        cb(err)
+            ], (err) =>
+                locals.results.sort (a, b) ->
+                    a0 = (a.first_name + ' ' + a.last_name).toLowerCase()
+                    b0 = (b.first_name + ' ' + b.last_name).toLowerCase()
+                    c = misc.cmp(a0, b0)
+                    if c
+                        return c
+                    return -misc.cmp_Date(a.last_active ? a.created ? 0, b.last_active ? b.created ? 0)
+
+                opts.cb(err, locals.results)
+            )
 
     _account_where: (opts) =>
         if opts.account_id?
@@ -1143,15 +1171,20 @@ class exports.PostgreSQL extends PostgreSQL
             cb       : opts.cb
 
     # Get remember me cookie with given hash.  If it has expired,
-    # get back undefined instead.  (Actually deleting expired)
+    # get back undefined instead.  (Actually deleting expired).
+    # We use retry_until_success, since an intermittent database
+    # reconnect can result in a cb error that will very soon
+    # work fine, and we don't to flat out sign the client out
+    # just because of this.
     get_remember_me: (opts) =>
         opts = defaults opts,
-            hash       : required
-            cb         : required   # cb(err, signed_in_message)
+            hash                : required
+            cb                  : required   # cb(err, signed_in_message)
         @_query
             query : 'SELECT value, expire FROM remember_me'
             where :
                 'hash = $::TEXT' : opts.hash.slice(0,127)
+            retry_until_success  : {max_time:60000, start_delay:3000}  # since we want this to be (more) robust to database connection failures.
             cb       : one_result('value', opts.cb)
 
     delete_remember_me: (opts) =>
@@ -1571,11 +1604,13 @@ class exports.PostgreSQL extends PostgreSQL
 
     add_user_to_project: (opts) =>
         opts = defaults opts,
-            project_id : required
-            account_id : required
-            group      : 'collaborator'  # see misc.PROJECT_GROUPS above
-            cb         : required  # cb(err)
+            project_id   : required
+            account_id   : required
+            group        : 'collaborator'  # see misc.PROJECT_GROUPS above
+            cb           : required  # cb(err)
+
         if not @_validate_opts(opts) then return
+
         @_query
             query       : 'UPDATE projects'
             jsonb_merge :
@@ -2106,7 +2141,8 @@ class exports.PostgreSQL extends PostgreSQL
     #    (3) they do NOT touch upgrades on any projects again.
     ensure_all_user_project_upgrades_are_valid: (opts) =>
         opts = defaults opts,
-            cb : required
+            limit : 1                   # We only default to 1 at a time, since there is no hurry.
+            cb    : required
         dbg = @_dbg("ensure_all_user_project_upgrades_are_valid")
         locals = {}
         async.series([
@@ -2127,8 +2163,7 @@ class exports.PostgreSQL extends PostgreSQL
                     @ensure_user_project_upgrades_are_valid
                         account_id : account_id
                         cb         : cb
-                # We only do 1 at a time, since there is no hurry.
-                async.mapLimit(locals.account_ids, 1, f, cb)
+                async.mapLimit(locals.account_ids, opts.limit, f, cb)
         ], opts.cb)
 
     # Return the sum total of all user upgrades to a particular project

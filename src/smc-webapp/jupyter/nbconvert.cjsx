@@ -31,7 +31,7 @@ Error = rclass
         nbconvert           : rtypes.immutable.Map
 
     componentDidMount: ->
-       setTimeout((()=>@scroll()),10)
+        setTimeout((()=>@scroll()),10)
 
     componentWillReceiveProps: (next) ->
         if not misc.is_string(@props.nbconvert.get('error')) and misc.is_string(next.nbconvert.get('error'))
@@ -68,6 +68,7 @@ exports.NBConvert = rclass
     propTypes :
         actions             : rtypes.object.isRequired
         path                : rtypes.string.isRequired
+        project_id          : rtypes.string.isRequired
         nbconvert           : rtypes.immutable.Map
         nbconvert_dialog    : rtypes.immutable.Map
         backend_kernel_info : rtypes.immutable.Map
@@ -208,7 +209,46 @@ exports.NBConvert = rclass
         else
             return ''
 
+    slides_command: ->
+        return "jupyter nbconvert --to slides --ServePostProcessor.port=18080 --ServePostProcessor.ip='*' --ServePostProcessor.open_in_browser=False ~/'#{@props.path}' --post serve"
+
+    slides_url: ->
+        base = misc.separate_file_extension(misc.path_split(@props.path).tail).name
+        name = base + '.slides.html#/'
+        return "https://cocalc.com/#{@props.project_id}/server/18080/" + name
+
+    render_slides_workaround: ->
+        # workaround until #2569 is fixed.
+        <Modal show={@props.nbconvert_dialog?} bsSize="large" onHide={@close} >
+            <Modal.Header closeButton>
+                <Modal.Title><Icon name='slideshare'/> Jupyter Notebook Slideshow</Modal.Title>
+            </Modal.Header>
+            <Modal.Body>
+                Use View-->Slideshow to turn your Jupyter notebook into a slideshow.
+
+                One click display of slideshows
+                is <a target="_blank" href="https://github.com/sagemathinc/cocalc/issues/2569#issuecomment-350940928">not yet implemented</a>.  However,
+                you can start a slideshow by copying and pasting the following command in a terminal in
+                CoCalc (+New-->Terminal):
+                <pre>
+                {@slides_command()}
+                </pre>
+                Then view your slides at
+                <div style={textAlign:'center'}>
+                    <a href={@slides_url()} target="_blank">{@slides_url()}</a>
+                </div>
+            </Modal.Body>
+            <Modal.Footer>
+                <Button onClick={@close}>Close</Button>
+            </Modal.Footer>
+        </Modal>
+
     render: ->
+        to = @props.nbconvert_dialog?.get('to')
+        if not to?
+            return <span/>
+        if to == 'slides'
+            return @render_slides_workaround()
         <Modal show={@props.nbconvert_dialog?} bsSize="large" onHide={@close} >
             <Modal.Header closeButton>
                 <Modal.Title>Download</Modal.Title>

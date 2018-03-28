@@ -38,9 +38,11 @@ schema = require('smc-util/schema')
 
 exports.StudentProjectUpgrades = rclass
     propTypes: ->
-        name         : rtypes.string.isRequired
-        redux        : rtypes.object.isRequired
-        upgrade_goal : rtypes.immutable.Map
+        name          : rtypes.string.isRequired
+        redux         : rtypes.object.isRequired
+        upgrade_goal  : rtypes.immutable.Map
+        institute_pay : rtypes.bool
+        student_pay   : rtypes.bool
 
     getInitialState: ->
         upgrade_quotas : false       # true if display the quota upgrade panel
@@ -64,11 +66,11 @@ exports.StudentProjectUpgrades = rclass
 
     render_upgrade_heading: (num_projects) ->
         <Row key="heading">
-            <Col md=5>
+            <Col md={5}>
                 <b style={fontSize:'11pt'}>Quota</b>
             </Col>
-            {# <Col md=2><b style={fontSize:'11pt'}>Current upgrades</b></Col> }
-            <Col md=7>
+            {### <Col md={2}><b style={fontSize:'11pt'}>Current upgrades</b></Col> ###}
+            <Col md={7}>
                 <b style={fontSize:'11pt'}>Distribute upgrades to your {num_projects} student {misc.plural(num_projects, 'project')} to get quota to the amount in this column (amounts may be decimals)</b>
             </Col>
         </Row>
@@ -92,9 +94,9 @@ exports.StudentProjectUpgrades = rclass
                 bs_style = 'error'
                 @_upgrade_is_invalid = true
                 if misc.parse_number_input(val)?
-                    label = <div style=UPGRADE_ERROR_STYLE>Reduce the above: you do not have enough upgrades</div>
+                    label = <div style={UPGRADE_ERROR_STYLE}>Reduce the above: you do not have enough upgrades</div>
                 else
-                    label = <div style=UPGRADE_ERROR_STYLE>Please enter a number</div>
+                    label = <div style={UPGRADE_ERROR_STYLE}>Please enter a number</div>
             else
                 label = <span></span>
             <FormGroup>
@@ -112,7 +114,7 @@ exports.StudentProjectUpgrades = rclass
             is_valid = @is_upgrade_input_valid(val, limit)
             if not is_valid
                 @_upgrade_is_invalid = true
-                label = <div style=UPGRADE_ERROR_STYLE>Uncheck this: you do not have enough upgrades</div>
+                label = <div style={UPGRADE_ERROR_STYLE}>Uncheck this: you do not have enough upgrades</div>
             else
                 label = if val == 0 then 'Enable' else 'Enabled'
             <form>
@@ -160,17 +162,17 @@ exports.StudentProjectUpgrades = rclass
                 cur = 'all'
 
         <Row key={quota}>
-            <Col md=5>
+            <Col md={5}>
                 <Tip title={display} tip={desc}>
                     <strong>{display}</strong>
                 </Tip>
                 <span style={marginLeft:'1ex'}>({remaining} {misc.plural(remaining, display_unit)} remaining)</span>
             </Col>
-            {# <Col md=2  style={marginTop: '8px'}>{cur}</Col> }
-            <Col md=5>
+            {### <Col md={2}  style={marginTop: '8px'}>{cur}</Col> ###}
+            <Col md={5}>
                 {@render_upgrade_row_input(quota, input_type, current, yours, num_projects, limit)}
             </Col>
-            <Col md=2 style={marginTop: '8px'}>
+            <Col md={2} style={marginTop: '8px'}>
                 &times; {num_projects}
             </Col>
         </Row>
@@ -229,7 +231,7 @@ exports.StudentProjectUpgrades = rclass
             total_upgrades = misc.map_sum(total_upgrades, projects_store.get_total_project_upgrades(project_id))
 
         <Alert bsStyle='warning'>
-            <h3><Icon name='arrow-circle-up' /> Adjust your contributions to the student project quotas</h3>
+            <h3><Icon name='arrow-circle-up' /> Adjust your contributions to the student project upgrades</h3>
             <hr/>
             {@render_upgrade_heading(num_projects)}
             <hr/>
@@ -311,14 +313,40 @@ exports.StudentProjectUpgrades = rclass
 
     render_upgrade_quotas_button: ->
         <Button bsStyle='primary' onClick={@adjust_quotas}>
-            <Icon name='arrow-circle-up' /> Adjust quotas...
+            <Icon name='arrow-circle-up' /> Adjust upgrades...
         </Button>
 
-    render: ->
-        <Panel header={<h4><Icon name='dashboard' />  Upgrade all student projects (you pay)</h4>}>
+    handle_institute_pay_checkbox: (e) ->
+        @actions(@props.name).set_pay_choice('institute', e.target.checked)
+
+    render_checkbox: ->
+        <span>
+            <Checkbox
+                checked  = {!!@props.institute_pay}
+                onChange = {@handle_institute_pay_checkbox}
+            >
+                You or your institute will pay for this course
+            </Checkbox>
+        </span>
+
+    render_details: ->
+        <div>
             {if @state.upgrade_quotas then @render_upgrade_quotas() else @render_upgrade_quotas_button()}
             <hr/>
             <div style={color:"#666"}>
-                <p>Add or remove upgrades to student projects associated to this course, augmenting what is provided for free and what students may have purchased.</p>
+                <p>Add or remove upgrades to student projects associated to this course, adding to what is provided for free and what students may have purchased.  <a href="https://github.com/sagemathinc/cocalc/wiki/prof-pay" target="_blank">Help...</a></p>
             </div>
+        </div>
+
+    render: ->
+        if @props.student_pay or @props.institute_pay
+            style = bg = undefined
+        else
+            style = {fontWeight:'bold'}
+            bg    = '#fcf8e3'
+        <Panel
+            style  = {background:bg}
+            header = {<h4 style={style}><Icon name='dashboard' />  Upgrade all student projects (institute pays)</h4>}>
+            {@render_checkbox()}
+            {@render_details() if @props.institute_pay}
         </Panel>

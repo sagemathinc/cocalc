@@ -8,11 +8,13 @@ LICENSE   : AGPLv3
 async  = require('async')
 rimraf = require('rimraf')
 temp   = require('temp')
+sinon  = require('sinon')
 
-# mock email sending
+# stub email sending
 email = require('../../email')
 exports.last_email = undefined
-email.send_email = (opts) ->
+email = require('../../email')
+sinon.stub(email, 'send_email').callsFake (opts) ->
     exports.last_email = opts
     opts.cb?()
 
@@ -25,11 +27,15 @@ exports.db = exports.account_id = exports.api_key = exports.compute_server = und
 
 {http_message_api_v1} = require('../../api/handler')
 
-winston = require('winston')
-try
-    winston.remove(winston.transports.Console)
-catch
-    # exception if already removed.
+exports.winston = require('./../../winston-metrics').get_logger('api_test')
+
+# a little reset for beforeEach
+exports.reset = (done) ->
+    async.series([
+        (cb) ->
+            email.send_email.resetHistory()
+            cb()
+    ], done)
 
 exports.setup = (cb) ->
     async.series([

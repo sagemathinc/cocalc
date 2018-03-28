@@ -23,7 +23,7 @@
 The Landing Page
 ###
 {rclass, React, ReactDOM, redux, rtypes} = require('./smc-react')
-{Alert, Button, ButtonToolbar, Col, Modal, Grid, Row, FormControl, FormGroup, Well, ClearFix} = require('react-bootstrap')
+{Alert, Button, ButtonToolbar, Col, Modal, Grid, Row, FormControl, FormGroup, Well, ClearFix, Checkbox} = require('react-bootstrap')
 {ErrorDisplay, Icon, Loading, ImmutablePureRenderMixin, Footer, UNIT, COLORS, ExampleBox} = require('./r_misc')
 {HelpEmailLink, SiteName, SiteDescription, TermsOfService, AccountCreationEmailInstructions} = require('./customize')
 
@@ -34,7 +34,8 @@ DESC_FONT = 'sans-serif'
 
 misc = require('smc-util/misc')
 {APP_TAGLINE} = require('smc-util/theme')
-{APP_BASE_URL, APP_ICON, APP_ICON_WHITE, APP_LOGO_NAME, APP_LOGO_NAME_WHITE} = require('./art')
+{APP_ICON, APP_ICON_WHITE, APP_LOGO_NAME, APP_LOGO_NAME_WHITE} = require('./art')
+{APP_BASE_URL} = require('./misc_page')
 
 $.get window.app_base_url + "/registration", (obj, status) ->
     if status == 'success'
@@ -44,8 +45,11 @@ Passports = rclass
     displayName : 'Passports'
 
     propTypes :
-        strategies  : rtypes.array
+        strategies  : rtypes.immutable.List
         get_api_key : rtypes.string
+        small_size  : rtypes.bool
+        no_header   : rtypes.bool
+        style       : rtypes.object
 
     styles :
         facebook :
@@ -67,18 +71,27 @@ Passports = rclass
         url = "#{window.app_base_url}/auth/#{name}"
         if @props.get_api_key
             url += "?get_api_key=#{@props.get_api_key}"
+        if @props.small_size
+            size = undefined
+        else
+            size = '2x'
         <a href={url} key={name}>
-            <Icon size='2x' name='stack' href={url}>
+            <Icon size={size} name='stack' href={url}>
                 {<Icon name='circle' stack='2x' style={color: @styles[name].backgroundColor} /> if name isnt 'github'}
                 <Icon name={name} stack='1x' size={'2x' if name is 'github'} style={color: @styles[name].color} />
             </Icon>
         </a>
 
+    render_heading: ->
+        if @props.no_heading
+            return
+        <h3 style={marginTop: 0}>Connect with</h3>
+
     render: ->
-        <div style={textAlign: 'center'}>
-            <h3 style={marginTop: 0}>Connect with</h3>
+        <div style={@props.style}>
+            {@render_heading()}
             <div>
-                {@render_strategy(name) for name in @props.strategies}
+                {@render_strategy(name) for name in @props.strategies?.toJS() ? []}
             </div>
             <hr style={marginTop: 10, marginBottom: 10} />
         </div>
@@ -96,95 +109,137 @@ SignUp = rclass
     displayName: 'SignUp'
 
     propTypes :
-        strategies      : rtypes.array
-        sign_up_error   : rtypes.string
+        strategies      : rtypes.immutable.List
+        get_api_key     : rtypes.string
+        sign_up_error   : rtypes.immutable.Map
         token           : rtypes.bool
         has_account     : rtypes.bool
         signing_up      : rtypes.bool
         style           : rtypes.object
         has_remember_me : rtypes.bool
-        get_api_key     : rtypes.string
+
+    getInitialState: ->
+        terms_checkbox : false
+        first_name     : ''
+        last_name      : ''
+        email          : ''
+        password       : ''
+        user_token     : ''
 
     make_account: (e) ->
         e.preventDefault()
-        first_name = ReactDOM.findDOMNode(@refs.first_name).value
-        last_name  = ReactDOM.findDOMNode(@refs.last_name).value
-        email      = ReactDOM.findDOMNode(@refs.email).value
-        password   = ReactDOM.findDOMNode(@refs.password).value
-        token      = ReactDOM.findDOMNode(@refs.token)?.value
-        @actions('account').create_account(first_name, last_name, email, password, token)
+        @actions('account').create_account(@state.first_name, @state.last_name, @state.email, @state.password, @state.user_token)
 
-    display_error: (field)->
-        if @props.sign_up_error?[field]?
-            <div style={ERROR_STYLE}>{@props.sign_up_error[field]}</div>
+    render_error: (field)->
+        err = @props.sign_up_error?.get(field)
+        if err?
+            <div style={ERROR_STYLE}>{err}</div>
 
-    display_passports: ->
+    render_passports: ->
         if not @props.strategies?
             return <Loading />
-        if @props.strategies.length > 1
-            return <Passports strategies={@props.strategies} get_api_key={@props.get_api_key} />
+        if @props.strategies.size > 1
+            <div>
+                <Passports
+                    strategies  = {@props.strategies}
+                    get_api_key = {@props.get_api_key}
+                    style       = {textAlign: 'center'}
+                />
+                Or sign up via email
+                <br/>
+            </div>
 
-    display_token_input: ->
+    render_token_input: ->
         if @props.token
             <FormGroup>
-                <FormControl ref='token' type='text' placeholder='Enter the secret token' />
+                <FormControl
+                    type        = {'text'}
+                    placeholder = {'Enter the secret token'}
+                    onChange    = {(e)=>@setState(user_token: e.target.value)}
+                    />
             </FormGroup>
+
+    render_terms: ->
+        <FormGroup style={fontSize: '12pt', margin:'20px'}>
+            <Checkbox
+                onChange = {(e)=>@setState(terms_checkbox: e.target.checked)}
+                >
+                <TermsOfService />
+            </Checkbox>
+        </FormGroup>
+
+    render_creation_form: ->
+        <div>
+            {@render_token_input()}
+            {@render_error("token")}
+            {@render_error("generic")}                   {### a generic error ###}
+            {@render_error("account_creation_failed")}
+            {@render_passports() if @state.terms_checkbox}
+            <form style={marginTop: 20, marginBottom: 20} onSubmit={@make_account}>
+                <FormGroup>
+                    {@render_error("first_name")}
+                    <FormControl
+                        type        = 'text'
+                        autoFocus   = {false}
+                        placeholder = 'First name'
+                        onChange    = {(e)=>@setState(first_name: e.target.value)}
+                        maxLength   = {120} />
+                </FormGroup>
+                <FormGroup>
+                    {@render_error("last_name")}
+                    <FormControl
+                        type        = 'text'
+                        autoFocus   = {false}
+                        placeholder = 'Last name'
+                        onChange    = {(e)=>@setState(last_name: e.target.value)}
+                        maxLength   = {120} />
+                </FormGroup>
+                <FormGroup>
+                    {@render_error("email_address")}
+                    <FormControl
+                        type        = 'email'
+                        placeholder = 'Email address'
+                        maxLength   = {254}
+                        onChange    = {(e)=>@setState(email: e.target.value)}
+                        />
+                </FormGroup>
+                <FormGroup>
+                    {@render_error("password")}
+                    <FormControl
+                        type        = 'password'
+                        placeholder = 'Choose a password'
+                        maxLength   = {64}
+                        onChange    = {(e)=>@setState(password: e.target.value)}
+                        />
+                </FormGroup>
+                <Button
+                    style    = {marginBottom: UNIT, marginTop: UNIT}
+                    disabled = {@props.signing_up}
+                    bsStyle  = {'success'}
+                    bsSize   = {'large'}
+                    type     = {'submit'}
+                    block >
+                        {<Icon name="spinner" spin /> if @props.signing_up} Sign up!
+                </Button>
+            </form>
+        </div>
 
     render: ->
         well_style =
             marginTop      : '10px'
             borderColor    : COLORS.LANDING.LOGIN_BAR_BG
         well_class = ''
-        if not @props.has_remember_me
-            # additional highlighting
-            well_style.backgroundColor = COLORS.LANDING.LOGIN_BAR_BG
-            well_style.color           = 'white'
-            well_class = 'webapp-landing-sign-up-highlight'
-        <Well style=well_style className={well_class}>
-            <TermsOfService style={fontWeight:'bold', textAlign: "center"} />
-            <br />
-            {@display_token_input()}
-            {@display_error("token")}
-            {@display_error("account_creation_failed")}   {# a generic error}
-            {@display_passports()}
+        # Commenting this out -- the look is confusing and inconsistent.
+        #if not @props.has_remember_me
+        #    # additional highlighting
+        #    well_style.backgroundColor = COLORS.LANDING.LOGIN_BAR_BG
+        #    well_style.color           = 'white'
+        #    well_class = 'webapp-landing-sign-up-highlight'
+        <Well style={well_style} className={well_class}>
+            {### <TermsOfService style={fontWeight:'bold', textAlign: "center"} />  <br /> ###}
             <AccountCreationEmailInstructions />
-            <form style={marginTop: 20, marginBottom: 20} onSubmit={@make_account}>
-                <FormGroup>
-                    {@display_error("first_name")}
-                    <FormControl
-                        ref         = 'first_name'
-                        type        = 'text'
-                        autoFocus   = {false}
-                        placeholder = 'First name'
-                        maxLength   = 120 />
-                </FormGroup>
-                <FormGroup>
-                    {@display_error("last_name")}
-                    <FormControl
-                        ref         = 'last_name'
-                        type        = 'text'
-                        autoFocus   = {false}
-                        placeholder = 'Last name'
-                        maxLength   = 120 />
-                </FormGroup>
-                <FormGroup>
-                    {@display_error("email_address")}
-                    <FormControl ref='email' type='email' placeholder='Email address' maxLength=254 />
-                </FormGroup>
-                <FormGroup>
-                    {@display_error("password")}
-                    <FormControl ref='password' type='password' placeholder='Choose a password' maxLength=64 />
-                </FormGroup>
-                <Button
-                    style    = {marginBottom: UNIT, marginTop: UNIT}
-                    disabled = {@props.signing_up}
-                    bsStyle  = "success"
-                    bsSize   = 'large'
-                    type     = 'submit'
-                    block >
-                        {<Icon name="spinner" spin /> if @props.signing_up} Sign up!
-                </Button>
-            </form>
+            {@render_terms()}
+            {@render_creation_form() if @state.terms_checkbox}
             <div style={textAlign: "center"}>
                 Email <HelpEmailLink /> if you need help.
             </div>
@@ -199,6 +254,8 @@ SignIn = rclass
         has_account   : rtypes.bool
         xs            : rtypes.bool
         color         : rtypes.string
+        strategies    : rtypes.immutable.List
+        get_api_key   : rtypes.string
 
     componentDidMount: ->
         @actions('page').set_sign_in_func(@sign_in)
@@ -222,6 +279,16 @@ SignIn = rclass
                 onClose = {=>@actions('account').setState(sign_in_error: undefined)}
             />
 
+    render_passports: ->
+        <div>
+            <Passports
+                strategies  = {@props.strategies}
+                get_api_key = {@props.get_api_key}
+                small_size  = {true}
+                no_heading  = {true}
+            />
+        </div>
+
     remove_error: ->
         if @props.sign_in_error
             @actions('account').setState(sign_in_error : undefined)
@@ -234,7 +301,7 @@ SignIn = rclass
 
     render: ->
         if @props.xs
-            <Col xs=12>
+            <Col xs={12}>
                 <form onSubmit={@sign_in} className='form-inline'>
                     <Row>
                         <FormGroup>
@@ -266,19 +333,19 @@ SignIn = rclass
             </Col>
         else
             <form onSubmit={@sign_in} className='form-inline'>
-                <Grid fluid=true style={padding:0}>
+                <Grid fluid={true} style={padding:0}>
                 <Row>
-                    <Col xs=5>
+                    <Col xs={5}>
                         <FormGroup>
                             <FormControl style={width:'100%'} ref='email' type='email' placeholder='Email address' autoFocus={true} onChange={@remove_error} />
                         </FormGroup>
                     </Col>
-                    <Col xs=4>
+                    <Col xs={4}>
                         <FormGroup>
                             <FormControl style={width:'100%'} ref='password' type='password' placeholder='Password' onChange={@remove_error} />
                         </FormGroup>
                     </Col>
-                    <Col xs=3>
+                    <Col xs={3}>
                         <Button
                             type      = "submit"
                             disabled  = {@props.signing_in}
@@ -289,14 +356,19 @@ SignIn = rclass
                     </Col>
                 </Row>
                 <Row>
-                    <Col xs=7 xsOffset=5 style={paddingLeft:15}>
+                    <Col xs={7} xsOffset={5} style={paddingLeft:15}>
                         <div style={marginTop: '1ex'}>
                             <a onClick={@display_forgot_password} style={color:@props.color, cursor: "pointer", fontSize:@forgot_font_size()} >Forgot Password?</a>
                         </div>
                     </Col>
                 </Row>
+                <Row>
+                    <Col xs={12}>
+                        {@render_passports()}
+                    </Col>
+                </Row>
                 <Row className='form-inline pull-right' style={clear : "right"}>
-                    <Col xs=12>
+                    <Col xs={12}>
                         {@display_error()}
                     </Col>
                 </Row>
@@ -443,10 +515,10 @@ ContentItem = rclass
 
     render: ->
         <Row>
-            <Col sm=2>
+            <Col sm={2}>
                 <h1 style={textAlign: "center"}><Icon name={@props.icon} /></h1>
             </Col>
-            <Col sm=10>
+            <Col sm={10}>
                 <h2 style={fontFamily: DESC_FONT}>{@props.heading}</h2>
                 {@props.text}
             </Col>
@@ -524,12 +596,12 @@ SagePreview = rclass
         <div className="hidden-xs">
             <Well>
                 <Row>
-                    <Col sm=6>
+                    <Col sm={6}>
                         <ExampleBox title="Interactive Worksheets" index={0}>
                             Interactively explore mathematics, science and statistics. <strong>Collaborate with others in real time</strong>. You can see their cursors moving around while they type &mdash; this works for Sage Worksheets and even Jupyter Notebooks!
                         </ExampleBox>
                     </Col>
-                    <Col sm=6>
+                    <Col sm={6}>
                         <ExampleBox title="Course Management" index={1}>
                             <SiteName /> helps to you to <strong>conveniently organize a course</strong>: add students, create their projects, see their progress,
                             understand their problems by dropping right into their files from wherever you are.
@@ -540,7 +612,7 @@ SagePreview = rclass
                 </Row>
                 <br />
                 <Row>
-                    <Col sm=6>
+                    <Col sm={6}>
                       <ExampleBox title="LaTeX Editor" index={2}>
                             <SiteName /> supports authoring documents written in LaTeX, Markdown or HTML.
                             The <strong>preview</strong> helps you understanding what&#39;s going on.
@@ -548,7 +620,7 @@ SagePreview = rclass
                             CoCalc also allows you to publish documents online.
                         </ExampleBox>
                     </Col>
-                    <Col sm=6>
+                    <Col sm={6}>
                         <ExampleBox title="Jupyter Notebooks and Linux Terminals" index={3}>
                             <SiteName /> does not arbitrarily restrict you.
                             Work with <strong>Jupyter Notebooks</strong>,
@@ -568,8 +640,8 @@ Connecting = () ->
 
 exports.LandingPage = rclass
     propTypes:
-        strategies              : rtypes.array
-        sign_up_error           : rtypes.object
+        strategies              : rtypes.immutable.List
+        sign_up_error           : rtypes.immutable.Map
         sign_in_error           : rtypes.string
         signing_in              : rtypes.bool
         signing_up              : rtypes.bool
@@ -610,22 +682,13 @@ exports.LandingPage = rclass
             # CSS of this looks like crap for a moment; worse than nothing. So disabling unless it can be fixed!!
             #return <Connecting />
             return <span/>
-        if @props.has_remember_me
-            topbar =
-              img_icon    : APP_ICON_WHITE
-              img_name    : APP_LOGO_NAME_WHITE
-              img_opacity : 1.0
-              color       : 'white'
-              bg_color    : COLORS.LANDING.LOGIN_BAR_BG
-              border      : "5px solid #{COLORS.LANDING.LOGIN_BAR_BG}"
-        else
-            topbar =
-              img_icon    : APP_ICON
-              img_name    : APP_LOGO_NAME
-              img_opacity : 0.6
-              color       : COLORS.GRAY
-              bg_color    : COLORS.GRAY_LL
-              border      : "5px solid #{COLORS.GRAY}"
+        topbar =
+          img_icon    : APP_ICON_WHITE
+          img_name    : APP_LOGO_NAME_WHITE
+          img_opacity : 1.0
+          color       : 'white'
+          bg_color    : COLORS.LANDING.LOGIN_BAR_BG
+          border      : "5px solid #{COLORS.LANDING.LOGIN_BAR_BG}"
 
         <div style={margin: UNIT}>
             {@render_password_reset()}
@@ -657,9 +720,10 @@ exports.LandingPage = rclass
                               top      : UNIT,\
                               right    : UNIT,\
                               fontSize : '11pt',\
-                              float    : "right"}
-                      >
+                              float    : "right"} >
                       <SignIn
+                          strategies    = {@props.strategies}
+                          get_api_key   = {@props.get_api_key}
                           signing_in    = {@props.signing_in}
                           sign_in_error = {@props.sign_in_error}
                           has_account   = {@props.has_account}
@@ -702,18 +766,18 @@ exports.LandingPage = rclass
                   </div>
             </Row>
             <Row>
-                <Col sm=6>
+                <Col sm={6}>
                     <SignUp
                         sign_up_error   = {@props.sign_up_error}
                         strategies      = {@props.strategies}
+                        get_api_key     = {@props.get_api_key}
                         token           = {@props.token}
                         has_remember_me = {@props.has_remember_me}
                         signing_up      = {@props.signing_up}
                         has_account     = {@props.has_account}
-                        get_api_key     = {@props.get_api_key}
                         />
                 </Col>
-                <Col sm=6>
+                <Col sm={6}>
                     <div style={color:"#333", fontSize:'12pt', marginTop:'2em'}>
                         Create a new account here or sign in with an existing account above.
                         <br/>

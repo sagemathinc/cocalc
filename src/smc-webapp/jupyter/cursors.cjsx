@@ -4,40 +4,66 @@ React component that represents cursors of other users.
 
 {React, ReactDOM, rclass, rtypes}  = require('../smc-react')
 
+{debounce} = require('underscore')
+
+{IS_TOUCH} = require('../feature')
+
 misc = require('smc-util/misc')
 
 exports.Cursor = Cursor = rclass
+    displayName: 'Cursor'
+
     propTypes:
         name  : rtypes.string.isRequired
         color : rtypes.string.isRequired
+        top   : rtypes.string   # doesn't change
+        time  : rtypes.number
+
+    shouldComponentUpdate: (props, state) ->
+        if @props.time != props.time
+            @show_name(2000)
+        return misc.is_different(@props, props, ['name', 'color']) or @state.show_name != state.show_name
 
     getInitialState: ->
-        hover : false
+        show_name : true
 
     componentDidMount: ->
         @_mounted = true
+        @_set_timer(2000)
 
     componentWillUnmount: ->
         @_mounted = false
 
-    hide: ->
-        delete @_timer
-        if @_mounted
-            @setState(hover: false)
+    _clear_timer: ->
+        if @_timer?
+            clearTimeout(@_timer)
+            delete @_timer
 
-    show: (n) ->
-        if @_mounted
-            if @_timer?
-                clearTimeout(@_timer)
-            @setState(hover: true)
-            @_timer = setTimeout((=>@hide()), n)
+    _set_timer: (timeout) ->
+        @_clear_timer()
+        @_timer = setTimeout((=>@hide_name()), timeout)
+
+    hide_name: ->
+        if not @_mounted
+            return
+        @_clear_timer()
+        @setState(show_name: false)
+
+    show_name: (timeout) ->
+        if not @_mounted
+            return
+        @setState(show_name: true)
+        if timeout
+            @_set_timer(timeout)
 
     render: ->
         # onClick is needed for mobile.
         <span
-            style        = {color:@props.color, position:'relative', cursor:'text', pointerEvents : 'all'}
-            onMouseEnter = {=>@show(3000)}
-            onClick      = {=>@show(3000)}
+            style        = {color:@props.color, position:'relative', cursor:'text', pointerEvents : 'all', top:@props.top}
+            onMouseEnter = {=>@show_name()}
+            onMouseLeave = {=>@show_name(2000)}
+            onTouchStart = {=>@show_name()}
+            onTouchEnd   = {=>@show_name(2000)}
             >
             <span
                 style={width: 0, height:'1em', borderLeft: '2px solid', position:'absolute'}
@@ -47,9 +73,8 @@ exports.Cursor = Cursor = rclass
                 />
             {<span
                 style={position: 'absolute', fontSize: '10pt', color: '#fff', top: '-10px', left: '-2px', padding: '2px', whiteSpace: 'nowrap', background:@props.color, fontFamily:'sans-serif', boxShadow: '3px 3px 5px 0px #bbb'}
-                >{@props.name}</span> if @state.hover}
+                >{@props.name}</span> if @state.show_name}
         </span>
-
 
 PositionedCursor = rclass
     propTypes:
@@ -57,16 +82,73 @@ PositionedCursor = rclass
         color      : rtypes.string.isRequired
         line       : rtypes.number.isRequired
         ch         : rtypes.number.isRequired
-        codemirror : rtypes.object            # optional codemirror editor instance
+        codemirror : rtypes.object.isRequired
+        time       : rtypes.number
 
-    render_codemirror: ->
-        {left, top} = @props.codemirror.cursorCoords({line:@props.line, ch:@props.ch}, 'local')
-        gutter = $(@props.codemirror.getGutterElement()).width()
-        <div style={position:'absolute', left:"#{left+gutter}px", top:"#{top}px"}>
-            <Cursor name={@props.name} color={@props.color}/>
-        </div>
+    shouldComponentUpdate: (next) ->
+        return misc.is_different(@props, next, ['line', 'ch', 'name', 'color', 'time'])
 
-    render_static: ->
+    _render_cursor: (props) ->
+        ReactDOM.render(<Cursor name={props.name} color={props.color} top={'-1.2em'} time={@props.time}/>, @_elt)
+
+    componentDidMount: ->
+        @_mounted = true
+        @_elt = document.createElement("div")
+        @_elt.style.position   = 'absolute'
+        @_elt.style['z-index'] = '5'
+        @_render_cursor(@props)
+        @props.codemirror.addWidget({line : @props.line, ch:@props.ch}, @_elt, false)
+
+    _position_cursor: ->
+        if not @_mounted or not @_pos? or not @_elt?
+            return
+        # move the cursor widget to pos:
+        # A *big* subtlety here is that if one user holds down a key and types a lot, then their
+        # cursor will move *before* their new text arrives.  This sadly leaves the cursor
+        # being placed in a position that does not yet exist, hence fails.   To address this,
+        # if the position does not exist, we retry.
+        x = @props.codemirror.getLine(@_pos.line)
+        if not x? or @_pos.ch > x.length
+            # oh crap, impossible to position cursor!  Try again in 1s.
+            setTimeout(@_position_cursor, 1000)
+        else
+            @props.codemirror.addWidget(@_pos, @_elt, false)
+
+    componentWillReceiveProps: (next) ->
+        if not @_elt?
+            return
+        if @props.line != next.line or @props.ch != next.ch
+            @_pos = {line:next.line, ch:next.ch}
+            @_position_cursor()
+        # Always update how widget is rendered (this will at least cause it to display for 2 seconds after move/change).
+        @_render_cursor(next)
+
+    componentWillUnmount: ->
+        @_mounted = false
+        if @_elt?
+            ReactDOM.unmountComponentAtNode(@_elt)
+            @_elt.remove()
+            delete @_elt
+
+    render: ->
+        # A simple (unused) container to satisfy react.
+        <span />
+
+StaticPositionedCursor = rclass
+    propTypes:
+        name       : rtypes.string.isRequired
+        color      : rtypes.string.isRequired
+        line       : rtypes.number.isRequired
+        ch         : rtypes.number.isRequired
+        time       : rtypes.number
+
+    shouldComponentUpdate: (next) ->
+        return @props.line  != next.line or \
+               @props.ch    != next.ch   or \
+               @props.name  != next.name or \
+               @props.color != next.color
+
+    render: ->
         style =
             position      : 'absolute'
             height        : 0
@@ -79,13 +161,7 @@ PositionedCursor = rclass
 
         # we position using newlines and blank spaces, so no measurement is needed.
         position = ('\n' for _ in [0...@props.line]).join('') + (' ' for _ in [0...@props.ch]).join('')
-        <div style={style}>{position}<Cursor name={@props.name} color={@props.color}/></div>
-
-    render: ->
-        if not @props.codemirror?
-            @render_static()
-        else
-            @render_codemirror()
+        <div style={style}>{position}<Cursor time={@props.time} name={@props.name} color={@props.color}/></div>
 
 
 exports.Cursors = rclass
@@ -94,10 +170,13 @@ exports.Cursors = rclass
         codemirror : rtypes.object            # optional codemirror editor instance
 
     reduxProps:
-        "users":
+        users:
             user_map: rtypes.immutable.Map
-        "account":
+        account:
             account_id : rtypes.string
+
+    shouldComponentUpdate: (props) ->
+        return misc.is_different(@props, props, ['cursors', 'user_map', 'account_id'])
 
     profile: (account_id) ->
         user = @props.user_map.get(account_id)
@@ -112,6 +191,10 @@ exports.Cursors = rclass
     render: ->
         now = misc.server_time()
         v = []
+        if @props.codemirror?
+            C = PositionedCursor
+        else
+            C = StaticPositionedCursor
         @props.cursors?.forEach (locs, account_id) =>
             {color, name} = @profile(account_id)
             locs.forEach (pos) =>
@@ -119,8 +202,9 @@ exports.Cursors = rclass
                     if account_id == @props.account_id
                         # don't show our own cursor (we just haven't made this possible due to only keying by accoun_id)
                         return
-                    v.push <PositionedCursor
+                    v.push <C
                         key        = {v.length}
+                        time       = {pos.get('time') - 0}
                         color      = {color}
                         name       = {name}
                         line       = {pos.get('y') ? 0}

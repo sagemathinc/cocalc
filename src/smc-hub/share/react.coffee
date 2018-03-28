@@ -2,39 +2,37 @@
 Load react support for rendering.
 ###
 
+async = require('async')
+
 # Code for rendering react components to html.
 ReactDOMServer = require('react-dom/server')
 
 require('./jsdom-support')
-
-{mathjax} = require('./mathjax-support')
+{process_react_component} = require('./process-react')
 
 # Uncomment for cc-in-cc dev benchmarking purposes.  This variable is already set
 # by the Docker container when running in kubernetes.
 ## process.NODE_ENV="production"
 
-
-STREAMING = false
-# Ned to implement more targetted mathjax before enabling streaming
-
-if STREAMING
-    # We use streaming rendering -- see https://hackernoon.com/whats-new-with-server-side-rendering-in-react-16-9b0d78585d67
-    exports.react = (res, component, extra) ->
-        t0 = new Date()
-        res.type('html')
-        stream = ReactDOMServer.renderToStaticNodeStream(component)
-        stream.once 'end', ->
-            console.log("react: time to render and send: #{new Date() - t0}ms", extra)
-        stream.pipe(res)
-
-else
-
-    exports.react = (res, component, extra) ->
-        t0 = new Date()
-        html = '<!DOCTYPE html>' + ReactDOMServer.renderToStaticMarkup(component)
-        if html.indexOf('cocalc-share-mathjax') != -1
-            mathjax html, (err, html) ->
-                console.log("react: time to render and send: #{new Date() - t0}ms", extra)
-                res.send(html)
-        else
-            res.send(html)
+exports.react = (res, component, extra, viewer) ->
+    res.type('html')
+    # we will definitely want to disable mathjax someday for any filetypes that don't need it,
+    # since it can be slow, even if nothing gets processed.
+    use_mathjax = true
+    async.series([
+        (cb) ->
+            if not use_mathjax
+                cb()
+                return
+            t0 = new Date()
+            process_react_component component, viewer, ->
+                console.log("react: time to process mathjax: #{new Date() - t0}ms", extra)
+                cb()
+        (cb) ->
+            t0 = new Date()
+            stream = ReactDOMServer.renderToStaticNodeStream(component)
+            stream.pipe(res)
+            stream.once 'end', ->
+                console.log("react: time to render and stream out: #{new Date() - t0}ms", extra)
+                cb()
+    ])

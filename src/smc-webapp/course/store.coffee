@@ -274,16 +274,20 @@ exports.CourseStore = class CourseStore extends Store
         return x.get('time')
 
     has_grade: (assignment, student_id) =>
-        return @get_assignment(assignment)?.get("grades")?.get(student_id)
+        return !!@get_assignment(assignment)?.get("grades")?.get(student_id)
 
     get_assignment_status: (assignment) =>
         #
         # Compute and return an object that has fields (deleted students are ignored)
         #
-        #  assignment          - number of students who have received assignment
+        #  assignment          - number of students who have received assignment includes
+        #                        all students if skip_assignment is true
         #  not_assignment      - number of students who have NOT received assignment
-        #  collect             - number of students from whom we have collected assignment
+        #                        always 0 if skip_assignment is true
+        #  collect             - number of students from whom we have collected assignment includes
+        #                        all students if skip_collect is true
         #  not_collect         - number of students from whom we have NOT collected assignment but we sent it to them
+        #                        always 0 if skip_assignment is true
         #  peer_assignment     - number of students who have received peer assignment
         #                        (only present if peer grading enabled; similar for peer below)
         #  not_peer_assignment - number of students who have NOT received peer assignment
@@ -316,6 +320,8 @@ exports.CourseStore = class CourseStore extends Store
         peer = assignment.get('peer_grade')?.get('enabled')
         skip_grading = assignment.get('skip_grading') ? false
 
+        # if DEBUG then console.log('get_assignment_status/assignment', assignment)
+
         info = {}
         for t in STEPS(peer)
             info[t] = 0
@@ -324,14 +330,14 @@ exports.CourseStore = class CourseStore extends Store
             previous = true
             for t in STEPS(peer)
                 x = assignment.get("last_#{t}")?.get(student_id)
-                if x? and not x.get('error')
+                if x? and not x.get('error') or assignment.get("skip_#{t}")
                     previous = true
                     info[t] += 1
                 else
                     # add one only if the previous step *was* done (and in
                     # the case of returning, they have a grade)
                     graded = @has_grade(assignment, student_id) or skip_grading
-                    if previous and (t!='return_graded' or graded)
+                    if (previous and t != 'return_graded') or graded
                         info["not_#{t}"] += 1
                     previous = false
 

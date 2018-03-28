@@ -157,7 +157,13 @@ syncstring also does the same sort of merging process.
 underscore = require('underscore')
 
 class JupyterWrapper extends EventEmitter
-    constructor: (@element, @server_url, @filename, @read_only, @project_id, timeout, cb) ->
+    constructor: (element, server_url, filename, read_only, project_id, timeout, cb) ->
+        super()
+        @element = element
+        @server_url = server_url
+        @filename = filename
+        @read_only = read_only
+        @project_id = project_id
         @blobs = {}
         @blobs_pending = {}
         @state = 'loading'
@@ -801,8 +807,24 @@ class JupyterWrapper extends EventEmitter
 exports.jupyter_notebook = (parent, filename, opts) ->
     return (new JupyterNotebook(parent, filename, opts)).element
 
+exports.jupyter_server_url = (project_id) ->
+    # special case/hack for developing CoCalc-in-CoCalc
+    if window.app_base_url.indexOf('/port/') != -1
+        # Hack until we can figure out how to proxy websockets through a proxy
+        # (things just get too complicated)...
+        # Jupyter: assuming that CoCalc is being run from a project installed in the ~/smc directory
+        i = window.app_base_url.lastIndexOf('/')
+        return "#{window.app_base_url.slice(0,i)}/jupyter/notebooks/smc/src/data/projects/#{project_id}/"
+    else
+        # Jupyter is proxied via the following canonical URL:
+        return "#{window.app_base_url}/#{project_id}/port/jupyter/notebooks/"
+
+
 class JupyterNotebook extends EventEmitter
-    constructor: (@parent, @filename, opts={}) ->
+    constructor: (parent, filename, opts={}) ->
+        super()
+        @parent = parent
+        @filename = filename
         opts = @opts = defaults opts,
             read_only         : false
             mode              : undefined   # ignored
@@ -822,16 +844,8 @@ class JupyterNotebook extends EventEmitter
 
         @_other_cursor_timeout_s = 30  # only show active other cursors for this long
 
-        # Jupyter is proxied via the following canonical URL:
-        @server_url = "#{window.app_base_url}/#{@project_id}/port/jupyter/notebooks/"
-
-        # special case/hack for developing CoCalc-in-CoCalc
-        if window.app_base_url.indexOf('/port/') != -1
-            # Hack until we can figure out how to proxy websockets through a proxy
-            # (things just get too complicated)...
-            console.warn("Jupyter: assuming that CoCalc is being run from a project installed in the ~/smc directory!!")
-            i = window.app_base_url.lastIndexOf('/')
-            @server_url = "#{window.app_base_url.slice(0,i)}/jupyter/notebooks/smc/src/data/projects/#{@project_id}/"
+        # Jupyter is proxied via the following URL
+        @server_url = exports.jupyter_server_url(@project_id)
 
         s = misc.path_split(@filename)
         @path = s.head
@@ -1183,7 +1197,12 @@ class JupyterNotebook extends EventEmitter
             a = redux.getProjectActions(@project_id)
             a.close_file(@filename)
             redux.getTable('account').set(editor_settings: {jupyter_classic : false})
-            a.open_file(path : @filename)
+            # ensure the side effects from changing registered
+            # editors in project_file.coffee finish happening
+            window.setTimeout =>
+                console.log "Opening #{@filename}"
+                a.open_file(path : @filename)
+            , 0
 
     info: () =>
         t = "<h3><i class='fa fa-question-circle'></i> About <a href='https://jupyter.org/' target='_blank'>Jupyter Notebook</a></h3>"
@@ -1317,15 +1336,15 @@ class JupyterNotebook extends EventEmitter
                         cb(err)
             (cb) =>
                 status?("making '#{@filename}' public", 70)
-                redux.getProjectActions(@project_id).set_public_path(@filename, "Jupyter notebook #{@filename}")
+                redux.getProjectActions(@project_id).set_public_path(@filename, {description : "Jupyter notebook #{@filename}"})
                 html = @filename.slice(0,@filename.length-5)+'html'
                 status?("making '#{html}' public", 90)
-                redux.getProjectActions(@project_id).set_public_path(html, "Jupyter html version of #{@filename}")
+                redux.getProjectActions(@project_id).set_public_path(html, {description : "Jupyter html version of #{@filename}"})
                 cb()
             ], (err) =>
-            status?("done", 100)
-            @publish_button.find("fa-refresh").hide()
-            cb?(err)
+                status?("done", 100)
+                @publish_button.find("fa-refresh").hide()
+                cb?(err)
         )
 
     refresh: (cb) =>

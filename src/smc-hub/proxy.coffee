@@ -25,7 +25,7 @@ servers running on project vm's
 ###
 
 async   = require('async')
-winston = require('winston')
+winston = require('./winston-metrics').get_logger('proxy')
 http_proxy = require('http-proxy')
 url     = require('url')
 http    = require('http')
@@ -61,12 +61,17 @@ exports.strip_remember_me_cookie = (cookie) ->
 exports.target_parse_req = target_parse_req = (remember_me, url) ->
     v          = url.split('/')
     project_id = v[1]
-    type       = v[2]  # 'port' or 'raw'
+    type       = v[2]  # 'port' or 'raw' or 'server'
     key        = remember_me + project_id + type
+    internal_url = undefined   # if defined, this is the UTL called
     if type == 'port'
         key += v[3]
         port = v[3]
-    return {key:key, type:type, project_id:project_id, port_number:port}
+    else if type == 'server'
+        key += v[3]
+        port = v[3]
+        internal_url = v.slice(4).join('/')
+    return {key:key, type:type, project_id:project_id, port_number:port, internal_url:internal_url}
 
 exports.jupyter_server_port = jupyter_server_port = (opts) ->
     opts = defaults opts,
@@ -197,11 +202,11 @@ exports.init_http_proxy_server = (opts) ->
         delete _target_cache[key]
 
     target = (remember_me, url, cb) ->
-        {key, type, project_id, port_number} = target_parse_req(remember_me, url)
+        {key, type, project_id, port_number, internal_url} = target_parse_req(remember_me, url)
 
         t = _target_cache[key]
         if t?
-            cb(false, t)
+            cb(false, t, internal_url)
             return
 
         dbg = (m) -> winston.debug("target(#{key}): #{m}")
@@ -250,7 +255,7 @@ exports.init_http_proxy_server = (opts) ->
                                 cb()
             (cb) ->
                 #dbg("determine the port")
-                if type == 'port'
+                if type == 'port' or type == 'server'
                     if port_number == "jupyter"
                         dbg("determine jupyter_server_port")
                         jupyter_server_port
@@ -294,7 +299,7 @@ exports.init_http_proxy_server = (opts) ->
                 else
                     t = {host:host, port:port}
                     _target_cache[key] = t
-                    cb(false, t)
+                    cb(false, t, internal_url)
                     if type == 'raw'
                         # Set a ttl time bomb on this cache entry. The idea is to keep the cache not too big,
                         # but also if a new user is granted permission to the project they didn't have, or the project server
@@ -344,7 +349,7 @@ exports.init_http_proxy_server = (opts) ->
 
             return
 
-        target remember_me, req_url, (err, location) ->
+        target remember_me, req_url, (err, location, internal_url) ->
             dbg("got target: #{misc.walltime(tm)}")
             if err
                 public_raw req_url, query, res, (err, is_public) ->
@@ -387,6 +392,8 @@ exports.init_http_proxy_server = (opts) ->
                     #proxy.on 'proxyRes', (res) ->
                     #    dbg("(mark: #{misc.walltime(tm)}) got response from the target")
 
+                if internal_url?
+                    req.url = internal_url
                 proxy.web(req, res)
 
     winston.debug("starting proxy server listening on #{opts.host}:#{opts.port}")
@@ -401,7 +408,7 @@ exports.init_http_proxy_server = (opts) ->
 
         req_url = req.url.slice(base_url.length)  # strip base_url for purposes of determining project location/permissions
         dbg = (m) -> winston.debug("http_proxy_server websocket(#{req_url}): #{m}")
-        target undefined, req_url, (err, location) ->
+        target undefined, req_url, (err, location, internal_url) ->
             if err
                 dbg("websocket upgrade error -- #{err}")
             else
@@ -418,6 +425,8 @@ exports.init_http_proxy_server = (opts) ->
                     _ws_proxy_servers[t] = proxy
                 else
                     dbg("websocket upgrade -- using cache")
+                if internal_url?
+                    req.url = internal_url
                 proxy.ws(req, socket, head)
 
     public_raw_paths_cache = {}

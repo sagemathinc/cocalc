@@ -4,32 +4,38 @@ The stripe connection object, which communicates with the remote stripe server.
 Configure via the admin panel in account settings of an admin user.
 ###
 
+DEFAULT_VERSION = '2017-08-15'
+
 async = require('async')
 
 misc                 = require('smc-util/misc')
 {defaults, required} = misc
 
 stripe  = undefined
-DEFAULT_VERSION = '2017-08-15'
 
-exports.get_stripe = (version) ->
-    stripe.setApiVersion(version ? DEFAULT_VERSION)
+# Return the stripe api object if it has been initialized (via init_stripe below), or
+# undefined if it has not yet been initialized.
+exports.get_stripe = ->
     return stripe
 
+# init_stripe: call this to ensure that the stripe library
+# and key, etc., is available to other functions.  Additional
+# calls are ignored.
+#
 # TODO: this could listen to a changefeed on the database
 # for changes to the server_settings table.
 exports.init_stripe = (opts) ->
     opts = defaults opts,
         logger   : undefined
         database : required
-        cb       : undefined
+        cb       : undefined   # cb(err, stripe)
 
     dbg = (m) -> opts.logger?.debug("init_stripe: #{m}")
     dbg()
 
     if stripe?
         dbg("already done")
-        opts.cb?()
+        opts.cb?(undefined, stripe)
         return
 
     async.series([
@@ -46,6 +52,7 @@ exports.init_stripe = (opts) ->
                         else
                             dbg("invalid secret_key")
                         stripe = require("stripe")(secret_key)
+                        stripe.setApiVersion(DEFAULT_VERSION)
                         cb()
         (cb) ->
             opts.database.get_server_setting
@@ -62,5 +69,5 @@ exports.init_stripe = (opts) ->
             dbg("error initializing stripe: #{err}")
         else
             dbg("successfully initialized stripe api")
-        opts.cb?(err)
+        opts.cb?(err, stripe)
     )

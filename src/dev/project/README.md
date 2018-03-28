@@ -10,11 +10,12 @@ Things you might want to check when starting a new cocalc dev task. Use a .term 
 
 - If you think your project has state left over from previous development, you might want to remove or move aside:
   - ~/.local (but see below about installing `forever` command)
-  - ~/.smc
+  - ~/.smc (you MUST restart your project if you delete this directory)
   - ~/.npm
   - any files in ~/bin that override system commands
 
 - It also helps to restart your project before starting a new dev task, to kill leftover processes and environment settings.
+  * If you delete `~/.smc`, you **must** restart your project
 
 ## Setup
 

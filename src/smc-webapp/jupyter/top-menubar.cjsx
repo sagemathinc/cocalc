@@ -82,7 +82,7 @@ exports.TopMenubar = rclass ({name}) ->
             save = '<' + save
 
         rename = 'rename notebook'
-        if not @props.has_unsaved_changes or @props.read_only
+        if @props.has_unsaved_changes or @props.read_only
             rename = '<' + rename
 
         close_and_halt = 'close and halt'
@@ -92,7 +92,8 @@ exports.TopMenubar = rclass ({name}) ->
         names = [
                 'new notebook', 'open file', close_and_halt, '', \
                 'duplicate notebook', rename, save, 'time travel', '', \
-                'print preview', '<Download as...', '>nbconvert ipynb',  script_entry, '>nbconvert html', '>nbconvert markdown', '>nbconvert rst', '>nbconvert tex', '>nbconvert pdf',  '>nbconvert sagews', '', '>nbconvert slides', '>nbconvert asciidoc', '', \
+                'print preview', 'nbconvert slides', \
+                '<Download as...', '>nbconvert ipynb',  script_entry, '>nbconvert html', '>nbconvert markdown', '>nbconvert rst', '>nbconvert tex', '>nbconvert pdf',  '>nbconvert sagews', '>nbconvert asciidoc', '', \
                 trust]
         if @props.fullscreen != 'kiosk'
             names.push('')
@@ -112,6 +113,7 @@ exports.TopMenubar = rclass ({name}) ->
                  "cut cell", "copy cell", "paste cell above", "paste cell below", "paste cell and replace", "delete cell", "", \
                  "split cell at cursor", "merge cell with previous cell", "merge cell with next cell", "merge cells", "", \
                  "move cell up", "move cell down", "", \
+                 "write protect", "delete protect", "", \
                  "find and replace", "", \
                  "#{if cell_type != 'markdown' then '<' else ''}insert image"]  # disable if not markdown
 
@@ -164,7 +166,8 @@ exports.TopMenubar = rclass ({name}) ->
                 '>toggle all cells output collapsed', '>toggle all cells output scrolled', '>clear all cells output'
             ]
 
-    # TODO: upper case kernel names, descriptions... and make it a new component for efficiency so don't re-render if not change
+    # TODO: upper case kernel names, descriptions... and make it a new component for
+    # efficiency so don't re-render if not change
     render_kernel_item: (kernel) ->
         style = {marginLeft:'4ex'}
         if kernel.name == @props.kernel
@@ -248,7 +251,7 @@ exports.TopMenubar = rclass ({name}) ->
                 disabled = {disabled}
                 >
                 <span style={style}>
-                    {s} {display ? obj.m ? name}   {# shortcut must be first! -- https://github.com/sagemathinc/cocalc/issues/1935 }
+                    {s} {display ? obj.m ? name}   {### shortcut must be first! -- https://github.com/sagemathinc/cocalc/issues/1935 ###}
                 </span>
             </MenuItem>
         else
@@ -374,7 +377,4 @@ external_link = (name, url) ->
         >
         <Icon name='external-link'/> {name}
     </MenuItem>
-
-
-
 

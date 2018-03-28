@@ -35,9 +35,12 @@ block content
   div.container
     div.row
       each idx in exec_keys
+        - var ref = info[idx].name.replace(/ /g, '-')
+        a.anchor(name=ref)
         h3
           = info[idx].name
           code.software= idx
+          a(href="#" + ref, class="marker") ¶
         //- this also escapes the output, which is necessary because there are some strings that could be interpreted as html
         pre.stdout= execs[idx]
 

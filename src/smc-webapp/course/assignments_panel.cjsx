@@ -23,6 +23,7 @@
 misc = require('smc-util/misc')
 {defaults, required} = misc
 {webapp_client} = require('../webapp_client')
+{COLORS} = require('smc-util/theme')
 
 # React libraries
 {React, rclass, rtypes} = require('../smc-react')
@@ -35,6 +36,8 @@ styles = require('./styles')
 {STEPS, step_direction, step_verb, step_ready} = util
 {BigTime, FoldersToolbar, StudentAssignmentInfo, StudentAssignmentInfoHeader} = require('./common')
 
+{Progress} = require('./progress')
+{SkipCopy} = require('./skip')
 
 exports.AssignmentsPanel = rclass ({name}) ->
     displayName : "CourseEditorAssignments"
@@ -42,7 +45,7 @@ exports.AssignmentsPanel = rclass ({name}) ->
     reduxProps :
         "#{name}":
             expanded_assignments   : rtypes.immutable.Set
-            active_assignment_sort : rtypes.object
+            active_assignment_sort : rtypes.immutable.Map
             active_student_sort    : rtypes.immutable.Map
             expanded_peer_configs  : rtypes.immutable.Set
 
@@ -68,15 +71,15 @@ exports.AssignmentsPanel = rclass ({name}) ->
             search_key  : 'path'
             search      : @state.search.trim()
 
-        if @props.active_assignment_sort.column_name == "due_date"
+        if @props.active_assignment_sort.get('column_name') == "due_date"
             f = (a) -> [a.due_date ? 0, a.path?.toLowerCase()]
-        else if @props.active_assignment_sort.column_name == "dir_name"
+        else if @props.active_assignment_sort.get('column_name') == "dir_name"
             f = (a) -> [a.path?.toLowerCase(), a.due_date ? 0]
 
         {list, deleted, num_deleted} = util.order_list
             list             : list
             compare_function : (a,b) => misc.cmp_array(f(a), f(b))
-            reverse          : @props.active_assignment_sort.is_descending
+            reverse          : @props.active_assignment_sort.get('is_descending')
             include_deleted  : @state.show_deleted
 
         return {shown_assignments:list, deleted_assignments:deleted, num_omitted:num_omitted, num_deleted:num_deleted}
@@ -87,17 +90,17 @@ exports.AssignmentsPanel = rclass ({name}) ->
             {display_name}
             <Space/>
             {<Icon style={marginRight:'10px'}
-                name={if @props.active_assignment_sort.is_descending then 'caret-up' else 'caret-down'}
-            /> if @props.active_assignment_sort.column_name == column_name}
+                name={if @props.active_assignment_sort.get('is_descending') then 'caret-up' else 'caret-down'}
+            /> if @props.active_assignment_sort.get('column_name') == column_name}
         </a>
 
     render_assignment_table_header: ->
         # HACK: -10px margin gets around ReactBootstrap's incomplete access to styling
         <Row style={marginTop:'-10px', marginBottom:'3px'}>
-            <Col md=6>
+            <Col md={6}>
                 {@render_sort_link("dir_name", "Assignment Name")}
             </Col>
-            <Col md=6>
+            <Col md={6}>
                 {@render_sort_link("due_date", "Due Date")}
             </Col>
         </Row>
@@ -106,13 +109,13 @@ exports.AssignmentsPanel = rclass ({name}) ->
         for x,i in assignments
             <Assignment
                     key                 = {x.assignment_id}
+                    project_id          = {@props.project_id}
+                    name                = {@props.name}
+                    redux               = {@props.redux}
                     assignment          = {@props.all_assignments.get(x.assignment_id)}
                     background          = {if i%2==0 then "#eee"}
-                    project_id          = {@props.project_id}
-                    redux               = {@props.redux}
                     students            = {@props.students}
                     user_map            = {@props.user_map}
-                    name                = {@props.name}
                     is_expanded         = {@props.expanded_assignments.has(x.assignment_id)}
                     active_student_sort = {@props.active_student_sort}
                     expand_peer_config  = {@props.expanded_peer_configs.has(x.assignment_id)}
@@ -171,7 +174,7 @@ exports.AssignmentsPanel.Header = rclass
         n : rtypes.number
 
     render: ->
-        <Tip delayShow=1300
+        <Tip delayShow={1300}
              title="Assignments" tip="This tab lists all of the assignments associated to your course, along with student grades and status about each assignment.  You can also quickly find assignments by name on the left.   An assignment is a directory in your project, which may contain any files.  Add an assignment to your course by searching for the directory name in the search box on the right.">
             <span>
                 <Icon name="share-square-o"/> Assignments {if @props.n? then " (#{@props.n})" else ""}
@@ -183,21 +186,24 @@ Assignment = rclass
 
     propTypes :
         name                : rtypes.string.isRequired
-        assignment          : rtypes.immutable.Map.isRequired
         project_id          : rtypes.string.isRequired
         redux               : rtypes.object.isRequired
+
+        assignment          : rtypes.immutable.Map.isRequired
+        background          : rtypes.string
         students            : rtypes.object.isRequired
         user_map            : rtypes.object.isRequired
-        background          : rtypes.string
         is_expanded         : rtypes.bool
         active_student_sort : rtypes.immutable.Map
         expand_peer_config  : rtypes.bool
 
-    shouldComponentUpdate: (nextProps, nextState) ->
-        return @state != nextState or @props.assignment != nextProps.assignment or @props.students != nextProps.students or @props.user_map != nextProps.user_map or @props.background != nextProps.background or @props.is_expanded != nextProps.is_expanded or @props.active_student_sort != nextProps.active_student_sort or @props.expand_peer_config  != nextProps.expand_peer_config
+    getInitialState: ->  {} # there are many keys used in state; we assume @state not null in code below.
 
-    getInitialState: ->
-        confirm_delete : false
+    shouldComponentUpdate: (nextProps, nextState) ->
+        # state is an object with tons of keys and values true/false
+        return not misc.is_equal(@state, nextState) or \
+               misc.is_different(@props, nextProps, ['assignment', 'students', 'user_map', 'background', \
+                             'is_expanded', 'active_student_sort', 'expand_peer_config'])
 
     _due_date: ->
         due_date = @props.assignment.get('due_date')  # a string
@@ -208,16 +214,18 @@ Assignment = rclass
 
     render_due: ->
         <Row>
-            <Col xs=1 style={marginTop:'8px', color:'#666'}>
+            <Col xs={1} style={marginTop:'8px', color:'#666'}>
                 <Tip placement='top' title="Set the due date"
                     tip="Set the due date for the assignment.  This changes how the list of assignments is sorted.  Note that you must explicitly click a button to collect student assignments when they are due -- they are not automatically collected on the due date.  You should also tell students when assignments are due (e.g., at the top of the assignment).">
                     Due
                 </Tip>
             </Col>
-            <Col xs=11>
+            <Col xs={11}>
                 <DateTimePicker
-                    value     = {@_due_date()}
-                    on_change = {@date_change}
+                    value       = {@_due_date()}
+                    on_change   = {@date_change}
+                    autoFocus   = {false}
+                    defaultOpen = {false}
                 />
             </Col>
         </Row>
@@ -228,16 +236,16 @@ Assignment = rclass
 
     render_note: ->
         <Row key='note' style={styles.note}>
-            <Col xs=2>
+            <Col xs={2}>
                 <Tip title="Notes about this assignment" tip="Record notes about this assignment here. These notes are only visible to you, not to your students.  Put any instructions to students about assignments in a file in the directory that contains the assignment.">
                     Private Assignment Notes<br /><span style={color:"#666"}></span>
                 </Tip>
             </Col>
-            <Col xs=10>
+            <Col xs={10}>
                 <MarkdownInput
                     persist_id    = {@props.assignment.get('path') + @props.assignment.get('assignment_id') + "note"}
                     attach_to     = {@props.name}
-                    rows          = 6
+                    rows          = {6}
                     placeholder   = 'Private notes about this assignment (not visible to students)'
                     default_value = {@props.assignment.get('note')}
                     on_save       = {(value)=>@props.redux.getActions(@props.name).set_assignment_note(@props.assignment, value)}
@@ -256,20 +264,20 @@ Assignment = rclass
             paddingBottom : '15px'
             marginBottom  : '15px'
         v.push <Row key='header3' style={bottom}>
-            <Col md=2>
+            <Col md={2}>
                 {@render_open_button()}
             </Col>
-            <Col md=10>
+            <Col md={10}>
                 <Row>
-                    <Col md=6 style={fontSize:'14px'} key='due'>
+                    <Col md={6} style={fontSize:'14px'} key='due'>
                         {@render_due()}
                     </Col>
-                    <Col md=6 key='delete'>
+                    <Col md={6} key='delete'>
                         <Row>
-                            <Col md=7>
-                                {@render_peer_button()}
+                            <Col md={7}>
+                                {@render_peer_button(status)}
                             </Col>
-                            <Col md=5>
+                            <Col md={5}>
                                 <span className='pull-right'>
                                     {@render_delete_button()}
                                 </span>
@@ -282,13 +290,13 @@ Assignment = rclass
 
         if @props.expand_peer_config
             v.push <Row key='header2-peer' style={bottom}>
-                <Col md=10 mdOffset=2>
+                <Col md={10} mdOffset={2}>
                     {@render_configure_peer()}
                 </Col>
             </Row>
         if @state.confirm_delete
             v.push <Row key='header2-delete' style={bottom}>
-                <Col md=10 mdOffset=2>
+                <Col md={10} mdOffset={2}>
                     {@render_confirm_delete()}
                 </Col>
             </Row>
@@ -314,7 +322,7 @@ Assignment = rclass
                     insert_skip_button()
 
         v.push <Row key='header-control'>
-            <Col md=10 mdOffset=2 key='buttons'>
+            <Col md={10} mdOffset={2} key='buttons'>
                 <Row>
                     {buttons}
                 </Row>
@@ -322,7 +330,7 @@ Assignment = rclass
         </Row>
 
         v.push <Row key='header2-copy'>
-            <Col md=10 mdOffset=2>
+            <Col md={10} mdOffset={2}>
                 {@render_copy_confirms(status)}
             </Col>
         </Row>
@@ -331,7 +339,7 @@ Assignment = rclass
 
     render_more: ->
         <Row key='more'>
-            <Col sm=12>
+            <Col sm={12}>
                 <Panel header={@render_more_header()}>
                     <StudentListForAssignment
                         redux               = {@props.redux}
@@ -357,17 +365,32 @@ Assignment = rclass
             </Button>
         </Tip>
 
-    render_assignment_button: ->
-        bsStyle = if (@props.assignment.get('last_assignment')?.size ? 0) == 0 then "primary" else "warning"
-        <Button key='assign'
-                bsStyle  = {bsStyle}
-                onClick  = {=>@setState(copy_confirm_assignment:true, copy_confirm:true)}
-                disabled = {@state.copy_confirm}>
-            <Tip title={<span>Assign: <Icon name='user-secret'/> You <Icon name='long-arrow-right' />  <Icon name='users' /> Students </span>}
-                 tip="Copy the files for this assignment from this project to all other student projects.">
-                <Icon name="share-square-o" /> Assign...
-            </Tip>
-        </Button>
+    render_assignment_button: (status) ->
+        if (@props.assignment.get('last_assignment')?.size ? 0) == 0
+            bsStyle = "primary"
+        else
+            bsStyle = "warning"
+        if status.assignment > 0 and status.not_assignment == 0
+            bsStyle = "success"
+
+        [
+            <Button key='assign'
+                    bsStyle  = {bsStyle}
+                    onClick  = {=>@setState(copy_confirm_assignment:true, copy_confirm:true)}
+                    disabled = {@state.copy_confirm}>
+                <Tip title={<span>Assign: <Icon name='user-secret'/> You <Icon name='long-arrow-right' />  <Icon name='users' /> Students </span>}
+                     tip="Copy the files for this assignment from this project to all other student projects.">
+                    <Icon name="share-square-o" /> Assign...
+                </Tip>
+            </Button>,
+            <Progress
+                key      = 'progress'
+                done     = {status.assignment}
+                not_done = {status.not_assignment}
+                step     = 'assigned'
+                skipped  = {@props.assignment.get('skip_assignment')}
+                />
+        ]
 
     render_copy_confirms: (status) ->
         steps = STEPS(@props.assignment.get('peer_grade')?.get('enabled'))
@@ -376,22 +399,58 @@ Assignment = rclass
                 @render_copy_confirm(step, status)
 
     render_copy_confirm: (step, status) ->
-        <span key="copy_confirm_#{step}">
+        <span key={"copy_confirm_#{step}"}>
             {@render_copy_confirm_to_all(step, status) if status[step]==0}
             {@render_copy_confirm_to_all_or_new(step, status) if status[step]!=0}
         </span>
 
     render_copy_cancel: (step) ->
         cancel = =>
-            @setState("copy_confirm_#{step}":false, "copy_confirm_all_#{step}":false, copy_confirm:false)
-        <Button key='cancel' onClick={cancel}>Cancel</Button>
+            @setState(
+                "copy_confirm_#{step}"            : false
+                "copy_confirm_all_#{step}"        : false
+                copy_confirm                      : false
+                copy_assignment_confirm_overwrite : false
+            )
+        <Button key='cancel' onClick={cancel}>Close</Button>
 
-    copy_assignment: (step, new_only) ->
+    render_copy_assignment_confirm_overwrite: (step) ->
+        return if not @state.copy_assignment_confirm_overwrite
+        do_it = =>
+            @copy_assignment(step, false, true)
+            @setState(
+                copy_assignment_confirm_overwrite      : false
+                copy_assignment_confirm_overwrite_text : ''
+            )
+        <div style={marginTop:'15px'}>
+            Type in "OVERWRITE" if you are sure you want to overwrite any work they may have.
+            <FormGroup>
+                <FormControl
+                    autoFocus
+                    type        = 'text'
+                    ref         = 'copy_assignment_confirm_overwrite_field'
+                    onChange    = {(e)=>@setState(copy_assignment_confirm_overwrite_text : e.target.value)}
+                    style       = {marginTop : '1ex'}
+                />
+            </FormGroup>
+            <ButtonToolbar style={textAlign: 'center', marginTop: '15px'}>
+                <Button
+                    disabled = {@state.copy_assignment_confirm_overwrite_text != 'OVERWRITE'}
+                    bsStyle  = 'danger'
+                    onClick  = {do_it}
+                >
+                    <Icon name='exclamation-triangle' /> Confirm replacing files
+                </Button>
+                {@render_copy_cancel(step)}
+            </ButtonToolbar>
+        </div>
+
+    copy_assignment: (step, new_only, overwrite) ->
         # assign assignment to all (non-deleted) students
         actions = @props.redux.getActions(@props.name)
         switch step
             when 'assignment'
-                actions.copy_assignment_to_all_students(@props.assignment, new_only)
+                actions.copy_assignment_to_all_students(@props.assignment, new_only, overwrite)
             when 'collect'
                 actions.copy_assignment_from_all_students(@props.assignment, new_only)
             when 'peer_assignment'
@@ -404,12 +463,24 @@ Assignment = rclass
                 console.log("BUG -- unknown step: #{step}")
         @setState("copy_confirm_#{step}":false, "copy_confirm_all_#{step}":false, copy_confirm:false)
 
+    render_skip: (step) ->
+        if step == 'return_graded'
+            return
+        <div style={float:'right'}>
+            <SkipCopy
+                assignment = {@props.assignment}
+                step       = {step}
+                actions    = {@actions(@props.name)}
+            />
+        </div>
+
     render_copy_confirm_to_all: (step, status) ->
         n = status["not_#{step}"]
-        <Alert bsStyle='warning' key="#{step}_confirm_to_all", style={marginTop:'15px'}>
+        <Alert bsStyle='warning' key={"#{step}_confirm_to_all"} style={marginTop:'15px'}>
             <div style={marginBottom:'15px'}>
                 {misc.capitalize(step_verb(step))} this homework {step_direction(step)} the {n} student{if n>1 then "s" else ""}{step_ready(step, n)}?
             </div>
+            {@render_skip(step)}
             <ButtonToolbar>
                 <Button key='yes' bsStyle='primary' onClick={=>@copy_assignment(step, false)} >Yes</Button>
                 {@render_copy_cancel(step)}
@@ -419,7 +490,13 @@ Assignment = rclass
     copy_confirm_all_caution: (step) ->
         switch step
             when 'assignment'
-                return <span>This will recopy all of the files to them.  CAUTION: if you update a file that a student has also worked on, their work will get copied to a backup file ending in a tilde, or possibly only be available in snapshots <a target='_blank' href='https://github.com/sagemathinc/cocalc/wiki/CourseCopy'>(more details)</a>.</span>
+                return <span>
+                            This will recopy all of the files to them.{' '}
+                            CAUTION: if you update a file that a student has also worked on, their work will get copied to a backup file ending in a tilde,{' '}
+                            or possibly only be available in snapshots.{' '}
+                            Select "Replace student files!" in case you do <b>not</b> want to create any backups and also <b>delete</b> all other files in the assignment directory of their projects.{' '}
+                            <a target='_blank' href='https://github.com/sagemathinc/cocalc/wiki/CourseCopy'>(more details)</a>.
+                       </span>
             when 'collect'
                 return "This will recollect all of the homework from them.  CAUTION: if you have graded/edited a file that a student has updated, your work will get copied to a backup file ending in a tilde, or possibly only be available in snapshots."
             when 'return_graded'
@@ -430,14 +507,33 @@ Assignment = rclass
                 return 'This will recollect all of the peer-graded homework from the students.  CAUTION: if you have graded/edited a previously collected file that a student has updated, your work will get copied to a backup file ending in a tilde, or possibly only be available in snapshots.'
 
     render_copy_confirm_overwrite_all: (step, status) ->
-        <div key="copy_confirm_overwrite_all" style={marginTop:'15px'}>
+        <div key={"copy_confirm_overwrite_all"} style={marginTop:'15px'}>
             <div style={marginBottom:'15px'}>
                 {@copy_confirm_all_caution(step)}
             </div>
             <ButtonToolbar>
-                <Button key='all' bsStyle='danger' onClick={=>@copy_assignment(step, false)}>Yes, do it</Button>
+                <Button
+                    key        = {'all'}
+                    bsStyle    = {'warning'}
+                    disabled   = {@state.copy_assignment_confirm_overwrite}
+                    onClick    = {=>@copy_assignment(step, false)}
+                >
+                    Yes, do it (with backup)
+                </Button>
+                {
+                    if step == 'assignment'
+                        <Button
+                            key      = {'all-overwrite'}
+                            bsStyle  = {'warning'}
+                            onClick  = {=>@setState(copy_assignment_confirm_overwrite:true)}
+                            disabled = {@state.copy_assignment_confirm_overwrite}
+                        >
+                            Replace student files!
+                        </Button>
+                }
                 {@render_copy_cancel(step)}
             </ButtonToolbar>
+            {@render_copy_assignment_confirm_overwrite(step)}
         </div>
 
     render_copy_confirm_to_all_or_new: (step, status) ->
@@ -447,6 +543,7 @@ Assignment = rclass
             <div style={marginBottom:'15px'}>
                 {misc.capitalize(step_verb(step))} this homework {step_direction(step)}...
             </div>
+            {@render_skip(step)}
             <ButtonToolbar>
                 <Button key='all' bsStyle='danger' onClick={=>@setState("copy_confirm_all_#{step}":true, copy_confirm:true)}
                         disabled={@state["copy_confirm_all_#{step}"]} >
@@ -470,19 +567,31 @@ Assignment = rclass
             return
         if status.collect > 0
             # Have already collected something
-            bsStyle = 'warning'
+            if status.not_collect == 0
+                bsStyle = "success"
+            else
+                bsStyle = 'warning'
         else
             bsStyle = 'primary'
-        <Button key='collect'
-                onClick  = {=>@setState(copy_confirm_collect:true, copy_confirm:true)}
-                disabled = {@state.copy_confirm}
-                bsStyle={bsStyle} >
-            <Tip
-                title={<span>Collect: <Icon name='users' /> Students <Icon name='long-arrow-right' /> <Icon name='user-secret'/> You</span>}
-                tip = {@render_collect_tip(bsStyle=='warning')}>
-                <Icon name="share-square-o" rotate={"180"} /> Collect...
-            </Tip>
-        </Button>
+        [
+            <Button key='collect'
+                    onClick  = {=>@setState(copy_confirm_collect:true, copy_confirm:true)}
+                    disabled = {@state.copy_confirm}
+                    bsStyle={bsStyle} >
+                <Tip
+                    title={<span>Collect: <Icon name='users' /> Students <Icon name='long-arrow-right' /> <Icon name='user-secret'/> You</span>}
+                    tip = {@render_collect_tip(bsStyle=='warning')}>
+                    <Icon name="share-square-o" rotate={"180"} /> Collect...
+                </Tip>
+            </Button>,
+            <Progress
+                key      = 'progress'
+                done     = {status.collect}
+                not_done = {status.not_collect}
+                step     = 'collected'
+                skipped  = {@props.assignment.get('skip_collect')}
+                />
+        ]
 
     render_peer_assign_tip: (warning) ->
         <span key='normal'>
@@ -501,22 +610,33 @@ Assignment = rclass
         if status.collect == 0
             # nothing to peer assign
             return
-        if status.peer_assignment == 0
+        if status.peer_assignment > 0
             # haven't peer-assigned anything yet
-            bsStyle = 'primary'
+            if status.not_peer_assignment == 0
+                bsStyle = 'success'
+            else
+                bsStyle = 'warning'
         else
             # warning, since we have assigned already and this may overwrite
-            bsStyle = 'warning'
-        <Button key='peer-assign'
-                onClick  = {=>@setState(copy_confirm_peer_assignment:true, copy_confirm:true)}
-                disabled = {@state.copy_confirm}
-                bsStyle  = {bsStyle} >
-            <Tip
-                title={<span>Peer Assign: <Icon name='users' /> You <Icon name='long-arrow-right' /> <Icon name='user-secret'/> Students</span>}
-                tip = {@render_peer_assign_tip(bsStyle=='warning')}>
-                    <Icon name="share-square-o" /> Peer Assign...
-            </Tip>
-        </Button>
+            bsStyle = 'primary'
+        [
+            <Button key='peer-assign'
+                    onClick  = {=>@setState(copy_confirm_peer_assignment:true, copy_confirm:true)}
+                    disabled = {@state.copy_confirm}
+                    bsStyle  = {bsStyle} >
+                <Tip
+                    title={<span>Peer Assign: <Icon name='users' /> You <Icon name='long-arrow-right' /> <Icon name='user-secret'/> Students</span>}
+                    tip = {@render_peer_assign_tip(bsStyle=='warning')}>
+                        <Icon name="share-square-o" /> Peer Assign...
+                </Tip>
+            </Button>,
+            <Progress
+                key      = 'progress'
+                done     = {status.peer_assignment}
+                not_done = {status.not_peer_assignment}
+                step     = 'peer assigned'
+                />
+        ]
 
     render_peer_collect_tip: (warning) ->
         <span key='normal'>
@@ -534,39 +654,55 @@ Assignment = rclass
         if status.not_peer_assignment > 0
             # everybody must have received peer assignment, or collecting isn't allowed
             return
-        if status.peer_collect == 0
+        if status.peer_collect > 0
             # haven't peer-collected anything yet
-            bsStyle = 'primary'
+            if status.not_peer_collect == 0
+                bsStyle = 'success'
+            else
+                bsStyle = 'warning'
         else
             # warning, since we have already collected and this may overwrite
-            bsStyle = 'warning'
-        <Button key='peer-collect'
-                onClick  = {=>@setState(copy_confirm_peer_collect:true, copy_confirm:true)}
-                disabled = {@state.copy_confirm}
-                bsStyle  = {bsStyle} >
-            <Tip
-                title={<span>Peer Collect: <Icon name='users' /> Students <Icon name='long-arrow-right' /> <Icon name='user-secret'/> You</span>}
-                tip = {@render_peer_collect_tip(bsStyle=='warning')}>
-                    <Icon name="share-square-o" rotate="180"/> Peer Collect...
-            </Tip>
-        </Button>
+            bsStyle = 'primary'
+        [
+            <Button key='peer-collect'
+                    onClick  = {=>@setState(copy_confirm_peer_collect:true, copy_confirm:true)}
+                    disabled = {@state.copy_confirm}
+                    bsStyle  = {bsStyle} >
+                <Tip
+                    title={<span>Peer Collect: <Icon name='users' /> Students <Icon name='long-arrow-right' /> <Icon name='user-secret'/> You</span>}
+                    tip = {@render_peer_collect_tip(bsStyle=='warning')}>
+                        <Icon name="share-square-o" rotate="180"/> Peer Collect...
+                </Tip>
+            </Button>,
+            <Progress
+                key      = 'progress'
+                done     = {status.peer_collect}
+                not_done = {status.not_peer_collect}
+                step     = 'peer collected'
+                />
+        ]
 
     return_assignment: ->
         # Assign assignment to all (non-deleted) students.
         @props.redux.getActions(@props.name).return_assignment_to_all_students(@props.assignment)
 
+    toggle_skip_grading: ->
+        @actions(@props.name).set_skip(@props.assignment, 'grading', not @props.assignment.get('skip_grading'))
+
     render_skip_grading_button: (status) ->
         if status.collect == 0
             # No button if nothing collected.
             return
-        if @props.assignment.get('skip_grading') ? false
+        is_skip_grading = @props.assignment.get('skip_grading') ? false
+        if is_skip_grading
             icon = 'check-square-o'
         else
             icon = 'square-o'
         <Button
-            onClick={=>@actions(@props.name).toggle_skip_grading(@props.assignment.get('assignment_id'))}>
+            onClick={@toggle_skip_grading} >
             <Icon name={icon} /> Skip Grading
         </Button>
+
 
     render_return_graded_button: (status) ->
         if status.collect == 0
@@ -581,18 +717,30 @@ Assignment = rclass
             return
         if status.return_graded > 0
             # Have already returned some
-            bsStyle = "warning"
+            if status.not_return_graded == 0
+                bsStyle = 'success'
+            else
+                bsStyle = "warning"
         else
             bsStyle = "primary"
-        <Button key='return'
-            onClick  = {=>@setState(copy_confirm_return_graded:true, copy_confirm:true)}
-            disabled = {@state.copy_confirm}
-            bsStyle  = {bsStyle} >
-            <Tip title={<span>Return: <Icon name='user-secret'/> You <Icon name='long-arrow-right' />  <Icon name='users' /> Students </span>}
-                 tip="Copy the graded versions of files for this assignment from this project to all other student projects.">
-                <Icon name="share-square-o" /> Return...
-            </Tip>
-        </Button>
+        [
+            <Button key='return'
+                onClick  = {=>@setState(copy_confirm_return_graded:true, copy_confirm:true)}
+                disabled = {@state.copy_confirm}
+                bsStyle  = {bsStyle} >
+                <Tip title={<span>Return: <Icon name='user-secret'/> You <Icon name='long-arrow-right' />  <Icon name='users' /> Students </span>}
+                     tip="Copy the graded versions of files for this assignment from this project to all other student projects.">
+                    <Icon name="share-square-o" /> Return...
+                </Tip>
+            </Button>,
+            <Progress
+                key      = 'progress'
+                done     = {status.return_graded}
+                not_done = {status.not_return_graded}
+                step     = 'returned'
+                />
+        ]
+
 
     delete_assignment: ->
         @props.redux.getActions(@props.name).delete_assignment(@props.assignment)
@@ -658,19 +806,21 @@ Assignment = rclass
                     tip="Set the due date for grading this assignment.  Note that you must explicitly click a button to collect graded assignments when -- they are not automatically collected on the due date.  A file is included in the student peer grading assignment telling them when they should finish their grading.">
                     Due
         </Tip>
-        <LabeledRow label_cols=6 label={label}>
+        <LabeledRow label_cols={6} label={label}>
             <DateTimePicker
-                value     = {@_peer_due(config.due_date)}
-                on_change = {@peer_due_change}
+                value       = {@_peer_due(config.due_date)}
+                on_change   = {@peer_due_change}
+                autoFocus   = {false}
+                defaultOpen = {false}
             />
         </LabeledRow>
 
     render_configure_peer_number: (config) ->
         store = @props.redux.getStore(@props.name)
-        <LabeledRow label_cols=6 label='Number of students who will grade each assignment'>
+        <LabeledRow label_cols={6} label='Number of students who will grade each assignment'>
             <NumberInput
                 on_change = {(n) => @set_peer_grade(number : n)}
-                min       = 1
+                min       = {1}
                 max       = {(store?.num_students() ? 2) - 1}
                 number    = {config.number ? 1}
             />
@@ -679,12 +829,12 @@ Assignment = rclass
     render_configure_grading_guidelines: (config) ->
         store = @props.redux.getStore(@props.name)
         <div style={marginTop:'10px'}>
-            <LabeledRow label_cols=6 label='Grading guidelines, which will be made available to students in their grading folder in a file GRADING_GUIDE.md.  Tell your students how to grade each problem.  Since this is a markdown file, you might also provide a link to a publicly shared file or directory with guidelines.'>
+            <LabeledRow label_cols={6} label='Grading guidelines, which will be made available to students in their grading folder in a file GRADING_GUIDE.md.  Tell your students how to grade each problem.  Since this is a markdown file, you might also provide a link to a publicly shared file or directory with guidelines.'>
                 <div style={background:'white', padding:'10px', border:'1px solid #ccc', borderRadius:'3px'}>
                     <MarkdownInput
                         persist_id    = {@props.assignment.get('path') + @props.assignment.get('assignment_id') + "grading-guidelines"}
                         attach_to     = {@props.name}
-                        rows          = 16
+                        rows          = {16}
                         placeholder   = 'Enter your grading guidelines for this assignment...'
                         default_value = {config.guidelines}
                         on_save       = {(x) => @set_peer_grade(guidelines : x)}
@@ -715,7 +865,7 @@ Assignment = rclass
 
         </Alert>
 
-    render_peer_button: ->
+    render_peer_button: (status) ->
         if @props.assignment.get('peer_grade')?.get('enabled')
             icon = 'check-square-o'
         else
@@ -744,19 +894,19 @@ Assignment = rclass
 
     render_summary_line: () ->
         <Row key='summary' style={backgroundColor:@props.background}>
-            <Col md=6>
+            <Col md={6}>
                 <h5>
                     {@render_assignment_title_link()}
                 </h5>
             </Col>
-            <Col md=6>
+            <Col md={6}>
                 {@render_summary_due_date()}
             </Col>
         </Row>
 
     render: ->
         <Row style={if @props.is_expanded then styles.selected_entry else styles.entry}>
-            <Col xs=12>
+            <Col xs={12}>
                 {@render_summary_line()}
                 {@render_more() if @props.is_expanded}
             </Col>
@@ -773,6 +923,9 @@ StudentListForAssignment = rclass
         user_map            : rtypes.object.isRequired
         background          : rtypes.string
         active_student_sort : rtypes.immutable.Map
+
+    shouldComponentUpdate: (props) ->
+        return misc.is_different(@props, props, ['assignment', 'students', 'user_map', 'background', 'active_student_sort'])
 
     render_student_info: (student_id) ->
         store = @props.redux.getStore(@props.name)

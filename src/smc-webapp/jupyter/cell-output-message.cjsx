@@ -46,8 +46,8 @@ exports.Stdout = Stdout = rclass
             </div>
         else
             <div style={STDOUT_STYLE}>
-                {# This span below is solely to workaround an **ancient** Firefox bug }
-                {# See https://github.com/sagemathinc/cocalc/issues/1958    }
+                {### This span below is solely to workaround an **ancient** Firefox bug ###}
+                {### See https://github.com/sagemathinc/cocalc/issues/1958    ###}
                 <span>{value}</span>
             </div>
 
@@ -119,7 +119,7 @@ TextPlain = rclass
 
     render: ->
         <div style={STDOUT_STYLE}>
-            {# span?  what? -- See https://github.com/sagemathinc/cocalc/issues/1958 }
+            {### span?  what? -- See https://github.com/sagemathinc/cocalc/issues/1958 ###}
             <span>{@props.value}</span>
         </div>
 
@@ -178,6 +178,28 @@ Data = rclass
 
     mixins: [ImmutablePureRenderMixin]
 
+    render_html: (value) ->
+        <div>
+            <HTML
+                value            = {value}
+                auto_render_math = {true}
+                project_id       = {@props.project_id}
+                file_path        = {@props.directory}
+                safeHTML         = {not @props.trust}
+            />
+        </div>
+
+    render_markdown: (value) ->
+        <div>
+            <Markdown
+                value          = {value}
+                project_id     = {@props.project_id}
+                file_path      = {@props.directory}
+                safeHTML       = {not @props.trust}
+                checkboxes     = {true}
+            />
+        </div>
+
     render: ->
         type  = undefined
         value = undefined
@@ -196,19 +218,9 @@ Data = rclass
                             else
                                 return <TextPlain value={value}/>
                         when 'html', 'latex'  # put latex as HTML, since jupyter requires $'s anyways.
-                            return <HTML
-                                    value      = {value}
-                                    project_id = {@props.project_id}
-                                    file_path  = {@props.directory}
-                                    safeHTML   = {not @props.trust}
-                                   />
+                            return @render_html(value)
                         when 'markdown'
-                            return <Markdown
-                                    value          = {value}
-                                    project_id     = {@props.project_id}
-                                    file_path      = {@props.directory}
-                                    safeHTML       = {not @props.trust}
-                                />
+                            return @render_markdown(value)
                 when 'image'
                     height = width = undefined
                     @props.message.get('metadata')?.forEach? (value, key) =>
@@ -233,7 +245,7 @@ Data = rclass
                         />
 
                 when 'iframe'
-                   return <IFrame sha1={value} project_id={@props.project_id}/>
+                    return <IFrame sha1={value} project_id={@props.project_id}/>
 
                 when 'application'
                     switch b

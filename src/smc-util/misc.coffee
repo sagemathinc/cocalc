@@ -84,7 +84,7 @@ exports.merge = (dest, objs...) ->
     for obj in objs
         for k, v of obj
             dest[k] = v
-    dest
+    return dest
 
 # Makes new object that is shallow copy merge of all objects.
 exports.merge_copy = (objs...) ->
@@ -273,7 +273,7 @@ exports.from_json_socket = (x) ->
 
 
 # convert object x to a JSON string, removing any keys that have "pass" in them and
-# any values that are potentially big -- this is meant to only be used for loging.
+# any values that are potentially big -- this is meant to only be used for logging.
 exports.to_safe_str = (x) ->
     obj = {}
     for key, value of x
@@ -365,6 +365,9 @@ exports.len = (obj) ->
 # return the keys of an object, e.g., {a:5, xyz:'10'} -> ['a', 'xyz']
 exports.keys = underscore.keys
 
+# does the given object (first arg) have the given key (second arg)?
+exports.has_key = underscore.has
+
 # returns the values of a map
 exports.values = underscore.values
 
@@ -453,6 +456,7 @@ exports.copy = (obj) ->
     return r
 
 # copy of map but without some keys
+# I.e., restrict a function to the complement of a subset of the domain.
 exports.copy_without = (obj, without) ->
     if typeof(without) == 'string'
         without = [without]
@@ -463,6 +467,7 @@ exports.copy_without = (obj, without) ->
     return r
 
 # copy of map but only with some keys
+# I.e., restrict a function to a subset of the domain.
 exports.copy_with = (obj, w) ->
     if typeof(w) == 'string'
         w = [w]
@@ -1187,6 +1192,7 @@ exports.containing_public_path = (path, paths) ->
     return undefined
 
 # encode a UNIX path, which might have # and % in it.
+# Maybe alternatively, (encodeURIComponent(p) for p in path.split('/')).join('/') ?
 exports.encode_path = (path) ->
     path = encodeURI(path)  # doesn't escape # and ?, since they are special for urls (but not unix paths)
     return path.replace(/#/g,'%23').replace(/\?/g,'%3F')
@@ -1224,6 +1230,9 @@ exports.call_lock = (opts) ->
             obj._call_unlock()
             cb?(args...)
 
+# "Performs an optimized deep comparison between the two objects, to determine if they should be considered equal."
+exports.is_equal = underscore.isEqual
+
 exports.cmp = (a,b) ->
     if a < b
         return -1
@@ -1257,6 +1266,38 @@ timestamp_cmp0 = (a,b,field='timestamp') ->
 
 exports.field_cmp = (field) ->
     return (a, b) -> exports.cmp(a[field], b[field])
+
+# Return true if and only if a[field] != b[field] for some field.
+# Here we literally just use !=, so do not use this for non-atomic values!
+exports.is_different = (a, b, fields, why) ->
+    if not a?
+        if not b?
+            return false  # they are the same
+        # a not defined but b is
+        for field in fields
+            if b[field]?
+                if why
+                    console.log 'is_different', field, a?[field], b[field]
+                return true
+        return false
+    if not b?
+        # a is defined or would be handled above
+        for field in fields
+            if a[field]?
+                if why
+                    console.log 'is_different', field, a[field], b?[field]
+                return true  # different
+        return false  # same
+
+    for field in fields
+        if a[field] != b[field]
+            if why
+                console.log 'is_different', field, a[field], b[field]
+            return true
+    return false
+
+exports.is_different_array = (a, b) ->
+    return not underscore.isEqual(a,b)
 
 #####################
 # temporary location for activity_log code, shared by front and backend.
@@ -1333,6 +1374,18 @@ exports.activity_log = (opts) -> new ActivityLog(opts)
 # see http://stackoverflow.com/questions/1144783/replacing-all-occurrences-of-a-string-in-javascript
 exports.replace_all = (string, search, replace) ->
     string.split(search).join(replace)
+
+# Similar to misc.replace_all, except it takes as input a function replace_f, which
+# returns what to replace the i-th copy of search in string with.
+exports.replace_all_function = (string, search, replace_f) ->
+    v = string.split(search)
+    w = []
+    for i in [0...v.length]
+        w.push(v[i])
+        if i < v.length - 1
+            w.push(replace_f(i))
+    return w.join('')
+
 
 exports.remove_c_comments = (s) ->
     while true
@@ -1471,7 +1524,12 @@ exports.round2 = round2 = (num) ->
     # padding to fix floating point issue (see http://stackoverflow.com/questions/11832914/round-to-at-most-2-decimal-places-in-javascript)
     Math.round((num + 0.00001) * 100) / 100
 
-exports.seconds2hms = seconds2hms = (secs, longform) ->
+# like seconds2hms, but only up to minute-resultion
+exports.seconds2hm = seconds2hm = (secs, longform) ->
+    return seconds2hms(secs, longform, false)
+
+# dear future developer: look into test/misc-test.coffee to see how the expected output is defined.
+exports.seconds2hms = seconds2hms = (secs, longform, show_seconds=true) ->
     longform ?= false
     if secs < 10
         s = round2(secs % 60)
@@ -1481,21 +1539,36 @@ exports.seconds2hms = seconds2hms = (secs, longform) ->
         s = Math.round(secs % 60)
     m = Math.floor(secs / 60) % 60
     h = Math.floor(secs / 60 / 60)
-    if h == 0 and m == 0
+    if (h == 0 and m == 0) and show_seconds
         if longform
             return "#{s} #{exports.plural(s, 'second')}"
         else
             return "#{s}s"
     if h > 0
         if longform
-            return "#{h} #{exports.plural(h, 'hour')} #{m} #{exports.plural(m, 'minute')}"
+            ret = "#{h} #{exports.plural(h, 'hour')}"
+            if m > 0
+                ret += " #{m} #{exports.plural(m, 'minute')}"
+            return ret
         else
-            return "#{h}h#{m}m#{s}s"
-    if m > 0
-        if longform
-            return "#{m} #{exports.plural(m, 'minute')} #{s} #{exports.plural(s, 'second')}"
+            if show_seconds
+                return "#{h}h#{m}m#{s}s"
+            else
+                return "#{h}h#{m}m"
+    if (m > 0) or (not show_seconds)
+        if show_seconds
+            if longform
+                ret = "#{m} #{exports.plural(m, 'minute')}"
+                if s > 0
+                    ret += " #{s} #{exports.plural(s, 'second')}"
+                return ret
+            else
+                return "#{m}m#{s}s"
         else
-            return "#{m}m#{s}s"
+            if longform
+                return "#{m} #{exports.plural(m, 'minute')}"
+            else
+                return "#{m}m"
 
 # returns the number parsed from the input text, or undefined if invalid
 # rounds to the nearest 0.01 if round_number is true (default : true)
@@ -1594,10 +1667,10 @@ exports.is_zero_map = (map) ->
 # Doesn't modify map.  If map is an array, just returns it
 # with no change even if it has undefined values.
 exports.map_without_undefined = map_without_undefined = (map) ->
-    if is_array(map)
-        return map
     if not map?
         return
+    if is_array(map)
+        return map
     new_map = {}
     for k, v of map
         if not v?
@@ -2100,5 +2173,4 @@ exports.human_readable_size = (bytes) ->
         return "#{b/10} MB"
     b = Math.floor(bytes/100000000)
     return "#{b/10} GB"
-
 

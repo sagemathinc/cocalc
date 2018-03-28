@@ -80,6 +80,7 @@ client_keydown = (ev) ->
 
 class Console extends EventEmitter
     constructor: (opts={}) ->
+        super()
         @opts = defaults opts,
             element     : required  # DOM (or jQuery) element that is replaced by this console.
             project_id  : required
@@ -246,7 +247,6 @@ class Console extends EventEmitter
         # that is in turn connected to a console_server:
         @session = session
 
-        @_ignore = true
         @_connected = true
         @_needs_resize = true
 
@@ -323,8 +323,10 @@ class Console extends EventEmitter
             if @session.init_history?
                 #console.log("writing history")
                 try
+                    ignore = @_ignore
                     @_ignore = true
                     @terminal.write(@session.init_history)
+                    @_ignore = ignore
                 catch e
                     console.log(e)
                 #console.log("recording history for copy/paste buffer")
@@ -343,7 +345,10 @@ class Console extends EventEmitter
         if @session.init_history?
             #console.log("session -- history.length='#{@session.init_history.length}'")
             try
+                ignore = @_ignore
+                @_ignore = true
                 @terminal.write(@session.init_history)
+                @_ignore = ignore
             catch e
                 console.log(e)
             # On first write we ignore any queued terminal attributes responses that result.
@@ -905,11 +910,13 @@ class Console extends EventEmitter
         @_needs_resize = false
 
     full_rerender: =>
-        value = @value_orig
+        locals =
+            value  : @value_orig
+            ignore : @_ignore
         @reset()
-        # start ignoring terminal output until the user explicitly does something (keys or paste)
         @_ignore = true
-        @render(value)
+        @render(locals.value)
+        @_ignore = locals.ignore  # do not change value of @_ignore
 
     resize_terminal: () =>
         # Determine size of container DOM.

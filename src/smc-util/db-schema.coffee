@@ -154,6 +154,9 @@ schema.accounts =
         email_address_challenge :
             type : 'map'
             desc : 'Contains random token for verification of an address: {"email": "...", "token": <random>, "time" : <timestamp for timeout>}'
+        email_address_problem :
+            type : 'map'
+            desc : 'Describes a problem with a given email address. example: { "wrong@email.address" : { "type": "bounce", "time": "2018-...", "mesg": "554 5.7.1 <....>: Recipient address rejected: Access denied, user does not exist", "status": <status code>}}'
         passports       :
             type : 'map'
             desc : 'Map from string ("[strategy]-[id]") derived from passport name and id to the corresponding profile'
@@ -226,6 +229,7 @@ schema.accounts =
                 account_id             : null
                 email_address          : null
                 email_address_verified : null
+                email_address_problem  : null
                 editor_settings :
                     strip_trailing_whitespace : false
                     show_trailing_whitespace  : true
@@ -251,6 +255,7 @@ schema.accounts =
                     jupyter_classic           : false
                     show_exec_warning         : true
                 other_settings  :
+                    katex             : true
                     confirm_close     : false
                     mask_files        : true
                     page_size         : 50
@@ -260,6 +265,7 @@ schema.accounts =
                     first_steps       : true
                     newsletter        : true
                     time_ago_absolute : false
+                    no_free_warnings  : false   # if true, do not show warning when using non-member projects
                 first_name      : ''
                 last_name       : ''
                 terminal        :
@@ -481,6 +487,27 @@ schema.file_access_log =
         time       :
             type : 'timestamp'
     pg_indexes : ['project_id', 'account_id', 'filename', 'time']
+
+# This table is derived from file_access_log.  It's the image of the set file_access_log under
+# the non-injective function
+#
+#    (id,project_id,account_id,filename,time) |--> (project_id, account_id, date),
+#
+# where date is the day of the time. For reference, this query computes/update this table:
+#
+#   insert into usage_by_date (account_id, project_id, date) (select distinct account_id, project_id, time::date from file_access_log) ON CONFLICT DO NOTHING;
+#
+schema.usage_by_date =
+    primary_key : ['date', 'account_id', 'project_id']
+    durability : 'soft' # loss of some log data not serious, since used only for analytics
+    fields:
+        project_id :
+            type : 'uuid'
+        account_id :
+            type : 'uuid'
+        date     :
+            type : 'date'
+    pg_indexes : ['date', 'account_id', 'project_id']
 
 # TODO: for postgres rewrite after done we MIGHT completely redo file_use to eliminate
 # the id field, use project_id, path as a compound primary key, and maybe put users in
@@ -908,6 +935,9 @@ schema.public_paths =
         disabled    :
             type : 'boolean'
             desc : 'if true then disabled'
+        unlisted :
+            type : 'boolean'
+            desc : 'if true then unlisted, so does not appear in /share listing page.'
         created :
             type : 'timestamp'
             desc : 'when this path was created'
@@ -920,6 +950,20 @@ schema.public_paths =
         counter :
             type : 'number'
             desc : 'the number of times this public path has been accessed'
+        vhost :  # For now, this will only be used *manually* for now; at some point users will be able to specify this,
+                 # though maybe they have to prove they own it.
+                 # For now we will only serve the vhost files statically with no special support, except we do support
+                 # basic http auth.   However, we will add
+                 # special server support for certain file types (e.g., math typesetting, markdown, sagews, ipynb, etc.)
+                 # so static websites can just be written in a mix of md, html, ipynb, etc. files with no javascript needed.
+                 # This could be a non-default option.
+                 # IMPORTANT: right now if vhost is set, then the share is not visible at all to the normal share server.
+            type : 'string'
+            desc : 'Request for the given host (which must not container "cocalc") will be served by this public share. Only one public path can have a given vhost.  The vhost field can be a comma-separated string for multiple vhosts.'
+            unique : true
+        auth :
+            type : 'map'
+            desc : 'Map from relative path inside the share to array of {path:[{name:[string], pass:[password-hash]}, ...], ...}.  Used both by vhost and share server, but not user editable yet.  Later it will be user editable.  The password hash is from smc-hub/auth.password_hash (so 1000 iterations of sha512)'
 
     pg_indexes : ['project_id', '(substring(project_id::text from 1 for 1))', '(substring(project_id::text from 1 for 2))']
 
@@ -933,6 +977,7 @@ schema.public_paths =
                 path        : null
                 description : null
                 disabled    : null   # if true then disabled
+                unlisted    : null   # if true then do not show in main listing (so doesn't get google indexed)
                 last_edited : null
                 created     : null
                 last_saved  : null
@@ -944,6 +989,7 @@ schema.public_paths =
                 path        : true
                 description : true
                 disabled    : true
+                unlisted    : true
                 last_edited : true
                 created     : true
             required_fields :
@@ -1056,32 +1102,44 @@ schema.server_settings =
 exports.site_settings_conf =
     site_name:
         name    : "Site name"
-        desc    : "The heading name of your site."
+        desc    : "The heading name of your CoCalc site."
         default : "CoCalc"
     site_description:
         name    : "Site description"
-        desc    : "The description of your site."
+        desc    : "The description of your CoCalc site."
         default : ""
     terms_of_service:
-        name    : "Terms of service link text"
+        name    : "Terms of service"
         desc    : "The text displayed for the terms of service link (make empty to not require)."
-        default : 'By signing up you agree to our <a target="_blank" href="/policies/terms.html">Terms of Service</a>.'
+        default : 'Click to agree to our <a target="_blank" href="/policies/terms.html">Terms of Service</a>.'
     account_creation_email_instructions:
-        name    : 'Account creation instructions'
+        name    : 'Account creation'
         desc    : "Instructions displayed next to the box where a user creates their account using their name and email address."
         default : 'Create an Account'
     help_email:
-        name    : "Help email address"
+        name    : "Help email"
         desc    : "Email address that user is directed to use for support requests"
         default : "help@sagemath.com"
     commercial:
-        name    : "Commercial UI elements ('yes' or 'no')"
+        name    : "Commercial ('yes' or 'no')"
         desc    : "Whether or not to include user interface elements related to for-pay upgrades and features.  Set to 'yes' to include these elements."
         default : "no"
     kucalc:
-        name    : "KuCalc UI elements ('yes' or 'no')"
+        name    : "KuCalc UI ('yes' or 'no')"
         desc    : "Whether to show UI elements adapted to what the KuCalc backend provides"
         default : "no"  # TODO -- this will *default* to yes when run from kucalc; but site admin can set it either way anywhere for testing.
+    version_min_project :
+        name    : "Required project version"
+        desc    : "Minimal version *required* by projects (if project older, will be force restarted)."
+        default : "0"
+    version_min_browser :
+        name    : "Required browser version"
+        desc    : "Minimal version *retuired* for browser clients (if older, forced disconnect)."
+        default : "0"
+    version_recommended_browser :
+        name    : "Recommended version"
+        desc    : "Older clients receive an upgrade warning."
+        default : "0"
 
 
 site_settings_fields = misc.keys(exports.site_settings_conf)
@@ -1109,7 +1167,7 @@ schema.site_settings =
 schema.stats =
     primary_key : 'id'
     durability  : 'soft' # ephemeral stats whose slight loss wouldn't matter much
-    anonymous   : true     # allow user read access, even if not signed in
+    anonymous   : false     # allow user read access, even if not signed in
     fields:
         id                  :
             type : 'uuid'
@@ -1134,21 +1192,6 @@ schema.stats =
             type : 'array'
             pg_type : 'JSONB[]'
     pg_indexes : ['time']
-    user_query:
-        get:
-            pg_where: ["time >= NOW() - INTERVAL '5 minutes'"]
-            pg_changefeed : 'five-minutes'
-            options : [{'order_by':'-time'}]
-            throttle_changes : 5000
-            fields :
-                id                  : null
-                time                : null
-                accounts            : 0
-                accounts_created    : null
-                projects            : 0
-                projects_created    : null
-                projects_edited     : null
-                hub_servers         : []
 
 schema.storage_servers =
     primary_key : 'host'
@@ -1206,7 +1249,11 @@ class ClientDB
         @r = {}
 
     sha1: (args...) =>
-        v = ((if typeof(x) == 'string' then x else JSON.stringify(x)) for x in args).join('')
+        try
+            v = ((if typeof(x) == 'string' then x else JSON.stringify(x)) for x in args).join('')
+        catch err
+            console?.warn?("args=", args)
+            throw err
         return sha1(v)
 
     _user_set_query_project_users: (obj) =>

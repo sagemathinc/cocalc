@@ -74,6 +74,7 @@ forums.
 
 ### Additional References
 
+- The [CoCalc API tutorial](https://cocalc.com/share/65f06a34-6690-407d-b95c-f51bbd5ee810/Public/README.md?viewer=share) illustrates API calls in Python.
 - The CoCalc PostgreSQL schema definition
 [src/smc-util/db-schema.coffee](https://github.com/sagemathinc/cocalc/blob/master/src/smc-util/db-schema.coffee)
 has information on tables and fields used with the API `query` request.
@@ -518,9 +519,9 @@ API message2
         id:
             init  : undefined
             desc  : 'A unique UUID for the query'
-        email_address:
+        account_id:
             init  : required
-            desc  : 'email address for account whose password is changed'
+            desc  : 'account id of the account whose password is being changed'
         old_password:
             init  : ""
             desc  : ''
@@ -528,12 +529,12 @@ API message2
             init  : required
             desc  : 'must be between 6 and 64 characters in length'
     desc           : """
-Given email address and old password for an account, set a new password.
+Given account_id and old password for an account, set a new password.
 
 Example:
 ```
   curl -u sk_abcdefQWERTY090900000000: \\
-    -d email_address=... \\
+    -d account_id=... \\
     -d old_password=... \\
     -d new_password=... \\
     https://cocalc.com/api/v1/change_password
@@ -1113,10 +1114,6 @@ message
     project_id : required
 
 
-# hub --> client(s)
-message
-    event      : 'project_list_updated'
-
 ## search ---------------------------
 
 # client --> hub
@@ -1226,6 +1223,24 @@ API message2
         account_id:
             init  : required
             desc  : 'account_id of invited user'
+        title        :
+            init  : undefined
+            desc  : 'Title of the project'
+        link2proj    :
+            init  : undefined
+            desc  : 'The full URL link to the project'
+        replyto      :
+            init  : undefined
+            desc  : 'Email address of user who is inviting someone'
+        replyto_name :
+            init  : undefined
+            desc  : 'Name of user who is inviting someone'
+        email        :
+            init  : undefined
+            desc  : 'Body of email user is sending (plain text or HTML)'
+        subject      :
+            init  : undefined
+            desc  : 'Subject line of invitiation email'
     desc       : """
 Invite a user who already has a CoCalc account to
 become a collaborator on a project. You must be owner
@@ -1371,7 +1386,7 @@ message
 # Message sent in response to attempt to save a blob
 # to the database.
 #
-# hub --> local_hub --> sage_server
+# hub --> local_hub [--> sage_server]
 #
 #############################################
 message
@@ -1380,7 +1395,6 @@ message
     sha1      : required     # the sha-1 hash of the blob that we just processed
     ttl       : undefined    # ttl in seconds of the blob if saved; 0=infinite
     error     : undefined    # if not saving, a message explaining why.
-
 
 # remove the ttls from blobs in the blobstore.
 # client --> hub
@@ -1513,6 +1527,11 @@ message
     id           : undefined
     path         : required
 
+###
+Heartbeat message for connection from hub to project.
+###
+message
+    event : 'heartbeat'
 
 ###
 Ping/pong -- used for clock sync, etc.
@@ -1775,6 +1794,7 @@ via the API and is intended for use by CoCalc support only:
 
 message
     event        : 'webapp_error'
+    id           : undefined # ignored
     name         : required  # string
     message      : required  # string
     comment      : undefined # string
@@ -2257,20 +2277,15 @@ Make a path public (publish a file).
 Add an upgrade to a project. In the "get" example above showing project upgrades,
 change cpu upgrades from 3 to 4. The `users` object is returned as
 read, with `cpu_shares` increased to 1024 = 4 * 256.
+It is not necessary to specify the entire `upgrades` object
+if you are only setting the `cpu_shares` attribute because changes are merged in.
 
 ```
   curl -u sk_abcdefQWERTY090900000000: \\
     -H "Content-Type: application/json" \\
     -d '{"query":{"projects":{"project_id":"29163de6-b5b0-496f-b75d-24be9aa2aa1d", \\
                               "users":{"6c28c5f4-3235-46be-b025-166b4dcaac7e":{ \\
-                                           "group":"owner", \\
-                                           "upgrades": {"cores":1, \\
-                                                       "memory":3000, \\
-                                                       "mintime":86400, \\
-                                                       "network":1, \\
-                                                       "cpu_shares":1024, \\
-                                                       "disk_quota":27000, \\
-                                                       "member_host":1}}}}}}' \\
+                                           "upgrades": {"cpu_shares":1024}}}}}}' \\
     https://cocalc.com/api/v1/query
     ==> {"event":"query",
          "query":{},
@@ -2324,12 +2339,6 @@ Within file 'db-schema.coffee':
 message
     event : 'query_cancel'
     id    : undefined
-
-# used to a get array of currently active change feed id's
-message
-    event          : 'query_get_changefeed_ids'
-    id             : undefined
-    changefeed_ids : undefined
 
 ###
 API Key management for an account
@@ -2431,4 +2440,53 @@ API message2
             desc : 'tells client that it should submit metrics to the hub every interval_s seconds'
 
 
+# Info about available upgrades for a given user
+API message2
+    event : 'get_available_upgrades'
+    fields:
+        id:
+           init  : undefined
+           desc  : 'A unique UUID for the query'
+    desc         : """
+This request returns information on project upgrdes for the user
+whose API key appears in the request.
+Two objects are returned, total upgrades and available upgrades.
 
+See https://github.com/sagemathinc/cocalc/blob/master/src/smc-util/upgrade-spec.coffee for units
+
+Example:
+```
+  curl -X POST -u sk_abcdefQWERTY090900000000: https://cocalc.com/api/v1/get_available_upgrades
+  ==>
+  {"id":"57fcfd71-b50f-44ef-ba66-1e37cac858ef",
+   "event":"available_upgrades",
+   "total":{
+     "cores":10,
+     "cpu_shares":2048,
+     "disk_quota":200000,
+     "member_host":80,
+     "memory":120000,
+     "memory_request":8000,
+     "mintime":3456000,
+     "network":400},
+     "excess":{},
+   "available":{
+     "cores":6,
+     "cpu_shares":512,
+     "disk_quota":131000,
+     "member_host":51,
+     "memory":94000,
+     "memory_request":8000,
+     "mintime":1733400,
+     "network":372}}
+```
+"""
+
+# client <-- hub
+
+message
+    event      : 'available_upgrades'
+    id         : undefined
+    total      : required  # total upgrades the user has purchased
+    excess     : required  # upgrades where the total allocated exceeds what user has purchased
+    available  : required  # how much of each purchased upgrade is available

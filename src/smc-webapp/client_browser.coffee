@@ -104,6 +104,14 @@ class Connection extends client.Connection
 
     _setup_window_smc: () =>
         # if we are in DEBUG mode, inject the client into the global window object
+        window.enable_post = =>
+            @_enable_post = true
+        window.disable_post = =>
+            @_enable_post = false
+
+        # Make this the default now.
+        @_enable_post = true
+
         if not DEBUG
             return
         window.smc                     ?= {}
@@ -118,6 +126,14 @@ class Connection extends client.Connection
         window.smc.synctable_debug     = require('smc-util/synctable').set_debug
         window.smc.idle_trigger        = => @emit('idle', 'away')
         window.smc.prom_client         = prom_client
+        window.smc.redux               = require('./smc-react').redux
+
+        if require('./feature').IS_TOUCH
+            # Debug mode and on a touch device -- e.g., iPad -- so make it possible to get a
+            # devel console via https://github.com/liriliri/eruda
+            # This pulls eruda from a CDN.
+            document.write('<script src="//cdn.jsdelivr.net/npm/eruda"></script>')
+            document.write('<script>eruda.init();</script>')
 
 
         # Client-side testing code -- we use require.ensure so this stuff only
@@ -227,31 +243,32 @@ class Connection extends client.Connection
                 max      : 5000
                 min      : 1000
                 factor   : 1.25
-                retries  : 100000  # why ever stop trying if we're only trying once every 5 seconds?
+                retries  : 100000  # why ever stop trying...?
         conn = new Primus(url, opts)
         ###
 
-        conn = new Primus(url)
+        opts =
+            reconnect:
+                max     : 10000
+                min     : 1000
+                factor  : 1.3
+                retries : 100000
+
+        misc_page.delete_cookie('SMCSERVERID3')
+        @_delete_websocket_cookie()
+        conn = new Primus(url, opts)
 
         @_conn = conn
         conn.on 'open', () =>
             @_connected = true
             @_connection_is_totally_dead = false
-            if @_conn_id?
-                conn.write(@_conn_id)
-            else
-                conn.write("XXXXXXXXXXXXXXXXXXXX")
             protocol = if window.WebSocket? then 'websocket' else 'polling'
             @emit("connected", protocol)
             log("connected; protocol='#{protocol}'")
             @_num_attempts = 0
 
             conn.removeAllListeners('data')
-            f = (data) =>
-                @_conn_id = data.toString()
-                conn.removeListener('data',f)
-                conn.on('data', ondata)
-            conn.on("data", f)
+            conn.on("data", ondata)
 
             if auth_token?
                 @sign_in_using_auth_token
@@ -265,7 +282,7 @@ class Connection extends client.Connection
 
         conn.on 'offline', (evt) =>
             log("offline")
-            @_connected = false
+            @_connected = @_signed_in = false
             @emit("disconnected", "offline")
 
         conn.on 'online', (evt) =>
@@ -282,7 +299,7 @@ class Connection extends client.Connection
 
         conn.on 'close', () =>
             log("closed")
-            @_connected = false
+            @_connected = @_signed_in = false
             @emit("disconnected", "close")
 
         conn.on 'end', =>
@@ -291,9 +308,12 @@ class Connection extends client.Connection
         conn.on 'reconnect scheduled', (opts) =>
             @_num_attempts = opts.attempt
             @emit("disconnected", "close") # This just informs everybody that we *are* disconnected.
-            @emit("connecting")
             conn.removeAllListeners('data')
-            log("reconnect scheduled in #{opts.scheduled} ms  (attempt #{opts.attempt} out of #{opts.retries})")
+            @_delete_websocket_cookie()
+            log("reconnect scheduled (attempt #{opts.attempt} out of #{opts.retries})")
+
+        conn.on 'reconnect', =>
+            @emit("connecting")
 
         conn.on 'incoming::pong', (time) =>
             #log("pong latency=#{conn.latency}")
@@ -318,16 +338,20 @@ class Connection extends client.Connection
         if @_connected
             return @_conn.latency
 
-    _fix_connection: (delete_cookies) =>
-        if delete_cookies
-            console.log("websocket -- deleting haproxy cookies")
-            document.cookie = 'SMCSERVERID3=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;'
+    _delete_websocket_cookie: =>
+        console.log('websocket -- delete cookie')
+        misc_page.delete_cookie('SMCSERVERID3')
+
+    _fix_connection: =>
         console.log("websocket --_fix_connection... ")
+        @_delete_websocket_cookie()
         @_conn.end()
         @_conn.open()
 
     _cookies: (mesg) =>
-        $.ajax(url:mesg.url, data:{id:mesg.id, set:mesg.set, get:mesg.get, value:mesg.value})
+        $.ajax
+            url     : mesg.url
+            data    : {id:mesg.id, set:mesg.set, get:mesg.get, value:mesg.value}
 
     alert_message: (args...) =>
         require('./alerts').alert_message(args...)

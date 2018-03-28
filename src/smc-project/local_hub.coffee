@@ -13,8 +13,8 @@ that it simultaneously manages numerous sessions, since simultaneously
 doing a lot of IO-based things is what Node.JS is good at.
 ###
 
-
-require('coffee-cache').setCacheDir("#{process.env.HOME}/.coffee")
+# TODO wat.
+# require('coffee-cache').setCacheDir("#{process.env.HOME}/.coffee")
 
 
 BUG_COUNTER = 0
@@ -45,12 +45,15 @@ program = require('commander')          # command line arguments -- https://gith
 winston.remove(winston.transports.Console)
 winston.add(winston.transports.Console, {level: 'debug', timestamp:true, colorize:true})
 
-require('coffee-script/register')
+require('coffeescript/register')
 
 message     = require('smc-util/message')
 misc        = require('smc-util/misc')
 smc_version = require('smc-util/smc-version')
 misc_node   = require('smc-util-node/misc_node')
+
+memory      = require('smc-util-node/memory')
+memory.init(winston.debug)
 
 {to_json, from_json, defaults, required}   = require('smc-util/misc')
 
@@ -122,8 +125,8 @@ json = common.json
 
 INFO = undefined
 hub_client = undefined
-init_info_json = (cb) ->
-    winston.debug("Writing 'info.json'")
+init_info_json = (cb) ->  # NOTE: cb should only be required to guarantee info.json file written, not that INFO var is initialized.
+    winston.debug("initializing INFO")
     filename = "#{SMC}/info.json"
     if kucalc.IN_KUCALC and process.env.COCALC_PROJECT_ID? and process.env.COCALC_USERNAME?
         project_id = process.env.COCALC_PROJECT_ID
@@ -150,7 +153,12 @@ init_info_json = (cb) ->
         location   : {host:host, username:username, port:port, path:'.'}
         base_url   : base_url
     exports.client = hub_client = new Client(INFO.project_id)
-    fs.writeFile(filename, misc.to_json(INFO), cb)
+    fs.writeFile filename, misc.to_json(INFO), (err) ->
+        if err
+            winston.debug("Writing 'info.json' -- #{err}")
+        else
+            winston.debug("Wrote 'info.json'")
+        cb?(err)
 
 # Connecting to existing session or making a new one.
 connect_to_session = (socket, mesg) ->
@@ -184,6 +192,9 @@ handle_mesg = (socket, mesg, handler) ->
         return
 
     switch mesg.event
+        when 'heartbeat'
+            winston.debug("received heartbeat on socket '#{socket.id}'")
+            socket.heartbeat = new Date()
         when 'connect_to_session', 'start_session'
             # These sessions completely take over this connection, so we stop listening
             # for further control messages on this connection.
@@ -264,6 +275,7 @@ start_tcp_server = (secret_token, port, cb) ->
                 winston.debug(err)
             else
                 socket.id = uuid.v4()
+                socket.heartbeat = new Date()  # obviously working now
                 misc_node.enable_mesg(socket)
 
                 handler = (type, mesg) ->
@@ -291,10 +303,13 @@ start_server = (tcp_port, raw_port, cb) ->
     the_secret_token = undefined
     if program.console_port
         console_sessions.set_port(program.console_port)
+    # We run init_info_json to determine the INFO variable.
+    # However, we do NOT wait for the cb of init_info_json to be called, since we don't care in this process that the file info.json was written.
+    init_info_json()
+
     async.series([
         (cb) ->
-            init_info_json(cb)
-        (cb) ->
+            winston.debug("starting raw server...")
             raw_server.start_raw_server
                 project_id : INFO.project_id
                 base_url   : INFO.base_url
@@ -305,10 +320,15 @@ start_server = (tcp_port, raw_port, cb) ->
                 logger     : winston
                 cb         : cb
         (cb) ->
+            if program.kucalc
+                # not needed, since in kucalc supervisord manages processes.
+                cb()
+                return
             # This is also written by forever; however, by writing it directly it's also possible
             # to run the local_hub server in a console, which is useful for debugging and development.
             fs.writeFile(misc_node.abspath("#{DATA}/local_hub.pid"), "#{process.pid}", cb)
         (cb) ->
+            winston.debug("initializing secret token...")
             secret_token.init_secret_token (err, token) ->
                 if err
                     cb(err)
@@ -317,6 +337,7 @@ start_server = (tcp_port, raw_port, cb) ->
                     console_sessions.set_secret_token(token)
                     cb()
         (cb) ->
+            winston.debug("starting tcp server...")
             start_tcp_server(the_secret_token, tcp_port, cb)
     ], (err) ->
         if err

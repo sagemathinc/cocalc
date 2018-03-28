@@ -323,26 +323,27 @@ class SagewsPrinter extends Printer
         return @_html_tmpl
 
     html_process_output_mesg: (mesg, mark) ->
-        out = null
-        # console.log 'html_process_output_mesg', mesg, mark
-        if mesg.stdout?
+        # Note: each mesg could contain more than one output type
+        out = ''
+        # if DEBUG console.log 'html_process_output_mesg', mesg, mark
+        if mesg.stdout?.length > 0
             # assertion: for stdout, `mark` might be undefined
-            out = "<div class='output stdout'>#{mesg.stdout}</div>"
-        else if mesg.stderr?
-            out = "<div class='output stderr'>#{mesg.stderr}</div>"
-        else if mesg.html?
+            out += "<div class='output stdout'>#{mesg.stdout}</div>"
+        if mesg.stderr?.length > 0
+            out += "<div class='output stderr'>#{mesg.stderr}</div>"
+        if mesg.html?
             $html = $("<div>#{mesg.html}</div>")
             @editor.syncdoc.process_html_output($html)
-            out = "<div class='output html'>#{$html.html()}</div>"
-        else if mesg.md?
-            x = markdown.markdown_to_html(mesg.md)
+            out += "<div class='output html'>#{$html.html()}</div>"
+        if mesg.md?
+            s = markdown.markdown_to_html(mesg.md)
             $out = $("<div>")
-            $out.html_noscript(x.s) # also, don't process mathjax!
+            $out.html_noscript(s) # also, don't process mathjax!
             @editor.syncdoc.process_html_output($out)
-            out = "<div class='output md'>#{$out.html()}</div>"
-        else if mesg.interact?
-            out = "<div class='output interact'>#{mark.widgetNode.innerHTML}</div>"
-        else if mesg.file?
+            out += "<div class='output md'>#{$out.html()}</div>"
+        if mesg.interact?
+            out += "<div class='output interact'>#{mark.widgetNode.innerHTML}</div>"
+        if mesg.file?
             if mesg.file.show ? true
                 ext = misc.filename_extension(mesg.file.filename).toLowerCase()
                 if ext == 'sage3d'
@@ -357,32 +358,30 @@ class SagewsPrinter extends Printer
                         out ?= ''
                         out += "<div class='output sage3d'><img src='#{data_url}'></div>"
                 else if ext == 'webm'
-                    out ?= ''
                     # 'raw' url. later, embed_videos will be replace by the data-uri if there is no error
                     out += "<video src='#{mesg.file.url}' class='sagews-output-video' controls></video>"
                 else
-                    # console.log 'msg.file', mark, mesg
+                    # if DEBUG then console.log 'msg.file', mark, mesg
                     if not @_output_ids[mark.id] # avoid duplicated outputs
                         @_output_ids[mark.id] = true
-                        # console.log "output.file", mark, mesg
+                        # if DEBUG then console.log "output.file", mark, mesg
                         $images = $(mark.widgetNode)
                         for el in $images.find('.sagews-output-image')
-                            out ?= ''
                             # innerHTML should just be the <img ... > element
                             out += el.innerHTML
-                        out = "<div class='output image'>#{out}</div>"
-        else if mesg.code?  # what's that actually?
+                        out += "<div class='output image'>#{out}</div>"
+        if mesg.code?  # what's that actually?
             code = mesg.code.source
-            out = "<pre><code>#{code}</code></pre>"
-        else if mesg.javascript?
+            out += "<pre><code>#{code}</code></pre>"
+        if mesg.javascript?
             # mesg.javascript.coffeescript is true iff coffeescript
             $output = $(mark.replacedWith)
             $output.find('.sagews-output-container').remove() # TODO what's that?
-            out = "<div class='output javascript'>#{$output.html()}</div>"
-        else if mesg.done?
+            out += "<div class='output javascript'>#{$output.html()}</div>"
+        if mesg.done?
             # ignored
-        else
-            console.warn "ignored mesg", mesg
+            out += ' '
+
         return @html_post_process(out)
 
     html_post_process: (html) ->
@@ -483,18 +482,7 @@ class SagewsPrinter extends Printer
             input_lines      = []
             input_lines_mode = null
 
-        # stdout mesg can be split up into multiple parts -- this is a helper for collecting them
-        mesg_stdout = {stdout : ''}
-        process_collected_mesg_stdout = =>
-            # processing leftover stdout mesgs from previous iteration
-            if mesg_stdout.stdout.length > 0
-                # it's ok to leave `mark` undefined
-                om = @html_process_output_mesg(mesg_stdout)
-                _html.push(om) if om?
-                mesg_stdout = {stdout : ''}
-
         process_lines = (cb) =>
-            # process lines in an async loop to avoid blocking on large documents
             line = 0
             lines_total = cm.lineCount()
             while line < lines_total
@@ -511,6 +499,7 @@ class SagewsPrinter extends Printer
                             _
                         when MARKERS.output
                             # assume, all cells are evaluated and hence mark.rendered contains the html
+                            output_msgs = []
                             for mesg_ser in mark.rendered.split(MARKERS.output)
                                 if mesg_ser.length == 0
                                     continue
@@ -520,16 +509,18 @@ class SagewsPrinter extends Printer
                                     console.warn("invalid output message '#{m}' in line '#{line}'")
                                     continue
 
-                                if mesg.stdout?
-                                    mesg_stdout.stdout += mesg.stdout
+                                #if DEBUG then console.log 'sagews2html: output message', mesg
+                                if mesg.clear
+                                    output_msgs = []
+                                else if mesg.delete_last
+                                    output_msgs.pop()
                                 else
-                                    process_collected_mesg_stdout()
-                                    # process the non-stdout mesg from this iteration
-                                    # console.log 'output message', mesg, mark
-                                    om = @html_process_output_mesg(mesg, mark)
-                                    _html.push(om) if om?
+                                    output_msgs.push(mesg)
+                            # after for-loop over rendered output cells
+                            for mesg in output_msgs
+                                om = @html_process_output_mesg(mesg, mark)
+                                _html.push(om) if om?
 
-                process_collected_mesg_stdout()
                 line++
             input_lines_process(final = true)
             # combine all html snippets to one html block
@@ -565,7 +556,7 @@ class SagewsPrinter extends Printer
             vids_num = 0
             vids_tot = vids.length
             vembed = (vid, cb) ->
-                # console.log "embedding #{vids_num}/#{vids_tot}", vid
+                # if DEBUG then console.log "embedding #{vids_num}/#{vids_tot}", vid
                 vids_num += 1
                 progress(.4 + (5 / 10) * (vids_num / vids_tot), "video #{vids_num}/#{vids_tot}")
                 xhr = new XMLHttpRequest()
@@ -577,7 +568,7 @@ class SagewsPrinter extends Printer
                             blob = this.response
                             reader = new FileReader()
                             reader.addEventListener "load", ->
-                                # console.log(reader.result[..100])
+                                # if DEBUG then console.log(reader.result[..100])
                                 vid.src = reader.result
                                 cb(null)
                             reader.readAsDataURL(blob)

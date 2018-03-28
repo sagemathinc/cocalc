@@ -10,7 +10,7 @@ Handle iframe output messages involving a srcdoc.
 
 exports.IFrame = rclass
     propTypes:
-        sha1       : rtypes.string   # one of sha1 or value should be given
+        sha1       : rtypes.string
         project_id : rtypes.string
 
     getInitialState: ->

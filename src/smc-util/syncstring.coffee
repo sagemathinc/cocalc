@@ -34,11 +34,11 @@ TOUCH_INTERVAL_M = 10
 # How often the local hub will autosave this file to disk if it has it open and
 # there are unsaved changes.  This is very important since it ensures that a user that
 # edits a file but doesn't click "Save" and closes their browser (right after their edits
-# have gone to the databse), still has their file saved to disk soon.  This is important,
+# have gone to the database), still has their file saved to disk soon.  This is important,
 # e.g., for homework getting collected and not missing the last few changes.  It turns out
-# this is what people expect!
+# this is what people expect.
 # Set to 0 to disable. (But don't do that.)
-LOCAL_HUB_AUTOSAVE_S = 120
+LOCAL_HUB_AUTOSAVE_S = 45
 #LOCAL_HUB_AUTOSAVE_S = 5
 
 # If the client becomes disconnected from the backend for more than this long
@@ -211,7 +211,9 @@ class PatchValueCache
 
 # Sorted list of patches applied to a string
 class SortedPatchList extends EventEmitter
-    constructor: (@_from_str) ->
+    constructor: (_from_str) ->
+        super()
+        @_from_str = _from_str
         @_patches = []
         @_times = {}
         @_cache = new PatchValueCache()
@@ -245,6 +247,19 @@ class SortedPatchList extends EventEmitter
             t += n
         return new Date(t)
 
+    _ensure_time_field_is_valid: (patch, field) ->
+        # Ensure patch[field] is a valid Date object or undefined; if neither, returns true,
+        # which means this patch is hopeless corrupt and should be ignored
+        # (should be impossible given postgres data types)
+        val = patch[field]
+        if not val? or misc.is_date(val)
+            return
+        try
+            patch[field] = misc.ISO_to_Date(val)
+            return false
+        catch err
+            return true # BAD
+
     add: (patches) =>
         if patches.length == 0
             # nothing to do
@@ -254,15 +269,11 @@ class SortedPatchList extends EventEmitter
         oldest = undefined
         for x in patches
             if x?
-                if not misc.is_date(x.time)
-                    # ensure that time is not a string representation of a time
-                    try
-                        x.time = misc.ISO_to_Date(x.time)
-                        if isNaN(x.time) # ignore bad times
-                            continue
-                    catch err
-                        # ignore invalid times
-                        continue
+                # ensure that time and prev fields is a valid Date object
+                if @_ensure_time_field_is_valid(x, 'time')
+                    continue
+                if @_ensure_time_field_is_valid(x, 'prev')
+                    continue
                 t   = x.time - 0
                 cur = @_times[t]
                 if cur?
@@ -309,17 +320,20 @@ class SortedPatchList extends EventEmitter
     there is one; this is used to update snapshots in case of offline changes
     getting inserted into the changelog.
 
-    If without is defined, it must be an array of Date objects; in that case
+    If without_times is defined, it must be an array of Date objects; in that case
     the current value of the string is computed, but with all the patches
-    at the given times in "without" ignored.  This is used elsewhere as a building
-    block to implement undo.
+    at the given times in "without_times" ignored.  This is used elsewhere
+    as a building block to implement undo.
     ###
     value: (time, force=false, without_times=undefined) =>
         #start_time = new Date()
-        # If the time is specified, verify that it is valid; otherwise, convert it to a valid time.
+
         if time? and not misc.is_date(time)
+            # If the time is specified, verify that it is valid; otherwise, convert it to a valid time.
             time = misc.ISO_to_Date(time)
+
         if without_times?
+            # Process without_times to get a map from time numbers to true.
             if not misc.is_array(without_times)
                 throw Error("without_times must be an array")
             if without_times.length > 0
@@ -338,7 +352,8 @@ class SortedPatchList extends EventEmitter
                 else
                     without_times = v # change to map from time in ms to true.
 
-        prev_cutoff = @newest_snapshot_time()
+        prev_cutoff = @newest_snapshot_time()   # we do not discard patch due to prev if prev is before this.
+
         # Determine oldest cached value
         oldest_cached_time = @_cache.oldest_time()  # undefined if nothing cached
         # If the oldest cached value exists and is at least as old as the requested
@@ -357,7 +372,7 @@ class SortedPatchList extends EventEmitter
                 if time? and x.time > time
                     # Done -- no more patches need to be applied
                     break
-                if not x.prev? or @_times[x.prev - 0] or +x.prev >= +prev_cutoff
+                if not x.prev? or @_times[x.prev - 0] or +x.prev <= +prev_cutoff
                     if not without? or (without? and not without_times[+x.time])
                         # apply patch x to update value to be closer to what we want
                         value = value.apply_patch(x.patch)
@@ -396,7 +411,7 @@ class SortedPatchList extends EventEmitter
                     break
                 # Apply a patch to move us forward.
                 #console.log("applying patch #{i}")
-                if not x.prev? or @_times[x.prev - 0] or +x.prev >= +prev_cutoff
+                if not x.prev? or @_times[x.prev - 0] or +x.prev <= +prev_cutoff
                     if not without? or (without? and not without_times[+x.time])
                         value = value.apply_patch(x.patch)
                 cache_time = x.time
@@ -414,10 +429,11 @@ class SortedPatchList extends EventEmitter
         return value
 
     # VERY Slow -- only for consistency checking purposes and debugging.
-    # If force=true, don't use snapshots.
+    # If snapshots=false, don't use snapshots.
     _value_no_cache: (time, snapshots=true) =>
         value = @_from_str('') # default in case no snapshots
         start = 0
+        prev_cutoff = @newest_snapshot_time()
         if snapshots and @_patches.length > 0  # otherwise the [..] notation below has surprising behavior
             for i in [@_patches.length-1 .. 0]
                 if (not time? or +@_patches[i].time <= +time) and @_patches[i].snapshot?
@@ -433,7 +449,10 @@ class SortedPatchList extends EventEmitter
             if time? and x.time > time
                 # Done -- no more patches need to be applied
                 break
-            value = value.apply_patch(x.patch)
+            if not x.prev? or @_times[x.prev - 0] or +x.prev <= +prev_cutoff
+                value = value.apply_patch(x.patch)
+            else
+                console.log 'skipping patch due to prev', x
         return value
 
     # For testing/debugging.  Go through the complete patch history and
@@ -493,7 +512,7 @@ class SortedPatchList extends EventEmitter
             opts.log("-----------------------------------------------------\n", i, x.user_id, tm,  misc.trunc_middle(JSON.stringify(x.patch), opts.trunc))
             if not s?
                 s = @_from_str(x.snapshot ? '')
-            if not x.prev? or @_times[x.prev - 0] or +x.prev >= +prev_cutoff
+            if not x.prev? or @_times[x.prev - 0] or +x.prev <= +prev_cutoff
                 t = s.apply_patch(x.patch)
             else
                 opts.log("prev=#{x.prev} missing, so not applying")
@@ -556,10 +575,11 @@ STATES:
 
 class SyncDoc extends EventEmitter
     constructor: (opts) ->
+        super()
         @_opts = opts = defaults opts,
-            save_interval     : 1500
-            cursor_interval   : 2000
-            patch_interval    : 1000       # debouncing of incoming upstream patches
+            save_interval     : 2000
+            cursor_interval   : 1000
+            patch_interval    : 1500       # debouncing of incoming upstream patches
             file_use_interval : 'default'  # throttles: default is 60s for everything except .sage-chat files, where it is 10s.
             string_id         : undefined
             project_id        : required   # project_id that contains the doc
@@ -569,6 +589,12 @@ class SyncDoc extends EventEmitter
             from_str          : required   # creates a doc from a string.
             doctype           : undefined  # optional object describing document constructor (used by project to open file)
             from_patch_str    : JSON.parse
+            before_change_hook : undefined
+            after_change_hook : undefined
+
+        @_before_change_hook = opts.before_change_hook
+        @_after_change_hook = opts.after_change_hook
+
         if not opts.string_id?
             opts.string_id = schema.client_db.sha1(opts.project_id, opts.path)
 
@@ -623,14 +649,15 @@ class SyncDoc extends EventEmitter
 
         if opts.cursors
             # Initialize throttled cursors functions
-            set_cursor_locs = (locs) =>
+            set_cursor_locs = (locs, side_effect) =>
                 x =
                     string_id : @_string_id
                     user_id   : @_user_id
                     locs      : locs
-                    time      : @_client.server_time()
+                if not side_effect
+                    x.time = @_client.server_time()
                 @_cursors?.set(x, 'none')
-            @_throttled_set_cursor_locs = underscore.throttle(set_cursor_locs, @_opts.cursor_interval)
+            @_throttled_set_cursor_locs = underscore.throttle(set_cursor_locs, @_opts.cursor_interval, {leading:true, trailing:true})
 
     set_doc: (value) =>
         if not value?.apply_patch?
@@ -654,10 +681,11 @@ class SyncDoc extends EventEmitter
 
     # Used for internal debug logging
     dbg: (f) ->
-        return @_client.dbg("SyncString.#{f}:")
+        return @_client.dbg("SyncString(path='#{@_path}').#{f}:")
 
     # Version of the document at a given point in time; if no
     # time specified, gives the version right now.
+    # If not fully initialized, will return undefined
     version: (time) =>
         return @_patch_list?.value(time)
 
@@ -673,7 +701,7 @@ class SyncDoc extends EventEmitter
     # Undo/redo public api.
     #   Calling @undo and @redo returns the version of the document after
     #   the undo or redo operation, but does NOT otherwise change anything!
-    #   The caller can then what they please with that output (e.g., update the UI).
+    #   The caller can then do what they please with that output (e.g., update the UI).
     #   The one state change is that the first time calling @undo or @redo switches
     #   into undo/redo state in which additional calls to undo/redo
     #   move up and down the stack of changes made by this user during this session.
@@ -697,6 +725,11 @@ class SyncDoc extends EventEmitter
             # pointing at live state (e.g., happens on entering undo mode)
             value = @version()     # last saved version
             live  = @_doc
+            if not value?
+                # may be undefined if everything not fully loaded or being reconnected -- in this case, just skip
+                # doing the undo, which would be dangerous, e.g., value.make_patch(live) is not going to work.
+                # See https://github.com/sagemathinc/cocalc/issues/2586
+                return live
             if not live.is_equal(value)
                 # User had unsaved changes, so last undo is to revert to version without those.
                 state.final    = value.make_patch(live)                  # live redo if needed
@@ -730,8 +763,11 @@ class SyncDoc extends EventEmitter
             return @get_doc()
         else if state.pointer == state.my_times.length - 1
             # one back from live state, so apply unsaved patch to live version
+            value = @version()
+            if not value? # see remark in undo -- do nothing
+                return @get_doc()
             state.pointer += 1
-            return @version().apply_patch(state.final)
+            return value.apply_patch(state.final)
         else
             # at least two back from live state
             state.without.pop()
@@ -759,10 +795,11 @@ class SyncDoc extends EventEmitter
 
     # Make it so the local hub project will automatically save the file to disk periodically.
     init_project_autosave: () =>
-        if not LOCAL_HUB_AUTOSAVE_S or not @_client.is_project() or @_project_autosave?
+        # Do not autosave sagews until https://github.com/sagemathinc/cocalc/issues/974 is resolved.
+        if not LOCAL_HUB_AUTOSAVE_S or not @_client.is_project() or @_project_autosave? or misc.endswith(@_path, '.sagews')
             return
-        #dbg = @dbg("autosave")
-        #dbg("initializing")
+        dbg = @dbg("autosave")
+        dbg("initializing")
         f = () =>
             #dbg('checking')
             if @hash_of_saved_version()? and @has_unsaved_changes()
@@ -793,14 +830,16 @@ class SyncDoc extends EventEmitter
     # "@_syncstring_table.set(...)" below because it is critical to
     # to be able to do the touch before @_syncstring_table gets initialized,
     # since otherwise the initial open a file will be very slow.
-    touch: (min_age_m=5) =>
+    touch: (min_age_m=5, cb) =>
         if @_client.is_project()
+            cb?()
             return
         if min_age_m > 0
-            # if min_age_m is 0 always do it immediately; if > 0 check what it was:
-            last_active = @_syncstring_table?.get_one().get('last_active')
+            # if min_age_m is 0 always try to do it immediately; if > 0 check what it was:
+            last_active = @_syncstring_table?.get_one()?.get('last_active')
             # if not defined or not set recently, do it.
             if not (not last_active? or +last_active <= +misc.server_minutes_ago(min_age_m))
+                cb?()
                 return
         # Now actually do the set.
         @_client.query
@@ -812,6 +851,8 @@ class SyncDoc extends EventEmitter
                     deleted     : @_deleted
                     last_active : misc.server_time()
                     doctype     : misc.to_json(@_doctype)  # important to set here, since this is when syncstring is often first created
+            cb: cb
+
 
     # The project calls this once it has checked for the file on disk; this
     # way the frontend knows that the syncstring has been initialized in
@@ -871,7 +912,6 @@ class SyncDoc extends EventEmitter
         if @_project_autosave?
             clearInterval(@_project_autosave)
             delete @_project_autosave
-        delete @_cursor_throttled
         delete @_cursor_map
         delete @_users
         @_syncstring_table?.close()
@@ -887,15 +927,10 @@ class SyncDoc extends EventEmitter
         @_evaluator?.close()
         delete @_evaluator
 
-    reconnect: (cb) =>
-        @close()
-        @connect(cb)
-
     connect: (cb) =>
         if not @_closed
-            cb("already connected")
+            cb?("already connected")
             return
-        @touch(0)   # critical to do a quick initial touch so file gets opened on the backend
         query =
             syncstrings :
                 string_id         : @_string_id
@@ -911,58 +946,88 @@ class SyncDoc extends EventEmitter
                 read_only         : null
                 last_file_change  : null
                 doctype           : null
+                archived          : null
 
-        @_syncstring_table = @_client.sync_table(query)
-
-        @_syncstring_table.once 'connected', =>
-            @_handle_syncstring_update()
-            @_syncstring_table.on('change', @_handle_syncstring_update)
-            async.series([
-                (cb) =>
-                    async.parallel([@_init_patch_list, @_init_cursors, @_init_evaluator], cb)
-                (cb) =>
-                    @_closed = false
-                    if @_client.is_user() and not @_periodically_touch?
-                        @touch(1)
-                        # touch every few minutes while syncstring is open, so that backend local_hub
-                        # (if open) keeps its side open
-                        @_periodically_touch = setInterval((=>@touch(TOUCH_INTERVAL_M/2)), 1000*60*TOUCH_INTERVAL_M)
-                    if @_client.is_project()
-                        @_load_from_disk_if_newer(cb)
-                    else
-                        cb()
-            ], (err) =>
-                if @_closed
-                    # disconnected while connecting...
+        async.series([
+            (cb) =>
+                # It is critical to do a quick initial touch so file gets opened on the
+                # backend or syncstring gets created (otherwise creation of various
+                # changefeeds below will FATAL fail).
+                @touch(0, cb)
+            (cb) =>
+                @_syncstring_table = @_client.sync_table(query)
+                @_syncstring_table.once 'connected', =>
+                    @_handle_syncstring_update()
+                    @_syncstring_table.on('change', @_handle_syncstring_update)
                     cb()
-                    return
+            (cb) =>
+                # wait until syncstring is not archived -- if we open a very old syncstring, the patches
+                # may be archived; we have to wait until after they have been pulled from blob storage before
+                # we init the patch table below, load from disk, etc.
                 @_syncstring_table.wait
-                    until : (t) => t.get_one()?.get('init')
-                    cb    : (err, init) =>
-                        if err
-                            @emit('init', err)
-                            return
-                        init = init.toJS()
-                        err  = init.error
-                        if err
-                            @emit('init', err)
-                            return
-                        if @_client.is_user() and @_patch_list.count() == 0 and (init.size ? 0) > 0
-                            # wait for a change -- i.e., project loading the file from
-                            # disk and making available...  Because init.size > 0, we know that
-                            # there must be SOMETHING in the patches table once initialization is done.
-                            # This is the root cause of https://github.com/sagemathinc/cocalc/issues/2382
-                            @_patches_table.once 'change', =>
-                                @emit('init')
-                        else
-                            @emit('init')
-                if err
-                    cb(err)
+                    until : (t) => not t.get_one()?.get('archived')
+                    cb    : cb
+            (cb) =>
+                async.parallel([@_init_patch_list, @_init_cursors, @_init_evaluator], cb)
+            (cb) =>
+                @_closed = false
+                if @_client.is_user() and not @_periodically_touch?
+                    @touch(1)
+                    # touch every few minutes while syncstring is open, so that backend local_hub
+                    # (if open) keeps its side open
+                    @_periodically_touch = setInterval((=>@touch(TOUCH_INTERVAL_M/2)), 1000*60*TOUCH_INTERVAL_M)
+                if @_client.is_project()
+                    @_load_from_disk_if_newer(cb)
                 else
-                    @emit('change')
-                    @emit('connected')
                     cb()
-            )
+        ], (err) =>
+            if @_closed
+                # closed while connecting...
+                cb()
+                return
+
+            if err
+                cb(err)
+            else
+                # Emit 'init' when ready for use.
+                @_wait_init()
+                @emit('change')
+                @emit('connected')
+                cb()
+        )
+
+    # wait until the syncstring table is ready to be used (so extracted from archive, etc.),
+    # and only then emit an init.
+    _wait_init: =>
+        @_syncstring_table?.wait
+            until : (t) =>
+                tbl = t.get_one()
+                # init must be set in table and archived must NOT be set (so patches are loaded from blob store)
+                init = tbl?.get('init')
+                if init and not tbl?.get('archived')
+                    return init
+                else
+                    return false
+            cb    : (err, init) =>
+                if @_closed # closed while waiting on condition (perfectly reasonable -- do nothing).
+                    return
+                if err
+                    @emit('init', err)
+                    return
+                init = init.toJS()
+                err  = init.error
+                if err
+                    @emit('init', err)
+                    return
+                if @_client.is_user() and @_patch_list.count() == 0 and (init.size ? 0) > 0
+                    # wait for a change -- i.e., project loading the file from
+                    # disk and making available...  Because init.size > 0, we know that
+                    # there must be SOMETHING in the patches table once initialization is done.
+                    # This is the root cause of https://github.com/sagemathinc/cocalc/issues/2382
+                    @_patches_table.once 'change', =>
+                        @emit('init')
+                else
+                    @emit('init')
 
     # Delete the synchronized string and **all** patches from the database -- basically
     # delete the complete history of editing this file.
@@ -1008,8 +1073,8 @@ class SyncDoc extends EventEmitter
     _load_from_disk_if_newer: (cb) =>
         tm     = @last_changed()
         dbg    = @_client.dbg("syncstring._load_from_disk_if_newer('#{@_path}')")
-        locals = {exists: false, is_read_only: false, size:0}
-        async.series([
+        locals = {exists: false, is_read_only: false, size: 0}
+        async.series([
             (cb) =>
                 dbg("check if path exists")
                 @_client.path_exists
@@ -1144,7 +1209,7 @@ class SyncDoc extends EventEmitter
                     user_id   : null
                     locs      : null
                     time      : null
-            @_cursors = @_client.sync_table(query)
+            @_cursors = @_client.sync_table(query, [], @_opts.cursor_interval)
             @_cursors.once 'connected', =>
                 # cursors now initialized; first initialize the local @_cursor_map,
                 # which tracks positions of cursors by account_id:
@@ -1156,14 +1221,6 @@ class SyncDoc extends EventEmitter
             # @_other_cursors is an immutable.js map from account_id's
             # to list of cursor positions of *other* users (starts undefined).
             @_cursor_map = undefined
-            @_cursor_throttled = {}  # throttled event emitters for each account_id
-            emit_cursor_throttled = (account_id) =>
-                t = @_cursor_throttled[account_id]
-                if not t?
-                    f = () =>
-                        @emit('cursor_activity', account_id)
-                    t = @_cursor_throttled[account_id] = underscore.throttle(f, @_opts.cursor_interval)
-                t()
 
             @_cursors.on 'change', (keys) =>
                 if @_closed
@@ -1171,13 +1228,13 @@ class SyncDoc extends EventEmitter
                 for k in keys
                     account_id = @_users[JSON.parse(k)?[1]]
                     @_cursor_map = @_cursor_map.set(account_id, @_cursors.get(k))
-                    emit_cursor_throttled(account_id)
+                    @emit('cursor_activity', account_id)
 
     # Set this users cursors to the given locs.  This function is
     # throttled, so calling it many times is safe, and all but
     # the last call is discarded.
     # NOTE: no-op if only one user or cursors not enabled for this doc
-    set_cursor_locs: (locs) =>
+    set_cursor_locs: (locs, side_effect) =>
         if @_closed
             return
         if @_users.length <= 2
@@ -1186,7 +1243,7 @@ class SyncDoc extends EventEmitter
             # own cursors - just other user's cursors.  This simple optimization will save tons
             # of bandwidth, since many files are never opened by more than one user.
             return
-        @_throttled_set_cursor_locs?(locs)
+        @_throttled_set_cursor_locs?(locs, side_effect)
         return
 
     # returns immutable.js map from account_id to list of cursor positions, if cursors are enabled.
@@ -1401,8 +1458,8 @@ class SyncDoc extends EventEmitter
         return not @_last_snapshot or @_load_full_history_done
 
     load_full_history: (cb) =>
-        dbg = @dbg("load_full_history")
-        dbg()
+        #dbg = @dbg("load_full_history")
+        #dbg()
         if @has_full_history()
             #dbg("nothing to do, since complete history definitely already loaded")
             cb?()
@@ -1464,6 +1521,17 @@ class SyncDoc extends EventEmitter
                     #console.log("recomputing snapshot #{snapshot_time}")
                     @snapshot(snapshot_time, true)
 
+    _handle_syncstring_save_state: (state) =>
+        # This is used to make it possible to emit a
+        # 'save-to-disk' event, whenever the state changes
+        # to indicate a save completed.
+
+        # Default to dones
+        @_syncstring_save_state ?= 'done'
+        if state == 'done' and @_syncstring_save_state != 'done'
+            @emit('save-to-disk')
+        @_syncstring_save_state = state
+
     _handle_syncstring_update: () =>
         #dbg = @dbg("_handle_syncstring_update")
         #dbg()
@@ -1471,6 +1539,9 @@ class SyncDoc extends EventEmitter
             #dbg("nothing to do")
             return
         x = @_syncstring_table.get_one()?.toJS()
+
+        @_handle_syncstring_save_state(x?.save?.state)
+
         #dbg(JSON.stringify(x))
         # TODO: potential races, but it will (or should!?) get instantly fixed when we get an update in case of a race (?)
         client_id = @_client.client_id()
@@ -1478,6 +1549,7 @@ class SyncDoc extends EventEmitter
         # only string_id and last_active, and nothing else.
         if not x? or not x.users?
             # Brand new document
+            @emit('load-time-estimate', {type:'new', time:1})
             @_last_snapshot = undefined
             @_snapshot_interval = schema.SCHEMA.syncstrings.user_query.get.fields.snapshot_interval
             # brand new syncstring
@@ -1494,6 +1566,12 @@ class SyncDoc extends EventEmitter
             @_syncstring_table.set(obj)
             @emit('metadata-change')
         else
+            # Existing document.
+            if x.archived
+                @emit('load-time-estimate', {type:'archived', time:8})
+            else
+                @emit('load-time-estimate', {type:'ready', time:2})
+
             # TODO: handle doctype change here (?)
             @_last_snapshot     = x.last_snapshot
             @_snapshot_interval = x.snapshot_interval
@@ -1596,8 +1674,8 @@ class SyncDoc extends EventEmitter
                     if @_closed
                         @_file_watcher.close()
                         return
-                    if ctime - (@_save_to_disk_start_ctime ? 0) >= 15*1000
-                        # last attempt to save was at least 15s ago, so definitely
+                    if ctime - (@_save_to_disk_start_ctime ? 0) >= 7*1000
+                        # last attempt to save was at least 7s ago, so definitely
                         # this change event was not caused by it.
                         dbg("_load_from_disk: no recent save")
                         @_load_from_disk()
@@ -1609,12 +1687,11 @@ class SyncDoc extends EventEmitter
                         return
                     if @_save_to_disk_start_ctime <= ctime and ctime <= @_save_to_disk_end_ctime
                         # changed triggered during the save
-                        dbg("_load_from_disk: change happened during @_save_to_disk , so ignoring file change")
+                        dbg("_load_from_disk: change happened during @_save_to_disk, so ignoring file change")
                         return
                     # Changed happened near to when there was a save, but not in window, so
                     # we do it..
-                    dbg("_load_from_disk: despite a recent save")
-                    @_load_from_disk()
+                    dbg("_load_from_disk: happened to close to recent save, so ignoring")
                     return
 
                 @_file_watcher.on 'delete', =>
@@ -1701,8 +1778,14 @@ class SyncDoc extends EventEmitter
             return
         return @_syncstring_table?.get_one()?.get('read_only')
 
+    # This should only be called after the syncstring is initialized (hence connected), since
+    # otherwise @_syncstring_table isn't defined yet (it gets defined during connect).
     wait_until_read_only_known: (cb) =>
+        if @_closed
+            cb("syncstring is closed")
+            return
         if not @_syncstring_table?
+            # should never happen
             cb("@_syncstring_table must be defined")
             return
         @_syncstring_table.wait
@@ -1714,12 +1797,20 @@ class SyncDoc extends EventEmitter
     # that have not yet been **saved to disk**.  See the other function
     # has_uncommitted_changes below for determining whether there are changes
     # that haven't been commited to the database yet.
+    # Returns *undefined* if initialization not even done yet.
     has_unsaved_changes: () =>
-        return @hash_of_live_version() != @hash_of_saved_version()
+        hash_saved = @hash_of_saved_version()
+        hash_live  = @hash_of_live_version()
+        if not hash_saved? or not hash_live? # don't know yet...
+            return
+        return hash_live != hash_saved
 
     # Returns hash of last version saved to disk (as far as we know).
     hash_of_saved_version: =>
-        return @_syncstring_table?.get_one()?.getIn(['save', 'hash'])
+        table = @_syncstring_table?.get_one()
+        if not table?
+            return
+        return table.getIn(['save', 'hash']) ? 0   # known, but not saved ever.
 
     # Return hash of the live version of the document, or undefined if the document
     # isn't loaded yet.  (TODO: faster version of this for syncdb, which avoids
@@ -1744,6 +1835,11 @@ class SyncDoc extends EventEmitter
             cb?('readonly')
             return
 
+        if @_deleted
+            # nothing to do -- no need to attempt to save if file is already deleted
+            cb?()
+            return
+
         @_save_to_disk()
         if not @_syncstring_table?
             cb("@_syncstring_table must be defined")
@@ -1751,6 +1847,14 @@ class SyncDoc extends EventEmitter
         if cb?
             #dbg("waiting for save.state to change from '#{@_syncstring_table.get_one().getIn(['save','state'])}' to 'done'")
             f = (cb) =>
+                if @_closed
+                    # closed during save
+                    cb()
+                    return
+                if @_deleted
+                    # if deleted, then save doesn't need to finish and is done successfully.
+                    cb()
+                    return
                 if not @_syncstring_table?
                     cb(true)
                     return
@@ -1762,7 +1866,8 @@ class SyncDoc extends EventEmitter
                         if err
                             #dbg("got err waiting: #{err}")
                         else
-                            err = @_syncstring_table.get_one().getIn(['save', 'error'])
+                            # ? because @_syncstring_table could be undefined here, if saving and closing at the same time.
+                            err = @_syncstring_table?.get_one().getIn(['save', 'error'])
                             #if err
                             #    dbg("got result but there was an error: #{err}")
                         if err
@@ -1771,7 +1876,12 @@ class SyncDoc extends EventEmitter
             misc.retry_until_success
                 f         : f
                 max_tries : 5
-                cb        : cb
+                cb        : (err) =>
+                    if @_closed
+                        # closed during save
+                        cb()
+                        return
+                    cb(err)
 
     # Save this file to disk, if it is associated with a project and has a filename.
     # A user (web browsers) sets the save state to requested.
@@ -1881,28 +1991,48 @@ class SyncDoc extends EventEmitter
         # note: other code handles that @_patches_table.get(key) may not be defined, e.g., when changed means "deleted"
         @_patch_list.add( (@_process_patch(@_patches_table.get(key)) for key in changed_keys) )
 
+        if @_updating_live
+            return
+        @_updating_live = true
+
         # Save any unsaved changes we might have made locally.
         # This is critical to do, since otherwise the remote
         # changes would overwrite the local ones.
-        @_save()
+        ensure_saved = (cb) =>
+            if @_closed
+                cb()
+                return
+            @_before_change_hook?()
+            if @_last.is_equal(@_doc)
+                cb()
+                return
+            @_save =>
+                cb(true)  # check that done happens in next call above.
 
-        # compute result of applying all patches in order to snapshot
-        new_remote = @_patch_list.value()
+        misc.retry_until_success
+            f  : ensure_saved
+            cb : =>
+                @_updating_live = false
 
-        # temporary hotfix for https://github.com/sagemathinc/cocalc/issues/1873
-        try
-            changed = not @_doc?.is_equal(new_remote)
-        catch
-            changed = true
-        # if any possibility that document changed, set to new version
-        if changed
-            @_last = @_doc = new_remote
-            @emit('change')
+                # compute result of applying all patches in order to snapshot
+                new_remote = @_patch_list.value()
+
+                # temporary hotfix for https://github.com/sagemathinc/cocalc/issues/1873
+                try
+                    changed = not @_doc?.is_equal(new_remote)
+                catch
+                    changed = true
+                # if any possibility that document changed, set to new version
+                if changed
+                    @_last = @_doc = new_remote
+                    @_after_change_hook?()
+                    @emit('change')
 
     # Return true if there are changes to this syncstring that have not been
     # committed to the database (with the commit acknowledged).  This does not
     # mean the file has been written to disk; however, it does mean that it
     # safe for the user to close their browser.
+    # Returns undefined if not yet initialized.
     has_uncommitted_changes: () =>
         return @_patches_table?.has_uncommitted_changes()
 
@@ -1940,29 +2070,35 @@ class exports.SyncString extends SyncDoc
             patch_interval    : undefined
             file_use_interval : undefined
             cursors           : false      # if true, also provide cursor tracking ability
-
+            before_change_hook: undefined
+            after_change_hook : undefined
 
         from_str = (str) ->
             new StringDocument(str)
 
         super
-            string_id         : opts.id
-            client            : opts.client
-            project_id        : opts.project_id
-            path              : opts.path
-            save_interval     : opts.save_interval
-            patch_interval    : opts.patch_interval
-            file_use_interval : opts.file_use_interval
-            cursors           : opts.cursors
-            from_str          : from_str
-            doctype           : {type:'string'}
+            string_id          : opts.id
+            client             : opts.client
+            project_id         : opts.project_id
+            path               : opts.path
+            save_interval      : opts.save_interval
+            patch_interval     : opts.patch_interval
+            file_use_interval  : opts.file_use_interval
+            cursors            : opts.cursors
+            from_str           : from_str
+            doctype            : {type:'string'}
+            before_change_hook : opts.before_change_hook
+            after_change_hook  : opts.after_change_hook
 
 ###
 Used for testing
 ###
 synctable = require('./synctable')
 class exports.TestBrowserClient1 extends synctable.TestBrowserClient1
-    constructor: (@_client_id, @_debounce_interval=0) ->
+    constructor: (_client_id, _debounce_interval=0) ->
+        super()
+        @_client_id = _client_id
+        @_debounce_interval = _debounce_interval
 
     is_user: =>
         return true

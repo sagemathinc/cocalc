@@ -58,7 +58,8 @@ exports.InputPrompt = rclass
             <Tip
                 title     = {'Code Cell'}
                 tip       = {tip}
-                placement = 'right'>
+                placement = 'right'
+            >
                 In [{n}]:
             </Tip>
         </div>

@@ -37,7 +37,7 @@ cell_to_ipynb = (id, opts) ->
     metadata = {}
     obj =
         cell_type : cell.get('cell_type') ? 'code'
-        source    : diff_friendly(cell.get('input'))
+        source    : diff_friendly(cell.get('input') ? '')
         metadata  : metadata
 
     # Handle any extra metadata (mostly user defined) that we don't handle in a special
@@ -132,7 +132,6 @@ ipynb_outputs = (output, exec_count, more_output, blob_store) ->
         for n in [0...output.size]
             output_n = output.get("#{n}")?.toJS()
             if output_n?
-
                 process_output_n(output_n, exec_count, blob_store)
                 outputs.push(output_n)
 

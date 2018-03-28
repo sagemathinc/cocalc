@@ -40,11 +40,13 @@ printing        = require('../printing')
 
 templates       = $("#webapp-editor-templates")
 
+redux_account = require('../redux_account')
 
 class exports.HTML_MD_Editor extends editor.FileEditor
 
-    constructor: (@project_id, @filename, content, @opts) ->
-        super(@project_id, @filename)
+    constructor: (project_id, filename, content, opts) ->
+        super(project_id, filename)
+        @opts = opts
         # The are two components, side by side
         #     * source editor -- a CodeMirror editor
         #     * preview/contenteditable -- rendered view
@@ -445,8 +447,8 @@ class exports.HTML_MD_Editor extends editor.FileEditor
 
     md_to_html: (cb) =>
         source = @_get()
-        m = require('../markdown').markdown_to_html(source)
-        cb(undefined, m.s)
+        html = require('../markdown').markdown_to_html(source, {katex : redux_account.USE_KATEX})
+        cb(undefined, html)
 
     rmd_to_html: (cb) =>
         split_path = misc.path_split(@filename)
@@ -535,6 +537,7 @@ class exports.HTML_MD_Editor extends editor.FileEditor
             if warnings
                 @preview_content.html("<pre><code>#{warnings}</code></pre>")
             else
+
                 # finally set html in the live DOM
                 @preview_content.html(source)
 
@@ -543,9 +546,9 @@ class exports.HTML_MD_Editor extends editor.FileEditor
                     file_path   : @file_path()
                 )
 
-                @preview_content.find("table").addClass('table')  # bootstrap table
-
                 @preview_content.mathjax()
+
+                @preview_content.find("table").addClass('table')  # bootstrap table
 
                 #@preview_content.find(".smc-html-cursor").scrollintoview()
                 #@preview_content.find(".smc-html-cursor").remove()

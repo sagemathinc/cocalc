@@ -65,13 +65,17 @@ exports.TopButtonbar = rclass ({name}) ->
         if not obj?
             return
         focus = not misc.endswith(obj.m, '...')
+        if obj.i
+            icon = <Icon name={obj.i} />
+        else
+            icon = undefined
         <Button
             key      = {key}
             onClick  = {@command(name, focus)}
             title    = {obj.m}
             disabled = {disabled}
             style    = {style} >
-            <Icon name={obj.i}/> {label}
+            {icon} {label}
         </Button>
 
     render_buttons: (names) ->
@@ -97,7 +101,11 @@ exports.TopButtonbar = rclass ({name}) ->
             stop_style = {backgroundColor:'rgb(92,184,92)', color:'white'}
         else
             stop_style = undefined
-        @render_button_group(['run cell and select next', {name:'interrupt kernel', disabled:@props.kernel_state != 'busy', style:stop_style}, 'tab key'])
+        v = [{name:'run cell and select next', label:'Run'}, \
+             {name:'interrupt kernel', style:stop_style}, \
+             'confirm restart kernel',
+             {name:'tab key', label:'Tab'}]
+        @render_button_group(v)
 
     cell_select_type: (event) ->
         @props.actions.set_selected_cell_type(event.target.value)
@@ -174,7 +182,7 @@ exports.TopButtonbar = rclass ({name}) ->
                 <Icon name='history'/> <span className = 'hidden-sm'>TimeTravel</span>
             </Button>
             {@render_close_and_halt()}
-            {# @render_switch_button()}
+            {### @render_switch_button() ###}
         </ButtonGroup>
 
     render: ->

@@ -26,7 +26,7 @@ misc = require('smc-util/misc')
 
 # React Libraries
 {React, rclass, rtypes} = require('../smc-react')
-{Alert, Button, ButtonToolbar, ButtonGroup, Input, Row, Col, Panel, Table} = require('react-bootstrap')
+{Alert, Button, ButtonToolbar, ButtonGroup, Input, FormGroup, FormControl, Row, Col, Panel, Table} = require('react-bootstrap')
 
 # CoCalc and course components
 util = require('./util')
@@ -81,23 +81,25 @@ exports.HandoutsPanel = rclass ({name}) ->
             expanded_handouts : rtypes.immutable.Set
 
     propTypes :
-        project_id   : rtypes.string.isRequired
-        all_handouts : rtypes.immutable.Map.isRequired # handout_id -> handout
-        students     : rtypes.immutable.Map.isRequired # student_id -> student
-        user_map     : rtypes.object.isRequired
-        actions      : rtypes.object.isRequired
-        store_object : rtypes.object
+        actions         : rtypes.object.isRequired
+        store_object    : rtypes.object
         project_actions : rtypes.object.isRequired
+        project_id      : rtypes.string.isRequired
+        all_handouts    : rtypes.immutable.Map.isRequired # handout_id -> handout
+        students        : rtypes.immutable.Map.isRequired # student_id -> student
+        user_map        : rtypes.object.isRequired
 
     getInitialState: ->
         show_deleted : false
         search          : ''      # Search value for filtering handouts
 
     # Update on different students, handouts, or filter parameters
+    # TODO: this is BS -- do this right.  Get rid of store_object above and
+    # put the actual data it uses; make everything immutable!
     shouldComponentUpdate: (nextProps, nextState) ->
         if nextProps.all_handouts != @props.all_handouts or nextProps.students != @props.students or @props.expanded_handouts != nextProps.expanded_handouts
             return true
-        if nextState.search != @state.search or nextState.show_deleted != @state.show_deleted
+        if not misc.is_equal(nextState, @state)
             return true
         return false
 
@@ -176,7 +178,7 @@ exports.HandoutsPanel.Header = rclass
         n : rtypes.number
 
     render: ->
-        <Tip delayShow=1300
+        <Tip delayShow={1300}
              title="Handouts"
              tip="This tab lists all of the handouts associated with your course.">
             <span>
@@ -216,16 +218,16 @@ Handout = rclass
 
     render_handout_notes: ->
         <Row key='note' style={styles.note}>
-            <Col xs=2>
+            <Col xs={2}>
                 <Tip title="Notes about this handout" tip="Record notes about this handout here. These notes are only visible to you, not to your students.  Put any instructions to students about handouts in a file in the directory that contains the handout.">
                     Private Handout Notes<br /><span style={color:"#666"}></span>
                 </Tip>
             </Col>
-            <Col xs=10>
+            <Col xs={10}>
                 <MarkdownInput
                     persist_id    = {@props.handout.get('path') + @props.handout.get('assignment_id') + "note"}
                     attach_to     = {@props.name}
-                    rows          = 6
+                    rows          = {6}
                     placeholder   = 'Private notes about this handout (not visible to students)'
                     default_value = {@props.handout.get('note')}
                     on_save       = {(value)=>@props.actions.set_handout_note(@props.handout, value)}
@@ -240,28 +242,64 @@ Handout = rclass
                 @render_copy_confirm(step, status)
 
     render_copy_confirm: (step, status) ->
-        <span key="copy_confirm_#{step}">
+        <span key={"copy_confirm_#{step}"}>
             {@render_copy_confirm_to_all(step, status) if status[step]==0}
             {@render_copy_confirm_to_all_or_new(step, status) if status[step]!=0}
         </span>
 
     render_copy_cancel: (step) ->
         cancel = =>
-            @setState("copy_confirm_#{step}":false, "copy_confirm_all_#{step}":false, copy_confirm:false)
+            @setState(
+                "copy_confirm_#{step}"         : false
+                "copy_confirm_all_#{step}"     : false
+                copy_confirm                   : false
+                copy_handout_confirm_overwrite : false
+            )
         <Button key='cancel' onClick={cancel}>Cancel</Button>
 
-    copy_handout: (step, new_only) ->
+    render_copy_handout_confirm_overwrite: (step) ->
+        return if not @state.copy_handout_confirm_overwrite
+        do_it = =>
+            @copy_handout(step, false)
+            @setState(
+                copy_handout_confirm_overwrite         : false
+                copy_handout_confirm_overwrite_text    : ''
+            )
+        <div style={marginTop:'15px'}>
+            Type in "OVERWRITE" if you are certain to replace the handout files of all students.
+            <FormGroup>
+                <FormControl
+                    autoFocus
+                    type        = 'text'
+                    ref         = 'copy_handout_confirm_overwrite_field'
+                    onChange    = {(e)=>@setState(copy_handout_confirm_overwrite_text : e.target.value)}
+                    style       = {marginTop : '1ex'}
+                />
+            </FormGroup>
+            <ButtonToolbar style={textAlign: 'center', marginTop: '15px'}>
+                <Button
+                    disabled = {@state.copy_handout_confirm_overwrite_text != 'OVERWRITE'}
+                    bsStyle  = 'danger'
+                    onClick  = {do_it}
+                >
+                    <Icon name='exclamation-triangle' /> Confirm replacing files
+                </Button>
+                {@render_copy_cancel(step)}
+            </ButtonToolbar>
+        </div>
+
+    copy_handout: (step, new_only, overwrite) ->
         # handout to all (non-deleted) students
         switch step
             when 'handout'
-                @props.actions.copy_handout_to_all_students(@props.handout, new_only)
+                @props.actions.copy_handout_to_all_students(@props.handout, new_only, overwrite)
             else
                 console.log("BUG -- unknown step: #{step}")
         @setState("copy_confirm_#{step}":false, "copy_confirm_all_#{step}":false, copy_confirm:false)
 
     render_copy_confirm_to_all: (step, status) ->
         n = status["not_#{step}"]
-        <Alert bsStyle='warning' key="#{step}_confirm_to_all", style={marginTop:'15px'}>
+        <Alert bsStyle='warning' key={"#{step}_confirm_to_all"} style={marginTop:'15px'}>
             <div style={marginBottom:'15px'}>
                 {misc.capitalize(step_verb(step))} this handout {step_direction(step)} the {n} student{if n>1 then "s" else ""}{step_ready(step, n)}?
             </div>
@@ -274,7 +312,11 @@ Handout = rclass
     copy_confirm_all_caution: (step) ->
         switch step
             when 'handout'
-                return "This will recopy all of the files to them.  CAUTION: if you update a file that a student has also worked on, their work will get copied to a backup file ending in a tilde, or possibly only be available in snapshots."
+                return """
+                       This will recopy all of the files to them.
+                       CAUTION: if you update a file that a student has also worked on, their work will get copied to a backup file ending in a tilde, or possibly only be available in snapshots.
+                       Select "Replace student files!" in case you do not want to create any backups and also delete all other files in the assignment directory of their projects.
+                       """
 
     render_copy_confirm_overwrite_all: (step, status) ->
         <div key="copy_confirm_overwrite_all" style={marginTop:'15px'}>
@@ -282,15 +324,21 @@ Handout = rclass
                 {@copy_confirm_all_caution(step)}
             </div>
             <ButtonToolbar>
-                <Button key='all' bsStyle='danger' onClick={=>@copy_handout(step, false)}>Yes, do it</Button>
+                <Button key='all' bsStyle='warning'
+                    onClick={=>@copy_handout(step, false)}
+                >Yes, do it</Button>
+                <Button key='all-overwrite' bsStyle='danger'
+                    onClick={=>@setState(copy_handout_confirm_overwrite:true)}
+                >Replace student files!</Button>
                 {@render_copy_cancel(step)}
             </ButtonToolbar>
+            {@render_copy_handout_confirm_overwrite(step)}
         </div>
 
     render_copy_confirm_to_all_or_new: (step, status) ->
         n = status["not_#{step}"]
         m = n + status[step]
-        <Alert bsStyle='warning' key="#{step}_confirm_to_all_or_new" style={marginTop:'15px'}>
+        <Alert bsStyle='warning' key={"#{step}_confirm_to_all_or_new"} style={marginTop:'15px'}>
             <div style={marginBottom:'15px'}>
                 {misc.capitalize(step_verb(step))} this handout {step_direction(step)}...
             </div>
@@ -305,8 +353,16 @@ Handout = rclass
             {@render_copy_confirm_overwrite_all(step, status) if @state["copy_confirm_all_#{step}"]}
         </Alert>
 
-    render_handout_button: (handout_count) ->
-        bsStyle = if handout_count == 0 then "primary" else "warning"
+    render_handout_button: (status) ->
+        handout_count = status.handout
+        not_handout   = status.not_handout
+        if handout_count == 0
+            bsStyle = "primary"
+        else
+            if not_handout == 0
+                bsStyle = 'success'
+            else
+                bsStyle = "warning"
         <Button key='handout'
                 bsStyle  = {bsStyle}
                 onClick  = {=>@setState(copy_confirm_handout:true, copy_confirm:true)}
@@ -355,7 +411,7 @@ Handout = rclass
 
     render_more: ->
         <Row key='more'>
-            <Col sm=12>
+            <Col sm={12}>
                 <Panel header={@render_more_header()}>
                     <StudentListForHandout handout={@props.handout} students={@props.students}
                         user_map={@props.user_map} store_object={@props.store_object} actions={@props.actions}/>
@@ -372,9 +428,9 @@ Handout = rclass
     render: ->
         status = @props.store_object.get_handout_status(@props.handout)
         <Row style={if @props.is_expanded then styles.selected_entry else styles.entry}>
-            <Col xs=12>
+            <Col xs={12}>
                 <Row key='summary' style={backgroundColor:@props.backgroundColor}>
-                    <Col md=2 style={paddingRight:'0px'}>
+                    <Col md={2} style={paddingRight:'0px'}>
                         <h5>
                             <a href='' onClick={(e)=>e.preventDefault();@actions(@props.name).toggle_item_expansion('handout', @props.handout.get('handout_id'))}>
                                 <Icon style={marginRight:'10px', float:'left'}
@@ -386,9 +442,9 @@ Handout = rclass
                             </a>
                         </h5>
                     </Col>
-                    <Col md=6>
+                    <Col md={6}>
                         <Row style={marginLeft:'8px'}>
-                            {@render_handout_button(status.handout)}
+                            {@render_handout_button(status)}
                             <span style={color:'#666', marginLeft:'5px'}>
                                 ({status.handout}/{status.handout + status.not_handout} received)
                             </span>
@@ -397,7 +453,7 @@ Handout = rclass
                             {@render_copy_all(status)}
                         </Row>
                     </Col>
-                    <Col md=4>
+                    <Col md={4}>
                         <Row>
                             <span className='pull-right'>
                                 {@render_delete_button()}
@@ -485,12 +541,12 @@ StudentHandoutInfoHeader = rclass
 
     render: ->
         <Row style={borderBottom:'2px solid #aaa'} >
-            <Col md=2 key='title'>
+            <Col md={2} key='title'>
                 <Tip title={@props.title} tip={if @props.title=="Handout" then "This column gives the directory name of the handout." else "This column gives the name of the student."}>
                     <b>{@props.title}</b>
                 </Tip>
             </Col>
-            <Col md=10 key="rest">
+            <Col md={10} key="rest">
                 {@render_headers()}
             </Col>
         </Row>
@@ -602,10 +658,10 @@ StudentHandoutInfo = rclass
     render: ->
         width = 12
         <Row style={borderTop:'1px solid #aaa', paddingTop:'5px', paddingBottom: '5px'}>
-            <Col md=2 key="title">
+            <Col md={2} key="title">
                 {@props.title}
             </Col>
-            <Col md=10 key="rest">
+            <Col md={10} key="rest">
                 <Row>
                     <Col md={width} key='last_handout'>
                         {@render_last('Distribute', @props.info.status, @props.info, true,

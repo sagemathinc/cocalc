@@ -23,7 +23,9 @@ remember_me = webapp_client.remember_me_key()
 # Define account actions
 class AccountActions extends Actions
     set_user_type: (user_type) =>
-        @setState(user_type: user_type)
+        @setState
+            user_type    : user_type
+            is_logged_in : user_type == 'signed_in'
 
     sign_in: (email, password) =>
         @setState(signing_in: true)
@@ -67,7 +69,8 @@ class AccountActions extends Actions
             cb              : (err, mesg) =>
                 @setState(signing_up: false)
                 if err?
-                    @setState('sign_up_error': JSON.stringify(err))
+                    # generic error.
+                    @setState('sign_up_error': {'generic': JSON.stringify(err)})
                     return
                 switch mesg.event
                     when "account_creation_failed"
@@ -176,7 +179,7 @@ class AccountActions extends Actions
                     $(window).off('beforeunload', redux.getActions('page').check_unload)
                     window.location.hash = ''
                     {APP_BASE_URL} = require('./misc_page')
-                    window.location = APP_BASE_URL + '/?signed_out' # redirect to base page
+                    window.location = APP_BASE_URL + '/app?signed_out' # redirect to sign in page
 
     push_state: (url) =>
         {set_url} = require('./history')
@@ -224,9 +227,6 @@ class AccountStore extends Store
     get_account_id: =>
         return @get('account_id')
 
-    is_logged_in: =>
-        return @get_user_type() == 'signed_in'
-
     is_admin: =>
         return @get('groups').includes('admin')
 
@@ -254,7 +254,7 @@ class AccountStore extends Store
     get_confirm_close: =>
         return @getIn(['other_settings', 'confirm_close'])
 
-    # Total ugprades this user is paying for (sum of all upgrades from memberships)
+    # Total ugprades this user is paying for (sum of all upgrades from subscriptions)
     get_total_upgrades: =>
         require('upgrades').get_total_upgrades(@getIn(['stripe_customer','subscriptions', 'data'])?.toJS())
 
@@ -265,6 +265,11 @@ class AccountStore extends Store
 
     get_page_size: =>
         return @getIn(['other_settings', 'page_size']) ? 50  # at least have a valid value if loading...
+
+    ###
+    TODO: This is deleted, but if you do setState(show_global_info: true), then it gets shown.
+    We need to delete this function and instead do like in the _init of actions, i.e.,
+    set derived state based on changes to account store in AccountActions.  -- william
 
     is_global_info_visible: =>
         # TODO when there is more time, rewrite this to be tied to announcements of a specific type (and use their timestamps)
@@ -281,6 +286,7 @@ class AccountStore extends Store
         # start_dt = new Date('2017-08-25T19:00:00.000Z')
         # return start_dt < webapp_client.server_time() and sgi2_dt < start_dt
         return false
+    ###
 
 # Register account store
 # Use the database defaults for all account info until this gets set after they login
@@ -304,8 +310,10 @@ redux.createTable('account', AccountTable)
 # Login status
 webapp_client.on 'signed_in', (mesg) ->
     if mesg?.api_key
-        window.location.href = "https://authenticated?api_key=#{mesg.api_key}"
-        return
+        # wait for sign in to finish and cookie to get set, then redirect
+        f = ->
+            window.location.href = "https://authenticated?api_key=#{mesg.api_key}"
+        setTimeout(f, 2000)
     redux.getActions('account').set_user_type('signed_in')
 
 webapp_client.on 'signed_out', ->
@@ -348,4 +356,9 @@ account_store.on 'change', ->
         last_set_standby_timeout_m = x
         webapp_client.set_standby_timeout_m(x)
 
+# Using KATEX?
+exports.USE_KATEX = true
+account_store.on 'change', ->
+    # NOTE: we call this on any change to account settings, which is maybe too extreme.
+    exports.USE_KATEX = !!account_store.getIn(['other_settings', 'katex'])
 

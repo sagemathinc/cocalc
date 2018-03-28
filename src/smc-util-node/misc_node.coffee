@@ -358,8 +358,12 @@ exports.sha1 = (data) ->
     return sha1sum.digest('hex')
 
 # Compute a uuid v4 from the Sha-1 hash of data.
-exports.uuidsha1 = (data) ->
-    s = exports.sha1(data)
+# Optionally, if sha1 is given, just uses that, rather than recomputing it.
+exports.uuidsha1 = (data, sha1) ->
+    if sha1
+        s = sha1
+    else
+        s = exports.sha1(data)
     i = -1
     return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) ->
         i += 1

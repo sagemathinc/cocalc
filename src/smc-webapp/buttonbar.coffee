@@ -349,26 +349,6 @@ exports.commands =
                 space   : false
                 newline : true
                 trim    : false
-        format_heading_1 :  # FUTURE -- define via for loop below
-            strip : ['format_heading_2','format_heading_3','format_heading_4']
-            wrap :
-                left  : "\n# "
-                right : ""
-        format_heading_2 :
-            strip : ['format_heading_1','format_heading_3','format_heading_4']
-            wrap :
-                left  : "\n## "
-                right : ""
-        format_heading_3 :
-            strip : ['format_heading_1','format_heading_2','format_heading_4']
-            wrap :
-                left  : "\n### "
-                right : ""
-        format_heading_4 :
-            strip : ['format_heading_1','format_heading_2','format_heading_3']
-            wrap :
-                left  : "\n#### "
-                right : ""
         format_code :
             wrap :
                 left    : '    '
@@ -385,9 +365,17 @@ exports.commands =
                 space   : false
                 newline : true
                 trim    : false
+        quote :
+            wrap :
+                left    : '> '
+                right   : ''
+                multi   : true
+                space   : false
+                newline : true
+                trim    : false
         horizontalRule:
             wrap:
-                left  : "\n------------------\n"
+                left  : "\n---\n"
                 right : ""
         table :
             wrap:
@@ -845,7 +833,7 @@ exports.commands =
 
                     print(MyClass(5))
                     """
-        class_inheritence :
+        class_inheritance :
             insert: """
                     class A(object):
                         def __repr__(self):
@@ -861,7 +849,7 @@ exports.commands =
 
                     class C(A, B):
                         \"\"\"
-                        This is a class that inerits from classes A and B.
+                        This is a class that inherits from classes A and B.
                         \"\"\"
                         def __repr__(self):
                             return "instance of C"
@@ -1405,9 +1393,23 @@ exports.commands =
                     """
 ###
 
-#
-# programmatically creating the menu entries and buttons
-#
+###
+Programmatically adding to above data structure
+###
+
+# 6 markdown heading levels:
+for i in [1..6]
+    strip = ("format_heading_#{j}" for j in [1..6] when j != i)
+    left  = '\n' + ("#" for j in [1..i]).join('') + ' '
+    exports.commands.md["format_heading_#{i}"] =
+        strip : strip
+        wrap  :
+            left  : left
+            right : ""
+
+###
+Programmatically creating the menu entries and buttons
+###
 
 #
 # helper functions
@@ -1673,7 +1675,7 @@ initialize_sage_python_r_toolbar = () ->
             ["Lambda", "#lambda", "A Python lambda function"]
             ["Classes"],
             ["Class", "#simple_class", "Define a simple class"],
-            ["Class with inheritence", "#class_inheritence", "A class that inherits from other classes"]
+            ["Class with inheritance", "#class_inheritance", "A class that inherits from other classes"]
         ]]
 
     add_menu(pybar, py_func)

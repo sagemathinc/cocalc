@@ -34,6 +34,8 @@ md5 = require('md5')
 
 misc       = require('smc-util/misc')
 
+smc_version = require('smc-util/smc-version')
+
 {webapp_client} = require('./webapp_client')
 
 {PROJECT_UPGRADES} = require('smc-util/schema')
@@ -78,7 +80,7 @@ EmailVerification = rclass
     propTypes :
         account_id             : rtypes.string
         email_address          : rtypes.string
-        email_address_verified : rtypes.object
+        email_address_verified : rtypes.immutable.Map
 
     getInitialState: ->
         disabled_button : false
@@ -101,8 +103,7 @@ EmailVerification = rclass
         if not @props.email_address?
             <span>Unkown</span>
         else
-            email_address_verified = @props.email_address_verified ? {}
-            if email_address_verified[@props.email_address]?
+            if @props.email_address_verified?.get(@props.email_address)
                 <span style={color: 'green'}>Verified</span>
             else
                 [
@@ -196,7 +197,7 @@ EmailAddressSetting = rclass
                     value       = {@state.email_address}
                     placeholder = 'user@example.com'
                     onChange    = {=>@setState(email_address : ReactDOM.findDOMNode(@refs.email_address).value)}
-                    maxLength   = 254
+                    maxLength   = {254}
                 />
             </FormGroup>
             Current password
@@ -278,9 +279,6 @@ NewsletterSetting = rclass
 PasswordSetting = rclass
     displayName : 'Account-PasswordSetting'
 
-    propTypes :
-        email_address : rtypes.string
-
     getInitialState: ->
         state        : 'view'   # view --> edit --> saving --> view
         old_password : ''
@@ -309,7 +307,6 @@ PasswordSetting = rclass
         @setState
             state : 'saving'
         webapp_client.change_password
-            email_address : @props.email_address
             old_password  : @state.old_password
             new_password  : @state.new_password
             cb            : (err, resp) =>
@@ -410,8 +407,8 @@ AccountSettings = rclass
         first_name             : rtypes.string
         last_name              : rtypes.string
         email_address          : rtypes.string
-        email_address_verified : rtypes.object
-        passports              : rtypes.object
+        email_address_verified : rtypes.immutable.Map
+        passports              : rtypes.immutable.Map
         show_sign_out          : rtypes.bool
         sign_out_error         : rtypes.string
         everywhere             : rtypes.bool
@@ -459,7 +456,7 @@ AccountSettings = rclass
     remove_strategy_click: ->
         strategy = @state.remove_strategy_button
         @setState(remove_strategy_button:undefined, add_strategy_link:undefined)
-        for k, _ of @props.passports
+        for k, _ of @props.passports?.toJS() ? {}
             if misc.startswith(k, strategy)
                 id = k.split('-')[1]
                 break
@@ -477,7 +474,7 @@ AccountSettings = rclass
             return
         strategy = @state.remove_strategy_button
         name = misc.capitalize(strategy)
-        if misc.len(@props.passports) <= 1 and not @props.email_address
+        if @props.passports?.size <= 1 and not @props.email_address
             <Well>
                 You must set an email address above or add another login method before
                 you can disable login to your <SiteName/> account using your {name} account.
@@ -525,7 +522,7 @@ AccountSettings = rclass
                 <Button bsStyle="primary" onClick={=>@actions('account').sign_out(@props.everywhere)}>
                     <Icon name="external-link" /> Sign out
                 </Button>
-                <Button onClick={=>@actions('account').setState(show_sign_out : false)}} >
+                <Button onClick={=>@actions('account').setState(show_sign_out : false)}>
                     Cancel
                 </Button>
             </ButtonToolbar>
@@ -547,7 +544,7 @@ AccountSettings = rclass
     render_sign_in_strategies: ->
         if not STRATEGIES? or STRATEGIES.length <= 1
             return
-        strategies = (x.slice(0,x.indexOf('-')) for x in misc.keys(@props.passports ? {}))
+        strategies = (x.slice(0,x.indexOf('-')) for x in misc.keys(@props.passports?.toJS() ? {}))
         <div>
             <hr key='hr0' />
             <h5 style={color:"#666"}>Linked accounts (only used for sign in)</h5>
@@ -566,7 +563,7 @@ AccountSettings = rclass
                 ref       = 'first_name'
                 onChange  = {(e)=>@handle_change(e, 'first_name')}
                 onBlur    = {(e)=>@save_change(e, 'first_name')}
-                maxLength = 254
+                maxLength = {254}
                 />
             <TextSetting
                 label    = 'Last name'
@@ -574,13 +571,13 @@ AccountSettings = rclass
                 ref      = 'last_name'
                 onChange = {(e)=>@handle_change(e, 'last_name')}
                 onBlur   = {(e)=>@save_change(e, 'last_name')}
-                maxLength = 254
+                maxLength = {254}
                 />
             <EmailAddressSetting
                 email_address = {@props.email_address}
                 redux         = {@props.redux}
                 ref           = 'email_address'
-                maxLength     = 254
+                maxLength     = {254}
                 />
             <EmailVerification
                 account_id             = {@props.account_id}
@@ -594,19 +591,18 @@ AccountSettings = rclass
                 other_settings = {@props.other_settings}
                 />
             <PasswordSetting
-                email_address = {@props.email_address}
                 ref   = 'password'
-                maxLength = 64
+                maxLength = {64}
                 />
             <APIKeySetting />
             <Row style={marginTop: '15px', borderTop: '1px solid #ccc', paddingTop: '15px'}>
-                <Col xs=12>
+                <Col xs={12}>
                     {@render_sign_out_buttons()}
                 </Col>
             </Row>
             {@render_sign_out_confirm() if @props.show_sign_out}
             <Row>
-                <Col xs=12>
+                <Col xs={12}>
                     <DeleteAccount
                         style={marginTop:'1ex'}
                         initial_click = {=>@setState(show_delete_confirmation:true)}
@@ -639,7 +635,7 @@ DeleteAccount = rclass
                     className = 'pull-right'
                     bsStyle   = 'danger'
                     style     = {@props.style}
-                    onClick   = @props.initial_click
+                    onClick   = {@props.initial_click}
                 >
                 <Icon name='trash' /> Delete Account...
                 </Button>
@@ -700,7 +696,7 @@ DeleteAccountConfirmation = rclass
                 <Button
                     style   = {paddingRight:'8px'}
                     bsStyle = 'primary'
-                    onClick = {@props.cancel_click}}
+                    onClick = {@props.cancel_click}
                 >
                     Cancel
                 </Button>
@@ -735,7 +731,7 @@ ProfileSettings = rclass
     reduxProps:
         account :
             account_id : rtypes.string
-            profile    : rtypes.immutable
+            profile    : rtypes.immutable.Map
 
     getInitialState: ->
         show_instructions : false
@@ -776,7 +772,7 @@ ProfileSettings = rclass
         if not @props.email_address
             return @render_gravatar_needs_email()
         <Row>
-            <Col md=6 key='checkbox'>
+            <Col md={6} key='checkbox'>
                 <Checkbox
                     ref      = "checkbox"
                     checked  = {!!@props.profile.get('image')}
@@ -784,7 +780,7 @@ ProfileSettings = rclass
                     Use gravatar
                 </Checkbox>
             </Col>
-            <Col md=6 key='set'>
+            <Col md={6} key='set'>
                 {@render_gravatar_button() if not @state.show_instructions}
             </Col>
         </Row>
@@ -793,7 +789,7 @@ ProfileSettings = rclass
         <h2>
             <Avatar
                 account_id = {@props.account_id}
-                size       = 40
+                size       = {40}
             />
             <Space />
             <Space />
@@ -818,8 +814,11 @@ TerminalSettings = rclass
     displayName : 'Account-TerminalSettings'
 
     propTypes :
-        terminal : rtypes.object
+        terminal : rtypes.immutable.Map
         redux    : rtypes.object
+
+    shouldComponentUpdate: (props) ->
+        return @props.terminal != props.terminal
 
     handleChange: (obj) ->
         @props.redux.getTable('account').set(terminal: obj)
@@ -827,25 +826,25 @@ TerminalSettings = rclass
     render: ->
         if not @props.terminal?
             return <Loading />
-        <Panel header={<h2> <Icon name='terminal' /> Terminal <span className='lighten'>(settings applied to newly opened terminals)</span></h2>}>
+        <Panel header={<h2> <Icon name='terminal' /> Terminal settings <span className='lighten'>(applied to newly opened terminals)</span></h2>}>
             <LabeledRow label='Terminal font size'>
                 <NumberInput
                     on_change = {(font_size)=>@handleChange(font_size:font_size)}
-                    min       = 3
-                    max       = 80
-                    number    = {@props.terminal.font_size}
+                    min       = {3}
+                    max       = {80}
+                    number    = {@props.terminal.get('font_size')}
                     unit      = "px" />
             </LabeledRow>
             <LabeledRow label='Terminal font family'>
                 <SelectorInput
-                    selected  = {@props.terminal.font}
+                    selected  = {@props.terminal.get('font')}
                     options   = {TERMINAL_FONT_FAMILIES}
                     on_change = {(font)=>@handleChange(font:font)}
                 />
             </LabeledRow>
             <LabeledRow label='Terminal color scheme'>
                 <SelectorInput
-                    selected  = {@props.terminal.color_scheme}
+                    selected  = {@props.terminal.get('color_scheme')}
                     options   = {TERMINAL_COLOR_SCHEMES}
                     on_change = {(color_scheme)=>@handleChange(color_scheme : color_scheme)}
                 />
@@ -873,8 +872,11 @@ EditorSettingsCheckboxes = rclass
     displayName : 'Account-EditorSettingsCheckboxes'
 
     propTypes :
-        editor_settings : rtypes.object.isRequired
+        editor_settings : rtypes.immutable.Map.isRequired
         on_change       : rtypes.func.isRequired
+
+    shouldComponentUpdate: (props) ->
+        return @props.editor_settings != props.editor_settings
 
     label_checkbox: (name, desc) ->
         <span>
@@ -883,7 +885,7 @@ EditorSettingsCheckboxes = rclass
         </span>
 
     render_checkbox: (name, desc) ->
-        <Checkbox checked  = {@props.editor_settings[name]}
+        <Checkbox checked  = {@props.editor_settings.get(name)}
                key      = {name}
                ref      = {name}
                onChange = {(e)=>@props.on_change(name, e.target.checked)}>
@@ -906,8 +908,8 @@ EditorSettingsAutosaveInterval = rclass
         <LabeledRow label='Autosave interval'>
             <NumberInput
                 on_change = {(n)=>@props.on_change('autosave',n)}
-                min       = 15
-                max       = 900
+                min       = {15}
+                max       = {900}
                 number    = {@props.autosave}
                 unit      = "seconds" />
         </LabeledRow>
@@ -923,8 +925,8 @@ EditorSettingsFontSize = rclass
         <LabeledRow label='Font Size'>
             <NumberInput
                 on_change = {(n)=>@props.on_change('font_size',n)}
-                min       = 6
-                max       = 32
+                min       = {6}
+                max       = {32}
                 number    = {@props.font_size}
                 unit      = "px" />
         </LabeledRow>
@@ -1002,10 +1004,13 @@ EditorSettings = rclass
     displayName : 'Account-EditorSettings'
 
     propTypes :
-        redux    : rtypes.object
-        autosave : rtypes.number
-        font_size: rtypes.number
-        editor_settings : rtypes.object
+        redux           : rtypes.object
+        autosave        : rtypes.number
+        font_size       : rtypes.number
+        editor_settings : rtypes.immutable.Map
+
+    shouldComponentUpdate: (props) ->
+        return misc.is_different(@props, props, ['autosave', 'font_size', 'editor_settings'])
 
     on_change: (name, val) ->
         if name == 'autosave'
@@ -1018,15 +1023,15 @@ EditorSettings = rclass
     render: ->
         if not @props.editor_settings?
             return <Loading />
-        <Panel header={<h2> <Icon name='edit' /> Editor (settings apply to newly (re-)opened files)</h2>}>
+        <Panel header={<h2> <Icon name='edit' /> Editor settings</h2>}>
             <EditorSettingsFontSize
                 on_change={@on_change} font_size={@props.font_size} />
             <EditorSettingsAutosaveInterval
                 on_change={@on_change} autosave={@props.autosave} />
             <EditorSettingsColorScheme
-                on_change={(value)=>@on_change('theme',value)} theme={@props.editor_settings.theme} />
+                on_change={(value)=>@on_change('theme',value)} theme={@props.editor_settings.get('theme')} />
             <EditorSettingsKeyboardBindings
-                on_change={(value)=>@on_change('bindings',value)} bindings={@props.editor_settings.bindings} />
+                on_change={(value)=>@on_change('bindings',value)} bindings={@props.editor_settings.get('bindings')} />
             <EditorSettingsCheckboxes
                 on_change={@on_change} editor_settings={@props.editor_settings} />
         </Panel>
@@ -1091,19 +1096,16 @@ OtherSettings = rclass
     displayName : 'Account-OtherSettings'
 
     propTypes :
-        other_settings : rtypes.object
-        redux          : rtypes.object
-
-    reduxProps :
-        account :
-            is_global_info_visible : rtypes.func
+        redux              : rtypes.object
+        other_settings     : rtypes.immutable.Map
+        is_stripe_customer : rtypes.bool
 
     on_change: (name, value) ->
         @props.redux.getTable('account').set(other_settings:{"#{name}":value})
 
     render_first_steps: ->
         <Checkbox
-            checked  = {@props.other_settings.first_steps}
+            checked  = {!!@props.other_settings.get('first_steps')}
             ref      = 'first_steps'
             onChange = {(e)=>@on_change('first_steps', e.target.checked)}>
             Offer to setup the "First Steps" guide (if available).
@@ -1111,16 +1113,24 @@ OtherSettings = rclass
 
     render_time_ago_absolute: ->
         <Checkbox
-            checked  = {@props.other_settings.time_ago_absolute}
+            checked  = {!!@props.other_settings.get('time_ago_absolute')}
             ref      = 'time_ago_absolute'
             onChange = {(e)=>@on_change('time_ago_absolute', e.target.checked)}>
-            Display timestamps as absolute points in time – otherwise they are relative to the current time. (This toggle does not yet work yet for some views, including TimeTravel and task lists.)
+            Display timestamps as absolute points in time – otherwise they are relative to the current time.
+        </Checkbox>
+
+    render_katex: ->
+        <Checkbox
+            checked  = {!!@props.other_settings.get('katex')}
+            ref      = 'katex'
+            onChange = {(e)=>@on_change('katex', e.target.checked)}>
+            KaTeX: render using <a href="https://khan.github.io/KaTeX/" target="_blank">KaTeX</a> when possible, instead of <a href="https://www.mathjax.org/" target="_blank">MathJax</a>
         </Checkbox>
 
     render_confirm: ->
         if not require('./feature').IS_MOBILE
             <Checkbox
-                checked  = {@props.other_settings.confirm_close}
+                checked  = {!!@props.other_settings.get('confirm_close')}
                 ref      = 'confirm_close'
                 onChange = {(e)=>@on_change('confirm_close', e.target.checked)}>
                 Confirm: always ask for confirmation before closing the browser window
@@ -1128,9 +1138,9 @@ OtherSettings = rclass
 
     render_page_size_warning: ->
         BIG_PAGE_SIZE = 500
-        if @props.other_settings.page_size > BIG_PAGE_SIZE
+        if @props.other_settings.get('page_size') > BIG_PAGE_SIZE
             <Alert bsStyle='warning'>
-                Your file listing page size is set to {@props.other_settings.page_size}. Sizes above {BIG_PAGE_SIZE} may cause the file listing to render slowly for directories with lots of files.
+                Your file listing page size is set to {@props.other_settings.get('page_size')}. Sizes above {BIG_PAGE_SIZE} may cause the file listing to render slowly for directories with lots of files.
             </Alert>
 
     render_standby_timeout: ->
@@ -1139,15 +1149,15 @@ OtherSettings = rclass
         <LabeledRow label='Standby timeout'>
             <NumberInput
                 on_change = {(n)=>@on_change('standby_timeout_m',n)}
-                min       = 1
-                max       = 180
+                min       = {1}
+                max       = {180}
                 unit      = "minutes"
-                number    = {@props.other_settings.standby_timeout_m} />
+                number    = {@props.other_settings.get('standby_timeout_m')} />
         </LabeledRow>
 
     render_mask_files: ->
         <Checkbox
-            checked  = {@props.other_settings.mask_files}
+            checked  = {!!@props.other_settings.get('mask_files')}
             ref      = 'mask_files'
             onChange = {(e)=>@on_change('mask_files', e.target.checked)}
         >
@@ -1157,7 +1167,7 @@ OtherSettings = rclass
     render_default_file_sort: ->
         <LabeledRow label='Default file sort'>
             <SelectorInput
-                selected  = {@props.other_settings.default_file_sort}
+                selected  = {@props.other_settings.get('default_file_sort')}
                 options   = {time:'Sort by time', name:'Sort by name'}
                 on_change = {(value)=>@on_change('default_file_sort', value)}
             />
@@ -1167,10 +1177,24 @@ OtherSettings = rclass
         <LabeledRow label='Number of files per page'>
             <NumberInput
                     on_change = {(n)=>@on_change('page_size',n)}
-                    min       = 1
-                    max       = 1000000
-                    number    = {@props.other_settings.page_size} />
+                    min       = {1}
+                    max       = {1000000}
+                    number    = {@props.other_settings.get('page_size')} />
         </LabeledRow>
+
+    render_no_free_warnings: ->
+        if not @props.is_stripe_customer
+            extra = <span>(only available to customers)</span>
+        else
+            extra = <span>(thanks for being a customer)</span>
+        <Checkbox
+            disabled = {not @props.is_stripe_customer}
+            checked  = {!!@props.other_settings.get('no_free_warnings')}
+            ref      = 'no_free_warnings'
+            onChange = {(e)=>@on_change('no_free_warnings', e.target.checked)}
+        >
+            Hide free warnings: do <b><i>not</i></b> show a warning banner when using a free trial project {extra}
+        </Checkbox>
 
     render: ->
         if not @props.other_settings
@@ -1179,7 +1203,9 @@ OtherSettings = rclass
             {@render_confirm()}
             {@render_first_steps()}
             {@render_time_ago_absolute()}
+            {@render_katex()}
             {@render_mask_files()}
+            {@render_no_free_warnings()}
             {@render_default_file_sort()}
             {@render_page_size()}
             {@render_standby_timeout()}
@@ -1226,7 +1252,7 @@ AccountCreationToken = rclass
                                 ref      = 'input'
                                 type     = 'text'
                                 value    = {@state.token}
-                                onChange = {(e)=>@setState(token:e.target.value)}}
+                                onChange = {(e)=>@setState(token:e.target.value)}
                             />
                         </FormGroup>
                     </form>
@@ -1297,10 +1323,10 @@ StripeKeys = rclass
             when 'view', 'saved'
                 <div>
                     {"stripe keys saved!" if @state.state == 'saved'}
-                    <Button bsStyle='warning' onClick={@edit}>Change stripe keys...</Button>
+                    <Button bsStyle='warning' onClick={@edit}>Change Stripe keys...</Button>
                 </div>
             when 'save'
-                <div>Saving stripe keys...</div>
+                <div>Saving Stripe keys...</div>
             when 'edit'
                 <Well>
                     <LabeledRow label='Secret key'>
@@ -1316,7 +1342,7 @@ StripeKeys = rclass
                         </FormGroup>
                     </LabeledRow>
                     <ButtonToolbar>
-                        <Button bsStyle='success' onClick={@save}>Save stripe keys...</Button>
+                        <Button bsStyle='success' onClick={@save}>Save Stripe keys...</Button>
                         <Button onClick={@cancel}>Cancel</Button>
                     </ButtonToolbar>
                 </Well>
@@ -1337,12 +1363,6 @@ SiteSettings = rclass
     render_error: ->
         if @state.error
             <ErrorDisplay error={@state.error} onClose={=>@setState(error:'')} />
-
-    render: ->
-        <div>
-            {@render_main()}
-            {@render_error()}
-        </div>
 
     load: ->
         @setState(state:'load')
@@ -1385,15 +1405,26 @@ SiteSettings = rclass
     render_save_button: ->
         <Button onClick={@save}>Save</Button>
 
+    render_version_hint: (value) ->
+        if new Date(parseInt(value)*1000) > new Date()
+            error = <div style={background:'red', color:'white', margin:'15px', padding:'15px'}>INVALID version - it is in the future!!</div>
+        else
+            error = undefined
+        <div style={marginTop:'15px', color:'#666'}>
+            Your browser version: <pre style={background: 'white', fontSize: '10pt'}>{smc_version.version}</pre>
+            {error}
+        </div>
+
     render_row: (name, value) ->
         if not value?
             value = site_settings_conf[name].default
         conf = site_settings_conf[name]
         label = <Tip key={name} title={conf.name} tip={conf.desc}>{conf.name}</Tip>
-        <LabeledRow key={name} label={label}>
+        <LabeledRow label={label} key={name}>
             <FormGroup>
                 <FormControl ref={name} type='text' value={value}
                     onChange={=>e = misc.copy(@state.edited); e[name]=ReactDOM.findDOMNode(@refs[name]).value; @setState(edited:e)} />
+                {@render_version_hint(value) if name == 'version_recommended_browser'}
             </FormGroup>
         </LabeledRow>
 
@@ -1415,6 +1446,12 @@ SiteSettings = rclass
             when 'load'
                 <div>Loading site configuration...</div>
 
+    render: ->
+        <div>
+            {@render_main()}
+            {@render_error()}
+        </div>
+
 SystemMessage = rclass
     displayName : 'Account-SystemMessage'
 
@@ -1433,7 +1470,7 @@ SystemMessage = rclass
         <ButtonToolbar>
             <Button onClick={=>@setState(state:'edit')}>Compose...</Button>
             {<Button onClick={@mark_all_done}>Mark {open} {misc.plural(open, 'notification')} done</Button> if open > 0}
-            {<Button disabled=true>No outstanding notifications</Button> if open == 0}
+            {<Button disabled={true}>No outstanding notifications</Button> if open == 0}
         </ButtonToolbar>
 
 
@@ -1442,11 +1479,11 @@ SystemMessage = rclass
             <FormGroup>
                 <FormControl
                     autoFocus
-                    value={@state.mesg}
-                    ref='input'
-                    rows=3
-                    componentClass='textarea'
-                    onChange={=>@setState(mesg:ReactDOM.findDOMNode(@refs.input).value)}
+                    value          = {@state.mesg}
+                    ref            = 'input'
+                    rows           = {3}
+                    componentClass = 'textarea'
+                    onChange       = {=>@setState(mesg:ReactDOM.findDOMNode(@refs.input).value)}
                 />
             </FormGroup>
             <ButtonToolbar>
@@ -1491,34 +1528,34 @@ AddStripeUser = rclass
             # nothing to do -- shouldn't happen since button should be disabled.
             return false
 
-        @status_mesg("Adding #{email}...")
+        @status_mesg("Adding/updating #{email}...")
         @setState(email: '')
         webapp_client.stripe_admin_create_customer
-            email_address : email
+            email_address : email.trim()
             cb            : (err, mesg) =>
                 if err
                     @status_mesg("Error: #{misc.to_json(err)}")
                 else
-                    @status_mesg("Successfully added #{email}")
+                    @status_mesg("Successfully added/updated #{email}")
 
         return false
 
     render_form: ->
-        <form onSubmit={(e)=>e.preventDefault();@add_stripe_user()}>
+        <form onSubmit={(e)=>e.preventDefault();if misc.is_valid_email_address(@state.email.trim()) then @add_stripe_user()}>
             <Row>
-                <Col md=6>
+                <Col md={6}>
                     <FormGroup>
                         <FormControl
-                            ref   = 'input'
-                            type  = 'text'
-                            value = {@state.email}
+                            ref         = 'input'
+                            type        = 'text'
+                            value       = {@state.email}
                             placeholder = "Email address"
                             onChange    = {=>@setState(email:ReactDOM.findDOMNode(@refs.input).value)}
                         />
                     </FormGroup>
                 </Col>
-                <Col md=6>
-                    <Button bsStyle='warning' disabled={not misc.is_valid_email_address(@state.email)} onClick={@add_stripe_user}>Add User to Stripe</Button>
+                <Col md={6}>
+                    <Button bsStyle='warning' disabled={not misc.is_valid_email_address(@state.email.trim())} onClick={@add_stripe_user}>Add/Update Stripe Info</Button>
                 </Col>
             </Row>
         </form>
@@ -1539,13 +1576,13 @@ AddStripeUser = rclass
 
 AdminSettings = rclass
     propTypes :
-        groups : rtypes.array
+        groups : rtypes.immutable.List
 
     render: ->
-        if not @props.groups? or 'admin' not in @props.groups
+        if not @props.groups?.contains('admin')
             return <span />
 
-        add_stripe_label = <Tip title="Add Stripe User" tip="Make it so the SMC user with the given email address has a corresponding stripe identity, even if they have never entered a credit card.  You'll need this if you want to directly create a plan for them in Stripe.">Add Stripe Users</Tip>
+        add_stripe_label = <Tip title="Add/Update Stripe User" tip="Make it so the user with the given email address has a corresponding stripe identity, even if they have never entered a credit card.  You'll need this if you want to directly create a plan for them in Stripe.">Add/Update Stripe Users</Tip>
 
         <Panel header={<h2> <Icon name='users' /> Administrative server settings</h2>}>
             <LabeledRow label='Account Creation Token'>
@@ -1570,40 +1607,41 @@ exports.AccountSettingsTop = rclass
     displayName : 'AccountSettingsTop'
 
     propTypes :
-        redux           : rtypes.object
-        account_id      : rtypes.string
-        first_name      : rtypes.string
-        last_name       : rtypes.string
-        email_address   : rtypes.string
-        email_address_verified : rtypes.object
-        passports       : rtypes.object
-        show_sign_out   : rtypes.bool
-        sign_out_error  : rtypes.string
-        everywhere      : rtypes.bool
-        terminal        : rtypes.object
-        evaluate_key    : rtypes.string
-        autosave        : rtypes.number
-        font_size       : rtypes.number
-        editor_settings : rtypes.object
-        other_settings  : rtypes.object
-        groups          : rtypes.array
+        redux                  : rtypes.object
+        account_id             : rtypes.string
+        first_name             : rtypes.string
+        last_name              : rtypes.string
+        email_address          : rtypes.string
+        email_address_verified : rtypes.immutable.Map
+        passports              : rtypes.immutable.Map
+        show_sign_out          : rtypes.bool
+        sign_out_error         : rtypes.string
+        everywhere             : rtypes.bool
+        terminal               : rtypes.immutable.Map
+        evaluate_key           : rtypes.string
+        autosave               : rtypes.number
+        font_size              : rtypes.number
+        editor_settings        : rtypes.immutable.Map
+        other_settings         : rtypes.immutable.Map
+        groups                 : rtypes.immutable.List
+        stripe_customer        : rtypes.immutable.Map
 
     render: ->
         <div style={marginTop:'1em'}>
             <Row>
-                <Col xs=12 md=6>
+                <Col xs={12} md={6}>
                     <AccountSettings
-                        account_id     = {@props.account_id}
-                        first_name     = {@props.first_name}
-                        last_name      = {@props.last_name}
-                        email_address  = {@props.email_address}
+                        account_id             = {@props.account_id}
+                        first_name             = {@props.first_name}
+                        last_name              = {@props.last_name}
+                        email_address          = {@props.email_address}
                         email_address_verified = {@props.email_address_verified}
-                        passports      = {@props.passports}
-                        show_sign_out  = {@props.show_sign_out}
-                        sign_out_error = {@props.sign_out_error}
-                        everywhere     = {@props.everywhere}
-                        other_settings = {@props.other_settings}
-                        redux          = {@props.redux} />
+                        passports              = {@props.passports}
+                        show_sign_out          = {@props.show_sign_out}
+                        sign_out_error         = {@props.sign_out_error}
+                        everywhere             = {@props.everywhere}
+                        other_settings         = {@props.other_settings}
+                        redux                  = {@props.redux} />
                     <TerminalSettings
                         terminal = {@props.terminal}
                         redux    = {@props.redux} />
@@ -1611,15 +1649,16 @@ exports.AccountSettingsTop = rclass
                         evaluate_key = {@props.evaluate_key}
                         redux        = {@props.redux} />
                 </Col>
-                <Col xs=12 md=6>
+                <Col xs={12} md={6}>
                     <EditorSettings
                         autosave        = {@props.autosave}
                         font_size       = {@props.font_size}
                         editor_settings = {@props.editor_settings}
                         redux           = {@props.redux} />
                     <OtherSettings
-                        other_settings  = {@props.other_settings}
-                        redux           = {@props.redux} />
+                        other_settings     = {@props.other_settings}
+                        is_stripe_customer = {@props.stripe_customer?}
+                        redux              = {@props.redux} />
                     <ProfileSettings
                         email_address = {@props.email_address}
                         first_name    = {@props.first_name}

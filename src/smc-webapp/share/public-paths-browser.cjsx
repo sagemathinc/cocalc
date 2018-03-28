@@ -3,13 +3,11 @@ Share server top-level landing page.
 ###
 
 {rclass, React, ReactDOM, rtypes} = require('../smc-react')
-
+misc = require('smc-util/misc')
 {Space, TimeAgoElement} = require('../r_misc')
 
 INDEX_STYLE =
-    margin     : '15px 30px'
-    overflow   : 'auto'
-    height     : '100%'
+    margin     : '0px 30px 15px 30px'
     background : 'white'
 
 exports.PublicPathsBrowser = rclass
@@ -55,7 +53,7 @@ exports.PublicPathsBrowser = rclass
         </span>
 
     render_headings: ->
-        <div key='headings' style={fontWeight:'bold', padding: '5px 10px', fontSize: '12pt', color: '#666'}>
+        <div key='headings' style={fontWeight:'bold', padding: '5px', margin: '0px 30px', fontSize: '12pt', color: '#666', borderBottom:'1px solid lightgrey'}>
             <span key='path'  style={display:'inline-block', width:'30%'}>
                 Path
             </span>
@@ -68,9 +66,11 @@ exports.PublicPathsBrowser = rclass
         </div>
 
     render_public_path_link: (info, bgcolor) ->
-        id = info.get('id')
+        id         = info.get('id')
+        info_path  = misc.encode_path(info.get('path'))
+
         <div key={id} style={padding: '5px 10px', background:bgcolor}>
-            <a href={"#{id}/#{info.get('path')}?viewer=share"} style={display:'inline-block', width:'100%'}>
+            <a href={"#{id}/#{info_path}?viewer=share"} style={display:'inline-block', width:'100%'}>
                 {@render_path(info)}
                 {@render_description(info)}
                 {@render_last_edited(info)}
@@ -85,7 +85,10 @@ exports.PublicPathsBrowser = rclass
             if not id?
                 continue
             info = @props.public_paths.get(id)
-            if not info?
+            if not info? or info.get('auth')  # TODO: as in router.cjsx, we skip all public_paths with auth info for now, until auth is implemented... (?)
+                continue
+            if info.get('unlisted')
+                # Do NOT list unlisted public paths.
                 continue
             if j % 2 == 0
                 bgcolor = 'rgb(238, 238, 238)'
@@ -95,7 +98,7 @@ exports.PublicPathsBrowser = rclass
             @render_public_path_link(info, bgcolor)
 
     render: ->
-        <div style={display:'flex', flexDirection:'column'}>
+        <div>
             <div key='top' style={paddingLeft: '30px', background: '#dfdfdf'}>
                 {@render_overview()}
                 <Space />
@@ -103,9 +106,8 @@ exports.PublicPathsBrowser = rclass
                 <Space />
                 {@render_next_page()}
             </div>
-
+            {@render_headings()}
             <div key='index' style={INDEX_STYLE}>
-                {@render_headings()}
                 {@render_index()}
             </div>
         </div>
