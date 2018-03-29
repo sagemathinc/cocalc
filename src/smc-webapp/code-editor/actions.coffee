@@ -41,14 +41,9 @@ class exports.Actions extends Actions
 
     # Init setting of content exactly once based on
     # reading file from disk via public api, or setting
-    # from syncstring as a responde to explicit user action.
+    # from syncstring as a response to explicit user action.
     _init_content: =>
         if not @is_public
-            # Get via the syncstring.
-            content = @_syncstring.to_str()
-
-            if content != @store.get('content')
-                @setState(content: content)
             return
         # Get by loading from backend as a public file
         @setState(is_loaded : false)

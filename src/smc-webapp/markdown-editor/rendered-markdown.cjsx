@@ -33,7 +33,7 @@ exports.RenderedMarkdown = rclass
         font_size    : rtypes.number.isRequired
         read_only    : rtypes.bool
         value        : rtypes.string
-        content      : rtypes.string         # used instead of file is public
+        content      : rtypes.string         # used instead of file if available (e.g., only used for public)
         editor_state : rtypes.immutable.Map  # only used for initial render
 
     shouldComponentUpdate: (next) ->
@@ -69,7 +69,7 @@ exports.RenderedMarkdown = rclass
             @props.actions.toggle_markdown_checkbox(@props.id, parseInt(data.index), data.checkbox == 'true')
 
     render: ->
-        value = @props.value ? @props.content
+        value = @props.content ? @props.value
         if not value?
             return <Loading />
         value = apply_without_math(value, process_checkboxes)
