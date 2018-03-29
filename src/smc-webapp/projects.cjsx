@@ -216,9 +216,10 @@ class ProjectsActions extends Actions
     # J3: Maybe should be in Page actions? I don't see the upside.
     open_project: (opts) =>
         opts = defaults opts,
-            project_id : required  # string  id of the project to open
-            target     : undefined # string  The file path to open
-            switch_to  : true      # bool    Whether or not to foreground it
+            project_id   : required  # string  id of the project to open
+            target       : undefined # string  The file path to open
+            switch_to    : true      # bool    Whether or not to foreground it
+            ignore_kiosk : false     # bool    Ignore ?fullscreen=kiosk
         require('./project_store') # registers the project store with redux...
         project_store = redux.getProjectStore(opts.project_id)
         project_actions = redux.getProjectActions(opts.project_id)
@@ -229,7 +230,7 @@ class ProjectsActions extends Actions
         redux.getActions('page').set_active_tab(opts.project_id) if opts.switch_to
         @set_project_open(opts.project_id)
         if opts.target?
-            redux.getProjectActions(opts.project_id)?.load_target(opts.target, opts.switch_to)
+            redux.getProjectActions(opts.project_id)?.load_target(opts.target, opts.switch_to, opts.ignore_kiosk)
         redux.getActions('page').save_session()
         # init the library after project started.
         # TODO write a generalized store function that does this in a more robust way
@@ -252,7 +253,7 @@ class ProjectsActions extends Actions
         redux.getActions('page').save_session()
 
     # should not be in projects...?
-    load_target: (target, switch_to) =>
+    load_target: (target, switch_to, ignore_kiosk=false) =>
         #if DEBUG then console.log("projects actions/load_target: #{target}")
         if not target or target.length == 0
             redux.getActions('page').set_active_tab('projects')
@@ -262,9 +263,10 @@ class ProjectsActions extends Actions
             t = segments.slice(1).join('/')
             project_id = segments[0]
             @open_project
-                project_id: project_id
-                target    : t
-                switch_to : switch_to
+                project_id   : project_id
+                target       : t
+                switch_to    : switch_to
+                ignore_kiosk : ignore_kiosk
 
     # Put the given project in the foreground
     foreground_project: (project_id) =>

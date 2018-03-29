@@ -1521,7 +1521,7 @@ class SyncDoc extends EventEmitter
                     #console.log("recomputing snapshot #{snapshot_time}")
                     @snapshot(snapshot_time, true)
 
-    _handle_syncstring_save_state: (state) =>
+    _handle_syncstring_save_state: (state, time) =>
         # This is used to make it possible to emit a
         # 'save-to-disk' event, whenever the state changes
         # to indicate a save completed.
@@ -1529,7 +1529,7 @@ class SyncDoc extends EventEmitter
         # Default to dones
         @_syncstring_save_state ?= 'done'
         if state == 'done' and @_syncstring_save_state != 'done'
-            @emit('save-to-disk')
+            @emit('save-to-disk', time)
         @_syncstring_save_state = state
 
     _handle_syncstring_update: () =>
@@ -1540,7 +1540,7 @@ class SyncDoc extends EventEmitter
             return
         x = @_syncstring_table.get_one()?.toJS()
 
-        @_handle_syncstring_save_state(x?.save?.state)
+        @_handle_syncstring_save_state(x?.save?.state, x?.save?.time)
 
         #dbg(JSON.stringify(x))
         # TODO: potential races, but it will (or should!?) get instantly fixed when we get an update in case of a race (?)
@@ -1764,6 +1764,9 @@ class SyncDoc extends EventEmitter
     _set_save: (x) =>
         if @_closed # nothing to do
             return
+        # set timestamp of when the save happened; this can be useful for coordinating
+        # running code, etc.... and is just generally useful.
+        x.time = new Date() - 0
         @_syncstring_table?.set?(@_syncstring_table.get_one()?.set('save', immutable.fromJS(x)))
         return
 
@@ -1798,7 +1801,7 @@ class SyncDoc extends EventEmitter
     # has_uncommitted_changes below for determining whether there are changes
     # that haven't been commited to the database yet.
     # Returns *undefined* if initialization not even done yet.
-    has_unsaved_changes: () =>
+    has_unsaved_changes: =>
         hash_saved = @hash_of_saved_version()
         hash_live  = @hash_of_live_version()
         if not hash_saved? or not hash_live? # don't know yet...
