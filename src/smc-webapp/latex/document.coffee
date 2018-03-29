@@ -52,6 +52,7 @@ class exports.PDFLatexDocument
             timeout     : 30
             err_on_exit : false
             bash        : false
+            allow_post  : true
             cb          : required
         #console.log(opts.path)
         #console.log(opts.command + ' ' + opts.args.join(' '))
@@ -280,6 +281,7 @@ class exports.PDFLatexDocument
             command     : latex_cmd
             bash        : true
             timeout     : 45
+            allow_post  : false
             err_on_exit : false
             cb          : (err, output) =>
                 #if DEBUG then console.log("_run_latex done: output=", output, ", err=", err)
@@ -341,10 +343,11 @@ class exports.PDFLatexDocument
         if not target?
             target = @base_filename + '.sagetex.sage'
         @_exec
-            command : 'sage'
-            args    : [target]
-            timeout : 45
-            cb      : (err, output) =>
+            command     : 'sage'
+            args        : [target]
+            timeout     : 45
+            allow_post  : false
+            cb          : (err, output) =>
                 if err
                     cb?(err)
                 else
@@ -369,10 +372,11 @@ class exports.PDFLatexDocument
     _run_knitr: (cb) =>
         @_need_to_run ?= {}
         @_exec
-            command  : "echo 'require(knitr); opts_knit$set(concordance = TRUE); knit(\"#{@filename_rnw}\")' | R --no-save"
-            bash     : true
-            timeout  : 60
-            cb       : (err, output) =>
+            command     : "echo 'require(knitr); opts_knit$set(concordance = TRUE); knit(\"#{@filename_rnw}\")' | R --no-save"
+            bash        : true
+            timeout     : 60
+            allow_post  : false
+            cb          : (err, output) =>
                 if err
                     cb?(err)
                 else
@@ -568,11 +572,12 @@ patchSynctex(\"#{@filename_tex}\");' | R --no-save"
 
                 #console.log('gs ' + args.join(" "))
                 @_exec
-                    command : 'gs'
-                    args    : args
+                    command     : 'gs'
+                    args        : args
                     err_on_exit : true
-                    timeout : 120
-                    cb      : (err, output) ->
+                    timeout     : 120
+                    allow_post  : false
+                    cb          : (err, output) ->
                         cb(err)
 
             # delete the copied PDF file, we no longer need it (might use up a lot of disk/memory space)

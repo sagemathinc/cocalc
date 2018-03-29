@@ -43,6 +43,7 @@ class exports.Actions extends Actions
         if not @is_public
             # Get via the syncstring.
             content = @_syncstring.to_str()
+
             if content != @store.get('content')
                 @setState(content: content)
             return
@@ -67,8 +68,8 @@ class exports.Actions extends Actions
     # spelling makes sense...
     _init_spellcheck: =>
         @update_misspelled_words()
-        @_syncstring.on 'save-to-disk', =>
-            @update_misspelled_words()
+        @_syncstring.on 'save-to-disk',(time) =>
+            @update_misspelled_words(time)
 
     reload: =>
         if not @store.get('is_loaded')
@@ -596,10 +597,11 @@ class exports.Actions extends Actions
     # Runs spellchecker on the backend last saved file, then
     # sets the mispelled_words part of the state to the immutable
     # Set of those words.  They can then be rendered by any editor/view.
-    update_misspelled_words: =>
+    update_misspelled_words: (time) =>
         spell_check.misspelled_words
             project_id : @project_id
             path       : @path
+            time       : time
             cb         : (err, words) =>
                 if err
                     @setState(error: err)

@@ -382,15 +382,26 @@ class ProjectActions extends Actions
             foreground_project : true
             chat               : undefined
             chat_width         : undefined
+            ignore_kiosk       : false
             new_browser_window : false     # open in entirely new browser window with a new random session.
             payload            : undefined # optional, some extra information
+
+        #if DEBUG then console.log("ProjectStore::open_file: #{misc.to_json(opts)}")
+
+        # intercept any requests if in kiosk mode
+        if (not opts.ignore_kiosk) and (redux.getStore('page').get('fullscreen') == 'kiosk')
+            alert_message
+                type    : "error",
+                message : "CoCalc is in Kiosk mode, so you may not open new files.  Please try visiting #{document.location.origin} directly."
+                timeout : 15
+            return
 
         if opts.new_browser_window
             # options other than path don't do anything yet.
             url  = (window.app_base_url ? '') + @_url_in_project('files/' + opts.path)
             url += '?session=' + misc.uuid().slice(0,8)
             url += '&fullscreen=default'
-            window.open(url, '_blank', 'height=640,width=800')
+            misc_page.open_popup_window(url, {width: 800, height: 640})
             return
 
         @_ensure_project_is_open (err) =>
@@ -426,7 +437,7 @@ class ProjectActions extends Actions
                                         foreground_project : opts.foreground_project
                                         chat               : opts.chat
                                 else
-                                    require('./alerts').alert_message(type:"error",message:"Error converting Sage Notebook sws file -- #{err}")
+                                    alert_message(type:"error",message:"Error converting Sage Notebook sws file -- #{err}")
                             return
 
                         if not is_public and ext == "docx"   # Microsoft Word Document
@@ -439,7 +450,7 @@ class ProjectActions extends Actions
                                         foreground_project : opts.foreground_project
                                         chat               : opts.chat
                                 else
-                                    require('./alerts').alert_message(type:"error",message:"Error converting Microsoft docx file -- #{err}")
+                                    alert_message(type:"error",message:"Error converting Microsoft docx file -- #{err}")
                             return
 
                         if not is_public
@@ -1665,14 +1676,14 @@ class ProjectActions extends Actions
     #  log
     #  settings
     #  search
-    load_target: (target, foreground=true) =>
+    load_target: (target, foreground=true, ignore_kiosk=false) =>
         segments = target.split('/')
         full_path = segments.slice(1).join('/')
         parent_path = segments.slice(1, segments.length-1).join('/')
         last = segments.slice(-1).join()
+        #if DEBUG then console.log("ProjectStore::load_target args:", segments, full_path, parent_path, last, foreground, ignore_kiosk)
         switch segments[0]
             when 'files'
-                #if DEBUG then console.log("ProjectStore::load_target", segments, full_path, parent_path ,last)
                 if target[target.length-1] == '/' or full_path == ''
                     #if DEBUG then console.log("ProjectStore::load_target → open_directory", parent_path)
                     @open_directory(parent_path)
@@ -1711,11 +1722,12 @@ class ProjectActions extends Actions
                         if item?.get('isdir')
                             @open_directory(full_path)
                         else
-                            #if DEBUG then console.log("ProjectStore::load_target → open_file", full_path, foreground)
+                            #if DEBUG then console.log("ProjectStore::load_target → open_file", full_path, foreground, ignore_kiosk)
                             @open_file
-                                path       : full_path
-                                foreground : foreground
-                                foreground_project : foreground
+                                path                 : full_path
+                                foreground           : foreground
+                                foreground_project   : foreground
+                                ignore_kiosk         : ignore_kiosk
 
             when 'new'  # ignore foreground for these and below, since would be nonsense
                 @set_current_path(full_path)

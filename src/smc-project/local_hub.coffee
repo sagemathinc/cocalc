@@ -16,6 +16,15 @@ doing a lot of IO-based things is what Node.JS is good at.
 # TODO wat.
 # require('coffee-cache').setCacheDir("#{process.env.HOME}/.coffee")
 
+path    = require('path')
+async   = require('async')
+fs      = require('fs')
+os      = require('os')
+net     = require('net')
+uuid    = require('uuid')
+winston = require('winston')
+request = require('request')
+program = require('commander')          # command line arguments -- https://github.com/visionmedia/commander.js/
 
 BUG_COUNTER = 0
 
@@ -30,16 +39,6 @@ process.addListener "uncaughtException", (err) ->
 
 exports.get_bugs_total = ->
     return BUG_COUNTER
-
-path    = require('path')
-async   = require('async')
-fs      = require('fs')
-os      = require('os')
-net     = require('net')
-uuid    = require('uuid')
-winston = require('winston')
-request = require('request')
-program = require('commander')          # command line arguments -- https://github.com/visionmedia/commander.js/
 
 # Set the log level
 winston.remove(winston.transports.Console)

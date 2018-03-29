@@ -943,7 +943,7 @@ ProjectSettingsBody = rclass ({name}) ->
         <div>
             {if commercial and total_project_quotas? and not total_project_quotas.member_host then <NonMemberProjectWarning upgrade_type='member_host' upgrades_you_can_use={upgrades_you_can_use} upgrades_you_applied_to_all_projects={upgrades_you_applied_to_all_projects} course_info={course_info} account_id={webapp_client.account_id} email_address={@props.email_address} />}
             {if commercial and total_project_quotas? and not total_project_quotas.network then <NoNetworkProjectWarning upgrade_type='network' upgrades_you_can_use={upgrades_you_can_use} upgrades_you_applied_to_all_projects={upgrades_you_applied_to_all_projects} /> }
-            <h1 style={marginTop:"0px"}><Icon name='wrench' /> Settings and configuration</h1>
+            <h1 style={marginTop:"0px"}><Icon name='wrench' /> Project Settings</h1>
             <Row>
                 <Col sm={6}>
                     <TitleDescriptionPanel
