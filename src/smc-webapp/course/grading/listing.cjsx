@@ -413,12 +413,13 @@ exports.Listing = rclass
                 <Button
                     onClick   = {=>@toggle_discussion(false)}
                     active    = {not @props.discussion_show}
+                    style     = {whiteSpace: 'nowrap'}
                 >
                     <Tip
                         title     = {'Show collected files of student assignment.'}
                         placement = {'bottom'}
                     >
-                        <Icon name={'copy'} />
+                        <Icon name={'copy'} /> {'Files' if @props.discussion_show}
                     </Tip>
                 </Button>
                 <Button
