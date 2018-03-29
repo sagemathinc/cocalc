@@ -1535,6 +1535,8 @@ class exports.Connection extends EventEmitter
     # Bad situation error loging
     #################################################
     log_error: (error) =>
+        if not misc.is_string(error)
+            error = misc.to_json(error)
         @call(message : message.log_client_error(error:error))
 
     webapp_error: (opts) =>

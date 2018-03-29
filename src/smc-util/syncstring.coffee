@@ -1878,13 +1878,15 @@ class SyncDoc extends EventEmitter
                         cb(err)
             misc.retry_until_success
                 f         : f
-                max_tries : 5
-                cb        : (err) =>
+                max_tries : 4
+                cb        : (err, last_err) =>
                     if @_closed
                         # closed during save
                         cb()
                         return
-                    cb(err)
+                    if last_err
+                        @_client.log_error?({string_id:@_string_id, path:@_path, project_id:@_project_id, error:"Error saving file -- #{last_err}"})
+                    cb(last_err)
 
     # Save this file to disk, if it is associated with a project and has a filename.
     # A user (web browsers) sets the save state to requested.

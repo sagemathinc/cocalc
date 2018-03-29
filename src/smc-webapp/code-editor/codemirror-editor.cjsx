@@ -184,7 +184,7 @@ exports.CodemirrorEditor = rclass
         # see http://stackoverflow.com/questions/2655925/apply-important-css-style-using-jquery
 
 
-        save_editor_state = throttle(@save_editor_state, 250)
+        save_editor_state = throttle(@save_editor_state, 100)
         @cm.on('scroll', save_editor_state)
 
         if @props.editor_state?

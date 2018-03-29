@@ -4,6 +4,9 @@ Code Editor Actions
 
 WIKI_HELP_URL   = "https://github.com/sagemathinc/cocalc/wiki/editor"  # TODO -- write this
 
+SAVE_WORKAROUND = 'If this problem persists, you might need to close and open this file, or restart this project in Project Settings.'
+SAVE_RETRIES    = 5   # how many times to retry to save (and get no unsaved changes), until giving up
+
 immutable       = require('immutable')
 underscore      = require('underscore')
 
@@ -168,7 +171,7 @@ class exports.Actions extends Actions
         delete localStorage[@name]
         @setState(local_view_state : @_load_local_view_state())
 
-    set_local_view_state: (obj, update_visible=true) =>
+    set_local_view_state: (obj) =>
         if @_state == 'closed'
             return
         # Set local state related to what we see/search for/etc.
@@ -316,33 +319,17 @@ class exports.Actions extends Actions
     disable_key_handler: =>
         @redux.getActions('page').erase_active_key_handler(@_key_handler)
 
-    # Set has_unsaved_changes to the given value; also, if
-    # time is given, do not allow @set_save_status to change it
-    # for that many ms.
-    set_has_unsaved_changes: (value, time) =>
-        if @_lock_unsaved_changes
-            return
-        @setState(has_unsaved_changes: !!value)
-        if time?
-            @_lock_unsaved_changes = true
-            f = =>
-                @_lock_unsaved_changes = false
-                @set_save_status()
-            setTimeout(f, time)
-
     _init_has_unsaved_changes: =>  # basically copies from tasks/actions.coffee -- opportunity to refactor
         do_set = =>
-            if @_lock_unsaved_changes
-                return
             @setState
                 has_unsaved_changes     : @_syncstring?.has_unsaved_changes()
                 has_uncommitted_changes : @_syncstring?.has_uncommitted_changes()
         f = =>
             do_set()
             setTimeout(do_set, 3000)
-        @set_save_status = underscore.debounce(f, 500, true)
-        @_syncstring.on('metadata-change', @set_save_status)
-        @_syncstring.on('connected',       @set_save_status)
+        @update_save_status = f  # underscore.debounce(f, 500, true)
+        @_syncstring.on('metadata-change', @update_save_status)
+        @_syncstring.on('connected',       @update_save_status)
 
     _syncstring_metadata: =>
         if not @_syncstring?
@@ -370,7 +357,7 @@ class exports.Actions extends Actions
     _syncstring_change: (changes) =>
         if not @store.get('is_loaded')
             @setState(is_loaded: true)
-        @set_save_status?()
+        @update_save_status?()
 
     set_cursor_locs:  (locs=[], side_effect) =>
         if locs.length == 0
@@ -388,17 +375,34 @@ class exports.Actions extends Actions
                 y = loc.get('y')
                 if y?
                     omit_lines[y] = true
-        cm.delete_trailing_whitespace(omit_lines:omit_lines)
+        cm.delete_trailing_whitespace(omit_lines: omit_lines)
 
-    _do_save: (cb) =>
-        @_syncstring?.save_to_disk (err) =>
-            @set_save_status()
-            cb?(err)
+    _do_save: =>
+        f = (cb) =>  # err if NO error reported, but has unsaved changes.
+            @setState(is_saving: true)
+            @_syncstring?.save_to_disk (err) =>
+                @setState(is_saving: false)
+                @update_save_status()
+                if err
+                    @update_save_status()
+                    @set_error("Error saving file to disk: '#{err}'.  #{SAVE_WORKAROUND}")
+                    cb()
+                else
+                    cb(@store.get('has_unsaved_changes'))
+
+        misc.retry_until_success
+            f         : f
+            max_tries : SAVE_RETRIES
+            cb        : (err) =>
+                if err
+                    console.log(err)
+                    @set_error("Unable to save file to disk.  Despite repeated attempts, the version of the file saved to disk does not equal the version in your browser.  #{SAVE_WORKAROUND}")
+                    webapp_client.log_error({string_id:@_syncstring?._string_id, path:@path, project_id:@project_id, error:"Error saving file -- has_unsaved_changes"})
+
 
     save: (explicit) =>
         if @is_public
             return
-        @set_has_unsaved_changes(false, 3000)
         # TODO: what about markdown, where do not want this...
         # and what about multiple syncstrings...
         # TODO: Maybe just move this to some explicit menu of actions, which also includes
@@ -406,9 +410,7 @@ class exports.Actions extends Actions
         # Doing this automatically is fraught with error, since cursors aren't precise...
         if explicit and @redux.getStore('account')?.getIn(['editor_settings', 'strip_trailing_whitespace'])
             @delete_trailing_whitespace()
-        @_do_save =>
-            # do it again...
-            setTimeout(@_do_save, 500)
+        @_do_save()
         if explicit
             @_active_cm()?.focus()
 
@@ -478,7 +480,7 @@ class exports.Actions extends Actions
 
     syncstring_save: =>
         @_syncstring?.save()
-        @set_save_status()
+        @update_save_status()
 
     set_syncstring_to_codemirror: =>
         cm = @_get_cm()
@@ -498,7 +500,7 @@ class exports.Actions extends Actions
         if not cm? or not @_syncstring?
             return
         cm.setValueNoJump(@_syncstring.to_str())
-        @set_save_status()
+        @update_save_status()
 
     exit_undo_mode: =>
         @_syncstring?.exit_undo_mode()
