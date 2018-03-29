@@ -1801,7 +1801,7 @@ class SyncDoc extends EventEmitter
     # has_uncommitted_changes below for determining whether there are changes
     # that haven't been commited to the database yet.
     # Returns *undefined* if initialization not even done yet.
-    has_unsaved_changes: () =>
+    has_unsaved_changes: =>
         hash_saved = @hash_of_saved_version()
         hash_live  = @hash_of_live_version()
         if not hash_saved? or not hash_live? # don't know yet...

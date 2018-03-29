@@ -26,7 +26,7 @@ numbers or timestamp), then f only gets evaluated *once*.   E.g., if you do
     g(x:1, aggregate:0, cb:c)
     ...
     g(x:0, aggregate:1, cb:d)
-    g(x:0, aggregate:0, cb:e)   # no reason to do this; it's best if aggregate is a nondecreasing sequence.  NOT required though.
+    g(x:0, aggregate:0, cb:e)   # no reason to do this; it's best if aggregate is a nondecreasing sequence (NOT required though).
 
 Then:
 
@@ -36,17 +36,30 @@ Then:
    - f(x:0,cb:?) gets called once MORE and d is called with the result.
      This final call only happens once the call to f(x:0,cb:?) finishes.
    - g(x:0, aggregate:0, cb:e) results in just getting added to the cb's for f(x:0,cb:?),
-     if that call is still running; if not, f gets called again.
+     if that call is still running; if not, f may or may not get called again, depending
+     on how much later (recent results are cached).
 ###
 
 {copy_without, field_cmp} = require('./misc')
 json_stable = require('json-stable-stringify')
+
+# To avoid using up too much memory, results are cached at most this long
+# (so long as function is called periodically to clear the cache... if not,
+# no point in clearing, since won't grow much.)
+DONE_CACHE_TIMEOUT_MS = 60000
+
+clear_old = (done) ->
+    now = new Date()
+    for key, s of done
+        if now - s.time >= DONE_CACHE_TIMEOUT_MS
+            delete done[key]
 
 exports.aggregate = (f) ->
     if typeof(f) != 'function'
         throw Error("f must be a function")
 
     state = {}  # in the closure, so scope is that of this function we are making below.
+    done  = {}
 
     just_call_f = (opts) ->
         # Fallback behavior **without aggregate**. Used below when aggregate not set.
@@ -59,6 +72,11 @@ exports.aggregate = (f) ->
         key = json_stable(copy_without(opts, ['cb', 'aggregate']))
         # Check state
         current = state[key]
+        recent  = done[key]
+        if recent? and opts.aggregate <= recent.aggregate
+            # result is known from a previous call.
+            opts.cb(recent.args...)
+            return
         if current?
             # Call already in progress with given exactly the same inputs.
             if opts.aggregate <= current.aggregate
@@ -77,10 +95,15 @@ exports.aggregate = (f) ->
             aggregate : opts.aggregate   # aggregate value for current run
             next      : []               # things requested to be run in the future -- these are opts with same key
             callbacks : [opts.cb]        # callbacks to call when this evaluation completes
+            time      : new Date()
+            args      : undefined
 
         # This gets called when f completes.
         opts.cb = (args...) ->
             {callbacks, next} = state[key]
+            done[key] = state[key]
+            done[key].args = args
+            clear_old(done)
             delete state[key]
             # Call all the callbacks for which the result of running f is sufficient.
             for cb in callbacks

@@ -3,6 +3,9 @@ Execute code in a subprocess, etc.
 ###
 
 winston       = require('winston')
+winston.remove(winston.transports.Console)
+winston.add(winston.transports.Console, {level: 'debug', timestamp:true, colorize:true})
+
 temp          = require('temp')
 async         = require('async')
 fs            = require('fs')
