@@ -599,7 +599,7 @@ exports.CourseStore = class CourseStore extends Store
             is_collected = (not opts.collected_files) or (x)
             has_no_grade = (not opts.without_grade) or (not @has_grade(assignment, student_id))
             cursor_time  = assignment_cursors?.get(student_id)
-            concurrent_grading = cursor_time? and cursor_time > minutes_10_ago
+            concurrent_grading = cursor_time?.some((time) -> time > minutes_10_ago)
             if has_no_grade and is_collected and (not concurrent_grading)
                 return student_id
 
