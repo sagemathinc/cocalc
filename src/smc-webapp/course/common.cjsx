@@ -34,7 +34,7 @@ misc = require('smc-util/misc')
 
 immutable = require('immutable')
 
-exports.FoldersToolbar = require('./common/FoldersToolBar')
+exports.FoldersToolbar = require('./common/FoldersToolBar').FoldersToolbar
 
 exports.BigTime = BigTime = rclass
     displayName : "CourseEditor-BigTime"

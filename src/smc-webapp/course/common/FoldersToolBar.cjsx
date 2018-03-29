@@ -21,7 +21,6 @@
 underscore = require('underscore')
 immutable = require('immutable')
 
-
 # CoCalc libraries
 misc = require('smc-util/misc')
 {webapp_client} = require('smc-webapp/webapp_client')
@@ -200,7 +199,9 @@ exports.FoldersToolbar = rclass
             project_id : @props.project_id
             query      : "*#{search}*"
             cb         : (err, resp) =>
+                # Disregard the results of this search of a new one was already submitted
                 return if @state.last_add_search != search
+
                 if err
                     @setState(add_is_searching:false, err:err, add_search_results:undefined)
                     return
@@ -208,16 +209,16 @@ exports.FoldersToolbar = rclass
                 if resp.directories.length == 0
                     @setState(add_is_searching: false, add_search_results: immutable.List([]), none_found: true)
                     return
-                console.log "This is the right search. Filtering..."
-                filtered_results = filter_results(resp.directories, search, @props.items)
 
-                # Merge to prevent possible massive list alterations
-                if filtered_results.length == @state.add_search_results.size
-                    merged = @state.add_search_results.merge(filtered_results)
-                else
-                    merged = immutable.List(filtered_results)
+                @setState (props, state) ->
+                    filtered_results = filter_results(resp.directories, search, props.items)
 
-                update_add_list = (props, state) ->
+                    # Merge to prevent possible massive list alterations
+                    if filtered_results.length == state.add_search_results.size
+                        merged = state.add_search_results.merge(filtered_results)
+                    else
+                        merged = immutable.List(filtered_results)
+
                     # Repeat this check since filtering and merging could theoretically take a long time
                     if state.last_add_search != search
                         return
@@ -226,8 +227,6 @@ exports.FoldersToolbar = rclass
                             add_is_searching   : false
                             add_search_results : merged
                             none_found         : false
-
-                @setState(update_add_list)
 
     submit_selected: (path_list) ->
         if path_list?
