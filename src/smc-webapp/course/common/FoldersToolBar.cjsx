@@ -210,7 +210,7 @@ exports.FoldersToolbar = rclass
                     @setState(add_is_searching: false, add_search_results: immutable.List([]), none_found: true)
                     return
 
-                @setState (props, state) ->
+                @setState (state, props) ->
                     filtered_results = filter_results(resp.directories, search, props.items)
 
                     # Merge to prevent possible massive list alterations
@@ -219,14 +219,10 @@ exports.FoldersToolbar = rclass
                     else
                         merged = immutable.List(filtered_results)
 
-                    # Repeat this check since filtering and merging could theoretically take a long time
-                    if state.last_add_search != search
-                        return
-                    else
-                        return
-                            add_is_searching   : false
-                            add_search_results : merged
-                            none_found         : false
+                    return
+                        add_is_searching   : false
+                        add_search_results : merged
+                        none_found         : false
 
     submit_selected: (path_list) ->
         if path_list?
