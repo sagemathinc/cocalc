@@ -708,12 +708,12 @@ exports.SearchInput = rclass
         on_down         : rtypes.func    # push down arrow
         on_clear        : rtypes.func    # invoked without arguments when input box is cleared (eg. via esc or clicking the clear button)
         clear_on_submit : rtypes.bool    # if true, will clear search box on every submit (default: false)
-        buttonAfter     : rtypes.object
+        buttonAfter     : rtypes.element
 
     shouldComponentUpdate: (props, state) ->
         return misc.is_different(@state, state, ['value', 'ctrl_down']) or \
                misc.is_different(@props, props, ['clear_on_submit', 'autoFocus', 'autoSelect', 'placeholder', \
-                                                 'default_value',  'value'])
+                                                 'default_value',  'value', 'buttonAfter'])
 
     getInitialState: ->
         value     : (@props.value || @props.default_value) ? ''
