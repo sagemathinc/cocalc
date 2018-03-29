@@ -218,7 +218,7 @@ exports.Grade = rclass
         style = GRADE_COMMENT_STYLE
 
         if not @state.editing_grade
-            style.cursor = 'pointer'
+            style = misc.merge({cursor:'pointer'}, style)
 
         <MarkdownInput
             autoFocus          = {false}

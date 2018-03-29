@@ -65,7 +65,9 @@ exports.StudentList = rclass
         max_points      : rtypes.number.isRequired
 
     shouldComponentUpdate: (props) ->
-        update = misc.is_different(@props, props, ['assignment', 'cursors', 'student_filter', 'student_id', 'account_id', 'anonymous', 'grading_mode', 'max_points'])
+        update = misc.is_different(@props, props, \
+            ['assignment', 'cursors', 'student_filter', 'student_id', 'account_id', \
+            'anonymous', 'grading_mode', 'max_points'])
         update or= not @props.student_list.equals(props.student_list)
         return update
 
