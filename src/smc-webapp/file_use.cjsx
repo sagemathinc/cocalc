@@ -254,7 +254,11 @@ class FileUseStore extends Store
     _course_discussion: (y) =>
         # detect and dissect student discussions in course files
         path = y.path
-        course_discuss = path.split('.course-')
+        split_str = '.course-'
+        split_idx = path.indexOf(split_str)
+        return if split_idx == -1
+        # two elements: the part before split_str, and the part afterwards to the end
+        course_discuss = [path[...split_idx], path[split_idx+split_str.length..]]
         return if course_discuss.length != 2
         discuss = course_discuss[1]
         account_id = discuss.split('-')[-5..].join('-')
