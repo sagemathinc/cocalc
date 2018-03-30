@@ -157,7 +157,7 @@ class BillingActions extends Actions
             last_subscription_attempt = {timestamp:misc.server_time(), plan:plan}
             @track_subscription(plan)
 
-    get_coupon: (id) =>
+    apply_coupon: (id) =>
         cb = (err, coupon) =>
             if err
                 @setState(coupon_error: JSON.stringify(err))
@@ -168,7 +168,7 @@ class BillingActions extends Actions
         opts =
             coupon_id : id
             cb        : cb
-        @_action('get_coupon', "Getting coupon: #{id}", opts)
+        @_action('get_coupon', "Applying coupon: #{id}", opts)
 
     clear_coupon_error: =>
         @setState(coupon_error : '')
@@ -974,7 +974,7 @@ AddSubscription = rclass
                     /> if @props.selected_plan isnt ''}
                     <Row>
                         <Col sm={5} smOffset={7}>
-                            {<CouponAdder applied_coupons={@props.applied_coupons} coupon_error={@props.coupon_error} />}
+                            <CouponAdder applied_coupons={@props.applied_coupons} coupon_error={@props.coupon_error} />
                         </Col>
                     </Row>
                     {@render_create_subscription_buttons()}
@@ -1042,7 +1042,7 @@ CouponAdder = rclass
 
     submit: (e) ->
         e?.preventDefault()
-        @actions('billing').get_coupon(@state.coupon_id) if @state.coupon_id
+        @actions('billing').apply_coupon(@state.coupon_id) if @state.coupon_id
 
     render_well_header: ->
         if @props.applied_coupons?.size > 0
@@ -1855,7 +1855,16 @@ exports.PayCourseFee = PayCourseFee = rclass
             </Well>
 
     render: ->
+        store = @props.redux.getStore('billing')
+        applied_coupons = store.get('applied_coupons')
+        coupon_error    = store.get('coupon_error')
+
         <span>
+            <Row>
+                <Col sm={5}>
+                    <CouponAdder applied_coupons={applied_coupons} coupon_error={coupon_error} />
+                </Col>
+            </Row>
             {@render_buy_button()}
             {@render_confirm_button()}
         </span>
