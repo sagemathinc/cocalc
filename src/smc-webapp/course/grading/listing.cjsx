@@ -35,7 +35,7 @@ chat_redux_name      = editor_chat.redux_name
 
 # React libraries
 {React, rclass, rtypes, redux} = require('../../smc-react')
-{DateTimePicker, ErrorDisplay, Icon, LabeledRow, Loading, MarkdownInput, Space, Tip, NumberInput} = require('../../r_misc')
+{DateTimePicker, ErrorDisplay, Icon, LabeledRow, Loading, MarkdownInput, Space, Tip, NumberInput, VisibleLG} = require('../../r_misc')
 {Alert, Button, ButtonToolbar, ButtonGroup, Form, FormControl, FormGroup, ControlLabel, InputGroup, Checkbox, Row, Col, Panel, Breadcrumb} = require('react-bootstrap')
 
 # course specific
@@ -420,7 +420,7 @@ exports.Listing = rclass
                         title     = {'Show collected files of student assignment.'}
                         placement = {'bottom'}
                     >
-                        <Icon name={'copy'} /> {'Files' if @props.discussion_show}
+                        <Icon name={'copy'} /> <VisibleLG> Files</VisibleLG>
                     </Tip>
                 </Button>
                 <Button
