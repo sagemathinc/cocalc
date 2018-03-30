@@ -539,7 +539,7 @@ module.exports =
                     { loader: 'coffee-loader' }
                 ]
             },
-            { test: /\.(js|jsx)$/, loader: 'babel-loader' }
+            { test: /\.(js|jsx)$/, loader: 'babel-loader' },
             { test: /\.less$/,   use: ["style-loader", "css-loader", "less-loader?#{cssConfig}"] },
             { test: /\.scss$/,   use: ["style-loader", "css-loader", "sass-loader?#{cssConfig}"] },
             { test: /\.sass$/,   use: ["style-loader", "css-loader", "sass-loader?#{cssConfig}&indentedSyntax"] },
