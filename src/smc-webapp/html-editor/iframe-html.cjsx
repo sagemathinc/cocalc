@@ -91,7 +91,7 @@ exports.IFrameHTML = rclass
         if not elt?
             return
         body = $(elt).contents().find('body')
-        body.css('font-size', "#{font_size ? @props.font_size}px")
+        body.css('zoom', (font_size ? 16)/16)
         if @props.is_fullscreen and @props.fullscreen_style?
             body.css(@props.fullscreen_style)
 

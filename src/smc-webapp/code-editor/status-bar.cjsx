@@ -19,7 +19,7 @@ exports.StatusBar = rclass ({name}) ->
 
     render: ->
         if not @props.status?
-            return
+            return <span/>
         <div style={border:'1px solid lightgray', color:'#333', padding: '0 5px', fontSize: '10pt'}>
             {@props.status}
             <Space />
