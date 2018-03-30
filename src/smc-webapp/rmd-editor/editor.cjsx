@@ -1,5 +1,5 @@
 ###
-Top-level react component for editing markdown documents
+Top-level react component for editing R markdown documents
 ###
 
 misc = require('smc-util/misc')
@@ -22,7 +22,7 @@ EDITOR_SPEC =
                          'cut', 'paste', 'copy', 'undo', 'redo', 'reload'])
     markdown :
         short         : 'View'
-        name          : 'Rendered View'
+        name          : 'Rendered View (Knitr)'
         icon          : 'eye'
         component     : RenderedMarkdown
         reload_images : true
@@ -40,8 +40,8 @@ exports.Editor = rclass ({name}) ->
         account :
             editor_settings : rtypes.immutable
         "#{name}" :
-            is_public  : rtypes.bool
-            format_bar : rtypes.immutable.Map    # optional extra state of the format bar, stored in the Store
+            is_public     : rtypes.bool
+            format_bar    : rtypes.immutable.Map    # optional extra state of the format bar, stored in the Store
 
     shouldComponentUpdate: (next) ->
         return @props.editor_settings?.get('extra_button_bar') != next.editor_settings?.get('extra_button_bar') or \

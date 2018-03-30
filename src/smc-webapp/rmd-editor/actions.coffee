@@ -17,16 +17,27 @@ class exports.Actions extends Actions
         @_run_rmd2md()
 
     _run_rmd2md: (time) =>
+        # TODO: should only run knitr if at least one frame is visible showing preview.
+        @set_status('Running knitr...')
         rmd2md.convert
             path       : @path
             project_id : @project_id
             time       : time
             cb         : (err, markdown) =>
+                @set_status('')
                 if err
                     @set_error(err)
                 else
                     @setState(content: markdown)
                     setTimeout(->)
 
-    set_markdown_view: (value) =>
-        # ignore here -- the value is only set via run_rmd2md.
+    _raw_default_frame_tree: =>
+        if @is_public
+            type : 'cm'
+        else
+            direction : 'col'
+            type      : 'node'
+            first     :
+                type : 'cm'
+            second    :
+                type : 'markdown'

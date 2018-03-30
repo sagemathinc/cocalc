@@ -118,10 +118,23 @@ exports.scroll_top = () ->
 #############################################
 {required, defaults} = require('smc-util/misc')
 
+# Force reload all images by appending random query param to their src URL.
 $.fn.reload_images = (opts) ->
     @each ->
         for img in $(this).find('img')
             $(img).attr('src', $(img).attr('src')+'?'+Math.random())
+
+# Highlight all code blocks that have CSS class language-r, language-python.
+# TODO: I just put in r and python for now, since this is mainly
+# motivated by rmd files.
+$.fn.highlight_code = (opts) ->
+    @each ->
+        for mode in ['r', 'python']
+            for elt in $(this).find("code.language-#{mode}")
+                code = $(elt)
+                CodeMirror.runMode(code.text(), mode, elt)
+                code.addClass('cm-s-default')
+                code.removeClass('language-#{mode}')  # done
 
 # jQuery plugin for spinner (/spin/spin.min.js)
 $.fn.spin = (opts) ->

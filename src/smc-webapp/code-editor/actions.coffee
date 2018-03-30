@@ -3,7 +3,6 @@ Code Editor Actions
 ###
 
 WIKI_HELP_URL   = "https://github.com/sagemathinc/cocalc/wiki/editor"  # TODO -- write this
-
 SAVE_WORKAROUND = 'Ensure your network connection is solid. If this problem persists, you might need to close and open this file, or restart this project in Project Settings.'
 SAVE_RETRIES    = 7   # how many times to retry to save (and get no unsaved changes), until giving up
 
@@ -575,8 +574,13 @@ class exports.Actions extends Actions
             cm.replaceSelection(copypaste.get_buffer())
             cm.focus()
 
+    # big scary error shown at top
     set_error: (error) =>
         @setState(error: error)
+
+    # little status message shown at bottom.
+    set_status: (status) =>
+        @setState(status: status)
 
     print: (id) =>
         cm = @_get_cm()

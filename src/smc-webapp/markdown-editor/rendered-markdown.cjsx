@@ -90,12 +90,13 @@ exports.RenderedMarkdown = rclass
                 style = {maxWidth: options.MAX_WIDTH, margin: '10px auto', padding:'0 10px'}
             >
                 <Markdown
-                    id            = {"frame-#{@props.id}"}
-                    value         = {value}
-                    project_id    = {@props.project_id}
-                    file_path     = {misc.path_split(@props.path).head}
-                    safeHTML      = {true}
-                    reload_images = {@props.reload_images}
+                    id             = {"frame-#{@props.id}"}
+                    value          = {value}
+                    project_id     = {@props.project_id}
+                    file_path      = {misc.path_split(@props.path).head}
+                    safeHTML       = {true}
+                    reload_images  = {@props.reload_images}
+                    highlight_code = {true}
                 />
             </div>
         </div>
