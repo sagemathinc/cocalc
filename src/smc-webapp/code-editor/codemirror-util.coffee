@@ -12,14 +12,25 @@ misc = require('smc-util/misc')
 VERSION = 2
 
 exports.get_state = (cm) ->
+    info = cm.getScrollInfo()
+    if info.height <= 0
+        # The editor view not properly configured yet (get negative values) -- ignore;
+        # this was the source of https://github.com/sagemathinc/cocalc/issues/2801
+        return
+    pos = misc.copy_with(cm.coordsChar(info, 'local'), ['line', 'ch'])
     state =
-        pos: misc.copy_with(cm.coordsChar(cm.getScrollInfo(), 'local'), ['line', 'ch'])
+        pos: pos
         sel: cm.listSelections()
         ver: VERSION
+    #console.log 'get_state', info, state.pos
     return state
 
 exports.restore_state = (cm, state) ->
+    if not cm?
+        return
+    #console.log 'restore_state', cm.getValue().length, state
     if not state? or state.ver < VERSION  # ignore
+        #console.log 'old ver'
         return
 
     if state.pos?
@@ -34,7 +45,6 @@ exports.restore_state = (cm, state) ->
             cm.scrollTo(0, cm.cursorCoords(state.pos, 'local').top)
             cm.refresh()
         setTimeout(f, 0)
-        setTimeout(f, 50)  # just in case we tried too soon...
 
     sel = state.sel
     if sel?

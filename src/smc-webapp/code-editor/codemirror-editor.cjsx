@@ -126,7 +126,9 @@ exports.CodemirrorEditor = rclass
     save_editor_state: ->
         if not @cm?
             return
-        @props.actions.save_editor_state(@props.id, codemirror_util.get_state(@cm))
+        state = codemirror_util.get_state(@cm)
+        if state?
+            @props.actions.save_editor_state(@props.id, state)
 
     # Save the underlying syncstring content.
     save_syncstring: ->
@@ -176,19 +178,18 @@ exports.CodemirrorEditor = rclass
             if d?
                 @cm.swapDoc(d)
 
+        if @props.editor_state?
+            codemirror_util.restore_state(@cm, @props.editor_state.toJS())
+
+        save_editor_state = throttle(@save_editor_state, 250)
+        @cm.on('scroll', save_editor_state)
+
         e = $(@cm.getWrapperElement())
         e.addClass('smc-vfill')
         # The Codemirror themes impose their own weird fonts, but most users want whatever
         # they've configured as "monospace" in their browser.  So we force that back:
         e.attr('style', e.attr('style') + '; height:100%; font-family:monospace !important;')
         # see http://stackoverflow.com/questions/2655925/apply-important-css-style-using-jquery
-
-
-        save_editor_state = throttle(@save_editor_state, 100)
-        @cm.on('scroll', save_editor_state)
-
-        if @props.editor_state?
-            codemirror_util.restore_state(@cm, @props.editor_state.toJS())
 
         @setState(has_cm: true)
 
