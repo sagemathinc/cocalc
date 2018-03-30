@@ -539,6 +539,7 @@ module.exports =
                     { loader: 'coffee-loader' }
                 ]
             },
+            { test: /node_modules\/prom-client\/.*\.js/, loader: 'babel-loader' },
             { test: /\.less$/,   use: ["style-loader", "css-loader", "less-loader?#{cssConfig}"] },
             { test: /\.scss$/,   use: ["style-loader", "css-loader", "sass-loader?#{cssConfig}"] },
             { test: /\.sass$/,   use: ["style-loader", "css-loader", "sass-loader?#{cssConfig}&indentedSyntax"] },

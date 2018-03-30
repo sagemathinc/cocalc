@@ -135,16 +135,6 @@ class Connection extends client.Connection
             document.write('<script src="//cdn.jsdelivr.net/npm/eruda"></script>')
             document.write('<script>eruda.init();</script>')
 
-
-        # Client-side testing code -- we use require.ensure so this stuff only
-        # ever gets loaded by the browser if actually used.
-        window.smc.test = (modules) ->
-            require.ensure ['./test-client/init'], ->
-                require('./test-client/init').run(modules)
-        window.smc.test_clear = () ->
-            require.ensure ['./test-client/init'], ->
-                require('./test-client/init').clear()
-
     _init_idle: () =>
         # Do not bother on mobile, since mobile devices already automatically disconnect themselves
         # very aggressively to save battery life.
