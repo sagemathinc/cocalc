@@ -34,6 +34,8 @@ misc_page            = require('smc-webapp/misc_page')
 {DateTimePicker, ErrorDisplay, Icon, LabeledRow, Loading, MarkdownInput, Space, Tip, NumberInput} = require('../../r_misc')
 {Alert, Button, ButtonToolbar, ButtonGroup, Form, FormControl, FormGroup, ControlLabel, InputGroup, Checkbox, Row, Col, Panel, Breadcrumb} = require('react-bootstrap')
 
+url = 'https://en.wikipedia.org/wiki/Percentile_rank'
+
 exports.Points = rclass
     displayName: 'CourseEditor-GradingStudentAssignment-Points'
 
@@ -41,14 +43,46 @@ exports.Points = rclass
         total_points   : rtypes.number.isRequired
         all_points     : rtypes.immutable.List.isRequired
 
-    shouldComponentUpdate: (next) ->
-        update   = misc.is_different(@props, next, ['total_points'])
-        update or= not @props.all_points.equals(next.all_points)
+    getInitialState: ->
+        show_percentile_help : false
+
+    shouldComponentUpdate: (props, state) ->
+        update   = misc.is_different(@props, props, ['total_points'])
+        update or= not @props.all_points.equals(props.all_points)
+        update or= misc.is_different(@state, state, ['show_percentile_help'])
         return update
 
-    percentile_rank_help: ->
-        url = 'https://en.wikipedia.org/wiki/Percentile_rank'
-        misc_page.open_new_tab(url)
+    render_percentile_help: ->
+        return null if not @state.show_percentile_help
+        <Col md={10}>
+            <Alert bsStyle={'info'} style={marginTop:'10px'}>
+                <h5>Percentile rank</h5>
+                <div>
+                    This tells you how this student performs in relation to all others.
+                    Exact definition: <a target={'_blank'} href={url}>Percentile Rank at Wikipedia</a>.
+                </div>
+                <div style={textAlign:'right'}>
+                    <Button onClick = {=>@setState(show_percentile_help:false)}>
+                        Close
+                    </Button>
+                </div>
+            </Alert>
+        </Col>
+
+    render_percentile_info: ->
+        return null if @props.all_points.size < 5
+        pct = misc.percentRank(
+            @props.all_points.toJS(),
+            @props.total_points,
+            true
+        )
+        <Button
+            style     = {color: COLORS.GRAY}
+            onClick   = {=>@setState(show_percentile_help:true)}
+        >
+            {misc.round1(pct)}%
+            <span className='hidden-md'> percentile</span>
+        </Button>
 
     render: ->
         <Row>
@@ -63,21 +97,8 @@ exports.Points = rclass
                     >
                         {misc.round2(@props.total_points)}
                     </Button>
-                    {
-                        if @props.all_points.size >= 5
-                            pct = misc.percentRank(
-                                @props.all_points.toJS(),
-                                @props.total_points,
-                                true
-                            )
-                            <Button
-                                style     = {color: COLORS.GRAY}
-                                onClick   = {=>@percentile_rank_help()}
-                            >
-                                {misc.round1(pct)}%
-                                <span className='hidden-md'> percentile</span>
-                            </Button>
-                    }
+                    {@render_percentile_info()}
                 </ButtonGroup>
             </Col>
+            {@render_percentile_help()}
         </Row>

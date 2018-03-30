@@ -258,7 +258,7 @@ exports.Grade = rclass
         </React.Fragment>
 
     render_help: ->
-        <Alert bsStyle={'warning'}>
+        <Alert bsStyle={'info'}>
             <h5>Points mode</h5>
             <div>
                 Click to confirm that the grade is the total number of points.
