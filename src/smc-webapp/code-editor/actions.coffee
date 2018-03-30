@@ -4,8 +4,8 @@ Code Editor Actions
 
 WIKI_HELP_URL   = "https://github.com/sagemathinc/cocalc/wiki/editor"  # TODO -- write this
 
-SAVE_WORKAROUND = 'If this problem persists, you might need to close and open this file, or restart this project in Project Settings.'
-SAVE_RETRIES    = 5   # how many times to retry to save (and get no unsaved changes), until giving up
+SAVE_WORKAROUND = 'Ensure your network connection is solid. If this problem persists, you might need to close and open this file, or restart this project in Project Settings.'
+SAVE_RETRIES    = 7   # how many times to retry to save (and get no unsaved changes), until giving up
 
 immutable       = require('immutable')
 underscore      = require('underscore')

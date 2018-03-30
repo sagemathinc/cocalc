@@ -34,6 +34,7 @@ exports.restore_state = (cm, state) ->
             cm.scrollTo(0, cm.cursorCoords(state.pos, 'local').top)
             cm.refresh()
         setTimeout(f, 0)
+        setTimeout(f, 50)
 
     sel = state.sel
     if sel?
