@@ -39,6 +39,10 @@ misc_page = require('./misc_page')
 
 {Actions, rtypes, computed, depends, Table, register_project_store, redux}  = require('./smc-react')
 
+# "no such path" and "not a directory" error indicator strings
+exports.NO_DIR    = NO_DIR    = 'no_dir'
+exports.NOT_A_DIR = NOT_A_DIR = 'not_a_dir'
+
 exports.file_actions = file_actions =
     compress  :
         name  : 'Compress'
@@ -1880,9 +1884,9 @@ create_project_store_def = (name, project_id) ->
             if listing.indexOf('ECONNREFUSED') != -1 or listing.indexOf('ENOTFOUND') != -1
                 return {error:'no_instance'}  # the host VM is down
             else if listing.indexOf('o such path') != -1
-                return {error:'no_dir'}
+                return {error:NO_DIR}
             else if listing.indexOf('ot a directory') != -1
-                return {error:'not_a_dir'}
+                return {error:NOT_A_DIR}
             else if listing.indexOf('not running') != -1  # yes, no underscore.
                 return {error:'not_running'}
             else
@@ -2143,9 +2147,9 @@ exports.get_directory_listing = get_directory_listing = (opts) ->
                 else
                     if x?.error
                         if x.error.code == 'ENOENT'
-                            listing_err = 'no_dir'
+                            listing_err = NO_DIR
                         else if x.error.code == 'ENOTDIR'
-                            listing_err = 'not_a_dir'
+                            listing_err = NOT_A_DIR
                         else
                             listing_err = x.error
                         cb()

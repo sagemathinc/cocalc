@@ -28,7 +28,7 @@ SearchInput, TimeAgo, ErrorDisplay, Space, Tip, LoginLink, Footer, CourseProject
 {SMC_Dropwrapper} = require('./smc-dropzone')
 {FileTypeSelector, NewFileButton} = require('./project_new')
 {SiteName} = require('./customize')
-{file_actions} = require('./project_store')
+{file_actions, NO_DIR, NOT_A_DIR} = require('./project_store')
 
 {BillingPageLink, BillingPageForCourseRedux, PayCourseFee}     = require('./billing')
 {human_readable_size} = misc
@@ -2247,9 +2247,9 @@ exports.ProjectFiles = rclass ({name}) ->
             switch error
                 when 'not_public'
                     e = @render_access_error()
-                when 'no_dir'
+                when NO_DIR
                     e = <ErrorDisplay title="No such directory" error={"The path #{@props.current_path} does not exist."} />
-                when 'not_a_dir'
+                when NOT_A_DIR
                     e = <ErrorDisplay title="Not a directory" error={"#{@props.current_path} is not a directory."} />
                 when 'not_running'
                     # This shouldn't happen, but due to maybe a slight race condition in the backend it can.

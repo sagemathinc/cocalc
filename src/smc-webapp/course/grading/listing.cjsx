@@ -31,6 +31,7 @@ _         = require('underscore')
 {EmbeddedChat}       = require('../../side_chat')
 editor_chat          = require('../../editor_chat')
 chat_redux_name      = editor_chat.redux_name
+{NO_DIR}             = require('../../project_store')
 
 # React libraries
 {React, rclass, rtypes, redux} = require('../../smc-react')
@@ -347,7 +348,7 @@ exports.Listing = rclass
         return misc.merge(style, LIST_ENTRY_STYLE)
 
     listing_error: (error) ->
-        if error = 'no_dir'
+        if error = NO_DIR
             # TODO insert collect button here and refresh listing accordingly ...
             return <div style={EMPTY_LISTING_TEXT}>
                        No directory. Not yet collected from student?

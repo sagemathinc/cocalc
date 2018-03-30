@@ -29,6 +29,7 @@ immutable   = require('immutable')
 schema               = require('smc-util/schema')
 {webapp_client}      = require('../webapp_client')
 chat_register        = require('../chat/register')
+{NO_DIR}             = require('../project_store')
 
 # Course Library
 {STEPS, previous_step, step_direction, step_verb, step_ready, NO_ACCOUNT} = require('./util')
@@ -1952,7 +1953,7 @@ exports.CourseActions = class CourseActions extends Actions
         # Phase 2: get the collected files listing
         store.grading_get_listing opts.assignment, next_student_id, opts.subdir, (err, listing) =>
             if err
-                if err == 'no_dir'
+                if err == NO_DIR
                     listing = {error: err}
                 else
                     @set_error("Grading file listing error: #{err}")
