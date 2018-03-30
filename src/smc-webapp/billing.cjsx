@@ -1792,6 +1792,11 @@ InvoiceHistory = rclass
         </Panel>
 
 exports.PayCourseFee = PayCourseFee = rclass
+    reduxProps :
+        billing :
+            applied_coupons : rtypes.immutable.Map
+            coupon_error    : rtypes.string
+
     propTypes :
         project_id : rtypes.string.isRequired
         redux      : rtypes.object.isRequired
@@ -1855,14 +1860,10 @@ exports.PayCourseFee = PayCourseFee = rclass
             </Well>
 
     render: ->
-        store = @props.redux.getStore('billing')
-        applied_coupons = store.get('applied_coupons')
-        coupon_error    = store.get('coupon_error')
-
         <span>
             <Row>
                 <Col sm={5}>
-                    <CouponAdder applied_coupons={applied_coupons} coupon_error={coupon_error} />
+                    <CouponAdder applied_coupons={@props.applied_coupons} coupon_error={@props.coupon_error} />
                 </Col>
             </Row>
             {@render_buy_button()}
