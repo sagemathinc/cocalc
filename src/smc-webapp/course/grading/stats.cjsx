@@ -30,10 +30,12 @@ misc_page            = require('smc-webapp/misc_page')
 {Row, Col} = require('react-bootstrap')
 
 boxstyle =
-    color        : COLORS.GRAY
-    marginTop    : '10px'
-    #border       : "1px solid #{COLORS.GRAY_L}"
-    #borderRadius : '5px'
+    display       : 'flex'
+    flexDirection : 'column'
+    color         : COLORS.GRAY
+    marginTop     : '10px'
+    #border        : "1px solid #{COLORS.GRAY_L}"
+    #borderRadius  : '5px'
 
 style_outer =
     margin           : '10px 20px'
@@ -80,9 +82,8 @@ exports.GradingStats = rclass
             spaces["#{k}"] = (v.value - data.min.value - prev) / spread / 2
             prev = v.value
 
-        <Row style={boxstyle}>
-            <Col
-                md    = {10}
+        <div style={boxstyle}>
+            <div
                 style = {textAlign:'center'}
             >
                 <a
@@ -92,9 +93,8 @@ exports.GradingStats = rclass
                 >
                     5-number summary
                 </a> of all points per student
-            </Col>
-            <Col
-                md    = {10}
+            </div>
+            <div
                 style = {textAlign:'center'}
             >
                 <div style={style_outer}>
@@ -113,5 +113,5 @@ exports.GradingStats = rclass
                         </div>
                 }
                 </div>
-            </Col>
-        </Row>
+            </div>
+        </div>

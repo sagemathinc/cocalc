@@ -67,6 +67,7 @@ exports.Navigation = rclass
         <Button
             onClick  = {=>@set_only_not_graded(not only_not_graded)}
             bsStyle  = {'default'}
+            style    = {whiteSpace:'nowrap'}
         >
             <CheckedIcon checked={only_not_graded} /> Not graded
         </Button>
@@ -77,6 +78,7 @@ exports.Navigation = rclass
         <Button
             onClick  = {=>@set_only_collected(not only_collected)}
             bsStyle  = {'default'}
+            style    = {whiteSpace:'nowrap'}
         >
             <CheckedIcon checked={only_collected} /> Collected
         </Button>
@@ -96,8 +98,13 @@ exports.Navigation = rclass
         @jump(direction, without_grade, collected_files)
 
     render: ->
-        <Col md={3}>
-            <Row style={ROW_STYLE}>
+        style =
+            display        : 'flex'
+            flexDirection  : 'column'
+            flex           : '2 0 0%'
+
+        <div style={style}>
+            <div style={ROW_STYLE}>
                 <ButtonGroup>
                     <Button
                         onClick  = {=>@pick_next(-1)}
@@ -114,15 +121,15 @@ exports.Navigation = rclass
                         <span className='hidden-md'> student</span>
                     </Button>
                 </ButtonGroup>
-            </Row>
-            <Row style={color:COLORS.GRAY}>
+            </div>
+            <div style={color:COLORS.GRAY}>
                 Filter students by:
-            </Row>
-            <Row style={ROW_STYLE}>
-                <ButtonGroup>
+            </div>
+            <div style={ROW_STYLE}>
+                <ButtonGroup style={display:'flex'}>
                     {@render_filter_only_not_graded()}
                     {@render_filter_only_collected()}
                 </ButtonGroup>
-            </Row>
-        </Col>
+            </div>
+        </div>
 

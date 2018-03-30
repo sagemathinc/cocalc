@@ -239,7 +239,7 @@ exports.Grade = rclass
 
     render_ui: ->
         <React.Fragment>
-            <Row>
+            <div>
             {
                 switch @props.grading_mode
                     when 'manual'
@@ -247,14 +247,14 @@ exports.Grade = rclass
                     when 'points'
                         @grade_points_mode()
             }
-            </Row>
-            <Row>
+            </div>
+            <div>
                 {
                     if @state.grade_comments?.length > 0
                         <div><b>Comment</b> (visible to student)</div>
                 }
                 {@grade_comment_edit()}
-            </Row>
+            </div>
         </React.Fragment>
 
     render_help: ->
@@ -273,11 +273,17 @@ exports.Grade = rclass
 
     render: ->
         # no clue why z-index 1 is necessary. otherwise the dropdown menu is behind the buttons of the component below ...
-        <Col md={4} style={zIndex: '1'}>
+        style =
+            display        : 'flex'
+            flexDirection  : 'column'
+            flex           : '3 0 0%'
+            zIndex         : '1'
+
+        <div style={style}>
         {
             if @state.grade_help
                 @render_help()
             else
                 @render_ui()
         }
-        </Col>
+        </div>

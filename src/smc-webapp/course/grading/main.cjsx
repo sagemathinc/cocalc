@@ -157,6 +157,18 @@ exports.GradingStudentAssignment = rclass
             flexDirection  : 'column'
             marginRight    : '15px'
 
+        controlstyle =
+            display        : 'flex'
+            flexDirection  : 'row'
+            flex           : '0 0 auto'
+            marginBottom   : '10px'
+
+        pointstyle =
+            display        : 'flex'
+            flexDirection  : 'column'
+            flex           : '4 0 0%'
+            margin         : '0px 3%'
+
         <Row
             style={height: '75vh', display: 'flex'}
         >
@@ -176,7 +188,7 @@ exports.GradingStudentAssignment = rclass
                 />
             </Col>
             <Col md={9} style={flexcolumn}>
-                <Row style={marginBottom: '15px'}>
+                <Row style={controlstyle}>
                     <Navigation
                         name             = {@props.name}
                         current_idx      = {@props.grading.current_idx}
@@ -185,7 +197,7 @@ exports.GradingStudentAssignment = rclass
                         only_not_graded  = {@props.grading.only_not_graded}
                         only_collected   = {@props.grading.only_collected}
                     />
-                    <Col md={5}>
+                    <div style={pointstyle}>
                         <Points
                             total_points = {@props.grading.total_points}
                             all_points   = {@props.grading.all_points}
@@ -193,7 +205,7 @@ exports.GradingStudentAssignment = rclass
                         <GradingStats
                             all_points = {@props.grading.all_points}
                         />
-                    </Col>
+                    </div>
                     <Grade
                         actions        = {@actions(@props.name)}
                         store          = {@state.store}

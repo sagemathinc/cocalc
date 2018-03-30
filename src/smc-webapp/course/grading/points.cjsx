@@ -54,7 +54,7 @@ exports.Points = rclass
 
     render_percentile_help: ->
         return null if not @state.show_percentile_help
-        <Col md={10}>
+        <div>
             <Alert bsStyle={'info'} style={marginTop:'10px'}>
                 <h5>Percentile rank</h5>
                 <div>
@@ -62,12 +62,14 @@ exports.Points = rclass
                     Exact definition: <a target={'_blank'} href={url}>Percentile Rank at Wikipedia</a>.
                 </div>
                 <div style={textAlign:'right'}>
-                    <Button onClick = {=>@setState(show_percentile_help:false)}>
+                    <Button
+                        onClick  = {=>@setState(show_percentile_help:false)}
+                    >
                         Close
                     </Button>
                 </div>
             </Alert>
-        </Col>
+        </div>
 
     render_percentile_info: ->
         return null if @props.all_points.size < 5
@@ -79,15 +81,16 @@ exports.Points = rclass
         <Button
             style     = {color: COLORS.GRAY}
             onClick   = {=>@setState(show_percentile_help:true)}
+            disabled  = {@state.show_percentile_help}
         >
             {misc.round1(pct)}%
             <span className='hidden-md'> percentile</span>
         </Button>
 
     render: ->
-        <Row>
-            <Col md={10} style={textAlign: 'center'}>
-                <ButtonGroup>
+        <div>
+            <div style={textAlign: 'center'}>
+                <ButtonGroup style={whiteSpace:'nowrap'}>
                     <Button disabled={true}>
                         Total points
                     </Button>
@@ -99,6 +102,6 @@ exports.Points = rclass
                     </Button>
                     {@render_percentile_info()}
                 </ButtonGroup>
-            </Col>
+            </div>
             {@render_percentile_help()}
-        </Row>
+        </div>
