@@ -576,7 +576,12 @@ class exports.Actions extends Actions
 
     # big scary error shown at top
     set_error: (error) =>
-        @setState(error: error)
+        if not error?
+            @setState(error: error)
+        else
+            if not misc.is_string(error)
+                error = JSON.stringify(error)
+            @setState(error: error)
 
     # little status message shown at bottom.
     set_status: (status) =>

@@ -1,5 +1,5 @@
 ###
-Convert R Markdown file to hidden Markdown file, then load it.
+Convert R Markdown file to hidden Markdown file, then read.
 ###
 
 async                = require('async')
@@ -21,13 +21,14 @@ exports.convert = (opts) ->
     locals =
         infile  : x.tail
         outfile : aux_file(x.tail, 'md')
+    args = ['-e', "library(knitr);knit('#{locals.infile}','#{locals.outfile}',quiet=TRUE)"]
     async.series([
         (cb) ->
             webapp_client.exec
                 allow_post  : false  # definitely could take a long time to fully run all the R stuff...
                 timeout     : 60
                 command     : 'Rscript'
-                args        : ['-e', "library(knitr);knit('#{locals.infile}','#{locals.outfile}',quiet=TRUE)"]
+                args        : args
                 project_id  : opts.project_id
                 path        : x.head
                 err_on_exit : true
@@ -39,7 +40,7 @@ exports.convert = (opts) ->
         (cb) ->
             webapp_client.read_text_file_from_project
                 project_id : opts.project_id
-                path       : locals.outfile
+                path       : aux_file(opts.path, 'md')
                 cb         : (err, mesg) ->
                     locals.content = mesg?.content
                     cb(err)
