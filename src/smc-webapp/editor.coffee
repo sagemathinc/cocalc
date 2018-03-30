@@ -1984,9 +1984,6 @@ class JupyterNBViewerEmbedded extends FileEditor
 {HTML_MD_Editor} = require('./editor-html-md/editor-html-md')
 html_md_exts = (ext for ext, opts of file_associations when opts.editor == 'html-md')
 
-# TODO: so new react editors gets used instead...
-html_md_exts = (ext for ext in html_md_exts when ext != 'md' and ext != 'html' and ext != 'rst' and ext != 'rmd')
-
 {LatexEditor} = require('./latex/editor')
 
 exports.register_nonreact_editors = ->
