@@ -26,18 +26,20 @@ exports.RenderedMarkdown = rclass
     displayName: 'MarkdownEditor-RenderedMarkdown'
 
     propTypes :
-        actions      : rtypes.object.isRequired
-        id           : rtypes.string.isRequired
-        path         : rtypes.string.isRequired
-        project_id   : rtypes.string.isRequired
-        font_size    : rtypes.number.isRequired
-        read_only    : rtypes.bool
-        value        : rtypes.string
-        content      : rtypes.string         # used instead of file if available (e.g., only used for public)
-        editor_state : rtypes.immutable.Map  # only used for initial render
+        actions       : rtypes.object.isRequired
+        id            : rtypes.string.isRequired
+        path          : rtypes.string.isRequired
+        project_id    : rtypes.string.isRequired
+        font_size     : rtypes.number.isRequired
+        read_only     : rtypes.bool
+        reload_images : rtypes.bool
+        value         : rtypes.string
+        content       : rtypes.string         # used instead of file if available (e.g., only used for public)
+        editor_state  : rtypes.immutable.Map  # only used for initial render
 
     shouldComponentUpdate: (next) ->
-        return misc.is_different(@props, next, ['id', 'project_id', 'path', 'font_size', 'read_only', 'value', 'content'])
+        return misc.is_different(@props, next, ['id', 'project_id', 'path', 'font_size', 'read_only', \
+               'value', 'content', 'reload_images'])
 
     on_scroll: ->
         elt = ReactDOM.findDOMNode(@refs.scroll)
@@ -50,6 +52,9 @@ exports.RenderedMarkdown = rclass
         @restore_scroll()
         setTimeout(@restore_scroll, 200)
         setTimeout(@restore_scroll, 500)
+
+    componentDidUpdate: ->
+        setTimeout(@restore_scroll, 1)
 
     restore_scroll: ->
         scroll = @props.editor_state?.get('scroll')
@@ -85,11 +90,12 @@ exports.RenderedMarkdown = rclass
                 style = {maxWidth: options.MAX_WIDTH, margin: '10px auto', padding:'0 10px'}
             >
                 <Markdown
-                    id         = {"frame-#{@props.id}"}
-                    value      = {value}
-                    project_id = {@props.project_id}
-                    file_path  = {misc.path_split(@props.path).head}
-                    safeHTML   = {true}
+                    id            = {"frame-#{@props.id}"}
+                    value         = {value}
+                    project_id    = {@props.project_id}
+                    file_path     = {misc.path_split(@props.path).head}
+                    safeHTML      = {true}
+                    reload_images = {@props.reload_images}
                 />
             </div>
         </div>

@@ -1,6 +1,5 @@
 ###
-Convert R Markdown file to hidden HTML file, which gets displayed in an iframe with
-src pointed to this file (via raw server).
+Convert R Markdown file to hidden Markdown file, then load it.
 ###
 
 async                = require('async')
@@ -21,7 +20,7 @@ exports.convert = (opts) ->
     x = misc.path_split(opts.path)
     locals =
         infile  : x.tail
-        outfile : aux_file(x.tail)
+        outfile : aux_file(x.tail, 'md')
     async.series([
         (cb) ->
             webapp_client.exec

@@ -118,6 +118,11 @@ exports.scroll_top = () ->
 #############################################
 {required, defaults} = require('smc-util/misc')
 
+$.fn.reload_images = (opts) ->
+    @each ->
+        for img in $(this).find('img')
+            $(img).attr('src', $(img).attr('src')+'?'+Math.random())
+
 # jQuery plugin for spinner (/spin/spin.min.js)
 $.fn.spin = (opts) ->
     @each ->

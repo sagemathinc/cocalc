@@ -21,11 +21,12 @@ EDITOR_SPEC =
         buttons   : set(['print', 'decrease_font_size', 'increase_font_size', 'save', 'time_travel', 'replace', 'find', 'goto_line', \
                          'cut', 'paste', 'copy', 'undo', 'redo', 'reload'])
     markdown :
-        short     : 'View'
-        name      : 'Rendered View'
-        icon      : 'eye'
-        component : RenderedMarkdown
-        buttons   : set(['print', 'decrease_font_size', 'increase_font_size', 'save', 'time_travel', 'reload'])
+        short         : 'View'
+        name          : 'Rendered View'
+        icon          : 'eye'
+        component     : RenderedMarkdown
+        reload_images : true
+        buttons       : set(['print', 'decrease_font_size', 'increase_font_size', 'save', 'time_travel', 'reload'])
 
 exports.Editor = rclass ({name}) ->
     displayName: 'RmdEditor-Editor'

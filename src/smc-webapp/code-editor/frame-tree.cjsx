@@ -158,6 +158,7 @@ exports.FrameTree = FrameTree = rclass ({name}) ->
             is_fullscreen    = {@props.is_only or desc.get('id') == @props.full_id}
             reload           = {@props.reload?.get(type)}
             resize           = {@props.resize}
+            reload_images    = {spec?.reload_images}
         />
 
     render_one: (desc) ->

@@ -26,6 +26,7 @@ class exports.Actions extends Actions
                     @set_error(err)
                 else
                     @setState(content: markdown)
+                    setTimeout(->)
 
     set_markdown_view: (value) =>
         # ignore here -- the value is only set via run_rmd2md.
