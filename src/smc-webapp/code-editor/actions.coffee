@@ -3,6 +3,7 @@ Code Editor Actions
 ###
 
 WIKI_HELP_URL   = "https://github.com/sagemathinc/cocalc/wiki/editor"  # TODO -- write this
+SAVE_ERROR      = 'Error saving file to disk. '
 SAVE_WORKAROUND = 'Ensure your network connection is solid. If this problem persists, you might need to close and open this file, or restart this project in Project Settings.'
 SAVE_RETRIES    = 7   # how many times to retry to save (and get no unsaved changes), until giving up
 
@@ -379,9 +380,11 @@ class exports.Actions extends Actions
                 @update_save_status()
                 if err
                     @update_save_status()
-                    @set_error("Error saving file to disk: '#{err}'.  #{SAVE_WORKAROUND}")
+                    @set_error("#{SAVE_ERROR} '#{err}'.  #{SAVE_WORKAROUND}")
                     cb()
                 else
+                    if misc.startswith(@store.get('error'), SAVE_ERROR)
+                        @set_error('')
                     cb(@store.get('has_unsaved_changes'))
 
         misc.retry_until_success
@@ -390,7 +393,7 @@ class exports.Actions extends Actions
             cb        : (err) =>
                 if err
                     console.log(err)
-                    @set_error("Unable to save file to disk.  Despite repeated attempts, the version of the file saved to disk does not equal the version in your browser.  #{SAVE_WORKAROUND}")
+                    @set_error("#{SAVE_ERROR} Despite repeated attempts, the version of the file saved to disk does not equal the version in your browser.  #{SAVE_WORKAROUND}")
                     webapp_client.log_error({string_id:@_syncstring?._string_id, path:@path, project_id:@project_id, error:"Error saving file -- has_unsaved_changes"})
 
 
