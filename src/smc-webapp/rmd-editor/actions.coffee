@@ -29,7 +29,6 @@ class exports.Actions extends Actions
                     @set_error(err)
                 else
                     @setState(content: markdown)
-                    setTimeout(->)
 
     _raw_default_frame_tree: =>
         if @is_public
