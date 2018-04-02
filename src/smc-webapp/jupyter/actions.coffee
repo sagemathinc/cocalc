@@ -40,6 +40,7 @@ DEFAULT_KERNEL = 'anaconda3'
 
 syncstring    = require('smc-util/syncstring')
 
+
 ###
 The actions -- what you can do with a jupyter notebook, and also the
 underlying synchronized state.

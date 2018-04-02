@@ -23,6 +23,7 @@ Top-level react component, which ties everything together
 {KeyboardShortcuts} = require('./keyboard-shortcuts')
 {JSONView}          = require('./json-view')
 {RawEditor}         = require('./raw-editor')
+{ExamplesDialog}    = require('smc-webapp/assistant/dialog')
 
 KERNEL_STYLE =
     position        : 'absolute'
@@ -222,8 +223,6 @@ exports.JupyterEditor = rclass ({name}) ->
         />
 
     render_assistant_dialog: ->
-        {ExamplesDialog} = require('smc-webapp/assistant/dialog')
-
         <ExamplesDialog
             name     = {@props.actions.assistant_actions.name}
             actions  = {@props.actions.assistant_actions}

@@ -28,6 +28,8 @@ immutable = require('immutable')
 {Loading, Icon, Markdown, Space} = require('../r_misc')
 # cocalc libs
 {defaults, required, optional} = misc = require('smc-util/misc')
+# Assistant
+{REPO_URL} = require('./common')
 
 
 exports.ExamplesBody = rclass
@@ -212,8 +214,6 @@ exports.ExamplesBody = rclass
         </React.Fragment>
 
     render_unknown_lang: ->
-        {REPO_URL} = require('./main')
-
         <Row>
             <Col sm={12}>
                 Selected language <code>{@props.lang}</code> has no data.

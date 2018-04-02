@@ -28,6 +28,8 @@ immutable = require('immutable')
 {Loading, Icon, Markdown, Space} = require('../r_misc')
 # cocalc libs
 {defaults, required, optional} = misc = require('smc-util/misc')
+# Assistant
+{REPO_URL} = require('./common')
 
 
 exports.ExamplesFooter = rclass
@@ -58,8 +60,6 @@ exports.ExamplesFooter = rclass
         @props.actions.hide()
 
     render: ->
-        {REPO_URL} = require('./main')
-
         <Modal.Footer>
             <Button
                 className  = {'contrib-link'}
