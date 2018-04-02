@@ -708,13 +708,13 @@ exports.SearchInput = rclass
         on_down         : rtypes.func    # push down arrow
         on_clear        : rtypes.func    # invoked without arguments when input box is cleared (eg. via esc or clicking the clear button)
         clear_on_submit : rtypes.bool    # if true, will clear search box on every submit (default: false)
-        buttonAfter     : rtypes.object
+        buttonAfter     : rtypes.element
         input_class     : rtypes.string  # className for the InputGroup element
 
     shouldComponentUpdate: (props, state) ->
         return misc.is_different(@state, state, ['value', 'ctrl_down']) or \
                misc.is_different(@props, props, ['clear_on_submit', 'autoFocus', 'autoSelect', 'placeholder', \
-                                                 'default_value',  'value'])
+                                                 'default_value',  'value', 'buttonAfter'])
 
     getInitialState: ->
         value     : (@props.value || @props.default_value) ? ''
@@ -832,6 +832,8 @@ exports.HTML = HTML = rclass
                                            # install click handlers here.
         highlight        : rtypes.immutable.Set
         content_editable : rtypes.bool     # if true, makes rendered HTML contenteditable
+        reload_images    : rtypes.bool     # if true, after any update to component, force reloading of all images.
+        highlight_code   : rtypes.bool     # if true, highlight some <code class='language-r'> </code> blocks.  See misc_page for how tiny this is!
         id               : rtypes.string
 
     getDefaultProps: ->
@@ -843,7 +845,8 @@ exports.HTML = HTML = rclass
             other_settings : rtypes.immutable.Map
 
     shouldComponentUpdate: (next) ->
-        return misc.is_different(@props, next, ['value', 'auto_render_math', 'highlight', 'safeHTML']) or \
+        return misc.is_different(@props, next, ['value', 'auto_render_math', 'highlight', 'safeHTML', \
+                 'reload_images', 'highlight_code']) or \
                not underscore.isEqual(@props.style, next.style)
 
     _update_mathjax: (cb) ->
@@ -880,6 +883,21 @@ exports.HTML = HTML = rclass
             return
         $(ReactDOM.findDOMNode(@)).find("table").addClass('table')
 
+    _update_images: ->
+        if @_is_mounted and @props.reload_images
+            $(ReactDOM.findDOMNode(@)).reload_images()
+
+    _update_code: ->
+        if @_is_mounted and @props.highlight_code
+            $(ReactDOM.findDOMNode(@)).highlight_code()
+
+    _do_updates: ->
+        @_update_links()
+        @_update_tables()
+        @_update_highlight()
+        @_update_code()
+        @_update_images()
+
     update_content: ->
         if not @_is_mounted
             return
@@ -888,13 +906,9 @@ exports.HTML = HTML = rclass
             @_update_mathjax =>
                 if not @_is_mounted
                     return
-                @_update_links()
-                @_update_tables()
-                @_update_highlight()
+                @_do_updates()
         else
-            @_update_links()
-            @_update_tables()
-            @_update_highlight()
+            @_do_updates()
 
     componentDidUpdate: ->
         @update_content()
@@ -973,13 +987,16 @@ exports.Markdown = rclass
         content_editable : rtypes.bool     # if true, makes rendered Markdown contenteditable
         checkboxes       : rtypes.bool     # if true, replace "[ ]" and "[ ]" by nice rendered versions.
         id               : rtypes.string
+        reload_images    : rtypes.bool
+        highlight_code   : rtypes.bool
 
     getDefaultProps: ->
         auto_render_math : true
         safeHTML         : true
 
     shouldComponentUpdate: (next) ->
-        return misc.is_different(@props, next, ['value', 'auto_render_math', 'highlight', 'safeHTML', 'checkboxes']) or \
+        return misc.is_different(@props, next, ['value', 'auto_render_math', 'highlight', 'safeHTML',  \
+                    'checkboxes', 'reload_images', 'highlight_code']) or \
                not underscore.isEqual(@props.style, next.style)
 
     to_html: ->
@@ -1000,6 +1017,8 @@ exports.Markdown = rclass
             post_hook        = {@props.post_hook}
             highlight        = {@props.highlight}
             safeHTML         = {@props.safeHTML}
+            reload_images    = {@props.reload_images}
+            highlight_code   = {@props.highlight_code}
             content_editable = {@props.content_editable} />
 
 

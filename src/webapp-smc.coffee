@@ -40,15 +40,15 @@ require('jquery-highlight')
 # Caret Position jQuery plugin
 require('jquery-caret')
 
+# Stripe Payment jQuery plugin
+require("jquery.payment")
+
 # Bootstrap
 require('bootstrap')
 
 # Bootbox: usable dialogs for bootstrap
 require("script-loader!bootbox/bootbox.min.js")  # loads from smc-webapp/node_modules
 # require('bootbox') # this doesn't work, sadly (jquery initializiation with "modal" from bootstrap doesn't happen properly)
-
-# Bootstrap switch: https://github.com/nostalgiaz/bootstrap-switch
-require('bootstrap-switch')
 
 # Bootstrap Colorpicker Plugin
 require('bootstrap-colorpicker')

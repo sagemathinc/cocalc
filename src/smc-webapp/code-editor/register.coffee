@@ -13,3 +13,4 @@ register_file_editor
     ext       : (key for key, value of file_associations when value.editor == 'codemirror')
     component : Editor
     Actions   : Actions
+    icon      : 'file-code-o'

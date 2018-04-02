@@ -81,6 +81,7 @@ exports.FrameTree = FrameTree = rclass ({name}) ->
             misspelled_words        : rtypes.immutable.Set
             has_unsaved_changes     : rtypes.bool
             has_uncommitted_changes : rtypes.bool
+            is_saving               : rtypes.bool
 
     getInitialState: ->
         drag_hover: false
@@ -89,7 +90,7 @@ exports.FrameTree = FrameTree = rclass ({name}) ->
         return @state.drag_hover != state.drag_hover or \
                misc.is_different(@props, next, ['frame_tree', 'active_id', 'full_id', 'is_only', \
                       'cursors', 'has_unsaved_changes', 'has_uncommitted_changes', 'is_public', 'content', 'value', \
-                      'project_id', 'path', 'misspelled_words', 'reload', 'resize'])
+                      'project_id', 'path', 'misspelled_words', 'reload', 'resize', 'is_saving'])
 
     render_frame_tree: (desc) ->
         <FrameTree
@@ -123,6 +124,7 @@ exports.FrameTree = FrameTree = rclass ({name}) ->
             read_only               = {desc.get('read_only') or @props.read_only}
             has_unsaved_changes     = {@props.has_unsaved_changes}
             has_uncommitted_changes = {@props.has_uncommitted_changes}
+            is_saving               = {@props.is_saving}
             is_public               = {@props.is_public}
             type                    = {desc.get('type')}
             editor_spec             = {@props.editor_spec}
@@ -156,6 +158,7 @@ exports.FrameTree = FrameTree = rclass ({name}) ->
             is_fullscreen    = {@props.is_only or desc.get('id') == @props.full_id}
             reload           = {@props.reload?.get(type)}
             resize           = {@props.resize}
+            reload_images    = {spec?.reload_images}
         />
 
     render_one: (desc) ->

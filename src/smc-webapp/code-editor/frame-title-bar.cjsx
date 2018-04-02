@@ -45,6 +45,7 @@ exports.FrameTitleBar = rclass
         read_only               : rtypes.bool
         has_unsaved_changes     : rtypes.bool
         has_uncommitted_changes : rtypes.bool
+        is_saving               : rtypes.bool
         is_full                 : rtypes.bool
         is_only                 : rtypes.bool    # is the only frame
         is_public               : rtypes.bool    # public view of a file
@@ -53,7 +54,7 @@ exports.FrameTitleBar = rclass
 
     shouldComponentUpdate: (next) ->
         return misc.is_different(@props, next, ['active_id', 'id', 'deletable', 'is_full', 'is_only', \
-                     'read_only', 'has_unsaved_changes', 'has_uncommitted_changes', 'is_public', 'type'])
+                     'read_only', 'has_unsaved_changes', 'has_uncommitted_changes', 'is_public', 'is_saving', 'type'])
 
     componentWillReceiveProps: ->
         @_last_render = new Date()
@@ -390,6 +391,10 @@ exports.FrameTitleBar = rclass
                 label = 'Save'
         else
             label = ''
+        if @props.is_saving
+            icon = 'arrow-circle-o-left'
+        else
+            icon = 'save'
         <Button
             key      = {'save'}
             title    = {"Save file to disk"}
@@ -398,7 +403,7 @@ exports.FrameTitleBar = rclass
             disabled = {disabled}
             onClick  = {=>@props.actions.save(true)}
         >
-            <Icon name='save' /> <VisibleMDLG>{label}</VisibleMDLG>
+            <Icon name={icon} /> <VisibleMDLG>{label}</VisibleMDLG>
             <UncommittedChanges has_uncommitted_changes={@props.has_uncommitted_changes} />
         </Button>
 

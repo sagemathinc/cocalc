@@ -32,6 +32,19 @@ Recently added collaborators:
 
     select count(*) from project_log where time >= now() - interval '2 day' and time <= now() - interval '1 day' and event#>>'{event}' = 'invite_user';  select count(*) from project_log where time >= now() - interval '1 day' and time <= now() and event#>>'{event}' = 'invite_user';
 
+Top collaborators (users who have many projects)
+
+    WITH collabs AS (
+        SELECT COUNT(*) AS num, jsonb_object_keys(users) AS account_id
+        FROM projects
+        GROUP BY account_id
+    )
+    SELECT num, first_name, last_name, email_address
+    FROM collabs, accounts
+    WHERE accounts.account_id = collabs.account_id::UUID
+      AND num > 100
+    ORDER BY num DESC
+
 Exclude course projects:
 
     select now()-a.time,a.project_id from project_log as a, projects as b where a.time >= now() - interval '1 day' and a.time <= now() and a.event#>>'{event}' = 'invite_user'  and a.project_id = b.project_id and b.course is null order by a.time desc;

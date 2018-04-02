@@ -831,7 +831,7 @@ class JupyterNotebook extends EventEmitter
             default_font_size : 14          # set in editor.coffee
             cb                : undefined   # optional
         if $.browser.firefox
-            @element = $("<div class='alert alert-info' style='margin: 15px;'>Jupyter classic does not work on Firefox; please switch to the modern Jupyter notebook server.</div>")
+            @element = $("<div class='alert alert-info' style='margin: 15px;'>Jupyter *classic* does not work on Firefox; please switch to the CoCalc Jupyter notebook.</div>")
             @element.data("jupyter_notebook", @)
             @modern()
             opts.cb?()
@@ -1189,7 +1189,7 @@ class JupyterNotebook extends EventEmitter
     failed_to_load: =>
         @element.find(".smc-jupyter-notebook-notebook").remove()
         t = "<div style='margin:15px'><h3>Classical Jupyter is not working</h3>"
-        t += "Please try the <a href='#{@server_url}#{@filename}' target='_blank'>plain non-collaborative server</a>, or <a href='#jupyter-switch-to-modern-notebook'>switch back to the modern Jupyter notebook server</a>.</div>"
+        t += "Please try the <a href='#{@server_url}#{@filename}' target='_blank'>plain non-collaborative server</a>, or <a href='#jupyter-switch-to-modern-notebook'>switch back to the CoCalc Jupyter notebook server</a>.</div>"
         @element.append(t)
         $("a[href='#jupyter-switch-to-modern-notebook']").click () =>
             bootbox.hideAll()
@@ -1223,10 +1223,10 @@ class JupyterNotebook extends EventEmitter
         return false
 
     modern: () =>
-        t = "<h3><i class='fa fa-exchange'></i> Switch to the Modern Notebook</a></h3>"
-        t += "<br><br>Unfortunately, Jupyter classic does not work on Firefox; please switch back to the modern Jupyter notebook server (or use Google Chrome or Safari).<br><br>The modern Jupyter Notebook has <a href='http://blog.sagemath.com/jupyter/2017/05/05/jupyter-rewrite-for-smc.html' target='_blank'>many improvements</a> over the classical notebook, which you are currently using.  However, certain features are still not fully supported (notably, interactive widgets).  You can try opening your notebooks using the modern notebook.  If it doesn't work for you, you can easily switch to the Classical Jupyter Notebook (please let us know what is missing so we can add it!). NOTE: multiple people simultaneously editing a notebook, with some using classical and some using the new mode, will NOT work well!<br><br><a href='https://github.com/sagemathinc/cocalc/wiki/JupyterClassicModern' target='_blank'>More info and the latest status...</a>"
+        t = "<h3><i class='fa fa-exchange'></i> Switch to the CoCalc Jupyter Notebook</a></h3>"
+        t += "<br><br>Unfortunately, Jupyter classic does not work on Firefox; please switch back to the CoCalc Jupyter notebook server (or use Google Chrome or Safari).<br><br>The CoCalc Jupyter Notebook has <a href='http://blog.sagemath.com/jupyter/2017/05/05/jupyter-rewrite-for-smc.html' target='_blank'>many improvements</a> over the classical notebook, which you are currently using.  However, certain features are still not fully supported (notably, interactive widgets).  You can try opening your notebooks using the CoCalc notebook.  If it doesn't work for you, you can easily switch to the Classical Jupyter Notebook (please let us know what is missing so we can add it!). NOTE: multiple people simultaneously editing a notebook, with some using classical and some using the new mode, will NOT work well!<br><br><a href='https://github.com/sagemathinc/cocalc/wiki/JupyterClassicModern' target='_blank'>More info and the latest status...</a>"
         t += "<br><hr>"
-        t += "<a href='#jupyter-switch-to-modern-notebook' class='btn btn-warning'>Switch to Modern Notebook</a>"
+        t += "<a href='#jupyter-switch-to-modern-notebook' class='btn btn-warning'>Switch to CoCalc Jupyter Notebook</a>"
         bootbox.alert(t)
 
         $("a[href='#jupyter-switch-to-modern-notebook']").click () =>

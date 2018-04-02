@@ -31,7 +31,7 @@ exports.export_to_ipynb = (opts) ->
 
     return ipynb
 
-# Return ipynb version of the given cell as Python object
+# Return ipynb version of the given cell as object
 cell_to_ipynb = (id, opts) ->
     cell = opts.cells.get(id)
     metadata = {}
@@ -163,7 +163,7 @@ process_output_n = (output_n, exec_count, blob_store) ->
                 else
                     return  # impossible to include in the output without blob_store
         output_n.output_type = "execute_result"
-        output_n.metadata = {}
+        output_n.metadata ?= {}
         output_n.execution_count = exec_count
     else if output_n.name?
         output_n.output_type = 'stream'

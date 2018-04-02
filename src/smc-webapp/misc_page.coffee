@@ -118,6 +118,24 @@ exports.scroll_top = () ->
 #############################################
 {required, defaults} = require('smc-util/misc')
 
+# Force reload all images by appending random query param to their src URL.
+$.fn.reload_images = (opts) ->
+    @each ->
+        for img in $(this).find('img')
+            $(img).attr('src', $(img).attr('src')+'?'+Math.random())
+
+# Highlight all code blocks that have CSS class language-r, language-python.
+# TODO: I just put in r and python for now, since this is mainly
+# motivated by rmd files.
+$.fn.highlight_code = (opts) ->
+    @each ->
+        for mode in ['r', 'python']
+            for elt in $(this).find("code.language-#{mode}")
+                code = $(elt)
+                CodeMirror.runMode(code.text(), mode, elt)
+                code.addClass('cm-s-default')
+                code.removeClass('language-#{mode}')  # done
+
 # jQuery plugin for spinner (/spin/spin.min.js)
 $.fn.spin = (opts) ->
     @each ->
@@ -1834,14 +1852,24 @@ exports.drag_start_iframe_disable = ->
 exports.drag_stop_iframe_enable = ->
     $("iframe:visible").css('pointer-events', 'auto')
 
-exports.open_popup_window = (url) ->
-    exports.open_new_tab(url, true)
+exports.open_popup_window = (url, opts) ->
+    exports.open_new_tab(url, true, opts)
 
 # open new tab and check if user allows popups. if yes, return the tab -- otherwise show an alert and return null
-exports.open_new_tab = (url, popup=false) ->
+exports.open_new_tab = (url, popup=false, opts) ->
     # if popup=true, it opens a smaller overlay window instead of a new tab (though depends on browser)
+
+    opts = misc.defaults opts,
+        menubar    : 'yes'
+        toolbar    : 'no'
+        resizable  : 'yes'
+        scrollbars : 'yes'
+        width      : '800'
+        height     : '640'
+
     if popup
-        tab = window.open(url, '_blank', 'menubar=yes,toolbar=no,resizable=yes,scrollbars=yes,height=640,width=800')
+        popup_opts = ("#{k}=#{v}" for k, v of opts when v?).join(',')
+        tab = window.open(url, '_blank', popup_opts)
     else
         tab = window.open(url, '_blank')
     if not tab?.closed? or tab.closed   # either tab isn't even defined (or doesn't have close method) -- or already closed -- popup blocked

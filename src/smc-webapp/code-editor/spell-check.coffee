@@ -12,6 +12,7 @@ exports.misspelled_words = (opts) ->
         project_id : required
         path       : required
         lang       : undefined
+        time       : undefined
         cb         : required
     opts.lang ?= misc_page.language()
     if opts.lang == 'disable'
@@ -31,6 +32,7 @@ exports.misspelled_words = (opts) ->
         bash        : true
         err_on_exit : true
         allow_post  : true
+        aggregate   : opts.time
         cb          : (err, output) ->
             if err
                 opts.cb(err)

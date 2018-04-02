@@ -4,7 +4,6 @@
 require("jquery/jquery-ui/css/humanity/jquery-ui.css")
 require("bootstrap-3.3.0/css/bootstrap.min.css")
 require("font-awesome/css/font-awesome.min.css")
-require("bootstrap-switch/bootstrap-switch.css")
 require("jquery/plugins/bootstrap-colorpicker/css/bootstrap-colorpicker.css")
 require("pnotify/jquery.pnotify.default.css")
 require("pnotify/jquery.pnotify.default.icons.css")

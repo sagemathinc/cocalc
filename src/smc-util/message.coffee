@@ -835,6 +835,9 @@ API message2
         timeout:
             init  : 10
             desc  : 'maximum allowed time, in seconds'
+        aggregate:
+            init  : undefined
+            desc  : 'If there are multiple attempts to run the given command with the same time, they are all aggregated and run only one time by the project; if requests comes in with a greater value (time, sequence number, etc.), they all run in  another group after the first one finishes.  Meant for compiling code on save.'
         max_output:
             init  : undefined
             desc  : 'maximum number of characters in the output'
@@ -2294,9 +2297,9 @@ if you are only setting the `cpu_shares` attribute because changes are merged in
 ```
 
 Set present user to open Jupyter notebooks in
-"Modern Notebook" as opposed to "Classical Notebook".
+"CoCalc Jupyter Notebook" as opposed to "Classical Notebook".
 This change not usually needed, because accounts
-default to "Modern Notebook".
+default to "CoCalc Jupyter Notebook".
 
 It is not necessary to specify the entire `editor_settings` object
 if you are only setting the `jupyter_classic` attribute because changes are merged in.
