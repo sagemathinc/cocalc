@@ -106,7 +106,7 @@ class exports.Actions extends Actions
 
     set_reload: (type) =>
         reload = @store.get('reload') ? immutable.Map()
-        @setState(reload: reload.set(type, (reload.get(type) ? 0) + 1))
+        @setState(reload: reload.set(type, @_syncstring.hash_of_saved_version()))
 
     set_resize: =>
         @setState(resize: (@store.get('resize') ? 0) + 1)
@@ -618,6 +618,11 @@ class exports.Actions extends Actions
     # sets the mispelled_words part of the state to the immutable
     # Set of those words.  They can then be rendered by any editor/view.
     update_misspelled_words: (time) =>
+        hash = @_syncstring.hash_of_saved_version()
+        if hash == @_update_misspelled_words_last_hash
+            # same file as before, so do not bother.
+            return
+        @_update_misspelled_words_last_hash = hash
         spell_check.misspelled_words
             project_id : @project_id
             path       : @path
