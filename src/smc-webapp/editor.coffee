@@ -1981,12 +1981,6 @@ class JupyterNBViewerEmbedded extends FileEditor
             @iframe.attr('src', "//nbviewer.jupyter.org/urls/#{ipynb_src}")
         @element.show()
 
-{HTML_MD_Editor} = require('./editor-html-md/editor-html-md')
-html_md_exts = (ext for ext, opts of file_associations when opts.editor == 'html-md')
-
-# TODO: so new react editors gets used instead...
-html_md_exts = (ext for ext in html_md_exts when ext != 'md' and ext != 'html' and ext != 'rst')
-
 {LatexEditor} = require('./latex/editor')
 
 exports.register_nonreact_editors = ->
@@ -2009,7 +2003,6 @@ exports.register_nonreact_editors = ->
                     return e
 
     # Editors for private normal editable files.
-    register(false, HTML_MD_Editor,   html_md_exts)
     register(false, LatexEditor,      ['tex', 'rnw'])
     register(false, Terminal,         ['term', 'sage-term'])
 

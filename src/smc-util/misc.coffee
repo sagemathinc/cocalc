@@ -731,7 +731,7 @@ exports.retry_until_success = (opts) ->
         log         : undefined
         warn        : undefined
         name        : ''
-        cb          : undefined       # called with cb() on *success*; cb(error) if max_tries is exceeded
+        cb          : undefined       # called with cb() on *success*; cb(error, last_error) if max_tries is exceeded
 
     delta = opts.start_delay
     tries = 0
@@ -756,11 +756,11 @@ exports.retry_until_success = (opts) ->
                 if opts.log?
                     opts.log("retry_until_success(#{opts.name}) -- err=#{JSON.stringify(err)}")
                 if opts.max_tries? and opts.max_tries <= tries
-                    opts.cb?("maximum tries (=#{opts.max_tries}) exceeded - last error #{JSON.stringify(err)}")
+                    opts.cb?("maximum tries (=#{opts.max_tries}) exceeded - last error #{JSON.stringify(err)}", err)
                     return
                 delta = Math.min(opts.max_delay, opts.factor * delta)
                 if opts.max_time? and (new Date() - start_time) + delta > opts.max_time
-                    opts.cb?("maximum time (=#{opts.max_time}ms) exceeded - last error #{JSON.stringify(err)}")
+                    opts.cb?("maximum time (=#{opts.max_time}ms) exceeded - last error #{JSON.stringify(err)}", err)
                     return
                 setTimeout(g, delta)
             else
@@ -1038,6 +1038,8 @@ exports.matches = (s, words) ->
     return true
 
 exports.hash_string = (s) ->
+    if not s?
+        return
     # see http://stackoverflow.com/questions/7616461/generate-a-hash-from-string-in-javascript-jquery
     hash = 0
     i = undefined
@@ -1052,9 +1054,6 @@ exports.hash_string = (s) ->
         hash |= 0 # convert to 32-bit integer
         i++
     return hash
-
-
-
 
 exports.parse_hashtags = (t) ->
     # return list of pairs (i,j) such that t.slice(i,j) is a hashtag (starting with #).

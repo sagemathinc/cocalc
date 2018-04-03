@@ -115,10 +115,6 @@ file_associations['tex'] =
     icon   : 'cc-icon-tex-file'
     opts   : {mode:'stex2', indent_unit:4, tab_size:4}
     name   : "LaTeX"
-#file_associations['tex'] =  # WARNING: only for TESTING!!!
-#    editor : 'html-md'
-#    icon   : 'fa-file-code-o'
-#    opts   : {indent_unit:4, tab_size:4, mode:'stex2'}
 
 file_associations['rnw'] =
     editor : 'latex'
@@ -127,34 +123,30 @@ file_associations['rnw'] =
     name   : "R/knitr LaTeX"
 
 file_associations['html'] =
-    editor : 'html-md'
     icon   : 'fa-file-code-o'
     opts   : {indent_unit:4, tab_size:4, mode:'htmlmixed'}
     name   : "html"
 
 file_associations['md'] =
-    editor : 'html-md'
     icon   : 'cc-icon-markdown'
     opts   : {indent_unit:4, tab_size:4, mode:'gfm'}
     name   : "markdown"
 
 file_associations['rmd'] =
-    editor : 'html-md'
     icon   : 'cc-icon-r'
     opts   : {indent_unit:4, tab_size:4, mode:'gfm'}
     name   : "Rmd"
 
-file_associations['java'] =
-    editor : 'html-md'
-    icon   : 'fa-file-code-o'
-    opts   : {indent_unit:4, tab_size:4, mode:'text/x-java'}
-    name   : "Java"
-
 file_associations['rst'] =
-    editor : 'html-md'
     icon   : 'fa-file-code-o'
     opts   : {indent_unit:4, tab_size:4, mode:'rst'}
     name   : "ReST"
+
+file_associations['java'] =
+    editor : 'codemirror'
+    icon   : 'fa-file-code-o'
+    opts   : {indent_unit:4, tab_size:4, mode:'text/x-java'}
+    name   : "Java"
 
 file_associations['mediawiki'] = file_associations['wiki'] =
     editor : 'html-md'

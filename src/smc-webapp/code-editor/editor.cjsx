@@ -9,6 +9,8 @@ misc                    = require('smc-util/misc')
 {FrameTree}             = require('./frame-tree')
 {IS_IPAD}               = require('../feature')
 
+{StatusBar}             = require('./status-bar')
+
 exports.set = (v) ->  # used for specifying buttons...
     s = {}
     for x in v
@@ -103,9 +105,13 @@ exports.Editor = rclass ({name}) ->
     #    if IS_IPAD
     #        <div style={height:'90px'}></div>
 
+    render_status_bar: ->
+        <StatusBar name={name} />
+
     render: ->
         <div className={'smc-vfill'}>
             {@render_error()}
             {@render_frame_tree()}
+            {@render_status_bar()}
             {### @render_ipad_footer() ###}
         </div>

@@ -1271,44 +1271,31 @@ class SyncDoc extends EventEmitter
             cb?()
             return
 
-        if @_saving  # this makes it at least safe to call @_save() directly...
+        if @_handle_patch_update_queue_running
+            cb?("handle_patch_update_queue_running")
+            return
+
+        if @_saving
+            # this makes it at least safe to call @_save() directly...
             cb?("saving")
             return
 
         @_saving = true
-
-        # compute transformation from _last to live -- exactly what we did
-        patch = @_last.make_patch(@_doc)
-        if not patch?
-            # document not initialized (or closed) so nothing to save
+        @_sync_remote_and_doc (err) =>
             @_saving = false
-            cb?()
-            return
-        @_last = @_doc
-
-        # now save the resulting patch
-        time = @_client.server_time()
-
-        min_time = @_patch_list.newest_patch_time()
-        if min_time? and min_time >= time
-            # Ensure that time is newer than *all* already known times.
-            # This is critical to ensure that patches are saved in order,
-            # and that the new patch we are making is *on top* of all
-            # known patches (otherwise it won't apply cleanly, etc.).
-            time = new Date((min_time - 0) + 1)
-
-        time = @_patch_list.next_available_time(time, @_user_id, @_users.length)
-
-        # FOR *nasty* worst case DEBUGGING/TESTING ONLY!
-        ##window?.s = @
-        ##time = new Date(Math.floor((time - 0)/10000)*10000)   # fake timestamps for testing to cause collisions
-
-        @_save_patch(time, patch, cb)
+            cb?(err)
 
         @snapshot_if_necessary()
         # Emit event since this syncstring was definitely changed locally.
         @emit('user_change')
-        @_saving = false
+
+    _next_patch_time: =>
+        time = @_client.server_time()
+        min_time = @_patch_list.newest_patch_time()
+        if min_time? and min_time >= time
+            time = new Date((min_time - 0) + 1)
+        time = @_patch_list.next_available_time(time, @_user_id, @_users.length)
+        return time
 
     _undelete: () =>
         if @_closed
@@ -1316,7 +1303,7 @@ class SyncDoc extends EventEmitter
         #@dbg("_undelete")()
         @_syncstring_table.set(@_syncstring_table.get_one().set('deleted', false))
 
-    _save_patch: (time, patch, cb) =>
+    _save_patch: (time, patch, cb) =>  # cb called when save to the backend done
         if @_closed
             cb?('closed')
             return
@@ -1325,6 +1312,9 @@ class SyncDoc extends EventEmitter
             time      : time
             patch     : JSON.stringify(patch)
             user_id   : @_user_id
+
+        @_my_patches[time - 0] = obj
+
         if @_patch_format?
             obj.format = @_patch_format
         if @_deleted
@@ -1335,11 +1325,11 @@ class SyncDoc extends EventEmitter
             obj.prev = @_save_patch_prev
         @_save_patch_prev = time
         #console.log("_save_patch: #{misc.to_json(obj)}")
-        @_my_patches[time - 0] = obj
 
         # If in undo mode put the just-created patch in our without timestamp list, so it won't be included when doing undo/redo.
         @_undo_state?.without.unshift(time)
 
+        #console.log 'saving patch with time ', time - 0
         x = @_patches_table.set(obj, 'none', cb)
         @_patch_list.add([@_process_patch(x, undefined, undefined, patch)])
 
@@ -1878,13 +1868,15 @@ class SyncDoc extends EventEmitter
                         cb(err)
             misc.retry_until_success
                 f         : f
-                max_tries : 5
-                cb        : (err) =>
+                max_tries : 4
+                cb        : (err, last_err) =>
                     if @_closed
                         # closed during save
                         cb()
                         return
-                    cb(err)
+                    if last_err
+                        @_client.log_error?({string_id:@_string_id, path:@_path, project_id:@_project_id, error:"Error saving file -- #{last_err}"})
+                    cb(last_err)
 
     # Save this file to disk, if it is associated with a project and has a filename.
     # A user (web browsers) sets the save state to requested.
@@ -1974,15 +1966,15 @@ class SyncDoc extends EventEmitter
         )
 
     ###
-    # When the underlying synctable that defines the state of the document changes
-    # due to new remote patches, this function is called.
-    # It handles update of the remote version, updating our live version as a result.
+    When the underlying synctable that defines the state of the document changes
+    due to new remote patches, this function is called.
+    It handles update of the remote version, updating our live version as a result.
     ###
     _handle_patch_update: (changed_keys) =>
         if @_closed
             return
         #console.log("_handle_patch_update #{misc.to_json(changed_keys)}")
-        if not changed_keys?
+        if not changed_keys? or changed_keys.length == 0
             # this happens right now when we do a save.
             return
         if not @_patch_list?
@@ -1990,46 +1982,70 @@ class SyncDoc extends EventEmitter
             return
         #dbg = @dbg("_handle_patch_update")
         #dbg(new Date(), changed_keys)
-
-        # note: other code handles that @_patches_table.get(key) may not be defined, e.g., when changed means "deleted"
-        @_patch_list.add( (@_process_patch(@_patches_table.get(key)) for key in changed_keys) )
-
-        if @_updating_live
+        @_patch_update_queue ?= []
+        for key in changed_keys
+            @_patch_update_queue.push(key)
+        if @_handle_patch_update_queue_running
             return
-        @_updating_live = true
+        setTimeout(@_handle_patch_update_queue, 1)
 
-        # Save any unsaved changes we might have made locally.
-        # This is critical to do, since otherwise the remote
-        # changes would overwrite the local ones.
-        ensure_saved = (cb) =>
-            if @_closed
-                cb()
-                return
-            @_before_change_hook?()
-            if @_last.is_equal(@_doc)
-                cb()
-                return
-            @_save =>
-                cb(true)  # check that done happens in next call above.
+    _handle_patch_update_queue: =>
+        @_handle_patch_update_queue_running = true
 
-        misc.retry_until_success
-            f  : ensure_saved
-            cb : =>
-                @_updating_live = false
+        # note: other code handles that @_patches_table.get(key) may not be
+        # defined, e.g., when changed means "deleted"
+        v = (@_patches_table.get(key) for key in @_patch_update_queue)
+        @_patch_update_queue = []
+        v = (x for x in v when x? and not @_my_patches?[x.get('time') - 0])
+        if v.length > 0
+            @_patch_list.add( (@_process_patch(x) for x in v) )
+            # NOTE: This next line can sometimes *cause* new entries to be added to @_patch_update_queue.
+            @_sync_remote_and_doc()
 
-                # compute result of applying all patches in order to snapshot
-                new_remote = @_patch_list.value()
+        if @_patch_update_queue.length > 0
+            # It is very important that this happen in the next
+            # render loop to avoid the @_sync_remote_and_doc call
+            # in @_handle_patch_update_queue from causing
+            # _sync_remote_and_doc to get called from within itself,
+            # due to synctable changes being emited on save.
+            setTimeout(@_handle_patch_update_queue, 1)
+        else
+            # OK, done and nothing in the queue
+            @_handle_patch_update_queue_running = false
 
-                # temporary hotfix for https://github.com/sagemathinc/cocalc/issues/1873
-                try
-                    changed = not @_doc?.is_equal(new_remote)
-                catch
-                    changed = true
-                # if any possibility that document changed, set to new version
-                if changed
-                    @_last = @_doc = new_remote
-                    @_after_change_hook?()
-                    @emit('change')
+    ###
+    Merge remote patches and live version to create new live version,
+    which is equal to result of applying all patches.
+
+    This is completely synchronous, and calls before_change_hook and after_change_hook,
+    if given, so will work with live being "isomorphic" to some editor (like codemirror).
+    ###
+    _sync_remote_and_doc: (cb) =>  # optional cb only used to know when save_patch is done
+        if not @_last? or not @_doc?
+            cb?()
+            return
+        if @_sync_remote_and_doc_calling
+            throw Error("bug - _sync_remote_and_doc can't be called twice at once")
+        @_sync_remote_and_doc_calling = true
+        # ensure that our live @_doc equals what the user's editor shows in their browser (say)
+        @_before_change_hook?()
+        if not @_last.is_equal(@_doc)
+            # compute transformation from _last to _doc
+            patch = @_last.make_patch(@_doc) # must be nontrivial
+            # ... and save that to patch table since there is a nontrivial change
+            time = @_next_patch_time()
+            @_save_patch(time, patch, cb)
+            @_last = @_doc
+        else
+            cb?()
+
+        new_remote = @_patch_list.value()
+        if not @_doc.is_equal(new_remote)
+            # if any possibility that document changed, set to new version
+            @_last = @_doc = new_remote
+            @_after_change_hook?()
+            @emit('change')
+        @_sync_remote_and_doc_calling = false
 
     # Return true if there are changes to this syncstring that have not been
     # committed to the database (with the commit acknowledged).  This does not

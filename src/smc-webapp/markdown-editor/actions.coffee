@@ -17,6 +17,7 @@ class exports.Actions extends Actions
 
     _raw_default_frame_tree: =>
         if @is_public
+
             type : 'markdown'
         else
             direction : 'col'

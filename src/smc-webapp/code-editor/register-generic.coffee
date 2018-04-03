@@ -16,16 +16,19 @@ exports.register_file_editor = (opts) ->
         component : required
         Actions   : undefined
         Store     : undefined
+        icon      : undefined
     for is_public in [true, false]
-        register(opts.ext, opts.component, opts.Actions, opts.Store, is_public)
+        register(opts.ext, opts.component, opts.Actions, opts.Store, opts.icon, is_public)
 
-register = (ext, component, Actions, Store, is_public) ->
+register = (ext, component, Actions, Store, icon, is_public) ->
     register_file_editor
         ext       : ext
 
         is_public : is_public
 
         component : component
+
+        icon      : icon
 
         init      : (path, redux, project_id) ->
             name = redux_name(project_id, path, is_public)
