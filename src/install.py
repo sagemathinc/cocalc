@@ -71,7 +71,7 @@ def install_webapp(*args):
     nothing = True
 
     if 'build' in action:
-        cmd("cd examples && make")
+        cmd("cd examples && env OUTDIR=../webapp-lib/examples make")
         for path in ['.', 'smc-util', 'smc-util-node', 'smc-webapp', 'smc-webapp/jupyter']:
             cmd("cd %s; npm --loglevel=warn install"%path)
 
@@ -135,6 +135,7 @@ def install_all(compute=False, web=False):
         install_project()
     if web:
         install_webapp()
+
 
 def main():
     parser = argparse.ArgumentParser(description="Install components of CoCalc into the system")

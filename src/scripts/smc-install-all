@@ -39,7 +39,7 @@ npm install
 npm install --only=dev
 
 cd $SMC_ROOT/examples
-make
+env OUTDIR=../webapp-lib/examples make
 
 # generating color scheme
 cd $SMC_ROOT

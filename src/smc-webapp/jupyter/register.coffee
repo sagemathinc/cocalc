@@ -1,5 +1,5 @@
 ###
-Register the Jupyter Notebook editor and viwer with SMC
+Register the Jupyter Notebook editor and viewer with CoCalc
   - set the file extension, icon, react component,
     and how to init and remove the actions/store
 ###
@@ -45,8 +45,7 @@ exports.register = ->
 
             actions._init(project_id, path, syncdb, store, webapp_client)
 
-            ##if window.smc?
-            ##    window.a = actions # for DEBUGGING
+            ## if window.smc? then window.jupyter_actions = actions # for DEBUGGING
 
             syncdb.once 'init', (err) =>
                 if err
@@ -64,8 +63,16 @@ exports.register = ->
             actions = redux.getActions(name)
             actions?.close()
             store = redux.getStore(name)
-            if not store?
-                return
+            return if not store?
+
+            # cleanup assistant
+            if actions.assistant_actions?
+                assistant_name = actions.assistant_actions.name
+                delete redux.getStore(assistant_name).state
+                redux.removeStore(assistant_name)
+                redux.removeActions(assistant_name)
+
+            # cleanup main store/actions
             delete store.state
             redux.removeStore(name)
             redux.removeActions(name)

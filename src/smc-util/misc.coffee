@@ -2173,3 +2173,14 @@ exports.human_readable_size = (bytes) ->
     b = Math.floor(bytes/100000000)
     return "#{b/10} GB"
 
+# convert a jupyter kernel language (i.e. "python" or "r", usually short and lowercase)
+# to a canonical name.
+exports.jupyter_language_to_name = (lang) ->
+    if lang == 'python'
+        return 'Python'
+    else if lang == 'gap'
+        return 'GAP'
+    else if lang == 'sage' or exports.startswith(lang, 'sage-')
+        return 'SageMath'
+    else
+        return lang.charAt(0).toUpperCase() + lang[1..]

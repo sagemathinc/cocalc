@@ -58,6 +58,7 @@ COLORS =
     BRWN     : '#593E05'
     YELL_D   : '#bf7b00'
     YELL_L   : '#fbb635'
+    GRAY_DDD : '#dddddd'
     GRAY_DD  : '#303030'
     GRAY_D   : '#434343'
     GRAY     : '#808080'
