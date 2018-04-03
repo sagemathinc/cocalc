@@ -2183,6 +2183,22 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                         upgrades = misc.map_sum(upgrades, info.upgrades)
                 opts.cb(undefined, upgrades)
 
+    # Remove all upgrades to all projects applied by this particular user.
+    remove_all_user_project_upgrades: (opts) =>
+        opts = defaults opts,
+            account_id : required
+            cb         : required
+        if not misc.is_valid_uuid_string(opts.account_id)
+            opts.cb("invalid account_id")
+            return
+        query =  "UPDATE projects SET users=jsonb_set(users, '{#{opts.account_id}}', jsonb(users#>'{#{opts.account_id}}') - 'upgrades')"
+        @_query
+            query : query
+            where : [
+                'users ? $::TEXT' : opts.account_id,                     # this is a user of the project
+                "users#>'{#{opts.account_id},upgrades}' IS NOT NULL"     # upgrades are defined
+            ]
+            cb: opts.cb
     ###
     Project settings
     ###

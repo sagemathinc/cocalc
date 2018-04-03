@@ -2546,3 +2546,16 @@ class exports.Client extends EventEmitter
                     available : locals.x.available
                 @push_to_client(locals.resp)
         )
+
+    mesg_remove_all_upgrades: (mesg) =>
+        dbg = @dbg("mesg_remove_all_upgrades")
+        if not @account_id?
+            @error_to_client(id:mesg.id, error:'you must be signed in')
+            return
+        @database.remove_all_user_project_upgrades
+            account_id : @account_id
+            cb         : (err) =>
+                if err
+                    @error_to_client(id:mesg.id, error:err)
+                else
+                    @push_to_client(message.success(id:mesg.id))

@@ -1788,6 +1788,13 @@ class exports.Connection extends EventEmitter
             error_event : true
             cb          : cb
 
+    # Remove all upgrades from all projects that this user collaborates on.
+    remove_all_upgrades: (cb) =>
+        @call
+            message     : message.remove_all_upgrades()
+            error_event : true
+            cb          : cb
+
     # Queries directly to the database (sort of like Facebook's GraphQL)
 
     projects: (opts) =>

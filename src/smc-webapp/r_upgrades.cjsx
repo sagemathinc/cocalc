@@ -1,19 +1,20 @@
 ###
 The Upgrades Page
-
 ###
 
 async = require('async')
 
 immutable = require('immutable')
 {React, rclass, rtypes}  = require('./smc-react')
-{Loading, r_join, Space, UpgradeAdjustor, Footer} = require('./r_misc')
+{ErrorDisplay, Loading, r_join, Space, UpgradeAdjustor, Footer} = require('./r_misc')
 misc = require('smc-util/misc')
 {Button, ButtonToolbar, Row, Col, Well, Panel, ProgressBar} = require('react-bootstrap')
 {HelpEmailLink, SiteName, PolicyPricingPageUrl} = require('./customize')
 {UpgradeRestartWarning} = require('./upgrade_restart_warning')
 
 {PROJECT_UPGRADES} = require('smc-util/schema')
+
+{webapp_client} = require('./webapp_client')
 
 round1 = misc.round1
 
@@ -24,9 +25,6 @@ exports.UpgradesPage = rclass
         stripe_customer : rtypes.immutable.Map
 
     displayName : "UpgradesPage"
-
-    getInitialState: ->
-        expand_reset_all_projects : false
 
     render_no_upgrades: ->
         {SubscriptionGrid, ExplainResources, ExplainPlan, FAQ} = require('./billing')
@@ -153,7 +151,8 @@ exports.ProjectUpgradesTable = ProjectUpgradesTable = rclass
 
     getInitialState: ->
         show_adjustor             : immutable.Map({}) # project_id : bool
-        expand_reset_all_projects : false
+        expand_remove_all_upgrades : false
+        remove_all_upgrades_error  : undefined
 
     open_project_settings: (e, project_id) ->
         @actions('projects').open_project
@@ -232,33 +231,53 @@ exports.ProjectUpgradesTable = ProjectUpgradesTable = rclass
             @render_upgraded_project(project_id, upgrades, i%2==0)
 
     confirm_reset: (e) ->
-        upgraded_project_ids = misc.keys(@props.redux.getStore('projects').get_projects_upgraded_by())
-        project_actions = @actions('projects')
-        # We space out the clearing of upgrades a little, e.g., imagine if upgraded_project_ids had length 1000.
-        f = (project_id, cb) ->
-            project_actions.clear_project_upgrades(project_id)
-            setTimeout(cb, 100)
-        async.mapLimit upgraded_project_ids, 1, f, =>
-            @setState(expand_reset_all_projects:false)
+        webapp_client.remove_all_upgrades (err) =>
+            @setState
+                expand_remove_all_upgrades : false
+                remove_all_upgrades_error  : err
+
+    render_remove_all_upgrades_error: ->
+        err = @state.remove_all_upgrades_error
+        if not misc.is_string(err)
+            err = JSON.stringify(err)
+        <Row>
+            <Col sm={12}>
+                <ErrorDisplay
+                    title   = {"Error removing all upgrades"}
+                    error   = {err}
+                    onClose = {=>@setState(remove_all_upgrades_error:undefined)}
+                />
+            </Col>
+        </Row>
+
+    render_remove_all_upgrades_conf: ->
+        <Row>
+            <Col sm={12}>
+                <ResetProjectsConfirmation
+                    on_confirm = {@confirm_reset}
+                    on_cancel  = {=>@setState(expand_remove_all_upgrades:false)}
+                />
+            </Col>
+        </Row>
 
     render_header: ->
         <div>
             <Row>
                 <Col sm={12} style={display:'flex'} >
-                    <h4 style={flex:'1'} >Upgrades you have applied to projects</h4>
-                    <Button bsStyle='warning' onClick={=>@setState(expand_reset_all_projects:true)} disabled={@state.expand_reset_all_projects}>
+                    <h4 style={flex:'1'} >
+                        Upgrades you have applied to projects
+                    </h4>
+                    <Button
+                        bsStyle  = {'warning'}
+                        onClick  = {=>@setState(expand_remove_all_upgrades:true)}
+                        disabled = {@state.expand_remove_all_upgrades}
+                    >
                         Remove all upgrades you have applied to projects...
                     </Button>
                 </Col>
             </Row>
-            {<Row>
-                <Col sm={12}>
-                    <ResetProjectsConfirmation
-                        on_confirm = {@confirm_reset}
-                        on_cancel  = {=>@setState(expand_reset_all_projects:false)}
-                    />
-                </Col>
-            </Row> if @state.expand_reset_all_projects}
+            {@render_remove_all_upgrades_error() if @state.remove_all_upgrades_error}
+            {@render_remove_all_upgrades_conf()  if @state.expand_remove_all_upgrades}
         </div>
 
     render: ->
