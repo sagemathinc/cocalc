@@ -1038,6 +1038,8 @@ exports.matches = (s, words) ->
     return true
 
 exports.hash_string = (s) ->
+    if not s?
+        return
     # see http://stackoverflow.com/questions/7616461/generate-a-hash-from-string-in-javascript-jquery
     hash = 0
     i = undefined
@@ -1052,9 +1054,6 @@ exports.hash_string = (s) ->
         hash |= 0 # convert to 32-bit integer
         i++
     return hash
-
-
-
 
 exports.parse_hashtags = (t) ->
     # return list of pairs (i,j) such that t.slice(i,j) is a hashtag (starting with #).

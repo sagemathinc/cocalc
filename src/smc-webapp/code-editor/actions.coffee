@@ -314,10 +314,18 @@ class exports.Actions extends Actions
     disable_key_handler: =>
         @redux.getActions('page').erase_active_key_handler(@_key_handler)
 
+    _has_unsaved_changes: =>
+        #@_syncstring?.has_unsaved_changes()
+        hash_saved = @_syncstring?.hash_of_saved_version()
+        hash_live  = misc.hash_string(@_get_cm()?.getValue())
+        if not hash_saved? or not hash_live? # don't know yet...
+            return
+        return hash_live != hash_saved
+
     _init_has_unsaved_changes: =>  # basically copies from tasks/actions.coffee -- opportunity to refactor
         do_set = =>
             @setState
-                has_unsaved_changes     : @_syncstring?.has_unsaved_changes()
+                has_unsaved_changes     : @_has_unsaved_changes()
                 has_uncommitted_changes : @_syncstring?.has_uncommitted_changes()
         f = =>
             do_set()
@@ -407,6 +415,7 @@ class exports.Actions extends Actions
         # Doing this automatically is fraught with error, since cursors aren't precise...
         if explicit and @redux.getStore('account')?.getIn(['editor_settings', 'strip_trailing_whitespace'])
             @delete_trailing_whitespace()
+        @set_syncstring_to_codemirror()
         @_do_save()
         if explicit
             @_active_cm()?.focus()
@@ -661,3 +670,6 @@ class exports.Actions extends Actions
             format_bar = format_bar.set(key, val)
         @setState(format_bar: format_bar)
     ###
+    test: =>
+        test : require('./test')
+        cm   : @_get_cm()
