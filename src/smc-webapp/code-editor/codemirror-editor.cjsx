@@ -199,12 +199,13 @@ exports.CodemirrorEditor = rclass
             return
 
         # After this only stuff that we use for the non-public version!
-
-        @save_syncstring_throttle = throttle(@save_syncstring, SAVE_INTERVAL_MS, {leading:false})
+        # save_syncstring_throttle = throttle(@save_syncstring, SAVE_INTERVAL_MS, {leading:false})
+        save_syncstring_debounce = debounce(@save_syncstring, SAVE_INTERVAL_MS)
 
         @cm.on 'change', (instance, changeObj) =>
-            @save_syncstring_throttle()
+            save_syncstring_debounce()
             if changeObj.origin? and changeObj.origin != 'setValue'
+                @props.actions.setState(has_unsaved_changes: true)
                 @props.actions.exit_undo_mode()
 
         @cm.on 'focus', =>
