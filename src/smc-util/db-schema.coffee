@@ -785,6 +785,9 @@ schema.projects =
         run_quota :
             type : 'map'
             desc : 'If project is running, this is the quota that it is running with.'
+        compute_image :
+            type : 'string'
+            desc : 'Specify the name of the underlying (kucalc) compute image (default: "latest")'
 
     pg_indexes : [
         'last_edited',
@@ -813,6 +816,7 @@ schema.projects =
                 last_active    : null
                 action_request : null   # last requested action -- {action:?, time:?, started:?, finished:?, err:?}
                 course         : null
+                compute_image  : 'latest'
         set :
             fields :
                 project_id     : 'project_write'
@@ -822,6 +826,7 @@ schema.projects =
                 invite_requests: true   # project collabs can modify this (e.g., to remove from it once user added or rejected)
                 users          : (obj, db, account_id) -> db._user_set_query_project_users(obj, account_id)
                 action_request : true   # used to request that an action be performed, e.g., "save"; handled by before_change
+                compute_image  : true
 
             before_change : (database, old_val, new_val, account_id, cb) ->
                 database._user_set_query_project_change_before(old_val, new_val, account_id, cb)
