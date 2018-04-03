@@ -2199,6 +2199,12 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                 "users#>'{#{opts.account_id},upgrades}' IS NOT NULL"     # upgrades are defined
             ]
             cb: opts.cb
+        # TODO: any impacted project that is currently running should also (optionally?) get restarted.
+        # I'm not going to bother for now, but this DOES need to get implemented, since otherwise users
+        # can cheat too easily.  Alternatively, have a periodic control loop on all running projects that
+        # confirms that everything is legit (and remove the verification code for user_query) --
+        # that's probably better.  This could be a service called manage-upgrades.
+
     ###
     Project settings
     ###
