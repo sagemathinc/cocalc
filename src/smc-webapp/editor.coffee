@@ -66,6 +66,8 @@ syncdoc  = require('./syncdoc')
 sagews   = require('./sagews/sagews')
 printing = require('./printing')
 
+{render_examples_dialog} = require('./assistant/legacy')
+
 copypaste = require('./copy-paste-buffer')
 {extra_alt_keys} = require('mobile/codemirror')
 
@@ -1479,7 +1481,6 @@ class CodeMirrorEditor extends FileEditor
 
         if not @examples_dialog?
             $target = @mode_display.parent().find('.react-target')
-            {render_examples_dialog} = require('./assistant/main')
             @examples_dialog = render_examples_dialog(
                 target     : $target[0]
                 project_id : @project_id

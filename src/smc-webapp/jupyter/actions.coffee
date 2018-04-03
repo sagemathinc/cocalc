@@ -40,6 +40,8 @@ DEFAULT_KERNEL = 'anaconda3'
 
 syncstring    = require('smc-util/syncstring')
 
+{instantiate_assistant} = require('../assistant/main')
+
 
 ###
 The actions -- what you can do with a jupyter notebook, and also the
@@ -78,7 +80,6 @@ class exports.JupyterActions extends Actions
 
         # this initializes actions+store for the assistant -- are "sub-actions" a thing?
         if not @_is_project   # this is also only a UI specific action
-            {instantiate_assistant} = require('../assistant/main')
             @assistant_actions = instantiate_assistant(project_id, path)
 
         @setState

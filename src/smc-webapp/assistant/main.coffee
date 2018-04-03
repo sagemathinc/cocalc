@@ -36,56 +36,30 @@
 # API (implemented in ExamplesActions)
 # w.show([lang]) -- show dialog again (same state!) and in csae a language given, a selection of it is triggered
 
-# global libs
-_         = require('underscore')
-immutable = require('immutable')
-# react elements
-{Col, Row, Panel, Button, FormGroup, Checkbox, FormControl, Well, Alert, Modal, Table, Nav, NavItem, ListGroup, ListGroupItem, InputGroup} = require('react-bootstrap')
-{React, ReactDOM, redux, Redux, Actions, Store, rtypes, rclass} = require('../smc-react')
-{Loading, Icon, Markdown, Space} = require('../r_misc')
 # cocalc libs
 {defaults, required, optional} = misc = require('smc-util/misc')
+{redux, Redux} = require('../smc-react')
 # assistant libs
 {makeExamplesStore} = require('./store')
 {ExamplesActions}   = require('./actions')
-{ExamplesDialog}    = require('./dialog')
 
-redux_name = (project_id, path) ->
+### Private API ###
+
+exports.redux_name = (project_id, path) ->
     return "examples-#{project_id}-#{path}"
 
-
-### Public API ###
-
-init_action_and_store = (name) ->
+exports.init_action_and_store = (name) ->
     store   = redux.createStore(makeExamplesStore(name))
     actions = redux.createActions(name, ExamplesActions)
     actions._init(store)
     return [actions, store]
 
+### Public API ###
+
 # The following two exports are used in jupyter/main and ./register
 exports.instantiate_assistant = (project_id, path) ->
-    name = redux_name(project_id, path)
+    name = exports.redux_name(project_id, path)
     actions = redux.getActions(name)
     if not actions?
-        [actions, store] = init_action_and_store(name)
-    return actions
-
-# and this one below is used in editor.coffee for sagews worksheets.
-# "target" is a DOM element somewhere in the buttonbar of the editor's html
-exports.render_examples_dialog = (opts) ->
-    opts = defaults opts,
-        target     : required
-        project_id : required
-        path       : required
-        lang       : 'sage'
-    name = redux_name(opts.project_id, opts.path)
-    actions = redux.getActions(name)
-    if not actions?
-        [actions, store] = init_action_and_store(name)
-    actions.init(opts.lang)
-    actions.set(lang_select:true)
-    dialog = <Redux redux={redux}>
-                 <ExamplesDialog actions={actions} name={name}/>
-             </Redux>
-    ReactDOM.render(dialog, opts.target)
+        [actions, store] = exports.init_action_and_store(name)
     return actions
