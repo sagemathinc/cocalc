@@ -2021,7 +2021,8 @@ exports.register_nonreact_editors = ->
                     return e
 
     # Editors for private normal editable files.
-    register(false, LatexEditor,      ['tex', 'rnw'])
+    register(false, LatexEditor,      ['rnw'])
+    #register(false, LatexEditor,      ['tex', 'rnw'])
     register(false, Terminal,         ['term', 'sage-term'])
 
     {HistoryEditor} = require('./editor_history')

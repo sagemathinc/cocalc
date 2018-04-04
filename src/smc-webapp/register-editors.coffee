@@ -20,6 +20,7 @@ require('./markdown-editor/register')
 require('./html-editor/register')
 require('./rst-editor/register')
 require('./rmd-editor/register')
+require('./latex-editor/register')
 require('./wiki-editor/register')
 require('./media-viewer/register')
 
