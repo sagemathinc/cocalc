@@ -111,6 +111,23 @@ block content
             #{NAME} makes sure that your desired computational environment is available and ready to work with.
             You just have to select from many pre-installed and #[strong fully managed kernels] to start with your work.
 
+    a.anchor#a-forwardinverse
+    div.container.space#forwardinverse
+      div.row
+        div.col-md-12
+          h2 #[i.fa.fa-users] Forward/Inverse search
+        div.col-md-6
+          img(src=require("webapp-lib/assets/latex-editor-01.png")).fit
+        div.col-md-6
+          div.
+            Let #{NAME} help you find your way around in large documents!
+          div.
+            #[strong Forward Search] let's you jump from the LaTeX source to the corresponding part in the rendered preview.
+            That saves you time looking for the output by scrolling around.
+          div.
+            #[strong Inverse search] does the opposite: double-click on a part in the output and
+            your cursor jumps (roughly) to the line where that output is coming from.
+
     a.anchor#a-knitr
     div.container.space#knitr
       div.row
@@ -121,12 +138,13 @@ block content
         div.col-md-6
           div.
             #{NAME}'s Latex editor also supports #[strong #[a(href="https://yihui.name/knitr/") Knitr .Rnw]] documents.
-            This gives you the ability to embed arbitrary #[a(href="https://www.r-project.org/") R Project] commands and plots in your LaTeX file,
-            and #{NAME} deals with all other details.
+            This gives you the ability to embed arbitrary #[a(href="https://www.r-project.org/") R Project] commands and plots in your LaTeX file.
+          div.
+            #{NAME} deals with all other details for you:
           ul
-            li #{NAME} manages #[a(href="./software-r.html") all R packages] for you,
-            li Automatically triggers the compilation chain for LaTeX and R, and
-            li Reconcilses the line-numbers of the .Rnw file with the corresponding .tex document for #[strong forward/inverse searching].
+            li Manage #[a(href="./software-r.html") all R packages] for you,
+            li Automatically triggers the compilation pipeline for LaTeX and running R, and
+            li Reconciles the line-numbers of the .Rnw file with the corresponding .tex document for #[a(href="#a-forwardinverse") #[strong forward/inverse search]].
 
     a.anchor#a-computational
     div.container.space#computational
