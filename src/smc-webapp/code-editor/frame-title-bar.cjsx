@@ -186,7 +186,7 @@ exports.FrameTitleBar = rclass
             bsSize  = {@button_size()}
             onClick = {=>@props.actions.decrease_font_size(@props.id)}
         >
-            <Icon style={fontSize:'5pt'} name={'font'} />
+            <Icon name={'search-minus'} />
         </Button>
 
     render_zoom_in: ->
@@ -198,7 +198,7 @@ exports.FrameTitleBar = rclass
             onClick = {=>@props.actions.increase_font_size(@props.id)}
             bsSize  = {@button_size()}
         >
-            <Icon style={fontSize:'9pt'} name={'font'} />
+            <Icon name={'search-plus'} />
         </Button>
 
     render_replace: ->
@@ -365,7 +365,7 @@ exports.FrameTitleBar = rclass
             <Icon name='history' /> <VisibleMDLG>{if labels then 'TimeTravel'}</VisibleMDLG>
         </Button>
 
-    # only for public view
+    # ainly for public view
     render_reload: (labels) ->
         if not @is_visible('reload')
             return
@@ -412,7 +412,7 @@ exports.FrameTitleBar = rclass
         <ButtonGroup key={'save-group'}>
             {@render_save(labels)}
             {@render_timetravel(labels) if not @props.is_public}
-            {@render_reload(labels) if @props.is_public}
+            {@render_reload(labels)}
         </ButtonGroup>
 
     render_print: ->

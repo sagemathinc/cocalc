@@ -9,21 +9,29 @@ misc = require('smc-util/misc')
 {FormatBar}             = require('../markdown-editor/format-bar')
 {Editor, set}           = require('../code-editor/editor')
 
-#{PDFViewer}             = require('./pdf-viewer')
+{PDFJS}                 = require('./pdfjs')
 {IFrameHTML}            = require('../html-editor/iframe-html')
 {CodemirrorEditor}      = require('../code-editor/codemirror-editor')
 
 EDITOR_SPEC =
     cm        :
-        short     : 'Code'
-        name      : 'Source Code'
+        short     : 'LaTeX'
+        name      : 'LaTeX Source Code'
         icon      : 'code'
         component : CodemirrorEditor
         buttons   : set(['print', 'decrease_font_size', 'increase_font_size', 'save', 'time_travel', 'replace', 'find', 'goto_line', \
                          'cut', 'paste', 'copy', 'undo', 'redo', 'reload'])
-    pdf :
-        short     : 'View'
-        name      : 'PDF View'
+    pdfjs :
+        short     : 'PDF'
+        name      : 'PDF'
+        icon      : 'file-pdf-o'
+        component : PDFJS
+        buttons   : set(['print', 'save', 'time_travel', 'reload', 'decrease_font_size', 'increase_font_size'])
+        path      : (path) -> path.slice(0, path.length-3) + 'pdf'
+
+    iframe :
+        short     : 'IFrame'
+        name      : 'IFrame PDF'
         icon      : 'file-pdf-o'
         buttons   : set(['print', 'save', 'time_travel', 'reload'])
         component : IFrameHTML

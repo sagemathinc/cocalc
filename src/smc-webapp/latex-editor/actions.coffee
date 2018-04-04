@@ -26,7 +26,8 @@ class exports.Actions extends Actions
                 @set_status('')
                 if err
                     @set_error(err)
-                @set_reload('pdf')
+                @set_reload('pdfjs')
+                @set_reload('iframe')
 
     _raw_default_frame_tree: =>
         if @is_public
@@ -37,4 +38,4 @@ class exports.Actions extends Actions
             first     :
                 type : 'cm'
             second    :
-                type : 'pdf'
+                type : 'pdfjs'

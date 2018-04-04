@@ -12,3 +12,6 @@ exports.aux_file = (path, ext) ->
         return s.head + '/.' + s.tail
     else
         return '.' + s.tail
+
+exports.raw_url = (project_id, path) ->
+    return "#{window.app_base_url}/#{project_id}/raw/#{path}"
