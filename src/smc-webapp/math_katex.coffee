@@ -32,6 +32,9 @@ exports.replace_sage_scripts = (html) ->
         html = html.slice(0, i) + '$$' + html.slice(i+SCRIPT.length, j) + '$$' + html.slice(j+'</script>'.length)
     return html
 
+# This hack is entirely to get around
+# https://github.com/Khan/KaTeX/issues/437
+# This also affects ignoredTags below
 exports.replace_escaped_dollar_signs = (html) ->
     return replace_all(html, '\\$', '<hack>$</hack>')
 
@@ -65,6 +68,9 @@ delimiters = [
     {left: "$", right: "$", display: false}
 ]
 
+# Ignoring hack is entirely to get around
+# https://github.com/Khan/KaTeX/issues/437
+# This also affects exports.replace_escaped_dollar_signs above
 ignoredTags = ["script", "noscript", "style", "textarea", "pre", "code", "hack"]
 
 exports.render_math_in_element = (element) ->
