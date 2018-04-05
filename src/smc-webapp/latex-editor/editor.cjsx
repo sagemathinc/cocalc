@@ -10,8 +10,13 @@ misc = require('smc-util/misc')
 {Editor, set}           = require('../code-editor/editor')
 
 {PDFJS}                 = require('./pdfjs')
-{IFrameHTML}            = require('../html-editor/iframe-html')
+{PDFEmbed}              = require('./pdf-embed')
+{LaTeXJS}               = require('./latexjs')
 {CodemirrorEditor}      = require('../code-editor/codemirror-editor')
+{BuildLog}              = require('./build-log')
+
+pdf_path = (path) ->
+    return path.slice(0, path.length-3) + 'pdf'
 
 EDITOR_SPEC =
     cm        :
@@ -21,22 +26,39 @@ EDITOR_SPEC =
         component : CodemirrorEditor
         buttons   : set(['print', 'decrease_font_size', 'increase_font_size', 'save', 'time_travel', 'replace', 'find', 'goto_line', \
                          'cut', 'paste', 'copy', 'undo', 'redo', 'reload'])
+
     pdfjs :
         short     : 'PDF'
-        name      : 'PDF'
+        name      : 'PDF View (pdf.js)'
         icon      : 'file-pdf-o'
         component : PDFJS
-        buttons   : set(['print', 'save', 'time_travel', 'reload', 'decrease_font_size', 'increase_font_size'])
-        path      : (path) -> path.slice(0, path.length-3) + 'pdf'
+        buttons   : set(['print', 'save', 'reload', 'decrease_font_size', 'increase_font_size'])
+        path      : pdf_path
         style     : {'background': '#525659'}
 
-    iframe :
-        short     : 'IFrame'
-        name      : 'IFrame PDF'
+    latexjs :
+        short     : 'Preview'
+        name      : 'Realtime preview (LaTeX.js)'
         icon      : 'file-pdf-o'
-        buttons   : set(['print', 'save', 'time_travel', 'reload'])
-        component : IFrameHTML
-        path      : (path) -> path.slice(0, path.length-3) + 'pdf'
+        component : LaTeXJS
+        buttons   : set(['print', 'save', 'reload', 'decrease_font_size', 'increase_font_size'])
+        style     : {'background': '#525659'}
+
+    embed:
+        short     : 'Plugin'
+        name      : 'Plugin View (object embed)'
+        icon      : 'file-pdf-o'
+        buttons   : set(['print', 'save', 'reload'])
+        component : PDFEmbed
+        path      : pdf_path
+
+    build_log  :
+        short     : 'Build'
+        name      : 'Build log'
+        icon      : 'terminal'
+        component : BuildLog
+        buttons   : set(['print', 'reload', 'decrease_font_size', 'increase_font_size'])
+
 
 exports.Editor = rclass ({name}) ->
     displayName: 'LaTeX-Editor'

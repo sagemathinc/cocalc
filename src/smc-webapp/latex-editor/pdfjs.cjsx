@@ -1,5 +1,10 @@
 ###
+This is a renderer using pdf.js indirectly via react-pdf.
 
+TODO: I will surely rewrite this from scratch directly using pdf.js, since it's critical to have
+multiple views of the same document, where the document only gets loaded once.  Also, it
+should survive unmount and remount properly, without having to reload the doc.  This can
+only be done via direct use of pdf.js.   But that will get done later.
 ###
 
 {throttle} = require('underscore')

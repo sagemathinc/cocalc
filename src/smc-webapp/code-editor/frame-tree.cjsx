@@ -141,6 +141,7 @@ exports.FrameTree = FrameTree = rclass ({name}) ->
             fullscreen_style = undefined
 
         <Leaf
+            name             = {@props.name}
             actions          = {@props.actions}
             id               = {desc.get('id')}
             read_only        = {desc.get('read_only') or @props.read_only or @props.is_public}
