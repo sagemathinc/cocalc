@@ -179,6 +179,7 @@ exports.FrameTree = FrameTree = rclass ({name}) ->
             className    = {'smc-vfill'}
             onClick      = {=>@props.actions.set_active_id(desc.get('id'), 10)}
             onTouchStart = {=>@props.actions.set_active_id(desc.get('id'), 10)}
+            style        = {spec?.style}
         >
             {@render_titlebar(desc)}
             {child}

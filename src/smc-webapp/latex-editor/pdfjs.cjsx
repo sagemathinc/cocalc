@@ -30,6 +30,15 @@ exports.PDFJS = rclass
     getInitialState: ->
         num_pages : undefined
 
+    svg_hack: ->
+        editor = $(ReactDOM.findDOMNode(@refs.scroll))
+        v = []
+        for elt in editor.find(".react-pdf__Page__svg")
+            a = $(elt)
+            b = $(a.children()[0])
+            b.css('max-width','')
+            a.width(b.width() + 'px')
+
     render_page: (number, scale) ->
         <Page
             key               = {number}
@@ -46,14 +55,16 @@ exports.PDFJS = rclass
     render_pages: ->
         console.log 'render_pages', @state.num_pages
         if not @state.num_pages?
-            return
+            @hide()
+        else
+            setTimeout(@show, 150)
         scale = (@props.font_size ? 16)/10
         return (@render_page(n, scale) for n in [1..@state.num_pages])
 
     render_loading: ->
         <div>
             <Loading
-                style = {fontSize: '24pt', textAlign: 'center', marginTop: '15px', color: '#888'}
+                style = {fontSize: '24pt', textAlign: 'center', marginTop: '15px', color: '#888', background:'white'}
             />
         </div>
 
@@ -61,16 +72,21 @@ exports.PDFJS = rclass
         console.log 'load', info
         @setState(num_pages: info.numPages)
 
+    hide: ->
+        $(ReactDOM.findDOMNode(@refs.scroll)).css('opacity', 0)
+
+    show: ->
+        $(ReactDOM.findDOMNode(@refs.scroll)).css('opacity', 1)
+
     on_item_click: (info) ->
         console.log 'on_item_click', info
 
-    # TODO: these are identical in rendered-markdown.cjsx, so chance to refactor!
     on_scroll: ->
         elt = ReactDOM.findDOMNode(@refs.scroll)
         if not elt?
             return
-        scroll = $(elt).scrollTop()
-        console.log 'on_scroll', scroll
+        elt = $(elt)
+        scroll = {top:elt.scrollTop(), left:elt.scrollLeft()}
         @props.actions.save_editor_state(@props.id, {scroll:scroll})
 
     restore_scroll: ->
@@ -78,11 +94,18 @@ exports.PDFJS = rclass
         if scroll?
             elt = ReactDOM.findDOMNode(@refs.scroll)
             if elt?
-                $(elt).scrollTop(scroll)
+                elt = $(elt)
+                elt.scrollTop(scroll.get?('top'))
+                elt.scrollLeft(scroll.get?('left'))
+        @svg_hack()
+
+    componentDidUpdate: ->
+        @svg_hack()
 
     render: ->
+        window.c = @
         file  = "#{util.raw_url(@props.project_id, @props.path)}?param=#{@props.reload}"
-        <div style    = {overflowY:'scroll'}
+        <div style    = {overflow:'scroll', margin:'auto', width:'100%', opacity:0}
              onScroll = {throttle(@on_scroll, 250)}
              ref      = {'scroll'}
         >

@@ -28,6 +28,7 @@ EDITOR_SPEC =
         component : PDFJS
         buttons   : set(['print', 'save', 'time_travel', 'reload', 'decrease_font_size', 'increase_font_size'])
         path      : (path) -> path.slice(0, path.length-3) + 'pdf'
+        style     : {'background': '#525659'}
 
     iframe :
         short     : 'IFrame'
