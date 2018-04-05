@@ -87,9 +87,13 @@ exports.makeExamplesStore = (NAME) ->
     log: () ->
         lang  = @get('lang')
         path  = @get('path')
-        c0    = @get_category_list0()[@get('category0')]
-        c1    = @get_category_list1()[@get('category1')]
-        c2    = @get_category_list2()[@get('category2')]
+        category0 = @get('category0')
+        category1 = @get('category1')
+        category2 = @get('category2')
+        return if (not category0?) or (not category1?) or (not category2?)
+        c0    = @get_category_list0()[category0]
+        c1    = @get_category_list1()[category1]
+        c2    = @get_category_list2()[category2]
         entry = [c0, c1, c2]
         project_actions = redux.getProjectActions(@get('project_id'))
         project_actions.log
