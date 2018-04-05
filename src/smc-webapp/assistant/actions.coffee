@@ -29,8 +29,12 @@ immutable    = require('immutable')
 DATA = null
 
 class exports.ExamplesActions extends Actions
-    _init: (store) ->
+    _init: (store, project_id, path) ->
         @store = store
+        @setState(
+            path       : path
+            project_id : project_id
+        )
 
     get: (key) ->
         @store.get(key)
@@ -85,6 +89,7 @@ class exports.ExamplesActions extends Actions
         prepend_setup_code = @get('prepend_setup_code')
         if (prepend_setup_code) and (setup_code?.length > 0)
             code = "#{setup_code}\n#{code}"
+        @store.log()
         ret =
             code  : code
             lang  : @get('lang')
