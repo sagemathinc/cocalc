@@ -87,14 +87,27 @@ exports.makeExamplesStore = (NAME) ->
     log: () ->
         lang  = @get('lang')
         path  = @get('path')
-        category0 = @get('category0')
-        category1 = @get('category1')
-        category2 = @get('category2')
-        return if (not category0?) or (not category1?) or (not category2?)
-        c0    = @get_category_list0()[category0]
-        c1    = @get_category_list1()[category1]
-        c2    = @get_category_list2()[category2]
+
+        # active search? then grab the categories from the selected hit list
+        if @get('search_sel')?
+            idx = @get('search_sel')
+            hit = @get('hits').get(idx)
+            return if (not hit?)
+            [lvl1, lvl2, lvl3, title, descr, inDescr] = hit.toArray()
+            [c0, c1, c2] = [lvl1, lvl2, title]
+        else
+            # otherwise, we can assume a selected example
+            category0 = @get('category0')
+            category1 = @get('category1')
+            category2 = @get('category2')
+            # but we double-check!
+            return if (not category0?) or (not category1?) or (not category2?)
+            c0 = @get_category_list0()[category0]
+            c1 = @get_category_list1()[category1]
+            c2 = @get_category_list2()[category2]
+
         entry = [c0, c1, c2]
+
         project_actions = redux.getProjectActions(@get('project_id'))
         project_actions.log
             event     : 'assistant'
