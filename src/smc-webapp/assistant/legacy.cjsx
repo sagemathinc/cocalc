@@ -39,7 +39,7 @@ exports.render_examples_dialog = (opts) ->
     name = redux_name(opts.project_id, opts.path)
     actions = redux.getActions(name)
     if not actions?
-        [actions, store] = init_action_and_store(name)
+        [actions, store] = init_action_and_store(name, opts.project_id, opts.path)
     actions.init(opts.lang)
     actions.set(lang_select:true)
     dialog = <Redux redux={redux}>

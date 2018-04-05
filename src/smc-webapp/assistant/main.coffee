@@ -48,10 +48,10 @@
 exports.redux_name = (project_id, path) ->
     return "examples-#{project_id}-#{path}"
 
-exports.init_action_and_store = (name) ->
+exports.init_action_and_store = (name, project_id, path) ->
     store   = redux.createStore(makeExamplesStore(name))
     actions = redux.createActions(name, ExamplesActions)
-    actions._init(store)
+    actions._init(store, project_id, path)
     return [actions, store]
 
 ### Public API ###
@@ -61,5 +61,5 @@ exports.instantiate_assistant = (project_id, path) ->
     name = exports.redux_name(project_id, path)
     actions = redux.getActions(name)
     if not actions?
-        [actions, store] = exports.init_action_and_store(name)
+        [actions, store] = exports.init_action_and_store(name, project_id, path)
     return actions
