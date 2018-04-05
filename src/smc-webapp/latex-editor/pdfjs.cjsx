@@ -29,8 +29,11 @@ exports.PDFJS = rclass
 
     getInitialState: ->
         num_pages : undefined
+        render    : 'svg'    # probably only use this, but easy to switch for now for testing.
 
     svg_hack: ->
+        if @state.render != 'svg'
+            return
         editor = $(ReactDOM.findDOMNode(@refs.scroll))
         v = []
         for elt in editor.find(".react-pdf__Page__svg")
@@ -44,7 +47,7 @@ exports.PDFJS = rclass
             key               = {number}
             className         = {'cocalc-pdfjs-page'}
             pageNumber        = {number}
-            renderMode        = {'svg'}
+            renderMode        = {@state.render}
             renderTextLayer   = {false}
             renderAnnotations = {true}
             scale             = {scale}
