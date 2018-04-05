@@ -202,12 +202,13 @@ Usage of Assistant Examples
         SELECT COUNT(*) AS cnt
              , event ->> 'lang' AS lang
              , event ->> 'entry' as entry
+             , lower(reverse(split_part(reverse(event ->> 'path'), '.', 1))) AS filetype
          FROM project_log WHERE time >= '2018-04-05'::TIMESTAMP
           AND event ->> 'event' = 'assistant'
-        GROUP BY lang, entry
+        GROUP BY lang, entry, filetype
     )
     SELECT * FROM stats
-    WHERE cnt > 3
+    WHERE cnt > 1
     ORDER BY cnt DESC;
 
 
