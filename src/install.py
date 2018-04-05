@@ -38,6 +38,7 @@ def thread_map(callable, inputs, nb_threads=None):
     return tp.map(callable, inputs)
 
 def pull():
+    cmd("git submodule update --init")
     cmd("git pull")
 
 def install_pyutil():
@@ -71,6 +72,7 @@ def install_webapp(*args):
     nothing = True
 
     if 'build' in action:
+        cmd("git submodule update --init")
         cmd("cd examples && env OUTDIR=../webapp-lib/examples make")
         for path in ['.', 'smc-util', 'smc-util-node', 'smc-webapp', 'smc-webapp/jupyter']:
             cmd("cd %s; npm --loglevel=warn install"%path)
