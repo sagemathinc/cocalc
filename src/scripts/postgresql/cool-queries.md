@@ -198,12 +198,16 @@ Copied library entries .. timestamp is about when the feature was released
 
 Usage of Assistant Examples
 
-    SELECT COUNT(*) AS cnt
-         , event ->> 'lang' AS lang
-         , event ->> 'entry' as entry
-     FROM project_log WHERE time >= '2018-04-05'::TIMESTAMP
-      AND event ->> 'event' = 'assistant'
-    GROUP BY lang, entry
+    WITH stats AS (
+        SELECT COUNT(*) AS cnt
+             , event ->> 'lang' AS lang
+             , event ->> 'entry' as entry
+         FROM project_log WHERE time >= '2018-04-05'::TIMESTAMP
+          AND event ->> 'event' = 'assistant'
+        GROUP BY lang, entry
+    )
+    SELECT * FROM stats
+    WHERE cnt > 3
     ORDER BY cnt DESC;
 
 
