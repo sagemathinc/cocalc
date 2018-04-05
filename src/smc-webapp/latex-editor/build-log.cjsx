@@ -31,24 +31,15 @@ exports.BuildLog = rclass ({name}) ->
     shouldComponentUpdate: (props) ->
         return misc.is_different(@props, props, ['build_log', 'status', 'font_size'])
 
-    render_latex_stdout: ->
+    render_latex: ->
+        value = (@props.build_log?.getIn(['latex', 'stdout']) ? '') + (@props.build_log?.getIn(['latex', 'stderr']) ? '')
         <Fragment>
             <textarea
                 readOnly = {true}
                 style    = {color: '#666', background: '#f8f8f0', display: 'block', width: '100%', margin: '5px 0', padding: '10px', flex:1}
-                value    = {@props.build_log?.getIn(['latex', 'stdout']) ? ''}
+                value    = {value}
             />
         </Fragment>
-
-    render_latex_stderr: ->
-        stderr = @props.build_log?.getIn(['latex', 'stderr'])
-        if not stderr
-            return
-        <textarea
-            readOnly = {true}
-            style    = {color : 'darkred', background: '#f8f8f0', display: 'block', width: '100%', margin: '5px 0', padding: '10px', flex:1}
-            value    = {stderr}
-        />
 
     render_building: ->
         if @props.status
@@ -66,6 +57,5 @@ exports.BuildLog = rclass ({name}) ->
         >
             {@render_building()}
             <h4>LaTeX Output</h4>
-            {@render_latex_stdout()}
-            {@render_latex_stderr()}
+            {@render_latex()}
         </div>

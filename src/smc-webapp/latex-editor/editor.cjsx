@@ -28,7 +28,7 @@ EDITOR_SPEC =
                          'cut', 'paste', 'copy', 'undo', 'redo', 'reload'])
 
     pdfjs :
-        short     : 'PDF'
+        short     : 'PDF View'
         name      : 'PDF View (pdf.js)'
         icon      : 'file-pdf-o'
         component : PDFJS
@@ -36,17 +36,9 @@ EDITOR_SPEC =
         path      : pdf_path
         style     : {'background': '#525659'}
 
-    latexjs :
-        short     : 'Preview'
-        name      : 'Realtime preview (LaTeX.js)'
-        icon      : 'file-pdf-o'
-        component : LaTeXJS
-        buttons   : set(['print', 'save', 'reload', 'decrease_font_size', 'increase_font_size'])
-        style     : {'background': '#525659'}
-
     embed:
-        short     : 'Plugin'
-        name      : 'Plugin View (object embed)'
+        short     : 'PDF Embed'
+        name      : 'PDF Embedded Viewer'
         icon      : 'file-pdf-o'
         buttons   : set(['print', 'save', 'reload'])
         component : PDFEmbed
@@ -58,6 +50,14 @@ EDITOR_SPEC =
         icon      : 'terminal'
         component : BuildLog
         buttons   : set(['print', 'reload', 'decrease_font_size', 'increase_font_size'])
+
+    latexjs :
+        short     : 'Preview'
+        name      : 'Realtime preview (LaTeX.js)'
+        icon      : 'file-pdf-o'
+        component : LaTeXJS
+        buttons   : set(['print', 'save', 'reload', 'decrease_font_size', 'increase_font_size'])
+        style     : {'background': '#525659'}
 
 
 exports.Editor = rclass ({name}) ->
