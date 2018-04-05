@@ -20,16 +20,17 @@
 ###############################################################################
 
 
-_            = require('underscore')
-immutable    = require('immutable')
-{rtypes}     = require('../smc-react')
-{INIT_STATE} = require('./common')
+_                = require('underscore')
+immutable        = require('immutable')
+{rtypes, redux}  = require('../smc-react')
+{INIT_STATE}     = require('./common')
 
 
 exports.makeExamplesStore = (NAME) ->
     name: NAME
 
     stateTypes:
+        project_id          : rtypes.string      # the project_id
         category0           : rtypes.number      # index of selected first category (left)
         category1           : rtypes.number      # index of selected second category (second from left)
         category2           : rtypes.number      # index of selected third category (document titles)
@@ -81,3 +82,36 @@ exports.makeExamplesStore = (NAME) ->
         k0 = @get_category_list0()[@get('category0')]
         k1 = @get_category_list1()[@get('category1')]
         return @data_lang().getIn([k0, k1, 'entries']).map((el) -> el.get(0)).toArray()
+
+    # make an entry about inserting the example in the project log
+    log: () ->
+        lang  = @get('lang')
+        path  = @get('path')
+
+        # active search? then grab the categories from the selected hit list
+        if @get('search_sel')?
+            idx = @get('search_sel')
+            hit = @get('hits').get(idx)
+            return if (not hit?)
+            [lvl1, lvl2, lvl3, title, descr, inDescr] = hit.toArray()
+            [c0, c1, c2] = [lvl1, lvl2, title]
+        else
+            # otherwise, we can assume a selected example
+            category0 = @get('category0')
+            category1 = @get('category1')
+            category2 = @get('category2')
+            # but we double-check!
+            return if (not category0?) or (not category1?) or (not category2?)
+            c0 = @get_category_list0()[category0]
+            c1 = @get_category_list1()[category1]
+            c2 = @get_category_list2()[category2]
+
+        entry = [c0, c1, c2]
+
+        project_actions = redux.getProjectActions(@get('project_id'))
+        project_actions.log
+            event     : 'assistant'
+            action    : 'insert'
+            entry     : entry
+            lang      : lang
+            path      : path
