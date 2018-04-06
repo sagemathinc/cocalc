@@ -14,9 +14,10 @@ util = require('../code-editor/util')
 
 BUILD_SPEC =
     recompile:
-        label : "Recompile"
-        icon  : 'retweet'
-        tip   : 'Recompile the document, running LaTeX, BibTex, Sage, etc.'
+        label   : "Recompile"
+        icon    : 'retweet'
+        tip     : 'Recompile the document, running LaTeX, BibTex, Sage, etc.'
+        bsStyle : 'success'
 
     latex:
         label : "LaTeX"
@@ -102,6 +103,7 @@ exports.BuildLog = rclass ({name}) ->
             title    = {spec.tip}
             onClick  = {=>@props.actions.build_action(action)}
             disabled = {!!@props.status}
+            bsStyle  = {spec.bsStyle}
         >
             <Icon name={spec.icon}/> {spec.label}
         </Button>
@@ -111,15 +113,12 @@ exports.BuildLog = rclass ({name}) ->
             {(@render_build_action_button(action, spec) for action, spec of BUILD_SPEC)}
         </ButtonGroup>
 
-    render_build_command: ->
-
     render: ->
         <div
             className = {'smc-vfill'}
             style     = {overflowY: 'scroll', padding: '5px 15px', fontSize:"#{@props.font_size}px"}
         >
             {@render_buttons()}
-            {@render_build_command()}
             {@render_status()}
             {@render_latex()}
             {@render_clean()}

@@ -67,10 +67,7 @@ exports.PDFJS = rclass
         />
 
     render_pages: ->
-        console.log 'render_pages', @state.num_pages
-        if not @state.num_pages?
-            @hide()
-        else
+        if @state.num_pages?
             setTimeout(@show, 150)
         scale = (@props.font_size ? 16)/10
         return (@render_page(n, scale) for n in [1..@state.num_pages])
@@ -83,11 +80,7 @@ exports.PDFJS = rclass
         </div>
 
     document_load_success: (info) ->
-        console.log 'load', info
         @setState(num_pages: info.numPages)
-
-    hide: ->
-        $(ReactDOM.findDOMNode(@refs.scroll)).css('opacity', 0)
 
     show: ->
         $(ReactDOM.findDOMNode(@refs.scroll)).css('opacity', 1)
@@ -117,7 +110,6 @@ exports.PDFJS = rclass
         @svg_hack()
 
     render: ->
-        window.c = @
         file  = "#{util.raw_url(@props.project_id, @props.path)}?param=#{@props.reload}"
         <div style    = {overflow:'scroll', margin:'auto', width:'100%', opacity:0}
              onScroll = {throttle(@on_scroll, 250)}
