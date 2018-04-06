@@ -1,8 +1,19 @@
 \documentclass{article}
 
-% set font encoding for PDFLaTeX or XeLaTeX
-\usepackage{ifxetex}
+% set font encoding for PDFLaTeX, XeLaTeX, or LuaLaTeX
+\usepackage{ifxetex,ifluatex}
+\newif\ifxetexorluatex
 \ifxetex
+  \xetexorluatextrue
+\else
+  \ifluatex
+    \xetexorluatextrue
+  \else
+    \xetexorluatexfalse
+  \fi
+\fi
+
+\ifxetexorluatex
   \usepackage{fontspec}
 \else
   \usepackage[T1]{fontenc}
