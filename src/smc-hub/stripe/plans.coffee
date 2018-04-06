@@ -123,6 +123,11 @@ spec_to_plans = (name, spec, known) ->
                 interval       = 'year'
                 interval_count = 1
                 desc           = "One Year #{the_desc}"
+            when 'week'
+                id             = name
+                interval       = 'week'
+                interval_count = 1
+                desc           = the_desc
             else
                 throw Error("unknown period '#{period}'")
 
