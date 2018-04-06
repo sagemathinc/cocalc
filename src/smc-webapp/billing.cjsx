@@ -886,7 +886,7 @@ AddSubscription = rclass
                     bsStyle = {if @state.selected_button is 'week' then 'primary'}
                     onClick = {=>@set_button_and_deselect_plans('week')}
                 >
-                    1 Week Workshops
+                    1-Week Workshops
                 </Button>
                 <Button
                     bsStyle = {if @state.selected_button is 'month4' then 'primary'}
