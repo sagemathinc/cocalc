@@ -182,7 +182,7 @@ terminate_session = (socket, mesg) ->
     else
         cb()
 
-# Handle a message from the client (=hub)
+# Handle a message from the hub
 handle_mesg = (socket, mesg, handler) ->
     #dbg = (m) -> winston.debug("handle_mesg: #{m}")
     #dbg("mesg=#{json(mesg)}")
@@ -265,9 +265,9 @@ start_tcp_server = (secret_token, port, cb) ->
 
     winston.info("starting tcp server: project <--> hub...")
     server = net.createServer (socket) ->
-        winston.debug("received new connection")
+        winston.debug("received new connection from #{socket.remoteAddress}")
         socket.on 'error', (err) ->
-            winston.debug("socket error - #{err}")
+            winston.debug("socket '#{socket.remoteAddress}' error - #{err}")
 
         misc_node.unlock_socket socket, secret_token, (err) ->
             if err
