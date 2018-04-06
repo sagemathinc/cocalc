@@ -274,7 +274,7 @@ subscription.standard2 =   # a user that has a standard subscription
 
 subscription.large_course =
     icon  : 'battery-full'
-    desc : 'Basic Large Course\n(250 students)'
+    desc : 'Basic Large Course\n(250 people)'
     statement : 'COCALC BASIC LG'
     price :
         week   : 199
@@ -293,7 +293,7 @@ subscription.large_course =
 
 subscription.large_course2 =
     icon  : 'battery-full'
-    desc : 'Standard Large Course\n(250 students)'
+    desc : 'Standard Large Course\n(250 people)'
     statement : 'COCALC LG'
     price :
         week   : 399
@@ -312,7 +312,7 @@ subscription.large_course2 =
 
 subscription.medium_course =
     icon  : 'battery-three-quarters'
-    desc  : 'Basic Medium Course\n(70 students)'
+    desc  : 'Basic Medium Course\n(70 people)'
     statement : 'COCALC BASIC MD'
     price :
         week   : 79
@@ -330,7 +330,7 @@ subscription.medium_course =
 
 subscription.medium_course2 =
     icon  : 'battery-three-quarters'
-    desc  : 'Standard Medium Course\n(70 students)'
+    desc  : 'Standard Medium Course\n(70 people)'
     statement : 'COCALC MD'
     price :
         week   : 159
@@ -349,7 +349,7 @@ subscription.medium_course2 =
 
 subscription.xsmall_course =
     icon  : 'battery-empty'
-    desc  : 'Basic Extra Small Course\n(10 students)'
+    desc  : 'Basic Extra Small Course\n(10 people)'
     statement : 'COCALC BASIC XS'
     price :
         week   : 19
@@ -367,7 +367,7 @@ subscription.xsmall_course =
 
 subscription.xsmall_course2 =
     icon  : 'battery-empty'
-    desc  : 'Standard Extra Small Course\n(10 students)'
+    desc  : 'Standard Extra Small Course\n(10 people)'
     statement : 'COCALC XS'
     price :
         week   :  39
@@ -386,7 +386,7 @@ subscription.xsmall_course2 =
 
 subscription.small_course =
     icon  : 'battery-quarter'
-    desc  : 'Basic Small Course\n(25 students)'
+    desc  : 'Basic Small Course\n(25 people)'
     statement : 'COCALC BASIC SM'
     price :
         week   :  39
@@ -404,7 +404,7 @@ subscription.small_course =
 
 subscription.small_course2 =
     icon  : 'battery-quarter'
-    desc  : 'Standard Small Course\n(25 students)'
+    desc  : 'Standard Small Course\n(25 people)'
     statement : 'COCALC SM'
     price :
         week   : 79
@@ -427,7 +427,7 @@ Basic Courses
 
 subscription.xsmall_basic_course =
     icon  : 'battery-empty'
-    desc  : 'Basic Extra Small Course\n(10 students)'
+    desc  : 'Basic Extra Small Course\n(10 people)'
     statement : 'COCALC BASIC XS'
     price :
         week   :  29
@@ -445,7 +445,7 @@ subscription.xsmall_basic_course =
 
 subscription.small_basic_course =
     icon  : 'battery-quarter'
-    desc  : 'Basic Small Course\n(25 students)'
+    desc  : 'Basic Small Course\n(25 people)'
     statement : 'COCALC BASIC SM'
     price :
         week   : 59
@@ -463,7 +463,7 @@ subscription.small_basic_course =
 
 subscription.medium_basic_course =
     icon  : 'battery-three-quarters'
-    desc  : 'Basic Medium Course\n(70 students)'
+    desc  : 'Basic Medium Course\n(70 people)'
     statement : 'COCALC BASIC MD'
     price :
         week   : 119
@@ -481,7 +481,7 @@ subscription.medium_basic_course =
 
 subscription.large_basic_course =
     icon  : 'battery-full'
-    desc : 'Basic Large Course\n(250 students)'
+    desc : 'Basic Large Course\n(250 people)'
     statement : 'COCALC BASIC LG'
     price :
         week   : 299
