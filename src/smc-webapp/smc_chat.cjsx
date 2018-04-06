@@ -721,8 +721,8 @@ exports.ChatRoom = rclass ({name}) ->
                     </Well>
                 </Col>
             </Row>
-            <Row>
-                <Col xs={10} md={11} style={padding:'0px 2px 0px 2px'}>
+            <Row style={display:'flex'}>
+                <Col style={flex:'1', padding:'0px 2px 0px 2px'}>
                     <SMC_Dropwrapper
                         project_id     = {@props.project_id}
                         dest_path      = {misc.normalized_path_join(@props.redux.getProjectStore(@props.project_id).get('current_path'), "/.chat-images")}
@@ -743,9 +743,7 @@ exports.ChatRoom = rclass ({name}) ->
                         </FormGroup>
                     </SMC_Dropwrapper>
                 </Col>
-                <Col xs={2} md={1}
-                    style={height:'90px', padding:'0', marginBottom: '0', display:'flex', flexDirection:'column'}
-                    >
+                <Col style={height:'90px', padding:'0', marginBottom: '0', display:'flex', flexDirection:'column'} >
                     {<Button onClick={@button_on_click} disabled={@props.input==''}
                         bsStyle='info' style={height:'50%', width:'100%'}>
                         Preview

@@ -196,6 +196,21 @@ Copied library entries .. timestamp is about when the feature was released
     GROUP BY title, docid
     ORDER BY count DESC;
 
+Usage of Assistant Examples
+
+    WITH stats AS (
+        SELECT COUNT(*) AS cnt
+             , event ->> 'lang' AS lang
+             , event ->> 'entry' as entry
+             , lower(reverse(split_part(reverse(event ->> 'path'), '.', 1))) AS filetype
+         FROM project_log WHERE time >= '2018-04-05'::TIMESTAMP
+          AND event ->> 'event' = 'assistant'
+        GROUP BY lang, entry, filetype
+    )
+    SELECT * FROM stats
+    WHERE cnt > 1
+    ORDER BY cnt DESC;
+
 
 ## Stripe
 
