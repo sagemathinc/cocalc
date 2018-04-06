@@ -874,25 +874,31 @@ AddSubscription = rclass
                     bsStyle = {if @state.selected_button is 'month' then 'primary'}
                     onClick = {=>@set_button_and_deselect_plans('month')}
                 >
-                    Monthly subscriptions
+                    Monthly Subscriptions
                 </Button>
                 <Button
                     bsStyle = {if @state.selected_button is 'year' then 'primary'}
                     onClick = {=>@set_button_and_deselect_plans('year')}
                 >
-                    Yearly subscriptions
+                    Yearly Subscriptions
+                </Button>
+                <Button
+                    bsStyle = {if @state.selected_button is 'week' then 'primary'}
+                    onClick = {=>@set_button_and_deselect_plans('week')}
+                >
+                    1 Week Workshops
                 </Button>
                 <Button
                     bsStyle = {if @state.selected_button is 'month4' then 'primary'}
                     onClick = {=>@set_button_and_deselect_plans('month4')}
                 >
-                    4-Month course packages
+                    4-Month Courses
                 </Button>
                 <Button
                     bsStyle = {if @state.selected_button is 'year1' then 'primary'}
                     onClick = {=>@set_button_and_deselect_plans('year1')}
                 >
-                    Yearly course packages
+                    Yearly Courses
                 </Button>
             </ButtonGroup>
         </div>

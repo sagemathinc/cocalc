@@ -157,6 +157,7 @@ upgrades.period_names =
     month  : 'month'
     year   : 'year'
     month4 : '4 months'
+    week   : 'week'
     year1  : 'year'
 
 subscription = upgrades.subscription = {}
@@ -276,6 +277,7 @@ subscription.large_course =
     desc : 'Basic Large Course\n(250 students)'
     statement : 'COCALC BASIC LG'
     price :
+        week   : 199
         month4 : 999
         year1  : 2499
     cancel_at_period_end : true
@@ -294,6 +296,7 @@ subscription.large_course2 =
     desc : 'Standard Large Course\n(250 students)'
     statement : 'COCALC LG'
     price :
+        week   : 399
         month4 : 1999
         year1  : 4999
     cancel_at_period_end : true
@@ -312,6 +315,7 @@ subscription.medium_course =
     desc  : 'Basic Medium Course\n(70 students)'
     statement : 'COCALC BASIC MD'
     price :
+        week   : 79
         month4 : 399
         year1  : 999
     cancel_at_period_end : true
@@ -329,6 +333,7 @@ subscription.medium_course2 =
     desc  : 'Standard Medium Course\n(70 students)'
     statement : 'COCALC MD'
     price :
+        week   : 159
         month4 : 799
         year1  : 1999
     cancel_at_period_end : true
@@ -347,6 +352,7 @@ subscription.xsmall_course =
     desc  : 'Basic Extra Small Course\n(10 students)'
     statement : 'COCALC BASIC XS'
     price :
+        week   : 19
         month4 : 99
         year1  : 249
     cancel_at_period_end : true
@@ -364,6 +370,7 @@ subscription.xsmall_course2 =
     desc  : 'Standard Extra Small Course\n(10 students)'
     statement : 'COCALC XS'
     price :
+        week   :  39
         month4 : 199
         year1  : 499
     cancel_at_period_end : true
@@ -382,6 +389,7 @@ subscription.small_course =
     desc  : 'Basic Small Course\n(25 students)'
     statement : 'COCALC BASIC SM'
     price :
+        week   :  39
         month4 : 199
         year1  : 499
     cancel_at_period_end : true
@@ -399,6 +407,7 @@ subscription.small_course2 =
     desc  : 'Standard Small Course\n(25 students)'
     statement : 'COCALC SM'
     price :
+        week   : 79
         month4 : 399
         year1  : 999
     cancel_at_period_end : true
@@ -421,6 +430,7 @@ subscription.xsmall_basic_course =
     desc  : 'Basic Extra Small Course\n(10 students)'
     statement : 'COCALC BASIC XS'
     price :
+        week   :  29
         month4 : 149
         year1  : 349
     cancel_at_period_end : true
@@ -438,6 +448,7 @@ subscription.small_basic_course =
     desc  : 'Basic Small Course\n(25 students)'
     statement : 'COCALC BASIC SM'
     price :
+        week   : 59
         month4 : 299
         year1  : 799
     cancel_at_period_end : true
@@ -455,6 +466,7 @@ subscription.medium_basic_course =
     desc  : 'Basic Medium Course\n(70 students)'
     statement : 'COCALC BASIC MD'
     price :
+        week   : 119
         month4 : 599
         year1  : 1499
     cancel_at_period_end : true
@@ -472,6 +484,7 @@ subscription.large_basic_course =
     desc : 'Basic Large Course\n(250 students)'
     statement : 'COCALC BASIC LG'
     price :
+        week   : 299
         month4 : 1499
         year1  : 3499
     cancel_at_period_end : true
