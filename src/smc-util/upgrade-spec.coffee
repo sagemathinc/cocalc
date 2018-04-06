@@ -367,7 +367,7 @@ subscription.xsmall_course =
 
 subscription.xsmall_course2 =
     icon  : 'battery-empty'
-    desc  : 'Standard Extra Small Course\n(10 people)'
+    desc  : 'Standard Extra Small\nCourse (10 people)'
     statement : 'COCALC XS'
     price :
         week   :  39
@@ -427,7 +427,7 @@ Basic Courses
 
 subscription.xsmall_basic_course =
     icon  : 'battery-empty'
-    desc  : 'Basic Extra Small Course\n(10 people)'
+    desc  : 'Basic Extra Small\nCourse (10 people)'
     statement : 'COCALC BASIC XS'
     price :
         week   :  29
