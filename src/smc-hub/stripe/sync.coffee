@@ -47,29 +47,6 @@ exports.stripe_sync = (opts) ->
                     users = x?.rows
                     cb(err)
         (cb) ->
-            dbg("dump stripe_customer data to file for statistical analysis")
-            if target?
-                cb()
-                return
-            target = "#{process.env.HOME}/stripe/"
-            fs.exists target, (exists) ->
-                if not exists
-                    fs.mkdir(target, cb)
-                else
-                    cb()
-        (cb) ->
-            dbg('actually writing customer data')
-            # NOTE: Of coure this is potentially one step out of date -- but in theory this should always be up to date
-            dump = []
-            for x in users
-                # these could all be embarassing if this backup "got out" -- remove anything about actual credit card
-                # and person's name/email.
-                y = misc.copy_with(x.stripe_customer, ['created', 'subscriptions', 'metadata'])
-                y.subscriptions = y.subscriptions?.data
-                y.metadata = y.metadata?.account_id?.slice(0,8)
-                dump.push(y)
-            fs.writeFile("#{target}/stripe_customers-#{misc.to_iso(new Date())}.json", misc.to_json(dump), cb)
-        (cb) ->
             if opts.dump_only
                 cb()
                 return
