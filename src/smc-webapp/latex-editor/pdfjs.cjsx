@@ -9,6 +9,8 @@ only be done via direct use of pdf.js.   But that will get done later.
 
 {throttle} = require('underscore')
 
+misc = require('smc-util/misc')
+
 {React, ReactDOM, rclass, rtypes} = require('../smc-react')
 
 {Loading} = require('../r_misc')
@@ -35,6 +37,10 @@ exports.PDFJS = rclass
     getInitialState: ->
         num_pages : undefined
         render    : 'svg'    # probably only use this, but easy to switch for now for testing.
+
+    shouldComponentUpdate: (props, state) ->
+        return misc.is_different(@props, props, ['reload', 'font_size']) or \
+            misc.is_different(@state, state, ['num_pages', 'render'])
 
     svg_hack: ->
         if @state.render != 'svg'
