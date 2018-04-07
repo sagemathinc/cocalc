@@ -4,7 +4,7 @@ FrameTitleBar - title bar in a frame, in the frame tree
 
 {debounce} = require('underscore')
 {ButtonGroup, Button, DropdownButton, MenuItem}   = require('react-bootstrap')
-{React, rclass, rtypes, redux} = require('../smc-react')
+{Fragment, React, rclass, rtypes, redux} = require('../smc-react')
 {Icon, Space, Tip, VisibleMDLG,
  EditorFileInfoDropdown}= require('../r_misc')
 {UncommittedChanges}    = require('../jupyter/uncommitted-changes')
@@ -65,8 +65,8 @@ exports.FrameTitleBar = rclass
     componentWillReceiveProps: ->
         @_last_render = new Date()
 
-    is_visible: (action_name) ->
-        if not @props.editor_spec?[@props.type]?.buttons?
+    is_visible: (action_name, explicit) ->
+        if not explicit and not @props.editor_spec?[@props.type]?.buttons?
             return true
         return @props.editor_spec[@props.type].buttons[action_name]
 
@@ -371,9 +371,9 @@ exports.FrameTitleBar = rclass
             <Icon name='history' /> <VisibleMDLG>{if labels then 'TimeTravel'}</VisibleMDLG>
         </Button>
 
-    # ainly for public view
+    # Button to reload the document
     render_reload: (labels) ->
-        if not @is_visible('reload')
+        if not @is_visible('reload', true)
             return
         <Button
             key     = {'reload'}
@@ -383,6 +383,23 @@ exports.FrameTitleBar = rclass
         >
             <Icon name='repeat' /> <VisibleMDLG>{if labels then 'Reload'}</VisibleMDLG>
         </Button>
+
+    # A "Help" info button
+    render_help: (labels) ->
+        if not @is_visible('help', true) or @props.is_public
+            return
+        <Fragment>
+            <Button
+                key     = {'help'}
+                title   = {'Show help for working with this type of document'}
+                bsSize  = {@button_size()}
+                bsStyle = {'info'}
+                onClick = {=>@props.actions.help?(@props.type)}
+            >
+                <Icon name='question-circle' /> <VisibleMDLG>{if labels then 'Help'}</VisibleMDLG>
+            </Button>
+            <Space/>
+        </Fragment>
 
     render_save: (labels) ->
         if not @is_visible('save')
@@ -412,6 +429,10 @@ exports.FrameTitleBar = rclass
             <Icon name={icon} /> <VisibleMDLG>{label}</VisibleMDLG>
             <UncommittedChanges has_uncommitted_changes={@props.has_uncommitted_changes} />
         </Button>
+
+    render_help_group: ->
+        labels   = @show_labels()
+        @render_help(labels)}
 
     render_save_timetravel_group: ->
         labels   = @show_labels()
@@ -456,6 +477,7 @@ exports.FrameTitleBar = rclass
         <div
             style = {style}
             key   = {'buttons'}>
+            {@render_help_group()}
             {@render_save_timetravel_group()}
             {<Space/>}
             {@render_copy_group()}
