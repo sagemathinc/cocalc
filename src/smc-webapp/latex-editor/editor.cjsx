@@ -13,7 +13,7 @@ misc = require('smc-util/misc')
 {PDFEmbed}              = require('./pdf-embed')
 {LaTeXJS}               = require('./latexjs')
 {CodemirrorEditor}      = require('../code-editor/codemirror-editor')
-{BuildLog}              = require('./build-log')
+{Build}                 = require('./build')
 
 pdf_path = (path) ->
     return path.slice(0, path.length-3) + 'pdf'
@@ -44,16 +44,16 @@ EDITOR_SPEC =
         component : PDFEmbed
         path      : pdf_path
 
-    build_log  :
+    build  :
         short     : 'Build'
-        name      : 'Build log'
+        name      : 'Build control'
         icon      : 'terminal'
-        component : BuildLog
+        component : Build
         buttons   : set(['print', 'reload', 'decrease_font_size', 'increase_font_size'])
 
     latexjs :
         short     : 'Preview'
-        name      : 'Realtime preview (LaTeX.js)'
+        name      : 'Preview (LaTeX.js)'
         icon      : 'file-pdf-o'
         component : LaTeXJS
         buttons   : set(['print', 'save', 'reload', 'decrease_font_size', 'increase_font_size'])

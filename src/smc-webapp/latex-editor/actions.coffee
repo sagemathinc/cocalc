@@ -34,7 +34,7 @@ class exports.Actions extends Actions
                 first     :
                     type : 'pdfjs'
                 second    :
-                    type : 'build_log'
+                    type : 'build'
 
     run_tex2pdf: (time) =>
         # TODO: should only run knitr if at least one frame is visible showing preview.

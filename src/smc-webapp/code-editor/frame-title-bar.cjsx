@@ -24,6 +24,12 @@ path_style =
     color        : '#333'
     float        : 'right'
 
+TITLE_STYLE =
+    padding  : '5px 0 0 5px'
+    color    : '#333'
+    fontSize : '10pt'
+    display  : 'inline-block'
+
 button_size = 'small'
 if IS_TOUCH
     close_style = undefined
@@ -483,13 +489,22 @@ exports.FrameTitleBar = rclass
             {@render_buttons()}
         </div>
 
+    render_title: ->
+        spec = @props.editor_spec?[@props.type]
+        if not spec?
+            return
+        <span style={TITLE_STYLE}>
+            <Icon name={spec.icon} />
+            <Space />
+            {spec.title ? spec.name ? spec.short ? ''}
+        </span>
+
     render: ->
         # Whether this is *the* active currently focused frame:
         is_active = @props.id == @props.active_id
         if is_active
             style = misc.copy(title_bar_style)
             style.background = '#f8f8f8'
-
         else
             style = title_bar_style
 
@@ -504,6 +519,7 @@ exports.FrameTitleBar = rclass
                 style.minHeight = '32px'
 
         <div style = {style}>
+            {if not is_active then @render_title()}
             {@render_control()}
             {if is_active then @render_main_buttons()}
         </div>

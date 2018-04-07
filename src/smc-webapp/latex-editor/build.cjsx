@@ -17,7 +17,6 @@ BUILD_SPEC =
         label   : "Recompile"
         icon    : 'retweet'
         tip     : 'Recompile the document, running LaTeX, BibTex, Sage, etc.'
-        bsStyle : 'success'
 
     latex:
         label : "LaTeX"
@@ -41,8 +40,8 @@ BUILD_SPEC =
 
 
 
-exports.BuildLog = rclass ({name}) ->
-    displayName: 'LaTeXEditor-BuildLog'
+exports.Build = rclass ({name}) ->
+    displayName: 'LaTeXEditor-Build'
 
     propTypes :
         id            : rtypes.string.isRequired
