@@ -67,7 +67,9 @@ Problems people are having right now:
 
     select NOW() - time as timeago, left(account_id::VARCHAR,6), left(error,80) as error from client_error_log order by time desc limit 50;
 
-    select NOW() - time as timeago, left(account_id::VARCHAR,6), left(error,80) as error from client_error_log where error like 'Error saving%' order by time desc limit 50;
+    select NOW() - time as timeago, left(error,300) as error from client_error_log where error like '%Error saving file%' order by time desc limit 50;
+
+    select NOW() - time as timeago, left(error,300) as error from client_error_log where error like '%has_unsaved_changes%' order by time desc limit 50;
 
 File access for a user with given email address:
 
