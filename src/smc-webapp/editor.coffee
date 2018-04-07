@@ -1724,7 +1724,7 @@ class Terminal extends FileEditor
             path       : @filename
             cb         : (err, result) =>
                 if err
-                    alert_message(type:"error", message: "Error connecting to console server -- #{err}")
+                    alert_message(type:"error", message: "Error connecting to console server -- #{misc.to_safe_str(err)}")
                 else
                     # New session or connect to session
                     if result.content? and result.content.length < 36
