@@ -25,7 +25,7 @@ EDITOR_SPEC =
         icon      : 'code'
         component : CodemirrorEditor
         buttons   : set(['print', 'decrease_font_size', 'increase_font_size', 'save', 'time_travel', 'replace', 'find', 'goto_line', \
-                         'cut', 'paste', 'copy', 'undo', 'redo', 'reload'])
+                         'cut', 'paste', 'copy', 'undo', 'redo', 'help'])
 
     pdfjs :
         short     : 'PDF View'
@@ -52,8 +52,8 @@ EDITOR_SPEC =
         buttons   : set(['print', 'reload', 'decrease_font_size', 'increase_font_size'])
 
     latexjs :
-        short     : 'Preview'
-        name      : 'Preview (LaTeX.js)'
+        short     : 'Quick Preview'
+        name      : 'Quick Preview (LaTeX.js)'
         icon      : 'file-pdf-o'
         component : LaTeXJS
         buttons   : set(['print', 'save', 'reload', 'decrease_font_size', 'increase_font_size'])
