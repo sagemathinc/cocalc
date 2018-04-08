@@ -32,7 +32,8 @@ exports.ErrorsAndWarnings = rclass ({name}) ->
             status    : rtypes.string
 
     shouldComponentUpdate: (props) ->
-        return misc.is_different(@props, props, ['build_log', 'status', 'font_size'])
+        return misc.is_different(@props, props, ['status', 'font_size']) or \
+            @props.build_log?.getIn(['latex', 'parse']) != props.build_log?.getIn(['latex', 'parse'])
 
     render_status: ->
         if @props.status
@@ -43,22 +44,27 @@ exports.ErrorsAndWarnings = rclass ({name}) ->
                 />
             </div>
 
-    render_errors: ->
-        errors = @props.build_log?.getIn(['latex', 'parse', 'errors'])
-        if not errors?
-            return
-        <pre>{JSON.stringify(errors)}</pre>
+    render_group_content: (group) ->
+        v = @props.build_log?.getIn(['latex', 'parse', group])
+        if not v? or v.size == 0
+            <span>None</span>
+        else
+            <div>{JSON.stringify(v.toJS())}</div>
 
-    render_typesetting_issues: ->
-
-    render_warnings: ->
+    render_group: (group) ->
+        <div key={group}>
+            <h3>{misc.capitalize(group)}</h3>
+            {@render_group_content(group)}
+        </div>
 
     render: ->
         <div
             className = {'smc-vfill'}
             style     = {overflowY: 'scroll', padding: '5px 15px', fontSize:"#{@props.font_size}px"}
         >
-            {@render_errors()}
-            {@render_typesetting_issues()}
-            {@render_warnings()}
+            {@render_status()}
+            {(@render_group(group) for group in ['errors', 'typesetting', 'warnings'])}
         </div>
+
+
+
