@@ -29,6 +29,7 @@ TITLE_STYLE =
     color    : '#333'
     fontSize : '10pt'
     display  : 'inline-block'
+    float    : 'right'
 
 button_size = 'small'
 if IS_TOUCH
@@ -66,9 +67,10 @@ exports.FrameTitleBar = rclass
         @_last_render = new Date()
 
     is_visible: (action_name, explicit) ->
-        if not explicit and not @props.editor_spec?[@props.type]?.buttons?
+        buttons = @props.editor_spec?[@props.type]?.buttons
+        if not explicit and not buttons?
             return true
-        return @props.editor_spec[@props.type].buttons[action_name]
+        return buttons?[action_name]
 
     click_close: ->
         if new Date() - @_last_render < 200
@@ -245,11 +247,14 @@ exports.FrameTitleBar = rclass
         </Button>
 
     render_find_replace_group: ->
-        <ButtonGroup key={'find-group'}>
-            {@render_find()}
-            {@render_replace() if not @props.is_public}
-            {@render_goto_line()}
-        </ButtonGroup>
+        <Fragment>
+            <Space />
+            <ButtonGroup key={'find-group'}>
+                {@render_find()}
+                {@render_replace() if not @props.is_public}
+                {@render_goto_line()}
+            </ButtonGroup>
+        </Fragment>
 
     render_cut: ->
         if not @is_visible('cut')
@@ -290,17 +295,23 @@ exports.FrameTitleBar = rclass
         </Button>
 
     render_copy_group: ->
-        <ButtonGroup key={'copy'}>
-            {@render_cut() if not @props.is_public}
-            {@render_copy()}
-            {@render_paste() if not @props.is_public}
-        </ButtonGroup>
+        <Fragment>
+            <Space />
+            <ButtonGroup key={'copy'}>
+                {@render_cut() if not @props.is_public}
+                {@render_copy()}
+                {@render_paste() if not @props.is_public}
+            </ButtonGroup>
+        </Fragment>
 
     render_zoom_group: ->
-        <ButtonGroup key={'zoom'}>
-            {@render_zoom_out()}
-            {@render_zoom_in()}
-        </ButtonGroup>
+        <Fragment>
+            <Space />
+            <ButtonGroup key={'zoom'}>
+                {@render_zoom_out()}
+                {@render_zoom_in()}
+            </ButtonGroup>
+        </Fragment>
 
     render_split_group: ->
         <ButtonGroup  key={'split'}>
@@ -335,25 +346,31 @@ exports.FrameTitleBar = rclass
         </Button>
 
     render_undo_redo_group: ->
-        <ButtonGroup key={'undo-group'}>
-            {@render_undo()}
-            {@render_redo()}
-        </ButtonGroup>
+        <Fragment>
+            <Space />
+            <ButtonGroup key={'undo-group'}>
+                {@render_undo()}
+                {@render_redo()}
+            </ButtonGroup>
+        </Fragment>
 
     render_format_group: ->
         if not @is_visible('auto_indent')
             return
-        <ButtonGroup key={'format-group'}>
-            <Button
-                key      = {'auto-indent'}
-                title    = {'Automatically format selected code'}
-                onClick  = {@props.actions.auto_indent}
-                disabled = {@props.read_only}
-                bsSize   = {@button_size()}
-            >
-                <Icon name='indent' />
-            </Button>
-        </ButtonGroup>
+        <Fragment>
+            <Space />
+            <ButtonGroup key={'format-group'}>
+                <Button
+                    key      = {'auto-indent'}
+                    title    = {'Automatically format selected code'}
+                    onClick  = {@props.actions.auto_indent}
+                    disabled = {@props.read_only}
+                    bsSize   = {@button_size()}
+                >
+                    <Icon name='indent' />
+                </Button>
+            </ButtonGroup>
+        </Fragment>
 
     show_labels: ->
         return @props.is_only or @props.is_full
@@ -388,17 +405,17 @@ exports.FrameTitleBar = rclass
     render_help: (labels) ->
         if not @is_visible('help', true) or @props.is_public
             return
+        labels = @show_labels()
         <Fragment>
+            <Space/>
             <Button
                 key     = {'help'}
                 title   = {'Show help for working with this type of document'}
                 bsSize  = {@button_size()}
-                bsStyle = {'info'}
                 onClick = {=>@props.actions.help?(@props.type)}
             >
                 <Icon name='question-circle' /> <VisibleMDLG>{if labels then 'Help'}</VisibleMDLG>
             </Button>
-            <Space/>
         </Fragment>
 
     render_save: (labels) ->
@@ -430,10 +447,6 @@ exports.FrameTitleBar = rclass
             <UncommittedChanges has_uncommitted_changes={@props.has_uncommitted_changes} />
         </Button>
 
-    render_help_group: ->
-        labels   = @show_labels()
-        @render_help(labels)}
-
     render_save_timetravel_group: ->
         labels   = @show_labels()
         <ButtonGroup key={'save-group'}>
@@ -445,14 +458,17 @@ exports.FrameTitleBar = rclass
     render_print: ->
         if not @is_visible('print')
             return
-        <Button
-            bsSize  = {@button_size()}
-            key     = {'print'}
-            onClick = {=>@props.actions.print(@props.id)}
-            title   = {'Print file to PDF'}
-        >
-            <Icon name={'print'} /> <VisibleMDLG>{if @show_labels() then 'Print'}</VisibleMDLG>
-        </Button>
+        <Fragment>
+            <Space />
+            <Button
+                bsSize  = {@button_size()}
+                key     = {'print'}
+                onClick = {=>@props.actions.print(@props.id)}
+                title   = {'Print file to PDF'}
+            >
+                <Icon name={'print'} /> <VisibleMDLG>{if @show_labels() then 'Print'}</VisibleMDLG>
+            </Button>
+        </Fragment>
 
     render_file_menu: ->
         if not (@props.is_only or @props.is_full)
@@ -473,24 +489,18 @@ exports.FrameTitleBar = rclass
             # extra buttons are cleanly not visible when frame is thin.
             style = {maxHeight:'30px', overflow:'hidden', flex:1}
         else
-            style = undefined
+            style = {maxHeight:'34px', overflow:'hidden', flex:1}
         <div
             style = {style}
             key   = {'buttons'}>
-            {@render_help_group()}
             {@render_save_timetravel_group()}
-            {<Space/>}
-            {@render_copy_group()}
-            {<Space/>}
             {@render_undo_redo_group() if not @props.is_public}
-            {<Space />}
             {@render_zoom_group()}
-            {<Space />}
+            {@render_copy_group()}
             {@render_find_replace_group()}
-            {<Space />}
             {@render_format_group() if not @props.is_public}
-            {<Space/>}
             {@render_print()}
+            {@render_help()}
         </div>
 
     render_path: ->
@@ -541,7 +551,7 @@ exports.FrameTitleBar = rclass
                 style.minHeight = '32px'
 
         <div style = {style}>
-            {if not is_active then @render_title()}
             {@render_control()}
             {if is_active then @render_main_buttons()}
+            {if not is_active then @render_title()}
         </div>

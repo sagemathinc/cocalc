@@ -2,6 +2,8 @@
 LaTeX Editor Actions
 ###
 
+WIKI_HELP_URL   = 'https://github.com/sagemathinc/cocalc/wiki/LaTeX-Editor'
+
 immutable       = require('immutable')
 
 {Actions}       = require('../code-editor/actions')
@@ -89,3 +91,6 @@ class exports.Actions extends Actions
                 @run_clean()
             else
                 @set_error("unknown build action '#{action}'")
+
+    help: =>
+        window.open(WIKI_HELP_URL, "_blank").focus()
