@@ -44,12 +44,22 @@ exports.ErrorsAndWarnings = rclass ({name}) ->
                 />
             </div>
 
+    render_item: (item, key) ->
+        <Item
+            key  = {key}
+            item = {item}
+        />
+
     render_group_content: (group) ->
         v = @props.build_log?.getIn(['latex', 'parse', group])
         if not v? or v.size == 0
             <span>None</span>
         else
-            <div>{JSON.stringify(v.toJS())}</div>
+            w = []
+            v.forEach (item) =>
+                w.push(@render_item(item, w.length))
+                return
+            <div>{w}</div>
 
     render_group: (group) ->
         <div key={group}>
@@ -66,5 +76,54 @@ exports.ErrorsAndWarnings = rclass ({name}) ->
             {(@render_group(group) for group in ['errors', 'typesetting', 'warnings'])}
         </div>
 
+ITEM_STYLES =
+    warning :
+        border  : '1px solid yellow'
+        padding : '15px'
+        margin  : '5px 0'
+    error :
+        border  : '1px solid red'
+        padding : '15px'
+        margin  : '5px 0'
+    typesetting :
+        border: '1px solid grey'
+        padding : '15px'
+        margin  : '5px 0'
 
+Item = rclass
+    displayName : 'LaTeXEditor-ErrorsAndWarnings-Item'
 
+    propTypes:
+        actions : rtypes.object
+        item    : rtypes.immutable.Map
+
+    shouldComponentUpdate: (props) ->
+        return @props.item != props.item
+
+    goto_line_source: =>
+        # TODO: if file is different, open different file
+        @props.actions.programmatical_goto_line(@props.item.get('line'))
+
+    render_location: ->
+        <div>
+            <a onClick={@goto_line_source}>Line {@props.item.get('line')} of {@props.item.get('file')}</a>
+        </div>
+
+    render_message: ->
+        message = @props.item.get('message')
+        if not message
+            return
+        <div>{message}</div>
+
+    render_content: ->
+        content = @props.item.get('content')
+        if not content
+            return
+        <pre>{content}</pre>
+
+    render: ->
+        <div style={ITEM_STYLES[@props.item.get('level')]}>
+            {@render_location()}
+            {@render_message()}
+            {@render_content()}
+        </div>
