@@ -89,14 +89,19 @@ class exports.Actions extends Actions
             if err
                 @set_error("Error opening -- #{err}")
 
-        @_syncstring.once('init', @_syncstring_metadata)
+        @_syncstring.once 'init', =>
+            @_syncstring_metadata()
+            if not @store.get('is_loaded')
+                @setState(is_loaded: true)
+
         @_syncstring.on('metadata-change', @_syncstring_metadata)
         @_syncstring.on('cursor_activity', @_syncstring_cursor_activity)
 
         @_syncstring.on('change', @_syncstring_change)
         @_syncstring.on('init', @_syncstring_change)
 
-        @_syncstring.once('load-time-estimate', (est) => @setState(load_time_estimate: est))
+        @_syncstring.once 'load-time-estimate', (est) =>
+            @setState(load_time_estimate: est)
 
         @_syncstring.on 'save-to-disk', =>
             # incremenet save_to_disk counter, so that react components can react to save_to_disk event happening.
@@ -358,8 +363,6 @@ class exports.Actions extends Actions
             @setState(cursors: cursors)
 
     _syncstring_change: (changes) =>
-        if not @store.get('is_loaded')
-            @setState(is_loaded: true)
         @update_save_status?()
 
     set_cursor_locs:  (locs=[], side_effect) =>
