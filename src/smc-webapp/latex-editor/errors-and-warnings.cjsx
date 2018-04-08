@@ -46,8 +46,9 @@ exports.ErrorsAndWarnings = rclass ({name}) ->
 
     render_item: (item, key) ->
         <Item
-            key  = {key}
-            item = {item}
+            key     = {key}
+            item    = {item}
+            actions = {@props.actions}
         />
 
     render_group_content: (group) ->
@@ -78,15 +79,15 @@ exports.ErrorsAndWarnings = rclass ({name}) ->
 
 ITEM_STYLES =
     warning :
-        border  : '1px solid yellow'
+        border  : '2px solid #fdb600'
         padding : '15px'
         margin  : '5px 0'
     error :
-        border  : '1px solid red'
+        border  : '2px solid #a00'
         padding : '15px'
         margin  : '5px 0'
     typesetting :
-        border: '1px solid grey'
+        border  : '2px solid #fdb600'
         padding : '15px'
         margin  : '5px 0'
 
@@ -100,13 +101,19 @@ Item = rclass
     shouldComponentUpdate: (props) ->
         return @props.item != props.item
 
-    goto_line_source: =>
-        # TODO: if file is different, open different file
-        @props.actions.programmatical_goto_line(@props.item.get('line'))
+    edit_source: ->
+        @props.actions.open_code_editor
+            line      : @props.item.get('line')
+            file      : @props.item.get('file')
+            cursor    : true
+            focus     : true
+            direction : 'col'
 
     render_location: ->
         <div>
-            <a onClick={@goto_line_source}>Line {@props.item.get('line')} of {@props.item.get('file')}</a>
+            <a onClick={@edit_source} style={cursor:'pointer'}>
+                Line {@props.item.get('line')} of {@props.item.get('file')}
+            </a>
         </div>
 
     render_message: ->

@@ -187,24 +187,26 @@ exports.delete_node = (tree, id) ->
         return node
     return process(tree)
 
-split_the_leaf = (leaf, direction) ->
+split_the_leaf = (leaf, direction, type) ->
     # split this leaf node
     # 1. Make another leaf that is identical, except with a new id.
     leaf2    = leaf.set('id', generate_id())
+    if type?
+        leaf2 = leaf2.set('type', type)
     # 2. Make node with these two leafs
     node = immutable.fromJS(direction:direction, id:generate_id(), type:'node')
     node = node.set('first',  leaf)
     node = node.set('second', leaf2)
     return node
 
-exports.split_leaf = (tree, id, direction) ->
+exports.split_leaf = (tree, id, direction, type) ->
     done = false
     process = (node) ->
         if not node? or done
             return node
         if node.get('id') == id
             done = true
-            return split_the_leaf(node, direction)
+            return split_the_leaf(node, direction, type)
         for x in ['first', 'second']
             # descend the tree
             t0 = node.get(x)

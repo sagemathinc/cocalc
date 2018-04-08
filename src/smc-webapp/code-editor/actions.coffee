@@ -21,6 +21,8 @@ tree_ops        = require('./tree-ops')
 print           = require('./print')
 spell_check     = require('./spell-check')
 
+{required, defaults} = misc
+
 class exports.Actions extends Actions
     _init: (project_id, path, is_public, store) =>
         @project_id = project_id
@@ -196,6 +198,11 @@ class exports.Actions extends Actions
         if tree_ops.is_leaf_id(local?.get('frame_tree'), active_id)
             @setState(local_view_state : @store.get('local_view_state').set('active_id', active_id))
             @_save_local_view_state()
+            # If active_id is the id of a codemirror editor,
+            # save when; this is just a quick solution to
+            # "give me last active cm" -- we will switch to something
+            # more generic later.
+            @_cm?[active_id]?._last_active = new Date()
             @focus()
         return
 
@@ -267,9 +274,9 @@ class exports.Actions extends Actions
         delete @_cm?[id]
         setTimeout(@focus, 1)
 
-    split_frame: (direction, id) =>
+    split_frame: (direction, id, type) =>
         ids0 = @_get_leaf_ids()
-        @_tree_op('split_leaf', id ? @store.getIn(['local_view_state', 'active_id']), direction)
+        @_tree_op('split_leaf', id ? @store.getIn(['local_view_state', 'active_id']), direction, type)
         for i,_ of @_get_leaf_ids()
             if not ids0[i]
                 @copy_editor_state(id, i)
@@ -475,17 +482,61 @@ class exports.Actions extends Actions
             @_cm_selections[id] = cm.listSelections()
         delete @_cm?[id]
 
-    # returns cm with given id or at least some cm, if any known.
-    _get_cm: (id) =>
+    # 1. if id given, returns cm with given id if id
+    # 2. if no id given:
+    #   if recent is true, return most recent cm
+    #   if recent is not given, return some cm
+    _get_cm: (id, recent=false) =>
         @_cm ?= {}
         cm = @_cm[id] ? @_active_cm()
-        if not cm?
+        if cm?
+            return cm
+        if recent
+            # TODO: rewrite this (and code in set_active_id) to work generically
+            # for any frame tree leaf type.
+            v = (obj for _, obj of @_cm)
+            if v.length == 0
+                return
+            v.sort((a,b) -> -misc.cmp_Date(a._last_active ? 0, b._last_active ? 0))
+            return v[0]
+        else
             for id, v of @_cm
                 return v
-        return cm
+
+    _recent_cm: =>
+        return @_get_cm(undefined,true)
 
     _active_cm: =>
         return @_cm?[@store.getIn(['local_view_state', 'active_id'])]
+
+    # Open a code editor, optionally at the given line.
+    open_code_editor: (opts) =>
+        opts = defaults opts,
+            focus     : true
+            line      : undefined
+            file      : undefined    # not supported yet
+            cursor    : true         # set cursor to line position (not just scroll to it)
+            direction : 'col'        # 'row' or 'col'
+
+        # TODO -- opts.file is ignored
+
+        must_create = not @_get_cm()?
+        if must_create
+            # split and make a cm
+            @split_frame(opts.direction, undefined, 'cm')
+
+        if opts.line
+            f = (=>@programmatical_goto_line(opts.line, opts.cursor))
+            if must_create
+                # Have to wait until after editor gets created
+                setTimeout(f, 1)
+            else
+                f()
+
+        if opts.focus
+            # Have to wait until after editor gets created, and
+            # probably also event that caued this open.
+            setTimeout((=>@_recent_cm()?.focus()), 1)
 
     focus: =>
         @_get_cm()?.focus()
@@ -565,13 +616,18 @@ class exports.Actions extends Actions
     auto_indent: (id) =>
         @_get_cm(id)?.execCommand('indentAuto')
 
-    programmatical_goto_line: (line) =>  # used when clicking on other user avatar.
-        cm = @_get_cm()
+    # used when clicking on other user avatar,
+    # in the latex editor, etc.
+    # If cursor is given, moves the cursor to the line too.
+    programmatical_goto_line: (line, cursor) =>
+        cm = @_recent_cm()
         if not cm?
             return
         pos  = {line:line-1, ch:0}
         info = cm.getScrollInfo()
         cm.scrollIntoView(pos, info.clientHeight/2)
+        if cursor
+            cm.setCursor(pos)
 
     cut: (id) =>
         cm = @_get_cm(id)
@@ -606,7 +662,7 @@ class exports.Actions extends Actions
         @setState(status: status)
 
     print: (id) =>
-        cm = @_get_cm()
+        cm = @_get_cm(id)
         if not cm?
             return
         error = print.print
