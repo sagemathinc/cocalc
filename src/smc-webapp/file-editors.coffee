@@ -59,7 +59,7 @@ get_ed = (path, is_public) ->
     e = file_editors[is_public][noext]  # special case: exact filename match
     if e?
         return e
-    ext = misc.filename_extension(path).toLowerCase()
+    ext = misc.filename_extension_notilde(path).toLowerCase()
     # either use the one given by ext, or if there isn't one, use the '' fallback.
     return file_editors[is_public][ext] ? file_editors[is_public]['']
 
