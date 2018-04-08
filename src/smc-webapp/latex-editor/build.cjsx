@@ -65,8 +65,11 @@ exports.Build = rclass ({name}) ->
         value = (@props.build_log?.getIn(['latex', 'stdout']) ? '') + (@props.build_log?.getIn(['latex', 'stderr']) ? '')
         if not value
             return
+        time = @props.build_log?.getIn(['latex', 'time']) ? ''
+        if time
+            time = "( #{(time/1000).toFixed?(1)} seconds)"
         <Fragment>
-            <h4>LaTeX Output</h4>
+            <h4>LaTeX Output {time}</h4>
             <textarea
                 readOnly = {true}
                 style    = {color: '#666', background: '#f8f8f0', display: 'block', width: '100%', padding: '10px', flex:1}
@@ -89,10 +92,10 @@ exports.Build = rclass ({name}) ->
 
     render_status: ->
         if @props.status
-            <div>
+            <div style={margin:'15px'}>
                 <Loading
                     text  = {@props.status}
-                    style = {fontSize: '18pt', textAlign: 'center', marginTop: '15px', color: '#333'}
+                    style = {fontSize: '18pt', textAlign: 'center', marginTop: '15px', color: '#666'}
                 />
             </div>
 

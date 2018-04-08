@@ -42,6 +42,7 @@ class exports.Actions extends Actions
         # TODO: should only run knitr if at least one frame is visible showing preview.
         @set_status('Running LaTeX...')
         @setState(build_log: undefined)
+        tm = new Date()
         tex2pdf.convert
             path       : @path
             project_id : @project_id
@@ -50,6 +51,7 @@ class exports.Actions extends Actions
                 @set_status('')
                 if err
                     @set_error(err)
+                output.time = new Date() - tm
                 @setState(build_log: {latex:output})  # later there might also be output from a sage step, etc.
                 for x in ['pdfjs', 'embed', 'build_log']
                     @set_reload(x)
