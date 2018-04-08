@@ -11,6 +11,8 @@ tex2pdf         = require('./tex2pdf')
 {webapp_client} = require('../webapp_client')
 maintenance     = require('./maintenance')
 
+{LatexParser}   = require('./latex-log-parser.coffee')
+
 class exports.Actions extends Actions
     _init: (args...) =>
         super._init(args...)   # call the _init for the parent class
@@ -51,7 +53,9 @@ class exports.Actions extends Actions
                 @set_status('')
                 if err
                     @set_error(err)
-                output.time = new Date() - tm
+                output?.time = new Date() - tm
+                if output?.stdout?
+                    output.parse = (new LatexParser(output.stdout, {ignoreDuplicates: true})).parse()
                 @setState(build_log: {latex:output})  # later there might also be output from a sage step, etc.
                 for x in ['pdfjs', 'embed', 'build_log']
                     @set_reload(x)

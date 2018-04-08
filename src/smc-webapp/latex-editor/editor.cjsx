@@ -14,6 +14,7 @@ misc = require('smc-util/misc')
 {LaTeXJS}               = require('./latexjs')
 {CodemirrorEditor}      = require('../code-editor/codemirror-editor')
 {Build}                 = require('./build')
+{ErrorsAndWarnings}     = require('./errors-and-warnings')
 
 pdf_path = (path) ->
     return path.slice(0, path.length-3) + 'pdf'
@@ -49,7 +50,14 @@ EDITOR_SPEC =
         name      : 'Build control'
         icon      : 'terminal'
         component : Build
-        buttons   : set(['print', 'reload', 'decrease_font_size', 'increase_font_size'])
+        buttons   : set(['reload', 'decrease_font_size', 'increase_font_size'])
+
+    error  :
+        short     : 'Errors'
+        name      : 'Errors and Warnings'
+        icon      : 'exclamation-triangle'
+        component : ErrorsAndWarnings
+        buttons   : set(['reload', 'decrease_font_size', 'increase_font_size'])
 
     latexjs :
         short     : 'Quick Preview'
