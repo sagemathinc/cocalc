@@ -251,7 +251,11 @@ exports.Grade = rclass
             <div>
                 {
                     if @state.grade_comments?.length > 0
-                        <div><b>Comment</b> (visible to student)</div>
+                        <div>
+                            <b>Comment</b>
+                            {' '}
+                            <span style={color:COLORS.GRAY}>(visible to student)</span>
+                        </div>
                 }
                 {@grade_comment_edit()}
             </div>
