@@ -3,8 +3,9 @@ Code Editor Actions
 ###
 
 WIKI_HELP_URL   = "https://github.com/sagemathinc/cocalc/wiki/editor"  # TODO -- write this
+SAVE_ERROR      = 'Error saving file to disk. '
 SAVE_WORKAROUND = 'Ensure your network connection is solid. If this problem persists, you might need to close and open this file, or restart this project in Project Settings.'
-SAVE_RETRIES    = 7   # how many times to retry to save (and get no unsaved changes), until giving up
+MAX_SAVE_TIME_S = 30  # how long to retry to save (and get no unsaved changes), until giving up and showing an error.
 
 immutable       = require('immutable')
 underscore      = require('underscore')
@@ -88,14 +89,19 @@ class exports.Actions extends Actions
             if err
                 @set_error("Error opening -- #{err}")
 
-        @_syncstring.once('init', @_syncstring_metadata)
+        @_syncstring.once 'init', =>
+            @_syncstring_metadata()
+            if not @store.get('is_loaded')
+                @setState(is_loaded: true)
+
         @_syncstring.on('metadata-change', @_syncstring_metadata)
         @_syncstring.on('cursor_activity', @_syncstring_cursor_activity)
 
         @_syncstring.on('change', @_syncstring_change)
         @_syncstring.on('init', @_syncstring_change)
 
-        @_syncstring.once('load-time-estimate', (est) => @setState(load_time_estimate: est))
+        @_syncstring.once 'load-time-estimate', (est) =>
+            @setState(load_time_estimate: est)
 
         @_syncstring.on 'save-to-disk', =>
             # incremenet save_to_disk counter, so that react components can react to save_to_disk event happening.
@@ -105,7 +111,7 @@ class exports.Actions extends Actions
 
     set_reload: (type) =>
         reload = @store.get('reload') ? immutable.Map()
-        @setState(reload: reload.set(type, (reload.get(type) ? 0) + 1))
+        @setState(reload: reload.set(type, @_syncstring.hash_of_saved_version()))
 
     set_resize: =>
         @setState(resize: (@store.get('resize') ? 0) + 1)
@@ -313,10 +319,18 @@ class exports.Actions extends Actions
     disable_key_handler: =>
         @redux.getActions('page').erase_active_key_handler(@_key_handler)
 
+    _has_unsaved_changes: =>
+        #@_syncstring?.has_unsaved_changes()
+        hash_saved = @_syncstring?.hash_of_saved_version()
+        hash_live  = misc.hash_string(@_get_cm()?.getValue())
+        if not hash_saved? or not hash_live? # don't know yet...
+            return
+        return hash_live != hash_saved
+
     _init_has_unsaved_changes: =>  # basically copies from tasks/actions.coffee -- opportunity to refactor
         do_set = =>
             @setState
-                has_unsaved_changes     : @_syncstring?.has_unsaved_changes()
+                has_unsaved_changes     : @_has_unsaved_changes()
                 has_uncommitted_changes : @_syncstring?.has_uncommitted_changes()
         f = =>
             do_set()
@@ -349,8 +363,6 @@ class exports.Actions extends Actions
             @setState(cursors: cursors)
 
     _syncstring_change: (changes) =>
-        if not @store.get('is_loaded')
-            @setState(is_loaded: true)
         @update_save_status?()
 
     set_cursor_locs:  (locs=[], side_effect) =>
@@ -379,20 +391,23 @@ class exports.Actions extends Actions
                 @update_save_status()
                 if err
                     @update_save_status()
-                    @set_error("Error saving file to disk: '#{err}'.  #{SAVE_WORKAROUND}")
+                    @set_error("#{SAVE_ERROR} '#{err}'.  #{SAVE_WORKAROUND}")
                     cb()
                 else
-                    cb(@store.get('has_unsaved_changes'))
+                    done = not @store.get('has_unsaved_changes')
+                    if done and misc.startswith(@store.get('error'), SAVE_ERROR)
+                        @set_error('')
+                    cb(not done)
 
         misc.retry_until_success
             f         : f
-            max_tries : SAVE_RETRIES
+            max_time  : MAX_SAVE_TIME_S*1000
+            max_delay : 6000
             cb        : (err) =>
                 if err
-                    console.log(err)
-                    @set_error("Unable to save file to disk.  Despite repeated attempts, the version of the file saved to disk does not equal the version in your browser.  #{SAVE_WORKAROUND}")
+                    console.warn(err)
+                    @set_error("#{SAVE_ERROR} Despite repeated attempts, the version of the file saved to disk does not equal the version in your browser.  #{SAVE_WORKAROUND}")
                     webapp_client.log_error({string_id:@_syncstring?._string_id, path:@path, project_id:@project_id, error:"Error saving file -- has_unsaved_changes"})
-
 
     save: (explicit) =>
         if @is_public
@@ -404,6 +419,7 @@ class exports.Actions extends Actions
         # Doing this automatically is fraught with error, since cursors aren't precise...
         if explicit and @redux.getStore('account')?.getIn(['editor_settings', 'strip_trailing_whitespace'])
             @delete_trailing_whitespace()
+        @set_syncstring_to_codemirror()
         @_do_save()
         if explicit
             @_active_cm()?.focus()
@@ -443,6 +459,8 @@ class exports.Actions extends Actions
         if @_cm? and misc.len(@_cm) > 0
             @_cm[id] = cm
             return
+
+        # Creating codemirror for the first time -- need to initialize it.
         @_cm = {"#{id}": cm}
         @set_codemirror_to_syncstring()
 
@@ -604,6 +622,11 @@ class exports.Actions extends Actions
     # sets the mispelled_words part of the state to the immutable
     # Set of those words.  They can then be rendered by any editor/view.
     update_misspelled_words: (time) =>
+        hash = @_syncstring.hash_of_saved_version()
+        if hash == @_update_misspelled_words_last_hash
+            # same file as before, so do not bother.
+            return
+        @_update_misspelled_words_last_hash = hash
         spell_check.misspelled_words
             project_id : @project_id
             path       : @path
@@ -656,3 +679,6 @@ class exports.Actions extends Actions
             format_bar = format_bar.set(key, val)
         @setState(format_bar: format_bar)
     ###
+    test: =>
+        test : require('./test')
+        cm   : @_get_cm()

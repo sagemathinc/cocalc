@@ -147,8 +147,10 @@ class Plug
         @connect()
 
     dbg: (f) =>
-        #return @_opts.client.dbg("Plug('#{@_opts.name}').#{f}")
-        return =>
+        if @_opts.client.is_project()
+            return @_opts.client.dbg("Plug('#{@_opts.name}').#{f}")
+        else
+            return =>
 
     # Keep trying until we connect - always succeeds if it terminates
     connect: (cb) =>

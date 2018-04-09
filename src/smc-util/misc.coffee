@@ -1040,6 +1040,8 @@ exports.matches = (s, words) ->
     return true
 
 exports.hash_string = (s) ->
+    if not s?
+        return
     # see http://stackoverflow.com/questions/7616461/generate-a-hash-from-string-in-javascript-jquery
     hash = 0
     i = undefined
@@ -1054,7 +1056,6 @@ exports.hash_string = (s) ->
         hash |= 0 # convert to 32-bit integer
         i++
     return hash
-
 
 exports.parse_hashtags = (t) ->
     # return list of pairs (i,j) such that t.slice(i,j) is a hashtag (starting with #).
@@ -2268,3 +2269,15 @@ exports.anonymize = (str, opts) ->
 
         when 'uuid'
             return str.split('-')[..opts.max_length].join('')
+
+# convert a jupyter kernel language (i.e. "python" or "r", usually short and lowercase)
+# to a canonical name.
+exports.jupyter_language_to_name = (lang) ->
+    if lang == 'python'
+        return 'Python'
+    else if lang == 'gap'
+        return 'GAP'
+    else if lang == 'sage' or exports.startswith(lang, 'sage-')
+        return 'SageMath'
+    else
+        return lang.charAt(0).toUpperCase() + lang[1..]

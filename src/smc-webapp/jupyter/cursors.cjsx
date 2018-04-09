@@ -72,7 +72,7 @@ exports.Cursor = Cursor = rclass
                 style={width: '6px', left: '-2px', top: '-2px', height: '6px', position:'absolute', backgroundColor:@props.color}
                 />
             {<span
-                style={position: 'absolute', fontSize: '10pt', color: '#fff', top: '-10px', left: '-2px', padding: '2px', whiteSpace: 'nowrap', background:@props.color, fontFamily:'sans-serif', boxShadow: '3px 3px 5px 0px #bbb'}
+                style={position: 'absolute', fontSize: '10pt', color: '#fff', top: '-2px', left: '-2px', padding: '2px', whiteSpace: 'nowrap', background:@props.color, fontFamily:'sans-serif', boxShadow: '3px 3px 5px 0px #bbb', opacity:'0.8'}
                 >{@props.name}</span> if @state.show_name}
         </span>
 

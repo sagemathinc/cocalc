@@ -66,6 +66,8 @@ syncdoc  = require('./syncdoc')
 sagews   = require('./sagews/sagews')
 printing = require('./printing')
 
+{render_examples_dialog} = require('./assistant/legacy')
+
 copypaste = require('./copy-paste-buffer')
 {extra_alt_keys} = require('mobile/codemirror')
 
@@ -1472,30 +1474,43 @@ class CodeMirrorEditor extends FileEditor
                 return true
 
     examples_dialog_handler: () =>
-        # @examples_dialog is this ExampleActions object
+        # @examples_dialog is an ExampleActions object, unique for each editor instance
+        lang = @_current_mode
+        # special case sh → bash
+        if lang == 'sh' then lang = 'bash'
+
         if not @examples_dialog?
             $target = @mode_display.parent().find('.react-target')
-            {render_examples_dialog} = require('./examples')
-            @examples_dialog = render_examples_dialog($target[0], @project_id, @filename, lang = @_current_mode, cb = @example_insert_handler)
+            @examples_dialog = render_examples_dialog(
+                target     : $target[0]
+                project_id : @project_id
+                path       : @filename
+                lang       : lang
+            )
         else
-            @examples_dialog.show(lang = @_current_mode)
+            @examples_dialog.show(lang)
+        @examples_dialog.set_handler(@example_insert_handler)
 
     example_insert_handler: (insert) =>
-        code = insert.code
-        lang = insert.lang
+        {code, lang} = insert
         cm = @focused_codemirror()
         line = cm.getCursor().line
-        # console.log "example insert:", lang, code, insert.descr
+        # ATTN: to make this work properly, code and descr need to have a newline at the end (stripped by default)
         if insert.descr?
             @syncdoc?.insert_new_cell(line)
-            cm.replaceRange("%md\n#{insert.descr}", {line : line+1, ch:0})
+            # insert a "hidden" markdown cell and evaluate it
+            cm.replaceRange("%md(hide=True)\n#{insert.descr}\n", {line : line+1, ch:0})
             @action_key(execute: true, advance:false, split:false)
         line = cm.getCursor().line
+        # next, we insert the code cell and prefix it with a mode change, iff the mode is different from the current one
         @syncdoc?.insert_new_cell(line)
-        cell = code
+        cell = "#{code}\n"
         if lang != @_current_mode
+            # special case: %sh for bash language
+            if lang == 'bash' then lang = 'sh'
             cell = "%#{lang}\n#{cell}"
         cm.replaceRange(cell, {line : line+1, ch:0})
+        # and we evaluate and sync all this, too…
         @action_key(execute: true, advance:false, split:false)
         @syncdoc?.sync()
 
@@ -1620,7 +1635,10 @@ class CodeMirrorEditor extends FileEditor
                 textedit_only_show_known_buttons(name)
             set_mode_display(name)
 
-        mode_display.click(@examples_dialog_handler)
+        # show the assistant button to reveal the dialog for example selection
+        @element.find('.webapp-editor-codeedit-buttonbar-assistant').show()
+        assistant_button = @element.find('a[href="#assistant"]')
+        assistant_button.click(@examples_dialog_handler)
 
         # The code below changes the bar at the top depending on where the cursor
         # is located.  We only change the edit bar if the cursor hasn't moved for

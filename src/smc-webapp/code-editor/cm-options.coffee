@@ -135,7 +135,7 @@ exports.cm_options = (opts) ->
         showCursorWhenSelecting : true
         extraKeys               : extraKeys
         cursorScrollMargin      : 6
-        viewportMargin          : 10
+        viewportMargin          : 50
 
     if opts.match_xml_tags
         options.matchTags = {bothTags: true}

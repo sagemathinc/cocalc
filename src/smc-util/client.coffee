@@ -1534,9 +1534,17 @@ class exports.Connection extends EventEmitter
     #################################################
     # Bad situation error loging
     #################################################
+
+    # Log given error to a backend table.  Logs the *same* error
+    # at most once every 15 minutes.
     log_error: (error) =>
+        @_log_error_cache ?= {}
         if not misc.is_string(error)
             error = misc.to_json(error)
+        last = @_log_error_cache[error]
+        if last? and new Date() - last <= 1000*60*15
+            return
+        @_log_error_cache[error] = new Date()
         @call(message : message.log_client_error(error:error))
 
     webapp_error: (opts) =>
@@ -1785,6 +1793,13 @@ class exports.Connection extends EventEmitter
     get_available_upgrades: (cb) =>
         @call
             message     : message.get_available_upgrades()
+            error_event : true
+            cb          : cb
+
+    # Remove all upgrades from all projects that this user collaborates on.
+    remove_all_upgrades: (cb) =>
+        @call
+            message     : message.remove_all_upgrades()
             error_event : true
             cb          : cb
 

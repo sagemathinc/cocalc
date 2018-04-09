@@ -329,7 +329,7 @@ class exports.Client extends EventEmitter
     # Declare that the given socket is active right now and can be used for
     # communication with some hub (the one the socket is connected to).
     active_socket: (socket) =>
-        dbg = @dbg("active_socket(id=#{socket.id})")
+        dbg = @dbg("active_socket(id=#{socket.id},ip='#{socket.remoteAddress}')")
         x = @_hub_client_sockets[socket.id]
         if not x?
             dbg()
@@ -355,6 +355,7 @@ class exports.Client extends EventEmitter
                 socket.end()
 
             socket.on('end', socket_end)
+            socket.on('error', socket_end)
 
             check_heartbeat = =>
                 if not socket.heartbeat? or new Date() - socket.heartbeat >= 1.5*PROJECT_HUB_HEARTBEAT_INTERVAL_S*1000
@@ -376,7 +377,7 @@ class exports.Client extends EventEmitter
     # for the given message, then return true. Otherwise, return
     # false, meaning something else should try to handle this message.
     handle_mesg: (mesg, socket) =>
-        dbg = @dbg("handle_mesg(#{json(mesg)})")
+        dbg = @dbg("handle_mesg(#{misc.trunc_middle(json(mesg),512)})")
         f = @_hub_callbacks[mesg.id]
         if f?
             dbg("calling callback")
@@ -389,17 +390,15 @@ class exports.Client extends EventEmitter
             dbg("no callback")
             return false
 
-    # Get a socket connection to the hub from one in our cache; choose the
-    # connection that most recently sent us a message.  There is no guarantee
-    # to get the same hub if you call this twice!  Returns undefined if there
-    # are currently no connections from any hub to us (in which case, the project
-    # must wait).
+    # Get a socket connection to the hub from one in our cache; choose one at random.
+    # There is obviously no guarantee to get the same hub if you call this twice!
+    # Returns undefined if there are currently no connections from any hub to us
+    # (in which case, the project must wait).
     get_hub_socket: =>
         v = misc.values(@_hub_client_sockets)
         if v.length == 0
             return
-        v.sort (a,b) -> misc.cmp(a.activity ? 0, b.activity ? 0)
-        return v[v.length-1].socket
+        return misc.random_choice(v).socket
 
     # Send a message to some hub server and await a response (if cb defined).
     call: (opts) =>
