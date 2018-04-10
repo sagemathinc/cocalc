@@ -24,7 +24,7 @@ The Landing Page
 ###
 {rclass, React, ReactDOM, redux, rtypes} = require('./smc-react')
 {Alert, Button, ButtonToolbar, Col, Modal, Grid, Row, FormControl, FormGroup, Well, ClearFix, Checkbox} = require('react-bootstrap')
-{ErrorDisplay, Icon, Loading, ImmutablePureRenderMixin, Footer, UNIT, COLORS, ExampleBox} = require('./r_misc')
+{ErrorDisplay, Icon, Loading, ImmutablePureRenderMixin, Footer, UNIT, COLORS, ExampleBox, Space} = require('./r_misc')
 {HelpEmailLink, SiteName, SiteDescription, TermsOfService, AccountCreationEmailInstructions} = require('./customize')
 
 DESC_FONT = 'sans-serif'
@@ -730,10 +730,11 @@ exports.LandingPage = rclass
                           xs            = {false}
                           color         = {topbar.color} />
                   </div>
+                  {### Had this below, but it looked all wrong, conflicting with the name--  height           : UNIT * 5, width: UNIT * 5, \ ###}
                   <div style={ display          : 'inline-block', \
                                backgroundImage  : "url('#{topbar.img_icon}')", \
                                backgroundSize   : 'contain', \
-                               height           : UNIT * 5, width: UNIT * 5, \
+                               height           : 55, width: 55, \
                                margin           : 5,\
                                verticalAlign    : 'center',\
                                backgroundRepeat : 'no-repeat'}>
@@ -778,12 +779,18 @@ exports.LandingPage = rclass
                         />
                 </Col>
                 <Col sm={6}>
-                    <div style={color:"#333", fontSize:'12pt', marginTop:'2em'}>
+                    <div style={color:"#333", fontSize:'12pt', marginTop:'5px'}>
                         Create a new account here or sign in with an existing account above.
-                        <br/>
-                        <br/>
+                        <Alert bsStyle={'info'} style={marginTop: '15px'}>
+                            Trial access to CoCalc is free, but if you intend to use CoCalc
+                            often, you or your university should pay for it. Existence of CoCalc
+                            depends on your subscription dollars.  If you are economically
+                            disadvantaged or doing open source math software development,
+                            <Space /><a href="mailto:help@sagemath.com" target="_blank">contact us</a><Space />
+                            for special options.
+                        </Alert>
 
-                        If you have any questions create a <ShowSupportLink />.
+                        If you have any questions or comments, create a <ShowSupportLink />.
 
                         <br/>
                         <br/>

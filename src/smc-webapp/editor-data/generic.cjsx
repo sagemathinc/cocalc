@@ -14,6 +14,7 @@ misc            = require('smc-util/misc')
 
 # ext: markdown string.
 INFO =
+    xlsx : 'Microsoft Excel file -- you may be able to use this file via a Python library or use it in some other way.'
     raw  : 'You may be able to use this file via a Python library or use it in some other way.'
     tiff : 'You may be able to use this file via a Python image manipulation library or use it in some other way.'
     fit  : 'You may be able to use this file from Python using the [fitparse](https://github.com/dtcooper/python-fitparse) library.'

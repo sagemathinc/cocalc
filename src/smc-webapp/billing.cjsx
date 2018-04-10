@@ -758,7 +758,7 @@ PlanInfo = rclass
 
     propTypes :
         plan     : rtypes.string.isRequired
-        period   : rtypes.string.isRequired  # 'month', 'year', or 'month year'
+        period   : rtypes.string.isRequired  # 'week', 'month', 'year', or 'month year'
         selected : rtypes.bool
         on_click : rtypes.func
 
@@ -874,25 +874,31 @@ AddSubscription = rclass
                     bsStyle = {if @state.selected_button is 'month' then 'primary'}
                     onClick = {=>@set_button_and_deselect_plans('month')}
                 >
-                    Monthly subscriptions
+                    Monthly Subscriptions
                 </Button>
                 <Button
                     bsStyle = {if @state.selected_button is 'year' then 'primary'}
                     onClick = {=>@set_button_and_deselect_plans('year')}
                 >
-                    Yearly subscriptions
+                    Yearly Subscriptions
+                </Button>
+                <Button
+                    bsStyle = {if @state.selected_button is 'week' then 'primary'}
+                    onClick = {=>@set_button_and_deselect_plans('week')}
+                >
+                    1-Week Workshops
                 </Button>
                 <Button
                     bsStyle = {if @state.selected_button is 'month4' then 'primary'}
                     onClick = {=>@set_button_and_deselect_plans('month4')}
                 >
-                    4-Month course packages
+                    4-Month Courses
                 </Button>
                 <Button
                     bsStyle = {if @state.selected_button is 'year1' then 'primary'}
                     onClick = {=>@set_button_and_deselect_plans('year1')}
                 >
-                    Yearly course packages
+                    Yearly Courses
                 </Button>
             </ButtonGroup>
         </div>
@@ -1133,6 +1139,8 @@ exports.SubscriptionGrid = SubscriptionGrid = rclass
     is_selected: (plan, period) ->
         if @props.period?.slice(0, 4) is 'year'
             return @props.selected_plan is "#{plan}-year"
+        else if @props.period?.slice(0, 4) is 'week'
+            return @props.selected_plan is "#{plan}-week"
         else
             return @props.selected_plan is plan
 
@@ -2108,6 +2116,8 @@ STATES = {'':'',AL:'Alabama',AK:'Alaska',AZ:'Arizona',AR:'Arkansas',CA:'Californ
 set_selected_plan = (plan, period) ->
     if period?.slice(0,4) == 'year'
         plan = plan + "-year"
+    if period?.slice(0,4) == 'week'
+        plan = plan + "-week"
     redux.getActions('billing').setState(selected_plan : plan)
 
 exports.render_static_pricing_page = () ->
@@ -2118,7 +2128,7 @@ exports.render_static_pricing_page = () ->
         <SubscriptionGrid period='month year' is_static={true}/>
         <hr/>
         <ExplainPlan type='course'/>
-        <SubscriptionGrid period='month4 year1' is_static={true}/>
+        <SubscriptionGrid period='week month4 year1' is_static={true}/>
         <hr/>
         <FAQ/>
     </div>

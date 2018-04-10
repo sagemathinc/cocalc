@@ -89,7 +89,9 @@ restore_session_state = (redux, state, reset_first=false) ->
     projects = redux.getActions('projects')
     for x in state
         for project_id, paths of x
-            projects.open_project(project_id : project_id)
+            projects.open_project
+                project_id : project_id
+                switch_to  : false
             if paths.length > 0
                 project = redux.getProjectActions(project_id)
                 for path in paths

@@ -121,6 +121,7 @@ date          = new Date()
 BUILD_DATE    = date.toISOString()
 BUILD_TS      = date.getTime()
 GOOGLE_ANALYTICS = misc_node.GOOGLE_ANALYTICS
+CC_NOCLEAN    = !! process.env.CC_NOCLEAN
 
 # create a file base_url to set a base url
 BASE_URL      = misc_node.BASE_URL
@@ -147,6 +148,8 @@ console.log "MEASURE          = #{MEASURE}"
 console.log "INPUT            = #{INPUT}"
 console.log "OUTPUT           = #{OUTPUT}"
 console.log "GOOGLE_ANALYTICS = #{GOOGLE_ANALYTICS}"
+console.log "CC_NOCLEAN       = #{CC_NOCLEAN}"
+
 
 # mathjax version → symlink with version info from package.json/version
 if CDN_BASE_URL?
@@ -194,12 +197,13 @@ class MathjaxVersionedSymlink
 
 mathjaxVersionedSymlink = new MathjaxVersionedSymlink()
 
-# cleanup like "make distclean"
-# otherwise, compiles create an evergrowing pile of files
-CleanWebpackPlugin = require('clean-webpack-plugin')
-cleanWebpackPlugin = new CleanWebpackPlugin [OUTPUT],
-                                            verbose: true
-                                            dry: false
+if not CC_NOCLEAN
+    # cleanup like "make distclean"
+    # otherwise, compiles create an evergrowing pile of files
+    CleanWebpackPlugin = require('clean-webpack-plugin')
+    cleanWebpackPlugin = new CleanWebpackPlugin [OUTPUT],
+                                                verbose: true
+                                                dry: false
 
 # assets.json file
 AssetsPlugin = require('assets-webpack-plugin')
@@ -423,12 +427,19 @@ loaderOptions = new webpack.LoaderOptionsPlugin(
         #context: '/'
 )
 
-plugins = [
-    cleanWebpackPlugin,
+if cleanWebpackPlugin?
+    # This is just a horrible hack for now, to get around how
+    # slow the pug/static functionality is (remove this when use
+    # of pug is deprecated in favor of react).
+    plugins = [cleanWebpackPlugin]
+else:
+    plugins = []
+
+plugins = plugins.concat([
     setNODE_ENV,
     banner,
     loaderOptions
-]
+])
 
 
 if STATICPAGES
@@ -455,10 +466,10 @@ else
 
 if DEVMODE
     console.log "******************************************************"
-    console.log "WARNING! For dev you **must** explicitly visit"
+    console.log "WARNING! You might have to visit"
     console.log "     https://cocalc.com/[project_id]/port/[...]/app"
-    console.log "since the / static pages are currently disabled."
-    console.log "See https://github.com/sagemathinc/cocalc/issues/2629"
+    console.log "in case the / static pages are currently not built via"
+    console.log "     npm run webpack-static"
     console.log "******************************************************"
 else
     plugins = plugins.concat(staticPages)

@@ -5,7 +5,7 @@ Code Editor Actions
 WIKI_HELP_URL   = "https://github.com/sagemathinc/cocalc/wiki/editor"  # TODO -- write this
 SAVE_ERROR      = 'Error saving file to disk. '
 SAVE_WORKAROUND = 'Ensure your network connection is solid. If this problem persists, you might need to close and open this file, or restart this project in Project Settings.'
-SAVE_RETRIES    = 20  # how many times to retry to save (and get no unsaved changes), until giving up
+MAX_SAVE_TIME_S = 30  # how long to retry to save (and get no unsaved changes), until giving up and showing an error.
 
 immutable       = require('immutable')
 underscore      = require('underscore')
@@ -89,14 +89,19 @@ class exports.Actions extends Actions
             if err
                 @set_error("Error opening -- #{err}")
 
-        @_syncstring.once('init', @_syncstring_metadata)
+        @_syncstring.once 'init', =>
+            @_syncstring_metadata()
+            if not @store.get('is_loaded')
+                @setState(is_loaded: true)
+
         @_syncstring.on('metadata-change', @_syncstring_metadata)
         @_syncstring.on('cursor_activity', @_syncstring_cursor_activity)
 
         @_syncstring.on('change', @_syncstring_change)
         @_syncstring.on('init', @_syncstring_change)
 
-        @_syncstring.once('load-time-estimate', (est) => @setState(load_time_estimate: est))
+        @_syncstring.once 'load-time-estimate', (est) =>
+            @setState(load_time_estimate: est)
 
         @_syncstring.on 'save-to-disk', =>
             # incremenet save_to_disk counter, so that react components can react to save_to_disk event happening.
@@ -309,7 +314,7 @@ class exports.Actions extends Actions
         if @_state == 'closed'
             return
         @_key_handler ?= keyboard.create_key_handler(@)
-        @redux.getActions('page').set_active_key_handler(@_key_handler)
+        @redux.getActions('page').set_active_key_handler(@_key_handler, @project_id, @path)
 
     disable_key_handler: =>
         @redux.getActions('page').erase_active_key_handler(@_key_handler)
@@ -358,8 +363,6 @@ class exports.Actions extends Actions
             @setState(cursors: cursors)
 
     _syncstring_change: (changes) =>
-        if not @store.get('is_loaded')
-            @setState(is_loaded: true)
         @update_save_status?()
 
     set_cursor_locs:  (locs=[], side_effect) =>
@@ -391,19 +394,20 @@ class exports.Actions extends Actions
                     @set_error("#{SAVE_ERROR} '#{err}'.  #{SAVE_WORKAROUND}")
                     cb()
                 else
-                    if misc.startswith(@store.get('error'), SAVE_ERROR)
+                    done = not @store.get('has_unsaved_changes')
+                    if done and misc.startswith(@store.get('error'), SAVE_ERROR)
                         @set_error('')
-                    cb(@store.get('has_unsaved_changes'))
+                    cb(not done)
 
         misc.retry_until_success
             f         : f
-            max_tries : SAVE_RETRIES
+            max_time  : MAX_SAVE_TIME_S*1000
+            max_delay : 6000
             cb        : (err) =>
                 if err
-                    console.log(err)
+                    console.warn(err)
                     @set_error("#{SAVE_ERROR} Despite repeated attempts, the version of the file saved to disk does not equal the version in your browser.  #{SAVE_WORKAROUND}")
                     webapp_client.log_error({string_id:@_syncstring?._string_id, path:@path, project_id:@project_id, error:"Error saving file -- has_unsaved_changes"})
-
 
     save: (explicit) =>
         if @is_public

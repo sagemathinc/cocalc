@@ -71,6 +71,8 @@ class exports.JupyterActions extends Actions
         @util = util # TODO: for debugging only
         @_state      = 'init'   # 'init', 'load', 'ready', 'closed'
         @store       = store
+        @project_id  = project_id
+        @path        = path
         store.syncdb = syncdb
         @syncdb      = syncdb
         @_client     = client
@@ -187,7 +189,7 @@ class exports.JupyterActions extends Actions
         if @_state == 'closed'
             return
         @_key_handler ?= keyboard.create_key_handler(@)
-        @redux.getActions('page').set_active_key_handler(@_key_handler)
+        @redux.getActions('page').set_active_key_handler(@_key_handler, @project_id, @path)
 
     disable_key_handler: =>
         @redux.getActions('page').erase_active_key_handler(@_key_handler)

@@ -1819,7 +1819,8 @@ class SyncDoc extends EventEmitter
         #dbg = @dbg("save_to_disk(cb)")
         #dbg("initiating the save")
         if not @has_unsaved_changes()
-            # no unsaved changes, so don't save -- CRITICAL: this optimization is assumed by autosave, etc.
+            # no unsaved changes, so don't save --
+            # CRITICAL: this optimization is assumed by autosave, etc.
             cb?()
             return
 
@@ -1833,6 +1834,17 @@ class SyncDoc extends EventEmitter
             cb?()
             return
 
+        # First make sure any changes are saved to the database.
+        # One subtle case where this matters is that loading a file
+        # with \r's into codemirror changes them to \n...
+        @save (err) =>
+            if err
+                cb?(err)
+            else
+                # Now do actual save.
+                @__save_to_disk_after_sync(cb)
+
+    __save_to_disk_after_sync: (cb) =>
         @_save_to_disk()
         if not @_syncstring_table?
             cb("@_syncstring_table must be defined")

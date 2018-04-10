@@ -51,7 +51,7 @@ exports.UpgradesPage = rclass
         </div>
 
     render_have_upgrades: ->
-        <div>
+        <div style={margin:'10px 0'}>
             <h3>Thank you for supporting <SiteName/></h3>
             <span style={color:"#666"}>
                 We offer many <a href={PolicyPricingPageUrl} target='_blank'> pricing
@@ -103,7 +103,7 @@ exports.UpgradesPage = rclass
         if not upgrades? or not used?
             return @render_no_upgrades()
 
-        <Panel header={<h4>Upgrades that you get from your subscriptions</h4>}>
+        <Panel header={<h2>Upgrades that you get from your subscriptions and course packages</h2>}>
             <Row key='header'>
                 <Col sm={2}>
                     <strong>Quota</strong>
