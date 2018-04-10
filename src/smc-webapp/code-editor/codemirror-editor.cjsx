@@ -6,7 +6,7 @@ This is a wrapper around a single codemirror editor view.
 
 SAVE_INTERVAL_MS = 2000
 
-{React, ReactDOM,
+{Fragment, React, ReactDOM,
  rclass, rtypes}     = require('../smc-react')
 {three_way_merge}    = require('smc-util/syncstring')
 {debounce, throttle} = require('underscore')
@@ -48,6 +48,8 @@ exports.CodemirrorEditor = rclass ({name}) ->
     reduxProps :
         account :
             editor_settings : rtypes.immutable.Map.isRequired
+        "#{name}" :
+            gutter_markers  : rtypes.immutable.List
 
     getDefaultProps: ->
         content : ''
@@ -58,7 +60,7 @@ exports.CodemirrorEditor = rclass ({name}) ->
     shouldComponentUpdate: (props, state) ->
         return misc.is_different(@state, state, ['has_cm']) or \
                misc.is_different(@props, props, ['editor_settings', 'font_size', 'cursors', 'read_only',
-                           'content', 'is_public', 'resize', 'editor_state'])
+                           'content', 'is_public', 'resize', 'editor_state', 'gutter_markers'])
 
     componentDidMount: ->
         @init_codemirror()
@@ -242,14 +244,16 @@ exports.CodemirrorEditor = rclass ({name}) ->
                 codemirror = {@cm} />
 
     render_gutter_markers: ->
-        if @cm? and @state.has_cm
-            <GutterMarker
-                codemirror = {@cm}
-                line       = {1}
-                gutter_id  = {'Codemirror-latex-errors'}
-                />
+        if not @state.has_cm or not @props.gutter_markers?
+            return
+        <GutterMarkers
+            gutter_markers = {@props.gutter_markers}
+            codemirror     = {@cm}
+        />
 
     render: ->
+        console.log name, @props.gutter_markers
+        window.c = @
         style = misc.copy(STYLE)
         style.fontSize = "#{@props.font_size}px"
         <div
@@ -259,3 +263,44 @@ exports.CodemirrorEditor = rclass ({name}) ->
             {@render_gutter_markers()}
             <textarea />
         </div>
+
+GutterMarkers = rclass
+    displayName: 'CodeEditor-CodemirrorEditor-GutterMarkers'
+
+    propTypes :
+        gutter_markers : rtypes.immutable.List.isRequired
+        codemirror     : rtypes.object.isRequired
+
+    shouldComponentUpdate: (props) ->
+        return @props.gutter_markers != props.gutter_markers
+
+    clear_gutters: ->
+        for gutter_id in @props.codemirror.getOption('gutters')
+            if gutter_id == 'CodeMirror-linenumbers' or gutter_id == 'CodeMirror-foldgutter'
+                continue
+            @props.codemirror.clearGutter(gutter_id)
+
+    render_gutters: ->
+        @clear_gutters()
+        v = []
+        key = 0
+        {Icon}               = require('../r_misc')
+        @props.gutter_markers.forEach (info) =>
+            elt = <GutterMarker
+                key        = {key}
+                codemirror = {@props.codemirror}
+                line       = {info.get('line')}
+                gutter_id  = {info.get('gutter_id')}
+            >
+                <Icon name={'exclamation-triangle'}/>
+            </GutterMarker>
+            v.push(elt)
+            key += 1
+            return
+        return v
+
+    render: ->
+        console.log 'guttermarkers -- render'
+        <span>
+            {@render_gutters()}
+        </span>
