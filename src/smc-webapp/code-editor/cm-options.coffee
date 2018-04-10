@@ -10,9 +10,10 @@ misc                 = require('smc-util/misc')
 {defaults, required} = misc
 
 exports.cm_options = (opts) ->
-    {filename, editor_settings, actions, frame_id} = defaults opts,
+    {filename, editor_settings, actions, frame_id, gutters} = defaults opts,
         filename        : required  # string -- determines editor mode
         editor_settings : required  # immutable.js map
+        gutters         : undefined # if given, array of extra gutters
         actions         : undefined
         frame_id        : required
 
@@ -146,9 +147,10 @@ exports.cm_options = (opts) ->
         options.foldGutter  = true
         options.gutters     = ["CodeMirror-linenumbers", "CodeMirror-foldgutter"]
 
-    if opts.latex_editor
-        options.gutters     ?= []
-        options.gutters.push("Codemirror-latex-errors")
+    if gutters
+        options.gutters ?= []
+        for gutter_id in gutters
+            options.gutters.push(gutter_id)
 
     if opts.bindings? and opts.bindings != "standard"
         options.keyMap = opts.bindings

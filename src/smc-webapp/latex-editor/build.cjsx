@@ -67,7 +67,7 @@ exports.Build = rclass ({name}) ->
             return
         time = @props.build_log?.getIn(['latex', 'time']) ? ''
         if time
-            time = "( #{(time/1000).toFixed?(1)} seconds)"
+            time = "(#{(time/1000).toFixed?(1)} seconds)"
         <Fragment>
             <h4>LaTeX Output {time}</h4>
             <textarea

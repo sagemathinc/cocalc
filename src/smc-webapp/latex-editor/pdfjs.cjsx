@@ -37,6 +37,7 @@ exports.PDFJS = rclass
     getInitialState: ->
         num_pages : undefined
         render    : 'svg'    # probably only use this, but easy to switch for now for testing.
+        #render    : 'canvas'
 
     shouldComponentUpdate: (props, state) ->
         return misc.is_different(@props, props, ['reload', 'font_size']) or \

@@ -18,6 +18,8 @@ misc                 = require('smc-util/misc')
 codemirror_util      = require('./codemirror-util')
 doc                  = require('./doc')
 
+{GutterMarker}       = require('./codemirror-gutter-marker')
+
 STYLE =
     width        : '100%'
     overflow     : 'auto'
@@ -26,7 +28,7 @@ STYLE =
     border       : '0px'
     background   : '#fff'
 
-exports.CodemirrorEditor = rclass
+exports.CodemirrorEditor = rclass ({name}) ->
     displayName: 'CodeEditor-CodemirrorEditor'
 
     propTypes :
@@ -154,6 +156,7 @@ exports.CodemirrorEditor = rclass
             editor_settings : @props.editor_settings
             actions         : @props.actions
             frame_id        : @props.id
+            gutters         : ['Codemirror-latex-errors']
 
         @_style_active_line = options.styleActiveLine
         options.styleActiveLine = false
@@ -238,6 +241,14 @@ exports.CodemirrorEditor = rclass
                 cursors    = {@props.cursors}
                 codemirror = {@cm} />
 
+    render_gutter_markers: ->
+        if @cm? and @state.has_cm
+            <GutterMarker
+                codemirror = {@cm}
+                line       = {1}
+                gutter_id  = {'Codemirror-latex-errors'}
+                />
+
     render: ->
         style = misc.copy(STYLE)
         style.fontSize = "#{@props.font_size}px"
@@ -245,5 +256,6 @@ exports.CodemirrorEditor = rclass
             style     = {style}
             className = 'smc-vfill cocalc-editor-div' >
             {@render_cursors()}
+            {@render_gutter_markers()}
             <textarea />
         </div>
