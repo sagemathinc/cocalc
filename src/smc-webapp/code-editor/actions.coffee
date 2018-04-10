@@ -314,7 +314,7 @@ class exports.Actions extends Actions
         if @_state == 'closed'
             return
         @_key_handler ?= keyboard.create_key_handler(@)
-        @redux.getActions('page').set_active_key_handler(@_key_handler)
+        @redux.getActions('page').set_active_key_handler(@_key_handler, @project_id, @path)
 
     disable_key_handler: =>
         @redux.getActions('page').erase_active_key_handler(@_key_handler)
