@@ -50,7 +50,7 @@ exports.CodemirrorEditor = rclass ({name}) ->
         account :
             editor_settings : rtypes.immutable.Map.isRequired
         "#{name}" :
-            gutter_markers  : rtypes.immutable.List
+            gutter_markers  : rtypes.immutable.Map
 
     getDefaultProps: ->
         content : ''
@@ -250,6 +250,7 @@ exports.CodemirrorEditor = rclass ({name}) ->
         <GutterMarkers
             gutter_markers = {@props.gutter_markers}
             codemirror     = {@cm}
+            set_handle     = {(id, handle) => @props.actions.set_gutter_handle(id:id, handle:handle)}
         />
 
     render: ->
@@ -269,27 +270,34 @@ GutterMarkers = rclass
     displayName: 'CodeEditor-CodemirrorEditor-GutterMarkers'
 
     propTypes :
-        gutter_markers : rtypes.immutable.List.isRequired
+        gutter_markers : rtypes.immutable.Map.isRequired
         codemirror     : rtypes.object.isRequired
+        set_handle     : rtypes.func.isRequired
 
     shouldComponentUpdate: (props) ->
         return @props.gutter_markers != props.gutter_markers
 
     render_gutters: ->
         v = []
-        key = 0
         {Icon}               = require('../r_misc')
-        @props.gutter_markers.forEach (info) =>
+        @props.gutter_markers.forEach (info, id) =>
+            handle = info.get('handle')
+            if handle?
+                line = @props.codemirror.lineInfo(handle)?.line
+                if not line?
+                    # skip adding this gutter, since it is no longer defined (e.g., the line it was in was deleted from doc)
+                    return
+            line ?= info.get('line')
             elt = <GutterMarker
-                key        = {key}
+                key        = {id}
                 codemirror = {@props.codemirror}
-                line       = {info.get('line')}
+                line       = {line}
                 gutter_id  = {info.get('gutter_id')}
+                set_handle = {(handle) => @props.set_handle(id, handle)}
             >
                 <Icon name={'exclamation-triangle'}/>
             </GutterMarker>
             v.push(elt)
-            key += 1
             return
         return v
 

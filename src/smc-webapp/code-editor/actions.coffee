@@ -505,6 +505,9 @@ class exports.Actions extends Actions
             for id, v of @_cm
                 return v
 
+    _get_doc: =>
+        return doc.get_doc(project_id:@project_id, path:@path)
+
     _recent_cm: =>
         return @_get_cm(undefined,true)
 
@@ -561,8 +564,12 @@ class exports.Actions extends Actions
         @_syncstring.emit('change')
 
     set_codemirror_to_syncstring: =>
-        cm = @_get_cm()
-        if not cm? or not @_syncstring?
+        if not @_syncstring?
+            return
+        # NOTE: we fallback to getting the underling CM doc, in case all actual
+        # cm code-editor frames have been closed (or just aren't visible).
+        cm = @_get_cm() ? @_get_doc()
+        if not cm?
             return
         cm.setValueNoJump(@_syncstring.to_str())
         @update_save_status()
@@ -724,19 +731,26 @@ class exports.Actions extends Actions
 
     set_gutter_marker: (opts) =>
         opts = defaults opts,
-            id           : required   # user-specified unique id for this gutter
+            id           : required   # user-specified unique id for this gutter marker
             line         : required   # base-0 line number where gutter is initially positions
             gutter_id    : required   # css class name of the gutter
             component    : required   # react component that gets rendered as the gutter marker
         gutter_markers = @store.get('gutter_markers') ? immutable.Map()
-        info = immutable.fromJS(line:opts.initial_line, gutter_id:opts.gutter_id, component.opts.component)
+        info = immutable.fromJS(line:opts.line, gutter_id:opts.gutter_id, component:opts.component)
         @setState(gutter_markers : gutter_markers.set(opts.id, info))
 
     # The GutterMarker component calls this to save a handle to the gutter marker
     set_gutter_handle: (opts) =>
         opts = defaults opts,
-            id     : required   # user-specified unique id for this gutter
-            handle : required   # base-0 line number where gutter is initially positions
+            id     : required   # user-specified unique id for this gutter marker
+            handle : required   # determines current line number of gutter marker
+        gutter_markers = @store.get('gutter_markers')
+        if not gutter_markers?
+            return
+        info = gutter_markers.get(opts.id)
+        if not info?
+            return
+        @setState(gutter_markers: gutter_markers.set(opts.id, info.set('handle', opts.handle)))
 
     ###
     format_dialog_action: (cmd) ->
