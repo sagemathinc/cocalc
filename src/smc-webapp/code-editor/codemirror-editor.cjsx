@@ -274,14 +274,7 @@ GutterMarkers = rclass
     shouldComponentUpdate: (props) ->
         return @props.gutter_markers != props.gutter_markers
 
-    clear_gutters: ->
-        for gutter_id in @props.codemirror.getOption('gutters')
-            if gutter_id == 'CodeMirror-linenumbers' or gutter_id == 'CodeMirror-foldgutter'
-                continue
-            @props.codemirror.clearGutter(gutter_id)
-
     render_gutters: ->
-        @clear_gutters()
         v = []
         key = 0
         {Icon}               = require('../r_misc')

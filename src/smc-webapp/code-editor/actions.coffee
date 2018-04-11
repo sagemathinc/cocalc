@@ -720,6 +720,22 @@ class exports.Actions extends Actions
                     @set_syncstring_to_codemirror()
                     @_syncstring.save()
 
+    set_gutter_marker: (opts) =>
+        opts = defaults opts,
+            id           : required   # user-specified unique id for this gutter
+            line         : required   # base-0 line number where gutter is initially positions
+            gutter_id    : required   # css class name of the gutter
+            component    : required   # react component that gets rendered as the gutter marker
+        gutter_markers = @store.get('gutter_markers') ? immutable.Map()
+        info = immutable.fromJS(line:opts.initial_line, gutter_id:opts.gutter_id, component.opts.component)
+        @setState(gutter_markers : gutter_markers.set(opts.id, info))
+
+    # The GutterMarker component calls this to save a handle to the gutter marker
+    set_gutter_handle: (opts) =>
+        opts = defaults opts,
+            id     : required   # user-specified unique id for this gutter
+            handle : required   # base-0 line number where gutter is initially positions
+
     ###
     format_dialog_action: (cmd) ->
         state = @store.getIn(['format_bar', cmd])

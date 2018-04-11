@@ -11,8 +11,8 @@ exports.GutterMarker = rclass
         codemirror : rtypes.object.isRequired         # codemirror editor instance
         gutter_id  : rtypes.string.isRequired
 
-    shouldComponentUpdate: (props) ->
-        return misc.is_different(@props, props, ['line', 'gutter_id'])
+    #shouldComponentUpdate: (props) ->
+    #    return misc.is_different(@props, props, ['line', 'gutter_id'])
 
     componentDidMount: ->
         @init_gutter(@props.codemirror)
@@ -21,6 +21,7 @@ exports.GutterMarker = rclass
         @_elt = document.createElement("div")
         ReactDOM.render(<div>{@props.children}</div>, @_elt)
         @_handle = @props.codemirror.setGutterMarker(@props.line, @props.gutter_id, @_elt)
+        console.log 'made gutter mark ', @_handle
 
     componentWillUnmount: ->
         if @_elt?
@@ -28,6 +29,7 @@ exports.GutterMarker = rclass
             @_elt.remove()
             delete @_elt
         if @_handle?
+            console.log 'clearing gutter mark ', @_handle
             @props.codemirror.setGutterMarker(@_handle, @props.gutter_id, null)
             delete @_handle
 
