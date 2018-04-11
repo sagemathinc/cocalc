@@ -682,7 +682,8 @@ exports.LandingPage = rclass
 
     # this is an info blob on the landing page, clarifying to the user that "free" is a perpetual trial
     render_trial_info: ->
-        return null if not (@props.customize?.is_commercial ? true)
+        if not @props.is_commercial
+            return
         <React.Fragment>
             <Alert bsStyle={'info'} style={marginTop: '15px'}>
                 <div>
