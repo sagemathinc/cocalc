@@ -738,7 +738,8 @@ class exports.Actions extends Actions
         if not opts.id?
             opts.id = misc.uuid()
         gutter_markers = @store.get('gutter_markers') ? immutable.Map()
-        info = immutable.fromJS(line:opts.line, gutter_id:opts.gutter_id, component:opts.component)
+        info = immutable.fromJS(line:opts.line, gutter_id:opts.gutter_id)
+        info = info.set('component', opts.component)
         @setState(gutter_markers : gutter_markers.set(opts.id, info))
 
     delete_gutter_marker: (id) =>

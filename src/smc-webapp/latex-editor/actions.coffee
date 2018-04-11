@@ -39,7 +39,7 @@ class exports.Actions extends Actions
                 first     :
                     type : 'pdfjs'
                 second    :
-                    type : 'build'
+                    type : 'error'
 
     run_tex2pdf: (time) =>
         # TODO: should only run knitr if at least one frame is visible showing preview.
@@ -60,6 +60,7 @@ class exports.Actions extends Actions
                 @setState(build_log: {latex:output})  # later there might also be output from a sage step, etc.
                 @clear_gutter('Codemirror-latex-errors')
                 update_gutters
+                    path       : @path
                     log        : output.parse
                     set_gutter : (line, component) =>
                         @set_gutter_marker

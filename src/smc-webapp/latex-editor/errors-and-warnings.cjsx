@@ -63,8 +63,9 @@ exports.ErrorsAndWarnings = rclass ({name}) ->
             <div>{w}</div>
 
     render_group: (group) ->
+        spec = SPEC[group_to_level(group)]
         <div key={group}>
-            <h3>{misc.capitalize(group)}</h3>
+            <h3><Icon name={spec.icon} style={color:spec.color} /> {misc.capitalize(group)}</h3>
             {@render_group_content(group)}
         </div>
 
@@ -77,17 +78,37 @@ exports.ErrorsAndWarnings = rclass ({name}) ->
             {(@render_group(group) for group in ['errors', 'typesetting', 'warnings'])}
         </div>
 
+group_to_level = (group) ->
+    switch group
+        when 'errors'
+            return 'error'
+        when 'warnings'
+            return 'warning'
+        else
+            return group
+
+exports.SPEC = SPEC =
+    error      :
+        icon  : 'bug'
+        color : '#a00'
+    typesetting :
+        icon  : 'exclamation-circle'
+        color : 'rgb(66, 139, 202)'
+    warning    :
+        icon  : 'exclamation-triangle'
+        color : '#fdb600'
+
 ITEM_STYLES =
     warning :
-        border  : '2px solid #fdb600'
+        border  : '2px solid ' + SPEC.warning.color
         padding : '15px'
         margin  : '5px 0'
     error :
-        border  : '2px solid #a00'
+        border  : '2px solid ' + SPEC.error.color
         padding : '15px'
         margin  : '5px 0'
     typesetting :
-        border  : '2px solid #fdb600'
+        border  : '2px solid ' + SPEC.typesetting.color
         padding : '15px'
         margin  : '5px 0'
 
@@ -110,9 +131,11 @@ Item = rclass
             direction : 'col'
 
     render_location: ->
+        if not @props.item.get('line')
+            return
         <div>
             <a onClick={@edit_source} style={cursor:'pointer'}>
-                Line {@props.item.get('line')} of {@props.item.get('file')}
+                Line {@props.item.get('line')} of {misc.path_split(@props.item.get('file')).tail}
             </a>
         </div>
 

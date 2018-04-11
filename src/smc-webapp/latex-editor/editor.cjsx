@@ -37,13 +37,13 @@ EDITOR_SPEC =
         path      : pdf_path
         style     : {'background': '#525659'}
 
-    embed:
-        short     : 'PDF Embed'
-        name      : 'PDF Embedded Viewer'
-        icon      : 'file-pdf-o'
-        buttons   : set(['print', 'save', 'reload'])
-        component : PDFEmbed
-        path      : pdf_path
+
+    error  :
+        short     : 'Errors'
+        name      : 'Errors and Warnings'
+        icon      : 'bug'
+        component : ErrorsAndWarnings
+        buttons   : set(['reload', 'decrease_font_size', 'increase_font_size'])
 
     build  :
         short     : 'Build'
@@ -52,12 +52,13 @@ EDITOR_SPEC =
         component : Build
         buttons   : set(['reload', 'decrease_font_size', 'increase_font_size'])
 
-    error  :
-        short     : 'Errors'
-        name      : 'Errors and Warnings'
-        icon      : 'exclamation-triangle'
-        component : ErrorsAndWarnings
-        buttons   : set(['reload', 'decrease_font_size', 'increase_font_size'])
+    embed:
+        short     : 'PDF Embed'
+        name      : 'PDF Embedded Viewer'
+        icon      : 'file-pdf-o'
+        buttons   : set(['print', 'save', 'reload'])
+        component : PDFEmbed
+        path      : pdf_path
 
     latexjs :
         short     : 'Quick Preview'

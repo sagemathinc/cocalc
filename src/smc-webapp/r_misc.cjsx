@@ -1075,17 +1075,18 @@ exports.Tip = Tip = rclass
     displayName : 'Tip'
 
     propTypes :
-        title     : rtypes.oneOfType([rtypes.string, rtypes.node]).isRequired  # not checked for update
-        placement : rtypes.string   # 'top', 'right', 'bottom', left' -- defaults to 'right'
-        tip       : rtypes.oneOfType([rtypes.string, rtypes.node])              # not checked for update
-        size      : rtypes.string   # "xsmall", "small", "medium", "large"
-        delayShow : rtypes.number
-        delayHide : rtypes.number
-        rootClose : rtypes.bool
-        icon      : rtypes.string
-        id        : rtypes.string   # can be used for screen readers (otherwise defaults to title)
-        style     : rtypes.object   # changing not checked when updating if stable is true
-        stable    : rtypes.bool     # if true, children assumed to never change
+        title         : rtypes.oneOfType([rtypes.string, rtypes.node]).isRequired  # not checked for update
+        placement     : rtypes.string   # 'top', 'right', 'bottom', left' -- defaults to 'right'
+        tip           : rtypes.oneOfType([rtypes.string, rtypes.node])              # not checked for update
+        size          : rtypes.string   # "xsmall", "small", "medium", "large"
+        delayShow     : rtypes.number
+        delayHide     : rtypes.number
+        rootClose     : rtypes.bool
+        icon          : rtypes.string
+        id            : rtypes.string   # can be used for screen readers (otherwise defaults to title)
+        style         : rtypes.object   # changing not checked when updating if stable is true
+        popover_style : rtypes.object  # changing not checked ever (default={zIndex:1000})
+        stable        : rtypes.bool     # if true, children assumed to never change
 
     shouldComponentUpdate: (props, state) ->
         return not @props.stable or \
@@ -1099,6 +1100,7 @@ exports.Tip = Tip = rclass
         delayShow : 500
         delayHide : 100
         rootClose : false
+        popover_style : {zIndex:1000}
 
     getInitialState: ->
         display_trigger : false
@@ -1112,7 +1114,7 @@ exports.Tip = Tip = rclass
                 bsSize = {@props.size}
                 title  = {@render_title()}
                 id     = {@props.id ? "tip"}
-                style  = {zIndex:'1000'}
+                style  = {@props.popover_style}
             >
                 <span style={wordWrap:'break-word'}>
                     {@props.tip}
@@ -1122,7 +1124,7 @@ exports.Tip = Tip = rclass
             <Tooltip
                 bsSize = {@props.size}
                 id     = {@props.id ? "tip"}
-                style  = {zIndex:'1000'}
+                style  = {@props.popover_style}
             >
                 {@render_title()}
             </Tooltip>
