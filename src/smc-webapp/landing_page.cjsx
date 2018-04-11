@@ -639,6 +639,8 @@ Connecting = () ->
     </div>
 
 exports.LandingPage = rclass
+    displayName: 'LandingPage'
+
     propTypes:
         strategies              : rtypes.immutable.List
         sign_up_error           : rtypes.immutable.Map
@@ -657,7 +659,9 @@ exports.LandingPage = rclass
 
     reduxProps:
         page:
-            get_api_key : rtypes.string
+            get_api_key   : rtypes.string
+        customize:
+            is_commercial : rtypes.bool
 
     render_password_reset: ->
         reset_key = reset_password_key()
@@ -676,27 +680,60 @@ exports.LandingPage = rclass
             forgot_password_success = {@props.forgot_password_success}
         />
 
+    # this is an info blob on the landing page, clarifying to the user that "free" is a perpetual trial
+    render_trial_info: ->
+        if not @props.is_commercial
+            return
+        <React.Fragment>
+            <Alert bsStyle={'info'} style={marginTop: '15px'}>
+                <div>
+                    Trial access to CoCalc is free.
+                    If you intend to use CoCalc often, then you or your university
+                    should pay for it.
+                    Existence of CoCalc depends on your subscription dollars!
+                </div>
+                <Space />
+                <div>
+                    If you are economically disadvantaged or doing open source math software
+                    development,{' '}
+                    <a href="mailto:help@sagemath.com" target="_blank">contact us</a>{' '}
+                    for special options.
+                </div>
+            </Alert>
+            <div>
+                If you have any questions or comments, create a <ShowSupportLink />.
+            </div>
+        </React.Fragment>
+
     render_main_page: ->
         if @props.remember_me and not @props.get_api_key
             # Just assume user will be signing in.
             # CSS of this looks like crap for a moment; worse than nothing. So disabling unless it can be fixed!!
             #return <Connecting />
             return <span/>
+
         topbar =
-          img_icon    : APP_ICON_WHITE
-          img_name    : APP_LOGO_NAME_WHITE
-          img_opacity : 1.0
-          color       : 'white'
-          bg_color    : COLORS.LANDING.LOGIN_BAR_BG
-          border      : "5px solid #{COLORS.LANDING.LOGIN_BAR_BG}"
+            img_icon    : APP_ICON_WHITE
+            img_name    : APP_LOGO_NAME_WHITE
+            img_opacity : 1.0
+            color       : 'white'
+            bg_color    : COLORS.LANDING.LOGIN_BAR_BG
+            border      : "5px solid #{COLORS.LANDING.LOGIN_BAR_BG}"
+
+        main_row_style =
+            fontSize        : UNIT
+            backgroundColor : COLORS.LANDING.LOGIN_BAR_BG
+            padding         : 5
+            margin          : 0
+            borderRadius    : 4
 
         <div style={margin: UNIT}>
             {@render_password_reset()}
             {@render_forgot_password()}
-            <Row style={fontSize: UNIT,\
-                        backgroundColor: COLORS.LANDING.LOGIN_BAR_BG,\
-                        padding: 5, margin: 0, borderRadius:4}
-                 className="visible-xs">
+            <Row
+                style     = {main_row_style}
+                className = {"visible-xs"}
+             >
                     <SignIn
                         signing_in    = {@props.signing_in}
                         sign_in_error = {@props.sign_in_error}
@@ -766,7 +803,7 @@ exports.LandingPage = rclass
                               color        : topbar.color} />
                   </div>
             </Row>
-            <Row>
+            <Row style={minHeight : '60vh'}>
                 <Col sm={6}>
                     <SignUp
                         sign_up_error   = {@props.sign_up_error}
@@ -781,20 +818,15 @@ exports.LandingPage = rclass
                 <Col sm={6}>
                     <div style={color:"#333", fontSize:'12pt', marginTop:'5px'}>
                         Create a new account here or sign in with an existing account above.
-                        <Alert bsStyle={'info'} style={marginTop: '15px'}>
-                            Trial access to CoCalc is free, but if you intend to use CoCalc
-                            often, you or your university should pay for it. Existence of CoCalc
-                            depends on your subscription dollars.  If you are economically
-                            disadvantaged or doing open source math software development,
-                            <Space /><a href="mailto:help@sagemath.com" target="_blank">contact us</a><Space />
-                            for special options.
-                        </Alert>
-
-                        If you have any questions or comments, create a <ShowSupportLink />.
-
                         <br/>
+                        {@render_trial_info()}
                         <br/>
-                        {<a href={APP_BASE_URL + "/"}>Learn more about CoCalc...</a> if not @props.get_api_key}
+                        {
+                            if not @props.get_api_key
+                                <div>
+                                    <a href={APP_BASE_URL + "/"}>Learn more about CoCalc...</a>
+                                </div>
+                        }
                     </div>
                 </Col>
             </Row>

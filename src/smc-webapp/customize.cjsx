@@ -13,16 +13,24 @@ schema = require('smc-util/schema')
 misc   = require('smc-util/misc')
 theme  = require('smc-util/theme')
 
+test_commercial = (c) ->
+    return c[0]?.toLowerCase() == 'y'  # make it true if starts with y
+
 actions  = redux.createActions('customize')
+actions.setState(is_commercial: true)  # really simple way to have a default value -- gets changed below once the $?.get returns.
 defaults = misc.dict( ([k, v.default] for k, v of schema.site_settings_conf) )
+defaults.is_commercial = test_commercial(defaults.commercial)
 store    = redux.createStore('customize', defaults)
 
 # If we are running in the browser, then we customize the schema.  This also gets run on the backend
 # to generate static content, which can't be customized.
 $?.get (window.app_base_url + "/customize"), (obj, status) ->
     if status == 'success'
-        exports.commercial = obj.commercial = (obj.commercial?[0]?.toLowerCase() == 'y')  # make it true if starts with y
-        actions.setState(obj)
+        obj.commercial = obj.commercial ? defaults.commercial
+        exports.commercial = test_commercial(obj.commercial)
+        actions.setState
+            is_commercial : exports.commercial
+            commercial    : obj.commercial
 
 HelpEmailLink = rclass
     displayName : 'HelpEmailLink'
