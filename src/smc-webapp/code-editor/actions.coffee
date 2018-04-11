@@ -20,6 +20,7 @@ copypaste       = require('../copy-paste-buffer')
 tree_ops        = require('./tree-ops')
 print           = require('./print')
 spell_check     = require('./spell-check')
+doc             = require('./doc')
 
 class exports.Actions extends Actions
     _init: (project_id, path, is_public, store) =>
@@ -131,6 +132,7 @@ class exports.Actions extends Actions
             @_syncstring._save()
             @_syncstring.close()
             delete @_syncstring
+            doc.close(path: @path, project_id: @project_id)
 
     __save_local_view_state: =>
         local_view_state = @store.get('local_view_state')

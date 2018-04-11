@@ -248,6 +248,7 @@ exports.StudentProjectUpgrades = rclass
         e.preventDefault()
         s = ReactDOM.findDOMNode(@refs.admin_input).value
         quotas = JSON.parse(s)
+        # This console.log is intentional.
         console.log("admin upgrade '#{s}' -->", quotas)
         @actions(@props.name).admin_upgrade_all_student_projects(quotas)
         return false
