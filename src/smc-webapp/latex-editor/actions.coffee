@@ -12,6 +12,7 @@ tex2pdf         = require('./tex2pdf')
 maintenance     = require('./maintenance')
 
 {LatexParser}   = require('./latex-log-parser.coffee')
+{update_gutters} = require('./gutters.cjsx')
 
 class exports.Actions extends Actions
     _init: (args...) =>
@@ -57,6 +58,14 @@ class exports.Actions extends Actions
                 if output?.stdout?
                     output.parse = (new LatexParser(output.stdout, {ignoreDuplicates: true})).parse()
                 @setState(build_log: {latex:output})  # later there might also be output from a sage step, etc.
+                @clear_gutter('Codemirror-latex-errors')
+                update_gutters
+                    log        : output.parse
+                    set_gutter : (line, component) =>
+                        @set_gutter_marker
+                            line      : line
+                            component : component
+                            gutter_id : 'Codemirror-latex-errors'
                 for x in ['pdfjs', 'embed', 'build_log']
                     @set_reload(x)
 

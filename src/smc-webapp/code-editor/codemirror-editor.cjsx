@@ -250,7 +250,7 @@ exports.CodemirrorEditor = rclass ({name}) ->
         <GutterMarkers
             gutter_markers = {@props.gutter_markers}
             codemirror     = {@cm}
-            set_handle     = {(id, handle) => @props.actions.set_gutter_handle(id:id, handle:handle)}
+            set_handle     = {(id, handle) => @props.actions._set_gutter_handle(id, handle)}
         />
 
     render: ->
@@ -288,6 +288,7 @@ GutterMarkers = rclass
                     # skip adding this gutter, since it is no longer defined (e.g., the line it was in was deleted from doc)
                     return
             line ?= info.get('line')
+            component = info.get('component')
             elt = <GutterMarker
                 key        = {id}
                 codemirror = {@props.codemirror}
@@ -295,7 +296,7 @@ GutterMarkers = rclass
                 gutter_id  = {info.get('gutter_id')}
                 set_handle = {(handle) => @props.set_handle(id, handle)}
             >
-                <Icon name={'exclamation-triangle'}/>
+                {component}
             </GutterMarker>
             v.push(elt)
             return
