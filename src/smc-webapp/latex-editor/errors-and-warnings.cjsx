@@ -51,22 +51,24 @@ exports.ErrorsAndWarnings = rclass ({name}) ->
             actions = {@props.actions}
         />
 
-    render_group_content: (group) ->
-        v = @props.build_log?.getIn(['latex', 'parse', group])
-        if not v? or v.size == 0
-            <span>None</span>
+    render_group_content: (content) ->
+        if content.size == 0
+            <div>None</div>
         else
             w = []
-            v.forEach (item) =>
+            content.forEach (item) =>
                 w.push(@render_item(item, w.length))
                 return
             <div>{w}</div>
 
     render_group: (group) ->
         spec = SPEC[group_to_level(group)]
+        content = @props.build_log?.getIn(['latex', 'parse', group])
+        if not content?
+            return
         <div key={group}>
             <h3><Icon name={spec.icon} style={color:spec.color} /> {misc.capitalize(group)}</h3>
-            {@render_group_content(group)}
+            {@render_group_content(content)}
         </div>
 
     render: ->
@@ -100,15 +102,15 @@ exports.SPEC = SPEC =
 
 ITEM_STYLES =
     warning :
-        border  : '2px solid ' + SPEC.warning.color
+        borderLeft  : '2px solid ' + SPEC.warning.color
         padding : '15px'
         margin  : '5px 0'
     error :
-        border  : '2px solid ' + SPEC.error.color
+        borderLeft  : '2px solid ' + SPEC.error.color
         padding : '15px'
         margin  : '5px 0'
     typesetting :
-        border  : '2px solid ' + SPEC.typesetting.color
+        borderLeft  : '2px solid ' + SPEC.typesetting.color
         padding : '15px'
         margin  : '5px 0'
 
@@ -135,7 +137,7 @@ Item = rclass
         if not @props.item.get('line')
             return
         <div>
-            <a onClick={@edit_source} style={cursor:'pointer'}>
+            <a onClick={@edit_source} style={cursor:'pointer', float:'right'}>
                 Line {@props.item.get('line')} of {misc.path_split(@props.item.get('file')).tail}
             </a>
         </div>

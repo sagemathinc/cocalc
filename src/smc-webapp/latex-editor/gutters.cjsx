@@ -33,15 +33,17 @@ component = (level, message, content) ->
     if not content?
         content = message
         message = misc.capitalize(level)
+    # NOTE/BUG: despite allow_touch true below, this still does NOT work on my ipad -- we see the icon, but nothing
+    # happens when clicking on it; this may be a codemirror issue.
     <Tip
         title         = {message ? ''}
         tip           = {content ? ''}
-        placemenet    = {'right'}
+        placement     = {'bottom'}
         icon          = {spec.icon}
         stable        = {true}
-        size          = {'large'}
-        popover_style = {border:"1px solid #{spec.color}"}
+        popover_style = {marginLeft:'10px', border:"2px solid #{spec.color}"}
         delayShow     = {0}
+        allow_touch   = {true}
     >
-        <Icon name={spec.icon} style={color:spec.color, cursor:'pointer'} />
+        <Icon name={spec.icon} style={color:spec.color, cursor:'pointer'}/>
     </Tip>

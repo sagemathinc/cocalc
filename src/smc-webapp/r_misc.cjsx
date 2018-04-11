@@ -1087,6 +1087,7 @@ exports.Tip = Tip = rclass
         style         : rtypes.object   # changing not checked when updating if stable is true
         popover_style : rtypes.object  # changing not checked ever (default={zIndex:1000})
         stable        : rtypes.bool     # if true, children assumed to never change
+        allow_touch   : rtypes.bool     # if true, show tooltips on touch devices (via tap); otherwise all tips are completely hidden on touch!
 
     shouldComponentUpdate: (props, state) ->
         return not @props.stable or \
@@ -1096,11 +1097,12 @@ exports.Tip = Tip = rclass
                                                  'delayHide', 'rootClose', 'icon', 'id'])
 
     getDefaultProps: ->
-        placement : 'right'
-        delayShow : 500
-        delayHide : 100
-        rootClose : false
+        placement     : 'right'
+        delayShow     : 500
+        delayHide     : 0
+        rootClose     : false
         popover_style : {zIndex:1000}
+        allow_touch   : false
 
     getInitialState: ->
         display_trigger : false
@@ -1129,34 +1131,47 @@ exports.Tip = Tip = rclass
                 {@render_title()}
             </Tooltip>
 
+    render_overlay: ->
+        # NOTE: It's inadvisable to use "hover" or "focus" triggers for popovers, because they have poor
+        # accessibility from keyboard and on mobile devices. -- from https://react-bootstrap.github.io/components/popovers/
+        <OverlayTrigger
+            placement = {@props.placement}
+            overlay   = {@render_popover()}
+            delayShow = {@props.delayShow}
+            delayHide = {@props.delayHide}
+            rootClose = {@props.rootClose}
+            trigger   = {if feature.IS_TOUCH then 'click'}
+        >
+            <span
+                style        = {@props.style}
+                onMouseLeave = {=>@setState(display_trigger:false)}
+            >
+                {@props.children}
+            </span>
+        </OverlayTrigger>
+
     render: ->
         if feature.IS_TOUCH
             # Tooltips are very frustrating and pointless on mobile or tablets, and cause a lot of trouble; also,
             # our assumption is that mobile users will also use the desktop version at some point, where
-            # they can learn what the tooltips say.
-            return <span style={@props.style}>{@props.children}</span>
+            # they can learn what the tooltips say.  We do optionally allow a way to use them.
+            if @props.allow_touch
+                return @render_overlay()
+            else
+                return <span style={@props.style}>{@props.children}</span>
 
-        if not @state.display_trigger
-            <span style={@props.style}
-                onMouseEnter={=>@setState(display_trigger:true)}
+        # display_trigger is just an optimization;
+        # if delayHide is set we have to use the full overlay; if not, then using the display_trigger business is faster.
+        if @props.delayHide or @state.display_trigger
+            return @render_overlay()
+        else
+            # when there are tons of tips, this is faster.
+            <span
+                style        = {@props.style}
+                onMouseEnter = {=>@setState(display_trigger:true)}
             >
                 {@props.children}
             </span>
-        else
-            <OverlayTrigger
-                placement = {@props.placement}
-                overlay   = {@render_popover()}
-                delayShow = {@props.delayShow}
-                delayHide = {@props.delayHide}
-                rootClose = {@props.rootClose}
-            >
-                <span
-                    style={@props.style}
-                    onMouseLeave={=>@setState(display_trigger:false)}
-                >
-                    {@props.children}
-                </span>
-            </OverlayTrigger>
 
 exports.SaveButton = rclass
     displayName : 'Misc-SaveButton'
