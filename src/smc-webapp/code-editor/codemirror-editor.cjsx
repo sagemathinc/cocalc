@@ -18,7 +18,7 @@ misc                 = require('smc-util/misc')
 codemirror_util      = require('./codemirror-util')
 doc                  = require('./doc')
 
-{GutterMarker}       = require('./codemirror-gutter-marker')
+{GutterMarkers}      = require('./codemirror-gutter-markers')
 
 STYLE =
     width        : '100%'
@@ -45,6 +45,7 @@ exports.CodemirrorEditor = rclass ({name}) ->
         content          : rtypes.string  # if defined and is_public, use this static value and editor is read-only
         misspelled_words : rtypes.immutable.Set
         resize           : rtypes.number
+        gutters          : rtypes.array
 
     reduxProps :
         account :
@@ -159,7 +160,7 @@ exports.CodemirrorEditor = rclass ({name}) ->
             editor_settings : @props.editor_settings
             actions         : @props.actions
             frame_id        : @props.id
-            gutters         : ['Codemirror-latex-errors']
+            gutters         : @props.gutters
 
         @_style_active_line = options.styleActiveLine
         options.styleActiveLine = false
@@ -254,8 +255,6 @@ exports.CodemirrorEditor = rclass ({name}) ->
         />
 
     render: ->
-        console.log name, @props.gutter_markers
-        window.c = @
         style = misc.copy(STYLE)
         style.fontSize = "#{@props.font_size}px"
         <div
@@ -265,45 +264,3 @@ exports.CodemirrorEditor = rclass ({name}) ->
             {@render_gutter_markers()}
             <textarea />
         </div>
-
-GutterMarkers = rclass
-    displayName: 'CodeEditor-CodemirrorEditor-GutterMarkers'
-
-    propTypes :
-        gutter_markers : rtypes.immutable.Map.isRequired
-        codemirror     : rtypes.object.isRequired
-        set_handle     : rtypes.func.isRequired
-
-    shouldComponentUpdate: (props) ->
-        return @props.gutter_markers != props.gutter_markers
-
-    render_gutters: ->
-        v = []
-        {Icon}               = require('../r_misc')
-        @props.gutter_markers.forEach (info, id) =>
-            handle = info.get('handle')
-            if handle?
-                line = @props.codemirror.lineInfo(handle)?.line
-                if not line?
-                    # skip adding this gutter, since it is no longer defined (e.g., the line it was in was deleted from doc)
-                    return
-            line ?= info.get('line')
-            component = info.get('component')
-            elt = <GutterMarker
-                key        = {id}
-                codemirror = {@props.codemirror}
-                line       = {line}
-                gutter_id  = {info.get('gutter_id')}
-                set_handle = {(handle) => @props.set_handle(id, handle)}
-            >
-                {component}
-            </GutterMarker>
-            v.push(elt)
-            return
-        return v
-
-    render: ->
-        console.log 'guttermarkers -- render'
-        <span>
-            {@render_gutters()}
-        </span>

@@ -6,6 +6,8 @@ React component that represents gutter markers in a codemirror editor.
 misc = require('misc')
 
 exports.GutterMarker = rclass
+    displayName: 'CodeEditor-GutterMarkers'
+    
     propTypes:
         line       : rtypes.number.isRequired         # line where it is initially placed -- will of course change as doc changes
         codemirror : rtypes.object.isRequired         # codemirror editor instance
@@ -23,7 +25,6 @@ exports.GutterMarker = rclass
         ReactDOM.render(<div>{@props.children}</div>, @_elt)
         @_handle = @props.codemirror.setGutterMarker(@props.line, @props.gutter_id, @_elt)
         @props.set_handle(@_handle)
-        console.log 'made gutter mark ', @_handle
 
     componentWillUnmount: ->
         if @_elt?
@@ -31,10 +32,8 @@ exports.GutterMarker = rclass
             @_elt.remove()
             delete @_elt
         if @_handle?
-            console.log 'clearing gutter mark ', @_handle
             @props.codemirror.setGutterMarker(@_handle, @props.gutter_id, null)
             delete @_handle
 
     render: ->
-        console.log 'render gutter marker', @props.gutter_id, @props.line
         <span />

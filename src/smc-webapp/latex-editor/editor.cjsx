@@ -27,6 +27,7 @@ EDITOR_SPEC =
         component : CodemirrorEditor
         buttons   : set(['print', 'decrease_font_size', 'increase_font_size', 'save', 'time_travel', 'replace', 'find', 'goto_line', \
                          'cut', 'paste', 'copy', 'undo', 'redo', 'help'])
+        gutters   : ['Codemirror-latex-errors']
 
     pdfjs :
         short     : 'PDF View'

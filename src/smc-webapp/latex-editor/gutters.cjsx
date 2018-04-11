@@ -1,5 +1,8 @@
 ###
 Manage codemirror gutters that highlight latex typesetting issues.
+
+NOTE: If there are multiple errors/warnings/etc., on the SAME line, only the last
+one gets a gutter mark, with pref to errors.  The main error log shows everything, so this should be OK.
 ###
 
 misc    = require('smc-util/misc')
@@ -17,7 +20,7 @@ exports.update_gutters = (opts) ->
         log        : required
         set_gutter : required
     path = misc.path_split(opts.path).tail
-    for group in ['errors', 'typesetting', 'warnings']
+    for group in ['typesetting', 'warnings', 'errors']  # errors last so always shown if multiple issues on a single line!
         for item in opts.log[group]
             if misc.path_split(item.file).tail != path
                 continue
@@ -27,7 +30,6 @@ exports.update_gutters = (opts) ->
 
 component = (level, message, content) ->
     spec = SPEC[level]
-    console.log level, message, content
     if not content?
         content = message
         message = misc.capitalize(level)

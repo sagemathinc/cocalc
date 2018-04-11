@@ -122,7 +122,8 @@ Item = rclass
     shouldComponentUpdate: (props) ->
         return @props.item != props.item
 
-    edit_source: ->
+    edit_source: (e) ->
+        e.stopPropagation()
         @props.actions.open_code_editor
             line      : @props.item.get('line')
             file      : @props.item.get('file')
