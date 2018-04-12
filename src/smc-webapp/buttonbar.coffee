@@ -296,6 +296,14 @@ exports.commands =
             wrap :
                 left  : "\n\\begin{quote}\n"
                 right : "\n\\end{quote}\n"
+        quote :
+            wrap :
+                left  : "\n\\begin{quote}\n"
+                right : "\n\\end{quote}\n"
+        table:
+            wrap :
+                left  : "\n\\begin{center}\\begin{tabular}{|c|c|}\n\\hline\ncell1 & cell2 \\\\\ncell3 & cell4 \\\\\n\\hline"
+                right : "\n\\end{tabular}\\end{center}\n"
         subscript :
             wrap :
                 left  : '_{'
@@ -315,6 +323,18 @@ exports.commands =
                 left  : "\\hrulefill"
                 #left  : "\n\\noindent\\makebox[\\linewidth]{\\rule{\\paperwidth}{0.4pt}}\n"
                 right : ""
+        justifyleft :
+            wrap :
+                left  : '\n\\begin{flushleft}\n'
+                right : '\n\\end{flushleft}\n'
+        justifyright :
+            wrap :
+                left  : '\n\\begin{flushright}\n'
+                right : '\n\\end{flushright}\n'
+        justifycenter :
+            wrap :
+                left  : '\n\\begin{center}\n'
+                right : '\n\\end{center}\n'
 
     md :
         bold :

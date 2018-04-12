@@ -93,8 +93,9 @@ exports.Editor = rclass ({name}) ->
         if not @props.editor_settings?.get('extra_button_bar') or @props.is_public
             return
         <FormatBar
-            actions = {@props.actions}
-            store   = {@props.format_bar}
+            actions   = {@props.actions}
+            store     = {@props.format_bar}
+            extension = {'tex'}
             />
 
     render_editor: ->
