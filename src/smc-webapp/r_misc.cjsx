@@ -898,9 +898,17 @@ exports.HTML = HTML = rclass
         @_update_code()
         @_update_images()
 
+    _update_math_with_katex: ->
+        @_needs_mathjax = !math_katex.render_math_in_element($(ReactDOM.findDOMNode(@))[0])
+
     update_content: ->
         if not @_is_mounted
             return
+
+        if @props.auto_render_math
+            @_needs_mathjax = true
+            if @props.other_settings?.get('katex')
+                @_update_math_with_katex()
 
         if @_needs_mathjax
             @_update_mathjax =>
@@ -939,12 +947,8 @@ exports.HTML = HTML = rclass
         else
             html = require('./misc_page').sanitize_html(@props.value, true, true, @props.post_hook)
 
-        if @props.auto_render_math
-            @_needs_mathjax = true
-            if @props.other_settings?.get('katex')
-                # try using katex:
-                {html, is_complete} = math_katex.render(html)
-                @_needs_mathjax = not is_complete
+        html = math_katex.replace_sage_scripts(html)
+        html = math_katex.replace_escaped_dollar_signs(html)
 
         return {__html: html}
 
