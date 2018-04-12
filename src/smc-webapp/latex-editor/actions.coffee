@@ -8,6 +8,8 @@ immutable       = require('immutable')
 
 {Actions}       = require('../code-editor/actions')
 tex2pdf         = require('./tex2pdf')
+sagetex         = require('./sagetex')
+bibtex          = require('./bibtex')
 {webapp_client} = require('../webapp_client')
 maintenance     = require('./maintenance')
 
@@ -22,7 +24,9 @@ class exports.Actions extends Actions
             @_init_spellcheck()
 
     _init_tex2pdf: =>
-        @_syncstring.on('save-to-disk', @run_tex2pdf)
+        @_syncstring.on 'save-to-disk', (time) =>
+            @_last_save_time = time
+            @run_tex2pdf(time)
         @run_tex2pdf()
 
     _raw_default_frame_tree: =>
@@ -42,10 +46,13 @@ class exports.Actions extends Actions
                     type : 'error'
 
     run_tex2pdf: (time) =>
+        @run_latex(time, true)
+
+    run_latex: (time, all_steps=false) =>
+        time ?= @_last_save_time
         # TODO: should only run knitr if at least one frame is visible showing preview.
         @set_status('Running LaTeX...')
         @setState(build_log: undefined)
-        tm = new Date()
         tex2pdf.convert
             path       : @path
             project_id : @project_id
@@ -54,10 +61,9 @@ class exports.Actions extends Actions
                 @set_status('')
                 if err
                     @set_error(err)
-                output?.time = new Date() - tm
                 if output?.stdout?
                     output.parse = (new LatexParser(output.stdout, {ignoreDuplicates: true})).parse()
-                @setState(build_log: {latex:output})  # later there might also be output from a sage step, etc.
+                @set_build_log(latex: output)
                 @clear_gutter('Codemirror-latex-errors')
                 update_gutters
                     path       : @path
@@ -70,15 +76,43 @@ class exports.Actions extends Actions
                 for x in ['pdfjs', 'embed', 'build_log']
                     @set_reload(x)
 
-    run_latex: (time) =>
 
     run_bibtex: (time) =>
+        time ?= @_last_save_time
+        @set_status("Running BibTeX...")
+        bibtex.bibtex
+            path       : @path
+            project_id : @project_id
+            time       : time
+            cb         : (err, output) =>
+                @set_status('')
+                if err
+                    @set_error(err)
+                @set_build_log(bibtex: output)
 
     run_sagetex: (time) =>
+        time ?= @_last_save_time
+        @set_status("Running SageTeX...")
+        sagetex.sagetex
+            path       : @path
+            project_id : @project_id
+            time       : time
+            cb         : (err, output) =>
+                @set_status('')
+                if err
+                    @set_error(err)
+                @set_build_log(sagetex: output)
+
+    set_build_log: (obj) =>
+        build_log = @store.get('build_log') ? immutable.Map()
+        for k, v of obj
+            build_log = build_log.set(k, immutable.fromJS(v))
+        @setState(build_log: build_log)
 
     run_clean: (time) =>
         log = ''
         @set_status("Cleaning up auxiliary files...")
+        delete @_last_save_time
         @setState(build_log: immutable.Map())
         maintenance.clean
             path       : @path

@@ -37,7 +37,7 @@ exports.clean = (opts) ->
             files = (base_filename + ext for ext in EXT)
             # -f: don't complain when it doesn't exist
             # --: then it works with filenames starting with a "-"
-            opts.log("Removing #{', '.join(files)}...")
+            opts.log("Removing #{files.join(', ')}...")
             webapp_client.exec
                 command : "rm"
                 args    : ['-v', '-f', '--'].concat(files)

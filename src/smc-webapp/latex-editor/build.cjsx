@@ -24,7 +24,7 @@ BUILD_SPEC =
         tip   : 'Run the LaTeX build command'
 
     bibtex:
-        label : "Bibtex"
+        label : "BibTeX"
         icon  : 'file-code-o'
         tip   : 'Process bibliography using Bibtex'
 
@@ -61,15 +61,15 @@ exports.Build = rclass ({name}) ->
     shouldComponentUpdate: (props) ->
         return misc.is_different(@props, props, ['build_log', 'status', 'font_size'])
 
-    render_latex: ->
-        value = (@props.build_log?.getIn(['latex', 'stdout']) ? '') + (@props.build_log?.getIn(['latex', 'stderr']) ? '')
+    render_log: (stage) ->
+        value = (@props.build_log?.getIn([stage, 'stdout']) ? '') + (@props.build_log?.getIn([stage, 'stderr']) ? '')
         if not value
             return
-        time = @props.build_log?.getIn(['latex', 'time']) ? ''
+        time = @props.build_log?.getIn([stage, 'time']) ? ''
         if time
             time = "(#{(time/1000).toFixed?(1)} seconds)"
         <Fragment>
-            <h4>LaTeX Output {time}</h4>
+            <h5>{BUILD_SPEC[stage].label} Output {time}</h5>
             <textarea
                 readOnly = {true}
                 style    = {color: '#666', background: '#f8f8f0', display: 'block', width: '100%', padding: '10px', flex:1}
@@ -122,6 +122,8 @@ exports.Build = rclass ({name}) ->
         >
             {@render_buttons()}
             {@render_status()}
-            {@render_latex()}
+            {@render_log('latex')}
+            {@render_log('sagetex')}
+            {@render_log('bibtex')}
             {@render_clean()}
         </div>
