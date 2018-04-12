@@ -11,3 +11,4 @@ register_file_editor
     ext       : 'tex'
     component : Editor
     Actions   : Actions
+

@@ -242,6 +242,7 @@ schema.accounts =
                     code_folding              : true
                     match_xml_tags            : true
                     auto_close_xml_tags       : true
+                    auto_close_latex          : true
                     spaces_instead_of_tabs    : true
                     multiple_cursors          : true
                     track_revisions           : true

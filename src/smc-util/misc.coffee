@@ -113,6 +113,15 @@ exports.split = (s) ->
     else
         return []
 
+# Like Python splitlines.
+exports.splitlines = (s) ->
+    r = s.match(/[^\r\n]+/g)
+    if r
+        return r
+    else
+        return []
+
+
 # Like the exports.split method, but quoted terms are grouped together for an exact search.
 exports.search_split = (search) ->
     terms = []
