@@ -263,9 +263,13 @@ if ENABLED and window.setImmediate
 # console terminal
 
 sendLogLine = (severity, args) ->
+    if typeof(args) == 'object'
+        message = misc.to_safe_str(args)
+    else
+        message = Array.prototype.slice.call(args).join(", ")
     sendError(
         name        : 'Console Output'
-        message     : Array.prototype.slice.call(args).join(", ")
+        message     : message
         file        : ''
         path        : window.location.href
         lineNumber  : -1
