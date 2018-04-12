@@ -200,6 +200,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
     init_hide_show_gutter: () =>
         gutters = ["CodeMirror-linenumbers", "CodeMirror-foldgutter", "smc-sagews-gutter-hide-show"]
         for cm in [@codemirror, @codemirror1]
+            continue if not cm?
             cm.setOption('gutters', gutters)
             cm.on 'gutterClick', @_handle_input_hide_show_gutter_click
 
