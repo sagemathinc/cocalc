@@ -34,10 +34,9 @@ class UsersActions extends Actions
     fetch_non_collaborator: (account_id) =>
         if not account_id
             return
-        webapp_client.get_usernames
-            account_ids : [account_id]
-            use_cache   : false
-            cb          : (err, x) =>
+        webapp_client.get_username
+            account_id : account_id
+            cb         : (err, x) =>
                 if err
                     console.warn("WARNING: unable to get username for account with id '#{account_id}'")
                 else
