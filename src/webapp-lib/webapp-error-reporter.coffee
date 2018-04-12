@@ -263,6 +263,7 @@ if ENABLED and window.setImmediate
 # console terminal
 
 sendLogLine = (severity, args) ->
+    misc = require('smc-util/misc')
     if typeof(args) == 'object'
         message = misc.to_safe_str(args)
     else
