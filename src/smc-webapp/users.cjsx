@@ -41,7 +41,7 @@ class UsersActions extends Actions
                     console.warn("WARNING: unable to get username for account with id '#{account_id}'")
                 else
                     obj = x[account_id]
-                    if obj?
+                    if typeof(obj) == 'object'  # see https://github.com/sagemathinc/cocalc/issues/2828
                         obj.account_id = account_id
                         user_map = store.get('user_map')
                         if user_map? and not user_map.get(account_id)?
