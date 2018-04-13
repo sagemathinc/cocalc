@@ -131,6 +131,7 @@ exports.AccountPage = rclass
             terminal               = {@props.terminal}
             evaluate_key           = {@props.evaluate_key}
             autosave               = {@props.autosave}
+            tab_size               = {@props.editor_settings?.get('tab_size')}
             font_size              = {@props.font_size}
             editor_settings        = {@props.editor_settings}
             stripe_customer        = {@props.stripe_customer}
