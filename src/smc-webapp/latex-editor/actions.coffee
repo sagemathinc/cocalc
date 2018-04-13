@@ -20,6 +20,7 @@ class exports.Actions extends Actions
     _init: (args...) =>
         super._init(args...)   # call the _init for the parent class
         if not @is_public  # one extra thing after markdown.
+            @_init_syncstring_value()
             @_init_tex2pdf()
             @_init_spellcheck()
 

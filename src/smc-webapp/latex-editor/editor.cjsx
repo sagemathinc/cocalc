@@ -12,6 +12,7 @@ misc = require('smc-util/misc')
 {PDFJS}                 = require('./pdfjs')
 {PDFEmbed}              = require('./pdf-embed')
 {LaTeXJS}               = require('./latexjs')
+{PEG}                   = require('./peg')
 {CodemirrorEditor}      = require('../code-editor/codemirror-editor')
 {Build}                 = require('./build')
 {ErrorsAndWarnings}     = require('./errors-and-warnings')
@@ -66,8 +67,14 @@ EDITOR_SPEC =
         name      : 'Quick Preview (LaTeX.js)'
         icon      : 'file-pdf-o'
         component : LaTeXJS
-        buttons   : set(['print', 'save', 'reload', 'decrease_font_size', 'increase_font_size'])
-        style     : {'background': '#525659'}
+        buttons   : set(['print', 'save', 'decrease_font_size', 'increase_font_size'])
+
+    peg :
+        short     : 'PEG Preview'
+        name      : 'PEG Preview (PEG.js)'
+        icon      : 'file-pdf-o'
+        component : PEG
+        buttons   : set(['print', 'save', 'decrease_font_size', 'increase_font_size'])
 
 
 exports.Editor = rclass ({name}) ->
