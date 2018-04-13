@@ -670,7 +670,7 @@ class exports.Actions extends Actions
     prettier: =>
         ext = misc.filename_extension(@path)
         switch ext
-            when 'js', 'cjsx'
+            when 'js', 'jsx'
                 parser = 'babylon'
             when 'md'
                 parser = 'markdown'
