@@ -78,10 +78,13 @@ if fs.existsSync(DEBUG_FILE)
 else
     winston.debug("'#{DEBUG_FILE}' does not exist; minimal logging")
 
-
+ALREADY_CREATED = false
 class exports.Client extends EventEmitter
     constructor: (project_id) ->
         super()
+        if ALREADY_CREATED
+            throw Error("BUG: Client already created!")
+        ALREADY_CREATED = true
         @project_id = project_id
         @dbg('constructor')()
         @setMaxListeners(300)  # every open file/table/sync db listens for connect event, which adds up.
@@ -395,10 +398,11 @@ class exports.Client extends EventEmitter
     # Returns undefined if there are currently no connections from any hub to us
     # (in which case, the project must wait).
     get_hub_socket: =>
-        v = misc.values(@_hub_client_sockets)
-        if v.length == 0
+        socket_ids = misc.keys(@_hub_client_sockets)
+        @dbg("get_hub_socket")("there are #{socket_ids.length} sockets -- #{JSON.stringify(socket_ids)}")
+        if socket_ids.length == 0
             return
-        return misc.random_choice(v).socket
+        return @_hub_client_sockets[misc.random_choice(socket_ids)].socket
 
     # Send a message to some hub server and await a response (if cb defined).
     call: (opts) =>

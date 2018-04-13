@@ -317,6 +317,7 @@ start_server = (tcp_port, raw_port, cb) ->
                 home       : process.env.HOME
                 port       : raw_port
                 logger     : winston
+                client     : exports.client
                 cb         : cb
         (cb) ->
             if program.kucalc

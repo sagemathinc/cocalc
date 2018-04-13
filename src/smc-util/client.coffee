@@ -1933,6 +1933,30 @@ class exports.Connection extends EventEmitter
     send_metrics: (metrics) =>
         @send(message.metrics(metrics:metrics))
 
+    # Run prettier on a syncstring -- modifies the syncstring from the backend
+    prettier: (opts) =>
+        opts = defaults opts,
+            path       : required
+            project_id : required
+            options    : undefined
+            cb         : undefined
+        base = window?.app_base_url ? ''
+        path = opts.path
+        if path[0] == '/'
+            path = '.smc/root' + path
+        url = "#{base}/#{opts.project_id}/raw/.smc/prettier"
+        data =
+            path    : path
+            options : if opts.options then JSON.stringify(opts.options)
+        jqXHR = $.post(url, data)
+
+        jqXHR.fail ->
+            opts.cb?("failed")
+
+        jqXHR.done (resp) ->
+            opts.cb?(undefined, resp)
+
+
 #################################################
 # Other account Management functionality shared between client and server
 #################################################

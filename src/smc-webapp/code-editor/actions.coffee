@@ -666,6 +666,34 @@ class exports.Actions extends Actions
                     @set_syncstring_to_codemirror()
                     @_syncstring.save()
 
+
+    prettier: =>
+        ext = misc.filename_extension(@path)
+        switch ext
+            when 'js', 'cjsx'
+                parser = 'babylon'
+            when 'md'
+                parser = 'markdown'
+            when 'css'
+                parser = 'postcss'
+            else
+                return
+        editor_settings = @redux.getStore('account').get('editor_settings')
+        options =
+            tabWidth : editor_settings.get('tab_size')
+            parser   : parser
+            useTabs  : not editor_settings.get('spaces_instead_of_tabs')
+        @set_status("Running prettier...")
+        webapp_client.prettier
+            project_id : @project_id
+            path       : @path
+            options    : options
+            cb         : (err, resp) =>
+                @set_status("")
+                console.log resp
+                if err
+                    @setState(error: err)
+
     ###
     format_dialog_action: (cmd) ->
         state = @store.getIn(['format_bar', cmd])
