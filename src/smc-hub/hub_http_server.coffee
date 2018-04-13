@@ -399,6 +399,8 @@ exports.init_express_http_server = (opts) ->
         # (2) no websocket upgrade, (3) jupyter listens on eth0 instead of localhost.
         # Jupyter2 works fine though.
         dev_proxy_port = (req, res) ->
+            if req.headers['cookie']?
+                req.headers['cookie'] = hub_proxy.strip_remember_me_cookie(req.headers['cookie']).cookie
             req_url = req.url.slice(opts.base_url.length)
             {key, port_number, project_id} = hub_proxy.target_parse_req('', req_url)
             proxy = proxy_cache[key]
@@ -421,11 +423,21 @@ exports.init_express_http_server = (opts) ->
                     res.status(500).send("internal error: #{err}")
                 else
                     target = "http://localhost:#{port}"
-                    proxy = http_proxy.createProxyServer(ws:false, target:target, timeout:0)
+                    proxy = http_proxy.createProxyServer(ws:false, target:target, timeout:7000)
+
+                    # Workaround for bug https://github.com/nodejitsu/node-http-proxy/issues/1142; otherwise
+                    # POST's with body just hang.
+                    proxy.on 'proxyReq', (proxyReq, req) =>
+                        if req.body and req.complete
+                            bodyData = JSON.stringify(req.body)
+                            proxyReq.setHeader('Content-Type', 'application/json')
+                            proxyReq.setHeader('Content-Length', Buffer.byteLength(bodyData))
+                            proxyReq.write(bodyData)
+
                     proxy_cache[key] = proxy
                     proxy.on("error", -> delete proxy_cache[key])  # when connection dies, clear from cache
                     # also delete after a few seconds  - caching is only to optimize many requests near each other
-                    setTimeout((-> delete proxy_cache[key]), 10000)
+                    setTimeout((-> delete proxy_cache[key]), 60*1000*60)
                     proxy.web(req, res)
 
         port_regexp = '^' + opts.base_url + '\/[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}\/port\/*'
@@ -436,7 +448,8 @@ exports.init_express_http_server = (opts) ->
         # Also, ensure the raw server works
         dev_proxy_raw = (req, res) ->
             # avoid XSS...
-            req.headers['cookie'] = hub_proxy.strip_remember_me_cookie(req.headers['cookie']).cookie
+            if req.headers['cookie']?
+                req.headers['cookie'] = hub_proxy.strip_remember_me_cookie(req.headers['cookie']).cookie
 
             #winston.debug("cookie=#{req.headers['cookie']}")
             req_url = req.url.slice(opts.base_url.length)
@@ -444,6 +457,7 @@ exports.init_express_http_server = (opts) ->
             winston.debug("dev_proxy_raw", project_id)
             proxy = proxy_cache[key]
             if proxy?
+                winston.debug("dev_proxy_raw: use cache")
                 proxy.web(req, res)
                 return
             opts.compute_server.project
@@ -461,8 +475,17 @@ exports.init_express_http_server = (opts) ->
                                 else
                                     port   = status['raw.port']
                                     target = "http://localhost:#{port}"
-                                    proxy  = http_proxy.createProxyServer(ws:false, target:target, timeout:0)
-                                    proxy_cache[key] = proxy
+                                    winston.debug("dev_proxy_raw: connnect to #{target}")
+                                    proxy  = http_proxy.createProxyServer(ws:false, target:target, timeout:7000)
+
+                                    # Workaround for bug https://github.com/nodejitsu/node-http-proxy/issues/1142
+                                    proxy.on 'proxyReq', (proxyReq, req) =>
+                                        if req.body and req.complete
+                                            bodyData = JSON.stringify(req.body)
+                                            proxyReq.setHeader('Content-Type', 'application/json')
+                                            proxyReq.setHeader('Content-Length', Buffer.byteLength(bodyData))
+                                            proxyReq.write(bodyData)
+
                                     # when connection dies, clear from cache
                                     proxy.on("error", -> delete proxy_cache[key])
                                     proxy.web(req, res)
