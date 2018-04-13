@@ -454,7 +454,7 @@ exports.init_express_http_server = (opts) ->
             #winston.debug("cookie=#{req.headers['cookie']}")
             req_url = req.url.slice(opts.base_url.length)
             {key, project_id} = hub_proxy.target_parse_req('', req_url)
-            winston.debug("dev_proxy_raw", project_id)
+            winston.debug("dev_proxy_raw '#{project_id}', '#{key}','#{req_url}'")
             proxy = proxy_cache[key]
             if proxy?
                 winston.debug("dev_proxy_raw: use cache")
@@ -485,6 +485,8 @@ exports.init_express_http_server = (opts) ->
                                             proxyReq.setHeader('Content-Type', 'application/json')
                                             proxyReq.setHeader('Content-Length', Buffer.byteLength(bodyData))
                                             proxyReq.write(bodyData)
+
+                                    proxy_cache[key] = proxy
 
                                     # when connection dies, clear from cache
                                     proxy.on("error", -> delete proxy_cache[key])
