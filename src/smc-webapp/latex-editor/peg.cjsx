@@ -15,7 +15,7 @@ katex = require('katex')
 
 misc = require('smc-util/misc')
 
-latex_peg_parse = require('./peg/latexpeg.js').parse
+latex_peg_parse = require('./peg/latex').parse
 
 InlineMath = rclass
     displayName: 'LaTeXEditor-PEG-InlineMath'
@@ -54,10 +54,9 @@ Verbatim = rclass
         content : rtypes.string.isRequired
 
     render: ->
-        <code style={display: 'block', marginTop: '1em'}>
+        <code style={display: 'block', marginTop: '1em', whiteSpace: 'pre'}>
             {@props.content}
         </code>
-
 
 Title = rclass
     displayName: 'LaTeXEditor-PEG-Title'
