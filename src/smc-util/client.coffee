@@ -39,6 +39,9 @@ smc_version = require('./smc-version')
 message = require("./message")
 misc    = require("./misc")
 
+client_aggregate = require('./client-aggregate')
+
+
 {validate_client_query} = require('./schema-validate')
 
 defaults = misc.defaults
@@ -1430,47 +1433,19 @@ class exports.Connection extends EventEmitter
                 else
                     opts.cb(undefined, result)
 
-    ############################################
-    # Bulk information about several projects or accounts
-    # (may be used by chat, etc.)
-    # NOTE:
-    #    When get_projects is called (which happens regularly), any info about
-    #    project titles or "account_id --> name" mappings gets updated. So
-    #    usually get_project_titles and get_usernames doesn't even have
-    #    to make a call to the server.   A case where it would is when rendering
-    #    the notifications and the project list hasn't been returned.  Also,
-    #    at some point, project list will probably just return the most recent
-    #    projects or partial info about them.
-    #############################################
-
-    get_usernames: (opts) ->
+    ###
+    Bulk information about several accounts (may be used by chat, etc.).
+    Currently used for admin and public views, mainly.
+    ###
+    get_username: (opts) =>
         opts = defaults opts,
-            account_ids : required
-            use_cache   : true
-            cb          : required     # cb(err, map from account_id to {first_name:?, last_name:?})
-        usernames = {}
-        for account_id in opts.account_ids
-            usernames[account_id] = false
-        if opts.use_cache
-            for account_id, done of usernames
-                if not done and @_usernames_cache[account_id]?
-                    usernames[account_id] = @_usernames_cache[account_id]
-        account_ids = (account_id for account_id, done of usernames when not done)
-        if account_ids.length == 0
-            opts.cb(undefined, usernames)
-        else
-            @call
-                message : message.get_usernames(account_ids : account_ids)
-                cb      : (err, resp) =>
-                    if err
-                        opts.cb(err)
-                    else if resp.event == 'error'
-                        opts.cb(resp.error)
-                    else
-                        for account_id, username of resp.usernames
-                            usernames[account_id] = username
-                            @_usernames_cache[account_id] = username   # TODO: we could expire this cache...
-                        opts.cb(undefined, usernames)
+            account_id : required
+            cb         : required     # cb(err, map from account_id to {first_name:?, last_name:?})
+        client_aggregate.get_username
+            client     : @
+            aggregate  : Math.floor(new Date()/60000)   # so it never actually calls to the backend more than once at a time (per minute).
+            account_id : opts.account_id
+            cb         : opts.cb
 
     #################################################
     # File Management
@@ -1958,6 +1933,30 @@ class exports.Connection extends EventEmitter
     # There is no confirmation or response.
     send_metrics: (metrics) =>
         @send(message.metrics(metrics:metrics))
+
+    # Run prettier on a syncstring -- modifies the syncstring from the backend
+    prettier: (opts) =>
+        opts = defaults opts,
+            path       : required
+            project_id : required
+            options    : undefined
+            cb         : undefined
+        base = window?.app_base_url ? ''
+        path = opts.path
+        if path[0] == '/'
+            path = '.smc/root' + path
+        url = "#{base}/#{opts.project_id}/raw/.smc/prettier"
+        data =
+            path    : path
+            options : if opts.options then JSON.stringify(opts.options)
+        jqXHR = $.post(url, data)
+
+        jqXHR.fail ->
+            opts.cb?("failed")
+
+        jqXHR.done (resp) ->
+            opts.cb?(undefined, resp)
+
 
 #################################################
 # Other account Management functionality shared between client and server

@@ -1059,3 +1059,4 @@ class exports.TestBrowserClient1 extends EventEmitter
             cb      : undefined
         @emit 'query', opts
 
+
