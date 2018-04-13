@@ -28,7 +28,7 @@ exports.prettier_router = function(client, log) {
         let { options } = req.body;
 
         if (options) {
-          options = JSON.parse(options);
+            options = JSON.parse(options);
         }
 
         // What we do is edit the syncstring with the given path to be "prettier" if possible...

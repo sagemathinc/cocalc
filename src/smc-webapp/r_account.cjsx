@@ -1069,6 +1069,7 @@ KEYBOARD_SHORTCUTS =
     'Shift selected text left'     : 'shift+tab'
     'Split view in any editor'     : 'control+I'
     'Autoindent selection'         : "control+'"
+    'Format code (use Prettier)'   : 'control+shift+F'
     'Multiple cursors'             : 'control+click'
     'Simple autocomplete'          : 'control+space'
     'Sage autocomplete'            : 'tab'
