@@ -136,7 +136,7 @@ exports.Icon = Icon = rclass
         onClick : ->
 
     render_icon: ->
-        {name, size, rotate, flip, spin, pulse, fixedWidth, stack, inverse, className, style} = @props
+        {name, size, rotate, flip, spin, pulse, fixedWidth, stack, inverse, className} = @props
 
         i = name.indexOf('cc-icon')
 
@@ -191,7 +191,7 @@ exports.Icon = Icon = rclass
 
         if className
             classNames += " #{className}"
-        <i style={style} className={classNames} />
+        <i className={classNames} />
 
     render: ->
         # Wrap in a span for **two** reasons.
@@ -207,6 +207,7 @@ exports.Icon = Icon = rclass
             onMouseOver = {@props.onMouseOver}
             onMouseOut  = {@props.onMouseOut}
             key         = {Math.random()}
+            style       = {@props.style}
         >
             {@render_icon()}
         </span>

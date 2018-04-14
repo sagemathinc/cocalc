@@ -9,8 +9,11 @@ FrameTitleBar - title bar in a frame, in the frame tree
  EditorFileInfoDropdown}= require('../r_misc')
 {UncommittedChanges}    = require('../jupyter/uncommitted-changes')
 
+
 {IS_TOUCH, IS_IPAD} = require('../feature')
 misc       = require('smc-util/misc')
+
+util = require('./util')
 
 title_bar_style =
     background : '#ddd'
@@ -435,6 +438,9 @@ exports.FrameTitleBar = rclass
             icon = 'arrow-circle-o-left'
         else
             icon = 'save'
+
+        # The funny style in the icon below is because the width changes slightly depending
+        # on which icon we are showing.
         <Button
             key      = {'save'}
             title    = {"Save file to disk"}
@@ -443,7 +449,7 @@ exports.FrameTitleBar = rclass
             disabled = {disabled}
             onClick  = {=>@props.actions.save(true)}
         >
-            <Icon name={icon} /> <VisibleMDLG>{label}</VisibleMDLG>
+            <Icon name={icon} style={width:'15px', display:'inline-block'}/> <VisibleMDLG>{label}</VisibleMDLG>
             <UncommittedChanges has_uncommitted_changes={@props.has_uncommitted_changes} />
         </Button>
 
@@ -454,6 +460,21 @@ exports.FrameTitleBar = rclass
             {@render_timetravel(labels) if not @props.is_public}
             {@render_reload(labels)}
         </ButtonGroup>
+
+    render_prettier: ->
+        if not @is_visible('prettier') or not util.PRETTIER_SUPPORT[misc.filename_extension(@props.path)]
+            return
+        <Fragment>
+            <Space/>
+            <Button
+                bsSize  = {@button_size()}
+                key     = {'prettier'}
+                onClick = {=>@props.actions.prettier(@props.id)}
+                title   = {'Run Prettier to canonically format this document'}
+            >
+                <Icon name={'fab fa-product-hunt'} /> <VisibleMDLG>{if @show_labels() then 'Prettier'}</VisibleMDLG>
+            </Button>
+        </Fragment>
 
     render_print: ->
         if not @is_visible('print')
@@ -499,6 +520,8 @@ exports.FrameTitleBar = rclass
             {@render_copy_group()}
             {@render_find_replace_group()}
             {@render_format_group() if not @props.is_public}
+            {@render_prettier()}
+            {<Space/>}
             {@render_print()}
             {@render_help()}
         </div>

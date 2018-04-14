@@ -53,6 +53,7 @@ exports.PDFJS = rclass
             b = $(a.children()[0])
             b.css('max-width','')
             a.width(b.width() + 'px')
+        return
 
     render_page: (number, scale) ->
         <Page

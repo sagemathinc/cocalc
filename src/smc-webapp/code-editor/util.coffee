@@ -15,3 +15,5 @@ exports.aux_file = (path, ext) ->
 
 exports.raw_url = (project_id, path) ->
     return "#{window.app_base_url}/#{project_id}/raw/#{path}"
+
+exports.PRETTIER_SUPPORT = {'js':true, 'jsx':true, 'md':true, 'css':true}

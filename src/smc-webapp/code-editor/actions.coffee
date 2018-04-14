@@ -772,7 +772,9 @@ class exports.Actions extends Actions
             return
         @setState(gutter_markers: gutter_markers.set(id, info.set('handle', handle)))
 
-    prettier: =>
+    prettier: (id) =>  # id ignored right now.
+        if not @_syncstring?
+            return
         ext = misc.filename_extension(@path)
         switch ext
             when 'js', 'jsx'
@@ -788,7 +790,7 @@ class exports.Actions extends Actions
             tabWidth : editor_settings.get('tab_size')
             parser   : parser
             useTabs  : not editor_settings.get('spaces_instead_of_tabs')
-        @set_status("Running prettier...")
+        @set_status("Running prettier on committed version...")
         webapp_client.prettier
             project_id : @project_id
             path       : @path
@@ -796,9 +798,13 @@ class exports.Actions extends Actions
             cb         : (err, resp) =>
                 @set_status("")
                 if err
-                    @setState(error: err)
+                    error = err
                 else if resp.status == 'error'
-                    @setState(error: "Error running prettier. \n#{JSON.stringify(resp.error, null, '  ')}")
+                    error = JSON.stringify(resp.error, null, '  ')
+                else
+                    error = undefined
+                if error
+                    @setState(error: "Error running prettier. \n#{error}")
                 else
                     @setState(error: '')
 
