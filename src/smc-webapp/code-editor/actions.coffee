@@ -775,7 +775,7 @@ class exports.Actions extends Actions
     prettier: =>
         ext = misc.filename_extension(@path)
         switch ext
-            when 'js', 'cjsx'
+            when 'js', 'jsx'
                 parser = 'babylon'
             when 'md'
                 parser = 'markdown'
@@ -795,9 +795,12 @@ class exports.Actions extends Actions
             options    : options
             cb         : (err, resp) =>
                 @set_status("")
-                console.log resp
                 if err
                     @setState(error: err)
+                else if resp.status == 'error'
+                    @setState(error: "Error running prettier. \n#{JSON.stringify(resp.error, null, '  ')}")
+                else
+                    @setState(error: '')
 
     ###
     format_dialog_action: (cmd) ->
