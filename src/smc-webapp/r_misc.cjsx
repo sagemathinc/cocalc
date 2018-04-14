@@ -191,28 +191,25 @@ exports.Icon = Icon = rclass
 
         if className
             classNames += " #{className}"
-        <i
-            style       = {style}
-            className   = {classNames}
-
-        >
-                {@props.children}
-        </i>
+        <i style={style} className={classNames} />
 
     render: ->
-        icon = @render_icon()
-        if @props.onClick? or @props.onMouseOver? or @props.onMouseOut?
-            # Have to wrap the i, since when rendered using js and svg by new fontawesome 5,
-            # the click handlers of the <i> object are just ignored, since it is removed from the DOM!
-            <span
-                onClick     = {@props.onClick}
-                onMouseOver = {@props.onMouseOver}
-                onMouseOut  = {@props.onMouseOut}
-            >
-                {icon}
-            </span>
-        else
-            return icon
+        # Wrap in a span for **two** reasons.
+        # 1. A reasonable one -- have to wrap the i, since when rendered using js and svg by new fontawesome 5,
+        # the click handlers of the <i> object are just ignored, since it is removed from the DOM!
+        # This is important the close button on tabs.
+        # 2. An evil one -- FontAwesome's javascript mutates the DOM.  Thus we put a random key in so,
+        # that React just replaces the whole part of the DOM where the SVG version of the icon is,
+        # and doesn't get tripped up by this.   A good example where this is used is when *running* Jupyter
+        # notebooks.
+        <span
+            onClick     = {@props.onClick}
+            onMouseOver = {@props.onMouseOver}
+            onMouseOut  = {@props.onMouseOut}
+            key         = {Math.random()}
+        >
+            {@render_icon()}
+        </span>
 
 # this Octicon icon class requires the CSS file in octicons/octicons/octicons.css (see landing.coffee)
 exports.Octicon = rclass
