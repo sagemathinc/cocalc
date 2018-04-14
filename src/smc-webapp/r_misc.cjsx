@@ -135,45 +135,72 @@ exports.Icon = Icon = rclass
         name    : 'square-o'
         onClick : ->
 
-    render: ->
+    render_icon: ->
         {name, size, rotate, flip, spin, pulse, fixedWidth, stack, inverse, className, style} = @props
-        # temporary until file_associations can be changed
-        if name.slice(0, 3) == 'cc-' and name isnt 'cc-stripe'
-            classNames = "fa #{name}"
-            # the cocalc icon font can't do any extra tricks
+
+        i = name.indexOf('cc-icon')
+        if i != -1
+            # A custom Cocalc font icon.  Don't even bother with font awesome at all!
+            classNames = name.slice(i)
         else
-            # temporary until file_associations can be changed
-            if name.slice(0, 3) == 'fa-'
-                classNames = "fa #{name}"
+            left = name.slice(0,3)
+            if left == 'fas' or left == 'fab' or left == 'far'
+                # version 5 names are different!  https://fontawesome.com/how-to-use/use-with-node-js
+                # You give something like: 'fas fa-blah'.
+                classNames = name
             else
-                classNames = "fa fa-#{name}"
-        if size
-            classNames += " fa-#{size}"
-        if rotate
-            classNames += " fa-rotate-#{rotate}"
-        if flip
-            classNames += " fa-flip-#{flip}"
-        if fixedWidth
-            classNames += ' fa-fw'
-        if spin
-            classNames += ' fa-spin'
-        if pulse
-            classNames += ' fa-pulse'
-        if stack
-            classNames += " fa-stack-#{stack}"
-        if inverse
-            classNames += ' fa-inverse'
+                # temporary until file_associations can be changed
+                if name.slice(0, 3) == 'cc-' and name isnt 'cc-stripe'
+                    classNames = "fa #{name}"
+                    # the cocalc icon font can't do any extra tricks
+                else
+                    # temporary until file_associations can be changed
+                    if name.slice(0, 3) == 'fa-'
+                        classNames = "fa #{name}"
+                    else
+                        classNames = "fa fa-#{name}"
+            # These only make sense for font awesome.
+            if size
+                classNames += " fa-#{size}"
+            if rotate
+                classNames += " fa-rotate-#{rotate}"
+            if flip
+                classNames += " fa-flip-#{flip}"
+            if fixedWidth
+                classNames += ' fa-fw'
+            if spin
+                classNames += ' fa-spin'
+            if pulse
+                classNames += ' fa-pulse'
+            if stack
+                classNames += " fa-stack-#{stack}"
+            if inverse
+                classNames += ' fa-inverse'
+
         if className
             classNames += " #{className}"
         <i
             style       = {style}
             className   = {classNames}
-            onMouseOver = {@props.onMouseOver}
-            onMouseOut  = {@props.onMouseOut}
-            onClick     = {@props.onClick}
+
         >
                 {@props.children}
         </i>
+
+    render: ->
+        icon = @render_icon()
+        if @props.onClick? or @props.onMouseOver? or @props.onMouseOut?
+            # Have to wrap the i, since when rendered using js and svg by new fontawesome 5,
+            # the click handlers of the <i> object are just ignored, since it is removed from the DOM!
+            <span
+                onClick     = {@props.onClick}
+                onMouseOver = {@props.onMouseOver}
+                onMouseOut  = {@props.onMouseOut}
+            >
+                {icon}
+            </span>
+        else
+            return icon
 
 # this Octicon icon class requires the CSS file in octicons/octicons/octicons.css (see landing.coffee)
 exports.Octicon = rclass

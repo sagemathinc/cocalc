@@ -93,6 +93,10 @@ for ext, mode of codemirror_associations
             'cc-icon-python'
         when 'coffeescript'
             'fa-coffee'
+        when 'javascript'
+            'fab fa-js-square'
+        when 'jsx'
+            'fab fa-node-js'
         else
             'fa-file-code-o'
     if ext in ['r', 'rmd']
