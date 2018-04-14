@@ -65,7 +65,6 @@ class SessionManager
         localStorage[@_local_storage_name_closed] = JSON.stringify(@_state_closed)
 
     restore: (project_id) =>
-        console.log 'restore', project_id
         if project_id?
             @_restore_project(project_id)
         else
@@ -78,7 +77,6 @@ class SessionManager
             return
         open_files = @_state_closed[project_id]
         delete @_state_closed[project_id]
-        console.log '_restore_project', @_ignore
         if open_files? and not @_ignore
             project = @redux.getProjectActions(project_id)
             for path in open_files

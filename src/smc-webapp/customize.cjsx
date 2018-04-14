@@ -27,10 +27,8 @@ store    = redux.createStore('customize', defaults)
 $?.get (window.app_base_url + "/customize"), (obj, status) ->
     if status == 'success'
         obj.commercial = obj.commercial ? defaults.commercial
-        exports.commercial = test_commercial(obj.commercial)
-        actions.setState
-            is_commercial : exports.commercial
-            commercial    : obj.commercial
+        obj.is_commercial = exports.commercial = test_commercial(obj.commercial)
+        actions.setState(obj)
 
 HelpEmailLink = rclass
     displayName : 'HelpEmailLink'
