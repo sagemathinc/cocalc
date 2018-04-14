@@ -511,6 +511,9 @@ if MEASURE
     bundleAnalyzerPlugin = new BundleAnalyzerPlugin({analyzerMode: 'static'})
     plugins = plugins.concat([bundleAnalyzerPlugin])
 
+BABEL_OPTIONS =
+    plugins: ['@babel/plugin-proposal-optional-chaining']
+
 module.exports =
     cache: true
 
@@ -550,7 +553,9 @@ module.exports =
                     { loader: 'coffee-loader' }
                 ]
             },
-            { test: /node_modules\/prom-client\/.*\.js/, loader: 'babel-loader' },
+            { test: [/node_modules\/prom-client\/.*\.js$/], loader: 'babel-loader' },
+            { test: /latex-editor\/.*\.js$/, loader: 'babel-loader', options:BABEL_OPTIONS },
+            { test: /latex-editor\/.*\.jsx$/, loader: 'babel-loader', options:BABEL_OPTIONS },
             { test: /\.less$/,   use: ["style-loader", "css-loader", "less-loader?#{cssConfig}"] },
             { test: /\.scss$/,   use: ["style-loader", "css-loader", "sass-loader?#{cssConfig}"] },
             { test: /\.sass$/,   use: ["style-loader", "css-loader", "sass-loader?#{cssConfig}&indentedSyntax"] },
@@ -570,7 +575,7 @@ module.exports =
 
     resolve:
         # So we can require('file') instead of require('file.coffee')
-        extensions : ['.js', '.json', '.coffee', '.cjsx', '.scss', '.sass']
+        extensions : ['.js', '.jsx',  '.json', '.coffee', '.cjsx', '.scss', '.sass']
         modules    : [path.resolve(__dirname),
                       path.resolve(__dirname, WEBAPP_LIB),
                       path.resolve(__dirname, 'smc-util'),

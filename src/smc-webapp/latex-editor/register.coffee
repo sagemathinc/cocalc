@@ -1,8 +1,9 @@
 ###
 Register the R Markdown editor
+
 ###
 
-{Editor}               = require('./editor')
+{Editor}               = require('./editor.jsx')
 {Actions}              = require('./actions')
 
 {register_file_editor} = require('../code-editor/register-generic')

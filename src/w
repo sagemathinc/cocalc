@@ -3,7 +3,8 @@
 import os, time
 
 print("Building static pages")
-os.system("cd $SALVUS_ROOT; . smc-env; npm run webpack-static")
+if os.system("cd $SALVUS_ROOT; . smc-env; npm run webpack-static"):
+    raise RuntimeError
 
 print("Starting webpack")
 s = "cd $SALVUS_ROOT; unset CC_STATICPAGES; . smc-env; CC_NOCLEAN=true npm run webpack-watch"
