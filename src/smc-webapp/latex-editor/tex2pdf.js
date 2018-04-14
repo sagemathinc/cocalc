@@ -24,7 +24,7 @@ export function convert(opts) {
     }); // cb(err, build output)
     const x = misc.path_split(opts.path);
     const args = misc.copy(opts.args).concat(x.tail);
-    return webapp_client.exec({
+    webapp_client.exec({
         allow_post: false, // definitely could take a long time to fully run latex
         timeout: 60,
         command: opts.command,
