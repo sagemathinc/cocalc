@@ -155,7 +155,8 @@ exports.NotificationBell = rclass
             fontSize   : '10pt'
             color      : COLOR.FG_RED
             position   : 'absolute'
-            left       : '17.5px'
+            left       : '16px'
+            top        : '11px'
             fontWeight : 700
             background : 'transparent'
         if @props.count > 9

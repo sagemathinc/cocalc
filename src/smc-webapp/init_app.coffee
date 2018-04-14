@@ -92,6 +92,7 @@ class PageActions extends Actions
         @setState(num_ghost_tabs : 0)
 
     close_project_tab: (project_id) =>
+
         page_store = redux.getStore('page')
         projects_store = redux.getStore('projects')
 
@@ -101,6 +102,8 @@ class PageActions extends Actions
         index = open_projects.indexOf(project_id)
         if index == -1
             return
+
+        @_session_manager?.close_project(project_id)  # remembers what files are open
 
         size = open_projects.size
         if project_id == active_top_tab
@@ -220,8 +223,8 @@ class PageActions extends Actions
     save_session: =>
         @_session_manager?.save()
 
-    restore_session: =>
-        @_session_manager?.restore()
+    restore_session: (project_id) =>
+        @_session_manager?.restore(project_id)
 
     show_cookie_warning: =>
         @setState(cookie_warning : true)
