@@ -12,3 +12,6 @@ exports.aux_file = (path, ext) ->
         return s.head + '/.' + s.tail
     else
         return '.' + s.tail
+
+
+exports.PRETTIER_SUPPORT = {'js':true, 'jsx':true, 'md':true, 'css':true}

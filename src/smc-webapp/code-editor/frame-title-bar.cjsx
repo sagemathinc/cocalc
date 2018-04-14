@@ -4,13 +4,16 @@ FrameTitleBar - title bar in a frame, in the frame tree
 
 {debounce} = require('underscore')
 {ButtonGroup, Button, DropdownButton, MenuItem}   = require('react-bootstrap')
-{React, rclass, rtypes, redux} = require('../smc-react')
+{Fragment, React, rclass, rtypes, redux} = require('../smc-react')
 {Icon, Space, Tip, VisibleMDLG,
  EditorFileInfoDropdown}= require('../r_misc')
 {UncommittedChanges}    = require('../jupyter/uncommitted-changes')
 
+
 {IS_TOUCH, IS_IPAD} = require('../feature')
 misc       = require('smc-util/misc')
+
+util = require('./util')
 
 title_bar_style =
     background : '#ddd'
@@ -418,6 +421,21 @@ exports.FrameTitleBar = rclass
             {@render_reload(labels) if @props.is_public}
         </ButtonGroup>
 
+    render_prettier: ->
+        if not @is_visible('prettier') or not util.PRETTIER_SUPPORT[misc.filename_extension(@props.path)]
+            return
+        <Fragment>
+            <Space/>
+            <Button
+                bsSize  = {@button_size()}
+                key     = {'prettier'}
+                onClick = {=>@props.actions.prettier(@props.id)}
+                title   = {'Run Prettier to canonically format this document'}
+            >
+                <Icon name={'fab fa-product-hunt'} /> <VisibleMDLG>{if @show_labels() then 'Prettier'}</VisibleMDLG>
+            </Button>
+        </Fragment>
+
     render_print: ->
         if not @is_visible('print')
             return
@@ -464,6 +482,7 @@ exports.FrameTitleBar = rclass
             {@render_find_replace_group()}
             {<Space />}
             {@render_format_group() if not @props.is_public}
+            {@render_prettier()}
             {<Space/>}
             {@render_print()}
         </div>

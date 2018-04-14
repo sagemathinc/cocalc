@@ -52,6 +52,7 @@ misc_node  = require('smc-util-node/misc_node')
 synctable  = require('smc-util/synctable')
 syncstring = require('smc-util/syncstring')
 db_doc     = require('smc-util/db-doc')
+schema     = require('smc-util/schema')
 
 sage_session = require('./sage_session')
 
@@ -512,12 +513,22 @@ class exports.Client extends EventEmitter
         #    debounce_interval : 2000
         #return synctable.sync_table(opts.query, opts.options, @, opts.debounce_interval)
 
+    # WARNING: making two of the exact same sync_string or sync_db will definitely
+    # lead to corruption!  The backend code currently only makes these in _update_recent_syncstrings,
+    # right now, so we are OK.  Will need to improve this in the longrun!
+
     # Get the synchronized string with the given path.
     sync_string: (opts) =>
         opts = defaults opts,
             path            : required
             save_interval   : 500    # amount to debounce saves (in ms)
             patch_interval  : 500    # debouncing of incoming patches
+            reference_only  : false  # if true returns undefined if syncstring is not already opened -- do NOT close what is returned
+        if opts.reference_only
+            string_id = schema.client_db.sha1(@project_id, opts.path)
+            @dbg("sync_string")("string_id='#{string_id}', keys=#{JSON.stringify(misc.keys(@_open_syncstrings))}")
+            return @_open_syncstrings[string_id]
+        delete opts.reference_only
         opts.client = @
         opts.project_id = @project_id
         @dbg("sync_string(path='#{opts.path}')")()
@@ -531,6 +542,11 @@ class exports.Client extends EventEmitter
             change_throttle : 0      # amount to throttle change events (in ms)
             save_interval   : 500    # amount to debounce saves (in ms)
             patch_interval  : 500    # debouncing of incoming patches
+            reference_only  : false  # if true returns undefined if syncstring is not already opened -- do NOT close what is returned
+        if opts.reference_only
+            string_id = schema.client_db.sha1(@project_id, opts.path)
+            return @_open_syncstrings[string_id]
+        delete opts.reference_only
         opts.client = @
         opts.project_id = @project_id
         @dbg("sync_db(path='#{opts.path}')")()
