@@ -32,19 +32,16 @@ exports.prettier_router = function(client, log) {
         }
 
         // What we do is edit the syncstring with the given path to be "prettier" if possible...
-        let syncstring = client.sync_string({ path, reference_only:true});
+        let syncstring = client.sync_string({ path, reference_only: true });
         if (syncstring == null) {
             /* file not opened yet -- nothing to do. */
-            res.json({status:'ok', phase:'loading'})
-            return
+            res.json({ status: "ok", phase: "loading" });
+            return;
         }
 
         let pretty;
         try {
-            pretty = prettier.format(
-                syncstring.get_doc().to_str(),
-                options
-            );
+            pretty = prettier.format(syncstring.get_doc().to_str(), options);
         } catch (err) {
             log.debug(err);
             res.json({ status: "error", phase: "format", error: err });
@@ -56,7 +53,6 @@ exports.prettier_router = function(client, log) {
         syncstring.on("error", err =>
             res.json({ status: "error", phase: "syncstring", error: err })
         );
-
     });
 
     return router;
