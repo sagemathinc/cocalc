@@ -11,10 +11,10 @@ tex2pdf         = require('./tex2pdf')
 sagetex         = require('./sagetex')
 bibtex          = require('./bibtex')
 {webapp_client} = require('../webapp_client')
-maintenance     = require('./maintenance')
+clean           = require('./clean')
 
-{LatexParser}   = require('./latex-log-parser.coffee')
-{update_gutters} = require('./gutters.cjsx')
+{LatexParser}   = require('./latex-log-parser')
+{update_gutters} = require('./gutters')
 
 class exports.Actions extends Actions
     _init: (args...) =>
@@ -115,7 +115,7 @@ class exports.Actions extends Actions
         @set_status("Cleaning up auxiliary files...")
         delete @_last_save_time
         @setState(build_log: immutable.Map())
-        maintenance.clean
+        clean.clean
             path       : @path
             project_id : @project_id
             log        : (s) =>

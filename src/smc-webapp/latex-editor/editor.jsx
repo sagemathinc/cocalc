@@ -14,7 +14,7 @@ import { PDFEmbed } from "./pdf-embed";
 import { LaTeXJS } from "./latexjs";
 import { PEG } from "./peg";
 import { CodemirrorEditor } from "../code-editor/codemirror-editor";
-import { Build } from "./build.jsx";
+import { Build } from "./build";
 import { ErrorsAndWarnings } from "./errors-and-warnings";
 
 const pdf_path = path => path.slice(0, path.length - 3) + "pdf";
