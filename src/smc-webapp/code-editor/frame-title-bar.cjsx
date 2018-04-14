@@ -395,6 +395,9 @@ exports.FrameTitleBar = rclass
             icon = 'arrow-circle-o-left'
         else
             icon = 'save'
+
+        # The funny style in the icon below is because the width changes slightly depending
+        # on which icon we are showing.
         <Button
             key      = {'save'}
             title    = {"Save file to disk"}
@@ -403,7 +406,7 @@ exports.FrameTitleBar = rclass
             disabled = {disabled}
             onClick  = {=>@props.actions.save(true)}
         >
-            <Icon name={icon} /> <VisibleMDLG>{label}</VisibleMDLG>
+            <Icon name={icon} style={width:'15px', display:'inline-block'}/> <VisibleMDLG>{label}</VisibleMDLG>
             <UncommittedChanges has_uncommitted_changes={@props.has_uncommitted_changes} />
         </Button>
 

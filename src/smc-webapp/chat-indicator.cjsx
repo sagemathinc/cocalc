@@ -115,7 +115,7 @@ exports.ChatIndicator = rclass
                 tip       = {CHAT_INDICATOR_TIP}
                 placement = 'left'
                 delayShow = {2500}
-                stable    = {true}
+                stable    = {false}
                 >
                 <span onClick={@toggle_chat}>
                     <Icon name="caret-#{dir}" />
