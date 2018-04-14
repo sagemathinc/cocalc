@@ -139,6 +139,18 @@ exports.Icon = Icon = rclass
         {name, size, rotate, flip, spin, pulse, fixedWidth, stack, inverse, className, style} = @props
 
         i = name.indexOf('cc-icon')
+
+        if i != -1 and spin
+            # Temporary workaround because cc-icon-cocalc-ring is not a font awesome JS+SVG icon, so
+            # spin, etc., doesn't work on it.  There is a discussion at
+            # https://stackoverflow.com/questions/19364726/issue-making-bootstrap3-icon-spin
+            # about spinning icons, but it's pretty subtle and hard to get right, so I hope
+            # we don't have to implement our own.  Also see
+            # "Icon animation wobble foibles" at https://fontawesome.com/how-to-use/web-fonts-with-css
+            # where they say "witch to the SVG with JavaScript version, it's working a lot better for this".
+            name = 'fa-circle-notch'
+            i = -1
+
         if i != -1
             # A custom Cocalc font icon.  Don't even bother with font awesome at all!
             classNames = name.slice(i)
