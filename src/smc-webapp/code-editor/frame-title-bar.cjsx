@@ -348,7 +348,7 @@ exports.FrameTitleBar = rclass
                 disabled = {@props.read_only}
                 bsSize   = {@button_size()}
             >
-                <Icon name='magic' />
+                <Icon name='indent' />
             </Button>
         </ButtonGroup>
 
