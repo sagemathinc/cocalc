@@ -80,7 +80,7 @@ export class Actions extends BaseActions {
                 if (err) {
                     this.set_error(err);
                 }
-                if (output?.stdout) {
+                if (output && output.stdout) {
                     output.parse = new LatexParser(output.stdout, {
                         ignoreDuplicates: true
                     }).parse();

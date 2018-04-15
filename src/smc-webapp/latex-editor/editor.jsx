@@ -127,32 +127,27 @@ let Editor = rclass(function({ name }) {
                 editor_settings: rtypes.immutable
             },
             [name]: {
-                is_public: rtypes.bool,
-                format_bar: rtypes.immutable.Map
+                is_public: rtypes.bool
             }
         }, // optional extra state of the format bar, stored in the Store
 
         shouldComponentUpdate(next) {
+            if (!this.props.editor_settings) return false;
             return (
-                this.props.editor_settings?.get("extra_button_bar") !==
-                    next.editor_settings?.get("extra_button_bar") ||
-                this.props.format_bar !== next.format_bar
+                this.props.editor_settings.get("extra_button_bar") !==
+                next.editor_settings.get("extra_button_bar")
             );
         },
 
         render_format_bar() {
             if (
-                this.props.editor_settings?.get("extra_button_bar") &&
-                !this.props.is_public
-            ) {
+                !this.props.is_public &&
+                this.props.editor_settings &&
+                this.props.editor_settings.get("extra_button_bar")
+            )
                 return (
-                    <FormatBar
-                        actions={this.props.actions}
-                        store={this.props.format_bar}
-                        extension={"tex"}
-                    />
+                    <FormatBar actions={this.props.actions} extension={"tex"} />
                 );
-            }
         },
 
         render_editor() {

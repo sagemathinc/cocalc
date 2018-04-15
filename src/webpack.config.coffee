@@ -512,9 +512,6 @@ if MEASURE
     bundleAnalyzerPlugin = new BundleAnalyzerPlugin({analyzerMode: 'static'})
     plugins = plugins.concat([bundleAnalyzerPlugin])
 
-BABEL_OPTIONS =
-    plugins: ['@babel/plugin-proposal-optional-chaining']
-
 module.exports =
     cache: true
 
@@ -555,8 +552,7 @@ module.exports =
                 ]
             },
             { test: [/node_modules\/prom-client\/.*\.js$/], loader: 'babel-loader' },
-            { test: /latex-editor\/.*\.js$/, loader: 'babel-loader', options:BABEL_OPTIONS },
-            { test: /latex-editor\/.*\.jsx$/, loader: 'babel-loader', options:BABEL_OPTIONS },
+            { test: [/latex-editor\/.*\.js$/, /latex-editor\/.*\.jsx$/], loader: 'babel-loader' },
             { test: /\.less$/,   use: ["style-loader", "css-loader", "less-loader?#{cssConfig}"] },
             { test: /\.scss$/,   use: ["style-loader", "css-loader", "sass-loader?#{cssConfig}"] },
             { test: /\.sass$/,   use: ["style-loader", "css-loader", "sass-loader?#{cssConfig}&indentedSyntax"] },

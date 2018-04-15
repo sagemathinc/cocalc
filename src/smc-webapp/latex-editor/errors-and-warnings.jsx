@@ -2,6 +2,8 @@
 Show errors and warnings.
 */
 
+import { Map } from "immutable";
+
 import { Button } from "react-bootstrap";
 
 import misc from "smc-util/misc";
@@ -34,11 +36,15 @@ export let ErrorsAndWarnings = rclass(function({ name }) {
             }
         },
 
+        getDefaultProps() {
+            return { build_log: Map() };
+        },
+
         shouldComponentUpdate(props) {
             return (
                 misc.is_different(this.props, props, ["status", "font_size"]) ||
-                this.props.build_log?.getIn(["latex", "parse"]) !=
-                    props.build_log?.getIn(["latex", "parse"])
+                this.props.build_log.getIn(["latex", "parse"]) !=
+                    props.build_log.getIn(["latex", "parse"])
             );
         },
 
@@ -78,7 +84,7 @@ export let ErrorsAndWarnings = rclass(function({ name }) {
 
         render_group(group) {
             const spec = SPEC[group_to_level(group)];
-            const content = this.props.build_log?.getIn([
+            const content = this.props.build_log.getIn([
                 "latex",
                 "parse",
                 group
