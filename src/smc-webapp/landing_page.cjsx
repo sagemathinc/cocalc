@@ -50,7 +50,6 @@ Passports = rclass
         small_size  : rtypes.bool
         no_header   : rtypes.bool
         style       : rtypes.object
-        github_hack : rtypes.bool
 
     styles :
         facebook :
@@ -63,6 +62,7 @@ Passports = rclass
             backgroundColor : "#55ACEE"
             color           : "white"
         github   :
+            backgroundColor : 'white'
             color           : "black"
 
     render_strategy: (name) ->
@@ -76,19 +76,13 @@ Passports = rclass
         else
             size = '2x'
         style = misc.copy(@styles[name])
-        if name == 'github'
-            style.color = 'black'
-            style.position = 'absolute'
-            style.fontSize = '50px'
-            style.marginTop = '-10px'
-        else
-            style.display = 'inline-block'
-            style.padding = '8px'
-            style.borderRadius = '50%'
-            style.width = '50px'
-            style.height=  '50px'
-            style.marginRight = '10px'
-            style.textAlign = 'center'
+        style.display = 'inline-block'
+        style.padding = '8px'
+        style.borderRadius = '50%'
+        style.width = '50px'
+        style.height=  '50px'
+        style.marginRight = '10px'
+        style.textAlign = 'center'
         cname = misc.capitalize(name)
         title = <span><Icon name={name} /> {cname}</span>
         <a href={url} key={name} style={fontSize:'20pt'}>
@@ -104,13 +98,10 @@ Passports = rclass
 
     render: ->
         strategies = @props.strategies?.toJS() ? []
-        # strategies = ['facebook', 'google', 'twitter', 'github']   # for testing.
-        if @props.github_hack and 'github' in strategies
-            # hack for now to get around using position absolute.
-            github_hack = {marginLeft: '-50px'}
+        strategies = ['facebook', 'google', 'twitter', 'github']   # for testing.
         <div style={@props.style}>
             {@render_heading()}
-            <div style={github_hack} >
+            <div>
                 {@render_strategy(name) for name in strategies}
             </div>
             <hr style={marginTop: 10, marginBottom: 10} />
@@ -161,7 +152,6 @@ SignUp = rclass
         if @props.strategies.size > 1
             <div>
                 <Passports
-                    github_hack = {true}
                     strategies  = {@props.strategies}
                     get_api_key = {@props.get_api_key}
                     style       = {textAlign: 'center'}
