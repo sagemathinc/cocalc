@@ -98,7 +98,7 @@ Passports = rclass
 
     render: ->
         strategies = @props.strategies?.toJS() ? []
-        strategies = ['facebook', 'google', 'twitter', 'github']   # for testing.
+        # strategies = ['facebook', 'google', 'twitter', 'github']   # for testing.
         <div style={@props.style}>
             {@render_heading()}
             <div>
