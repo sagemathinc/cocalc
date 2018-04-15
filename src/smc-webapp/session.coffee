@@ -101,18 +101,25 @@ class SessionManager
     _load_from_local_storage: =>
         if not @_local_storage_name?
             return
-        try
-            @_state = JSON.parse(localStorage[@_local_storage_name])
-        catch err
-            delete localStorage[@_local_storage_name]
-            @_state = []
-            console.warn(err)
-        try
-            @_state_closed = JSON.parse(localStorage[@_local_storage_name_closed])
-        catch err
-            delete localStorage[@_local_storage_name_closed]
-            @_state_closed = {}
-            console.warn(err)
+
+        @_state = []
+        @_state_closed = {}
+
+        s = localStorage[@_local_storage_name]
+        if s
+            try
+                @_state = JSON.parse(s)
+            catch err
+                delete localStorage[@_local_storage_name]
+                console.warn(err)
+
+        s = localStorage[@_local_storage_name_closed]
+        if s
+            try
+                @_state_closed = JSON.parse(s)
+            catch err
+                delete localStorage[@_local_storage_name_closed]
+                console.warn(err)
 
 get_session_state = (redux) ->
     state = []
