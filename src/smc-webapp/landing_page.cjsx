@@ -77,7 +77,7 @@ Passports = rclass
             size = '2x'
         style = misc.copy(@styles[name])
         style.display = 'inline-block'
-        style.padding = '8px'
+        style.padding = '6px'
         style.borderRadius = '50%'
         style.width = '50px'
         style.height=  '50px'
@@ -85,7 +85,7 @@ Passports = rclass
         style.textAlign = 'center'
         cname = misc.capitalize(name)
         title = <span><Icon name={name} /> {cname}</span>
-        <a href={url} key={name} style={fontSize:'20pt'}>
+        <a href={url} key={name} style={fontSize:'28px'}>
             <Tip placement='bottom' title={title} tip={"Use #{cname} to sign into your CoCalc account instead of an email address and password."}>
                 <Icon name={name} style={style} />
             </Tip>
@@ -98,7 +98,7 @@ Passports = rclass
 
     render: ->
         strategies = @props.strategies?.toJS() ? []
-        # strategies = ['facebook', 'google', 'twitter', 'github']   # for testing.
+        ## strategies = ['facebook', 'google', 'twitter', 'github']   # for testing.
         <div style={@props.style}>
             {@render_heading()}
             <div>
