@@ -1656,7 +1656,7 @@ initialize_sage_python_r_toolbar = () ->
 
     # -- python specific --
     pybar    = make_bar("webapp-editor-codeedit-buttonbar-python")
-    add_icon(pybar, "<i class='fa'>#</i>", "#comment", "Comment selected text")
+    add_icon(pybar, "#", "#comment", "Comment selected text")
 
     py_control = ["Data", "Basic Data Types",
            [["Construction"],

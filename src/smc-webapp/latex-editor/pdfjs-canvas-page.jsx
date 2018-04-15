@@ -13,6 +13,7 @@ export let CanvasPage = rclass({
     },
 
     load_page_canvas() {
+        // scale = 2.0, so doesn't look like crap on retina
         const viewport = this.props.page.getViewport(2.0);
         const canvas = ReactDOM.findDOMNode(this.refs.canvas);
         canvas.width = viewport.width;
@@ -33,7 +34,8 @@ export let CanvasPage = rclass({
                 style={{
                     margin: "auto",
                     background: "#525659",
-                    textAlign: "center"
+                    textAlign: "center",
+                    zoom: 0.5 /* so doesn't look like crap on retina */
                 }}
             >
                 <canvas ref={"canvas"} />
