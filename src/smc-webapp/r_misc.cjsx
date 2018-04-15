@@ -234,6 +234,14 @@ exports.Octicon = rclass
             classNames.push('mega-octicon')
         return <span className={classNames.join(' ')} />
 
+LOADING_THEMES =
+    medium :
+        fontSize   : "24pt"
+        textAlign  : "center"
+        marginTop  : "15px"
+        color      : "#888"
+        background : "white"
+
 exports.Loading = Loading = rclass
     displayName : 'Misc-Loading'
 
@@ -241,6 +249,7 @@ exports.Loading = Loading = rclass
         style    : rtypes.object
         text     : rtypes.string
         estimate : rtypes.immutable.Map  # {time:[time in seconds], type:['new', 'ready', 'archived']}
+        theme    : rtypes.string      # 'medium', see or add to LOADING_THEMES above.
 
     getDefaultProps : ->
         text   : 'Loading...'
@@ -254,7 +263,7 @@ exports.Loading = Loading = rclass
             </div>
 
     render: ->
-        <span style={@props.style}>
+        <span style={@props.style ? LOADING_THEMES[@props.theme]}>
             <span><Icon name='cc-icon-cocalc-ring' spin /> {@props.text}</span>
             {@render_estimate()}
         </span>

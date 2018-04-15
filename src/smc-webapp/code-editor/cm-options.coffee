@@ -131,8 +131,8 @@ exports.cm_options = (opts) ->
         undoDepth               : opts.undo_depth
         matchBrackets           : opts.match_brackets
         autoCloseBrackets       : opts.auto_close_brackets and (misc.filename_extension_notilde(filename) not in ['hs', 'lhs']) #972
-        autoCloseTags           : if opts.mode.indexOf('xml') != -1 then opts.auto_close_xml_tags
-        autoCloseLatex          : if opts.mode.indexOf('tex') != -1 then opts.auto_close_latex
+        autoCloseTags           : if opts.mode?.indexOf('xml') != -1 then opts.auto_close_xml_tags
+        autoCloseLatex          : if opts.mode?.indexOf('tex') != -1 then opts.auto_close_latex
         lineWrapping            : opts.line_wrapping
         readOnly                : opts.read_only
         styleActiveLine         : opts.style_active_line
