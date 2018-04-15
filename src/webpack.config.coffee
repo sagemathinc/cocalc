@@ -459,6 +459,7 @@ else
             './webapp-lib/primus/primus-engine.min.js'
             # npm packages are added to vendor code separately in splitChunks config below
         ]
+        'pdf.worker': './smc-webapp/node_modules/pdfjs-dist/build/pdf.worker.entry'
     plugins = plugins.concat([
         pug2app,
         mathjaxVersionedSymlink,

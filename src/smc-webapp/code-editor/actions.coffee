@@ -506,7 +506,7 @@ class exports.Actions extends Actions
                 return v
 
     _get_doc: =>
-        return doc.get_doc(project_id:@project_id, path:@path)
+        return cm_doc_cache.get_doc(project_id:@project_id, path:@path)
 
     _recent_cm: =>
         return @_get_cm(undefined,true)

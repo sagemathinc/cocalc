@@ -1,5 +1,12 @@
 /*
-This is a renderer using pdf.js.
+This is a renderer using pdf.js indirectly via react-pdf.
+
+DEPRECATED: I didn't like this.  It requires the react-pdf package, which I already uninstalled.
+
+TODO: I will surely rewrite this from scratch directly using pdf.js, since it's critical to have
+multiple views of the same document, where the document only gets loaded once.  Also, it
+should survive unmount and remount properly, without having to reload the doc.  This can
+only be done via direct use of pdf.js.   But that will get done later.
 */
 
 import { throttle } from "underscore";
@@ -10,10 +17,8 @@ import { React, ReactDOM, rclass, rtypes } from "../smc-react";
 
 import { Loading } from "../r_misc";
 
-import pdfjs from "pdfjs-dist/webpack";
-
-/* for dev only */
-window.pdfjs = pdfjs;
+import { Document, Page } from "react-pdf/dist/entry.webpack";
+import "react-pdf/dist/Page/AnnotationLayer.css";
 
 import util from "../code-editor/util";
 
@@ -44,6 +49,54 @@ export let PDFJS = rclass({
             misc.is_different(this.props, props, ["reload", "font_size"]) ||
             misc.is_different(this.state, state, ["num_pages", "render"])
         );
+    },
+
+    svg_hack() {
+        if (this.state.render !== "svg") {
+            return;
+        }
+        const editor = $(ReactDOM.findDOMNode(this.refs.scroll));
+        const v = [];
+        for (let elt of editor.find(".react-pdf__Page__svg")) {
+            const a = $(elt);
+            const b = $(a.children()[0]);
+            b.css("max-width", "");
+            a.width(b.width() + "px");
+        }
+    },
+
+    render_page(number, scale) {
+        return (
+            <Page
+                key={number}
+                className={"cocalc-pdfjs-page"}
+                pageNumber={number}
+                renderMode={this.state.render}
+                renderTextLayer={false}
+                renderAnnotations={true}
+                scale={scale}
+                onRenderSuccess={this.restore_scroll}
+                onClick={e =>
+                    console.log(
+                        "page click",
+                        e.nativeEvent.offsetX,
+                        e.nativeEvent.offsetY
+                    )
+                }
+            />
+        );
+    },
+
+    render_pages() {
+        if (this.state.num_pages) {
+            setTimeout(this.show, 150);
+        }
+        const scale = this.props.font_size / 10;
+        let pages = [];
+        for (let n = 1; n <= this.state.num_pages; n++) {
+            pages.push(this.render_page(n, scale));
+        }
+        return pages;
     },
 
     render_loading() {
@@ -95,52 +148,34 @@ export let PDFJS = rclass({
         this.svg_hack();
     },
 
-    load_first_page(file) {
-        // Loading a document.
-        const loadingTask = pdfjs.getDocument(file);
-        loadingTask.promise
-            .then(pdfDocument => {
-                // Request a first page
-                return pdfDocument.getPage(1).then(pdfPage => {
-                    // Display page on the existing canvas with 100% scale.
-                    const viewport = pdfPage.getViewport(2.0);
-                    const canvas = ReactDOM.findDOMNode(this.refs.canvas);
-                    canvas.width = viewport.width;
-                    canvas.height = viewport.height;
-                    const ctx = canvas.getContext("2d");
-                    const renderTask = pdfPage.render({
-                        canvasContext: ctx,
-                        viewport: viewport
-                    });
-                    return renderTask.promise;
-                });
-            })
-            .catch(reason => {
-                console.error("Error: " + reason);
-            });
+    componentDidUpdate() {
+        this.svg_hack();
     },
 
-    componentDidMount() {
+    render() {
         const file =
             util.raw_url(this.props.project_id, this.props.path) +
             "?param=" +
             this.props.reload;
-        this.load_first_page(file);
-    },
 
-    render() {
         return (
             <div
                 style={{
                     overflow: "scroll",
                     margin: "auto",
                     width: "100%",
-                    zoom: 0.5 * (this.props.font_size / 12)
+                    opacity: 0
                 }}
                 onScroll={throttle(this.on_scroll, 250)}
                 ref={"scroll"}
             >
-                <canvas ref={"canvas"} />
+                <Document
+                    file={file}
+                    onLoadSuccess={this.document_load_success}
+                    loading={this.render_loading()}
+                >
+                    {this.render_pages()}
+                </Document>
             </div>
         );
     }
