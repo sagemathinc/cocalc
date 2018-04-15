@@ -10,7 +10,7 @@ import { React, ReactDOM, rclass, rtypes } from "../smc-react";
 
 import { Loading } from "../r_misc";
 
-import pdfjs from "pdfjs-dist/webpack";
+import { getDocument } from "./pdfjs-doc-cache";
 
 import { raw_url } from "../code-editor/util";
 
@@ -39,18 +39,18 @@ export let PDFJS = rclass({
 
     getInitialState() {
         return {
-            doc: undefined
+            doc_version: 0 /* not yet loaded */
         };
     },
 
-    shouldComponentUpdate(props, state) {
+    shouldComponentUpdate(next_props, next_state) {
         return (
-            misc.is_different(this.props, props, [
+            misc.is_different(this.props, next_props, [
                 "reload",
                 "font_size",
-                "renderer"
-            ]) ||
-            (!this.state.doc && state.doc)
+                "renderer",
+                "path"
+            ]) || this.state.doc_version != next_state.doc_version
         );
     },
 
@@ -78,29 +78,42 @@ export let PDFJS = rclass({
     },
 
     async load_doc() {
-        const file =
+        const url_to_pdf =
             raw_url(this.props.project_id, this.props.path) +
             "?param=" +
             this.props.reload;
         try {
-            const doc = await pdfjs.getDocument(file);
-            this.setState({ doc });
+            const doc = await getDocument(url_to_pdf);
+            if (!this.mounted) return;
+            this.doc = doc;
+            this.setState({ doc_version: this.state.doc_version + 1 });
         } catch (err) {
+            if (!this.mounted) return;
             this.setState({ error: `error loading PDF -- ${err}` });
             return;
         }
     },
 
+    componentWillUnmount() {
+        this.mounted = false;
+    },
+
+    componentWillReceiveProps(next_props) {
+        if (this.props.reload != next_props.reload) this.load_doc();
+    },
+
     componentDidMount() {
+        this.mounted = true;
         this.load_doc();
     },
 
     render_pages() {
         const pages = [];
-        for (let n = 1; n <= this.state.doc.numPages; n++) {
+        for (let n = 1; n <= this.doc.numPages; n++) {
             pages.push(
                 <Page
-                    doc={this.state.doc}
+                    doc={this.doc}
+                    doc_version={this.state.doc_version}
                     n={n}
                     key={n}
                     renderer={this.props.renderer}
@@ -111,7 +124,7 @@ export let PDFJS = rclass({
     },
 
     render() {
-        if (!this.state.doc) {
+        if (!this.state.doc_version) {
             return this.render_loading();
         }
         return (

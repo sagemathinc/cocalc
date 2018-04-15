@@ -100,7 +100,7 @@ export class Actions extends BaseActions {
                         }
                     });
                 }
-                for (let x of ["pdfjs", "embed", "build_log"]) {
+                for (let x of ["pdfjs_canvas", "pdfjs_svg", "embed", "build_log"]) {
                     this.set_reload(x);
                 }
             }
