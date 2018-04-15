@@ -24,7 +24,7 @@ The Landing Page
 ###
 {rclass, React, ReactDOM, redux, rtypes} = require('./smc-react')
 {Alert, Button, ButtonToolbar, Col, Modal, Grid, Row, FormControl, FormGroup, Well, ClearFix, Checkbox} = require('react-bootstrap')
-{ErrorDisplay, Icon, Loading, ImmutablePureRenderMixin, Footer, UNIT, COLORS, ExampleBox, Space} = require('./r_misc')
+{ErrorDisplay, Icon, Loading, ImmutablePureRenderMixin, Footer, UNIT, COLORS, ExampleBox, Space, Tip} = require('./r_misc')
 {HelpEmailLink, SiteName, SiteDescription, TermsOfService, AccountCreationEmailInstructions} = require('./customize')
 
 DESC_FONT = 'sans-serif'
@@ -62,7 +62,7 @@ Passports = rclass
             backgroundColor : "#55ACEE"
             color           : "white"
         github   :
-            backgroundColor : "black"
+            backgroundColor : 'white'
             color           : "black"
 
     render_strategy: (name) ->
@@ -75,11 +75,20 @@ Passports = rclass
             size = undefined
         else
             size = '2x'
-        <a href={url} key={name}>
-            <Icon size={size} name='stack' href={url}>
-                {<Icon name='circle' stack='2x' style={color: @styles[name].backgroundColor} /> if name isnt 'github'}
-                <Icon name={name} stack='1x' size={'2x' if name is 'github'} style={color: @styles[name].color} />
-            </Icon>
+        style = misc.copy(@styles[name])
+        style.display = 'inline-block'
+        style.padding = '6px'
+        style.borderRadius = '50%'
+        style.width = '50px'
+        style.height=  '50px'
+        style.marginRight = '10px'
+        style.textAlign = 'center'
+        cname = misc.capitalize(name)
+        title = <span><Icon name={name} /> {cname}</span>
+        <a href={url} key={name} style={fontSize:'28px'}>
+            <Tip placement='bottom' title={title} tip={"Use #{cname} to sign into your CoCalc account instead of an email address and password."}>
+                <Icon name={name} style={style} />
+            </Tip>
         </a>
 
     render_heading: ->
@@ -88,10 +97,12 @@ Passports = rclass
         <h3 style={marginTop: 0}>Connect with</h3>
 
     render: ->
+        strategies = @props.strategies?.toJS() ? []
+        ## strategies = ['facebook', 'google', 'twitter', 'github']   # for testing.
         <div style={@props.style}>
             {@render_heading()}
             <div>
-                {@render_strategy(name) for name in @props.strategies?.toJS() ? []}
+                {@render_strategy(name) for name in strategies}
             </div>
             <hr style={marginTop: 10, marginBottom: 10} />
         </div>
