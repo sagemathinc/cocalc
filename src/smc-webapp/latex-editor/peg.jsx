@@ -233,6 +233,18 @@ const Macro = rclass({
         return <Title state={this.props.state} />;
     },
 
+    render_usepackage() {
+        return;
+    },
+
+    render_label() {
+        return;
+    },
+
+    render_bibliographystyle() {
+        return;
+    },
+
     render_textbackslash() {
         return <span>\</span>;
     },
@@ -244,7 +256,7 @@ const Macro = rclass({
     render() {
         if (
             this.props.name.length === 1 &&
-            "{}\\~".indexOf(this.props.name) !== -1
+            "\"'{}\\~".indexOf(this.props.name) !== -1
         ) {
             return <span>{this.props.name}</span>;
         }
@@ -372,7 +384,7 @@ const Environment = rclass({
             let left;
             return (left = f()) != null ? left : <span />;
         } else {
-            return <pre>{`\\begin{\\${name}}(...)\\end{\\${name}}`}</pre>;
+            return <code>{`\\begin{\\${name}}(...)\\end{\\${name}}`}</code>;
         }
     }
 });
@@ -389,6 +401,9 @@ const macro_nargs = function(name) {
         case "textit":
         case "texttt":
         case "underline":
+        case "label":
+        case "usepackage":
+        case "bibliographystyle":
         case "documentclass":
         case "title":
         case "author":
@@ -442,6 +457,12 @@ var render_group = function(group, state) {
         }
 
         switch (x.TYPE) {
+            case "inlinemath":
+                v.push(<span key={i}>math</span>);
+                break;
+            case "displaymath":
+                v.push(<div key={i}>math</div>);
+                break;
             case "macro":
                 var name = x.content;
                 var nargs = macro_nargs(name);

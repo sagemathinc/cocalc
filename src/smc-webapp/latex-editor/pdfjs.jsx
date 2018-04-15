@@ -45,8 +45,12 @@ export let PDFJS = rclass({
 
     shouldComponentUpdate(props, state) {
         return (
-            misc.is_different(this.props, props, ["reload", "font_size"]) ||
-            misc.is_different(this.state, state, ["doc"])
+            misc.is_different(this.props, props, [
+                "reload",
+                "font_size",
+                "renderer"
+            ]) ||
+            (!this.state.doc && state.doc)
         );
     },
 

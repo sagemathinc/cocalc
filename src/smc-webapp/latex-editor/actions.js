@@ -51,7 +51,7 @@ export class Actions extends BaseActions {
                     direction: "row",
                     type: "node",
                     first: {
-                        type: "pdfjs"
+                        type: "pdfjs_svg"
                     },
                     second: {
                         type: "error"

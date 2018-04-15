@@ -161,6 +161,7 @@ exports.FrameTree = FrameTree = rclass ({name}) ->
             resize           = {@props.resize}
             reload_images    = {spec?.reload_images}
             gutters          = {spec?.gutters}
+            renderer         = {spec?.renderer}
         />
 
     render_one: (desc) ->

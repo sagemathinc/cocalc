@@ -44,9 +44,9 @@ const EDITOR_SPEC = {
         gutters: ["Codemirror-latex-errors"]
     },
 
-    pdfjs: {
-        short: "PDF View",
-        name: "PDF View (pdf.js)",
+    pdfjs_svg: {
+        short: "PDF (svg)",
+        name: "PDF View - SVG",
         icon: "file-pdf-o",
         component: PDFJS,
         buttons: set([
@@ -57,7 +57,25 @@ const EDITOR_SPEC = {
             "increase_font_size"
         ]),
         path: pdf_path,
-        style: { background: "#525659" }
+        style: { background: "#525659" },
+        renderer: "svg"
+    },
+
+    pdfjs_canvas: {
+        short: "PDF (canvas)",
+        name: "PDF View - Canvas",
+        icon: "file-pdf-o",
+        component: PDFJS,
+        buttons: set([
+            "print",
+            "save",
+            "reload",
+            "decrease_font_size",
+            "increase_font_size"
+        ]),
+        path: pdf_path,
+        style: { background: "#525659" },
+        renderer: "canvas"
     },
 
     error: {
@@ -70,15 +88,15 @@ const EDITOR_SPEC = {
 
     build: {
         short: "Build",
-        name: "Build control",
+        name: "Build Control",
         icon: "terminal",
         component: Build,
         buttons: set(["reload", "decrease_font_size", "increase_font_size"])
     },
 
     embed: {
-        short: "PDF Embed",
-        name: "PDF Embedded Viewer",
+        short: "PDF (native)",
+        name: "PDF View - Native",
         icon: "file-pdf-o",
         buttons: set(["print", "save", "reload"]),
         component: PDFEmbed,
@@ -86,8 +104,8 @@ const EDITOR_SPEC = {
     },
 
     latexjs: {
-        short: "Quick Preview",
-        name: "Quick Preview (LaTeX.js)",
+        short: "Preview 1",
+        name: "Rough Preview  1 - LaTeX.js",
         icon: "file-pdf-o",
         component: LaTeXJS,
         buttons: set([
@@ -99,8 +117,8 @@ const EDITOR_SPEC = {
     },
 
     peg: {
-        short: "PEG Preview",
-        name: "PEG Preview (PEG.js)",
+        short: "Preview 2",
+        name: "Rough Preview 2 - PEG.js",
         icon: "file-pdf-o",
         component: PEG,
         buttons: set([
