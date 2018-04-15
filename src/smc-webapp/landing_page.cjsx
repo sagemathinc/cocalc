@@ -104,7 +104,7 @@ Passports = rclass
 
     render: ->
         strategies = @props.strategies?.toJS() ? []
-        strategies = ['facebook', 'google', 'twitter', 'github']   # for testing.
+        # strategies = ['facebook', 'google', 'twitter', 'github']   # for testing.
         if @props.github_hack and 'github' in strategies
             # hack for now to get around using position absolute.
             github_hack = {marginLeft: '-50px'}
