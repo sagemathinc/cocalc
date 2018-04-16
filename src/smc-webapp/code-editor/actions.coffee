@@ -674,6 +674,10 @@ class exports.Actions extends Actions
         switch ext
             when 'js', 'jsx'
                 parser = 'babylon'
+            when 'json'
+                parser = 'json'
+            when 'ts', 'tsx'
+                parser = 'typescript'
             when 'md'
                 parser = 'markdown'
             when 'css'
@@ -693,13 +697,17 @@ class exports.Actions extends Actions
             cb         : (err, resp) =>
                 @set_status("")
                 if err
-                    error = err
+                    error = "Error formatting code: \n#{err}"
                 else if resp.status == 'error'
-                    error = JSON.stringify(resp.error, null, '  ')
+                    start = resp.error?.loc?.start
+                    if start?
+                        error = "Syntax error on line #{start.line} column #{start.column} -- fix and then run prettier again."
+                    else
+                        error = "Syntax error -- please fix then run prettier again."
                 else
                     error = undefined
                 if error
-                    @setState(error: "Error running prettier. \n#{error}")
+                    @setState(error: error)
                 else
                     @setState(error: '')
 
