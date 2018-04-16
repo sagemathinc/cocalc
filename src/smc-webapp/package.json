@@ -6,6 +6,7 @@
   "directories": {},
   "dependencies": {
     "@cocalc/markdown-it-katex": "^3.0.3",
+    "@fortawesome/fontawesome-free": "^5.1.0-4",
     "@zippytech/react-notify-resize": "^3.0.0",
     "ansi-to-react": "^2.0.1",
     "async": "^2.0.0",
@@ -21,7 +22,6 @@
     "delims": "^0.4.2",
     "eonasdan-bootstrap-datetimepicker": "^4.15.35",
     "europa": "^4.0.0",
-    "font-awesome": "^4.4.0",
     "formidable": "^1.0.17",
     "globalize": "^0.1.1",
     "history": "^1.17.0",

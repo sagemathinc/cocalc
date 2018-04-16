@@ -54,12 +54,19 @@ clear_old = (done) ->
         if now - s.time >= DONE_CACHE_TIMEOUT_MS
             delete done[key]
 
-exports.aggregate = (f) ->
+exports.aggregate = (options, f) ->
+    if not f?
+        f       = options
+        options = undefined
     if typeof(f) != 'function'
         throw Error("f must be a function")
 
     state = {}  # in the closure, so scope is that of this function we are making below.
     done  = {}
+    omitted_fields = ['cb', 'aggregate']
+    if options?.omit
+        for field in options.omit
+            omitted_fields.push(field)
 
     just_call_f = (opts) ->
         # Fallback behavior **without aggregate**. Used below when aggregate not set.
@@ -69,7 +76,7 @@ exports.aggregate = (f) ->
 
     aggregate_call_f = (opts) ->
         # Key is a string that determines the inputs to f **that matter**.
-        key = json_stable(copy_without(opts, ['cb', 'aggregate']))
+        key = json_stable(copy_without(opts, omitted_fields))
         # Check state
         current = state[key]
         recent  = done[key]

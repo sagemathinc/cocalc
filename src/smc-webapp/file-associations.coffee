@@ -42,6 +42,7 @@ codemirror_associations =
     js     : 'javascript'
     jsx    : 'jsx'
     json   : 'javascript'
+    ls     : 'text/x-livescript'
     lua    : 'lua'
     m      : 'text/x-octave'
     md     : 'gfm'
@@ -51,6 +52,7 @@ codemirror_associations =
     gp     : 'text/pari'
     go     : 'text/x-go'
     pari   : 'text/pari'
+    pegjs  : 'pegjs'
     php    : 'php'
     pl     : 'text/x-perl'
     py     : 'python'
@@ -91,6 +93,10 @@ for ext, mode of codemirror_associations
             'cc-icon-python'
         when 'coffeescript'
             'fa-coffee'
+        when 'javascript'
+            'fab fa-js-square'
+        when 'jsx'
+            'fab fa-node-js'
         else
             'fa-file-code-o'
     if ext in ['r', 'rmd']

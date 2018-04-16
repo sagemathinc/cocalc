@@ -162,9 +162,12 @@ class Kernel extends EventEmitter
                     @emit('execution_state', mesg.content?.execution_state)
                 @emit('iopub', mesg)
 
-            @once 'iopub', (m) =>
+            start_running = (m) =>
+                @removeListener('iopub', start_running)
+                @removeListener('shell', start_running)
+
                 # first iopub message from the kernel means it has started running
-                dbg("iopub: #{misc.to_json(m)}")
+                dbg("start_running: #{misc.to_json(m)}")
                 # We still wait a few ms, since otherwise -- especially in testing --
                 # the kernel will bizarrely just ignore first input.
                 # TODO: I think this a **massive bug** in Jupyter (or spawnteract or ZMQ)...
@@ -173,6 +176,9 @@ class Kernel extends EventEmitter
                     for cb in @_spawn_cbs
                         cb?()
                 setTimeout(f, 100)
+
+            @once('iopub', start_running)
+            @once('shell', start_running)
 
             kernel.spawn.on('close', @close)
 
@@ -190,7 +196,7 @@ class Kernel extends EventEmitter
                 max_delay   : 5000
                 factor      : 1.4
                 max_time    : 2*60000  # long in case of starting many at once -- we don't want them to all fail and start again and fail ad infinitum!
-                f : (cb) =>
+                f           : (cb) =>
                     @kernel_info(cb : =>)
                     cb(@_state == 'starting')
 

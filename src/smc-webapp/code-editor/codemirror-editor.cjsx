@@ -33,6 +33,7 @@ exports.CodemirrorEditor = rclass
         id               : rtypes.string.isRequired
         actions          : rtypes.object.isRequired
         path             : rtypes.string.isRequired
+        project_id       : rtypes.string.isRequired
         font_size        : rtypes.number.isRequired
         cursors          : rtypes.immutable.Map
         editor_state     : rtypes.immutable.Map
@@ -174,7 +175,7 @@ exports.CodemirrorEditor = rclass
         if @props.is_public
             @cm.setValue(@props.content)
         else
-            d = doc.get(path: @props.path, cm: @cm)
+            d = doc.get_linked_doc(path: @props.path, project_id: @props.project_id, cm: @cm)
             if d?
                 @cm.swapDoc(d)
 

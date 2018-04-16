@@ -1418,6 +1418,9 @@ class CodeMirrorEditor extends FileEditor
 
             # Save for next time
             @_last_layout = @_layout
+        else
+            layout = @_layout ? 0
+            btn.find(".webapp-editor-layout-#{layout}").show()
 
         # Workaround a major and annoying bug in Safari:
         #     https://github.com/philipwalton/flexbugs/issues/132
@@ -1724,7 +1727,7 @@ class Terminal extends FileEditor
             path       : @filename
             cb         : (err, result) =>
                 if err
-                    alert_message(type:"error", message: "Error connecting to console server -- #{err}")
+                    alert_message(type:"error", message: "Error connecting to console server -- #{misc.to_safe_str(err)}")
                 else
                     # New session or connect to session
                     if result.content? and result.content.length < 36

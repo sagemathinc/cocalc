@@ -2157,6 +2157,8 @@ exports.obj_key_subs = (obj, subs) ->
 # * smc-webapp/misc_page    → sanitize_html
 exports.sanitize_html_attributes = ($, node) ->
     $.each node.attributes, ->
+        # sometimes, "this" is undefined -- #2823
+        return if not this?
         attrName  = this.name
         attrValue = this.value
         # remove attribute name start with "on", possible unsafe, e.g.: onload, onerror...

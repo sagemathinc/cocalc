@@ -46,7 +46,19 @@ class PageActions extends Actions
     # HACK: __suppress_key_handlers is for file_use. See FUTURE above.
     #       Adding even a single suppressor leads to spaghetti code.
     #       Don't do it. -- J3
-    set_active_key_handler: (handler) =>
+
+    # ws: added logic with project_id/path so that
+    # only the currently focused editor can set/unset
+    # the keyboard handler -- see https://github.com/sagemathinc/cocalc/issues/2826
+    # This feels a bit brittle though, but obviously something like this is needed,
+    # due to slightly async calls to set_active_key_handler, and expecting editors
+    # to do this is silly.
+    set_active_key_handler: (handler, project_id, path) =>
+        if project_id?
+            if @redux.getStore('page').get('active_top_tab') != project_id or \
+               @redux.getProjectStore(project_id)?.get('active_project_tab') != 'editor-' + path
+                return
+
         if handler?
             $(window).off("keydown", @active_key_handler)
             @active_key_handler = handler
@@ -80,6 +92,7 @@ class PageActions extends Actions
         @setState(num_ghost_tabs : 0)
 
     close_project_tab: (project_id) =>
+
         page_store = redux.getStore('page')
         projects_store = redux.getStore('projects')
 
@@ -89,6 +102,8 @@ class PageActions extends Actions
         index = open_projects.indexOf(project_id)
         if index == -1
             return
+
+        @_session_manager?.close_project(project_id)  # remembers what files are open
 
         size = open_projects.size
         if project_id == active_top_tab
@@ -208,8 +223,8 @@ class PageActions extends Actions
     save_session: =>
         @_session_manager?.save()
 
-    restore_session: =>
-        @_session_manager?.restore()
+    restore_session: (project_id) =>
+        @_session_manager?.restore(project_id)
 
     show_cookie_warning: =>
         @setState(cookie_warning : true)

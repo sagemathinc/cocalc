@@ -20,6 +20,7 @@ copypaste       = require('../copy-paste-buffer')
 tree_ops        = require('./tree-ops')
 print           = require('./print')
 spell_check     = require('./spell-check')
+cm_doc_cache    = require('./doc')
 
 class exports.Actions extends Actions
     _init: (project_id, path, is_public, store) =>
@@ -131,6 +132,7 @@ class exports.Actions extends Actions
             @_syncstring._save()
             @_syncstring.close()
             delete @_syncstring
+            cm_doc_cache.close(path: @path, project_id: @project_id)
 
     __save_local_view_state: =>
         local_view_state = @store.get('local_view_state')
@@ -314,7 +316,7 @@ class exports.Actions extends Actions
         if @_state == 'closed'
             return
         @_key_handler ?= keyboard.create_key_handler(@)
-        @redux.getActions('page').set_active_key_handler(@_key_handler)
+        @redux.getActions('page').set_active_key_handler(@_key_handler, @project_id, @path)
 
     disable_key_handler: =>
         @redux.getActions('page').erase_active_key_handler(@_key_handler)
@@ -663,6 +665,43 @@ class exports.Actions extends Actions
                     cm.focus()
                     @set_syncstring_to_codemirror()
                     @_syncstring.save()
+
+
+    prettier: (id) =>  # id ignored right now.
+        if not @_syncstring?
+            return
+        ext = misc.filename_extension(@path)
+        switch ext
+            when 'js', 'jsx'
+                parser = 'babylon'
+            when 'md'
+                parser = 'markdown'
+            when 'css'
+                parser = 'postcss'
+            else
+                return
+        editor_settings = @redux.getStore('account').get('editor_settings')
+        options =
+            tabWidth : editor_settings.get('tab_size')
+            parser   : parser
+            useTabs  : not editor_settings.get('spaces_instead_of_tabs')
+        @set_status("Running prettier on committed version...")
+        webapp_client.prettier
+            project_id : @project_id
+            path       : @path
+            options    : options
+            cb         : (err, resp) =>
+                @set_status("")
+                if err
+                    error = err
+                else if resp.status == 'error'
+                    error = JSON.stringify(resp.error, null, '  ')
+                else
+                    error = undefined
+                if error
+                    @setState(error: "Error running prettier. \n#{error}")
+                else
+                    @setState(error: '')
 
     ###
     format_dialog_action: (cmd) ->

@@ -2002,6 +2002,8 @@ class SyncDoc extends EventEmitter
         setTimeout(@_handle_patch_update_queue, 1)
 
     _handle_patch_update_queue: =>
+        if @_closed or not @_patches_table?  # https://github.com/sagemathinc/cocalc/issues/2829
+            return
         @_handle_patch_update_queue_running = true
 
         # note: other code handles that @_patches_table.get(key) may not be

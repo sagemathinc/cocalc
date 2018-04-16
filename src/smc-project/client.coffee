@@ -52,6 +52,7 @@ misc_node  = require('smc-util-node/misc_node')
 synctable  = require('smc-util/synctable')
 syncstring = require('smc-util/syncstring')
 db_doc     = require('smc-util/db-doc')
+schema     = require('smc-util/schema')
 
 sage_session = require('./sage_session')
 
@@ -78,10 +79,13 @@ if fs.existsSync(DEBUG_FILE)
 else
     winston.debug("'#{DEBUG_FILE}' does not exist; minimal logging")
 
-
+ALREADY_CREATED = false
 class exports.Client extends EventEmitter
     constructor: (project_id) ->
         super()
+        if ALREADY_CREATED
+            throw Error("BUG: Client already created!")
+        ALREADY_CREATED = true
         @project_id = project_id
         @dbg('constructor')()
         @setMaxListeners(300)  # every open file/table/sync db listens for connect event, which adds up.
@@ -395,10 +399,11 @@ class exports.Client extends EventEmitter
     # Returns undefined if there are currently no connections from any hub to us
     # (in which case, the project must wait).
     get_hub_socket: =>
-        v = misc.values(@_hub_client_sockets)
-        if v.length == 0
+        socket_ids = misc.keys(@_hub_client_sockets)
+        @dbg("get_hub_socket")("there are #{socket_ids.length} sockets -- #{JSON.stringify(socket_ids)}")
+        if socket_ids.length == 0
             return
-        return misc.random_choice(v).socket
+        return @_hub_client_sockets[misc.random_choice(socket_ids)].socket
 
     # Send a message to some hub server and await a response (if cb defined).
     call: (opts) =>
@@ -508,12 +513,22 @@ class exports.Client extends EventEmitter
         #    debounce_interval : 2000
         #return synctable.sync_table(opts.query, opts.options, @, opts.debounce_interval)
 
+    # WARNING: making two of the exact same sync_string or sync_db will definitely
+    # lead to corruption!  The backend code currently only makes these in _update_recent_syncstrings,
+    # right now, so we are OK.  Will need to improve this in the longrun!
+
     # Get the synchronized string with the given path.
     sync_string: (opts) =>
         opts = defaults opts,
             path            : required
             save_interval   : 500    # amount to debounce saves (in ms)
             patch_interval  : 500    # debouncing of incoming patches
+            reference_only  : false  # if true returns undefined if syncstring is not already opened -- do NOT close what is returned
+        if opts.reference_only
+            string_id = schema.client_db.sha1(@project_id, opts.path)
+            @dbg("sync_string")("string_id='#{string_id}', keys=#{JSON.stringify(misc.keys(@_open_syncstrings))}")
+            return @_open_syncstrings[string_id]
+        delete opts.reference_only
         opts.client = @
         opts.project_id = @project_id
         @dbg("sync_string(path='#{opts.path}')")()
@@ -527,6 +542,11 @@ class exports.Client extends EventEmitter
             change_throttle : 0      # amount to throttle change events (in ms)
             save_interval   : 500    # amount to debounce saves (in ms)
             patch_interval  : 500    # debouncing of incoming patches
+            reference_only  : false  # if true returns undefined if syncstring is not already opened -- do NOT close what is returned
+        if opts.reference_only
+            string_id = schema.client_db.sha1(@project_id, opts.path)
+            return @_open_syncstrings[string_id]
+        delete opts.reference_only
         opts.client = @
         opts.project_id = @project_id
         @dbg("sync_db(path='#{opts.path}')")()

@@ -914,6 +914,24 @@ EditorSettingsAutosaveInterval = rclass
                 unit      = "seconds" />
         </LabeledRow>
 
+EditorSettingsIndentSize = rclass
+    displayName : 'Account-EditorSettings-IndentSize'
+
+    propTypes :
+        tab_size  : rtypes.number.isRequired
+        on_change : rtypes.func.isRequired
+
+    render: ->
+        <LabeledRow label='Indent size'>
+            <NumberInput
+                on_change = {(n)=>@props.on_change('tab_size',n)}
+                min       = {1}
+                max       = {10}
+                number    = {@props.tab_size} />
+        </LabeledRow>
+
+
+
 EditorSettingsFontSize = rclass
     displayName : 'Account-EditorSettingsFontSize'
 
@@ -1006,17 +1024,16 @@ EditorSettings = rclass
     propTypes :
         redux           : rtypes.object
         autosave        : rtypes.number
+        tab_size        : rtypes.number
         font_size       : rtypes.number
         editor_settings : rtypes.immutable.Map
 
     shouldComponentUpdate: (props) ->
-        return misc.is_different(@props, props, ['autosave', 'font_size', 'editor_settings'])
+        return misc.is_different(@props, props, ['autosave', 'font_size', 'editor_settings', 'tab_size'])
 
     on_change: (name, val) ->
-        if name == 'autosave'
-            @props.redux.getTable('account').set(autosave : val)
-        else if name == 'font_size'
-            @props.redux.getTable('account').set(font_size : val)
+        if name == 'autosave' or name == 'font_size'
+            @props.redux.getTable('account').set("{name}" : val)
         else
             @props.redux.getTable('account').set(editor_settings:{"#{name}":val})
 
@@ -1028,6 +1045,8 @@ EditorSettings = rclass
                 on_change={@on_change} font_size={@props.font_size} />
             <EditorSettingsAutosaveInterval
                 on_change={@on_change} autosave={@props.autosave} />
+            <EditorSettingsIndentSize
+                on_change={@on_change} tab_size={@props.tab_size} />
             <EditorSettingsColorScheme
                 on_change={(value)=>@on_change('theme',value)} theme={@props.editor_settings.get('theme')} />
             <EditorSettingsKeyboardBindings
@@ -1050,6 +1069,7 @@ KEYBOARD_SHORTCUTS =
     'Shift selected text left'     : 'shift+tab'
     'Split view in any editor'     : 'control+I'
     'Autoindent selection'         : "control+'"
+    'Format code (use Prettier)'   : 'control+shift+F'
     'Multiple cursors'             : 'control+click'
     'Simple autocomplete'          : 'control+space'
     'Sage autocomplete'            : 'tab'
@@ -1620,6 +1640,7 @@ exports.AccountSettingsTop = rclass
         terminal               : rtypes.immutable.Map
         evaluate_key           : rtypes.string
         autosave               : rtypes.number
+        tab_size               : rtypes.number
         font_size              : rtypes.number
         editor_settings        : rtypes.immutable.Map
         other_settings         : rtypes.immutable.Map
@@ -1652,6 +1673,7 @@ exports.AccountSettingsTop = rclass
                 <Col xs={12} md={6}>
                     <EditorSettings
                         autosave        = {@props.autosave}
+                        tab_size        = {@props.tab_size}
                         font_size       = {@props.font_size}
                         editor_settings = {@props.editor_settings}
                         redux           = {@props.redux} />
