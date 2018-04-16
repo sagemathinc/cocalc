@@ -15,7 +15,7 @@ export function bibtex(opts) {
     }); // cb(err, build output)
 
     const locals = util.parse_path(opts.path); // base, directory, filename
-    return webapp_client.exec({
+    webapp_client.exec({
         allow_post: false, // definitely could take a long time to fully run sage
         timeout: 15,
         command: "bibtex",

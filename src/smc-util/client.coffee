@@ -1268,7 +1268,7 @@ class exports.Connection extends EventEmitter
     time" (which is stored in the db), which they client will know.  This is used, e.g.,
     for operations like "run rst2html on this file whenever it is saved."
     ###
-    exec: (opts) ->
+    exec: (opts) =>
         opts = defaults opts,
             project_id      : required
             path            : ''

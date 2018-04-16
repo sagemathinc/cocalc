@@ -11,12 +11,17 @@ import { Actions as BaseActions } from "../code-editor/actions";
 import { convert as convert_to_pdf } from "./tex2pdf";
 
 import { sagetex } from "./sagetex";
+
+import * as synctex from "./synctex";
+
 import { bibtex } from "./bibtex";
 import { webapp_client } from "../webapp_client";
 import { clean } from "./clean";
 
 import { LatexParser } from "./latex-log-parser";
 import { update_gutters } from "./gutters";
+
+import { pdf_path } from "./util";
 
 export class Actions extends BaseActions {
     _init(...args) {
@@ -100,7 +105,12 @@ export class Actions extends BaseActions {
                         }
                     });
                 }
-                for (let x of ["pdfjs_canvas", "pdfjs_svg", "embed", "build_log"]) {
+                for (let x of [
+                    "pdfjs_canvas",
+                    "pdfjs_svg",
+                    "embed",
+                    "build_log"
+                ]) {
                     this.set_reload(x);
                 }
             }
@@ -143,6 +153,44 @@ export class Actions extends BaseActions {
                 this.set_build_log({ sagetex: output });
             }
         });
+    }
+
+    async synctex_pdf_to_tex(page, x, y) {
+        this.set_status("Running SyncTex from pdf to tex...");
+        try {
+            let output = await synctex.pdf_to_tex({
+                x,
+                y,
+                page,
+                pdf_path: pdf_path(this.path),
+                project_id: this.project_id
+            });
+            this.set_status("");
+            console.log(output);
+            this.setState({synctex_pdf_to_tex: output});
+        } catch (err) {
+            console.warn("ERROR ", err);
+            this.set_error(err);
+        }
+    }
+
+    async synctex_tex_to_pdf(line, column, filename) {
+        this.set_status("Running SyncTex from tex to pdf...");
+        try {
+            let output = await synctex.tex_to_pdf({
+                line,
+                column,
+                tex_path: filename ? filename : this.path,
+                pdf_path: pdf_path(this.path),
+                project_id: this.project_id
+            });
+            this.set_status("");
+            this.setState({synctex_tex_to_pdf: output});
+            console.log(output);
+        } catch (err) {
+            console.warn("ERROR ", err);
+            this.set_error(err);
+        }
     }
 
     set_build_log(obj) {

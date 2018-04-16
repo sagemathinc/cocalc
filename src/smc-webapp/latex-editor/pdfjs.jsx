@@ -3,15 +3,15 @@ This is a renderer using pdf.js.
 */
 
 import { throttle } from "underscore";
-import misc from "smc-util/misc";
+import { is_different } from "smc-util/misc";
 import { React, ReactDOM, rclass, rtypes } from "../smc-react";
 import { Loading } from "../r_misc";
 import { getDocument } from "./pdfjs-doc-cache";
 import { raw_url } from "../code-editor/util";
 import { Page } from "./pdfjs-page";
 
-// Ensure this jQuery plugin is defined.
-require("./mouse-draggable");
+// Ensure this jQuery plugin is defined:
+import "./mouse-draggable";
 
 export let PDFJS = rclass({
     displayName: "LaTeXEditor-PDFJS",
@@ -43,7 +43,7 @@ export let PDFJS = rclass({
 
     shouldComponentUpdate(next_props, next_state) {
         return (
-            misc.is_different(this.props, next_props, [
+            is_different(this.props, next_props, [
                 "reload",
                 "font_size",
                 "renderer",

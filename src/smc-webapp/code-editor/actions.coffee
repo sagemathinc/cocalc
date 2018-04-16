@@ -663,7 +663,10 @@ class exports.Actions extends Actions
             @setState(error: error)
         else
             if not misc.is_string(error)
-                error = JSON.stringify(error)
+                e = JSON.stringify(error)
+                if e == '{}'
+                    e = "#{error}"
+                error = e
             @setState(error: error)
 
     # little status message shown at bottom.
