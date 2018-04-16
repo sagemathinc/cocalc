@@ -1,5 +1,7 @@
 /* jQuery plugin to make a div mouse click draggable. */
 
+// TODO: need to take into account CSS zoom... ?
+
 import { throttle } from "underscore";
 
 $.fn.mouse_draggable = function() {
@@ -8,7 +10,6 @@ $.fn.mouse_draggable = function() {
 
 function mouse_draggable() {
     const elt = $(this);
-    window.elt = elt;
     let dragpos = null;
 
     elt.on("mousedown", e => {

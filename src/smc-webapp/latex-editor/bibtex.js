@@ -16,8 +16,7 @@ export function bibtex(opts) {
 
     const locals = util.parse_path(opts.path); // base, directory, filename
     webapp_client.exec({
-        allow_post: false, // definitely could take a long time to fully run sage
-        timeout: 15,
+        allow_post: true,
         command: "bibtex",
         args: [locals.base],
         project_id: opts.project_id,

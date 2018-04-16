@@ -7,7 +7,7 @@ misc = require('misc')
 
 exports.GutterMarker = rclass
     displayName: 'CodeEditor-GutterMarkers'
-    
+
     propTypes:
         line       : rtypes.number.isRequired         # line where it is initially placed -- will of course change as doc changes
         codemirror : rtypes.object.isRequired         # codemirror editor instance

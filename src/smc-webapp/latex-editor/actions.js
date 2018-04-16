@@ -256,3 +256,4 @@ export class Actions extends BaseActions {
         window.open(WIKI_HELP_URL, "_blank").focus();
     }
 }
+
