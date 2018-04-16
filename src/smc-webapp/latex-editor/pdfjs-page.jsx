@@ -10,9 +10,9 @@ export let Page = rclass({
     displayName: "LaTeXEditor-PDFJS-Page",
 
     propTypes: {
+        actions: rtypes.object.isRequired,
         n: rtypes.number.isRequired,
         doc: rtypes.object.isRequired,
-        doc_version: rtypes.number.isRequired,
         renderer: rtypes.string
     },
 
@@ -21,42 +21,56 @@ export let Page = rclass({
     },
 
     getInitialState() {
-        return { page_version: 0 };
+        return { page: { version: 0 } };
     },
 
     shouldComponentUpdate(next_props, next_state) {
         return (
-            is_different(this.props, next_props, [
-                "n",
-                "doc_version",
-                "renderer"
-            ]) || this.state.page_version != next_state.page_version
+            is_different(this.props, next_props, ["n", "renderer"]) ||
+            this.props.doc.pdfInfo.fingerprint !=
+                next_props.doc.pdfInfo.fingerprint ||
+            this.state.page.version != next_state.page.version
         );
     },
 
-    async load_page() {
-        let page;
+    async load_page(doc) {
         try {
-            page = await this.props.doc.getPage(this.props.n);
-            /* TODO: if the component has unmounted don't do this... */
-            this.page = page;
-            this.setState({ page_version: this.state.page_version + 1 });
+            let page = await doc.getPage(this.props.n);
+            page.version = this.state.page.version + 1;
+            window.page = page;
+            if (!this.mounted) return;
+            this.setState({ page });
         } catch (err) {
-            console.error(`Error getting ${this.props.n}th page: ${err}`);
-            return;
+            this.props.actions.set_error(
+                `Error getting ${this.props.n}th page: ${err}`
+            );
         }
     },
 
+    componentWillReceiveProps(next_props) {
+        if (
+            this.props.doc.pdfInfo.fingerprint !=
+            next_props.doc.pdfInfo.fingerprint
+        )
+            this.load_page(next_props.doc);
+    },
+
+    componentWillUnmount() {
+        this.mounted = false;
+    },
+
     componentDidMount() {
-        this.load_page();
+        this.mounted = true;
+        this.load_page(this.props.doc);
     },
 
     render_content() {
-        if (!this.state.page_version) return <span>Page {this.props.n}</span>;
+        if (!this.state.page.version)
+            return <span>Loading page {this.props.n}...</span>;
         else if (this.props.renderer == "svg") {
-            return <SVGPage page={this.page} />;
+            return <SVGPage page={this.state.page} />;
         } else {
-            return <CanvasPage page={this.page} />;
+            return <CanvasPage page={this.state.page} />;
         }
     },
 

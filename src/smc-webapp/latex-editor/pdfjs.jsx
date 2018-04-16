@@ -3,17 +3,11 @@ This is a renderer using pdf.js.
 */
 
 import { throttle } from "underscore";
-
 import misc from "smc-util/misc";
-
 import { React, ReactDOM, rclass, rtypes } from "../smc-react";
-
 import { Loading } from "../r_misc";
-
 import { getDocument } from "./pdfjs-doc-cache";
-
 import { raw_url } from "../code-editor/util";
-
 import { Page } from "./pdfjs-page";
 
 export let PDFJS = rclass({
@@ -39,7 +33,8 @@ export let PDFJS = rclass({
 
     getInitialState() {
         return {
-            doc_version: 0 /* not yet loaded */
+            loaded: false,
+            doc: { pdfInfo: { fingerprint: "" } }
         };
     },
 
@@ -50,7 +45,10 @@ export let PDFJS = rclass({
                 "font_size",
                 "renderer",
                 "path"
-            ]) || this.state.doc_version != next_state.doc_version
+            ]) ||
+            this.state.loaded != next_state.loaded ||
+            this.state.doc.pdfInfo.fingerprint !=
+                next_state.doc.pdfInfo.fingerprint
         );
     },
 
@@ -77,43 +75,42 @@ export let PDFJS = rclass({
         elt.scrollLeft(scroll.get("left"));
     },
 
-    async load_doc() {
+    async load_doc(reload) {
         const url_to_pdf =
             raw_url(this.props.project_id, this.props.path) +
             "?param=" +
-            this.props.reload;
+            reload;
         try {
             const doc = await getDocument(url_to_pdf);
             if (!this.mounted) return;
-            this.doc = doc;
-            this.setState({ doc_version: this.state.doc_version + 1 });
+            this.setState({ doc: doc, loaded: true });
         } catch (err) {
-            if (!this.mounted) return;
-            this.setState({ error: `error loading PDF -- ${err}` });
-            return;
+            this.props.actions.set_error(`error loading PDF -- ${err}`);
         }
+    },
+
+    componentWillReceiveProps(next_props) {
+        if (this.props.reload != next_props.reload)
+            this.load_doc(next_props.reload);
     },
 
     componentWillUnmount() {
         this.mounted = false;
     },
 
-    componentWillReceiveProps(next_props) {
-        if (this.props.reload != next_props.reload) this.load_doc();
-    },
-
     componentDidMount() {
         this.mounted = true;
-        this.load_doc();
+        this.load_doc(this.props.reload);
     },
 
     render_pages() {
+        window.doc = this.state.doc;
         const pages = [];
-        for (let n = 1; n <= this.doc.numPages; n++) {
+        for (let n = 1; n <= this.state.doc.numPages; n++) {
             pages.push(
                 <Page
-                    doc={this.doc}
-                    doc_version={this.state.doc_version}
+                    actions={this.props.actions}
+                    doc={this.state.doc}
                     n={n}
                     key={n}
                     renderer={this.props.renderer}
@@ -124,7 +121,7 @@ export let PDFJS = rclass({
     },
 
     render() {
-        if (!this.state.doc_version) {
+        if (!this.state.loaded) {
             return this.render_loading();
         }
         return (

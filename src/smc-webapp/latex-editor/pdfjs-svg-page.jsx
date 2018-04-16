@@ -9,35 +9,44 @@ export let SVGPage = rclass({
         page: rtypes.object.isRequired
     },
 
-    shouldComponentUpdate() {
-        return false;
+    shouldComponentUpdate(next_props) {
+        return this.props.page.version != next_props.page.version;
     },
 
-    async load_page_svg() {
+    async render_page(page) {
         const div = ReactDOM.findDOMNode(this);
-        const viewport = this.props.page.getViewport(1);
+        const viewport = page.getViewport(1);
         div.style.width = viewport.width + "px";
         div.style.height = viewport.height + "px";
 
         try {
-            const opList = await this.props.page.getOperatorList();
-            const svgGfx = new SVGGraphics(
-                this.props.page.commonObjs,
-                this.props.page.objs
-            );
+            const opList = await page.getOperatorList();
+            if (!this.mounted) return;
+            const svgGfx = new SVGGraphics(page.commonObjs, page.objs);
             const svg = await svgGfx.getSVG(opList, viewport);
-            // TODO: if component has unmounted, don't bother.
+            if (!this.mounted) return;
+            $(div).empty(); // TODO
             div.appendChild(svg);
         } catch (err) {
-            console.error(`Error getting svg page: ${err}`);
+            console.error(`pdf.js -- Error rendering svg page: ${err}`);
         }
     },
 
+    componentWillReceiveProps(next_props) {
+        if (this.props.page.version != next_props.page.version)
+            this.render_page(next_props.page);
+    },
+
+    componentWillUnmount() {
+        this.mounted = false;
+    },
+
     componentDidMount() {
-        this.load_page_svg();
+        this.mounted = true;
+        this.render_page(this.props.page);
     },
 
     render() {
-        return <div style={{ margin: "auto", background: "white" }}></div>;
+        return <div style={{ margin: "auto", background: "white" }} />;
     }
 });

@@ -8,24 +8,37 @@ export let CanvasPage = rclass({
         page: rtypes.object.isRequired
     },
 
-    shouldComponentUpdate() {
-        return false;
+    shouldComponentUpdate(next_props) {
+        return this.props.page.version != next_props.page.version;
     },
 
-    load_page_canvas() {
+    async render_page(page) {
+        const div = ReactDOM.findDOMNode(this);
         // scale = 2.0, so doesn't look like crap on retina
-        const viewport = this.props.page.getViewport(2.0);
-        const canvas = ReactDOM.findDOMNode(this.refs.canvas);
+        const viewport = page.getViewport(2.0);
+        const canvas = $("<canvas/>")[0];
         canvas.width = viewport.width;
         canvas.height = viewport.height;
-        this.props.page.render({
-            canvasContext: canvas.getContext("2d"),
-            viewport: viewport
-        });
+        try {
+            await page.render({
+                canvasContext: canvas.getContext("2d"),
+                viewport: viewport,
+                enableWebGL : true
+            });
+            $(div).empty();
+            div.appendChild(canvas);
+        } catch (error) {
+            console.error(`pdf.js -- Error rendering canvas page: ${err}`);
+        }
+    },
+
+    componentWillReceiveProps(next_props) {
+        if (this.props.page.version != next_props.page.version)
+            this.render_page(next_props.page);
     },
 
     componentDidMount() {
-        this.load_page_canvas();
+        this.render_page(this.props.page);
     },
 
     render() {
@@ -37,9 +50,7 @@ export let CanvasPage = rclass({
                     textAlign: "center",
                     zoom: 0.5 /* so doesn't look like crap on retina */
                 }}
-            >
-                <canvas ref={"canvas"} />
-            </div>
+            />
         );
     }
 });
