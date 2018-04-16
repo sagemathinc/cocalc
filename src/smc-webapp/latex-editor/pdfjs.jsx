@@ -10,6 +10,9 @@ import { getDocument } from "./pdfjs-doc-cache";
 import { raw_url } from "../code-editor/util";
 import { Page } from "./pdfjs-page";
 
+// Ensure this jQuery plugin is defined.
+require("./mouse-draggable");
+
 export let PDFJS = rclass({
     displayName: "LaTeXEditor-PDFJS",
 
@@ -98,9 +101,31 @@ export let PDFJS = rclass({
         this.mounted = false;
     },
 
+    mouse_draggable() {
+        $(ReactDOM.findDOMNode(this.refs.scroll)).mouse_draggable();
+    },
+
+    focus_on_click() {
+        // Whenever pdf is clicked on, in the *next* render loop, we
+        // defocus the codemirrors by calling this blur below.
+        // This makes it so space-key, arrows, etc. properly scroll.
+        function blur_codemirror() {
+            setTimeout(function() {
+                document.activeElement.blur();
+            }, 0);
+        }
+        $(ReactDOM.findDOMNode(this.refs.scroll)).on("click", blur_codemirror);
+    },
+
     componentDidMount() {
         this.mounted = true;
+        this.mouse_draggable();
+        this.focus_on_click();
         this.load_doc(this.props.reload);
+        // ToDO:
+        setTimeout(this.restore_scroll, 250);
+        setTimeout(this.restore_scroll, 500);
+        setTimeout(this.restore_scroll, 1000);
     },
 
     render_pages() {
@@ -120,10 +145,15 @@ export let PDFJS = rclass({
         return pages;
     },
 
-    render() {
+    render_content() {
         if (!this.state.loaded) {
             return this.render_loading();
+        } else {
+            return this.render_pages();
         }
+    },
+
+    render() {
         return (
             <div
                 style={{
@@ -134,7 +164,7 @@ export let PDFJS = rclass({
                 onScroll={throttle(this.on_scroll, 250)}
                 ref={"scroll"}
             >
-                {this.render_pages()}
+                {this.render_content()}
             </div>
         );
     }

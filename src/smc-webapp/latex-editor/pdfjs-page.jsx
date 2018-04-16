@@ -74,9 +74,17 @@ export let Page = rclass({
         }
     },
 
+    click(event) {
+        window.div = ReactDOM.findDOMNode(this);
+        console.log("click!", event.nativeEvent.offsetX, event.nativeEvent.offsetY);
+    },
+
     render() {
         return (
-            <div style={{ background: "#525659", paddingTop: "10px" }}>
+            <div
+                style={{ background: "#525659", paddingTop: "10px" }}
+                onClick={this.click}
+            >
                 {this.render_content()}
             </div>
         );
