@@ -552,7 +552,8 @@ module.exports =
                 ]
             },
             { test: [/node_modules\/prom-client\/.*\.js$/], loader: 'babel-loader' },
-            { test: [/latex-editor\/.*\.js$/, /latex-editor\/.*\.jsx$/], loader: 'babel-loader' },
+            { test: [/latex-editor\/.*\.jsx?$/], loader: 'babel-loader' },
+            { test: /\.tsx?$/, loader: "ts-loader" },
             { test: /\.less$/,   use: ["style-loader", "css-loader", "less-loader?#{cssConfig}"] },
             { test: /\.scss$/,   use: ["style-loader", "css-loader", "sass-loader?#{cssConfig}"] },
             { test: /\.sass$/,   use: ["style-loader", "css-loader", "sass-loader?#{cssConfig}&indentedSyntax"] },
@@ -572,7 +573,7 @@ module.exports =
 
     resolve:
         # So we can require('file') instead of require('file.coffee')
-        extensions : ['.js', '.jsx',  '.json', '.coffee', '.cjsx', '.scss', '.sass']
+        extensions : ['.js', '.jsx', '.ts', 'tsx', '.json', '.coffee', '.cjsx', '.scss', '.sass']
         modules    : [path.resolve(__dirname),
                       path.resolve(__dirname, WEBAPP_LIB),
                       path.resolve(__dirname, 'smc-util'),

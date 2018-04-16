@@ -1,5 +1,5 @@
 /*
-Top-level react component for editing LaTeX documents
+Top-level react component for editing LaTeX documents.
 */
 
 import misc from "smc-util/misc";
@@ -11,13 +11,15 @@ import { Editor as BaseEditor, set } from "../code-editor/editor";
 
 import { PDFJS } from "./pdfjs";
 import { PDFEmbed } from "./pdf-embed";
-import { LaTeXJS } from "./latexjs";
-import { PEG } from "./peg";
+
+// import { LaTeXJS } from "./latexjs";
+// import { PEG } from "./peg";
+
 import { CodemirrorEditor } from "../code-editor/codemirror-editor";
 import { Build } from "./build";
 import { ErrorsAndWarnings } from "./errors-and-warnings";
 
-import {pdf_path} from "./util";
+import { pdf_path } from "./util";
 
 const EDITOR_SPEC = {
     cm: {
@@ -101,8 +103,8 @@ const EDITOR_SPEC = {
         buttons: set(["print", "save", "reload"]),
         component: PDFEmbed,
         path: pdf_path
-    },
-
+    }
+    /*
     latexjs: {
         short: "Preview 1",
         name: "Rough Preview  1 - LaTeX.js",
@@ -127,7 +129,7 @@ const EDITOR_SPEC = {
             "decrease_font_size",
             "increase_font_size"
         ])
-    }
+    } */
 };
 
 let Editor = rclass(function({ name }) {
