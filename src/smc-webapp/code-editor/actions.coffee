@@ -9,6 +9,7 @@ MAX_SAVE_TIME_S = 30  # how long to retry to save (and get no unsaved changes), 
 
 immutable       = require('immutable')
 underscore      = require('underscore')
+async           = require('async')
 
 schema          = require('smc-util/schema')
 
@@ -689,27 +690,35 @@ class exports.Actions extends Actions
             tabWidth : editor_settings.get('tab_size')
             parser   : parser
             useTabs  : not editor_settings.get('spaces_instead_of_tabs')
-        @set_status("Running prettier on committed version...")
-        webapp_client.prettier
-            project_id : @project_id
-            path       : @path
-            options    : options
-            cb         : (err, resp) =>
-                @set_status("")
-                if err
-                    error = "Error formatting code: \n#{err}"
-                else if resp.status == 'error'
-                    start = resp.error?.loc?.start
-                    if start?
-                        error = "Syntax error on line #{start.line} column #{start.column} -- fix and then run prettier again."
-                    else
-                        error = "Syntax error -- please fix then run prettier again."
-                else
-                    error = undefined
-                if error
-                    @setState(error: error)
-                else
-                    @setState(error: '')
+        async.series([
+            (cb) =>
+                @set_status("Ensuring your latest changes are saved...")
+                @set_syncstring_to_codemirror()
+                @_syncstring._save(cb)
+            (cb) =>
+                @set_status("Running Prettier code formatter...")
+                webapp_client.prettier
+                    project_id : @project_id
+                    path       : @path
+                    options    : options
+                    cb         : (err, resp) =>
+                        @set_status("")
+                        if err
+                            error = "Error formatting code: \n#{err}"
+                        else if resp.status == 'error'
+                            start = resp.error?.loc?.start
+                            if start?
+                                error = "Syntax error on line #{start.line} column #{start.column} -- fix and then run prettier again."
+                            else
+                                error = "Syntax error -- please fix then run prettier again."
+                        else
+                            error = undefined
+                        @setState(error: '')
+                        cb(error)
+        ], (err) =>
+            if err
+                @setState(error: err)
+        )
 
     ###
     format_dialog_action: (cmd) ->
