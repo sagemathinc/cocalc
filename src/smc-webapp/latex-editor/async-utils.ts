@@ -40,6 +40,13 @@ export async function async_opts(f: Function, opts: ExecOpts) {
     return awaiting.callback(g);
 }
 
+export interface ExecOutput {
+    stdout: string;
+    stderr: string;
+    exit_code: number;
+    time: number; // time in ms, from user point of view.
+}
+
 // async version of the webapp_client exec -- let's you run any code in a project!
 export async function exec(opts: ExecOpts) {
     return async_opts(webapp_client.exec, opts);

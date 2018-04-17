@@ -16,7 +16,7 @@ import * as synctex from "./synctex";
 
 import { bibtex } from "./bibtex";
 import { webapp_client } from "../webapp_client";
-import { clean } from "./clean";
+import { clean } from "./clean.ts";
 
 import { LatexParser } from "./latex-log-parser";
 import { update_gutters } from "./gutters";
@@ -73,14 +73,15 @@ export class Actions extends BaseActions {
     }
 
     async run_latex(time, all_steps = false) {
-        if (time == null) {
-            time = this._last_save_time;
-        }
         this.set_status("Running LaTeX...");
         this.setState({ build_log: undefined });
         let output;
         try {
-            output = await latexmk(this.project_id, this.path, time);
+            output = await latexmk(
+                this.project_id,
+                this.path,
+                time || this._last_save_time
+            );
         } catch (err) {
             this.set_error(err);
             return;
@@ -113,12 +114,13 @@ export class Actions extends BaseActions {
     }
 
     async run_bibtex(time) {
-        if (time == null) {
-            time = this._last_save_time;
-        }
         this.set_status("Running BibTeX...");
         try {
-            const output = await bibtex(this.project_id, this.path, time);
+            const output = await bibtex(
+                this.project_id,
+                this.path,
+                time || this._last_save_time
+            );
             this.set_build_log({ bibtex: output });
         } catch (err) {
             this.set_error(err);
@@ -126,23 +128,19 @@ export class Actions extends BaseActions {
         this.set_status("");
     }
 
-    run_sagetex(time) {
-        if (time == null) {
-            time = this._last_save_time;
-        }
+    async run_sagetex(time) {
         this.set_status("Running SageTeX...");
-        sagetex({
-            path: this.path,
-            project_id: this.project_id,
-            time,
-            cb: (err, output) => {
-                this.set_status("");
-                if (err) {
-                    this.set_error(err);
-                }
-                this.set_build_log({ sagetex: output });
-            }
-        });
+        try {
+            const output = await sagetex(
+                this.project_id,
+                this.path,
+                time || this._last_save_time
+            );
+            this.set_build_log({ sagetex: output });
+        } catch (err) {
+            this.set_error(err);
+        }
+        this.set_status("");
     }
 
     async synctex_pdf_to_tex(page, x, y) {
@@ -196,35 +194,30 @@ export class Actions extends BaseActions {
         this.setState({ build_log });
     }
 
-    run_clean(time) {
+    async run_clean(time) {
         let log = "";
-        this.set_status("Cleaning up auxiliary files...");
         delete this._last_save_time;
         this.setState({ build_log: Map() });
-        clean({
-            path: this.path,
-            project_id: this.project_id,
-            log: s => {
-                let left;
-                log += s;
-                let build_log = this.store.get("build_log");
-                if (!build_log) {
-                    build_log = Map();
-                }
-                this.setState({
-                    build_log: build_log.set("clean", log)
-                });
-            },
-            cb: err => {
-                this.set_status("");
-                if (err) {
-                    this.set_error(err);
-                }
-            }
-        });
+
+        const logger = s => {
+            let left;
+            log += s + "\n";
+            let build_log = this.store.get("build_log") || Map();
+            this.setState({
+                build_log: build_log.set("clean", log)
+            });
+        };
+
+        this.set_status("Cleaning up auxiliary files...");
+        try {
+            await clean(this.project_id, this.path, logger);
+        } catch (err) {
+            this.set_error(`Error cleaning auxiliary files -- ${err}`);
+        }
+        this.set_status("");
     }
 
-    build_action(action) {
+    async build_action(action) {
         let now = webapp_client.server_time();
         switch (action) {
             case "recompile":
