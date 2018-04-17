@@ -1,5 +1,5 @@
 /*
-This is a rewrite of what we're using from smc-util/misc... 
+This is a rewrite of what we're using from smc-util/misc...
 */
 
 export function path_split(path: string): { head: string; tail: string } {
@@ -9,13 +9,12 @@ export function path_split(path: string): { head: string; tail: string } {
 
 const filename_extension_re = /(?:\.([^.]+))?$/;
 export function filename_extension(filename: string): string {
-    filename = path_split(filename).tail;
-    const ext = filename_extension_re.exec(filename)[1];
-    if (ext != null) {
-        return ext;
-    } else {
+    const match = filename_extension_re.exec(filename);
+    if (!match) {
         return "";
     }
+    const ext = match[1];
+    return ext ? ext : "";
 }
 
 // If input name foo.bar, returns object {name:'foo', ext:'bar'}.
