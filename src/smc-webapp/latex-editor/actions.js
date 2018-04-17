@@ -8,7 +8,7 @@ import { fromJS, Map } from "immutable";
 
 import { Actions as BaseActions } from "../code-editor/actions";
 
-import { convert as convert_to_pdf } from "./tex2pdf";
+import { latexmk } from "./latexmk";
 
 import { sagetex } from "./sagetex";
 
@@ -23,23 +23,25 @@ import { update_gutters } from "./gutters";
 
 import { pdf_path } from "./util";
 
+const VIEWERS = ["pdfjs_canvas", "pdfjs_svg", "embed", "build_log"];
+
 export class Actions extends BaseActions {
     _init(...args) {
         super._init(...args); // call the _init for the parent class
         if (!this.is_public) {
             // one extra thing after markdown.
             this._init_syncstring_value();
-            this._init_tex2pdf();
+            this._init_latexmk();
             this._init_spellcheck();
         }
     }
 
-    _init_tex2pdf() {
+    _init_latexmk() {
         this._syncstring.on("save-to-disk", time => {
             this._last_save_time = time;
-            this.run_tex2pdf(time);
+            this.run_latexmk(time);
         });
-        this.run_tex2pdf();
+        this.run_latexmk();
     }
 
     _raw_default_frame_tree() {
@@ -66,55 +68,48 @@ export class Actions extends BaseActions {
         }
     }
 
-    run_tex2pdf(time) {
+    run_latexmk(time) {
         this.run_latex(time, true);
     }
 
-    run_latex(time, all_steps = false) {
+    async run_latex(time, all_steps = false) {
         if (time == null) {
             time = this._last_save_time;
         }
         this.set_status("Running LaTeX...");
         this.setState({ build_log: undefined });
-        convert_to_pdf({
-            path: this.path,
-            project_id: this.project_id,
-            time,
-            cb: (err, output) => {
-                this.set_status("");
-                if (err) {
-                    this.set_error(err);
-                }
-                if (output && output.stdout) {
-                    output.parse = new LatexParser(output.stdout, {
-                        ignoreDuplicates: true
-                    }).parse();
-                }
-                this.set_build_log({ latex: output });
-                if (output != null) {
-                    this.clear_gutter("Codemirror-latex-errors");
-                    update_gutters({
-                        path: this.path,
-                        log: output.parse,
-                        set_gutter: (line, component) => {
-                            this.set_gutter_marker({
-                                line,
-                                component,
-                                gutter_id: "Codemirror-latex-errors"
-                            });
-                        }
+        let output;
+        try {
+            output = await latexmk(this.project_id, this.path, time);
+        } catch (err) {
+            this.set_error(err);
+            return;
+        }
+        this.set_status("");
+        if (output && output.stdout) {
+            output.parse = new LatexParser(output.stdout, {
+                ignoreDuplicates: true
+            }).parse();
+        }
+        this.set_build_log({ latex: output });
+        if (output != null) {
+            this.clear_gutter("Codemirror-latex-errors");
+            update_gutters({
+                path: this.path,
+                log: output.parse,
+                set_gutter: (line, component) => {
+                    this.set_gutter_marker({
+                        line,
+                        component,
+                        gutter_id: "Codemirror-latex-errors"
                     });
                 }
-                for (let x of [
-                    "pdfjs_canvas",
-                    "pdfjs_svg",
-                    "embed",
-                    "build_log"
-                ]) {
-                    this.set_reload(x);
-                }
-            }
-        });
+            });
+        }
+
+        for (let x of VIEWERS) {
+            this.set_reload(x);
+        }
     }
 
     run_bibtex(time) {
@@ -167,7 +162,7 @@ export class Actions extends BaseActions {
             });
             this.set_status("");
             console.log(output);
-            this.setState({synctex_pdf_to_tex: output});
+            this.setState({ synctex_pdf_to_tex: output });
         } catch (err) {
             console.warn("ERROR ", err);
             this.set_error(err);
@@ -185,7 +180,7 @@ export class Actions extends BaseActions {
                 project_id: this.project_id
             });
             this.set_status("");
-            this.setState({synctex_tex_to_pdf: output});
+            this.setState({ synctex_tex_to_pdf: output });
             console.log(output);
         } catch (err) {
             console.warn("ERROR ", err);
@@ -238,7 +233,7 @@ export class Actions extends BaseActions {
         let now = webapp_client.server_time();
         switch (action) {
             case "recompile":
-                this.run_tex2pdf(now);
+                this.run_latexmk(now);
             case "latex":
                 this.run_latex(now);
             case "bibtex":
@@ -256,4 +251,3 @@ export class Actions extends BaseActions {
         window.open(WIKI_HELP_URL, "_blank").focus();
     }
 }
-
