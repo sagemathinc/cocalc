@@ -8,7 +8,7 @@ import { path_split } from "./misc";
 export async function latexmk(
     project_id: string,
     path: string,
-    time?: number // used to aggregate multiple calls into one across all users.
+    time?: number // (ms since epoch)  used to aggregate multiple calls into one across all users.
 ) {
     const x = path_split(path);
     return await exec({

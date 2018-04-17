@@ -112,23 +112,18 @@ export class Actions extends BaseActions {
         }
     }
 
-    run_bibtex(time) {
+    async run_bibtex(time) {
         if (time == null) {
             time = this._last_save_time;
         }
         this.set_status("Running BibTeX...");
-        bibtex({
-            path: this.path,
-            project_id: this.project_id,
-            time,
-            cb: (err, output) => {
-                this.set_status("");
-                if (err) {
-                    this.set_error(err);
-                }
-                this.set_build_log({ bibtex: output });
-            }
-        });
+        try {
+            const output = await bibtex(this.project_id, this.path, time);
+            this.set_build_log({ bibtex: output });
+        } catch (err) {
+            this.set_error(err);
+        }
+        this.set_status("");
     }
 
     run_sagetex(time) {
@@ -234,14 +229,19 @@ export class Actions extends BaseActions {
         switch (action) {
             case "recompile":
                 this.run_latexmk(now);
+                return;
             case "latex":
                 this.run_latex(now);
+                return;
             case "bibtex":
                 this.run_bibtex(now);
+                return;
             case "sagetex":
                 this.run_sagetex(now);
+                return;
             case "clean":
                 this.run_clean();
+                return;
             default:
                 this.set_error(`unknown build action '${action}'`);
         }
