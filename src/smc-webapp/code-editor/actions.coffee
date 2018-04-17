@@ -668,7 +668,7 @@ class exports.Actions extends Actions
                     @_syncstring.save()
 
 
-    prettier: (id) =>  # id ignored right now.
+    format: (id) =>  # id ignored right now.
         if not @_syncstring?
             return
         ext = misc.filename_extension(@path)
@@ -690,6 +690,8 @@ class exports.Actions extends Actions
             tabWidth : editor_settings.get('tab_size')
             parser   : parser
             useTabs  : not editor_settings.get('spaces_instead_of_tabs')
+        if parser == 'json'
+            options.tabWidth = 2  # just override it, since package.json, etc., is 2 spaced
         async.series([
             (cb) =>
                 @set_status("Ensuring your latest changes are saved...")
