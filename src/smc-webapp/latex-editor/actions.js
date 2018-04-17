@@ -1,6 +1,5 @@
 /*
 LaTeX Editor Actions.
-
 */
 
 const WIKI_HELP_URL = "https://github.com/sagemathinc/cocalc/wiki/LaTeX-Editor";

@@ -12,5 +12,3 @@ export function parse_path(
 export function pdf_path(path: string): string {
     return path.slice(0, path.length - 3) + "pdf";
 }
-
-import * as x from "./a.ts";

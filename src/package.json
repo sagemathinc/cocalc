@@ -11,6 +11,7 @@
     "@babel/plugin-transform-react-jsx": "^7.0.0-beta.42",
     "@babel/polyfill": "^7.0.0-beta.42",
     "@babel/preset-env": "^7.0.0-beta.42",
+    "@types/node": "^9.6.5",
     "assets-webpack-plugin": "^3.5",
     "babel-loader": "^8.0.0-beta.2",
     "clean-webpack-plugin": "^0.1",
