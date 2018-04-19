@@ -6,10 +6,19 @@ Inspired a little bit by
   - https://codemirror.net/addon/edit/closetag.js
 */
 
-import { splitlines } from "smc-util/misc";
+import * as CodeMirror from "codemirror";
+
+// This innerMode function is missing from the @types/codemirror official declarations.
+// This is how to add a new missing declaration via "augmentation":
+//   https://www.typescriptlang.org/docs/handbook/declaration-merging.html#module-augmentation
+declare module "codemirror" {
+    function innerMode(mode: any, state: any): any;
+}
+
+import { splitlines } from "./misc";
 
 CodeMirror.defineOption("autoCloseLatex", false, function(cm, val, old) {
-    if (old && old !== CodeMirror.Init) {
+    if (old) {
         cm.removeKeyMap("autoCloseLatex");
     }
     if (!val) {
@@ -24,18 +33,28 @@ CodeMirror.defineOption("autoCloseLatex", false, function(cm, val, old) {
     cm.addKeyMap(map);
 });
 
-function auto_close_latex(cm) {
+interface Position {
+    line: number;
+    ch: number;
+}
+
+interface Selection {
+    head: Position;
+    anchor: Position;
+}
+
+function auto_close_latex(cm): void {
     if (cm.getOption("disableInput")) {
         return CodeMirror.Pass;
     }
-    const replacements = [];
-    const selections = [];
-    let did_subs = false;
-    let extra_lines = 0;
+    const replacements: string[] = [];
+    const selections: Selection[] = [];
+    let did_subs: boolean = false;
+    let extra_lines: number = 0;
 
-    const no_op = function(pos) {
+    const no_op = function(pos: Position): void {
         replacements.push("\n");
-        const new_pos = { line: pos.line + 1, ch: 0 };
+        const new_pos: Position = { line: pos.line + 1, ch: 0 };
         extra_lines += 1;
         selections.push({ head: new_pos, anchor: new_pos });
     };
@@ -45,10 +64,9 @@ function auto_close_latex(cm) {
             // if any range is non-empty do nothing.
             return CodeMirror.Pass;
         }
-        const pos = range.head;
-        const tok = cm.getTokenAt(pos);
+        const pos: Position = range.head;
+        const tok: CodeMirror.Token = cm.getTokenAt(pos);
         const inner = CodeMirror.innerMode(cm.getMode(), tok.state);
-        const { state } = inner;
         if (inner.mode.name !== "stex") {
             no_op(pos);
             continue;
@@ -57,34 +75,37 @@ function auto_close_latex(cm) {
             no_op(pos);
             continue;
         }
-        const next_token = cm.getTokenAt({ line: pos.line, ch: pos.ch + 1 });
+        const next_token: CodeMirror.Token = cm.getTokenAt({
+            line: pos.line,
+            ch: pos.ch + 1
+        });
         if (next_token.start !== tok.start) {
             //has to be end of line.
             no_op(pos);
             continue;
         }
 
-        const line = cm.getLine(pos.line);
-        let i = line.lastIndexOf("\\begin{");
+        const line : string = cm.getLine(pos.line);
+        let i : number = line.lastIndexOf("\\begin{");
         if (i === -1) {
             no_op(pos);
             continue;
         }
-        const environment = line.slice(i + "\\begin{".length, pos.ch - 1);
-        const end = `\\end{${environment}}`;
-        const s = cm.getRange(
+        const environment : string = line.slice(i + "\\begin{".length, pos.ch - 1);
+        const end : string = `\\end{${environment}}`;
+        const s : string = cm.getRange(
             { line: pos.line + 1, ch: 0 },
             { line: pos.line + 1000, ch: 0 }
         );
         i = s.indexOf(`\\end{${environment}}`);
-        const j = s.indexOf(`\\begin{${environment}}`);
+        const j : number = s.indexOf(`\\begin{${environment}}`);
         if (i !== -1 && (j === -1 || j > i)) {
             no_op(pos);
             continue;
         }
-        const middle = extra_content(environment);
+        const middle : string = extra_content(environment);
         replacements.push(`${middle}\n${end}\n`);
-        const new_pos = { line: pos.line + extra_lines + 1, ch: middle.length };
+        const new_pos : Position = { line: pos.line + extra_lines + 1, ch: middle.length };
         extra_lines +=
             splitlines(replacements[replacements.length - 1]).length + 1;
         selections.push({ head: new_pos, anchor: new_pos });
@@ -102,7 +123,7 @@ function auto_close_latex(cm) {
 }
 
 // See http://latex.wikia.com/wiki/List_of_LaTeX_environments for inspiration.
-var extra_content = function(environment) {
+var extra_content = function(environment : string) : string {
     switch (environment) {
         case "enumerate":
         case "itemize":

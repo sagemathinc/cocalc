@@ -563,7 +563,7 @@ exports.sagews_canonical_mode = (name, default_mode) ->
 exports.define_codemirror_extensions = () ->
 
     # Load an option so that codemirror can automatically close latex environments.
-    require('./latex-editor/codemirror-autoclose-latex')
+    require('./latex-editor/codemirror-autoclose-latex.ts')
 
     # LaTeX code folding (isn't included in CodeMirror)
 

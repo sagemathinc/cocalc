@@ -7,6 +7,7 @@
   "dependencies": {
     "@cocalc/markdown-it-katex": "^3.0.3",
     "@fortawesome/fontawesome-free": "^5.1.0-4",
+    "@types/codemirror": "0.0.56",
     "@zippytech/react-notify-resize": "^3.0.0",
     "ansi-to-react": "^2.0.1",
     "async": "^2.0.0",

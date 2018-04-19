@@ -22,9 +22,16 @@ export function filename_extension(filename: string): string {
 export function separate_file_extension(
     name: string
 ): { name: string; ext: string } {
-    const ext = filename_extension(name);
+    const ext : string = filename_extension(name);
     if (ext !== "") {
         name = name.slice(0, name.length - ext.length - 1); // remove the ext and the .
     }
     return { name, ext };
 }
+
+// Like Python splitlines.
+export function splitlines(s : string) : string[] {
+    const r = s.match(/[^\r\n]+/g);
+    return r ? r : [];
+}
+

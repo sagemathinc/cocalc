@@ -1,11 +1,11 @@
 /*
-Clean up all aux files.
+ * Clean up all aux files.
  */
 
 import { exec } from "./async-utils";
 import { parse_path } from "./util";
 
-const EXT = [
+const EXT: string[] = [
     ".aux",
     ".logger",
     ".bbl",
