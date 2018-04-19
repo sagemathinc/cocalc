@@ -12,6 +12,9 @@ MIN_POSSIBLE_MEMORY =
     member    : 300
     nonmember : 200
 
+{DEFAULT_QUOTAS} = require('smc-util/upgrade-spec')
+
+
 exports.quota = (settings, users) ->
     # so can assume defined below
     settings ?= {}
@@ -26,6 +29,7 @@ exports.quota = (settings, users) ->
         cpu_limit      : 1           # upper bound on vCPU's
         cpu_request    : 0           # will hold guaranteed min number of vCPU's as a float from 0 to infinity.
         privileged     : false       # for elevated docker privileges (FUSE mounting, later more)
+        idle_timeout   : DEFAULT_QUOTAS.mintime
 
     # network access
     if settings.network  # free admin-set
@@ -66,6 +70,12 @@ exports.quota = (settings, users) ->
         quota.memory_limit = to_int(settings.memory)
     for _, val of users
         quota.memory_limit += to_int(val?.upgrades?.memory)
+
+    # idle timeout: not used for setting up the project quotas, but necessary to know for precise scheduling on nodes
+    if settings.mintime
+        quota.idle_timeout = to_int(settings.mintime)
+    for _, val of users
+        quota.idle_timeout += to_int(val?.upgrades?.mintime)
 
     # memory request
     if settings.memory_request
