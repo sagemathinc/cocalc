@@ -9,13 +9,20 @@ const {
     MenuItem
 } = require("react-bootstrap");
 
-import { is_different } from "smc-util/misc";
+import { is_different } from "./misc";
 
-import { React, ReactDOM, rclass, rtypes, Fragment } from "../smc-react";
+import { React, ReactDOM, rclass, rtypes, Fragment, Rendered } from "./react";
 
-import { Icon, Loading } from "../r_misc";
+//import { Icon, Loading } from "../r_misc";
+const { Icon, Loading } = require("../r_misc");
 
-const BUILD_SPEC = {
+interface BuildSpec {
+    label: string;
+    icon: string;
+    tip: string;
+}
+
+const BUILD_SPECS = {
     recompile: {
         label: "Recompile",
         icon: "retweet",
@@ -47,7 +54,7 @@ const BUILD_SPEC = {
     }
 };
 
-exports.Build = rclass(function({ name }) {
+export const Build = rclass(function({ name }) {
     return {
         displayName: "LaTeXEditor-Build",
 
@@ -69,7 +76,7 @@ exports.Build = rclass(function({ name }) {
             }
         },
 
-        shouldComponentUpdate(props) {
+        shouldComponentUpdate(props): boolean {
             return is_different(this.props, props, [
                 "build_log",
                 "status",
@@ -77,38 +84,23 @@ exports.Build = rclass(function({ name }) {
             ]);
         },
 
-        render_log(stage) {
-            let left, left1, left2;
-            const value =
-                ((left =
-                    this.props.build_log != null
-                        ? this.props.build_log.getIn([stage, "stdout"])
-                        : undefined) != null
-                    ? left
-                    : "") +
-                ((left1 =
-                    this.props.build_log != null
-                        ? this.props.build_log.getIn([stage, "stderr"])
-                        : undefined) != null
-                    ? left1
-                    : "");
+        render_log(stage): Rendered {
+            if (this.props.build_log == null) return;
+            let x = this.props.build_log.get(stage);
+            if (!x) return;
+            const value: string | undefined = x.get("stdout") + x.get("stderr");
             if (!value) {
                 return;
             }
-            let time =
-                (left2 =
-                    this.props.build_log != null
-                        ? this.props.build_log.getIn([stage, "time"])
-                        : undefined) != null
-                    ? left2
-                    : "";
+            let time: number | undefined = x.get("time");
+            let time_str: string = "";
             if (time) {
-                time = `(${(time / 1000).toFixed(1)} seconds)`;
+                time_str = `(${(time / 1000).toFixed(1)} seconds)`;
             }
             return (
                 <Fragment>
                     <h5>
-                        {BUILD_SPEC[stage].label} Output {time}
+                        {BUILD_SPECS[stage].label} Output {time_str}
                     </h5>
                     <textarea
                         readOnly={true}
@@ -126,7 +118,7 @@ exports.Build = rclass(function({ name }) {
             );
         },
 
-        render_clean() {
+        render_clean(): Rendered {
             const value =
                 this.props.build_log != null
                     ? this.props.build_log.get("clean")
@@ -153,7 +145,7 @@ exports.Build = rclass(function({ name }) {
             );
         },
 
-        render_status() {
+        render_status(): Rendered {
             if (this.props.status) {
                 return (
                     <div style={{ margin: "15px" }}>
@@ -171,14 +163,13 @@ exports.Build = rclass(function({ name }) {
             }
         },
 
-        render_build_action_button(action, spec) {
+        render_build_action_button(action: string, spec: BuildSpec): Rendered {
             return (
                 <Button
                     key={spec.label}
                     title={spec.tip}
                     onClick={() => this.props.actions.build_action(action)}
                     disabled={!!this.props.status}
-                    bsStyle={spec.bsStyle}
                 >
                     <Icon name={spec.icon} /> {spec.label}
                 </Button>
@@ -186,12 +177,13 @@ exports.Build = rclass(function({ name }) {
         },
 
         render_buttons() {
+            let action: string;
             return (
                 <ButtonGroup>
                     {(() => {
-                        const result = [];
-                        for (let action in BUILD_SPEC) {
-                            const spec = BUILD_SPEC[action];
+                        const result: Rendered[] = [];
+                        for (action in BUILD_SPECS) {
+                            const spec: BuildSpec = BUILD_SPECS[action];
                             result.push(
                                 this.render_build_action_button(action, spec)
                             );

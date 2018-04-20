@@ -8,7 +8,7 @@ import { Button } from "react-bootstrap";
 
 import { capitalize, is_different, path_split } from "./misc";
 
-import { Component, React, ReactDOM, rclass, rtypes, Fragment } from "./react";
+import { Component, React, ReactDOM, rclass, rtypes, Fragment, Rendered } from "./react";
 
 
 //import { Icon, Loading } from "../r_misc";
@@ -168,7 +168,7 @@ export let ErrorsAndWarnings: React.Component = rclass(function({ name }) {
             );
         },
 
-        render_status(): React.ReactElement<any> | undefined {
+        render_status(): Rendered {
             if (this.props.status) {
                 return (
                     <div style={{ margin: "15px" }}>
@@ -186,11 +186,11 @@ export let ErrorsAndWarnings: React.Component = rclass(function({ name }) {
             }
         },
 
-        render_item(item, key): React.ReactElement<any> {
+        render_item(item, key): Rendered {
             return <Item key={key} item={item} actions={this.props.actions} />;
         },
 
-        render_group_content(content): React.ReactElement<any> {
+        render_group_content(content): Rendered {
             if (content.size === 0) {
                 return <div>None</div>;
             } else {
@@ -202,7 +202,7 @@ export let ErrorsAndWarnings: React.Component = rclass(function({ name }) {
             }
         },
 
-        render_group(group): React.ReactElement<any> | undefined {
+        render_group(group): Rendered {
             const spec: SpecItem = SPEC[group_to_level(group)];
             const content = this.props.build_log.getIn([
                 "latex",
