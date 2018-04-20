@@ -11,7 +11,7 @@ import { raw_url } from "../code-editor/util";
 import { Page } from "./pdfjs-page";
 
 // Ensure this jQuery plugin is defined:
-import "./mouse-draggable";
+import "./mouse-draggable.ts";
 
 export let PDFJS = rclass({
     displayName: "LaTeXEditor-PDFJS",

@@ -8,6 +8,7 @@
     "@cocalc/markdown-it-katex": "^3.0.3",
     "@fortawesome/fontawesome-free": "^5.1.0-4",
     "@types/codemirror": "0.0.56",
+    "@types/jquery": "^3.3.1",
     "@types/pdfjs-dist": "^0.1.2",
     "@zippytech/react-notify-resize": "^3.0.0",
     "ansi-to-react": "^2.0.1",

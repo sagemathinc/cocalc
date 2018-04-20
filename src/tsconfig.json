@@ -3,6 +3,6 @@
         "jsx" : "React",
         "sourceMap": true,
         "strictNullChecks": true,
-        "lib": ["es2015"]
+        "lib": ["es5", "es6", "dom"]
     }
 }
