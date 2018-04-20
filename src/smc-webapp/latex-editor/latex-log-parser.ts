@@ -79,7 +79,7 @@ const state = {
 };
 
 /* Type of an error or warning */
-interface Error {
+export interface Error {
     line: number | null;
     file: string;
     level: string;

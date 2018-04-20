@@ -5,28 +5,33 @@ NOTE: If there are multiple errors/warnings/etc., on the SAME line, only the las
 one gets a gutter mark, with pref to errors.  The main error log shows everything, so this should be OK.
 */
 
-import { required, defaults, path_split, capitalize } from "smc-util/misc";
+import * as React from "react";
 
-import { React } from "../smc-react";
-import { Icon, Tip } from "../r_misc";
+import { path_split, capitalize } from "./misc";
 
-import { SPEC } from "./errors-and-warnings";
+//import { Icon, Tip } from "../r_misc";
+const { Icon, Tip } = require("../r_misc");
 
-export function update_gutters(opts) {
-    opts = defaults(opts, {
-        path: required,
-        log: required,
-        set_gutter: required
-    });
-    let path = path_split(opts.path).tail;
-    for (let group of ["typesetting", "warnings", "errors"]) {
+import { SPEC, SpecItem } from "./errors-and-warnings.tsx";
+
+import { ProcessedLatexLog, Error } from "./latex-log-parser";
+
+export function update_gutters(opts: {
+    path: string;
+    log: ProcessedLatexLog;
+    set_gutter: Function;
+}): void {
+    let path: string = path_split(opts.path).tail;
+    let group: string;
+    for (group of ["typesetting", "warnings", "errors"]) {
         // errors last so always shown if multiple issues on a single line!
-        for (let item of opts.log[group]) {
-            if (path_split(item.file).tail !== path) {
+        let item: Error;
+        for (item of opts.log[group]) {
+            if (path_split(item.file).tail != path) {
                 /* for now only show gutter marks in the master file. */
                 continue;
             }
-            if (item.line == null) {
+            if (item.line === null) {
                 /* no gutter mark in a line if there is no line number, e.g., "there were missing refs" */
                 continue;
             }
@@ -38,9 +43,13 @@ export function update_gutters(opts) {
     }
 }
 
-function component(level, message, content) {
-    const spec = SPEC[level];
-    if (!content) {
+function component(
+    level: string,
+    message: string,
+    content: string | undefined
+) {
+    const spec: SpecItem = SPEC[level];
+    if (content === undefined) {
         content = message;
         message = capitalize(level);
     }
@@ -48,8 +57,8 @@ function component(level, message, content) {
     // happens when clicking on it; this may be a codemirror issue.
     return (
         <Tip
-            title={message ? message : ""}
-            tip={content ? content : ""}
+            title={message}
+            tip={content}
             placement={"bottom"}
             icon={spec.icon}
             stable={true}

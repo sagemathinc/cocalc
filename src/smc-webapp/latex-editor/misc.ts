@@ -7,6 +7,10 @@ export function path_split(path: string): { head: string; tail: string } {
     return { head: v.slice(0, -1).join("/"), tail: v[v.length - 1] };
 }
 
+export function capitalize(s : string ) : string {
+    return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
 const filename_extension_re = /(?:\.([^.]+))?$/;
 export function filename_extension(filename: string): string {
     const match = filename_extension_re.exec(filename);
@@ -35,3 +39,34 @@ export function splitlines(s : string) : string[] {
     return r ? r : [];
 }
 
+export function is_different(a : any, b : any, fields : string[]) : boolean {
+    let field : string;
+    if (a == null) {
+        if (b == null) {
+            return false;  // they are the same
+        }
+        // a not defined but b is
+        for (field of fields) {
+            if (b[field] != null) {
+                return true;
+            }
+        }
+        return false;
+    }
+    if (b == null) {
+        // a is defined or would be handled above
+        for (field of fields) {
+            if (a[field] != null) {
+                return true;  // different
+            }
+        }
+        return false;  // same
+    }
+
+    for (field of fields) {
+        if (a[field] !== b[field]) {
+            return true;
+        }
+    }
+    return false;
+}

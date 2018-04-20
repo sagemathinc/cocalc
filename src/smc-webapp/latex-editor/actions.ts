@@ -22,7 +22,7 @@ import { clean } from "./clean.ts";
 
 import { LatexParser, ProcessedLatexLog } from "./latex-log-parser.ts";
 
-import { update_gutters } from "./gutters";
+import { update_gutters } from "./gutters.tsx";
 
 import { pdf_path } from "./util";
 

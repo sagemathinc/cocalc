@@ -22,7 +22,7 @@ import { PDFEmbed } from "./pdf-embed.tsx";
 const { CodemirrorEditor } = require("../code-editor/codemirror-editor");
 
 import { Build } from "./build";
-import { ErrorsAndWarnings } from "./errors-and-warnings";
+import { ErrorsAndWarnings } from "./errors-and-warnings.tsx";
 
 import { pdf_path } from "./util";
 
