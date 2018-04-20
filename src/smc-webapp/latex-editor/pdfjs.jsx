@@ -6,7 +6,7 @@ import { throttle } from "underscore";
 import { is_different } from "smc-util/misc";
 import { React, ReactDOM, rclass, rtypes } from "../smc-react";
 import { Loading } from "../r_misc";
-import { getDocument } from "./pdfjs-doc-cache";
+import { getDocument } from "./pdfjs-doc-cache.ts";
 import { raw_url } from "../code-editor/util";
 import { Page } from "./pdfjs-page";
 
