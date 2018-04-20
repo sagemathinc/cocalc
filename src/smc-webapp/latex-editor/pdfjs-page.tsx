@@ -1,10 +1,11 @@
-import { React, ReactDOM, rclass, rtypes } from "../smc-react";
-import { Loading } from "../r_misc";
-import { is_different } from "smc-util/misc";
+import { React, ReactDOM, rclass, rtypes } from "./react";
 
-require("./pdfjs-svg-page");
-import { SVGPage } from "./pdfjs-svg-page";
-import { CanvasPage } from "./pdfjs-canvas-page";
+const { Loading } = require("../r_misc");
+import { is_different } from "./misc";
+
+require("./pdfjs-svg-page.tsx");
+import { SVGPage } from "./pdfjs-svg-page.tsx";
+import { CanvasPage } from "./pdfjs-canvas-page.tsx";
 
 export let Page = rclass({
     displayName: "LaTeXEditor-PDFJS-Page",
@@ -17,7 +18,9 @@ export let Page = rclass({
     },
 
     getDefaultProps() {
-        renderer: "svg"; /* "canvas" or "svg" */
+        return {
+            renderer: "svg" /* "canvas" or "svg" */
+        };
     },
 
     getInitialState() {
@@ -37,7 +40,6 @@ export let Page = rclass({
         try {
             let page = await doc.getPage(this.props.n);
             page.version = this.state.page.version + 1;
-            window.page = page;
             if (!this.mounted) return;
             this.setState({ page });
         } catch (err) {
@@ -75,8 +77,11 @@ export let Page = rclass({
     },
 
     click(event) {
-        window.div = ReactDOM.findDOMNode(this);
-        console.log("click!", event.nativeEvent.offsetX, event.nativeEvent.offsetY);
+        console.log(
+            "click!",
+            event.nativeEvent.offsetX,
+            event.nativeEvent.offsetY
+        );
     },
 
     render() {

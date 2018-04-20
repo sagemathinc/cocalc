@@ -3,12 +3,15 @@ This is a renderer using pdf.js.
 */
 
 import { throttle } from "underscore";
-import { is_different } from "smc-util/misc";
-import { React, ReactDOM, rclass, rtypes } from "../smc-react";
-import { Loading } from "../r_misc";
+
+import * as $ from "jquery";
+
+import { is_different } from "./misc";
+import { React, ReactDOM, rclass, rtypes, Rendered } from "./react";
+const { Loading } = require("../r_misc");
 import { getDocument } from "./pdfjs-doc-cache.ts";
-import { raw_url } from "../code-editor/util";
-import { Page } from "./pdfjs-page";
+import { raw_url } from "./util";
+import { Page } from "./pdfjs-page.tsx";
 
 // Ensure this jQuery plugin is defined:
 import "./mouse-draggable.ts";
@@ -111,7 +114,7 @@ export let PDFJS = rclass({
         // This makes it so space-key, arrows, etc. properly scroll.
         function blur_codemirror() {
             setTimeout(function() {
-                document.activeElement.blur();
+                $(document.activeElement).blur();
             }, 0);
         }
         $(ReactDOM.findDOMNode(this.refs.scroll)).on("click", blur_codemirror);
@@ -129,8 +132,7 @@ export let PDFJS = rclass({
     },
 
     render_pages() {
-        window.doc = this.state.doc;
-        const pages = [];
+        const pages : Rendered[] = [];
         for (let n = 1; n <= this.state.doc.numPages; n++) {
             pages.push(
                 <Page

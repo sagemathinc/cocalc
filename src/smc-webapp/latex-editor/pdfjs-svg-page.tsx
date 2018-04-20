@@ -1,5 +1,5 @@
-import { React, ReactDOM, rclass, rtypes } from "../smc-react";
-import { Loading } from "../r_misc";
+import { React, ReactDOM, rclass, rtypes } from "./react";
+const { Loading } = require("../r_misc");
 import { SVGGraphics } from "pdfjs-dist/webpack";
 
 export let SVGPage = rclass({

@@ -1,5 +1,5 @@
-import { React, ReactDOM, rclass, rtypes } from "../smc-react";
-import { Loading } from "../r_misc";
+import { React, ReactDOM, rclass, rtypes } from "./react";
+const { Loading } = require("../r_misc");
 
 export let CanvasPage = rclass({
     displayName: "LaTeXEditor-PDFJS-CanvasPage",
@@ -16,18 +16,18 @@ export let CanvasPage = rclass({
         const div = ReactDOM.findDOMNode(this);
         // scale = 2.0, so doesn't look like crap on retina
         const viewport = page.getViewport(2.0);
-        const canvas = $("<canvas/>")[0];
+        const canvas: HTMLCanvasElement = document.createElement('canvas');
         canvas.width = viewport.width;
         canvas.height = viewport.height;
         try {
             await page.render({
                 canvasContext: canvas.getContext("2d"),
                 viewport: viewport,
-                enableWebGL : true
+                enableWebGL: true
             });
             $(div).empty();
             div.appendChild(canvas);
-        } catch (error) {
+        } catch (err) {
             console.error(`pdf.js -- Error rendering canvas page: ${err}`);
         }
     },
