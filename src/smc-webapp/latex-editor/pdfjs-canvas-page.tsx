@@ -1,22 +1,27 @@
-import { React, ReactDOM, rclass, rtypes } from "./react";
+/*
+Render a single PDF page using canvas.
+*/
+
+import * as $ from "jquery";
+
+import { Component, React, ReactDOM, rtypes } from "./react";
 const { Loading } = require("../r_misc");
+import { PDFPageProxy, PDFPageViewport } from "pdfjs-dist/webpack";
 
-export let CanvasPage = rclass({
-    displayName: "LaTeXEditor-PDFJS-CanvasPage",
+interface Props {
+    page: PDFPageProxy;
+}
 
-    propTypes: {
-        page: rtypes.object.isRequired
-    },
-
-    shouldComponentUpdate(next_props) {
+export class CanvasPage extends Component<Props, {}> {
+    shouldComponentUpdate(next_props: Props): boolean {
         return this.props.page.version != next_props.page.version;
-    },
+    }
 
-    async render_page(page) {
-        const div = ReactDOM.findDOMNode(this);
+    async render_page(page: PDFPageProxy): Promise<void> {
+        const div: HTMLElement = ReactDOM.findDOMNode(this);
         // scale = 2.0, so doesn't look like crap on retina
-        const viewport = page.getViewport(2.0);
-        const canvas: HTMLCanvasElement = document.createElement('canvas');
+        const viewport: PDFPageViewport = page.getViewport(2.0);
+        const canvas: HTMLCanvasElement = document.createElement("canvas");
         canvas.width = viewport.width;
         canvas.height = viewport.height;
         try {
@@ -30,16 +35,16 @@ export let CanvasPage = rclass({
         } catch (err) {
             console.error(`pdf.js -- Error rendering canvas page: ${err}`);
         }
-    },
+    }
 
-    componentWillReceiveProps(next_props) {
+    componentWillReceiveProps(next_props : Props) : void {
         if (this.props.page.version != next_props.page.version)
             this.render_page(next_props.page);
-    },
+    }
 
-    componentDidMount() {
+    componentDidMount() : void {
         this.render_page(this.props.page);
-    },
+    }
 
     render() {
         return (
@@ -53,4 +58,4 @@ export let CanvasPage = rclass({
             />
         );
     }
-});
+}

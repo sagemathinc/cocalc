@@ -13,6 +13,7 @@ const BaseEditor = editor.Editor
 const set = editor.set
 
 import { PDFJS } from "./pdfjs.tsx";
+
 import { PDFEmbed } from "./pdf-embed.tsx";
 
 // import { LaTeXJS } from "./latexjs";

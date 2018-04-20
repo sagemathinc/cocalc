@@ -11,7 +11,7 @@ const { Loading } = require("../r_misc");
 
 import { raw_url } from "./util";
 
-import * as React from "react";
+import {Component, React} from "./react";
 
 export interface Props {
     project_id: string;
@@ -19,7 +19,7 @@ export interface Props {
     reload?: number;
 }
 
-export class PDFEmbed extends React.Component<Props, {}> {
+export class PDFEmbed extends Component<Props, {}> {
     render() {
         const src: string = `${raw_url(
             this.props.project_id,

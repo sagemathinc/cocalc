@@ -1,42 +1,52 @@
-import { React, ReactDOM, rclass, rtypes } from "./react";
+/*
+Manages rendering a single page using either SVG or Canvas
+*/
+
+import { React, rtypes, Component } from "./react";
 
 const { Loading } = require("../r_misc");
 import { is_different } from "./misc";
 
-require("./pdfjs-svg-page.tsx");
 import { SVGPage } from "./pdfjs-svg-page.tsx";
 import { CanvasPage } from "./pdfjs-canvas-page.tsx";
 
-export let Page = rclass({
-    displayName: "LaTeXEditor-PDFJS-Page",
+import {
+    PDFPageProxy,
+    PDFPageViewport,
+    PDFDocumentProxy
+} from "pdfjs-dist/webpack";
 
-    propTypes: {
-        actions: rtypes.object.isRequired,
-        n: rtypes.number.isRequired,
-        doc: rtypes.object.isRequired,
-        renderer: rtypes.string
-    },
+interface PageProps {
+    actions: any;
+    n: number;
+    doc: PDFDocumentProxy;
+    renderer: string;
+}
 
-    getDefaultProps() {
-        return {
-            renderer: "svg" /* "canvas" or "svg" */
-        };
-    },
+interface PageState {
+    page: PDFPageProxy;
+}
 
-    getInitialState() {
-        return { page: { version: 0 } };
-    },
+export class Page extends Component<PageProps, PageState> {
+    private mounted: boolean;
+    constructor(props) {
+        super(props);
+        this.state = { page: { version: 0 } };
+    }
 
-    shouldComponentUpdate(next_props, next_state) {
+    shouldComponentUpdate(
+        next_props: PageProps,
+        next_state: PageState
+    ): boolean {
         return (
             is_different(this.props, next_props, ["n", "renderer"]) ||
             this.props.doc.pdfInfo.fingerprint !=
                 next_props.doc.pdfInfo.fingerprint ||
             this.state.page.version != next_state.page.version
         );
-    },
+    }
 
-    async load_page(doc) {
+    async load_page(doc: PDFDocumentProxy): Promise<void> {
         try {
             let page = await doc.getPage(this.props.n);
             page.version = this.state.page.version + 1;
@@ -47,24 +57,24 @@ export let Page = rclass({
                 `Error getting ${this.props.n}th page: ${err}`
             );
         }
-    },
+    }
 
-    componentWillReceiveProps(next_props) {
+    componentWillReceiveProps(next_props: PageProps): void {
         if (
             this.props.doc.pdfInfo.fingerprint !=
             next_props.doc.pdfInfo.fingerprint
         )
             this.load_page(next_props.doc);
-    },
+    }
 
-    componentWillUnmount() {
+    componentWillUnmount(): void {
         this.mounted = false;
-    },
+    }
 
-    componentDidMount() {
+    componentDidMount(): void {
         this.mounted = true;
         this.load_page(this.props.doc);
-    },
+    }
 
     render_content() {
         if (!this.state.page.version)
@@ -74,15 +84,15 @@ export let Page = rclass({
         } else {
             return <CanvasPage page={this.state.page} />;
         }
-    },
+    }
 
-    click(event) {
+    click(event): void {
         console.log(
             "click!",
             event.nativeEvent.offsetX,
             event.nativeEvent.offsetY
         );
-    },
+    }
 
     render() {
         return (
@@ -94,4 +104,4 @@ export let Page = rclass({
             </div>
         );
     }
-});
+}

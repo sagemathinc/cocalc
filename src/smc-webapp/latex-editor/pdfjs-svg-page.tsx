@@ -1,21 +1,25 @@
-import { React, ReactDOM, rclass, rtypes } from "./react";
+/* Render a single PDF page using SVG */
+
+import * as $ from "jquery";
+
+import { Component, React, ReactDOM, rtypes } from "./react";
 const { Loading } = require("../r_misc");
-import { SVGGraphics } from "pdfjs-dist/webpack";
+import { SVGGraphics, PDFPageProxy, PDFPageViewport } from "pdfjs-dist/webpack";
 
-export let SVGPage = rclass({
-    displayName: "LaTeXEditor-PDFJS-SVGPage",
+interface Props {
+    page: PDFPageProxy;
+}
 
-    propTypes: {
-        page: rtypes.object.isRequired
-    },
+export class SVGPage extends Component<Props, {}> {
+    private mounted: boolean;
 
-    shouldComponentUpdate(next_props) {
+    shouldComponentUpdate(next_props: Props) {
         return this.props.page.version != next_props.page.version;
-    },
+    }
 
-    async render_page(page) {
-        const div = ReactDOM.findDOMNode(this);
-        const viewport = page.getViewport(1);
+    async render_page(page: PDFPageProxy): Promise<void> {
+        const div: HTMLElement = ReactDOM.findDOMNode(this);
+        const viewport: PDFPageViewport = page.getViewport(1);
         div.style.width = viewport.width + "px";
         div.style.height = viewport.height + "px";
 
@@ -25,28 +29,28 @@ export let SVGPage = rclass({
             const svgGfx = new SVGGraphics(page.commonObjs, page.objs);
             const svg = await svgGfx.getSVG(opList, viewport);
             if (!this.mounted) return;
-            $(div).empty(); // TODO
+            $(div).empty();
             div.appendChild(svg);
         } catch (err) {
             console.error(`pdf.js -- Error rendering svg page: ${err}`);
         }
-    },
+    }
 
-    componentWillReceiveProps(next_props) {
+    componentWillReceiveProps(next_props : Props) : void {
         if (this.props.page.version != next_props.page.version)
             this.render_page(next_props.page);
-    },
+    }
 
-    componentWillUnmount() {
+    componentWillUnmount() : void {
         this.mounted = false;
-    },
+    }
 
-    componentDidMount() {
+    componentDidMount() : void {
         this.mounted = true;
         this.render_page(this.props.page);
-    },
+    }
 
     render() {
         return <div style={{ margin: "auto", background: "white" }} />;
     }
-});
+}

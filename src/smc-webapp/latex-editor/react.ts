@@ -1,4 +1,10 @@
-export const { React, ReactDOM, rclass, rtypes, Fragment } = require("../smc-react");
+export const {
+    React,
+    ReactDOM,
+    rclass,
+    rtypes,
+    Fragment
+} = require("../smc-react");
 
 import * as ReactOrig from "react";
 
