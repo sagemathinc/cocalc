@@ -93,7 +93,7 @@ interface File {
     files: string[];
 }
 
-interface ProcessedLog {
+export interface ProcessedLatexLog {
     errors: Error[];
     warnings: Error[];
     typesetting: Error[];
@@ -130,7 +130,7 @@ export class LatexParser {
         this.openParens = 0;
     }
 
-    parse() : ProcessedLog {
+    parse() : ProcessedLatexLog {
         while ((this.currentLine = this.log.nextLine()) != null) {
             if (this.state === state.NORMAL) {
                 if (this.currentLineIsError()) {
@@ -348,7 +348,7 @@ export class LatexParser {
         return path;
     }
 
-    postProcess(data: Error[]): ProcessedLog {
+    postProcess(data: Error[]): ProcessedLatexLog {
         const all: Error[] = [];
         const errors: Error[] = [];
         const warnings: Error[] = [];

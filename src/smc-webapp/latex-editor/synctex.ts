@@ -3,9 +3,9 @@ Use synctex to go back and forth between latex files and pdfs.
 */
 
 import { path_split } from "./misc";
-import { exec } from "./async-utils";
+import { exec, ExecOutput } from "./async-utils";
 
-function exec_synctex(project_id:string, pdf_path:string, args:string[]) {
+function exec_synctex(project_id:string, pdf_path:string, args:string[]) : Promise<ExecOutput> {
     return exec({
         allow_post: true, // synctex is FAST.
         timeout: 5,
@@ -23,7 +23,7 @@ export async function pdf_to_tex(opts: {
     page: number; // 1-based page number
     x: number; // x-coordinate on page
     y: number; // y-coordinate on page
-}) {
+}) : Promise<ExecOutput> {
     return exec_synctex(opts.project_id, opts.pdf_path, [
         "edit",
         "-o",

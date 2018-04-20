@@ -52,6 +52,6 @@ export interface ExecOutput {
 }
 
 // async version of the webapp_client exec -- let's you run any code in a project!
-export async function exec(opts: ExecOpts) {
+export async function exec(opts: ExecOpts) : Promise<ExecOutput> {
     return async_opts(webapp_client.exec, opts);
 }

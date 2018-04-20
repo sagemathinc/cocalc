@@ -17,10 +17,10 @@ import * as synctex from "./synctex";
 
 import { bibtex } from "./bibtex";
 
-import { server_time } from "./async-utils";
+import { server_time, ExecOutput } from "./async-utils";
 import { clean } from "./clean.ts";
 
-import { LatexParser } from "./latex-log-parser.ts";
+import { LatexParser, ProcessedLatexLog } from "./latex-log-parser.ts";
 
 import { update_gutters } from "./gutters";
 
@@ -28,8 +28,21 @@ import { pdf_path } from "./util";
 
 const VIEWERS = ["pdfjs_canvas", "pdfjs_svg", "embed", "build_log"];
 
+// obviously will move when porting code-editor to TS...
+interface FrameTree {
+    direction?: string;
+    type: string;
+    first?: FrameTree;
+    second?: FrameTree;
+}
+
+interface BuildLog extends ExecOutput {
+    parse?: ProcessedLatexLog;
+}
+
 export class Actions extends BaseActions {
-    _init(...args) {
+    private project_id: string;
+    _init(...args): void {
         super._init(...args); // call the _init for the parent class
         if (!this.is_public) {
             // one extra thing after markdown.
@@ -39,15 +52,15 @@ export class Actions extends BaseActions {
         }
     }
 
-    _init_latexmk() {
+    _init_latexmk(): void {
         this._syncstring.on("save-to-disk", time => {
             this._last_save_time = time;
             this.run_latexmk(time);
         });
-        this.run_latexmk((new Date()).valueOf());
+        this.run_latexmk(new Date().valueOf());
     }
 
-    _raw_default_frame_tree() {
+    _raw_default_frame_tree(): FrameTree {
         if (this.is_public) {
             return { type: "cm" };
         } else {
@@ -71,14 +84,14 @@ export class Actions extends BaseActions {
         }
     }
 
-    run_latexmk(time: number) {
+    run_latexmk(time: number): void {
         this.run_latex(time, true);
     }
 
-    async run_latex(time: number, all_steps = false) {
+    async run_latex(time: number, all_steps = false): Promise<void> {
         this.set_status("Running LaTeX...");
         this.setState({ build_log: undefined });
-        let output;
+        let output: BuildLog;
         try {
             output = await latexmk(
                 this.project_id,
@@ -90,36 +103,32 @@ export class Actions extends BaseActions {
             return;
         }
         this.set_status("");
-        if (output && output.stdout) {
-            output.parse = new LatexParser(output.stdout, {
-                ignoreDuplicates: true
-            }).parse();
-        }
+        output.parse = new LatexParser(output.stdout, {
+            ignoreDuplicates: true
+        }).parse();
         this.set_build_log({ latex: output });
-        if (output != null) {
-            this.clear_gutter("Codemirror-latex-errors");
-            update_gutters({
-                path: this.path,
-                log: output.parse,
-                set_gutter: (line, component) => {
-                    this.set_gutter_marker({
-                        line,
-                        component,
-                        gutter_id: "Codemirror-latex-errors"
-                    });
-                }
-            });
-        }
+        this.clear_gutter("Codemirror-latex-errors");
+        update_gutters({
+            path: this.path,
+            log: output.parse,
+            set_gutter: (line, component) => {
+                this.set_gutter_marker({
+                    line,
+                    component,
+                    gutter_id: "Codemirror-latex-errors"
+                });
+            }
+        });
 
         for (let x of VIEWERS) {
             this.set_reload(x);
         }
     }
 
-    async run_bibtex(time) {
+    async run_bibtex(time: number): Promise<void> {
         this.set_status("Running BibTeX...");
         try {
-            const output = await bibtex(
+            const output: BuildLog = await bibtex(
                 this.project_id,
                 this.path,
                 time || this._last_save_time
@@ -131,10 +140,10 @@ export class Actions extends BaseActions {
         this.set_status("");
     }
 
-    async run_sagetex(time) {
+    async run_sagetex(time: number): Promise<void> {
         this.set_status("Running SageTeX...");
         try {
-            const output = await sagetex(
+            const output: BuildLog = await sagetex(
                 this.project_id,
                 this.path,
                 time || this._last_save_time
@@ -146,10 +155,14 @@ export class Actions extends BaseActions {
         this.set_status("");
     }
 
-    async synctex_pdf_to_tex(page, x, y) {
+    async synctex_pdf_to_tex(
+        page: number,
+        x: number,
+        y: number
+    ): Promise<void> {
         this.set_status("Running SyncTex from pdf to tex...");
         try {
-            let output = await synctex.pdf_to_tex({
+            let output: ExecOutput = await synctex.pdf_to_tex({
                 x,
                 y,
                 page,
@@ -157,7 +170,7 @@ export class Actions extends BaseActions {
                 project_id: this.project_id
             });
             this.set_status("");
-            console.log(output);
+            //console.log(output);
             this.setState({ synctex_pdf_to_tex: output });
         } catch (err) {
             console.warn("ERROR ", err);
@@ -165,10 +178,10 @@ export class Actions extends BaseActions {
         }
     }
 
-    async synctex_tex_to_pdf(line, column, filename) {
+    async synctex_tex_to_pdf(line, column, filename): Promise<void> {
         this.set_status("Running SyncTex from tex to pdf...");
         try {
-            let output = await synctex.tex_to_pdf({
+            let output: ExecOutput = await synctex.tex_to_pdf({
                 line,
                 column,
                 tex_path: filename ? filename : this.path,
@@ -184,28 +197,31 @@ export class Actions extends BaseActions {
         }
     }
 
-    set_build_log(obj) {
-        let left;
-        let build_log = this.store.get("build_log");
+    set_build_log(obj: {
+        latex?: BuildLog;
+        bibtex?: BuildLog;
+        sagetex?: BuildLog;
+    }): void {
+        let build_log: Map<any, string> = this.store.get("build_log");
         if (!build_log) {
             build_log = Map();
         }
-        for (let k in obj) {
-            const v = obj[k];
+        let k: string;
+        for (k in obj) {
+            const v: BuildLog = obj[k];
             build_log = build_log.set(k, fromJS(v));
         }
         this.setState({ build_log });
     }
 
-    async run_clean(time) {
-        let log = "";
+    async run_clean(time): Promise<void> {
+        let log: string = "";
         delete this._last_save_time;
         this.setState({ build_log: Map() });
 
-        const logger = s => {
-            let left;
+        const logger = (s : string): void => {
             log += s + "\n";
-            let build_log = this.store.get("build_log") || Map();
+            let build_log : Map<any,string> = this.store.get("build_log") || Map();
             this.setState({
                 build_log: build_log.set("clean", log)
             });
@@ -220,7 +236,7 @@ export class Actions extends BaseActions {
         this.set_status("");
     }
 
-    async build_action(action) {
+    async build_action(action : string) : Promise<void> {
         let now: number = server_time().valueOf();
         switch (action) {
             case "recompile":
@@ -243,8 +259,9 @@ export class Actions extends BaseActions {
         }
     }
 
-    help() {// TODO: call version that deals with popup blockers...
-        const w = window.open(WIKI_HELP_URL, "_blank")
+    help() : void {
+        // TODO: call version that deals with popup blockers...
+        const w = window.open(WIKI_HELP_URL, "_blank");
         if (w) {
             w.focus();
         }
