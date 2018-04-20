@@ -6,7 +6,8 @@ const WIKI_HELP_URL = "https://github.com/sagemathinc/cocalc/wiki/LaTeX-Editor";
 
 import { fromJS, Map } from "immutable";
 
-import { Actions as BaseActions } from "../code-editor/actions";
+//import { Actions as BaseActions } from "../code-editor/actions";
+const BaseActions = require("../code-editor/actions").Actions;
 
 import { latexmk } from "./latexmk";
 
@@ -15,7 +16,8 @@ import { sagetex } from "./sagetex";
 import * as synctex from "./synctex";
 
 import { bibtex } from "./bibtex";
-import { webapp_client } from "../webapp_client";
+
+import { server_time } from "./async-utils";
 import { clean } from "./clean.ts";
 
 import { LatexParser } from "./latex-log-parser.ts";
@@ -42,7 +44,7 @@ export class Actions extends BaseActions {
             this._last_save_time = time;
             this.run_latexmk(time);
         });
-        this.run_latexmk();
+        this.run_latexmk((new Date()).valueOf());
     }
 
     _raw_default_frame_tree() {
@@ -69,11 +71,11 @@ export class Actions extends BaseActions {
         }
     }
 
-    run_latexmk(time) {
+    run_latexmk(time: number) {
         this.run_latex(time, true);
     }
 
-    async run_latex(time, all_steps = false) {
+    async run_latex(time: number, all_steps = false) {
         this.set_status("Running LaTeX...");
         this.setState({ build_log: undefined });
         let output;
@@ -219,7 +221,7 @@ export class Actions extends BaseActions {
     }
 
     async build_action(action) {
-        let now = webapp_client.server_time();
+        let now: number = server_time().valueOf();
         switch (action) {
             case "recompile":
                 this.run_latexmk(now);
@@ -234,14 +236,17 @@ export class Actions extends BaseActions {
                 this.run_sagetex(now);
                 return;
             case "clean":
-                this.run_clean();
+                this.run_clean(now);
                 return;
             default:
                 this.set_error(`unknown build action '${action}'`);
         }
     }
 
-    help() {
-        window.open(WIKI_HELP_URL, "_blank").focus();
+    help() {// TODO: call version that deals with popup blockers...
+        const w = window.open(WIKI_HELP_URL, "_blank")
+        if (w) {
+            w.focus();
+        }
     }
 }

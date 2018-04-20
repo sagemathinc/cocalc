@@ -4,7 +4,7 @@ Register the LaTeX file editor
 */
 
 import { Editor } from "./editor.tsx";
-import { Actions } from "./actions";
+import { Actions } from "./actions.ts";
 
 //import { register_file_editor } from "../code-editor/register-generic";
 const { register_file_editor } = require("../code-editor/register-generic");

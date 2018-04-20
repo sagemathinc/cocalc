@@ -15,6 +15,10 @@ import * as awaiting from "awaiting";
 // use require for now...
 const webapp_client = require("../webapp_client").webapp_client;
 
+export function server_time() : Date {
+    return webapp_client.server_time();
+}
+
 interface ExecOpts {
     project_id: string;
     path?: string;
