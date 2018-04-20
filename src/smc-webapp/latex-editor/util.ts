@@ -12,3 +12,13 @@ export function parse_path(
 export function pdf_path(path: string): string {
     return path.slice(0, path.length - 3) + "pdf";
 }
+
+/* Declare that window has an extra app_base_url string param. */
+
+declare global {
+    interface Window { app_base_url: string; }
+}
+
+export function raw_url(project_id:string, path:string) : string {
+    return `${window.app_base_url}/${project_id}/raw/${path}`;
+}

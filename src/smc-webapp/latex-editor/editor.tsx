@@ -2,8 +2,7 @@
 Top-level react component for editing LaTeX documents.
 */
 
-//import { React, rclass, rtypes } from "../smc-react";
-const { React, rclass, rtypes } = require("../smc-react");
+import { React, rclass, rtypes } from "./react";
 
 //import { FormatBar } from "../markdown-editor/format-bar";
 const { FormatBar } = require("../markdown-editor/format-bar");
@@ -14,7 +13,7 @@ const BaseEditor = editor.Editor
 const set = editor.set
 
 import { PDFJS } from "./pdfjs";
-import { PDFEmbed } from "./pdf-embed";
+import { PDFEmbed } from "./pdf-embed.tsx";
 
 // import { LaTeXJS } from "./latexjs";
 // import { PEG } from "./peg";
