@@ -18,7 +18,8 @@ import { bibtex } from "./bibtex";
 import { webapp_client } from "../webapp_client";
 import { clean } from "./clean.ts";
 
-import { LatexParser } from "./latex-log-parser";
+import { LatexParser } from "./latex-log-parser.ts";
+
 import { update_gutters } from "./gutters";
 
 import { pdf_path } from "./util";

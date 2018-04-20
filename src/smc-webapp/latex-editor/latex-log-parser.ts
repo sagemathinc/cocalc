@@ -14,10 +14,12 @@ const LINES_REGEX = /lines? ([0-9]+)/;
 const PACKAGE_REGEX = /^Package (\b.+\b) Warning/;
 
 class LogText {
-    constructor(text) {
-        this.text = text.replace(/(\r\n)|\r/g, "\n");
+    private lines: string[];
+    private row: number;
+    constructor(text: string) {
+        text = text.replace(/(\r\n)|\r/g, "\n");
         // Join any lines which look like they have wrapped.
-        const wrappedLines = this.text.split("\n");
+        const wrappedLines = text.split("\n");
         this.lines = [wrappedLines[0]];
         let i = 1;
         while (i < wrappedLines.length) {
@@ -38,10 +40,10 @@ class LogText {
         this.row = 0;
     }
 
-    nextLine() {
+    nextLine(): string | null {
         this.row++;
         if (this.row >= this.lines.length) {
-            return false;
+            return null;
         } else {
             return this.lines[this.row];
         }
@@ -56,18 +58,14 @@ class LogText {
     }
 
     linesUpToNextMatchingLine(match) {
-        const lines = [];
-        let nextLine = this.nextLine();
-        if (nextLine !== false) {
+        const lines: string[] = [];
+        let nextLine: string | null = this.nextLine();
+        if (nextLine != null) {
             lines.push(nextLine);
         }
-        while (
-            nextLine !== false &&
-            !nextLine.match(match) &&
-            nextLine !== false
-        ) {
+        while (nextLine != null && !nextLine.match(match)) {
             nextLine = this.nextLine();
-            if (nextLine !== false) {
+            if (nextLine != null) {
                 lines.push(nextLine);
             }
         }
@@ -80,7 +78,43 @@ const state = {
     ERROR: 1
 };
 
+/* Type of an error or warning */
+interface Error {
+    line: number | null;
+    file: string;
+    level: string;
+    message: string;
+    content?: string;
+    raw: string;
+}
+
+interface File {
+    path: string;
+    files: string[];
+}
+
+interface ProcessedLog {
+    errors: Error[];
+    warnings: Error[];
+    typesetting: Error[];
+    all: Error[];
+    files: string[];
+}
+
 export class LatexParser {
+    private log: any;
+    private state: number;
+    private fileBaseNames: any[];
+    private ignoreDuplicates: boolean;
+    private currentError: Error;
+    private data: Error[];
+    private fileStack: File[];
+    private currentFileList: string[];
+    private rootFileList: string[];
+    private openParens: number;
+    private currentLine: string;
+    private currentFilePath: string;
+
     constructor(text, options) {
         this.log = new LogText(text);
         this.state = state.NORMAL;
@@ -96,8 +130,8 @@ export class LatexParser {
         this.openParens = 0;
     }
 
-    parse() {
-        while ((this.currentLine = this.log.nextLine()) !== false) {
+    parse() : ProcessedLog {
+        while ((this.currentLine = this.log.nextLine()) != null) {
             if (this.state === state.NORMAL) {
                 if (this.currentLineIsError()) {
                     this.state = state.ERROR;
@@ -138,27 +172,27 @@ export class LatexParser {
         return this.postProcess(this.data);
     }
 
-    currentLineIsError() {
+    currentLineIsError(): boolean {
         return this.currentLine[0] === "!";
     }
 
-    currentLineIsRunawayArgument() {
-        return this.currentLine.match(/^Runaway argument/);
+    currentLineIsRunawayArgument(): boolean {
+        return !!this.currentLine.match(/^Runaway argument/);
     }
 
-    currentLineIsWarning() {
+    currentLineIsWarning(): boolean {
         return !!this.currentLine.match(LATEX_WARNING_REGEX);
     }
 
-    currentLineIsPackageWarning() {
+    currentLineIsPackageWarning(): boolean {
         return !!this.currentLine.match(PACKAGE_WARNING_REGEX);
     }
 
-    currentLineIsHboxWarning() {
+    currentLineIsHboxWarning(): boolean {
         return !!this.currentLine.match(HBOX_WARNING_REGEX);
     }
 
-    parseRunawayArgumentError() {
+    parseRunawayArgumentError(): void {
         this.currentError = {
             line: null,
             file: this.currentFilePath,
@@ -179,10 +213,10 @@ export class LatexParser {
         if (lineNo) {
             this.currentError.line = parseInt(lineNo[1], 10);
         }
-        return this.data.push(this.currentError);
+        this.data.push(this.currentError);
     }
 
-    parseSingleWarningLine(prefix_regex) {
+    parseSingleWarningLine(prefix_regex): void {
         const warningMatch = this.currentLine.match(prefix_regex);
         if (!warningMatch) {
             return;
@@ -199,17 +233,15 @@ export class LatexParser {
         });
     }
 
-    parseMultipleWarningLine() {
+    parseMultipleWarningLine(): void {
         // Some package warnings are multiple lines, let's parse the first line
         let warningMatch = this.currentLine.match(PACKAGE_WARNING_REGEX);
-        if (!warningMatch) {
-            return;
-        }
-        // Something strange happened, return early
+        if (!warningMatch) return;
         const warning_lines = [warningMatch[1]];
         let lineMatch = this.currentLine.match(LINES_REGEX);
         let line = lineMatch ? parseInt(lineMatch[1], 10) : null;
         const packageMatch = this.currentLine.match(PACKAGE_REGEX);
+        if (!packageMatch) return;
         const packageName = packageMatch[1];
         // Regex to get rid of the unnecesary (packagename) prefix in most multi-line warnings
         const prefixRegex = new RegExp(
@@ -221,7 +253,9 @@ export class LatexParser {
             lineMatch = this.currentLine.match(LINES_REGEX);
             line = lineMatch ? parseInt(lineMatch[1], 10) : line;
             warningMatch = this.currentLine.match(prefixRegex);
-            warning_lines.push(warningMatch[1]);
+            if (warningMatch) {
+                warning_lines.push(warningMatch[1]);
+            }
         }
         const raw_message = warning_lines.join(" ");
         this.data.push({
@@ -246,8 +280,7 @@ export class LatexParser {
     }
 
     // Check if we're entering or leaving a new file in this line
-
-    parseParensForFilenames() {
+    parseParensForFilenames(): void {
         const pos = this.currentLine.search(/\(|\)/);
         if (pos !== -1) {
             const token = this.currentLine[pos];
@@ -256,12 +289,16 @@ export class LatexParser {
                 const filePath = this.consumeFilePath();
                 if (filePath) {
                     this.currentFilePath = filePath;
-                    const newFile = {
+                    const newFile: File = {
                         path: filePath,
                         files: []
                     };
                     this.fileStack.push(newFile);
-                    this.currentFileList.push(newFile);
+
+                    if (this.rootFileList.length == 0) {
+                        // this happens only once.
+                        this.rootFileList = newFile.files;
+                    }
                     this.currentFileList = newFile.files;
                 } else {
                     this.openParens++;
@@ -288,17 +325,17 @@ export class LatexParser {
         }
     }
 
-    consumeFilePath() {
+    consumeFilePath(): string | null {
         // Our heuristic for detecting file names are rather crude
         // A file may not contain a space, or ) in it
         // To be a file path it must have at least one /
         // hsy: slight enhancement: search until ")" or EOL, and then trim the string
         if (!this.currentLine.match(/^\/?([^ \)]+\/)+/)) {
-            return false;
+            return null;
         }
         const trimEnd = require("lodash/trimEnd");
         const endOfFilePath = trimEnd(this.currentLine.search(RegExp("$|\\)")));
-        let path = undefined;
+        let path: string;
         if (endOfFilePath === -1) {
             path = this.currentLine;
             this.currentLine = "";
@@ -311,16 +348,16 @@ export class LatexParser {
         return path;
     }
 
-    postProcess(data) {
-        const all = [];
-        const errors = [];
-        const warnings = [];
-        const typesetting = [];
-        const hashes = [];
+    postProcess(data: Error[]): ProcessedLog {
+        const all: Error[] = [];
+        const errors: Error[] = [];
+        const warnings: Error[] = [];
+        const typesetting: Error[] = [];
+        const hashes: string[] = [];
 
-        const hashEntry = entry => entry.raw;
+        const hashEntry: Function = entry => entry.raw;
 
-        let i = 0;
+        let i: number = 0;
         while (i < data.length) {
             if (
                 this.ignoreDuplicates &&
