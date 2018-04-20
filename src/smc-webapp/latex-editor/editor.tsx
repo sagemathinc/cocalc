@@ -2,12 +2,16 @@
 Top-level react component for editing LaTeX documents.
 */
 
-import misc from "smc-util/misc";
+//import { React, rclass, rtypes } from "../smc-react";
+const { React, rclass, rtypes } = require("../smc-react");
 
-import { React, rclass, rtypes } from "../smc-react";
+//import { FormatBar } from "../markdown-editor/format-bar";
+const { FormatBar } = require("../markdown-editor/format-bar");
 
-import { FormatBar } from "../markdown-editor/format-bar";
-import { Editor as BaseEditor, set } from "../code-editor/editor";
+//import { Editor as BaseEditor, set } from "../code-editor/editor";
+const editor = require("../code-editor/editor")
+const BaseEditor = editor.Editor
+const set = editor.set
 
 import { PDFJS } from "./pdfjs";
 import { PDFEmbed } from "./pdf-embed";
@@ -15,7 +19,9 @@ import { PDFEmbed } from "./pdf-embed";
 // import { LaTeXJS } from "./latexjs";
 // import { PEG } from "./peg";
 
-import { CodemirrorEditor } from "../code-editor/codemirror-editor";
+//import { CodemirrorEditor } from "../code-editor/codemirror-editor";
+const { CodemirrorEditor } = require("../code-editor/codemirror-editor");
+
 import { Build } from "./build";
 import { ErrorsAndWarnings } from "./errors-and-warnings";
 
@@ -149,7 +155,7 @@ let Editor = rclass(function({ name }) {
             [name]: {
                 is_public: rtypes.bool
             }
-        }, // optional extra state of the format bar, stored in the Store
+        },
 
         shouldComponentUpdate(next) {
             if (!this.props.editor_settings) return false;

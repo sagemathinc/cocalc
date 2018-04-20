@@ -1,5 +1,6 @@
 {
     "compilerOptions": {
+        "jsx" : "React",
         "sourceMap": true,
         "strictNullChecks": true,
         "lib": ["es2015"]
