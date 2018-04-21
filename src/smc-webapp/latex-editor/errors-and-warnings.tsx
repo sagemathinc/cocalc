@@ -8,8 +8,15 @@ import { Button } from "react-bootstrap";
 
 import { capitalize, is_different, path_split } from "./misc";
 
-import { Component, React, ReactDOM, rclass, rtypes, Fragment, Rendered } from "./react";
-
+import {
+    Component,
+    React,
+    ReactDOM,
+    rclass,
+    rtypes,
+    Fragment,
+    Rendered
+} from "./react";
 
 //import { Icon, Loading } from "../r_misc";
 const { Icon, Loading } = require("../r_misc");
@@ -72,7 +79,7 @@ const ITEM_STYLES = {
 interface ItemProps {
     actions: any;
     item: Map<any, string>;
-};
+}
 
 class Item extends Component<ItemProps, {}> {
     shouldComponentUpdate(props: ItemProps): boolean {
@@ -134,111 +141,110 @@ class Item extends Component<ItemProps, {}> {
     }
 }
 
-export let ErrorsAndWarnings: React.Component = rclass(function({ name }) {
-    return {
-        displayName: "LaTeXEditor-ErrorsAndWarnings",
+interface ErrorsAndWarningsProps {
+    id: string;
+    actions: any;
+    editor_state: Map<string, any>;
+    is_fullscreen: boolean;
+    project_id: string;
+    path: string;
+    reload: number;
+    font_size: number;
 
-        propTypes: {
-            id: rtypes.string.isRequired,
-            actions: rtypes.object.isRequired,
-            editor_state: rtypes.immutable.Map,
-            is_fullscreen: rtypes.bool,
-            project_id: rtypes.string,
-            path: rtypes.string,
-            reload: rtypes.number,
-            font_size: rtypes.number
-        },
+    // reduxProps:
+    build_log: Map<string, any>;
+    status: string;
+}
 
-        reduxProps: {
+class ErrorsAndWarnings extends Component<ErrorsAndWarningsProps, {}> {
+    static defaultProps = { build_log: Map(), status: "" };
+
+    static reduxProps({ name }) {
+        return {
             [name]: {
                 build_log: rtypes.immutable.Map,
                 status: rtypes.string
             }
-        },
+        };
+    }
 
-        getDefaultProps() {
-            return { build_log: Map() };
-        },
+    shouldComponentUpdate(props): boolean {
+        return (
+            is_different(this.props, props, ["status", "font_size"]) ||
+            this.props.build_log.getIn(["latex", "parse"]) !=
+                props.build_log.getIn(["latex", "parse"])
+        );
+    }
 
-        shouldComponentUpdate(props): boolean {
+    render_status(): Rendered {
+        if (this.props.status) {
             return (
-                is_different(this.props, props, ["status", "font_size"]) ||
-                this.props.build_log.getIn(["latex", "parse"]) !=
-                    props.build_log.getIn(["latex", "parse"])
-            );
-        },
-
-        render_status(): Rendered {
-            if (this.props.status) {
-                return (
-                    <div style={{ margin: "15px" }}>
-                        <Loading
-                            text={this.props.status}
-                            style={{
-                                fontSize: "18pt",
-                                textAlign: "center",
-                                marginTop: "15px",
-                                color: "#666"
-                            }}
-                        />
-                    </div>
-                );
-            }
-        },
-
-        render_item(item, key): Rendered {
-            return <Item key={key} item={item} actions={this.props.actions} />;
-        },
-
-        render_group_content(content): Rendered {
-            if (content.size === 0) {
-                return <div>None</div>;
-            } else {
-                const w: React.Component[] = [];
-                content.forEach(item => {
-                    w.push(this.render_item(item, w.length));
-                });
-                return <div>{w}</div>;
-            }
-        },
-
-        render_group(group): Rendered {
-            const spec: SpecItem = SPEC[group_to_level(group)];
-            const content = this.props.build_log.getIn([
-                "latex",
-                "parse",
-                group
-            ]);
-            if (!content) {
-                return;
-            }
-            return (
-                <div key={group}>
-                    <h3>
-                        <Icon name={spec.icon} style={{ color: spec.color }} />{" "}
-                        {capitalize(group)}
-                    </h3>
-                    {this.render_group_content(content)}
-                </div>
-            );
-        },
-
-        render(): React.ReactElement<any> {
-            return (
-                <div
-                    className={"smc-vfill"}
-                    style={{
-                        overflowY: "scroll",
-                        padding: "5px 15px",
-                        fontSize: `${this.props.font_size}px`
-                    }}
-                >
-                    {this.render_status()}
-                    {["errors", "typesetting", "warnings"].map(group =>
-                        this.render_group(group)
-                    )}
+                <div style={{ margin: "15px" }}>
+                    <Loading
+                        text={this.props.status}
+                        style={{
+                            fontSize: "18pt",
+                            textAlign: "center",
+                            marginTop: "15px",
+                            color: "#666"
+                        }}
+                    />
                 </div>
             );
         }
-    };
-});
+    }
+
+    render_item(item, key): Rendered {
+        return <Item key={key} item={item} actions={this.props.actions} />;
+    }
+
+    render_group_content(content): Rendered {
+        if (content.size === 0) {
+            return <div>None</div>;
+        } else {
+            const w: Rendered[] = [];
+            content.forEach(item => {
+                w.push(this.render_item(item, w.length));
+            });
+            return <div>{w}</div>;
+        }
+    }
+
+    render_group(group): Rendered {
+        const spec: SpecItem = SPEC[group_to_level(group)];
+        const content = this.props.build_log.getIn(["latex", "parse", group]);
+        if (!content) {
+            return;
+        }
+        return (
+            <div key={group}>
+                <h3>
+                    <Icon name={spec.icon} style={{ color: spec.color }} />{" "}
+                    {capitalize(group)}
+                </h3>
+                {this.render_group_content(content)}
+            </div>
+        );
+    }
+
+    render(): React.ReactElement<any> {
+        return (
+            <div
+                className={"smc-vfill"}
+                style={{
+                    overflowY: "scroll",
+                    padding: "5px 15px",
+                    fontSize: `${this.props.font_size}px`
+                }}
+            >
+                {this.render_status()}
+                {["errors", "typesetting", "warnings"].map(group =>
+                    this.render_group(group)
+                )}
+            </div>
+        );
+    }
+}
+
+const tmp = rclass(ErrorsAndWarnings);
+export { tmp as ErrorsAndWarnings };

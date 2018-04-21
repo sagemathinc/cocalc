@@ -65,6 +65,8 @@ exports.Editor = rclass ({name}) ->
 
     render_frame_tree: ->
         local        = @props.local_view_state
+        if not local?
+            return
         frame_tree   = local.get('frame_tree')
         editor_state = local.get('editor_state')
         if not @props.is_loaded or not frame_tree? or not editor_state? or (@props.is_public and not @props.content?)
