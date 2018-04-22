@@ -104,12 +104,10 @@ export interface ProcessedLatexLog {
 export class LatexParser {
     private log: any;
     private state: number;
-    private fileBaseNames: any[];
     private ignoreDuplicates: boolean;
     private currentError: Error;
     private data: Error[];
     private fileStack: File[];
-    private currentFileList: string[];
     private rootFileList: string[];
     private openParens: number;
     private currentLine: string;
@@ -119,14 +117,10 @@ export class LatexParser {
         this.log = new LogText(text);
         this.state = state.NORMAL;
         options = options || {};
-        this.fileBaseNames = options.fileBaseNames || [
-            /compiles/,
-            /\/usr\/local/
-        ];
         this.ignoreDuplicates = options.ignoreDuplicates;
         this.data = [];
         this.fileStack = [];
-        this.currentFileList = this.rootFileList = [];
+        this.rootFileList = [];
         this.openParens = 0;
     }
 
@@ -299,7 +293,6 @@ export class LatexParser {
                         // this happens only once.
                         this.rootFileList = newFile.files;
                     }
-                    this.currentFileList = newFile.files;
                 } else {
                     this.openParens++;
                 }
@@ -313,7 +306,6 @@ export class LatexParser {
                             this.fileStack.length - 1
                         ];
                         this.currentFilePath = previousFile.path;
-                        this.currentFileList = previousFile.files;
                     }
                 }
             }

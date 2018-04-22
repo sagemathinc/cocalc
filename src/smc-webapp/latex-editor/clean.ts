@@ -25,7 +25,7 @@ export async function clean(
     path: string,
     logger: Function
 ) {
-    const { directory, base, filename } = parse_path(path);
+    const { directory, base } = parse_path(path);
 
     logger(`Running 'latexmk -f -c ${base}'\n`);
     let output = await exec({

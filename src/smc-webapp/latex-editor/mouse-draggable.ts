@@ -2,8 +2,6 @@
 
 import * as $ from "jquery";
 
-import { throttle } from "underscore";
-
 declare global {
     interface JQuery {
         mouse_draggable(): JQuery;

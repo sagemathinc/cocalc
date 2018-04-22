@@ -2,19 +2,15 @@
 Show errors and warnings.
 */
 
-import { Map, List } from "immutable";
-
-import { Button } from "react-bootstrap";
+import { Map } from "immutable";
 
 import { capitalize, is_different, path_split } from "./misc";
 
 import {
     Component,
     React,
-    ReactDOM,
     rclass,
     rtypes,
-    Fragment,
     Rendered
 } from "./react";
 

@@ -155,7 +155,7 @@ class PDFJS extends Component<PDFJSProps, PDFJSState> {
         console.log("component zoom_page_width");
         let elt = $(ReactDOM.findDOMNode(this.refs.scroll));
         let zoom = this.props.font_size / 12;
-        window.x = { elt: elt, zoom: zoom };
+        window.x = { elt: elt, zoom: zoom, doc: this.state.doc };
         this.props.actions.setState({ zoom_page_width: undefined });
     }
 

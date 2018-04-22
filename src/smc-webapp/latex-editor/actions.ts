@@ -85,10 +85,10 @@ export class Actions extends BaseActions {
     }
 
     run_latexmk(time: number): void {
-        this.run_latex(time, true);
+        this.run_latex(time);
     }
 
-    async run_latex(time: number, all_steps = false): Promise<void> {
+    async run_latex(time: number): Promise<void> {
         this.set_status("Running LaTeX...");
         this.setState({ build_log: undefined });
         let output: BuildLog;
@@ -214,7 +214,7 @@ export class Actions extends BaseActions {
         this.setState({ build_log });
     }
 
-    async run_clean(time): Promise<void> {
+    async run_clean(): Promise<void> {
         let log: string = "";
         delete this._last_save_time;
         this.setState({ build_log: Map() });
@@ -253,7 +253,7 @@ export class Actions extends BaseActions {
                 this.run_sagetex(now);
                 return;
             case "clean":
-                this.run_clean(now);
+                this.run_clean();
                 return;
             default:
                 this.set_error(`unknown build action '${action}'`);

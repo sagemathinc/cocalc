@@ -2,13 +2,6 @@
 This is a renderer using the embed tag, so works with browsers that have a PDF viewer plugin.
 */
 
-import { throttle } from "underscore";
-
-import { Map } from "immutable";
-
-//import { Loading } from "../r_misc";
-const { Loading } = require("../r_misc");
-
 import { raw_url } from "./util";
 
 import {Component, React} from "./react";

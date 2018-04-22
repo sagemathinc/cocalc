@@ -2,7 +2,7 @@
 Manages rendering a single page using either SVG or Canvas
 */
 
-import { React, rtypes, Component } from "./react";
+import { React, Component } from "./react";
 
 const { Loading } = require("../r_misc");
 import { is_different } from "./misc";
@@ -12,7 +12,6 @@ import { CanvasPage } from "./pdfjs-canvas-page.tsx";
 
 import {
     PDFPageProxy,
-    PDFPageViewport,
     PDFDocumentProxy
 } from "pdfjs-dist/webpack";
 
@@ -79,11 +78,13 @@ export class Page extends Component<PageProps, PageState> {
 
     render_content() {
         if (!this.state.page.version)
-            return <span>Loading page {this.props.n}...</span>;
+            return <Loading text={`Loading page ${this.props.n}$...`} />;
         else if (this.props.renderer == "svg") {
             return <SVGPage page={this.state.page} scale={this.props.scale} />;
         } else {
-            return <CanvasPage page={this.state.page}  scale={this.props.scale} />;
+            return (
+                <CanvasPage page={this.state.page} scale={this.props.scale} />
+            );
         }
     }
 

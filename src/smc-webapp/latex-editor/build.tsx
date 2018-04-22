@@ -2,18 +2,12 @@
 Show the last latex build log, i.e., output from last time we ran the LaTeX build process.
 */
 
-const {
-    ButtonGroup,
-    Button,
-    DropdownButton,
-    MenuItem
-} = require("react-bootstrap");
+const { ButtonGroup, Button } = require("react-bootstrap");
 
 import { is_different } from "./misc";
 
 import {
     React,
-    ReactDOM,
     rclass,
     rtypes,
     Fragment,

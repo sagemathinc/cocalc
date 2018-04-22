@@ -2,8 +2,7 @@
 
 import * as $ from "jquery";
 
-import { Component, React, ReactDOM, rtypes } from "./react";
-const { Loading } = require("../r_misc");
+import { Component, React, ReactDOM } from "./react";
 import { SVGGraphics, PDFPageProxy, PDFPageViewport } from "pdfjs-dist/webpack";
 import { is_different } from "./misc";
 
