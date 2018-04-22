@@ -17,7 +17,7 @@ $.fn.mouse_draggable = function() {
     return this;
 };
 
-type coord = number | undefined;
+type coord = number;
 
 interface Position {
     left: coord;
@@ -29,7 +29,7 @@ function mouse_draggable(): void {
     const elt = $(this);
 
     // dragpos = the position that the user just dragged the document to
-    let dragpos: Position = { left: undefined, top: undefined };
+    let dragpos: Position;
 
     // when the mouse button goes down, we change the cursor, initialize the dragpos,
     // and activate the mousemove handler.
@@ -39,6 +39,7 @@ function mouse_draggable(): void {
         // otherwise, space-key and others have no effect on scrolling.
         $(document.activeElement).blur();
         elt.css("cursor", "move");
+        if (e.clientX == undefined || e.clientY == undefined) return; // do not bother
         dragpos = {
             left: e.clientX,
             top: e.clientY
@@ -72,24 +73,22 @@ function mouse_draggable(): void {
 
         // if any positions are undefined, which maybe technically could happen, do not do anything -- just
         // wait for the user to lift their mouse button.  (Basically, this satisfies the typescript.)
-        if (
-            dragpos.left === undefined ||
-            dragpos.top === undefined ||
-            e.clientX === undefined ||
-            e.clientY === undefined
-        )
-            return;
+        if (e.clientX == undefined || e.clientY == undefined) return;
 
+        const zoom = elt.css("zoom");
+        let scale: number;
+        if (!zoom) {
+            scale = 1;
+        } else {
+            scale = parseFloat(zoom);
+        }
         const delta = {
-            left: e.clientX - dragpos.left,
-            top: e.clientY - dragpos.top
+            x: (e.clientX - dragpos.left) / scale,
+            y: (e.clientY - dragpos.top) / scale
         };
-        const left: coord = elt.scrollLeft(),
-            top: coord = elt.scrollTop();
-        if (left === undefined || top === undefined) return;
 
-        elt.scrollLeft(left - delta.left);
-        elt.scrollTop(top - delta.top);
+        elt.scrollLeft(<number>elt.scrollLeft() - delta.x);
+        elt.scrollTop(<number>elt.scrollTop() - delta.y);
 
         dragpos = {
             left: e.clientX,
