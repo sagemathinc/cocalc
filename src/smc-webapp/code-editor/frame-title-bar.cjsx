@@ -212,6 +212,26 @@ exports.FrameTitleBar = rclass
             <Icon name={'search-plus'} />
         </Button>
 
+    render_zoom_page_width: ->
+        <Button
+            key     = {'text-width'}
+            title   = {'Zoom to page width'}
+            bsSize  = {@button_size()}
+            onClick = {=>@props.actions.zoom_page_width(@props.id)}
+        >
+            <Icon name={'arrows-alt-h'} />
+        </Button>
+
+    render_zoom_page_height: ->
+        <Button
+            key     = {'text-height'}
+            title   = {'Zoom to page height'}
+            bsSize  = {@button_size()}
+            onClick = {=>@props.actions.zoom_page_height(@props.id)}
+        >
+            <Icon name={'arrows-alt-v'} />
+        </Button>
+
     render_replace: ->
         if not @is_visible('replace')
             return
@@ -308,11 +328,24 @@ exports.FrameTitleBar = rclass
         </Fragment>
 
     render_zoom_group: ->
+        if not @is_visible('decrease_font_size')
+            return
         <Fragment>
             <Space />
             <ButtonGroup key={'zoom'}>
                 {@render_zoom_out()}
                 {@render_zoom_in()}
+            </ButtonGroup>
+        </Fragment>
+
+    render_page_width_height_group: ->
+        if not @is_visible('zoom_page_width') or not @props.actions.zoom_page_width?
+            return
+        <Fragment>
+            <Space />
+            <ButtonGroup key={'height-width'}>
+                {@render_zoom_page_height()}
+                {@render_zoom_page_width()}
             </ButtonGroup>
         </Fragment>
 
@@ -517,6 +550,7 @@ exports.FrameTitleBar = rclass
             {@render_save_timetravel_group()}
             {@render_undo_redo_group() if not @props.is_public}
             {@render_zoom_group()}
+            {@render_page_width_height_group()}
             {@render_copy_group()}
             {@render_find_replace_group()}
             {@render_format_group() if not @props.is_public}

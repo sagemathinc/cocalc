@@ -1,7 +1,5 @@
 /* jQuery plugin to make a div mouse click draggable. */
 
-// **BUG**: need to take into account CSS zoom... ?
-
 import * as $ from "jquery";
 
 import { throttle } from "underscore";
@@ -75,16 +73,9 @@ function mouse_draggable(): void {
         // wait for the user to lift their mouse button.  (Basically, this satisfies the typescript.)
         if (e.clientX == undefined || e.clientY == undefined) return;
 
-        const zoom = elt.css("zoom");
-        let scale: number;
-        if (!zoom) {
-            scale = 1;
-        } else {
-            scale = parseFloat(zoom);
-        }
         const delta = {
-            x: (e.clientX - dragpos.left) / scale,
-            y: (e.clientY - dragpos.top) / scale
+            x: (e.clientX - dragpos.left),
+            y: (e.clientY - dragpos.top)
         };
 
         elt.scrollLeft(<number>elt.scrollLeft() - delta.x);

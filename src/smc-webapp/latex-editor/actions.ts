@@ -219,9 +219,10 @@ export class Actions extends BaseActions {
         delete this._last_save_time;
         this.setState({ build_log: Map() });
 
-        const logger = (s : string): void => {
+        const logger = (s: string): void => {
             log += s + "\n";
-            let build_log : Map<any,string> = this.store.get("build_log") || Map();
+            let build_log: Map<any, string> =
+                this.store.get("build_log") || Map();
             this.setState({
                 build_log: build_log.set("clean", log)
             });
@@ -236,7 +237,7 @@ export class Actions extends BaseActions {
         this.set_status("");
     }
 
-    async build_action(action : string) : Promise<void> {
+    async build_action(action: string): Promise<void> {
         let now: number = server_time().valueOf();
         switch (action) {
             case "recompile":
@@ -259,11 +260,21 @@ export class Actions extends BaseActions {
         }
     }
 
-    help() : void {
+    help(): void {
         // TODO: call version that deals with popup blockers...
         const w = window.open(WIKI_HELP_URL, "_blank");
         if (w) {
             w.focus();
         }
+    }
+
+    zoom_page_width(id: string): void {
+        console.log("zoom_page_width", id);
+        this.setState({'zoom_page_width': id});
+    }
+
+    zoom_page_height(id: string): void {
+        console.log("zoom_page_height", id);
+        this.setState({'zoom_page_height': id});
     }
 }

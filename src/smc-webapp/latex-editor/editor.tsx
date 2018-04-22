@@ -27,6 +27,16 @@ import { ErrorsAndWarnings } from "./errors-and-warnings.tsx";
 
 import { pdf_path } from "./util";
 
+let pdfjs_buttons = set([
+    "print",
+    "save",
+    "reload",
+    "decrease_font_size",
+    "increase_font_size",
+    "zoom_page_width",
+    "zoom_page_height"
+]);
+
 const EDITOR_SPEC = {
     cm: {
         short: "LaTeX",
@@ -57,13 +67,7 @@ const EDITOR_SPEC = {
         name: "PDF View - SVG",
         icon: "file-pdf-o",
         component: PDFJS,
-        buttons: set([
-            "print",
-            "save",
-            "reload",
-            "decrease_font_size",
-            "increase_font_size"
-        ]),
+        buttons: pdfjs_buttons,
         path: pdf_path,
         style: { background: "#525659" },
         renderer: "svg"
@@ -74,13 +78,7 @@ const EDITOR_SPEC = {
         name: "PDF View - Canvas",
         icon: "file-pdf-o",
         component: PDFJS,
-        buttons: set([
-            "print",
-            "save",
-            "reload",
-            "decrease_font_size",
-            "increase_font_size"
-        ]),
+        buttons: pdfjs_buttons,
         path: pdf_path,
         style: { background: "#525659" },
         renderer: "canvas"

@@ -9,7 +9,7 @@ import { throttle } from "underscore";
 import * as $ from "jquery";
 
 import { is_different } from "./misc";
-import { Component, React, ReactDOM, rtypes, Rendered } from "./react";
+import { Component, React, ReactDOM, rclass, rtypes, Rendered } from "./react";
 const { Loading } = require("../r_misc");
 import { getDocument } from "./pdfjs-doc-cache.ts";
 import { raw_url } from "./util";
@@ -30,6 +30,10 @@ interface PDFJSProps {
     reload: number;
     font_size: number;
     renderer: string /* "canvas" or "svg" */;
+
+    // reduxProps
+    zoom_page_width?: string;
+    zoom_page_height?: string;
 }
 
 interface PDFJSState {
@@ -37,7 +41,7 @@ interface PDFJSState {
     doc: PDFDocumentProxy;
 }
 
-export class PDFJS extends Component<PDFJSProps, PDFJSState> {
+class PDFJS extends Component<PDFJSProps, PDFJSState> {
     private mounted: boolean;
 
     constructor(props) {
@@ -49,6 +53,15 @@ export class PDFJS extends Component<PDFJSProps, PDFJSState> {
         };
     }
 
+    static reduxProps({ name }) {
+        return {
+            [name]: {
+                zoom_page_width: rtypes.string,
+                zoom_page_height: rtypes.string
+            }
+        };
+    }
+
     shouldComponentUpdate(
         next_props: PDFJSProps,
         next_state: PDFJSState
@@ -57,7 +70,14 @@ export class PDFJS extends Component<PDFJSProps, PDFJSState> {
             is_different(
                 this.props,
                 next_props,
-                ["reload", "font_size", "renderer", "path"]
+                [
+                    "reload",
+                    "font_size",
+                    "renderer",
+                    "path",
+                    "zoom_page_width",
+                    "zoom_page_height"
+                ]
             ) ||
             this.state.loaded != next_state.loaded ||
             this.state.doc.pdfInfo.fingerprint !=
@@ -101,6 +121,12 @@ export class PDFJS extends Component<PDFJSProps, PDFJSState> {
     }
 
     componentWillReceiveProps(next_props: PDFJSProps): void {
+        if (next_props.zoom_page_width == next_props.id) {
+            this.zoom_page_width();
+        }
+        if (next_props.zoom_page_height == next_props.id) {
+            this.zoom_page_height();
+        }
         if (this.props.reload != next_props.reload)
             this.load_doc(next_props.reload);
     }
@@ -123,6 +149,19 @@ export class PDFJS extends Component<PDFJSProps, PDFJSState> {
             }, 0);
         }
         $(ReactDOM.findDOMNode(this.refs.scroll)).on("click", blur_codemirror);
+    }
+
+    zoom_page_width(): void {
+        console.log("component zoom_page_width");
+        let elt = $(ReactDOM.findDOMNode(this.refs.scroll));
+        let zoom = this.props.font_size / 12;
+        window.x = { elt: elt, zoom: zoom };
+        this.props.actions.setState({ zoom_page_width: undefined });
+    }
+
+    zoom_page_height(): void {
+        console.log("component zoom_page_height");
+        this.props.actions.setState({ zoom_page_height: undefined });
     }
 
     componentDidMount(): void {
@@ -161,19 +200,33 @@ export class PDFJS extends Component<PDFJSProps, PDFJSState> {
         }
     }
 
+    scale(): number {
+        return this.props.font_size / 12;
+    }
+
     render() {
         return (
             <div
                 style={{
                     overflow: "scroll",
                     width: "100%",
-                    zoom: this.props.font_size / 12
+                    cursor: "default"
                 }}
                 onScroll={throttle(() => this.on_scroll(), 250)}
                 ref={"scroll"}
             >
-                {this.render_content()}
+                <div
+                    style={{
+                        transform: `scale(${this.scale()})`,
+                        transformOrigin: "top"
+                    }}
+                >
+                    {this.render_content()}
+                </div>
             </div>
         );
     }
 }
+
+const PDFJS0 = rclass(PDFJS);
+export { PDFJS0 as PDFJS };
