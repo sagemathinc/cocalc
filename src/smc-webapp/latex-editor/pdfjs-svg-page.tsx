@@ -5,21 +5,23 @@ import * as $ from "jquery";
 import { Component, React, ReactDOM, rtypes } from "./react";
 const { Loading } = require("../r_misc");
 import { SVGGraphics, PDFPageProxy, PDFPageViewport } from "pdfjs-dist/webpack";
+import { is_different } from "./misc";
 
 interface Props {
     page: PDFPageProxy;
+    scale: number;
 }
 
 export class SVGPage extends Component<Props, {}> {
     private mounted: boolean;
 
     shouldComponentUpdate(next_props: Props) {
-        return this.props.page.version != next_props.page.version;
+        return is_different(this.props, next_props, ['version', 'scale']);
     }
 
     async render_page(page: PDFPageProxy): Promise<void> {
         const div: HTMLElement = ReactDOM.findDOMNode(this);
-        const viewport: PDFPageViewport = page.getViewport(1);
+        const viewport: PDFPageViewport = page.getViewport(this.props.scale);
         div.style.width = viewport.width + "px";
         div.style.height = viewport.height + "px";
 
@@ -36,21 +38,27 @@ export class SVGPage extends Component<Props, {}> {
         }
     }
 
-    componentWillReceiveProps(next_props : Props) : void {
-        if (this.props.page.version != next_props.page.version)
-            this.render_page(next_props.page);
+    componentWillReceiveProps(next_props: Props): void {
+        this.render_page(next_props.page);
     }
 
-    componentWillUnmount() : void {
+    componentWillUnmount(): void {
         this.mounted = false;
     }
 
-    componentDidMount() : void {
+    componentDidMount(): void {
         this.mounted = true;
         this.render_page(this.props.page);
     }
 
     render() {
-        return <div style={{ margin: "auto", background: "white" }} />;
+        return (
+            <div
+                style={{
+                    margin: "auto",
+                    background: "white"
+                }}
+            />
+        );
     }
 }

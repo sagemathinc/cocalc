@@ -7,26 +7,44 @@ import * as $ from "jquery";
 import { Component, React, ReactDOM, rtypes } from "./react";
 const { Loading } = require("../r_misc");
 import { PDFPageProxy, PDFPageViewport } from "pdfjs-dist/webpack";
+import { is_different } from "./misc";
 
 interface Props {
     page: PDFPageProxy;
+    scale: number;
+}
+
+// See https://stackoverflow.com/questions/4720262/canvas-drawing-and-retina-display-doable
+function scale_canvas(canvas: HTMLCanvasElement, ctx): void {
+    if (window.devicePixelRatio > 1) {
+        var canvasWidth = canvas.width;
+        var canvasHeight = canvas.height;
+
+        canvas.width = canvasWidth * window.devicePixelRatio;
+        canvas.height = canvasHeight * window.devicePixelRatio;
+        canvas.style.width = `${canvasWidth}px`;
+        canvas.style.height = `${canvasHeight}px`;
+
+        ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+    }
 }
 
 export class CanvasPage extends Component<Props, {}> {
     shouldComponentUpdate(next_props: Props): boolean {
-        return this.props.page.version != next_props.page.version;
+        return is_different(this.props, next_props, ["version", "scale"]);
     }
 
     async render_page(page: PDFPageProxy): Promise<void> {
         const div: HTMLElement = ReactDOM.findDOMNode(this);
-        // scale = 2.0, so doesn't look like crap on retina
-        const viewport: PDFPageViewport = page.getViewport(2.0);
+        const viewport: PDFPageViewport = page.getViewport(this.props.scale);
         const canvas: HTMLCanvasElement = document.createElement("canvas");
+        const ctx = canvas.getContext("2d");
         canvas.width = viewport.width;
         canvas.height = viewport.height;
+        scale_canvas(canvas, ctx);
         try {
             await page.render({
-                canvasContext: canvas.getContext("2d"),
+                canvasContext: ctx,
                 viewport: viewport,
                 enableWebGL: true
             });
@@ -37,12 +55,11 @@ export class CanvasPage extends Component<Props, {}> {
         }
     }
 
-    componentWillReceiveProps(next_props : Props) : void {
-        if (this.props.page.version != next_props.page.version)
-            this.render_page(next_props.page);
+    componentWillReceiveProps(next_props: Props): void {
+        this.render_page(next_props.page);
     }
 
-    componentDidMount() : void {
+    componentDidMount(): void {
         this.render_page(this.props.page);
     }
 
@@ -52,8 +69,7 @@ export class CanvasPage extends Component<Props, {}> {
                 style={{
                     margin: "auto",
                     background: "#525659",
-                    textAlign: "center",
-                    zoom: 0.5 /* so doesn't look like crap on retina */
+                    textAlign: "center"
                 }}
             />
         );

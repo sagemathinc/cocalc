@@ -178,6 +178,7 @@ class PDFJS extends Component<PDFJSProps, PDFJSState> {
 
     render_pages(): Rendered[] {
         const pages: Rendered[] = [];
+        const scale = this.scale();
         for (let n = 1; n <= this.state.doc.numPages; n++) {
             pages.push(
                 <Page
@@ -186,6 +187,7 @@ class PDFJS extends Component<PDFJSProps, PDFJSState> {
                     n={n}
                     key={n}
                     renderer={this.props.renderer}
+                    scale={scale}
                 />
             );
         }
@@ -210,16 +212,21 @@ class PDFJS extends Component<PDFJSProps, PDFJSState> {
                 style={{
                     overflow: "scroll",
                     width: "100%",
-                    cursor: "default"
+                    cursor: "default",
+                    textAlign: "center"
                 }}
                 onScroll={throttle(() => this.on_scroll(), 250)}
                 ref={"scroll"}
             >
                 <div
-                    style={{
+                    style={
+                        {}
+                        /*{
                         transform: `scale(${this.scale()})`,
-                        transformOrigin: "top"
-                    }}
+                        transformOrigin: "center top 0px",
+                        display: "block"
+                    }*/
+                    }
                 >
                     {this.render_content()}
                 </div>

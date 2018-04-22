@@ -21,6 +21,7 @@ interface PageProps {
     n: number;
     doc: PDFDocumentProxy;
     renderer: string;
+    scale: number;
 }
 
 interface PageState {
@@ -39,7 +40,7 @@ export class Page extends Component<PageProps, PageState> {
         next_state: PageState
     ): boolean {
         return (
-            is_different(this.props, next_props, ["n", "renderer"]) ||
+            is_different(this.props, next_props, ["n", "renderer", "scale"]) ||
             this.props.doc.pdfInfo.fingerprint !=
                 next_props.doc.pdfInfo.fingerprint ||
             this.state.page.version != next_state.page.version
@@ -80,9 +81,9 @@ export class Page extends Component<PageProps, PageState> {
         if (!this.state.page.version)
             return <span>Loading page {this.props.n}...</span>;
         else if (this.props.renderer == "svg") {
-            return <SVGPage page={this.state.page} />;
+            return <SVGPage page={this.state.page} scale={this.props.scale} />;
         } else {
-            return <CanvasPage page={this.state.page} />;
+            return <CanvasPage page={this.state.page}  scale={this.props.scale} />;
         }
     }
 
