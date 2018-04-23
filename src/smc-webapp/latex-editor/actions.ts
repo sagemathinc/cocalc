@@ -192,7 +192,7 @@ export class Actions extends BaseActions {
             let info = await synctex.tex_to_pdf({
                 line,
                 column,
-                tex_path: filename ? filename : this.path,
+                tex_path: filename,
                 pdf_path: pdf_path(this.path),
                 project_id: this.project_id
             });

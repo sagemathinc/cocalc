@@ -6,13 +6,7 @@ import { Map } from "immutable";
 
 import { capitalize, is_different, path_split } from "./misc";
 
-import {
-    Component,
-    React,
-    rclass,
-    rtypes,
-    Rendered
-} from "./react";
+import { Component, React, rclass, rtypes, Rendered } from "./react";
 
 //import { Icon, Loading } from "../r_misc";
 const { Icon, Loading } = require("../r_misc");
@@ -84,13 +78,16 @@ class Item extends Component<ItemProps, {}> {
 
     edit_source(e: React.SyntheticEvent<any>): void {
         e.stopPropagation();
-        return this.props.actions.open_code_editor({
-            line: this.props.item.get("line"),
-            file: this.props.item.get("file"),
+        const line: number = parseInt(this.props.item.get("line"));
+        const filename: string = this.props.item.get("file");
+        this.props.actions.open_code_editor({
+            line: line,
+            file: filename,
             cursor: true,
             focus: true,
             direction: "col"
         });
+        this.props.actions.synctex_tex_to_pdf(line, 0, filename);
     }
 
     render_location(): React.ReactElement<any> | undefined {
@@ -100,7 +97,7 @@ class Item extends Component<ItemProps, {}> {
         return (
             <div>
                 <a
-                    onClick={this.edit_source}
+                    onClick={e => this.edit_source(e)}
                     style={{ cursor: "pointer", float: "right" }}
                 >
                     Line {this.props.item.get("line")} of{" "}
@@ -175,13 +172,19 @@ class ErrorsAndWarnings extends Component<ErrorsAndWarningsProps, {}> {
     render_status(): Rendered {
         if (this.props.status) {
             return (
-                <div style={{ margin: "15px" }}>
+                <div
+                    style={{
+                        margin: "5px",
+                        position: "absolute",
+                        right: 0,
+                        background: "white",
+                        paddingLeft: "5px"
+                    }}
+                >
                     <Loading
                         text={this.props.status}
                         style={{
-                            fontSize: "18pt",
-                            textAlign: "center",
-                            marginTop: "15px",
+                            fontSize: "12pt",
                             color: "#666"
                         }}
                     />
