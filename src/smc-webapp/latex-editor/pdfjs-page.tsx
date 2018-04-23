@@ -10,10 +10,7 @@ import { is_different } from "./misc";
 import { SVGPage } from "./pdfjs-svg-page.tsx";
 import { CanvasPage } from "./pdfjs-canvas-page.tsx";
 
-import {
-    PDFPageProxy,
-    PDFDocumentProxy
-} from "pdfjs-dist/webpack";
+import { PDFPageProxy, PDFDocumentProxy } from "pdfjs-dist/webpack";
 
 interface PageProps {
     actions: any;
@@ -89,18 +86,16 @@ export class Page extends Component<PageProps, PageState> {
     }
 
     click(event): void {
-        console.log(
-            "click!",
-            event.nativeEvent.offsetX,
-            event.nativeEvent.offsetY
-        );
+        let x: number = event.nativeEvent.offsetX / this.props.scale; // / width;
+        let y: number = event.nativeEvent.offsetY / this.props.scale; // / height;
+        this.props.actions.synctex_pdf_to_tex(this.props.n, x, y);
     }
 
     render() {
         return (
             <div
                 style={{ background: "#525659", paddingTop: "10px" }}
-                onClick={this.click}
+                onDoubleClick={e => this.click(e)}
             >
                 {this.render_content()}
             </div>

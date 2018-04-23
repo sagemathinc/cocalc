@@ -232,6 +232,22 @@ exports.FrameTitleBar = rclass
             <Icon name={'arrows-alt-v'} />
         </Button>
 
+    render_sync: ->
+        if not @is_visible('sync') or not @props.actions.sync?
+            return
+        labels   = @show_labels()
+        <Fragment>
+            <Space />
+            <Button
+                key     = {'sync'}
+                title   = {'Synchronize views'}
+                bsSize  = {@button_size()}
+                onClick = {=>@props.actions.sync(@props.id)}
+            >
+                <Icon name={'link'} /> {if labels then <VisibleMDLG>Sync</VisibleMDLG>}
+            </Button>
+        </Fragment>
+
     render_replace: ->
         if not @is_visible('replace')
             return
@@ -550,6 +566,7 @@ exports.FrameTitleBar = rclass
             {@render_save_timetravel_group()}
             {@render_undo_redo_group() if not @props.is_public}
             {@render_zoom_group()}
+            {@render_sync()}
             {@render_page_width_height_group()}
             {@render_copy_group()}
             {@render_find_replace_group()}

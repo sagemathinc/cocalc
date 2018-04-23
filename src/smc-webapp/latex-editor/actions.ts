@@ -160,7 +160,7 @@ export class Actions extends BaseActions {
         x: number,
         y: number
     ): Promise<void> {
-        this.set_status("Running SyncTex from pdf to tex...");
+        this.set_status("Running SyncTex...");
         try {
             let output: ExecOutput = await synctex.pdf_to_tex({
                 x,
@@ -170,8 +170,18 @@ export class Actions extends BaseActions {
                 project_id: this.project_id
             });
             this.set_status("");
-            //console.log(output);
-            this.setState({ synctex_pdf_to_tex: output });
+            let i = output.stdout.indexOf("\nLine:");
+            if (i == -1) {
+                throw Error("Couldn't find line.");
+            }
+            let s = output.stdout.slice(i + 6);
+            i = output.stdout.indexOf("\n");
+            if (i != -1) {
+                s = s.slice(0, i);
+            }
+            let line = parseInt(s);
+            this.programmatical_goto_line(line, true, true);
+            // TODO #v1: parse out the filename and open *that* file if need be...
         } catch (err) {
             console.warn("ERROR ", err);
             this.set_error(err);
@@ -269,12 +279,14 @@ export class Actions extends BaseActions {
     }
 
     zoom_page_width(id: string): void {
-        console.log("zoom_page_width", id);
-        this.setState({'zoom_page_width': id});
+        this.setState({ zoom_page_width: id });
     }
 
     zoom_page_height(id: string): void {
-        console.log("zoom_page_height", id);
-        this.setState({'zoom_page_height': id});
+        this.setState({ zoom_page_height: id });
+    }
+
+    sync(id: string): void {
+        this.setState({ sync: id });
     }
 }

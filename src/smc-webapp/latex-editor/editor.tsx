@@ -34,7 +34,8 @@ let pdfjs_buttons = set([
     "decrease_font_size",
     "increase_font_size",
     "zoom_page_width",
-    "zoom_page_height"
+    "zoom_page_height",
+    "sync"
 ]);
 
 const EDITOR_SPEC = {

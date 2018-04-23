@@ -9,6 +9,8 @@ import { throttle } from "underscore";
 import * as $ from "jquery";
 
 import { is_different } from "./misc";
+import { dblclick } from "./mouse-click";
+
 import { Component, React, ReactDOM, rclass, rtypes, Rendered } from "./react";
 const { Loading } = require("../r_misc");
 import { getDocument } from "./pdfjs-doc-cache.ts";
@@ -34,6 +36,7 @@ interface PDFJSProps {
     // reduxProps
     zoom_page_width?: string;
     zoom_page_height?: string;
+    sync?: string;
 }
 
 interface PDFJSState {
@@ -57,7 +60,8 @@ class PDFJS extends Component<PDFJSProps, PDFJSState> {
         return {
             [name]: {
                 zoom_page_width: rtypes.string,
-                zoom_page_height: rtypes.string
+                zoom_page_height: rtypes.string,
+                sync: rtypes.string
             }
         };
     }
@@ -76,7 +80,8 @@ class PDFJS extends Component<PDFJSProps, PDFJSState> {
                     "renderer",
                     "path",
                     "zoom_page_width",
-                    "zoom_page_height"
+                    "zoom_page_height",
+                    "sync"
                 ]
             ) ||
             this.state.loaded != next_state.loaded ||
@@ -126,6 +131,9 @@ class PDFJS extends Component<PDFJSProps, PDFJSState> {
         }
         if (next_props.zoom_page_height == next_props.id) {
             this.zoom_page_height();
+        }
+        if (next_props.sync == next_props.id) {
+            this.sync();
         }
         if (this.props.reload != next_props.reload)
             this.load_doc(next_props.reload);
@@ -179,6 +187,15 @@ class PDFJS extends Component<PDFJSProps, PDFJSState> {
         if (height === undefined) return;
         let scale = (height - 10) / page.pageInfo.view[3];
         this.props.actions.set_font_size(this.props.id, this.font_size(scale));
+    }
+
+    sync() : void {
+        this.props.actions.setState({ sync: undefined });
+        let e = $(ReactDOM.findDOMNode(this.refs.scroll));
+        let offset = e.offset(),
+            height = e.height();
+        if (!offset || !height) return;
+        dblclick(offset.left, offset.top + height / 2);
     }
 
     componentDidMount(): void {
@@ -239,18 +256,7 @@ class PDFJS extends Component<PDFJSProps, PDFJSState> {
                 onScroll={throttle(() => this.on_scroll(), 250)}
                 ref={"scroll"}
             >
-                <div
-                    style={
-                        {}
-                        /*{
-                        transform: `scale(${this.scale()})`,
-                        transformOrigin: "center top 0px",
-                        display: "block"
-                    }*/
-                    }
-                >
-                    {this.render_content()}
-                </div>
+                <div>{this.render_content()}</div>
             </div>
         );
     }

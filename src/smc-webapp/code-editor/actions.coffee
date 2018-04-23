@@ -635,7 +635,7 @@ class exports.Actions extends Actions
     # used when clicking on other user avatar,
     # in the latex editor, etc.
     # If cursor is given, moves the cursor to the line too.
-    programmatical_goto_line: (line, cursor) =>
+    programmatical_goto_line: (line, cursor, focus) =>
         cm = @_recent_cm()
         if not cm?
             return
@@ -644,6 +644,8 @@ class exports.Actions extends Actions
         cm.scrollIntoView(pos, info.clientHeight/2)
         if cursor
             cm.setCursor(pos)
+        if focus
+            cm.focus()
 
     cut: (id) =>
         cm = @_get_cm(id)
