@@ -2,12 +2,17 @@
 This is a rewrite of what we're using from smc-util/misc...
 */
 
-export function path_split(path: string): { head: string; tail: string } {
+interface SplittedPath {
+    head: string;
+    tail: string;
+}
+
+export function path_split(path: string): SplittedPath {
     const v = path.split("/");
     return { head: v.slice(0, -1).join("/"), tail: v[v.length - 1] };
 }
 
-export function capitalize(s : string ) : string {
+export function capitalize(s: string): string {
     return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
@@ -26,7 +31,7 @@ export function filename_extension(filename: string): string {
 export function separate_file_extension(
     name: string
 ): { name: string; ext: string } {
-    const ext : string = filename_extension(name);
+    const ext: string = filename_extension(name);
     if (ext !== "") {
         name = name.slice(0, name.length - ext.length - 1); // remove the ext and the .
     }
@@ -34,16 +39,16 @@ export function separate_file_extension(
 }
 
 // Like Python splitlines.
-export function splitlines(s : string) : string[] {
+export function splitlines(s: string): string[] {
     const r = s.match(/[^\r\n]+/g);
     return r ? r : [];
 }
 
-export function is_different(a : any, b : any, fields : string[]) : boolean {
-    let field : string;
+export function is_different(a: any, b: any, fields: string[]): boolean {
+    let field: string;
     if (a == null) {
         if (b == null) {
-            return false;  // they are the same
+            return false; // they are the same
         }
         // a not defined but b is
         for (field of fields) {
@@ -57,10 +62,10 @@ export function is_different(a : any, b : any, fields : string[]) : boolean {
         // a is defined or would be handled above
         for (field of fields) {
             if (a[field] != null) {
-                return true;  // different
+                return true; // different
             }
         }
-        return false;  // same
+        return false; // same
     }
 
     for (field of fields) {

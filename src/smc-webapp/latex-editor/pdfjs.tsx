@@ -189,7 +189,7 @@ class PDFJS extends Component<PDFJSProps, PDFJSState> {
         this.props.actions.set_font_size(this.props.id, this.font_size(scale));
     }
 
-    sync() : void {
+    sync(): void {
         this.props.actions.setState({ sync: undefined });
         let e = $(ReactDOM.findDOMNode(this.refs.scroll));
         let offset = e.offset(),

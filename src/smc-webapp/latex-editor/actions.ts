@@ -180,6 +180,7 @@ export class Actions extends BaseActions {
                 s = s.slice(0, i);
             }
             let line = parseInt(s);
+            console.log('goto line', line);
             this.programmatical_goto_line(line, true, true);
             // TODO #v1: parse out the filename and open *that* file if need be...
         } catch (err) {

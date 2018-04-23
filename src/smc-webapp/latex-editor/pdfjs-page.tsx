@@ -2,7 +2,7 @@
 Manages rendering a single page using either SVG or Canvas
 */
 
-import { React, Component } from "./react";
+import { React, Rendered, Component } from "./react";
 
 const { Loading } = require("../r_misc");
 import { is_different } from "./misc";
@@ -73,7 +73,7 @@ export class Page extends Component<PageProps, PageState> {
         this.load_page(this.props.doc);
     }
 
-    render_content() {
+    render_content() : Rendered {
         if (!this.state.page.version)
             return <Loading text={`Loading page ${this.props.n}$...`} />;
         else if (this.props.renderer == "svg") {
@@ -85,6 +85,14 @@ export class Page extends Component<PageProps, PageState> {
         }
     }
 
+    render_page_number() : Rendered {
+        return (
+            <div style={{ textAlign: "center", color: "white" }}>
+                Page {this.props.n}
+            </div>
+        );
+    }
+
     click(event): void {
         let x: number = event.nativeEvent.offsetX / this.props.scale; // / width;
         let y: number = event.nativeEvent.offsetY / this.props.scale; // / height;
@@ -93,11 +101,14 @@ export class Page extends Component<PageProps, PageState> {
 
     render() {
         return (
-            <div
-                style={{ background: "#525659", paddingTop: "10px" }}
-                onDoubleClick={e => this.click(e)}
-            >
-                {this.render_content()}
+            <div>
+                {this.render_page_number()}
+                <div
+                    style={{ background: "#525659" }}
+                    onDoubleClick={e => this.click(e)}
+                >
+                    {this.render_content()}
+                </div>
             </div>
         );
     }
