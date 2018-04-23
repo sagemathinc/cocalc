@@ -102,6 +102,7 @@ const EDITOR_SPEC = {
         buttons: set(["reload", "decrease_font_size", "increase_font_size"])
     },
 
+    /*
     embed: {
         short: "PDF (native)",
         name: "PDF - Native",
@@ -110,7 +111,6 @@ const EDITOR_SPEC = {
         component: PDFEmbed,
         path: pdf_path
     }
-    /*
     latexjs: {
         short: "Preview 1",
         name: "Rough Preview  1 - LaTeX.js",

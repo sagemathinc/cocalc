@@ -34,6 +34,10 @@ TITLE_STYLE =
     display  : 'inline-block'
     float    : 'right'
 
+ICON_STYLE =
+    width: '20px'
+    display: 'inline-block'
+
 button_size = 'small'
 if IS_TOUCH
     close_style = undefined
@@ -120,7 +124,7 @@ exports.FrameTitleBar = rclass
                         eventKey = {type}
                         onSelect = {@select_type}
                     >
-                    <Icon name={spec.icon}/> {spec.name}
+                    <Icon name={spec.icon} style={ICON_STYLE} /> {spec.name}
                 </MenuItem>
             items.push(item)
 
