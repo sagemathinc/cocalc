@@ -12,6 +12,8 @@ import { CanvasPage } from "./pdfjs-canvas-page.tsx";
 
 import { PDFPageProxy, PDFDocumentProxy } from "pdfjs-dist/webpack";
 
+export const PAGE_GAP: number = 20;
+
 interface PageProps {
     actions: any;
     n: number;
@@ -73,7 +75,7 @@ export class Page extends Component<PageProps, PageState> {
         this.load_page(this.props.doc);
     }
 
-    render_content() : Rendered {
+    render_content(): Rendered {
         if (!this.state.page.version)
             return <Loading text={`Loading page ${this.props.n}$...`} />;
         else if (this.props.renderer == "svg") {
@@ -85,17 +87,23 @@ export class Page extends Component<PageProps, PageState> {
         }
     }
 
-    render_page_number() : Rendered {
+    render_page_number(): Rendered {
         return (
-            <div style={{ textAlign: "center", color: "white" }}>
+            <div
+                style={{
+                    textAlign: "center",
+                    color: "white",
+                    height: `${PAGE_GAP}px`
+                }}
+            >
                 Page {this.props.n}
             </div>
         );
     }
 
     click(event): void {
-        let x: number = event.nativeEvent.offsetX / this.props.scale; // / width;
-        let y: number = event.nativeEvent.offsetY / this.props.scale; // / height;
+        let x: number = event.nativeEvent.offsetX / this.props.scale;
+        let y: number = event.nativeEvent.offsetY / this.props.scale;
         this.props.actions.synctex_pdf_to_tex(this.props.n, x, y);
     }
 

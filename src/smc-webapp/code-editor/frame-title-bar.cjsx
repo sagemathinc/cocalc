@@ -240,7 +240,7 @@ exports.FrameTitleBar = rclass
             <Space />
             <Button
                 key     = {'sync'}
-                title   = {'Synchronize views'}
+                title   = {'Synchronize views (alt+enter)'}
                 bsSize  = {@button_size()}
                 onClick = {=>@props.actions.sync(@props.id)}
             >

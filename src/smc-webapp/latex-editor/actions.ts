@@ -6,6 +6,8 @@ const WIKI_HELP_URL = "https://github.com/sagemathinc/cocalc/wiki/LaTeX-Editor";
 
 import { fromJS, Map } from "immutable";
 
+import * as CodeMirror from "codemirror";
+
 //import { Actions as BaseActions } from "../code-editor/actions";
 const BaseActions = require("../code-editor/actions").Actions;
 
@@ -162,7 +164,7 @@ export class Actions extends BaseActions {
     ): Promise<void> {
         this.set_status("Running SyncTex...");
         try {
-            let output: ExecOutput = await synctex.pdf_to_tex({
+            let info = await synctex.pdf_to_tex({
                 x,
                 y,
                 page,
@@ -170,29 +172,26 @@ export class Actions extends BaseActions {
                 project_id: this.project_id
             });
             this.set_status("");
-            let i = output.stdout.indexOf("\nLine:");
-            if (i == -1) {
-                throw Error("Couldn't find line.");
-            }
-            let s = output.stdout.slice(i + 6);
-            i = output.stdout.indexOf("\n");
-            if (i != -1) {
-                s = s.slice(0, i);
-            }
-            let line = parseInt(s);
-            console.log('goto line', line);
+            console.log(info);
+            let line = info.Line;
+            console.log("goto line", line);
+            // TODO #v1: info.Input="/home/user/projects/98e85b9b-51bb-4889-be47-f42698c37ed4/./a.tex", so
+            // go to the right file!
             this.programmatical_goto_line(line, true, true);
-            // TODO #v1: parse out the filename and open *that* file if need be...
         } catch (err) {
             console.warn("ERROR ", err);
             this.set_error(err);
         }
     }
 
-    async synctex_tex_to_pdf(line, column, filename): Promise<void> {
+    async synctex_tex_to_pdf(
+        line: number,
+        column: number,
+        filename: string
+    ): Promise<void> {
         this.set_status("Running SyncTex from tex to pdf...");
         try {
-            let output: ExecOutput = await synctex.tex_to_pdf({
+            let info = await synctex.tex_to_pdf({
                 line,
                 column,
                 tex_path: filename ? filename : this.path,
@@ -200,8 +199,7 @@ export class Actions extends BaseActions {
                 project_id: this.project_id
             });
             this.set_status("");
-            this.setState({ synctex_tex_to_pdf: output });
-            console.log(output);
+            this.setState({scroll_into_view:{page:info.Page, y:info.y}})
         } catch (err) {
             console.warn("ERROR ", err);
             this.set_error(err);
@@ -288,6 +286,20 @@ export class Actions extends BaseActions {
     }
 
     sync(id: string): void {
-        this.setState({ sync: id });
+        let cm = this._cm[id];
+        if (cm !== undefined) {
+            // Clicked the sync button from within an editor
+            this.forward_search(id);
+        } else {
+            // Clicked on a preview pane -- let the preview pane do the work.
+            this.setState({ sync: id });
+        }
+    };
+
+    forward_search(id: string): void {
+        let cm: CodeMirror.Editor = this._get_cm(id);
+        if (!cm) return;
+        let { line, ch } = cm.getDoc().getCursor();
+        this.synctex_tex_to_pdf(line, ch, this.path);
     }
 }

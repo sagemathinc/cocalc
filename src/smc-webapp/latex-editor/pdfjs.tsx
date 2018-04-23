@@ -15,9 +15,9 @@ import { Component, React, ReactDOM, rclass, rtypes, Rendered } from "./react";
 const { Loading } = require("../r_misc");
 import { getDocument } from "./pdfjs-doc-cache.ts";
 import { raw_url } from "./util";
-import { Page } from "./pdfjs-page.tsx";
+import { Page, PAGE_GAP } from "./pdfjs-page.tsx";
 
-import { PDFDocumentProxy } from "pdfjs-dist/webpack";
+import { PDFDocumentProxy, PDFPageProxy } from "pdfjs-dist/webpack";
 
 // Ensure this jQuery plugin is defined:
 import "./mouse-draggable.ts";
@@ -37,6 +37,7 @@ interface PDFJSProps {
     zoom_page_width?: string;
     zoom_page_height?: string;
     sync?: string;
+    scroll_into_view?: { page: number; y: number };
 }
 
 interface PDFJSState {
@@ -61,7 +62,8 @@ class PDFJS extends Component<PDFJSProps, PDFJSState> {
             [name]: {
                 zoom_page_width: rtypes.string,
                 zoom_page_height: rtypes.string,
-                sync: rtypes.string
+                sync: rtypes.string,
+                scroll_into_view: rtypes.object
             }
         };
     }
@@ -81,7 +83,8 @@ class PDFJS extends Component<PDFJSProps, PDFJSState> {
                     "path",
                     "zoom_page_width",
                     "zoom_page_height",
-                    "sync"
+                    "sync",
+                    "scroll_into_view"
                 ]
             ) ||
             this.state.loaded != next_state.loaded ||
@@ -125,6 +128,43 @@ class PDFJS extends Component<PDFJSProps, PDFJSState> {
         }
     }
 
+    async scroll_into_view(page: number, y: number): Promise<void> {
+        this.props.actions.setState({ scroll_into_view: undefined }); // we got the message.
+        const doc = this.state.doc;
+        if (!doc) {
+            // can't scroll document into position if we haven't even loaded it yet.  Just do nothing in this case.
+            return;
+        }
+        /*
+        We iterative through each page in the document, determine its height, and add that
+        to a running total, along with the gap between pages.  Once we get to the given page,
+        we then just add y.  We then scroll the containing div down to that position.
+        */
+        try {
+            // Get all pages before page we are scrolling to in parallel.
+            let page_promises: PDFPageProxy[] = [];
+            for (let n = 1; n <= page; n++) {
+                page_promises.push(doc.getPage(n));
+            }
+            let pages = await Promise.all(page_promises);
+            if (!this.mounted) return;
+            const scale = this.scale();
+            let s = PAGE_GAP + y * scale;
+            for (let page of pages.slice(0, pages.length - 1)) {
+                s += scale * page.pageInfo.view[3] + PAGE_GAP;
+            }
+            let elt = $(ReactDOM.findDOMNode(this.refs.scroll));
+            let height = elt.height();
+            if (!height) return;
+            s -= height / 2;
+            elt.scrollTop(s);
+        } catch (err) {
+            this.props.actions.set_error(
+                `error scrolling PDF into position -- ${err}`
+            );
+        }
+    }
+
     componentWillReceiveProps(next_props: PDFJSProps): void {
         if (next_props.zoom_page_width == next_props.id) {
             this.zoom_page_width();
@@ -137,6 +177,13 @@ class PDFJS extends Component<PDFJSProps, PDFJSState> {
         }
         if (this.props.reload != next_props.reload)
             this.load_doc(next_props.reload);
+        if (
+            next_props.scroll_into_view &&
+            this.props.scroll_into_view !== next_props.scroll_into_view
+        ) {
+            let { page, y } = next_props.scroll_into_view;
+            this.scroll_into_view(page, y);
+        }
     }
 
     componentWillUnmount(): void {

@@ -89,6 +89,10 @@ exports.cm_options = (opts) ->
         if opts.bindings != 'emacs'
             extraKeys['Ctrl-P'] = -> actions.print()
 
+    if actions.sync?
+        extraKeys["Alt-Enter"] = ->
+            actions.sync(frame_id)
+
     if actions? and not opts.read_only and opts.bindings != 'emacs'  # emacs bindings really conflict with these
         # Extra codemirror keybindings -- for some of our plugins
         # inspired by http://www.door2windows.com/list-of-all-keyboard-shortcuts-for-sticky-notes-in-windows-7/
