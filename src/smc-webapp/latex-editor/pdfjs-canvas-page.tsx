@@ -33,9 +33,9 @@ export class CanvasPage extends Component<Props, {}> {
         return is_different(this.props, next_props, ["version", "scale"]);
     }
 
-    async render_page(page: PDFPageProxy): Promise<void> {
+    async render_page(page: PDFPageProxy, scale: number): Promise<void> {
         const div: HTMLElement = ReactDOM.findDOMNode(this);
-        const viewport: PDFPageViewport = page.getViewport(this.props.scale);
+        const viewport: PDFPageViewport = page.getViewport(scale);
         const canvas: HTMLCanvasElement = document.createElement("canvas");
         const ctx = canvas.getContext("2d");
         canvas.width = viewport.width;
@@ -55,11 +55,11 @@ export class CanvasPage extends Component<Props, {}> {
     }
 
     componentWillReceiveProps(next_props: Props): void {
-        this.render_page(next_props.page);
+        this.render_page(next_props.page, next_props.scale);
     }
 
     componentDidMount(): void {
-        this.render_page(this.props.page);
+        this.render_page(this.props.page, this.props.scale);
     }
 
     render() {

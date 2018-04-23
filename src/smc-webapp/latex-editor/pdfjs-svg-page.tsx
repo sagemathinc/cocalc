@@ -15,12 +15,12 @@ export class SVGPage extends Component<Props, {}> {
     private mounted: boolean;
 
     shouldComponentUpdate(next_props: Props) {
-        return is_different(this.props, next_props, ['version', 'scale']);
+        return is_different(this.props, next_props, ["version", "scale"]);
     }
 
-    async render_page(page: PDFPageProxy): Promise<void> {
+    async render_page(page: PDFPageProxy, scale: number): Promise<void> {
         const div: HTMLElement = ReactDOM.findDOMNode(this);
-        const viewport: PDFPageViewport = page.getViewport(this.props.scale);
+        const viewport: PDFPageViewport = page.getViewport(scale);
         div.style.width = viewport.width + "px";
         div.style.height = viewport.height + "px";
 
@@ -38,7 +38,7 @@ export class SVGPage extends Component<Props, {}> {
     }
 
     componentWillReceiveProps(next_props: Props): void {
-        this.render_page(next_props.page);
+        this.render_page(next_props.page, next_props.scale);
     }
 
     componentWillUnmount(): void {
@@ -47,7 +47,7 @@ export class SVGPage extends Component<Props, {}> {
 
     componentDidMount(): void {
         this.mounted = true;
-        this.render_page(this.props.page);
+        this.render_page(this.props.page, this.props.scale);
     }
 
     render() {

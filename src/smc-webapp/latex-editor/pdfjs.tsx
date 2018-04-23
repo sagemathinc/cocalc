@@ -151,17 +151,34 @@ class PDFJS extends Component<PDFJSProps, PDFJSState> {
         $(ReactDOM.findDOMNode(this.refs.scroll)).on("click", blur_codemirror);
     }
 
-    zoom_page_width(): void {
-        console.log("component zoom_page_width");
-        let elt = $(ReactDOM.findDOMNode(this.refs.scroll));
-        let zoom = this.props.font_size / 12;
-        window.x = { elt: elt, zoom: zoom, doc: this.state.doc };
-        this.props.actions.setState({ zoom_page_width: undefined });
+    async zoom_page_width(): Promise<void> {
+        this.props.actions.setState({ zoom_page_width: undefined }); // we got the message.
+        let page;
+        try {
+            page = await this.state.doc.getPage(1);
+            if (!this.mounted) return;
+        } catch (err) {
+            return; // Can't load, maybe there is no page 1, etc...
+        }
+        let width = $(ReactDOM.findDOMNode(this.refs.scroll)).width();
+        if (width === undefined) return;
+        let scale = (width - 10) / page.pageInfo.view[2];
+        this.props.actions.set_font_size(this.props.id, this.font_size(scale));
     }
 
-    zoom_page_height(): void {
-        console.log("component zoom_page_height");
+    async zoom_page_height(): Promise<void> {
         this.props.actions.setState({ zoom_page_height: undefined });
+        let page;
+        try {
+            page = await this.state.doc.getPage(1);
+            if (!this.mounted) return;
+        } catch (err) {
+            return;
+        }
+        let height = $(ReactDOM.findDOMNode(this.refs.scroll)).height();
+        if (height === undefined) return;
+        let scale = (height - 10) / page.pageInfo.view[3];
+        this.props.actions.set_font_size(this.props.id, this.font_size(scale));
     }
 
     componentDidMount(): void {
@@ -204,6 +221,10 @@ class PDFJS extends Component<PDFJSProps, PDFJSState> {
 
     scale(): number {
         return this.props.font_size / 12;
+    }
+
+    font_size(scale: number): number {
+        return 12 * scale;
     }
 
     render() {

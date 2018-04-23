@@ -452,13 +452,19 @@ class exports.Actions extends Actions
         if font_size < 2
             font_size = 2
         @set_frame_tree(id:id, font_size:font_size)
-        @_get_cm(id)?.focus()
+        @_cm[id]?.focus()
 
     increase_font_size: (id) =>
         @change_font_size(1, id)
 
     decrease_font_size: (id) =>
         @change_font_size(-1, id)
+
+    set_font_size: (id, font_size) =>
+        if not id?
+            return
+        @set_frame_tree(id:id, font_size:font_size)
+        @_cm[id]?.focus()
 
     set_cm: (id, cm) =>
         sel = @_cm_selections?[id]

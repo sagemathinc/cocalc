@@ -64,7 +64,7 @@ const EDITOR_SPEC = {
 
     pdfjs_svg: {
         short: "PDF (svg)",
-        name: "PDF View - SVG",
+        name: "PDF - SVG",
         icon: "file-pdf-o",
         component: PDFJS,
         buttons: pdfjs_buttons,
@@ -75,7 +75,7 @@ const EDITOR_SPEC = {
 
     pdfjs_canvas: {
         short: "PDF (canvas)",
-        name: "PDF View - Canvas",
+        name: "PDF - Canvas",
         icon: "file-pdf-o",
         component: PDFJS,
         buttons: pdfjs_buttons,
@@ -102,7 +102,7 @@ const EDITOR_SPEC = {
 
     embed: {
         short: "PDF (native)",
-        name: "PDF View - Native",
+        name: "PDF - Native",
         icon: "file-pdf-o",
         buttons: set(["print", "save", "reload"]),
         component: PDFEmbed,
