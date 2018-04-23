@@ -102,7 +102,7 @@ Editor for files in a project
                     </span>
                     <span class="hidden-xs btn-group editor-btn-group">
                         <a href="#vim-mode-toggle" class="btn btn-default webapp-editor-write-only" data-toggle="tooltip" data-placement="bottom" title="Toggle VIM mode" style="width:4em">esc</a>
-                        <a href="#autoindent" class="btn btn-default webapp-editor-write-only" data-toggle="tooltip" data-placement="bottom" title="Autoindent selected text"><i class="fa fa-magic"></i></a>
+                        <a href="#autoindent" class="btn btn-default webapp-editor-write-only" data-toggle="tooltip" data-placement="bottom" title="Autoindent selected text"><i class="fa fa-indent"></i></a>
                         <a href="#undo" class="btn btn-default webapp-editor-write-only" data-toggle="tooltip" data-placement="bottom" title="Undo"><i class="fa fa-undo"></i></a>
                         <a href="#redo" class="btn btn-default webapp-editor-write-only" data-toggle="tooltip" data-placement="bottom" title="Redo"><i class="fa fa-repeat"></i></a>
                         <a href="#search" class="btn btn-default btn-history" data-toggle="tooltip" data-placement="bottom" title="Search"><i class="fa fa-search"></i></a>
@@ -121,7 +121,7 @@ Editor for files in a project
                         <a href="#paste" class="btn btn-default btn-history webapp-editor-write-only" data-toggle="tooltip" data-placement="bottom" title="Paste"><i class="fa fa-paste"> </i> </a>
                         <a href="#sagews2pdf" class="btn btn-default webapp-editor-write-only hide" data-toggle="tooltip" data-placement="bottom" title="Convert to PDF"><i class="fa fa-file-pdf-o"> </i> </a>
                         <a href="#print" class="btn btn-default webapp-editor-write-only hide" data-toggle="tooltip" data-placement="bottom" title="Print"><i class="fa fa-print"> </i> </a>
-                        <a href="#sagews2ipynb" class="btn btn-default webapp-editor-write-only hide" data-toggle="tooltip" data-placement="bottom" title="Convert to ipynb"><i class="fa cc-icon-ipynb"> </i> <span class="hidden-sm">Jupyter</span></a>
+                        <a href="#sagews2ipynb" class="btn btn-default webapp-editor-write-only hide" data-toggle="tooltip" data-placement="bottom" title="Convert to ipynb"><i class="cc-icon-ipynb"> </i> <span class="hidden-sm">Jupyter</span></a>
                     </span>
 
                     <span class="btn-group webapp-editor-read-only hide">
@@ -176,9 +176,15 @@ Editor for files in a project
 
                 <div class="webapp-editor-buttonbars webapp-editor-write-only">
                     <div class="webapp-editor-latex-buttonbar hide"></div>
-                    <div class="webapp-editor-codemirror-textedit-buttons hide  visible-md-block visible-lg-block">
+                    <div class="webapp-editor-codemirror-textedit-buttons hide visible-md-block visible-lg-block">
                         <code class="webapp-editor-codeedit-buttonbar-mode pull-right hide"></code>
                         <span class="react-target"></span>
+                        <span class="webapp-editor-codeedit-buttonbar-assistant pull-right hide">
+                            <a href="#assistant" class="btn btn-default"
+                               data-toggle="tooltip" data-placement="bottom" title="Insert examples">
+                               <i class="fa fa-magic"></i> <span class="hidden-sm">Assistant</span>
+                            </a>
+                        </span>
                     </div>
                     <div class="webapp-editor-codemirror-worksheet-editable-buttons hide">
                         <span class="btn-group">
@@ -1059,8 +1065,8 @@ Editor for files in a project
             <a href="#link" data-args="special" class="btn btn-default"  data-toggle="tooltip" data-placement="bottom" title="Insert link..."><i class="fa fa-link"></i></a>
             <a href="#image" data-args="special" class="btn btn-default"  data-toggle="tooltip" data-placement="bottom" title="Insert image..."><i class="fa fa-image"></i></a>
             <a href="#table" data-args="special" class="btn btn-default"  data-toggle="tooltip" data-placement="bottom" title="Insert table"><i class="fa fa-table"></i></a>
-            <a href="#horizontalRule" data-args="special" class="btn btn-default" data-toggle="tooltip" data-placement="bottom" title="Insert horizontal line"><i class="fa">&mdash;</i></a>
-            <a href="#SpecialChar" data-args="special" class="btn btn-default" data-toggle="tooltip" data-placement="bottom" title="Insert Special Character ..."><i class="fa">&Omega;</i></a>
+            <a href="#horizontalRule" data-args="special" class="btn btn-default" data-toggle="tooltip" data-placement="bottom" title="Insert horizontal line">&mdash;</a>
+            <a href="#SpecialChar" data-args="special" class="btn btn-default" data-toggle="tooltip" data-placement="bottom" title="Insert Special Character ...">&Omega;</a>
         </span>
         <span class="btn-group">
             <a href="#justifyleft" class="btn btn-default" data-toggle="tooltip" data-placement="bottom" title="Left justify"><i class="fa fa-align-left"></i></a>

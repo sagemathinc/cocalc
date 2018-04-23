@@ -79,10 +79,10 @@ $.fn.process_smc_links = (opts={}) ->
                     # make links open in a new tab by default
                     a.attr("target","_blank")
 
-        # part #2: process <img> and <object> tags
+        # part #2: process <img>, <object> and <video>/<source> tags
         # make relative links to images use the raw server
         if opts.project_id and opts.file_path?
-            for [tag, attr] in [['img', 'src'], ['object', 'data']]
+            for [tag, attr] in [['img', 'src'], ['object', 'data'], ['video', 'src'], ['source', 'src']]
                 for x in e.find(tag)
                     y = $(x)
                     src = y.attr(attr)

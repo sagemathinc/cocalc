@@ -231,7 +231,7 @@ class ProjectsActions extends Actions
         @set_project_open(opts.project_id)
         if opts.target?
             redux.getProjectActions(opts.project_id)?.load_target(opts.target, opts.switch_to, opts.ignore_kiosk)
-        redux.getActions('page').save_session()
+        redux.getActions('page').restore_session(opts.project_id)
         # init the library after project started.
         # TODO write a generalized store function that does this in a more robust way
         project_actions.init_library()

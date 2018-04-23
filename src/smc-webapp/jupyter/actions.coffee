@@ -40,6 +40,9 @@ DEFAULT_KERNEL = 'anaconda3'
 
 syncstring    = require('smc-util/syncstring')
 
+{instantiate_assistant} = require('../assistant/main')
+
+
 ###
 The actions -- what you can do with a jupyter notebook, and also the
 underlying synchronized state.
@@ -68,12 +71,18 @@ class exports.JupyterActions extends Actions
         @util = util # TODO: for debugging only
         @_state      = 'init'   # 'init', 'load', 'ready', 'closed'
         @store       = store
+        @project_id  = project_id
+        @path        = path
         store.syncdb = syncdb
         @syncdb      = syncdb
         @_client     = client
         @_is_project = client.is_project()  # the project client is designated to manage execution/conflict, etc.
         store._is_project = @_is_project
         @_account_id = client.client_id()   # project or account's id
+
+        # this initializes actions+store for the assistant -- are "sub-actions" a thing?
+        if not @_is_project   # this is also only a UI specific action
+            @assistant_actions = instantiate_assistant(project_id, path)
 
         @setState
             view_mode           : 'normal'
@@ -180,7 +189,7 @@ class exports.JupyterActions extends Actions
         if @_state == 'closed'
             return
         @_key_handler ?= keyboard.create_key_handler(@)
-        @redux.getActions('page').set_active_key_handler(@_key_handler)
+        @redux.getActions('page').set_active_key_handler(@_key_handler, @project_id, @path)
 
     disable_key_handler: =>
         @redux.getActions('page').erase_active_key_handler(@_key_handler)
@@ -1570,6 +1579,39 @@ class exports.JupyterActions extends Actions
     close_keyboard_shortcuts: =>
         @setState(keyboard_shortcuts:undefined)
         @focus_unlock()
+
+    show_code_assistant: =>
+        return if not @assistant_actions?
+        @blur_lock()
+
+        # special case: sage is language "python", but the assistant needs "sage"
+        if misc.startswith(@store.get('kernel'), 'sage')
+            lang = 'sage'
+        else
+            lang = @store.getIn(['kernel_info', 'language'])
+
+        @assistant_actions.init(lang)
+        @assistant_actions.set(
+            show            : true
+            lang            : lang
+            lang_select     : false
+            handler         : @code_assistant_handler
+        )
+
+    code_assistant_handler: (data) =>
+        @focus_unlock()
+        {code, descr} = data
+        #if DEBUG then console.log("assistant data:", data, code, descr)
+
+        if descr?
+            descr_cell = @insert_cell(1)
+            @set_cell_input(descr_cell, descr)
+            @set_cell_type(descr_cell, cell_type='markdown')
+
+        code_cell = @insert_cell(1)
+        @set_cell_input(code_cell, code)
+        @run_code_cell(code_cell)
+        @scroll('cell visible')
 
     _keyboard_settings: =>
         if not @_account_change_editor_settings?

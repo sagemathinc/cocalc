@@ -135,45 +135,82 @@ exports.Icon = Icon = rclass
         name    : 'square-o'
         onClick : ->
 
-    render: ->
-        {name, size, rotate, flip, spin, pulse, fixedWidth, stack, inverse, className, style} = @props
-        # temporary until file_associations can be changed
-        if name.slice(0, 3) == 'cc-' and name isnt 'cc-stripe'
-            classNames = "fa #{name}"
-            # the cocalc icon font can't do any extra tricks
+    render_icon: ->
+        {name, size, rotate, flip, spin, pulse, fixedWidth, stack, inverse, className} = @props
+
+        i = name.indexOf('cc-icon')
+
+        if i != -1 and spin
+            # Temporary workaround because cc-icon-cocalc-ring is not a font awesome JS+SVG icon, so
+            # spin, etc., doesn't work on it.  There is a discussion at
+            # https://stackoverflow.com/questions/19364726/issue-making-bootstrap3-icon-spin
+            # about spinning icons, but it's pretty subtle and hard to get right, so I hope
+            # we don't have to implement our own.  Also see
+            # "Icon animation wobble foibles" at https://fontawesome.com/how-to-use/web-fonts-with-css
+            # where they say "witch to the SVG with JavaScript version, it's working a lot better for this".
+            name = 'fa-circle-notch'
+            i = -1
+
+        if i != -1
+            # A custom Cocalc font icon.  Don't even bother with font awesome at all!
+            classNames = name.slice(i)
         else
-            # temporary until file_associations can be changed
-            if name.slice(0, 3) == 'fa-'
-                classNames = "fa #{name}"
+            left = name.slice(0,3)
+            if left == 'fas' or left == 'fab' or left == 'far'
+                # version 5 names are different!  https://fontawesome.com/how-to-use/use-with-node-js
+                # You give something like: 'fas fa-blah'.
+                classNames = name
             else
-                classNames = "fa fa-#{name}"
-        if size
-            classNames += " fa-#{size}"
-        if rotate
-            classNames += " fa-rotate-#{rotate}"
-        if flip
-            classNames += " fa-flip-#{flip}"
-        if fixedWidth
-            classNames += ' fa-fw'
-        if spin
-            classNames += ' fa-spin'
-        if pulse
-            classNames += ' fa-pulse'
-        if stack
-            classNames += " fa-stack-#{stack}"
-        if inverse
-            classNames += ' fa-inverse'
+                # temporary until file_associations can be changed
+                if name.slice(0, 3) == 'cc-' and name isnt 'cc-stripe'
+                    classNames = "fa #{name}"
+                    # the cocalc icon font can't do any extra tricks
+                else
+                    # temporary until file_associations can be changed
+                    if name.slice(0, 3) == 'fa-'
+                        classNames = "fa #{name}"
+                    else
+                        classNames = "fa fa-#{name}"
+            # These only make sense for font awesome.
+            if size
+                classNames += " fa-#{size}"
+            if rotate
+                classNames += " fa-rotate-#{rotate}"
+            if flip
+                classNames += " fa-flip-#{flip}"
+            if fixedWidth
+                classNames += ' fa-fw'
+            if spin
+                classNames += ' fa-spin'
+            if pulse
+                classNames += ' fa-pulse'
+            if stack
+                classNames += " fa-stack-#{stack}"
+            if inverse
+                classNames += ' fa-inverse'
+
         if className
             classNames += " #{className}"
-        <i
-            style       = {style}
-            className   = {classNames}
+        <i className={classNames} />
+
+    render: ->
+        # Wrap in a span for **two** reasons.
+        # 1. A reasonable one -- have to wrap the i, since when rendered using js and svg by new fontawesome 5,
+        # the click handlers of the <i> object are just ignored, since it is removed from the DOM!
+        # This is important the close button on tabs.
+        # 2. An evil one -- FontAwesome's javascript mutates the DOM.  Thus we put a random key in so,
+        # that React just replaces the whole part of the DOM where the SVG version of the icon is,
+        # and doesn't get tripped up by this.   A good example where this is used is when *running* Jupyter
+        # notebooks.
+        <span
+            onClick     = {@props.onClick}
             onMouseOver = {@props.onMouseOver}
             onMouseOut  = {@props.onMouseOut}
-            onClick     = {@props.onClick}
+            key         = {Math.random()}
+            style       = {@props.style}
         >
-                {@props.children}
-        </i>
+            {@render_icon()}
+        </span>
 
 # this Octicon icon class requires the CSS file in octicons/octicons/octicons.css (see landing.coffee)
 exports.Octicon = rclass
@@ -709,6 +746,7 @@ exports.SearchInput = rclass
         on_clear        : rtypes.func    # invoked without arguments when input box is cleared (eg. via esc or clicking the clear button)
         clear_on_submit : rtypes.bool    # if true, will clear search box on every submit (default: false)
         buttonAfter     : rtypes.element
+        input_class     : rtypes.string  # className for the InputGroup element
 
     shouldComponentUpdate: (props, state) ->
         return misc.is_different(@state, state, ['value', 'ctrl_down']) or \
@@ -785,7 +823,7 @@ exports.SearchInput = rclass
 
     render: ->
         <FormGroup style={@props.style}>
-            <InputGroup>
+            <InputGroup className={@props.input_class}>
                 <FormControl
                     autoFocus   = {@props.autoFocus}
                     ref         = 'input'

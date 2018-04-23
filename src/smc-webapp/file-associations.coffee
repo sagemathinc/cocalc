@@ -42,6 +42,7 @@ codemirror_associations =
     js     : 'javascript'
     jsx    : 'jsx'
     json   : 'javascript'
+    ls     : 'text/x-livescript'
     lua    : 'lua'
     m      : 'text/x-octave'
     md     : 'gfm'
@@ -51,6 +52,7 @@ codemirror_associations =
     gp     : 'text/pari'
     go     : 'text/x-go'
     pari   : 'text/pari'
+    pegjs  : 'pegjs'
     php    : 'php'
     pl     : 'text/x-perl'
     py     : 'python'
@@ -72,6 +74,7 @@ codemirror_associations =
     txt    : 'text'
     tex    : 'stex2'
     ts     : 'application/typescript'
+    tsx    : 'text/typescript-jsx'
     toml   : 'text/x-toml'
     bib    : 'stex'
     bbl    : 'stex'
@@ -91,6 +94,14 @@ for ext, mode of codemirror_associations
             'cc-icon-python'
         when 'coffeescript'
             'fa-coffee'
+        when 'javascript'
+            'fab fa-js-square'
+        when 'jsx'
+            'fab fa-node-js'
+        when 'application/typescript' # it would be nice to have proper TS icons...
+            'fab fa-js-square'
+        when 'text/typescript-jsx'    # would be nice to have proper TS...
+            'fab fa-node-js'
         else
             'fa-file-code-o'
     if ext in ['r', 'rmd']

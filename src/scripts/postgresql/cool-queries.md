@@ -67,7 +67,9 @@ Problems people are having right now:
 
     select NOW() - time as timeago, left(account_id::VARCHAR,6), left(error,80) as error from client_error_log order by time desc limit 50;
 
-    select NOW() - time as timeago, left(account_id::VARCHAR,6), left(error,80) as error from client_error_log where error like 'Error saving%' order by time desc limit 50;
+    select NOW() - time as timeago, left(error,300) as error from client_error_log where error like '%Error saving file%' order by time desc limit 50;
+
+    select NOW() - time as timeago, left(error,300) as error from client_error_log where error like '%has_unsaved_changes%' order by time desc limit 50;
 
 File access for a user with given email address:
 
@@ -195,6 +197,21 @@ Copied library entries .. timestamp is about when the feature was released
      AND time >= '2017-12-12'::TIMESTAMP
     GROUP BY title, docid
     ORDER BY count DESC;
+
+Usage of Assistant Examples
+
+    WITH stats AS (
+        SELECT COUNT(*) AS cnt
+             , event ->> 'lang' AS lang
+             , event ->> 'entry' as entry
+             , lower(reverse(split_part(reverse(event ->> 'path'), '.', 1))) AS filetype
+         FROM project_log WHERE time >= '2018-04-05'::TIMESTAMP
+          AND event ->> 'event' = 'assistant'
+        GROUP BY lang, entry, filetype
+    )
+    SELECT * FROM stats
+    WHERE cnt > 1
+    ORDER BY cnt DESC;
 
 
 ## Stripe

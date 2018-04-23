@@ -23,6 +23,7 @@ Top-level react component, which ties everything together
 {KeyboardShortcuts} = require('./keyboard-shortcuts')
 {JSONView}          = require('./json-view')
 {RawEditor}         = require('./raw-editor')
+{ExamplesDialog}    = require('smc-webapp/assistant/dialog')
 
 KERNEL_STYLE =
     position        : 'absolute'
@@ -207,18 +208,24 @@ exports.JupyterEditor = rclass ({name}) ->
             cur_id           = {@props.cur_id}
             cells            = {@props.cells}
             cell_list        = {@props.cell_list}
-            />
+        />
 
     render_confirm_dialog: ->
         <ConfirmDialog
             actions        = {@props.actions}
             confirm_dialog = {@props.confirm_dialog}
-            />
+        />
 
     render_keyboard_shortcuts: ->
         <KeyboardShortcuts
             actions            = {@props.actions}
             keyboard_shortcuts = {@props.keyboard_shortcuts}
+        />
+
+    render_assistant_dialog: ->
+        <ExamplesDialog
+            name     = {@props.actions.assistant_actions.name}
+            actions  = {@props.actions.assistant_actions}
         />
 
     render_json_viewer: ->
@@ -262,6 +269,7 @@ exports.JupyterEditor = rclass ({name}) ->
             {@render_edit_cell_metadata()}
             {@render_find_and_replace()}
             {@render_keyboard_shortcuts()}
+            {@render_assistant_dialog()}
             {@render_confirm_dialog()}
             {@render_heading()}
             {@render_main_view()}

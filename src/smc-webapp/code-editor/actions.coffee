@@ -5,10 +5,11 @@ Code Editor Actions
 WIKI_HELP_URL   = "https://github.com/sagemathinc/cocalc/wiki/editor"  # TODO -- write this
 SAVE_ERROR      = 'Error saving file to disk. '
 SAVE_WORKAROUND = 'Ensure your network connection is solid. If this problem persists, you might need to close and open this file, or restart this project in Project Settings.'
-SAVE_RETRIES    = 15  # how many times to retry to save (and get no unsaved changes), until giving up
+MAX_SAVE_TIME_S = 30  # how long to retry to save (and get no unsaved changes), until giving up and showing an error.
 
 immutable       = require('immutable')
 underscore      = require('underscore')
+async           = require('async')
 
 schema          = require('smc-util/schema')
 
@@ -20,6 +21,7 @@ copypaste       = require('../copy-paste-buffer')
 tree_ops        = require('./tree-ops')
 print           = require('./print')
 spell_check     = require('./spell-check')
+cm_doc_cache    = require('./doc')
 
 class exports.Actions extends Actions
     _init: (project_id, path, is_public, store) =>
@@ -89,14 +91,19 @@ class exports.Actions extends Actions
             if err
                 @set_error("Error opening -- #{err}")
 
-        @_syncstring.once('init', @_syncstring_metadata)
+        @_syncstring.once 'init', =>
+            @_syncstring_metadata()
+            if not @store.get('is_loaded')
+                @setState(is_loaded: true)
+
         @_syncstring.on('metadata-change', @_syncstring_metadata)
         @_syncstring.on('cursor_activity', @_syncstring_cursor_activity)
 
         @_syncstring.on('change', @_syncstring_change)
         @_syncstring.on('init', @_syncstring_change)
 
-        @_syncstring.once('load-time-estimate', (est) => @setState(load_time_estimate: est))
+        @_syncstring.once 'load-time-estimate', (est) =>
+            @setState(load_time_estimate: est)
 
         @_syncstring.on 'save-to-disk', =>
             # incremenet save_to_disk counter, so that react components can react to save_to_disk event happening.
@@ -106,7 +113,7 @@ class exports.Actions extends Actions
 
     set_reload: (type) =>
         reload = @store.get('reload') ? immutable.Map()
-        @setState(reload: reload.set(type, (reload.get(type) ? 0) + 1))
+        @setState(reload: reload.set(type, @_syncstring.hash_of_saved_version()))
 
     set_resize: =>
         @setState(resize: (@store.get('resize') ? 0) + 1)
@@ -126,6 +133,7 @@ class exports.Actions extends Actions
             @_syncstring._save()
             @_syncstring.close()
             delete @_syncstring
+            cm_doc_cache.close(path: @path, project_id: @project_id)
 
     __save_local_view_state: =>
         local_view_state = @store.get('local_view_state')
@@ -309,7 +317,7 @@ class exports.Actions extends Actions
         if @_state == 'closed'
             return
         @_key_handler ?= keyboard.create_key_handler(@)
-        @redux.getActions('page').set_active_key_handler(@_key_handler)
+        @redux.getActions('page').set_active_key_handler(@_key_handler, @project_id, @path)
 
     disable_key_handler: =>
         @redux.getActions('page').erase_active_key_handler(@_key_handler)
@@ -358,8 +366,6 @@ class exports.Actions extends Actions
             @setState(cursors: cursors)
 
     _syncstring_change: (changes) =>
-        if not @store.get('is_loaded')
-            @setState(is_loaded: true)
         @update_save_status?()
 
     set_cursor_locs:  (locs=[], side_effect) =>
@@ -391,19 +397,20 @@ class exports.Actions extends Actions
                     @set_error("#{SAVE_ERROR} '#{err}'.  #{SAVE_WORKAROUND}")
                     cb()
                 else
-                    if misc.startswith(@store.get('error'), SAVE_ERROR)
+                    done = not @store.get('has_unsaved_changes')
+                    if done and misc.startswith(@store.get('error'), SAVE_ERROR)
                         @set_error('')
-                    cb(@store.get('has_unsaved_changes'))
+                    cb(not done)
 
         misc.retry_until_success
             f         : f
-            max_tries : SAVE_RETRIES
+            max_time  : MAX_SAVE_TIME_S*1000
+            max_delay : 6000
             cb        : (err) =>
                 if err
-                    console.log(err)
+                    console.warn(err)
                     @set_error("#{SAVE_ERROR} Despite repeated attempts, the version of the file saved to disk does not equal the version in your browser.  #{SAVE_WORKAROUND}")
                     webapp_client.log_error({string_id:@_syncstring?._string_id, path:@path, project_id:@project_id, error:"Error saving file -- has_unsaved_changes"})
-
 
     save: (explicit) =>
         if @is_public
@@ -618,6 +625,11 @@ class exports.Actions extends Actions
     # sets the mispelled_words part of the state to the immutable
     # Set of those words.  They can then be rendered by any editor/view.
     update_misspelled_words: (time) =>
+        hash = @_syncstring.hash_of_saved_version()
+        if hash == @_update_misspelled_words_last_hash
+            # same file as before, so do not bother.
+            return
+        @_update_misspelled_words_last_hash = hash
         spell_check.misspelled_words
             project_id : @project_id
             path       : @path
@@ -654,6 +666,61 @@ class exports.Actions extends Actions
                     cm.focus()
                     @set_syncstring_to_codemirror()
                     @_syncstring.save()
+
+
+    format: (id) =>  # id ignored right now.
+        if not @_syncstring?
+            return
+        ext = misc.filename_extension(@path)
+        switch ext
+            when 'js', 'jsx'
+                parser = 'babylon'
+            when 'json'
+                parser = 'json'
+            when 'ts', 'tsx'
+                parser = 'typescript'
+            when 'md'
+                parser = 'markdown'
+            when 'css'
+                parser = 'postcss'
+            else
+                return
+        editor_settings = @redux.getStore('account').get('editor_settings')
+        options =
+            tabWidth : editor_settings.get('tab_size')
+            parser   : parser
+            useTabs  : not editor_settings.get('spaces_instead_of_tabs')
+        if parser == 'json'
+            options.tabWidth = 2  # just override it, since package.json, etc., is 2 spaced
+        async.series([
+            (cb) =>
+                @set_status("Ensuring your latest changes are saved...")
+                @set_syncstring_to_codemirror()
+                @_syncstring._save(cb)
+            (cb) =>
+                @set_status("Running Prettier code formatter...")
+                webapp_client.prettier
+                    project_id : @project_id
+                    path       : @path
+                    options    : options
+                    cb         : (err, resp) =>
+                        @set_status("")
+                        if err
+                            error = "Error formatting code: \n#{err}"
+                        else if resp.status == 'error'
+                            start = resp.error?.loc?.start
+                            if start?
+                                error = "Syntax error on line #{start.line} column #{start.column} -- fix and then run prettier again."
+                            else
+                                error = "Syntax error -- please fix then run prettier again."
+                        else
+                            error = undefined
+                        @setState(error: '')
+                        cb(error)
+        ], (err) =>
+            if err
+                @setState(error: err)
+        )
 
     ###
     format_dialog_action: (cmd) ->

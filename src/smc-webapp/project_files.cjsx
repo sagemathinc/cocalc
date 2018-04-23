@@ -1232,12 +1232,14 @@ ProjectFilesActionBox = rclass
         switch @props.file_action
             when 'rename'
                 action_title = 'Rename'
+                first_heading = 'Change the name'
             when 'duplicate'
                 action_title = 'Duplicate'
+                first_heading = 'File to duplicate'
         <div>
             <Row>
                 <Col sm={5} style={color:'#666'}>
-                    <h4>Change the name</h4>
+                    <h4>{first_heading}</h4>
                     {@render_selected_files_list()}
                 </Col>
                 <Col sm={5} style={color:'#666'}>

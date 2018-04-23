@@ -24,7 +24,7 @@ The Landing Page
 ###
 {rclass, React, ReactDOM, redux, rtypes} = require('./smc-react')
 {Alert, Button, ButtonToolbar, Col, Modal, Grid, Row, FormControl, FormGroup, Well, ClearFix, Checkbox} = require('react-bootstrap')
-{ErrorDisplay, Icon, Loading, ImmutablePureRenderMixin, Footer, UNIT, COLORS, ExampleBox} = require('./r_misc')
+{ErrorDisplay, Icon, Loading, ImmutablePureRenderMixin, Footer, UNIT, COLORS, ExampleBox, Space, Tip} = require('./r_misc')
 {HelpEmailLink, SiteName, SiteDescription, TermsOfService, AccountCreationEmailInstructions} = require('./customize')
 
 DESC_FONT = 'sans-serif'
@@ -62,7 +62,7 @@ Passports = rclass
             backgroundColor : "#55ACEE"
             color           : "white"
         github   :
-            backgroundColor : "black"
+            backgroundColor : 'white'
             color           : "black"
 
     render_strategy: (name) ->
@@ -75,11 +75,20 @@ Passports = rclass
             size = undefined
         else
             size = '2x'
-        <a href={url} key={name}>
-            <Icon size={size} name='stack' href={url}>
-                {<Icon name='circle' stack='2x' style={color: @styles[name].backgroundColor} /> if name isnt 'github'}
-                <Icon name={name} stack='1x' size={'2x' if name is 'github'} style={color: @styles[name].color} />
-            </Icon>
+        style = misc.copy(@styles[name])
+        style.display = 'inline-block'
+        style.padding = '6px'
+        style.borderRadius = '50%'
+        style.width = '50px'
+        style.height=  '50px'
+        style.marginRight = '10px'
+        style.textAlign = 'center'
+        cname = misc.capitalize(name)
+        title = <span><Icon name={name} /> {cname}</span>
+        <a href={url} key={name} style={fontSize:'28px'}>
+            <Tip placement='bottom' title={title} tip={"Use #{cname} to sign into your CoCalc account instead of an email address and password."}>
+                <Icon name={name} style={style} />
+            </Tip>
         </a>
 
     render_heading: ->
@@ -88,10 +97,12 @@ Passports = rclass
         <h3 style={marginTop: 0}>Connect with</h3>
 
     render: ->
+        strategies = @props.strategies?.toJS() ? []
+        ## strategies = ['facebook', 'google', 'twitter', 'github']   # for testing.
         <div style={@props.style}>
             {@render_heading()}
             <div>
-                {@render_strategy(name) for name in @props.strategies?.toJS() ? []}
+                {@render_strategy(name) for name in strategies}
             </div>
             <hr style={marginTop: 10, marginBottom: 10} />
         </div>
@@ -639,6 +650,8 @@ Connecting = () ->
     </div>
 
 exports.LandingPage = rclass
+    displayName: 'LandingPage'
+
     propTypes:
         strategies              : rtypes.immutable.List
         sign_up_error           : rtypes.immutable.Map
@@ -657,7 +670,9 @@ exports.LandingPage = rclass
 
     reduxProps:
         page:
-            get_api_key : rtypes.string
+            get_api_key   : rtypes.string
+        customize:
+            is_commercial : rtypes.bool
 
     render_password_reset: ->
         reset_key = reset_password_key()
@@ -676,27 +691,60 @@ exports.LandingPage = rclass
             forgot_password_success = {@props.forgot_password_success}
         />
 
+    # this is an info blob on the landing page, clarifying to the user that "free" is a perpetual trial
+    render_trial_info: ->
+        if not @props.is_commercial
+            return
+        <React.Fragment>
+            <Alert bsStyle={'info'} style={marginTop: '15px'}>
+                <div>
+                    Trial access to CoCalc is free.
+                    If you intend to use CoCalc often, then you or your university
+                    should pay for it.
+                    Existence of CoCalc depends on your subscription dollars!
+                </div>
+                <Space />
+                <div>
+                    If you are economically disadvantaged or doing open source math software
+                    development,{' '}
+                    <a href="mailto:help@sagemath.com" target="_blank">contact us</a>{' '}
+                    for special options.
+                </div>
+            </Alert>
+            <div>
+                If you have any questions or comments, create a <ShowSupportLink />.
+            </div>
+        </React.Fragment>
+
     render_main_page: ->
         if @props.remember_me and not @props.get_api_key
             # Just assume user will be signing in.
             # CSS of this looks like crap for a moment; worse than nothing. So disabling unless it can be fixed!!
             #return <Connecting />
             return <span/>
+
         topbar =
-          img_icon    : APP_ICON_WHITE
-          img_name    : APP_LOGO_NAME_WHITE
-          img_opacity : 1.0
-          color       : 'white'
-          bg_color    : COLORS.LANDING.LOGIN_BAR_BG
-          border      : "5px solid #{COLORS.LANDING.LOGIN_BAR_BG}"
+            img_icon    : APP_ICON_WHITE
+            img_name    : APP_LOGO_NAME_WHITE
+            img_opacity : 1.0
+            color       : 'white'
+            bg_color    : COLORS.LANDING.LOGIN_BAR_BG
+            border      : "5px solid #{COLORS.LANDING.LOGIN_BAR_BG}"
+
+        main_row_style =
+            fontSize        : UNIT
+            backgroundColor : COLORS.LANDING.LOGIN_BAR_BG
+            padding         : 5
+            margin          : 0
+            borderRadius    : 4
 
         <div style={margin: UNIT}>
             {@render_password_reset()}
             {@render_forgot_password()}
-            <Row style={fontSize: UNIT,\
-                        backgroundColor: COLORS.LANDING.LOGIN_BAR_BG,\
-                        padding: 5, margin: 0, borderRadius:4}
-                 className="visible-xs">
+            <Row
+                style     = {main_row_style}
+                className = {"visible-xs"}
+             >
                     <SignIn
                         signing_in    = {@props.signing_in}
                         sign_in_error = {@props.sign_in_error}
@@ -730,10 +778,11 @@ exports.LandingPage = rclass
                           xs            = {false}
                           color         = {topbar.color} />
                   </div>
+                  {### Had this below, but it looked all wrong, conflicting with the name--  height           : UNIT * 5, width: UNIT * 5, \ ###}
                   <div style={ display          : 'inline-block', \
                                backgroundImage  : "url('#{topbar.img_icon}')", \
                                backgroundSize   : 'contain', \
-                               height           : UNIT * 5, width: UNIT * 5, \
+                               height           : 55, width: 55, \
                                margin           : 5,\
                                verticalAlign    : 'center',\
                                backgroundRepeat : 'no-repeat'}>
@@ -765,7 +814,7 @@ exports.LandingPage = rclass
                               color        : topbar.color} />
                   </div>
             </Row>
-            <Row>
+            <Row style={minHeight : '60vh'}>
                 <Col sm={6}>
                     <SignUp
                         sign_up_error   = {@props.sign_up_error}
@@ -778,16 +827,17 @@ exports.LandingPage = rclass
                         />
                 </Col>
                 <Col sm={6}>
-                    <div style={color:"#333", fontSize:'12pt', marginTop:'2em'}>
+                    <div style={color:"#333", fontSize:'12pt', marginTop:'5px'}>
                         Create a new account here or sign in with an existing account above.
                         <br/>
+                        {@render_trial_info()}
                         <br/>
-
-                        If you have any questions create a <ShowSupportLink />.
-
-                        <br/>
-                        <br/>
-                        {<a href={APP_BASE_URL + "/"}>Learn more about CoCalc...</a> if not @props.get_api_key}
+                        {
+                            if not @props.get_api_key
+                                <div>
+                                    <a href={APP_BASE_URL + "/"}>Learn more about CoCalc...</a>
+                                </div>
+                        }
                     </div>
                 </Col>
             </Row>

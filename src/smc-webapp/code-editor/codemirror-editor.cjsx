@@ -4,7 +4,7 @@ Single codemirror-based file editor
 This is a wrapper around a single codemirror editor view.
 ###
 
-SAVE_INTERVAL_MS = 1000
+SAVE_INTERVAL_MS = 2000
 
 {React, ReactDOM,
  rclass, rtypes}     = require('../smc-react')
@@ -33,6 +33,7 @@ exports.CodemirrorEditor = rclass
         id               : rtypes.string.isRequired
         actions          : rtypes.object.isRequired
         path             : rtypes.string.isRequired
+        project_id       : rtypes.string.isRequired
         font_size        : rtypes.number.isRequired
         cursors          : rtypes.immutable.Map
         editor_state     : rtypes.immutable.Map
@@ -174,7 +175,7 @@ exports.CodemirrorEditor = rclass
         if @props.is_public
             @cm.setValue(@props.content)
         else
-            d = doc.get(path: @props.path, cm: @cm)
+            d = doc.get_linked_doc(path: @props.path, project_id: @props.project_id, cm: @cm)
             if d?
                 @cm.swapDoc(d)
 
@@ -199,11 +200,11 @@ exports.CodemirrorEditor = rclass
             return
 
         # After this only stuff that we use for the non-public version!
-        # save_syncstring_throttle = throttle(@save_syncstring, SAVE_INTERVAL_MS, {leading:false})
-        save_syncstring_debounce = debounce(@save_syncstring, SAVE_INTERVAL_MS)
+        save_syncstring_throttle = throttle(@save_syncstring, SAVE_INTERVAL_MS, {leading:false})
+        #save_syncstring_debounce = debounce(@save_syncstring, SAVE_INTERVAL_MS)
 
         @cm.on 'change', (instance, changeObj) =>
-            save_syncstring_debounce()
+            save_syncstring_throttle()
             if changeObj.origin? and changeObj.origin != 'setValue'
                 @props.actions.setState(has_unsaved_changes: true)
                 @props.actions.exit_undo_mode()

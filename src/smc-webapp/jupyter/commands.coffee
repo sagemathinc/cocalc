@@ -4,6 +4,8 @@ Comprehensive list of Jupyter notebook (version 5) command,
    k : default keyboard shortcut for that command
 ###
 
+ASSISTANT_ICON_NAME = require('smc-webapp/assistant/common').ICON_NAME
+
 exports.commands = (actions) ->
     if actions?
         store = actions.store
@@ -468,6 +470,11 @@ exports.commands = (actions) ->
         m : 'Show keyboard shortcuts...'
         k : [{"mode":"escape","which":72}]
         f : -> actions.show_keyboard_shortcuts()
+
+    'show code assistant':
+        i : ASSISTANT_ICON_NAME
+        m : 'Show code assistant'
+        f : -> actions.show_code_assistant()
 
     'show toolbar':
         m : 'Show toolbar'

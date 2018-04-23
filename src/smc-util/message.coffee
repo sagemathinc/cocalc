@@ -2493,3 +2493,10 @@ message
     total      : required  # total upgrades the user has purchased
     excess     : required  # upgrades where the total allocated exceeds what user has purchased
     available  : required  # how much of each purchased upgrade is available
+
+# Remove *all* upgrades applied by the signed in user to any projects.
+# client --> hub
+message
+    event      : 'remove_all_upgrades'
+    id         : undefined
+

@@ -216,6 +216,23 @@ LogEntry = rclass
         return if not @props.event.target?
         <span>copied "{@props.event.title}" from the library to {@file_link(@props.event.target, true, 0)}</span>
 
+    render_assistant: ->
+        e = @props.event
+        switch e?.action
+            when 'insert'
+                lang = misc.jupyter_language_to_name(e.lang)
+                <span>used the <i>assistant</i> to insert the "{lang}" example{' '}
+                    {'"'}{e.entry.join(' → ')}{'"'}
+                    {' into '}
+                    <PathLink
+                        path       = {@props.event.path}
+                        full       = {true}
+                        style      = {if @props.cursor then selected_item}
+                        trunc      = {50}
+                        project_id = {@props.project_id}
+                    />
+                </span>
+
     render_upgrade: ->
         params = require('smc-util/schema').PROJECT_UPGRADES.params
         v = []
@@ -276,6 +293,8 @@ LogEntry = rclass
                 return <span>opened this project</span>
             when 'library'
                 return @render_library()
+            when 'assistant'
+                return @render_assistant()
             # ignore unknown -- would just look mangled to user...
             #else
             # FUTURE:

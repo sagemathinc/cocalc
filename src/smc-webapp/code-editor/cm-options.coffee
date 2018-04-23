@@ -79,6 +79,8 @@ exports.cm_options = (opts) ->
             "Ctrl-G"       : (cm) -> cm.execCommand('findNext')
             "Shift-Cmd-G"  : (cm) -> cm.execCommand('findPrev')
             "Shift-Ctrl-G" : (cm) -> cm.execCommand('findPrev')
+            "Shift-Cmd-F"  : actions.format
+            "Shift-Ctrl-F" : actions.format
             "Shift-Enter"  : -> actions.set_error("You can evaluate code in a file with the extension 'sagews' or 'ipynb'.   Please create a Sage Worksheet or Jupyter notebook instead.")
         for k, v of actionKeys
             extraKeys[k] = v
@@ -135,7 +137,7 @@ exports.cm_options = (opts) ->
         showCursorWhenSelecting : true
         extraKeys               : extraKeys
         cursorScrollMargin      : 6
-        viewportMargin          : 10
+        viewportMargin          : 50
 
     if opts.match_xml_tags
         options.matchTags = {bothTags: true}
