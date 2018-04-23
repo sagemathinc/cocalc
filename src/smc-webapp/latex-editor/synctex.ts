@@ -11,7 +11,7 @@ interface SyncTex {
 
 function exec_synctex(
     project_id: string,
-    pdf_path: string,
+    path: string,
     args: string[]
 ): Promise<ExecOutput> {
     return exec({
@@ -20,7 +20,7 @@ function exec_synctex(
         command: "synctex",
         args: args,
         project_id: project_id,
-        path: path_split(pdf_path).head,
+        path: path,
         err_on_exit: true
     });
 }
@@ -32,10 +32,11 @@ export async function pdf_to_tex(opts: {
     x: number; // x-coordinate on page
     y: number; // y-coordinate on page
 }): Promise<SyncTex> {
-    let output = await exec_synctex(opts.project_id, opts.pdf_path, [
+    let { head, tail } = path_split(opts.pdf_path);
+    let output = await exec_synctex(opts.project_id, head, [
         "edit",
         "-o",
-        `${opts.page}:${opts.x}:${opts.y}:${opts.pdf_path}`
+        `${opts.page}:${opts.x}:${opts.y}:${tail}`
     ]);
     return parse_synctex_output(output.stdout);
 }
@@ -43,16 +44,17 @@ export async function pdf_to_tex(opts: {
 export async function tex_to_pdf(opts: {
     pdf_path: string;
     project_id: string;
-    tex_path: number; // source tex file with given line/column
+    tex_path: string; // source tex file with given line/column
     line: number; // 1-based line number
     column: number; // 1-based column
 }): Promise<SyncTex> {
-    let output = await exec_synctex(opts.project_id, opts.pdf_path, [
+    let { head, tail } = path_split(opts.tex_path);
+    let output = await exec_synctex(opts.project_id, head, [
         "view",
         "-i",
-        `${opts.line}:${opts.column}:${opts.tex_path}`,
+        `${opts.line}:${opts.column}:${tail}`,
         "-o",
-        opts.pdf_path
+        path_split(opts.pdf_path).tail
     ]);
     return parse_synctex_output(output.stdout);
 }
