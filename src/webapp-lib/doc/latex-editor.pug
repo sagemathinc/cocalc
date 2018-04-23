@@ -77,18 +77,15 @@ block content
         p.
           It handles all the tedious details for you. You no longer have to:
         ul
-          li install ...
-          li ...
-          li ...
+          li Install a LaTeX environment,
+          li Configure its engine and install packages,
+          li Periodically backup versions of your files.
         p.
           Instead, all you need to do to get started is to
         ol
-          li create an account
-          li create a project
-          li upload your #[code *.tex] files and open them in #{NAME}'s online environment.
-        p.
-          #{NAME} supports several LaTeX engines right out of the box:
-
+          li Create an account
+          li Create a project
+          li Upload your #[code *.tex] files and open them in #{NAME}'s online environment.
 
   a.anchor#a-overview
   div.space#overview
@@ -96,8 +93,11 @@ block content
       div.row
         div.col-md-12.center
           h1 Feature overview
-        div.col-md-6.col-md-offset-3.
-          ...
+        div.col-md-6.col-md-offset-3
+          p
+            strong Focus on the content, #{NAME} takes care of everything else.
+          p.
+            It manages the compilation process for you, saves backups of your files, allows you to collaborate with others, and much more.
 
     a.anchor#a-environments
     div.container.space#environments
@@ -108,8 +108,12 @@ block content
           img(src=require("webapp-lib/assets/latex-editor-01.png")).fit
         div.col-md-6
           div.
-            #{NAME} makes sure that your desired computational environment is available and ready to work with.
-            You just have to select from many pre-installed and #[strong fully managed kernels] to start with your work.
+            #{NAME} makes sure that your desired LaTeX engine is available and ready to work with.
+            Select between #[a(href="http://www.tug.org/applications/pdftex/") PDF Latex],
+            #[a(href="http://xetex.sourceforge.net/") XeLaTeX] or #[a(href="http://www.luatex.org/") LuaTeX].
+          div.
+            Additionally, #[a(href="http://mg.readthedocs.io/latexmk.html") LatexMK] is setup to manage the compilation process,
+            which means that you do not have to bother too much about any additional configuration.
 
     a.anchor#a-forwardinverse
     div.container.space#forwardinverse
@@ -128,6 +132,27 @@ block content
             #[strong Inverse search] does the opposite: double-click on a part in the output and
             your cursor jumps (roughly) to the line where that output is coming from.
 
+    a.anchor#a-computational
+    div.container.space#computational
+      div.row
+        div.col-md-12
+          h2 #[i.fa.fa-users] Full computational environment
+        div.col-md-6
+          img(src=require("webapp-lib/assets/latex-editor-01.png")).fit
+        div.col-md-6
+          div.
+            What sets #{NAME} apart from other online LaTeX editors is full access to computational software.
+            This means you can seamlessly transition from #[em computing] your results to #[em publishing] them.
+          div.
+            You can run #[a(href="https://www.python.org") Python],
+            #[a(href="http://www.sagemath.org/") SageMath],
+            #[a(href="http://www.r-project.org/") R Statistical Software],
+            #[a(href="http://julialang.org") Julia] right inside your browser in the same project as your LaTeX document.
+          div.
+            Consult the #[a(href=PREFIX + "doc/software.html") Available Software page]
+            or look at our #[a(href=PREFIX + "doc/jupyter-notebook.html") Jupyter Notebook information page]
+            for more information.
+
     a.anchor#a-knitr
     div.container.space#knitr
       div.row
@@ -140,32 +165,11 @@ block content
             #{NAME}'s Latex editor also supports #[strong #[a(href="https://yihui.name/knitr/") Knitr .Rnw]] documents.
             This gives you the ability to embed arbitrary #[a(href="https://www.r-project.org/") R Project] commands and plots in your LaTeX file.
           div.
-            #{NAME} deals with all other details for you:
+            Behind the scenes, #{NAME} deals with all underlying details for you:
           ul
-            li Manage #[a(href="./software-r.html") all R packages] for you,
+            li Installs and manages #[a(href="./software-r.html") all R packages] for you,
             li Automatically triggers the compilation pipeline for LaTeX and running R, and
             li Reconciles the line-numbers of the .Rnw file with the corresponding .tex document for #[a(href="#a-forwardinverse") #[strong forward/inverse search]].
-
-    a.anchor#a-computational
-    div.container.space#computational
-      div.row
-        div.col-md-12
-          h2 #[i.fa.fa-users] Full computational environment
-        div.col-md-6
-          img(src=require("webapp-lib/assets/latex-editor-01.png")).fit
-        div.col-md-6
-          div.
-            What sets #{NAME} apart from other online LaTeX editors is full access to computational software.
-            This means you can seamlessly transition from #[em generating] data with your results to #[em publishing].
-          div.
-            You can run #[a(href="https://www.python.org") Python],
-            #[a(href="http://www.sagemath.org/") SageMath],
-            #[a(href="http://www.r-project.org/") R Statistical Software],
-            #[a(href="http://julialang.org") Julia] right next to your document right inside your browser.
-          div.
-            Consult the #[a(href=PREFIX + "doc/software.html") Available Software page]
-            or look at our #[a(href=PREFIX + "doc/jupyter-notebook.html") Jupyter Notebook information page]
-            for more information.
 
     a.anchor#a-realtimesync
     div.container.space#realtimesync
@@ -177,14 +181,14 @@ block content
         div.col-md-6
           div.
             Once you share your project privately with collaborators,
-            Modifications are #[strong synchronized in real time].
-            Watch the cursors of others while they edit the document.
+            concurrent modifications of the same file are #[strong synchronized in real time].
+            You can watch the cursors of others while they edit the document!
             You are also notified about the presence of watching collaborators.
           div.
-            Additionally, the status and results of all computations in the currently running kernel session are also synchronized,
-            because it is fully hosted on #{NAME}.
+            Additionally, the compilation status and the resulting output is synchronized between everyone,
+            because everything is fully managed by #{NAME}.
           div.
-            Together, everyone involved experiences the document in exactly the same way.
+            This ensures that everyone involved experiences editing the document in exactly the same way.
 
     a.anchor#a-timetravel
     div.container.space#timetravel
@@ -247,7 +251,7 @@ block content
             It offers its own hosting of #[a(href="/shared") shared documents],
             alongside with any other associated data files.
           div.
-            ...
+            You can select, if you want to be listed publicly or make the shared file only available through a confidential URL.
 
   div
     div.container
