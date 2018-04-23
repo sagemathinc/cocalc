@@ -154,9 +154,10 @@ exports.cm_options = (opts) ->
         extraKeys["Alt-Q"]  = (cm) -> cm.foldCodeSelectionAware()
         options.foldGutter  = true
         options.gutters     = ["CodeMirror-linenumbers", "CodeMirror-foldgutter"]
+    else
+        options.gutters     = ["CodeMirror-linenumbers"]
 
     if gutters
-        options.gutters ?= []
         for gutter_id in gutters
             options.gutters.push(gutter_id)
 
