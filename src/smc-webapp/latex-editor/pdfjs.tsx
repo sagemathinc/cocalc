@@ -37,7 +37,7 @@ interface PDFJSProps {
     zoom_page_width?: string;
     zoom_page_height?: string;
     sync?: string;
-    scroll_into_view?: { page: number; y: number };
+    scroll_into_view?: { page: number; y: number; id: string };
 }
 
 interface PDFJSState {
@@ -128,7 +128,12 @@ class PDFJS extends Component<PDFJSProps, PDFJSState> {
         }
     }
 
-    async scroll_into_view(page: number, y: number): Promise<void> {
+    async scroll_into_view(page: number, y: number, id: string): Promise<void> {
+        console.log("id = ", id);
+        if (id && id != this.props.id) {
+            // id is set, and it's not set to *this* viewer, so ignore.
+            return;
+        }
         this.props.actions.setState({ scroll_into_view: undefined }); // we got the message.
         const doc = this.state.doc;
         if (!doc) {
@@ -181,8 +186,8 @@ class PDFJS extends Component<PDFJSProps, PDFJSState> {
             next_props.scroll_into_view &&
             this.props.scroll_into_view !== next_props.scroll_into_view
         ) {
-            let { page, y } = next_props.scroll_into_view;
-            this.scroll_into_view(page, y);
+            let { page, y, id} = next_props.scroll_into_view;
+            this.scroll_into_view(page, y, id);
         }
     }
 
@@ -263,6 +268,7 @@ class PDFJS extends Component<PDFJSProps, PDFJSState> {
         for (let n = 1; n <= this.state.doc.numPages; n++) {
             pages.push(
                 <Page
+                    id={this.props.id}
                     actions={this.props.actions}
                     doc={this.state.doc}
                     n={n}

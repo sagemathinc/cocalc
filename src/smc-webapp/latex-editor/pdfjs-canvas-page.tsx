@@ -16,6 +16,7 @@ import { is_different } from "./misc";
 interface Props {
     page: PDFPageProxy;
     scale: number;
+    click_annotation: Function;
 }
 
 interface State {
@@ -72,17 +73,6 @@ export class CanvasPage extends Component<Props, State> {
         this.render_annotation_layer(page);
     }
 
-    click_annotation(annotation: PDFAnnotationData): void {
-        console.log("clicked on ", annotation);
-        if (annotation.url) {
-            let win = window.open(annotation.url, "_blank");
-            if (win) {
-                win.focus();
-            }
-            return;
-        }
-    }
-
     // We render only the *LINKS*, which are all that matter regarding
     // annotations when editing a latex document.
     async render_annotation_layer(page: PDFPageProxy): Promise<void> {
@@ -97,23 +87,16 @@ export class CanvasPage extends Component<Props, State> {
             console.error(`pdf.js -- Error rendering annotations: #{err}`);
             return;
         }
-        window.annotations = annotations;
-        window.page_view = page.pageInfo.view;
         let scale = this.props.scale;
-        console.log("scale=", scale);
         let v: Rendered[] = [];
         for (let annotation of annotations) {
-            console.log("annotation =", annotation);
             if (annotation.subtype != "Link") {
-                console.log("skipping");
+                // We only care about link annotations *right now*, for the purposes of the latex editor.
+                console.warn("Annotation not implemented", annotation);
                 continue;
             }
-            // if (!annotation.url) { continue; }
             let [x1, y1, x2, y2] = PDFJS.Util.normalizeRect(annotation.rect);
-            console.log(x1, y1, x2, y2);
-
             let page_height = page.pageInfo.view[3];
-
             let left = x1 - 1,
                 top = page_height - y2 - 1,
                 width = x2 - x1 + 1,
@@ -125,11 +108,13 @@ export class CanvasPage extends Component<Props, State> {
                     annotation.color[1]
                 }, ${annotation.color[2]})`;
             }
-            console.log(border, annotation.borderStyle.width);
+
+            // Note: this "annotation" below is the right one because we
+            // use "let" *inside* the for loop above!
 
             let elt = (
                 <div
-                    onClick={() => this.click_annotation(annotation)}
+                    onClick={() => this.props.click_annotation(annotation)}
                     key={annotation.id}
                     style={{
                         position: "absolute",

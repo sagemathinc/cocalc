@@ -196,12 +196,18 @@ export class Actions extends BaseActions {
                 pdf_path: pdf_path(this.path),
                 project_id: this.project_id
             });
+            this.scroll_into_view(info.Page as number, info.y as number);
             this.set_status("");
-            this.setState({scroll_into_view:{page:info.Page, y:info.y}})
         } catch (err) {
             console.warn("ERROR ", err);
             this.set_error(err);
         }
+    }
+
+    scroll_into_view(page: number, y: number, id?: string): void {
+        this.setState({
+            scroll_into_view: { page: page, y: y, id: id }
+        });
     }
 
     set_build_log(obj: {
@@ -292,7 +298,7 @@ export class Actions extends BaseActions {
             // Clicked on a preview pane -- let the preview pane do the work.
             this.setState({ sync: id });
         }
-    };
+    }
 
     forward_search(id: string): void {
         let cm: CodeMirror.Editor = this._get_cm(id);

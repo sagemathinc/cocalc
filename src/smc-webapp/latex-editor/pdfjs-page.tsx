@@ -10,12 +10,17 @@ import { is_different } from "./misc";
 import { SVGPage } from "./pdfjs-svg-page.tsx";
 import { CanvasPage } from "./pdfjs-canvas-page.tsx";
 
-import { PDFPageProxy, PDFDocumentProxy } from "pdfjs-dist/webpack";
+import {
+    PDFAnnotationData,
+    PDFPageProxy,
+    PDFDocumentProxy
+} from "pdfjs-dist/webpack";
 
 export const PAGE_GAP: number = 20;
 
 interface PageProps {
     actions: any;
+    id: string;
     n: number;
     doc: PDFDocumentProxy;
     renderer: string;
@@ -82,7 +87,13 @@ export class Page extends Component<PageProps, PageState> {
             return <SVGPage page={this.state.page} scale={this.props.scale} />;
         } else {
             return (
-                <CanvasPage page={this.state.page} scale={this.props.scale} />
+                <CanvasPage
+                    page={this.state.page}
+                    scale={this.props.scale}
+                    click_annotation={annotation =>
+                        this.click_annotation(annotation)
+                    }
+                />
             );
         }
     }
@@ -105,6 +116,32 @@ export class Page extends Component<PageProps, PageState> {
         let x: number = event.nativeEvent.offsetX / this.props.scale;
         let y: number = event.nativeEvent.offsetY / this.props.scale;
         this.props.actions.synctex_pdf_to_tex(this.props.n, x, y);
+    }
+
+    async click_annotation(annotation: PDFAnnotationData): Promise<void> {
+        if (annotation.url) {
+            // Link to an external URL.
+            // TODO: make it work for cocalc URL's, e.g., cocalc.com...
+            let win = window.open(annotation.url, "_blank");
+            if (win) {
+                win.focus();
+            }
+            return;
+        }
+        if (annotation.dest) {
+            // Internal link within the document.
+            if (!this.state.page) return;
+            let dest = await this.props.doc.getDestination(annotation.dest);
+            let page: number = (await this.props.doc.getPageIndex(dest[0])) + 1;
+            let page_height = this.state.page.pageInfo.view[3];
+            this.props.actions.scroll_into_view(
+                page,
+                page_height - dest[3],
+                this.props.id
+            );
+            return;
+        }
+        console.warn("Uknown annotation link", annotation);
     }
 
     render() {

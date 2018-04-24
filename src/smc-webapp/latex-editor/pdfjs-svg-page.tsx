@@ -3,7 +3,13 @@
 import * as $ from "jquery";
 
 import { Component, React, ReactDOM } from "./react";
-import { SVGGraphics, PDFPageProxy, PDFPageViewport } from "pdfjs-dist/webpack";
+
+import {
+    SVGGraphics,
+    PDFPageProxy,
+    PDFPageViewport
+} from "pdfjs-dist/webpack";
+
 import { is_different } from "./misc";
 
 interface Props {
