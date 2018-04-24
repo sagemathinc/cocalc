@@ -12,6 +12,12 @@ webm to 4x speed x264 and webm:
 
     ffmpeg -an -i smc-time-travel.webm -c:v libvpx-vp9 -filter:v "setpts=0.25*PTS" -r 20 smc-time-travel-4x.webm
 
+---
+
+convert to GIF
+
+     ffmpeg -i cocalc-latex-forward-inverse-2x.webm -pix_fmt rgb24 cocalc-latex-forward-inverse.gif
+
 
 ## References
 
