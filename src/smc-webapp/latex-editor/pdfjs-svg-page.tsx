@@ -4,28 +4,30 @@ import * as $ from "jquery";
 
 import { Component, React, ReactDOM } from "./react";
 
-import {
-    SVGGraphics,
-    PDFPageProxy,
-    PDFPageViewport
-} from "pdfjs-dist/webpack";
+import { SVGGraphics, PDFPageProxy, PDFPageViewport } from "pdfjs-dist/webpack";
 
 import { is_different } from "./misc";
+
+import { AnnotationLayer } from "./pdfjs-annotation.tsx";
 
 interface Props {
     page: PDFPageProxy;
     scale: number;
+    click_annotation: Function;
 }
 
 export class SVGPage extends Component<Props, {}> {
     private mounted: boolean;
 
     shouldComponentUpdate(next_props: Props) {
-        return is_different(this.props, next_props, ["version", "scale"]);
+        return (
+            is_different(this.props, next_props, ["scale"]) ||
+            this.props.page.version != next_props.page.version
+        );
     }
 
     async render_page(page: PDFPageProxy, scale: number): Promise<void> {
-        const div: HTMLElement = ReactDOM.findDOMNode(this);
+        const div: HTMLElement = ReactDOM.findDOMNode(this.refs.page);
         const viewport: PDFPageViewport = page.getViewport(scale);
         div.style.width = viewport.width + "px";
         div.style.height = viewport.height + "px";
@@ -61,9 +63,18 @@ export class SVGPage extends Component<Props, {}> {
             <div
                 style={{
                     margin: "auto",
-                    background: "white"
+                    background: "white",
+                    position: "relative",
+                    display: "inline-block"
                 }}
-            />
+            >
+                <AnnotationLayer
+                    page={this.props.page}
+                    scale={this.props.scale}
+                    click_annotation={this.props.click_annotation}
+                />
+                <div ref="page" />
+            </div>
         );
     }
 }

@@ -83,16 +83,23 @@ export class Page extends Component<PageProps, PageState> {
     render_content(): Rendered {
         if (!this.state.page.version)
             return <Loading text={`Loading page ${this.props.n}$...`} />;
-        else if (this.props.renderer == "svg") {
-            return <SVGPage page={this.state.page} scale={this.props.scale} />;
+        const f = annotation => {
+            this.click_annotation(annotation);
+        };
+        if (this.props.renderer == "svg") {
+            return (
+                <SVGPage
+                    page={this.state.page}
+                    scale={this.props.scale}
+                    click_annotation={f}
+                />
+            );
         } else {
             return (
                 <CanvasPage
                     page={this.state.page}
                     scale={this.props.scale}
-                    click_annotation={annotation =>
-                        this.click_annotation(annotation)
-                    }
+                    click_annotation={f}
                 />
             );
         }

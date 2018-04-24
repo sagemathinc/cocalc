@@ -129,7 +129,6 @@ class PDFJS extends Component<PDFJSProps, PDFJSState> {
     }
 
     async scroll_into_view(page: number, y: number, id: string): Promise<void> {
-        console.log("id = ", id);
         if (id && id != this.props.id) {
             // id is set, and it's not set to *this* viewer, so ignore.
             return;

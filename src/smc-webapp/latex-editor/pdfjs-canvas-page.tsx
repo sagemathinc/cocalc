@@ -4,23 +4,18 @@ Render a single PDF page using canvas.
 
 import * as $ from "jquery";
 
-import { Component, React, ReactDOM, Rendered } from "./react";
-import {
-    PDFAnnotationData,
-    PDFPageProxy,
-    PDFPageViewport,
-    PDFJS
-} from "pdfjs-dist/webpack";
+import { PDFPageProxy, PDFPageViewport } from "pdfjs-dist/webpack";
+
+import { Component, React, ReactDOM } from "./react";
+
 import { is_different } from "./misc";
+
+import { AnnotationLayer } from "./pdfjs-annotation.tsx";
 
 interface Props {
     page: PDFPageProxy;
     scale: number;
     click_annotation: Function;
-}
-
-interface State {
-    annotation_layer?: Rendered;
 }
 
 // See https://stackoverflow.com/questions/4720262/canvas-drawing-and-retina-display-doable
@@ -38,15 +33,11 @@ function scale_canvas(canvas: HTMLCanvasElement, ctx): void {
     }
 }
 
-export class CanvasPage extends Component<Props, State> {
-    constructor(props) {
-        super(props);
-        this.state = { annotation_layer: undefined };
-    }
-    shouldComponentUpdate(next_props: Props, next_state: State): boolean {
+export class CanvasPage extends Component<Props, {}> {
+    shouldComponentUpdate(next_props: Props): boolean {
         return (
-            is_different(this.props, next_props, ["version", "scale"]) ||
-            this.state.annotation_layer != next_state.annotation_layer
+            is_different(this.props, next_props, ["scale"]) ||
+            this.props.page.version != next_props.page.version
         );
     }
 
@@ -70,78 +61,6 @@ export class CanvasPage extends Component<Props, State> {
             console.error(`pdf.js -- Error rendering canvas page: ${err}`);
             return;
         }
-        this.render_annotation_layer(page);
-    }
-
-    // We render only the *LINKS*, which are all that matter regarding
-    // annotations when editing a latex document.
-    async render_annotation_layer(page: PDFPageProxy): Promise<void> {
-        let canvas = $(ReactDOM.findDOMNode(this.refs.page)).find("canvas");
-        let pos = canvas.position();
-        if (pos === undefined) return;
-
-        let annotations: PDFAnnotationData;
-        try {
-            annotations = await page.getAnnotations();
-        } catch (err) {
-            console.error(`pdf.js -- Error rendering annotations: #{err}`);
-            return;
-        }
-        let scale = this.props.scale;
-        let v: Rendered[] = [];
-        for (let annotation of annotations) {
-            if (annotation.subtype != "Link") {
-                // We only care about link annotations *right now*, for the purposes of the latex editor.
-                console.warn("Annotation not implemented", annotation);
-                continue;
-            }
-            let [x1, y1, x2, y2] = PDFJS.Util.normalizeRect(annotation.rect);
-            let page_height = page.pageInfo.view[3];
-            let left = x1 - 1,
-                top = page_height - y2 - 1,
-                width = x2 - x1 + 1,
-                height = y2 - y1;
-
-            let border = "";
-            if (annotation.borderStyle.width) {
-                border = `1px solid rgb(${annotation.color[0]}, ${
-                    annotation.color[1]
-                }, ${annotation.color[2]})`;
-            }
-
-            // Note: this "annotation" below is the right one because we
-            // use "let" *inside* the for loop above!
-
-            let elt = (
-                <div
-                    onClick={() => this.props.click_annotation(annotation)}
-                    key={annotation.id}
-                    style={{
-                        position: "absolute",
-                        left: left * scale,
-                        top: top * scale,
-                        width: width * scale,
-                        height: height * scale,
-                        border: border,
-                        cursor: "pointer"
-                    }}
-                />
-            );
-            v.push(elt);
-        }
-        let layer = (
-            <div
-                style={{
-                    position: "absolute",
-                    left: pos.left,
-                    top: 0,
-                    border: "1px solid blue"
-                }}
-            >
-                {v}
-            </div>
-        );
-        this.setState({ annotation_layer: layer });
     }
 
     componentWillReceiveProps(next_props: Props): void {
@@ -157,12 +76,15 @@ export class CanvasPage extends Component<Props, State> {
             <div
                 style={{
                     margin: "auto",
-                    background: "#525659",
-                    textAlign: "center",
-                    position: "relative"
+                    position: "relative",
+                    display: "inline-block"
                 }}
             >
-                {this.state.annotation_layer}
+                <AnnotationLayer
+                    page={this.props.page}
+                    scale={this.props.scale}
+                    click_annotation={this.props.click_annotation}
+                />
                 <div ref="page" />
             </div>
         );
