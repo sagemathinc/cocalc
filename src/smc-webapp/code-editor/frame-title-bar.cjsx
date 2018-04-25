@@ -248,7 +248,7 @@ exports.FrameTitleBar = rclass
                 bsSize  = {@button_size()}
                 onClick = {=>@props.actions.sync(@props.id)}
             >
-                <Icon name={'link'} /> {if labels then <VisibleMDLG>Sync</VisibleMDLG>}
+                <Icon name={'fab fa-staylinked'} /> {if labels then <VisibleMDLG>Sync</VisibleMDLG>}
             </Button>
         </Fragment>
 
