@@ -31,7 +31,6 @@ export class SVGPage extends Component<Props, {}> {
         const viewport: PDFPageViewport = page.getViewport(scale);
         div.style.width = viewport.width + "px";
         div.style.height = viewport.height + "px";
-
         try {
             const opList = await page.getOperatorList();
             if (!this.mounted) return;

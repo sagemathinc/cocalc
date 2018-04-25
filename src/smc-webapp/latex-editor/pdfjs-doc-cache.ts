@@ -14,16 +14,15 @@ import {
     PDFDocumentProxy
 } from "pdfjs-dist/webpack";
 
-const cache = {}; // cached -- change to use an LRU cache, rather than cache everything...
-
-// let myAdd: (x: number, y: number) => number
+const doc_cache = {}; // cached -- change to use an LRU cache, rather than cache everything...
 
 export const getDocument: (
     url: string
 ) => PDFPromise<PDFDocumentProxy> = reuseInFlight(async function(url) {
-    let doc = cache[url];
+    let doc = doc_cache[url];
     if (!doc) {
-        doc = cache[url] = await pdfjs_getDocument({ url: url });
+        doc = doc_cache[url] = await pdfjs_getDocument({ url: url, disableStream:true, disableAutoFetch:true });
     }
     return doc;
 });
+

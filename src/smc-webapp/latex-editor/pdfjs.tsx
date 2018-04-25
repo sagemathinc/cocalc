@@ -43,6 +43,7 @@ interface PDFJSProps {
 interface PDFJSState {
     loaded: boolean;
     doc: PDFDocumentProxy;
+    pages: PDFPageProxy[];
 }
 
 class PDFJS extends Component<PDFJSProps, PDFJSState> {
@@ -53,7 +54,8 @@ class PDFJS extends Component<PDFJSProps, PDFJSState> {
 
         this.state = {
             loaded: false,
-            doc: { pdfInfo: { fingerprint: "" } }
+            doc: { pdfInfo: { fingerprint: "" } },
+            pages: []
         };
     }
 
@@ -122,7 +124,17 @@ class PDFJS extends Component<PDFJSProps, PDFJSState> {
         try {
             const doc: PDFDocumentProxy = await getDocument(url_to_pdf);
             if (!this.mounted) return;
-            this.setState({ doc: doc, loaded: true });
+            let v : Promise<PDFPageProxy>[] = [];
+            for (let n = 1; n <= doc.numPages; n++) {
+                v.push(doc.getPage(n));
+            }
+            let pages : PDFPageProxy[] = await Promise.all(v);
+
+            this.setState({
+                doc: doc,
+                loaded: true,
+                pages: pages
+            });
         } catch (err) {
             this.props.actions.set_error(`error loading PDF -- ${err}`);
         }
@@ -185,7 +197,7 @@ class PDFJS extends Component<PDFJSProps, PDFJSState> {
             next_props.scroll_into_view &&
             this.props.scroll_into_view !== next_props.scroll_into_view
         ) {
-            let { page, y, id} = next_props.scroll_into_view;
+            let { page, y, id } = next_props.scroll_into_view;
             this.scroll_into_view(page, y, id);
         }
     }
@@ -270,6 +282,7 @@ class PDFJS extends Component<PDFJSProps, PDFJSState> {
                     id={this.props.id}
                     actions={this.props.actions}
                     doc={this.state.doc}
+                    page={this.state.pages[n - 1]}
                     n={n}
                     key={n}
                     renderer={this.props.renderer}

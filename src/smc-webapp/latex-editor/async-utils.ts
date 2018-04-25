@@ -15,7 +15,7 @@ import * as awaiting from "awaiting";
 // use require for now...
 const webapp_client = require("../webapp_client").webapp_client;
 
-export function server_time() : Date {
+export function server_time(): Date {
     return webapp_client.server_time();
 }
 
@@ -52,6 +52,6 @@ export interface ExecOutput {
 }
 
 // async version of the webapp_client exec -- let's you run any code in a project!
-export async function exec(opts: ExecOpts) : Promise<ExecOutput> {
+export async function exec(opts: ExecOpts): Promise<ExecOutput> {
     return async_opts(webapp_client.exec, opts);
 }
