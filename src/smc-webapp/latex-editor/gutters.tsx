@@ -17,62 +17,59 @@ import { SPEC, SpecItem } from "./errors-and-warnings.tsx";
 import { ProcessedLatexLog, Error } from "./latex-log-parser";
 
 export function update_gutters(opts: {
-    path: string;
-    log: ProcessedLatexLog;
-    set_gutter: Function;
+  path: string;
+  log: ProcessedLatexLog;
+  set_gutter: Function;
 }): void {
-    let path: string = path_split(opts.path).tail;
-    let group: string;
-    for (group of ["typesetting", "warnings", "errors"]) {
-        // errors last so always shown if multiple issues on a single line!
-        let item: Error;
-        for (item of opts.log[group]) {
-            if (path_split(item.file).tail != path) {
-                /* for now only show gutter marks in the master file. */
-                continue;
-            }
-            if (item.line === null) {
-                /* no gutter mark in a line if there is no line number, e.g., "there were missing refs" */
-                continue;
-            }
-            opts.set_gutter(
-                item.line - 1,
-                component(item.level, item.message, item.content)
-            );
-        }
+  let path: string = path_split(opts.path).tail;
+  let group: string;
+  for (group of ["typesetting", "warnings", "errors"]) {
+    // errors last so always shown if multiple issues on a single line!
+    let item: Error;
+    for (item of opts.log[group]) {
+      if (path_split(item.file).tail != path) {
+        /* for now only show gutter marks in the master file. */
+        continue;
+      }
+      if (item.line === null) {
+        /* no gutter mark in a line if there is no line number, e.g., "there were missing refs" */
+        continue;
+      }
+      opts.set_gutter(
+        item.line - 1,
+        component(item.level, item.message, item.content)
+      );
     }
+  }
 }
 
 function component(
-    level: string,
-    message: string,
-    content: string | undefined
+  level: string,
+  message: string,
+  content: string | undefined
 ) {
-    const spec: SpecItem = SPEC[level];
-    if (content === undefined) {
-        content = message;
-        message = capitalize(level);
-    }
-    // NOTE/BUG: despite allow_touch true below, this still does NOT work on my iPad -- we see the icon, but nothing
-    // happens when clicking on it; this may be a codemirror issue.
-    return (
-        <Tip
-            title={message}
-            tip={content}
-            placement={"bottom"}
-            icon={spec.icon}
-            stable={true}
-            popover_style={{
-                marginLeft: "10px",
-                border: `2px solid ${spec.color}`
-            }}
-            delayShow={0}
-            allow_touch={true}
-        >
-            <Icon
-                name={spec.icon}
-                style={{ color: spec.color, cursor: "pointer" }}
-            />
-        </Tip>
-    );
+  const spec: SpecItem = SPEC[level];
+  if (content === undefined) {
+    content = message;
+    message = capitalize(level);
+  }
+  // NOTE/BUG: despite allow_touch true below, this still does NOT work on my iPad -- we see the icon, but nothing
+  // happens when clicking on it; this may be a codemirror issue.
+  return (
+    <Tip
+      title={message}
+      tip={content}
+      placement={"bottom"}
+      icon={spec.icon}
+      stable={true}
+      popover_style={{
+        marginLeft: "10px",
+        border: `2px solid ${spec.color}`
+      }}
+      delayShow={0}
+      allow_touch={true}
+    >
+      <Icon name={spec.icon} style={{ color: spec.color, cursor: "pointer" }} />
+    </Tip>
+  );
 }

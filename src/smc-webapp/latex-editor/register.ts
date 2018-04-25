@@ -10,10 +10,10 @@ import { Actions } from "./actions.ts";
 const { register_file_editor } = require("../code-editor/register-generic");
 
 // Load plugin so that codemirror can automatically close latex environments.
-import './codemirror-autoclose-latex'
+import "./codemirror-autoclose-latex";
 
 register_file_editor({
-    ext: "tex",
-    component: Editor,
-    Actions
+  ext: "tex",
+  component: Editor,
+  Actions
 });
