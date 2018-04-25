@@ -63,12 +63,12 @@ export class AnnotationLayer extends Component<Props, State> {
             let page_height = this.props.page.pageInfo.view[3];
             let left = x1 - 1,
                 top = page_height - y2 - 1,
-                width = x2 - x1 + 1,
-                height = y2 - y1;
+                width = x2 - x1 + 2,
+                height = y2 - y1 + 1;
 
             let border = "";
             if (annotation.borderStyle.width) {
-                border = `1px solid rgb(${annotation.color[0]}, ${
+                border = `0.5px solid rgb(${annotation.color[0]}, ${
                     annotation.color[1]
                 }, ${annotation.color[2]})`;
             }
@@ -95,8 +95,7 @@ export class AnnotationLayer extends Component<Props, State> {
         return (
             <div
                 style={{
-                    position: "absolute",
-                    border: "1px solid blue"
+                    position: "absolute"
                 }}
             >
                 {v}
