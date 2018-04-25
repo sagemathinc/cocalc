@@ -29,7 +29,7 @@ exports.cm_options = (opts) ->
         allow_javascript_eval      : true  # if false, the one use of eval isn't allowed.
         line_numbers               : editor_settings.get('line_numbers')
         first_line_number          : editor_settings.get('first_line_number')
-        indent_unit                : editor_settings.get('indent_unit')
+        indent_unit                : editor_settings.get('tab_size')  # TODO! indent_unit just isn't implemented -- see #2847.
         tab_size                   : editor_settings.get('tab_size')
         smart_indent               : editor_settings.get('smart_indent')
         electric_chars             : editor_settings.get('electric_chars')
@@ -122,6 +122,12 @@ exports.cm_options = (opts) ->
         # see https://github.com/sragemathinc/smc/issues/1360
         opts.style_active_line = false
 
+    ext = misc.filename_extension_notilde(filename)
+
+    # Ugly until https://github.com/sagemathinc/cocalc/issues/2847 is implemented:
+    if ext in ['js', 'jsx', 'ts', 'tsx', 'json', 'md']
+        opts.tab_size = opts.indent_unit = 2
+
     options =
         firstLineNumber         : opts.first_line_number
         autofocus               : false
@@ -134,7 +140,7 @@ exports.cm_options = (opts) ->
         electricChars           : opts.electric_chars
         undoDepth               : opts.undo_depth
         matchBrackets           : opts.match_brackets
-        autoCloseBrackets       : opts.auto_close_brackets and (misc.filename_extension_notilde(filename) not in ['hs', 'lhs']) #972
+        autoCloseBrackets       : opts.auto_close_brackets and (ext not in ['hs', 'lhs']) #972
         autoCloseTags           : if opts.mode?.indexOf('xml') != -1 then opts.auto_close_xml_tags
         autoCloseLatex          : if opts.mode?.indexOf('tex') != -1 then opts.auto_close_latex
         lineWrapping            : opts.line_wrapping

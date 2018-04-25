@@ -124,11 +124,11 @@ class PDFJS extends Component<PDFJSProps, PDFJSState> {
         try {
             const doc: PDFDocumentProxy = await getDocument(url_to_pdf);
             if (!this.mounted) return;
-            let v : Promise<PDFPageProxy>[] = [];
+            let v: Promise<PDFPageProxy>[] = [];
             for (let n = 1; n <= doc.numPages; n++) {
                 v.push(doc.getPage(n));
             }
-            let pages : PDFPageProxy[] = await Promise.all(v);
+            let pages: PDFPageProxy[] = await Promise.all(v);
 
             this.setState({
                 doc: doc,
@@ -136,7 +136,9 @@ class PDFJS extends Component<PDFJSProps, PDFJSState> {
                 pages: pages
             });
         } catch (err) {
-            this.props.actions.set_error(`error loading PDF -- ${err}`);
+            // This is normal if the PDF is being modified *as* it is being loaded...
+            console.warn(`error loading PDF -- ${err}`);
+            //this.props.actions.set_error();
         }
     }
 
