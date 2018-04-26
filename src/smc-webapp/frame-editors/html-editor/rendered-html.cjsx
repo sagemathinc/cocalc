@@ -9,7 +9,7 @@ misc = require('smc-util/misc')
 {Loading, HTML} = require('smc-webapp/r_misc')
 {React, ReactDOM, rclass, rtypes}     = require('smc-webapp/smc-react')
 
-options = require('./options')
+options = require('./options.ts')
 
 exports.RenderedHTML = rclass
     displayName: 'HTMLEditor-RenderedHTML'

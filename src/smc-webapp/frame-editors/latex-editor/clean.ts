@@ -2,7 +2,7 @@
  * Clean up all aux files.
  */
 
-import { exec } from "./async-utils";
+import { exec } from "../async-utils";
 import { parse_path } from "./util";
 
 const EXT: string[] = [

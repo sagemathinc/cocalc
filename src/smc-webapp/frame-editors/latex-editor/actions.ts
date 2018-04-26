@@ -19,7 +19,7 @@ import * as synctex from "./synctex";
 
 import { bibtex } from "./bibtex";
 
-import { server_time, ExecOutput } from "./async-utils";
+import { server_time, ExecOutput } from "../async-utils";
 import { clean } from "./clean.ts";
 
 import { LatexParser, ProcessedLatexLog } from "./latex-log-parser.ts";

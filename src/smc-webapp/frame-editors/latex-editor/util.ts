@@ -1,4 +1,4 @@
-import { path_split, separate_file_extension } from "./misc";
+import { path_split, separate_file_extension } from "../misc";
 
 export function parse_path(
   path: string

@@ -3,7 +3,9 @@ export const {
   ReactDOM,
   rclass,
   rtypes,
-  Fragment
+  Fragment,
+  redux,
+  Redux
 } = require("smc-webapp/smc-react");
 
 import * as ReactOrig from "react";

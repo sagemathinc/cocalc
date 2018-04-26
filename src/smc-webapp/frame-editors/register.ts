@@ -1,4 +1,4 @@
 /* Register the frame-tree based editors. */
 
-import "./latex-editor/register";
-import "./html-editor/register";
+import "./latex-editor/register.ts";
+import "./html-editor/register.ts";

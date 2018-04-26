@@ -15,7 +15,7 @@ declare module "codemirror" {
   function innerMode(mode: any, state: any): any;
 }
 
-import { splitlines } from "./misc";
+import { splitlines } from "../misc";
 
 CodeMirror.defineOption("autoCloseLatex", false, function(cm, val, old) {
   if (old) {

@@ -4,7 +4,7 @@ Run sagetex
 - TODO: this might be better done always as part of latexmk; not sure.
 */
 
-import { exec } from "./async-utils";
+import { exec } from "../async-utils";
 import { parse_path } from "./util";
 
 export async function sagetex(project_id: string, path: string, time?: number) {

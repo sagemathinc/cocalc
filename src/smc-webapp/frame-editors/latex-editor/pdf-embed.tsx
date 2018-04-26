@@ -4,7 +4,7 @@ This is a renderer using the embed tag, so works with browsers that have a PDF v
 
 import { raw_url } from "./util";
 
-import { Component, React } from "./react";
+import { Component, React } from "../react";
 
 export interface Props {
   project_id: string;
