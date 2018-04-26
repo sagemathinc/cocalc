@@ -103,35 +103,17 @@ block content
           img(src=require("webapp-lib/assets/cocalc-latex-custom-command.png")).fit
         div.col-md-6
           div.
-            #{NAME} makes sure that your desired LaTeX engine is available and ready to work with.
+            #{NAME} makes sure that your desired LaTeX engine is available and ready to use.
             Select between #[a(href="http://www.tug.org/applications/pdftex/") PDF Latex],
             #[a(href="http://xetex.sourceforge.net/") XeLaTeX] or #[a(href="http://www.luatex.org/") LuaTeX].
+          div.
+            Many packages and utilities like #[a(href="https://sourceforge.net/projects/pgf/") PGF&TikZ] are pre-installed.
           div.
             On top of that, by default #[a(href="http://mg.readthedocs.io/latexmk.html") LatexMK] is configured to manage the compilation process,
             which means that you do not have to bother too much about any additional configuration.
           div.
             Finally, it is possible to fully customize the compilation command.
             You can bring your own Shell-script or Makefile!
-
-    a.anchor#a-forwardinverse
-    div.container.space#forwardinverse
-      div.row
-        div.col-md-12
-          h2 #[i.fa.fa-users] Forward/Inverse search
-        div.col-md-6
-          div
-            +video-player
-              source(src="https://storage.googleapis.com/cocalc-extra/cc-latex-forward-inverse-2x.webm" type="video/webm; codecs=vp9")
-              source(src="https://storage.googleapis.com/cocalc-extra/cc-latex-forward-inverse-2x.mp4" type="video/mp4")
-        div.col-md-6
-          div.
-            Let #{NAME} help you find your way around in large documents!
-          div.
-            #[strong Forward Search] let's you jump from the LaTeX source to the corresponding part in the rendered preview.
-            That saves you time looking for the output by scrolling around.
-          div.
-            #[strong Inverse search] does the opposite: double-click on a part in the output and
-            your cursor jumps (roughly) to the line where that output is coming from.
 
     a.anchor#a-computational
     div.container.space#computational
@@ -142,7 +124,7 @@ block content
           img(src=require("webapp-lib/assets/latex-editor-01.png")).fit
         div.col-md-6
           div.
-            What sets #{NAME} apart from other online LaTeX editors is full access to computational software.
+            What sets #{NAME} apart from other online LaTeX editors is #[strong full access to computational software].
             This means you can seamlessly transition from #[em computing] your results to #[em publishing] them.
           div.
             You can run #[a(href="https://www.python.org") Python],
@@ -153,24 +135,6 @@ block content
             Consult the #[a(href=PREFIX + "doc/software.html") Available Software page]
             or look at our #[a(href=PREFIX + "doc/jupyter-notebook.html") Jupyter Notebook information page]
             for more information.
-
-    a.anchor#a-knitr
-    div.container.space#knitr
-      div.row
-        div.col-md-12
-          h2 #[i.fa.fa-heartbeat] R/Knitr
-        div.col-md-6
-          img(src=require("webapp-lib/assets/latex-editor-rnw-01.png")).fit
-        div.col-md-6
-          div.
-            #{NAME}'s Latex editor also supports #[strong #[a(href="https://yihui.name/knitr/") Knitr .Rnw]] documents.
-            This gives you the ability to embed arbitrary #[a(href="https://www.r-project.org/") R Project] commands and plots in your LaTeX file.
-          div.
-            Behind the scenes, #{NAME} deals with all underlying details for you:
-          ul
-            li installation and management of #[a(href="./software-r.html") all R packages],
-            li orchestrates the full compilation pipeline for LaTeX and running R, and
-            li reconciles the line-numbers of the .Rnw file with the corresponding .tex document for #[a(href="#a-forwardinverse") #[strong forward/inverse search]].
 
     a.anchor#a-realtimesync
     div.container.space#realtimesync
@@ -190,6 +154,67 @@ block content
             because everything is fully managed by #{NAME}.
           div.
             This ensures that everyone involved experiences editing the document in exactly the same way.
+
+    a.anchor#a-sagetex
+    div.container.space#sagetex
+      div.row
+        div.col-md-12
+          h2 #[i.fa.fa-heartbeat] SageTeX
+        div.col-md-6
+          img(src=require("webapp-lib/assets/cocalc-sagetex.png")).fit
+        div.col-md-6
+          div
+            strong #[a(href="http://doc.sagemath.org/html/en/tutorial/sagetex.html") SageTeX] lets you embed #[a(href="https://www.sagemath.org/") SageMath] in your document!
+          div.
+            This means you can write LaTeX like #[code \sage{2 + 2}] and the document will contain "4",
+            or #[code \sage{f.taylor(x, 0, 10)}] for the Taylor-expansion of a function "f".
+            Drawing graphs becomes as simple as this: #[code \sageplot{sin(x)}].
+          div.
+            #{NAME} deals with all the underlying details for you:
+          ul
+            li It runs the initial compilation pass,
+            li uses Sage to produce all output and graphs/images,
+            li and then runs the second compilation pass to produce the final output.
+
+    a.anchor#a-knitr
+    div.container.space#knitr
+      div.row
+        div.col-md-12
+          h2 #[i.fa.fa-heartbeat] R/Knitr
+        div.col-md-6
+          img(src=require("webapp-lib/assets/latex-editor-rnw-01.png")).fit
+        div.col-md-6
+          div.
+            #{NAME}'s Latex editor also supports #[strong #[a(href="https://yihui.name/knitr/") Knitr .Rnw]] documents.
+            This gives you the ability to embed arbitrary #[a(href="https://www.r-project.org/") R Project] commands and plots in your LaTeX file.
+          div.
+            Behind the scenes, #{NAME} deals with all underlying details for you:
+          ul
+            li installation and management of #[a(href="./software-r.html") all R packages],
+            li orchestrates the full compilation pipeline for LaTeX and running R, and
+            li.
+              reconciles the line-numbers of the .Rnw file with the corresponding .tex document
+              for correct #[a(href="#a-forwardinverse") #[strong forward/inverse search]].
+
+    a.anchor#a-forwardinverse
+    div.container.space#forwardinverse
+      div.row
+        div.col-md-12
+          h2 #[i.fa.fa-users] Forward/Inverse search
+        div.col-md-6
+          div
+            +video-player
+              source(src="https://storage.googleapis.com/cocalc-extra/cc-latex-forward-inverse-2x.webm" type="video/webm; codecs=vp9")
+              source(src="https://storage.googleapis.com/cocalc-extra/cc-latex-forward-inverse-2x.mp4" type="video/mp4")
+        div.col-md-6
+          div.
+            Let #{NAME} help you find your way around in large documents!
+          div.
+            #[strong Forward Search] let's you jump from the LaTeX source to the corresponding part in the rendered preview.
+            That saves you time looking for the output by scrolling around.
+          div.
+            #[strong Inverse search] does the opposite: double-click on a part in the output and
+            your cursor jumps (roughly) to the line in the source file for that output.
 
     a.anchor#a-timetravel
     div.container.space#timetravel
