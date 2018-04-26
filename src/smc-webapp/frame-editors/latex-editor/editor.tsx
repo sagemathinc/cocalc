@@ -153,7 +153,7 @@ class Editor extends Component<EditorProps, {}> {
   static reduxProps({ name }) {
     return {
       account: {
-        editor_settings: rtypes.immutable
+        editor_settings: rtypes.immutable.Map
       },
       [name]: {
         is_public: rtypes.bool
