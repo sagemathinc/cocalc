@@ -881,14 +881,11 @@ exports.HTML = HTML = rclass
         reload_images    : rtypes.bool     # if true, after any update to component, force reloading of all images.
         highlight_code   : rtypes.bool     # if true, highlight some <code class='language-r'> </code> blocks.  See misc_page for how tiny this is!
         id               : rtypes.string
+        mathjax_selector : rtypes.string   # if given, only run mathjax on result of jquery select with this selector and never use katex.
 
     getDefaultProps: ->
         auto_render_math : true
         safeHTML         : true
-
-    reduxProps :
-        account :
-            other_settings : rtypes.immutable.Map
 
     shouldComponentUpdate: (next) ->
         return misc.is_different(@props, next, ['value', 'auto_render_math', 'highlight', 'safeHTML', \
@@ -900,7 +897,10 @@ exports.HTML = HTML = rclass
             cb()
             return
         if @_needs_mathjax
-            $(ReactDOM.findDOMNode(@)).mathjax
+            elt = $(ReactDOM.findDOMNode(@))
+            if @props.mathjax_selector
+                elt = elt.find(@props.mathjax_selector)
+            elt.mathjax
                 hide_when_rendering : false
                 cb : () =>
                     # Awkward code, since cb may be called more than once if there
@@ -986,11 +986,12 @@ exports.HTML = HTML = rclass
             html = require('./misc_page').sanitize_html(@props.value, true, true, @props.post_hook)
 
         if @props.auto_render_math
+            # we currently have no implementation of katex on arbitrary html
             @_needs_mathjax = true
-            if @props.other_settings?.get('katex')
-                # try using katex:
-                {html, is_complete} = math_katex.render(html)
-                @_needs_mathjax = not is_complete
+            #else
+                # try using katex first.
+                #{html, is_complete} = math_katex.render(html)
+            #    @_needs_mathjax = not is_complete
 
         return {__html: html}
 
@@ -1048,13 +1049,14 @@ exports.Markdown = rclass
     to_html: ->
         if not @props.value
             return
-        return markdown.markdown_to_html(@props.value, {checkboxes:@props.checkboxes})
+        return markdown.markdown_to_html(@props.value, {checkboxes:@props.checkboxes, katex:@props.auto_render_math})
 
     render: ->
         <HTML
             id               = {@props.id}
             value            = {@to_html()}
             auto_render_math = {@props.auto_render_math}
+            mathjax_selector = {".cocalc-katex-error"}
             style            = {@props.style}
             project_id       = {@props.project_id}
             file_path        = {@props.file_path}

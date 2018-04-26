@@ -1224,7 +1224,7 @@ OtherSettings = rclass
             {@render_confirm()}
             {@render_first_steps()}
             {@render_time_ago_absolute()}
-            {@render_katex()}
+            {### @render_katex() ###}
             {@render_mask_files()}
             {@render_no_free_warnings()}
             {@render_default_file_sort()}
