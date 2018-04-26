@@ -1,10 +1,4 @@
 /*
- * decaffeinate suggestions:
- * DS102: Remove unnecessary code created because of implicit returns
- * DS207: Consider shorter variations of null checks
- * Full docs: https://github.com/decaffeinate/decaffeinate/blob/master/docs/suggestions.md
- */
-/*
 Component that shows rendered HTML in an iFrame, so safe and no mangling needed...
 */
 
@@ -88,10 +82,8 @@ export class IFrameHTML extends Component<PropTypes, {}> {
   }
 
   restore_scroll() {
-    const scroll =
-      this.props.editor_state != null
-        ? this.props.editor_state.get("scroll")
-        : undefined;
+    const scroll: number | undefined = this.props.editor_state.get("scroll");
+    if (scroll === undefined) return;
     let elt = ReactDOM.findDOMNode(this.refs.iframe);
     if (elt == null) {
       return;

@@ -12,7 +12,7 @@ const { Loading, HTML } = require("smc-webapp/r_misc");
 
 import { React, Component, Rendered, ReactDOM } from "../react";
 
-import {MAX_WIDTH} from "./options.ts";
+import { MAX_WIDTH } from "./options.ts";
 
 interface PropTypes {
   id: string;
@@ -22,12 +22,12 @@ interface PropTypes {
   font_size: number;
   read_only: boolean;
   value?: string;
-  content: string; // used instead of file, if this is public.
+  content?: string; // used instead of file, if this is public.
   editor_state: Map<string, any>;
 }
 
 export class QuickHTMLPreview extends Component<PropTypes, {}> {
-  shouldComponentUpdate(next) : boolean {
+  shouldComponentUpdate(next): boolean {
     return is_different(this.props, next, [
       "id",
       "project_id",
@@ -39,7 +39,7 @@ export class QuickHTMLPreview extends Component<PropTypes, {}> {
     ]);
   }
 
-  on_scroll() : void {
+  on_scroll(): void {
     const elt = ReactDOM.findDOMNode(this.refs.scroll);
     if (elt == null) {
       return;
@@ -48,15 +48,15 @@ export class QuickHTMLPreview extends Component<PropTypes, {}> {
     this.props.actions.save_editor_state(this.props.id, { scroll });
   }
 
-  componentDidMount() : void {
+  componentDidMount(): void {
     this.restore_scroll();
     setTimeout(() => this.restore_scroll, 200);
     setTimeout(() => this.restore_scroll, 500);
   }
 
   restore_scroll() {
-    const scroll : number | undefined = this.props.editor_state.get("scroll");
-    if(scroll!==undefined) {
+    const scroll: number | undefined = this.props.editor_state.get("scroll");
+    if (scroll !== undefined) {
       $(ReactDOM.findDOMNode(this.refs.scroll)).scrollTop(scroll);
     }
   }
@@ -67,8 +67,8 @@ export class QuickHTMLPreview extends Component<PropTypes, {}> {
     return elt.find("style").remove();
   } // gets rid of inline CSS style
 
-  render(): Rendered{
-    const value =
+  render(): Rendered {
+    const value: string | undefined =
       this.props.value === undefined ? this.props.content : this.props.value;
     // the cocalc-editor-div is needed for a safari hack only
     if (value === undefined) {
