@@ -79,7 +79,7 @@ export class Actions extends BaseActions {
           direction: "row",
           type: "node",
           first: {
-            type: "pdfjs_svg"
+            type: "pdfjs_canvas"
           },
           second: {
             type: "error"

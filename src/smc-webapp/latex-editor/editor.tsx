@@ -64,17 +64,6 @@ const EDITOR_SPEC = {
     gutters: ["Codemirror-latex-errors"]
   },
 
-  pdfjs_svg: {
-    short: "PDF (svg)",
-    name: "PDF - SVG",
-    icon: "file-pdf-o",
-    component: PDFJS,
-    buttons: pdfjs_buttons,
-    path: pdf_path,
-    style: { background: "#525659" },
-    renderer: "svg"
-  },
-
   pdfjs_canvas: {
     short: "PDF (canvas)",
     name: "PDF - Canvas",
@@ -109,6 +98,17 @@ const EDITOR_SPEC = {
     buttons: set(["print", "save", "reload"]),
     component: PDFEmbed,
     path: pdf_path
+  },
+
+  pdfjs_svg: {
+    short: "PDF (svg)",
+    name: "PDF - SVG",
+    icon: "file-pdf-o",
+    component: PDFJS,
+    buttons: pdfjs_buttons,
+    path: pdf_path,
+    style: { background: "#525659" },
+    renderer: "svg"
   }
 
   /*
