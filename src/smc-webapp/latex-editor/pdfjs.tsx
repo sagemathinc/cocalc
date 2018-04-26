@@ -37,6 +37,7 @@ interface PDFJSProps {
   reload: number;
   font_size: number;
   renderer: string /* "canvas" or "svg" */;
+  is_current: boolean;
 
   // reduxProps
   zoom_page_width?: string;
@@ -100,7 +101,8 @@ class PDFJS extends Component<PDFJSProps, PDFJSState> {
           "zoom_page_width",
           "zoom_page_height",
           "sync",
-          "scroll_into_view"
+          "scroll_into_view",
+          "is_current"
         ]
       ) ||
       this.state.loaded != next_state.loaded ||
@@ -216,6 +218,13 @@ class PDFJS extends Component<PDFJSProps, PDFJSState> {
     ) {
       let { page, y, id } = next_props.scroll_into_view;
       this.scroll_into_view(page, y, id);
+    }
+    if (
+      this.props.is_current != next_props.is_current &&
+      next_props.is_current
+    ) {
+      // ensure any codemirror (etc.) elements blur, when this pdfjs viewer is focused.
+      $(document.activeElement).blur();
     }
   }
 
@@ -349,6 +358,9 @@ class PDFJS extends Component<PDFJSProps, PDFJSState> {
         }}
         onScroll={throttle(() => this.on_scroll(), 250)}
         ref={"scroll"}
+        tabIndex={
+          0 /* Need so keyboard navigation works; also see mouse-draggable click event. */
+        }
       >
         <div>{this.render_content()}</div>
       </div>
