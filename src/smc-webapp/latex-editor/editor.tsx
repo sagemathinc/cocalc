@@ -30,7 +30,6 @@ import { pdf_path } from "./util";
 let pdfjs_buttons = set([
   "print",
   "save",
-  "reload",
   "decrease_font_size",
   "increase_font_size",
   "zoom_page_width",
@@ -80,7 +79,7 @@ const EDITOR_SPEC = {
     name: "Errors and Warnings",
     icon: "bug",
     component: ErrorsAndWarnings,
-    buttons: set(["reload"])
+    buttons: set([])
   },
 
   build: {
@@ -88,14 +87,14 @@ const EDITOR_SPEC = {
     name: "Build Control",
     icon: "terminal",
     component: Build,
-    buttons: set(["reload"])
+    buttons: set([])
   },
 
   embed: {
     short: "PDF (native)",
     name: "PDF - Native",
     icon: "file-pdf-o",
-    buttons: set(["print", "save", "reload"]),
+    buttons: set(["print", "save"]),
     component: PDFEmbed,
     path: pdf_path
   },
