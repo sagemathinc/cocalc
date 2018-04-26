@@ -2,6 +2,12 @@
 This is a renderer using pdf.js.
 */
 
+// We render pages within a window of this many pixels around
+// the top of the visible page.  Making this bigger makes it
+// less likely the user will see a blank page for a moment, but
+// also potentially makes things feel slightly slower and heavier.
+const WINDOW_SIZE: number = 3000;
+
 import { Map } from "immutable";
 
 import { throttle } from "underscore";
@@ -44,18 +50,27 @@ interface PDFJSState {
   loaded: boolean;
   doc: PDFDocumentProxy;
   pages: PDFPageProxy[];
+  scrollTop: number;
 }
 
 class PDFJS extends Component<PDFJSProps, PDFJSState> {
   private mounted: boolean;
+  private restored_scroll: boolean;
 
   constructor(props) {
     super(props);
 
+    let scroll: number = 0;
+    if (this.props.editor_state) {
+      let x = this.props.editor_state.getIn(["scroll", "top"]);
+      if (x) scroll = x;
+    }
+
     this.state = {
       loaded: false,
       doc: { pdfInfo: { fingerprint: "" } },
-      pages: []
+      pages: [],
+      scrollTop: scroll
     };
   }
 
@@ -90,6 +105,7 @@ class PDFJS extends Component<PDFJSProps, PDFJSState> {
         ]
       ) ||
       this.state.loaded != next_state.loaded ||
+      this.state.scrollTop != next_state.scrollTop ||
       this.state.doc.pdfInfo.fingerprint != next_state.doc.pdfInfo.fingerprint
     );
   }
@@ -102,10 +118,14 @@ class PDFJS extends Component<PDFJSProps, PDFJSState> {
     let elt = $(ReactDOM.findDOMNode(this.refs.scroll));
     const scroll = { top: elt.scrollTop(), left: elt.scrollLeft() };
     this.props.actions.save_editor_state(this.props.id, { scroll });
+    if (scroll.top !== undefined) {
+      this.setState({ scrollTop: scroll.top });
+    }
   }
 
   restore_scroll(): void {
     if (!this.props.editor_state || !this.mounted) return;
+    this.restored_scroll = true;
     const scroll: Map<string, number> = this.props.editor_state.get("scroll");
     if (!scroll) return;
     let elt = $(ReactDOM.findDOMNode(this.refs.scroll));
@@ -132,7 +152,7 @@ class PDFJS extends Component<PDFJSProps, PDFJSState> {
       });
     } catch (err) {
       // This is normal if the PDF is being modified *as* it is being loaded...
-      console.warn(`error loading PDF -- ${err}`);
+      console.log(`WARNING: error loading PDF -- ${err}`);
       //this.props.actions.set_error();
     }
   }
@@ -263,29 +283,39 @@ class PDFJS extends Component<PDFJSProps, PDFJSState> {
     this.mouse_draggable();
     this.focus_on_click();
     this.load_doc(this.props.reload);
-    // TODO -- quick hack for now.
-    let t: number;
-    for (t of [250, 500, 100]) {
-      setTimeout(() => this.restore_scroll(), t);
-    }
   }
 
   render_pages(): Rendered[] {
     const pages: Rendered[] = [];
     const scale = this.scale();
+    let scrollTop: number = this.state.scrollTop;
+    let top: number = 0;
     for (let n = 1; n <= this.state.doc.numPages; n++) {
+      let page = this.state.pages[n - 1];
+      let renderer: string = "none";
+      if (
+        top >= scrollTop - WINDOW_SIZE * scale &&
+        top <= scrollTop + WINDOW_SIZE * scale
+      ) {
+        renderer = this.props.renderer;
+      }
       pages.push(
         <Page
           id={this.props.id}
           actions={this.props.actions}
           doc={this.state.doc}
-          page={this.state.pages[n - 1]}
+          page={page}
           n={n}
           key={n}
-          renderer={this.props.renderer}
+          renderer={renderer}
           scale={scale}
         />
       );
+      top += scale * page.pageInfo.view[3] + PAGE_GAP;
+    }
+    if (!this.restored_scroll) {
+      // Restore the scroll position after the above pages get rendered into the DOM.
+      setTimeout(() => this.restore_scroll(), 1);
     }
     return pages;
   }
@@ -313,7 +343,9 @@ class PDFJS extends Component<PDFJSProps, PDFJSState> {
           overflow: "scroll",
           width: "100%",
           cursor: "default",
-          textAlign: "center"
+          textAlign: "center",
+          minHeight : !this.state.loaded ? "2000px" : undefined,
+          backgroundColor: !this.state.loaded ? "white" : undefined
         }}
         onScroll={throttle(() => this.on_scroll(), 250)}
         ref={"scroll"}

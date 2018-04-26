@@ -25,6 +25,8 @@ or
     deletable : bool
 ###
 
+immutable = require('immutable')
+
 Draggable                         = require('react-draggable')
 misc                              = require('smc-util/misc')
 misc_page                         = require('../misc_page')
@@ -150,7 +152,7 @@ exports.FrameTree = FrameTree = rclass ({name}) ->
             path             = {path}
             fullscreen_style = {fullscreen_style}
             project_id       = {desc.get('project_id') ? @props.project_id}
-            editor_state     = {@props.editor_state.get(desc.get('id'))}
+            editor_state     = {@props.editor_state.get(desc.get('id')) ? immutable.Map()}
             is_current       = {desc.get('id') == @props.active_id}
             cursors          = {@props.cursors}
             content          = {@props.content}

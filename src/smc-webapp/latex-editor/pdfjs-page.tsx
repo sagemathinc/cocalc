@@ -45,7 +45,7 @@ export class Page extends Component<PageProps, {}> {
     const f = annotation => {
       this.click_annotation(annotation);
     };
-    if (this.props.n > 200) {
+    if (this.props.renderer == "none") {
       return <NonloadedPage page={this.props.page} scale={this.props.scale} />;
     } else if (this.props.renderer == "svg") {
       return (

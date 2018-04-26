@@ -59,7 +59,8 @@ export class Actions extends BaseActions {
       this._last_save_time = time;
       this.run_latexmk(time);
     });
-    this.run_latexmk(new Date().valueOf());
+    // TODO: only do this if pdf doesn't exist -- ?  better may be just a button in the preview.
+    //this.run_latexmk(new Date().valueOf());
   }
 
   _raw_default_frame_tree(): FrameTree {
