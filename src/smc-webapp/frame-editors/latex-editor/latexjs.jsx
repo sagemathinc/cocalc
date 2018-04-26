@@ -15,14 +15,14 @@ import { React, ReactDOM, rclass, rtypes } from "../smc-react";
 
 import misc from "smc-util/misc";
 
-import { HtmlGenerator } from "../node_modules/latex.js/dist/html-generator.js";
+import { HtmlGenerator } from "smc-webapp/node_modules/latex.js/dist/html-generator.js";
 
 // This CSS can only be used in an iframe...
 //require('../node_modules/latex.js/dist/css/base.css')
 
 import { parse } from "latex.js";
 
-import { Loading } from "../r_misc";
+import { Loading } from "smc-webapp/r_misc";
 
 const generator = new HtmlGenerator({
   bare: true,

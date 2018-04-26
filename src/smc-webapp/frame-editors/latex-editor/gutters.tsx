@@ -9,8 +9,7 @@ import * as React from "react";
 
 import { path_split, capitalize } from "./misc";
 
-//import { Icon, Tip } from "../r_misc";
-const { Icon, Tip } = require("../r_misc");
+const { Icon, Tip } = require("smc-webapp/r_misc");
 
 import { SPEC, SpecItem } from "./errors-and-warnings.tsx";
 

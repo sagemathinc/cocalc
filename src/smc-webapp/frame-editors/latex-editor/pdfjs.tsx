@@ -18,7 +18,7 @@ import { is_different } from "./misc";
 import { dblclick } from "./mouse-click";
 
 import { Component, React, ReactDOM, rclass, rtypes, Rendered } from "./react";
-const { Loading } = require("../r_misc");
+const { Loading } = require("smc-webapp/r_misc");
 import { getDocument, url_to_pdf } from "./pdfjs-doc-cache.ts";
 import { Page, PAGE_GAP } from "./pdfjs-page.tsx";
 

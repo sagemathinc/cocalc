@@ -8,8 +8,7 @@ import { capitalize, is_different, path_split } from "./misc";
 
 import { Component, React, rclass, rtypes, Rendered } from "./react";
 
-//import { Icon, Loading } from "../r_misc";
-const { Icon, Loading } = require("../r_misc");
+const { Icon, Loading } = require("smc-webapp/r_misc");
 
 function group_to_level(group: string): string {
   switch (group) {

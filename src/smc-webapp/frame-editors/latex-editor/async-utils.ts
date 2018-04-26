@@ -13,7 +13,7 @@ The two helpful async/await libraries I found are:
 import * as awaiting from "awaiting";
 
 // use require for now...
-const webapp_client = require("../webapp_client").webapp_client;
+const webapp_client = require("smc-webapp/webapp_client").webapp_client;
 
 export function server_time(): Date {
   return webapp_client.server_time();

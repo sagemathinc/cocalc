@@ -8,8 +8,7 @@ import { is_different } from "./misc";
 
 import { React, rclass, rtypes, Fragment, Rendered, Component } from "./react";
 
-//import { Icon, Loading } from "../r_misc";
-const { Icon, Loading } = require("../r_misc");
+const { Icon, Loading } = require("smc-webapp/r_misc");
 
 interface BuildSpec {
   label: string;

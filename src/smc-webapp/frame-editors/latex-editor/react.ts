@@ -4,7 +4,7 @@ export const {
   rclass,
   rtypes,
   Fragment
-} = require("../smc-react");
+} = require("smc-webapp/smc-react");
 
 import * as ReactOrig from "react";
 
