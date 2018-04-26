@@ -2,7 +2,7 @@
 Top-level react component for editing HTML documents
 ###
 
-{React, rclass, rtypes} = require('../smc-react')
+{React, rclass, rtypes} = require('smc-webapp/smc-react')
 
 {FormatBar}             = require('../markdown-editor/format-bar')
 {Editor, set}           = require('../code-editor/editor')

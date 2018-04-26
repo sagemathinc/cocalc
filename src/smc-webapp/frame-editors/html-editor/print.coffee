@@ -6,9 +6,9 @@ TODO: refactor with markdown print (?).
 
 {required, defaults, path_split} = require('smc-util/misc')
 
-{HTML}               = require('../r_misc')
+{HTML}               = require('smc-webapp/r_misc')
 ReactDOMServer       = require('react-dom/server')
-{React, Redux, redux} = require('../smc-react')
+{React, Redux, redux} = require('smc-webapp/smc-react')
 
 {open_new_tab}       = require('smc-webapp/misc_page')
 

@@ -6,8 +6,8 @@ misc = require('smc-util/misc')
 
 {throttle} = require('underscore')
 
-{Loading, HTML} = require('../r_misc')
-{React, ReactDOM, rclass, rtypes}     = require('../smc-react')
+{Loading, HTML} = require('smc-webapp/r_misc')
+{React, ReactDOM, rclass, rtypes}     = require('smc-webapp/smc-react')
 
 options = require('./options')
 

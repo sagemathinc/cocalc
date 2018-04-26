@@ -8,8 +8,8 @@ misc = require('smc-util/misc')
 
 {throttle} = require('underscore')
 
-{HTML} = require('../r_misc')
-{React, ReactDOM, rclass, rtypes} = require('../smc-react')
+{HTML} = require('smc-webapp/r_misc')
+{React, ReactDOM, rclass, rtypes} = require('smc-webapp/smc-react')
 
 STYLE =
     overflowY : 'scroll'

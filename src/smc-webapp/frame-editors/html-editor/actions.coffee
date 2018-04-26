@@ -5,7 +5,7 @@ HTML Editor Actions
 tree_ops  = require('../code-editor/tree-ops')
 {Actions} = require('../code-editor/actions')
 
-{toggle_checkbox} = require('../tasks/desc-rendering')
+{toggle_checkbox} = require('smc-webapp/tasks/desc-rendering')
 {print_html} = require('./print')
 
 class exports.Actions extends Actions
