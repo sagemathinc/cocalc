@@ -197,7 +197,7 @@ class Build extends Component<Props, {}> {
         style={{
           overflowY: "scroll",
           padding: "5px 15px",
-          fontSize: `${this.props.font_size}px`
+          fontSize: "11pt"
         }}
       >
         {this.render_buttons()}

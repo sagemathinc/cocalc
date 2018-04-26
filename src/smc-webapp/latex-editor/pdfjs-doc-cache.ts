@@ -6,6 +6,16 @@ We cache recently loaded PDF.js docs, so that:
 - canvas and svg can share the same doc
 */
 
+/*
+MAX_PAGES is the maximum number of pages to store in the cache.
+I just made this value up to avoid some weird case
+where maybe we fail to remove stuff from the cache
+and things just grow badly (user has tons of docs open).
+*/
+const MAX_PAGES = 1000;
+
+import * as LRU from "lru-cache";
+
 import { reuseInFlight } from "async-await-utils/hof";
 
 import {
@@ -14,18 +24,45 @@ import {
   PDFDocumentProxy
 } from "pdfjs-dist/webpack";
 
-const doc_cache = {}; // cached -- change to use an LRU cache, rather than cache everything...
+import { pdf_path, raw_url } from "./util";
+
+const options = {
+  max: MAX_PAGES,
+  length: function(doc: PDFDocumentProxy): number {
+    return doc.numPages;
+  }
+};
+
+export function url_to_pdf(
+  project_id: string,
+  path: string,
+  reload: number
+): string {
+  return `${raw_url(project_id, pdf_path(path))}?param=${reload}`;
+}
+
+const doc_cache = LRU(options);
 
 export const getDocument: (
   url: string
 ) => PDFPromise<PDFDocumentProxy> = reuseInFlight(async function(url) {
-  let doc = doc_cache[url];
-  if (!doc) {
-    doc = doc_cache[url] = await pdfjs_getDocument({
+  let doc: PDFDocumentProxy | undefined = doc_cache.get(url);
+  if (doc === undefined) {
+    doc = await pdfjs_getDocument({
       url: url,
       disableStream: true,
       disableAutoFetch: true
     });
+    doc_cache.set(url, doc);
   }
   return doc;
 });
+
+/*
+Call this to remove this given pdf from the cache.
+This is called when the reload number *changes*, since then we will
+never ever want to see the old pdf.
+*/
+export function forgetDocument(url: string): void {
+  doc_cache.del(url);
+}

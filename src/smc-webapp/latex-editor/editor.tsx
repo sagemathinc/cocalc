@@ -91,7 +91,7 @@ const EDITOR_SPEC = {
     name: "Errors and Warnings",
     icon: "bug",
     component: ErrorsAndWarnings,
-    buttons: set(["reload", "decrease_font_size", "increase_font_size"])
+    buttons: set(["reload"])
   },
 
   build: {
@@ -99,7 +99,7 @@ const EDITOR_SPEC = {
     name: "Build Control",
     icon: "terminal",
     component: Build,
-    buttons: set(["reload", "decrease_font_size", "increase_font_size"])
+    buttons: set(["reload"])
   },
 
   embed: {

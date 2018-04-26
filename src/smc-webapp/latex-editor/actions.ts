@@ -28,6 +28,8 @@ import { update_gutters } from "./gutters.tsx";
 
 import { pdf_path } from "./util";
 
+import { forgetDocument, url_to_pdf } from "./pdfjs-doc-cache.ts";
+
 const VIEWERS = ["pdfjs_canvas", "pdfjs_svg", "embed", "build_log"];
 
 // obviously will move when porting code-editor to TS...
@@ -123,9 +125,24 @@ export class Actions extends BaseActions {
       }
     });
 
+    // forget currently cached pdf
+    this._forget_pdf_document();
+    // ... before setting a new one for all the viewers,
+    // which causes them to reload.
     for (let x of VIEWERS) {
       this.set_reload(x);
     }
+  }
+
+  _forget_pdf_document(): void {
+    forgetDocument(
+      url_to_pdf(this.project_id, this.path, this.store.getIn(["reload", VIEWERS[0]]))
+    );
+  }
+
+  close(): void {
+    this._forget_pdf_document();
+    super.close();
   }
 
   async run_bibtex(time: number): Promise<void> {

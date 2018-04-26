@@ -19,8 +19,7 @@ import { dblclick } from "./mouse-click";
 
 import { Component, React, ReactDOM, rclass, rtypes, Rendered } from "./react";
 const { Loading } = require("../r_misc");
-import { getDocument } from "./pdfjs-doc-cache.ts";
-import { raw_url } from "./util";
+import { getDocument, url_to_pdf } from "./pdfjs-doc-cache.ts";
 import { Page, PAGE_GAP } from "./pdfjs-page.tsx";
 
 import { PDFDocumentProxy, PDFPageProxy } from "pdfjs-dist/webpack";
@@ -133,18 +132,18 @@ class PDFJS extends Component<PDFJSProps, PDFJSState> {
     elt.scrollLeft(scroll.get("left"));
   }
 
-  async load_doc(reload): Promise<void> {
-    const url_to_pdf =
-      raw_url(this.props.project_id, this.props.path) + "?param=" + reload;
+  async load_doc(reload: number): Promise<void> {
     try {
-      const doc: PDFDocumentProxy = await getDocument(url_to_pdf);
+      const doc: PDFDocumentProxy = await getDocument(
+        url_to_pdf(this.props.project_id, this.props.path, reload)
+      );
       if (!this.mounted) return;
       let v: Promise<PDFPageProxy>[] = [];
       for (let n = 1; n <= doc.numPages; n++) {
         v.push(doc.getPage(n));
       }
       let pages: PDFPageProxy[] = await Promise.all(v);
-
+      if (!this.mounted) return;
       this.setState({
         doc: doc,
         loaded: true,
@@ -208,8 +207,9 @@ class PDFJS extends Component<PDFJSProps, PDFJSState> {
     if (next_props.sync == next_props.id) {
       this.sync();
     }
-    if (this.props.reload != next_props.reload)
+    if (this.props.reload != next_props.reload) {
       this.load_doc(next_props.reload);
+    }
     if (
       next_props.scroll_into_view &&
       this.props.scroll_into_view !== next_props.scroll_into_view
@@ -315,7 +315,7 @@ class PDFJS extends Component<PDFJSProps, PDFJSState> {
     }
     if (!this.restored_scroll) {
       // Restore the scroll position after the above pages get rendered into the DOM.
-      setTimeout(() => this.restore_scroll(), 1);
+      setTimeout(() => this.restore_scroll(), 0);
     }
     return pages;
   }
@@ -344,7 +344,7 @@ class PDFJS extends Component<PDFJSProps, PDFJSState> {
           width: "100%",
           cursor: "default",
           textAlign: "center",
-          minHeight : !this.state.loaded ? "2000px" : undefined,
+          minHeight: !this.state.loaded ? "2000px" : undefined,
           backgroundColor: !this.state.loaded ? "white" : undefined
         }}
         onScroll={throttle(() => this.on_scroll(), 250)}
