@@ -356,9 +356,3 @@ account_store.on 'change', ->
         last_set_standby_timeout_m = x
         webapp_client.set_standby_timeout_m(x)
 
-# Using KATEX?
-exports.USE_KATEX = true
-account_store.on 'change', ->
-    # NOTE: we call this on any change to account settings, which is maybe too extreme.
-    exports.USE_KATEX = !!account_store.getIn(['other_settings', 'katex'])
-
