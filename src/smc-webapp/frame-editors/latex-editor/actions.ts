@@ -19,7 +19,7 @@ import * as synctex from "./synctex";
 
 import { bibtex } from "./bibtex";
 
-import { server_time, ExecOutput } from "../async-utils";
+import { server_time, ExecOutput } from "../generic/async-utils";
 import { clean } from "./clean.ts";
 
 import { LatexParser, ProcessedLatexLog } from "./latex-log-parser.ts";
@@ -32,13 +32,7 @@ import { forgetDocument, url_to_pdf } from "./pdfjs-doc-cache.ts";
 
 const VIEWERS = ["pdfjs_canvas", "pdfjs_svg", "embed", "build_log"];
 
-// obviously will move when porting code-editor to TS...
-interface FrameTree {
-  direction?: string;
-  type: string;
-  first?: FrameTree;
-  second?: FrameTree;
-}
+import { FrameTree } from "../frame-tree/types";
 
 interface BuildLog extends ExecOutput {
   parse?: ProcessedLatexLog;
@@ -136,7 +130,11 @@ export class Actions extends BaseActions {
 
   _forget_pdf_document(): void {
     forgetDocument(
-      url_to_pdf(this.project_id, this.path, this.store.getIn(["reload", VIEWERS[0]]))
+      url_to_pdf(
+        this.project_id,
+        this.path,
+        this.store.getIn(["reload", VIEWERS[0]])
+      )
     );
   }
 

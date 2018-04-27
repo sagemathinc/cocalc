@@ -1,4 +1,7 @@
 /*
+THIS SHOULD BE MOVED OUT OF frame-editors/
+
+
 This is a rewrite of what we're using from smc-util/misc...
 */
 

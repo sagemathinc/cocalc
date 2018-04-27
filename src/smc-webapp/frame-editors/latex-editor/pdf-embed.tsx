@@ -2,9 +2,9 @@
 This is a renderer using the embed tag, so works with browsers that have a PDF viewer plugin.
 */
 
-import { raw_url } from "./util";
+import { raw_url } from "../frame-tree/util";
 
-import { Component, React } from "../react";
+import { Component, React } from "../generic/react";
 
 export interface Props {
   project_id: string;

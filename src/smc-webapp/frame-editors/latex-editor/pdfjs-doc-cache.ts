@@ -24,7 +24,9 @@ import {
   PDFDocumentProxy
 } from "pdfjs-dist/webpack";
 
-import { pdf_path, raw_url } from "./util";
+import { raw_url } from "../frame-tree/util";
+
+import { pdf_path } from "./util";
 
 const options = {
   max: MAX_PAGES,

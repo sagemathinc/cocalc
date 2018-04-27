@@ -8,10 +8,10 @@ We do NOT render any other annotations (e.g., notes, etc.), as would be produced
 like is here:  https://tex.stackexchange.com/questions/6306/how-to-annotate-pdf-files-generated-by-pdflatex
 */
 
-import { Component, React, Rendered } from "../react";
+import { Component, React, Rendered } from "../generic/react";
 
 import { PDFAnnotationData, PDFPageProxy, PDFJS } from "pdfjs-dist/webpack";
-import { is_different } from "../misc";
+import { is_different } from "../generic/misc";
 
 interface Props {
   page: PDFPageProxy;

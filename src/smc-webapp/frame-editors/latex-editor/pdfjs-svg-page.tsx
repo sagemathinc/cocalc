@@ -2,11 +2,11 @@
 
 import * as $ from "jquery";
 
-import { Component, React, ReactDOM } from "../react";
+import { Component, React, ReactDOM } from "../generic/react";
 
 import { SVGGraphics, PDFPageProxy, PDFPageViewport } from "pdfjs-dist/webpack";
 
-import { is_different } from "../misc";
+import { is_different } from "../generic/misc";
 
 import { AnnotationLayer } from "./pdfjs-annotation.tsx";
 

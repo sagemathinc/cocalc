@@ -1,0 +1,1 @@
+Everything here **should** be generic functionality that has nothing to do with frame-editors/, and should be moved out.

@@ -1,16 +1,10 @@
 /*
- * decaffeinate suggestions:
- * DS102: Remove unnecessary code created because of implicit returns
- * DS207: Consider shorter variations of null checks
- * Full docs: https://github.com/decaffeinate/decaffeinate/blob/master/docs/suggestions.md
- */
-/*
 Convert an *HTML* file to printable form.
 
 TODO: refactor with markdown print (?).
 */
 
-import { path_split } from "../misc";
+import { path_split } from "../generic/misc";
 
 //import { HTML } from 'smc-webapp/r_misc';
 const { HTML } = require("smc-webapp/r_misc");
@@ -18,7 +12,7 @@ const { HTML } = require("smc-webapp/r_misc");
 //import ReactDOMServer from "react-dom/server";
 const ReactDOMServer = require("react-dom/server");
 
-import { React, Redux, redux } from "../react";
+import { React, Redux, redux } from "../generic/react";
 
 let BLOCKED: boolean | undefined = undefined;
 
@@ -39,7 +33,7 @@ export function print_html(opts : PrintOptions): string {
   );
   if (!w || w.closed === undefined) {
     if (BLOCKED || BLOCKED === undefined) {
-      // no history, definitely blocked
+      // no history, or known blocked
       BLOCKED = true;
       return "Popup blocked.  Please unblock popups for this site.";
     } else {
@@ -63,7 +57,7 @@ export function print_html(opts : PrintOptions): string {
 }
 
 function print_window(w): void {
-  if (w.window.print == null) {
+  if (w.window.print === null) {
     return;
   }
   const f = () => w.window.print();

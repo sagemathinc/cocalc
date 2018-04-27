@@ -14,10 +14,10 @@ misc = require('smc-util/misc')
 
 {throttle} = require('underscore')
 
-{Loading, Markdown} = require('../r_misc')
-{React, ReactDOM, rclass, rtypes}     = require('../smc-react')
+{Loading, Markdown} = require('smc-webapp/r_misc')
+{React, ReactDOM, rclass, rtypes}     = require('smc-webapp/smc-react')
 
-{process_checkboxes} = require('../tasks/desc-rendering')
+{process_checkboxes} = require('smc-webapp/tasks/desc-rendering')
 {apply_without_math} = require('smc-util/mathjax-utils-2')
 
 options = require('./options')

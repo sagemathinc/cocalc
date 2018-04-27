@@ -10,9 +10,9 @@ misc = require('smc-util/misc')
 
 {ButtonGroup, Button, DropdownButton, MenuItem}   = require('react-bootstrap')
 
-buttonbar               = require('../buttonbar')
-{React, rclass, rtypes, Fragment} = require('../smc-react')
-{Icon, Space}           = require('../r_misc')
+buttonbar               = require('smc-webapp/buttonbar')
+{React, rclass, rtypes, Fragment} = require('smc-webapp/smc-react')
+{Icon, Space}           = require('smc-webapp/r_misc')
 
 FONT_SIZES = 'xx-small x-small small medium large x-large xx-large'.split(' ')
 

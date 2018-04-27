@@ -4,8 +4,8 @@ Run sagetex
 - TODO: this might be better done always as part of latexmk; not sure.
 */
 
-import { exec } from "../async-utils";
-import { parse_path } from "./util";
+import { exec } from "../generic/async-utils";
+import { parse_path } from "../frame-tree/util";
 
 export async function sagetex(project_id: string, path: string, time?: number) {
   let { base, directory } = parse_path(path); // base, directory, filename

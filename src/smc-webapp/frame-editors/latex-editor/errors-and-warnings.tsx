@@ -4,9 +4,9 @@ Show errors and warnings.
 
 import { Map } from "immutable";
 
-import { capitalize, is_different, path_split } from "../misc";
+import { capitalize, is_different, path_split } from "../generic/misc";
 
-import { Component, React, rclass, rtypes, Rendered } from "../react";
+import { Component, React, rclass, rtypes, Rendered } from "../generic/react";
 
 const { Icon, Loading } = require("smc-webapp/r_misc");
 
