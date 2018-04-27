@@ -1536,28 +1536,28 @@ class SynchronizedWorksheet extends SynchronizedDocument2
             # markdown
             # we replace all backslashes by double backslashes since bizarely the markdown-it processes replaces \$ with $, which
             # breaks later use of mathjax :-(.  This will get deleted soon.
-            html = markdown.markdown_to_html(misc.replace_all(mesg.md,'\\$', '\\\\$'))
+            html = markdown.markdown_to_html(mesg.md)
             t = $('<div class="sagews-output-md">')
             if @editor.opts.allow_javascript_eval
                 t.html(html)
             else
                 t.html_noscript(html)
-            #console.log 'sagews:mesg.md, t:', t
-            t.mathjax(hide_when_rendering:false)
+            t.find('span.cocalc-katex-error').mathjax(hide_when_rendering:false)
             output.append(t)
             @process_html_output(t)
 
         if mesg.tex?
             # latex
             val = mesg.tex
-            elt = $("<div class='sagews-output-tex'>")
-            arg = {tex:val.tex}
             if val.display
-                arg.display = true
+                delim = '$$'
             else
-                arg.inline = true
-            arg.hide_when_rendering = false
-            output.append(elt.mathjax(arg))
+                delim = '$'
+            html = markdown.markdown_to_html(delim + val.tex + delim)
+            t = $("<div class='sagews-output-tex'>")
+            t.html(html)
+            t.find('span.cocalc-katex-error').mathjax(hide_when_rendering:false)
+            output.append(t)
 
         if mesg.raw_input?
             output.append(@raw_input(mesg.raw_input))

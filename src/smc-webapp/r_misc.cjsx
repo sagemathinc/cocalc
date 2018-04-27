@@ -1037,33 +1037,29 @@ exports.Markdown = rclass
         href_transform   : rtypes.func     # optional function used to first transform href target strings
         post_hook        : rtypes.func     # see docs to HTML
         highlight        : rtypes.immutable.Set
-        auto_render_math : rtypes.bool     # render math
         content_editable : rtypes.bool     # if true, makes rendered Markdown contenteditable
-        checkboxes       : rtypes.bool     # if true, replace "[ ]" and "[ ]" by nice rendered versions.
         id               : rtypes.string
         reload_images    : rtypes.bool
         highlight_code   : rtypes.bool
 
     getDefaultProps: ->
-        auto_render_math : true
         safeHTML         : true
 
     shouldComponentUpdate: (next) ->
-        return misc.is_different(@props, next, ['value', 'auto_render_math', 'highlight', 'safeHTML',  \
+        return misc.is_different(@props, next, ['value', 'highlight', 'safeHTML',  \
                     'checkboxes', 'reload_images', 'highlight_code']) or \
                not underscore.isEqual(@props.style, next.style)
 
     to_html: ->
         if not @props.value
             return
-        return markdown.markdown_to_html(@props.value, {checkboxes:@props.checkboxes, katex:@props.auto_render_math})
+        return markdown.markdown_to_html(@props.value)
 
     render: ->
         <HTML
             id               = {@props.id}
             value            = {@to_html()}
-            auto_render_math = {@props.auto_render_math}
-            mathjax_selector = {".cocalc-katex-error"}
+            mathjax_selector = {"span.cocalc-katex-error"}
             style            = {@props.style}
             project_id       = {@props.project_id}
             file_path        = {@props.file_path}
