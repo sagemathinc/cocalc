@@ -14,6 +14,9 @@ misc = require('smc-util/misc')
 DONE_CUTOFF_MS = 5000
 
 exports.update_visible = (tasks, local_tasks, view, counts, current_task_id) ->
+    if not tasks?  # not fully initialized.
+        return
+
     show_deleted    = !!view.get('show_deleted')
     show_done       = !!view.get('show_done')
 

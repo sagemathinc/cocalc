@@ -897,16 +897,23 @@ exports.HTML = HTML = rclass
             cb()
             return
         if @_needs_mathjax
-            elt = $(ReactDOM.findDOMNode(@))
+            locals =  {elt: $(ReactDOM.findDOMNode(@))}
             if @props.mathjax_selector
-                elt = elt.find(@props.mathjax_selector)
-            elt.mathjax
+                locals.elt = locals.elt.find(@props.mathjax_selector)
+            locals.n = locals.elt.length
+            if locals.n == 0
+                # nothing needs mathjax, so just return -- critical to do this since no cb below will get run.
+                cb?()
+                return
+            locals.elt.mathjax
                 hide_when_rendering : false
                 cb : () =>
                     # Awkward code, since cb may be called more than once if there
                     # where more than one node.
-                    cb?()
-                    cb = undefined
+                    locals.n -= 1
+                    if locals.n <= 0
+                        cb?()
+                        cb = undefined
         else
             cb()
 
