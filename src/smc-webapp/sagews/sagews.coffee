@@ -1534,7 +1534,9 @@ class SynchronizedWorksheet extends SynchronizedDocument2
 
         if mesg.md?
             # markdown
-            html = markdown.markdown_to_html(mesg.md)
+            # we replace all backslashes by double backslashes since bizarely the markdown-it processes replaces \$ with $, which
+            # breaks later use of mathjax :-(.  This will get deleted soon.
+            html = markdown.markdown_to_html(misc.replace_all(mesg.md,'\\$', '\\\\$'))
             t = $('<div class="sagews-output-md">')
             if @editor.opts.allow_javascript_eval
                 t.html(html)
