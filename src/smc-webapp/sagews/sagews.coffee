@@ -1516,7 +1516,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                 e.html(mesg.html)
             else
                 e.html_noscript(mesg.html)
-            e.mathjax(hide_when_rendering:false)
+            e.katex()
             output.append(e)
             @process_html_output(e)
 
@@ -1542,7 +1542,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                 t.html(html)
             else
                 t.html_noscript(html)
-            t.find('span.cocalc-katex-error').mathjax(hide_when_rendering:false)
+            t.katex()
             output.append(t)
             @process_html_output(t)
 

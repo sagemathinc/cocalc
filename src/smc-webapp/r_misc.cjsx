@@ -865,7 +865,6 @@ exports.HTML = HTML = rclass
         value            : rtypes.string
         style            : rtypes.object
         auto_render_math : rtypes.bool     # optional -- used to detect and render math
-        only_mathjax     : rtypes.bool     # optional -- used to render math only with mathjax if auto_render_math is true
         project_id       : rtypes.string   # optional -- can be used to improve link handling (e.g., to images)
         file_path        : rtypes.string   # optional -- ...
         className        : rtypes.string   # optional class
@@ -892,30 +891,12 @@ exports.HTML = HTML = rclass
                  'reload_images', 'highlight_code']) or \
                not underscore.isEqual(@props.style, next.style)
 
-    _update_mathjax: (cb) ->
+    _update_mathjax: ->
         if not @_is_mounted  # see https://github.com/sagemathinc/cocalc/issues/1689
-            cb()
             return
-        if @_needs_mathjax
-            locals =  {elt: $(ReactDOM.findDOMNode(@))}
-            if @props.mathjax_selector
-                locals.elt = locals.elt.find(@props.mathjax_selector)
-            locals.n = locals.elt.length
-            if locals.n == 0
-                # nothing needs mathjax, so just return -- critical to do this since no cb below will get run.
-                cb?()
-                return
-            locals.elt.mathjax
-                hide_when_rendering : false
-                cb : () =>
-                    # Awkward code, since cb may be called more than once if there
-                    # where more than one node.
-                    locals.n -= 1
-                    if locals.n <= 0
-                        cb?()
-                        cb = undefined
-        else
-            cb()
+        if not @props.auto_render_math
+            return
+        $(ReactDOM.findDOMNode(@)).katex()
 
     _update_highlight: ->
         if not @_is_mounted or not @props.highlight?
@@ -945,6 +926,7 @@ exports.HTML = HTML = rclass
             $(ReactDOM.findDOMNode(@)).highlight_code()
 
     _do_updates: ->
+        @_update_mathjax()
         @_update_links()
         @_update_tables()
         @_update_highlight()
@@ -954,14 +936,7 @@ exports.HTML = HTML = rclass
     update_content: ->
         if not @_is_mounted
             return
-
-        if @_needs_mathjax
-            @_update_mathjax =>
-                if not @_is_mounted
-                    return
-                @_do_updates()
-        else
-            @_do_updates()
+        @_do_updates()
 
     componentDidUpdate: ->
         @update_content()
@@ -991,14 +966,6 @@ exports.HTML = HTML = rclass
             html = require('./misc_page').sanitize_html_safe(@props.value, @props.post_hook)
         else
             html = require('./misc_page').sanitize_html(@props.value, true, true, @props.post_hook)
-
-        if @props.auto_render_math
-            # we currently have no implementation of katex on arbitrary html
-            @_needs_mathjax = true
-            #else
-                # try using katex first.
-                #{html, is_complete} = math_katex.render(html)
-            #    @_needs_mathjax = not is_complete
 
         return {__html: html}
 
@@ -1058,8 +1025,8 @@ exports.Markdown = rclass
     render: ->
         <HTML
             id               = {@props.id}
+            auto_render_math = {true}
             value            = {@to_html()}
-            mathjax_selector = {"span.cocalc-katex-error"}
             style            = {@props.style}
             project_id       = {@props.project_id}
             file_path        = {@props.file_path}
