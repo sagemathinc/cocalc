@@ -56,7 +56,7 @@ class TestScala211Mode:
 
 class TestPython3Mode:
     def test_p3_max(self, exec2):
-        exec2("%python3\nmax([],default=9)", "9")
+        exec2("%python3\nmax([],default=9)", "9", timeout=30)
 
     def test_p3_version(self, exec2):
         exec2("%python3\nimport sys\nprint(sys.version)", pattern=r"^3\.5\.\d+ ")
