@@ -3,7 +3,6 @@ R Markdown Editor Actions
 ###
 
 {Actions}        = require('../markdown-editor/actions')
-{print_markdown} = require('../markdown-editor/print')
 rmd2md           = require('./rmd2md')
 
 class exports.Actions extends Actions

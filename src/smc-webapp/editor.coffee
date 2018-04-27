@@ -1418,9 +1418,6 @@ class CodeMirrorEditor extends FileEditor
 
             # Save for next time
             @_last_layout = @_layout
-        else
-            layout = @_layout ? 0
-            btn.find(".webapp-editor-layout-#{layout}").show()
 
         # Workaround a major and annoying bug in Safari:
         #     https://github.com/philipwalton/flexbugs/issues/132
@@ -2024,6 +2021,7 @@ exports.register_nonreact_editors = ->
                     return e
 
     # Editors for private normal editable files.
+    #register(false, LatexEditor,      ['rnw'])
     register(false, LatexEditor,      ['tex', 'rnw'])
     register(false, Terminal,         ['term', 'sage-term'])
 

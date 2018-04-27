@@ -598,7 +598,7 @@ FileIcon = rclass
 
     render: ->
         ext = misc.filename_extension_notilde(@props.filename)
-        <Icon name={editor.file_icon_class(ext).slice(3)} />
+        <Icon name={editor.file_icon_class(ext)} />
 
 
 exports.FileUsePage = FileUseController = rclass

@@ -1108,3 +1108,4 @@ class exports.LatexEditor extends editor.FileEditor
                         y              : y
                         highlight_line : true
                 opts.cb?(err)
+

@@ -10,9 +10,10 @@ misc                 = require('smc-util/misc')
 {defaults, required} = misc
 
 exports.cm_options = (opts) ->
-    {filename, editor_settings, actions, frame_id} = defaults opts,
+    {filename, editor_settings, actions, frame_id, gutters} = defaults opts,
         filename        : required  # string -- determines editor mode
         editor_settings : required  # immutable.js map
+        gutters         : undefined # if given, array of extra gutters
         actions         : undefined
         frame_id        : required
 
@@ -28,7 +29,7 @@ exports.cm_options = (opts) ->
         allow_javascript_eval      : true  # if false, the one use of eval isn't allowed.
         line_numbers               : editor_settings.get('line_numbers')
         first_line_number          : editor_settings.get('first_line_number')
-        indent_unit                : editor_settings.get('indent_unit')
+        indent_unit                : editor_settings.get('tab_size')  # TODO! indent_unit just isn't implemented -- see #2847.
         tab_size                   : editor_settings.get('tab_size')
         smart_indent               : editor_settings.get('smart_indent')
         electric_chars             : editor_settings.get('electric_chars')
@@ -37,6 +38,7 @@ exports.cm_options = (opts) ->
         auto_close_brackets        : editor_settings.get('auto_close_brackets')
         match_xml_tags             : editor_settings.get('match_xml_tags')
         auto_close_xml_tags        : editor_settings.get('auto_close_xml_tags')
+        auto_close_latex           : editor_settings.get('auto_close_latex')
         line_wrapping              : editor_settings.get('line_wrapping')
         spaces_instead_of_tabs     : editor_settings.get('spaces_instead_of_tabs')
         style_active_line          : !!(editor_settings.get('style_active_line') ? true)
@@ -79,13 +81,17 @@ exports.cm_options = (opts) ->
             "Ctrl-G"       : (cm) -> cm.execCommand('findNext')
             "Shift-Cmd-G"  : (cm) -> cm.execCommand('findPrev')
             "Shift-Ctrl-G" : (cm) -> cm.execCommand('findPrev')
-            "Shift-Cmd-F"  : actions.prettier
-            "Shift-Ctrl-F" : actions.prettier
+            "Shift-Cmd-F"  : actions.format
+            "Shift-Ctrl-F" : actions.format
             "Shift-Enter"  : -> actions.set_error("You can evaluate code in a file with the extension 'sagews' or 'ipynb'.   Please create a Sage Worksheet or Jupyter notebook instead.")
         for k, v of actionKeys
             extraKeys[k] = v
         if opts.bindings != 'emacs'
             extraKeys['Ctrl-P'] = -> actions.print()
+
+    if actions.sync?
+        extraKeys["Alt-Enter"] = ->
+            actions.sync(frame_id)
 
     if actions? and not opts.read_only and opts.bindings != 'emacs'  # emacs bindings really conflict with these
         # Extra codemirror keybindings -- for some of our plugins
@@ -116,6 +122,12 @@ exports.cm_options = (opts) ->
         # see https://github.com/sragemathinc/smc/issues/1360
         opts.style_active_line = false
 
+    ext = misc.filename_extension_notilde(filename)
+
+    # Ugly until https://github.com/sagemathinc/cocalc/issues/2847 is implemented:
+    if ext in ['js', 'jsx', 'ts', 'tsx', 'json', 'md']
+        opts.tab_size = opts.indent_unit = 2
+
     options =
         firstLineNumber         : opts.first_line_number
         autofocus               : false
@@ -128,8 +140,9 @@ exports.cm_options = (opts) ->
         electricChars           : opts.electric_chars
         undoDepth               : opts.undo_depth
         matchBrackets           : opts.match_brackets
-        autoCloseBrackets       : opts.auto_close_brackets and (misc.filename_extension_notilde(filename) not in ['hs', 'lhs']) #972
-        autoCloseTags           : opts.auto_close_xml_tags
+        autoCloseBrackets       : opts.auto_close_brackets and (ext not in ['hs', 'lhs']) #972
+        autoCloseTags           : if opts.mode?.indexOf('xml') != -1 or opts.mode?.indexOf('html') != -1 then opts.auto_close_xml_tags
+        autoCloseLatex          : if opts.mode?.indexOf('tex') != -1 then opts.auto_close_latex
         lineWrapping            : opts.line_wrapping
         readOnly                : opts.read_only
         styleActiveLine         : opts.style_active_line
@@ -147,10 +160,12 @@ exports.cm_options = (opts) ->
         extraKeys["Alt-Q"]  = (cm) -> cm.foldCodeSelectionAware()
         options.foldGutter  = true
         options.gutters     = ["CodeMirror-linenumbers", "CodeMirror-foldgutter"]
+    else
+        options.gutters     = ["CodeMirror-linenumbers"]
 
-    if opts.latex_editor
-        options.gutters     ?= []
-        options.gutters.push("Codemirror-latex-errors")
+    if gutters
+        for gutter_id in gutters
+            options.gutters.push(gutter_id)
 
     if opts.bindings? and opts.bindings != "standard"
         options.keyMap = opts.bindings

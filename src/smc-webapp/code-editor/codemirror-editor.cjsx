@@ -6,7 +6,7 @@ This is a wrapper around a single codemirror editor view.
 
 SAVE_INTERVAL_MS = 2000
 
-{React, ReactDOM,
+{Fragment, React, ReactDOM,
  rclass, rtypes}     = require('../smc-react')
 {three_way_merge}    = require('smc-util/syncstring')
 {debounce, throttle} = require('underscore')
@@ -18,6 +18,8 @@ misc                 = require('smc-util/misc')
 codemirror_util      = require('./codemirror-util')
 doc                  = require('./doc')
 
+{GutterMarkers}      = require('./codemirror-gutter-markers')
+
 STYLE =
     width        : '100%'
     overflow     : 'auto'
@@ -26,7 +28,7 @@ STYLE =
     border       : '0px'
     background   : '#fff'
 
-exports.CodemirrorEditor = rclass
+exports.CodemirrorEditor = rclass ({name}) ->
     displayName: 'CodeEditor-CodemirrorEditor'
 
     propTypes :
@@ -43,10 +45,13 @@ exports.CodemirrorEditor = rclass
         content          : rtypes.string  # if defined and is_public, use this static value and editor is read-only
         misspelled_words : rtypes.immutable.Set
         resize           : rtypes.number
+        gutters          : rtypes.array
 
     reduxProps :
         account :
             editor_settings : rtypes.immutable.Map.isRequired
+        "#{name}" :
+            gutter_markers  : rtypes.immutable.Map
 
     getDefaultProps: ->
         content : ''
@@ -57,7 +62,7 @@ exports.CodemirrorEditor = rclass
     shouldComponentUpdate: (props, state) ->
         return misc.is_different(@state, state, ['has_cm']) or \
                misc.is_different(@props, props, ['editor_settings', 'font_size', 'cursors', 'read_only',
-                           'content', 'is_public', 'resize', 'editor_state'])
+                           'content', 'is_public', 'resize', 'editor_state', 'gutter_markers'])
 
     componentDidMount: ->
         @init_codemirror()
@@ -155,6 +160,7 @@ exports.CodemirrorEditor = rclass
             editor_settings : @props.editor_settings
             actions         : @props.actions
             frame_id        : @props.id
+            gutters         : @props.gutters
 
         @_style_active_line = options.styleActiveLine
         options.styleActiveLine = false
@@ -239,6 +245,15 @@ exports.CodemirrorEditor = rclass
                 cursors    = {@props.cursors}
                 codemirror = {@cm} />
 
+    render_gutter_markers: ->
+        if not @state.has_cm or not @props.gutter_markers?
+            return
+        <GutterMarkers
+            gutter_markers = {@props.gutter_markers}
+            codemirror     = {@cm}
+            set_handle     = {(id, handle) => @props.actions._set_gutter_handle(id, handle)}
+        />
+
     render: ->
         style = misc.copy(STYLE)
         style.fontSize = "#{@props.font_size}px"
@@ -246,5 +261,6 @@ exports.CodemirrorEditor = rclass
             style     = {style}
             className = 'smc-vfill cocalc-editor-div' >
             {@render_cursors()}
+            {@render_gutter_markers()}
             <textarea />
         </div>

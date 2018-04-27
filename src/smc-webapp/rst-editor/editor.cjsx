@@ -10,7 +10,7 @@ misc = require('smc-util/misc')
 {Editor, set}           = require('../code-editor/editor')
 {aux_file}              = require('../code-editor/util')
 
-{IFrameHTML}            = require('../html-editor/iframe-html')
+{IFrameHTML}            = require('smc-webapp/frame-editors/html-editor/iframe-html')
 {CodemirrorEditor}      = require('../code-editor/codemirror-editor')
 
 

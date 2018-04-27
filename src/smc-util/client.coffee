@@ -1268,7 +1268,7 @@ class exports.Connection extends EventEmitter
     time" (which is stored in the db), which they client will know.  This is used, e.g.,
     for operations like "run rst2html on this file whenever it is saved."
     ###
-    exec: (opts) ->
+    exec: (opts) =>
         opts = defaults opts,
             project_id      : required
             path            : ''
@@ -1281,8 +1281,9 @@ class exports.Connection extends EventEmitter
             aggregate       : undefined  # see comment above.
             err_on_exit     : true
             allow_post      : true       # set to false if genuinely could take a long time (e.g., more than about 5s?); but this requires websocket be setup, so more likely to fail or be slower.
-            cb              : required   # cb(err, {stdout:..., stderr:..., exit_code:...}).
+            cb              : required   # cb(err, {stdout:..., stderr:..., exit_code:..., time:[time from client POV in ms]}).
 
+        start_time = new Date()
         if not opts.network_timeout?
             opts.network_timeout = opts.timeout * 1.5
 
@@ -1307,7 +1308,7 @@ class exports.Connection extends EventEmitter
                 else if mesg.event == 'error'
                     opts.cb(mesg.error)
                 else
-                    opts.cb(false, {stdout:mesg.stdout, stderr:mesg.stderr, exit_code:mesg.exit_code})
+                    opts.cb(false, {stdout:mesg.stdout, stderr:mesg.stderr, exit_code:mesg.exit_code, time:new Date() - start_time})
 
     makedirs: (opts) =>
         opts = defaults opts,

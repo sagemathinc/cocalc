@@ -19,7 +19,7 @@ EDITOR_SPEC =
         icon      : 'code'
         component : CodemirrorEditor
         buttons   : set(['print', 'decrease_font_size', 'increase_font_size', 'save', 'time_travel', 'replace', 'find', 'goto_line', \
-                         'cut', 'paste', 'copy', 'undo', 'redo', 'reload', 'prettier'])
+                         'cut', 'paste', 'copy', 'undo', 'redo', 'reload', 'format'])
     markdown :
         short     : 'View'
         name      : 'Rendered View'

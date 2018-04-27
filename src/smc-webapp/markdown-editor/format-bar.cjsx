@@ -21,6 +21,7 @@ FONT_SIZES = 'xx-small x-small small medium large x-large xx-large'.split(' ')
 exports.FormatBar = rclass
     propTypes :
         actions : rtypes.object.isRequired
+        extension : rtypes.string             # type of file being edited, which impacts what buttons are shown.
         # store   : rtypes.immutable.Map      # state about format bar stored in external store
 
     shouldComponentUpdate: (next) ->
@@ -28,6 +29,9 @@ exports.FormatBar = rclass
         #return @props.store != next.store
 
     render_button: (name, title, icon, label='') ->
+        @_commands ?= buttonbar.commands[@props.extension]
+        if @_commands? and not @_commands[name]?
+            return
         icon ?= name  # if icon not given, use name for it.
         <Button
             key     = {name}
@@ -63,7 +67,7 @@ exports.FormatBar = rclass
         <ButtonGroup key={'insert-dialog'}>
             {@render_button('link', 'Insert link', 'link')}
             {@render_button('image', 'Insert image', 'image')}
-            {@render_button('SpecialChar', 'Insert special character...', '', <span>&Omega;</span>)}
+            {@render_button('SpecialChar', 'Insert special character...', '', <span>&Omega;</span>) if @props.extension != 'tex'}
         </ButtonGroup>
 
     render_format_buttons: ->
@@ -171,6 +175,9 @@ exports.FormatBar = rclass
         </DropdownButton>
 
     render_font_dropdowns: ->
+        if @props.extension == 'tex'
+            # these are mostly not implemented for latex... yet!
+            return
         <ButtonGroup key={'font-dropdowns'} style={float:'right', marginRight: '1px'}>
             {@render_font_family_dropdown()}
             {@render_font_size_dropdown()}

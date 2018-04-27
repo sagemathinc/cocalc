@@ -513,7 +513,18 @@ x.actions must not be defined.
 ###
 
 react_component = (x) ->
-    if typeof x == 'function'
+    if typeof(x) == 'function' and typeof(x.reduxProps) == 'function'
+        # using an ES6 class *and* reduxProps...
+        C = createReactClass
+            render : ->
+                @cache0 ?= {}
+                reduxProps = x.reduxProps(@props)
+                key = misc.keys(reduxProps).sort().join('')
+                @cache0[key] ?= connect_component(reduxProps)(x)
+                return React.createElement(@cache0[key], @props, @props.children)
+        return C
+
+    else if typeof x == 'function'
         # Creates a react class that wraps the eventual component.
         # It calls the generator function with props as a parameter
         # and caches the result based on reduxProps

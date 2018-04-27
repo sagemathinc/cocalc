@@ -153,12 +153,21 @@ class TestBasic:
             conftest.recv_til_done(sagews, test_id)
             break
 
+class TestUnderscore:
     # https://github.com/sagemathinc/cocalc/issues/1107
     def test_sage_underscore_1(self, exec2):
         exec2("2/5","2/5\n")
     def test_sage_underscore_2(self, exec2):
         exec2("_","2/5\n")
+    # https://github.com/sagemathinc/cocalc/issues/2124
+    def test_sage_underscore_3(self, exec2):
+        exec2("typeset_mode(True)\n_", html_pattern=r'\\frac\{2\}\{5\}')
+    def test_sage_underscore_4(self, exec2):
+        exec2("3*7",html_pattern="21\$")
+    def test_sage_underscore_5(self, exec2):
+        exec2("typeset_mode(False)\n_","21\n")
 
+class TestModeComments:
     # https://github.com/sagemathinc/cocalc/issues/978
     def test_mode_comments_1(self, exec2):
         exec2(dedent("""
@@ -175,6 +184,7 @@ class TestBasic:
         456'
         """).lstrip())
 
+class TestBlockParser:
     def test_block_parser(self, execbuf):
         """
         .. NOTE::

@@ -1,0 +1,10 @@
+{
+  "compilerOptions": {
+    "jsx": "React",
+    "sourceMap": true,
+    "lib": ["es5", "es6", "dom"],
+    "strictNullChecks": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true
+  }
+}

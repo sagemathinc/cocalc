@@ -861,9 +861,10 @@ EDITOR_SETTINGS_CHECKBOXES =
     auto_close_brackets       : 'automatically close brackets'
     match_xml_tags            : 'automatically match XML tags'
     auto_close_xml_tags       : 'automatically close XML tags'
+    #auto_close_latex          : 'automatically close LaTeX environments'
     strip_trailing_whitespace : 'remove whenever file is saved'
     show_trailing_whitespace  : 'show spaces at ends of lines'
-    spaces_instead_of_tabs    : 'send 4 spaces when the tab key is pressed'
+    spaces_instead_of_tabs    : 'send spaces when the tab key is pressed'
     extra_button_bar          : 'more editing functions (mainly in Sage worksheets)'
     show_exec_warning         : 'warn that certain files are not directly executable'
     jupyter_classic           : <span>use classical Jupyter notebook <a href='https://github.com/sagemathinc/cocalc/wiki/JupyterClassicModern' target='_blank'>(DANGER: this can cause trouble...)</a></span>
@@ -880,7 +881,7 @@ EditorSettingsCheckboxes = rclass
 
     label_checkbox: (name, desc) ->
         <span>
-            {misc.capitalize(name.replace(/_/g,' ').replace(/-/g,' ').replace('xml','XML')) + ': '}
+            {misc.capitalize(name.replace(/_/g,' ').replace(/-/g,' ').replace('xml','XML').replace('latex','LaTeX')) + ': '}
             {desc}
         </span>
 
@@ -1223,7 +1224,7 @@ OtherSettings = rclass
             {@render_confirm()}
             {@render_first_steps()}
             {@render_time_ago_absolute()}
-            {@render_katex()}
+            {### @render_katex() ###}
             {@render_mask_files()}
             {@render_no_free_warnings()}
             {@render_default_file_sort()}

@@ -9,6 +9,7 @@ MAX_SAVE_TIME_S = 30  # how long to retry to save (and get no unsaved changes), 
 
 immutable       = require('immutable')
 underscore      = require('underscore')
+async           = require('async')
 
 schema          = require('smc-util/schema')
 
@@ -21,6 +22,8 @@ tree_ops        = require('./tree-ops')
 print           = require('./print')
 spell_check     = require('./spell-check')
 cm_doc_cache    = require('./doc')
+
+{required, defaults} = misc
 
 class exports.Actions extends Actions
     _init: (project_id, path, is_public, store) =>
@@ -198,6 +201,11 @@ class exports.Actions extends Actions
         if tree_ops.is_leaf_id(local?.get('frame_tree'), active_id)
             @setState(local_view_state : @store.get('local_view_state').set('active_id', active_id))
             @_save_local_view_state()
+            # If active_id is the id of a codemirror editor,
+            # save when; this is just a quick solution to
+            # "give me last active cm" -- we will switch to something
+            # more generic later.
+            @_cm?[active_id]?._last_active = new Date()
             @focus()
         return
 
@@ -269,9 +277,9 @@ class exports.Actions extends Actions
         delete @_cm?[id]
         setTimeout(@focus, 1)
 
-    split_frame: (direction, id) =>
+    split_frame: (direction, id, type) =>
         ids0 = @_get_leaf_ids()
-        @_tree_op('split_leaf', id ? @store.getIn(['local_view_state', 'active_id']), direction)
+        @_tree_op('split_leaf', id ? @store.getIn(['local_view_state', 'active_id']), direction, type)
         for i,_ of @_get_leaf_ids()
             if not ids0[i]
                 @copy_editor_state(id, i)
@@ -444,13 +452,19 @@ class exports.Actions extends Actions
         if font_size < 2
             font_size = 2
         @set_frame_tree(id:id, font_size:font_size)
-        @_get_cm(id)?.focus()
+        @_cm[id]?.focus()
 
     increase_font_size: (id) =>
         @change_font_size(1, id)
 
     decrease_font_size: (id) =>
         @change_font_size(-1, id)
+
+    set_font_size: (id, font_size) =>
+        if not id?
+            return
+        @set_frame_tree(id:id, font_size:font_size)
+        @_cm[id]?.focus()
 
     set_cm: (id, cm) =>
         sel = @_cm_selections?[id]
@@ -477,17 +491,64 @@ class exports.Actions extends Actions
             @_cm_selections[id] = cm.listSelections()
         delete @_cm?[id]
 
-    # returns cm with given id or at least some cm, if any known.
-    _get_cm: (id) =>
+    # 1. if id given, returns cm with given id if id
+    # 2. if no id given:
+    #   if recent is true, return most recent cm
+    #   if recent is not given, return some cm
+    _get_cm: (id, recent=false) =>
         @_cm ?= {}
         cm = @_cm[id] ? @_active_cm()
-        if not cm?
+        if cm?
+            return cm
+        if recent
+            # TODO: rewrite this (and code in set_active_id) to work generically
+            # for any frame tree leaf type.
+            v = (obj for _, obj of @_cm)
+            if v.length == 0
+                return
+            v.sort((a,b) -> -misc.cmp_Date(a._last_active ? 0, b._last_active ? 0))
+            return v[0]
+        else
             for id, v of @_cm
                 return v
-        return cm
+
+    _get_doc: =>
+        return cm_doc_cache.get_doc(project_id:@project_id, path:@path)
+
+    _recent_cm: =>
+        return @_get_cm(undefined,true)
 
     _active_cm: =>
         return @_cm?[@store.getIn(['local_view_state', 'active_id'])]
+
+    # Open a code editor, optionally at the given line.
+    open_code_editor: (opts) =>
+        opts = defaults opts,
+            focus     : true
+            line      : undefined
+            file      : undefined    # not supported yet
+            cursor    : true         # set cursor to line position (not just scroll to it)
+            direction : 'col'        # 'row' or 'col'
+
+        # TODO -- opts.file is ignored
+
+        must_create = not @_get_cm()?
+        if must_create
+            # split and make a cm
+            @split_frame(opts.direction, undefined, 'cm')
+
+        if opts.line
+            f = (=>@programmatical_goto_line(opts.line, opts.cursor))
+            if must_create
+                # Have to wait until after editor gets created
+                setTimeout(f, 1)
+            else
+                f()
+
+        if opts.focus
+            # Have to wait until after editor gets created, and
+            # probably also event that caued this open.
+            setTimeout((=>@_recent_cm()?.focus()), 1)
 
     focus: =>
         @_get_cm()?.focus()
@@ -510,8 +571,12 @@ class exports.Actions extends Actions
         @_syncstring.emit('change')
 
     set_codemirror_to_syncstring: =>
-        cm = @_get_cm()
-        if not cm? or not @_syncstring?
+        if not @_syncstring?
+            return
+        # NOTE: we fallback to getting the underling CM doc, in case all actual
+        # cm code-editor frames have been closed (or just aren't visible).
+        cm = @_get_cm() ? @_get_doc()
+        if not cm?
             return
         cm.setValueNoJump(@_syncstring.to_str())
         @update_save_status()
@@ -567,13 +632,20 @@ class exports.Actions extends Actions
     auto_indent: (id) =>
         @_get_cm(id)?.execCommand('indentAuto')
 
-    programmatical_goto_line: (line) =>  # used when clicking on other user avatar.
-        cm = @_get_cm()
+    # used when clicking on other user avatar,
+    # in the latex editor, etc.
+    # If cursor is given, moves the cursor to the line too.
+    programmatical_goto_line: (line, cursor, focus) =>
+        cm = @_recent_cm()
         if not cm?
             return
         pos  = {line:line-1, ch:0}
         info = cm.getScrollInfo()
         cm.scrollIntoView(pos, info.clientHeight/2)
+        if cursor
+            cm.setCursor(pos)
+        if focus
+            cm.focus()
 
     cut: (id) =>
         cm = @_get_cm(id)
@@ -600,7 +672,10 @@ class exports.Actions extends Actions
             @setState(error: error)
         else
             if not misc.is_string(error)
-                error = JSON.stringify(error)
+                e = JSON.stringify(error)
+                if e == '{}'
+                    e = "#{error}"
+                error = e
             @setState(error: error)
 
     # little status message shown at bottom.
@@ -608,7 +683,7 @@ class exports.Actions extends Actions
         @setState(status: status)
 
     print: (id) =>
-        cm = @_get_cm()
+        cm = @_get_cm(id)
         if not cm?
             return
         error = print.print
@@ -666,42 +741,103 @@ class exports.Actions extends Actions
                     @set_syncstring_to_codemirror()
                     @_syncstring.save()
 
+    set_gutter_marker: (opts) =>
+        opts = defaults opts,
+            id           : undefined  # user-specified unique id for this gutter marker; autogenerated if not given
+            line         : required   # base-0 line number where gutter is initially positions
+            gutter_id    : required   # css class name of the gutter
+            component    : required   # react component that gets rendered as the gutter marker
+        if not opts.id?
+            opts.id = misc.uuid()
+        gutter_markers = @store.get('gutter_markers') ? immutable.Map()
+        info = immutable.fromJS(line:opts.line, gutter_id:opts.gutter_id)
+        info = info.set('component', opts.component)
+        @setState(gutter_markers : gutter_markers.set(opts.id, info))
 
-    prettier: (id) =>  # id ignored right now.
+    delete_gutter_marker: (id) =>
+        gutter_markers = @store.get('gutter_markers')
+        if gutter_markers?.has(id)
+            @setState(gutter_markers : gutter_markers.delete(id))
+
+    # clear all gutter markers in the given gutter
+    clear_gutter: (gutter_id) =>
+        gutter_markers = @store.get('gutter_markers') ? immutable.Map()
+        before = gutter_markers
+        gutter_markers.map (info, id) =>
+            if info.get('gutter_id') == gutter_id
+                gutter_markers = gutter_markers.delete(id)
+            return
+        if before != gutter_markers
+            @setState(gutter_markers : gutter_markers)
+
+    # The GutterMarker component calls this to save the line handle to the gutter marker,
+    # which is needed for tracking the gutter location.
+    # Nothing else should directly call this.
+    _set_gutter_handle: (id, handle) =>
+        # id     = user-specified unique id for this gutter marker
+        # handle = determines current line number of gutter marker
+        gutter_markers = @store.get('gutter_markers')
+        if not gutter_markers?
+            return
+        info = gutter_markers.get(id)
+        if not info?
+            return
+        @setState(gutter_markers: gutter_markers.set(id, info.set('handle', handle)))
+
+    format: (id) =>  # id ignored right now.
         if not @_syncstring?
             return
+        cm = @_get_cm()
+        if not cm?
+            return
+        cm.focus()
         ext = misc.filename_extension(@path)
         switch ext
             when 'js', 'jsx'
                 parser = 'babylon'
+            when 'json'
+                parser = 'json'
+            when 'ts', 'tsx'
+                parser = 'typescript'
             when 'md'
                 parser = 'markdown'
             when 'css'
                 parser = 'postcss'
             else
                 return
-        editor_settings = @redux.getStore('account').get('editor_settings')
         options =
-            tabWidth : editor_settings.get('tab_size')
             parser   : parser
-            useTabs  : not editor_settings.get('spaces_instead_of_tabs')
-        @set_status("Running prettier on committed version...")
-        webapp_client.prettier
-            project_id : @project_id
-            path       : @path
-            options    : options
-            cb         : (err, resp) =>
-                @set_status("")
-                if err
-                    error = err
-                else if resp.status == 'error'
-                    error = JSON.stringify(resp.error, null, '  ')
-                else
-                    error = undefined
-                if error
-                    @setState(error: "Error running prettier. \n#{error}")
-                else
-                    @setState(error: '')
+            tabWidth : cm.getOption('tabSize')
+            useTabs  : cm.getOption('indentWithTabs')
+        async.series([
+            (cb) =>
+                @set_status("Ensuring your latest changes are saved...")
+                @set_syncstring_to_codemirror()
+                @_syncstring._save(cb)
+            (cb) =>
+                @set_status("Running code formatter...")
+                webapp_client.prettier
+                    project_id : @project_id
+                    path       : @path
+                    options    : options
+                    cb         : (err, resp) =>
+                        @set_status("")
+                        if err
+                            error = "Error formatting code: \n#{err}"
+                        else if resp.status == 'error'
+                            start = resp.error?.loc?.start
+                            if start?
+                                error = "Syntax error prevented formatting code (possibly on line #{start.line} column #{start.column}) -- fix and run again."
+                            else
+                                error = "Syntax error prevented formatting code."
+                        else
+                            error = undefined
+                        @setState(error: '')
+                        cb(error)
+        ], (err) =>
+            if err
+                @setState(error: err)
+        )
 
     ###
     format_dialog_action: (cmd) ->

@@ -459,6 +459,7 @@ else
             './webapp-lib/primus/primus-engine.min.js'
             # npm packages are added to vendor code separately in splitChunks config below
         ]
+        'pdf.worker': './smc-webapp/node_modules/pdfjs-dist/build/pdf.worker.entry'
     plugins = plugins.concat([
         pug2app,
         mathjaxVersionedSymlink,
@@ -550,7 +551,10 @@ module.exports =
                     { loader: 'coffee-loader' }
                 ]
             },
-            { test: /node_modules\/prom-client\/.*\.js/, loader: 'babel-loader' },
+            { test: [/node_modules\/prom-client\/.*\.js$/], loader: 'babel-loader' },
+            { test: [/latex-editor\/.*\.jsx?$/], loader: 'babel-loader' },
+            { test: /\.tsx$/, loader: "babel-loader!ts-loader" },
+            { test: /\.ts$/, loader: "ts-loader" },
             { test: /\.less$/,   use: ["style-loader", "css-loader", "less-loader?#{cssConfig}"] },
             { test: /\.scss$/,   use: ["style-loader", "css-loader", "sass-loader?#{cssConfig}"] },
             { test: /\.sass$/,   use: ["style-loader", "css-loader", "sass-loader?#{cssConfig}&indentedSyntax"] },
@@ -570,7 +574,7 @@ module.exports =
 
     resolve:
         # So we can require('file') instead of require('file.coffee')
-        extensions : ['.js', '.json', '.coffee', '.cjsx', '.scss', '.sass']
+        extensions : ['.js', '.jsx', '.ts', '.tsx', '.json', '.coffee', '.cjsx', '.scss', '.sass']
         modules    : [path.resolve(__dirname),
                       path.resolve(__dirname, WEBAPP_LIB),
                       path.resolve(__dirname, 'smc-util'),

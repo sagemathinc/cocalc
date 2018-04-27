@@ -27,6 +27,17 @@ path_style =
     color        : '#333'
     float        : 'right'
 
+TITLE_STYLE =
+    padding  : '5px 0 0 5px'
+    color    : '#333'
+    fontSize : '10pt'
+    display  : 'inline-block'
+    float    : 'right'
+
+ICON_STYLE =
+    width: '20px'
+    display: 'inline-block'
+
 button_size = 'small'
 if IS_TOUCH
     close_style = undefined
@@ -62,10 +73,11 @@ exports.FrameTitleBar = rclass
     componentWillReceiveProps: ->
         @_last_render = new Date()
 
-    is_visible: (action_name) ->
-        if not @props.editor_spec?[@props.type]?.buttons?
+    is_visible: (action_name, explicit) ->
+        buttons = @props.editor_spec?[@props.type]?.buttons
+        if not explicit and not buttons?
             return true
-        return @props.editor_spec[@props.type].buttons[action_name]
+        return buttons?[action_name]
 
     click_close: ->
         if new Date() - @_last_render < 200
@@ -112,7 +124,7 @@ exports.FrameTitleBar = rclass
                         eventKey = {type}
                         onSelect = {@select_type}
                     >
-                    <Icon name={spec.icon}/> {spec.name}
+                    <Icon name={spec.icon} style={ICON_STYLE} /> {spec.name}
                 </MenuItem>
             items.push(item)
 
@@ -189,7 +201,7 @@ exports.FrameTitleBar = rclass
             bsSize  = {@button_size()}
             onClick = {=>@props.actions.decrease_font_size(@props.id)}
         >
-            <Icon style={fontSize:'5pt'} name={'font'} />
+            <Icon name={'search-minus'} />
         </Button>
 
     render_zoom_in: ->
@@ -201,8 +213,44 @@ exports.FrameTitleBar = rclass
             onClick = {=>@props.actions.increase_font_size(@props.id)}
             bsSize  = {@button_size()}
         >
-            <Icon style={fontSize:'9pt'} name={'font'} />
+            <Icon name={'search-plus'} />
         </Button>
+
+    render_zoom_page_width: ->
+        <Button
+            key     = {'text-width'}
+            title   = {'Zoom to page width'}
+            bsSize  = {@button_size()}
+            onClick = {=>@props.actions.zoom_page_width(@props.id)}
+        >
+            <Icon name={'arrows-alt-h'} />
+        </Button>
+
+    render_zoom_page_height: ->
+        <Button
+            key     = {'text-height'}
+            title   = {'Zoom to page height'}
+            bsSize  = {@button_size()}
+            onClick = {=>@props.actions.zoom_page_height(@props.id)}
+        >
+            <Icon name={'arrows-alt-v'} />
+        </Button>
+
+    render_sync: ->
+        if not @is_visible('sync') or not @props.actions.sync?
+            return
+        labels   = @show_labels()
+        <Fragment>
+            <Space />
+            <Button
+                key     = {'sync'}
+                title   = {'Synchronize views (alt+enter)'}
+                bsSize  = {@button_size()}
+                onClick = {=>@props.actions.sync(@props.id)}
+            >
+                <Icon name={'fab fa-staylinked'} /> {if labels then <VisibleMDLG>Sync</VisibleMDLG>}
+            </Button>
+        </Fragment>
 
     render_replace: ->
         if not @is_visible('replace')
@@ -242,11 +290,14 @@ exports.FrameTitleBar = rclass
         </Button>
 
     render_find_replace_group: ->
-        <ButtonGroup key={'find-group'}>
-            {@render_find()}
-            {@render_replace() if not @props.is_public}
-            {@render_goto_line()}
-        </ButtonGroup>
+        <Fragment>
+            <Space />
+            <ButtonGroup key={'find-group'}>
+                {@render_find()}
+                {@render_replace() if not @props.is_public}
+                {@render_goto_line()}
+            </ButtonGroup>
+        </Fragment>
 
     render_cut: ->
         if not @is_visible('cut')
@@ -287,17 +338,36 @@ exports.FrameTitleBar = rclass
         </Button>
 
     render_copy_group: ->
-        <ButtonGroup key={'copy'}>
-            {@render_cut() if not @props.is_public}
-            {@render_copy()}
-            {@render_paste() if not @props.is_public}
-        </ButtonGroup>
+        <Fragment>
+            <Space />
+            <ButtonGroup key={'copy'}>
+                {@render_cut() if not @props.is_public}
+                {@render_copy()}
+                {@render_paste() if not @props.is_public}
+            </ButtonGroup>
+        </Fragment>
 
     render_zoom_group: ->
-        <ButtonGroup key={'zoom'}>
-            {@render_zoom_out()}
-            {@render_zoom_in()}
-        </ButtonGroup>
+        if not @is_visible('decrease_font_size')
+            return
+        <Fragment>
+            <Space />
+            <ButtonGroup key={'zoom'}>
+                {@render_zoom_out()}
+                {@render_zoom_in()}
+            </ButtonGroup>
+        </Fragment>
+
+    render_page_width_height_group: ->
+        if not @is_visible('zoom_page_width') or not @props.actions.zoom_page_width?
+            return
+        <Fragment>
+            <Space />
+            <ButtonGroup key={'height-width'}>
+                {@render_zoom_page_height()}
+                {@render_zoom_page_width()}
+            </ButtonGroup>
+        </Fragment>
 
     render_split_group: ->
         <ButtonGroup  key={'split'}>
@@ -332,25 +402,31 @@ exports.FrameTitleBar = rclass
         </Button>
 
     render_undo_redo_group: ->
-        <ButtonGroup key={'undo-group'}>
-            {@render_undo()}
-            {@render_redo()}
-        </ButtonGroup>
+        <Fragment>
+            <Space />
+            <ButtonGroup key={'undo-group'}>
+                {@render_undo()}
+                {@render_redo()}
+            </ButtonGroup>
+        </Fragment>
 
     render_format_group: ->
         if not @is_visible('auto_indent')
             return
-        <ButtonGroup key={'format-group'}>
-            <Button
-                key      = {'auto-indent'}
-                title    = {'Automatically format selected code'}
-                onClick  = {@props.actions.auto_indent}
-                disabled = {@props.read_only}
-                bsSize   = {@button_size()}
-            >
-                <Icon name='indent' />
-            </Button>
-        </ButtonGroup>
+        <Fragment>
+            <Space />
+            <ButtonGroup key={'format-group'}>
+                <Button
+                    key      = {'auto-indent'}
+                    title    = {'Automatically format selected code'}
+                    onClick  = {@props.actions.auto_indent}
+                    disabled = {@props.read_only}
+                    bsSize   = {@button_size()}
+                >
+                    <Icon name='indent' />
+                </Button>
+            </ButtonGroup>
+        </Fragment>
 
     show_labels: ->
         return @props.is_only or @props.is_full
@@ -368,9 +444,9 @@ exports.FrameTitleBar = rclass
             <Icon name='history' /> <VisibleMDLG>{if labels then 'TimeTravel'}</VisibleMDLG>
         </Button>
 
-    # only for public view
+    # Button to reload the document
     render_reload: (labels) ->
-        if not @is_visible('reload')
+        if not @is_visible('reload', true)
             return
         <Button
             key     = {'reload'}
@@ -380,6 +456,23 @@ exports.FrameTitleBar = rclass
         >
             <Icon name='repeat' /> <VisibleMDLG>{if labels then 'Reload'}</VisibleMDLG>
         </Button>
+
+    # A "Help" info button
+    render_help: (labels) ->
+        if not @is_visible('help', true) or @props.is_public
+            return
+        labels = @show_labels()
+        <Fragment>
+            <Space/>
+            <Button
+                key     = {'help'}
+                title   = {'Show help for working with this type of document'}
+                bsSize  = {@button_size()}
+                onClick = {=>@props.actions.help?(@props.type)}
+            >
+                <Icon name='question-circle' /> <VisibleMDLG>{if labels then 'Help'}</VisibleMDLG>
+            </Button>
+        </Fragment>
 
     render_save: (labels) ->
         if not @is_visible('save')
@@ -418,35 +511,38 @@ exports.FrameTitleBar = rclass
         <ButtonGroup key={'save-group'}>
             {@render_save(labels)}
             {@render_timetravel(labels) if not @props.is_public}
-            {@render_reload(labels) if @props.is_public}
+            {@render_reload(labels)}
         </ButtonGroup>
 
-    render_prettier: ->
-        if not @is_visible('prettier') or not util.PRETTIER_SUPPORT[misc.filename_extension(@props.path)]
+    render_format: ->
+        if not @is_visible('format') or not util.PRETTIER_SUPPORT[misc.filename_extension(@props.path)]
             return
         <Fragment>
             <Space/>
             <Button
                 bsSize  = {@button_size()}
-                key     = {'prettier'}
-                onClick = {=>@props.actions.prettier(@props.id)}
-                title   = {'Run Prettier to canonically format this document'}
+                key     = {'format'}
+                onClick = {=>@props.actions.format(@props.id)}
+                title   = {'Run Prettier (or some other AST-based service) to canonically format this entire document'}
             >
-                <Icon name={'fab fa-product-hunt'} /> <VisibleMDLG>{if @show_labels() then 'Prettier'}</VisibleMDLG>
+                <Icon name={'fa-sitemap'} /> <VisibleMDLG>{if @show_labels() then 'Format'}</VisibleMDLG>
             </Button>
         </Fragment>
 
     render_print: ->
         if not @is_visible('print')
             return
-        <Button
-            bsSize  = {@button_size()}
-            key     = {'print'}
-            onClick = {=>@props.actions.print(@props.id)}
-            title   = {'Print file to PDF'}
-        >
-            <Icon name={'print'} /> <VisibleMDLG>{if @show_labels() then 'Print'}</VisibleMDLG>
-        </Button>
+        <Fragment>
+            <Space />
+            <Button
+                bsSize  = {@button_size()}
+                key     = {'print'}
+                onClick = {=>@props.actions.print(@props.id)}
+                title   = {'Print file to PDF'}
+            >
+                <Icon name={'print'} /> <VisibleMDLG>{if @show_labels() then 'Print'}</VisibleMDLG>
+            </Button>
+        </Fragment>
 
     render_file_menu: ->
         if not (@props.is_only or @props.is_full)
@@ -467,24 +563,22 @@ exports.FrameTitleBar = rclass
             # extra buttons are cleanly not visible when frame is thin.
             style = {maxHeight:'30px', overflow:'hidden', flex:1}
         else
-            style = undefined
+            style = {maxHeight:'34px', overflow:'hidden', flex:1}
         <div
             style = {style}
             key   = {'buttons'}>
             {@render_save_timetravel_group()}
-            {<Space/>}
-            {@render_copy_group()}
-            {<Space/>}
             {@render_undo_redo_group() if not @props.is_public}
-            {<Space />}
             {@render_zoom_group()}
-            {<Space />}
+            {@render_sync()}
+            {@render_page_width_height_group()}
+            {@render_copy_group()}
             {@render_find_replace_group()}
-            {<Space />}
             {@render_format_group() if not @props.is_public}
-            {@render_prettier()}
+            {@render_format()}
             {<Space/>}
             {@render_print()}
+            {@render_help()}
         </div>
 
     render_path: ->
@@ -505,13 +599,22 @@ exports.FrameTitleBar = rclass
             {@render_buttons()}
         </div>
 
+    render_title: ->
+        spec = @props.editor_spec?[@props.type]
+        if not spec?
+            return
+        <span style={TITLE_STYLE}>
+            <Icon name={spec.icon} />
+            <Space />
+            {spec.title ? spec.name ? spec.short ? ''}
+        </span>
+
     render: ->
         # Whether this is *the* active currently focused frame:
         is_active = @props.id == @props.active_id
         if is_active
             style = misc.copy(title_bar_style)
             style.background = '#f8f8f8'
-
         else
             style = title_bar_style
 
@@ -528,4 +631,5 @@ exports.FrameTitleBar = rclass
         <div style = {style}>
             {@render_control()}
             {if is_active then @render_main_buttons()}
+            {if not is_active then @render_title()}
         </div>

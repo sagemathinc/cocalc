@@ -17,11 +17,12 @@ require('./jupyter/register')
 require('./tasks/register')
 require('./code-editor/register')
 require('./markdown-editor/register')
-require('./html-editor/register')
 require('./rst-editor/register')
 require('./rmd-editor/register')
 require('./wiki-editor/register')
 require('./media-viewer/register')
+
+require('./frame-editors/register')
 
 # Public editors
 #require('./public/editor_image')

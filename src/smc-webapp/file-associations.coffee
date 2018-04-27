@@ -74,6 +74,7 @@ codemirror_associations =
     txt    : 'text'
     tex    : 'stex2'
     ts     : 'application/typescript'
+    tsx    : 'text/typescript-jsx'
     toml   : 'text/x-toml'
     bib    : 'stex'
     bbl    : 'stex'
@@ -96,6 +97,10 @@ for ext, mode of codemirror_associations
         when 'javascript'
             'fab fa-js-square'
         when 'jsx'
+            'fab fa-node-js'
+        when 'application/typescript' # it would be nice to have proper TS icons...
+            'fab fa-js-square'
+        when 'text/typescript-jsx'    # would be nice to have proper TS...
             'fab fa-node-js'
         else
             'fa-file-code-o'

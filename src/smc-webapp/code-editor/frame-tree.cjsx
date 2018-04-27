@@ -25,6 +25,8 @@ or
     deletable : bool
 ###
 
+immutable = require('immutable')
+
 Draggable                         = require('react-draggable')
 misc                              = require('smc-util/misc')
 misc_page                         = require('../misc_page')
@@ -141,15 +143,16 @@ exports.FrameTree = FrameTree = rclass ({name}) ->
             fullscreen_style = undefined
 
         <Leaf
+            name             = {@props.name}
             actions          = {@props.actions}
             id               = {desc.get('id')}
-            read_only        = {desc.get('read_only') or @props.read_only or @props.is_public}
-            is_public        = {@props.is_public}
-            font_size        = {desc.get('font_size') ? @props.font_size}
+            read_only        = {!!(desc.get('read_only') or @props.read_only or @props.is_public)}
+            is_public        = {!!@props.is_public}
+            font_size        = {desc.get('font_size') ? @props.font_size ? 12}
             path             = {path}
             fullscreen_style = {fullscreen_style}
             project_id       = {desc.get('project_id') ? @props.project_id}
-            editor_state     = {@props.editor_state.get(desc.get('id'))}
+            editor_state     = {@props.editor_state.get(desc.get('id')) ? immutable.Map()}
             is_current       = {desc.get('id') == @props.active_id}
             cursors          = {@props.cursors}
             content          = {@props.content}
@@ -159,6 +162,8 @@ exports.FrameTree = FrameTree = rclass ({name}) ->
             reload           = {@props.reload?.get(type)}
             resize           = {@props.resize}
             reload_images    = {spec?.reload_images}
+            gutters          = {spec?.gutters}
+            renderer         = {spec?.renderer}
         />
 
     render_one: (desc) ->
@@ -179,6 +184,7 @@ exports.FrameTree = FrameTree = rclass ({name}) ->
             className    = {'smc-vfill'}
             onClick      = {=>@props.actions.set_active_id(desc.get('id'), 10)}
             onTouchStart = {=>@props.actions.set_active_id(desc.get('id'), 10)}
+            style        = {spec?.style}
         >
             {@render_titlebar(desc)}
             {child}

@@ -234,6 +234,14 @@ exports.Octicon = rclass
             classNames.push('mega-octicon')
         return <span className={classNames.join(' ')} />
 
+LOADING_THEMES =
+    medium :
+        fontSize   : "24pt"
+        textAlign  : "center"
+        marginTop  : "15px"
+        color      : "#888"
+        background : "white"
+
 exports.Loading = Loading = rclass
     displayName : 'Misc-Loading'
 
@@ -241,6 +249,7 @@ exports.Loading = Loading = rclass
         style    : rtypes.object
         text     : rtypes.string
         estimate : rtypes.immutable.Map  # {time:[time in seconds], type:['new', 'ready', 'archived']}
+        theme    : rtypes.string      # 'medium', see or add to LOADING_THEMES above.
 
     getDefaultProps : ->
         text   : 'Loading...'
@@ -254,7 +263,7 @@ exports.Loading = Loading = rclass
             </div>
 
     render: ->
-        <span style={@props.style}>
+        <span style={@props.style ? LOADING_THEMES[@props.theme]}>
             <span><Icon name='cc-icon-cocalc-ring' spin /> {@props.text}</span>
             {@render_estimate()}
         </span>
@@ -985,14 +994,11 @@ exports.HTML = HTML = rclass
         reload_images    : rtypes.bool     # if true, after any update to component, force reloading of all images.
         highlight_code   : rtypes.bool     # if true, highlight some <code class='language-r'> </code> blocks.  See misc_page for how tiny this is!
         id               : rtypes.string
+        mathjax_selector : rtypes.string   # if given, only run mathjax on result of jquery select with this selector and never use katex.
 
     getDefaultProps: ->
         auto_render_math : true
         safeHTML         : true
-
-    reduxProps :
-        account :
-            other_settings : rtypes.immutable.Map
 
     shouldComponentUpdate: (next) ->
         return misc.is_different(@props, next, ['value', 'auto_render_math', 'highlight', 'safeHTML', \
@@ -1004,13 +1010,23 @@ exports.HTML = HTML = rclass
             cb()
             return
         if @_needs_mathjax
-            $(ReactDOM.findDOMNode(@)).mathjax
+            locals =  {elt: $(ReactDOM.findDOMNode(@))}
+            if @props.mathjax_selector
+                locals.elt = locals.elt.find(@props.mathjax_selector)
+            locals.n = locals.elt.length
+            if locals.n == 0
+                # nothing needs mathjax, so just return -- critical to do this since no cb below will get run.
+                cb?()
+                return
+            locals.elt.mathjax
                 hide_when_rendering : false
                 cb : () =>
                     # Awkward code, since cb may be called more than once if there
                     # where more than one node.
-                    cb?()
-                    cb = undefined
+                    locals.n -= 1
+                    if locals.n <= 0
+                        cb?()
+                        cb = undefined
         else
             cb()
 
@@ -1090,11 +1106,12 @@ exports.HTML = HTML = rclass
             html = require('./misc_page').sanitize_html(@props.value, true, true, @props.post_hook)
 
         if @props.auto_render_math
+            # we currently have no implementation of katex on arbitrary html
             @_needs_mathjax = true
-            if @props.other_settings?.get('katex')
-                # try using katex:
-                {html, is_complete} = math_katex.render(html)
-                @_needs_mathjax = not is_complete
+            #else
+                # try using katex first.
+                #{html, is_complete} = math_katex.render(html)
+            #    @_needs_mathjax = not is_complete
 
         return {__html: html}
 
@@ -1152,13 +1169,14 @@ exports.Markdown = rclass
     to_html: ->
         if not @props.value
             return
-        return markdown.markdown_to_html(@props.value, {checkboxes:@props.checkboxes})
+        return markdown.markdown_to_html(@props.value, {checkboxes:@props.checkboxes, katex:@props.auto_render_math})
 
     render: ->
         <HTML
             id               = {@props.id}
             value            = {@to_html()}
             auto_render_math = {@props.auto_render_math}
+            mathjax_selector = {".cocalc-katex-error"}
             style            = {@props.style}
             project_id       = {@props.project_id}
             file_path        = {@props.file_path}
@@ -1225,17 +1243,19 @@ exports.Tip = Tip = rclass
     displayName : 'Tip'
 
     propTypes :
-        title     : rtypes.oneOfType([rtypes.string, rtypes.node]).isRequired  # not checked for update
-        placement : rtypes.string   # 'top', 'right', 'bottom', left' -- defaults to 'right'
-        tip       : rtypes.oneOfType([rtypes.string, rtypes.node])              # not checked for update
-        size      : rtypes.string   # "xsmall", "small", "medium", "large"
-        delayShow : rtypes.number
-        delayHide : rtypes.number
-        rootClose : rtypes.bool
-        icon      : rtypes.string
-        id        : rtypes.string   # can be used for screen readers (otherwise defaults to title)
-        style     : rtypes.object   # changing not checked when updating if stable is true
-        stable    : rtypes.bool     # if true, children assumed to never change
+        title         : rtypes.oneOfType([rtypes.string, rtypes.node]).isRequired  # not checked for update
+        placement     : rtypes.string   # 'top', 'right', 'bottom', left' -- defaults to 'right'
+        tip           : rtypes.oneOfType([rtypes.string, rtypes.node])              # not checked for update
+        size          : rtypes.string   # "xsmall", "small", "medium", "large"
+        delayShow     : rtypes.number
+        delayHide     : rtypes.number
+        rootClose     : rtypes.bool
+        icon          : rtypes.string
+        id            : rtypes.string   # can be used for screen readers (otherwise defaults to title)
+        style         : rtypes.object   # changing not checked when updating if stable is true
+        popover_style : rtypes.object  # changing not checked ever (default={zIndex:1000})
+        stable        : rtypes.bool     # if true, children assumed to never change
+        allow_touch   : rtypes.bool     # if true, show tooltips on touch devices (via tap); otherwise all tips are completely hidden on touch!
 
     shouldComponentUpdate: (props, state) ->
         return not @props.stable or \
@@ -1245,10 +1265,12 @@ exports.Tip = Tip = rclass
                                                  'delayHide', 'rootClose', 'icon', 'id'])
 
     getDefaultProps: ->
-        placement : 'right'
-        delayShow : 500
-        delayHide : 100
-        rootClose : false
+        placement     : 'right'
+        delayShow     : 500
+        delayHide     : 0
+        rootClose     : false
+        popover_style : {zIndex:1000}
+        allow_touch   : false
 
     getInitialState: ->
         display_trigger : false
@@ -1262,7 +1284,7 @@ exports.Tip = Tip = rclass
                 bsSize = {@props.size}
                 title  = {@render_title()}
                 id     = {@props.id ? "tip"}
-                style  = {zIndex:'1000'}
+                style  = {@props.popover_style}
             >
                 <span style={wordWrap:'break-word'}>
                     {@props.tip}
@@ -1272,39 +1294,52 @@ exports.Tip = Tip = rclass
             <Tooltip
                 bsSize = {@props.size}
                 id     = {@props.id ? "tip"}
-                style  = {zIndex:'1000'}
+                style  = {@props.popover_style}
             >
                 {@render_title()}
             </Tooltip>
+
+    render_overlay: ->
+        # NOTE: It's inadvisable to use "hover" or "focus" triggers for popovers, because they have poor
+        # accessibility from keyboard and on mobile devices. -- from https://react-bootstrap.github.io/components/popovers/
+        <OverlayTrigger
+            placement = {@props.placement}
+            overlay   = {@render_popover()}
+            delayShow = {@props.delayShow}
+            delayHide = {@props.delayHide}
+            rootClose = {@props.rootClose}
+            trigger   = {if feature.IS_TOUCH then 'click'}
+        >
+            <span
+                style        = {@props.style}
+                onMouseLeave = {=>@setState(display_trigger:false)}
+            >
+                {@props.children}
+            </span>
+        </OverlayTrigger>
 
     render: ->
         if feature.IS_TOUCH
             # Tooltips are very frustrating and pointless on mobile or tablets, and cause a lot of trouble; also,
             # our assumption is that mobile users will also use the desktop version at some point, where
-            # they can learn what the tooltips say.
-            return <span style={@props.style}>{@props.children}</span>
+            # they can learn what the tooltips say.  We do optionally allow a way to use them.
+            if @props.allow_touch
+                return @render_overlay()
+            else
+                return <span style={@props.style}>{@props.children}</span>
 
-        if not @state.display_trigger
-            <span style={@props.style}
-                onMouseEnter={=>@setState(display_trigger:true)}
+        # display_trigger is just an optimization;
+        # if delayHide is set we have to use the full overlay; if not, then using the display_trigger business is faster.
+        if @props.delayHide or @state.display_trigger
+            return @render_overlay()
+        else
+            # when there are tons of tips, this is faster.
+            <span
+                style        = {@props.style}
+                onMouseEnter = {=>@setState(display_trigger:true)}
             >
                 {@props.children}
             </span>
-        else
-            <OverlayTrigger
-                placement = {@props.placement}
-                overlay   = {@render_popover()}
-                delayShow = {@props.delayShow}
-                delayHide = {@props.delayHide}
-                rootClose = {@props.rootClose}
-            >
-                <span
-                    style={@props.style}
-                    onMouseLeave={=>@setState(display_trigger:false)}
-                >
-                    {@props.children}
-                </span>
-            </OverlayTrigger>
 
 exports.SaveButton = rclass
     displayName : 'Misc-SaveButton'
