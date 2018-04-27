@@ -1592,8 +1592,11 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                         elt = $("<div class='webapp-3d-container'></div>")
                         elt.data('uuid',val.uuid)
                         output.append(elt)
-                        require.ensure [], () =>   # only load 3d library if needed
-                            require('./3d').render_3d_scene
+                        # TODO this is a temporary fix -- uncomment it again and remove the if true line once "require.ensure" works again
+                        #require.ensure [], () =>   # only load 3d library if needed
+                        if true
+                            {render_3d_scene} = require('./3d')
+                            render_3d_scene
                                 url     : target
                                 element : elt
                                 cb      : (err, obj) =>
