@@ -236,7 +236,7 @@ class TestOctaveDefaultMode:
     def test_octave_capture3(self, exec2):
         exec2("%sage\nprint(output)", pattern = "   1   2")
     def test_octave_version(self, exec2):
-        exec2("version()", pattern="4.2.1")
+        exec2("version()", pattern="4.2.2")
 
 class TestAnaconda3Mode:
     def test_start_a3(self, exec2):
