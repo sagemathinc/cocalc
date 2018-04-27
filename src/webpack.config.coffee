@@ -574,7 +574,7 @@ module.exports =
 
     resolve:
         # So we can require('file') instead of require('file.coffee')
-        extensions : ['.js', '.jsx', '.ts', 'tsx', '.json', '.coffee', '.cjsx', '.scss', '.sass']
+        extensions : ['.js', '.jsx', '.ts', '.tsx', '.json', '.coffee', '.cjsx', '.scss', '.sass']
         modules    : [path.resolve(__dirname),
                       path.resolve(__dirname, WEBAPP_LIB),
                       path.resolve(__dirname, 'smc-util'),
