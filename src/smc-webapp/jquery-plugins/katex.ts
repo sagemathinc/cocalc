@@ -1,4 +1,9 @@
-/* jQuery plugin to use katex when possible; falls back to mathjax when not. */
+/*
+jQuery plugin to use KaTeX when possible to typeset all the math in a
+jQuery DOM tree.
+
+Falls back to mathjax when katex fails.
+*/
 
 import { renderToString, KatexOptions } from "katex";
 
@@ -44,8 +49,8 @@ function katex_plugin(): void {
         macros: macros
       } as KatexOptions; // cast required due to macros not being in the typescript def file yet.
       try {
-        let text = node.text()
-        text = text.replace("\\newcommand{\\Bold}[1]{\\mathbf{#1}}","");  // hack for sage kernel for now.
+        let text = node.text();
+        text = text.replace("\\newcommand{\\Bold}[1]{\\mathbf{#1}}", ""); // hack for sage kernel for now.
         node.replaceWith($(renderToString(text, katex_options)));
       } catch (err) {
         console.log("WARNING -- ", err.toString()); // toString since the traceback has no real value.
