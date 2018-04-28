@@ -70,5 +70,6 @@ export function markdown_to_html(markdown_string: string): string {
   // Substitute processed math back in.
   html = replace_math(html, math);
   html = math_unescape(html);
+
   return html;
 }

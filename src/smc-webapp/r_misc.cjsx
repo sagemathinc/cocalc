@@ -25,7 +25,6 @@ async = require('async')
 {HelpEmailLink, SiteName, CompanyName, PricingUrl, PolicyTOSPageUrl, PolicyIndexPageUrl, PolicyPricingPageUrl} = require('./customize')
 {UpgradeRestartWarning} = require('./upgrade_restart_warning')
 copy_to_clipboard = require('copy-to-clipboard')
-math_katex = require('./math_katex')
 
 # injected by webpack, but not for react-static renderings (ATTN don't assign to uppercase vars!)
 smc_version = SMC_VERSION ? 'N/A'
@@ -849,14 +848,8 @@ exports.SearchInput = rclass
             </InputGroup>
         </FormGroup>
 
-# rendered_mathjax is used for backend pre-rendering of mathjax by the share server.
-rendered_mathjax = undefined
-exports.set_rendered_mathjax = (value, html) ->
-    rendered_mathjax ?= {}
-    if rendered_mathjax[value]?
-        rendered_mathjax[value].ref += 1
-    else
-        rendered_mathjax[value] = {html:html, ref:1}
+# This is set to true when run from the share server.  All rendering of HTML must then be synchronous.
+exports.SHARE_SERVER = false
 
 exports.HTML = HTML = rclass
     displayName : 'Misc-HTML' # this name is assumed and USED in the smc-hub/share/mathjax-support to identify this component; do NOT change!
@@ -926,6 +919,8 @@ exports.HTML = HTML = rclass
             $(ReactDOM.findDOMNode(@)).highlight_code()
 
     _do_updates: ->
+        if exports.SHARE_SERVER
+            return
         @_update_mathjax()
         @_update_links()
         @_update_tables()
@@ -954,18 +949,21 @@ exports.HTML = HTML = rclass
         if not @props.value
             return {__html: ''}
 
-        if @props.auto_render_math and rendered_mathjax?
-            x = rendered_mathjax?[@props.value]
-            if x?
-                x.ref -= 1
-                if x.ref <= 0
-                    delete rendered_mathjax?[@props.value]
-                return {__html:x.html}
-
         if @props.safeHTML
             html = require('./misc_page').sanitize_html_safe(@props.value, @props.post_hook)
         else
             html = require('./misc_page').sanitize_html(@props.value, true, true, @props.post_hook)
+
+        if exports.SHARE_SERVER
+            {jQuery} = require('smc-webapp/jquery-plugins/katex')  # ensure have plugin here.
+            elt = jQuery("<div>")
+            elt.html(html)
+            if @props.auto_render_math
+                elt.katex()
+            elt.find("table").addClass("table")
+            if @props.highlight_code
+                elt.highlight_code()
+            html = elt.html()
 
         return {__html: html}
 

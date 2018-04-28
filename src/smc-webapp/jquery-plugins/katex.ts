@@ -2,12 +2,14 @@
 jQuery plugin to use KaTeX when possible to typeset all the math in a
 jQuery DOM tree.
 
-Falls back to mathjax when katex fails.
+Falls back to mathjax *plugin* when katex fails, if said plugin is available.
 */
 
 import { renderToString, KatexOptions } from "katex";
 
 import * as $ from "jquery";
+
+import { tex2jax } from "./tex2jax";
 
 const { macros } = require("../math_katex");
 
@@ -17,6 +19,8 @@ declare global {
   }
 }
 
+export const jQuery = $;
+
 $.fn.katex = function() {
   this.each(katex_plugin);
   return this;
@@ -25,17 +29,11 @@ $.fn.katex = function() {
 function katex_plugin(): void {
   const elt = $(this);
 
-  const MathJax = (window as any).MathJax;
-
-  // Set preview mode for our use.
-  let preview: string = MathJax.Extension.tex2jax.config.preview;
-  MathJax.Extension.tex2jax.config.preview = "none";
-
   // Run Mathjax's processor on this DOM node.
   // This puts any math it detects in nice script tags:
   //    <script type="math/tex">x^2</script>
   //    <script type="math/tex; mode=display">x^2</script>
-  MathJax.Extension.tex2jax.PreProcess(elt[0]);
+  tex2jax.PreProcess(elt[0]);
 
   // Select all the math and try to use katex on each part.
   elt.find("script").each(function() {
@@ -54,12 +52,11 @@ function katex_plugin(): void {
         node.replaceWith($(renderToString(text, katex_options)));
       } catch (err) {
         console.log("WARNING -- ", err.toString()); // toString since the traceback has no real value.
-        // fallback to using mathjax on this -- should be rare.
-        (node as any).mathjax();
+        // fallback to using mathjax on this -- should be rare; not horrible if this happens...
+        // Except for this, this katex pluging is synchronous and does not depend on MathJax at all.
+        let node0: any = node;
+        if (node0.mathjax !== undefined) node0.mathjax();
       }
     }
   });
-
-  // Restore preview mode.
-  MathJax.Extension.tex2jax.config.preview = preview;
 }
