@@ -145,5 +145,7 @@ exports.remove_math = function(text) {
 exports.replace_math = function(text, math) {
   // Replace all the math group placeholders in the text
   // with the saved strings.
-  return text.replace(/@@(\d+)@@/g, function(match, n) { return math[n]; });
+  return text.replace(/@@(\d+)@@/g, function(match, n) {
+    return math[n];
+  });
 };
