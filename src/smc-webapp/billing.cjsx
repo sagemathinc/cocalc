@@ -517,7 +517,7 @@ PaymentMethod = rclass
         confirm_delete  : false
 
     icon_name: ->
-        return brand_to_icon(@props.source.brand.toLowerCase())
+        return brand_to_icon(@props.source.brand?.toLowerCase())
 
     render_confirm_default: ->
         <Alert bsStyle='warning'>
