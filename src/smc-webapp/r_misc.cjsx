@@ -162,7 +162,7 @@ exports.Icon = Icon = rclass
             else
                 # temporary until file_associations can be changed
                 if name.slice(0, 3) == 'cc-' and name isnt 'cc-stripe'
-                    classNames = "fa #{name}"
+                    classNames = "fab #{name}"
                     # the cocalc icon font can't do any extra tricks
                 else
                     # temporary until file_associations can be changed
