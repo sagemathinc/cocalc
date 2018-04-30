@@ -4,11 +4,11 @@ Component that shows rendered HTML in an iFrame, so safe and no mangling needed.
 
 import * as $ from "jquery";
 
-import { is_different } from "../misc";
+import { is_different } from "../generic/misc";
 
 import { throttle } from "underscore";
 
-import { Component, React, ReactDOM, Rendered } from "../react";
+import { Component, React, ReactDOM, Rendered } from "../generic/react";
 
 import * as CSS from "csstype";
 

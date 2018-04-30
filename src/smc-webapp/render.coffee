@@ -1,5 +1,6 @@
 # Enable transparent server-side requiring of cjsx files.
 require('node-cjsx').transform()
+require('ts-node').register()
 ReactDOMServer = require('react-dom/server')
 fs = require('fs')
 {join} = require('path')

@@ -2,7 +2,7 @@
 Top-level react component for editing HTML documents
 */
 
-import { React, rclass, rtypes, Component, Rendered } from "../react";
+import { React, rclass, rtypes, Component, Rendered } from "../generic/react";
 
 //import { FormatBar } from "../markdown-editor/format-bar";
 const { FormatBar } = require("../markdown-editor/format-bar");
@@ -56,7 +56,7 @@ const EDITOR_SPEC = {
     ])
   },
 
-  html: {
+  preview: {
     short: "Preview",
     name: "Quick Preview",
     icon: "html5",

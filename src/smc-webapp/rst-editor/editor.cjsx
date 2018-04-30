@@ -4,14 +4,14 @@ Top-level react component for editing markdown documents
 
 misc = require('smc-util/misc')
 
-{React, rclass, rtypes} = require('../smc-react')
+{React, rclass, rtypes} = require('smc-webapp/smc-react')
 
-{FormatBar}             = require('../markdown-editor/format-bar')
-{Editor, set}           = require('../code-editor/editor')
-{aux_file}              = require('../code-editor/util')
+{FormatBar}             = require('smc-webapp/frame-editors/markdown-editor/format-bar')
+{Editor, set}           = require('smc-webapp/frame-editors/code-editor/editor')
+{aux_file}              = require('smc-webapp/frame-editors/code-editor/util')
 
 {IFrameHTML}            = require('smc-webapp/frame-editors/html-editor/iframe-html')
-{CodemirrorEditor}      = require('../code-editor/codemirror-editor')
+{CodemirrorEditor}      = require('smc-webapp/frame-editors/code-editor/codemirror-editor')
 
 
 EDITOR_SPEC =

@@ -6,11 +6,12 @@ misc = require('smc-util/misc')
 
 {React, rclass, rtypes} = require('../smc-react')
 
-{FormatBar}             = require('../markdown-editor/format-bar')
-{Editor, set}           = require('../code-editor/editor')
+{FormatBar}             = require('smc-webapp/frame-editors/markdown-editor/format-bar')
+{RenderedMarkdown}      = require('smc-webapp/frame-editors//markdown-editor/rendered-markdown')
 
-{RenderedMarkdown}      = require('../markdown-editor/rendered-markdown')
+{Editor, set}           = require('../code-editor/editor')
 {CodemirrorEditor}      = require('../code-editor/codemirror-editor')
+
 
 EDITOR_SPEC =
     cm        :

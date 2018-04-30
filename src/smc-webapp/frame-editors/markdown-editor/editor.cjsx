@@ -2,7 +2,7 @@
 Top-level react component for editing markdown documents
 ###
 
-{React, rclass, rtypes} = require('../smc-react')
+{React, rclass, rtypes} = require('smc-webapp/smc-react')
 
 {FormatBar} = require('./format-bar')
 {Editor, set} = require('../code-editor/editor')
@@ -19,13 +19,13 @@ EDITOR_SPEC =
         icon      : 'code'
         component : CodemirrorEditor
         buttons   : set(['print', 'decrease_font_size', 'increase_font_size', 'save', 'time_travel', 'replace', 'find', 'goto_line', \
-                         'cut', 'paste', 'copy', 'undo', 'redo', 'reload', 'format'])
+                         'cut', 'paste', 'copy', 'undo', 'redo', 'format'])
     markdown :
         short     : 'View'
         name      : 'Rendered View'
         icon      : 'eye'
         component : RenderedMarkdown
-        buttons   : set(['print', 'decrease_font_size', 'increase_font_size', 'save', 'time_travel', 'reload'])
+        buttons   : set(['print', 'decrease_font_size', 'increase_font_size', 'save', 'time_travel'])
 
 ###
     prosemirror :

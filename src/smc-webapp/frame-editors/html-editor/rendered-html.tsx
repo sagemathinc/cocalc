@@ -2,7 +2,7 @@
 Component that shows rendered HTML.
 */
 
-import { is_different, path_split } from "../misc";
+import { is_different, path_split } from "../generic/misc";
 
 import { Map } from "immutable";
 
@@ -10,7 +10,7 @@ import { throttle } from "underscore";
 
 const { Loading, HTML } = require("smc-webapp/r_misc");
 
-import { React, Component, Rendered, ReactDOM } from "../react";
+import { React, Component, Rendered, ReactDOM } from "../generic/react";
 
 import { MAX_WIDTH } from "./options.ts";
 

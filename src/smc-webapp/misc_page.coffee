@@ -118,6 +118,9 @@ exports.scroll_top = () ->
 #############################################
 {required, defaults} = require('smc-util/misc')
 
+# These should all get moved to this subdir and be in typescript.  For now there is one:
+require('./jquery-plugins/katex')
+
 # Force reload all images by appending random query param to their src URL.
 $.fn.reload_images = (opts) ->
     @each ->

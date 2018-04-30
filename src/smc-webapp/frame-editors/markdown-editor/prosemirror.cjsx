@@ -4,8 +4,8 @@ Use ProseMirror to provide a WYSIWYG Markdown editing experience.
 Mainly just for fun...
 ###
 
-{Loading, Markdown} = require('../r_misc')
-{React, ReactDOM, rclass, rtypes}  = require('../smc-react')
+{Loading, Markdown} = require('smc-webapp/r_misc')
+{React, ReactDOM, rclass, rtypes}  = require('smc-webapp/smc-react')
 {Button} = require('react-bootstrap')
 
 options = require('./options')

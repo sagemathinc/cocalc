@@ -12,8 +12,8 @@ This will very likely be hidden/disabled in any real release; it's a horrible ca
 worms to really use, and ProseMirror has already done it all!
 ###
 
-{Loading, Markdown} = require('../r_misc')
-{React, ReactDOM, rclass, rtypes}  = require('../smc-react')
+{Loading, Markdown} = require('smc-webapp/r_misc')
+{React, ReactDOM, rclass, rtypes}  = require('smc-webapp/smc-react')
 {Button} = require('react-bootstrap')
 
 Europa = require('europa')

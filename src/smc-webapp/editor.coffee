@@ -2008,21 +2008,20 @@ exports.register_nonreact_editors = ->
 
     # wrapper for registering private and public editors
     register = (is_public, cls, extensions) ->
-        require.ensure [], ->
-            icon = file_icon_class(extensions[0])
-            reg
-                ext       : extensions
-                is_public : is_public
-                icon      : icon
-                f         : (project_id, path, opts) ->
-                    e = new cls(project_id, path, undefined, opts)
-                    if not e.ext?
-                        console.error('You have to call super(@project_id, @filename) in the constructor to properly initialize this FileEditor instance.')
-                    return e
+        icon = file_icon_class(extensions[0])
+        reg
+            ext       : extensions
+            is_public : is_public
+            icon      : icon
+            f         : (project_id, path, opts) ->
+                e = new cls(project_id, path, undefined, opts)
+                if not e.ext?
+                    console.error('You have to call super(@project_id, @filename) in the constructor to properly initialize this FileEditor instance.')
+                return e
 
     # Editors for private normal editable files.
-    #register(false, LatexEditor,      ['rnw'])
     register(false, LatexEditor,      ['tex', 'rnw'])
+
     register(false, Terminal,         ['term', 'sage-term'])
 
     {HistoryEditor} = require('./editor_history')

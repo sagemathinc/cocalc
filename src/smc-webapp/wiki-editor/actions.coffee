@@ -2,7 +2,7 @@
 Media wiki Editor Actions
 ###
 
-{Actions}        = require('../markdown-editor/actions')
+{Actions}        = require('smc-webapp/frame-editors//markdown-editor/actions')
 {print_html}     = require('smc-webapp/frame-editors/html-editor/print')
 wiki2html        = require('./wiki2html')
 

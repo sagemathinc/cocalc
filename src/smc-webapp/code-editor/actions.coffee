@@ -557,8 +557,8 @@ class exports.Actions extends Actions
         @_syncstring?.save()
         @update_save_status()
 
-    set_syncstring_to_codemirror: =>
-        cm = @_get_cm()
+    set_syncstring_to_codemirror: (id) =>
+        cm = @_get_cm(id)
         if not cm? or not @_syncstring?
             return
         @set_syncstring(cm.getValue())

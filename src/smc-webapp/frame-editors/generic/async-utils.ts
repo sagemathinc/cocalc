@@ -1,4 +1,6 @@
 /*
+THIS SHOULD BE MOVED OUT OF frame-editors/
+
 Some async utils.
 
 (Obviously should be moved somewhere else when the dust settles!)
