@@ -73,9 +73,6 @@ exports.file_actions = file_actions =
         icon  : 'cloud-download'
         allows_multiple_files : true
 
-# Register this module with the redux module, so it can be used by the reset of SMC easily.
-register_project_store(exports)
-
 if window?
     # don't import in case not in browser (for testing)
     project_file = require('./project_file')
@@ -138,6 +135,13 @@ _init_library_index_ongoing = {}
 _init_library_index_cache   = {}
 
 class ProjectActions extends Actions
+    destroy: =>
+        must_define(@redux)
+        name = key(project_id)
+        @close_all_files()
+        for table, _ of QUERIES
+            @redux.removeTable(key(project_id, table))
+
     _ensure_project_is_open: (cb, switch_to) =>
         s = @redux.getStore('projects')
         if not s.is_project_open(@project_id)
@@ -1998,12 +2002,14 @@ create_project_store_def = (name, project_id) ->
     _sort_on_numerical_field: (field, factor=1) =>
         (a,b) -> misc.cmp((a[field] ? -1) * factor, (b[field] ? -1) * factor)
 
-exports.getStore = getStore = (project_id, redux) ->
+exports.init = (project_id, redux) ->
+    redux.
+
     must_define(redux)
-    name  = key(project_id)
+    name  = redux.project_redux_name(project_id)
     store = redux.getStore(name)
     if store?
-        return store
+        return
 
     # Initialize everything
     actions = redux.createActions(name, ProjectActions)
@@ -2026,31 +2032,11 @@ exports.getStore = getStore = (project_id, redux) ->
             if typeof(v) == 'function'
                 q[k] = v()
         q.query.project_id = project_id
-        T = redux.createTable(key(project_id, table_name), create_table(table_name, q))
+        T = redux.createTable(redux.project_redux_name(project_id, table_name), create_table(table_name, q))
 
-    return store
+    
 
-exports.getActions = (project_id, redux) ->
-    must_define(redux)
-    if not getStore(project_id, redux)?
-        getStore(project_id, redux)
-    return redux.getActions(key(project_id))
-
-exports.getTable = (project_id, name, redux) ->
-    must_define(redux)
-    if not getStore(project_id, redux)?
-        getStore(project_id, redux)
-    return redux.getTable(key(project_id, name))
-
-exports.deleteStoreActionsTable = (project_id, redux) ->
-    must_define(redux)
-    name = key(project_id)
-    redux.getStore(name)?.destroy?()
-    redux.getActions(name).close_all_files()
-    redux.removeActions(name)
-    for table,_ of QUERIES
-        redux.removeTable(key(project_id, table))
-    redux.removeStore(name)
+    return
 
 prom_client = require('./prom-client')
 if prom_client.enabled
