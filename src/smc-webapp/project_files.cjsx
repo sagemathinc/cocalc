@@ -432,8 +432,8 @@ TerminalModeDisplay = rclass
             </Col>
             <Col sm={8}>
                 <Alert style={marginTop: '5px', fontWeight : 'bold'} bsStyle='info'>
-                Warning: You are in terminal mode. Click <a target="_blank" href="https://github.com/sagemathinc/cocalc/wiki/File-Listing#terminal-mode">here</a> for more information.
-            </Alert>
+                    You are in <a target="_blank" href="https://github.com/sagemathinc/cocalc/wiki/File-Listing#terminal-mode">terminal mode</a>.
+                </Alert>
             </Col>
             <Col sm={2}>
             </Col>
