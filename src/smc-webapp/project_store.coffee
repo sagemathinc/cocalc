@@ -2003,8 +2003,6 @@ create_project_store_def = (name, project_id) ->
         (a,b) -> misc.cmp((a[field] ? -1) * factor, (b[field] ? -1) * factor)
 
 exports.init = (project_id, redux) ->
-    redux.
-
     must_define(redux)
     name  = redux.project_redux_name(project_id)
     store = redux.getStore(name)
