@@ -2002,7 +2002,7 @@ create_project_store_def = (name, project_id) ->
     _sort_on_numerical_field: (field, factor=1) =>
         (a,b) -> misc.cmp((a[field] ? -1) * factor, (b[field] ? -1) * factor)
 
-exports.init = (project_id, redux) ->
+exports.init = (project_id) ->
     must_define(redux)
     name  = redux.project_redux_name(project_id)
     store = redux.getStore(name)

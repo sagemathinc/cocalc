@@ -31,7 +31,7 @@
 //##############################################################################
 
 // Important: code below now assumes that a global variable called "DEBUG" is **defined**!
-declare var DEBUG, Primus, smc;
+declare var DEBUG: boolean, Primus, smc;
 if (DEBUG == null) {
   var DEBUG = false;
 }
@@ -39,13 +39,13 @@ if (DEBUG == null) {
 let rclass: (x?) => () => React.ReactElement<any>;
 
 import { EventEmitter } from "events";
-import async from "async";
+import * as async from "async";
 import * as immutable from "immutable";
-import underscore from "underscore";
+import * as underscore from "underscore";
 import * as React from "react";
 import { createStore as createReduxStore } from "redux";
-import createReactClass from "create-react-class";
-import PropTypes from "prop-types";
+import * as createReactClass from "create-react-class";
+import * as PropTypes from "prop-types";
 import { createSelector } from "reselect";
 import { Provider, connect } from "react-redux";
 
@@ -66,12 +66,14 @@ class Table {
   private _table: any;
 
   // override in derived class to pass in options to the query -- these only impact initial query, not changefeed!
-  options: () => any;
+  options?: () => any[];
   query: () => void;
 
   constructor(name, redux) {
     this.set = this.set.bind(this);
-    this.options = this.options.bind(this);
+    if (this.options) {
+      this.options.bind(this);
+    }
     this.name = name;
     this.redux = redux;
     if (typeof Primus === "undefined" || Primus === null) {
@@ -80,7 +82,7 @@ class Table {
     }
     this._table = require("./webapp_client").webapp_client.sync_table(
       this.query(),
-      this.options()
+      this.options ? this.options() : []
     );
     if (this._change !== undefined) {
       this._table.on("change", keys => {
@@ -146,7 +148,7 @@ class Actions {
 
 export interface store_definition<T> {
   name: string;
-  getInitialState?: () => T
+  getInitialState?: () => T;
 }
 
 /*
@@ -363,11 +365,10 @@ const depends = (...dependency_names) => deriving_func => {
 };
 
 const action_set_state = function(change) {
-  let action;
-  return (action = {
+  return {
     type: "SET_STATE",
     change: immutable.fromJS(change) // guaranteed immutable.js all the way down
-  });
+  };
 };
 // Deeply nested objects need to be converted with fromJS before being put in the store
 
@@ -387,17 +388,14 @@ const redux_app = function(state: redux_state, action): redux_state {
   }
   switch (action.type) {
     case "SET_STATE":
-      // Typically action.change has exactly one key, the name of a Store.
-      // We merge in what is in action.change[name] to state[name] below.
-      action.change.map(function(val, store) {
-        let old_state = state.get(store);
-        let new_val;
-        if (old_state !== undefined) {
-          new_val = old_state.merge(val) || val;
-        }
-        return state.set(store, new_val);
-      });
-      return state;
+            // Typically action.change has exactly one key, the name of a Store.
+            // We merge in what is in action.change[name] to state[name] below.
+            action.change.map(function(val, store) {
+                let left;
+                const new_val = (left = __guard__(state.get(store), x => x.merge(val))) != null ? left : val;
+                return state = state.set(store, new_val);
+            });
+            return state;
     case "REMOVE_STORE":
       return state.delete(action.name);
     default:
@@ -472,10 +470,6 @@ class AppRedux {
   }
 
   _set_state(change): void {
-    //console.log("_set_state", change)
-    //for k, v of change
-    //    if k == 'undefined'
-    //        throw "key must not be undefined"
     this._redux_store.dispatch(action_set_state(change));
   }
 
@@ -514,7 +508,7 @@ class AppRedux {
     let S;
     if (typeof spec === "string") {
       let name = spec;
-      if (init !== undefined && typeof store_class !== "function") {
+      if (init === undefined && typeof store_class !== "function") {
         init = store_class;
         store_class = Store;
       }
@@ -918,7 +912,7 @@ switch (MODE) {
       return { counts: render_count, total };
     };
     (window as any).reset_render_count = function() {
-      render_count = {}
+      render_count = {};
     };
     break;
   case "time":
