@@ -1,7 +1,6 @@
 /*
  * decaffeinate suggestions:
  * DS102: Remove unnecessary code created because of implicit returns
- * DS103: Rewrite code to no longer use __guard__
  * DS104: Avoid inline assignments
  * DS205: Consider reworking code to avoid use of IIFEs
  * DS207: Consider shorter variations of null checks
@@ -391,9 +390,11 @@ const redux_app = function(state: redux_state, action): redux_state {
             // Typically action.change has exactly one key, the name of a Store.
             // We merge in what is in action.change[name] to state[name] below.
             action.change.map(function(val, store) {
-                let left;
-                const new_val = (left = __guard__(state.get(store), x => x.merge(val))) != null ? left : val;
-                return state = state.set(store, new_val);
+                let new_val;
+                if (state.get(store)) {
+                  new_val = state.get(store).merge(val)
+                }
+                return state = state.set(store, new_val || val);
             });
             return state;
     case "REMOVE_STORE":
@@ -726,14 +727,11 @@ const connect_component = spec => {
       for (let prop in info) {
         var val;
         const type = info[prop];
+        // TODO: Use typing on store
         if ((store != null ? store.__converted : undefined) != null) {
           val = store[prop];
-          if (
-            __guard__(
-              Object.getOwnPropertyDescriptor(store, prop),
-              x => x.get
-            ) == null
-          ) {
+          let info = Object.getOwnPropertyDescriptor(store, prop);
+          if (info == undefined || info.get == null) {
             if (DEBUG) {
               console.warn(
                 `Requested reduxProp \`${prop}\` from store \`${store_name}\` but it is not defined in its stateTypes nor reduxProps`
@@ -1010,15 +1008,10 @@ const __internals = {
   react_component
 };
 
-if (
-  __guard__(
-    typeof process !== "undefined" && process !== null
-      ? process.env
-      : undefined,
-    x => x.SMC_TEST
-  )
-) {
-  exports.__internals = __internals;
+if (process) {
+  if (process.env.SMC_TEST) {
+    exports.__internals = __internals;
+  }
 }
 
 /*
@@ -1042,9 +1035,4 @@ export function redux_fields(spec) {
     }
   }
   return v;
-}
-function __guard__(value, transform) {
-  return typeof value !== "undefined" && value !== null
-    ? transform(value)
-    : undefined;
 }
