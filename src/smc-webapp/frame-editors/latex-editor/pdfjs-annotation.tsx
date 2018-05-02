@@ -10,7 +10,11 @@ like is here:  https://tex.stackexchange.com/questions/6306/how-to-annotate-pdf-
 
 import { Component, React, Rendered } from "../generic/react";
 
-import { PDFAnnotationData, PDFPageProxy, PDFJS } from "pdfjs-dist/webpack";
+import { PDFAnnotationData, PDFPageProxy } from "pdfjs-dist/webpack";
+
+// Evidently the typescript code is wrong for this PDFJS.Util thing, so we use require.
+const PDFJS = require('pdfjs-dist/webpack');
+
 import { is_different } from "../generic/misc";
 
 interface Props {
