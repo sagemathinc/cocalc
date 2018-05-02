@@ -134,9 +134,10 @@ exports.FrameTree = FrameTree = rclass ({name}) ->
 
     render_leaf: (type, desc, Leaf, spec) ->
         path = desc.get('path') ? @props.path
-        if spec?.path?
+        spec ?= {}
+        if spec.path?
             path = spec.path(path)
-        if spec?.fullscreen_style?
+        if spec.fullscreen_style?
             # this is set via jquery's .css...
             fullscreen_style = spec.fullscreen_style
         else
@@ -161,9 +162,9 @@ exports.FrameTree = FrameTree = rclass ({name}) ->
             is_fullscreen    = {@props.is_only or desc.get('id') == @props.full_id}
             reload           = {@props.reload?.get(type)}
             resize           = {@props.resize}
-            reload_images    = {spec?.reload_images}
-            gutters          = {spec?.gutters}
-            renderer         = {spec?.renderer}
+            reload_images    = {!!spec.reload_images}
+            gutters          = {spec.gutters}
+            renderer         = {spec.renderer}
         />
 
     render_one: (desc) ->
