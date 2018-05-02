@@ -33,7 +33,7 @@
 // Important: code below now assumes that a global variable called "DEBUG" is **defined**!
 declare var DEBUG, Primus, smc;
 if (DEBUG == null) {
-  DEBUG = false;
+  var DEBUG = false;
 }
 
 let rclass: (x?) => () => React.ReactElement<any>;
