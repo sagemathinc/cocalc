@@ -5,7 +5,7 @@ Top-level react component for editing LaTeX documents.
 import { React, rclass, rtypes, Component, Rendered } from "../generic/react";
 
 //import { FormatBar } from "../markdown-editor/format-bar";
-const { FormatBar } = require("../markdown-editor/format-bar");
+const { FormatBar } = require("../frame-tree/format-bar");
 
 //import { Editor as BaseEditor, set } from "../code-editor/editor";
 const editor = require("../code-editor/editor");

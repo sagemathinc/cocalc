@@ -19,7 +19,7 @@ worms to really use, and ProseMirror has already done it all!
 Europa = require('europa')
 europa = new Europa(inline: true)
 
-options = require('./options')
+options = require('./options.ts')
 
 exports.ContentEditable = rclass
     displayName: 'MarkdownEditor-ContentEditable'

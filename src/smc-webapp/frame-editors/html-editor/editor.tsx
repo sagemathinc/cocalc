@@ -2,13 +2,10 @@
 Top-level react component for editing HTML documents
 */
 
-import { React, rclass, rtypes, Component, Rendered } from "../generic/react";
-
-//import { FormatBar } from "../markdown-editor/format-bar";
-const { FormatBar } = require("../markdown-editor/format-bar");
+import { createEditor } from "../frame-tree/editor";
 
 //import { Editor, set } from "../code-editor/editor";
-const { Editor, set } = require("../code-editor/editor");
+const { set } = require("../code-editor/editor");
 
 import { QuickHTMLPreview } from "./rendered-html.tsx";
 
@@ -72,67 +69,4 @@ const EDITOR_SPEC = {
   }
 };
 
-interface EditorProps {
-  actions: any;
-  path: string;
-  project_id: string;
-
-  // reduxProps:
-  name: string;
-  editor_settings: Map<string, any>;
-  is_public: boolean;
-}
-
-class HTMLEditor extends Component<EditorProps, {}> {
-  static reduxProps({ name }) {
-    return {
-      account: {
-        editor_settings: rtypes.immutable.Map
-      },
-      [name]: {
-        is_public: rtypes.bool
-      }
-    };
-  }
-
-  shouldComponentUpdate(next): boolean {
-    if (!this.props.editor_settings) return false;
-    return (
-      this.props.editor_settings.get("extra_button_bar") !==
-      next.editor_settings.get("extra_button_bar")
-    );
-  }
-
-  render_format_bar(): Rendered {
-    if (
-      !this.props.is_public &&
-      this.props.editor_settings &&
-      this.props.editor_settings.get("extra_button_bar")
-    )
-      return <FormatBar actions={this.props.actions} extension={"html"} />;
-  }
-
-  render_editor(): Rendered {
-    return (
-      <Editor
-        name={this.props.name}
-        actions={this.props.actions}
-        path={this.props.path}
-        project_id={this.props.project_id}
-        editor_spec={EDITOR_SPEC}
-      />
-    );
-  }
-
-  render(): Rendered {
-    return (
-      <div className="smc-vfill">
-        {this.render_format_bar()}
-        {this.render_editor()}
-      </div>
-    );
-  }
-}
-
-const tmp = rclass(HTMLEditor);
-export { tmp as HTMLEditor };
+export const HTMLEditor = createEditor({format_bar: true, editor_spec:EDITOR_SPEC, display_name:'HTMLEditor'});

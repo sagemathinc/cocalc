@@ -6,7 +6,7 @@ misc = require('smc-util/misc')
 
 {React, rclass, rtypes} = require('smc-webapp/smc-react')
 
-{FormatBar}             = require('smc-webapp/frame-editors/markdown-editor/format-bar')
+{FormatBar}             = require('smc-webapp/frame-editors/frame-tree/format-bar')
 {Editor, set}           = require('smc-webapp/frame-editors/code-editor/editor')
 {aux_file}              = require('smc-webapp/frame-editors/code-editor/util')
 
