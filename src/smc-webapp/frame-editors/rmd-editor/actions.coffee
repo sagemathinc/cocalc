@@ -2,7 +2,7 @@
 R Markdown Editor Actions
 ###
 
-{Actions}        = require('smc-webapp/frame-editors/markdown-editor/actions')
+{Actions}        = require('../markdown-editor/actions')
 rmd2md           = require('./rmd2md')
 
 class exports.Actions extends Actions

@@ -1,18 +1,17 @@
 ###
-Top-level react component for editing MediaWiki documents
+Top-level react component for editing markdown documents
 ###
 
 misc = require('smc-util/misc')
 
-{React, rclass, rtypes} = require('../smc-react')
+{React, rclass, rtypes} = require('smc-webapp/smc-react')
 
-{FormatBar}             = require('smc-webapp/frame-editors/frame-tree/format-bar')
+{FormatBar}             = require('../frame-tree/format-bar')
 {Editor, set}           = require('../code-editor/editor')
-
-{IFrameHTML}            = require('smc-webapp/frame-editors/html-editor/iframe-html')
-{CodemirrorEditor}      = require('../code-editor/codemirror-editor')
-
 {aux_file}              = require('../code-editor/util')
+
+{IFrameHTML}            = require('../html-editor/iframe-html')
+{CodemirrorEditor}      = require('../code-editor/codemirror-editor')
 
 
 EDITOR_SPEC =
@@ -23,11 +22,10 @@ EDITOR_SPEC =
         component : CodemirrorEditor
         buttons   : set(['print', 'decrease_font_size', 'increase_font_size', 'save', 'time_travel', 'replace', 'find', 'goto_line', \
                          'cut', 'paste', 'copy', 'undo', 'redo', 'reload'])
-
-    html :
-        short     : 'HTML'
-        name      : 'Rendered HTML (pandoc)'
-        icon      : 'html5'
+    rst :
+        short     : 'View'
+        name      : 'Rendered View (rst2html)'
+        icon      : 'eye'
         component : IFrameHTML
         buttons   : set(['print', 'decrease_font_size', 'increase_font_size', 'save', 'time_travel', 'reload'])
         path      : (path) -> aux_file(path, 'html')
@@ -35,8 +33,10 @@ EDITOR_SPEC =
             'max-width' : '900px'
             'margin'    : 'auto'
 
+# TODO: refactor this with html and md editors!
+
 exports.Editor = rclass ({name}) ->
-    displayName: 'WikiEditor-Editor'
+    displayName: 'RstEditor-Editor'
 
     propTypes :
         actions    : rtypes.object.isRequired
@@ -47,8 +47,8 @@ exports.Editor = rclass ({name}) ->
         account :
             editor_settings : rtypes.immutable
         "#{name}" :
-            is_public     : rtypes.bool
-            format_bar    : rtypes.immutable.Map    # optional extra state of the format bar, stored in the Store
+            is_public  : rtypes.bool
+            format_bar : rtypes.immutable.Map    # optional extra state of the format bar, stored in the Store
 
     shouldComponentUpdate: (next) ->
         return @props.editor_settings?.get('extra_button_bar') != next.editor_settings?.get('extra_button_bar') or \

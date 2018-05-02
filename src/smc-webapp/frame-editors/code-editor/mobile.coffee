@@ -8,7 +8,7 @@ much, so we add it for many keyboard shortcuts here.
 ###
 
 misc = require('smc-util/misc')
-copypaste = require('../copy-paste-buffer')
+copypaste = require('smc-webapp/copy-paste-buffer')
 
 exports.extra_alt_keys = (extraKeys, actions, frame_id, opts) ->
     misc.merge extraKeys,

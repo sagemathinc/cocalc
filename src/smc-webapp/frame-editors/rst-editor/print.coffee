@@ -4,7 +4,7 @@ Print Rst content
 
 {required, defaults} = require('smc-util/misc')
 {aux_file}           = require('../code-editor/util')
-{print_html}     = require('smc-webapp/frame-editors/html-editor/print')
+{print_html}     = require('../html-editor/print')
 
 exports.print_rst = (opts) ->
         opts = defaults opts,

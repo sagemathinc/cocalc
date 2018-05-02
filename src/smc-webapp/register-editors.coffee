@@ -16,10 +16,6 @@ require('./stopwatch/register')
 require('./jupyter/register')
 require('./tasks/register')
 
-require('./code-editor/register')
-require('./rst-editor/register')
-require('./rmd-editor/register')
-require('./wiki-editor/register')
 require('./media-viewer/register')
 
 # Public editors

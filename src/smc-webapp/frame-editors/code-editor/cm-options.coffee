@@ -3,8 +3,8 @@ Compute the codemirror options for file with given name,
 using the given editor settings.
 ###
 
-{file_associations}  = require('../file-associations')
-feature              = require('../feature')
+{file_associations}  = require('smc-webapp/file-associations')
+feature              = require('smc-webapp/feature')
 mobile               = require('./mobile')
 misc                 = require('smc-util/misc')
 {defaults, required} = misc

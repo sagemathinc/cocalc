@@ -1,17 +1,18 @@
 ###
-Top-level react component for editing markdown documents
+Top-level react component for editing MediaWiki documents
 ###
 
 misc = require('smc-util/misc')
 
-{React, rclass, rtypes} = require('smc-webapp/smc-react')
+{React, rclass, rtypes} = require('../smc-react')
 
-{FormatBar}             = require('smc-webapp/frame-editors/frame-tree/format-bar')
-{Editor, set}           = require('smc-webapp/frame-editors/code-editor/editor')
-{aux_file}              = require('smc-webapp/frame-editors/code-editor/util')
+{FormatBar}             = require('../frame-tree/format-bar')
+{Editor, set}           = require('../code-editor/editor')
 
-{IFrameHTML}            = require('smc-webapp/frame-editors/html-editor/iframe-html')
-{CodemirrorEditor}      = require('smc-webapp/frame-editors/code-editor/codemirror-editor')
+{IFrameHTML}            = require('../html-editor/iframe-html')
+{CodemirrorEditor}      = require('../code-editor/codemirror-editor')
+
+{aux_file}              = require('../code-editor/util')
 
 
 EDITOR_SPEC =
@@ -22,10 +23,11 @@ EDITOR_SPEC =
         component : CodemirrorEditor
         buttons   : set(['print', 'decrease_font_size', 'increase_font_size', 'save', 'time_travel', 'replace', 'find', 'goto_line', \
                          'cut', 'paste', 'copy', 'undo', 'redo', 'reload'])
-    rst :
-        short     : 'View'
-        name      : 'Rendered View (rst2html)'
-        icon      : 'eye'
+
+    html :
+        short     : 'HTML'
+        name      : 'Rendered HTML (pandoc)'
+        icon      : 'html5'
         component : IFrameHTML
         buttons   : set(['print', 'decrease_font_size', 'increase_font_size', 'save', 'time_travel', 'reload'])
         path      : (path) -> aux_file(path, 'html')
@@ -33,10 +35,8 @@ EDITOR_SPEC =
             'max-width' : '900px'
             'margin'    : 'auto'
 
-# TODO: refactor this with html and md editors!
-
 exports.Editor = rclass ({name}) ->
-    displayName: 'RstEditor-Editor'
+    displayName: 'WikiEditor-Editor'
 
     propTypes :
         actions    : rtypes.object.isRequired
@@ -47,8 +47,8 @@ exports.Editor = rclass ({name}) ->
         account :
             editor_settings : rtypes.immutable
         "#{name}" :
-            is_public  : rtypes.bool
-            format_bar : rtypes.immutable.Map    # optional extra state of the format bar, stored in the Store
+            is_public     : rtypes.bool
+            format_bar    : rtypes.immutable.Map    # optional extra state of the format bar, stored in the Store
 
     shouldComponentUpdate: (next) ->
         return @props.editor_settings?.get('extra_button_bar') != next.editor_settings?.get('extra_button_bar') or \
