@@ -4,10 +4,10 @@ Top-level react component for editing code
 
 misc                    = require('smc-util/misc')
 
-{React, rclass, rtypes} = require('../smc-react')
-{ErrorDisplay, Loading} = require('../r_misc')
+{React, rclass, rtypes} = require('smc-webapp/smc-react')
+{ErrorDisplay, Loading} = require('smc-webapp/r_misc')
 {FrameTree}             = require('./frame-tree')
-{IS_IPAD}               = require('../feature')
+{IS_IPAD}               = require('smc-webapp/feature')
 
 {StatusBar}             = require('./status-bar')
 

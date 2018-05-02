@@ -4,7 +4,7 @@ Top-level react component for editing MediaWiki documents
 
 misc = require('smc-util/misc')
 
-{React, rclass, rtypes} = require('../smc-react')
+{React, rclass, rtypes} = require('smc-webapp/smc-react')
 
 {FormatBar}             = require('../frame-tree/format-bar')
 {Editor, set}           = require('../code-editor/editor')

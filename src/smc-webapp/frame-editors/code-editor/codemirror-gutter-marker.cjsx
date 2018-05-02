@@ -2,7 +2,7 @@
 React component that represents gutter markers in a codemirror editor.
 ###
 
-{Fragment, React, ReactDOM, rclass, rtypes}  = require('../smc-react')
+{Fragment, React, ReactDOM, rclass, rtypes}  = require('smc-webapp/smc-react')
 misc = require('misc')
 
 exports.GutterMarker = rclass

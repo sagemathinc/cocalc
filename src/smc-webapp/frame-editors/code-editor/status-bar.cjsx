@@ -4,8 +4,8 @@ Show a minimal status bar at the bottom of the screen when status is set in the 
 Very simple for now.  We should obviously add more later, e.g., number of lines of the file...
 ###
 
-{React, rclass, rtypes} = require('../smc-react')
-{Space} = require('../r_misc')
+{React, rclass, rtypes} = require('smc-webapp/smc-react')
+{Space} = require('smc-webapp/r_misc')
 
 exports.StatusBar = rclass ({name}) ->
     displayName: 'Editor-StatusBar'

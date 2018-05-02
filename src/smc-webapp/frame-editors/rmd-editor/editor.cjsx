@@ -4,7 +4,7 @@ Top-level react component for editing R markdown documents
 
 misc = require('smc-util/misc')
 
-{React, rclass, rtypes} = require('../smc-react')
+{React, rclass, rtypes} = require('smc-webapp/smc-react')
 
 {FormatBar}             = require('../frame-tree/format-bar')
 {RenderedMarkdown}      = require('../markdown-editor/rendered-markdown')

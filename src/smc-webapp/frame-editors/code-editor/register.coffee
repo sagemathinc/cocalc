@@ -2,7 +2,7 @@
 Register the code editor
 ###
 
-{file_associations}    = require('../file-associations')
+{file_associations}    = require('smc-webapp/file-associations')
 
 {Editor}               = require('./editor')
 {Actions}              = require('./actions')

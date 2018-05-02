@@ -7,12 +7,12 @@ This is a wrapper around a single codemirror editor view.
 SAVE_INTERVAL_MS = 2000
 
 {Fragment, React, ReactDOM,
- rclass, rtypes}     = require('../smc-react')
+ rclass, rtypes}     = require('smc-webapp/smc-react')
 {three_way_merge}    = require('smc-util/syncstring')
 {debounce, throttle} = require('underscore')
 misc                 = require('smc-util/misc')
 
-{Cursors}            = require('../jupyter/cursors')
+{Cursors}            = require('smc-webapp/jupyter/cursors')
 
 {cm_options}         = require('./cm-options')
 codemirror_util      = require('./codemirror-util')

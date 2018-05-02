@@ -4,13 +4,13 @@ FrameTitleBar - title bar in a frame, in the frame tree
 
 {debounce} = require('underscore')
 {ButtonGroup, Button, DropdownButton, MenuItem}   = require('react-bootstrap')
-{Fragment, React, rclass, rtypes, redux} = require('../smc-react')
+{Fragment, React, rclass, rtypes, redux} = require('smc-webapp/smc-react')
 {Icon, Space, Tip, VisibleMDLG,
- EditorFileInfoDropdown}= require('../r_misc')
-{UncommittedChanges}    = require('../jupyter/uncommitted-changes')
+ EditorFileInfoDropdown}= require('smc-webapp/r_misc')
+{UncommittedChanges}    = require('smc-webapp/jupyter/uncommitted-changes')
 
 
-{IS_TOUCH, IS_IPAD} = require('../feature')
+{IS_TOUCH, IS_IPAD} = require('smc-webapp/feature')
 misc       = require('smc-util/misc')
 
 util = require('./util')

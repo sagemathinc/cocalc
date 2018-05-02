@@ -2,7 +2,7 @@
 Component that manages rendering all the gutter markers associated to a Codemirror editor.
 ###
 
-{Fragment, React, ReactDOM, rclass, rtypes}  = require('../smc-react')
+{Fragment, React, ReactDOM, rclass, rtypes}  = require('smc-webapp/smc-react')
 
 {GutterMarker}       = require('./codemirror-gutter-marker')
 

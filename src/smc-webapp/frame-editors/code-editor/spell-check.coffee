@@ -3,9 +3,9 @@ Backend spell checking support
 ###
 
 misc                 = require('smc-util/misc')
-misc_page            = require('../misc_page')
+misc_page            = require('smc-webapp/misc_page')
 {defaults, required} = misc
-{webapp_client}      = require('../webapp_client')
+{webapp_client}      = require('smc-webapp/webapp_client')
 
 exports.misspelled_words = (opts) ->
     opts = defaults opts,

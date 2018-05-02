@@ -7,9 +7,9 @@ immutable            = require('immutable')
 misc                 = require('smc-util/misc')
 {required, defaults} = misc
 
-{CodeMirrorStatic}   = require('../jupyter/codemirror-static')
+{CodeMirrorStatic}   = require('smc-webapp/jupyter/codemirror-static')
 ReactDOMServer       = require('react-dom/server')
-{React}              = require('../smc-react')
+{React}              = require('smc-webapp/smc-react')
 {open_new_tab}       = require('smc-webapp/misc_page')
 
 exports.print = (opts) ->

@@ -7,8 +7,8 @@ Basically, this is like register_file_editor, but much more specialized.
 misc                   = require('smc-util/misc')
 {defaults, required}   = misc
 
-{register_file_editor} = require('../file-editors')
-{redux_name}           = require('../smc-react')
+{register_file_editor} = require('smc-webapp/file-editors')
+{redux_name}           = require('smc-webapp/smc-react')
 
 exports.register_file_editor = (opts) ->
     opts = defaults opts,

@@ -29,10 +29,10 @@ immutable = require('immutable')
 
 Draggable                         = require('react-draggable')
 misc                              = require('smc-util/misc')
-misc_page                         = require('../misc_page')
-{React, ReactDOM, rclass, rtypes} = require('../smc-react')
+misc_page                         = require('smc-webapp/misc_page')
+{React, ReactDOM, rclass, rtypes} = require('smc-webapp/smc-react')
 {CodemirrorEditor}                = require('./codemirror-editor')
-feature                           = require('../feature')
+feature                           = require('smc-webapp/feature')
 {FrameTitleBar}                   = require('./frame-title-bar')
 tree_ops                          = require('./tree-ops')
 

@@ -9,7 +9,7 @@ misc                 = require('smc-util/misc')
 {required, defaults} = misc
 
 {aux_file}           = require('../code-editor/util')
-{webapp_client}      = require('../webapp_client')
+{webapp_client}      = require('smc-webapp/webapp_client')
 
 exports.convert = (opts) ->
     opts = defaults opts,
