@@ -4,17 +4,16 @@ HTML Editor Actions
 
 import * as $ from "jquery";
 
-import {Map} from "immutable";
+import { Map } from "immutable";
 
 //import { Actions as CodeEditorActions } from "../code-editor/actions";
 const CodeEditorActions = require("../code-editor/actions").Actions;
 
-import { print_html, print_url } from "../frame-tree/print";
+import { print_html } from "../frame-tree/print";
 
 import { FrameTree } from "../frame-tree/types";
 
-import {raw_url} from "../frame-tree/util";
-
+import { raw_url } from "../frame-tree/util";
 
 export class Actions extends CodeEditorActions {
   _init(...args): void {
@@ -50,7 +49,7 @@ export class Actions extends CodeEditorActions {
   }
 
   print(id: string): void {
-    const node : Map<string,any> = this._get_frame_node(id);
+    const node: Map<string, any> = this._get_frame_node(id);
     if (node.get("type") === "cm") {
       super.print(id);
       return;
@@ -59,7 +58,7 @@ export class Actions extends CodeEditorActions {
     let err: string = "";
     switch (node.get("type")) {
       case "iframe":
-        err = print_url(raw_url(this.project_id, this.path));
+        err = print_html({ src: raw_url(this.project_id, this.path) });
         break;
       case "preview":
         err = print_html({

@@ -3,8 +3,11 @@ Rst Editor Actions
 */
 
 const CodeEditorActions = require("../code-editor/actions").Actions;
-import { print_rst } from "./print";
+import { print_html } from "../frame-tree/print";
 import { convert } from "./rst2html";
+import { raw_url, aux_file } from "../frame-tree/util";
+
+import { FrameTree } from "../frame-tree/types";
 
 export class Actions extends CodeEditorActions {
   _init(...args): void {
@@ -40,7 +43,7 @@ export class Actions extends CodeEditorActions {
     });
   }
 
-  _raw_default_frame_tree() {
+  _raw_default_frame_tree() : FrameTree {
     if (this.is_public) {
       return { type: "cm" };
     } else {
@@ -69,9 +72,12 @@ export class Actions extends CodeEditorActions {
       this.set_error("printing of #{type} not implemented");
       return;
     }
-    const err = print_rst({ project_id: this.project_id, path: this.path });
+
+    const err = print_html({
+      src: raw_url(this.project_id, aux_file(this.path, "html"))
+    });
     if (err) {
-      this.setState({ error: err });
+      this.set_error(err);
     }
   }
 }

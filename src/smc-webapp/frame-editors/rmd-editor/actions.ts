@@ -34,6 +34,8 @@ export class RmdActions extends Actions {
     } catch (err) {
       this.set_error(err);
       return;
+    } finally {
+      this.set_status("");
     }
     this.setState({ content: markdown });
   }

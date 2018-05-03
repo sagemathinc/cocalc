@@ -3,7 +3,6 @@ Media wiki Editor Actions
 ###
 
 {Actions}        = require('../markdown-editor/actions')
-{print_html}     = require('../html-editor/print')
 wiki2html        = require('./wiki2html')
 
 class exports.Actions extends Actions
