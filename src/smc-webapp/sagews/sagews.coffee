@@ -1526,7 +1526,9 @@ class SynchronizedWorksheet extends SynchronizedDocument2
         if mesg.d3?
             e = $("<div>")
             output.append(e)
-            require.ensure [], () =>
+            # TODO this is a hotfix. Make this loading lazy again -- #2860
+            #require.ensure [], () =>
+            if true
                 require('./d3')  # install the d3 plugin
                 e.d3
                     viewer : mesg.d3.viewer
