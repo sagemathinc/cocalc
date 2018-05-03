@@ -29,7 +29,7 @@ export class Actions extends CodeEditorActions {
   async _run_rst2html(time?: number): Promise<void> {
     this.set_status("Running rst2html...");
     try {
-      convert(this.project_id, this.path, time);
+      await convert(this.project_id, this.path, time);
     } catch (err) {
       this.set_error(err);
     } finally {
