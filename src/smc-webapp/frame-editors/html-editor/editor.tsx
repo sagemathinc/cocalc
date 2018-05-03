@@ -69,4 +69,8 @@ const EDITOR_SPEC = {
   }
 };
 
-export const HTMLEditor = createEditor({format_bar: true, editor_spec:EDITOR_SPEC, display_name:'HTMLEditor'});
+export const HTMLEditor = createEditor({
+  format_bar: true,
+  editor_spec: EDITOR_SPEC,
+  display_name: "HTMLEditor"
+});
