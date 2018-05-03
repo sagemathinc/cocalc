@@ -1,5 +1,7 @@
 ###
 Simple utility functions used by editors.
+
+DELETE and use frame-tree/util.ts instead!!
 ###
 
 misc = require('smc-util/misc')

@@ -1,6 +1,5 @@
 /*
 Register the R Markdown editor
-
 */
 
 import { Editor } from "./editor";

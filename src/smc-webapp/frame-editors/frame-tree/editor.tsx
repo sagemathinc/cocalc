@@ -18,7 +18,7 @@ interface FrameTreeEditorProps {
   is_public?: boolean;
 }
 
-class FrameTreeEditor extends Component<FrameTreeEditorProps, {}> {
+class FrameTreeEditor0 extends Component<FrameTreeEditorProps, {}> {
   static reduxProps({ name }) {
     return {
       account: {
@@ -70,8 +70,7 @@ class FrameTreeEditor extends Component<FrameTreeEditorProps, {}> {
   }
 }
 
-const tmp = rclass(FrameTreeEditor);
-export { tmp as FrameTreeEditor };
+const FrameTreeEditor = rclass(FrameTreeEditor0);
 
 interface Options {
   display_name: string;

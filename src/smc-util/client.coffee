@@ -1015,7 +1015,7 @@ class exports.Connection extends EventEmitter
     # Individual Projects
     #################################################
 
-    open_project: (opts) ->
+    open_project: (opts) =>
         opts = defaults opts,
             project_id   : required
             cb           : required
@@ -1025,7 +1025,7 @@ class exports.Connection extends EventEmitter
                     project_id : opts.project_id
             cb : opts.cb
 
-    write_text_file_to_project: (opts) ->
+    write_text_file_to_project: (opts) =>
         opts = defaults opts,
             project_id : required
             path       : required
@@ -1043,7 +1043,7 @@ class exports.Connection extends EventEmitter
             timeout : opts.timeout
             cb      : (err, resp) => opts.cb?(err, resp)
 
-    read_text_file_from_project: (opts) ->
+    read_text_file_from_project: (opts) =>
         opts = defaults opts,
             project_id : required
             path       : required
@@ -1064,7 +1064,7 @@ class exports.Connection extends EventEmitter
     # downloaded using standard AJAX.
     # Despite the callback, this function is NOT asynchronous (that was for historical reasons).
     # It also just returns the url.
-    read_file_from_project: (opts) ->
+    read_file_from_project: (opts) =>
         opts = defaults opts,
             project_id : required
             path       : required

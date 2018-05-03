@@ -112,7 +112,7 @@ export class RenderedMarkdown extends Component<Props, {}> {
         }}
         ref={"scroll"}
         onScroll={throttle(() => this.on_scroll(), 250)}
-        onClick={this.on_click}
+        onClick={(e) => this.on_click(e)}
         className={
           "cocalc-editor-div"
         } /* this cocalc-editor-div class is needed for a safari hack only */

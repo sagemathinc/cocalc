@@ -21,6 +21,16 @@ export function server_time(): Date {
   return webapp_client.server_time();
 }
 
+// turns a function of opts, which has a cb input into
+// an async function that takes an opts with no cb as input.
+export async function async_opts(f: Function, opts: any) {
+  function g(cb: Function) {
+    opts.cb = cb;
+    f(opts);
+  }
+  return awaiting.callback(g);
+}
+
 interface ExecOpts {
   project_id: string;
   path?: string;
@@ -33,17 +43,6 @@ interface ExecOpts {
   aggregate?: any;
   err_on_exit?: boolean;
   allow_post?: boolean; // set to false if genuinely could take a long time
-  cb?: Function;
-}
-
-// turns a function of opts, which has a cb input into
-// an async function that takes an opts with no cb as input.
-export async function async_opts(f: Function, opts: ExecOpts) {
-  function g(cb: Function) {
-    opts.cb = cb;
-    f(opts);
-  }
-  return awaiting.callback(g);
 }
 
 export interface ExecOutput {
@@ -56,4 +55,17 @@ export interface ExecOutput {
 // async version of the webapp_client exec -- let's you run any code in a project!
 export async function exec(opts: ExecOpts): Promise<ExecOutput> {
   return async_opts(webapp_client.exec, opts);
+}
+
+interface ReadTextFileOpts {
+  project_id: string;
+  path: string;
+  timeout?: number;
+}
+
+export async function read_text_file_from_project(
+  opts: ReadTextFileOpts
+): Promise<string> {
+  let mesg = await async_opts(webapp_client.read_text_file_from_project, opts);
+  return mesg.content;
 }
