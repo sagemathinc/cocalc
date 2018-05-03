@@ -26,11 +26,7 @@ export class RmdActions extends Actions {
     this.set_status("Running knitr...");
     let markdown: string;
     try {
-      markdown = await convert({
-        path: this.path,
-        project_id: this.project_id,
-        time
-      });
+      markdown = await convert(this.project_id, this.path, time);
     } catch (err) {
       this.set_error(err);
       return;

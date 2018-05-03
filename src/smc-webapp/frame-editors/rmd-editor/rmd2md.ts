@@ -7,14 +7,12 @@ import { path_split } from "../generic/misc";
 
 import { exec, read_text_file_from_project } from "../generic/async-utils";
 
-interface Options {
-  path: string;
-  project_id: string;
-  time?: number;
-}
-
-export async function convert(opts: Options): Promise<string> {
-  const x = path_split(opts.path);
+export async function convert(
+  project_id: string,
+  path: string,
+  time?: number
+): Promise<string> {
+  const x = path_split(path);
   let infile = x.tail,
     outfile = aux_file(x.tail, "md");
 
@@ -28,14 +26,14 @@ export async function convert(opts: Options): Promise<string> {
     timeout: 60,
     command: "Rscript",
     args,
-    project_id: opts.project_id,
+    project_id: project_id,
     path: x.head,
     err_on_exit: true,
-    aggregate: opts.time
+    aggregate: time
   });
 
   return await read_text_file_from_project({
-    project_id: opts.project_id,
-    path: aux_file(opts.path, "md")
+    project_id: project_id,
+    path: aux_file(path, "md")
   });
 }

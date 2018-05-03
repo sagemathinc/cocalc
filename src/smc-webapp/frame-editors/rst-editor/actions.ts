@@ -26,24 +26,19 @@ export class Actions extends CodeEditorActions {
     this._run_rst2html();
   }
 
-  _run_rst2html(time?: number): void {
+  async _run_rst2html(time?: number): Promise<void> {
     this.set_status("Running rst2html...");
-    convert({
-      path: this.path,
-      project_id: this.project_id,
-      time,
-      cb: err => {
-        this.set_status("");
-        if (err) {
-          this.set_error(err);
-        } else {
-          this.set_reload("rst");
-        }
-      }
-    });
+    try {
+      convert(this.project_id, this.path, time);
+    } catch (err) {
+      this.set_error(err);
+    } finally {
+      this.set_status("");
+    }
+    this.set_reload("rst");
   }
 
-  _raw_default_frame_tree() : FrameTree {
+  _raw_default_frame_tree(): FrameTree {
     if (this.is_public) {
       return { type: "cm" };
     } else {
