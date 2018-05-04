@@ -518,10 +518,10 @@ class AppRedux {
 
   createStore<T>(spec: T): Store<T>;
   createStore<T>(name: string, init?: T): Store<T>;
-  createStore<T>(name: string, store_class: typeof Store, init?: T): Store<T>;
+  createStore<T>(name: string, store_class: new(name, redux, store_def?) => Store<T>, init?: T): Store<T>;
   createStore<T extends store_definition>(
     spec: string | T,
-    store_class?: typeof Store,
+    store_class?: new(name, redux, store_def?) => Store<T>,
     init?: {} | T
   ): Store<T> {
     let S: Store<T>;
@@ -536,7 +536,7 @@ class AppRedux {
       }
       S = this._stores[name];
       if (S == null) {
-        S = this._stores[name] = new store_class<T>(name, this);
+        S = this._stores[name] = new store_class(name, this);
         // Put into store. WARNING: New set_states CAN OVERWRITE THESE FUNCTIONS
         let C = immutable.Map(S);
         C = C.delete("redux"); // No circular pointing
@@ -1064,48 +1064,12 @@ store.get("caek");
 //
 type drinkTypes = "mocha" | "cappucccino" | "latte";
 
-/*
-interface CoffeeState {
+interface CoffeeState extends store_definition {
   drinks: drinkTypes[];
   costs: Partial<{ [P in drinkTypes]: number }>;
 }
 
-class CoffeeStore<T> extends Store<T> {
-  subTotal(drinkCount: Partial<{ [P in drinkTypes]: number }>): number {
-    let total: number = 0;
-    for (let item in drinkCount) {
-      let cost = this.get("costs");
-      if (cost !== undefined && cost[item]) {
-        total = total + cost[item] * drinkCount[item];
-      }
-    }
-    return total;
-  }
-}
-
-let init_coffee_store_state: CoffeeState = {
-  drinks: ["mocha", "latte"],
-  costs: {
-    mocha: 5
-  }
-};
-
-redux.createStore<CoffeeState>("test", CoffeeStore, init_coffee_store_state);
-
-let coffeestore = redux.getStore<CoffeeState>("thing");
-let costs = coffeestore.get("costs");
-costs;
-*/
-
-//
-// More complex example but without Implementor being generic
-//
-interface CoffeeState1 extends store_definition {
-  drinks: drinkTypes[];
-  costs: Partial<{ [P in drinkTypes]: number }>;
-}
-
-class CoffeeStore1 extends Store<CoffeeState1> {
+class CoffeeStore extends Store<CoffeeState> {
   subTotal(drinkCount: Partial<{ [P in drinkTypes]: number }>): number {
     let total: number = 0;
     for (let item in drinkCount) {
@@ -1117,7 +1081,7 @@ class CoffeeStore1 extends Store<CoffeeState1> {
     return total;
   }}
 
-let init_coffee_store_state1: CoffeeState1 = {
+let init_coffee_store_state: CoffeeState = {
   name: "coffeeStore",
   drinks: ["mocha", "latte"],
   costs: {
@@ -1125,22 +1089,8 @@ let init_coffee_store_state1: CoffeeState1 = {
   }
 };
 
-redux.createStore("test", CoffeeStore1, init_coffee_store_state1);
+redux.createStore<CoffeeState>("test", CoffeeStore, init_coffee_store_state);
 
-let coffeestore1 = redux.getStore<CoffeeState1>("thing");
-let costs1 = coffeestore1.get("costs");
-costs1;
-
-// Same complex example but with an enum...
-
-enum drinkTypes2 {
-  "mocha",
-  "cappuccino",
-  "latte"
-}
-interface CoffeeState2 {
-  drinks: drinkTypes2[];
-  costs: { [P in keyof drinkTypes2]: number };
-}
-
-class CoffeeStore2 extends Store<CoffeeState2> {}
+let coffeestore = redux.getStore<CoffeeState>("thing");
+let costs = coffeestore.get("costs");
+costs;
