@@ -1,15 +1,21 @@
 /*
-Top-level react component for editing markdown documents
+ * decaffeinate suggestions:
+ * DS102: Remove unnecessary code created because of implicit returns
+ * DS207: Consider shorter variations of null checks
+ * Full docs: https://github.com/decaffeinate/decaffeinate/blob/master/docs/suggestions.md
+ */
+/*
+Top-level react component for editing MediaWiki documents
 */
-
-import { IFrameHTML } from "../html-editor/iframe-html";
-
-const { CodemirrorEditor } = require("../code-editor/codemirror-editor");
-const { set } = require("../code-editor/editor");
 
 import { createEditor } from "../frame-tree/editor";
 
 import { aux_file } from "../frame-tree/util";
+
+const { set } = require("../code-editor/editor");
+
+import { IFrameHTML } from "../html-editor/iframe-html";
+const { CodemirrorEditor } = require("../code-editor/codemirror-editor");
 
 const EDITOR_SPEC = {
   cm: {
@@ -34,10 +40,11 @@ const EDITOR_SPEC = {
       "reload"
     ])
   },
-  rst: {
-    short: "View",
-    name: "Rendered View (rst2html)",
-    icon: "eye",
+
+  html: {
+    short: "HTML",
+    name: "Rendered HTML (pandoc)",
+    icon: "html5",
     component: IFrameHTML,
     buttons: set([
       "print",
@@ -61,5 +68,5 @@ const EDITOR_SPEC = {
 export const Editor = createEditor({
   format_bar: true,
   editor_spec: EDITOR_SPEC,
-  display_name: "RstEditor"
+  display_name: "WikiEditor"
 });
