@@ -21,7 +21,8 @@ const copypaste = require("smc-webapp/copy-paste-buffer");
 //import {create_key_handler} from "./keyboard";
 const tree_ops = require("./tree-ops");
 const print = require("./print");
-const spell_check = require("./spell-check");
+
+import { misspelled_words } from "./spell-check.ts";
 
 import * as cm_doc_cache from "./doc.ts";
 
@@ -1042,28 +1043,26 @@ export class Actions extends BaseActions {
   // Runs spellchecker on the backend last saved file, then
   // sets the mispelled_words part of the state to the immutable
   // Set of those words.  They can then be rendered by any editor/view.
-  update_misspelled_words(time?: number) {
+  async update_misspelled_words(time?: number): Promise<void> {
     const hash = this._syncstring.hash_of_saved_version();
     if (hash === this._update_misspelled_words_last_hash) {
       // same file as before, so do not bother.
       return;
     }
     this._update_misspelled_words_last_hash = hash;
-    spell_check.misspelled_words({
-      project_id: this.project_id,
-      path: this.path,
-      time,
-      cb: (err, words) => {
-        if (err) {
-          return this.setState({ error: err });
-        } else {
-          words = immutable.Set(words);
-          if (!words.equals(this.store.get("misspelled_words"))) {
-            return this.setState({ misspelled_words: words });
-          }
-        }
+    try {
+      const words: string[] = await misspelled_words({
+        project_id: this.project_id,
+        path: this.path,
+        time
+      });
+      const x = immutable.Set(words);
+      if (!x.equals(this.store.get("misspelled_words"))) {
+        this.setState({ misspelled_words: x });
       }
-    });
+    } catch (err) {
+      this.set_error(err);
+    }
   }
 
   format_action(cmd, args) {
