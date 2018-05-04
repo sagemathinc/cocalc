@@ -151,11 +151,11 @@ class Store extends EventEmitter
     getState: =>
         return @redux._redux_store.getState().get(@name)
 
-    get: (field) =>
-        return @redux._redux_store.getState().getIn([@name, field])
+    get: (field, notSetValue) =>
+        return @redux._redux_store.getState().getIn([@name, field], notSetValue)
 
-    getIn: (args...) =>
-        return @redux._redux_store.getState().getIn([@name].concat(args[0]))
+    getIn: (path, notSetValue) =>
+        return @redux._redux_store.getState().getIn([@name].concat(path), notSetValue)
 
     # wait: for the store to change to a specific state, and when that
     # happens call the given callback.

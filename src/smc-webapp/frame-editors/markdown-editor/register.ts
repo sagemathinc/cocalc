@@ -5,7 +5,7 @@ Register the markdown editor
 const { Editor } = require("./editor.tsx");
 const { Actions } = require("./actions");
 
-const { register_file_editor } = require("../code-editor/register-generic");
+import {register_file_editor} from '../frame-tree/register';
 
 register_file_editor({
   ext: "md",

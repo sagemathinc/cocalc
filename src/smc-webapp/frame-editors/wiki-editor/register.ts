@@ -5,7 +5,7 @@ Register the Wiki editor
 import {Editor} from './editor';
 import {Actions} from './actions';
 
-const {register_file_editor} = require('../code-editor/register-generic');
+import {register_file_editor} from '../frame-tree/register';
 
 register_file_editor({
     ext       : ['wiki', 'mediawiki'],

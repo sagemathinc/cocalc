@@ -1,6 +1,8 @@
 /* Register the frame-tree based editors. */
 
-import "./code-editor/register";
+import "./code-editor/register";  // should be first.
+
+
 import "./wiki-editor/register";
 import "./rmd-editor/register";
 import "./rst-editor/register";
