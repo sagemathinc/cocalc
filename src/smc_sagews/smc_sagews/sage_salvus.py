@@ -3631,6 +3631,22 @@ def typeset_mode(on=True, display=True, **args):
         sys.displayhook = displayhook
 
 def py3print_mode(enable=None):
+    """
+    Enable python3 print syntax.
+
+    EXAMPLES::
+
+    Enable python3 printing:
+
+        p3print_mode(True)
+        p3print_mode()   # returns True
+        print("hello", end="")
+
+    Then switch back to python2 printing
+        p3print_mode(False)
+        print "hello"
+
+    """
     return salvus.py3print_mode(enable)
 
 def default_mode(mode):
