@@ -83,10 +83,32 @@ export function is_different(a: any, b: any, fields: string[]): boolean {
 // includes all values in objs and returns dest
 // Rightmost object overwrites left.
 export function merge(dest, ...objs) {
-    for (let obj of objs) {
-        for (let k in obj) {
-            dest[k] = obj[k];
-        }
+  for (let obj of objs) {
+    for (let k in obj) {
+      dest[k] = obj[k];
     }
-    return dest;
+  }
+  return dest;
+}
+
+// copy of map but only with some keys
+// I.e., restrict a function to a subset of the domain.
+export function copy_with(obj: object, w: string | string[]) : object {
+  const set = {};
+  if (typeof w === "string") {
+    set[w] = true;
+  } else {
+    for (let x in w) {
+      set[x] = true;
+    }
+  }
+
+  const r = {};
+  for (let x in obj) {
+    const y = obj[x];
+    if (set[y]) {
+      r[x] = y;
+    }
+  }
+  return r;
 }

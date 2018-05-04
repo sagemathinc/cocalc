@@ -15,7 +15,7 @@ misc                 = require('smc-util/misc')
 {Cursors}            = require('smc-webapp/jupyter/cursors')
 
 {cm_options}         = require('./cm-options')
-codemirror_util      = require('./codemirror-util')
+codemirror_state      = require('./codemirror-state')
 doc                  = require('./doc.ts')
 
 {GutterMarkers}      = require('./codemirror-gutter-markers')
@@ -95,8 +95,8 @@ exports.CodemirrorEditor = rclass ({name}) ->
             return
         # It's important to move the scroll position upon zooming -- otherwise the cursor line
         # move UP/DOWN after zoom, which is very annoying.
-        state = codemirror_util.get_state(@cm)
-        codemirror_util.restore_state(@cm, state)  # actual restore happens in next refresh cycle after render.
+        state = codemirror_state.get_state(@cm)
+        codemirror_state.set_state(@cm, state)  # actual restore happens in next refresh cycle after render.
 
     componentWillUnmount: ->
         if @cm? and not @props.is_public?
@@ -132,7 +132,7 @@ exports.CodemirrorEditor = rclass ({name}) ->
     save_editor_state: ->
         if not @cm?
             return
-        state = codemirror_util.get_state(@cm)
+        state = codemirror_state.get_state(@cm)
         if state?
             @props.actions.save_editor_state(@props.id, state)
 
@@ -189,7 +189,7 @@ exports.CodemirrorEditor = rclass ({name}) ->
                 @cm.swapDoc(doc.get_linked_doc(@props.project_id, @props.path))
 
         if @props.editor_state?
-            codemirror_util.restore_state(@cm, @props.editor_state.toJS())
+            codemirror_state.set_state(@cm, @props.editor_state.toJS())
 
         save_editor_state = throttle(@save_editor_state, 250)
         @cm.on('scroll', save_editor_state)
