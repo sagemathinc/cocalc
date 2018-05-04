@@ -18,6 +18,7 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 ###############################################################################
+{deterministic_id} = require('./intro')
 
 {isMobile} = require('./feature')
 
@@ -37,6 +38,7 @@
 {FileUsePage}  = require('./file_use')
 {Support}      = require('./support')
 {Avatar}       = require('./other-users')
+{Intro}        = require('./intro')
 
 # CoCalc Libraries
 misc = require('smc-util/misc')
@@ -121,10 +123,12 @@ Page = rclass
         else
             a = 'cog'
 
+        intro_class = deterministic_id('top-nav-account')
+
         <NavTab
-            name           = 'account'
+            name           = {'account'}
             label          = {'Account'}
-            label_class    = {nav_class}
+            label_class    = {"#{nav_class} #{intro_class}"}
             icon           = {a}
             actions        = {@actions('page')}
             active_top_tab = {@props.active_top_tab}
@@ -191,13 +195,15 @@ Page = rclass
             padding    : '11px 7px'
             fontWeight : 'bold'
 
-        <Nav style={height:'40px', margin:'0', overflow:'hidden'}>
+        <Nav
+            style     = {height:'40px', margin:'0', overflow:'hidden'}
+            className = {deterministic_id('projects-nav-button')}
+        >
             <NavTab
                 name           = {'projects'}
                 inner_style    = {padding:'0px'}
                 actions        = {@actions('page')}
                 active_top_tab = {@props.active_top_tab}
-
             >
                 <div style={projects_styles} className={nav_class}>
                     Projects
@@ -236,13 +242,13 @@ Page = rclass
             minHeight     : '40px'
             position      : 'fixed'
             right         : 0
-            zIndex        : '100'
             borderRadius  : 0
             top           : if @props.show_global_info then '40px' else 0
 
         positionHackHeight = (40 + if @props.show_global_info then 40 else 0) + 'px'
 
         <div ref="page" style={style} onDragOver={(e) -> e.preventDefault()} onDrop={@drop}>
+            <Intro />
             {<FileUsePageWrapper /> if @props.show_file_use}
             {<ConnectionInfo ping={@props.ping} status={@props.connection_status} avgping={@props.avgping} actions={@actions('page')} /> if @props.show_connection}
             {<Support actions={@actions('support')} /> if @props.show}

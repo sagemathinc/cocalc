@@ -41,6 +41,8 @@
 @import jupyter/jupyter
 @import tasks/tasks
 
+// @import '~react-joyride/lib/react-joyride'
+
 .hide
   display : none
 
@@ -350,3 +352,10 @@ footer
   border-right: 30px solid #525659
   border-bottom: 5px solid #525659
   border-top: 5px solid #525659
+
+// intro.js has only an z-index of 1 for hints and its dots -- everyhwere else it has very high numbers.
+// this here is a workaround
+
+.introjs-hint-dot,
+.introjs-hint-pulse
+  z-index: 9999999 !important
