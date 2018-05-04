@@ -1,16 +1,9 @@
 /*
- * decaffeinate suggestions:
- * DS001: Remove Babel/TypeScript constructor workaround
- * DS102: Remove unnecessary code created because of implicit returns
- * Full docs: https://github.com/decaffeinate/decaffeinate/blob/master/docs/suggestions.md
- */
-/*
 Media wiki Editor Actions
 */
 
 import { Actions as MarkdownActions } from "../markdown-editor/actions";
 import { convert } from "./wiki2html";
-
 import { FrameTree } from "../frame-tree/types";
 
 export class Actions extends MarkdownActions {
@@ -22,27 +15,21 @@ export class Actions extends MarkdownActions {
     }
   }
 
-  _init_wiki2html() {
+  _init_wiki2html(): void {
     this._syncstring.on("save-to-disk", () => this._run_wiki2html());
-    return this._run_wiki2html();
+    this._run_wiki2html();
   }
 
-  _run_wiki2html(time?: number): void {
-    // TODO: only run if at least one frame is visible showing preview (otherwise, we just waste cpu)
-    this.set_status("Running pandoc...");
-    convert({
-      path: this.path,
-      project_id: this.project_id,
-      time,
-      cb: (err, html_path) => {
-        this.set_status("");
-        if (err) {
-          this.set_error(err);
-        } else {
-          this.set_reload("html");
-        }
-      }
-    });
+  async _run_wiki2html(time?: number): Promise<void> {
+    this.set_status("Converting wiki to html (using pandoc)...");
+    try {
+      await convert(this.project_id, this.path, time);
+      this.set_reload("html");
+    } catch (err) {
+      this.set_error(err);
+    } finally {
+      this.set_status("");
+    }
   }
 
   _raw_default_frame_tree(): FrameTree {
