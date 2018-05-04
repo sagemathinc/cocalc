@@ -13,7 +13,7 @@ FrameTitleBar - title bar in a frame, in the frame tree
 {IS_TOUCH, IS_IPAD} = require('smc-webapp/feature')
 misc       = require('smc-util/misc')
 
-util = require('./util')
+util = require('../frame-tree/util')
 
 title_bar_style =
     background : '#ddd'
