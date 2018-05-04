@@ -5,7 +5,7 @@ using the given editor settings.
 
 {file_associations}  = require('smc-webapp/file-associations')
 feature              = require('smc-webapp/feature')
-mobile               = require('./mobile')
+mobile               = require('./mobile.ts')
 misc                 = require('smc-util/misc')
 {defaults, required} = misc
 

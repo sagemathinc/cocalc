@@ -78,3 +78,15 @@ export function is_different(a: any, b: any, fields: string[]): boolean {
   }
   return false;
 }
+
+// Modifies in place the object dest so that it
+// includes all values in objs and returns dest
+// Rightmost object overwrites left.
+export function merge(dest, ...objs) {
+    for (let obj of objs) {
+        for (let k in obj) {
+            dest[k] = obj[k];
+        }
+    }
+    return dest;
+}
