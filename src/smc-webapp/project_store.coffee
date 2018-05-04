@@ -37,7 +37,7 @@ misc      = require('smc-util/misc')
 
 misc_page = require('./misc_page')
 
-{Actions, rtypes, computed, depends, Table, register_project_store, redux}  = require('./smc-react')
+{Actions, rtypes, computed, depends, project_redux_name, Table, register_project_store, redux}  = require('./smc-react')
 
 exports.file_actions = file_actions =
     compress  :
@@ -2004,7 +2004,7 @@ create_project_store_def = (name, project_id) ->
 
 exports.init = (project_id) ->
     must_define(redux)
-    name  = redux.project_redux_name(project_id)
+    name  = project_redux_name(project_id)
     store = redux.getStore(name)
     if store?
         return
@@ -2030,9 +2030,7 @@ exports.init = (project_id) ->
             if typeof(v) == 'function'
                 q[k] = v()
         q.query.project_id = project_id
-        T = redux.createTable(redux.project_redux_name(project_id, table_name), create_table(table_name, q))
-
-    
+        T = redux.createTable(project_redux_name(project_id, table_name), create_table(table_name, q))
 
     return
 

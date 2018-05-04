@@ -60,9 +60,9 @@ export let COLOR = {
 
 class Table {
   public name: string;
-  protected redux: any; // TODO: change to whatever the official redux store type is
+  public _table: any;
+  protected redux: AppRedux;
   protected readonly _change: (table: any, keys: string[]) => void;
-  private _table: any;
 
   // override in derived class to pass in options to the query -- these only impact initial query, not changefeed!
   options?: () => any[];
@@ -85,13 +85,13 @@ class Table {
     );
     if (this._change !== undefined) {
       this._table.on("change", keys => {
-        return this._change(this._table, keys);
+        this._change(this._table, keys);
       });
     }
   }
 
-  set(changes, merge, cb) {
-    return this._table.set(changes, merge, cb);
+  set(changes: object, merge, cb): void {
+    this._table.set(changes, merge, cb);
   }
 }
 
@@ -100,23 +100,18 @@ class Table {
 // needed when it changes.
 
 class Actions {
-  public name: string;
-  protected redux: any;
-
-  constructor(name, redux) {
+  constructor(public name: string, protected redux: AppRedux) {
     this.setState = this.setState.bind(this);
     this.destroy = this.destroy.bind(this);
-    this.name = name;
-    this.redux = redux;
     if (this.name == null) {
-      throw Error("@name must be defined");
+      throw Error("name must be defined");
     }
     if (this.redux == null) {
-      throw Error("@redux must be defined");
+      throw Error("redux must be defined");
     }
   }
 
-  setState(obj, nothing_else) {
+  setState(obj: any, nothing_else: never): void {
     if (nothing_else != null) {
       throw Error(
         "setState takes exactly one argument, which must be an object"
@@ -140,14 +135,15 @@ class Actions {
     this.redux._set_state({ [this.name]: obj });
   }
 
-  destroy() {
-    return this.redux.removeActions(this.name);
+  destroy(): void {
+    this.redux.removeActions(this.name);
   }
 }
 
-export interface store_definition<T> {
+// Keys of T are stateTypes
+// TODO TS: Get rid of stateTypes and use the generic T here for stateTypes
+export interface store_definition {
   name: string;
-  getInitialState?: () => T;
 }
 
 /*
@@ -172,12 +168,14 @@ store_def =
 
 Note: you cannot name a property "state" or "props"
 */
-class Store extends EventEmitter {
+class Store<State> extends EventEmitter {
   public name: string;
-  protected redux: any;
-  private _last_state: any;
+  public __converted?: boolean;
+  public getInitialState?: () => State;
+  protected redux: AppRedux;
+  private _last_state: State;
 
-  constructor(name, redux, store_def?) {
+  constructor(name, redux, store_def?: State) {
     super();
     this._handle_store_change = this._handle_store_change.bind(this);
     this.destroy = this.destroy.bind(this);
@@ -206,21 +204,21 @@ class Store extends EventEmitter {
     // Bind selectors as properties on this store
     const prop_map = {};
     underscore.map(selectors, (selector, name) => {
-      return (prop_map[name] = {
+      prop_map[name] = {
         get() {
           return selector(this.getState());
         },
         enumerable: true
-      });
+      };
     });
 
     Object.defineProperties(this, prop_map);
   }
 
-  _handle_store_change(state) {
+  _handle_store_change(state: State): void {
     if (state !== this._last_state) {
       this._last_state = state;
-      return this.emit("change", state);
+      this.emit("change", state);
     }
   }
 
@@ -228,15 +226,15 @@ class Store extends EventEmitter {
     return this.redux.removeStore(this.name);
   }
 
-  getState() {
+  getState(): State | undefined {
     return this.redux._redux_store.getState().get(this.name);
   }
 
-  get(field) {
+  get<K extends keyof State>(field: K): State[K] | undefined {
     return this.redux._redux_store.getState().getIn([this.name, field]);
   }
 
-  getIn(...args) {
+  getIn(...args: (keyof State)[]) {
     return this.redux._redux_store
       .getState()
       .getIn([this.name].concat(args[0]));
@@ -244,7 +242,12 @@ class Store extends EventEmitter {
 
   // wait: for the store to change to a specific state, and when that
   // happens call the given callback.
-  wait(opts) {
+  wait<T>(opts: {
+    until: (store: Store<State>) => T;
+    cb: (err?: string, result?: T) => any;
+    throttle_ms?: number;
+    timeout?: number;
+  }) {
     let timeout;
     opts = defaults(opts, {
       until: required, // waits until "until(store)" evaluates to something truthy
@@ -372,11 +375,10 @@ const action_set_state = function(change) {
 // Deeply nested objects need to be converted with fromJS before being put in the store
 
 const action_remove_store = function(name) {
-  let action;
-  return (action = {
+  return {
     type: "REMOVE_STORE",
     name
-  });
+  };
 };
 
 type redux_state = immutable.Map<string, immutable.Map<string, any>>;
@@ -387,16 +389,16 @@ const redux_app = function(state: redux_state, action): redux_state {
   }
   switch (action.type) {
     case "SET_STATE":
-            // Typically action.change has exactly one key, the name of a Store.
-            // We merge in what is in action.change[name] to state[name] below.
-            action.change.map(function(val, store) {
-                let new_val;
-                if (state.get(store)) {
-                  new_val = state.get(store).merge(val)
-                }
-                return state = state.set(store, new_val || val);
-            });
-            return state;
+      // Typically action.change has exactly one key, the name of a Store.
+      // We merge in what is in action.change[name] to state[name] below.
+      action.change.map(function(val, store) {
+        let new_val;
+        if (state.get(store)) {
+          new_val = state.get(store).merge(val);
+        }
+        return (state = state.set(store, new_val || val));
+      });
+      return state;
     case "REMOVE_STORE":
       return state.delete(action.name);
     default:
@@ -404,11 +406,21 @@ const redux_app = function(state: redux_state, action): redux_state {
   }
 };
 
+interface TableMap {
+  [key: string]: Table;
+}
+interface StoreMap {
+  [key: string]: Store<any>;
+}
+interface ActionsMap {
+  [key: string]: Actions;
+}
+
 class AppRedux {
-  private _tables: any;
-  private _stores: any;
-  private _redux_store: any;
-  private _actions: any;
+  public _redux_store: any;
+  private _tables: TableMap;
+  private _stores: StoreMap;
+  private _actions: ActionsMap;
   private _last_state: redux_state;
 
   constructor() {
@@ -479,7 +491,7 @@ class AppRedux {
       throw Error("name must be a string");
     }
 
-    if (this._actions[name] === undefined) {
+    if (this._actions[name] == null) {
       this._actions[name] = new actions_class(name, this);
     }
 
@@ -487,6 +499,8 @@ class AppRedux {
   }
 
   getActions(name: string | { project_id: string }): Actions {
+    let test = this.createStore({ name: "high" });
+    test;
     if (name == null) {
       throw Error(
         "name must be a string or an object with a project_id attribute, but is undefined"
@@ -502,20 +516,27 @@ class AppRedux {
     }
   }
 
-  createStore(spec: store_definition<{}>);
-  createStore(name: string, init?: {});
-  createStore(name: string, store_class, init?: {}): Store;
-  createStore(spec: string | store_definition<{}>, store_class?, init?) {
-    let S;
+  createStore<T>(spec: T): Store<T>;
+  createStore<T>(name: string, init?: T): Store<T>;
+  createStore<T>(name: string, store_class: typeof Store, init?: T): Store<T>;
+  createStore<T extends store_definition>(
+    spec: string | T,
+    store_class?: typeof Store,
+    init?: {} | T
+  ): Store<T> {
+    let S: Store<T>;
     if (typeof spec === "string") {
       let name = spec;
-      if (init === undefined && typeof store_class !== "function") {
+      if (init == null) {
         init = store_class;
         store_class = Store;
       }
+      if (store_class == null) {
+        store_class = Store;
+      }
       S = this._stores[name];
-      if (S == undefined) {
-        S = this._stores[name] = new store_class(name, this);
+      if (S == null) {
+        S = this._stores[name] = new store_class<T>(name, this);
         // Put into store. WARNING: New set_states CAN OVERWRITE THESE FUNCTIONS
         let C = immutable.Map(S);
         C = C.delete("redux"); // No circular pointing
@@ -525,40 +546,28 @@ class AppRedux {
         }
       }
     } else {
-      if (spec.name == undefined) {
-        throw Error("name must be a string");
-      }
-
-      init =
-        typeof spec.getInitialState === "function"
-          ? spec.getInitialState()
-          : undefined;
-      delete spec.getInitialState;
-
       S = this._stores[spec.name];
       if (S == null) {
-        S = this._stores[spec.name] = new Store(spec.name, this, spec);
+        S = new Store(spec.name, this, spec);
+        this._stores[spec.name] = S;
         // TODOJ: REMOVE
         S.__converted = true;
       }
-      if (init != null) {
-        this._set_state({ [spec.name]: init });
-      }
-      if (typeof S._init === "function") {
-        S._init();
+      if (typeof S.getInitialState === "function") {
+        S.getInitialState();
       }
     }
     return S;
   }
 
-  getStore(name) {
+  getStore<T>(name: string): Store<T> {
     if (name == null) {
       throw Error("name must be a string");
     }
     return this._stores[name];
   }
 
-  createTable(name, table_class = Table) {
+  createTable(name: string, table_class = Table): Table {
     if (name == null) {
       throw Error("name must be a string");
     }
@@ -566,20 +575,11 @@ class AppRedux {
     if (tables[name] != null) {
       throw Error(`createTable: table ${name} already exists`);
     }
-    if (table_class == null) {
-      throw Error(
-        "createTable: second argument must be a class that extends Table"
-      );
-    }
     const table = new table_class(name, this);
-    // TODO: Only necessary since not everything is typed yet
-    if ((!table as any) instanceof Table) {
-      throw Error("createTable: takes a name and Table class (not object)");
-    }
     return (tables[name] = table);
   }
 
-  removeTable(name) {
+  removeTable(name: string): void {
     if (name == null) {
       throw Error("name must be a string");
     }
@@ -587,11 +587,11 @@ class AppRedux {
       if (this._tables[name]._table != null) {
         this._tables[name]._table.close();
       }
-      return delete this._tables[name];
+      delete this._tables[name];
     }
   }
 
-  removeStore(name) {
+  removeStore(name: string): void {
     if (name == null) {
       throw Error("name must be a string");
     }
@@ -600,22 +600,22 @@ class AppRedux {
       S.emit("destroy");
       delete this._stores[name];
       S.removeAllListeners();
-      return this._redux_store.dispatch(action_remove_store(name));
+      this._redux_store.dispatch(action_remove_store(name));
     }
   }
 
-  removeActions(name) {
+  removeActions(name): void {
     if (name == null) {
       throw Error("name must be a string");
     }
     if (this._actions[name] != null) {
       const A = this._actions[name];
       delete this._actions[name];
-      return A.destroy();
+      A.destroy();
     }
   }
 
-  getTable(name) {
+  getTable(name: string): Table {
     if (name == null) {
       throw Error("name must be a string");
     }
@@ -625,43 +625,37 @@ class AppRedux {
     return this._tables[name];
   }
 
-  project_redux_name(project_id: string, name?: string): string {
-    let s = `project-${project_id}`;
-    if (name !== undefined) s += `-${name}`;
-    return s;
-  }
-
-  getProjectStore(project_id) {
+  getProjectStore<T>(project_id: string): Store<T> {
     if (!misc.is_valid_uuid_string(project_id)) {
       console.trace();
       console.warn(`getProjectStore: INVALID project_id -- ${project_id}`);
     }
 
-    return this.getStore(this.project_redux_name(project_id));
+    return this.getStore(project_redux_name(project_id));
   }
 
-  getProjectActions(project_id) {
+  getProjectActions(project_id: string): Actions {
     if (!misc.is_valid_uuid_string(project_id)) {
       console.trace();
       console.warn(`getProjectActions: INVALID project_id -- ${project_id}`);
     }
-    return this.getActions(this.project_redux_name(project_id));
+    return this.getActions(project_redux_name(project_id));
   }
 
-  getProjectTable(project_id, name) {
+  getProjectTable(project_id: string, name: string): Table {
     if (!misc.is_valid_uuid_string(project_id)) {
       console.trace();
       console.warn(`getProjectTable: INVALID project_id -- ${project_id}`);
     }
-    return this.getTable(this.project_redux_name(project_id, name));
+    return this.getTable(project_redux_name(project_id, name));
   }
 
-  removeProjectReferences(project_id): void {
+  removeProjectReferences(project_id: string): void {
     if (!misc.is_valid_uuid_string(project_id)) {
       console.trace();
       console.warn(`getProjectReferences: INVALID project_id -- ${project_id}`);
     }
-    const name = this.project_redux_name(project_id);
+    const name = project_redux_name(project_id);
     let store = this.getStore(name);
     if (typeof store.destroy == "function") {
       store.destroy();
@@ -670,20 +664,20 @@ class AppRedux {
     this.removeStore(name);
   }
 
-  getEditorStore(project_id, path, is_public) {
+  getEditorStore(project_id: string, path: string, is_public: boolean) {
     if (!misc.is_valid_uuid_string(project_id)) {
       console.trace();
       console.warn(`getEditorStore: INVALID project_id -- ${project_id}`);
     }
-    return this.getStore(exports.redux_name(project_id, path, is_public));
+    return this.getStore(file_redux_name(project_id, path, is_public));
   }
 
-  getEditorActions(project_id, path, is_public) {
+  getEditorActions(project_id: string, path: string, is_public: boolean) {
     if (!misc.is_valid_uuid_string(project_id)) {
       console.trace();
       console.warn(`getEditorActions: INVALID project_id -- ${project_id}`);
     }
-    return this.getActions(exports.redux_name(project_id, path, is_public));
+    return this.getActions(file_redux_name(project_id, path, is_public));
   }
 }
 
@@ -972,12 +966,24 @@ export function is_redux_actions(obj) {
 
 // Canonical name to use for Redux store associated to a given project/path.
 // TODO: this code is also in many editors -- make them all just use this.
-export function redux_name(project_id, path, is_public) {
+export function redux_name(
+  project_id: string,
+  path: string,
+  is_public: boolean
+) {
   if (is_public) {
     return `public-${project_id}-${path}`;
   } else {
     return `editor-${project_id}-${path}`;
   }
+}
+
+const file_redux_name = redux_name;
+
+export function project_redux_name(project_id: string, name?: string): string {
+  let s = `project-${project_id}`;
+  if (name !== undefined) s += `-${name}`;
+  return s;
 }
 
 export { rclass }; // use rclass instead of createReactClass to get access to reduxProps support
@@ -1036,3 +1042,105 @@ export function redux_fields(spec) {
   }
   return v;
 }
+
+// Basic Store
+interface bakeryState {
+  cake: string;
+  pie: string;
+}
+
+let init_state: bakeryState = {
+  cake: "chocolate",
+  pie: "pizza"
+};
+
+redux.createStore("test", init_state);
+
+let store = redux.getStore<bakeryState>("thing");
+
+store.get("caek");
+//
+// More complex example
+//
+type drinkTypes = "mocha" | "cappucccino" | "latte";
+
+/*
+interface CoffeeState {
+  drinks: drinkTypes[];
+  costs: Partial<{ [P in drinkTypes]: number }>;
+}
+
+class CoffeeStore<T> extends Store<T> {
+  subTotal(drinkCount: Partial<{ [P in drinkTypes]: number }>): number {
+    let total: number = 0;
+    for (let item in drinkCount) {
+      let cost = this.get("costs");
+      if (cost !== undefined && cost[item]) {
+        total = total + cost[item] * drinkCount[item];
+      }
+    }
+    return total;
+  }
+}
+
+let init_coffee_store_state: CoffeeState = {
+  drinks: ["mocha", "latte"],
+  costs: {
+    mocha: 5
+  }
+};
+
+redux.createStore<CoffeeState>("test", CoffeeStore, init_coffee_store_state);
+
+let coffeestore = redux.getStore<CoffeeState>("thing");
+let costs = coffeestore.get("costs");
+costs;
+*/
+
+//
+// More complex example but without Implementor being generic
+//
+interface CoffeeState1 extends store_definition {
+  drinks: drinkTypes[];
+  costs: Partial<{ [P in drinkTypes]: number }>;
+}
+
+class CoffeeStore1 extends Store<CoffeeState1> {
+  subTotal(drinkCount: Partial<{ [P in drinkTypes]: number }>): number {
+    let total: number = 0;
+    for (let item in drinkCount) {
+      let cost = this.get("costs");
+      if (cost !== undefined && cost[item]) {
+        total = total + cost[item] * drinkCount[item];
+      }
+    }
+    return total;
+  }}
+
+let init_coffee_store_state1: CoffeeState1 = {
+  name: "coffeeStore",
+  drinks: ["mocha", "latte"],
+  costs: {
+    mocha: 5
+  }
+};
+
+redux.createStore("test", CoffeeStore1, init_coffee_store_state1);
+
+let coffeestore1 = redux.getStore<CoffeeState1>("thing");
+let costs1 = coffeestore1.get("costs");
+costs1;
+
+// Same complex example but with an enum...
+
+enum drinkTypes2 {
+  "mocha",
+  "cappuccino",
+  "latte"
+}
+interface CoffeeState2 {
+  drinks: drinkTypes2[];
+  costs: { [P in keyof drinkTypes2]: number };
+}
+
+class CoffeeStore2 extends Store<CoffeeState2> {}
