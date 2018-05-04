@@ -1,14 +1,4 @@
 /*
- * decaffeinate suggestions:
- * DS001: Remove Babel/TypeScript constructor workaround
- * DS102: Remove unnecessary code created because of implicit returns
- * DS103: Rewrite code to no longer use __guard__
- * DS104: Avoid inline assignments
- * DS205: Consider reworking code to avoid use of IIFEs
- * DS207: Consider shorter variations of null checks
- * Full docs: https://github.com/decaffeinate/decaffeinate/blob/master/docs/suggestions.md
- */
-/*
 Code Editor Actions
 */
 
@@ -32,7 +22,8 @@ const copypaste = require("smc-webapp/copy-paste-buffer");
 const tree_ops = require("./tree-ops");
 const print = require("./print");
 const spell_check = require("./spell-check");
-const cm_doc_cache = require("./doc");
+
+import * as cm_doc_cache from "./doc.ts";
 
 const { required, defaults } = misc;
 
@@ -191,10 +182,7 @@ export class Actions extends BaseActions {
       delete this._syncstring;
     }
     // Remove underlying codemirror doc from cache.
-    cm_doc_cache.close({
-      path: this.path,
-      project_id: this.project_id
-    });
+    cm_doc_cache.close(this.project_id, this.path);
   }
 
   __save_local_view_state(): void {
@@ -804,10 +792,7 @@ export class Actions extends BaseActions {
   }
 
   _get_doc() {
-    return cm_doc_cache.get_doc({
-      project_id: this.project_id,
-      path: this.path
-    });
+    return cm_doc_cache.get_doc(this.project_id, this.path);
   }
 
   _recent_cm() {

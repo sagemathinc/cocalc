@@ -16,7 +16,7 @@ misc                 = require('smc-util/misc')
 
 {cm_options}         = require('./cm-options')
 codemirror_util      = require('./codemirror-util')
-doc                  = require('./doc')
+doc                  = require('./doc.ts')
 
 {GutterMarkers}      = require('./codemirror-gutter-markers')
 
@@ -181,9 +181,12 @@ exports.CodemirrorEditor = rclass ({name}) ->
         if @props.is_public
             @cm.setValue(@props.content)
         else
-            d = doc.get_linked_doc(path: @props.path, project_id: @props.project_id, cm: @cm)
-            if d?
-                @cm.swapDoc(d)
+            if !doc.has_doc(@props.project_id, @props.path)
+                # save it to cache so can be used by other components/editors
+                doc.set_doc(@props.project_id, @props.path, @cm)
+            else
+                # has it already, so use that.
+                @cm.swapDoc(doc.get_linked_doc(@props.project_id, @props.path))
 
         if @props.editor_state?
             codemirror_util.restore_state(@cm, @props.editor_state.toJS())
