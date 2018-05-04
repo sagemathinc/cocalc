@@ -16,6 +16,28 @@ import { React, Redux, redux } from "../generic/react";
 
 let BLOCKED: boolean | undefined = undefined;
 
+export function popup(url: string): any {
+  const w: any = window.open(
+    url,
+    "_blank",
+    "menubar=yes,toolbar=no,resizable=yes,scrollbars=yes,height=640,width=800"
+  );
+  if (!w || w.closed === undefined) {
+    if (BLOCKED || BLOCKED === undefined) {
+      // no history, or known blocked
+      BLOCKED = true;
+      throw Error("Popup blocked.  Please unblock popups for this site.");
+    } else {
+      // definitely doesn't block -- this happens when window already opened and printing.
+      throw Error(
+        "If you have a window already opened printing a document, close it first."
+      );
+    }
+  }
+  BLOCKED = false;
+  return w;
+}
+
 interface PrintOptions {
   value?: string; // string with html; will get processed (e.g., links, math typesetting, etc.) -- meant to go in body
   html?: string; // rendered html string (no post processing done) -- meant to go in body
@@ -25,36 +47,21 @@ interface PrintOptions {
   font_size?: number; // if given (and src not given) will scale body appropriately
 }
 
-export function print_html(opts: PrintOptions): string {
-  if (!opts.src) opts.src = "";
-  const w = window.open(
-    opts.src,
-    "_blank",
-    "menubar=yes,toolbar=no,resizable=yes,scrollbars=yes,height=640,width=800"
-  );
-  if (!w || w.closed === undefined) {
-    if (BLOCKED || BLOCKED === undefined) {
-      // no history, or known blocked
-      BLOCKED = true;
-      return "Popup blocked.  Please unblock popups for this site.";
-    } else {
-      // definitely doesn't block -- this happens when window already opened and printing.
-      return "If you have a window already opened printing a document, close it first.";
-    }
-  }
-  BLOCKED = false;
+// Raises an exception if there is an error.
 
-  if (!opts.src) {
+export function print_html(opts: PrintOptions): void {
+  if (!opts.src) opts.src = "";
+  let w: any = popup(opts.src);
+  if (opts.src == "") {
     if (!opts.project_id || !opts.path) {
-      return "BUG project_id and path must be specified if src not given.";
+      throw Error("BUG project_id and path must be specified if src not given.");
     }
     write_content(w, opts);
   }
   print_window(w);
-  return "";
 }
 
-function print_window(w): void {
+export function print_window(w): void {
   if (w.window.print === null) {
     return;
   }
@@ -95,10 +102,10 @@ function html_with_deps(
   title: string,
   font_size?: number
 ): string {
-
-  let transform = '';
+  let transform = "";
   if (font_size) {
-    transform = `transform-origin: top left; transform: scale(${font_size/12});`
+    transform = `transform-origin: top left; transform: scale(${font_size /
+      12});`;
   }
 
   return `\

@@ -68,10 +68,11 @@ export class Actions extends CodeEditorActions {
       return;
     }
 
-    const err = print_html({
-      src: raw_url(this.project_id, aux_file(this.path, "html"))
-    });
-    if (err) {
+    try {
+      print_html({
+        src: raw_url(this.project_id, aux_file(this.path, "html"))
+      });
+    } catch (err) {
       this.set_error(err);
     }
   }

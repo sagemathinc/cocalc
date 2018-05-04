@@ -55,24 +55,23 @@ export class Actions extends CodeEditorActions {
       return;
     }
 
-    let err: string = "";
-    switch (node.get("type")) {
-      case "iframe":
-        err = print_html({ src: raw_url(this.project_id, this.path) });
-        break;
-      case "preview":
-        err = print_html({
-          html: $(`#frame-${id}`).html(),
-          project_id: this.project_id,
-          path: this.path,
-          font_size: node.get("font_size")
-        });
-        break;
-      default:
-        err = "Printing not implemented";
-    }
-
-    if (err) {
+    try {
+      switch (node.get("type")) {
+        case "iframe":
+          print_html({ src: raw_url(this.project_id, this.path) });
+          break;
+        case "preview":
+          print_html({
+            html: $(`#frame-${id}`).html(),
+            project_id: this.project_id,
+            path: this.path,
+            font_size: node.get("font_size")
+          });
+          break;
+        default:
+          throw Error("Printing not implemented");
+      }
+    } catch (err) {
       this.set_error(err);
     }
   }

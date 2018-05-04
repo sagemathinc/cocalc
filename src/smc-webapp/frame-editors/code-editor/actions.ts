@@ -20,7 +20,8 @@ const misc = require("smc-util/misc");
 const copypaste = require("smc-webapp/copy-paste-buffer");
 //import {create_key_handler} from "./keyboard";
 const tree_ops = require("./tree-ops");
-const print = require("./print");
+
+import { print_code } from "../frame-tree/print-code";
 
 import { misspelled_words } from "./spell-check.ts";
 
@@ -1003,18 +1004,21 @@ export class Actions extends BaseActions {
   }
 
   // big scary error shown at top
-  set_error(error) {
-    if (error == null) {
-      return this.setState({ error });
+  set_error(error?: object | string) {
+    if (error === undefined) {
+      this.setState({ error });
     } else {
-      if (!misc.is_string(error)) {
-        let e = JSON.stringify(error);
-        if (e === "{}") {
-          e = `${error}`;
+      if (typeof error == "object") {
+        let e = (error as any).message;
+        if (e === undefined) {
+          let e = JSON.stringify(error);
+          if (e === "{}") {
+            e = `${error}`;
+          }
         }
         error = e;
       }
-      return this.setState({ error });
+      this.setState({ error });
     }
   }
 
@@ -1023,19 +1027,20 @@ export class Actions extends BaseActions {
     return this.setState({ status });
   }
 
-  print(id) {
+  print(id): void {
     const cm = this._get_cm(id);
-    if (cm == null) {
-      return;
+    if (!cm) {
+      return; // nothing to print...
     }
-    const error = print.print({
-      value: cm.getValue(),
-      options: cm.options,
-      path: this.path,
-      font_size: __guard__(this._get_frame_node(id), x => x.get("font_size"))
-    });
-    if (error) {
-      this.setState({ error });
+    try {
+      print_code({
+        value: cm.getValue(),
+        options: cm.options,
+        path: this.path,
+        font_size: __guard__(this._get_frame_node(id), x => x.get("font_size"))
+      });
+    } catch (err) {
+      this.set_error(err);
     }
     return cm.focus();
   }
