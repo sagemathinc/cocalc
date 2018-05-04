@@ -3638,12 +3638,12 @@ def py3print_mode(enable=None):
 
     Enable python3 printing:
 
-        p3print_mode(True)
-        p3print_mode()   # returns True
+        py3print_mode(True)
+        py3print_mode()   # returns True
         print("hello", end="")
 
     Then switch back to python2 printing
-        p3print_mode(False)
+        py3print_mode(False)
         print "hello"
 
     """
