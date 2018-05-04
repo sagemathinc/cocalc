@@ -28,7 +28,7 @@ const { webapp_client } = require("smc-webapp/webapp_client");
 const BaseActions = require("smc-webapp/smc-react").Actions;
 const misc = require("smc-util/misc");
 const copypaste = require("smc-webapp/copy-paste-buffer");
-const keyboard = require("./keyboard");
+//import {create_key_handler} from "./keyboard";
 const tree_ops = require("./tree-ops");
 const print = require("./print");
 const spell_check = require("./spell-check");
@@ -468,12 +468,12 @@ export class Actions extends BaseActions {
     }
   }
 
-  enable_key_handler() {
+  /* enable_key_handler() {
     if (this._state === "closed") {
       return;
     }
     if (this._key_handler == null) {
-      this._key_handler = keyboard.create_key_handler(this);
+      this._key_handler = create_key_handler(this);
     }
     return this.redux
       .getActions("page")
@@ -485,6 +485,7 @@ export class Actions extends BaseActions {
       .getActions("page")
       .erase_active_key_handler(this._key_handler);
   }
+  */
 
   _has_unsaved_changes() {
     //@_syncstring?.has_unsaved_changes()

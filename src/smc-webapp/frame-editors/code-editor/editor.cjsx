@@ -52,10 +52,10 @@ exports.Editor = rclass ({name}) ->
                         'content', 'value'])
 
     componentDidMount: ->
-        @props.actions.enable_key_handler()
+        # @props.actions.enable_key_handler()
 
     componentWillUnmount: ->
-        @props.actions.disable_key_handler()
+        # @props.actions.disable_key_handler()
         @props.actions.set_syncstring_to_codemirror()
 
     render_loading: ->
