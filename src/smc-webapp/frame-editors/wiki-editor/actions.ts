@@ -5,6 +5,9 @@ Media wiki Editor Actions
 import { Actions as MarkdownActions } from "../markdown-editor/actions";
 import { convert } from "./wiki2html";
 import { FrameTree } from "../frame-tree/types";
+import { print_html } from "../frame-tree/print";
+import { aux_file } from "../frame-tree/util";
+import { raw_url } from "../frame-tree/util";
 
 export class Actions extends MarkdownActions {
   _init(...args) {
@@ -46,6 +49,28 @@ export class Actions extends MarkdownActions {
           type: "html"
         }
       };
+    }
+  }
+
+  print(id: string): void {
+    const node = this._get_frame_node(id);
+    if (!node) return;
+    const type = node.get("type");
+    if (type == "cm") {
+      super.print(id);
+      return;
+    }
+    if (type != "html") {
+      // no other types support printing
+      this.set_error("printing of #{type} not implemented");
+      return;
+    }
+
+    const err = print_html({
+      src: raw_url(this.project_id, aux_file(this.path, "html"))
+    });
+    if (err) {
+      this.set_error(err);
     }
   }
 }

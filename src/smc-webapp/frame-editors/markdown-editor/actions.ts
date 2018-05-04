@@ -7,7 +7,8 @@ import * as $ from "jquery";
 const CodeEditorActions = require("../code-editor/actions").Actions;
 
 const { toggle_checkbox } = require("smc-webapp/tasks/desc-rendering");
-const { print_html } = require("../frame-tree/print");
+
+import { print_html } from "../frame-tree/print";
 
 import { FrameTree } from "../frame-tree/types";
 

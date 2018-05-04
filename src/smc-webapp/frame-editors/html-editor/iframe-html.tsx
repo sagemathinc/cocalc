@@ -130,11 +130,11 @@ export class IFrameHTML extends Component<PropTypes, {}> {
     if (elt == null) {
       return;
     }
-    const body = $(elt)
-      .contents()
-      .find("body");
+    const j = $(elt);
+    j.css("opacity", 1);
+    const body = j.contents().find("body");
     body.css("zoom", (font_size != null ? font_size : 16) / 16);
-    if (this.props.is_fullscreen && this.props.fullscreen_style != null) {
+    if (this.props.is_fullscreen) {
       body.css(this.props.fullscreen_style);
     }
   }
