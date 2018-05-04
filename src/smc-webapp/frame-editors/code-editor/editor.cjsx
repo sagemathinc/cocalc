@@ -9,7 +9,7 @@ misc                    = require('smc-util/misc')
 {FrameTree}             = require('./frame-tree')
 {IS_IPAD}               = require('smc-webapp/feature')
 
-{StatusBar}             = require('./status-bar')
+{StatusBar}             = require('./status-bar.tsx')
 
 exports.set = (v) ->  # used for specifying buttons...
     s = {}
@@ -45,11 +45,12 @@ exports.Editor = rclass ({name}) ->
             is_public               : rtypes.bool
             value                   : rtypes.string
             content                 : rtypes.string
+            status                  : rtypes.string
 
     shouldComponentUpdate: (next) ->
         return misc.is_different(@props, next, ['has_unsaved_changes', 'has_uncommitted_changes', 'read_only',
                         'load_time_estimate', 'is_loaded', 'error', 'cursors', 'local_view_state', 'is_public',
-                        'content', 'value'])
+                        'content', 'value', 'status'])
 
     componentDidMount: ->
         # @props.actions.enable_key_handler()
@@ -108,7 +109,7 @@ exports.Editor = rclass ({name}) ->
     #        <div style={height:'90px'}></div>
 
     render_status_bar: ->
-        <StatusBar name={name} />
+        <StatusBar status={@props.status ? ''} />
 
     render: ->
         <div className={'smc-vfill'}>
