@@ -3630,6 +3630,9 @@ def typeset_mode(on=True, display=True, **args):
     else:
         sys.displayhook = displayhook
 
+def py3print_mode(enable=None):
+    return salvus.py3print_mode(enable)
+
 def default_mode(mode):
     """
     Set the default mode for cell evaluation.  This is equivalent
