@@ -10,7 +10,7 @@
 FrameTitleBar - title bar in a frame, in the frame tree
 */
 
-import { Rendered } from "../generic/react";
+import { React, Rendered, Component, Fragment, redux } from "../generic/react";
 import { is_safari } from "../generic/browser";
 import * as CSS from "csstype";
 
@@ -22,13 +22,7 @@ const {
   DropdownButton,
   MenuItem
 } = require("react-bootstrap");
-const {
-  Fragment,
-  React,
-  rclass,
-  rtypes,
-  redux
-} = require("smc-webapp/smc-react");
+
 const {
   Icon,
   Space,
@@ -36,6 +30,7 @@ const {
   VisibleMDLG,
   EditorFileInfoDropdown
 } = require("smc-webapp/r_misc");
+
 const {
   UncommittedChanges
 } = require("smc-webapp/jupyter/uncommitted-changes");
@@ -81,28 +76,28 @@ if (IS_TOUCH) {
   };
 }
 
-export let FrameTitleBar = rclass({
-  displayName: "CodeEditor-FrameTitleBar",
+interface Props {
+  actions: any;
+  path: string; // assumed to not change for now
+  project_id: string; // assumed to not change for now
+  active_id: string;
+  id: string;
+  deletable: boolean;
+  read_only: boolean;
+  has_unsaved_changes: boolean;
+  has_uncommitted_changes: boolean;
+  is_saving: boolean;
+  is_full: boolean;
+  is_only: boolean; // is the only frame
+  is_public: boolean; // public view of a file
+  type: string;
+  editor_spec: any;
+}
 
-  propTypes: {
-    actions: rtypes.object.isRequired,
-    path: rtypes.string, // assumed to not change for now
-    project_id: rtypes.string, // assumed to not change for now
-    active_id: rtypes.string,
-    id: rtypes.string,
-    deletable: rtypes.bool,
-    read_only: rtypes.bool,
-    has_unsaved_changes: rtypes.bool,
-    has_uncommitted_changes: rtypes.bool,
-    is_saving: rtypes.bool,
-    is_full: rtypes.bool,
-    is_only: rtypes.bool, // is the only frame
-    is_public: rtypes.bool, // public view of a file
-    type: rtypes.string.isRequired,
-    editor_spec: rtypes.object.isRequired
-  }, // describes editor options; assumed to never change
+export class FrameTitleBar extends Component<Props, {}> {
+  private last_render: number = 0;
 
-  shouldComponentUpdate(next) {
+  shouldComponentUpdate(next): boolean {
     return misc.is_different(this.props, next, [
       "active_id",
       "id",
@@ -116,37 +111,37 @@ export let FrameTitleBar = rclass({
       "is_saving",
       "type"
     ]);
-  },
+  }
 
-  componentWillReceiveProps() {
-    return (this._last_render = new Date());
-  },
+  componentWillReceiveProps(): void {
+    this.last_render = new Date().valueOf();
+  }
 
-  is_visible(action_name, explicit) : boolean {
+  is_visible(action_name: string, explicit?: boolean): boolean {
     const buttons = this.props.editor_spec[this.props.type].buttons;
     if (!explicit && buttons == null) {
       return true;
     }
     return buttons != null ? buttons[action_name] : false;
-  },
+  }
 
-  click_close() {
-    if (new Date().valueOf() - this._last_render < 200) {
+  click_close(): void {
+    if (new Date().valueOf() - this.last_render < 200) {
       // avoid accidental click -- easily can happen otherwise.
       return;
     }
-    return this.props.actions.close_frame(this.props.id);
-  },
+    this.props.actions.close_frame(this.props.id);
+  }
 
-  button_size() {
+  button_size(): string | undefined {
     if (this.props.is_only || this.props.is_full) {
       return;
     } else {
       return "small";
     }
-  },
+  }
 
-  render_x() {
+  render_x(): Rendered {
     const show_full =
       this.props.is_full || this.props.active_id === this.props.id;
     return (
@@ -155,25 +150,23 @@ export let FrameTitleBar = rclass({
         style={!show_full ? close_style : undefined}
         key={"close"}
         bsSize={this.button_size()}
-        onClick={this.click_close}
+        onClick={() => this.click_close()}
       >
         <Icon name={"times"} />
       </Button>
     );
-  },
+  }
 
-  select_type(type) {
-    return typeof this.props.actions.set_frame_type === "function"
-      ? this.props.actions.set_frame_type(this.props.id, type)
-      : undefined;
-  },
+  select_type(type: string): void {
+    this.props.actions.set_frame_type(this.props.id, type);
+  }
 
-  render_types() {
+  render_types(): Rendered {
     if (this.props.editor_spec == null) {
       return;
     }
 
-    const selected_type = this.props.type;
+    const selected_type: string = this.props.type;
     let selected_icon = "";
     let selected_short = "";
     const items: Rendered[] = [];
@@ -188,7 +181,7 @@ export let FrameTitleBar = rclass({
           selected={selected_type === type}
           key={type}
           eventKey={type}
-          onSelect={this.select_type}
+          onSelect={type => this.select_type(type)}
         >
           <Icon name={spec.icon} style={ICON_STYLE} /> {spec.name}
         </MenuItem>
@@ -214,9 +207,9 @@ export let FrameTitleBar = rclass({
         {items}
       </DropdownButton>
     );
-  },
+  }
 
-  render_control() {
+  render_control(): Rendered {
     const is_active = this.props.active_id === this.props.id;
     return (
       <ButtonGroup style={{ float: "right" }} key={"close"}>
@@ -227,9 +220,9 @@ export let FrameTitleBar = rclass({
         {this.render_x()}
       </ButtonGroup>
     );
-  },
+  }
 
-  render_full() {
+  render_full(): Rendered {
     if (this.props.is_full) {
       return (
         <Button
@@ -255,9 +248,9 @@ export let FrameTitleBar = rclass({
         </Button>
       );
     }
-  },
+  }
 
-  render_split_row() {
+  render_split_row(): Rendered {
     return (
       <Button
         key={"split-row"}
@@ -275,9 +268,9 @@ export let FrameTitleBar = rclass({
         <Icon name="columns" rotate={"90"} />
       </Button>
     );
-  },
+  }
 
-  render_split_col() {
+  render_split_col(): Rendered {
     return (
       <Button
         key={"split-col"}
@@ -295,9 +288,9 @@ export let FrameTitleBar = rclass({
         <Icon name="columns" />
       </Button>
     );
-  },
+  }
 
-  render_zoom_out() {
+  render_zoom_out(): Rendered {
     if (!this.is_visible("decrease_font_size")) {
       return;
     }
@@ -311,9 +304,9 @@ export let FrameTitleBar = rclass({
         <Icon name={"search-minus"} />
       </Button>
     );
-  },
+  }
 
-  render_zoom_in() {
+  render_zoom_in(): Rendered {
     if (!this.is_visible("increase_font_size")) {
       return;
     }
@@ -327,9 +320,9 @@ export let FrameTitleBar = rclass({
         <Icon name={"search-plus"} />
       </Button>
     );
-  },
+  }
 
-  render_zoom_page_width() {
+  render_zoom_page_width(): Rendered {
     return (
       <Button
         key={"text-width"}
@@ -340,9 +333,9 @@ export let FrameTitleBar = rclass({
         <Icon name={"arrows-alt-h"} />
       </Button>
     );
-  },
+  }
 
-  render_zoom_page_height() {
+  render_zoom_page_height(): Rendered {
     return (
       <Button
         key={"text-height"}
@@ -353,9 +346,9 @@ export let FrameTitleBar = rclass({
         <Icon name={"arrows-alt-v"} />
       </Button>
     );
-  },
+  }
 
-  render_sync() {
+  render_sync(): Rendered {
     if (!this.is_visible("sync") || this.props.actions.sync == null) {
       return;
     }
@@ -374,9 +367,9 @@ export let FrameTitleBar = rclass({
         </Button>
       </Fragment>
     );
-  },
+  }
 
-  render_replace() {
+  render_replace(): Rendered {
     if (!this.is_visible("replace")) {
       return;
     }
@@ -391,9 +384,9 @@ export let FrameTitleBar = rclass({
         <Icon name="exchange" />
       </Button>
     );
-  },
+  }
 
-  render_find() {
+  render_find(): Rendered {
     if (!this.is_visible("find")) {
       return;
     }
@@ -407,9 +400,9 @@ export let FrameTitleBar = rclass({
         <Icon name="search" />
       </Button>
     );
-  },
+  }
 
-  render_goto_line() {
+  render_goto_line(): Rendered {
     if (!this.is_visible("goto_line")) {
       return;
     }
@@ -423,9 +416,9 @@ export let FrameTitleBar = rclass({
         <Icon name="bolt" />
       </Button>
     );
-  },
+  }
 
-  render_find_replace_group() {
+  render_find_replace_group(): Rendered {
     return (
       <Fragment>
         <Space />
@@ -436,9 +429,9 @@ export let FrameTitleBar = rclass({
         </ButtonGroup>
       </Fragment>
     );
-  },
+  }
 
-  render_cut() {
+  render_cut(): Rendered {
     if (!this.is_visible("cut")) {
       return;
     }
@@ -453,9 +446,9 @@ export let FrameTitleBar = rclass({
         <Icon name={"scissors"} />
       </Button>
     );
-  },
+  }
 
-  render_paste() {
+  render_paste(): Rendered {
     if (!this.is_visible("paste")) {
       return;
     }
@@ -474,9 +467,9 @@ export let FrameTitleBar = rclass({
         <Icon name={"paste"} />
       </Button>
     );
-  },
+  }
 
-  render_copy() {
+  render_copy(): Rendered {
     if (!this.is_visible("copy")) {
       return;
     }
@@ -490,9 +483,9 @@ export let FrameTitleBar = rclass({
         <Icon name={"copy"} />
       </Button>
     );
-  },
+  }
 
-  render_copy_group() {
+  render_copy_group(): Rendered {
     return (
       <Fragment>
         <Space />
@@ -503,9 +496,9 @@ export let FrameTitleBar = rclass({
         </ButtonGroup>
       </Fragment>
     );
-  },
+  }
 
-  render_zoom_group() {
+  render_zoom_group(): Rendered {
     if (!this.is_visible("decrease_font_size")) {
       return;
     }
@@ -518,9 +511,9 @@ export let FrameTitleBar = rclass({
         </ButtonGroup>
       </Fragment>
     );
-  },
+  }
 
-  render_page_width_height_group() {
+  render_page_width_height_group(): Rendered {
     if (
       !this.is_visible("zoom_page_width") ||
       this.props.actions.zoom_page_width == null
@@ -536,18 +529,18 @@ export let FrameTitleBar = rclass({
         </ButtonGroup>
       </Fragment>
     );
-  },
+  }
 
-  render_split_group() {
+  render_split_group(): Rendered {
     return (
       <ButtonGroup key={"split"}>
         {this.render_split_row()}
         {this.render_split_col()}
       </ButtonGroup>
     );
-  },
+  }
 
-  render_undo() {
+  render_undo(): Rendered {
     if (!this.is_visible("undo")) {
       return;
     }
@@ -555,16 +548,16 @@ export let FrameTitleBar = rclass({
       <Button
         key={"undo"}
         title={"Undo last thing you did"}
-        onClick={this.props.actions.undo}
+        onClick={() => this.props.actions.undo()}
         disabled={this.props.read_only}
         bsSize={this.button_size()}
       >
         <Icon name="undo" />
       </Button>
     );
-  },
+  }
 
-  render_redo() {
+  render_redo(): Rendered {
     if (!this.is_visible("redo")) {
       return;
     }
@@ -572,16 +565,16 @@ export let FrameTitleBar = rclass({
       <Button
         key={"redo"}
         title={"Redo last thing you did"}
-        onClick={this.props.actions.redo}
+        onClick={() => this.props.actions.redo()}
         disabled={this.props.read_only}
         bsSize={this.button_size()}
       >
         <Icon name="repeat" />
       </Button>
     );
-  },
+  }
 
-  render_undo_redo_group() {
+  render_undo_redo_group(): Rendered {
     return (
       <Fragment>
         <Space />
@@ -591,9 +584,9 @@ export let FrameTitleBar = rclass({
         </ButtonGroup>
       </Fragment>
     );
-  },
+  }
 
-  render_format_group() {
+  render_format_group(): Rendered {
     if (!this.is_visible("auto_indent")) {
       return;
     }
@@ -604,7 +597,7 @@ export let FrameTitleBar = rclass({
           <Button
             key={"auto-indent"}
             title={"Automatically format selected code"}
-            onClick={this.props.actions.auto_indent}
+            onClick={() => this.props.actions.auto_indent()}
             disabled={this.props.read_only}
             bsSize={this.button_size()}
           >
@@ -613,13 +606,13 @@ export let FrameTitleBar = rclass({
         </ButtonGroup>
       </Fragment>
     );
-  },
+  }
 
-  show_labels() {
+  show_labels(): boolean {
     return this.props.is_only || this.props.is_full;
-  },
+  }
 
-  render_timetravel(labels) {
+  render_timetravel(labels): Rendered {
     if (!this.is_visible("time_travel")) {
       return;
     }
@@ -629,16 +622,16 @@ export let FrameTitleBar = rclass({
         title={"Show complete edit history"}
         bsStyle={"info"}
         bsSize={this.button_size()}
-        onClick={this.props.actions.time_travel}
+        onClick={() => this.props.actions.time_travel()}
       >
         <Icon name="history" />{" "}
         <VisibleMDLG>{labels ? "TimeTravel" : undefined}</VisibleMDLG>
       </Button>
     );
-  },
+  }
 
   // Button to reload the document
-  render_reload(labels) {
+  render_reload(labels): Rendered {
     if (!this.is_visible("reload", true)) {
       return;
     }
@@ -647,20 +640,20 @@ export let FrameTitleBar = rclass({
         key={"reload"}
         title={"Reload this file"}
         bsSize={this.button_size()}
-        onClick={this.props.actions.reload}
+        onClick={() => this.props.actions.reload()}
       >
         <Icon name="repeat" />{" "}
         <VisibleMDLG>{labels ? "Reload" : undefined}</VisibleMDLG>
       </Button>
     );
-  },
+  }
 
   // A "Help" info button
-  render_help(labels) {
+  render_help(): Rendered {
     if (!this.is_visible("help", true) || this.props.is_public) {
       return;
     }
-    labels = this.show_labels();
+    let labels = this.show_labels();
     return (
       <Fragment>
         <Space />
@@ -679,9 +672,9 @@ export let FrameTitleBar = rclass({
         </Button>
       </Fragment>
     );
-  },
+  }
 
-  render_save(labels) {
+  render_save(labels: boolean): Rendered {
     let icon, label;
     if (!this.is_visible("save")) {
       return;
@@ -725,9 +718,9 @@ export let FrameTitleBar = rclass({
         />
       </Button>
     );
-  },
+  }
 
-  render_save_timetravel_group() {
+  render_save_timetravel_group(): Rendered {
     const labels = this.show_labels();
     return (
       <ButtonGroup key={"save-group"}>
@@ -736,9 +729,9 @@ export let FrameTitleBar = rclass({
         {this.render_reload(labels)}
       </ButtonGroup>
     );
-  },
+  }
 
-  render_format() {
+  render_format(): Rendered {
     if (
       !this.is_visible("format") ||
       !util.PRETTIER_SUPPORT[misc.filename_extension(this.props.path)]
@@ -761,9 +754,9 @@ export let FrameTitleBar = rclass({
         </Button>
       </Fragment>
     );
-  },
+  }
 
-  render_print() {
+  render_print(): Rendered {
     if (!this.is_visible("print")) {
       return;
     }
@@ -781,9 +774,9 @@ export let FrameTitleBar = rclass({
         </Button>
       </Fragment>
     );
-  },
+  }
 
-  render_file_menu() {
+  render_file_menu(): Rendered {
     if (!(this.props.is_only || this.props.is_full)) {
       return;
     }
@@ -798,9 +791,9 @@ export let FrameTitleBar = rclass({
         bsSize={this.button_size()}
       />
     );
-  },
+  }
 
-  render_buttons() {
+  render_buttons(): Rendered {
     let style;
     if (!(this.props.is_only || this.props.is_full)) {
       // When in split view, we let the buttonbar flow around and hide, so that
@@ -825,9 +818,9 @@ export let FrameTitleBar = rclass({
         {this.render_help()}
       </div>
     );
-  },
+  }
 
-  render_path() {
+  render_path(): Rendered {
     return (
       <span style={path_style}>
         <Tip placement={"bottom"} title={this.props.path}>
@@ -835,9 +828,9 @@ export let FrameTitleBar = rclass({
         </Tip>
       </span>
     );
-  },
+  }
 
-  render_main_buttons() {
+  render_main_buttons(): Rendered {
     // This is complicated below (with the flex display) in order to have a drop down menu that actually appears
     // and *ALSO* have buttons that vanish when there are many of them (via scrolling around).
     return (
@@ -846,9 +839,9 @@ export let FrameTitleBar = rclass({
         {this.render_buttons()}
       </div>
     );
-  },
+  }
 
-  render_title() {
+  render_title(): Rendered {
     let left, left1;
     const spec =
       this.props.editor_spec != null
@@ -869,9 +862,9 @@ export let FrameTitleBar = rclass({
           : ""}
       </span>
     );
-  },
+  }
 
-  render() {
+  render(): Rendered {
     // Whether this is *the* active currently focused frame:
     let style;
     const is_active = this.props.id === this.props.active_id;
@@ -904,4 +897,4 @@ export let FrameTitleBar = rclass({
       </div>
     );
   }
-});
+}
