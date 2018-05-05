@@ -27,6 +27,8 @@ import { misspelled_words } from "./spell-check.ts";
 
 import * as cm_doc_cache from "./doc.ts";
 
+import { test_line } from "./test.ts";
+
 const { required, defaults } = misc;
 
 export class Actions extends BaseActions {
@@ -1247,11 +1249,13 @@ export class Actions extends BaseActions {
     );
   }
 
-  test() {
-    return {
-      test: require("./test"),
-      cm: this._get_cm()
-    };
+  // call this and get back a function that can be used
+  // for testing that realtime sync/set/etc....
+  test(opts : any = {}) {
+    if (!opts.cm) {
+      opts.cm = this._get_cm();
+    }
+    test_line(opts);
   }
 }
 
