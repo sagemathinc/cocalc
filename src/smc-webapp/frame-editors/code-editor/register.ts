@@ -4,11 +4,9 @@ Register the code editor
 
 const { file_associations } = require("smc-webapp/file-associations");
 
-const { Editor } = require("./editor");
+import { Editor } from "./editor.ts";
 
 import { Actions } from "./actions.ts";
-
-//const { Actions } = require("./actions.coffee");
 
 import { register_file_editor } from "../frame-tree/register";
 

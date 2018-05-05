@@ -3,7 +3,7 @@ Top-level react component for editing R markdown documents
 */
 
 const { RenderedMarkdown } = require("../markdown-editor/rendered-markdown");
-const { set } = require("../code-editor/editor");
+import { set } from "../generic/misc";
 import { createEditor } from "../frame-tree/editor";
 const { CodemirrorEditor } = require("../code-editor/codemirror-editor");
 

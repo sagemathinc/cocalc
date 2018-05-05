@@ -5,7 +5,7 @@ Top-level react component for editing markdown documents
 import { IFrameHTML } from "../html-editor/iframe-html";
 
 const { CodemirrorEditor } = require("../code-editor/codemirror-editor");
-const { set } = require("../code-editor/editor");
+const { set } = require("../generic/misc");
 
 import { createEditor } from "../frame-tree/editor";
 

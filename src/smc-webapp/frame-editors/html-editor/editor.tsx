@@ -4,8 +4,7 @@ Top-level react component for editing HTML documents
 
 import { createEditor } from "../frame-tree/editor";
 
-//import { Editor, set } from "../code-editor/editor";
-const { set } = require("../code-editor/editor");
+import { set } from "../generic/misc";
 
 import { QuickHTMLPreview } from "./rendered-html.tsx";
 

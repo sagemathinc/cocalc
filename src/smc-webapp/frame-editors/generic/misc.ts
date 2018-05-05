@@ -93,7 +93,7 @@ export function merge(dest, ...objs) {
 
 // copy of map but only with some keys
 // I.e., restrict a function to a subset of the domain.
-export function copy_with(obj: object, w: string | string[]) : object {
+export function copy_with(obj: object, w: string | string[]): object {
   const set = {};
   if (typeof w === "string") {
     set[w] = true;
@@ -111,4 +111,12 @@ export function copy_with(obj: object, w: string | string[]) : object {
     }
   }
   return r;
+}
+
+export function set(v: string[]): object {
+  const s = {};
+  for (let x of v) {
+    s[x] = true;
+  }
+  return s;
 }

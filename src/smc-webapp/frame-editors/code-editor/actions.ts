@@ -1025,8 +1025,8 @@ export class Actions extends BaseActions {
   }
 
   // little status message shown at bottom.
-  set_status(status) {
-    return this.setState({ status });
+  set_status(status): void {
+    this.setState({ status });
   }
 
   print(id): void {
@@ -1251,7 +1251,7 @@ export class Actions extends BaseActions {
 
   // call this and get back a function that can be used
   // for testing that realtime sync/set/etc....
-  test(opts : any = {}) {
+  test(opts: any = {}) {
     if (!opts.cm) {
       opts.cm = this._get_cm();
     }

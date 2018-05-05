@@ -6,7 +6,7 @@ import { createEditor } from "../frame-tree/editor";
 
 import { RenderedMarkdown } from "./rendered-markdown.tsx";
 
-const { set } = require("../code-editor/editor");
+import { set } from "../generic/misc";
 
 const { CodemirrorEditor } = require("../code-editor/codemirror-editor");
 

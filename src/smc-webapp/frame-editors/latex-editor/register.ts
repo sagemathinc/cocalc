@@ -3,7 +3,7 @@ Register the LaTeX file editor
 
 */
 
-import { Editor } from "./editor.tsx";
+import { Editor } from "./editor.ts";
 import { Actions } from "./actions.ts";
 
 import {register_file_editor} from '../frame-tree/register';

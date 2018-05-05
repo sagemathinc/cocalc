@@ -6,7 +6,7 @@ import { createEditor } from "../frame-tree/editor";
 
 import { aux_file } from "../frame-tree/util";
 
-const { set } = require("../code-editor/editor");
+import { set } from "../generic/misc";
 
 import { IFrameHTML } from "../html-editor/iframe-html";
 const { CodemirrorEditor } = require("../code-editor/codemirror-editor");
