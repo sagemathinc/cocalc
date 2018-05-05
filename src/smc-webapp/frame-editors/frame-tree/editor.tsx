@@ -16,7 +16,7 @@ interface FrameTreeEditorProps {
   format_bar: boolean;
   editor_spec: any;
 
-  // reduxProps:
+  // reduxProps below:
   name: string;
 
   editor_settings?: Map<string, any>;
@@ -34,6 +34,12 @@ interface FrameTreeEditorProps {
   load_time_estimate?: Map<string, any>;
   value?: string;
   content?: string;
+
+  reload: Map<string, number>;
+  resize: number; // if changes, means that frames have been resized, so may need refreshing; passed to leaf.
+  misspelled_words: Set<string>;
+  is_saving: boolean;
+  gutter_markers: Map<string,any>;
 }
 
 class FrameTreeEditor0 extends Component<FrameTreeEditorProps, {}> {
@@ -55,7 +61,14 @@ class FrameTreeEditor0 extends Component<FrameTreeEditorProps, {}> {
 
         load_time_estimate: rtypes.immutable.Map,
         value: rtypes.string,
-        content: rtypes.string
+        content: rtypes.string,
+
+        reload: rtypes.immutable.Map.isRequired,
+        resize: rtypes.number.isRequired, // if changes, means that frames have been resized, so may need refreshing; passed to leaf.
+        misspelled_words: rtypes.immutable.Set.isRequired,
+        is_saving: rtypes.bool.isRequired,
+
+        gutter_markers: rtypes.immutable.Map.isRequired
       }
     };
   }
@@ -82,7 +95,15 @@ class FrameTreeEditor0 extends Component<FrameTreeEditorProps, {}> {
           "status",
           "load_time_estimate",
           "value",
-          "content"
+          "content",
+
+          "reload",
+          "resize",
+          "misspelled_words",
+          "has_unsaved_changes",
+          "has_uncommitted_changes",
+          "is_saving",
+          "gutter_markers"
         ]
       ) ||
       this.props.editor_settings.get("extra_button_bar") !==
@@ -108,7 +129,7 @@ class FrameTreeEditor0 extends Component<FrameTreeEditorProps, {}> {
     return (
       <div className={"smc-vfill"}>
         <FrameTree
-          name={name}
+          name={this.props.name}
           actions={this.props.actions}
           frame_tree={frame_tree}
           editor_state={editor_state}
@@ -124,6 +145,13 @@ class FrameTreeEditor0 extends Component<FrameTreeEditorProps, {}> {
           content={this.props.content}
           value={this.props.value}
           editor_spec={this.props.editor_spec}
+          reload={this.props.reload}
+          resize={this.props.resize}
+          misspelled_words={this.props.misspelled_words}
+          has_unsaved_changes={this.props.has_unsaved_changes}
+          has_uncommitted_changes={this.props.has_uncommitted_changes}
+          is_saving={this.props.is_saving}
+          gutter_markers={this.props.gutter_markers}
         />
       </div>
     );

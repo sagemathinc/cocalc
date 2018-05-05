@@ -37,7 +37,7 @@ const STYLE = {
   background: "#fff"
 };
 
-export let CodemirrorEditor = rclass(function({ name }) {
+export let CodemirrorEditor = rclass(function() {
   return {
     displayName: "CodeEditor-CodemirrorEditor",
 
@@ -47,24 +47,22 @@ export let CodemirrorEditor = rclass(function({ name }) {
       path: rtypes.string.isRequired,
       project_id: rtypes.string.isRequired,
       font_size: rtypes.number.isRequired,
-      cursors: rtypes.immutable.Map,
-      editor_state: rtypes.immutable.Map,
-      read_only: rtypes.bool,
-      is_current: rtypes.bool,
-      is_public: rtypes.bool,
+      cursors: rtypes.immutable.Map.isRequired,
+      editor_state: rtypes.immutable.Map.isRequired,
+      read_only: rtypes.bool.isRequired,
+      is_current: rtypes.bool.isRequired,
+      is_public: rtypes.bool.isRequired,
       content: rtypes.string, // if defined and is_public, use this static value and editor is read-only
-      misspelled_words: rtypes.immutable.Set,
-      resize: rtypes.number,
-      gutters: rtypes.array.isRequired
+      misspelled_words: rtypes.immutable.Set.isRequired,
+      resize: rtypes.number.isRequired,
+      gutters: rtypes.array.isRequired,
+      gutter_markers: rtypes.immutable.Map.isRequired
     },
 
     reduxProps: {
       account: {
         editor_settings: rtypes.immutable.Map.isRequired
       },
-      [name]: {
-        gutter_markers: rtypes.immutable.Map
-      }
     },
 
     getDefaultProps() {

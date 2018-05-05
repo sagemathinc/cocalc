@@ -8,6 +8,8 @@ const SAVE_WORKAROUND =
   "Ensure your network connection is solid. If this problem persists, you might need to close and open this file, or restart this project in Project Settings.";
 const MAX_SAVE_TIME_S = 30; // how long to retry to save (and get no unsaved changes), until giving up and showing an error.
 
+import { Set, Map } from "immutable";
+
 const immutable = require("immutable");
 const underscore = require("underscore");
 const async = require("async");
@@ -55,7 +57,15 @@ export class Actions extends BaseActions {
 
     this.setState({
       is_public,
-      local_view_state: this._load_local_view_state()
+      local_view_state: this._load_local_view_state(),
+      reload: Map(),
+      resize: 0,
+      misspelled_words: Set(),
+      has_unsaved_changes: false,
+      has_uncommitted_changes: false,
+      is_saving: false,
+      gutter_markers: Map(),
+      cursors: Map()
     });
 
     this._save_local_view_state = underscore.debounce(
