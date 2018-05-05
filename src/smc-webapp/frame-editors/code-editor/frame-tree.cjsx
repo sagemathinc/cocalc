@@ -34,8 +34,7 @@ misc_page                         = require('smc-webapp/misc_page')
 {CodemirrorEditor}                = require('./codemirror-editor')
 feature                           = require('smc-webapp/feature')
 {FrameTitleBar}                   = require('./frame-title-bar')
-#tree_ops = require("../frame-tree/tree-ops.ts");
-tree_ops = require("./tree-ops.coffee");
+tree_ops = require("../frame-tree/tree-ops");
 
 
 

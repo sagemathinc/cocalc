@@ -53,16 +53,19 @@ export function set_state(cm: CodeMirror.Editor, state: State): void {
   }
 
   const elt = $(cm.getWrapperElement()).find(".CodeMirror-scroll");
-  elt.css("opacity", 0);
-  // We **have to** do the scrollTo in the next render loop, since otherwise
-  // the coords below will return the sizing data about
-  // the cm instance before the above css font-size change has been rendered.
-  // Also, the opacity business avoids some really painful "flicker".
-  setTimeout(function() {
-    elt.css("opacity", 1);
-    cm.scrollTo(0, cm.cursorCoords(state.pos, "local").top);
-    return cm.refresh();
-  }, 0);
-
-  cm.getDoc().setSelections(state.sel);
+  if (state.pos) {
+    elt.css("opacity", 0);
+    // We **have to** do the scrollTo in the next render loop, since otherwise
+    // the coords below will return the sizing data about
+    // the cm instance before the above css font-size change has been rendered.
+    // Also, the opacity business avoids some really painful "flicker".
+    setTimeout(function() {
+      elt.css("opacity", 1);
+      cm.scrollTo(0, cm.cursorCoords(state.pos, "local").top);
+      return cm.refresh();
+    }, 0);
+  }
+  if (state.sel) {
+    cm.getDoc().setSelections(state.sel);
+  }
 }
