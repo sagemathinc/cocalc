@@ -40,6 +40,7 @@ interface FrameTreeEditorProps {
   misspelled_words: Set<string>;
   is_saving: boolean;
   gutter_markers: Map<string,any>;
+
 }
 
 class FrameTreeEditor0 extends Component<FrameTreeEditorProps, {}> {
@@ -103,7 +104,9 @@ class FrameTreeEditor0 extends Component<FrameTreeEditorProps, {}> {
           "has_unsaved_changes",
           "has_uncommitted_changes",
           "is_saving",
-          "gutter_markers"
+          "gutter_markers",
+
+          "editor_settings"
         ]
       ) ||
       this.props.editor_settings.get("extra_button_bar") !==
@@ -152,6 +155,7 @@ class FrameTreeEditor0 extends Component<FrameTreeEditorProps, {}> {
           has_uncommitted_changes={this.props.has_uncommitted_changes}
           is_saving={this.props.is_saving}
           gutter_markers={this.props.gutter_markers}
+          editor_settings={this.props.editor_settings}
         />
       </div>
     );

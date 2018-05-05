@@ -41,23 +41,23 @@ export function cm_options(
   let opts = misc.defaults(default_opts, {
     undoDepth: 0, // we use our own sync-aware undo.
     mode: undefined,
-    show_trailing_whitespace: editor_settings.get("show_trailing_whitespace"),
+    show_trailing_whitespace: editor_settings.get("show_trailing_whitespace", true),
     allow_javascript_eval: true, // if false, the one use of eval isn't allowed.
-    line_numbers: editor_settings.get("line_numbers"),
-    first_line_number: editor_settings.get("first_line_number"),
+    line_numbers: editor_settings.get("line_numbers", true),
+    first_line_number: editor_settings.get("first_line_number", 1),
     indent_unit: editor_settings.get("tab_size"), // TODO! indent_unit just isn't implemented -- see #2847.
     tab_size: editor_settings.get("tab_size"),
-    smart_indent: editor_settings.get("smart_indent"),
-    electric_chars: editor_settings.get("electric_chars"),
-    match_brackets: editor_settings.get("match_brackets"),
-    code_folding: editor_settings.get("code_folding"),
-    auto_close_brackets: editor_settings.get("auto_close_brackets"),
-    match_xml_tags: editor_settings.get("match_xml_tags"),
-    auto_close_xml_tags: editor_settings.get("auto_close_xml_tags"),
-    auto_close_latex: editor_settings.get("auto_close_latex"),
-    line_wrapping: editor_settings.get("line_wrapping"),
-    spaces_instead_of_tabs: editor_settings.get("spaces_instead_of_tabs"),
-    style_active_line: !!editor_settings.get("style_active_line"),
+    smart_indent: editor_settings.get("smart_indent", true),
+    electric_chars: editor_settings.get("electric_chars", true),
+    match_brackets: editor_settings.get("match_brackets", true),
+    code_folding: editor_settings.get("code_folding", true),
+    auto_close_brackets: editor_settings.get("auto_close_brackets", false),
+    match_xml_tags: editor_settings.get("match_xml_tags", true),
+    auto_close_xml_tags: editor_settings.get("auto_close_xml_tags", true),
+    auto_close_latex: editor_settings.get("auto_close_latex", true),
+    line_wrapping: editor_settings.get("line_wrapping", true),
+    spaces_instead_of_tabs: editor_settings.get("spaces_instead_of_tabs", true),
+    style_active_line: editor_settings.get("style_active_line", true),
     bindings: editor_settings.get("bindings"),
     theme: editor_settings.get("theme")
   });

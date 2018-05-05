@@ -97,6 +97,7 @@ interface FrameTreeProps {
   has_uncommitted_changes: boolean;
   is_saving: boolean;
   gutter_markers: Map<string, any>;
+  editor_settings: Map<string, any>;
 }
 
 interface FrameTreeState {
@@ -129,7 +130,8 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
         "reload",
         "resize",
         "is_saving",
-        "gutter_markers"
+        "gutter_markers",
+        "editor_settings"
       ])
     );
   }
@@ -160,6 +162,7 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
         has_uncommitted_changes={this.props.has_uncommitted_changes}
         is_saving={this.props.is_saving}
         gutter_markers={this.props.gutter_markers}
+        editor_settings={this.props.editor_settings}
       />
     );
   }
@@ -228,6 +231,7 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
         reload_images={!!spec.reload_images}
         gutters={spec.gutters != null ? spec.gutters : []}
         gutter_markers={this.props.gutter_markers}
+        editor_settings={this.props.editor_settings}
         renderer={spec.renderer}
       />
     );
