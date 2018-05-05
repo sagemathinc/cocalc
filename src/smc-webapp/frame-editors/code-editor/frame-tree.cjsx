@@ -34,7 +34,9 @@ misc_page                         = require('smc-webapp/misc_page')
 {CodemirrorEditor}                = require('./codemirror-editor')
 feature                           = require('smc-webapp/feature')
 {FrameTitleBar}                   = require('./frame-title-bar')
-tree_ops                          = require('./tree-ops')
+#tree_ops = require("../frame-tree/tree-ops.ts");
+tree_ops = require("./tree-ops.coffee");
+
 
 
 drag_offset = if feature.IS_TOUCH then 5 else 2
@@ -163,7 +165,7 @@ exports.FrameTree = FrameTree = rclass ({name}) ->
             reload           = {@props.reload?.get(type)}
             resize           = {@props.resize}
             reload_images    = {!!spec.reload_images}
-            gutters          = {spec.gutters}
+            gutters          = {spec.gutters ? []}
             renderer         = {spec.renderer}
         />
 

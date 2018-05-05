@@ -45,7 +45,7 @@ exports.CodemirrorEditor = rclass ({name}) ->
         content          : rtypes.string  # if defined and is_public, use this static value and editor is read-only
         misspelled_words : rtypes.immutable.Set
         resize           : rtypes.number
-        gutters          : rtypes.array
+        gutters          : rtypes.array.isRequired
 
     reduxProps :
         account :
@@ -155,12 +155,7 @@ exports.CodemirrorEditor = rclass ({name}) ->
 
         @safari_hack()
 
-        options = cm_options
-            filename        : @props.path
-            editor_settings : @props.editor_settings
-            actions         : @props.actions
-            frame_id        : @props.id
-            gutters         : @props.gutters
+        options = cm_options(@props.path, @props.editor_settings, @props.gutters, @props.actions, @props.id);
 
         @_style_active_line = options.styleActiveLine
         options.styleActiveLine = false

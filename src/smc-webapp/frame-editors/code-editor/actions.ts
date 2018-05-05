@@ -19,7 +19,9 @@ const BaseActions = require("smc-webapp/smc-react").Actions;
 const misc = require("smc-util/misc");
 const copypaste = require("smc-webapp/copy-paste-buffer");
 //import {create_key_handler} from "./keyboard";
-const tree_ops = require("./tree-ops");
+//const tree_ops = require("../frame-tree/tree-ops.ts");
+
+const tree_ops = require('./tree-ops.coffee');
 
 import { print_code } from "../frame-tree/print-code";
 
