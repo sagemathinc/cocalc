@@ -2,7 +2,7 @@
 Register the markdown editor
 */
 
-const { Editor } = require("./editor.tsx");
+const { Editor } = require("./editor.ts");
 const { Actions } = require("./actions");
 
 import {register_file_editor} from '../frame-tree/register';
