@@ -18,7 +18,7 @@ misc                 = require('smc-util/misc')
 codemirror_state      = require('./codemirror-state')
 doc                  = require('./doc.ts')
 
-{GutterMarkers}      = require('./codemirror-gutter-markers')
+{GutterMarkers}      = require('./codemirror-gutter-markers.tsx')
 
 STYLE =
     width        : '100%'
