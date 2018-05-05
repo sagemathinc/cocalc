@@ -4,6 +4,8 @@ Component that shows rendered HTML in an iFrame, so safe and no mangling needed.
 
 import * as $ from "jquery";
 
+import {is_safari} from "../generic/browser";
+
 import { is_different } from "../generic/misc";
 
 import { throttle } from "underscore";
@@ -144,9 +146,8 @@ export class IFrameHTML extends Component<PropTypes, {}> {
   }
 
   safari_hack(): void {
-    const jQuery: any = $ as any;
-    if (jQuery.browser && jQuery.browser.safari) {
-      jQuery(ReactDOM.findDOMNode(this)).make_height_defined();
+    if (is_safari) {
+      $(ReactDOM.findDOMNode(this)).make_height_defined();
     }
   }
 

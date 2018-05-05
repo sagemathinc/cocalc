@@ -5,7 +5,7 @@ const { ErrorDisplay, Loading } = require("smc-webapp/r_misc");
 import { FormatBar } from "./format-bar.tsx";
 
 import { StatusBar } from "./status-bar.tsx";
-const { FrameTree } = require("../code-editor/frame-tree");
+const { FrameTree } = require("./frame-tree");
 
 import { is_different } from "../generic/misc";
 
