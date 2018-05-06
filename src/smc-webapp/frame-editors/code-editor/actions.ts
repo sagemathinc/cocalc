@@ -31,12 +31,15 @@ import * as cm_doc_cache from "./doc.ts";
 
 import { test_line } from "./test.ts";
 
+import * as CodeMirror from "codemirror";
+
 const { required, defaults } = misc;
 
 export class Actions extends BaseActions {
-  public _state: string;
-  public _syncstring: any;
-  public _key_handler: any;
+  protected _state: string;
+  protected _syncstring: any;
+  protected _key_handler: any;
+  protected _cm: CodeMirror.Editor[] = [];
 
   _init(
     project_id: string,
@@ -277,7 +280,7 @@ export class Actions extends BaseActions {
     this._save_local_view_state();
   }
 
-  set_active_id(active_id, block_ms): void {
+  set_active_id(active_id: string, block_ms?: number): void {
     if (this._ignore_set_active_id) {
       return;
     }
@@ -287,32 +290,25 @@ export class Actions extends BaseActions {
         this._ignore_set_active_id = false;
       }, block_ms);
     }
-    const local = this.store.get("local_view_state");
-    if ((local != null ? local.get("active_id") : undefined) === active_id) {
+    const local: Map<string, any> = this.store.get("local_view_state");
+    if (local.get("active_id") === active_id) {
       // already set -- nothing more to do
       return;
     }
-    if (
-      tree_ops.is_leaf_id(
-        local != null ? local.get("frame_tree") : undefined,
-        active_id
-      )
-    ) {
+    if (tree_ops.is_leaf_id(local.get("frame_tree"), active_id)) {
       this.setState({
-        local_view_state: this.store
-          .get("local_view_state")
-          .set("active_id", active_id)
+        local_view_state: local.set("active_id", active_id)
       });
       this._save_local_view_state();
       // If active_id is the id of a codemirror editor,
-      // save when; this is just a quick solution to
+      // save that it was focused just now; this is just a quick solution to
       // "give me last active cm" -- we will switch to something
       // more generic later.
-      __guard__(
-        this._cm != null ? this._cm[active_id] : undefined,
-        x => (x._last_active = new Date())
-      );
-      this.focus();
+      let cm: any = this._cm[active_id];
+      if (cm) {
+        cm._last_active = new Date();
+        cm.focus();
+      }
     }
   }
 
@@ -399,9 +395,7 @@ export class Actions extends BaseActions {
     if (this._cm_selections != null) {
       delete this._cm_selections[id];
     }
-    if (this._cm != null) {
-      delete this._cm[id];
-    }
+    delete this._cm[id];
     return setTimeout(() => this.focus(), 1);
   }
 
@@ -724,25 +718,26 @@ export class Actions extends BaseActions {
     return this._cm[id] != null ? this._cm[id].focus() : undefined;
   }
 
-  set_cm(id, cm) {
+  set_cm(id: string, cm: CodeMirror.Editor): void {
     const sel =
       this._cm_selections != null ? this._cm_selections[id] : undefined;
     if (sel != null) {
       // restore saved selections (cursor position, selected ranges)
-      cm.setSelections(sel);
+      cm.getDoc().setSelections(sel);
     }
 
-    if (this._cm != null && misc.len(this._cm) > 0) {
+    if (misc.len(this._cm) > 0) {
+      // just making another cm
       this._cm[id] = cm;
       return;
     }
 
+    this._cm[id] = cm;
     // Creating codemirror for the first time -- need to initialize it.
-    this._cm = { [id]: cm };
-    return this.set_codemirror_to_syncstring();
+    this.set_codemirror_to_syncstring();
   }
 
-  unset_cm(id) {
+  unset_cm(id): void {
     const cm = this._get_cm(id);
     if (cm == null) {
       return;
@@ -757,7 +752,7 @@ export class Actions extends BaseActions {
       }
       this._cm_selections[id] = cm.listSelections();
     }
-    return this._cm != null ? delete this._cm[id] : undefined;
+    delete this._cm[id];
   }
 
   // 1. if id given, returns cm with given id if id
@@ -766,9 +761,6 @@ export class Actions extends BaseActions {
   //   if recent is not given, return some cm
   _get_cm(id?: string, recent?: boolean) {
     let v;
-    if (this._cm == null) {
-      this._cm = {};
-    }
     if (id) {
       const cm = this._cm[id] != null ? this._cm[id] : this._active_cm();
       if (cm != null) {
@@ -809,14 +801,12 @@ export class Actions extends BaseActions {
     return cm_doc_cache.get_doc(this.project_id, this.path);
   }
 
-  _recent_cm() {
+  _recent_cm(): CodeMirror.Editor | undefined {
     return this._get_cm(undefined, true);
   }
 
-  _active_cm() {
-    return this._cm != null
-      ? this._cm[this.store.getIn(["local_view_state", "active_id"])]
-      : undefined;
+  _active_cm(): CodeMirror.Editor | undefined {
+    return this._cm[this.store.getIn(["local_view_state", "active_id"])];
   }
 
   // Open a code editor, optionally at the given line.
@@ -983,7 +973,7 @@ export class Actions extends BaseActions {
     const info = cm.getScrollInfo();
     cm.scrollIntoView(pos, info.clientHeight / 2);
     if (cursor) {
-      cm.setCursor(pos);
+      cm.getDoc().setCursor(pos);
     }
     if (focus) {
       return cm.focus();

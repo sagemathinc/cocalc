@@ -260,7 +260,7 @@ export class CodemirrorEditor extends Component<Props, State> {
       codemirror_state.set_state(this.cm, this.props.editor_state.toJS());
     }
 
-    const save_editor_state = throttle(this.save_editor_state, 250);
+    const save_editor_state = throttle(() => this.save_editor_state(), 250);
     this.cm.on("scroll", save_editor_state);
 
     const e = $(this.cm.getWrapperElement());
@@ -287,7 +287,6 @@ export class CodemirrorEditor extends Component<Props, State> {
       SAVE_INTERVAL_MS,
       { leading: false }
     );
-    //save_syncstring_debounce = debounce(@save_syncstring, SAVE_INTERVAL_MS)
 
     this.cm.on("change", (_, changeObj) => {
       save_syncstring_throttle();
@@ -310,17 +309,17 @@ export class CodemirrorEditor extends Component<Props, State> {
       }
     });
 
-    this.cm.on("cursorActivity", () => this._cm_cursor());
-    this.cm.on("cursorActivity", () => save_editor_state());
+    this.cm.on("cursorActivity", () => {
+      this._cm_cursor();
+      save_editor_state();
+    });
 
     // replace undo/redo by our sync aware versions
     (this.cm as any).undo = () => this._cm_undo();
     (this.cm as any).redo = () => this._cm_redo();
 
     if (this.props.is_current) {
-      if (this.cm != null) {
-        this.cm.focus();
-      }
+      this.cm.focus();
     }
 
     setTimeout(() => {
