@@ -1,11 +1,3 @@
-/*
- * decaffeinate suggestions:
- * DS102: Remove unnecessary code created because of implicit returns
- * DS104: Avoid inline assignments
- * DS205: Consider reworking code to avoid use of IIFEs
- * DS207: Consider shorter variations of null checks
- * Full docs: https://github.com/decaffeinate/decaffeinate/blob/master/docs/suggestions.md
- */
 //#############################################################################
 //
 //    CoCalc: Collaborative Calculation in the Cloud
@@ -222,8 +214,8 @@ class Store<State> extends EventEmitter {
     }
   }
 
-  destroy() {
-    return this.redux.removeStore(this.name);
+  destroy(): void {
+    this.redux.removeStore(this.name);
   }
 
   getState(): State | undefined {
@@ -234,7 +226,7 @@ class Store<State> extends EventEmitter {
     return this.redux._redux_store.getState().getIn([this.name, field]);
   }
 
-  getIn(...args: (keyof State)[]) {
+  getIn(...args: (keyof State)[]): any {
     return this.redux._redux_store
       .getState()
       .getIn([this.name].concat(args[0]));
@@ -247,7 +239,7 @@ class Store<State> extends EventEmitter {
     cb: (err?: string, result?: T) => any;
     throttle_ms?: number;
     timeout?: number;
-  }) {
+  }): this | undefined {
     let timeout;
     opts = defaults(opts, {
       until: required, // waits until "until(store)" evaluates to something truthy
@@ -268,7 +260,8 @@ class Store<State> extends EventEmitter {
     if (opts.timeout) {
       const timeout_error = () => {
         this.removeListener("change", listener);
-        return opts.cb("timeout");
+        opts.cb("timeout");
+        return;
       };
       timeout = setTimeout(timeout_error, opts.timeout * 1000);
     }
@@ -331,12 +324,12 @@ var harvest_own_functions = function(store_def) {
           store_def.name
         }' was declared but no definition was found.`;
       }
-      return (functions[prop_name] = function() {
+      functions[prop_name] = function() {
         return this.get(prop_name);
-      });
+      };
     } else {
       functions[prop_name] = store_def[prop_name];
-      return delete store_def[prop_name];
+      delete store_def[prop_name];
     }
   });
   delete store_def.stateTypes;
@@ -406,21 +399,15 @@ const redux_app = function(state: redux_state, action): redux_state {
   }
 };
 
-interface TableMap {
-  [key: string]: Table;
-}
-interface StoreMap {
-  [key: string]: Store<any>;
-}
-interface ActionsMap {
-  [key: string]: Actions;
+interface ClassMap<T> {
+  [key: string]: T;
 }
 
 class AppRedux {
   public _redux_store: any;
-  private _tables: TableMap;
-  private _stores: StoreMap;
-  private _actions: ActionsMap;
+  private _tables: ClassMap<Table>;
+  private _stores: ClassMap<Store<any>>;
+  private _actions: ClassMap<Actions>;
   private _last_state: redux_state;
 
   constructor() {
@@ -518,10 +505,14 @@ class AppRedux {
 
   createStore<T>(spec: T): Store<T>;
   createStore<T>(name: string, init?: T): Store<T>;
-  createStore<T>(name: string, store_class: new(name, redux, store_def?) => Store<T>, init?: T): Store<T>;
+  createStore<T>(
+    name: string,
+    store_class: new (name, redux, store_def?) => Store<T>,
+    init?: T
+  ): Store<T>;
   createStore<T extends store_definition>(
     spec: string | T,
-    store_class?: new(name, redux, store_def?) => Store<T>,
+    store_class?: new (name, redux, store_def?) => Store<T>,
     init?: {} | T
   ): Store<T> {
     let S: Store<T>;
@@ -1079,7 +1070,8 @@ class CoffeeStore extends Store<CoffeeState> {
       }
     }
     return total;
-  }}
+  }
+}
 
 let init_coffee_store_state: CoffeeState = {
   name: "coffeeStore",
