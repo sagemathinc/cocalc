@@ -1,4 +1,3 @@
-
 import { EventEmitter } from "events";
 import * as async from "async";
 import * as underscore from "underscore";
@@ -13,6 +12,12 @@ const { defaults, required } = misc;
 export interface store_definition {
   name: string;
 }
+
+export type StoreConstructorType<T> = new (
+  name: string,
+  redux: AppRedux,
+  store_def?: T
+) => Store<T>;
 
 /*
 store_def =
@@ -98,8 +103,13 @@ export class Store<State> extends EventEmitter {
     return this.redux._redux_store.getState().get(this.name);
   }
 
-  get<K extends keyof State, NSV>(field: K, notSetValue?: NSV): State[K] | NSV | undefined {
-    return this.redux._redux_store.getState().getIn([this.name, field, notSetValue]);
+  get<K extends keyof State, NSV>(
+    field: K,
+    notSetValue?: NSV
+  ): State[K] | NSV | undefined {
+    return this.redux._redux_store
+      .getState()
+      .getIn([this.name, field, notSetValue]);
   }
 
   getIn(path: (keyof State)[], notSetValue: any): any {
@@ -157,7 +167,7 @@ export class Store<State> extends EventEmitter {
 }
 
 // Parses and removes store_def.reduxState
-// Returns getters for data from other stores
+// Returns getters for data frßom other stores
 var harvest_import_functions = function(store_def) {
   const result = {};
   for (var store_name in store_def.reduxState) {

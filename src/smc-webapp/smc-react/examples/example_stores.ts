@@ -1,5 +1,5 @@
-import {Store, store_definition} from "../Store"
-import {redux} from "../../smc-react"
+import { Store, store_definition } from "../Store";
+import { redux } from "../../smc-react";
 
 // Basic Store
 interface bakeryState {
@@ -17,11 +17,10 @@ redux.createStore("test", init_state);
 let store = redux.getStore<bakeryState>("thing");
 
 // get must take a parameter defined by your state interface
-store.get("pie")
+store.get("pie");
 
 // The following should error!
 // store.get("caek");
-
 
 //
 // More complex example
@@ -34,6 +33,7 @@ interface CoffeeState extends store_definition {
 }
 
 class CoffeeStore extends Store<CoffeeState> {
+  // We don't really use many functions on stores now but here's what it would look like...
   subTotal(drinkCount: Partial<{ [P in drinkTypes]: number }>): number {
     let total: number = 0;
     for (let item in drinkCount) {

@@ -36,7 +36,11 @@ import * as createReactClass from "create-react-class";
 import * as PropTypes from "prop-types";
 import { Provider, connect } from "react-redux";
 
-import { Store, store_definition } from "./smc-react/Store";
+import {
+  Store,
+  store_definition,
+  StoreConstructorType
+} from "./smc-react/Store";
 
 const misc = require("smc-util/misc");
 
@@ -282,12 +286,12 @@ export class AppRedux {
   createStore<T>(name: string, init?: T): Store<T>;
   createStore<T>(
     name: string,
-    store_class: new (name, redux, store_def?) => Store<T>,
+    store_class: StoreConstructorType<T>,
     init?: T
   ): Store<T>;
   createStore<T extends store_definition>(
     spec: string | T,
-    store_class?: new (name, redux, store_def?) => Store<T>,
+    store_class?: StoreConstructorType<T>,
     init?: {} | T
   ): Store<T> {
     let S: Store<T>;
