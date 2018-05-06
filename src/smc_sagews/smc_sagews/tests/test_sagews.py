@@ -153,6 +153,30 @@ class TestBasic:
             conftest.recv_til_done(sagews, test_id)
             break
 
+class TestPy3printMode:
+    def test_py3print_mode0(self,exec2):
+        exec2("py3print_mode()", "False\n")
+
+    def test_py3print_mode1(self,exec2):
+        exec2("py3print_mode(True)")
+
+    def test_py3print_mode2(self,exec2):
+        exec2("py3print_mode()", "True\n")
+
+    def test_py3print_mode3(self,exec2):
+        code = dedent(r"""
+        py3print_mode(True)
+        print('hello', end=' Q')
+        """)
+        output = "hello Q"
+        exec2(code, output)
+
+    def test_py3print_mode4(self,exec2):
+        exec2("py3print_mode(False)")
+
+    def test_py3print_mode5(self,exec2):
+        exec2("print '42'", "42\n")
+
 class TestUnderscore:
     # https://github.com/sagemathinc/cocalc/issues/1107
     def test_sage_underscore_1(self, exec2):

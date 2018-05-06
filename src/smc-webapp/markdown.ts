@@ -57,19 +57,28 @@ Note that remove_math is NOT perfect, e.g., it messes up
 
 However, at least it is from Jupyter, so agrees with them, so
 people are used it it as a standard.
+
+See https://github.com/sagemathinc/cocalc/issues/2863
+for another example where remove_math is annoying.
 */
 
 export function markdown_to_html(markdown_string: string): string {
   let text: string;
   let math: string[];
+  // console.log(0, JSON.stringify(markdown_string));
+  // console.log(1, JSON.stringify(math_escape(markdown_string)));
   [text, math] = remove_math(math_escape(markdown_string));
+  // console.log(2, JSON.stringify(text), JSON.stringify(math));
   // Process checkboxes [ ].
   text = checkboxes(text);
   // Render text to HTML.
   let html: string = markdown_it.render(text);
+  // console.log(3, JSON.stringify(html));
   // Substitute processed math back in.
   html = replace_math(html, math);
+  // console.log(4, JSON.stringify(html));
   html = math_unescape(html);
+  // console.log(5, JSON.stringify(html));
 
   return html;
 }
