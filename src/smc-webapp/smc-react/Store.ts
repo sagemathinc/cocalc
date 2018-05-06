@@ -98,14 +98,14 @@ export class Store<State> extends EventEmitter {
     return this.redux._redux_store.getState().get(this.name);
   }
 
-  get<K extends keyof State>(field: K): State[K] | undefined {
-    return this.redux._redux_store.getState().getIn([this.name, field]);
+  get<K extends keyof State, NSV>(field: K, notSetValue?: NSV): State[K] | NSV | undefined {
+    return this.redux._redux_store.getState().getIn([this.name, field, notSetValue]);
   }
 
-  getIn(...args: (keyof State)[]): any {
+  getIn(path: (keyof State)[], notSetValue: any): any {
     return this.redux._redux_store
       .getState()
-      .getIn([this.name].concat(args[0]));
+      .getIn([this.name].concat(path), notSetValue);
   }
 
   // wait: for the store to change to a specific state, and when that
