@@ -8,13 +8,9 @@ import { createEditor } from "../frame-tree/editor";
 
 import { PDFJS } from "./pdfjs.tsx";
 import { PDFEmbed } from "./pdf-embed.tsx";
-//import { CodemirrorEditor } from "../code-editor/codemirror-editor";
-const { CodemirrorEditor } = require("../code-editor/codemirror-editor");
+import { CodemirrorEditor } from "../code-editor/codemirror-editor";
 import { Build } from "./build.tsx";
 import { ErrorsAndWarnings } from "./errors-and-warnings.tsx";
-
-// import { LaTeXJS } from "./latexjs";
-// import { PEG } from "./peg";
 
 import { pdf_path } from "./util";
 
