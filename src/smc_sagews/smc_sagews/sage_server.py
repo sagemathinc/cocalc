@@ -877,10 +877,8 @@ class Salvus(object):
         if (feature not in future.all_feature_names) or (attr is None) or not isinstance(attr, future._Feature):
             raise RuntimeError("future feature %.50r is not defined" % (feature,))
 
-        wasEnabled = feature in Salvus._py_features
-
         if enable is None:
-            return wasEnabled
+            return feature in Salvus._py_features
 
         if enable:
             Salvus._py_features[feature] = attr
@@ -889,7 +887,6 @@ class Salvus(object):
                 del Salvus._py_features[feature]
             except KeyError:
                 pass
-        return wasEnabled
 
     def default_mode(self, mode=None):
         """

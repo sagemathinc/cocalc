@@ -3651,7 +3651,23 @@ def python_future_feature(feature=None, enable=None):
     return salvus.python_future_feature(feature, enable)
 
 def py3print_mode(enable=None):
-    return python_future_feature('print_function', enable)
+    """
+    Enable python3 print syntax.
+
+    EXAMPLES::
+
+    Enable python3 printing:
+
+        py3print_mode(True)
+        py3print_mode()   # returns True
+        print("hello", end="")
+
+    Then switch back to python2 printing
+        py3print_mode(False)
+        print "hello"
+
+    """
+    return salvus.python_future_feature('print_function', enable)
 
 def default_mode(mode):
     """
