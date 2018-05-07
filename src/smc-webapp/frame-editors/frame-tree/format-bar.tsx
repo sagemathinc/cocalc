@@ -1,19 +1,12 @@
 /*
- * decaffeinate suggestions:
- * DS102: Remove unnecessary code created because of implicit returns
- * DS205: Consider reworking code to avoid use of IIFEs
- * DS207: Consider shorter variations of null checks
- * Full docs: https://github.com/decaffeinate/decaffeinate/blob/master/docs/suggestions.md
- */
-/*
 The format bar
 */
 
-import { React, rclass, rtypes, /* Component,*/  Rendered, Fragment } from "../generic/react";
+import { React, Component, Rendered, Fragment } from "../generic/react";
+
+import { cmp } from "../generic/misc";
 
 const css_colors = require("css-color-names");
-
-const misc = require("smc-util/misc");
 
 const {
   ButtonGroup,
@@ -29,40 +22,41 @@ const FONT_SIZES = "xx-small x-small small medium large x-large xx-large".split(
   " "
 );
 
-export const FormatBar = rclass({
-  propTypes: {
-    actions: rtypes.object.isRequired,
-    extension: rtypes.string
-  }, // type of file being edited, which impacts what buttons are shown.
-  // store   : rtypes.immutable.Map      # state about format bar stored in external store
+interface Props {
+  actions: any; // type of file being edited, which impacts what buttons are shown.
+  extension: string; // store   : rtypes.immutable.Map      # state about format bar stored in external store
+}
 
-  shouldComponentUpdate() : boolean {
+export class FormatBar extends Component<Props, {}> {
+  shouldComponentUpdate(): boolean {
     return false;
-  },
-  //return @props.store != next.store
+  }
 
-  render_button(name, title, icon, label = "") {
-    if (this._commands == null) {
-      this._commands = buttonbar.commands[this.props.extension];
+  render_button(
+    name: string,
+    title: string,
+    label?: string | Rendered // if a string, the named icon; if a rendered
+    // component for the button, show that in the button; if not given, use
+    // icon with given name.
+  ): Rendered {
+    if (typeof label === "undefined") {
+      label = <Icon name={name} />;
+    } else if (typeof label === "string") {
+      label = <Icon name={label} />;
     }
-    if (this._commands != null && this._commands[name] == null) {
-      return;
-    }
-    if (icon == null) {
-      icon = name;
-    } // if icon not given, use name for it.
+
     return (
       <Button
         key={name}
         title={title}
         onClick={() => this.props.actions.format_action(name)}
       >
-        {icon ? <Icon name={icon} /> : undefined} {label}
+        {label}
       </Button>
     );
-  },
+  }
 
-  render_text_style_buttons() {
+  render_text_style_buttons(): Rendered {
     return (
       <ButtonGroup key={"text-style"}>
         {this.render_button("bold", "Make selected text bold")}
@@ -74,17 +68,20 @@ export const FormatBar = rclass({
         {this.render_button("comment", "Comment out selected text")}
       </ButtonGroup>
     );
-  },
+  }
 
-  render_insert_buttons() {
+  render_insert_buttons(): Rendered {
     return (
       <ButtonGroup key={"insert"}>
-        {this.render_button("equation", "Insert inline LaTeX math", "", "$")}
+        {this.render_button(
+          "equation",
+          "Insert inline LaTeX math",
+          <span>$</span>
+        )}
         {this.render_button(
           "display_equation",
           "Insert displayed LaTeX math",
-          "",
-          "$$"
+          <span>$$</span>
         )}
         {this.render_button(
           "insertunorderedlist",
@@ -105,14 +102,13 @@ export const FormatBar = rclass({
         {this.render_button(
           "horizontalRule",
           "Insert horizontal rule",
-          "",
           <span>&mdash;</span>
         )}
       </ButtonGroup>
     );
-  },
+  }
 
-  render_insert_dialog_buttons() {
+  render_insert_dialog_buttons(): Rendered {
     return (
       <ButtonGroup key={"insert-dialog"}>
         {this.render_button("link", "Insert link", "link")}
@@ -121,15 +117,14 @@ export const FormatBar = rclass({
           ? this.render_button(
               "SpecialChar",
               "Insert special character...",
-              "",
               <span>&Omega;</span>
             )
           : undefined}
       </ButtonGroup>
     );
-  },
+  }
 
-  render_format_buttons() {
+  render_format_buttons(): Rendered {
     return (
       <Fragment>
         <ButtonGroup key={"format"}>
@@ -169,12 +164,12 @@ export const FormatBar = rclass({
         </ButtonGroup>
       </Fragment>
     );
-  },
+  }
 
-  render_font_family_dropdown() {
-    const items : Rendered[] = [];
+  render_font_family_dropdown(): Rendered {
+    const items: Rendered[] = [];
     for (let family of buttonbar.FONT_FACES) {
-      const item : Rendered = (
+      const item: Rendered = (
         <MenuItem
           key={family}
           eventKey={family}
@@ -197,12 +192,12 @@ export const FormatBar = rclass({
         {items}
       </DropdownButton>
     );
-  },
+  }
 
-  render_font_size_dropdown() {
-    const items : Rendered[] = [];
+  render_font_size_dropdown(): Rendered {
+    const items: Rendered[] = [];
     for (let size of FONT_SIZES) {
-      const item : Rendered = (
+      const item: Rendered = (
         <MenuItem
           key={size}
           eventKey={size}
@@ -227,10 +222,10 @@ export const FormatBar = rclass({
         {items}
       </DropdownButton>
     );
-  },
+  }
 
-  render_heading_dropdown() {
-    const items : Rendered[] = [];
+  render_heading_dropdown(): Rendered {
+    const items: Rendered[] = [];
     for (let heading = 1; heading <= 6; heading++) {
       var c;
       const label = `Heading ${heading}`;
@@ -277,20 +272,20 @@ export const FormatBar = rclass({
         {items}
       </DropdownButton>
     );
-  },
+  }
 
-  render_colors_dropdown() {
+  render_colors_dropdown(): Rendered {
     let color, code;
-    const items : Rendered[] = [];
+    const items: Rendered[] = [];
     const v = (() => {
-      const result : any[] = [];
+      const result: any[] = [];
       for (color in css_colors) {
         code = css_colors[color];
         result.push([color, code]);
       }
       return result;
     })();
-    v.sort((a, b) => misc.cmp(a.code, b.code));
+    v.sort((a, b) => cmp(a.code, b.code));
     for (let x of v) {
       color = x[0];
       code = x[1];
@@ -321,9 +316,9 @@ export const FormatBar = rclass({
         {items}
       </DropdownButton>
     );
-  },
+  }
 
-  render_font_dropdowns() {
+  render_font_dropdowns(): Rendered {
     if (this.props.extension === "tex") {
       // these are mostly not implemented for latex... yet!
       return;
@@ -339,9 +334,9 @@ export const FormatBar = rclass({
         {this.render_colors_dropdown()}
       </ButtonGroup>
     );
-  },
+  }
 
-  render() {
+  render(): Rendered {
     return (
       <div style={{ background: "#f8f8f8", margin: "0 1px" }}>
         {this.render_font_dropdowns()}
@@ -358,4 +353,4 @@ export const FormatBar = rclass({
       </div>
     );
   }
-});
+}

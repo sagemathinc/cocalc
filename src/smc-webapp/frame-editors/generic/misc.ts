@@ -120,3 +120,12 @@ export function set(v: string[]): object {
   }
   return s;
 }
+
+export function cmp(a:any, b:any) : -1|0|1 {
+    if (a < b) {
+        return -1;
+    } else if (a > b) {
+        return 1;
+    }
+    return 0;
+}
