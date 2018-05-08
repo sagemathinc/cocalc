@@ -50,7 +50,7 @@ let init_coffee_store_state: CoffeeState = {
   name: "coffeeStore",
   drinks: ["mocha", "latte"],
   costs: {
-    mocha: 5
+    mocha: 2
   }
 };
 

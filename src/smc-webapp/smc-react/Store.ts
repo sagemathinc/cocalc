@@ -167,7 +167,7 @@ export class Store<State> extends EventEmitter {
 }
 
 // Parses and removes store_def.reduxState
-// Returns getters for data frßom other stores
+// Returns getters for data from other stores
 var harvest_import_functions = function(store_def) {
   const result = {};
   for (var store_name in store_def.reduxState) {

@@ -92,8 +92,8 @@ class Table {
 // from stores.  The table will set stores (via creating actions) as
 // needed when it changes.
 
-class Actions {
-  constructor(public name: string, protected redux: AppRedux) {
+class Actions<T> {
+  constructor(public name: string, protected redux: AppRedux, protected store_def: T) {
     this.setState = this.setState.bind(this);
     this.destroy = this.destroy.bind(this);
     if (this.name == null) {
@@ -104,12 +104,7 @@ class Actions {
     }
   }
 
-  setState(obj: any, nothing_else: never): void {
-    if (nothing_else != null) {
-      throw Error(
-        "setState takes exactly one argument, which must be an object"
-      );
-    }
+  setState(obj: Partial<{[P in keyof T] : T[P]}>): void {
     if (DEBUG && this.redux.getStore(this.name).__converted) {
       for (let key in obj) {
         let descriptor = Object.getOwnPropertyDescriptor(
@@ -178,15 +173,15 @@ const redux_app = function(state: redux_state, action): redux_state {
   }
 };
 
-interface ClassMap<T> {
+interface ClassMap<T extends C, C> {
   [key: string]: T;
 }
 
 export class AppRedux {
   public _redux_store: any;
-  private _tables: ClassMap<Table>;
-  private _stores: ClassMap<Store<any>>;
-  private _actions: ClassMap<Actions>;
+  private _tables: ClassMap<any, Table>;
+  private _stores: ClassMap<any, Store<any>>;
+  private _actions: ClassMap<any, Actions<any>>;
   private _last_state: redux_state;
 
   constructor() {
@@ -252,19 +247,19 @@ export class AppRedux {
     this._redux_store.dispatch(action_set_state(change));
   }
 
-  createActions(name: string, actions_class = Actions): Actions {
+  createActions<T, C extends Actions<T>>(name: string, actions_class: new(a, b, c) => C, state_types: T): C {
     if (name == null) {
       throw Error("name must be a string");
     }
 
     if (this._actions[name] == null) {
-      this._actions[name] = new actions_class(name, this);
+      this._actions[name] = new actions_class(name, this, state_types);
     }
 
     return this._actions[name];
   }
 
-  getActions(name: string | { project_id: string }): Actions {
+  getActions<T, C extends Actions<T>>(name: string | { project_id: string }): C {
     let test = this.createStore({ name: "high" });
     test;
     if (name == null) {
@@ -404,7 +399,7 @@ export class AppRedux {
     return this.getStore(project_redux_name(project_id));
   }
 
-  getProjectActions(project_id: string): Actions {
+  getProjectActions<T, C extends Actions<T>>(project_id: string): C {
     if (!misc.is_valid_uuid_string(project_id)) {
       console.trace();
       console.warn(`getProjectActions: INVALID project_id -- ${project_id}`);
