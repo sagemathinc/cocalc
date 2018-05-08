@@ -78,6 +78,10 @@ export class Actions extends BaseActions {
       () => this.__save_local_view_state(),
       1500
     );
+
+    if (this._init2) {
+      this._init2();
+    }
   }
 
   // Init setting of content exactly once based on

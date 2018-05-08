@@ -10,8 +10,7 @@ import { raw_url, aux_file } from "../frame-tree/util";
 import { FrameTree } from "../frame-tree/types";
 
 export class Actions extends CodeEditorActions {
-  _init(...args): void {
-    super._init(...args); // call the _init for the parent class
+  _init2(): void {
     if (!this.is_public) {
       this._init_syncstring_value();
       this._init_spellcheck(); // TODO: need to "detex" (?)

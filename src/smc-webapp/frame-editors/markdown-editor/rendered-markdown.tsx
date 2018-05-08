@@ -10,12 +10,10 @@ It also:
    - [x] checkbox in markdown are interactive (can click them, which edits file)
 */
 
-import { is_different, path_split } from "../generic/misc";
-
-const { throttle } = require("underscore");
-
 const { Loading, Markdown } = require("smc-webapp/r_misc");
 
+import { is_different, path_split } from "../generic/misc";
+import { throttle } from "underscore";
 import { React, Component, Rendered, ReactDOM } from "../generic/react";
 
 const { process_checkboxes } = require("smc-webapp/tasks/desc-rendering");

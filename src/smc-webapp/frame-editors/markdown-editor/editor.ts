@@ -3,12 +3,9 @@ Top-level react component for editing markdown documents
 */
 
 import { createEditor } from "../frame-tree/editor";
-
 import { RenderedMarkdown } from "./rendered-markdown.tsx";
-
 import { set } from "../generic/misc";
-
-const { CodemirrorEditor } = require("../code-editor/codemirror-editor");
+import { CodemirrorEditor } from "../code-editor/codemirror-editor";
 
 const EDITOR_SPEC = {
   cm: {
@@ -68,4 +65,3 @@ export const Editor = createEditor({
         component : ContentEditable
         buttons   : set(['print', 'decrease_font_size', 'increase_font_size', 'save', 'time_travel'])
 */
-

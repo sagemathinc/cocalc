@@ -40,8 +40,7 @@ interface BuildLog extends ExecOutput {
 
 export class Actions extends BaseActions {
   private project_id: string;
-  _init(...args): void {
-    super._init(...args); // call the _init for the parent class
+  _init2(): void {
     if (!this.is_public) {
       // one extra thing after markdown.
       this._init_syncstring_value();

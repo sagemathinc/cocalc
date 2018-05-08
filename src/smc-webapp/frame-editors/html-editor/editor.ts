@@ -3,15 +3,10 @@ Top-level react component for editing HTML documents
 */
 
 import { createEditor } from "../frame-tree/editor";
-
 import { set } from "../generic/misc";
-
 import { QuickHTMLPreview } from "./rendered-html.tsx";
-
 import { IFrameHTML } from "./iframe-html.tsx";
-
-//import { CodemirrorEditor } from "../code-editor/codemirror-editor";
-const { CodemirrorEditor } = require("../code-editor/codemirror-editor");
+import { CodemirrorEditor } from "../code-editor/codemirror-editor";
 
 const EDITOR_SPEC = {
   cm: {

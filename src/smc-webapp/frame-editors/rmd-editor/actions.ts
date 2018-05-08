@@ -7,8 +7,7 @@ import { convert } from "./rmd2md";
 import { FrameTree } from "../frame-tree/types";
 
 export class RmdActions extends Actions {
-  _init(...args): void {
-    super._init(...args); // call the _init for the parent class
+  _init2(): void {
     if (!this.is_public) {
       // one extra thing after markdown.
       this._init_rmd2md();

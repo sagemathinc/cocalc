@@ -10,8 +10,7 @@ import { aux_file } from "../frame-tree/util";
 import { raw_url } from "../frame-tree/util";
 
 export class Actions extends MarkdownActions {
-  _init(...args) {
-    super._init(...args); // call the _init for the parent class
+  _init2() : void {
     if (!this.is_public) {
       // one extra thing after base class init...
       this._init_wiki2html();
