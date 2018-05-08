@@ -14,6 +14,38 @@ Code for parsing Sage code blocks sensibly.
 
 import string
 import traceback
+import __future__ as future
+import ast
+
+def get_future_features(code, mode):
+    if '__future__' not in code:
+        return {}
+    features = {}
+    node = ast.parse(code, mode = mode)
+    #Make it work for all outer-container node types (module, interactive, expression)
+    body = getattr(node, 'body', ())
+    if isinstance(body, ast.AST):
+        body = [body]
+    #The first non-future statement ends processing for future statements
+    for stmt in body:
+        #Future statements must be "from __future__ import ..."
+        if isinstance(stmt, ast.ImportFrom):
+            if getattr(stmt, 'module', None) == '__future__':
+                for alias in stmt.names:
+                    assert isinstance(alias, ast.alias)
+                    name = alias.name
+                    if (name not in future.all_feature_names):
+                        raise SyntaxError("future feature %.50r is not defined: %.150r" % (name, code))
+                    attr = getattr(future, alias.name, None)
+                    if (attr is not None) and isinstance(attr, future._Feature):
+                        features[alias.name] = attr
+            else:
+                #If the module is not '__future__', we're done processing future statements
+                break
+        else:
+            #If the statement is not an "ImportFrom", we're done processing future statements
+            break
+    return features
 
 def get_input(prompt):
     try:
