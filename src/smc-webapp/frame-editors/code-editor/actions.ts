@@ -1209,11 +1209,11 @@ export class Actions extends BaseActions {
 
   // call this and get back a function that can be used
   // for testing that realtime sync/set/etc....
-  test(opts: any = {}) {
+  async test(opts: any = {}) : Promise<void> {
     if (!opts.cm) {
       opts.cm = this._get_cm();
     }
-    test_line(opts);
+    await test_line(opts);
   }
 }
 

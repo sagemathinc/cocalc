@@ -134,3 +134,4 @@ export function cmp(a:any, b:any) : -1|0|1 {
 export function copy(obj: any) : any {
    return Object.assign({}, obj);
 }
+
