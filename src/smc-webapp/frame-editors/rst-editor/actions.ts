@@ -2,11 +2,10 @@
 Rst Editor Actions
 */
 
-const CodeEditorActions = require("../code-editor/actions").Actions;
+import { Actions as CodeEditorActions } from "../code-editor/actions";
 import { print_html } from "../frame-tree/print";
 import { convert } from "./rst2html";
 import { raw_url, aux_file } from "../frame-tree/util";
-
 import { FrameTree } from "../frame-tree/types";
 
 export class Actions extends CodeEditorActions {

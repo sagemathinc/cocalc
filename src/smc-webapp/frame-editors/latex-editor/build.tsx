@@ -2,10 +2,8 @@
 Show the last latex build log, i.e., output from last time we ran the LaTeX build process.
 */
 
-const { ButtonGroup, Button } = require("react-bootstrap");
-
+import { ButtonGroup, Button } from "react-bootstrap";
 import { is_different } from "../generic/misc";
-
 import { React, rclass, rtypes, Fragment, Rendered, Component } from "../generic/react";
 
 const { Icon, Loading } = require("smc-webapp/r_misc");

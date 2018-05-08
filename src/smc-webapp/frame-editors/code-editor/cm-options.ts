@@ -13,7 +13,8 @@ using the given editor settings.
 import * as CodeMirror from "codemirror";
 const { file_associations } = require("smc-webapp/file-associations");
 const feature = require("smc-webapp/feature");
-const misc = require("smc-util/misc");
+import {path_split} from "../generic/misc";
+const {filename_extension_notilde, defaults} = require('misc');
 
 import { extra_alt_keys } from "./mobile";
 import { Map } from "immutable";
@@ -25,9 +26,9 @@ export function cm_options(
   actions: any,
   frame_id: string
 ): object {
-  let key = misc.filename_extension_notilde(filename).toLowerCase();
+  let key = filename_extension_notilde(filename).toLowerCase();
   if (!key) {
-    key = `noext-${misc.path_split(filename).tail}`.toLowerCase();
+    key = `noext-${path_split(filename).tail}`.toLowerCase();
   }
   const default_opts =
     (file_associations[key] != null
@@ -38,7 +39,7 @@ export function cm_options(
         : undefined
       : {};
 
-  let opts = misc.defaults(default_opts, {
+  let opts = defaults(default_opts, {
     undoDepth: 0, // we use our own sync-aware undo.
     mode: undefined,
     show_trailing_whitespace: editor_settings.get(
@@ -206,7 +207,7 @@ export function cm_options(
     opts.style_active_line = false;
   }
 
-  const ext = misc.filename_extension_notilde(filename);
+  const ext = filename_extension_notilde(filename);
 
   // Ugly until https://github.com/sagemathinc/cocalc/issues/2847 is implemented:
   if (["js", "jsx", "ts", "tsx", "json", "md"].includes(ext)) {

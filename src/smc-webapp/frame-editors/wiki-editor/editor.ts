@@ -3,13 +3,10 @@ Top-level react component for editing MediaWiki documents
 */
 
 import { createEditor } from "../frame-tree/editor";
-
 import { aux_file } from "../frame-tree/util";
-
 import { set } from "../generic/misc";
-
 import { IFrameHTML } from "../html-editor/iframe-html";
-const { CodemirrorEditor } = require("../code-editor/codemirror-editor");
+import { CodemirrorEditor } from "../code-editor/codemirror-editor";
 
 const EDITOR_SPEC = {
   cm: {
