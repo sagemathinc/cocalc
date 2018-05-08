@@ -544,6 +544,7 @@ class Salvus(object):
     _prefix       = ''
     _postfix      = ''
     _default_mode = 'sage'
+    _py3print_mode = False
 
     def _flush_stdio(self):
         """
@@ -862,6 +863,12 @@ class Salvus(object):
                 url += u'?download'
             return TemporaryURL(url=url, ttl=mesg.get('ttl',0))
 
+    def py3print_mode(self, enable=None):
+        if enable is None:
+            return Salvus._py3print_mode
+        if isinstance(enable, bool):
+            Salvus._py3print_mode = enable
+
     def default_mode(self, mode=None):
         """
         Set the default mode for cell evaluation.  This is equivalent
@@ -958,6 +965,11 @@ class Salvus(object):
         if pylab is not None:
             pylab.clf()
 
+        compile_flags = 0
+        if self._py3print_mode:
+            import __future__
+            compile_flags = __future__.CO_FUTURE_PRINT_FUNCTION
+
         #code   = sage_parsing.strip_leading_prompts(code)  # broken -- wrong on "def foo(x):\n   print(x)"
         blocks = sage_parsing.divide_into_blocks(code)
 
@@ -1010,7 +1022,7 @@ class Salvus(object):
                             # BUGFIX: be careful to *NOT* assign to _!!  see https://github.com/sagemathinc/cocalc/issues/1107
                             block2 = "sage.misc.session.state_at_init = dict(globals());sage.misc.session._dummy=sage.misc.session.show_identifiers();\n"
                             exec compile(block2, '', 'single') in namespace, locals
-                    exec compile(block+'\n', '', 'single') in namespace, locals
+                    exec compile(block+'\n', '', 'single', flags=compile_flags) in namespace, locals
                 sys.stdout.flush()
                 sys.stderr.flush()
             except:
@@ -1066,7 +1078,7 @@ class Salvus(object):
 
         for code_decorator in reversed(code_decorators):
             if hasattr(code_decorator, 'eval'):   # eval is for backward compatibility
-                print code_decorator.eval(code, locals=self.namespace),
+                print(code_decorator.eval(code, locals=self.namespace)),
                 code = ''
             elif code_decorator is sage:
                 # special case -- the sage module (i.e., %sage) should do nothing.
@@ -1865,7 +1877,7 @@ def serve(port, host, extra_imports=False):
                      'default_mode', 'delete_last_output', 'dynamic', 'exercise', 'fork',
                      'fortran', 'go', 'help', 'hide', 'hideall', 'input', 'java', 'javascript', 'julia',
                      'jupyter', 'license', 'load', 'md', 'mediawiki', 'modes', 'octave', 'pandoc',
-                     'perl', 'plot3d_using_matplotlib', 'prun', 'python', 'python3', 'r', 'raw_input',
+                     'perl', 'plot3d_using_matplotlib', 'prun', 'py3print_mode', 'python', 'python3', 'r', 'raw_input',
                      'reset', 'restore', 'ruby', 'runfile', 'sage_chat', 'sage_eval', 'scala', 'scala211',
                      'script', 'search_doc', 'search_src', 'sh', 'show', 'show_identifiers', 'singular_kernel',
                      'time', 'timeit', 'typeset_mode', 'var', 'wiki']:
