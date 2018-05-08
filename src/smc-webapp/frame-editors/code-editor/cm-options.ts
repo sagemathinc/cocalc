@@ -41,7 +41,10 @@ export function cm_options(
   let opts = misc.defaults(default_opts, {
     undoDepth: 0, // we use our own sync-aware undo.
     mode: undefined,
-    show_trailing_whitespace: editor_settings.get("show_trailing_whitespace", true),
+    show_trailing_whitespace: editor_settings.get(
+      "show_trailing_whitespace",
+      true
+    ),
     allow_javascript_eval: true, // if false, the one use of eval isn't allowed.
     line_numbers: editor_settings.get("line_numbers", true),
     first_line_number: editor_settings.get("first_line_number", 1),
@@ -140,8 +143,12 @@ export function cm_options(
       "Shift-Ctrl-G"(cm) {
         cm.execCommand("findPrev");
       },
-      "Shift-Cmd-F": actions.format,
-      "Shift-Ctrl-F": actions.format,
+      "Shift-Cmd-F"() {
+        actions.format();
+      },
+      "Shift-Ctrl-F"() {
+        actions.format();
+      },
       "Shift-Enter"() {
         actions.set_error(
           "You can evaluate code in a file with the extension 'sagews' or 'ipynb'.   Please create a Sage Worksheet or Jupyter notebook instead."

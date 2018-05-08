@@ -69,3 +69,33 @@ export async function read_text_file_from_project(
   let mesg = await async_opts(webapp_client.read_text_file_from_project, opts);
   return mesg.content;
 }
+
+interface ParserOptions {
+  parser: string;
+  tabWidth?: number;
+  useTabs?: boolean;
+}
+
+export async function prettier(
+  project_id: string,
+  path: string,
+  options: ParserOptions
+): Promise<void> {
+  let resp = await async_opts(webapp_client.prettier, {
+    project_id,
+    path,
+    options
+  });
+  if (resp.status === "error") {
+    let loc = resp.error.loc;
+    if (loc && loc.start) {
+      throw Error(
+        `Syntax error prevented formatting code (possibly on line ${
+          loc.start.line
+        } column ${loc.start.column}) -- fix and run again.`
+      );
+    } else {
+      throw Error("Syntax error prevented formatting code.");
+    }
+  }
+}

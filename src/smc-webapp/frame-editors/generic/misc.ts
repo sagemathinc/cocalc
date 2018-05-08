@@ -129,3 +129,8 @@ export function cmp(a:any, b:any) : -1|0|1 {
     }
     return 0;
 }
+
+// see https://stackoverflow.com/questions/728360/how-do-i-correctly-clone-a-javascript-object/30042948#30042948
+export function copy(obj: any) : any {
+   return Object.assign({}, obj);
+}

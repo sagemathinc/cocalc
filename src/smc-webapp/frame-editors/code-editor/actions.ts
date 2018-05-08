@@ -8,11 +8,14 @@ const SAVE_WORKAROUND =
   "Ensure your network connection is solid. If this problem persists, you might need to close and open this file, or restart this project in Project Settings.";
 const MAX_SAVE_TIME_S = 30; // how long to retry to save (and get no unsaved changes), until giving up and showing an error.
 
-import { Set, Map } from "immutable";
+import { fromJS, List, Map, Set } from "immutable";
 
-const immutable = require("immutable");
-const underscore = require("underscore");
-const async = require("async");
+import { debounce } from "underscore";
+
+import { callback } from "awaiting";
+
+import { prettier } from "../generic/async-utils";
+import {filename_extension} from "../generic/misc";
 
 const schema = require("smc-util/schema");
 
@@ -71,7 +74,7 @@ export class Actions extends BaseActions {
       cursors: Map()
     });
 
-    this._save_local_view_state = underscore.debounce(
+    this._save_local_view_state = debounce(
       () => this.__save_local_view_state(),
       1500
     );
@@ -167,7 +170,7 @@ export class Actions extends BaseActions {
   }
 
   set_reload(type: string): void {
-    const reload = this.store.get("reload", immutable.Map());
+    const reload = this.store.get("reload", Map());
     this.setState({
       reload: reload.set(type, this._syncstring.hash_of_saved_version())
     });
@@ -213,10 +216,10 @@ export class Actions extends BaseActions {
     let local_view_state;
     const x = localStorage[this.name];
     if (x != null) {
-      local_view_state = immutable.fromJS(JSON.parse(x));
+      local_view_state = fromJS(JSON.parse(x));
     }
     if (local_view_state == null) {
-      local_view_state = immutable.Map();
+      local_view_state = Map();
     }
 
     if (!local_view_state.has("version")) {
@@ -225,7 +228,7 @@ export class Actions extends BaseActions {
     }
 
     if (!local_view_state.has("editor_state")) {
-      local_view_state = local_view_state.set("editor_state", immutable.Map());
+      local_view_state = local_view_state.set("editor_state", Map());
     }
 
     if (!local_view_state.has("font_size")) {
@@ -272,7 +275,7 @@ export class Actions extends BaseActions {
     let local = this.store.get("local_view_state");
     for (let key in obj) {
       const value = obj[key];
-      local = local.set(key, immutable.fromJS(value));
+      local = local.set(key, fromJS(value));
     }
     this.setState({
       local_view_state: local
@@ -349,7 +352,7 @@ export class Actions extends BaseActions {
   }
 
   _default_frame_tree() {
-    let frame_tree = immutable.fromJS(this._raw_default_frame_tree());
+    let frame_tree = fromJS(this._raw_default_frame_tree());
     frame_tree = tree_ops.assign_ids(frame_tree);
     frame_tree = tree_ops.ensure_ids_are_unique(frame_tree);
     return frame_tree;
@@ -442,14 +445,14 @@ export class Actions extends BaseActions {
       return;
     }
     let editor_state =
-      (left = local.get("editor_state")) != null ? left : immutable.Map();
+      (left = local.get("editor_state")) != null ? left : Map();
     if (new_editor_state == null) {
       if (!editor_state.has(id)) {
         return;
       }
       editor_state = editor_state.delete(id);
     } else {
-      editor_state = editor_state.set(id, immutable.fromJS(new_editor_state));
+      editor_state = editor_state.set(id, fromJS(new_editor_state));
     }
     this.setState({
       local_view_state: local.set("editor_state", editor_state)
@@ -514,7 +517,7 @@ export class Actions extends BaseActions {
       do_set();
       return setTimeout(do_set, 3000);
     };
-    this.update_save_status = f; // underscore.debounce(f, 500, true)
+    this.update_save_status = f;
     this._syncstring.on("metadata-change", this.update_save_status);
     return this._syncstring.on("connected", this.update_save_status);
   }
@@ -532,7 +535,7 @@ export class Actions extends BaseActions {
   _syncstring_cursor_activity() {
     // TODO: for now, just for the one syncstring obviously
     // TOOD: this is probably naive and slow too...
-    let cursors = immutable.Map();
+    let cursors = Map();
     this._syncstring.get_cursors().forEach((info, account_id) => {
       if (account_id === this._syncstring._client.account_id) {
         // skip self.
@@ -543,7 +546,7 @@ export class Actions extends BaseActions {
         loc = loc.set("time", info.get("time"));
         const locs = ((left = cursors.get(account_id)) != null
           ? left
-          : immutable.List()
+          : List()
         ).push(loc);
         cursors = cursors.set(account_id, locs);
       });
@@ -1063,7 +1066,7 @@ export class Actions extends BaseActions {
         path: this.path,
         time
       });
-      const x = immutable.Set(words);
+      const x = Set(words);
       if (!x.equals(this.store.get("misspelled_words"))) {
         this.setState({ misspelled_words: x });
       }
@@ -1072,23 +1075,13 @@ export class Actions extends BaseActions {
     }
   }
 
-  format_action(cmd, args) {
+  format_action(cmd, args) : void {
     const cm = this._get_cm();
     if (cm == null) {
       // format bar only makes sense when some cm is there...
       return;
     }
-    /*  -- disabled; using codemirror pluging for now instead
-        if cmd in ['link', 'image', 'SpecialChar']
-            if @store.getIn(['format_bar', cmd])?
-                * Doing the formatting action
-                @format_dialog_action(cmd)
-            else
-                * This causes a dialog to appear, which will set relevant part of store and call format_action again
-                @set_format_bar(cmd, {})
-            return
-        */
-    return cm.edit_selection({
+    cm.edit_selection({
       cmd,
       args,
       cb: () => {
@@ -1113,10 +1106,8 @@ export class Actions extends BaseActions {
       opts.id = misc.uuid();
     }
     const gutter_markers =
-      (left = this.store.get("gutter_markers")) != null
-        ? left
-        : immutable.Map();
-    let info = immutable.fromJS({ line: opts.line, gutter_id: opts.gutter_id });
+      (left = this.store.get("gutter_markers")) != null ? left : Map();
+    let info = fromJS({ line: opts.line, gutter_id: opts.gutter_id });
     info = info.set("component", opts.component);
     return this.setState({ gutter_markers: gutter_markers.set(opts.id, info) });
   }
@@ -1132,9 +1123,7 @@ export class Actions extends BaseActions {
   clear_gutter(gutter_id) {
     let left;
     let gutter_markers =
-      (left = this.store.get("gutter_markers")) != null
-        ? left
-        : immutable.Map();
+      (left = this.store.get("gutter_markers")) != null ? left : Map();
     const before = gutter_markers;
     gutter_markers.map((info, id) => {
       if (info.get("gutter_id") === gutter_id) {
@@ -1165,18 +1154,12 @@ export class Actions extends BaseActions {
     });
   }
 
-  format(id?: string) {
-    let parser;
-    if (this._syncstring == null) {
-      return;
-    }
+  async format(id?: string): Promise<void> {
     const cm = this._get_cm(id);
-    if (cm == null) {
-      return;
-    }
+    if (!cm) return;
     cm.focus();
-    const ext = misc.filename_extension(this.path);
-    switch (ext) {
+    let parser;
+    switch (filename_extension(this.path)) {
       case "js":
       case "jsx":
         parser = "babylon";
@@ -1202,51 +1185,26 @@ export class Actions extends BaseActions {
       tabWidth: cm.getOption("tabSize"),
       useTabs: cm.getOption("indentWithTabs")
     };
-    return async.series(
-      [
-        cb => {
-          this.set_status("Ensuring your latest changes are saved...");
-          this.set_syncstring_to_codemirror();
-          return this._syncstring._save(cb);
-        },
-        cb => {
-          this.set_status("Running code formatter...");
-          return webapp_client.prettier({
-            project_id: this.project_id,
-            path: this.path,
-            options,
-            cb: (err, resp) => {
-              let error;
-              this.set_status("");
-              if (err) {
-                error = `Error formatting code: \n${err}`;
-              } else if (resp.status === "error") {
-                const start = __guard__(
-                  resp.error != null ? resp.error.loc : undefined,
-                  x => x.start
-                );
-                if (start != null) {
-                  error = `Syntax error prevented formatting code (possibly on line ${
-                    start.line
-                  } column ${start.column}) -- fix and run again.`;
-                } else {
-                  error = "Syntax error prevented formatting code.";
-                }
-              } else {
-                error = undefined;
-              }
-              this.setState({ error: "" });
-              return cb(error);
-            }
-          });
-        }
-      ],
-      err => {
-        if (err) {
-          return this.setState({ error: err });
-        }
-      }
-    );
+    this.set_status("Ensuring your latest changes are saved...");
+    this.set_syncstring_to_codemirror();
+    try {
+      await callback(this._syncstring._save);
+    } catch (err) {
+      this.set_error(`Error saving code: \n${err}`);
+      return;
+    } finally {
+      this.set_status("");
+    }
+
+    this.set_status("Running code formatter...");
+    try {
+      await prettier(this.project_id, this.path, options);
+      this.set_error("");
+    } catch (err) {
+      this.set_error(`Error formatting code: \n${err}`);
+    } finally {
+      this.set_status("");
+    }
   }
 
   // call this and get back a function that can be used

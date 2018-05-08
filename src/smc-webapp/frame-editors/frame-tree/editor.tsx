@@ -7,7 +7,7 @@ import { FormatBar } from "./format-bar.tsx";
 import { StatusBar } from "./status-bar.tsx";
 const { FrameTree } = require("./frame-tree");
 
-import { is_different } from "../generic/misc";
+import { copy, is_different } from "../generic/misc";
 
 interface FrameTreeEditorProps {
   actions: any;
@@ -39,11 +39,27 @@ interface FrameTreeEditorProps {
   resize: number; // if changes, means that frames have been resized, so may need refreshing; passed to leaf.
   misspelled_words: Set<string>;
   is_saving: boolean;
-  gutter_markers: Map<string,any>;
-
+  gutter_markers: Map<string, any>;
 }
 
 class FrameTreeEditor0 extends Component<FrameTreeEditorProps, {}> {
+  private editor_spec: any = {};
+
+  constructor(props) {
+    super(props);
+    // Copy the editor spec we will use for all future rendering
+    // into our private state variable, and also do some function
+    // evaluation (e.g,. if buttons is a function of the path).
+    for (let type in props.editor_spec) {
+      let spec = props.editor_spec[type];
+      if (typeof spec.buttons === "function") {
+        spec = copy(spec);
+        spec.buttons = spec.buttons(props.path);
+      }
+      this.editor_spec[type] = spec;
+    }
+  }
+
   static reduxProps({ name }) {
     return {
       account: {
@@ -84,7 +100,7 @@ class FrameTreeEditor0 extends Component<FrameTreeEditorProps, {}> {
       is_different(
         this.props,
         next,
-        [
+        [   // do NOT include editor_spec below -- it is assumed to never change
           "is_public",
           "has_unsaved_changes",
           "has_uncommitted_changes",
@@ -132,6 +148,8 @@ class FrameTreeEditor0 extends Component<FrameTreeEditorProps, {}> {
     return (
       <div className={"smc-vfill"}>
         <FrameTree
+          editor_spec={this.editor_spec}
+
           name={this.props.name}
           actions={this.props.actions}
           frame_tree={frame_tree}
@@ -147,7 +165,6 @@ class FrameTreeEditor0 extends Component<FrameTreeEditorProps, {}> {
           is_public={this.props.is_public}
           content={this.props.content}
           value={this.props.value}
-          editor_spec={this.props.editor_spec}
           reload={this.props.reload}
           resize={this.props.resize}
           misspelled_words={this.props.misspelled_words}
