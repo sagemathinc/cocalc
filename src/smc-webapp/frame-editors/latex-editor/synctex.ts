@@ -3,7 +3,7 @@ Use synctex to go back and forth between latex files and pdfs.
 */
 
 import { path_split, splitlines } from "../generic/misc";
-import { exec, ExecOutput } from "../generic/async-utils";
+import { exec, ExecOutput } from "../generic/client";
 
 interface SyncTex {
   [key: string]: string | number;

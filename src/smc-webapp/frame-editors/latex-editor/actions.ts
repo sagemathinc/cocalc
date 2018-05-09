@@ -3,36 +3,23 @@ LaTeX Editor Actions.
 */
 
 const WIKI_HELP_URL = "https://github.com/sagemathinc/cocalc/wiki/LaTeX-Editor";
-
-import { fromJS, Map } from "immutable";
-
-import * as CodeMirror from "codemirror";
-
-//import { Actions as BaseActions } from "../code-editor/actions";
-const BaseActions = require("../code-editor/actions").Actions;
-
-import { latexmk } from "./latexmk";
-
-import { sagetex } from "./sagetex";
-
-import * as synctex from "./synctex";
-
-import { bibtex } from "./bibtex";
-
-import { server_time, ExecOutput } from "../generic/async-utils";
-import { clean } from "./clean.ts";
-
-import { LatexParser, ProcessedLatexLog } from "./latex-log-parser.ts";
-
-import { update_gutters } from "./gutters.tsx";
-
-import { pdf_path } from "./util";
-
-import { forgetDocument, url_to_pdf } from "./pdfjs-doc-cache.ts";
-
 const VIEWERS = ["pdfjs_canvas", "pdfjs_svg", "embed", "build_log"];
 
+import { fromJS, Map } from "immutable";
+import * as CodeMirror from "codemirror";
+import { Actions as BaseActions } from "../code-editor/actions";
+import { latexmk } from "./latexmk";
+import { sagetex } from "./sagetex";
+import * as synctex from "./synctex";
+import { bibtex } from "./bibtex";
+import { server_time, ExecOutput } from "../generic/client";
+import { clean } from "./clean.ts";
+import { LatexParser, ProcessedLatexLog } from "./latex-log-parser.ts";
+import { update_gutters } from "./gutters.tsx";
+import { pdf_path } from "./util";
+import { forgetDocument, url_to_pdf } from "./pdfjs-doc-cache.ts";
 import { FrameTree } from "../frame-tree/types";
+
 
 interface BuildLog extends ExecOutput {
   parse?: ProcessedLatexLog;

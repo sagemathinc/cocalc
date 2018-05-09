@@ -42,6 +42,13 @@ const EDITOR_SPEC = {
       "save",
       "time_travel"
     ])
+  },
+  foo: {
+    short: "Foo",
+    name: "Bar Rendered View",
+    icon: "eye",
+    component: RenderedMarkdown,
+    buttons: set(["decrease_font_size", "increase_font_size", "time_travel"])
   }
 };
 

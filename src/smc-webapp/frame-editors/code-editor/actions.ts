@@ -9,13 +9,17 @@ const SAVE_WORKAROUND =
 const MAX_SAVE_TIME_S = 30; // how long to retry to save (and get no unsaved changes), until giving up and showing an error.
 
 import { fromJS, List, Map, Set } from "immutable";
-
 import { debounce } from "underscore";
-
 import { callback } from "awaiting";
+import { log_error, public_get_text_file, prettier } from "../generic/client";
+import { retry_until_success } from "../generic/async-utils";
 
-import { prettier } from "../generic/async-utils";
-import {filename_extension} from "../generic/misc";
+import { filename_extension } from "../generic/misc";
+import { print_code } from "../frame-tree/print-code";
+import { misspelled_words } from "./spell-check.ts";
+import * as cm_doc_cache from "./doc.ts";
+import { test_line } from "./test.ts";
+import * as CodeMirror from "codemirror";
 
 const schema = require("smc-util/schema");
 
@@ -25,16 +29,6 @@ const misc = require("smc-util/misc");
 const copypaste = require("smc-webapp/copy-paste-buffer");
 //import {create_key_handler} from "./keyboard";
 const tree_ops = require("../frame-tree/tree-ops");
-
-import { print_code } from "../frame-tree/print-code";
-
-import { misspelled_words } from "./spell-check.ts";
-
-import * as cm_doc_cache from "./doc.ts";
-
-import { test_line } from "./test.ts";
-
-import * as CodeMirror from "codemirror";
 
 const { required, defaults } = misc;
 
@@ -87,24 +81,23 @@ export class Actions extends BaseActions {
   // Init setting of content exactly once based on
   // reading file from disk via public api, or setting
   // from syncstring as a response to explicit user action.
-  _init_content(): void {
+  async _init_content(): Promise<void> {
     if (!this.is_public) {
       return;
     }
     // Get by loading from backend as a public file
     this.setState({ is_loaded: false });
-    webapp_client.public_get_text_file({
-      project_id: this.project_id,
-      path: this.path,
-      cb: (err, data) => {
-        if (err) {
-          this.set_error(`Error loading -- ${err}`);
-        } else {
-          this.setState({ content: data });
-        }
-        return this.setState({ is_loaded: true });
-      }
-    });
+    try {
+      const data: string = await public_get_text_file({
+        project_id: this.project_id,
+        path: this.path
+      });
+      this.setState({ content: data });
+    } catch (err) {
+      this.set_error(`Error loading -- ${err}`);
+    } finally {
+      this.setState({ is_loaded: true });
+    }
   }
 
   // Init setting of value whenever syncstring changes -- only used in derived classes
@@ -490,40 +483,21 @@ export class Actions extends BaseActions {
   }
   */
 
-  _has_unsaved_changes() {
-    //@_syncstring?.has_unsaved_changes()
-    const hash_saved =
-      this._syncstring != null
-        ? this._syncstring.hash_of_saved_version()
-        : undefined;
-    const hash_live = misc.hash_string(
-      __guard__(this._get_cm(), x => x.getValue())
-    );
-    if (hash_saved == null || hash_live == null) {
-      // don't know yet...
-      return;
-    }
-    return hash_live !== hash_saved;
+  _has_unsaved_changes(): boolean {
+    return this._syncstring.has_unsaved_changes();
+  }
+
+  update_save_status(): void {
+    this.setState({
+      has_unsaved_changes: this._has_unsaved_changes(),
+      has_uncommitted_changes: this._syncstring.has_uncommitted_changes()
+    });
   }
 
   _init_has_unsaved_changes() {
     // basically copies from tasks/actions.coffee -- opportunity to refactor
-    const do_set = () => {
-      return this.setState({
-        has_unsaved_changes: this._has_unsaved_changes(),
-        has_uncommitted_changes:
-          this._syncstring != null
-            ? this._syncstring.has_uncommitted_changes()
-            : undefined
-      });
-    };
-    const f = () => {
-      do_set();
-      return setTimeout(do_set, 3000);
-    };
-    this.update_save_status = f;
-    this._syncstring.on("metadata-change", this.update_save_status);
-    return this._syncstring.on("connected", this.update_save_status);
+    this._syncstring.on("metadata-change", () => this.update_save_status());
+    return this._syncstring.on("connected", () => this.update_save_status());
   }
 
   _syncstring_metadata() {
@@ -595,54 +569,53 @@ export class Actions extends BaseActions {
     return cm.delete_trailing_whitespace({ omit_lines });
   }
 
-  _do_save() {
-    const f = cb => {
-      // err if NO error reported, but has unsaved changes.
-      this.setState({ is_saving: true });
-      return this._syncstring != null
-        ? this._syncstring.save_to_disk(err => {
-            this.setState({ is_saving: false });
-            this.update_save_status();
-            if (err) {
-              this.update_save_status();
-              this.set_error(`${SAVE_ERROR} '${err}'.  ${SAVE_WORKAROUND}`);
-              return cb();
-            } else {
-              const done = !this.store.get("has_unsaved_changes");
-              if (
-                done &&
-                misc.startswith(this.store.get("error"), SAVE_ERROR)
-              ) {
-                this.set_error("");
-              }
-              return cb(!done);
-            }
-          })
-        : undefined;
-    };
+  // Use internally..  Try once to save to disk.
+  //  If fail (e.g., broken network) -- sets error and returns fine.
+  //  If there are still unsaved changes right after save, throws exception.
+  //  If worked fine and previous set error was saving, clears that error.
+  async _try_to_save_to_disk(): Promise<void> {
+    this.setState({ is_saving: true });
+    try {
+      await callback(this._syncstring.save_to_disk);
+    } catch (err) {
+      this.set_error(`${SAVE_ERROR} '${err}'.  ${SAVE_WORKAROUND}`);
+      return;
+    } finally {
+      this.update_save_status();
+      this.setState({ is_saving: false });
+    }
+    if (this.store.get("has_unsaved_changes")) {
+      throw Error("not saved");
+    }
+    if (misc.startswith(this.store.get("error"), SAVE_ERROR)) {
+      // Save just succeeded, but there was a save error at the top, so clear it.
+      this.set_error("");
+    }
+  }
 
-    return misc.retry_until_success({
-      f,
-      max_time: MAX_SAVE_TIME_S * 1000,
-      max_delay: 6000,
-      cb: err => {
-        if (err) {
-          console.warn(err);
-          this.set_error(
-            `${SAVE_ERROR} Despite repeated attempts, the version of the file saved to disk does not equal the version in your browser.  ${SAVE_WORKAROUND}`
-          );
-          return webapp_client.log_error({
-            string_id:
-              this._syncstring != null
-                ? this._syncstring._string_id
-                : undefined,
-            path: this.path,
-            project_id: this.project_id,
-            error: "Error saving file -- has_unsaved_changes"
-          });
-        }
-      }
-    });
+  async _do_save(): Promise<void> {
+    let that = this;
+    try {
+      await retry_until_success({
+        f: async function() {
+          /* evidently no fat arrow with async/await + typescript */
+          await that._try_to_save_to_disk();
+        },
+        max_time: MAX_SAVE_TIME_S * 1000,
+        max_delay: 6000
+      });
+    } catch (err) {
+      console.warn(err);
+      this.set_error(
+        `${SAVE_ERROR} Despite repeated attempts, the version of the file saved to disk does not equal the version in your browser.  ${SAVE_WORKAROUND}`
+      );
+      log_error({
+        string_id: this._syncstring._string_id,
+        path: this.path,
+        project_id: this.project_id,
+        error: "Error saving file -- has_unsaved_changes"
+      });
+    }
   }
 
   save(explicit) {
@@ -1079,7 +1052,7 @@ export class Actions extends BaseActions {
     }
   }
 
-  format_action(cmd, args) : void {
+  format_action(cmd, args): void {
     const cm = this._get_cm();
     if (cm == null) {
       // format bar only makes sense when some cm is there...
@@ -1213,7 +1186,7 @@ export class Actions extends BaseActions {
 
   // call this and get back a function that can be used
   // for testing that realtime sync/set/etc....
-  async test(opts: any = {}) : Promise<void> {
+  async test(opts: any = {}): Promise<void> {
     if (!opts.cm) {
       opts.cm = this._get_cm();
     }

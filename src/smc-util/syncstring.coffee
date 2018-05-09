@@ -1841,7 +1841,7 @@ class SyncDoc extends EventEmitter
             if err
                 cb?(err)
             else
-                # Now do actual save.
+                # Now do actual save to the *disk*.
                 @__save_to_disk_after_sync(cb)
 
     __save_to_disk_after_sync: (cb) =>

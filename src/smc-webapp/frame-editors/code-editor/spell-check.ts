@@ -3,8 +3,7 @@ Backend spell checking support
 */
 
 import { filename_extension } from "../generic/misc";
-
-import { exec, ExecOutput } from "../generic/async-utils";
+import { exec, ExecOutput } from "../generic/client";
 
 const misc_page = require("smc-webapp/misc_page");
 

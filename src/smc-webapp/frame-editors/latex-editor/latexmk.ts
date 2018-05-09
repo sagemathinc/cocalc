@@ -2,7 +2,7 @@
 Convert LaTeX file to PDF using latexmk.
 */
 
-import { exec, ExecOutput } from "../generic/async-utils";
+import { exec, ExecOutput } from "../generic/client";
 import { path_split } from "../generic/misc";
 
 export async function latexmk(

@@ -1,13 +1,8 @@
 /*
- * decaffeinate suggestions:
- * DS102: Remove unnecessary code created because of implicit returns
- * Full docs: https://github.com/decaffeinate/decaffeinate/blob/master/docs/suggestions.md
- */
-/*
 Convert Mediawiki file to hidden HTML file, which gets displayed in an iframe with
 src pointed to this file (via raw server).
 */
-import { exec } from "../generic/async-utils";
+import { exec } from "../generic/client";
 import { aux_file } from "../frame-tree/util";
 
 export async function convert(

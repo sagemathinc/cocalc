@@ -2,7 +2,7 @@
 Run BibTex
 */
 
-import { exec } from "../generic/async-utils";
+import { exec } from "../generic/client";
 import { parse_path } from "../frame-tree/util";
 
 // time (ms since epoch) to use for aggregate
