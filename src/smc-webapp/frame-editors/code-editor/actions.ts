@@ -11,25 +11,31 @@ const MAX_SAVE_TIME_S = 30; // how long to retry to save (and get no unsaved cha
 import { fromJS, List, Map, Set } from "immutable";
 import { debounce } from "underscore";
 import { callback, delay } from "awaiting";
-import { log_error, public_get_text_file, prettier } from "../generic/client";
+import {
+  log_error,
+  public_get_text_file,
+  prettier,
+  syncstring
+} from "../generic/client";
 import { retry_until_success } from "../generic/async-utils";
 
 import { filename_extension } from "../generic/misc";
 import { print_code } from "../frame-tree/print-code";
+import { FrameTree, ImmutableFrameTree, SetMap } from "../frame-tree/types";
 import { misspelled_words } from "./spell-check.ts";
 import * as cm_doc_cache from "./doc.ts";
 import { test_line } from "./test.ts";
 import { Rendered } from "../generic/react";
+
 import * as CodeMirror from "codemirror";
+import "../generic/codemirror-plugins";
 
-const schema = require("smc-util/schema");
+import * as tree_ops from "../frame-tree/tree-ops";
 
-const { webapp_client } = require("smc-webapp/webapp_client");
 const BaseActions = require("smc-webapp/smc-react").Actions;
 const misc = require("smc-util/misc");
 const copypaste = require("smc-webapp/copy-paste-buffer");
 //import {create_key_handler} from "./keyboard";
-const tree_ops = require("../frame-tree/tree-ops");
 
 const { defaults } = misc;
 
@@ -37,7 +43,7 @@ export class Actions extends BaseActions {
   protected _state: string;
   protected _syncstring: any;
   protected _key_handler: any;
-  protected _cm: CodeMirror.Editor[] = [];
+  protected _cm: { [key: string]: CodeMirror.Editor } = {};
 
   _init(
     project_id: string,
@@ -127,8 +133,7 @@ export class Actions extends BaseActions {
   }
 
   _init_syncstring(): void {
-    this._syncstring = webapp_client.sync_string({
-      id: schema.client_db.sha1(this.project_id, this.path),
+    this._syncstring = syncstring({
       project_id: this.project_id,
       path: this.path,
       cursors: true,
@@ -210,7 +215,7 @@ export class Actions extends BaseActions {
     );
   }
 
-  _load_local_view_state(): Map<string,any> {
+  _load_local_view_state(): Map<string, any> {
     let local_view_state;
     const x = localStorage[this.name];
     if (x != null) {
@@ -313,11 +318,11 @@ export class Actions extends BaseActions {
     }
   }
 
-  _get_tree() : Map<string, any> {
+  _get_tree(): ImmutableFrameTree {
     return this.store.getIn(["local_view_state", "frame_tree"]);
   }
 
-  _get_leaf_ids() : string[] {
+  _get_leaf_ids(): SetMap {
     return tree_ops.get_leaf_ids(this._get_tree());
   }
 
@@ -349,43 +354,45 @@ export class Actions extends BaseActions {
     }
   }
 
-  _default_frame_tree() {
+  _default_frame_tree(): Map<string, any> {
     let frame_tree = fromJS(this._raw_default_frame_tree());
     frame_tree = tree_ops.assign_ids(frame_tree);
     frame_tree = tree_ops.ensure_ids_are_unique(frame_tree);
     return frame_tree;
   }
 
-  // define this in derived classes.
-  _raw_default_frame_tree() {
+  // overload this in derived classes to specify the default layout.
+  _raw_default_frame_tree(): FrameTree {
     return { type: "cm" };
   }
 
-  set_frame_tree(obj) {
-    return this._tree_op("set", obj);
+  set_frame_tree(obj): void {
+    this._tree_op("set", obj);
   }
 
-  reset_frame_tree() {
+  reset_frame_tree(): void {
     let local = this.store.get("local_view_state");
     local = local.set("frame_tree", this._default_frame_tree());
     this.setState({ local_view_state: local });
     this._save_local_view_state();
   }
 
-  set_frame_tree_leafs(obj) {
-    return this._tree_op("set_leafs", obj);
+  set_frame_tree_leafs(obj): void {
+    this._tree_op("set_leafs", obj);
   }
 
   // This is only used in derived classes right now
-  set_frame_type(id, type) {
-    return this.set_frame_tree({ id, type });
+  set_frame_type(id: string, type: string): void {
+    this.set_frame_tree({ id, type });
   }
 
-  _get_frame_node(id) {
+  // raises an exception if the node does not exist; always
+  // call _has_frame_node first.
+  _get_frame_node(id: string): Map<string, any> | undefined {
     return tree_ops.get_node(this._get_tree(), id);
   }
 
-  close_frame(id) {
+  async close_frame(id: string): Promise<void> {
     if (tree_ops.is_leaf(this._get_tree())) {
       // closing the only node, so reset to default
       this.reset_local_view_state();
@@ -397,17 +404,17 @@ export class Actions extends BaseActions {
       delete this._cm_selections[id];
     }
     delete this._cm[id];
-    return setTimeout(() => this.focus(), 1);
+    await delay(1);
+    this.focus();
   }
 
-  split_frame(direction, id, type) : void {
+  split_frame(direction: string, id?: string, type?: string): void {
     const ids0 = this._get_leaf_ids();
-    this._tree_op(
-      "split_leaf",
-      id != null ? id : this.store.getIn(["local_view_state", "active_id"]),
-      direction,
-      type
-    );
+    if (!id) {
+      id = this.store.getIn(["local_view_state", "active_id"]);
+      if (!id) return;
+    }
+    this._tree_op("split_leaf", id, direction, type);
     const object = this._get_leaf_ids();
     for (let i in object) {
       if (!ids0[i]) {
@@ -416,14 +423,15 @@ export class Actions extends BaseActions {
         break;
       }
     }
-    // The block_ms=1 here is since the set can cause a bunch of rendering to happen
-    // which causes some other cm to focus, which changes the id.  Instead of a flicker
-    // and changing it back, we just prevent any id change for 1ms, which covers
-    // the render cycle.
+    // The block_ms=1 here is since the set can cause a bunch
+    // of rendering to happen which causes some other cm to
+    // focus, which changes the id.  Instead of a flicker
+    // and changing it back, we just prevent any id change
+    // for 1ms, which covers the render cycle.
     this.set_active_id(id, 1);
   }
 
-  async set_frame_full(id : string) : Promise<void> {
+  async set_frame_full(id: string): Promise<void> {
     let local = this.store.get("local_view_state").set("full_id", id);
     if (id != null) {
       local = local.set("active_id", id);
@@ -436,7 +444,7 @@ export class Actions extends BaseActions {
     this.focus();
   }
 
-  save_editor_state(id, new_editor_state?: any) {
+  save_editor_state(id: string, new_editor_state?: any): void {
     let left;
     if (this._state === "closed") {
       return;
@@ -458,34 +466,15 @@ export class Actions extends BaseActions {
     this.setState({
       local_view_state: local.set("editor_state", editor_state)
     });
-    return this._save_local_view_state();
+    this._save_local_view_state();
   }
 
-  copy_editor_state(id1, id2) {
+  copy_editor_state(id1: string, id2: string): void {
     const info = this.store.getIn(["local_view_state", "editor_state", id1]);
-    if (info != null) {
-      return this.save_editor_state(id2, info);
+    if (info) {
+      this.save_editor_state(id2, info);
     }
   }
-
-  /* enable_key_handler() {
-    if (this._state === "closed") {
-      return;
-    }
-    if (this._key_handler == null) {
-      this._key_handler = create_key_handler(this);
-    }
-    return this.redux
-      .getActions("page")
-      .set_active_key_handler(this._key_handler, this.project_id, this.path);
-  }
-
-  disable_key_handler() {
-    return this.redux
-      .getActions("page")
-      .erase_active_key_handler(this._key_handler);
-  }
-  */
 
   _has_unsaved_changes(): boolean {
     return this._syncstring.has_unsaved_changes();
@@ -498,23 +487,20 @@ export class Actions extends BaseActions {
     });
   }
 
-  _init_has_unsaved_changes() {
+  _init_has_unsaved_changes(): void {
     // basically copies from tasks/actions.coffee -- opportunity to refactor
     this._syncstring.on("metadata-change", () => this.update_save_status());
-    return this._syncstring.on("connected", () => this.update_save_status());
+    this._syncstring.on("connected", () => this.update_save_status());
   }
 
-  _syncstring_metadata() {
-    if (this._syncstring == null) {
-      return;
-    }
+  _syncstring_metadata(): void {
     const read_only = this._syncstring.get_read_only();
     if (read_only !== this.store.get("read_only")) {
-      return this.setState({ read_only });
+      this.setState({ read_only });
     }
   }
 
-  _syncstring_cursor_activity() {
+  _syncstring_cursor_activity(): void {
     // TODO: for now, just for the one syncstring obviously
     // TOOD: this is probably naive and slow too...
     let cursors = Map();
@@ -534,25 +520,25 @@ export class Actions extends BaseActions {
       });
     });
     if (!cursors.equals(this.store.get("cursors"))) {
-      return this.setState({ cursors });
+      this.setState({ cursors });
     }
   }
 
-  _syncstring_change() {
-    if (this.update_save_status) this.update_save_status();
+  _syncstring_change(): void {
+    if (this.update_save_status) {
+      this.update_save_status();
+    }
   }
 
-  set_cursor_locs(locs = [], side_effect) {
+  set_cursor_locs(locs = [], side_effect): void {
     if (locs.length === 0) {
       // don't remove on blur -- cursor will fade out just fine
       return;
     }
-    return this._syncstring != null
-      ? this._syncstring.set_cursor_locs(locs, side_effect)
-      : undefined;
+    this._syncstring.set_cursor_locs(locs, side_effect);
   }
 
-  delete_trailing_whitespace() : void {
+  delete_trailing_whitespace(): void {
     const cm = this._get_cm();
     if (cm == null) {
       return;
@@ -570,7 +556,7 @@ export class Actions extends BaseActions {
         );
       })
     );
-    cm.delete_trailing_whitespace({ omit_lines });
+    (cm as any).delete_trailing_whitespace({ omit_lines });
   }
 
   // Use internally..  Try once to save to disk.
@@ -631,19 +617,18 @@ export class Actions extends BaseActions {
     // TODO: Maybe just move this to some explicit menu of actions, which also includes
     // several other formatting actions.
     // Doing this automatically is fraught with error, since cursors aren't precise...
-    if (
-      explicit &&
-      __guard__(this.redux.getStore("account"), x =>
-        x.getIn(["editor_settings", "strip_trailing_whitespace"])
-      )
-    ) {
-      this.delete_trailing_whitespace();
+    if (explicit) {
+      const account = this.redux.getStore("account");
+      if (
+        account &&
+        account.getIn(["editor_settings", "strip_trailing_whitespace"])
+      ) {
+        this.delete_trailing_whitespace();
+      }
     }
     this.set_syncstring_to_codemirror();
     this._do_save();
-    if (explicit) {
-      return __guard__(this._active_cm(), x1 => x1.focus());
-    }
+    this.focus();
   }
 
   time_travel(): void {
@@ -662,12 +647,14 @@ export class Actions extends BaseActions {
 
   change_font_size(delta: number, id?: string): void {
     const local = this.store.getIn("local_view_state");
-    if (id == null) {
+    if (!id) {
       id = local.get("active_id");
     }
-    let font_size = __guard__(
-      tree_ops.get_node(local.get("frame_tree"), id),
-      x => x.get("font_size")
+    if (!id) {
+      return;
+    }
+    let font_size = __guard__(tree_ops.get_node(this._get_tree(), id), x =>
+      x.get("font_size")
     );
     if (font_size == null) {
       let left;
@@ -718,7 +705,7 @@ export class Actions extends BaseActions {
     this.set_codemirror_to_syncstring();
   }
 
-  unset_cm(id): void {
+  unset_cm(id: string): void {
     const cm = this._get_cm(id);
     if (cm == null) {
       return;
@@ -731,7 +718,7 @@ export class Actions extends BaseActions {
       if (this._cm_selections == null) {
         this._cm_selections = {};
       }
-      this._cm_selections[id] = cm.listSelections();
+      this._cm_selections[id] = cm.getDoc().listSelections();
     }
     delete this._cm[id];
   }
@@ -740,11 +727,15 @@ export class Actions extends BaseActions {
   // 2. if no id given:
   //   if recent is true, return most recent cm
   //   if recent is not given, return some cm
-  _get_cm(id?: string, recent?: boolean) {
+  // 3. If no cm's return undefined.
+  _get_cm(id?: string, recent?: boolean): CodeMirror.Editor | undefined {
     let v;
     if (id) {
-      const cm = this._cm[id] != null ? this._cm[id] : this._active_cm();
-      if (cm != null) {
+      let cm: CodeMirror.Editor | undefined = this._cm[id];
+      if (!cm) {
+        cm = this._active_cm();
+      }
+      if (cm) {
         return cm;
       }
     }
@@ -778,7 +769,8 @@ export class Actions extends BaseActions {
     }
   }
 
-  _get_doc() {
+  // Get the underlying codemirror doc that editors are using.
+  _get_doc(): CodeMirror.Doc {
     return cm_doc_cache.get_doc(this.project_id, this.path);
   }
 
@@ -980,8 +972,9 @@ export class Actions extends BaseActions {
   cut(id: string): void {
     const cm = this._get_cm(id);
     if (cm != null) {
-      copypaste.set_buffer(cm.getSelection());
-      cm.replaceSelection("");
+      let doc = cm.getDoc();
+      copypaste.set_buffer(doc.getSelection());
+      doc.replaceSelection("");
       cm.focus();
     }
   }
@@ -989,7 +982,7 @@ export class Actions extends BaseActions {
   copy(id: string): void {
     const cm = this._get_cm(id);
     if (cm != null) {
-      copypaste.set_buffer(cm.getSelection());
+      copypaste.set_buffer(cm.getDoc().getSelection());
       cm.focus();
     }
   }
@@ -997,13 +990,13 @@ export class Actions extends BaseActions {
   paste(id: string): void {
     const cm = this._get_cm(id);
     if (cm != null) {
-      cm.replaceSelection(copypaste.get_buffer());
+      cm.getDoc().replaceSelection(copypaste.get_buffer());
       cm.focus();
     }
   }
 
   // big scary error shown at top
-  set_error(error?: object | string) : void {
+  set_error(error?: object | string): void {
     if (error === undefined) {
       this.setState({ error });
     } else {
@@ -1115,7 +1108,7 @@ export class Actions extends BaseActions {
   }
 
   // clear all gutter markers in the given gutter
-  clear_gutter(gutter_id : string) : void {
+  clear_gutter(gutter_id: string): void {
     let gutter_markers = this.store.get("gutter_markers", Map());
     const before = gutter_markers;
     gutter_markers.map((info, id) => {
@@ -1131,7 +1124,7 @@ export class Actions extends BaseActions {
   // The GutterMarker component calls this to save the line handle to the gutter marker,
   // which is needed for tracking the gutter location.
   // Nothing else should directly call this.
-  _set_gutter_handle(id:string, handle:string) : void {
+  _set_gutter_handle(id: string, handle: string): void {
     // id     = user-specified unique id for this gutter marker
     // handle = determines current line number of gutter marker
     const gutter_markers = this.store.get("gutter_markers");

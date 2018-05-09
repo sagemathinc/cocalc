@@ -3,7 +3,6 @@ HTML Editor Actions
 */
 
 import * as $ from "jquery";
-import { Map } from "immutable";
 import { Actions as CodeEditorActions } from "../code-editor/actions";
 import { print_html } from "../frame-tree/print";
 import { FrameTree } from "../frame-tree/types";
@@ -42,7 +41,9 @@ export class Actions extends CodeEditorActions {
   }
 
   print(id: string): void {
-    const node: Map<string, any> = this._get_frame_node(id);
+    const node = this._get_frame_node(id);
+    if (!node) return;
+
     if (node.get("type") === "cm") {
       super.print(id);
       return;

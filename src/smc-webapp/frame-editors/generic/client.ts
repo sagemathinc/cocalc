@@ -3,6 +3,7 @@ Typescript async/await rewrite of smc-util/client.coffee...
 */
 
 const webapp_client = require("smc-webapp/webapp_client").webapp_client;
+const schema = require("smc-util/schema");
 
 import { async_opts } from "./async-utils";
 
@@ -85,9 +86,23 @@ export async function prettier(
   }
 }
 
-export function log_error(error:string | object) : void {
-  if (typeof(error) != 'string') {
+export function log_error(error: string | object): void {
+  if (typeof error != "string") {
     error = JSON.stringify(error);
   }
   webapp_client.log_error(error);
+}
+
+interface SyncstringOpts {
+  project_id: string;
+  path: string;
+  cursors?: boolean;
+  before_change_hook?: Function;
+  after_change_hook?: Function;
+}
+
+export function syncstring(opts: SyncstringOpts): any {
+  const opts1 : any = opts;
+  opts1.id = schema.client_db.sha1(opts.project_id, opts.path);
+  return webapp_client.sync_string(opts1);
 }

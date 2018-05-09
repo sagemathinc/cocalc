@@ -6,7 +6,6 @@ const WIKI_HELP_URL = "https://github.com/sagemathinc/cocalc/wiki/LaTeX-Editor";
 const VIEWERS = ["pdfjs_canvas", "pdfjs_svg", "embed", "build_log"];
 
 import { fromJS, Map } from "immutable";
-import * as CodeMirror from "codemirror";
 import { Actions as BaseActions } from "../code-editor/actions";
 import { latexmk } from "./latexmk";
 import { sagetex } from "./sagetex";
@@ -291,17 +290,17 @@ export class Actions extends BaseActions {
 
   sync(id: string): void {
     let cm = this._cm[id];
-    if (cm !== undefined) {
+    if (cm) {
       // Clicked the sync button from within an editor
       this.forward_search(id);
     } else {
-      // Clicked on a preview pane -- let the preview pane do the work.
+      // Clicked button associated to a a preview pane -- let the preview pane do the work.
       this.setState({ sync: id });
     }
   }
 
   forward_search(id: string): void {
-    let cm: CodeMirror.Editor = this._get_cm(id);
+    let cm = this._get_cm(id);
     if (!cm) return;
     let { line, ch } = cm.getDoc().getCursor();
     this.synctex_tex_to_pdf(line, ch, this.path);
