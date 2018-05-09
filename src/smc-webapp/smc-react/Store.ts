@@ -112,7 +112,20 @@ export class Store<State> extends EventEmitter {
       .getIn([this.name, field, notSetValue]);
   }
 
-  getIn(path: (keyof State)[], notSetValue: any): any {
+  // Only works 3 levels deep.
+  // It's probably advisable to normalize your data if you find yourself that deep
+  // https://redux.js.org/recipes/structuring-reducers/normalizing-state-shape
+  getIn<K1 extends keyof State>(path: [K1], notSetValue?: any): State[K1];
+  getIn<K1 extends keyof State, K2 extends keyof State[K1]>(
+    path: [K1, K2],
+    notSetValue?: any
+  ): State[K1][K2];
+  getIn<
+    K1 extends keyof State,
+    K2 extends keyof State[K1],
+    K3 extends keyof State[K1][K2]
+  >(path: [K1, K2, K3], notSetValue?: any): State[K1][K2][K3];
+  getIn(path: any[], notSetValue?: any): any {
     return this.redux._redux_store
       .getState()
       .getIn([this.name].concat(path), notSetValue);

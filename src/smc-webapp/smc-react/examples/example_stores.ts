@@ -30,6 +30,14 @@ type drinkTypes = "mocha" | "cappucccino" | "latte";
 interface CoffeeState extends store_definition {
   drinks: drinkTypes[];
   costs: Partial<{ [P in drinkTypes]: number }>;
+  people: {
+    cleaners: {
+      shifts: string[];
+    };
+    baristas: {
+      shifts: string[];
+    };
+  };
 }
 
 class CoffeeStore extends Store<CoffeeState> {
@@ -51,6 +59,14 @@ let init_coffee_store_state: CoffeeState = {
   drinks: ["mocha", "latte"],
   costs: {
     mocha: 2
+  },
+  people: {
+    cleaners: {
+      shifts: ["Alice", "Bob"]
+    },
+    baristas: {
+      shifts: ["Frank", "Melissa"]
+    }
   }
 };
 
@@ -59,3 +75,12 @@ redux.createStore<CoffeeState>("test", CoffeeStore, init_coffee_store_state);
 let coffeestore = redux.getStore<CoffeeState>("thing");
 let costs = coffeestore.get("costs");
 costs;
+
+coffeestore.getIn(["costs", "mocha"]);
+
+// Errors
+// coffeestore.getIn(["people", "mocha"]);
+// coffeestore.getIn(["people", "cleaners", "shifts", "length"]);
+
+// Interesting...
+coffeestore.getIn(["drinks", "length"]);
