@@ -10,7 +10,7 @@ const MAX_SAVE_TIME_S = 30; // how long to retry to save (and get no unsaved cha
 
 import { fromJS, List, Map, Set } from "immutable";
 import { debounce } from "underscore";
-import { callback } from "awaiting";
+import { callback, delay } from "awaiting";
 import { log_error, public_get_text_file, prettier } from "../generic/client";
 import { retry_until_success } from "../generic/async-utils";
 
@@ -19,6 +19,7 @@ import { print_code } from "../frame-tree/print-code";
 import { misspelled_words } from "./spell-check.ts";
 import * as cm_doc_cache from "./doc.ts";
 import { test_line } from "./test.ts";
+import { Rendered } from "../generic/react";
 import * as CodeMirror from "codemirror";
 
 const schema = require("smc-util/schema");
@@ -30,7 +31,7 @@ const copypaste = require("smc-webapp/copy-paste-buffer");
 //import {create_key_handler} from "./keyboard";
 const tree_ops = require("../frame-tree/tree-ops");
 
-const { required, defaults } = misc;
+const { defaults } = misc;
 
 export class Actions extends BaseActions {
   protected _state: string;
@@ -209,7 +210,7 @@ export class Actions extends BaseActions {
     );
   }
 
-  _load_local_view_state() {
+  _load_local_view_state(): Map<string,any> {
     let local_view_state;
     const x = localStorage[this.name];
     if (x != null) {
@@ -312,11 +313,11 @@ export class Actions extends BaseActions {
     }
   }
 
-  _get_tree() {
+  _get_tree() : Map<string, any> {
     return this.store.getIn(["local_view_state", "frame_tree"]);
   }
 
-  _get_leaf_ids() {
+  _get_leaf_ids() : string[] {
     return tree_ops.get_leaf_ids(this._get_tree());
   }
 
@@ -399,7 +400,7 @@ export class Actions extends BaseActions {
     return setTimeout(() => this.focus(), 1);
   }
 
-  split_frame(direction, id, type) {
+  split_frame(direction, id, type) : void {
     const ids0 = this._get_leaf_ids();
     this._tree_op(
       "split_leaf",
@@ -419,17 +420,20 @@ export class Actions extends BaseActions {
     // which causes some other cm to focus, which changes the id.  Instead of a flicker
     // and changing it back, we just prevent any id change for 1ms, which covers
     // the render cycle.
-    return this.set_active_id(id, 1);
+    this.set_active_id(id, 1);
   }
 
-  set_frame_full(id) {
+  async set_frame_full(id : string) : Promise<void> {
     let local = this.store.get("local_view_state").set("full_id", id);
     if (id != null) {
       local = local.set("active_id", id);
     }
     this.setState({ local_view_state: local });
     this._save_local_view_state();
-    return setTimeout(() => this.focus(), 1);
+
+    // wait and then focus:
+    await delay(1);
+    this.focus();
   }
 
   save_editor_state(id, new_editor_state?: any) {
@@ -548,7 +552,7 @@ export class Actions extends BaseActions {
       : undefined;
   }
 
-  delete_trailing_whitespace() {
+  delete_trailing_whitespace() : void {
     const cm = this._get_cm();
     if (cm == null) {
       return;
@@ -566,7 +570,7 @@ export class Actions extends BaseActions {
         );
       })
     );
-    return cm.delete_trailing_whitespace({ omit_lines });
+    cm.delete_trailing_whitespace({ omit_lines });
   }
 
   // Use internally..  Try once to save to disk.
@@ -618,7 +622,7 @@ export class Actions extends BaseActions {
     }
   }
 
-  save(explicit) {
+  save(explicit: boolean): void {
     if (this.is_public) {
       return;
     }
@@ -642,21 +646,21 @@ export class Actions extends BaseActions {
     }
   }
 
-  time_travel() {
-    return this.redux.getProjectActions(this.project_id).open_file({
+  time_travel(): void {
+    this.redux.getProjectActions(this.project_id).open_file({
       path: misc.history_path(this.path),
       foreground: true
     });
   }
 
-  help() {
+  help(): void {
     const w = window.open(WIKI_HELP_URL, "_blank");
     if (w) {
       w.focus();
     }
   }
 
-  change_font_size(delta, id) {
+  change_font_size(delta: number, id?: string): void {
     const local = this.store.getIn("local_view_state");
     if (id == null) {
       id = local.get("active_id");
@@ -679,23 +683,20 @@ export class Actions extends BaseActions {
       font_size = 2;
     }
     this.set_frame_tree({ id, font_size });
-    return this._cm[id] != null ? this._cm[id].focus() : undefined;
+    this.focus(id);
   }
 
-  increase_font_size(id) {
+  increase_font_size(id: string): void {
     return this.change_font_size(1, id);
   }
 
-  decrease_font_size(id) {
+  decrease_font_size(id: string): void {
     return this.change_font_size(-1, id);
   }
 
-  set_font_size(id, font_size) {
-    if (id == null) {
-      return;
-    }
+  set_font_size(id: string, font_size: number): void {
     this.set_frame_tree({ id, font_size });
-    return this._cm[id] != null ? this._cm[id].focus() : undefined;
+    this.focus(id);
   }
 
   set_cm(id: string, cm: CodeMirror.Editor): void {
@@ -829,29 +830,37 @@ export class Actions extends BaseActions {
     }
   }
 
-  focus() {
-    const cm = this._get_cm();
+  focus(id?: string): void {
+    let cm;
+    if (id) {
+      cm = this._cm[id];
+      if (cm) {
+        cm.focus();
+        return;
+      }
+    }
+    cm = this._get_cm();
     if (cm) {
       cm.focus();
     }
   }
 
-  syncstring_save() {
+  syncstring_save(): void {
     if (this._syncstring != null) {
       this._syncstring.save();
     }
-    return this.update_save_status();
+    this.update_save_status();
   }
 
-  set_syncstring_to_codemirror(id?: string) {
+  set_syncstring_to_codemirror(id?: string): void {
     const cm = this._get_cm(id);
-    if (cm == null || this._syncstring == null) {
+    if (!cm) {
       return;
     }
-    return this.set_syncstring(cm.getValue());
+    this.set_syncstring(cm.getValue());
   }
 
-  set_syncstring(value) {
+  set_syncstring(value: string): void {
     this._syncstring.from_str(value);
     // NOTE: above is the only place where syncstring is changed, and when *we* change syncstring,
     // no change event is fired.  However, derived classes may want to update some preview when
@@ -859,29 +868,26 @@ export class Actions extends BaseActions {
     return this._syncstring.emit("change");
   }
 
-  set_codemirror_to_syncstring() {
-    let left;
-    if (this._syncstring == null) {
-      return;
-    }
+  set_codemirror_to_syncstring(): void {
     // NOTE: we fallback to getting the underling CM doc, in case all actual
     // cm code-editor frames have been closed (or just aren't visible).
-    const cm = (left = this._get_cm()) != null ? left : this._get_doc();
-    if (cm == null) {
+    let cm: any = this._get_cm();
+    if (!cm) {
+      cm = this._get_doc();
+    }
+    if (!cm) {
       return;
     }
     cm.setValueNoJump(this._syncstring.to_str());
-    return this.update_save_status();
+    this.update_save_status();
   }
 
-  exit_undo_mode() {
-    return this._syncstring != null
-      ? this._syncstring.exit_undo_mode()
-      : undefined;
+  exit_undo_mode(): void {
+    this._syncstring.exit_undo_mode();
   }
 
   // per-session sync-aware undo
-  undo(id) {
+  undo(id: string): void {
     const cm = this._get_cm(id);
     if (cm == null) {
       return;
@@ -893,11 +899,11 @@ export class Actions extends BaseActions {
     cm.setValueNoJump(value, true);
     cm.focus();
     this.set_syncstring_to_codemirror();
-    return this._syncstring.save();
+    this._syncstring.save();
   }
 
   // per-session sync-aware redo
-  redo(id) {
+  redo(id: string): void {
     const cm = this._get_cm(id);
     if (cm == null) {
       return;
@@ -914,37 +920,48 @@ export class Actions extends BaseActions {
     cm.setValueNoJump(value, true);
     cm.focus();
     this.set_syncstring_to_codemirror();
-    return this._syncstring.save();
+    this._syncstring.save();
   }
 
-  find(id) {
-    return __guard__(this._get_cm(id), x => x.execCommand("find"));
+  _cm_exec(id: string, command: string): void {
+    const cm = this._get_cm(id);
+    if (cm) {
+      cm.execCommand(command);
+    }
   }
 
-  find_next(id) {
-    return __guard__(this._get_cm(id), x => x.execCommand("findNext"));
+  find(id: string): void {
+    this._cm_exec(id, "find");
   }
 
-  find_prev(id) {
-    return __guard__(this._get_cm(id), x => x.execCommand("findPrev"));
+  find_next(id: string): void {
+    this._cm_exec(id, "findNext");
   }
 
-  replace(id) {
-    return __guard__(this._get_cm(id), x => x.execCommand("replace"));
+  find_prev(id: string): void {
+    this._cm_exec(id, "findPrev");
   }
 
-  goto_line(id) {
-    return __guard__(this._get_cm(id), x => x.execCommand("jumpToLine"));
+  replace(id: string): void {
+    this._cm_exec(id, "replace");
   }
 
-  auto_indent(id) {
-    return __guard__(this._get_cm(id), x => x.execCommand("indentAuto"));
+  goto_line(id: string): void {
+    this._cm_exec(id, "jumpToLine");
+  }
+
+  auto_indent(id: string): void {
+    this._cm_exec(id, "indentAuto");
   }
 
   // used when clicking on other user avatar,
   // in the latex editor, etc.
   // If cursor is given, moves the cursor to the line too.
-  programmatical_goto_line(line, cursor, focus?: boolean) {
+  programmatical_goto_line(
+    line: number,
+    cursor?: boolean,
+    focus?: boolean
+  ): void {
     const cm = this._recent_cm();
     if (cm == null) {
       return;
@@ -956,37 +973,37 @@ export class Actions extends BaseActions {
       cm.getDoc().setCursor(pos);
     }
     if (focus) {
-      return cm.focus();
+      cm.focus();
     }
   }
 
-  cut(id) {
+  cut(id: string): void {
     const cm = this._get_cm(id);
     if (cm != null) {
       copypaste.set_buffer(cm.getSelection());
       cm.replaceSelection("");
-      return cm.focus();
+      cm.focus();
     }
   }
 
-  copy(id) {
+  copy(id: string): void {
     const cm = this._get_cm(id);
     if (cm != null) {
       copypaste.set_buffer(cm.getSelection());
-      return cm.focus();
+      cm.focus();
     }
   }
 
-  paste(id) {
+  paste(id: string): void {
     const cm = this._get_cm(id);
     if (cm != null) {
       cm.replaceSelection(copypaste.get_buffer());
-      return cm.focus();
+      cm.focus();
     }
   }
 
   // big scary error shown at top
-  set_error(error?: object | string) {
+  set_error(error?: object | string) : void {
     if (error === undefined) {
       this.setState({ error });
     } else {
@@ -1071,36 +1088,35 @@ export class Actions extends BaseActions {
     });
   }
 
-  set_gutter_marker(opts) {
-    let left;
-    opts = defaults(opts, {
-      id: undefined, // user-specified unique id for this gutter marker; autogenerated if not given
-      line: required, // base-0 line number where gutter is initially positions
-      gutter_id: required, // css class name of the gutter
-      component: required
-    }); // react component that gets rendered as the gutter marker
+  set_gutter_marker(opts: {
+    id?: string; // user-specified unique id for this gutter marker; autogenerated if not given
+    line: number; // base-0 line number where gutter is initially positions
+    gutter_id: string; // css class name of the gutter
+    component: Rendered; // react component that gets rendered as the gutter marker
+  }): void {
     if (opts.id == null) {
+      // generate a random id, since none was specified.
       opts.id = misc.uuid();
     }
-    const gutter_markers =
-      (left = this.store.get("gutter_markers")) != null ? left : Map();
-    let info = fromJS({ line: opts.line, gutter_id: opts.gutter_id });
-    info = info.set("component", opts.component);
-    return this.setState({ gutter_markers: gutter_markers.set(opts.id, info) });
+    const gutter_markers = this.store.get("gutter_markers", Map());
+    const info = fromJS({
+      line: opts.line,
+      gutter_id: opts.gutter_id,
+      component: opts.component
+    });
+    this.setState({ gutter_markers: gutter_markers.set(opts.id, info) });
   }
 
-  delete_gutter_marker(id) {
-    const gutter_markers = this.store.get("gutter_markers");
-    if (gutter_markers != null ? gutter_markers.has(id) : undefined) {
-      return this.setState({ gutter_markers: gutter_markers.delete(id) });
+  delete_gutter_marker(id: string): void {
+    const gutter_markers = this.store.get("gutter_markers", Map());
+    if (gutter_markers.has(id)) {
+      this.setState({ gutter_markers: gutter_markers.delete(id) });
     }
   }
 
   // clear all gutter markers in the given gutter
-  clear_gutter(gutter_id) {
-    let left;
-    let gutter_markers =
-      (left = this.store.get("gutter_markers")) != null ? left : Map();
+  clear_gutter(gutter_id : string) : void {
+    let gutter_markers = this.store.get("gutter_markers", Map());
     const before = gutter_markers;
     gutter_markers.map((info, id) => {
       if (info.get("gutter_id") === gutter_id) {
@@ -1108,14 +1124,14 @@ export class Actions extends BaseActions {
       }
     });
     if (before !== gutter_markers) {
-      return this.setState({ gutter_markers });
+      this.setState({ gutter_markers });
     }
   }
 
   // The GutterMarker component calls this to save the line handle to the gutter marker,
   // which is needed for tracking the gutter location.
   // Nothing else should directly call this.
-  _set_gutter_handle(id, handle) {
+  _set_gutter_handle(id:string, handle:string) : void {
     // id     = user-specified unique id for this gutter marker
     // handle = determines current line number of gutter marker
     const gutter_markers = this.store.get("gutter_markers");
@@ -1126,7 +1142,7 @@ export class Actions extends BaseActions {
     if (info == null) {
       return;
     }
-    return this.setState({
+    this.setState({
       gutter_markers: gutter_markers.set(id, info.set("handle", handle))
     });
   }

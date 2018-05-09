@@ -171,6 +171,9 @@ export class Actions extends BaseActions {
       });
       this.set_status("");
       let line = info.Line;
+      if(typeof(line) != "number") {  // TODO: would be nicer to handle this at the source...
+        throw Error("invalid synctex output (Line must be a number).");
+      }
       // TODO #v1: info.Input="/home/user/projects/98e85b9b-51bb-4889-be47-f42698c37ed4/./a.tex", so
       // go to the right file!
       this.programmatical_goto_line(line, true, true);
