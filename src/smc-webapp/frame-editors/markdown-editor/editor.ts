@@ -43,13 +43,6 @@ const EDITOR_SPEC = {
       "time_travel"
     ])
   },
-  foo: {
-    short: "Foo",
-    name: "Bar Rendered View",
-    icon: "eye",
-    component: RenderedMarkdown,
-    buttons: set(["decrease_font_size", "increase_font_size", "time_travel"])
-  }
 };
 
 export const Editor = createEditor({

@@ -1,17 +1,12 @@
 /*
- * decaffeinate suggestions:
- * DS102: Remove unnecessary code created because of implicit returns
- * DS104: Avoid inline assignments
- * DS207: Consider shorter variations of null checks
- * Full docs: https://github.com/decaffeinate/decaffeinate/blob/master/docs/suggestions.md
- */
-/*
 Single codemirror-based file editor
 
 This is a wrapper around a single codemirror editor view.
 */
 
 const SAVE_INTERVAL_MS = 2000;
+
+import { delay } from "awaiting";
 
 import { Map, Set } from "immutable";
 
@@ -123,8 +118,9 @@ export class CodemirrorEditor extends Component<Props, State> {
     this.cm.refresh();
   }
 
-  cm_refresh(): void {
-    setTimeout(() => this._cm_refresh(), 0);
+  async cm_refresh(): Promise<void> {
+    await delay(0);
+    this._cm_refresh();
   }
 
   cm_highlight_misspelled_words(words: Set<string>): void {
@@ -205,7 +201,7 @@ export class CodemirrorEditor extends Component<Props, State> {
     }
   }
 
-  init_codemirror(): void {
+  async init_codemirror(): Promise<void> {
     const node: HTMLTextAreaElement = ReactDOM.findDOMNode(this.refs.textarea);
     if (node == null) {
       return;
@@ -321,15 +317,14 @@ export class CodemirrorEditor extends Component<Props, State> {
     if (this.props.is_current) {
       this.cm.focus();
     }
-
-    setTimeout(() => {
-      this.cm_refresh();
-      if (this.props.is_current) {
-        return this.cm != null ? this.cm.focus() : undefined;
-      }
-    }, 0);
-
     this.cm.setOption("readOnly", this.props.read_only);
+
+    await delay(0);
+    // now in the next render loop
+    this.cm_refresh();
+    if (this.props.is_current && this.cm) {
+      this.cm.focus();
+    }
   }
 
   render_cursors(): Rendered {

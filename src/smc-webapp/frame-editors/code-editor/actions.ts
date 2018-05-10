@@ -280,15 +280,14 @@ export class Actions extends BaseActions {
     this._save_local_view_state();
   }
 
-  set_active_id(active_id: string, block_ms?: number): void {
+  async set_active_id(active_id: string, block_ms?: number): Promise<void> {
     if (this._ignore_set_active_id) {
       return;
     }
     if (block_ms) {
       this._ignore_set_active_id = true;
-      setTimeout(() => {
-        this._ignore_set_active_id = false;
-      }, block_ms);
+      await delay(block_ms);
+      this._ignore_set_active_id = false;
     }
     const local: Map<string, any> = this.store.get("local_view_state");
     if (local.get("active_id") === active_id) {
@@ -471,13 +470,23 @@ export class Actions extends BaseActions {
   }
 
   _has_unsaved_changes(): boolean {
+    if (!this._syncstring) {
+      return false;
+    }
     return this._syncstring.has_unsaved_changes();
+  }
+
+  _has_uncommitted_changes(): boolean {
+    if (!this._syncstring) {
+      return false;
+    }
+    return this._syncstring.has_uncommitted_changes();
   }
 
   update_save_status(): void {
     this.setState({
       has_unsaved_changes: this._has_unsaved_changes(),
-      has_uncommitted_changes: this._syncstring.has_uncommitted_changes()
+      has_uncommitted_changes: this._has_uncommitted_changes()
     });
   }
 

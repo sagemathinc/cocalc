@@ -11,9 +11,12 @@ CodeMirror; // just to make typescript happy that CodeMirror is used.  The impor
 
 declare module "codemirror" {
   interface Editor {
-    setValueNoJump(value: string, scroll_last?: boolean): void;
     options: EditorConfiguration;
-    delete_trailing_whitespace(opts? : {omit_lines? : SetMap}) : void;
+
+    setValueNoJump(value: string, scroll_last?: boolean): void;
+
+    delete_trailing_whitespace(opts?: { omit_lines?: SetMap }): void;
+
     edit_selection(opts: {
       cmd: string;
       args?: any;

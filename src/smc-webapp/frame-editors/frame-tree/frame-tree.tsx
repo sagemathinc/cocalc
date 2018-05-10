@@ -1,12 +1,4 @@
 /*
- * decaffeinate suggestions:
- * DS102: Remove unnecessary code created because of implicit returns
- * DS103: Rewrite code to no longer use __guard__
- * DS104: Avoid inline assignments
- * DS207: Consider shorter variations of null checks
- * Full docs: https://github.com/decaffeinate/decaffeinate/blob/master/docs/suggestions.md
- */
-/*
 FrameTree -- a binary tree of editor frames.
 
 For the first version, these will all be codemirror editors on the same file.
@@ -33,7 +25,9 @@ or
     deletable : bool
 */
 
+import { delay } from "awaiting";
 import { is_safari } from "../generic/browser";
+import { is_different } from "../generic/misc";
 import { React, ReactDOM, Component } from "../generic/react";
 import { Map, Set } from "immutable";
 
@@ -74,7 +68,7 @@ const rows_drag_bar_drag_hover = misc.merge(
 );
 
 interface FrameTreeProps {
-  name:string;  // just so editors (leaf nodes) can plug into reduxProps if they need to.
+  name: string; // just so editors (leaf nodes) can plug into reduxProps if they need to.
   actions: any;
   path: string; // assumed to never change -- all frames in same project
   project_id: string; // assumed to never change -- all frames in same project
@@ -113,7 +107,7 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
   shouldComponentUpdate(next, state): boolean {
     return (
       this.state.drag_hover !== state.drag_hover ||
-      misc.is_different(this.props, next, [
+      is_different(this.props, next, [
         "frame_tree",
         "active_id",
         "full_id",
@@ -237,6 +231,13 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
     );
   }
 
+  async reset_frame_tree(): Promise<void> {
+    await delay(1);
+    if (this.props.actions) {
+      this.props.actions.reset_frame_tree();
+    }
+  }
+
   render_one(desc) {
     let child;
     const type = desc != null ? desc.get("type") : undefined;
@@ -253,14 +254,8 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
       child = this.render_leaf(type, desc, CodemirrorEditor, {});
     } else {
       // fix this disaster next time around.
-      setTimeout(
-        () =>
-          this.props.actions != null
-            ? this.props.actions.reset_frame_tree()
-            : undefined,
-        1
-      );
-      return <div>Invalid frame tree {misc.to_json(desc)}</div>;
+      this.reset_frame_tree();
+      return <div>Invalid frame tree {JSON.stringify(desc)}</div>;
     }
     return (
       <div

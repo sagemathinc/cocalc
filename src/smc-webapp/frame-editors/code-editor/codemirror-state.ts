@@ -13,6 +13,8 @@ This is extremely hard if the user has word wrap on since every wrapped line cha
 editor height, and the Codemirror API not providing a simple way to deal with this.
 */
 
+import { delay } from "awaiting";
+
 import * as CodeMirror from "codemirror";
 
 const VERSION: number = 2;
@@ -47,7 +49,7 @@ export function get_state(cm: CodeMirror.Editor): State | undefined {
   return state;
 }
 
-export function set_state(cm: CodeMirror.Editor, state: State): void {
+export async function set_state(cm: CodeMirror.Editor, state: State): Promise<void> {
   if (state.ver < VERSION) {
     return; // ignore old version.
   }
@@ -59,11 +61,11 @@ export function set_state(cm: CodeMirror.Editor, state: State): void {
     // the coords below will return the sizing data about
     // the cm instance before the above css font-size change has been rendered.
     // Also, the opacity business avoids some really painful "flicker".
-    setTimeout(function() {
-      elt.css("opacity", 1);
-      cm.scrollTo(0, cm.cursorCoords(state.pos, "local").top);
-      return cm.refresh();
-    }, 0);
+    await delay(0);
+    // now in next render loop
+    elt.css("opacity", 1);
+    cm.scrollTo(0, cm.cursorCoords(state.pos, "local").top);
+    cm.refresh();
   }
   if (state.sel) {
     cm.getDoc().setSelections(state.sel);
