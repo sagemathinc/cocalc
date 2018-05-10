@@ -1,16 +1,20 @@
+import { Store, store_definition } from "../Store"
 import { redux, Actions } from "../../smc-react";
 
-
 // Basic Store
-interface bakeryState {
+interface bakeryState extends store_definition {
   cake: string;
   pie: string;
 }
 
 let init_state: bakeryState = {
+  name: "bakery test store",
   cake: "chocolate",
   pie: "pizza"
 };
+redux.createStore("test", Store, init_state);
+
+redux.getStore<bakeryState, Store<bakeryState>>("thing");
 
 class bakeryActions extends Actions<bakeryState> {
   change_pie(new_pie: string): void {
@@ -27,7 +31,13 @@ class bakeryActions extends Actions<bakeryState> {
     // this.setState({"cashier": "Jill"});
     // '"cashier"' does not exist in type 'Partial<{ cake: string; pie: string; }>'
   }
+  get_store(): Store<bakeryState> {
+    return this.redux.getStore<bakeryState, Store<bakeryState>>(this.name);
+  }
 }
 
-let actions = redux.createActions("test", bakeryActions, init_state)
-actions.change_pie("Savory")
+let actions = redux.createActions("test", bakeryActions, init_state);
+actions.change_pie("Savory");
+
+let eh: bakeryActions = redux.getActions("test");
+eh.change_pie("Sweet");

@@ -211,7 +211,11 @@ export class AppRedux {
     this._redux_store.dispatch(action_set_state(change));
   }
 
-  createActions<T, C extends Actions<T>>(name: string, actions_class: new(a, b, c) => C, state_types: T): C {
+  createActions<T, C extends Actions<T>>(
+    name: string,
+    actions_class: new (a, b, c) => C,
+    state_types: T
+  ): C {
     if (name == null) {
       throw Error("name must be a string");
     }
@@ -223,9 +227,9 @@ export class AppRedux {
     return this._actions[name];
   }
 
-  getActions<T, C extends Actions<T>>(name: string | { project_id: string }): C {
-    let test = this.createStore({ name: "high" });
-    test;
+  getActions<T, C extends Actions<T>>(
+    name: string | { project_id: string }
+  ): C {
     if (name == null) {
       throw Error(
         "name must be a string or an object with a project_id attribute, but is undefined"
@@ -241,28 +245,20 @@ export class AppRedux {
     }
   }
 
-  createStore<T>(spec: T): Store<T>;
-  createStore<T>(name: string, init?: T): Store<T>;
-  createStore<T>(
+  createStore<T extends store_definition>(spec: T, store_class): Store<T>;
+  createStore<T, C extends Store<T>>(
     name: string,
-    store_class: StoreConstructorType<T>,
+    store_class: StoreConstructorType<T, C>,
     init?: T
-  ): Store<T>;
-  createStore<T extends store_definition>(
+  ): C;
+  createStore<T extends store_definition, C extends Store<T>>(
     spec: string | T,
-    store_class?: StoreConstructorType<T>,
+    store_class: StoreConstructorType<T, C>,
     init?: {} | T
-  ): Store<T> {
-    let S: Store<T>;
+  ): C {
+    let S: C;
     if (typeof spec === "string") {
       let name = spec;
-      if (init == null) {
-        init = store_class;
-        store_class = Store;
-      }
-      if (store_class == null) {
-        store_class = Store;
-      }
       S = this._stores[name];
       if (S == null) {
         S = this._stores[name] = new store_class(name, this);
@@ -277,7 +273,7 @@ export class AppRedux {
     } else {
       S = this._stores[spec.name];
       if (S == null) {
-        S = new Store(spec.name, this, spec);
+        S = new store_class(spec.name, this, spec);
         this._stores[spec.name] = S;
         // TODOJ: REMOVE
         S.__converted = true;
@@ -289,7 +285,7 @@ export class AppRedux {
     return S;
   }
 
-  getStore<T>(name: string): Store<T> {
+  getStore<T, C extends Store<T>>(name: string): C {
     if (name == null) {
       throw Error("name must be a string");
     }
@@ -354,7 +350,7 @@ export class AppRedux {
     return this._tables[name];
   }
 
-  getProjectStore<T>(project_id: string): Store<T> {
+  getProjectStore<T, C extends Store<T>>(project_id: string): C {
     if (!misc.is_valid_uuid_string(project_id)) {
       console.trace();
       console.warn(`getProjectStore: INVALID project_id -- ${project_id}`);

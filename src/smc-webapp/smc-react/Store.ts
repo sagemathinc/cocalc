@@ -13,11 +13,11 @@ export interface store_definition {
   name: string;
 }
 
-export type StoreConstructorType<T> = new (
+export type StoreConstructorType<T, C extends Store<T>> = new (
   name: string,
   redux: AppRedux,
   store_def?: T
-) => Store<T>;
+) => C;
 
 /*
 store_def =
@@ -252,3 +252,8 @@ var generate_selectors = function(own, import_functions) {
   }
   return own;
 };
+
+let test: StoreConstructorType<
+  store_definition,
+  Store<store_definition>
+> = Store;

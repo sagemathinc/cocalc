@@ -2,19 +2,23 @@ import { Store, store_definition } from "../Store";
 import { redux } from "../../smc-react";
 
 // Basic Store
-interface bakeryState {
+interface bakeryState extends store_definition {
   cake: string;
   pie: string;
 }
 
 let init_state: bakeryState = {
+  name: "bakery test store",
   cake: "chocolate",
   pie: "pizza"
 };
 
-redux.createStore("test", init_state);
+redux.createStore("test", Store, init_state);
 
-let store = redux.getStore<bakeryState>("thing");
+let store = redux.getStore<bakeryState, Store<bakeryState>>("thing");
+
+let alt_store: Store<bakeryState> = redux.getStore("test");
+alt_store.get("pie");
 
 // get must take a parameter defined by your state interface
 store.get("pie");
@@ -70,9 +74,9 @@ let init_coffee_store_state: CoffeeState = {
   }
 };
 
-redux.createStore<CoffeeState>("test", CoffeeStore, init_coffee_store_state);
+redux.createStore("test", CoffeeStore, init_coffee_store_state);
 
-let coffeestore = redux.getStore<CoffeeState>("thing");
+let coffeestore = redux.getStore<CoffeeState, CoffeeStore>("thing");
 let costs = coffeestore.get("costs");
 costs;
 
@@ -84,3 +88,6 @@ coffeestore.getIn(["costs", "mocha"]);
 
 // Interesting...
 coffeestore.getIn(["drinks", "length"]);
+let alt_complex_store: CoffeeStore = redux.getStore("thing");
+let alt_costs = alt_complex_store.get("costs");
+alt_costs;
