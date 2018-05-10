@@ -42,9 +42,7 @@ import {
   StoreConstructorType
 } from "./smc-react/Store";
 
-import {
-  Actions
-} from "./smc-react/Actions";
+import { Actions } from "./smc-react/Actions";
 
 const misc = require("smc-util/misc");
 

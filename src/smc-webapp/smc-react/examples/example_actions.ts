@@ -22,7 +22,6 @@ class bakeryActions extends Actions<bakeryState> {
   get_store(): Store<bakeryState> {
     return this.redux.getStore<bakeryState, Store<bakeryState>>(this.name);
   }
-
 }
 
 let actions = redux.createActions(simple, bakeryActions);
