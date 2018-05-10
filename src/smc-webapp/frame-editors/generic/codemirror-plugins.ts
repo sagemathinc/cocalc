@@ -3,6 +3,8 @@
 It was ridiculously hard to figure out how to declare this in TypeScript!
 */
 
+import { SetMap } from "../frame-tree/types";
+
 import * as CodeMirror from "codemirror";
 
 CodeMirror; // just to make typescript happy that CodeMirror is used.  The import above *is* needed.
@@ -11,6 +13,7 @@ declare module "codemirror" {
   interface Editor {
     setValueNoJump(value: string, scroll_last?: boolean): void;
     options: EditorConfiguration;
+    delete_trailing_whitespace(opts? : {omit_lines? : SetMap}) : void;
     edit_selection(opts: {
       cmd: string;
       args?: any;

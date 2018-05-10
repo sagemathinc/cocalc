@@ -121,17 +121,75 @@ export function set(v: string[]): object {
   return s;
 }
 
-export function cmp(a:any, b:any) : -1|0|1 {
+export function cmp(a: any, b: any): -1 | 0 | 1 {
+  if (a < b) {
+    return -1;
+  } else if (a > b) {
+    return 1;
+  }
+  return 0;
+}
+
+export function cmp_Date(a : Date | undefined | null, b : Date | undefined | null) : -1 | 0 | 1 {
+    if ((a == null)) {
+        return -1;
+    }
+    if ((b == null)) {
+        return 1;
+    }
     if (a < b) {
         return -1;
     } else if (a > b) {
         return 1;
     }
-    return 0;
+    return 0;   // note: a == b for Date objects doesn't work as expected, but that's OK here.
 }
 
 // see https://stackoverflow.com/questions/728360/how-do-i-correctly-clone-a-javascript-object/30042948#30042948
-export function copy(obj: any) : any {
-   return Object.assign({}, obj);
+export function copy(obj: any): any {
+  return Object.assign({}, obj);
 }
 
+// startswith(s, x) is true if s starts with the string x or any of the strings in x.
+// It is false if s is not a string.
+export function startswith(s: string, x: string | string[]): boolean {
+  if (typeof x === "string") {
+    return s.indexOf(x) === 0;
+  }
+  for (let v of x) {
+    if (s.indexOf(v) === 0) {
+      return true;
+    }
+  }
+  return false;
+}
+
+export function endswith(s: string, t: string): boolean {
+  return s.slice(s.length - t.length) === t;
+}
+
+// We use this uuid implementation only for the browser client.  For node code, use node-uuid.
+export function uuid(): string {
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function(c) {
+    const r = (Math.random() * 16) | 0;
+    const v = c === "x" ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+}
+
+export function history_path(path: string): string {
+  const p = path_split(path);
+  if (p.head) {
+    return `${p.head}/.${p.tail}.sage-history`;
+  } else {
+    return `.${p.tail}.sage-history`;
+  }
+}
+
+// returns the number of keys of an object, e.g., {a:5, b:7, d:'hello'} --> 3
+export function len(obj: object | undefined | null) {
+  if (obj == null) {
+    return 0;
+  }
+  return Object.keys(obj).length;
+}

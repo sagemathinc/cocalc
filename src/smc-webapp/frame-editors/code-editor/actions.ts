@@ -12,32 +12,33 @@ import { fromJS, List, Map, Set } from "immutable";
 import { debounce } from "underscore";
 import { callback, delay } from "awaiting";
 import {
+  default_font_size,
   log_error,
   public_get_text_file,
   prettier,
   syncstring
 } from "../generic/client";
 import { retry_until_success } from "../generic/async-utils";
-
-import { filename_extension } from "../generic/misc";
+import {
+  cmp_Date,
+  filename_extension,
+  history_path,
+  len,
+  startswith,
+  uuid
+} from "../generic/misc";
 import { print_code } from "../frame-tree/print-code";
 import { FrameTree, ImmutableFrameTree, SetMap } from "../frame-tree/types";
 import { misspelled_words } from "./spell-check.ts";
 import * as cm_doc_cache from "./doc.ts";
 import { test_line } from "./test.ts";
 import { Rendered } from "../generic/react";
-
 import * as CodeMirror from "codemirror";
 import "../generic/codemirror-plugins";
-
 import * as tree_ops from "../frame-tree/tree-ops";
 
 const BaseActions = require("smc-webapp/smc-react").Actions;
-const misc = require("smc-util/misc");
 const copypaste = require("smc-webapp/copy-paste-buffer");
-//import {create_key_handler} from "./keyboard";
-
-const { defaults } = misc;
 
 export class Actions extends BaseActions {
   protected _state: string;
@@ -235,14 +236,7 @@ export class Actions extends BaseActions {
     }
 
     if (!local_view_state.has("font_size")) {
-      let left;
-      const font_size =
-        (left = __guard__(this.redux.getStore("account"), x1 =>
-          x1.get("font_size")
-        )) != null
-          ? left
-          : 14;
-      local_view_state = local_view_state.set("font_size", font_size);
+      local_view_state = local_view_state.set("font_size", default_font_size());
     }
 
     let frame_tree = local_view_state.get("frame_tree");
@@ -543,20 +537,21 @@ export class Actions extends BaseActions {
     if (cm == null) {
       return;
     }
-    const omit_lines = {};
-    __guard__(this._syncstring.get_cursors(), x =>
-      x.map((x, _) => {
-        return __guard__(x.get("locs"), x1 =>
-          x1.map(loc => {
-            const y = loc.get("y");
-            if (y != null) {
-              return (omit_lines[y] = true);
-            }
-          })
-        );
-      })
-    );
-    (cm as any).delete_trailing_whitespace({ omit_lines });
+    const omit_lines: SetMap = {};
+    const cursors = this._syncstring.get_cursors();
+    if (cursors) {
+      cursors.map((user, _) => {
+        const locs = user.get("locs");
+        if (!locs) return;
+        locs.map(loc => {
+          const y = loc.get("y");
+          if (y != null) {
+            omit_lines[y] = true;
+          }
+        });
+      });
+    }
+    cm.delete_trailing_whitespace({ omit_lines });
   }
 
   // Use internally..  Try once to save to disk.
@@ -577,7 +572,8 @@ export class Actions extends BaseActions {
     if (this.store.get("has_unsaved_changes")) {
       throw Error("not saved");
     }
-    if (misc.startswith(this.store.get("error"), SAVE_ERROR)) {
+    let error = this.store.get("error");
+    if (error && startswith(error, SAVE_ERROR)) {
       // Save just succeeded, but there was a save error at the top, so clear it.
       this.set_error("");
     }
@@ -633,7 +629,7 @@ export class Actions extends BaseActions {
 
   time_travel(): void {
     this.redux.getProjectActions(this.project_id).open_file({
-      path: misc.history_path(this.path),
+      path: history_path(this.path),
       foreground: true
     });
   }
@@ -653,18 +649,11 @@ export class Actions extends BaseActions {
     if (!id) {
       return;
     }
-    let font_size = __guard__(tree_ops.get_node(this._get_tree(), id), x =>
-      x.get("font_size")
-    );
-    if (font_size == null) {
-      let left;
-      font_size =
-        (left = __guard__(this.redux.getStore("account"), x1 =>
-          x1.get("font_size")
-        )) != null
-          ? left
-          : 14;
+    const node = tree_ops.get_node(this._get_tree(), id);
+    if (!node) {
+      return;
     }
+    let font_size: number = node.get("font_size", default_font_size());
     font_size += delta;
     if (font_size < 2) {
       font_size = 2;
@@ -694,7 +683,7 @@ export class Actions extends BaseActions {
       cm.getDoc().setSelections(sel);
     }
 
-    if (misc.len(this._cm) > 0) {
+    if (len(this._cm) > 0) {
       // just making another cm
       this._cm[id] = cm;
       return;
@@ -755,7 +744,7 @@ export class Actions extends BaseActions {
       }
       v.sort(
         (a, b) =>
-          -misc.cmp_Date(
+          -cmp_Date(
             a._last_active != null ? a._last_active : 0,
             b._last_active != null ? b._last_active : 0
           )
@@ -783,16 +772,16 @@ export class Actions extends BaseActions {
   }
 
   // Open a code editor, optionally at the given line.
-  open_code_editor(opts): void {
-    opts = defaults(opts, {
-      focus: true,
-      line: undefined,
-      file: undefined, // not supported yet
-      cursor: true, // set cursor to line position (not just scroll to it)
-      direction: "col"
-    }); // 'row' or 'col'
-
-    // TODO -- opts.file is ignored
+  async open_code_editor(opts: {
+    focus?: boolean;
+    line?: number;
+    file?: string; // not supported yet (TODO!)
+    cursor?: boolean; // set cursor to line position (not just scroll to it)
+    direction?: string; // 'row' or 'col'
+  }): Promise<void> {
+    if (opts.focus === undefined) opts.focus = true;
+    if (opts.cursor === undefined) opts.cursor = true;
+    if (opts.direction === undefined) opts.direction = "col";
 
     const must_create = this._get_cm() == null;
     if (must_create) {
@@ -800,25 +789,22 @@ export class Actions extends BaseActions {
       this.split_frame(opts.direction, undefined, "cm");
     }
 
-    if (opts.line) {
-      const f = () => this.programmatical_goto_line(opts.line, opts.cursor);
+    if (opts.line !== undefined) {
       if (must_create) {
         // Have to wait until after editor gets created
-        setTimeout(f, 1);
-      } else {
-        f();
+        await delay(1);
       }
+      this.programmatical_goto_line(opts.line, opts.cursor);
     }
 
     if (opts.focus) {
       // Have to wait until after editor gets created, and
       // probably also event that caused this open.
-      setTimeout(() => {
-        const cm = this._recent_cm();
-        if (cm) {
-          cm.focus();
-        }
-      }, 1);
+      await delay(1);
+      const cm = this._recent_cm();
+      if (cm) {
+        cm.focus();
+      }
     }
   }
 
@@ -1024,12 +1010,16 @@ export class Actions extends BaseActions {
     if (!cm) {
       return; // nothing to print...
     }
+    let node = this._get_frame_node(id);
+    if (!node) {
+      return; // this won't happen but it ensures node is defined for typescript.
+    }
     try {
       print_code({
         value: cm.getValue(),
         options: cm.options,
         path: this.path,
-        font_size: __guard__(this._get_frame_node(id), x => x.get("font_size"))
+        font_size: node.get("font_size")
       });
     } catch (err) {
       this.set_error(err);
@@ -1089,7 +1079,7 @@ export class Actions extends BaseActions {
   }): void {
     if (opts.id == null) {
       // generate a random id, since none was specified.
-      opts.id = misc.uuid();
+      opts.id = uuid();
     }
     const gutter_markers = this.store.get("gutter_markers", Map());
     const info = fromJS({
@@ -1201,10 +1191,4 @@ export class Actions extends BaseActions {
     }
     await test_line(opts);
   }
-}
-
-function __guard__(value, transform) {
-  return typeof value !== "undefined" && value !== null
-    ? transform(value)
-    : undefined;
 }

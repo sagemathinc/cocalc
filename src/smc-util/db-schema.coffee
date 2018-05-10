@@ -116,6 +116,8 @@ schema.account_creation_actions =
             desc : 'When this action should be expired.'
     pg_indexes : ['email_address']
 
+exports.DEFAULT_FONT_SIZE = DEFAULT_FONT_SIZE = 14
+
 schema.accounts =
     desc : 'All user accounts.'
     primary_key : 'account_id'
@@ -270,12 +272,12 @@ schema.accounts =
                 first_name      : ''
                 last_name       : ''
                 terminal        :
-                    font_size    : 14
+                    font_size    : DEFAULT_FONT_SIZE
                     color_scheme : 'default'
                     font         : 'monospace'
                 autosave        : 45
                 evaluate_key    : 'Shift-Enter'
-                font_size       : 14
+                font_size       : DEFAULT_FONT_SIZE
                 passports       : {}
                 groups          : []
                 last_active     : null

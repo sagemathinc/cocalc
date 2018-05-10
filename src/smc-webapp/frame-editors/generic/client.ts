@@ -4,6 +4,8 @@ Typescript async/await rewrite of smc-util/client.coffee...
 
 const webapp_client = require("smc-webapp/webapp_client").webapp_client;
 const schema = require("smc-util/schema");
+const DEFAULT_FONT_SIZE : number = require("smc-util/db-schema").DEFAULT_FONT_SIZE;
+import {redux} from "./react";
 
 import { async_opts } from "./async-utils";
 
@@ -102,7 +104,14 @@ interface SyncstringOpts {
 }
 
 export function syncstring(opts: SyncstringOpts): any {
-  const opts1 : any = opts;
+  const opts1: any = opts;
   opts1.id = schema.client_db.sha1(opts.project_id, opts.path);
   return webapp_client.sync_string(opts1);
+}
+
+export function default_font_size(): number {
+  const account = redux.getStore("account");
+  return account
+    ? account.get("font_size", DEFAULT_FONT_SIZE)
+    : DEFAULT_FONT_SIZE;
 }
