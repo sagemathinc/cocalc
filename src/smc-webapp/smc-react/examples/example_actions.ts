@@ -1,9 +1,9 @@
 import { Store } from "../Store";
 import { redux, Actions } from "../../smc-react";
 
-import { simple, bakeryState } from "./example_stores";
+import { bakeryState } from "./example_stores";
 
-class bakeryActions extends Actions<bakeryState> {
+class cafeActions extends Actions<bakeryState> {
   change_pie(new_pie: string): void {
     this.setState({ pie: new_pie });
 
@@ -24,5 +24,5 @@ class bakeryActions extends Actions<bakeryState> {
   }
 }
 
-let actions = redux.createActions(simple, bakeryActions);
+let actions = redux.createActions("coffeeStore", cafeActions);
 actions.change_pie("Savory");

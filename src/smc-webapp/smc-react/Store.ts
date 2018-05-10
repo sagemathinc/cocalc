@@ -10,7 +10,7 @@ const { defaults, required } = misc;
 // Keys of T are stateTypes
 // TODO TS: Get rid of stateTypes and use the generic T here for stateTypes
 export interface store_definition {
-  name: string;
+  readonly name: string;
 }
 
 export type StoreConstructorType<T, C extends Store<T>> = new (
@@ -115,17 +115,28 @@ export class Store<State> extends EventEmitter {
   // Only works 3 levels deep.
   // It's probably advisable to normalize your data if you find yourself that deep
   // https://redux.js.org/recipes/structuring-reducers/normalizing-state-shape
-  getIn<K1 extends keyof State>(path: [K1], notSetValue?: any): State[K1];
-  getIn<K1 extends keyof State, K2 extends keyof State[K1]>(
+  // If you need to describe a recurse data structure such as a binary tree, use unsafe_getIn.
+  getIn<K1 extends keyof State, NSV>(
+    path: [K1],
+    notSetValue?: NSV
+  ): State[K1] | NSV;
+  getIn<K1 extends keyof State, K2 extends keyof State[K1], NSV>(
     path: [K1, K2],
-    notSetValue?: any
-  ): State[K1][K2];
+    notSetValue?: NSV
+  ): State[K1][K2] | NSV;
   getIn<
     K1 extends keyof State,
     K2 extends keyof State[K1],
-    K3 extends keyof State[K1][K2]
-  >(path: [K1, K2, K3], notSetValue?: any): State[K1][K2][K3];
+    K3 extends keyof State[K1][K2],
+    NSV
+  >(path: [K1, K2, K3], notSetValue?: NSV): State[K1][K2][K3] | NSV;
   getIn(path: any[], notSetValue?: any): any {
+    return this.redux._redux_store
+      .getState()
+      .getIn([this.name].concat(path), notSetValue);
+  }
+
+  unsafe_getIn(path: any[], notSetValue?: any): any {
     return this.redux._redux_store
       .getState()
       .getIn([this.name].concat(path), notSetValue);

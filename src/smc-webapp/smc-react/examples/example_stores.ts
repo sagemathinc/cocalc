@@ -3,6 +3,7 @@ import { redux } from "../../smc-react";
 
 // Basic Store
 export interface bakeryState extends store_definition {
+  name: "simple_store";
   cake: string;
   pie: string;
 }
@@ -17,23 +18,25 @@ export const init_state: bakeryState = {
 
 redux.createStore(simple, Store, init_state);
 
-let store = redux.getStore<bakeryState, Store<bakeryState>>(simple);
-
+// Do this
 let alt_store: Store<bakeryState> = redux.getStore(simple);
 alt_store.get("pie");
+
+// Don't do this
+let store = redux.getStore<bakeryState, Store<bakeryState>>(simple);
 
 // get must take a parameter defined by your state interface
 store.get("pie");
 
 // The following should error!
-// store.get("caek");
+// store.get("pi");
 
 //
 // More complex example
 //
 type drinkTypes = "mocha" | "cappucccino" | "latte";
 
-interface CoffeeState extends store_definition {
+export interface cafeState extends store_definition {
   drinks: drinkTypes[];
   costs: Partial<{ [P in drinkTypes]: number }>;
   people: {
@@ -46,7 +49,7 @@ interface CoffeeState extends store_definition {
   };
 }
 
-class CoffeeStore extends Store<CoffeeState> {
+class cafeStore extends Store<cafeState> {
   // We don't really use many functions on stores now but here's what it would look like...
   subTotal(drinkCount: Partial<{ [P in drinkTypes]: number }>): number {
     let total: number = 0;
@@ -60,8 +63,8 @@ class CoffeeStore extends Store<CoffeeState> {
   }
 }
 
-let init_coffee_store_state: CoffeeState = {
-  name: "coffeeStore",
+let init_cafe_store_state: cafeState = {
+  name: "cafeStore",
   drinks: ["mocha", "latte"],
   costs: {
     mocha: 2
@@ -76,20 +79,18 @@ let init_coffee_store_state: CoffeeState = {
   }
 };
 
-redux.createStore("coffeeStore", CoffeeStore, init_coffee_store_state);
+redux.createStore("cafeStore", cafeStore, init_cafe_store_state);
 
-let coffeestore = redux.getStore<CoffeeState, CoffeeStore>("coffeeStore");
-let costs = coffeestore.get("costs");
+let cafestore: cafeStore = redux.getStore("cafeStore");
+let costs = cafestore.get("costs");
 costs;
 
-coffeestore.getIn(["costs", "mocha"]);
+cafestore.getIn(["people", "cleaners"]);
 
 // Errors
-// coffeestore.getIn(["people", "mocha"]);
-// coffeestore.getIn(["people", "cleaners", "shifts", "length"]);
+// cafestore.getIn(["people", "mocha"]);
+// cafestore.getIn(["people", "cleaners", "shifts", "length"]);
+//   Use cafestore.unsafe_getIn(...) to escape getIn restrictions
 
 // Interesting...
-coffeestore.getIn(["drinks", "length"]);
-let alt_complex_store: CoffeeStore = redux.getStore("thing");
-let alt_costs = alt_complex_store.get("costs");
-alt_costs;
+cafestore.getIn(["drinks", "length"]);
