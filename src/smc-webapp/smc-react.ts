@@ -213,15 +213,14 @@ export class AppRedux {
 
   createActions<T, C extends Actions<T>>(
     name: string,
-    actions_class: new (a, b, c) => C,
-    state_types: T
+    actions_class: new (a, b) => C
   ): C {
     if (name == null) {
       throw Error("name must be a string");
     }
 
     if (this._actions[name] == null) {
-      this._actions[name] = new actions_class(name, this, state_types);
+      this._actions[name] = new actions_class(name, this);
     }
 
     return this._actions[name];

@@ -7,7 +7,7 @@ import { AppRedux } from "../smc-react";
 declare var DEBUG;
 
 export class Actions<T> {
-  constructor(public name: string, protected redux: AppRedux, protected store_def: T) {
+  constructor(public name: string, protected redux: AppRedux) {
     this.setState = this.setState.bind(this);
     this.destroy = this.destroy.bind(this);
     if (this.name == null) {
