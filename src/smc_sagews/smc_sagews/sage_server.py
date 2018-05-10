@@ -28,7 +28,8 @@ For debugging, this may help:
 
 # Add the path that contains this file to the Python load path, so we
 # can import other files from there.
-import os, sys, time
+import os, sys, time, operator
+import __future__ as future
 
 def unicode8(s):
     # I evidently don't understand Python unicode...  Do the following for now:
@@ -544,7 +545,7 @@ class Salvus(object):
     _prefix       = ''
     _postfix      = ''
     _default_mode = 'sage'
-    _py3print_mode = False
+    _py_features = {}
 
     def _flush_stdio(self):
         """
@@ -863,11 +864,29 @@ class Salvus(object):
                 url += u'?download'
             return TemporaryURL(url=url, ttl=mesg.get('ttl',0))
 
-    def py3print_mode(self, enable=None):
+    def python_future_feature(self, feature = None, enable = None):
+        """
+        Allow users to enable, disable, and query the features in the python __future__ module.
+        """
+        if feature is None:
+            if enable is not None:
+                raise ValueError("enable may not be specified when feature is None")
+            return sorted(Salvus._py_features.iterkeys())
+
+        attr = getattr(future, feature, None)
+        if (feature not in future.all_feature_names) or (attr is None) or not isinstance(attr, future._Feature):
+            raise RuntimeError("future feature %.50r is not defined" % (feature,))
+
         if enable is None:
-            return Salvus._py3print_mode
-        if isinstance(enable, bool):
-            Salvus._py3print_mode = enable
+            return feature in Salvus._py_features
+
+        if enable:
+            Salvus._py_features[feature] = attr
+        else:
+            try:
+                del Salvus._py_features[feature]
+            except KeyError:
+                pass
 
     def default_mode(self, mode=None):
         """
@@ -965,10 +984,7 @@ class Salvus(object):
         if pylab is not None:
             pylab.clf()
 
-        compile_flags = 0
-        if self._py3print_mode:
-            import __future__
-            compile_flags = __future__.CO_FUTURE_PRINT_FUNCTION
+        compile_flags = reduce(operator.or_, (feature.compiler_flag for feature in Salvus._py_features.itervalues()), 0)
 
         #code   = sage_parsing.strip_leading_prompts(code)  # broken -- wrong on "def foo(x):\n   print(x)"
         blocks = sage_parsing.divide_into_blocks(code)
@@ -985,7 +1001,6 @@ class Salvus(object):
             pass  # expected behavior usually, since sage.repl.interpreter usually not imported (only used by command line...)
 
         import sage.misc.session
-
         for start, stop, block in blocks:
             # if import sage.repl.interpreter fails, sag_repl_interpreter is unreferenced
             try:
@@ -1022,7 +1037,12 @@ class Salvus(object):
                             # BUGFIX: be careful to *NOT* assign to _!!  see https://github.com/sagemathinc/cocalc/issues/1107
                             block2 = "sage.misc.session.state_at_init = dict(globals());sage.misc.session._dummy=sage.misc.session.show_identifiers();\n"
                             exec compile(block2, '', 'single') in namespace, locals
+                    features = sage_parsing.get_future_features(block, 'single')
+                    if features:
+                        compile_flags = reduce(operator.or_, (feature.compiler_flag for feature in features.itervalues()), compile_flags)
                     exec compile(block+'\n', '', 'single', flags=compile_flags) in namespace, locals
+                    if features:
+                        Salvus._py_features.update(features)
                 sys.stdout.flush()
                 sys.stderr.flush()
             except:
@@ -1877,10 +1897,10 @@ def serve(port, host, extra_imports=False):
                      'default_mode', 'delete_last_output', 'dynamic', 'exercise', 'fork',
                      'fortran', 'go', 'help', 'hide', 'hideall', 'input', 'java', 'javascript', 'julia',
                      'jupyter', 'license', 'load', 'md', 'mediawiki', 'modes', 'octave', 'pandoc',
-                     'perl', 'plot3d_using_matplotlib', 'prun', 'py3print_mode', 'python', 'python3', 'r', 'raw_input',
-                     'reset', 'restore', 'ruby', 'runfile', 'sage_chat', 'sage_eval', 'scala', 'scala211',
-                     'script', 'search_doc', 'search_src', 'sh', 'show', 'show_identifiers', 'singular_kernel',
-                     'time', 'timeit', 'typeset_mode', 'var', 'wiki']:
+                     'perl', 'plot3d_using_matplotlib', 'prun', 'python_future_feature', 'py3print_mode',
+                     'python', 'python3', 'r', 'raw_input', 'reset', 'restore', 'ruby', 'runfile', 'sage_chat',
+                     'sage_eval', 'scala', 'scala211', 'script', 'search_doc', 'search_src', 'sh', 'show', 'show_identifiers',
+                     'singular_kernel', 'time', 'timeit', 'typeset_mode', 'var', 'wiki']:
             namespace[name] = getattr(sage_salvus, name)
 
         namespace['sage_server'] = sys.modules[__name__]    # http://stackoverflow.com/questions/1676835/python-how-do-i-get-a-reference-to-a-module-inside-the-module-itself

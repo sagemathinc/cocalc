@@ -3630,6 +3630,26 @@ def typeset_mode(on=True, display=True, **args):
     else:
         sys.displayhook = displayhook
 
+
+def python_future_feature(feature=None, enable=None):
+    """
+    Enable python features from the __future__ system.
+
+    EXAMPLES::
+
+    Enable python3 printing:
+
+        python_future_feature('print_function', True)
+        python_future_feature('print_function')   # returns True
+        print("hello", end="")
+
+    Then switch back to python2 printing
+        python_future_feature('print_function', False)
+        print "hello"
+
+    """
+    return salvus.python_future_feature(feature, enable)
+
 def py3print_mode(enable=None):
     """
     Enable python3 print syntax.
@@ -3647,7 +3667,7 @@ def py3print_mode(enable=None):
         print "hello"
 
     """
-    return salvus.py3print_mode(enable)
+    return salvus.python_future_feature('print_function', enable)
 
 def default_mode(mode):
     """
