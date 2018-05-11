@@ -1,8 +1,10 @@
 import { Map } from "immutable";
 
+export type FrameDirection = 'row' | 'col';
+
 /* Interface for object that describes a binary tree */
 export interface FrameTree {
-  direction?: string;
+  direction?: FrameDirection;
   type: string;
   first?: FrameTree;
   second?: FrameTree;

@@ -28,7 +28,7 @@ import {
   uuid
 } from "../generic/misc";
 import { print_code } from "../frame-tree/print-code";
-import { FrameTree, ImmutableFrameTree, SetMap } from "../frame-tree/types";
+import { FrameDirection, FrameTree, ImmutableFrameTree, SetMap } from "../frame-tree/types";
 import { misspelled_words } from "./spell-check.ts";
 import * as cm_doc_cache from "./doc.ts";
 import { test_line } from "./test.ts";
@@ -401,7 +401,7 @@ export class Actions extends BaseActions {
     this.focus();
   }
 
-  split_frame(direction: string, id?: string, type?: string): void {
+  split_frame(direction: FrameDirection, id?: string, type?: string): void {
     const ids0 = this._get_leaf_ids();
     if (!id) {
       id = this.store.getIn(["local_view_state", "active_id"]);
@@ -790,7 +790,7 @@ export class Actions extends BaseActions {
     line?: number;
     file?: string; // not supported yet (TODO!)
     cursor?: boolean; // set cursor to line position (not just scroll to it)
-    direction?: string; // 'row' or 'col'
+    direction?: FrameDirection;
   }): Promise<void> {
     if (opts.focus === undefined) opts.focus = true;
     if (opts.cursor === undefined) opts.cursor = true;
