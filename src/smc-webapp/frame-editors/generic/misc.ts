@@ -146,7 +146,7 @@ export function cmp_Date(a : Date | undefined | null, b : Date | undefined | nul
 }
 
 // see https://stackoverflow.com/questions/728360/how-do-i-correctly-clone-a-javascript-object/30042948#30042948
-export function copy(obj: any): any {
+export function copy<T>(obj: T): T {
   return Object.assign({}, obj);
 }
 
@@ -187,7 +187,7 @@ export function history_path(path: string): string {
 }
 
 // returns the number of keys of an object, e.g., {a:5, b:7, d:'hello'} --> 3
-export function len(obj: object | undefined | null) {
+export function len(obj: object | undefined | null): number {
   if (obj == null) {
     return 0;
   }

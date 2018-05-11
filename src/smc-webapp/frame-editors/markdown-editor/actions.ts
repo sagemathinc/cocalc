@@ -1,15 +1,11 @@
 /*
 Markdown Editor Actions
 */
-
-import * as $ from "jquery";
-
-import { Actions as CodeEditorActions } from "../code-editor/actions";
-
 const { toggle_checkbox } = require("smc-webapp/tasks/desc-rendering");
 
+import * as $ from "jquery";
+import { Actions as CodeEditorActions } from "../code-editor/actions";
 import { print_html } from "../frame-tree/print";
-
 import { FrameTree } from "../frame-tree/types";
 
 export class Actions extends CodeEditorActions {

@@ -279,7 +279,7 @@ export class CodemirrorEditor extends Component<Props, State> {
 
     // After this only stuff that we use for the non-public version!
     const save_syncstring_throttle = throttle(
-      this.save_syncstring,
+      () => this.save_syncstring(),
       SAVE_INTERVAL_MS,
       { leading: false }
     );

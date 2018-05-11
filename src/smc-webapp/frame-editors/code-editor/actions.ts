@@ -672,11 +672,11 @@ export class Actions extends BaseActions {
   }
 
   increase_font_size(id: string): void {
-    return this.change_font_size(1, id);
+    this.change_font_size(1, id);
   }
 
   decrease_font_size(id: string): void {
-    return this.change_font_size(-1, id);
+    this.change_font_size(-1, id);
   }
 
   set_font_size(id: string, font_size: number): void {
@@ -823,8 +823,8 @@ export class Actions extends BaseActions {
       cm = this._cm[id];
       if (cm) {
         cm.focus();
-        return;
       }
+      return;
     }
     cm = this._get_cm();
     if (cm) {
