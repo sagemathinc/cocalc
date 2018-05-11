@@ -13,13 +13,16 @@ The two helpful async/await libraries I found are:
 import * as awaiting from "awaiting";
 
 // turns a function of opts, which has a cb input into
-// an async function that takes an opts with no cb as input.
-export async function async_opts(f: Function, opts: any) {
-  function g(cb: Function) {
-    opts.cb = cb;
-    f(opts);
+// an async function that takes an opts with no cb as input; this is just like
+// awaiting.callback, but for our functions that take opts.
+export function callback_opts(f: Function) {
+  return async function(opts: any) : Promise<any> {
+    function g(cb: Function) {
+      opts.cb = cb;
+      f(opts);
+    }
+    return await awaiting.callback(g);
   }
-  return awaiting.callback(g);
 }
 
 /* retry_until_success keeps calling an async function f with

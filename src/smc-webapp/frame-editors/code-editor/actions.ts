@@ -18,7 +18,7 @@ import {
   prettier,
   syncstring
 } from "../generic/client";
-import { retry_until_success } from "../generic/async-utils";
+import { callback_opts, retry_until_success } from "../generic/async-utils";
 import {
   cmp_Date,
   filename_extension,
@@ -484,7 +484,7 @@ export class Actions extends BaseActions {
   }
 
   async update_save_status(): Promise<void> {
-    for(let i=0; i<2; i++) {
+    for (let i = 0; i < 2; i++) {
       this.setState({
         has_unsaved_changes: this._has_unsaved_changes(),
         has_uncommitted_changes: this._has_uncommitted_changes()
@@ -500,7 +500,7 @@ export class Actions extends BaseActions {
   }
 
   _syncstring_metadata(): void {
-    if (!this._syncstring) return;  // need to check since this can get called by the close.
+    if (!this._syncstring) return; // need to check since this can get called by the close.
     const read_only = this._syncstring.get_read_only();
     if (read_only !== this.store.get("read_only")) {
       this.setState({ read_only });
@@ -1065,23 +1065,21 @@ export class Actions extends BaseActions {
     }
   }
 
-  format_action(cmd, args): void {
+  async format_action(cmd, args): Promise<void> {
     const cm = this._get_cm();
     if (cm == null) {
       // format bar only makes sense when some cm is there...
       return;
     }
-    cm.edit_selection({
+    await callback_opts((opts) => cm.edit_selection(opts))({
       cmd,
-      args,
-      cb: () => {
-        if (this._state !== "closed") {
-          cm.focus();
-          this.set_syncstring_to_codemirror();
-          return this._syncstring.save();
-        }
-      }
+      args
     });
+    if (this._state !== "closed") {
+      cm.focus();
+      this.set_syncstring_to_codemirror();
+      this._syncstring.save();
+    }
   }
 
   set_gutter_marker(opts: {
