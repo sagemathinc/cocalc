@@ -275,6 +275,9 @@ exports.from_json_socket = (x) ->
 # convert object x to a JSON string, removing any keys that have "pass" in them and
 # any values that are potentially big -- this is meant to only be used for logging.
 exports.to_safe_str = (x) ->
+    if typeof(x) == 'string'
+        # nothing we can do at this point -- already a string.
+        return x
     obj = {}
     for key, value of x
         sanitize = false
