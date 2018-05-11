@@ -38,6 +38,7 @@ const { CodemirrorEditor } = require("../code-editor/codemirror-editor"); // tod
 const feature = require("smc-webapp/feature");
 const { FrameTitleBar } = require("./title-bar");
 const tree_ops = require("./tree-ops");
+const { Loading } = require("smc-webapp/r_misc");
 
 const drag_offset = feature.IS_TOUCH ? 5 : 2;
 
@@ -446,6 +447,9 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
   }
 
   render() {
+    if (this.props.value == null && this.props.content == null) {
+      return <Loading />;
+    }
     if (this.props.reload === undefined) {
       return <span>no props.reload</span>;
     }

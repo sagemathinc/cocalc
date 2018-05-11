@@ -10,7 +10,7 @@ It also:
    - [x] checkbox in markdown are interactive (can click them, which edits file)
 */
 
-const { Loading, Markdown } = require("smc-webapp/r_misc");
+const { Markdown } = require("smc-webapp/r_misc");
 
 import { is_different, path_split } from "../generic/misc";
 import { throttle } from "underscore";
@@ -19,7 +19,7 @@ import { React, Component, Rendered, ReactDOM } from "../generic/react";
 const { process_checkboxes } = require("smc-webapp/tasks/desc-rendering");
 const { apply_without_math } = require("smc-util/mathjax-utils-2");
 
-import { MAX_WIDTH } from "./options.ts";
+import { MAX_WIDTH } from "./options";
 
 interface Props {
   actions: any;
@@ -60,21 +60,19 @@ export class RenderedMarkdown extends Component<Props, {}> {
   }
 
   componentDidMount(): void {
-    // TODO: instead we should do this onLoad...
-    for (let tm of [0, 50, 250, 500]) {
-      setTimeout(() => this.restore_scroll(), tm);
-    }
+    this.restore_scroll();
   }
 
-  componentDidUpdate(): void {
-    setTimeout(() => this.restore_scroll(), 1);
-  }
 
-  restore_scroll(): void {
+  async restore_scroll(): Promise<void> {
+    console.log("restore_scroll");
     const scroll = this.props.editor_state.get("scroll");
-    if (scroll != null) {
-      $(ReactDOM.findDOMNode(this.refs.scroll)).scrollTop(scroll);
-    }
+    const elt = $(ReactDOM.findDOMNode(this.refs.scroll));
+    if (elt.length === 0) return;
+    elt.scrollTop(scroll);
+    elt.find("img").on("load", function() {
+      elt.scrollTop(scroll);
+    });
   }
 
   on_click(e): void {
@@ -96,9 +94,8 @@ export class RenderedMarkdown extends Component<Props, {}> {
   render(): Rendered {
     let value: string | undefined =
       this.props.content != undefined ? this.props.content : this.props.value;
-    if (!value) {
-      return <Loading />;
-    }
+    if (value === undefined)
+      throw Error('BUG -- markdown should always be loaded...')
     value = apply_without_math(value, process_checkboxes);
 
     return (
@@ -110,7 +107,7 @@ export class RenderedMarkdown extends Component<Props, {}> {
         }}
         ref={"scroll"}
         onScroll={throttle(() => this.on_scroll(), 250)}
-        onClick={(e) => this.on_click(e)}
+        onClick={e => this.on_click(e)}
         className={
           "cocalc-editor-div"
         } /* this cocalc-editor-div class is needed for a safari hack only */

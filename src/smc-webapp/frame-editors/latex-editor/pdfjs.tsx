@@ -8,20 +8,24 @@ This is a renderer using pdf.js.
 // also potentially makes things feel slightly slower and heavier.
 const WINDOW_SIZE: number = 3000;
 
+const { Loading } = require("smc-webapp/r_misc");
+
+import { delay } from "awaiting";
 import { Map } from "immutable";
-
 import { throttle } from "underscore";
-
 import * as $ from "jquery";
-
 import { is_different } from "../generic/misc";
 import { dblclick } from "./mouse-click";
-
-import { Component, React, ReactDOM, rclass, rtypes, Rendered } from "../generic/react";
-const { Loading } = require("smc-webapp/r_misc");
+import {
+  Component,
+  React,
+  ReactDOM,
+  rclass,
+  rtypes,
+  Rendered
+} from "../generic/react";
 import { getDocument, url_to_pdf } from "./pdfjs-doc-cache.ts";
 import { Page, PAGE_GAP } from "./pdfjs-page.tsx";
-
 import { PDFDocumentProxy, PDFPageProxy } from "pdfjs-dist/webpack";
 
 // Ensure this jQuery plugin is defined:
@@ -124,7 +128,10 @@ class PDFJS extends Component<PDFJSProps, PDFJSState> {
     }
   }
 
-  restore_scroll(): void {
+  async restore_scroll(wait?: number): Promise<void> {
+    if (wait !== undefined) {
+      await delay(wait);
+    }
     if (!this.props.editor_state || !this.mounted) return;
     this.restored_scroll = true;
     const scroll: Map<string, number> = this.props.editor_state.get("scroll");
@@ -237,15 +244,10 @@ class PDFJS extends Component<PDFJSProps, PDFJSState> {
   }
 
   focus_on_click(): void {
-    // Whenever pdf is clicked on, in the *next* render loop, we
-    // defocus the codemirrors by calling this blur below.
-    // This makes it so space-key, arrows, etc. properly scroll.
-    function blur_codemirror(): void {
-      setTimeout(function(): void {
-        $(document.activeElement).blur();
-      }, 0);
-    }
-    $(ReactDOM.findDOMNode(this.refs.scroll)).on("click", blur_codemirror);
+    $(ReactDOM.findDOMNode(this.refs.scroll)).on("click", evt => {
+      evt.stopPropagation();   // stop propagation to focus doesn't land on *individual page*
+      this.props.actions.set_active_id(this.props.id);  // fix side effect of stopping propagation.
+    });
   }
 
   async zoom_page_width(): Promise<void> {
@@ -323,8 +325,9 @@ class PDFJS extends Component<PDFJSProps, PDFJSState> {
       top += scale * page.pageInfo.view[3] + PAGE_GAP;
     }
     if (!this.restored_scroll) {
-      // Restore the scroll position after the above pages get rendered into the DOM.
-      setTimeout(() => this.restore_scroll(), 0);
+      // Restore the scroll position after the above pages get
+      // rendered into the DOM.
+      this.restore_scroll(0);
     }
     return pages;
   }
