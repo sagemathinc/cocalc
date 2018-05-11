@@ -48,7 +48,7 @@ Explicitly start each of the following scripts in their own terminal session (th
 
 ## Information
 
-Type `./info.py` to get the URL where you can reach your own running copy of SMC.  This is accessible precisely to collaborators on your project and **nobody** else.
+Type `./info.py` to get the URL where you can reach your own running copy of CoCalc.  This is accessible precisely to collaborators on your project and **nobody** else.
 
 ## Running all servers at once with tmux
 
@@ -72,9 +72,9 @@ Edit files in smc-hub, e.g., `hub.coffee`.  Then hit control+c, then run `./star
 
 Set the environment variable, e.g.,
 
-    \$ . $HOME/smc/src/dev/project/postgres-env
+    \$ . $HOME/cocalc/src/dev/project/postgres-env
 
-From the directory `~/smc/src` you can do:
+From the directory `~/cocalc/cocalc` you can do:
 
     \$ coffee
     coffee> require './c'; db()
@@ -85,13 +85,13 @@ Then use the db object's methods.  After doing the above (or starting the hub on
 
 Add this line to your ~/.bashrc to set the environment automatically on login:
 
-    . $HOME/smc/src/dev/project/postgres-env
+    . $HOME/cocalc/src/dev/project/postgres-env
 
 ## Creating an admin user
 
 You can get the account id's by doing:
 
-    ~/smc/src/dev/project$ psql smc
+    ~/cocalc/src/dev/project$ psql smc
     psql (10devel)
     Type "help" for help.
 
@@ -112,7 +112,7 @@ Now refresh your browser, and in account settings some new admin configuration o
 
 You can also confirm that you're user is now an admin:
 
-    ~/smc/src/dev/project$ psql smc
+    ~/cocalc/src/dev/project$ psql smc
     psql (10devel)
     Type "help" for help.
 
