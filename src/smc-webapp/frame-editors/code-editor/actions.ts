@@ -483,11 +483,14 @@ export class Actions extends BaseActions {
     return this._syncstring.has_uncommitted_changes();
   }
 
-  update_save_status(): void {
-    this.setState({
-      has_unsaved_changes: this._has_unsaved_changes(),
-      has_uncommitted_changes: this._has_uncommitted_changes()
-    });
+  async update_save_status(): Promise<void> {
+    for(let i=0; i<2; i++) {
+      this.setState({
+        has_unsaved_changes: this._has_unsaved_changes(),
+        has_uncommitted_changes: this._has_uncommitted_changes()
+      });
+      await delay(2000);
+    }
   }
 
   _init_has_unsaved_changes(): void {
@@ -497,6 +500,7 @@ export class Actions extends BaseActions {
   }
 
   _syncstring_metadata(): void {
+    if (!this._syncstring) return;  // need to check since this can get called by the close.
     const read_only = this._syncstring.get_read_only();
     if (read_only !== this.store.get("read_only")) {
       this.setState({ read_only });

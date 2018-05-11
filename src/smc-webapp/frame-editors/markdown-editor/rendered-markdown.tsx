@@ -65,7 +65,6 @@ export class RenderedMarkdown extends Component<Props, {}> {
 
 
   async restore_scroll(): Promise<void> {
-    console.log("restore_scroll");
     const scroll = this.props.editor_state.get("scroll");
     const elt = $(ReactDOM.findDOMNode(this.refs.scroll));
     if (elt.length === 0) return;
