@@ -1,6 +1,6 @@
-# Development inside an SMC project
+# Development inside a CoCalc project
 
-Scripts for doing development of SMC inside of an SMC project.
+Scripts for doing development of CoCalc inside of a CoCalc project.
 
 **Requirement:** 1.5GB RAM and 1GB disk space
 
@@ -19,7 +19,10 @@ Things you might want to check when starting a new cocalc dev task. Use a .term 
 
 ## Setup
 
-Run `npm run make` inside the `src/` subdirectory.
+Make a fork of the cocalc repository (optionally) and then clone via `git clone --recursive git://...`.
+You should have a `$HOME/cocalc` directory now.
+
+Run `npm run make` inside the `cocalc/src/` subdirectory.
 This will install all the dependencies and does some additional setup.
 
 If you ever need to update dependencies or think there is a problem with them,
@@ -29,7 +32,7 @@ If, after running `npm run clean`, `which forever` produces empty output, do
 ```
 npm install --prefix=~/.local -g forever
 ```
-before running `npm run make`.
+before running `npm run make`. (`forever` should be installed globally, though)
 
 
 ## The servers
