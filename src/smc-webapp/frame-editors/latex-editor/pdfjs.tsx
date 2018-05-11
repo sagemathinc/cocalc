@@ -232,6 +232,7 @@ class PDFJS extends Component<PDFJSProps, PDFJSState> {
     ) {
       // ensure any codemirror (etc.) elements blur, when this pdfjs viewer is focused.
       $(document.activeElement).blur();
+      $(ReactDOM.findDOMNode(this.refs.scroll)).focus();
     }
   }
 
@@ -243,11 +244,21 @@ class PDFJS extends Component<PDFJSProps, PDFJSState> {
     $(ReactDOM.findDOMNode(this.refs.scroll)).mouse_draggable();
   }
 
+  async scroll_click(evt, scroll): Promise<void> {
+    scroll.focus();
+    if (this.props.is_current) {
+      return;
+    }
+    evt.stopPropagation(); // stop propagation to focus doesn't land on *individual page*
+    this.props.actions.set_active_id(this.props.id); // fix side effect of stopping propagation.
+    // wait an do another focus -- critical or keyboard navigation is flakie.
+    await delay(0);
+    scroll.focus();
+  }
+
   focus_on_click(): void {
-    $(ReactDOM.findDOMNode(this.refs.scroll)).on("click", evt => {
-      evt.stopPropagation();   // stop propagation to focus doesn't land on *individual page*
-      this.props.actions.set_active_id(this.props.id);  // fix side effect of stopping propagation.
-    });
+    let scroll = $(ReactDOM.findDOMNode(this.refs.scroll));
+    scroll.on("click", evt => this.scroll_click(evt, scroll));
   }
 
   async zoom_page_width(): Promise<void> {
@@ -361,7 +372,7 @@ class PDFJS extends Component<PDFJSProps, PDFJSState> {
         onScroll={throttle(() => this.on_scroll(), 250)}
         ref={"scroll"}
         tabIndex={
-          0 /* Need so keyboard navigation works; also see mouse-draggable click event. */
+          1 /* Need so keyboard navigation works; also see mouse-draggable click event. */
         }
       >
         <div>{this.render_content()}</div>

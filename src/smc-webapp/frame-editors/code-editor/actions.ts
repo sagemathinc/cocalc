@@ -324,12 +324,12 @@ export class Actions extends BaseActions {
     if (local == null) {
       return;
     }
-    const t0 = local != null ? local.get("frame_tree") : undefined;
-    if (t0 == null) {
+    const t0 = local.get("frame_tree");
+    if (t0 === undefined) {
       return;
     }
-    const f = tree_ops[op];
-    if (f == null) {
+    const f : Function | undefined = tree_ops[op];
+    if (f === undefined) {
       throw Error(`unknown tree op '${op}'`);
     }
     const t1 = f(t0, ...args);

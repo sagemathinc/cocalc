@@ -1,11 +1,4 @@
 /*
- * decaffeinate suggestions:
- * DS102: Remove unnecessary code created because of implicit returns
- * DS207: Consider shorter variations of null checks
- * Full docs: https://github.com/decaffeinate/decaffeinate/blob/master/docs/suggestions.md
- */
-
-/*
 Save and restore the scroll position of a cm editor in a JSON-friendly format,
 so it can be stored in local storage.
 
