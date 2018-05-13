@@ -58,12 +58,13 @@ export class Actions extends BaseActions {
     this.is_public = is_public;
 
     if (is_public) {
-      this._init_content();
+      this._init_value();
     } else {
       this._init_syncstring();
     }
 
     this.setState({
+      value: "Loading...",
       is_public,
       local_view_state: this._load_local_view_state(),
       reload: Map(),
@@ -86,10 +87,10 @@ export class Actions extends BaseActions {
     }
   }
 
-  // Init setting of content exactly once based on
+  // Init setting of value exactly once based on
   // reading file from disk via public api, or setting
   // from syncstring as a response to explicit user action.
-  async _init_content(): Promise<void> {
+  async _init_value(): Promise<void> {
     if (!this.is_public) {
       return;
     }
@@ -100,7 +101,7 @@ export class Actions extends BaseActions {
         project_id: this.project_id,
         path: this.path
       });
-      this.setState({ content: data });
+      this.setState({ value: data });
     } catch (err) {
       this.set_error(`Error loading -- ${err}`);
     } finally {
@@ -130,7 +131,7 @@ export class Actions extends BaseActions {
       return;
     }
     // this sets is_loaded to false... loads, then sets is_loaded to true.
-    this._init_content();
+    this._init_value();
   }
 
   _init_syncstring(): void {

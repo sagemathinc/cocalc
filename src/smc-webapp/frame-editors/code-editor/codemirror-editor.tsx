@@ -46,7 +46,7 @@ interface Props {
   read_only: boolean;
   is_current: boolean;
   is_public: boolean;
-  content: string; // if defined and is_public, use this static value and editor is read-only
+  value?: string; // if defined and is_public, use this static value and editor is read-only
   misspelled_words: Set<string>;
   resize: number;
   gutters: string[];
@@ -61,7 +61,7 @@ interface State {
 export class CodemirrorEditor extends Component<Props, State> {
   private cm: CodeMirror.Editor;
   private style_active_line: boolean = false;
-  static defaultProps = { content: "" };
+  static defaultProps = { value: "" };
 
   constructor(props) {
     super(props);
@@ -76,7 +76,7 @@ export class CodemirrorEditor extends Component<Props, State> {
         "font_size",
         "cursors",
         "read_only",
-        "content",
+        "value",
         "is_public",
         "resize",
         "editor_state",
@@ -99,8 +99,11 @@ export class CodemirrorEditor extends Component<Props, State> {
     if (this.props.read_only !== next.read_only) {
       this.cm.setOption("readOnly", next.read_only);
     }
-    if (this.props.is_public && this.props.content !== next.content) {
-      this.cm.setValue(this.props.content);
+    if (this.props.is_public && this.props.value !== next.value) {
+      if (next.value !== undefined) {
+        // we really know that this will be undefined.
+        this.cm.setValue(next.value);
+      }
     }
     if (this.props.misspelled_words !== next.misspelled_words) {
       this.cm_highlight_misspelled_words(next.misspelled_words);
@@ -239,7 +242,9 @@ export class CodemirrorEditor extends Component<Props, State> {
     (this.cm as any)._actions = this.props.actions;
 
     if (this.props.is_public) {
-      this.cm.setValue(this.props.content);
+      if (this.props.value !== undefined) {  // should always be the case if public.
+        this.cm.setValue(this.props.value);
+      }
     } else {
       if (!doc.has_doc(this.props.project_id, this.props.path)) {
         // save it to cache so can be used by other components/editors

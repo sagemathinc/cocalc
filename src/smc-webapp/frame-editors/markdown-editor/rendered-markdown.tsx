@@ -28,8 +28,7 @@ interface Props {
   project_id: string;
   font_size: number;
   read_only: boolean;
-  value?: string;
-  content?: string;
+  value: string;
   editor_state: any;
   reload_images: boolean;
 }
@@ -45,7 +44,6 @@ export class RenderedMarkdown extends Component<Props, {}> {
       "font_size",
       "read_only",
       "value",
-      "content",
       "reload_images"
     ]);
   }
@@ -91,11 +89,7 @@ export class RenderedMarkdown extends Component<Props, {}> {
   }
 
   render(): Rendered {
-    let value: string | undefined =
-      this.props.content != undefined ? this.props.content : this.props.value;
-    if (value === undefined)
-      throw Error('BUG -- markdown should always be loaded...')
-    value = apply_without_math(value, process_checkboxes);
+    const value = apply_without_math(this.props.value, process_checkboxes);
 
     return (
       <div

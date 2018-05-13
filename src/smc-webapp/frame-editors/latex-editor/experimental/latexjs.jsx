@@ -48,7 +48,6 @@ export let LaTeXJS = rclass({
     reload: rtypes.number,
     font_size: rtypes.number,
     value: rtypes.string,
-    content: rtypes.string,
     editor_state: rtypes.immutable.Map
   }, // only used for initial render
 
@@ -60,7 +59,6 @@ export let LaTeXJS = rclass({
       "font_size",
       "read_only",
       "value",
-      "content",
       "reload_images"
     ]);
   },
@@ -75,7 +73,7 @@ export let LaTeXJS = rclass({
   },
 
   componentDidMount() {
-    this.update_latexjs(this.props.value && this.props.content);
+    this.update_latexjs(this.props.value);
     this.restore_scroll();
     setTimeout(this.restore_scroll, 200);
     setTimeout(this.restore_scroll, 500);
@@ -119,8 +117,6 @@ export let LaTeXJS = rclass({
   componentWillReceiveProps(next) {
     if (next.value !== this.props.value) {
       this.update_latexjs(next.value);
-    } else if (next.content !== this.props.content) {
-      this.update_latexjs(next.content);
     }
   },
 
