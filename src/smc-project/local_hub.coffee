@@ -13,9 +13,7 @@ that it simultaneously manages numerous sessions, since simultaneously
 doing a lot of IO-based things is what Node.JS is good at.
 ###
 
-# TODO wat.
-# require('coffee-cache').setCacheDir("#{process.env.HOME}/.coffee")
-
+require('ts-node').register(project:"#{__dirname}/tsconfig.json")
 path    = require('path')
 async   = require('async')
 fs      = require('fs')
