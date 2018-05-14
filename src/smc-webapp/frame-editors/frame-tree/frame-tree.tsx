@@ -38,6 +38,7 @@ const { CodemirrorEditor } = require("../code-editor/codemirror-editor"); // tod
 const feature = require("smc-webapp/feature");
 const { FrameTitleBar } = require("./title-bar");
 const tree_ops = require("./tree-ops");
+const { Loading } = require("smc-webapp/r_misc");
 
 const drag_offset = feature.IS_TOUCH ? 5 : 2;
 
@@ -81,7 +82,6 @@ interface FrameTreeProps {
   cursors: Map<string, any>;
   read_only: boolean; // if true, then whole document considered read only (individual frames can still be via desc)
   is_public: boolean;
-  content: string;
   value: string;
   editor_spec: any;
   reload: Map<string, number>;
@@ -116,7 +116,6 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
         "has_unsaved_changes",
         "has_uncommitted_changes",
         "is_public",
-        "content",
         "value",
         "project_id",
         "path",
@@ -146,7 +145,6 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
         cursors={this.props.cursors}
         read_only={this.props.read_only}
         is_public={this.props.is_public}
-        content={this.props.content}
         value={this.props.value}
         editor_spec={this.props.editor_spec}
         reload={this.props.reload}
@@ -214,7 +212,6 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
         editor_state={this.props.editor_state.get(desc.get("id"), Map())}
         is_current={desc.get("id") === this.props.active_id}
         cursors={this.props.cursors}
-        content={this.props.content}
         value={this.props.value}
         misspelled_words={this.props.misspelled_words}
         is_fullscreen={
@@ -446,6 +443,9 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
   }
 
   render() {
+    if (this.props.value == null) {
+      return <Loading />;
+    }
     if (this.props.reload === undefined) {
       return <span>no props.reload</span>;
     }

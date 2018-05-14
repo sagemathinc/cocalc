@@ -7,7 +7,7 @@ const schema = require("smc-util/schema");
 const DEFAULT_FONT_SIZE : number = require("smc-util/db-schema").DEFAULT_FONT_SIZE;
 import {redux} from "./react";
 
-import { async_opts } from "./async-utils";
+import { callback_opts } from "./async-utils";
 
 export function server_time(): Date {
   return webapp_client.server_time();
@@ -36,7 +36,7 @@ export interface ExecOutput {
 
 // async version of the webapp_client exec -- let's you run any code in a project!
 export async function exec(opts: ExecOpts): Promise<ExecOutput> {
-  return async_opts(webapp_client.exec, opts);
+  return callback_opts(webapp_client.exec)(opts);
 }
 
 interface ReadTextFileOpts {
@@ -48,14 +48,14 @@ interface ReadTextFileOpts {
 export async function read_text_file_from_project(
   opts: ReadTextFileOpts
 ): Promise<string> {
-  let mesg = await async_opts(webapp_client.read_text_file_from_project, opts);
+  let mesg = await callback_opts(webapp_client.read_text_file_from_project)(opts);
   return mesg.content;
 }
 
 export async function public_get_text_file(
   opts: ReadTextFileOpts
 ): Promise<string> {
-  return await async_opts(webapp_client.public_get_text_file, opts);
+  return await callback_opts(webapp_client.public_get_text_file)(opts);
 }
 
 interface ParserOptions {
@@ -69,7 +69,7 @@ export async function prettier(
   path: string,
   options: ParserOptions
 ): Promise<void> {
-  let resp = await async_opts(webapp_client.prettier, {
+  let resp = await callback_opts(webapp_client.prettier)({
     project_id,
     path,
     options

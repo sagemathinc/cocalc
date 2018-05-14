@@ -54,12 +54,6 @@ function mouse_draggable(): void {
   elt.on("mouseup", e => {
     e.preventDefault();
     reset();
-
-    // assuming the elt has tabindex=0, this also makes the entire element focused, so keyboard nav works.
-    // If we don't do this, only the page gets focused, which breaks when loading not-yet-loaded pages!
-    // Using a timeout of 1 does NOT work, by the way.
-    setTimeout((()=>elt.focus()), 10);
-
     return false;
   });
 

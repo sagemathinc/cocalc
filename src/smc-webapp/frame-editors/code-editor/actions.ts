@@ -18,7 +18,7 @@ import {
   prettier,
   syncstring
 } from "../generic/client";
-import { retry_until_success } from "../generic/async-utils";
+import { callback_opts, retry_until_success } from "../generic/async-utils";
 import {
   cmp_Date,
   filename_extension,
@@ -28,7 +28,7 @@ import {
   uuid
 } from "../generic/misc";
 import { print_code } from "../frame-tree/print-code";
-import { FrameTree, ImmutableFrameTree, SetMap } from "../frame-tree/types";
+import { FrameDirection, FrameTree, ImmutableFrameTree, SetMap } from "../frame-tree/types";
 import { misspelled_words } from "./spell-check.ts";
 import * as cm_doc_cache from "./doc.ts";
 import { test_line } from "./test.ts";
@@ -58,12 +58,13 @@ export class Actions extends BaseActions {
     this.is_public = is_public;
 
     if (is_public) {
-      this._init_content();
+      this._init_value();
     } else {
       this._init_syncstring();
     }
 
     this.setState({
+      value: "Loading...",
       is_public,
       local_view_state: this._load_local_view_state(),
       reload: Map(),
@@ -86,10 +87,10 @@ export class Actions extends BaseActions {
     }
   }
 
-  // Init setting of content exactly once based on
+  // Init setting of value exactly once based on
   // reading file from disk via public api, or setting
   // from syncstring as a response to explicit user action.
-  async _init_content(): Promise<void> {
+  async _init_value(): Promise<void> {
     if (!this.is_public) {
       return;
     }
@@ -100,7 +101,7 @@ export class Actions extends BaseActions {
         project_id: this.project_id,
         path: this.path
       });
-      this.setState({ content: data });
+      this.setState({ value: data });
     } catch (err) {
       this.set_error(`Error loading -- ${err}`);
     } finally {
@@ -130,7 +131,7 @@ export class Actions extends BaseActions {
       return;
     }
     // this sets is_loaded to false... loads, then sets is_loaded to true.
-    this._init_content();
+    this._init_value();
   }
 
   _init_syncstring(): void {
@@ -324,12 +325,12 @@ export class Actions extends BaseActions {
     if (local == null) {
       return;
     }
-    const t0 = local != null ? local.get("frame_tree") : undefined;
-    if (t0 == null) {
+    const t0 = local.get("frame_tree");
+    if (t0 === undefined) {
       return;
     }
-    const f = tree_ops[op];
-    if (f == null) {
+    const f : Function | undefined = tree_ops[op];
+    if (f === undefined) {
       throw Error(`unknown tree op '${op}'`);
     }
     const t1 = f(t0, ...args);
@@ -401,7 +402,7 @@ export class Actions extends BaseActions {
     this.focus();
   }
 
-  split_frame(direction: string, id?: string, type?: string): void {
+  split_frame(direction: FrameDirection, id?: string, type?: string): void {
     const ids0 = this._get_leaf_ids();
     if (!id) {
       id = this.store.getIn(["local_view_state", "active_id"]);
@@ -483,11 +484,14 @@ export class Actions extends BaseActions {
     return this._syncstring.has_uncommitted_changes();
   }
 
-  update_save_status(): void {
-    this.setState({
-      has_unsaved_changes: this._has_unsaved_changes(),
-      has_uncommitted_changes: this._has_uncommitted_changes()
-    });
+  async update_save_status(): Promise<void> {
+    for (let i = 0; i < 2; i++) {
+      this.setState({
+        has_unsaved_changes: this._has_unsaved_changes(),
+        has_uncommitted_changes: this._has_uncommitted_changes()
+      });
+      await delay(2000);
+    }
   }
 
   _init_has_unsaved_changes(): void {
@@ -497,6 +501,7 @@ export class Actions extends BaseActions {
   }
 
   _syncstring_metadata(): void {
+    if (!this._syncstring) return; // need to check since this can get called by the close.
     const read_only = this._syncstring.get_read_only();
     if (read_only !== this.store.get("read_only")) {
       this.setState({ read_only });
@@ -786,7 +791,7 @@ export class Actions extends BaseActions {
     line?: number;
     file?: string; // not supported yet (TODO!)
     cursor?: boolean; // set cursor to line position (not just scroll to it)
-    direction?: string; // 'row' or 'col'
+    direction?: FrameDirection;
   }): Promise<void> {
     if (opts.focus === undefined) opts.focus = true;
     if (opts.cursor === undefined) opts.cursor = true;
@@ -1061,23 +1066,21 @@ export class Actions extends BaseActions {
     }
   }
 
-  format_action(cmd, args): void {
+  async format_action(cmd, args): Promise<void> {
     const cm = this._get_cm();
     if (cm == null) {
       // format bar only makes sense when some cm is there...
       return;
     }
-    cm.edit_selection({
+    await callback_opts((opts) => cm.edit_selection(opts))({
       cmd,
-      args,
-      cb: () => {
-        if (this._state !== "closed") {
-          cm.focus();
-          this.set_syncstring_to_codemirror();
-          return this._syncstring.save();
-        }
-      }
+      args
     });
+    if (this._state !== "closed") {
+      cm.focus();
+      this.set_syncstring_to_codemirror();
+      this._syncstring.save();
+    }
   }
 
   set_gutter_marker(opts: {

@@ -33,7 +33,6 @@ interface FrameTreeEditorProps {
 
   load_time_estimate?: Map<string, any>;
   value?: string;
-  content?: string;
 
   reload: Map<string, number>;
   resize: number; // if changes, means that frames have been resized, so may need refreshing; passed to leaf.
@@ -78,7 +77,6 @@ class FrameTreeEditor0 extends Component<FrameTreeEditorProps, {}> {
 
         load_time_estimate: rtypes.immutable.Map,
         value: rtypes.string,
-        content: rtypes.string,
 
         reload: rtypes.immutable.Map.isRequired,
         resize: rtypes.number.isRequired, // if changes, means that frames have been resized, so may need refreshing; passed to leaf.
@@ -112,7 +110,6 @@ class FrameTreeEditor0 extends Component<FrameTreeEditorProps, {}> {
           "status",
           "load_time_estimate",
           "value",
-          "content",
 
           "reload",
           "resize",
@@ -163,7 +160,6 @@ class FrameTreeEditor0 extends Component<FrameTreeEditorProps, {}> {
           cursors={this.props.cursors}
           read_only={this.props.read_only}
           is_public={this.props.is_public}
-          content={this.props.content}
           value={this.props.value}
           reload={this.props.reload}
           resize={this.props.resize}

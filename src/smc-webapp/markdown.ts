@@ -6,6 +6,8 @@ import * as MarkdownIt from "markdown-it";
 
 const misc = require("smc-util/misc");
 
+import { math_escape, math_unescape } from "smc-util/markdown-utils";
+
 const { remove_math, replace_math } = require("smc-util/mathjax-utils"); // from project Jupyter
 
 const checkboxes = function(s) {
@@ -20,31 +22,6 @@ const OPTIONS: MarkdownIt.Options = {
 };
 
 const markdown_it = new MarkdownIt(OPTIONS);
-
-/* The markdown processor markedown-it seems to escape
-a bunch of characters that are relevant to later mathjax
-processing.  This is annoying, violates the Markdown spec
-(https://daringfireball.net/projects/markdown/syntax#backslash),
-and breaks things.  So we remove them first.
-*/
-
-const escape_map = "$()[]";
-const unescape_map =
-  "\uFE22\uFE23\uFE24\uFE25\uFE26"; /* we just use some unallocated unicode... */
-
-function math_escape(s: string): string {
-  for (let i = 0; i < escape_map.length; i++) {
-    s = misc.replace_all(s, "\\" + escape_map[i], unescape_map[i]);
-  }
-  return s;
-}
-
-function math_unescape(s: string): string {
-  for (let i = 0; i < escape_map.length; i++) {
-    s = misc.replace_all(s, unescape_map[i], "\\" + escape_map[i]);
-  }
-  return s;
-}
 
 /*
 Turn the given markdown *string* into an HTML *string*.
