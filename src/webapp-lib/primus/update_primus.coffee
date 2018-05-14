@@ -1,7 +1,7 @@
 fs   = require('fs')
 path = require('path')
 
-path_to_base_url = path.join(process.env['SMC_ROOT'], 'data', 'base_url')
+path_to_base_url = path.join(process.env['SALVUS_ROOT'], 'data', 'base_url')
 libname = 'primus-engine.js'
 BASE_URL = if fs.existsSync(path_to_base_url) then fs.readFileSync(path_to_base_url).toString().trim() else ''
 
