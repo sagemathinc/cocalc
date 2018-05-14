@@ -88,7 +88,7 @@ exports.AddCollaborators = rclass
         replyto      = redux.getStore('account').get_email_address()
         replyto_name = redux.getStore('account').get_fullname()
         if replyto_name?
-            subject = "#{replyto_name} invites you to project #{@props.project.get('title')}"
+            subject = "#{replyto_name} added you to project #{@props.project.get('title')}"
         else
             subject = "CoCalc Invitation to project #{@props.project.get('title')}"
         @actions('projects').invite_collaborator(
@@ -127,7 +127,7 @@ exports.AddCollaborators = rclass
         replyto      = redux.getStore('account').get_email_address()
         replyto_name = redux.getStore('account').get_fullname()
         if replyto_name?
-            subject = "#{replyto_name} invites you to project #{@props.project.get('title')}"
+            subject = "#{replyto_name} added you to project #{@props.project.get('title')}"
         else
             subject = "CoCalc Invitation to project #{@props.project.get('title')}"
         @actions('projects').invite_collaborators_by_email(@props.project.get('project_id'),
