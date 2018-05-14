@@ -1,22 +1,17 @@
 fs   = require('fs')
 path = require('path')
-program = require('commander')
 
-path_to_base_url = path.join(process.env['SALVUS_ROOT'], 'data', 'base_url')
+path_to_base_url = path.join(process.env['SMC_ROOT'], 'data', 'base_url')
+libname = 'primus-engine.js'
 BASE_URL = if fs.existsSync(path_to_base_url) then fs.readFileSync(path_to_base_url).toString().trim() else ''
 
-update = (base_url) ->
-    opts =
-        pathname    : path.join(BASE_URL, '/hub')
+opts = {pathname : path.join(BASE_URL, '/hub')}
 
-    console.log(opts)
+console.log("Building '#{libname}' with opts:", opts)
 
-    primus = new require('primus')(require('http').createServer(), opts)
-
-    fs.writeFileSync('primus-engine.js', primus.library())
-
-
-
-program.usage('[options]').parse(process.argv)
-
-update()
+Primus = require('primus')
+http = require('http')
+server = http.createServer()
+primus = new Primus(server, opts)
+fs.writeFileSync(libname, primus.library())
+process.exit()
