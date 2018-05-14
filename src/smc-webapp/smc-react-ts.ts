@@ -122,8 +122,9 @@ const redux_app = function(state: redux_state, action): redux_state {
       // We merge in what is in action.change[name] to state[name] below.
       action.change.map(function(val, store) {
         let new_val;
-        if (state.get(store)) {
-          new_val = state.get(store).merge(val);
+        let old_val = state.get(store);
+        if (old_val !== undefined) {
+          new_val = old_val.merge(val);
         }
         return (state = state.set(store, new_val || val));
       });
@@ -260,7 +261,7 @@ export class AppRedux {
       if (S == null) {
         S = this._stores[name] = new store_class(name, this);
         // Put into store. WARNING: New set_states CAN OVERWRITE THESE FUNCTIONS
-        let C = immutable.Map(S);
+        let C = immutable.Map(S as {});
         C = C.delete("redux"); // No circular pointing
         this._set_state({ [name]: C });
         if (init != null) {
@@ -347,7 +348,8 @@ export class AppRedux {
     return this._tables[name];
   }
 
-  getProjectStore<T, C extends Store<T>>(project_id: string): C {
+  // TODO: Type project Store
+  getProjectStore<T, C extends Store<T>>(project_id: string): any {
     if (!misc.is_valid_uuid_string(project_id)) {
       console.trace();
       console.warn(`getProjectStore: INVALID project_id -- ${project_id}`);
@@ -356,7 +358,8 @@ export class AppRedux {
     return this.getStore(project_redux_name(project_id));
   }
 
-  getProjectActions<T, C extends Actions<T>>(project_id: string): C {
+  // TODO: Type project Actions
+  getProjectActions<T, C extends Actions<T>>(project_id: string): any {
     if (!misc.is_valid_uuid_string(project_id)) {
       console.trace();
       console.warn(`getProjectActions: INVALID project_id -- ${project_id}`);
@@ -364,7 +367,8 @@ export class AppRedux {
     return this.getActions(project_redux_name(project_id));
   }
 
-  getProjectTable(project_id: string, name: string): Table {
+  // TODO: Type project Table
+  getProjectTable(project_id: string, name: string): any {
     if (!misc.is_valid_uuid_string(project_id)) {
       console.trace();
       console.warn(`getProjectTable: INVALID project_id -- ${project_id}`);

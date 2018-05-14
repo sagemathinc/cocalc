@@ -2,7 +2,7 @@ import { EventEmitter } from "events";
 import * as async from "async";
 import * as underscore from "underscore";
 import { createSelector } from "reselect";
-import { AppRedux } from "../smc-react";
+import { AppRedux } from "../smc-react-ts";
 
 const misc = require("smc-util/misc");
 const { defaults, required } = misc;
@@ -99,14 +99,14 @@ export class Store<State> extends EventEmitter {
     this.redux.removeStore(this.name);
   }
 
-  getState(): State | undefined {
+  getState(): State {
     return this.redux._redux_store.getState().get(this.name);
   }
 
   get<K extends keyof State, NSV>(
     field: K,
     notSetValue?: NSV
-  ): State[K] | NSV | undefined {
+  ): State[K] | NSV {
     return this.redux._redux_store
       .getState()
       .getIn([this.name, field, notSetValue]);
