@@ -26,6 +26,7 @@
 # SMC Libraries
 misc = require('smc-util/misc')
 feature = require('./feature')
+{deterministic_id} = require('./intro')
 {set_window_title} = require('./browser')
 {COLORS} = require('smc-util/theme')
 
@@ -179,6 +180,7 @@ FullProjectsNav = rclass
         # it, when you make the screen skinny, the tabs get mangled looking.  DO NOT
         # delete without being aware of this!
         <div
+            className = {deterministic_id('projects-nav-bar')}
             style = {display:'flex', flex:'1', overflow:'hidden', height:'40px', margin:'0'}
         >
             <SortableNav

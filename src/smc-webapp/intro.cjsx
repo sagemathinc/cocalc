@@ -30,7 +30,7 @@ immutable        = require('immutable')
 NAME = 'intro'
 
 exports.deterministic_id = deterministic_id = (text) ->
-    return "#{NAME}::#{uuidsha1(text)}"
+    return "#{NAME}-#{uuidsha1(text)}"
 
 introTypes =
     running : rtypes.bool
@@ -111,4 +111,11 @@ actions.add_hint(
     element: ".#{deterministic_id('top-nav-account')}"
     hint: 'Click on the "Account" button to see your account settings.'
     hintPosition: 'bottom-right'
+)
+
+actions.add_hint(
+    id: 'project-nav'
+    element: ".#{deterministic_id('projects-nav-bar')}"
+    hint: 'Switch between opened projects here.'
+    hintPosition: 'middle-middle'
 )
