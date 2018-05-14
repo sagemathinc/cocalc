@@ -45,7 +45,7 @@
     "script-loader": "^0.7",
     "style-loader": "^0.13.1",
     "ts-loader": "^4.2.0",
-    "ts-node": "^6.0.1",
+    "ts-node": "^6.0.3",
     "typescript": "^2.8.1",
     "uglify-js": "^2.6.2",
     "uglifyjs-webpack-plugin": "^1.2.4",
@@ -106,5 +106,6 @@
   "bugs": {
     "url": "https://github.com/sagemathinc/cocalc/issues"
   },
-  "homepage": "https://github.com/sagemathinc/cocalc"
+  "homepage": "https://github.com/sagemathinc/cocalc",
+  "devDependencies": {}
 }
