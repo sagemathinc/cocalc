@@ -4,8 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test-share-watch":
-      "node_modules/.bin/testcafe-live 'chrome:headless' share/*"
+    "test-prod-share-watch":
+      "node_modules/.bin/testcafe-live 'chrome:headless' prod/share/*"
   },
   "author": "",
   "license": "ISC",
