@@ -14,9 +14,10 @@ def chdir():
 
 def base_url(port=None, write=True):
     print("base_url(port=%s)"%port)
-    project_id = os.environ['COCALC_PROJECT_ID']
-    if project_id == "":
-        raise ValueError("COCALC_PROJECT_ID environment variable not found. You can only use dev/project to run CoCalc from inside of a CoCalc project.")
+    try:
+        project_id = os.environ['COCALC_PROJECT_ID']
+    except KeyError:
+        raise RuntimeError("COCALC_PROJECT_ID environment variable not found. You can only use dev/project to run CoCalc from inside of a CoCalc project.")
     if port is None and write:
         write_base_url = True
         port = get_ports()['hub']
