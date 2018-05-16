@@ -19,6 +19,8 @@ data/
 node_modules
 *.sass-cache
 
+src/cocalc-testcafe/package-lock.json
+
 src/static/
 src/static.git/
 src/webapp-lib/policies/_static_pricing_page.html

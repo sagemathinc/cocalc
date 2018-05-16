@@ -1,0 +1,16 @@
+{
+  "name": "cocalc-testcafe",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test-share-watch":
+      "node_modules/.bin/testcafe-live 'chrome:headless' share/*"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "testcafe": "^0.20.0",
+    "testcafe-live": "^0.1.3"
+  }
+}
