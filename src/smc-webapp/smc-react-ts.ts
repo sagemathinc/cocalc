@@ -36,6 +36,10 @@ import * as createReactClass from "create-react-class";
 import * as PropTypes from "prop-types";
 import { Provider, connect } from "react-redux";
 
+let redux: AppRedux;
+let coffee = require("./smc-react")
+redux = coffee.redux
+
 import {
   Store,
   store_definition,
@@ -408,8 +412,6 @@ export class AppRedux {
     return this.getActions(file_redux_name(project_id, path, is_public));
   }
 }
-
-const redux = new AppRedux();
 
 const computed = rtype => {
   const clone = rtype.bind({});

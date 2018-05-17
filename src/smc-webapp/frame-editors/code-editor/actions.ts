@@ -29,9 +29,9 @@ import {
 } from "../generic/misc";
 import { print_code } from "../frame-tree/print-code";
 import { FrameDirection, FrameTree, ImmutableFrameTree, SetMap } from "../frame-tree/types";
-import { misspelled_words } from "./spell-check.ts";
-import * as cm_doc_cache from "./doc.ts";
-import { test_line } from "./test.ts";
+import { misspelled_words } from "./spell-check";
+import * as cm_doc_cache from "./doc";
+import { test_line } from "./test";
 import { Rendered } from "../generic/react";
 import * as CodeMirror from "codemirror";
 import "../generic/codemirror-plugins";
