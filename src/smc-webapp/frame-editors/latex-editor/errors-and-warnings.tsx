@@ -8,6 +8,8 @@ import { capitalize, is_different, path_split } from "../generic/misc";
 
 import { Component, React, rclass, rtypes, Rendered } from "../generic/react";
 
+import { TypedMap } from "../../smc-react/TypedMap"
+
 const { Icon, Loading } = require("smc-webapp/r_misc");
 
 function group_to_level(group: string): string {
@@ -65,9 +67,17 @@ const ITEM_STYLES = {
   }
 };
 
+interface item {
+  line: string;
+  file: string;
+  level: number;
+  message?: string;
+  content?: string;
+}
+
 interface ItemProps {
   actions: any;
-  item: Map<any, string>;
+  item: TypedMap<item>;
 }
 
 class Item extends Component<ItemProps, {}> {

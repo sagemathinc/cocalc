@@ -11,7 +11,7 @@ function createTypedMap<T extends Object>(data: T): TypedMap {
 }
 */
 
-interface TypedMap<TProps> {
+export interface TypedMap<TProps> {
   // Reading values
   has(key: string): boolean;
 

@@ -5,7 +5,7 @@ LaTeX Editor Actions.
 const WIKI_HELP_URL = "https://github.com/sagemathinc/cocalc/wiki/LaTeX-Editor";
 const VIEWERS = ["pdfjs_canvas", "pdfjs_svg", "embed", "build_log"];
 
-import { fromJS, Map, Record } from "immutable";
+import { fromJS, Map } from "immutable";
 import { Actions as BaseActions, CodeEditorState } from "../code-editor/actions";
 import { latexmk } from "./latexmk";
 import { sagetex } from "./sagetex";

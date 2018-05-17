@@ -37,7 +37,7 @@ import * as CodeMirror from "codemirror";
 import "../generic/codemirror-plugins";
 import * as tree_ops from "../frame-tree/tree-ops";
 import { Actions as BaseActions, Store } from "../../smc-react-ts";
-import { createTypedMap } from "../../smc-react/TypedMap"
+import { createTypedMap, TypedMap } from "../../smc-react/TypedMap"
 
 const copypaste = require("smc-webapp/copy-paste-buffer");
 
@@ -49,7 +49,7 @@ interface gutterMarkerParams {
 }
 
 const GutterMarker = createTypedMap<gutterMarkerParams>();
-type GutterMarkers = Map<string, InstanceType<typeof GutterMarker>>;
+type GutterMarkers = Map<string, TypedMap<gutterMarkerParams>>;
 
 export interface CodeEditorState {
   project_id: string;

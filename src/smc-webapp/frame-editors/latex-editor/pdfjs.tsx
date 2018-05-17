@@ -137,8 +137,8 @@ class PDFJS extends Component<PDFJSProps, PDFJSState> {
     const scroll: Map<string, number> = this.props.editor_state.get("scroll");
     if (!scroll) return;
     let elt = $(ReactDOM.findDOMNode(this.refs.scroll));
-    elt.scrollTop(scroll.get("top"));
-    elt.scrollLeft(scroll.get("left"));
+    elt.scrollTop(scroll.get("top") || 0);
+    elt.scrollLeft(scroll.get("left") || 0);
   }
 
   async load_doc(reload: number): Promise<void> {
