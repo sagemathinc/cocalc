@@ -268,3 +268,5 @@ let test: StoreConstructorType<
   store_definition,
   Store<store_definition>
 > = Store;
+
+test.toString()

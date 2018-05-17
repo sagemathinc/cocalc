@@ -15,7 +15,7 @@ export class Actions extends CodeEditorActions {
       this._init_spellcheck(); // TODO: need to "detex" (?)
       this._init_rst2html();
     } else {
-      this._init_content();
+      this._init_value();
     }
   }
 

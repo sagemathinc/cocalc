@@ -65,15 +65,14 @@ export interface CodeEditorState {
   is_loaded: boolean;
   gutter_markers: GutterMarkers;
   cursors: Map<any, any>;
-  content: string;
-  value: string;
+  value?: string;
   load_time_estimate: number;
   error: any;
   status: any;
   read_only: boolean;
 }
 
-export class Actions<T> extends BaseActions<T | CodeEditorState> {
+export class Actions<T = CodeEditorState> extends BaseActions<T | CodeEditorState> {
   protected _state: string;
   protected _syncstring: any;
   protected _key_handler: any;

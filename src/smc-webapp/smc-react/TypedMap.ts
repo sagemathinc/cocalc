@@ -295,6 +295,6 @@ interface SaleRecord {
 
 let Sale = createTypedMap<SaleRecord>();
 let sale1 = new Sale({ name: "Mocha", price: 10 });
-let sale2 = sale1.set("name", "Jow");
+// let sale2 = sale1.set("name", "Jow");
 
 console.log(sale1.get("name"))
