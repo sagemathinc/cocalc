@@ -420,4 +420,5 @@ if get_api_key_query_value
     redux.getActions('page').set_get_api_key(get_api_key_query_value)
     redux.getActions('page').set_fullscreen('kiosk')
 
-
+# include entryway for running mocha tests.
+require('test-mocha/setup')
