@@ -37,6 +37,7 @@ import * as CodeMirror from "codemirror";
 import "../generic/codemirror-plugins";
 import * as tree_ops from "../frame-tree/tree-ops";
 import { Actions as BaseActions, Store } from "../../smc-react-ts";
+import { createTypedMap } from "../../smc-react/TypedMap"
 
 const copypaste = require("smc-webapp/copy-paste-buffer");
 
@@ -47,17 +48,10 @@ interface gutterMarkerParams {
   handle?: string;
 }
 
-const gutter_marker_defaults: gutterMarkerParams = {
-  line: 0,
-  gutter_id: "",
-  component: undefined,
-  handle: undefined
-}
+type GutterMarkers = Map<string, any>;
+const GutterMarker = createTypedMap<gutterMarkerParams>();
 
-type GutterMarkers = Map<string, Record<gutterMarkerParams>>;
-const GutterMarker = Record(gutter_marker_defaults);
-
-interface CodeEditorState {
+export interface CodeEditorState {
   project_id: string;
   path: string;
   is_public: boolean;
@@ -79,7 +73,7 @@ interface CodeEditorState {
   read_only: boolean;
 }
 
-export class Actions extends BaseActions<CodeEditorState> {
+export class Actions<T> extends BaseActions<T | CodeEditorState> {
   protected _state: string;
   protected _syncstring: any;
   protected _key_handler: any;
@@ -91,7 +85,6 @@ export class Actions extends BaseActions<CodeEditorState> {
   public is_public: boolean;
 
   private _save_local_view_state: () => void;
-  private _init2: () => void;
   private _ignore_set_active_id: boolean;
   private _cm_selections: any;
   private _update_misspelled_words_last_hash: any;
@@ -132,8 +125,8 @@ export class Actions extends BaseActions<CodeEditorState> {
       1500
     );
 
-    if (this._init2) {
-      this._init2();
+    if ((this as any)._init2) {
+      (this as any)._init2();
     }
   }
 
