@@ -32,7 +32,7 @@ export class RmdActions extends Actions {
     } finally {
       this.set_status("");
     }
-    this.setState({ content: markdown });
+    this.setState({ value: markdown });
   }
 
   _raw_default_frame_tree(): FrameTree {
