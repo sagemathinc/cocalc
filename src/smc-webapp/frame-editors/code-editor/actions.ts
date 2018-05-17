@@ -28,7 +28,12 @@ import {
   uuid
 } from "../generic/misc";
 import { print_code } from "../frame-tree/print-code";
-import { FrameDirection, FrameTree, ImmutableFrameTree, SetMap } from "../frame-tree/types";
+import {
+  FrameDirection,
+  FrameTree,
+  ImmutableFrameTree,
+  SetMap
+} from "../frame-tree/types";
 import { misspelled_words } from "./spell-check";
 import * as cm_doc_cache from "./doc";
 import { test_line } from "./test";
@@ -37,7 +42,7 @@ import * as CodeMirror from "codemirror";
 import "../generic/codemirror-plugins";
 import * as tree_ops from "../frame-tree/tree-ops";
 import { Actions as BaseActions, Store } from "../../smc-react-ts";
-import { createTypedMap, TypedMap } from "../../smc-react/TypedMap"
+import { createTypedMap, TypedMap } from "../../smc-react/TypedMap";
 
 const copypaste = require("smc-webapp/copy-paste-buffer");
 
@@ -72,8 +77,10 @@ export interface CodeEditorState {
   read_only: boolean;
 }
 
-export class Actions<T = CodeEditorState> extends BaseActions<T | CodeEditorState> {
-  protected _state: string;
+export class Actions<T = CodeEditorState> extends BaseActions<
+  T | CodeEditorState
+> {
+  protected _state: "closed" | undefined;
   protected _syncstring: any;
   protected _key_handler: any;
   protected _cm: { [key: string]: CodeMirror.Editor } = {};
@@ -373,7 +380,7 @@ export class Actions<T = CodeEditorState> extends BaseActions<T | CodeEditorStat
     if (t0 === undefined) {
       return;
     }
-    const f : Function | undefined = tree_ops[op];
+    const f: Function | undefined = tree_ops[op];
     if (f === undefined) {
       throw Error(`unknown tree op '${op}'`);
     }
@@ -530,6 +537,9 @@ export class Actions<T = CodeEditorState> extends BaseActions<T | CodeEditorStat
 
   async update_save_status(): Promise<void> {
     for (let i = 0; i < 2; i++) {
+      if (this._state === "closed") {
+        continue;
+      }
       this.setState({
         has_unsaved_changes: this._has_unsaved_changes(),
         has_uncommitted_changes: this._has_uncommitted_changes()
@@ -650,9 +660,11 @@ export class Actions<T = CodeEditorState> extends BaseActions<T | CodeEditorStat
       });
     } catch (err) {
       console.warn(err);
-      this.set_error(
-        `${SAVE_ERROR} Despite repeated attempts, the version of the file saved to disk does not equal the version in your browser.  ${SAVE_WORKAROUND}`
-      );
+      if (this._state !== "closed") {
+        this.set_error(
+          `${SAVE_ERROR} Despite repeated attempts, the version of the file saved to disk does not equal the version in your browser.  ${SAVE_WORKAROUND}`
+        );
+      }
       log_error({
         string_id: this._syncstring._string_id,
         path: this.path,
@@ -1116,7 +1128,7 @@ export class Actions<T = CodeEditorState> extends BaseActions<T | CodeEditorStat
       // format bar only makes sense when some cm is there...
       return;
     }
-    await callback_opts((opts) => cm.edit_selection(opts))({
+    await callback_opts(opts => cm.edit_selection(opts))({
       cmd,
       args
     });

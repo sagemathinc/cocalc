@@ -137,10 +137,10 @@ _init_library_index_cache   = {}
 class ProjectActions extends Actions
     destroy: =>
         must_define(@redux)
-        name = key(project_id)
+        name = key(@project_id)
         @close_all_files()
         for table, _ of QUERIES
-            @redux.removeTable(key(project_id, table))
+            @redux.removeTable(key(@project_id, table))
 
     _ensure_project_is_open: (cb, switch_to) =>
         s = @redux.getStore('projects')

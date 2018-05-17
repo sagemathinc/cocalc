@@ -19,6 +19,9 @@ export class Actions<T> {
   }
 
   setState(obj: Partial<{ [P in keyof T]: T[P] }>): void {
+    if (this.redux.getStore(this.name) == undefined) {
+      return;
+    }
     if (DEBUG && this.redux.getStore(this.name).__converted) {
       for (let key in obj) {
         let descriptor = Object.getOwnPropertyDescriptor(
