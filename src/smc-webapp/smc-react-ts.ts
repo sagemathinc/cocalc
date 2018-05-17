@@ -348,8 +348,9 @@ export class AppRedux {
     return this._tables[name];
   }
 
-  // TODO: Type project Store
-  getProjectStore<T, C extends Store<T>>(project_id: string): any {
+  // TODO -- Typing: Type project Store
+  // <T, C extends Store<T>>
+  getProjectStore(project_id: string): any {
     if (!misc.is_valid_uuid_string(project_id)) {
       console.trace();
       console.warn(`getProjectStore: INVALID project_id -- ${project_id}`);
@@ -358,8 +359,9 @@ export class AppRedux {
     return this.getStore(project_redux_name(project_id));
   }
 
-  // TODO: Type project Actions
-  getProjectActions<T, C extends Actions<T>>(project_id: string): any {
+  // TODO -- Typing: Type project Actions
+  // T, C extends Actions<T>
+  getProjectActions(project_id: string): any {
     if (!misc.is_valid_uuid_string(project_id)) {
       console.trace();
       console.warn(`getProjectActions: INVALID project_id -- ${project_id}`);
@@ -367,7 +369,7 @@ export class AppRedux {
     return this.getActions(project_redux_name(project_id));
   }
 
-  // TODO: Type project Table
+  // TODO -- Typing: Type project Table
   getProjectTable(project_id: string, name: string): any {
     if (!misc.is_valid_uuid_string(project_id)) {
       console.trace();

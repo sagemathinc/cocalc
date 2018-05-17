@@ -8,7 +8,7 @@ const SAVE_WORKAROUND =
   "Ensure your network connection is solid. If this problem persists, you might need to close and open this file, or restart this project in Project Settings.";
 const MAX_SAVE_TIME_S = 30; // how long to retry to save (and get no unsaved changes), until giving up and showing an error.
 
-import { fromJS, List, Map, Set, Record } from "immutable";
+import { fromJS, List, Map, Set } from "immutable";
 import { debounce } from "underscore";
 import { callback, delay } from "awaiting";
 import {
