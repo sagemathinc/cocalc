@@ -48,8 +48,8 @@ interface gutterMarkerParams {
   handle?: string;
 }
 
-type GutterMarkers = Map<string, any>;
 const GutterMarker = createTypedMap<gutterMarkerParams>();
+type GutterMarkers = Map<string, InstanceType<typeof GutterMarker>>;
 
 export interface CodeEditorState {
   project_id: string;
@@ -1165,7 +1165,7 @@ export class Actions<T> extends BaseActions<T | CodeEditorState> {
     let gutter_markers: GutterMarkers = this.store.get("gutter_markers", Map());
     const before = gutter_markers;
     gutter_markers.map((info, id) => {
-      if (info !== undefined && info.get("gutter_id", undefined) === gutter_id) {
+      if (info !== undefined && info.get("gutter_id") === gutter_id) {
         gutter_markers = gutter_markers.delete(id);
       }
     });

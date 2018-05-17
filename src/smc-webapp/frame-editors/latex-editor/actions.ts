@@ -37,7 +37,7 @@ const ScrollIntoViewRecord = createTypedMap<ScrollIntoViewParams>();
 interface LatexEditorState extends CodeEditorState {
   build_log: Map<any, string>;
   sync: string;
-  scroll_into_view: Record<ScrollIntoViewParams>;
+  scroll_into_view: InstanceType<typeof ScrollIntoViewRecord>;
   zoom_page_width: string;
   zoom_page_height: string;
 }
@@ -228,7 +228,7 @@ export class Actions extends BaseActions<LatexEditorState> {
 
   scroll_into_view(page: number, y: number, id?: string): void {
     this.setState({
-      scroll_into_view:  ScrollIntoViewRecord({page:page, y: y, id: id })
+      scroll_into_view: new ScrollIntoViewRecord({page:page, y: y, id: id })
     });
   }
 
