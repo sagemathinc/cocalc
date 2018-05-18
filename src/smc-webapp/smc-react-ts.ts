@@ -716,6 +716,8 @@ export function project_redux_name(project_id: string, name?: string): string {
   return s;
 }
 
+export const Component = React.Component;
+export type Rendered = React.ReactElement<any> | undefined;
 export { rclass }; // use rclass instead of createReactClass to get access to reduxProps support
 export { rtypes }; // has extra rtypes.immutable, needed for reduxProps to leave value as immutable
 export { computed };
