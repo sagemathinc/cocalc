@@ -195,36 +195,39 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
       ({ fullscreen_style } = spec);
     }
 
+    const id: string = desc.get("id");
     return (
-      <Leaf
-        name={this.props.name}
-        actions={this.props.actions}
-        id={desc.get("id")}
-        read_only={desc.get(
-          "read_only",
-          this.props.read_only || this.props.is_public
-        )}
-        is_public={this.props.is_public}
-        font_size={desc.get("font_size", 12)}
-        path={path}
-        fullscreen_style={fullscreen_style}
-        project_id={desc.get("project_id", this.props.project_id)}
-        editor_state={this.props.editor_state.get(desc.get("id"), Map())}
-        is_current={desc.get("id") === this.props.active_id}
-        cursors={this.props.cursors}
-        value={this.props.value}
-        misspelled_words={this.props.misspelled_words}
-        is_fullscreen={
-          this.props.is_only || desc.get("id") === this.props.full_id
-        }
-        reload={this.props.reload.get(type)}
-        resize={this.props.resize}
-        reload_images={!!spec.reload_images}
-        gutters={spec.gutters != null ? spec.gutters : []}
-        gutter_markers={this.props.gutter_markers}
-        editor_settings={this.props.editor_settings}
-        renderer={spec.renderer}
-      />
+      <div id={`frame-${id}`} className="smc-vfill">
+        <Leaf
+          id={`frame-${id}`}
+          name={this.props.name}
+          actions={this.props.actions}
+          read_only={desc.get(
+            "read_only",
+            this.props.read_only || this.props.is_public
+          )}
+          is_public={this.props.is_public}
+          font_size={desc.get("font_size", 12)}
+          path={path}
+          fullscreen_style={fullscreen_style}
+          project_id={desc.get("project_id", this.props.project_id)}
+          editor_state={this.props.editor_state.get(desc.get("id"), Map())}
+          is_current={desc.get("id") === this.props.active_id}
+          cursors={this.props.cursors}
+          value={this.props.value}
+          misspelled_words={this.props.misspelled_words}
+          is_fullscreen={
+            this.props.is_only || desc.get("id") === this.props.full_id
+          }
+          reload={this.props.reload.get(type)}
+          resize={this.props.resize}
+          reload_images={!!spec.reload_images}
+          gutters={spec.gutters != null ? spec.gutters : []}
+          gutter_markers={this.props.gutter_markers}
+          editor_settings={this.props.editor_settings}
+          renderer={spec.renderer}
+        />
+      </div>
     );
   }
 

@@ -85,7 +85,6 @@ export class QuickHTMLPreview extends Component<PropTypes, {}> {
           }}
         >
           <HTML
-            id={`frame-${this.props.id}`}
             value={this.props.value}
             project_id={this.props.project_id}
             file_path={path_split(this.props.path).head}

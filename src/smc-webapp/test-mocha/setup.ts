@@ -1,21 +1,29 @@
 import * as $ from "jquery";
+import {callback} from "awaiting";
 
-function mocha_runner(): void {
-  const mocha_lib = (window as any).mocha;
-  mocha_lib.setup("bdd");
+const w : any = window as any;
 
-  require("./test.ts");
+w.mocha.setup("bdd");
 
-  $(".page-container").hide();
+async function mocha_run(): Promise<number> {
+  $(".page-container").css('opacity', .3);
   $("#mocha").empty();
-  mocha_lib.run();
+  const failures : number = await callback(w.mocha.run);
+  console.log("DONE", failures);
+  $(".page-container").hide();
+  if (failures === 0) {
+    $(".page-container").fadeOut();
+  } else {
+    $(".page-container").css('opacity', .15);
+  }
+  return failures;
 }
 
-(window as any).mocha_runner = mocha_runner;
+w.mocha_run = mocha_run;
 
 function mocha_reset(): void {
   $("#mocha").empty();
-  $(".page-container").show();
+  $(".page-container").show().css('opacity', 1);
 }
 
-(window as any).mocha_reset = mocha_reset;
+w.mocha_reset = mocha_reset;

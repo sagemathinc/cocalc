@@ -113,7 +113,6 @@ export class RenderedMarkdown extends Component<Props, {}> {
           }}
         >
           <Markdown
-            id={`frame-${this.props.id}`}
             value={value}
             project_id={this.props.project_id}
             file_path={path_split(this.props.path).head}

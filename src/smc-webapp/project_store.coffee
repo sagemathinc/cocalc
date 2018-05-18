@@ -1308,6 +1308,8 @@ class ProjectActions extends Actions
             paths : required
         if opts.paths.length == 0
             return
+        for path in opts.paths
+            @close_tab(path)
         id = misc.uuid()
         if underscore.isEqual(opts.paths, ['.trash'])
             mesg = "the trash"
@@ -2140,4 +2142,5 @@ get_directory_listing = (opts) ->
                 redux.getProjectActions(opts.project_id).log
                     event : 'start_project'
                     time  : misc.server_time() - time0
+
 
