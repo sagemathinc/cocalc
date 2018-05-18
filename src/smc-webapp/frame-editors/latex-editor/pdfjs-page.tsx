@@ -6,9 +6,9 @@ import { React, Rendered, Component } from "../generic/react";
 
 import { is_different } from "../generic/misc";
 
-import { NonloadedPage } from "./pdfjs-nonloaded-page.tsx";
-import { SVGPage } from "./pdfjs-svg-page.tsx";
-import { CanvasPage } from "./pdfjs-canvas-page.tsx";
+import { NonloadedPage } from "./pdfjs-nonloaded-page";
+import { SVGPage } from "./pdfjs-svg-page";
+import { CanvasPage } from "./pdfjs-canvas-page";
 
 import {
   PDFAnnotationData,

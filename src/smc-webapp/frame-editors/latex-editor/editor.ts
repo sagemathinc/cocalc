@@ -6,11 +6,11 @@ import { set } from "../generic/misc";
 
 import { createEditor } from "../frame-tree/editor";
 
-import { PDFJS } from "./pdfjs.tsx";
-import { PDFEmbed } from "./pdf-embed.tsx";
+import { PDFJS } from "./pdfjs";
+import { PDFEmbed } from "./pdf-embed";
 import { CodemirrorEditor } from "../code-editor/codemirror-editor";
-import { Build } from "./build.tsx";
-import { ErrorsAndWarnings } from "./errors-and-warnings.tsx";
+import { Build } from "./build";
+import { ErrorsAndWarnings } from "./errors-and-warnings";
 
 import { pdf_path } from "./util";
 

@@ -8,7 +8,7 @@ import { SVGGraphics, PDFPageProxy, PDFPageViewport } from "pdfjs-dist/webpack";
 
 import { is_different } from "../generic/misc";
 
-import { AnnotationLayer } from "./pdfjs-annotation.tsx";
+import { AnnotationLayer } from "./pdfjs-annotation";
 
 interface Props {
   page: PDFPageProxy;

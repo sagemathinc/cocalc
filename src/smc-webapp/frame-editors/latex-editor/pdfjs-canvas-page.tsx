@@ -10,7 +10,7 @@ import { Component, React, ReactDOM } from "../generic/react";
 
 import { is_different } from "../generic/misc";
 
-import { AnnotationLayer } from "./pdfjs-annotation.tsx";
+import { AnnotationLayer } from "./pdfjs-annotation";
 
 interface Props {
   page: PDFPageProxy;

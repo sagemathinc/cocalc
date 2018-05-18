@@ -12,14 +12,14 @@ import { sagetex } from "./sagetex";
 import * as synctex from "./synctex";
 import { bibtex } from "./bibtex";
 import { server_time, ExecOutput } from "../generic/client";
-import { clean } from "./clean.ts";
-import { LatexParser, ProcessedLatexLog } from "./latex-log-parser.ts";
-import { update_gutters } from "./gutters.tsx";
+import { clean } from "./clean";
+import { LatexParser, ProcessedLatexLog } from "./latex-log-parser";
+import { update_gutters } from "./gutters";
 import { pdf_path } from "./util";
-import { forgetDocument, url_to_pdf } from "./pdfjs-doc-cache.ts";
+import { forgetDocument, url_to_pdf } from "./pdfjs-doc-cache";
 import { FrameTree } from "../frame-tree/types";
 import { Store } from "../../smc-react-ts";
-import { createTypedMap } from "../../smc-react/TypedMap"
+import { createTypedMap, TypedMap } from "../../smc-react/TypedMap"
 
 
 interface BuildLog extends ExecOutput {
@@ -37,7 +37,7 @@ const ScrollIntoViewRecord = createTypedMap<ScrollIntoViewParams>();
 interface LatexEditorState extends CodeEditorState {
   build_log: Map<any, string>;
   sync: string;
-  scroll_into_view: InstanceType<typeof ScrollIntoViewRecord>;
+  scroll_into_view: TypedMap<ScrollIntoViewParams>;
   zoom_page_width: string;
   zoom_page_height: string;
 }

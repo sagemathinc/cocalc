@@ -11,7 +11,7 @@ import { path_split, capitalize } from "../generic/misc";
 
 const { Icon, Tip } = require("smc-webapp/r_misc");
 
-import { SPEC, SpecItem } from "./errors-and-warnings.tsx";
+import { SPEC, SpecItem } from "./errors-and-warnings";
 
 import { ProcessedLatexLog, Error } from "./latex-log-parser";
 

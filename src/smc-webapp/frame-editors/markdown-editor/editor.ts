@@ -3,7 +3,7 @@ Top-level react component for editing markdown documents
 */
 
 import { createEditor } from "../frame-tree/editor";
-import { RenderedMarkdown } from "./rendered-markdown.tsx";
+import { RenderedMarkdown } from "./rendered-markdown";
 import { set } from "../generic/misc";
 import { CodemirrorEditor } from "../code-editor/codemirror-editor";
 
