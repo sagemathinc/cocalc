@@ -157,8 +157,8 @@ class Store extends EventEmitter
     getIn: (path, notSetValue) =>
         return @redux._redux_store.getState().getIn([@name].concat(path), notSetValue)
 
-    unsafe_getIn: (...args) =>
-        return @getIn(...args)
+    unsafe_getIn: (args...) =>
+        return @getIn(args...)
 
     # wait: for the store to change to a specific state, and when that
     # happens call the given callback.
