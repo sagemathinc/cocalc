@@ -28,23 +28,72 @@ import {
   uuid
 } from "../generic/misc";
 import { print_code } from "../frame-tree/print-code";
-import { FrameDirection, FrameTree, ImmutableFrameTree, SetMap } from "../frame-tree/types";
-import { misspelled_words } from "./spell-check.ts";
-import * as cm_doc_cache from "./doc.ts";
-import { test_line } from "./test.ts";
+import {
+  FrameDirection,
+  FrameTree,
+  ImmutableFrameTree,
+  SetMap
+} from "../frame-tree/types";
+import { misspelled_words } from "./spell-check";
+import * as cm_doc_cache from "./doc";
+import { test_line } from "./test";
 import { Rendered } from "../generic/react";
 import * as CodeMirror from "codemirror";
 import "../generic/codemirror-plugins";
 import * as tree_ops from "../frame-tree/tree-ops";
+import { Actions as BaseActions, Store } from "../../smc-react-ts";
+import { createTypedMap, TypedMap } from "../../smc-react/TypedMap";
 
-const BaseActions = require("smc-webapp/smc-react").Actions;
 const copypaste = require("smc-webapp/copy-paste-buffer");
 
-export class Actions extends BaseActions {
-  protected _state: string;
+interface gutterMarkerParams {
+  line: number;
+  gutter_id: string;
+  component?: Rendered;
+  handle?: string;
+}
+
+const GutterMarker = createTypedMap<gutterMarkerParams>();
+type GutterMarkers = Map<string, TypedMap<gutterMarkerParams>>;
+
+export interface CodeEditorState {
+  project_id: string;
+  path: string;
+  is_public: boolean;
+  local_view_state: any;
+  reload: Map<string, any>;
+  resize: number;
+  misspelled_words: Set<string>;
+  has_unsaved_changes: boolean;
+  has_uncommitted_changes: boolean;
+  is_saving: boolean;
+  is_loaded: boolean;
+  gutter_markers: GutterMarkers;
+  cursors: Map<any, any>;
+  value?: string;
+  load_time_estimate: number;
+  error: any;
+  status: any;
+  read_only: boolean;
+}
+
+export class Actions<T = CodeEditorState> extends BaseActions<
+  T | CodeEditorState
+> {
+  protected _state: "closed" | undefined;
   protected _syncstring: any;
   protected _key_handler: any;
   protected _cm: { [key: string]: CodeMirror.Editor } = {};
+
+  public project_id: string;
+  public path: string;
+  public store: Store<CodeEditorState>;
+  public is_public: boolean;
+
+  private _save_local_view_state: () => void;
+  private _ignore_set_active_id: boolean;
+  private _cm_selections: any;
+  private _update_misspelled_words_last_hash: any;
 
   _init(
     project_id: string,
@@ -82,8 +131,8 @@ export class Actions extends BaseActions {
       1500
     );
 
-    if (this._init2) {
-      this._init2();
+    if ((this as any)._init2) {
+      (this as any)._init2();
     }
   }
 
@@ -175,7 +224,7 @@ export class Actions extends BaseActions {
   }
 
   set_reload(type: string): void {
-    const reload = this.store.get("reload", Map());
+    const reload: Map<string, any> = this.store.get("reload", Map());
     this.setState({
       reload: reload.set(type, this._syncstring.hash_of_saved_version())
     });
@@ -195,7 +244,9 @@ export class Actions extends BaseActions {
     this.__save_local_view_state();
     delete this._save_local_view_state;
     if (this._key_handler != null) {
-      this.redux.getActions("page").erase_active_key_handler(this._key_handler);
+      (this.redux.getActions("page") as any).erase_active_key_handler(
+        this._key_handler
+      );
       delete this._key_handler;
     }
     if (this._syncstring) {
@@ -329,7 +380,7 @@ export class Actions extends BaseActions {
     if (t0 === undefined) {
       return;
     }
-    const f : Function | undefined = tree_ops[op];
+    const f: Function | undefined = tree_ops[op];
     if (f === undefined) {
       throw Error(`unknown tree op '${op}'`);
     }
@@ -486,6 +537,9 @@ export class Actions extends BaseActions {
 
   async update_save_status(): Promise<void> {
     for (let i = 0; i < 2; i++) {
+      if (this._state === "closed") {
+        continue;
+      }
       this.setState({
         has_unsaved_changes: this._has_unsaved_changes(),
         has_uncommitted_changes: this._has_uncommitted_changes()
@@ -606,9 +660,11 @@ export class Actions extends BaseActions {
       });
     } catch (err) {
       console.warn(err);
-      this.set_error(
-        `${SAVE_ERROR} Despite repeated attempts, the version of the file saved to disk does not equal the version in your browser.  ${SAVE_WORKAROUND}`
-      );
+      if (this._state !== "closed") {
+        this.set_error(
+          `${SAVE_ERROR} Despite repeated attempts, the version of the file saved to disk does not equal the version in your browser.  ${SAVE_WORKAROUND}`
+        );
+      }
       log_error({
         string_id: this._syncstring._string_id,
         path: this.path,
@@ -628,7 +684,7 @@ export class Actions extends BaseActions {
     // several other formatting actions.
     // Doing this automatically is fraught with error, since cursors aren't precise...
     if (explicit) {
-      const account = this.redux.getStore("account");
+      const account: any = this.redux.getStore("account");
       if (
         account &&
         account.getIn(["editor_settings", "strip_trailing_whitespace"])
@@ -656,7 +712,7 @@ export class Actions extends BaseActions {
   }
 
   change_font_size(delta: number, id?: string): void {
-    const local = this.store.getIn("local_view_state");
+    const local = this.store.get("local_view_state");
     if (!id) {
       id = local.get("active_id");
     }
@@ -1072,7 +1128,7 @@ export class Actions extends BaseActions {
       // format bar only makes sense when some cm is there...
       return;
     }
-    await callback_opts((opts) => cm.edit_selection(opts))({
+    await callback_opts(opts => cm.edit_selection(opts))({
       cmd,
       args
     });
@@ -1093,8 +1149,11 @@ export class Actions extends BaseActions {
       // generate a random id, since none was specified.
       opts.id = uuid();
     }
-    const gutter_markers = this.store.get("gutter_markers", Map());
-    const info = fromJS({
+    const gutter_markers: GutterMarkers = this.store.get(
+      "gutter_markers",
+      Map()
+    );
+    const info = new GutterMarker({
       line: opts.line,
       gutter_id: opts.gutter_id,
       component: opts.component
@@ -1103,7 +1162,10 @@ export class Actions extends BaseActions {
   }
 
   delete_gutter_marker(id: string): void {
-    const gutter_markers = this.store.get("gutter_markers", Map());
+    const gutter_markers: GutterMarkers = this.store.get(
+      "gutter_markers",
+      Map()
+    );
     if (gutter_markers.has(id)) {
       this.setState({ gutter_markers: gutter_markers.delete(id) });
     }
@@ -1111,10 +1173,10 @@ export class Actions extends BaseActions {
 
   // clear all gutter markers in the given gutter
   clear_gutter(gutter_id: string): void {
-    let gutter_markers = this.store.get("gutter_markers", Map());
+    let gutter_markers: GutterMarkers = this.store.get("gutter_markers", Map());
     const before = gutter_markers;
     gutter_markers.map((info, id) => {
-      if (info.get("gutter_id") === gutter_id) {
+      if (info !== undefined && info.get("gutter_id") === gutter_id) {
         gutter_markers = gutter_markers.delete(id);
       }
     });
@@ -1129,7 +1191,7 @@ export class Actions extends BaseActions {
   _set_gutter_handle(id: string, handle: string): void {
     // id     = user-specified unique id for this gutter marker
     // handle = determines current line number of gutter marker
-    const gutter_markers = this.store.get("gutter_markers");
+    const gutter_markers: GutterMarkers = this.store.get("gutter_markers");
     if (gutter_markers == null) {
       return;
     }

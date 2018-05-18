@@ -157,6 +157,9 @@ class Store extends EventEmitter
     getIn: (path, notSetValue) =>
         return @redux._redux_store.getState().getIn([@name].concat(path), notSetValue)
 
+    unsafe_getIn: (...args) =>
+        return @getIn(...args)
+
     # wait: for the store to change to a specific state, and when that
     # happens call the given callback.
     wait: (opts) =>
@@ -319,7 +322,7 @@ class AppRedux
         else
             if not name.project_id?
                 throw Error("Object must have project_id attribute")
-            return project_store?.getActions(name.project_id, @)
+            return @getProjectActions(name.project_id)
 
     createStore: (spec, store_class=Store, init=undefined) =>
         # Old method
@@ -414,25 +417,31 @@ class AppRedux
         if not misc.is_valid_uuid_string(project_id)
             console.trace()
             console.warn("getProjectStore: INVALID project_id -- #{project_id}")
-        return project_store?.getStore(project_id, @)
+        return @getStore(project_redux_name(project_id))
 
     getProjectActions: (project_id) =>
         if not misc.is_valid_uuid_string(project_id)
             console.trace()
             console.warn("getProjectActions: INVALID project_id -- #{project_id}")
-        return project_store?.getActions(project_id, @)
+        return @getActions(project_redux_name(project_id))
 
     getProjectTable: (project_id, name) =>
         if not misc.is_valid_uuid_string(project_id)
             console.trace()
             console.warn("getProjectTable: INVALID project_id -- #{project_id}")
-        return project_store?.getTable(project_id, name, @)
+        return @getTable(project_redux_name(project_id, name))
 
     removeProjectReferences: (project_id) =>
         if not misc.is_valid_uuid_string(project_id)
             console.trace()
             console.warn("getProjectReferences: INVALID project_id -- #{project_id}")
-        return project_store?.deleteStoreActionsTable(project_id, @)
+
+        name = project_redux_name(project_id);
+        store = @getStore(name)
+        if typeof store.destroy == "function"
+            store.destroy()
+        @removeActions(name)
+        @removeStore(name)
 
     getEditorStore: (project_id, path, is_public) =>
         if not misc.is_valid_uuid_string(project_id)
@@ -644,6 +653,12 @@ exports.redux_name = (project_id, path, is_public) ->
         return "public-#{project_id}-#{path}"
     else
         return "editor-#{project_id}-#{path}"
+
+exports.project_redux_name = project_redux_name = (project_id, name) ->
+    s = "project-#{project_id}"
+    if name?
+        s += "-#{name}"
+    return s
 
 
 exports.rclass   = rclass    # use rclass instead of createReactClass to get access to reduxProps support

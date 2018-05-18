@@ -6,7 +6,7 @@ const WIKI_HELP_URL = "https://github.com/sagemathinc/cocalc/wiki/LaTeX-Editor";
 const VIEWERS = ["pdfjs_canvas", "pdfjs_svg", "embed", "build_log"];
 
 import { fromJS, Map } from "immutable";
-import { Actions as BaseActions } from "../code-editor/actions";
+import { Actions as BaseActions, CodeEditorState } from "../code-editor/actions";
 import { latexmk } from "./latexmk";
 import { sagetex } from "./sagetex";
 import * as synctex from "./synctex";
@@ -18,14 +18,36 @@ import { update_gutters } from "./gutters.tsx";
 import { pdf_path } from "./util";
 import { forgetDocument, url_to_pdf } from "./pdfjs-doc-cache.ts";
 import { FrameTree } from "../frame-tree/types";
+import { Store } from "../../smc-react-ts";
+import { createTypedMap } from "../../smc-react/TypedMap"
 
 
 interface BuildLog extends ExecOutput {
   parse?: ProcessedLatexLog;
 }
 
-export class Actions extends BaseActions {
-  private project_id: string;
+interface ScrollIntoViewParams {
+  page: number;
+  y: number;
+  id?: string;
+}
+
+const ScrollIntoViewRecord = createTypedMap<ScrollIntoViewParams>();
+
+interface LatexEditorState extends CodeEditorState {
+  build_log: Map<any, string>;
+  sync: string;
+  scroll_into_view: InstanceType<typeof ScrollIntoViewRecord>;
+  zoom_page_width: string;
+  zoom_page_height: string;
+}
+
+export class Actions extends BaseActions<LatexEditorState> {
+  public project_id: string;
+  public store: Store<LatexEditorState>
+
+  private _last_save_time: number;
+
   _init2(): void {
     if (!this.is_public) {
       // one extra thing after markdown.
@@ -118,7 +140,7 @@ export class Actions extends BaseActions {
       url_to_pdf(
         this.project_id,
         this.path,
-        this.store.getIn(["reload", VIEWERS[0]])
+        this.store.unsafe_getIn(["reload", VIEWERS[0]])
       )
     );
   }
@@ -206,7 +228,7 @@ export class Actions extends BaseActions {
 
   scroll_into_view(page: number, y: number, id?: string): void {
     this.setState({
-      scroll_into_view: { page: page, y: y, id: id }
+      scroll_into_view: new ScrollIntoViewRecord({page:page, y: y, id: id })
     });
   }
 

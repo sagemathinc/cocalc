@@ -18,6 +18,7 @@ data/
 \#*
 node_modules
 *.sass-cache
+.vscode/
 
 src/cocalc-testcafe/package-lock.json
 
