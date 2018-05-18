@@ -12,8 +12,7 @@ Preview of content appears in preview pane.
 
 */
 
-//import {callback} from
-const assert = require("assert");
+import { expect } from "chai";
 import { uuid } from "../generic/misc";
 import { read_text_file_from_project } from "../generic/client";
 import { init, clean_up, TestData } from "./util";
@@ -25,7 +24,7 @@ const w = window as any;
 
 w.test_init = init;
 
-// hard code for now... until we see how this is going to work.
+// hardcode for now... until we see how this is going to work.
 const project_id: string = "98e85b9b-51bb-4889-be47-f42698c37ed4";
 
 export function tests(describe: Function, it: Function): void {
@@ -52,7 +51,7 @@ export function tests(describe: Function, it: Function): void {
       });
 
       it("verifies that the codemirror editor gets properly set", function() {
-        assert.equal(data.editor.actions._get_cm().getValue(), CONTENT);
+        expect(data.editor.actions._get_cm().getValue()).to.equal(CONTENT);
       });
 
       this.timeout(5000);
@@ -72,9 +71,7 @@ export function tests(describe: Function, it: Function): void {
           "id"
         ]);
         const rendered: string = $(`#frame-${id}`).html();
-        w.rendered = rendered;
-        w.RENDERED = RENDERED;
-        assert.notEqual(rendered.indexOf(RENDERED), -1);
+        expect(rendered).to.have.string(RENDERED);
       });
 
       this.timeout(5000);
@@ -87,11 +84,11 @@ export function tests(describe: Function, it: Function): void {
       });
 
       it("reads the file back from disk and confirms contents are as they should be", async function() {
-        const x: string = await read_text_file_from_project({
+        const file_on_disk: string = await read_text_file_from_project({
           project_id: project_id,
           path: path
         });
-        assert.equal(x, CONTENT);
+        expect(file_on_disk).to.equal(CONTENT);
       });
 
       it("closes and deletes the file", function() {
