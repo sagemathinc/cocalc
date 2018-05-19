@@ -36,7 +36,7 @@ import {
 } from "../frame-tree/types";
 import { misspelled_words } from "./spell-check";
 import * as cm_doc_cache from "./doc";
-import { test_line } from "./test";
+import { test_line } from "./simulate_typing";
 import { Rendered } from "../generic/react";
 import * as CodeMirror from "codemirror";
 import "../generic/codemirror-plugins";

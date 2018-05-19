@@ -12,4 +12,4 @@ import "./markdown-editor/register.ts";
 import "./html-editor/register.ts";
 import "./latex-editor/register.ts";
 
-import "./test/init";
+import "./generic/test/init";

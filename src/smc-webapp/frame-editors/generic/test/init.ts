@@ -3,12 +3,12 @@
 // const w = window as any;
 // (window as any).test_init = init;
 
-import {tests} from "./scratch";
-
 const w = window as any;
 
-function load_scratch() {
-  tests(w.describe, w.it);
+w.test_load = {}
+
+w.test_load.markdown = function load_markdown() {
+  require('../../markdown-editor/test/basic');
 }
 
-w.load_scratch = load_scratch;
+

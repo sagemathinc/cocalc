@@ -1,4 +1,4 @@
-import { redux } from "../generic/react";
+import { redux } from "../react";
 
 interface ReduxData {
   actions: any;
@@ -24,3 +24,6 @@ export function init(project_id: string, path: string): TestData {
 export function clean_up(project_id: string, path: string): void {
   redux.getProjectActions(project_id).delete_files({ paths: [path] });
 }
+
+export const describe : Function = (window as any).describe;
+export const it : Function = (window as any).it;
