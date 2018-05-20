@@ -502,7 +502,7 @@ FileUseViewer = rclass
         @actions('page').toggle_show_file_use()
 
     render_mark_all_read_button: ->
-        <Button key='mark_all_read_button' bsStyle='warning'
+        <Button key='mark_all_read_button'
             onClick={@click_mark_all_read}>
             <Icon name='check-square'/> Mark all Read
         </Button>
@@ -547,10 +547,10 @@ FileUseViewer = rclass
     render: ->
         <div className={"smc-file-use-viewer"}>
             <Row key='top'>
-                <Col sm={8}>
+                <Col sm={7}>
                     {@render_search_box()}
                 </Col>
-                <Col sm={4}>
+                <Col sm={5}>
                     <div style={float:'right'}>
                         {@render_mark_all_read_button()}
                     </div>
