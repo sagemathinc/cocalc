@@ -385,7 +385,7 @@ export class AppRedux {
   removeProjectReferences(project_id: string): void {
     if (!misc.is_valid_uuid_string(project_id)) {
       console.trace();
-      console.warn(`getProjectReferences: INVALID project_id -- ${project_id}`);
+      console.warn(`getProjectReferences: INVALID project_id -- "${project_id}"`);
     }
     const name = project_redux_name(project_id);
     let store = this.getStore(name);

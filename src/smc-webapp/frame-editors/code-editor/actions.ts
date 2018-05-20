@@ -236,6 +236,15 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     });
   }
 
+  /* sets value of the CodeMirror editor document -- assumes it
+     has been initialized and loaded; otherwise, no-op. */
+  set_cm_value(value: string): void {
+    const cm = this._get_cm();
+    if (cm) {
+      cm.setValue(value);
+    }
+  }
+
   close(): void {
     if (this._state == "closed") {
       return;
@@ -909,6 +918,7 @@ export class Actions<T = CodeEditorState> extends BaseActions<
   }
 
   set_syncstring(value: string): void {
+    if (this._state === 'closed') return;
     this._syncstring.from_str(value);
     // NOTE: above is the only place where syncstring is changed, and when *we* change syncstring,
     // no change event is fired.  However, derived classes may want to update some preview when
@@ -1264,5 +1274,50 @@ export class Actions<T = CodeEditorState> extends BaseActions<
       opts.cm = this._get_cm();
     }
     await test_line(opts);
+  }
+
+  /* Get current value of the cm editor doc. Returns undefined if no
+     such editor has been initialized.
+
+     Not part of public API -- this is just used for testing.
+     Exception if can't be done, e.g., if editor not mounted.
+  */
+  _get_cm_value(): string {
+    if (this._state == "closed") {
+      throw Error("editor is closed");
+    }
+    const cm = this._get_cm();
+    if (!cm) {
+      throw Error("cm not defined (maybe editor is not mounted)");
+    }
+    return cm.getValue();
+  }
+
+  /* Get current value of the syncstring.  Returns undefined if syncstring
+     not defined.
+
+     Not part of public API -- this is just used for testing.
+
+     Exception if can't be done.
+  */
+  _get_syncstring_value(): string {
+    if (this._state == "closed") {
+      throw Error("editor is closed");
+    }
+    if (!this._syncstring) {
+      throw Error("_syncstring not defined.");
+    } else {
+      return this._syncstring.to_str();
+    }
+  }
+
+  /* Get jQuery wrapped frame with given id.  Exception if not
+  in the DOM and unique.   Meant for testing only. */
+  _get_frame_jquery(id: string): JQuery<HTMLElement> {
+    const elt = $("#frame-" + id);
+    if (elt.length != 1) {
+      throw Error(`unique frame with id ${id} not in DOM`);
+    }
+    return elt;
   }
 }
