@@ -353,22 +353,10 @@ export class Actions<T = CodeEditorState> extends BaseActions<
   }
 
   // Set which frame is active (unless setting is blocked).
-  // The optional parameter block_ms, if given,
-  // makes it so future calls to set_active_id are ignored for a few ms.
-  // This is needed to avoid some confusion that may occur when making one
-  // frame active.
   // Raises an exception if try to set an active_id, and there is no
   // leaf with that id.
-  set_active_id(active_id: string, block_ms?: number): void {
-    // First, deal with the block_ms optional input.
-    if (this._ignore_set_active_id) {
-      return;
-    }
-    if (block_ms) {
-      this._ignore_set_active_id = true;
-      this._unblock_set_active_id(block_ms);
-    }
-    // Now set the active_id.
+  set_active_id(active_id: string): void {
+    // Set the active_id, if necessary.
     const local: Map<string, any> = this.store.get("local_view_state");
     if (local.get("active_id") === active_id) {
       // already set -- nothing more to do
@@ -390,11 +378,6 @@ export class Actions<T = CodeEditorState> extends BaseActions<
       cm._last_active = new Date();
       cm.focus();
     }
-  }
-
-  async _unblock_set_active_id(block_ms: number): Promise<void> {
-    await delay(block_ms);
-    this._ignore_set_active_id = false;
   }
 
   _get_tree(): ImmutableFrameTree {

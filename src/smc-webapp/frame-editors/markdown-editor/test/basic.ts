@@ -26,7 +26,7 @@ describe("Markdown - basic tests", function() {
   });
 
   describe("set content, and save to disk", function() {
-    this.timeout(3000);
+    this.timeout(5000);
     it("wait for the file to finishing loading", async function() {
       await editor.wait_until_loaded();
     });
