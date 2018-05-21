@@ -409,7 +409,7 @@ if test_query_value
     # include entryway for running mocha tests.
     redux.getActions('page').setState(test: test_query_value)
     console.log("TESTING mode -- waiting for sign in...")
-    webapp_client.on 'signed_in', ->
+    webapp_client.once 'signed_in', ->
         console.log("TESTING mode -- waiting for projects to load...")
         redux.getStore('projects').wait
             until : (store) -> store.get('project_map')

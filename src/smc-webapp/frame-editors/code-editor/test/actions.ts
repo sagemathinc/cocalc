@@ -37,7 +37,25 @@ describe("CodeEditor - testing actions...", function() {
   });
 
   it("tests set_resize", function() {
-
+    // set_resize increments a counter that starts at 0.
+    expect(editor.store.get("resize")).to.equal(0);
+    editor.actions.set_resize();
+    expect(editor.store.get("resize")).to.equal(1);
   });
+
+  it("tests reset_local_view_state and set_local_view_state", function() {
+    // reset_local_view_state() just rests to the default the localStorage
+    // information about viewing this file.  We test this by setting a
+    // random property, resetting, and observing it is gone.
+    const local = editor.store.get('local_view_state');
+    expect(local.get('foo')).to.not.exist;
+    editor.actions.set_local_view_state({foo: 'bar'});
+    expect(editor.store.getIn(['local_view_state', 'foo'])).to.equal('bar');
+    editor.actions.reset_local_view_state();
+    expect(editor.store.getIn(['local_view_state', 'foo'])).to.not.exist;
+    // NOTE: the actual local_view_state is still different due to random editor
+    // id's, which get generated:
+    expect(local.equals(editor.store.get('local_view_state'))).to.equal(false);
+  })
 
 });
