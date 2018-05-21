@@ -57,7 +57,7 @@ exports.Find = rclass
         ReactDOM.findDOMNode(@refs.search).focus()
 
     render_search: ->
-        <FormGroup style={marginBottom:0}>
+        <FormGroup style={marginBottom:0, marginRight: '20px'}>
             <InputGroup>
                 <FormControl
                     type           = 'text'
@@ -80,14 +80,8 @@ exports.Find = rclass
     render: ->
         if not @props.actions? or not @props.local_view_state?
             return <span />
-        <Row style={padding: '0 5px'}>
-            <Col md={8}>
-                {@render_search()}
-            </Col>
-            <Col md={2}>
-                {@render_toggle('done')}
-            </Col>
-            <Col md={2}>
-                {@render_toggle('deleted')}
-            </Col>
-        </Row>
+        <div style={display: 'flex', marginLeft:'5px'}>
+            {@render_search()}
+            {@render_toggle('done')}
+            {@render_toggle('deleted')}
+        </div>

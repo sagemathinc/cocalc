@@ -540,7 +540,7 @@ Student = rclass
         else
             <Tip placement='right'
                  title='Create the student project'
-                 tip='Create a new project for this student, then add (or invite) the student as a collaborator, and also add any collaborators on the project containing this course.'>
+                 tip='Create a new project for this student, then add the student as a collaborator, and also add any collaborators on the project containing this course.'>
                 <Button onClick={@create_project}>
                     <Icon name="plus-circle" /> Create student project
                 </Button>
