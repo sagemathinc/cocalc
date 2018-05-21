@@ -352,35 +352,49 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     this._save_local_view_state();
   }
 
-  async set_active_id(active_id: string, block_ms?: number): Promise<void> {
+  // Set which frame is active (unless setting is blocked).
+  // The optional parameter block_ms, if given,
+  // makes it so future calls to set_active_id are ignored for a few ms.
+  // This is needed to avoid some confusion that may occur when making one
+  // frame active.
+  // Raises an exception if try to set an active_id, and there is no
+  // leaf with that id.
+  set_active_id(active_id: string, block_ms?: number): void {
+    // First, deal with the block_ms optional input.
     if (this._ignore_set_active_id) {
       return;
     }
     if (block_ms) {
       this._ignore_set_active_id = true;
-      await delay(block_ms);
-      this._ignore_set_active_id = false;
+      this._unblock_set_active_id(block_ms);
     }
+    // Now set the active_id.
     const local: Map<string, any> = this.store.get("local_view_state");
     if (local.get("active_id") === active_id) {
       // already set -- nothing more to do
       return;
     }
-    if (tree_ops.is_leaf_id(local.get("frame_tree"), active_id)) {
-      this.setState({
-        local_view_state: local.set("active_id", active_id)
-      });
-      this._save_local_view_state();
-      // If active_id is the id of a codemirror editor,
-      // save that it was focused just now; this is just a quick solution to
-      // "give me last active cm" -- we will switch to something
-      // more generic later.
-      let cm: any = this._cm[active_id];
-      if (cm) {
-        cm._last_active = new Date();
-        cm.focus();
-      }
+    if (!tree_ops.is_leaf_id(local.get("frame_tree"), active_id)) {
+      throw Error(`set_active_id - no leaf with id "${active_id}"`);
     }
+    this.setState({
+      local_view_state: local.set("active_id", active_id)
+    });
+    this._save_local_view_state();
+    // If active_id is the id of a codemirror editor,
+    // save that it was focused just now; this is just a quick solution to
+    // "give me last active cm" -- we will switch to something
+    // more generic later.
+    let cm: any = this._cm[active_id];
+    if (cm) {
+      cm._last_active = new Date();
+      cm.focus();
+    }
+  }
+
+  async _unblock_set_active_id(block_ms: number): Promise<void> {
+    await delay(block_ms);
+    this._ignore_set_active_id = false;
   }
 
   _get_tree(): ImmutableFrameTree {
@@ -457,7 +471,9 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     this._tree_op("set_leafs", obj);
   }
 
-  // This is only used in derived classes right now
+  // Set the type of the given node, e.g., 'cm', 'markdown', etc.
+  // NOTE: This is only meant to be used in derived classes right now,
+  // though we have a unit test of it at this level.
   set_frame_type(id: string, type: string): void {
     this.set_frame_tree({ id, type });
   }
@@ -520,6 +536,11 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     this.focus();
   }
 
+  // Save some arbitrary state information associated to a given
+  // frame.  This is saved in localStorage (in the local_view_state)
+  // and deleted when that frame is closed.  It gets converted to
+  // immutable.js before storing.  For example, this could be used
+  // to save the scroll position of the editor.
   save_editor_state(id: string, new_editor_state?: any): void {
     let left;
     if (this._state === "closed") {
@@ -545,6 +566,10 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     this._save_local_view_state();
   }
 
+  // Copy state information from one frame to another frame.
+  // E.g., this is used when splitting a frame, when we want
+  // the two resulting frames to have the same font size as the frame
+  // we just split.
   copy_editor_state(id1: string, id2: string): void {
     const info = this.store.getIn(["local_view_state", "editor_state", id1]);
     if (info) {
@@ -566,6 +591,11 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     return this._syncstring.has_uncommitted_changes();
   }
 
+  // Called to cause updating of the save/committed status
+  // in the store. It does this a few times.  This should get
+  // called whenever there's some chance this status has changed.
+  // This is probably bad code,
+  // and it would be nice to get rid of its async nature.
   async update_save_status(): Promise<void> {
     for (let i = 0; i < 2; i++) {
       if (this._state === "closed") {
@@ -623,6 +653,8 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     }
   }
 
+  // Set the location of all of OUR cursors.  This is entirely
+  // so the information can propogate to other users via the syncstring.
   set_cursor_locs(locs = [], side_effect): void {
     if (locs.length === 0) {
       // don't remove on blur -- cursor will fade out just fine
@@ -631,6 +663,9 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     this._syncstring.set_cursor_locs(locs, side_effect);
   }
 
+  // Delete trailing whitespace, avoiding any line that contains
+  // a cursor.  Also, is a no-op if no actual codemirror editor
+  // is initialized.
   delete_trailing_whitespace(): void {
     const cm = this._get_cm();
     if (cm == null) {

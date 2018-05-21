@@ -30,6 +30,12 @@ export interface FileTestData {
   };
 }
 
+function exists(x: any, desc: string): void {
+  if (!x) {
+    throw Error(`object must be defined -- ${desc}`);
+  }
+}
+
 function open_file(project_id: string, path: string): FileTestData {
   //console.log(`open_file("${project_id}","${path}")`);
   const data: FileTestData = {
@@ -40,16 +46,30 @@ function open_file(project_id: string, path: string): FileTestData {
     project_id: project_id,
     path: path
   };
-  const projects = redux.getActions('projects')
+  const projects = redux.getActions("projects");
   if (!projects) {
-    throw Error("projects redux store MUST be initialized before using test utils open_file");
+    throw Error(
+      "projects redux store MUST be initialized before using test utils open_file"
+    );
   }
-  projects.open_project({project_id:project_id});
-  data.redux.project.actions = redux.getProjectActions(project_id);
-  data.redux.project.store = redux.getProjectStore(project_id);
+  projects.open_project({ project_id: project_id });
+  exists(
+    (data.redux.project.actions = redux.getProjectActions(project_id)),
+    "project actions"
+  );
+  exists(
+    (data.redux.project.store = redux.getProjectStore(project_id)),
+    "project store"
+  );
   data.redux.project.actions.open_file({ path: path });
-  data.redux.editor.actions = redux.getEditorActions(project_id, path);
-  data.redux.editor.store = redux.getEditorStore(project_id, path);
+  exists(
+    (data.redux.editor.actions = redux.getEditorActions(project_id, path)),
+    "editor actions"
+  );
+  exists(
+    (data.redux.editor.store = redux.getEditorStore(project_id, path)),
+    "editor store"
+  );
   return data;
 }
 
@@ -93,7 +113,6 @@ export class TestEditor implements Editor {
     this.actions = this.data.redux.editor.actions;
     this.store = this.data.redux.editor.store;
     (window as any).editor = this;
-
   }
   delete(): void {
     delete_editor(this.data);
@@ -117,11 +136,15 @@ export class TestEditor implements Editor {
 }
 
 // Make accessible for interactive work...
-(window as any).test_editor = function(extension:string) {
+(window as any).test_editor = function(extension: string) {
   return new TestEditor(extension);
-}
+};
 
-export async function eventually(f: Function, maxtime_ms: number, note: string) {
+export async function eventually(
+  f: Function,
+  maxtime_ms: number,
+  note: string
+) {
   const interval = 150;
   for (let i = 0; i < maxtime_ms / interval; i++) {
     try {

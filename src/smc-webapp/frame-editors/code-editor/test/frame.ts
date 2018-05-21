@@ -76,5 +76,59 @@ describe("CodeEditor - frame splitting tests", function() {
       expect(frame_tree.first.first.type).to.equal("cm");
       expect(frame_tree.first.second.type).to.equal("cm");
     });
+
+    // continuing the test from above (with a nontrivial frame tree with 3 leafs...)
+    it("tests set_active_id", async function() {
+      const tree = editor.store
+        .getIn(["local_view_state", "frame_tree"])
+        .toJS();
+
+      // We list all the leaf id's...
+      const leaf_ids = [
+        tree.first.first.id,
+        tree.first.second.id,
+        tree.second.id
+      ];
+      // Then set each in turn to be the active_id.
+      for (let id of leaf_ids) {
+        await editor.actions.set_active_id(id);
+        expect(editor.store.getIn(["local_view_state", "active_id"])).to.equal(
+          id
+        );
+      }
+      // Try setting a non-existing id.
+      try {
+        await editor.actions.set_active_id("cocalc");
+        expect("should raise").to.equal("exception but did not!");
+      } catch (err) {
+        expect(err.toString()).to.equal('Error: set_active_id - no leaf with id "cocalc"');
+      }
+      // Above should not change what was active.
+      expect(editor.store.getIn(["local_view_state", "active_id"])).to.equal(
+        leaf_ids[2]
+      );
+
+      // Try setting a non-leaf id -- this should also fail.
+      try {
+        await editor.actions.set_active_id(tree.id);
+        expect("should raise").to.equal("exception but did not!");
+      } catch (err) {
+        expect(err.toString()).to.equal(`Error: set_active_id - no leaf with id "${tree.id}"`);
+      }
+    });
+
+    it("tests close_frame", function() {});
+
+    // THIS IS CURRENTLY BROKEN -- define with tests, then fix code!
+    it("tests that closing frames makes the right frames active", function() {})
+
+    // Want to change current behavior to make *new* frame active, though that is harder.
+    it("tests that spitting frames makes the right frames active", function() {})
+
+    it("tests set_frame_full", function() {});
+
+    it("tests set_frame_tree_leafs", function() {});
+
+    it("tests set_frame_type", function() {});
   });
 });

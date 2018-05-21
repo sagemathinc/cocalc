@@ -199,7 +199,7 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
     return (
       <div id={`frame-${id}`} className="smc-vfill">
         <Leaf
-          id={`frame-${id}`}
+          id={id}
           name={this.props.name}
           actions={this.props.actions}
           read_only={desc.get(
@@ -260,7 +260,9 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
     return (
       <div
         className={"smc-vfill"}
-        onClick={() => this.props.actions.set_active_id(desc.get("id"), 10)}
+        onClick={() => {
+          this.props.actions.set_active_id(desc.get("id"), 10);
+        }}
         onTouchStart={() =>
           this.props.actions.set_active_id(desc.get("id"), 10)
         }

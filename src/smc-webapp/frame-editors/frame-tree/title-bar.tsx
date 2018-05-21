@@ -2,6 +2,8 @@
 FrameTitleBar - title bar in a frame, in the frame tree
 */
 
+import {delay} from 'awaiting';
+
 import { React, Rendered, Component, Fragment, redux } from "../generic/react";
 import { is_safari } from "../generic/browser";
 import * as CSS from "csstype";
@@ -117,11 +119,17 @@ export class FrameTitleBar extends Component<Props, {}> {
     return buttons != null ? buttons[action_name] : false;
   }
 
-  click_close(): void {
+  async click_close(): void {
     if (new Date().valueOf() - this.last_render < 200) {
       // avoid accidental click -- easily can happen otherwise.
       return;
     }
+    // Wait for next render loop before actually closing.
+    // The reason is that when this frame is NOT focused and
+    // the user clicks the x, then the frame first gets focused,
+    // and only then gets closed.  Focusing the frame at the same
+    // time as closing it is bad.
+    await delay(0);
     this.props.actions.close_frame(this.props.id);
   }
 

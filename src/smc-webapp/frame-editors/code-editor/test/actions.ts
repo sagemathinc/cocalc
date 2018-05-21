@@ -47,15 +47,26 @@ describe("CodeEditor - testing actions...", function() {
     // reset_local_view_state() just rests to the default the localStorage
     // information about viewing this file.  We test this by setting a
     // random property, resetting, and observing it is gone.
-    const local = editor.store.get('local_view_state');
-    expect(local.get('foo')).to.not.exist;
-    editor.actions.set_local_view_state({foo: 'bar'});
-    expect(editor.store.getIn(['local_view_state', 'foo'])).to.equal('bar');
+    const local = editor.store.get("local_view_state");
+    expect(local.get("foo")).to.not.exist;
+    editor.actions.set_local_view_state({ foo: "bar" });
+    expect(editor.store.getIn(["local_view_state", "foo"])).to.equal("bar");
     editor.actions.reset_local_view_state();
-    expect(editor.store.getIn(['local_view_state', 'foo'])).to.not.exist;
+    expect(editor.store.getIn(["local_view_state", "foo"])).to.not.exist;
     // NOTE: the actual local_view_state is still different due to random editor
     // id's, which get generated:
-    expect(local.equals(editor.store.get('local_view_state'))).to.equal(false);
-  })
+    expect(local.equals(editor.store.get("local_view_state"))).to.equal(false);
+  });
 
+  it("tests save_editor_state", function() {});
+
+  it("tests copy_editor_state", function() {});
+
+  it("tests delete_trailing_whitespace", function() {
+    editor.actions.set_cm_value("foo \nbar   \nnone");
+    editor.actions.delete_trailing_whitespace();
+    // does NOT delete the whitespace in line foo, since the cursor
+    // is in the first line by default.
+    expect(editor.actions._get_cm_value()).to.equal("foo \nbar\nnone");
+  });
 });
