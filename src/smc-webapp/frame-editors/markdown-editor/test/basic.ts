@@ -4,6 +4,8 @@ import {
   TestEditor,
   describe,
   it,
+  before,
+  after,
   expect,
   eventually
 } from "../../generic/test/util";
@@ -14,13 +16,17 @@ const RENDERED =
   "<h1>Heading</h1>\n<p><strong>Foo</strong> and <em>bar</em></p>";
 
 describe("Markdown - basic tests", function() {
-  describe("open file, set content, and save to disk", function() {
-    this.timeout(3000);
-    let editor;
-    it("open a new markdown file", function() {
-      editor = new TestEditor("md");
-    });
+  let editor;
+  before(function() {
+    editor = new TestEditor("md");
+  });
 
+  after(function() {
+    editor.delete();
+  });
+
+  describe("set content, and save to disk", function() {
+    this.timeout(3000);
     it("wait for the file to finishing loading", async function() {
       await editor.wait_until_loaded();
     });
@@ -29,7 +35,7 @@ describe("Markdown - basic tests", function() {
       editor.actions.set_cm_value(CONTENT);
     });
 
-    it("verifies that the codemirror editor gets properly set", async function() {
+    it("verifies that the codemirror editor gets properly set", function() {
       expect(editor.actions._get_cm_value()).to.equal(CONTENT);
     });
 
@@ -64,10 +70,6 @@ describe("Markdown - basic tests", function() {
 
     it("reads the file back from disk and confirms contents are as they should be", async function() {
       expect(await editor.read_file_from_disk()).to.equal(CONTENT);
-    });
-
-    it("deletes the file", function() {
-      editor.delete();
     });
   });
 });

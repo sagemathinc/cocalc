@@ -4,6 +4,7 @@ Testing framework for editors.
 
 import { expect as expect0 } from "chai";
 export let expect = expect0;
+(window as any).expect = expect;
 
 import { redux } from "../react";
 
@@ -30,7 +31,7 @@ export interface FileTestData {
 }
 
 function open_file(project_id: string, path: string): FileTestData {
-  console.log(`open_file("${project_id}","${path}")`);
+  //console.log(`open_file("${project_id}","${path}")`);
   const data: FileTestData = {
     redux: {
       project: {} as ReduxData,
@@ -70,6 +71,10 @@ function delete_editor(data: FileTestData): void {
 
 export const describe: Function = (window as any).describe;
 export const it: Function = (window as any).it;
+export const before: Function = (window as any).before;
+export const after: Function = (window as any).after;
+export const beforeEach: Function = (window as any).beforeEach;
+export const afterEach: Function = (window as any).afterEach;
 
 export interface Editor {
   data: FileTestData;
@@ -87,7 +92,7 @@ export class TestEditor implements Editor {
     /* direct access to actions/store, since these are used so much in testing */
     this.actions = this.data.redux.editor.actions;
     this.store = this.data.redux.editor.store;
-    (window as any).test_editor = this;
+    (window as any).editor = this;
 
   }
   delete(): void {

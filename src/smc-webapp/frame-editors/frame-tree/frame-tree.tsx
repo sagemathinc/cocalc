@@ -298,7 +298,7 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
         id: this.props.frame_tree.get("id"),
         pos
       });
-      return this.props.actions.set_resize();
+      this.props.actions.set_resize();
     };
 
     // the preventDefault below prevents the text and scroll of what is in the frame from getting messed up during the drag.
@@ -404,7 +404,7 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
         pos
       });
       this.props.actions.set_resize();
-      return this.safari_hack();
+      this.safari_hack();
     };
 
     return (

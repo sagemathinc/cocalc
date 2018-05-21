@@ -137,8 +137,8 @@ export class Actions<T = CodeEditorState> extends BaseActions<
   }
 
   // Init setting of value exactly once based on
-  // reading file from disk via public api, or setting
-  // from syncstring as a response to explicit user action.
+  // reading file from disk via public api.
+  // ONLY used for public files.
   async _init_value(): Promise<void> {
     if (!this.is_public) {
       return;
@@ -172,15 +172,6 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     this._syncstring.on("save-to-disk", time =>
       this.update_misspelled_words(time)
     );
-  }
-
-  reload(): void {
-    if (!this.store.get("is_loaded")) {
-      // currently in the process of loading
-      return;
-    }
-    // this sets is_loaded to false... loads, then sets is_loaded to true.
-    this._init_value();
   }
 
   _init_syncstring(): void {
@@ -223,6 +214,19 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     this._init_has_unsaved_changes();
   }
 
+  // Reload the document.  This is used mainly for *public* viewing of
+  // a file.
+  reload(): void {
+    if (!this.store.get("is_loaded")) {
+      // currently in the process of loading
+      return;
+    }
+    // this sets is_loaded to false... loads, then sets is_loaded to true.
+    this._init_value();
+  }
+
+  // Update the reload key in the store, which may *trigger* UI to
+  // update itself as a result (e.g. a pdf preview or markdown preview pane).
   set_reload(type: string): void {
     const reload: Map<string, any> = this.store.get("reload", Map());
     this.setState({
@@ -230,19 +234,26 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     });
   }
 
+  // Call this whenever the frames are moved, so that content can potentially
+  // get updated due to resizing.  E.g., this ensures that codemirror editors
+  // are properly updated (by calling cm.refresh()), so they don't look broken.
   set_resize(): void {
     this.setState({
       resize: this.store.get("resize", 0) + 1
     });
   }
 
-  /* sets value of the CodeMirror editor document -- assumes it
-     has been initialized and loaded; otherwise, no-op. */
+  /* Set the value of the CodeMirror editor document -- assumes it
+     has been initialized and loaded (e.g., the react component is
+     mounted).  If not, throws an exception (which is fine -- this is
+     used for testing only).
+    */
   set_cm_value(value: string): void {
     const cm = this._get_cm();
-    if (cm) {
-      cm.setValue(value);
+    if (!cm) {
+      throw Error("some codemirror MUST be defined!");
     }
+    cm.setValue(value);
   }
 
   close(): void {
@@ -420,14 +431,25 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     return { type: "cm" };
   }
 
+  // Do a set operation on the frame tree. This is used
+  // to change a field in some node in the tree.  Typically
+  // obj is of the form {id:'blah', foo:'bar'}, which sets
+  // node.foo = 'bar' in the tree node with id 'blah'.
   set_frame_tree(obj): void {
     this._tree_op("set", obj);
   }
 
+  // Reset the frame tree layout to the default.
   reset_frame_tree(): void {
     let local = this.store.get("local_view_state");
-    local = local.set("frame_tree", this._default_frame_tree());
+    // Set the frame tree to a new default frame tree.
+    const tree = this._default_frame_tree();
+    local = local.set("frame_tree", tree);
+    // Also make some id active, since existing active_id is no longer valid.
+    local = local.set("active_id", tree_ops.get_some_leaf_id(tree));
+    // Update state, so visible to UI.
     this.setState({ local_view_state: local });
+    // And save this new state to localStorage.
     this._save_local_view_state();
   }
 
@@ -463,13 +485,13 @@ export class Actions<T = CodeEditorState> extends BaseActions<
   }
 
   split_frame(direction: FrameDirection, id?: string, type?: string): void {
-    const ids0 = this._get_leaf_ids();
     if (!id) {
       id = this.store.getIn(["local_view_state", "active_id"]);
       if (!id) return;
     }
     this._tree_op("split_leaf", id, direction, type);
     const object = this._get_leaf_ids();
+    const ids0 = this._get_leaf_ids();
     for (let i in object) {
       if (!ids0[i]) {
         this.copy_editor_state(id, i);
@@ -918,7 +940,7 @@ export class Actions<T = CodeEditorState> extends BaseActions<
   }
 
   set_syncstring(value: string): void {
-    if (this._state === 'closed') return;
+    if (this._state === "closed") return;
     this._syncstring.from_str(value);
     // NOTE: above is the only place where syncstring is changed, and when *we* change syncstring,
     // no change event is fired.  However, derived classes may want to update some preview when
