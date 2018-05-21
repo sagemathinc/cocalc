@@ -99,6 +99,21 @@ exports.SetIntervalMixin =
     componentWillUnmount: ->
         @intervals.forEach clearInterval
 
+exports.SetIntervalHOC = (Component) ->
+    class SetIntervalWrapper
+        componentWillMount: ->
+            @intervals = []
+
+        setInterval: (fn, ms) ->
+            @intervals.push setInterval fn, ms
+
+        componentWillUnmount: ->
+            @intervals.forEach clearInterval
+
+        render: ->
+            Component.setInterval = @setInterval
+            <Component >
+
 exports.Space = Space = ->
     <span>&nbsp;</span>
 

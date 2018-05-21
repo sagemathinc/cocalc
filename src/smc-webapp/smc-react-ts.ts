@@ -27,7 +27,7 @@ if (DEBUG == null) {
   var DEBUG = false;
 }
 
-let rclass: (x?) => () => React.ReactElement<any>;
+let rclass: (x?) => () => JSX.Element;
 
 import * as immutable from "immutable";
 import * as React from "react";
@@ -37,8 +37,8 @@ import * as PropTypes from "prop-types";
 import { Provider, connect } from "react-redux";
 
 let redux: AppRedux;
-let coffee = require("./smc-react")
-redux = coffee.redux
+let coffee = require("./smc-react");
+redux = coffee.redux;
 
 import {
   Store,

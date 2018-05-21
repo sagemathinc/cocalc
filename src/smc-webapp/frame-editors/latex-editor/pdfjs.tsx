@@ -24,8 +24,8 @@ import {
   rtypes,
   Rendered
 } from "../generic/react";
-import { getDocument, url_to_pdf } from "./pdfjs-doc-cache.ts";
-import { Page, PAGE_GAP } from "./pdfjs-page.tsx";
+import { getDocument, url_to_pdf } from "./pdfjs-doc-cache";
+import { Page, PAGE_GAP } from "./pdfjs-page";
 import { PDFDocumentProxy, PDFPageProxy } from "pdfjs-dist/webpack";
 
 // Ensure this jQuery plugin is defined:
