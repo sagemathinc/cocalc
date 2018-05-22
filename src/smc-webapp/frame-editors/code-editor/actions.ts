@@ -91,7 +91,6 @@ export class Actions<T = CodeEditorState> extends BaseActions<
   public is_public: boolean;
 
   private _save_local_view_state: () => void;
-  private _ignore_set_active_id: boolean;
   private _cm_selections: any;
   private _update_misspelled_words_last_hash: any;
 
@@ -503,7 +502,7 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     // focus, which changes the id.  Instead of a flicker
     // and changing it back, we just prevent any id change
     // for 1ms, which covers the render cycle.
-    this.set_active_id(id, 1);
+    this.set_active_id(id);
   }
 
   async set_frame_full(id: string): Promise<void> {
