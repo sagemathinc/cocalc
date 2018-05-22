@@ -151,7 +151,10 @@ exports.ButtonBar = rclass
         </ButtonGroup>
 
     render: ->
-        <div style={padding: '0px 5px 5px'}>
+        # the zIndex 1 and background white is so that when the description
+        # of what is visible in the previous line flows around (for skinny display),
+        # it is hidden.
+        <div style={padding: '0px 5px 5px', zIndex:1, background:'white'}>
             {@render_task_group()}
             <Space/>
             {@render_help()}

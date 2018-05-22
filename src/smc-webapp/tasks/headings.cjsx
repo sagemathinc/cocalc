@@ -99,6 +99,6 @@ exports.Headings = rclass
         </Row>
 
     render: ->
-        <div style={padding:'0 10px'}>
+        <div style={padding:'0 10px'}  className={'visible-lg-inline'}>
             {@render_headings()}
         </div>

@@ -107,7 +107,12 @@ exports.CourseStore = class CourseStore extends Store
             full_name = email
         if not include_email
             return full_name
-        return {simple:full_name.replace(/\W/g, ' '), full:full}
+        try
+            JSON.stringify(full_name)
+            simple = full_name
+        catch
+            simple = full_name.replace(/\W/g, ' ')
+        return {simple:simple, full:full}
 
     get_student_email: (student) =>
         student = @get_student(student)

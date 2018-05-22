@@ -15,7 +15,7 @@ const checkboxes = function(s) {
 
 const OPTIONS: MarkdownIt.Options = {
   html: true,
-  typographer: true,
+  typographer: false,
   linkify: true
 };
 

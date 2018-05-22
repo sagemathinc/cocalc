@@ -88,9 +88,9 @@ exports.AddCollaborators = rclass
         replyto      = redux.getStore('account').get_email_address()
         replyto_name = redux.getStore('account').get_fullname()
         if replyto_name?
-            subject = "#{replyto_name} invites you to project #{@props.project.get('title')}"
+            subject = "#{replyto_name} added you to CoCalc project #{@props.project.get('title')}"
         else
-            subject = "CoCalc Invitation to project #{@props.project.get('title')}"
+            subject = "You've been added to CoCalc project #{@props.project.get('title')}"
         @actions('projects').invite_collaborator(
             @props.project.get('project_id'),
             account_id,
@@ -127,7 +127,7 @@ exports.AddCollaborators = rclass
         replyto      = redux.getStore('account').get_email_address()
         replyto_name = redux.getStore('account').get_fullname()
         if replyto_name?
-            subject = "#{replyto_name} invites you to project #{@props.project.get('title')}"
+            subject = "#{replyto_name} added you to project #{@props.project.get('title')}"
         else
             subject = "CoCalc Invitation to project #{@props.project.get('title')}"
         @actions('projects').invite_collaborators_by_email(@props.project.get('project_id'),
@@ -230,11 +230,11 @@ exports.AddCollaborators = rclass
         nb_selected = @state.selected_entries?.length ? 0
         btn_text = switch select.length
             when 0 then "No user found"
-            when 1 then "Invite user"
+            when 1 then "Add user"
             else switch nb_selected
                 when 0 then "Select a name above"
-                when 1 then "Invite selected user"
-                else "Invite #{nb_selected} users"
+                when 1 then "Add selected user"
+                else "Add #{nb_selected} users"
         disabled = select.length == 0 or (select.length >= 2 and nb_selected == 0)
         <Button
             onClick  = {=>@add_selected(select)}

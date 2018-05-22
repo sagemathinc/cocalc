@@ -83,7 +83,7 @@ if window?
     exports.IS_MOBILE = exports.isMobile.any() and exports.is_responsive_mode()
 
     # IS_TOUCH for us means multitouch tablet or mobile.
-    exports.IS_TOUCH = exports.isMobile.tablet() or exports.IS_MOBILE
+    exports.IS_TOUCH = exports.isMobile.tablet() or exports.IS_MOBILE or exports.isMobile.any()
 
     exports.IS_IPAD  = navigator?.userAgent.match(/iPad/i)
 
