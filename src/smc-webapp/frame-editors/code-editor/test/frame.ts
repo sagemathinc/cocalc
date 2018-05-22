@@ -101,7 +101,9 @@ describe("CodeEditor - frame splitting tests", function() {
         await editor.actions.set_active_id("cocalc");
         expect("should raise").to.equal("exception but did not!");
       } catch (err) {
-        expect(err.toString()).to.equal('Error: set_active_id - no leaf with id "cocalc"');
+        expect(err.toString()).to.equal(
+          'Error: set_active_id - no leaf with id "cocalc"'
+        );
       }
       // Above should not change what was active.
       expect(editor.store.getIn(["local_view_state", "active_id"])).to.equal(
@@ -113,17 +115,35 @@ describe("CodeEditor - frame splitting tests", function() {
         await editor.actions.set_active_id(tree.id);
         expect("should raise").to.equal("exception but did not!");
       } catch (err) {
-        expect(err.toString()).to.equal(`Error: set_active_id - no leaf with id "${tree.id}"`);
+        expect(err.toString()).to.equal(
+          `Error: set_active_id - no leaf with id "${tree.id}"`
+        );
       }
     });
 
-    it("tests close_frame", function() {});
+    // TODO -- add some tests about which frame becomes active here.
+    it("tests close_frame", function() {
+      // from the above test, there are now 3 leafs.  The first has two leafs, and the second has one.
+      // Let's close the second leaf.
+      const tree = editor.store.getIn(["local_view_state", "frame_tree"]).toJS();
+      editor.actions.close_frame(tree.second.id);
+      // Now there should be a single root node with exactly two leafs.
+      const tree2 = editor.store.getIn(["local_view_state", "frame_tree"]).toJS();
+      expect(tree2.first.id).to.equal(tree.first.first.id);
+      expect(tree2.second.id).to.equal(tree.first.second.id);
+      // Next, close another frame.
+      editor.actions.close_frame(tree2.first.id);
+      const tree3 = editor.store.getIn(["local_view_state", "frame_tree"]).toJS();
+      expect(tree3.id).to.equal(tree.first.second.id);
+    });
 
     // THIS IS CURRENTLY BROKEN -- define with tests, then fix code!
-    it("tests that closing frames makes the right frames active", function() {})
+    it("tests that closing frames makes the right frames active", function() {});
 
     // Want to change current behavior to make *new* frame active, though that is harder.
-    it("tests that spitting frames makes the right frames active", function() {})
+    it("tests that spitting frames makes the right frames active", function() {});
+
+    it('tests close_frame by simultating a click on the close button', function() {});
 
     it("tests set_frame_full", function() {});
 

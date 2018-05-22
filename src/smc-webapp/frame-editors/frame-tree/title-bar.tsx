@@ -119,7 +119,7 @@ export class FrameTitleBar extends Component<Props, {}> {
     return buttons != null ? buttons[action_name] : false;
   }
 
-  async click_close(): void {
+  async click_close(): Promise<void> {
     if (new Date().valueOf() - this.last_render < 200) {
       // avoid accidental click -- easily can happen otherwise.
       return;
