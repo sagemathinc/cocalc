@@ -5,7 +5,7 @@ The stopwatch component
 import { Button, ButtonGroup, Well } from "react-bootstrap";
 
 import { Component, React, Rendered } from "../smc-react-ts";
-let { Icon, SetIntervalHOC } = require("../r_misc");
+let { Icon } = require("../r_misc");
 let { webapp_client } = require("../webapp_client");
 
 interface PropTypes {
@@ -18,7 +18,19 @@ interface PropTypes {
 }
 
 class Stopwatch extends Component<PropTypes, any> {
-  setInterval: (fn, ms) => void; // From SetIntervalHOC TODO: Best way to do this?
+  private intervals: number[]
+
+  componentWillMount() {
+    this.intervals = []
+  }
+
+  setInterval(fn: Function, ms: number): void {
+    this.intervals.push(setInterval(fn, ms))
+  }
+
+  componentWillUnmount() {
+    this.intervals.forEach(clearInterval)
+  }
 
   componentDidMount(): void {
     this.setInterval(() => this.forceUpdate(), 1000);
