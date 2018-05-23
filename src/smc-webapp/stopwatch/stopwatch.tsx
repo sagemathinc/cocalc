@@ -17,7 +17,7 @@ interface PropTypes {
   total?: number; // total time accumulated before entering current state
 }
 
-class Stopwatch extends Component<PropTypes, any> {
+export class Stopwatch extends Component<PropTypes, any> {
   private intervals: number[]
 
   componentWillMount() {
@@ -163,6 +163,3 @@ function TimeAmount(props: TimeProps) {
     </div>
   );
 }
-
-const IntervalStopwatch = SetIntervalHOC(Stopwatch);
-export { IntervalStopwatch as Stopwatch };
