@@ -85,7 +85,6 @@ exports.Kernel = rclass ({name}) ->
     render_name: ->
         display_name = @props.kernel_info?.get('display_name')
         if not display_name? and @props.kernels?
-            console.log(@props.kernels.toJS())
             # Definitely an unknown kernel
             closestKernel = closest_kernel_match(@props.kernel,@props.kernels)
             closestKernelDisplayName = closestKernel.get("display_name")
