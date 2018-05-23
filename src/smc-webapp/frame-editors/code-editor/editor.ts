@@ -39,7 +39,7 @@ const EDITOR_SPEC = {
 };
 
 export const Editor = createEditor({
-  format_bar: true,
+  format_bar: false,
   editor_spec: EDITOR_SPEC,
-  display_name: "RstEditor"
+  display_name: "CodeEditor"
 });

@@ -933,6 +933,7 @@ export class Actions<T = CodeEditorState> extends BaseActions<
   }
 
   // Open a code editor, optionally at the given line.
+  // TODO: try to eliminate the async.
   async open_code_editor(opts: {
     focus?: boolean;
     line?: number;
