@@ -53,10 +53,10 @@ export class Stopwatch extends Component<PropTypes, any> {
     return (
       <Button
         bsStyle={!this.props.compact ? "warning" : undefined}
-        onClick={() => this.props.click_button("stoping")}
+        onClick={() => this.props.click_button("stopped")}
         bsSize={this.props.compact ? "xsmall" : undefined}
       >
-        <Icon name="stoping" /> {!this.props.compact ? "Stop" : undefined}
+        <Icon name="stopped" /> {!this.props.compact ? "Stop" : undefined}
       </Button>
     );
   }
@@ -77,7 +77,7 @@ export class Stopwatch extends Component<PropTypes, any> {
   render_time(): Rendered {
     let amount: number;
     switch (this.props.state) {
-      case "stoping":
+      case "stopped":
         amount = 0;
         break;
       case "pause":
@@ -99,7 +99,7 @@ export class Stopwatch extends Component<PropTypes, any> {
 
   render_buttons(): Rendered {
     switch (this.props.state) {
-      case "stoping":
+      case "stopped":
         return <span key={"buttons"}>{this.render_start_button()}</span>;
       case "pause":
         return (
