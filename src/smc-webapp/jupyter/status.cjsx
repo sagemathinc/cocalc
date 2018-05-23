@@ -4,9 +4,7 @@ Kernel display
 
 {React, ReactDOM, rclass, rtypes}  = require('../smc-react')
 {Icon, Loading, Tip} = require('../r_misc')
-
-misc = require('smc-util/misc')
-
+{closest_kernel_match} = require('smc-util/misc')
 {Logo} = require('./logo')
 
 exports.Mode = rclass ({name}) ->
@@ -87,9 +85,13 @@ exports.Kernel = rclass ({name}) ->
     render_name: ->
         display_name = @props.kernel_info?.get('display_name')
         if not display_name? and @props.kernels?
+            console.log(@props.kernels.toJS())
             # Definitely an unknown kernel
-            <span style={KERNEL_ERROR_STYLE}>
-                Unknown kernel <span style={fontWeight:'bold'}>{@props.kernel}</span> (select a valid kernel from the Kernel menu)
+            closestKernel = closest_kernel_match(@props.kernel,@props.kernels)
+            closestKernelDisplayName = closestKernel.get("display_name")
+            closestKernelName = closestKernel.get("name")
+            <span style={KERNEL_ERROR_STYLE} onClick={() => @props.actions.set_kernel(closestKernelName)}>
+                Unknown kernel <span style={fontWeight:'bold'}>{@props.kernel}</span>, click here to use {closestKernelDisplayName} instead.
             </span>
         else
             # List of known kernels just not loaded yet.
@@ -230,4 +232,3 @@ exports.Kernel = rclass ({name}) ->
             {@render_logo()}
             {@render_tip(title, body)}
         </span>
-
