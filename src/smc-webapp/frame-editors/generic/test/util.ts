@@ -3,6 +3,7 @@ Testing framework for editors.
 */
 
 import { expect as expect0 } from "chai";
+
 export let expect = expect0;
 (window as any).expect = expect;
 

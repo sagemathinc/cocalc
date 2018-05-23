@@ -93,6 +93,7 @@ export class Actions<T = CodeEditorState> extends BaseActions<
   private _save_local_view_state: () => void;
   private _cm_selections: any;
   private _update_misspelled_words_last_hash: any;
+  private _active_id_history: string[] = [];
 
   _init(
     project_id: string,
@@ -364,6 +365,15 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     if (!tree_ops.is_leaf_id(local.get("frame_tree"), active_id)) {
       throw Error(`set_active_id - no leaf with id "${active_id}"`);
     }
+
+    // record which id was just made active.
+    this._active_id_history.push(active_id);
+    if (this._active_id_history.length > 100) {
+      this._active_id_history = this._active_id_history.slice(
+        this._active_id_history.length - 100
+      );
+    }
+
     this.setState({
       local_view_state: local.set("active_id", active_id)
     });
@@ -376,6 +386,23 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     if (cm) {
       cm._last_active = new Date();
       cm.focus();
+    }
+  }
+
+  // Make whatever frame is defined and was most recently active
+  // be the current active frame.
+  make_most_recent_frame_active(): void {
+    let tree = this._get_tree();
+    for (let i = this._active_id_history.length - 1; i >= 0; i--) {
+      let id = this._active_id_history[i];
+      if (tree_ops.is_leaf_id(tree, id)) {
+        this.set_active_id(id);
+        return;
+      }
+    }
+    let id: string | undefined = tree_ops.get_some_leaf_id(tree);
+    if (id) {
+      this.set_active_id(id);
     }
   }
 
@@ -403,9 +430,6 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     const t1 = f(t0, ...args);
     if (t1 !== t0) {
       if (op === "delete_node") {
-        if (!tree_ops.is_leaf_id(t1, local.get("active_id"))) {
-          local = local.set("active_id", tree_ops.get_some_leaf_id(t1));
-        }
         if (!tree_ops.is_leaf_id(t1, local.get("full_id"))) {
           local = local.delete("full_id");
         }
@@ -466,7 +490,10 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     return tree_ops.get_node(this._get_tree(), id);
   }
 
-  async close_frame(id: string): Promise<void> {
+  // Delete the frame with given id.
+  // If this is the active frame, then the new active frame becomes whichever
+  // frame still exists that was most recently active before this frame.
+  close_frame(id: string): void {
     if (tree_ops.is_leaf(this._get_tree())) {
       // closing the only node, so reset to default
       this.reset_local_view_state();
@@ -478,8 +505,11 @@ export class Actions<T = CodeEditorState> extends BaseActions<
       delete this._cm_selections[id];
     }
     delete this._cm[id];
-    await delay(1);
-    this.focus();
+
+    // if id is the current active_id, change to most recent one.
+    if (id === this.store.getIn(["local_view_state", "active_id"])) {
+      this.make_most_recent_frame_active();
+    }
   }
 
   split_frame(direction: FrameDirection, id?: string, type?: string): void {
