@@ -69,8 +69,9 @@ exports.Intro = rclass
 
     onHintClose: (idx) ->
         # data is the index number, hence an integer
-        id = @props.hint.get(idx).id
+        id = @props.hints.get(idx).id
         if DEBUG then console.log("onHintClose", idx, "id", id)
+        @actions(NAME).hint_closed(id)
 
 
     render: ->
@@ -101,6 +102,8 @@ makeIntroStore = (NAME) ->
         running: false
         hints: immutable.List([])
         steps: immutable.List([]) # ATTN don't use steps, styles clash with ours
+        todo_hints: immutable.Set([])
+        level: 0   # how far advanced?
 
 
 class IntroActions extends Actions
@@ -111,6 +114,15 @@ class IntroActions extends Actions
         hints = @store.get('hints')
         hints = hints.push(hint)
         @setState(hints:hints)
+        @setState(todo_hints:@store.get('todo_hints').add(hint.id))
+
+    hint_closed: (id) ->
+        todo_hints = @store.get('todo_hints').delete(id)
+        @setState(todo_hints:todo_hints)
+        if todo_hints.size == 0
+            level = @store.get('level') + 1
+            @setState(hints:@store.get('hints').clear(), level:level)
+            add_section(level)
 
     add_step: (step) ->
         steps = @store.get('steps')
@@ -127,8 +139,8 @@ actions._init(store)
 
 # positions: ["top-middle","top-left","top-right","bottom-left","bottom-right","bottom-middle","middle-left","middle-right","middle-middle"].
 
-add_section = (num) ->
-    switch num
+add_section = (level) ->
+    switch level
         when 0
             actions.add_hint(
                 id: 'projects'
@@ -155,9 +167,12 @@ add_section = (num) ->
             actions.add_hint(
                 id: 'connection'
                 element: ".#{deterministic_id('top-nav-connection')}"
-                hint: 'Connection information'
-                hintPosition: 'bottom-right'
+                hint: 'Click here to open up the "Connection information" dialog.'
+                hintPosition: 'bottom-middle'
             )
+
+        else
+            if DEBUG then console.log("intro: level #{num} all done!")
 
 add_section(0)
 
