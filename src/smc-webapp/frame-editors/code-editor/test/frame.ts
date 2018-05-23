@@ -199,10 +199,55 @@ describe("CodeEditor - frame splitting tests", function() {
       });
     });
 
-    it("tests toggling set_frame_full", function() {});
-
-    it("tests set_frame_tree_leafs", function() {});
-
-    it("tests set_frame_type", function() {});
+    describe("tests toggling set_frame_full", function() {
+      let t: any;
+      it("resets the frame and split along a row", () => {
+        editor.actions.reset_frame_tree();
+        editor.actions.split_frame("row");
+        t = editor.store.getIn(["local_view_state", "frame_tree"]).toJS();
+      });
+      it("Confirms that the bottom frame is the focused active one.", () => {
+        expect(editor.store.getIn(["local_view_state", "active_id"])).to.equal(
+          t.second.id
+        );
+      });
+      it("Does action to fullscreen the bottom frame.", () =>
+        editor.actions.set_frame_full(t.second.id));
+      it("Verifies that full is set properly.", () =>
+        expect(editor.store.getIn(["local_view_state", "full_id"])).to.equal(
+          t.second.id
+        ));
+      it("Leaves fullscreen and sees that bottom frame is active again", function() {
+        editor.actions.unset_frame_full();
+        expect(editor.store.getIn(["local_view_state", "full_id"])).to.not
+          .exist;
+        expect(editor.store.getIn(["local_view_state", "active_id"])).to.equal(
+          t.second.id
+        );
+      });
+      it("Tries to fullscreen a non-existing frame and gets an error.", function() {
+        try {
+          editor.actions.set_frame_full("cocalc");
+          expect("this should").to.equal("not have worked!");
+        } catch (err) {
+          expect(err.toString()).to.equal(
+            'Error: set_frame_full -- no leaf with id "cocalc"'
+          );
+        }
+      });
+      it("Clicks the fullscreen button to enter fullscreen.", function() {
+        const elt = editor.actions._get_titlebar_jquery(t.second.id);
+        elt.find('button[title="Show only this frame"]').click();
+        expect(editor.store.getIn(["local_view_state", "full_id"])).to.equal(
+          t.second.id
+        );
+      });
+      it("Clicks the unfullscreen button again to leave fullscreen.", function() {
+        const elt = editor.actions._get_titlebar_jquery(t.second.id);
+        elt.find('button[title="Show all frames"]').click();
+        expect(editor.store.getIn(["local_view_state", "full_id"])).to.not
+          .exist;
+      });
+    });
   });
 });

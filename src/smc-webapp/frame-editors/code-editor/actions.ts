@@ -352,17 +352,30 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     this._save_local_view_state();
   }
 
+  _is_leaf_id(id: string): boolean {
+    return tree_ops.is_leaf_id(
+      this.store.getIn(["local_view_state", "frame_tree"]),
+      id
+    );
+  }
+
+  _assert_is_leaf_id(id: string, caller: string): void {
+    if (!this._is_leaf_id(id)) {
+      throw Error(`${caller} -- no leaf with id "${id}"`);
+    }
+  }
+
   // Set which frame is active (unless setting is blocked).
   // Raises an exception if try to set an active_id, and there is no
   // leaf with that id.  If ignore_if_missing is true, then don't raise exception.s
-  set_active_id(active_id: string, ignore_if_missing? : boolean): void {
+  set_active_id(active_id: string, ignore_if_missing?: boolean): void {
     // Set the active_id, if necessary.
     const local: Map<string, any> = this.store.get("local_view_state");
     if (local.get("active_id") === active_id) {
       // already set -- nothing more to do
       return;
     }
-    if (!tree_ops.is_leaf_id(local.get("frame_tree"), active_id)) {
+    if (!this._is_leaf_id(active_id)) {
       if (ignore_if_missing) return;
       throw Error(`set_active_id - no leaf with id "${active_id}"`);
     }
@@ -531,17 +544,21 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     throw Error("BUG -- no new frame created");
   }
 
-  async set_frame_full(id: string): Promise<void> {
-    let local = this.store.get("local_view_state").set("full_id", id);
-    if (id != null) {
-      local = local.set("active_id", id);
-    }
+  // Set the frame with given id to be full (so only it is displayed).
+  set_frame_full(id: string): void {
+    this._assert_is_leaf_id(id, "set_frame_full");
+    let local = this.store.get("local_view_state");
+    local = local.set("full_id", id);
+    local = local.set("active_id", id);
     this.setState({ local_view_state: local });
     this._save_local_view_state();
+  }
 
-    // wait and then focus:
-    await delay(1);
-    this.focus();
+  unset_frame_full(): void {
+    let local = this.store.get("local_view_state");
+    local = local.delete("full_id");
+    this.setState({ local_view_state: local });
+    this._save_local_view_state();
   }
 
   // Save some arbitrary state information associated to a given

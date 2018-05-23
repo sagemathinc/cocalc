@@ -213,7 +213,7 @@ export class FrameTitleBar extends Component<Props, {}> {
           title={"Show all frames"}
           key={"compress"}
           bsSize={this.button_size()}
-          onClick={() => this.props.actions.set_frame_full()}
+          onClick={() => this.props.actions.unset_frame_full()}
         >
           <Icon name={"compress"} />
         </Button>
@@ -242,7 +242,7 @@ export class FrameTitleBar extends Component<Props, {}> {
         onClick={e => {
           e.stopPropagation();
           if (this.props.is_full) {
-            return this.props.actions.set_frame_full();
+            return this.props.actions.unset_frame_full();
           } else {
             return this.props.actions.split_frame("row", this.props.id);
           }
@@ -262,7 +262,7 @@ export class FrameTitleBar extends Component<Props, {}> {
         onClick={e => {
           e.stopPropagation();
           if (this.props.is_full) {
-            return this.props.actions.set_frame_full();
+            return this.props.actions.unset_frame_full();
           } else {
             return this.props.actions.split_frame("col", this.props.id);
           }
