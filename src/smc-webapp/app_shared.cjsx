@@ -25,6 +25,7 @@
 {COLORS} = require('smc-util/theme')
 {webapp_client} = require('./webapp_client')
 misc = require('smc-util/misc')
+{deterministic_id} = require('./intro')
 
 {HelpPage} = require('./r_help')
 {ProjectsPage} = require('./projects')
@@ -267,7 +268,11 @@ exports.ConnectionIndicator = rclass
         inner_styles =
             padding : '13.5px'
 
-        <NavItem style={outer_styles} onClick={@connection_click}>
+        <NavItem
+            style={outer_styles}
+            onClick={@connection_click}
+            className={deterministic_id('top-nav-connection')}
+        >
             <div style={inner_styles} >
                 {@render_connection_status()}
             </div>

@@ -34,7 +34,8 @@ exports.deterministic_id = deterministic_id = (text) ->
 
 introTypes =
     running : rtypes.bool
-    hints   : rtypes.immutable.List  # of strings
+    hints   : rtypes.immutable.List
+    steps   : rtypes.immutable.List
 
 exports.Intro = rclass
     displayName : NAME
@@ -55,18 +56,39 @@ exports.Intro = rclass
             console.log('Hint::onClose', data)
             console.log('Hint ID:', @props.hints.get(data).id)
 
+    onStepsChanged: (data) ->
+        # data is an integer number
+        if DEBUG then console.log("onStepsChanged:", data)
+
+    onStepsCompleted: ->
+        if DEBUG then console.log("onStepsCompleted")
+
+    onHintClick: (data) ->
+        # data is an html element, the actual hint I presume
+        #if DEBUG then console.log("onHintClick", data)
+
+    onHintClose: (idx) ->
+        # data is the index number, hence an integer
+        id = @props.hint.get(idx).id
+        if DEBUG then console.log("onHintClose", idx, "id", id)
+
+
     render: ->
         <React.Fragment>
             <Hints
                 enabled  = {@props.running}
                 hints    = {@props.hints.toArray()}
                 onClose  = {@onClose}
+                onClick  = {@onHintClick}
+                onClose  = {@onHintClose}
             />
             <Steps
-                enabled={false}
-                steps={[]}
+                enabled={@props.running}
+                steps={@props.steps.toArray()}
                 initialStep={0}
                 onExit={@onExit}
+                onAfterChange={@onStepsChanged}
+                onComplete={@onStepsCompleted}
             />
         </React.Fragment>
 
@@ -78,6 +100,7 @@ makeIntroStore = (NAME) ->
     getInitialState: ->
         running: false
         hints: immutable.List([])
+        steps: immutable.List([]) # ATTN don't use steps, styles clash with ours
 
 
 class IntroActions extends Actions
@@ -89,6 +112,11 @@ class IntroActions extends Actions
         hints = hints.push(hint)
         @setState(hints:hints)
 
+    add_step: (step) ->
+        steps = @store.get('steps')
+        steps = steps.push(step)
+        @setState(steps:steps)
+
     start: ->
         @setState(running: true)
 
@@ -99,23 +127,38 @@ actions._init(store)
 
 # positions: ["top-middle","top-left","top-right","bottom-left","bottom-right","bottom-middle","middle-left","middle-right","middle-middle"].
 
-actions.add_hint(
-    id: 'projects'
-    element: ".#{deterministic_id('projects-nav-button')}"
-    hint: 'Click on the "Projects" button to see an overview of all your projects.'
-    hintPosition: 'bottom-right'
-)
+add_section = (num) ->
+    switch num
+        when 0
+            actions.add_hint(
+                id: 'projects'
+                element: ".#{deterministic_id('projects-nav-button')}"
+                hint: 'Click on the "Projects" button to see an overview of all your projects.'
+                hintPosition: 'bottom-right'
+            )
 
-actions.add_hint(
-    id: 'account'
-    element: ".#{deterministic_id('top-nav-account')}"
-    hint: 'Click on the "Account" button to see your account settings.'
-    hintPosition: 'bottom-right'
-)
+            actions.add_hint(
+                id: 'account'
+                element: ".#{deterministic_id('top-nav-account')}"
+                hint: 'Click on the "Account" button to see your account settings.'
+                hintPosition: 'bottom-right'
+            )
 
-actions.add_hint(
-    id: 'project-nav'
-    element: ".#{deterministic_id('projects-nav-bar')}"
-    hint: 'Switch between opened projects here.'
-    hintPosition: 'middle-middle'
-)
+            actions.add_hint(
+                id: 'project-nav'
+                element: ".#{deterministic_id('projects-nav-bar')}"
+                hint: 'Switch between opened projects here.'
+                hintPosition: 'bottom-middle'
+            )
+
+        when 1
+            actions.add_hint(
+                id: 'connection'
+                element: ".#{deterministic_id('top-nav-connection')}"
+                hint: 'Connection information'
+                hintPosition: 'bottom-right'
+            )
+
+add_section(0)
+
+
