@@ -354,8 +354,8 @@ export class Actions<T = CodeEditorState> extends BaseActions<
 
   // Set which frame is active (unless setting is blocked).
   // Raises an exception if try to set an active_id, and there is no
-  // leaf with that id.
-  set_active_id(active_id: string): void {
+  // leaf with that id.  If ignore_if_missing is true, then don't raise exception.s
+  set_active_id(active_id: string, ignore_if_missing? : boolean): void {
     // Set the active_id, if necessary.
     const local: Map<string, any> = this.store.get("local_view_state");
     if (local.get("active_id") === active_id) {
@@ -363,6 +363,7 @@ export class Actions<T = CodeEditorState> extends BaseActions<
       return;
     }
     if (!tree_ops.is_leaf_id(local.get("frame_tree"), active_id)) {
+      if (ignore_if_missing) return;
       throw Error(`set_active_id - no leaf with id "${active_id}"`);
     }
 
@@ -517,22 +518,17 @@ export class Actions<T = CodeEditorState> extends BaseActions<
       id = this.store.getIn(["local_view_state", "active_id"]);
       if (!id) return;
     }
+    const before = this._get_leaf_ids();
     this._tree_op("split_leaf", id, direction, type);
-    const object = this._get_leaf_ids();
-    const ids0 = this._get_leaf_ids();
-    for (let i in object) {
-      if (!ids0[i]) {
-        this.copy_editor_state(id, i);
-        id = i; // this is a new id
-        break;
+    const after = this._get_leaf_ids();
+    for (let new_id in after) {
+      if (!before[new_id]) {
+        this.copy_editor_state(id, new_id);
+        this.set_active_id(new_id);
+        return;
       }
     }
-    // The block_ms=1 here is since the set can cause a bunch
-    // of rendering to happen which causes some other cm to
-    // focus, which changes the id.  Instead of a flicker
-    // and changing it back, we just prevent any id change
-    // for 1ms, which covers the render cycle.
-    this.set_active_id(id);
+    throw Error("BUG -- no new frame created");
   }
 
   async set_frame_full(id: string): Promise<void> {
@@ -1381,9 +1377,20 @@ export class Actions<T = CodeEditorState> extends BaseActions<
   }
 
   /* Get jQuery wrapped frame with given id.  Exception if not
-  in the DOM and unique.   Meant for testing only. */
+  in the DOM and unique.   Meant for testing only.
+  This is the **editor** for a frame,
+  and does NOT include the titlebar. */
   _get_frame_jquery(id: string): JQuery<HTMLElement> {
     const elt = $("#frame-" + id);
+    if (elt.length != 1) {
+      throw Error(`unique frame with id ${id} not in DOM`);
+    }
+    return elt;
+  }
+
+  /* Get jQuery wrapped titlebar fro given id. */
+  _get_titlebar_jquery(id: string): JQuery<HTMLElement> {
+    const elt = $("#titlebar-" + id);
     if (elt.length != 1) {
       throw Error(`unique frame with id ${id} not in DOM`);
     }

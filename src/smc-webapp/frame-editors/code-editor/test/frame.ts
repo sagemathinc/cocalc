@@ -185,9 +185,21 @@ describe("CodeEditor - frame splitting tests", function() {
       });
     });
 
-    it("tests close_frame by simultating a click on the close button", function() {});
+    describe("tests close_frame by simulating a click on the close button", function() {
+      it("resets the frame", () => editor.actions.reset_frame_tree());
+      it("splits the frame along a row", () =>
+        editor.actions.split_frame("row"));
+      it("clicks the close button on the TOP frame", function() {
+        let t = editor.store.getIn(["local_view_state", "frame_tree"]).toJS();
+        const elt = editor.actions._get_titlebar_jquery(t.first.id);
+        const close_button = elt.find('button[title="Close this frame"]');
+        close_button.click();
+        let t2 = editor.store.getIn(["local_view_state", "frame_tree"]).toJS();
+        expect(t2).to.contain({ id: t.second.id, type: "cm" });
+      });
+    });
 
-    it("tests set_frame_full", function() {});
+    it("tests toggling set_frame_full", function() {});
 
     it("tests set_frame_tree_leafs", function() {});
 

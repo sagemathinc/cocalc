@@ -13,7 +13,7 @@ import {
 const CONTENT = "This is some text.\nThis is also text.";
 
 describe("CodeEditor - basic tests", function() {
-  this.timeout(3000);
+  this.timeout(5000);
 
   let editor;
 
@@ -45,7 +45,6 @@ describe("CodeEditor - basic tests", function() {
       );
     });
 
-    this.timeout(4000);
     it("saves the file to disk", async function() {
       editor.actions.update_save_status();
       editor.actions.save();

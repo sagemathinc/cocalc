@@ -2,8 +2,6 @@
 FrameTitleBar - title bar in a frame, in the frame tree
 */
 
-import {delay} from 'awaiting';
-
 import { React, Rendered, Component, Fragment, redux } from "../generic/react";
 import { is_safari } from "../generic/browser";
 import * as CSS from "csstype";
@@ -89,7 +87,6 @@ interface Props {
 }
 
 export class FrameTitleBar extends Component<Props, {}> {
-  private last_render: number = 0;
 
   shouldComponentUpdate(next): boolean {
     return misc.is_different(this.props, next, [
@@ -107,10 +104,6 @@ export class FrameTitleBar extends Component<Props, {}> {
     ]);
   }
 
-  componentWillReceiveProps(): void {
-    this.last_render = new Date().valueOf();
-  }
-
   is_visible(action_name: string, explicit?: boolean): boolean {
     const buttons = this.props.editor_spec[this.props.type].buttons;
     if (!explicit && buttons == null) {
@@ -119,17 +112,7 @@ export class FrameTitleBar extends Component<Props, {}> {
     return buttons != null ? buttons[action_name] : false;
   }
 
-  async click_close(): Promise<void> {
-    if (new Date().valueOf() - this.last_render < 200) {
-      // avoid accidental click -- easily can happen otherwise.
-      return;
-    }
-    // Wait for next render loop before actually closing.
-    // The reason is that when this frame is NOT focused and
-    // the user clicks the x, then the frame first gets focused,
-    // and only then gets closed.  Focusing the frame at the same
-    // time as closing it is bad.
-    await delay(0);
+  click_close(): void {
     this.props.actions.close_frame(this.props.id);
   }
 
@@ -890,7 +873,7 @@ export class FrameTitleBar extends Component<Props, {}> {
     }
 
     return (
-      <div style={style}>
+      <div style={style} id={`titlebar-${this.props.id}`}>
         {this.render_control()}
         {is_active ? this.render_main_buttons() : undefined}
         {!is_active ? this.render_title() : undefined}

@@ -145,7 +145,7 @@ export async function eventually(
   f: Function,
   maxtime_ms: number,
   note: string
-) {
+) : Promise<void> {
   const interval = 150;
   for (let i = 0; i < maxtime_ms / interval; i++) {
     try {
