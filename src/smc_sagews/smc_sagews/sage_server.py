@@ -4,8 +4,9 @@ sage_server.py -- unencrypted forking TCP server.
 
 Note: I wrote functionality so this can run as root, create accounts on the fly,
 and serve sage as those accounts.  Doing this is horrendous from a security point of
-view, and I'm definitely not doing this.  None of that functionality is actually
-used in https://cloud.sagemath.com!
+view, and I'm definitely not doing this.
+
+None of that functionality is actually used in https://cocalc.com!
 
 For debugging, this may help:
 
