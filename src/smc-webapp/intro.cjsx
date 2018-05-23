@@ -41,7 +41,9 @@ exports.Intro = rclass
     displayName : NAME
 
     reduxProps :
-        intro : introTypes
+        intro   : introTypes
+        account :
+            intro : rtypes.immutable.Map
 
     onExit: ->
 
@@ -72,6 +74,7 @@ exports.Intro = rclass
         id = @props.hints.get(idx).id
         if DEBUG then console.log("onHintClose", idx, "id", id)
         @actions(NAME).hint_closed(id)
+        if DEBUG then console.log("intro:", @props.intro.toJS())
 
 
     render: ->
@@ -123,6 +126,7 @@ class IntroActions extends Actions
             level = @store.get('level') + 1
             @setState(hints:@store.get('hints').clear(), level:level)
             add_section(level)
+            redux.getActions('account').set_intro(key:'level', value:level)
 
     add_step: (step) ->
         steps = @store.get('steps')
@@ -172,8 +176,14 @@ add_section = (level) ->
             )
 
         else
-            if DEBUG then console.log("intro: level #{num} all done!")
+            if DEBUG then console.log("intro: level #{level} all done!")
 
-add_section(0)
+
+# we start at the level where we left off, or default to zero
+account_store = redux.getStore('account')
+account_store.wait
+    until : -> account_store.get('level')
+    cb    : -> add_section(account_store.get_intro('level'))
+
 
 

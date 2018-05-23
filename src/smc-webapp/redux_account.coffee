@@ -212,6 +212,19 @@ class AccountActions extends Actions
             ssh_keys :
                 "#{fingerprint}" : null   # null is how to tell the backend/synctable to delete this...
 
+    set_intro: (opts) =>
+        opts = defaults opts,
+            key    : required
+            value  : required
+        @redux.getTable('account').set
+            intro :
+                "#{opts.key}": opts.value
+                last_update  : new Date() - 0
+
+    reset_intro: =>
+        # for now, we only have level:<int>
+        @set_intro(key:'level', value:0)
+
 # Register account actions
 actions = redux.createActions('account', AccountActions)
 
@@ -265,6 +278,9 @@ class AccountStore extends Store
 
     get_page_size: =>
         return @getIn(['other_settings', 'page_size']) ? 50  # at least have a valid value if loading...
+
+    get_intro: (key) =>
+        return @getIn(['intro', key]) ? 0
 
     ###
     TODO: This is deleted, but if you do setState(show_global_info: true), then it gets shown.
