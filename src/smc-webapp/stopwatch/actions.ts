@@ -13,11 +13,12 @@ underlying synchronized state.
 
 let { misc } = require("smc-util/misc");
 let { webapp_client } = require("../webapp_client");
-import { Actions } from "../smc-react-ts";
+import { Actions, Store } from "../smc-react-ts";
 import { TypedMap } from "../smc-react/TypedMap";
 import { List } from "immutable";
 
 export interface TimeState {
+  name: string;
   timers?: List<TimerRecord>;
   error?: string;
 }
@@ -35,7 +36,8 @@ type TimerRecord = TypedMap<Timer>;
 export let TimeActions = class TimeActions extends Actions<TimeState> {
   private project_id: string;
   private path: string;
-  private syncdb: any;
+  public syncdb: any;
+  public store: Store<TimeState>
 
   _init(project_id: string, path: string): void {
     this.project_id = project_id;

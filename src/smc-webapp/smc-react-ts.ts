@@ -248,6 +248,7 @@ export class AppRedux {
   }
 
   createStore<T extends store_definition>(spec: T, store_class): Store<T>;
+  createStore<T extends store_definition>(name: string, store_class): Store<T>;
   createStore<T, C extends Store<T>>(
     name: string,
     store_class: StoreConstructorType<T, C>,
