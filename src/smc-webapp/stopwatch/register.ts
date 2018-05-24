@@ -28,14 +28,14 @@ register_file_editor({
 
   component: EditorTime,
 
-  init(path:string, redux:AppRedux, project_id:string) {
+  init(path: string, redux: AppRedux, project_id: string) {
     const name = redux_name(project_id, path, this.is_public);
-    if (redux.getActions(name) != null) {
+    if (redux.getActions(name) !== undefined) {
       return name; // already initialized
     }
 
     const actions = redux.createActions(name, TimeActions);
-    const store = redux.createStore<TimeState>(name, Store);
+    const store: Store<TimeState> = redux.createStore(name);
 
     actions._init(project_id, path);
 
