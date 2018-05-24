@@ -252,7 +252,7 @@ NewsletterSetting = rclass
     render_checkbox: ->
         <Checkbox
             style    = {margin: '0'}
-            checked  = {@props.other_settings.newsletter}
+            checked  = {@props.other_settings.get('newsletter')}
             ref      = 'newsletter'
             onChange = {(e)=>@on_change(e.target.checked)}
         >
