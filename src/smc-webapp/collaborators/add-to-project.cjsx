@@ -130,7 +130,7 @@ exports.AddCollaborators = rclass
     send_email_invite: ->
         replyto      = redux.getStore('account').get_email_address()
         replyto_name = redux.getStore('account').get_fullname()
-        SiteName   = redux.getStore('customize').get("site_name") ? SITE_NAME
+        SiteName     = redux.getStore('customize').get("site_name") ? SITE_NAME
         if replyto_name?
             subject = "#{replyto_name} added you to project #{@props.project.get('title')}"
         else
