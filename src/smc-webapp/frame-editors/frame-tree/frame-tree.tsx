@@ -208,7 +208,7 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
             this.props.read_only || this.props.is_public
           )}
           is_public={this.props.is_public}
-          font_size={desc.get("font_size", 12)}
+          font_size={desc.get("font_size", this.props.font_size)}
           path={path}
           fullscreen_style={fullscreen_style}
           project_id={desc.get("project_id", this.props.project_id)}

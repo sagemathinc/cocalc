@@ -533,12 +533,13 @@ exports.LabeledRow = LabeledRow = rclass
         label      : rtypes.any.isRequired
         style      : rtypes.object            # NOTE: for perf reasons, we do not update if only the style changes!
         label_cols : rtypes.number    # number between 1 and 11 (default: 4)
+        className  : rtypes.string
 
     getDefaultProps: ->
         label_cols : 4
 
     render: ->
-        <Row style={@props.style}>
+        <Row style={@props.style} className={@props.className} >
             <Col xs={@props.label_cols} style={marginTop:'8px'}>
                 {@props.label}
             </Col>

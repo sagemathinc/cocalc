@@ -43,6 +43,11 @@ function load_mocha_tests(path: string): void {
     require("smc-webapp/frame-editors/code-editor/test/actions");
   if (f("frame-editors/code-editor/test/format"))
     require("smc-webapp/frame-editors/code-editor/test/format");
+
+
+  // not working/useful
+  //if (f("account/test/preferences"))
+    //require("smc-webapp/account/test/preferences");
 }
 
 // make this a button click from the #mocha div.

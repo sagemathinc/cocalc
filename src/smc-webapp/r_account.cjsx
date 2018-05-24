@@ -941,7 +941,7 @@ EditorSettingsFontSize = rclass
         on_change : rtypes.func.isRequired
 
     render: ->
-        <LabeledRow label='Font Size'>
+        <LabeledRow label='Font Size' className='cc-account-prefs-font-size'>
             <NumberInput
                 on_change = {(n)=>@props.on_change('font_size',n)}
                 min       = {6}
@@ -1034,7 +1034,7 @@ EditorSettings = rclass
 
     on_change: (name, val) ->
         if name == 'autosave' or name == 'font_size'
-            @props.redux.getTable('account').set("{name}" : val)
+            @props.redux.getTable('account').set("#{name}" : val)
         else
             @props.redux.getTable('account').set(editor_settings:{"#{name}":val})
 

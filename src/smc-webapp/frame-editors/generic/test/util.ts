@@ -3,11 +3,11 @@ Testing framework for editors.
 */
 
 import { expect as expect0 } from "chai";
-
-export let expect = expect0;
+export const expect = expect0;
 (window as any).expect = expect;
 
-import { redux } from "../react";
+import { redux as redux0 } from "../react";
+export const redux = redux0;
 
 // hardcode for now... until we see how this is going to work.
 const default_project_id: string = "98e85b9b-51bb-4889-be47-f42698c37ed4";
@@ -145,7 +145,7 @@ export async function eventually(
   f: Function,
   maxtime_ms: number,
   note: string
-) : Promise<void> {
+): Promise<void> {
   const interval = 150;
   for (let i = 0; i < maxtime_ms / interval; i++) {
     try {
