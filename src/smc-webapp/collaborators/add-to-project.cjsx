@@ -10,6 +10,8 @@ Add collaborators to a project
 
 {webapp_client}      = require('../webapp_client')
 
+{SITE_NAME} = require('smc-util/theme')
+
 exports.AddCollaborators = rclass
     displayName : 'ProjectSettings-AddCollaborators'
 
@@ -87,10 +89,11 @@ exports.AddCollaborators = rclass
         # project_id, account_id, body, subject, silent, replyto,  replyto_name
         replyto      = redux.getStore('account').get_email_address()
         replyto_name = redux.getStore('account').get_fullname()
+        SiteName     = redux.getStore('customize').get("site_name") ? SITE_NAME
         if replyto_name?
-            subject = "#{replyto_name} added you to CoCalc project #{@props.project.get('title')}"
+            subject = "#{replyto_name} added you to #{SiteName} project #{@props.project.get('title')}"
         else
-            subject = "You've been added to CoCalc project #{@props.project.get('title')}"
+            subject = "You've been added to #{SiteName} project #{@props.project.get('title')}"
         @actions('projects').invite_collaborator(
             @props.project.get('project_id'),
             account_id,
@@ -120,16 +123,18 @@ exports.AddCollaborators = rclass
         title      = @props.project.get('title')
         host       = window.location.hostname
         target     = "[project '#{title}'](https://#{host}/projects/#{project_id})"
-        body       = "Hello!\n\nPlease collaborate with me using [CoCalc](https://#{host}) on #{target}.  \n\nBest wishes,\n\n#{name}"
+        SiteName   = redux.getStore('customize').get("site_name") ? SITE_NAME
+        body       = "Hello!\n\nPlease collaborate with me using [#{SiteName}](https://#{host}) on #{target}.  \n\nBest wishes,\n\n#{name}"
         @setState(email_to: @state.search, email_body: body)
 
     send_email_invite: ->
         replyto      = redux.getStore('account').get_email_address()
         replyto_name = redux.getStore('account').get_fullname()
+        SiteName   = redux.getStore('customize').get("site_name") ? SITE_NAME
         if replyto_name?
             subject = "#{replyto_name} added you to project #{@props.project.get('title')}"
         else
-            subject = "CoCalc Invitation to project #{@props.project.get('title')}"
+            subject = "#{SiteName} Invitation to project #{@props.project.get('title')}"
         @actions('projects').invite_collaborators_by_email(@props.project.get('project_id'),
                                                                          @state.email_to,
                                                                          @state.email_body,
