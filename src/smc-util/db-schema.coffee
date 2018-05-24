@@ -266,7 +266,7 @@ schema.accounts =
                     default_file_sort : 'time'
                     show_global_info2 : null
                     first_steps       : true
-                    newsletter        : true
+                    newsletter        : false
                     time_ago_absolute : false
                     no_free_warnings  : false   # if true, do not show warning when using non-member projects
                 first_name      : ''

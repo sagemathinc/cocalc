@@ -338,7 +338,10 @@ export class FormatBar extends Component<Props, {}> {
 
   render(): Rendered {
     return (
-      <div style={{ background: "#f8f8f8", margin: "0 1px" }}>
+      <div
+        style={{ background: "#f8f8f8", margin: "0 1px" }}
+        className="cc-frame-tree-format-bar"
+      >
         {this.render_font_dropdowns()}
         <div style={{ maxHeight: "34px", overflow: "hidden" }}>
           {this.render_text_style_buttons()}

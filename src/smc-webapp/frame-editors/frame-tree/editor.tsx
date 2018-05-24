@@ -98,7 +98,8 @@ class FrameTreeEditor0 extends Component<FrameTreeEditorProps, {}> {
       is_different(
         this.props,
         next,
-        [   // do NOT include editor_spec below -- it is assumed to never change
+        [
+          // do NOT include editor_spec below -- it is assumed to never change
           "is_public",
           "has_unsaved_changes",
           "has_uncommitted_changes",
@@ -146,7 +147,6 @@ class FrameTreeEditor0 extends Component<FrameTreeEditorProps, {}> {
       <div className={"smc-vfill"}>
         <FrameTree
           editor_spec={this.editor_spec}
-
           name={this.props.name}
           actions={this.props.actions}
           frame_tree={frame_tree}
@@ -221,7 +221,7 @@ class FrameTreeEditor0 extends Component<FrameTreeEditorProps, {}> {
 
   render(): Rendered {
     return (
-      <div className="smc-vfill">
+      <div className="smc-vfill cc-frame-tree-editor">
         {this.render_error()}
         {this.render_format_bar()}
         {this.render_loading()}

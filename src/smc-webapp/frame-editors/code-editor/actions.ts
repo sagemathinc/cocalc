@@ -93,6 +93,7 @@ export class Actions<T = CodeEditorState> extends BaseActions<
   private _save_local_view_state: () => void;
   private _cm_selections: any;
   private _update_misspelled_words_last_hash: any;
+  private _active_id_history: string[] = [];
 
   _init(
     project_id: string,
@@ -351,19 +352,42 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     this._save_local_view_state();
   }
 
+  _is_leaf_id(id: string): boolean {
+    return tree_ops.is_leaf_id(
+      this.store.getIn(["local_view_state", "frame_tree"]),
+      id
+    );
+  }
+
+  _assert_is_leaf_id(id: string, caller: string): void {
+    if (!this._is_leaf_id(id)) {
+      throw Error(`${caller} -- no leaf with id "${id}"`);
+    }
+  }
+
   // Set which frame is active (unless setting is blocked).
   // Raises an exception if try to set an active_id, and there is no
-  // leaf with that id.
-  set_active_id(active_id: string): void {
+  // leaf with that id.  If ignore_if_missing is true, then don't raise exception.s
+  set_active_id(active_id: string, ignore_if_missing?: boolean): void {
     // Set the active_id, if necessary.
     const local: Map<string, any> = this.store.get("local_view_state");
     if (local.get("active_id") === active_id) {
       // already set -- nothing more to do
       return;
     }
-    if (!tree_ops.is_leaf_id(local.get("frame_tree"), active_id)) {
+    if (!this._is_leaf_id(active_id)) {
+      if (ignore_if_missing) return;
       throw Error(`set_active_id - no leaf with id "${active_id}"`);
     }
+
+    // record which id was just made active.
+    this._active_id_history.push(active_id);
+    if (this._active_id_history.length > 100) {
+      this._active_id_history = this._active_id_history.slice(
+        this._active_id_history.length - 100
+      );
+    }
+
     this.setState({
       local_view_state: local.set("active_id", active_id)
     });
@@ -376,6 +400,23 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     if (cm) {
       cm._last_active = new Date();
       cm.focus();
+    }
+  }
+
+  // Make whatever frame is defined and was most recently active
+  // be the current active frame.
+  make_most_recent_frame_active(): void {
+    let tree = this._get_tree();
+    for (let i = this._active_id_history.length - 1; i >= 0; i--) {
+      let id = this._active_id_history[i];
+      if (tree_ops.is_leaf_id(tree, id)) {
+        this.set_active_id(id);
+        return;
+      }
+    }
+    let id: string | undefined = tree_ops.get_some_leaf_id(tree);
+    if (id) {
+      this.set_active_id(id);
     }
   }
 
@@ -403,9 +444,6 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     const t1 = f(t0, ...args);
     if (t1 !== t0) {
       if (op === "delete_node") {
-        if (!tree_ops.is_leaf_id(t1, local.get("active_id"))) {
-          local = local.set("active_id", tree_ops.get_some_leaf_id(t1));
-        }
         if (!tree_ops.is_leaf_id(t1, local.get("full_id"))) {
           local = local.delete("full_id");
         }
@@ -466,7 +504,10 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     return tree_ops.get_node(this._get_tree(), id);
   }
 
-  async close_frame(id: string): Promise<void> {
+  // Delete the frame with given id.
+  // If this is the active frame, then the new active frame becomes whichever
+  // frame still exists that was most recently active before this frame.
+  close_frame(id: string): void {
     if (tree_ops.is_leaf(this._get_tree())) {
       // closing the only node, so reset to default
       this.reset_local_view_state();
@@ -478,8 +519,11 @@ export class Actions<T = CodeEditorState> extends BaseActions<
       delete this._cm_selections[id];
     }
     delete this._cm[id];
-    await delay(1);
-    this.focus();
+
+    // if id is the current active_id, change to most recent one.
+    if (id === this.store.getIn(["local_view_state", "active_id"])) {
+      this.make_most_recent_frame_active();
+    }
   }
 
   split_frame(direction: FrameDirection, id?: string, type?: string): void {
@@ -487,35 +531,34 @@ export class Actions<T = CodeEditorState> extends BaseActions<
       id = this.store.getIn(["local_view_state", "active_id"]);
       if (!id) return;
     }
+    const before = this._get_leaf_ids();
     this._tree_op("split_leaf", id, direction, type);
-    const object = this._get_leaf_ids();
-    const ids0 = this._get_leaf_ids();
-    for (let i in object) {
-      if (!ids0[i]) {
-        this.copy_editor_state(id, i);
-        id = i; // this is a new id
-        break;
+    const after = this._get_leaf_ids();
+    for (let new_id in after) {
+      if (!before[new_id]) {
+        this.copy_editor_state(id, new_id);
+        this.set_active_id(new_id);
+        return;
       }
     }
-    // The block_ms=1 here is since the set can cause a bunch
-    // of rendering to happen which causes some other cm to
-    // focus, which changes the id.  Instead of a flicker
-    // and changing it back, we just prevent any id change
-    // for 1ms, which covers the render cycle.
-    this.set_active_id(id);
+    throw Error("BUG -- no new frame created");
   }
 
-  async set_frame_full(id: string): Promise<void> {
-    let local = this.store.get("local_view_state").set("full_id", id);
-    if (id != null) {
-      local = local.set("active_id", id);
-    }
+  // Set the frame with given id to be full (so only it is displayed).
+  set_frame_full(id: string): void {
+    this._assert_is_leaf_id(id, "set_frame_full");
+    let local = this.store.get("local_view_state");
+    local = local.set("full_id", id);
+    local = local.set("active_id", id);
     this.setState({ local_view_state: local });
     this._save_local_view_state();
+  }
 
-    // wait and then focus:
-    await delay(1);
-    this.focus();
+  unset_frame_full(): void {
+    let local = this.store.get("local_view_state");
+    local = local.delete("full_id");
+    this.setState({ local_view_state: local });
+    this._save_local_view_state();
   }
 
   // Save some arbitrary state information associated to a given
@@ -890,6 +933,7 @@ export class Actions<T = CodeEditorState> extends BaseActions<
   }
 
   // Open a code editor, optionally at the given line.
+  // TODO: try to eliminate the async.
   async open_code_editor(opts: {
     focus?: boolean;
     line?: number;
@@ -1351,9 +1395,20 @@ export class Actions<T = CodeEditorState> extends BaseActions<
   }
 
   /* Get jQuery wrapped frame with given id.  Exception if not
-  in the DOM and unique.   Meant for testing only. */
+  in the DOM and unique.   Meant for testing only.
+  This is the **editor** for a frame,
+  and does NOT include the titlebar. */
   _get_frame_jquery(id: string): JQuery<HTMLElement> {
     const elt = $("#frame-" + id);
+    if (elt.length != 1) {
+      throw Error(`unique frame with id ${id} not in DOM`);
+    }
+    return elt;
+  }
+
+  /* Get jQuery wrapped titlebar fro given id. */
+  _get_titlebar_jquery(id: string): JQuery<HTMLElement> {
+    const elt = $("#titlebar-" + id);
     if (elt.length != 1) {
       throw Error(`unique frame with id ${id} not in DOM`);
     }

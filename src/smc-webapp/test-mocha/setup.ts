@@ -1,5 +1,5 @@
 import * as $ from "jquery";
-import { callback } from "awaiting";
+import { callback, delay } from "awaiting";
 import { startswith } from "frame-editors/generic/misc";
 
 export async function mocha_run(path: string): Promise<void> {
@@ -7,6 +7,11 @@ export async function mocha_run(path: string): Promise<void> {
   w.mocha.setup("bdd");
   load_mocha_tests(path);
   $(".page-container").css("opacity", 0.3);
+  $("#mocha").css({
+    border: "1px solid grey",
+    "border-radius": "3px",
+    "box-shadow": "3px 3px 3px 3px #CCC"
+  }).focus();
   try {
     await callback(w.mocha.run);
   } catch (failures) {
@@ -14,6 +19,7 @@ export async function mocha_run(path: string): Promise<void> {
   }
   console.log("testing - complete");
   $(".page-container").css("opacity", 0.1);
+  await delay(50);
   $("#mocha").focus();
 }
 
@@ -35,6 +41,13 @@ function load_mocha_tests(path: string): void {
     require("smc-webapp/frame-editors/code-editor/test/frame");
   if (f("frame-editors/code-editor/test/actions"))
     require("smc-webapp/frame-editors/code-editor/test/actions");
+  if (f("frame-editors/code-editor/test/format"))
+    require("smc-webapp/frame-editors/code-editor/test/format");
+
+
+  // not working/useful
+  //if (f("account/test/preferences"))
+    //require("smc-webapp/account/test/preferences");
 }
 
 // make this a button click from the #mocha div.

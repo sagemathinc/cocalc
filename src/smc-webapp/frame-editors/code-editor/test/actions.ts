@@ -58,10 +58,6 @@ describe("CodeEditor - testing actions...", function() {
     expect(local.equals(editor.store.get("local_view_state"))).to.equal(false);
   });
 
-  it("tests save_editor_state", function() {});
-
-  it("tests copy_editor_state", function() {});
-
   it("tests delete_trailing_whitespace", function() {
     editor.actions.set_cm_value("foo \nbar   \nnone");
     editor.actions.delete_trailing_whitespace();

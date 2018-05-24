@@ -73,7 +73,7 @@ export class IFrameHTML extends Component<PropTypes, {}> {
   }
 
   click_iframe(): void {
-    this.props.actions.set_active_id(this.props.id, 50);
+    this.props.actions.set_active_id(this.props.id);
   }
 
   init_click_handler(): void {

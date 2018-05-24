@@ -12,6 +12,9 @@
 #                  http://www.gnu.org/licenses/                                         #
 #########################################################################################
 
+# set backend of matplot lib before any other module is loaded
+import matplotlib
+matplotlib.use('Agg')
 
 import copy, os, sys, types, re
 

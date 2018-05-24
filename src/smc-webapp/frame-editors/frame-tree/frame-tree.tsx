@@ -160,6 +160,7 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
   }
 
   render_titlebar(desc) {
+    let id = desc.get("id");
     let left, left1, left2;
     return (
       <FrameTitleBar
@@ -171,7 +172,7 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
         path={(left1 = desc.get("path")) != null ? left1 : this.props.path}
         is_full={desc.get("id") === this.props.full_id && !this.props.is_only}
         is_only={this.props.is_only}
-        id={desc.get("id")}
+        id={id}
         deletable={(left2 = desc.get("deletable")) != null ? left2 : true}
         read_only={desc.get("read_only") || this.props.read_only}
         has_unsaved_changes={this.props.has_unsaved_changes}
@@ -207,7 +208,7 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
             this.props.read_only || this.props.is_public
           )}
           is_public={this.props.is_public}
-          font_size={desc.get("font_size", 12)}
+          font_size={desc.get("font_size", this.props.font_size)}
           path={path}
           fullscreen_style={fullscreen_style}
           project_id={desc.get("project_id", this.props.project_id)}
@@ -260,12 +261,8 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
     return (
       <div
         className={"smc-vfill"}
-        onClick={() => {
-          this.props.actions.set_active_id(desc.get("id"), 10);
-        }}
-        onTouchStart={() =>
-          this.props.actions.set_active_id(desc.get("id"), 10)
-        }
+        onClick={() => this.props.actions.set_active_id(desc.get("id"), true)}
+        onTouchStart={() => this.props.actions.set_active_id(desc.get("id"))}
         style={spec != null ? spec.style : undefined}
       >
         {this.render_titlebar(desc)}
