@@ -80,7 +80,7 @@ export class Stopwatch extends Component<PropTypes, any> {
       case "stopped":
         amount = 0;
         break;
-      case "pause":
+      case "paused":
         amount = this.props.total || 0;
         break;
       case "running":
@@ -101,7 +101,7 @@ export class Stopwatch extends Component<PropTypes, any> {
     switch (this.props.state) {
       case "stopped":
         return <span key={"buttons"}>{this.render_start_button()}</span>;
-      case "pause":
+      case "paused":
         return (
           <ButtonGroup key={"buttons"}>
             {this.render_start_button()}
@@ -146,7 +146,7 @@ interface TimeProps {
 
 //const TimeAmount = function(props: TimeProps) {
 function TimeAmount(props: TimeProps) {
-  let t = Math.round(this.props.amount / 1000);
+  let t = Math.round(props.amount / 1000);
   const hours = Math.floor(t / 3600);
   t -= 3600 * hours;
   const minutes = Math.floor(t / 60);

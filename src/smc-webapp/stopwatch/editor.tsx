@@ -44,7 +44,6 @@ class EditorTime extends Component<props> {
       return;
     }
     const v: Rendered[] = [];
-    const { click_button } = this;
     this.props.timers.map(data => {
       v.push(
         <Stopwatch
@@ -53,7 +52,7 @@ class EditorTime extends Component<props> {
           total={data.get("total")}
           state={data.get("state")}
           time={data.get("time")}
-          click_button={button => click_button(data.get("id"), button)}
+          click_button={button => this.click_button(data.get("id"), button)}
         />
       );
     });

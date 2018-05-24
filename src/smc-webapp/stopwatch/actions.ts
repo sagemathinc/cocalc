@@ -39,6 +39,14 @@ export let TimeActions = class TimeActions extends Actions<TimeState> {
   public syncdb: any;
   public store: Store<TimeState>
 
+  constructor(a?, b?) {
+    super(a, b);
+    this._syncdb_change = this._syncdb_change.bind(this);
+    this.time_travel = this.time_travel.bind(this);
+    this.stop_stopwatch = this.stop_stopwatch.bind(this);
+    this.start_stopwatch = this.start_stopwatch.bind(this);
+  }
+
   _init(project_id: string, path: string): void {
     this.project_id = project_id;
     this.path = path;
