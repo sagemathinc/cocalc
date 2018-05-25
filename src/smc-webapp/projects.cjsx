@@ -380,7 +380,9 @@ class ProjectsActions extends Actions
 
     # this is for inviting non-existing users, email is set via the UI
     invite_collaborators_by_email: (project_id, to, body, subject, silent, replyto, replyto_name) =>
-        @redux.getProjectActions(project_id).log
+        project_actions = @redux.getProjectActions(project_id)
+        # HOTFIX suddenly, for a new student project there are no longer project actions
+        project_actions?.log
             event         : 'invite_nonuser'
             invitee_email : to
 
