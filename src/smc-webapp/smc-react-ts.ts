@@ -247,6 +247,7 @@ export class AppRedux {
     }
   }
 
+  // Technically this overloading is not best practice but name and spec are semantically very different
   createStore<
     T extends store_base_state = store_base_state,
     C extends Store<T> = Store<T>
