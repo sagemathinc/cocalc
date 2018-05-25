@@ -136,7 +136,7 @@ export class IFrameHTML extends Component<PropTypes, {}> {
     j.css("opacity", 1);
     const body = j.contents().find("body");
     body.css("zoom", (font_size != null ? font_size : 16) / 16);
-    if (this.props.is_fullscreen) {
+    if (this.props.is_fullscreen && this.props.fullscreen_style != null) {
       body.css(this.props.fullscreen_style);
     }
   }
