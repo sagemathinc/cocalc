@@ -15,11 +15,7 @@ export interface StopwatchEditorState {
   error?: string;
 }
 
-export const enum TimerState {
-  paused = "paused",
-  running = "running",
-  stopped = "stopped"
-}
+export type TimerState = "paused" | "running" | "stopped";
 
 interface Timer {
   id: number;
@@ -76,7 +72,7 @@ export let TimeActions = class TimeActions extends Actions<StopwatchEditorState>
       id,
       label: "",
       total: 0,
-      state: TimerState.stopped,
+      state: "stopped",
       time: webapp_client.server_time() - 0
     });
   };
@@ -85,7 +81,7 @@ export let TimeActions = class TimeActions extends Actions<StopwatchEditorState>
     this._set({
       id,
       total: 0,
-      state: TimerState.stopped,
+      state: "stopped",
       time: webapp_client.server_time() - 0
     });
   };
@@ -94,7 +90,7 @@ export let TimeActions = class TimeActions extends Actions<StopwatchEditorState>
     this._set({
       id,
       time: webapp_client.server_time() - 0,
-      state: TimerState.running
+      state: "running"
     });
   };
 
@@ -105,7 +101,7 @@ export let TimeActions = class TimeActions extends Actions<StopwatchEditorState>
         id,
         time: webapp_client.server_time() - 0,
         total: x.get("total") + (webapp_client.server_time() - x.get("time")),
-        state: TimerState.paused
+        state: "paused"
       });
     }
   };

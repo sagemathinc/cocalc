@@ -84,12 +84,12 @@ export class Stopwatch extends Component<StopwatchProps, any> {
   render_time() {
     let amount: number = 0;
     switch (this.props.state) {
-      case TimerState.stopped:
+      case "stopped":
         break;
-      case TimerState.paused:
+      case "paused":
         amount = this.props.total || 0;
         break;
-      case TimerState.running:
+      case "running":
         amount =
           (this.props.total || 0) +
           (webapp_client.server_time() - this.props.time);
@@ -105,16 +105,16 @@ export class Stopwatch extends Component<StopwatchProps, any> {
 
   render_buttons(): JSX.Element {
     switch (this.props.state) {
-      case TimerState.stopped:
+      case "stopped":
         return <span key={"buttons"}>{this.render_start_button()}</span>;
-      case TimerState.paused:
+      case "paused":
         return (
           <ButtonGroup key={"buttons"}>
             {this.render_start_button()}
             {this.render_stop_button()}
           </ButtonGroup>
         );
-      case TimerState.running:
+      case "running":
         return (
           <ButtonGroup key={"buttons"}>
             {this.render_pause_button()}
