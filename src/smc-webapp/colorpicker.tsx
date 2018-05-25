@@ -38,11 +38,12 @@ interface ColorPickerProps {
 export class ColorPicker extends Component<ColorPickerProps, void> {
   private svgRef: any;
   private panelRef: any;
-  constructor(props: ColorPickerProps, context: any) {
-    super(props, context);
-    this.svgRef = React.createRef();
-    this.panelRef = React.createRef();
-  }
+  // TODO: use this when upgraded to react 16.3
+  // constructor(props: ColorPickerProps, context: any) {
+  //  super(props, context);
+  //  this.svgRef = React.createRef();
+  //  this.panelRef = React.createRef();
+  //}
   shouldComponentUpdate(nextProps: any) {
     return nextProps.color !== this.props.color;
   }
