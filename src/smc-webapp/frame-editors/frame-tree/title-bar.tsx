@@ -87,7 +87,6 @@ interface Props {
 }
 
 export class FrameTitleBar extends Component<Props, {}> {
-
   shouldComponentUpdate(next): boolean {
     return misc.is_different(this.props, next, [
       "active_id",
@@ -347,6 +346,27 @@ export class FrameTitleBar extends Component<Props, {}> {
         >
           <Icon name={"fab fa-staylinked"} />{" "}
           {labels ? <VisibleMDLG>Sync</VisibleMDLG> : undefined}
+        </Button>
+      </Fragment>
+    );
+  }
+
+  render_download(): Rendered {
+    if (!this.is_visible("download") || this.props.actions.download == null) {
+      return;
+    }
+    const labels = this.show_labels();
+    return (
+      <Fragment>
+        <Space />
+        <Button
+          key={"download"}
+          title={"Download this file"}
+          bsSize={this.button_size()}
+          onClick={() => this.props.actions.download(this.props.id)}
+        >
+          <Icon name={"cloud-download"} />{" "}
+          {labels ? <VisibleMDLG>Download</VisibleMDLG> : undefined}
         </Button>
       </Fragment>
     );
@@ -790,8 +810,9 @@ export class FrameTitleBar extends Component<Props, {}> {
         {this.render_save_timetravel_group()}
         {!this.props.is_public ? this.render_undo_redo_group() : undefined}
         {this.render_zoom_group()}
-        {this.render_sync()}
         {this.render_page_width_height_group()}
+        {this.render_sync()}
+        {this.render_download()}
         {this.render_copy_group()}
         {this.render_find_replace_group()}
         {!this.props.is_public ? this.render_format_group() : undefined}

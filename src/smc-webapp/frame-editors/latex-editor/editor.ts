@@ -16,6 +16,7 @@ import { pdf_path } from "./util";
 
 let pdfjs_buttons = set([
   "print",
+  "download",
   "save",
   "decrease_font_size",
   "increase_font_size",
@@ -77,11 +78,11 @@ const EDITOR_SPEC = {
     buttons: set([])
   },
 
-  embed: {
+  pdf_embed: {
     short: "PDF (native)",
     name: "PDF - Native",
     icon: "file-pdf-o",
-    buttons: set(["print", "save"]),
+    buttons: set(["print", "save", "download"]),
     component: PDFEmbed,
     path: pdf_path
   },

@@ -6,7 +6,10 @@ const WIKI_HELP_URL = "https://github.com/sagemathinc/cocalc/wiki/LaTeX-Editor";
 const VIEWERS = ["pdfjs_canvas", "pdfjs_svg", "embed", "build_log"];
 
 import { fromJS, Map } from "immutable";
-import { Actions as BaseActions, CodeEditorState } from "../code-editor/actions";
+import {
+  Actions as BaseActions,
+  CodeEditorState
+} from "../code-editor/actions";
 import { latexmk } from "./latexmk";
 import { sagetex } from "./sagetex";
 import * as synctex from "./synctex";
@@ -19,8 +22,7 @@ import { pdf_path } from "./util";
 import { forgetDocument, url_to_pdf } from "./pdfjs-doc-cache";
 import { FrameTree } from "../frame-tree/types";
 import { Store } from "../../smc-react-ts";
-import { createTypedMap, TypedMap } from "../../smc-react/TypedMap"
-
+import { createTypedMap, TypedMap } from "../../smc-react/TypedMap";
 
 interface BuildLog extends ExecOutput {
   parse?: ProcessedLatexLog;
@@ -44,7 +46,7 @@ interface LatexEditorState extends CodeEditorState {
 
 export class Actions extends BaseActions<LatexEditorState> {
   public project_id: string;
-  public store: Store<LatexEditorState>
+  public store: Store<LatexEditorState>;
 
   private _last_save_time: number;
 
@@ -192,7 +194,8 @@ export class Actions extends BaseActions<LatexEditorState> {
       });
       this.set_status("");
       let line = info.Line;
-      if(typeof(line) != "number") {  // TODO: would be nicer to handle this at the source...
+      if (typeof line != "number") {
+        // TODO: would be nicer to handle this at the source...
         throw Error("invalid synctex output (Line must be a number).");
       }
       // TODO #v1: info.Input="/home/user/projects/98e85b9b-51bb-4889-be47-f42698c37ed4/./a.tex", so
@@ -228,7 +231,7 @@ export class Actions extends BaseActions<LatexEditorState> {
 
   scroll_into_view(page: number, y: number, id?: string): void {
     this.setState({
-      scroll_into_view: new ScrollIntoViewRecord({page:page, y: y, id: id })
+      scroll_into_view: new ScrollIntoViewRecord({ page: page, y: y, id: id })
     });
   }
 
@@ -326,5 +329,17 @@ export class Actions extends BaseActions<LatexEditorState> {
     if (!cm) return;
     let { line, ch } = cm.getDoc().getCursor();
     this.synctex_tex_to_pdf(line, ch, this.path);
+  }
+
+  download(id: string): void {
+    const node = this._get_frame_node(id);
+    if (!node) {
+      throw Error(`BUG - no node with id "${id}"`);
+    }
+    if (node.get("type").indexOf("pdf") === -1) {
+      throw Error("download button only implemented for pdf");
+    }
+    const path: string = pdf_path(this.path);
+    this.redux.getProjectActions(this.project_id).download_file({path:path, log:true});
   }
 }
