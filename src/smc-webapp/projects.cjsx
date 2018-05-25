@@ -347,7 +347,9 @@ class ProjectsActions extends Actions
 
     # this is for inviting existing users, the email is only known by the back-end
     invite_collaborator: (project_id, account_id, body, subject, silent, replyto, replyto_name) =>
-        @redux.getProjectActions(project_id).log
+        project_actions = @redux.getProjectActions(project_id)
+        # HOTFIX suddenly, for a new student project there are no longer project actions
+        project_actions?.log
             event    : 'invite_user'
             invitee_account_id : account_id
 
