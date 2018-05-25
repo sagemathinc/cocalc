@@ -2,7 +2,7 @@
 Some buttons
 */
 
-import { React, Rendered } from "../smc-react-ts";
+import { React } from "../smc-react-ts";
 import { TimeActions } from "./actions";
 type TimeActions = InstanceType<typeof TimeActions>;
 
@@ -13,7 +13,7 @@ export function ButtonBar({
   actions
 }: {
   actions: TimeActions;
-}): React.ReactElement<any> {
+}): JSX.Element {
   return (
     <div style={{ margin: "1px" }}>
       {time_travel_button(actions)}
@@ -23,7 +23,7 @@ export function ButtonBar({
   );
 };
 
-function time_travel_button(actions: TimeActions): Rendered {
+function time_travel_button(actions: TimeActions): JSX.Element {
   return (
     <Button
       key={"time-travel"}
@@ -35,7 +35,7 @@ function time_travel_button(actions: TimeActions): Rendered {
   );
 }
 
-function undo_redo_group(actions: TimeActions): Rendered {
+function undo_redo_group(actions: TimeActions): JSX.Element {
   return (
     <ButtonGroup key={"undo-group"}>
       <Button
