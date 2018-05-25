@@ -13,6 +13,8 @@
 */
 import { React, Component } from "./frame-editors/generic/react"; // TODO: this will move
 
+// TODO: when upgrade to react@>=16.3, we can use React.createRef instead of call backrefs below.
+
 function percent_to_color(x: number) {
   if (x < 0.2) {
     return [255, Math.floor(255 * x / 0.2), 0];
@@ -38,12 +40,6 @@ interface ColorPickerProps {
 export class ColorPicker extends Component<ColorPickerProps, void> {
   private svgRef: any;
   private panelRef: any;
-  // TODO: use this when upgraded to react 16.3
-  // constructor(props: ColorPickerProps, context: any) {
-  //  super(props, context);
-  //  this.svgRef = React.createRef();
-  //  this.panelRef = React.createRef();
-  //}
   shouldComponentUpdate(nextProps: any) {
     return nextProps.color !== this.props.color;
   }
@@ -61,9 +57,7 @@ export class ColorPicker extends Component<ColorPickerProps, void> {
     return (
       <div style={style}>
         <svg
-          ref={
-            (el: any) => (this.svgRef = el) // TODO: this could be just "this.svgRef" if using react 16.3
-          }
+          ref={(el: any) => (this.svgRef = el)}
           viewBox="0 0 800 400"
           style={{ cursor: "crosshair" }}
           onClick={this.handleClick}
@@ -83,9 +77,7 @@ export class ColorPicker extends Component<ColorPickerProps, void> {
             </defs>
             <rect fill={color} width="800" height="400" />
             <rect
-              ref={
-                (el: any) => (this.panelRef = el) // TODO: this could be just "this.panelRef" if using react 16.3
-              }
+              ref={(el: any) => (this.panelRef = el)}
               fill="none"
               y="100"
               width="800"
