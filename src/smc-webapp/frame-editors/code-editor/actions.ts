@@ -785,7 +785,6 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     }
     this.set_syncstring_to_codemirror();
     this._do_save();
-    this.focus();
   }
 
   time_travel(): void {
@@ -1269,7 +1268,7 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     let gutter_markers: GutterMarkers = this.store.get("gutter_markers", Map());
     const before = gutter_markers;
     gutter_markers.map((info, id) => {
-      if (info !== undefined && info.get("gutter_id") === gutter_id) {
+      if (info !== undefined && info.get("gutter_id") === gutter_id && id)  {   /* && id is to satify typescript */
         gutter_markers = gutter_markers.delete(id);
       }
     });
