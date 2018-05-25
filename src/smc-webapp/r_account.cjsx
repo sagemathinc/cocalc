@@ -27,7 +27,7 @@
 
 {SiteName} = require('./customize')
 
-{ColorPicker} = require('./colorpicker.tsx')
+{ColorPicker} = require('./colorpicker')
 {Avatar} = require('./other-users')
 
 md5 = require('md5')
