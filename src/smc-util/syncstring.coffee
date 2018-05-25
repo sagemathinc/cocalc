@@ -1516,8 +1516,10 @@ class SyncDoc extends EventEmitter
         # 'save-to-disk' event, whenever the state changes
         # to indicate a save completed.
 
-        # Default to dones
-        @_syncstring_save_state ?= 'done'
+        # NOTE: it is intentional that @_syncstring_save_state is not defined
+        # the first tie this function is called, so that save-to-disk
+        # with last save time gets emitted on initial load (which, e.g., triggers
+        # latex compilation properly in case of a .tex file).
         if state == 'done' and @_syncstring_save_state != 'done'
             @emit('save-to-disk', time)
         @_syncstring_save_state = state

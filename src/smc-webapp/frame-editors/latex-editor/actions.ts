@@ -52,7 +52,6 @@ export class Actions extends BaseActions<LatexEditorState> {
 
   _init2(): void {
     if (!this.is_public) {
-      // one extra thing after markdown.
       this._init_syncstring_value();
       this._init_latexmk();
       this._init_spellcheck();
@@ -64,8 +63,6 @@ export class Actions extends BaseActions<LatexEditorState> {
       this._last_save_time = time;
       this.run_latexmk(time);
     });
-    // TODO: only do this if pdf doesn't exist -- ?  better may be just a button in the preview.
-    //this.run_latexmk(new Date().valueOf());
   }
 
   _raw_default_frame_tree(): FrameTree {
