@@ -8,7 +8,7 @@ import { Component, React, Rendered } from "../smc-react-ts";
 let { Icon } = require("../r_misc");
 let { webapp_client } = require("../webapp_client");
 
-interface PropTypes {
+interface StopwatchProps {
   state: string; // 'paused' or 'running' or 'stopped'
   time: number; // when entered this state
   click_button: (string) => void;
@@ -17,19 +17,19 @@ interface PropTypes {
   total?: number; // total time accumulated before entering current state
 }
 
-export class Stopwatch extends Component<PropTypes, any> {
-  private intervals: number[]
+export class Stopwatch extends Component<StopwatchProps, any> {
+  private intervals: number[];
 
   componentWillMount() {
-    this.intervals = []
+    this.intervals = [];
   }
 
   setInterval(fn: Function, ms: number): void {
-    this.intervals.push(setInterval(fn, ms))
+    this.intervals.push(setInterval(fn, ms));
   }
 
   componentWillUnmount() {
-    this.intervals.forEach(clearInterval)
+    this.intervals.forEach(clearInterval);
   }
 
   componentDidMount(): void {

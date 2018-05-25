@@ -266,7 +266,7 @@ export class AppRedux {
     if (store_class === undefined) {
       _StoreClass = Store;
     } else {
-      _StoreClass = store_class
+      _StoreClass = store_class;
     }
     if (typeof spec === "string") {
       let name = spec;

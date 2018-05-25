@@ -1,11 +1,4 @@
 /*
- * decaffeinate suggestions:
- * DS102: Remove unnecessary code created because of implicit returns
- * DS103: Rewrite code to no longer use __guard__
- * DS207: Consider shorter variations of null checks
- * Full docs: https://github.com/decaffeinate/decaffeinate/blob/master/docs/suggestions.md
- */
-/*
 Register the time editor -- stopwatch
   - set the file extension, icon, react component,
     and how to init and remove the actions/store
@@ -67,8 +60,8 @@ register_file_editor({
       actions.syncdb.close();
     }
     const store: Store<TimeState> = redux.getStore(name);
-    if (store == null) {
-      return;
+    if (store === undefined) {
+      return name;
     }
     // It is *critical* to first unmount the store, then the actions,
     // or there will be a huge memory leak.
