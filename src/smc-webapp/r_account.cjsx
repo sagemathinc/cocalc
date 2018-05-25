@@ -861,7 +861,7 @@ EDITOR_SETTINGS_CHECKBOXES =
     auto_close_brackets       : 'automatically close brackets'
     match_xml_tags            : 'automatically match XML tags'
     auto_close_xml_tags       : 'automatically close XML tags'
-    #auto_close_latex          : 'automatically close LaTeX environments'
+    auto_close_latex          : 'automatically close LaTeX environments'
     strip_trailing_whitespace : 'remove whenever file is saved'
     show_trailing_whitespace  : 'show spaces at ends of lines'
     spaces_instead_of_tabs    : 'send spaces when the tab key is pressed'
