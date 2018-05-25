@@ -101,7 +101,8 @@ class ProjectsActions extends Actions
         # set in the Table
         @redux.getTable('projects').set({project_id:project_id, title:title})
         # create entry in the project's log
-        @redux.getProjectActions(project_id).log
+        pact = @redux.getProjectActions(project_id)
+        pact?.log
             event : 'set'
             title : title
 
@@ -115,7 +116,8 @@ class ProjectsActions extends Actions
         # set in the Table
         @redux.getTable('projects').set({project_id:project_id, description:description})
         # create entry in the project's log
-        @redux.getProjectActions(project_id).log
+        pact = @redux.getProjectActions(project_id)
+        pact?.log
             event       : 'set'
             description : description
 
@@ -347,7 +349,9 @@ class ProjectsActions extends Actions
 
     # this is for inviting existing users, the email is only known by the back-end
     invite_collaborator: (project_id, account_id, body, subject, silent, replyto, replyto_name) =>
-        @redux.getProjectActions(project_id).log
+        project_actions = @redux.getProjectActions(project_id)
+        # HOTFIX suddenly, for a new student project there are no longer project actions
+        project_actions?.log
             event    : 'invite_user'
             invitee_account_id : account_id
 
@@ -380,7 +384,9 @@ class ProjectsActions extends Actions
 
     # this is for inviting non-existing users, email is set via the UI
     invite_collaborators_by_email: (project_id, to, body, subject, silent, replyto, replyto_name) =>
-        @redux.getProjectActions(project_id).log
+        project_actions = @redux.getProjectActions(project_id)
+        # HOTFIX suddenly, for a new student project there are no longer project actions
+        project_actions?.log
             event         : 'invite_nonuser'
             invitee_email : to
 
@@ -430,7 +436,8 @@ class ProjectsActions extends Actions
                 "#{@redux.getStore('account').get_account_id()}" : {upgrades: upgrades}
                 # create entry in the project's log
         # log the change in the project log
-        @redux.getProjectActions(project_id).log
+        pact = @redux.getProjectActions(project_id)
+        pact?.log
             event    : 'upgrade'
             upgrades : upgrades
 
@@ -452,7 +459,8 @@ class ProjectsActions extends Actions
         @redux.getTable('projects').set
             project_id     : project_id
             action_request : {action:'stop', time:webapp_client.server_time()}
-        @redux.getProjectActions(project_id).log
+        pact = @redux.getProjectActions(project_id)
+        pact?.log
             event : 'project_stop_requested'
 
     close_project_on_server: (project_id) =>  # not used by UI yet - dangerous
@@ -464,7 +472,8 @@ class ProjectsActions extends Actions
         @redux.getTable('projects').set
             project_id     : project_id
             action_request : {action:'restart', time:webapp_client.server_time()}
-        @redux.getProjectActions(project_id).log
+        pact = @redux.getProjectActions(project_id)
+        pact?.log
             event : 'project_restart_requested'
 
     # Explcitly set whether or not project is hidden for the given account (state=true means hidden)
