@@ -785,7 +785,6 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     }
     this.set_syncstring_to_codemirror();
     this._do_save();
-    this.focus();
   }
 
   time_travel(): void {

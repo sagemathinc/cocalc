@@ -87,7 +87,6 @@ interface Props {
 }
 
 export class FrameTitleBar extends Component<Props, {}> {
-
   shouldComponentUpdate(next): boolean {
     return misc.is_different(this.props, next, [
       "active_id",
@@ -692,7 +691,10 @@ export class FrameTitleBar extends Component<Props, {}> {
         bsStyle={"success"}
         bsSize={this.button_size()}
         disabled={disabled}
-        onClick={() => this.props.actions.save(true)}
+        onClick={() => {
+          this.props.actions.save(true);
+          this.props.actions.focus(this.props.id);
+        }}
       >
         <Icon name={icon} style={{ width: "15px", display: "inline-block" }} />{" "}
         <VisibleMDLG>{label}</VisibleMDLG>
