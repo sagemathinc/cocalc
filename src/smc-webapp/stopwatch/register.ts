@@ -10,7 +10,7 @@ let { webapp_client } = require("../webapp_client");
 let { alert_message } = require("../alerts");
 
 let { EditorTime } = require("./editor");
-import { TimeActions, TimeState } from "./actions";
+import { TimeActions, StopwatchEditorState } from "./actions";
 
 register_file_editor({
   ext: ["time"],
@@ -28,7 +28,7 @@ register_file_editor({
     }
 
     const actions = redux.createActions(name, TimeActions);
-    const store: Store<TimeState> = redux.createStore(name);
+    const store: Store<StopwatchEditorState> = redux.createStore(name);
 
     actions._init(project_id, path);
 
@@ -59,7 +59,7 @@ register_file_editor({
     if (actions !== undefined && actions.syncdb !== undefined) {
       actions.syncdb.close();
     }
-    const store: Store<TimeState> = redux.getStore(name);
+    const store: Store<StopwatchEditorState> = redux.getStore(name);
     if (store === undefined) {
       return name;
     }

@@ -9,27 +9,33 @@ import { Actions, Store } from "../smc-react-ts";
 import { TypedMap } from "../smc-react/TypedMap";
 import { List } from "immutable";
 
-export interface TimeState {
+export interface StopwatchEditorState {
   name: string;
   timers?: List<TimerRecord>;
   error?: string;
+}
+
+export const enum TimerState {
+  paused = "paused",
+  running = "running",
+  stopped = "stopped"
 }
 
 interface Timer {
   id: number;
   label?: string;
   total?: number;
-  state: "paused" | "running" | "stopped";
+  state: TimerState;
   time: number;
 }
 
 type TimerRecord = TypedMap<Timer>;
 
-export let TimeActions = class TimeActions extends Actions<TimeState> {
+export let TimeActions = class TimeActions extends Actions<StopwatchEditorState> {
   private project_id: string;
   private path: string;
   public syncdb: any;
-  public store: Store<TimeState>;
+  public store: Store<StopwatchEditorState>;
 
   _init = (project_id: string, path: string): void => {
     this.project_id = project_id;
@@ -70,7 +76,7 @@ export let TimeActions = class TimeActions extends Actions<TimeState> {
       id,
       label: "",
       total: 0,
-      state: "stopped",
+      state: TimerState.stopped,
       time: webapp_client.server_time() - 0
     });
   };
@@ -79,7 +85,7 @@ export let TimeActions = class TimeActions extends Actions<TimeState> {
     this._set({
       id,
       total: 0,
-      state: "stopped",
+      state: TimerState.stopped,
       time: webapp_client.server_time() - 0
     });
   };
@@ -88,7 +94,7 @@ export let TimeActions = class TimeActions extends Actions<TimeState> {
     this._set({
       id,
       time: webapp_client.server_time() - 0,
-      state: "running"
+      state: TimerState.running
     });
   };
 
@@ -99,7 +105,7 @@ export let TimeActions = class TimeActions extends Actions<TimeState> {
         id,
         time: webapp_client.server_time() - 0,
         total: x.get("total") + (webapp_client.server_time() - x.get("time")),
-        state: "paused"
+        state: TimerState.paused
       });
     }
   };

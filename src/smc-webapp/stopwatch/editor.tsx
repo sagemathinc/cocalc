@@ -23,9 +23,9 @@ let { Loading } = require("../r_misc");
 
 import { Stopwatch } from "./stopwatch";
 import { ButtonBar } from "./button-bar";
-import { TimeActions, TimeState } from "./actions";
+import { TimeActions, StopwatchEditorState } from "./actions";
 
-interface props extends TimeState {
+interface props extends StopwatchEditorState {
   actions: InstanceType<typeof TimeActions>;
 }
 

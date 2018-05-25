@@ -4,12 +4,19 @@ The stopwatch component
 
 import { Button, ButtonGroup, Well } from "react-bootstrap";
 
-import { Component, React, Rendered } from "../smc-react-ts";
+import { Component, React } from "../smc-react-ts";
+
+import { TimerState } from "./actions"
+
 let { Icon } = require("../r_misc");
 let { webapp_client } = require("../webapp_client");
 
+function assertNever(x: never): never {
+  throw new Error("Unexpected object: " + x);
+}
+
 interface StopwatchProps {
-  state: string; // 'paused' or 'running' or 'stopped'
+  state: TimerState; // 'paused' or 'running' or 'stopped'
   time: number; // when entered this state
   click_button: (string) => void;
   compact?: boolean;
@@ -36,7 +43,7 @@ export class Stopwatch extends Component<StopwatchProps, any> {
     this.setInterval(() => this.forceUpdate(), 1000);
   }
 
-  render_start_button(): Rendered {
+  render_start_button() {
     return (
       <Button
         bsStyle={!this.props.compact ? "primary" : undefined}
@@ -49,7 +56,7 @@ export class Stopwatch extends Component<StopwatchProps, any> {
     );
   }
 
-  render_stop_button(): Rendered {
+  render_stop_button() {
     return (
       <Button
         bsStyle={!this.props.compact ? "warning" : undefined}
@@ -61,7 +68,7 @@ export class Stopwatch extends Component<StopwatchProps, any> {
     );
   }
 
-  render_pause_button(): Rendered {
+  render_pause_button() {
     return (
       <Button
         bsStyle={!this.props.compact ? "info" : undefined}
@@ -74,22 +81,21 @@ export class Stopwatch extends Component<StopwatchProps, any> {
     );
   }
 
-  render_time(): Rendered {
-    let amount: number;
+  render_time() {
+    let amount: number = 0;
     switch (this.props.state) {
-      case "stopped":
-        amount = 0;
+      case TimerState.stopped:
         break;
-      case "paused":
+      case TimerState.paused:
         amount = this.props.total || 0;
         break;
-      case "running":
+      case TimerState.running:
         amount =
           (this.props.total || 0) +
           (webapp_client.server_time() - this.props.time);
         break;
       default:
-        return <div>Invalid state {this.props.state}</div>;
+        assertNever(this.props.state)
     }
 
     return (
@@ -97,24 +103,28 @@ export class Stopwatch extends Component<StopwatchProps, any> {
     );
   }
 
-  render_buttons(): Rendered {
+  render_buttons(): JSX.Element {
     switch (this.props.state) {
-      case "stopped":
+      case TimerState.stopped:
         return <span key={"buttons"}>{this.render_start_button()}</span>;
-      case "paused":
+      case TimerState.paused:
         return (
           <ButtonGroup key={"buttons"}>
             {this.render_start_button()}
             {this.render_stop_button()}
           </ButtonGroup>
         );
-      case "running":
+      case TimerState.running:
         return (
           <ButtonGroup key={"buttons"}>
             {this.render_pause_button()}
             {this.render_stop_button()}
           </ButtonGroup>
         );
+      default:
+        assertNever(this.props.state)
+        // TS doesn't have strong enough type inference here??
+        return <div/>
     }
   }
 
