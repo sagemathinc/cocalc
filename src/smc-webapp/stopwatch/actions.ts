@@ -11,7 +11,7 @@ The actions -- what you can do with a timer, and also the
 underlying synchronized state.
 */
 
-let { misc } = require("smc-util/misc");
+const misc = require("smc-util/misc");
 let { webapp_client } = require("../webapp_client");
 import { Actions, Store } from "../smc-react-ts";
 import { TypedMap } from "../smc-react/TypedMap";
@@ -39,15 +39,7 @@ export let TimeActions = class TimeActions extends Actions<TimeState> {
   public syncdb: any;
   public store: Store<TimeState>
 
-  constructor(a?, b?) {
-    super(a, b);
-    this._syncdb_change = this._syncdb_change.bind(this);
-    this.time_travel = this.time_travel.bind(this);
-    this.stop_stopwatch = this.stop_stopwatch.bind(this);
-    this.start_stopwatch = this.start_stopwatch.bind(this);
-  }
-
-  _init(project_id: string, path: string): void {
+  _init = (project_id: string, path: string): void => {
     this.project_id = project_id;
     this.path = path;
     // be explicit about exactly what state is in the store
@@ -56,13 +48,13 @@ export let TimeActions = class TimeActions extends Actions<TimeState> {
     });
   }
 
-  init_error(err): void {
+  init_error = (err): void => {
     this.setState({
       error: err
     });
   }
 
-  _syncdb_change(): void {
+  _syncdb_change = (): void => {
     this.setState({
       timers: this.syncdb.get()
     });
@@ -72,12 +64,12 @@ export let TimeActions = class TimeActions extends Actions<TimeState> {
     }
   }
 
-  _set(obj: Timer): void {
+  _set = (obj: Timer): void => {
     this.syncdb.set(obj);
     this.syncdb.save(); // save to file on disk
   }
 
-  add_stopwatch(): void {
+  add_stopwatch = (): void => {
     let id = 1;
     while (
       (this.syncdb != null ? this.syncdb.get_one({ id }) : undefined) != null
@@ -93,7 +85,7 @@ export let TimeActions = class TimeActions extends Actions<TimeState> {
     });
   }
 
-  stop_stopwatch(id: number): void {
+  stop_stopwatch = (id: number): void => {
     this._set({
       id,
       total: 0,
@@ -102,7 +94,7 @@ export let TimeActions = class TimeActions extends Actions<TimeState> {
     });
   }
 
-  start_stopwatch(id: number): void {
+  start_stopwatch = (id: number): void => {
     this._set({
       id,
       time: webapp_client.server_time() - 0,
@@ -110,7 +102,7 @@ export let TimeActions = class TimeActions extends Actions<TimeState> {
     });
   }
 
-  pause_stopwatch(id: number): void {
+  pause_stopwatch = (id: number): void => {
     const x = this.syncdb != null ? this.syncdb.get_one({ id }) : undefined;
     if (x == null) {
       // stopwatch was deleted
@@ -124,18 +116,18 @@ export let TimeActions = class TimeActions extends Actions<TimeState> {
     });
   }
 
-  time_travel(): void {
+  time_travel = (): void => {
     this.redux.getProjectActions(this.project_id).open_file({
       path: misc.history_path(this.path),
       foreground: true
     });
   }
 
-  undo(): void {
+  undo = (): void => {
     this.syncdb != null ? this.syncdb.undo() : undefined;
   }
 
-  redo(): void {
+  redo = (): void => {
     this.syncdb != null ? this.syncdb.redo() : undefined;
   }
 };
