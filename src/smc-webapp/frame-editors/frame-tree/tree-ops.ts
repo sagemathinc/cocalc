@@ -317,7 +317,7 @@ export function is_leaf_id(tree: ImmutableFrameTree, id: string): boolean {
 }
 
 // Get id of some leaf node.  Assumes all ids are set.
-export function get_some_leaf_id(tree: ImmutableFrameTree): string | undefined {
+export function get_some_leaf_id(tree: ImmutableFrameTree): string {
   let done: boolean = false;
   let id: string | undefined = undefined;
   function process(node: ImmutableFrameTree): void {
@@ -336,5 +336,10 @@ export function get_some_leaf_id(tree: ImmutableFrameTree): string | undefined {
     }
   }
   process(tree);
+  if (!id) {
+    throw Error(
+      "BUG -- get_some_leaf_id could not find any leaves! -- tree corrupt"
+    );
+  }
   return id;
 }

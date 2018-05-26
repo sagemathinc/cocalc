@@ -31,7 +31,7 @@ interface BuildLog extends ExecOutput {
 interface ScrollIntoViewParams {
   page: number;
   y: number;
-  id?: string;
+  id: string;
 }
 
 const ScrollIntoViewRecord = createTypedMap<ScrollIntoViewParams>();
@@ -39,7 +39,7 @@ const ScrollIntoViewRecord = createTypedMap<ScrollIntoViewParams>();
 interface LatexEditorState extends CodeEditorState {
   build_log: Map<any, string>;
   sync: string;
-  scroll_into_view: TypedMap<ScrollIntoViewParams>;
+  scroll_pdf_into_view: TypedMap<ScrollIntoViewParams>;
   zoom_page_width: string;
   zoom_page_height: string;
 }
@@ -204,31 +204,57 @@ export class Actions extends BaseActions<LatexEditorState> {
     }
   }
 
+  _get_most_recent_pdfjs(): string | undefined {
+    return this._get_most_recent_active_frame_id(
+      node => node.get("type").indexOf("pdfjs") != -1
+    );
+  }
+
   async synctex_tex_to_pdf(
     line: number,
     column: number,
     filename: string
   ): Promise<void> {
+    // First figure out where to jump to in the PDF.
     this.set_status("Running SyncTex from tex to pdf...");
+    let info;
     try {
-      let info = await synctex.tex_to_pdf({
+      info = await synctex.tex_to_pdf({
         line,
         column,
         tex_path: filename,
         pdf_path: pdf_path(this.path),
         project_id: this.project_id
       });
-      this.scroll_into_view(info.Page as number, info.y as number);
-      this.set_status("");
     } catch (err) {
       console.warn("ERROR ", err);
       this.set_error(err);
+      return;
+    } finally {
+      this.set_status("");
     }
+    // Next get a PDF to jump to.
+    let pdfjs_id: string | undefined = this._get_most_recent_pdfjs();
+    if (!pdfjs_id) {  // no pdfjs preview, so make one
+      // todo: maybe replace pdfjs_canvas by which pdfjs was most recently used...?
+      this.split_frame("col", this._get_active_id(), "pdfjs_canvas");
+      pdfjs_id = this._get_most_recent_pdfjs();
+      if (!pdfjs_id) {
+        throw Error("BUG -- there must be a pdfjs frame.");
+      }
+    }
+    // NOw show the preview in the right place.
+    this.scroll_pdf_into_view(info.Page as number, info.y as number, pdfjs_id);
   }
 
-  scroll_into_view(page: number, y: number, id?: string): void {
+  // Scroll the pdf preview frame with given id into view.
+  scroll_pdf_into_view(page: number, y: number, id: string): void {
     this.setState({
-      scroll_into_view: new ScrollIntoViewRecord({ page: page, y: y, id: id })
+      scroll_pdf_into_view: new ScrollIntoViewRecord({
+        page: page,
+        y: y,
+        id: id
+      })
     });
   }
 
@@ -337,6 +363,8 @@ export class Actions extends BaseActions<LatexEditorState> {
       throw Error("download button only implemented for pdf");
     }
     const path: string = pdf_path(this.path);
-    this.redux.getProjectActions(this.project_id).download_file({path:path, log:true});
+    this.redux
+      .getProjectActions(this.project_id)
+      .download_file({ path: path, log: true });
   }
 }

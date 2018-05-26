@@ -47,7 +47,7 @@ interface PDFJSProps {
   zoom_page_width?: string;
   zoom_page_height?: string;
   sync?: string;
-  scroll_into_view?: { page: number; y: number; id: string };
+  scroll_pdf_into_view?: { page: number; y: number; id: string };
 }
 
 interface PDFJSState {
@@ -84,7 +84,7 @@ class PDFJS extends Component<PDFJSProps, PDFJSState> {
         zoom_page_width: rtypes.string,
         zoom_page_height: rtypes.string,
         sync: rtypes.string,
-        scroll_into_view: rtypes.object
+        scroll_pdf_into_view: rtypes.object
       }
     };
   }
@@ -105,7 +105,7 @@ class PDFJS extends Component<PDFJSProps, PDFJSState> {
           "zoom_page_width",
           "zoom_page_height",
           "sync",
-          "scroll_into_view",
+          "scroll_pdf_into_view",
           "is_current"
         ]
       ) ||
@@ -165,45 +165,73 @@ class PDFJS extends Component<PDFJSProps, PDFJSState> {
     }
   }
 
-  async scroll_into_view(page: number, y: number, id: string): Promise<void> {
+  async scroll_pdf_into_view(
+    page: number,
+    y: number,
+    id: string
+  ): Promise<void> {
     if (id && id != this.props.id) {
       // id is set, and it's not set to *this* viewer, so ignore.
       return;
     }
-    this.props.actions.setState({ scroll_into_view: undefined }); // we got the message.
-    const doc = this.state.doc;
-    if (!doc) {
+    this.props.actions.setState({ scroll_pdf_into_view: undefined }); // we got the message.
+    let is_ready = () => {
+      return this.state.doc != null && this.state.doc.getPage != null;
+    };
+    let i = 0;
+    while (i < 50 && !is_ready()) {
+      // doc can be defined but not doc.getPage.
       // can't scroll document into position if we haven't even loaded it yet.  Just do nothing in this case.
+      await delay(100);
+      if (!this.mounted) return;
+      i += 1;
+    }
+    if (!is_ready()) {
+      // give up.
       return;
     }
+    const doc = this.state.doc;
+
     /*
         We iterative through each page in the document, determine its height, and add that
         to a running total, along with the gap between pages.  Once we get to the given page,
         we then just add y.  We then scroll the containing div down to that position.
         */
+    // Get all pages before page we are scrolling to in parallel.
+    let page_promises: PDFPageProxy[] = [];
+    for (let n = 1; n <= page; n++) {
+      page_promises.push(doc.getPage(n));
+    }
+
+    let pages;
     try {
-      // Get all pages before page we are scrolling to in parallel.
-      let page_promises: PDFPageProxy[] = [];
-      for (let n = 1; n <= page; n++) {
-        page_promises.push(doc.getPage(n));
-      }
-      let pages = await Promise.all(page_promises);
-      if (!this.mounted) return;
-      const scale = this.scale();
-      let s = PAGE_GAP + y * scale;
-      for (let page of pages.slice(0, pages.length - 1)) {
-        s += scale * page.pageInfo.view[3] + PAGE_GAP;
-      }
-      let elt = $(ReactDOM.findDOMNode(this.refs.scroll));
-      let height = elt.height();
-      if (!height) return;
-      s -= height / 2;
-      elt.scrollTop(s);
+      pages = await Promise.all(page_promises);
     } catch (err) {
       this.props.actions.set_error(
         `error scrolling PDF into position -- ${err}`
       );
     }
+
+    await delay(0);
+    if (!this.mounted) return;
+
+    const scale = this.scale();
+    let s: number = PAGE_GAP + y * scale;
+    for (let page of pages.slice(0, pages.length - 1)) {
+      s += scale * page.pageInfo.view[3] + PAGE_GAP;
+    }
+    let elt = $(ReactDOM.findDOMNode(this.refs.scroll));
+    let height = elt.height();
+    if (!height) return;
+    s -= height / 2;
+    elt.scrollTop(s);
+    i = 0;
+    do {
+      i += 1;
+      await delay(100);
+      if (!this.mounted) return;
+      elt.scrollTop(s);
+    } while (i < 50 && Math.abs((elt.scrollTop() as number) - s) > 10);
   }
 
   componentWillReceiveProps(next_props: PDFJSProps): void {
@@ -220,11 +248,11 @@ class PDFJS extends Component<PDFJSProps, PDFJSState> {
       this.load_doc(next_props.reload);
     }
     if (
-      next_props.scroll_into_view &&
-      this.props.scroll_into_view !== next_props.scroll_into_view
+      next_props.scroll_pdf_into_view &&
+      this.props.scroll_pdf_into_view !== next_props.scroll_pdf_into_view
     ) {
-      let { page, y, id } = next_props.scroll_into_view;
-      this.scroll_into_view(page, y, id);
+      let { page, y, id } = next_props.scroll_pdf_into_view;
+      this.scroll_pdf_into_view(page, y, id);
     }
     if (
       this.props.is_current != next_props.is_current &&

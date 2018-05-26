@@ -406,18 +406,31 @@ export class Actions<T = CodeEditorState> extends BaseActions<
   // Make whatever frame is defined and was most recently active
   // be the current active frame.
   make_most_recent_frame_active(): void {
-    let tree = this._get_tree();
-    for (let i = this._active_id_history.length - 1; i >= 0; i--) {
-      let id = this._active_id_history[i];
-      if (tree_ops.is_leaf_id(tree, id)) {
-        this.set_active_id(id);
-        return;
-      }
-    }
-    let id: string | undefined = tree_ops.get_some_leaf_id(tree);
+    let id: string | undefined = this._get_most_recent_active_frame_id();
     if (id) {
       this.set_active_id(id);
+      return;
     }
+    id = tree_ops.get_some_leaf_id(this._get_tree());
+    if (id) {
+      // must be true, since tree is always nontrivial!
+      this.set_active_id(id);
+    }
+  }
+
+  // Gets active_id.  the active_id **should** always
+  // be defined, but if for some reason it is not, then
+  // this function all sets it and returns that.
+  _get_active_id(): string {
+    let id: string | undefined = this.store.getIn([
+      "local_view_state",
+      "active_id"
+    ]);
+    if (!id) {
+      id = tree_ops.get_some_leaf_id(this._get_tree());
+      this.set_active_id(id);
+    }
+    return id;
   }
 
   _get_tree(): ImmutableFrameTree {
@@ -1357,6 +1370,32 @@ export class Actions<T = CodeEditorState> extends BaseActions<
       opts.cm = this._get_cm();
     }
     await test_line(opts);
+  }
+
+  // Get the id of the most recent active frame.
+  // If f is given, restrict to frames for which f(node)
+  // is true, and if there are no such frames at all,
+  // then return undefined.  If there is a matching frame
+  // that has never been active in this session, will use that
+  // in arbitrary order.
+  _get_most_recent_active_frame_id(f?: Function): string | undefined {
+    let tree = this._get_tree();
+    for (let i = this._active_id_history.length - 1; i >= 0; i--) {
+      let id = this._active_id_history[i];
+      if (tree_ops.is_leaf_id(tree, id)) {
+        if (f === undefined || f(tree_ops.get_node(tree, id))) {
+          return id;
+        }
+      }
+    }
+    // now just check for any frame at all.
+    for (let id in this._get_leaf_ids()) {
+      if (f === undefined || f(tree_ops.get_node(tree, id))) {
+        return id;
+      }
+    }
+    // truly nothing!
+    return;
   }
 
   /* Get current value of the cm editor doc. Returns undefined if no

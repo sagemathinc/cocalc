@@ -101,7 +101,7 @@ export class Page extends Component<PageProps, {}> {
       let dest = await this.props.doc.getDestination(annotation.dest);
       let page: number = (await this.props.doc.getPageIndex(dest[0])) + 1;
       let page_height = this.props.page.pageInfo.view[3];
-      this.props.actions.scroll_into_view(
+      this.props.actions.scroll_pdf_into_view(
         page,
         page_height - dest[3],
         this.props.id
