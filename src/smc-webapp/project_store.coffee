@@ -2125,4 +2125,75 @@ get_directory_listing = (opts) ->
                     event : 'start_project'
                     time  : misc.server_time() - time0
 
+###
+!!!ATTENTION!!!
 
+When you rewrite the code below, do NOT change the semantics!!
+
+In particular, calling getProjectStore or getProjectActions or getProjectTable
+from the main redux object at any time is allowed, and should return something
+that is defined.  And calling any one must result in all of actions, store,
+and the table being defined.
+###
+
+exports.getStore = getStore = (project_id, redux) ->
+    must_define(redux)
+    name  = key(project_id)
+    store = redux.getStore(name)
+    if store?
+        return store
+
+    # Initialize everything
+    actions = redux.createActions(name, ProjectActions)
+    actions.project_id = project_id  # so actions can assume this is available on the object
+    store = redux.createStore(create_project_store_def(name, project_id))
+
+    queries = misc.deep_copy(QUERIES)
+    create_table = (table_name, q) ->
+        #console.log("create_table", table_name)
+        class P extends Table
+            query: =>
+                return "#{table_name}":q.query
+            options: =>
+                return q.options
+            _change: (table, keys) =>
+                actions.setState("#{table_name}": table.get())
+
+    for table_name, q of queries
+        for k, v of q
+            if typeof(v) == 'function'
+                q[k] = v()
+        q.query.project_id = project_id
+        T = redux.createTable(key(project_id, table_name), create_table(table_name, q))
+
+    return store
+
+exports.getActions = (project_id, redux) ->
+    must_define(redux)
+    if not getStore(project_id, redux)?
+        getStore(project_id, redux)
+    return redux.getActions(key(project_id))
+
+exports.getTable = (project_id, name, redux) ->
+    must_define(redux)
+    if not getStore(project_id, redux)?
+        getStore(project_id, redux)
+    return redux.getTable(key(project_id, name))
+
+exports.deleteStoreActionsTable = (project_id, redux) ->
+    must_define(redux)
+    name = key(project_id)
+
+    store = redux.getStore(name)
+    if store?
+        store.destroy()
+    actions = redux.getActions(name)
+    if actions?
+        actions.close_all_files()
+        redux.removeActions(name)
+    for table,_ of QUERIES
+        redux.removeTable(key(project_id, table))
+    redux.removeStore(name)
+
+# Register this module with the redux module, so it can be used by the rest of SMC easily.
+register_project_store(exports)
