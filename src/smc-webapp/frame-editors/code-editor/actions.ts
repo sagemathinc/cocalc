@@ -1110,14 +1110,22 @@ export class Actions<T = CodeEditorState> extends BaseActions<
   // used when clicking on other user avatar,
   // in the latex editor, etc.
   // If cursor is given, moves the cursor to the line too.
-  programmatical_goto_line(
+  async programmatical_goto_line(
     line: number,
     cursor?: boolean,
     focus?: boolean
-  ): void {
-    const cm = this._recent_cm();
-    if (cm == null) {
-      return;
+  ): Promise<void> {
+    let cm = this._recent_cm();
+    if (cm == null) { // this case can only happen in derived classes with non-cm editors.
+      this.split_frame("col", this._get_active_id(), "cm");
+      // Have to wait until the codemirror editor is created and registered, which
+      // is caused by component mounting.
+      await delay(1);
+      cm = this._recent_cm();
+      if (cm == null) {
+        // still failed -- give up.
+        return;
+      }
     }
     const pos = { line: line - 1, ch: 0 };
     const info = cm.getScrollInfo();
