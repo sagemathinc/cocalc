@@ -17,7 +17,7 @@ register_file_editor({
 
   is_public: false,
 
-  icon: "clock-o",
+  icon: "stopwatch",
 
   component: EditorTime,
 

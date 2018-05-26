@@ -63,7 +63,7 @@ export class Stopwatch extends Component<StopwatchProps, any> {
         onClick={() => this.props.click_button("stopped")}
         bsSize={this.props.compact ? "xsmall" : undefined}
       >
-        <Icon name="stopped" /> {!this.props.compact ? "Stop" : undefined}
+        <Icon name="stop" /> {!this.props.compact ? "Stop" : undefined}
       </Button>
     );
   }
