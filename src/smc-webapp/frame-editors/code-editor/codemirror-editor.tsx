@@ -229,8 +229,11 @@ export class CodemirrorEditor extends Component<Props, State> {
 
     // Needed e.g., for vim ":w" support; obviously this is global, so be careful.
     if ((CodeMirror as any).commands.save == null) {
-      (CodeMirror as any).commands.save = cm =>
-        cm._actions != null ? cm._actions.save(true) : undefined;
+      (CodeMirror as any).commands.save = function(cm : any) {
+        if (cm._actions) {
+          cm._actions.save(true);
+        }
+      };
     }
 
     this.cm = CodeMirror.fromTextArea(node, options);
@@ -242,7 +245,8 @@ export class CodemirrorEditor extends Component<Props, State> {
     (this.cm as any)._actions = this.props.actions;
 
     if (this.props.is_public) {
-      if (this.props.value !== undefined) {  // should always be the case if public.
+      if (this.props.value !== undefined) {
+        // should always be the case if public.
         this.cm.setValue(this.props.value);
       }
     } else {

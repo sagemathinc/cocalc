@@ -352,6 +352,7 @@ export class AppRedux {
     return this._tables[name];
   }
 
+  // CRITICAL: this function is **completely broken/wrong -- see smc-react.coffee and project_store.coffee!
   // TODO -- Typing: Type project Store
   // <T, C extends Store<T>>
   getProjectStore(project_id: string): any {
@@ -363,6 +364,7 @@ export class AppRedux {
     return this.getStore(project_redux_name(project_id));
   }
 
+  // CRITICAL: this function is **completely broken/wrong** -- see smc-react.coffee and project_store.coffee!
   // TODO -- Typing: Type project Actions
   // T, C extends Actions<T>
   getProjectActions(project_id: string): any {
@@ -373,6 +375,7 @@ export class AppRedux {
     return this.getActions(project_redux_name(project_id));
   }
 
+  // CRITICAL: this function is **completely broken/wrong** -- see smc-react.coffee and project_store.coffee!
   // TODO -- Typing: Type project Table
   getProjectTable(project_id: string, name: string): any {
     if (!misc.is_valid_uuid_string(project_id)) {
@@ -382,6 +385,7 @@ export class AppRedux {
     return this.getTable(project_redux_name(project_id, name));
   }
 
+  // CRITICAL: this function is **completely broken/wrong** -- see smc-react.coffee and project_store.coffee!
   removeProjectReferences(project_id: string): void {
     if (!misc.is_valid_uuid_string(project_id)) {
       console.trace();

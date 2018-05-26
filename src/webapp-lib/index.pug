@@ -40,6 +40,10 @@ block content
           img(src=require('!url-loader?mimetype=image/svg+xml!cocalc-logo.svg'))
       div.col-sm-12.center.descr.
         #{htmlWebpackPlugin.options.description}
+      div.col-sm-12.center.ff-only
+        div.alert.alert-danger.
+          WARNING: There is #[a.alert-link(href="https://github.com/sagemathinc/cocalc/issues/2875") a serious bug in recent versions of Firefox].
+          Working on #{NAME} using Firefox may be severely impaired, because Firefox disconnects you due to this bug.  Use any other web browser.
       div.col-sm-12.center
         +start_button
 
@@ -370,3 +374,8 @@ block content
           white-space    : nowrap
       #included > div
         padding          : 0
+      .ff-only
+        display: none
+      @supports (-moz-appearance:none)
+        .ff-only
+          display: block

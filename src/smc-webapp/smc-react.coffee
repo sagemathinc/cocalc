@@ -417,31 +417,25 @@ class AppRedux
         if not misc.is_valid_uuid_string(project_id)
             console.trace()
             console.warn("getProjectStore: INVALID project_id -- #{project_id}")
-        return @getStore(project_redux_name(project_id))
+        return project_store.getStore(project_id, @)
 
     getProjectActions: (project_id) =>
         if not misc.is_valid_uuid_string(project_id)
             console.trace()
             console.warn("getProjectActions: INVALID project_id -- #{project_id}")
-        return @getActions(project_redux_name(project_id))
+        return project_store.getActions(project_id, @)
 
     getProjectTable: (project_id, name) =>
         if not misc.is_valid_uuid_string(project_id)
             console.trace()
             console.warn("getProjectTable: INVALID project_id -- #{project_id}")
-        return @getTable(project_redux_name(project_id, name))
+        return project_store.getTable(project_id, name, @)
 
     removeProjectReferences: (project_id) =>
         if not misc.is_valid_uuid_string(project_id)
             console.trace()
             console.warn("getProjectReferences: INVALID project_id -- #{project_id}")
-
-        name = project_redux_name(project_id);
-        store = @getStore(name)
-        if typeof store.destroy == "function"
-            store.destroy()
-        @removeActions(name)
-        @removeStore(name)
+        project_store.deleteStoreActionsTable(project_id, @)
 
     getEditorStore: (project_id, path, is_public) =>
         if not misc.is_valid_uuid_string(project_id)
