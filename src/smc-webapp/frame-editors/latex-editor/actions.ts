@@ -23,6 +23,8 @@ import { forgetDocument, url_to_pdf } from "./pdfjs-doc-cache";
 import { FrameTree } from "../frame-tree/types";
 import { Store } from "../../smc-react-ts";
 import { createTypedMap, TypedMap } from "../../smc-react/TypedMap";
+import { print_html } from "../frame-tree/print";
+import { raw_url } from "../frame-tree/util";
 
 interface BuildLog extends ExecOutput {
   parse?: ProcessedLatexLog;
@@ -392,5 +394,27 @@ export class Actions extends BaseActions<LatexEditorState> {
     this.redux
       .getProjectActions(this.project_id)
       .download_file({ path: path, log: true });
+  }
+
+  print(id: string): void {
+    const node = this._get_frame_node(id);
+    if (!node) {
+      throw Error(`BUG -- no node with id ${id}`);
+    }
+    const type: string = node.get("type");
+
+    if (type == "cm") {
+      super.print(id);
+      return;
+    }
+    if (type.indexOf("pdf") != -1) {
+      this.print_pdf();
+      return;
+    }
+    throw Error(`BUG -- printing not implement for node of type ${type}`);
+  }
+
+  print_pdf(): void {
+    print_html({ src: raw_url(this.project_id, pdf_path(this.path)) });
   }
 }
