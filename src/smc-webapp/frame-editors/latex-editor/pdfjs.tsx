@@ -7,6 +7,7 @@ This is a renderer using pdf.js.
 // less likely the user will see a blank page for a moment, but
 // also potentially makes things feel slightly slower and heavier.
 const WINDOW_SIZE: number = 3000;
+const HIGHLIGHT_TIME_S: number = 60;
 
 const { Loading } = require("smc-webapp/r_misc");
 
@@ -14,7 +15,7 @@ import { delay } from "awaiting";
 import { Map } from "immutable";
 import { throttle } from "underscore";
 import * as $ from "jquery";
-import { is_different } from "../generic/misc";
+import { is_different, seconds_ago } from "../generic/misc";
 import { dblclick } from "./mouse-click";
 import {
   Component,
@@ -24,8 +25,9 @@ import {
   rtypes,
   Rendered
 } from "../generic/react";
-import { getDocument, url_to_pdf } from "./pdfjs-doc-cache.ts";
-import { Page, PAGE_GAP } from "./pdfjs-page.tsx";
+import { getDocument, url_to_pdf } from "./pdfjs-doc-cache";
+import { Page, PAGE_GAP } from "./pdfjs-page";
+import { SyncHighlight } from "./pdfjs-annotation";
 import { PDFDocumentProxy, PDFPageProxy } from "pdfjs-dist/webpack";
 
 // Ensure this jQuery plugin is defined:
@@ -170,11 +172,10 @@ class PDFJS extends Component<PDFJSProps, PDFJSState> {
     y: number,
     id: string
   ): Promise<void> {
-    if (id && id != this.props.id) {
-      // id is set, and it's not set to *this* viewer, so ignore.
+    if (id != this.props.id) {
+      // not set to *this* viewer, so ignore.
       return;
     }
-    this.props.actions.setState({ scroll_pdf_into_view: undefined }); // we got the message.
     let is_ready = () => {
       return this.state.doc != null && this.state.doc.getPage != null;
     };
@@ -232,6 +233,7 @@ class PDFJS extends Component<PDFJSProps, PDFJSState> {
       if (!this.mounted) return;
       elt.scrollTop(s);
     } while (i < 50 && Math.abs((elt.scrollTop() as number) - s) > 10);
+    this.props.actions.setState({ scroll_pdf_into_view: undefined });
   }
 
   componentWillReceiveProps(next_props: PDFJSProps): void {
@@ -248,8 +250,8 @@ class PDFJS extends Component<PDFJSProps, PDFJSState> {
       this.load_doc(next_props.reload);
     }
     if (
-      next_props.scroll_pdf_into_view &&
-      this.props.scroll_pdf_into_view !== next_props.scroll_pdf_into_view
+      this.props.scroll_pdf_into_view !== next_props.scroll_pdf_into_view &&
+      next_props.scroll_pdf_into_view
     ) {
       let { page, y, id } = next_props.scroll_pdf_into_view;
       this.scroll_pdf_into_view(page, y, id);
@@ -349,6 +351,19 @@ class PDFJS extends Component<PDFJSProps, PDFJSState> {
       ) {
         renderer = this.props.renderer;
       }
+      let sync_highlight: SyncHighlight | undefined;
+      if (
+        this.props.scroll_pdf_into_view !== undefined &&
+        this.props.scroll_pdf_into_view.page === n &&
+        this.props.scroll_pdf_into_view.id === this.props.id
+      ) {
+        sync_highlight = {
+          y: this.props.scroll_pdf_into_view.y,
+          until: seconds_ago(-HIGHLIGHT_TIME_S)
+        };
+      } else {
+        sync_highlight = undefined;
+      }
       pages.push(
         <Page
           id={this.props.id}
@@ -359,6 +374,7 @@ class PDFJS extends Component<PDFJSProps, PDFJSState> {
           key={n}
           renderer={renderer}
           scale={scale}
+          sync_highlight={sync_highlight}
         />
       );
       top += scale * page.pageInfo.view[3] + PAGE_GAP;
@@ -385,6 +401,10 @@ class PDFJS extends Component<PDFJSProps, PDFJSState> {
 
   font_size(scale: number): number {
     return 12 * scale;
+  }
+
+  render_highlight(): Rendered {
+    return <div style={{ background: "yellow" }} id={"cc-highlight"} />;
   }
 
   render() {

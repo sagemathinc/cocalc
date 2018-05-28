@@ -193,3 +193,13 @@ export function len(obj: object | undefined | null): number {
   }
   return Object.keys(obj).length;
 }
+
+// Specific, easy to read: describe amount of time before right now
+// Use negative input for after now (i.e., in the future).
+export function milliseconds_ago(ms) { return new Date(new Date().valueOf() - ms); }
+export function seconds_ago(s)  { return exports.milliseconds_ago(1000*s); }
+export function minutes_ago(m)  { return exports.seconds_ago(60*m); }
+export function hours_ago(h)  { return exports.minutes_ago(60*h); }
+export function days_ago(d)  { return exports.hours_ago(24*d); }
+export function weeks_ago(w)  { return exports.days_ago(7*w); }
+export function months_ago(m)  { return exports.days_ago(30.5*m); }
