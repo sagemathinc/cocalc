@@ -57,6 +57,7 @@ interface PDFJSState {
   doc: PDFDocumentProxy;
   pages: PDFPageProxy[];
   scrollTop: number;
+  missing: boolean;
 }
 
 class PDFJS extends Component<PDFJSProps, PDFJSState> {
@@ -76,7 +77,8 @@ class PDFJS extends Component<PDFJSProps, PDFJSState> {
       loaded: false,
       doc: { pdfInfo: { fingerprint: "" } },
       pages: [],
-      scrollTop: scroll
+      scrollTop: scroll,
+      missing: false
     };
   }
 
@@ -111,9 +113,25 @@ class PDFJS extends Component<PDFJSProps, PDFJSState> {
           "is_current"
         ]
       ) ||
-      this.state.loaded != next_state.loaded ||
-      this.state.scrollTop != next_state.scrollTop ||
+      is_different(this.state, next_state, [
+        "loaded",
+        "scrollTop",
+        "missing"
+      ]) ||
       this.state.doc.pdfInfo.fingerprint != next_state.doc.pdfInfo.fingerprint
+    );
+  }
+
+  render_missing(): Rendered {
+    return (
+      <div
+        style={{
+          fontSize: "24pt",
+          color: "#666"
+        }}
+      >
+        Missing PDF
+      </div>
     );
   }
 
@@ -149,6 +167,7 @@ class PDFJS extends Component<PDFJSProps, PDFJSState> {
         url_to_pdf(this.props.project_id, this.props.path, reload)
       );
       if (!this.mounted) return;
+      this.setState({ missing: false });
       let v: Promise<PDFPageProxy>[] = [];
       for (let n = 1; n <= doc.numPages; n++) {
         v.push(doc.getPage(n));
@@ -158,10 +177,14 @@ class PDFJS extends Component<PDFJSProps, PDFJSState> {
       this.setState({
         doc: doc,
         loaded: true,
-        pages: pages
+        pages: pages,
+        missing: false
       });
     } catch (err) {
       // This is normal if the PDF is being modified *as* it is being loaded...
+      if (this.mounted && err.toString().indexOf("Missing") != -1) {
+        this.setState({ missing: true });
+      }
       console.log(`WARNING: error loading PDF -- ${err}`);
       //this.props.actions.set_error();
     }
@@ -389,7 +412,11 @@ class PDFJS extends Component<PDFJSProps, PDFJSState> {
 
   render_content(): Rendered | Rendered[] {
     if (!this.state.loaded) {
-      return this.render_loading();
+      if (this.state.missing) {
+        return this.render_missing();
+      } else {
+        return this.render_loading();
+      }
     } else {
       return this.render_pages();
     }

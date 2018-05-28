@@ -3,7 +3,7 @@ LaTeX Editor Actions.
 */
 
 const WIKI_HELP_URL = "https://github.com/sagemathinc/cocalc/wiki/LaTeX-Editor";
-const VIEWERS = ["pdfjs_canvas", "pdfjs_svg", "embed", "build_log"];
+const VIEWERS = ["pdfjs_canvas", "pdfjs_svg", "embed", "build"];
 
 import { fromJS, Map } from "immutable";
 import {
@@ -28,6 +28,8 @@ interface BuildLog extends ExecOutput {
   parse?: ProcessedLatexLog;
 }
 
+export type BuildLogs = Map<string, Map<string, any>>;
+
 interface ScrollIntoViewParams {
   page: number;
   y: number;
@@ -37,7 +39,7 @@ interface ScrollIntoViewParams {
 const ScrollIntoViewRecord = createTypedMap<ScrollIntoViewParams>();
 
 interface LatexEditorState extends CodeEditorState {
-  build_log: Map<any, string>;
+  build_logs: BuildLogs;
   sync: string;
   scroll_pdf_into_view: TypedMap<ScrollIntoViewParams>;
   zoom_page_width: string;
@@ -93,9 +95,34 @@ export class Actions extends BaseActions<LatexEditorState> {
     this.run_latex(time);
   }
 
+  check_for_fatal_error(): void {
+    const build_logs: BuildLogs = this.store.get("build_logs");
+    const errors = build_logs.getIn(["latex", "parse", "errors"]);
+    if (errors === undefined || errors.size < 1) return;
+    const last_error = errors.get(errors.size - 1);
+    let s = last_error.get("message") + last_error.get("content");
+    if (s.indexOf("no output PDF") != -1) {
+      // parse out the most relevant part of message...
+      let i = s.indexOf("Fatal error");
+      if (i !== -1) {
+        s = s.slice(i);
+      }
+      i = s.indexOf("!");
+      if (i != -1) {
+        s = s.slice(0, i + 1);
+      }
+      const err =
+        "WARNING: Your LaTeX file is badly misformatted; it is not possible to generate a useful PDF file.\n" +
+        s.trim();
+      console.warn(err);
+      this.set_error(err);
+    }
+  }
+
   async run_latex(time: number): Promise<void> {
     this.set_status("Running LaTeX...");
-    this.setState({ build_log: undefined });
+    this.set_error("");
+    this.setState({ build_logs: Map() });
     let output: BuildLog;
     try {
       output = await latexmk(
@@ -111,7 +138,8 @@ export class Actions extends BaseActions<LatexEditorState> {
     output.parse = new LatexParser(output.stdout, {
       ignoreDuplicates: true
     }).parse();
-    this.set_build_log({ latex: output });
+    this.set_build_logs({ latex: output });
+    this.check_for_fatal_error();
     this.clear_gutter("Codemirror-latex-errors");
     update_gutters({
       path: this.path,
@@ -157,7 +185,7 @@ export class Actions extends BaseActions<LatexEditorState> {
         this.path,
         time || this._last_save_time
       );
-      this.set_build_log({ bibtex: output });
+      this.set_build_logs({ bibtex: output });
     } catch (err) {
       this.set_error(err);
     }
@@ -172,7 +200,7 @@ export class Actions extends BaseActions<LatexEditorState> {
         this.path,
         time || this._last_save_time
       );
-      this.set_build_log({ sagetex: output });
+      this.set_build_logs({ sagetex: output });
     } catch (err) {
       this.set_error(err);
     }
@@ -235,7 +263,8 @@ export class Actions extends BaseActions<LatexEditorState> {
     }
     // Next get a PDF to jump to.
     let pdfjs_id: string | undefined = this._get_most_recent_pdfjs();
-    if (!pdfjs_id) {  // no pdfjs preview, so make one
+    if (!pdfjs_id) {
+      // no pdfjs preview, so make one
       // todo: maybe replace pdfjs_canvas by which pdfjs was most recently used...?
       this.split_frame("col", this._get_active_id(), "pdfjs_canvas");
       pdfjs_id = this._get_most_recent_pdfjs();
@@ -258,33 +287,30 @@ export class Actions extends BaseActions<LatexEditorState> {
     });
   }
 
-  set_build_log(obj: {
+  set_build_logs(obj: {
     latex?: BuildLog;
     bibtex?: BuildLog;
     sagetex?: BuildLog;
   }): void {
-    let build_log: Map<any, string> = this.store.get("build_log");
-    if (!build_log) {
-      build_log = Map();
-    }
+    let build_logs: BuildLogs = this.store.get("build_logs");
     let k: string;
     for (k in obj) {
       const v: BuildLog = obj[k];
-      build_log = build_log.set(k, fromJS(v));
+      build_logs = build_logs.set(k, fromJS(v));
     }
-    this.setState({ build_log });
+    this.setState({ build_logs });
   }
 
   async run_clean(): Promise<void> {
     let log: string = "";
     delete this._last_save_time;
-    this.setState({ build_log: Map() });
+    this.setState({ build_logs: Map() });
 
     const logger = (s: string): void => {
       log += s + "\n";
-      let build_log: Map<any, string> = this.store.get("build_log") || Map();
+      let build_logs: BuildLogs = this.store.get("build_logs");
       this.setState({
-        build_log: build_log.set("clean", log)
+        build_logs: build_logs.set("clean", fromJS({ stdout: log }))
       });
     };
 

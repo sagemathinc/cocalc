@@ -4,7 +4,16 @@ Show the last latex build log, i.e., output from last time we ran the LaTeX buil
 
 import { ButtonGroup, Button } from "react-bootstrap";
 import { is_different } from "../generic/misc";
-import { React, rclass, rtypes, Fragment, Rendered, Component } from "../generic/react";
+import {
+  React,
+  rclass,
+  rtypes,
+  Fragment,
+  Rendered,
+  Component
+} from "../generic/react";
+
+import { BuildLogs } from "./actions";
 
 const { Icon, Loading } = require("smc-webapp/r_misc");
 
@@ -58,14 +67,14 @@ interface Props {
 
   // reduxProps:
   status: string;
-  build_log: Map<string, any>;
+  build_logs: BuildLogs;
 }
 
 class Build extends Component<Props, {}> {
   static reduxProps({ name }) {
     return {
       [name]: {
-        build_log: rtypes.immutable.Map,
+        build_logs: rtypes.immutable.Map,
         status: rtypes.string
       }
     };
@@ -73,15 +82,15 @@ class Build extends Component<Props, {}> {
 
   shouldComponentUpdate(props): boolean {
     return is_different(this.props, props, [
-      "build_log",
+      "build_logs",
       "status",
       "font_size"
     ]);
   }
 
   render_log(stage): Rendered {
-    if (this.props.build_log == null) return;
-    let x = this.props.build_log.get(stage);
+    if (this.props.build_logs == null) return;
+    let x = this.props.build_logs.get(stage);
     if (!x) return;
     const value: string | undefined = x.get("stdout") + x.get("stderr");
     if (!value) {
@@ -115,8 +124,8 @@ class Build extends Component<Props, {}> {
 
   render_clean(): Rendered {
     const value =
-      this.props.build_log != null
-        ? this.props.build_log.get("clean")
+      this.props.build_logs != null
+        ? this.props.build_logs.getIn(["clean", "output"])
         : undefined;
     if (!value) {
       return;
