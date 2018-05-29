@@ -3,7 +3,7 @@ Show the last latex build log, i.e., output from last time we ran the LaTeX buil
 */
 
 import { ButtonGroup, Button } from "react-bootstrap";
-import { is_different } from "../generic/misc";
+import { is_different, path_split } from "../generic/misc";
 import {
   React,
   rclass,
@@ -15,7 +15,7 @@ import {
 
 import { BuildLogs } from "./actions";
 
-import {BuildCommand} from "./build-command";
+import { BuildCommand } from "./build-command";
 
 const { Icon, Loading } = require("smc-webapp/r_misc");
 
@@ -69,7 +69,8 @@ interface Props {
 
   // reduxProps:
   status: string;
-  build_logs: BuildLogs;
+  build_logs: BuildLogs
+  build_command : string;
 }
 
 class Build extends Component<Props, {}> {
@@ -77,7 +78,8 @@ class Build extends Component<Props, {}> {
     return {
       [name]: {
         build_logs: rtypes.immutable.Map,
-        status: rtypes.string
+        status: rtypes.string,
+        build_command : rtypes.string
       }
     };
   }
@@ -86,7 +88,8 @@ class Build extends Component<Props, {}> {
     return is_different(this.props, props, [
       "build_logs",
       "status",
-      "font_size"
+      "font_size",
+      "build_command"
     ]);
   }
 
@@ -152,7 +155,13 @@ class Build extends Component<Props, {}> {
   }
 
   render_build_command(): Rendered {
-    return <BuildCommand />
+    return (
+      <BuildCommand
+        filename={path_split(this.props.path).tail}
+        actions={this.props.actions}
+        build_command={this.props.build_command}
+      />
+    );
   }
 
   render_status(): Rendered {

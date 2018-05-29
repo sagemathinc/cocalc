@@ -30,3 +30,37 @@ export async function latexmk(
     aggregate: time
   });
 }
+
+export type Engine = "PDFLaTeX" | "XeLaTeX" | "LuaTex";
+
+export function build_command(engine: Engine, filename: string): string {
+  /*
+  errorstopmode recommended by
+  http://tex.stackexchange.com/questions/114805/pdflatex-nonstopmode-with-tikz-stops-compiling
+  since in some cases things will hang (using )
+  return "pdflatex -synctex=1 -interact=errorstopmode '#{@filename_tex}'"
+  However, users hate nostopmode, so we use nonstopmode, which can hang in rare cases with tikz.
+  See https://github.com/sagemathinc/cocalc/issues/156
+  */
+  let name: string = "pdf";
+  switch (engine) {
+    case "PDFLaTeX":
+      name = "pdf";
+      break;
+    case "XeLaTeX":
+      name = "xelatex";
+      break;
+    case "LuaTex":
+      name = "lualatex";
+      break;
+  }
+  /*
+    -f: force even when there are errors
+    -g: ignore heuristics to stop processing latex (sagetex)
+    silent: **don't** set -silent, also silences sagetex mesgs!
+    bibtex: a default, run bibtex when necessary
+    synctex: forward/inverse search in pdf
+    nonstopmode: continue after errors (otherwise, partial files)
+    */
+  return `latexmk -${name} -f -g -bibtex -synctex=1 -interaction=nonstopmode '${filename}'`;
+}

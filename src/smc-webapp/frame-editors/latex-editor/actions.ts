@@ -46,6 +46,7 @@ interface LatexEditorState extends CodeEditorState {
   scroll_pdf_into_view: TypedMap<ScrollIntoViewParams>;
   zoom_page_width: string;
   zoom_page_height: string;
+  build_command : string;
 }
 
 export class Actions extends BaseActions<LatexEditorState> {
@@ -59,6 +60,7 @@ export class Actions extends BaseActions<LatexEditorState> {
       this._init_syncstring_value();
       this._init_latexmk();
       this._init_spellcheck();
+      this._init_build_command();
     }
   }
 
@@ -67,6 +69,10 @@ export class Actions extends BaseActions<LatexEditorState> {
       this._last_save_time = time;
       this.run_latexmk(time);
     });
+  }
+
+  _init_build_command() : void {
+    this.set_build_command('pdflatex foo');
   }
 
   _raw_default_frame_tree(): FrameTree {
@@ -416,5 +422,10 @@ export class Actions extends BaseActions<LatexEditorState> {
 
   print_pdf(): void {
     print_html({ src: raw_url(this.project_id, pdf_path(this.path)) });
+  }
+
+  set_build_command(command: string) : void {
+    console.log('set build command to ', command);
+    this.setState({build_command: command});
   }
 }
