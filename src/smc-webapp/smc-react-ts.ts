@@ -27,7 +27,7 @@ if (DEBUG == null) {
   var DEBUG = false;
 }
 
-let rclass: (x?) => () => React.ReactElement<any>;
+let rclass: (x?) => () => JSX.Element;
 
 import * as immutable from "immutable";
 import * as React from "react";
@@ -37,12 +37,12 @@ import * as PropTypes from "prop-types";
 import { Provider, connect } from "react-redux";
 
 let redux: AppRedux;
-let coffee = require("./smc-react")
-redux = coffee.redux
+let coffee = require("./smc-react");
+redux = coffee.redux;
 
 import {
   Store,
-  store_definition,
+  store_base_state,
   StoreConstructorType
 } from "./smc-react/Store";
 
@@ -247,23 +247,32 @@ export class AppRedux {
     }
   }
 
-  createStore<T extends store_definition>(spec: T, store_class): Store<T>;
-  createStore<T, C extends Store<T>>(
-    name: string,
-    store_class: StoreConstructorType<T, C>,
-    init?: T
-  ): C;
-  createStore<T extends store_definition, C extends Store<T>>(
+  // Technically this overloading is not best practice but name and spec are semantically very different
+  createStore<
+    T extends store_base_state = store_base_state,
+    C extends Store<T> = Store<T>
+  >(name: string, store_class?: StoreConstructorType<T, C>, init?: T): C;
+  createStore<
+    T extends store_base_state = store_base_state,
+    C extends Store<T> = Store<T>
+  >(spec: T, store_class?: StoreConstructorType<T, C>, init?: T): C;
+  createStore<T extends store_base_state, C extends Store<T> = Store<T>>(
     spec: string | T,
-    store_class: StoreConstructorType<T, C>,
+    store_class?: StoreConstructorType<T, C>,
     init?: {} | T
   ): C {
     let S: C;
+    let _StoreClass: any;
+    if (store_class === undefined) {
+      _StoreClass = Store;
+    } else {
+      _StoreClass = store_class;
+    }
     if (typeof spec === "string") {
       let name = spec;
       S = this._stores[name];
       if (S == null) {
-        S = this._stores[name] = new store_class(name, this);
+        S = this._stores[name] = new _StoreClass(name, this);
         // Put into store. WARNING: New set_states CAN OVERWRITE THESE FUNCTIONS
         let C = immutable.Map(S as {});
         C = C.delete("redux"); // No circular pointing
@@ -275,7 +284,7 @@ export class AppRedux {
     } else {
       S = this._stores[spec.name];
       if (S == null) {
-        S = new store_class(spec.name, this, spec);
+        S = new _StoreClass(spec.name, this, spec);
         this._stores[spec.name] = S;
         // TODOJ: REMOVE
         S.__converted = true;
@@ -389,7 +398,9 @@ export class AppRedux {
   removeProjectReferences(project_id: string): void {
     if (!misc.is_valid_uuid_string(project_id)) {
       console.trace();
-      console.warn(`getProjectReferences: INVALID project_id -- "${project_id}"`);
+      console.warn(
+        `getProjectReferences: INVALID project_id -- "${project_id}"`
+      );
     }
     const name = project_redux_name(project_id);
     let store = this.getStore(name);

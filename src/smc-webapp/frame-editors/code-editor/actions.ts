@@ -1270,7 +1270,7 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     const info = new GutterMarker({
       line: opts.line,
       gutter_id: opts.gutter_id,
-      component: opts.component
+      component: opts.component,
     });
     this.setState({ gutter_markers: gutter_markers.set(opts.id, info) });
   }

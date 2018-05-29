@@ -20,7 +20,7 @@
 
 async = require('async')
 
-{React, ReactDOM, rclass, rtypes, is_redux, is_redux_actions, redux, Store, Actions, Redux} = require('./smc-react')
+{Component, React, ReactDOM, rclass, rtypes, is_redux, is_redux_actions, redux, Store, Actions, Redux} = require('./smc-react')
 {Alert, Button, ButtonToolbar, Checkbox, Col, FormControl, FormGroup, ControlLabel, InputGroup, Overlay, OverlayTrigger, Popover, Modal, Tooltip, Row, Well} = require('react-bootstrap')
 {HelpEmailLink, SiteName, CompanyName, PricingUrl, PolicyTOSPageUrl, PolicyIndexPageUrl, PolicyPricingPageUrl} = require('./customize')
 {UpgradeRestartWarning} = require('./upgrade_restart_warning')
@@ -98,6 +98,21 @@ exports.SetIntervalMixin =
         @intervals.push setInterval fn, ms
     componentWillUnmount: ->
         @intervals.forEach clearInterval
+
+exports.SetIntervalHOC = (Comp) ->
+    class SetIntervalWrapper extends Component
+        componentWillMount: ->
+            @intervals = []
+
+        setInterval: (fn, ms) ->
+            @intervals.push setInterval fn, ms
+
+        componentWillUnmount: ->
+            @intervals.forEach clearInterval
+
+        render: ->
+            Comp.setInterval = @setInterval
+            return React.createElement(Comp, @props, @props.children)
 
 exports.Space = Space = ->
     <span>&nbsp;</span>

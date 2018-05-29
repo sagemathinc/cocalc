@@ -7,13 +7,11 @@ import { AppRedux } from "../smc-react-ts";
 const misc = require("smc-util/misc");
 const { defaults, required } = misc;
 
-// Keys of T are stateTypes
-// TODO TS: Get rid of stateTypes and use the generic T here for stateTypes
-export interface store_definition {
+export interface store_base_state {
   readonly name: string;
 }
 
-export type StoreConstructorType<T, C extends Store<T>> = new (
+export type StoreConstructorType<T, C = Store<T>> = new (
   name: string,
   redux: AppRedux,
   store_def?: T
@@ -48,7 +46,7 @@ export class Store<State> extends EventEmitter {
   protected redux: AppRedux;
   private _last_state: State;
 
-  constructor(name, redux, store_def?: State) {
+  constructor(name: string, redux: AppRedux, store_def?: State) {
     super();
     this._handle_store_change = this._handle_store_change.bind(this);
     this.destroy = this.destroy.bind(this);
@@ -103,10 +101,7 @@ export class Store<State> extends EventEmitter {
     return this.redux._redux_store.getState().get(this.name);
   }
 
-  get<K extends keyof State, NSV>(
-    field: K,
-    notSetValue?: NSV
-  ): State[K] | NSV {
+  get<K extends keyof State, NSV>(field: K, notSetValue?: NSV): State[K] | NSV {
     return this.redux._redux_store
       .getState()
       .getIn([this.name, field, notSetValue]);
@@ -265,8 +260,8 @@ var generate_selectors = function(own, import_functions) {
 };
 
 let test: StoreConstructorType<
-  store_definition,
-  Store<store_definition>
+  store_base_state,
+  Store<store_base_state>
 > = Store;
 
-test.toString()
+test.toString();
