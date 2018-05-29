@@ -4,6 +4,8 @@ React component that describes the input of a cell
 import { React, Component } from "../frame-editors/generic/react"; // TODO: this will move
 import { Map as ImmutableMap, fromJS } from "immutable";
 
+// TODO: import jquery
+
 // TODO: use imports
 const misc = require("smc-util/misc");
 const { Markdown } = require("../r_misc");
