@@ -375,6 +375,7 @@ export class Actions<T = CodeEditorState> extends BaseActions<
       // already set -- nothing more to do
       return;
     }
+    this._cm[active_id];
     if (!this._is_leaf_id(active_id)) {
       if (ignore_if_missing) return;
       throw Error(`set_active_id - no leaf with id "${active_id}"`);
@@ -395,10 +396,10 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     // If active_id is the id of a codemirror editor,
     // save that it was focused just now; this is just a quick solution to
     // "give me last active cm" -- we will switch to something
-    // more generic later.
-    let cm: any = this._cm[active_id];
+    // more generic later -- TODO: switch to use _active_id_history
+    let cm: CodeMirror.Editor | undefined = this._cm[active_id];
     if (cm) {
-      cm._last_active = new Date();
+      (cm as any)._last_active = new Date();
       cm.focus();
     }
   }
