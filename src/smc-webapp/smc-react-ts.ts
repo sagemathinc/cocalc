@@ -296,17 +296,18 @@ export class AppRedux {
     return S;
   }
 
-  getStore<T, C extends Store<T>>(name: string): C | undefined {
-    if (name == null) {
-      throw Error("name must be a string");
+  hasStore(name: string): boolean {
+    return !!this._stores[name];
+  }
+
+  getStore<T, C extends Store<T>>(name: string): C {
+    if (!this.hasStore(name)) {
+      throw Error(`getStore: store ${name} not registered`);
     }
     return this._stores[name];
   }
 
   createTable(name: string, table_class = Table): Table {
-    if (name == null) {
-      throw Error("name must be a string");
-    }
     const tables = this._tables;
     if (tables[name] != null) {
       throw Error(`createTable: table ${name} already exists`);
@@ -316,9 +317,6 @@ export class AppRedux {
   }
 
   removeTable(name: string): void {
-    if (name == null) {
-      throw Error("name must be a string");
-    }
     if (this._tables[name] != null) {
       if (this._tables[name]._table != null) {
         this._tables[name]._table.close();
@@ -328,9 +326,6 @@ export class AppRedux {
   }
 
   removeStore(name: string): void {
-    if (name == null) {
-      throw Error("name must be a string");
-    }
     if (this._stores[name] != null) {
       const S = this._stores[name];
       S.emit("destroy");
@@ -340,10 +335,7 @@ export class AppRedux {
     }
   }
 
-  removeActions(name): void {
-    if (name == null) {
-      throw Error("name must be a string");
-    }
+  removeActions(name: string): void {
     if (this._actions[name] != null) {
       const A = this._actions[name];
       delete this._actions[name];
@@ -352,17 +344,14 @@ export class AppRedux {
   }
 
   getTable(name: string): Table {
-    if (name == null) {
-      throw Error("name must be a string");
-    }
     if (this._tables[name] == null) {
       throw Error(`getTable: table ${name} not registered`);
     }
     return this._tables[name];
   }
 
-  projectStoreExists(project_id: string): boolean {
-    return !!this.getStore(project_redux_name(project_id)) == undefined;
+  hasProjectStore(project_id: string): boolean {
+    return this.hasStore(project_redux_name(project_id));
   }
 
   // getProject... is safe to call any time. All structures will be created if they don't exist
@@ -373,7 +362,7 @@ export class AppRedux {
       console.trace();
       console.warn(`getProjectStore: INVALID project_id -- ${project_id}`);
     }
-    if (!this.projectStoreExists(project_id)) {
+    if (!this.hasProjectStore(project_id)) {
       require("project_store").init(project_id);
     }
     return this.getStore(project_redux_name(project_id));
@@ -386,7 +375,7 @@ export class AppRedux {
       console.trace();
       console.warn(`getProjectActions: INVALID project_id -- ${project_id}`);
     }
-    if (!this.projectStoreExists(project_id)) {
+    if (!this.hasProjectStore(project_id)) {
       require("project_store").init(project_id);
     }
     return this.getActions(project_redux_name(project_id));
@@ -398,7 +387,7 @@ export class AppRedux {
       console.trace();
       console.warn(`getProjectTable: INVALID project_id -- ${project_id}`);
     }
-    if (!this.projectStoreExists(project_id)) {
+    if (!this.hasProjectStore(project_id)) {
       require("project_store").init(project_id);
     }
     return this.getTable(project_redux_name(project_id, name));
@@ -413,7 +402,7 @@ export class AppRedux {
     }
     const name = project_redux_name(project_id);
     let store = this.getStore(name);
-    if (store !== undefined && typeof store.destroy == "function") {
+    if (typeof store.destroy == "function") {
       store.destroy();
     }
     this.removeActions(name);
