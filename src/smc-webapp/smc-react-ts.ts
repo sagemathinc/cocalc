@@ -229,16 +229,19 @@ export class AppRedux {
     return this._actions[name];
   }
 
+  hasActions(name:string):boolean {
+    return !!this._actions[name];
+  }
+
   getActions<T, C extends Actions<T>>(
     name: string | { project_id: string }
-  ): C | undefined {
-    if (name == null) {
-      throw Error(
-        "name must be a string or an object with a project_id attribute, but is undefined"
-      );
-    }
+  ): C {
     if (typeof name === "string") {
-      return this._actions[name];
+      if (!this.hasActions(name)) {
+        throw Error(`getActions: actions ${name} not registered`);
+      } else {
+        return this._actions[name];
+      }
     } else {
       if (name.project_id == null) {
         throw Error("Object must have project_id attribute");
