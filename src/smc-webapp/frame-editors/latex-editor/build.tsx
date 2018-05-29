@@ -15,6 +15,8 @@ import {
 
 import { BuildLogs } from "./actions";
 
+import {BuildCommand} from "./build-command";
+
 const { Icon, Loading } = require("smc-webapp/r_misc");
 
 interface BuildSpec {
@@ -149,6 +151,10 @@ class Build extends Component<Props, {}> {
     );
   }
 
+  render_build_command(): Rendered {
+    return <BuildCommand />
+  }
+
   render_status(): Rendered {
     if (this.props.status) {
       return (
@@ -207,6 +213,7 @@ class Build extends Component<Props, {}> {
         }}
       >
         {this.render_buttons()}
+        {this.render_build_command()}
         {this.render_status()}
         {this.render_log("latex")}
         {this.render_log("sagetex")}
