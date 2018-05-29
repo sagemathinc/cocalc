@@ -241,7 +241,7 @@ class ErrorsAndWarnings extends Component<ErrorsAndWarningsProps, {}> {
         style={{
           overflowY: "scroll",
           padding: "5px 15px",
-          fontSize: "11pt"
+          fontSize: "10pt"
         }}
       >
         {this.render_status()}

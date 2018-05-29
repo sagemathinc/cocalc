@@ -7,7 +7,7 @@ This is a renderer using pdf.js.
 // less likely the user will see a blank page for a moment, but
 // also potentially makes things feel slightly slower and heavier.
 const WINDOW_SIZE: number = 3000;
-const HIGHLIGHT_TIME_S: number = 60;
+const HIGHLIGHT_TIME_S: number = 3;
 
 const { Loading } = require("smc-webapp/r_misc");
 

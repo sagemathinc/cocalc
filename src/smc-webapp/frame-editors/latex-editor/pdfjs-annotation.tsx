@@ -136,6 +136,7 @@ export class AnnotationLayer extends Component<Props, State> {
   render_sync_highlight(scale: number, width: number, y: number): Rendered {
     return (
       <div
+        onDoubleClick={e => e.stopPropagation()}
         key={"sync"}
         style={{
           position: "absolute",
