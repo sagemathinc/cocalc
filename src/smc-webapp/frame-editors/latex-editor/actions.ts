@@ -5,12 +5,12 @@ LaTeX Editor Actions.
 const WIKI_HELP_URL = "https://github.com/sagemathinc/cocalc/wiki/LaTeX-Editor";
 const VIEWERS = ["pdfjs_canvas", "pdfjs_svg", "embed", "build"];
 
-import { fromJS, Map } from "immutable";
+import { fromJS, List, Map } from "immutable";
 import {
   Actions as BaseActions,
   CodeEditorState
 } from "../code-editor/actions";
-import { latexmk } from "./latexmk";
+import { latexmk, build_command } from "./latexmk";
 import { sagetex } from "./sagetex";
 import * as synctex from "./synctex";
 import { bibtex } from "./bibtex";
@@ -46,7 +46,7 @@ interface LatexEditorState extends CodeEditorState {
   scroll_pdf_into_view: TypedMap<ScrollIntoViewParams>;
   zoom_page_width: string;
   zoom_page_height: string;
-  build_command : string;
+  build_command: string | List<string>;
 }
 
 export class Actions extends BaseActions<LatexEditorState> {
@@ -71,8 +71,8 @@ export class Actions extends BaseActions<LatexEditorState> {
     });
   }
 
-  _init_build_command() : void {
-    this.set_build_command('pdflatex foo');
+  _init_build_command(): void {
+    this.set_build_command(build_command("PDFLaTeX", this.path));
   }
 
   _raw_default_frame_tree(): FrameTree {
@@ -82,17 +82,16 @@ export class Actions extends BaseActions<LatexEditorState> {
       return {
         direction: "col",
         type: "node",
-        first: {
-          type: "cm"
-        },
+        first: { type: "cm" },
         second: {
           direction: "row",
           type: "node",
-          first: {
-            type: "pdfjs_canvas"
-          },
+          first: { type: "pdfjs_canvas" },
           second: {
-            type: "error"
+            direction: "col",
+            type: "node",
+            first: { type: "error" },
+            second: { type: "build" }
           }
         }
       };
@@ -132,10 +131,19 @@ export class Actions extends BaseActions<LatexEditorState> {
     this.set_error("");
     this.setState({ build_logs: Map() });
     let output: BuildLog;
+    let build_command: string | string[];
+    let s: string | List<string> = this.store.get("build_command");
+    if (typeof s == "string") {
+      build_command = s;
+    } else {
+      build_command = s.toJS();
+    }
+
     try {
       output = await latexmk(
         this.project_id,
         this.path,
+        build_command,
         time || this._last_save_time
       );
     } catch (err) {
@@ -424,8 +432,8 @@ export class Actions extends BaseActions<LatexEditorState> {
     print_html({ src: raw_url(this.project_id, pdf_path(this.path)) });
   }
 
-  set_build_command(command: string) : void {
-    console.log('set build command to ', command);
-    this.setState({build_command: command});
+  set_build_command(command: string | string[]): void {
+    console.log("set build command to ", command);
+    this.setState({ build_command: fromJS(command) });
   }
 }

@@ -3,6 +3,8 @@ Customization and selection of the build command.
 
 */
 
+import { List } from "immutable";
+
 const { Loading } = require("smc-webapp/r_misc");
 
 import {
@@ -17,6 +19,8 @@ import {
 
 import { React, Rendered, Component } from "../generic/react";
 
+import { split } from "../generic/misc";
+
 import { Engine, build_command } from "./latexmk";
 
 const ENGINES: Engine[] = ["PDFLaTeX", "XeLaTeX", "LuaTex"];
@@ -24,7 +28,7 @@ const ENGINES: Engine[] = ["PDFLaTeX", "XeLaTeX", "LuaTex"];
 interface Props {
   actions: any;
   filename: string;
-  build_command: string;
+  build_command: string | List<string>;
 }
 
 interface State {
@@ -35,14 +39,40 @@ interface State {
 export class BuildCommand extends Component<Props, State> {
   constructor(props) {
     super(props);
-    this.state = { build_command: props.build_command, focus: false };
+    this.state = {
+      build_command: this.build_command_string(props.build_command),
+      focus: false
+    };
   }
 
   componentWillReceiveProps(next: Props): void {
     if (next.build_command != this.props.build_command) {
       // set by another user or menu selection.
-      this.setState({ build_command: next.build_command });
+      this.setState({
+        build_command: this.build_command_string(next.build_command)
+      });
     }
+  }
+
+  build_command_string(cmd: string | List<string>): string {
+    let s: string;
+    if (typeof cmd === "string") {
+      s = cmd;
+    } else {
+      s = "";
+      cmd.forEach(function(t: string) {
+        if (split(t).length > 1) {
+          // some minimal escape for now...
+          if (t.indexOf("'") === -1) {
+            t = `'${t}'`;
+          } else {
+            t = `"${t}"`;
+          }
+        }
+        s += " " + t;
+      });
+    }
+    return s;
   }
 
   render_item(engine: string): Rendered {
@@ -73,7 +103,7 @@ export class BuildCommand extends Component<Props, State> {
     return (
       <ButtonToolbar>
         <DropdownButton
-          title="LaTeX Engine"
+          title="Engine"
           id="cc-latex-build-command"
           pullRight
         >
@@ -84,7 +114,6 @@ export class BuildCommand extends Component<Props, State> {
   }
 
   handle_command_line_change(val: string): void {
-    console.log(val);
     this.setState({ build_command: val });
   }
 
@@ -102,7 +131,12 @@ export class BuildCommand extends Component<Props, State> {
         onFocus={() => this.setState({ focus: true })}
         onBlur={() => {
           this.setState({ focus: false });
-          this.props.actions.set_build_command(this.state.build_command);
+          if (
+            this.state.build_command !=
+            this.build_command_string(this.props.build_command)
+          ) {
+            this.props.actions.set_build_command(this.state.build_command);
+          }
         }}
       />
     );
@@ -110,20 +144,16 @@ export class BuildCommand extends Component<Props, State> {
   }
 
   render_help(): Rendered {
-    if (
-      this.props.build_command == this.state.build_command &&
-      !this.state.focus
-    )
-      return;
+    if (!this.state.focus) return;
     return (
       <Alert bsStyle="info">
         <div style={{ color: "#666" }}>
           <h4>Build Command</h4>
-          You can enter absolutely any custom build command line you want (it will be
-          run using bash, so separate multiple commands with a semicolon). You
-          can also use the "LaTeX Engine" menu to select a preset build command.
-          The build command is stored in a comment at the bottom of the
-          master LaTeX file.
+          You can enter absolutely any custom build command line you want (it
+          will be run using bash, so separate multiple commands with a
+          semicolon). You can also use the "Engine" menu to select a
+          preset build command. The build command is stored in a comment at the
+          bottom of the master LaTeX file.
         </div>
       </Alert>
     );
@@ -131,7 +161,7 @@ export class BuildCommand extends Component<Props, State> {
 
   render_form(): Rendered {
     return (
-      <Form horizontal style={{ marginTop: "5px", marginBottom:"-30px" }}>
+      <Form horizontal style={{ marginTop: "5px", marginBottom: "-30px" }}>
         <FormGroup style={{ display: "flex" }}>
           <div style={{ flex: 1, paddingLeft: "15px" }}>
             {this.render_command_line()}

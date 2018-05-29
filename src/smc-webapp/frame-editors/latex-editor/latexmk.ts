@@ -8,22 +8,28 @@ import { path_split } from "../generic/misc";
 export async function latexmk(
   project_id: string,
   path: string,
-  time?: number // (ms since epoch)  used to aggregate multiple calls into one across all users.
+  build_command: string | string[],
+  time: number // (ms since epoch)  used to aggregate multiple calls into one across all users.
 ): Promise<ExecOutput> {
   const x = path_split(path);
+  let bash: boolean;
+  let command: string;
+  let args: string[] | undefined;
+  if (typeof build_command === "string") {
+    bash = true;
+    command = build_command;
+    args = undefined;
+  } else {
+    bash = false;
+    command = build_command[0];
+    args = build_command.slice(1);
+  }
   return await exec({
+    bash: bash,
     allow_post: false, // definitely could take a long time to fully run latex
     timeout: 90,
-    command: "latexmk",
-    args: [
-      "-pdf",
-      "-f",
-      "-g",
-      "-bibtex",
-      "-synctex=1",
-      "-interaction=nonstopmode",
-      x.tail
-    ],
+    command: command,
+    args: args,
     project_id: project_id,
     path: x.head,
     err_on_exit: false,
@@ -33,7 +39,7 @@ export async function latexmk(
 
 export type Engine = "PDFLaTeX" | "XeLaTeX" | "LuaTex";
 
-export function build_command(engine: Engine, filename: string): string {
+export function build_command(engine: Engine, filename: string): string[] {
   /*
   errorstopmode recommended by
   http://tex.stackexchange.com/questions/114805/pdflatex-nonstopmode-with-tikz-stops-compiling
@@ -62,5 +68,14 @@ export function build_command(engine: Engine, filename: string): string {
     synctex: forward/inverse search in pdf
     nonstopmode: continue after errors (otherwise, partial files)
     */
-  return `latexmk -${name} -f -g -bibtex -synctex=1 -interaction=nonstopmode '${filename}'`;
+  return [
+    "latexmk",
+    `-${name}`,
+    "-f",
+    "-g",
+    "-bibtex",
+    "-synctex=1",
+    "-interaction=nonstopmode",
+    filename
+  ];
 }
