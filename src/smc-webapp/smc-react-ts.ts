@@ -231,7 +231,7 @@ export class AppRedux {
 
   getActions<T, C extends Actions<T>>(
     name: string | { project_id: string }
-  ): C {
+  ): C | undefined {
     if (name == null) {
       throw Error(
         "name must be a string or an object with a project_id attribute, but is undefined"
@@ -296,7 +296,7 @@ export class AppRedux {
     return S;
   }
 
-  getStore<T, C extends Store<T>>(name: string): C {
+  getStore<T, C extends Store<T>>(name: string): C | undefined {
     if (name == null) {
       throw Error("name must be a string");
     }
@@ -361,19 +361,24 @@ export class AppRedux {
     return this._tables[name];
   }
 
-  // CRITICAL: this function is **completely broken/wrong -- see smc-react.coffee and project_store.coffee!
+  projectStoreExists(project_id: string): boolean {
+    return !!this.getStore(project_redux_name(project_id)) == undefined;
+  }
+
+  // getProject... is safe to call any time. All structures will be created if they don't exist
   // TODO -- Typing: Type project Store
   // <T, C extends Store<T>>
-  getProjectStore(project_id: string): any {
+  getProjectStore = (project_id: string): any => {
     if (!misc.is_valid_uuid_string(project_id)) {
       console.trace();
       console.warn(`getProjectStore: INVALID project_id -- ${project_id}`);
     }
-
+    if (!this.projectStoreExists(project_id)) {
+      require("project_store").init(project_id);
+    }
     return this.getStore(project_redux_name(project_id));
-  }
+  };
 
-  // CRITICAL: this function is **completely broken/wrong** -- see smc-react.coffee and project_store.coffee!
   // TODO -- Typing: Type project Actions
   // T, C extends Actions<T>
   getProjectActions(project_id: string): any {
@@ -381,20 +386,24 @@ export class AppRedux {
       console.trace();
       console.warn(`getProjectActions: INVALID project_id -- ${project_id}`);
     }
+    if (!this.projectStoreExists(project_id)) {
+      require("project_store").init(project_id);
+    }
     return this.getActions(project_redux_name(project_id));
   }
 
-  // CRITICAL: this function is **completely broken/wrong** -- see smc-react.coffee and project_store.coffee!
   // TODO -- Typing: Type project Table
   getProjectTable(project_id: string, name: string): any {
     if (!misc.is_valid_uuid_string(project_id)) {
       console.trace();
       console.warn(`getProjectTable: INVALID project_id -- ${project_id}`);
     }
+    if (!this.projectStoreExists(project_id)) {
+      require("project_store").init(project_id);
+    }
     return this.getTable(project_redux_name(project_id, name));
   }
 
-  // CRITICAL: this function is **completely broken/wrong** -- see smc-react.coffee and project_store.coffee!
   removeProjectReferences(project_id: string): void {
     if (!misc.is_valid_uuid_string(project_id)) {
       console.trace();
@@ -404,7 +413,7 @@ export class AppRedux {
     }
     const name = project_redux_name(project_id);
     let store = this.getStore(name);
-    if (typeof store.destroy == "function") {
+    if (store !== undefined && typeof store.destroy == "function") {
       store.destroy();
     }
     this.removeActions(name);
@@ -467,7 +476,7 @@ const connect_component = spec => {
         var val;
         const type = info[prop];
         // TODO: Use typing on store
-        if ((store != null ? store.__converted : undefined) != null) {
+        if (store !== undefined && store.__converted) {
           val = store[prop];
           let info = Object.getOwnPropertyDescriptor(store, prop);
           if (info == undefined || info.get == null) {
