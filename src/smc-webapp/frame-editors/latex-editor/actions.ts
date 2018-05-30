@@ -25,6 +25,7 @@ import { Store } from "../../smc-react-ts";
 import { createTypedMap, TypedMap } from "../../smc-react/TypedMap";
 import { print_html } from "../frame-tree/print";
 import { raw_url } from "../frame-tree/util";
+import { path_split } from "../generic/misc";
 
 interface BuildLog extends ExecOutput {
   parse?: ProcessedLatexLog;
@@ -72,7 +73,7 @@ export class Actions extends BaseActions<LatexEditorState> {
   }
 
   _init_build_command(): void {
-    this.set_build_command(build_command("PDFLaTeX", this.path));
+    this.set_build_command(build_command("PDFLaTeX", path_split(this.path).tail));
   }
 
   _raw_default_frame_tree(): FrameTree {
