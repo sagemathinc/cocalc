@@ -101,7 +101,7 @@ export class Store<State> extends EventEmitter {
     return this.redux._redux_store.getState().get(this.name);
   }
 
-  get<K extends keyof State, NSV>(field: K, notSetValue?: NSV): State[K] | NSV {
+  get<K extends keyof State, NSV = State[K]>(field: K, notSetValue?: NSV): State[K] | NSV {
     return this.redux._redux_store
       .getState()
       .getIn([this.name, field, notSetValue]);
@@ -111,11 +111,11 @@ export class Store<State> extends EventEmitter {
   // It's probably advisable to normalize your data if you find yourself that deep
   // https://redux.js.org/recipes/structuring-reducers/normalizing-state-shape
   // If you need to describe a recurse data structure such as a binary tree, use unsafe_getIn.
-  getIn<K1 extends keyof State, NSV>(
+  getIn<K1 extends keyof State, NSV = State[K1]>(
     path: [K1],
     notSetValue?: NSV
   ): State[K1] | NSV;
-  getIn<K1 extends keyof State, K2 extends keyof State[K1], NSV>(
+  getIn<K1 extends keyof State, K2 extends keyof State[K1], NSV = State[K1][K2]>(
     path: [K1, K2],
     notSetValue?: NSV
   ): State[K1][K2] | NSV;
@@ -123,7 +123,7 @@ export class Store<State> extends EventEmitter {
     K1 extends keyof State,
     K2 extends keyof State[K1],
     K3 extends keyof State[K1][K2],
-    NSV
+    NSV = State[K1][K2][K3]
   >(path: [K1, K2, K3], notSetValue?: NSV): State[K1][K2][K3] | NSV;
   getIn(path: any[], notSetValue?: any): any {
     return this.redux._redux_store
