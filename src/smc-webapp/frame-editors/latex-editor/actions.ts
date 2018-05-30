@@ -288,7 +288,14 @@ export class Actions extends BaseActions<LatexEditorState> {
         throw Error("BUG -- there must be a pdfjs frame.");
       }
     }
-    // NOw show the preview in the right place.
+    const full_id: string | undefined = this.store.getIn([
+      "local_view_state",
+      "full_id"
+    ]);
+    if (full_id && full_id != pdfjs_id) {
+      this.unset_frame_full();
+    }
+    // Now show the preview in the right place.
     this.scroll_pdf_into_view(info.Page as number, info.y as number, pdfjs_id);
   }
 

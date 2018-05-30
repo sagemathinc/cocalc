@@ -20,7 +20,6 @@ import {
 } from "../generic/client";
 import { callback_opts, retry_until_success } from "../generic/async-utils";
 import {
-  cmp_Date,
   filename_extension,
   history_path,
   len,
@@ -892,7 +891,6 @@ export class Actions<T = CodeEditorState> extends BaseActions<
   //   if recent is not given, return some cm
   // 3. If no cm's return undefined.
   _get_cm(id?: string, recent?: boolean): CodeMirror.Editor | undefined {
-    let v;
     if (id) {
       let cm: CodeMirror.Editor | undefined = this._cm[id];
       if (!cm) {
@@ -903,31 +901,10 @@ export class Actions<T = CodeEditorState> extends BaseActions<
       }
     }
     if (recent) {
-      // TODO: rewrite this (and code in set_active_id) to work generically
-      // for any frame tree leaf type.
-      v = (() => {
-        const result: any[] = [];
-        for (let _ in this._cm) {
-          const obj = this._cm[_];
-          result.push(obj);
-        }
-        return result;
-      })();
-      if (v.length === 0) {
-        return;
-      }
-      v.sort(
-        (a, b) =>
-          -cmp_Date(
-            a._last_active != null ? a._last_active : 0,
-            b._last_active != null ? b._last_active : 0
-          )
-      );
-      return v[0];
+      return this._get_cm(this._get_most_recent_cm_id(), false);
     } else {
       for (id in this._cm) {
-        v = this._cm[id];
-        return v;
+        return this._cm[id];
       }
     }
   }
@@ -939,6 +916,12 @@ export class Actions<T = CodeEditorState> extends BaseActions<
 
   _recent_cm(): CodeMirror.Editor | undefined {
     return this._get_cm(undefined, true);
+  }
+
+  _get_most_recent_cm_id(): string | undefined {
+    return this._get_most_recent_active_frame_id(
+      node => node.get("type") == "cm"
+    );
   }
 
   _active_cm(): CodeMirror.Editor | undefined {
@@ -1116,8 +1099,20 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     cursor?: boolean,
     focus?: boolean
   ): Promise<void> {
-    let cm = this._recent_cm();
-    if (cm == null) { // this case can only happen in derived classes with non-cm editors.
+    const cm_id : string | undefined = this._get_most_recent_cm_id();
+    const full_id: string | undefined = this.store.getIn([
+      "local_view_state",
+      "full_id"
+    ]);
+    if (full_id && full_id != cm_id) {
+      this.unset_frame_full();
+      // have to wait for cm to get created and registered.
+      await delay(1);
+    }
+
+    let cm = this._get_cm(cm_id);
+    if (cm == null) {
+      // this case can only happen in derived classes with non-cm editors.
       this.split_frame("col", this._get_active_id(), "cm");
       // Have to wait until the codemirror editor is created and registered, which
       // is caused by component mounting.
@@ -1270,7 +1265,7 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     const info = new GutterMarker({
       line: opts.line,
       gutter_id: opts.gutter_id,
-      component: opts.component,
+      component: opts.component
     });
     this.setState({ gutter_markers: gutter_markers.set(opts.id, info) });
   }
@@ -1290,7 +1285,8 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     let gutter_markers: GutterMarkers = this.store.get("gutter_markers", Map());
     const before = gutter_markers;
     gutter_markers.map((info, id) => {
-      if (info !== undefined && info.get("gutter_id") === gutter_id && id)  {   /* && id is to satify typescript */
+      if (info !== undefined && info.get("gutter_id") === gutter_id && id) {
+        /* && id is to satify typescript */
         gutter_markers = gutter_markers.delete(id);
       }
     });
