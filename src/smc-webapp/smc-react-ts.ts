@@ -57,15 +57,15 @@ export let COLOR = {
   FG_BLUE: "#428bca" // blue used for text
 };
 
-class Table {
+abstract class Table {
   public name: string;
   public _table: any;
   protected redux: AppRedux;
-  protected readonly _change: (table: any, keys: string[]) => void;
 
   // override in derived class to pass in options to the query -- these only impact initial query, not changefeed!
-  options?: () => any[];
-  query: () => void;
+  abstract options(): any[];
+  abstract query(): void;
+  protected abstract _change(table: any, keys: string[]): void;
 
   constructor(name, redux) {
     this.set = this.set.bind(this);
@@ -93,6 +93,8 @@ class Table {
     this._table.set(changes, merge, cb);
   }
 }
+
+type TableConstructor<T extends Table> = new (name, redux) => T
 
 const depends = (...dependency_names) => deriving_func => {
   deriving_func.dependency_names = dependency_names;
@@ -252,17 +254,17 @@ export class AppRedux {
 
   // Technically this overloading is not best practice but name and spec are semantically very different
   createStore<
-    T extends store_base_state = store_base_state,
-    C extends Store<T> = Store<T>
-  >(name: string, store_class?: StoreConstructorType<T, C>, init?: T): C;
+    State extends store_base_state = store_base_state,
+    C extends Store<State> = Store<State>
+  >(name: string, store_class?: StoreConstructorType<State, C>, init?: State): C;
   createStore<
-    T extends store_base_state = store_base_state,
-    C extends Store<T> = Store<T>
-  >(spec: T, store_class?: StoreConstructorType<T, C>, init?: T): C;
-  createStore<T extends store_base_state, C extends Store<T> = Store<T>>(
-    spec: string | T,
-    store_class?: StoreConstructorType<T, C>,
-    init?: {} | T
+    State extends store_base_state = store_base_state,
+    C extends Store<State> = Store<State>
+  >(spec: State, store_class?: StoreConstructorType<State, C>, init?: State): C;
+  createStore<State extends store_base_state, C extends Store<State> = Store<State>>(
+    spec: string | State,
+    store_class?: StoreConstructorType<State, C>,
+    init?: {} | State
   ): C {
     let S: C;
     let _StoreClass: any;
@@ -303,14 +305,14 @@ export class AppRedux {
     return !!this._stores[name];
   }
 
-  getStore<T, C extends Store<T>>(name: string): C {
+  getStore<State, C extends Store<State>>(name: string): C {
     if (!this.hasStore(name)) {
       throw Error(`getStore: store ${name} not registered`);
     }
     return this._stores[name];
   }
 
-  createTable(name: string, table_class = Table): Table {
+  createTable<T extends Table>(name: string, table_class: TableConstructor<T>): T {
     const tables = this._tables;
     if (tables[name] != null) {
       throw Error(`createTable: table ${name} already exists`);
@@ -412,7 +414,7 @@ export class AppRedux {
     this.removeStore(name);
   }
 
-  getEditorStore(project_id: string, path: string, is_public: boolean) {
+  getEditorStore(project_id: string, path: string, is_public?: boolean) {
     if (!misc.is_valid_uuid_string(project_id)) {
       console.trace();
       console.warn(`getEditorStore: INVALID project_id -- ${project_id}`);
@@ -420,7 +422,7 @@ export class AppRedux {
     return this.getStore(file_redux_name(project_id, path, is_public));
   }
 
-  getEditorActions(project_id: string, path: string, is_public: boolean) {
+  getEditorActions(project_id: string, path: string, is_public?: boolean) {
     if (!misc.is_valid_uuid_string(project_id)) {
       console.trace();
       console.warn(`getEditorActions: INVALID project_id -- ${project_id}`);
@@ -715,7 +717,7 @@ export function is_redux_actions(obj) {
 export function redux_name(
   project_id: string,
   path: string,
-  is_public: boolean
+  is_public?: boolean
 ) {
   if (is_public) {
     return `public-${project_id}-${path}`;
