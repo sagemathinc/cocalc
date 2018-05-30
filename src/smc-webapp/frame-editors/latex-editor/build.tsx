@@ -178,7 +178,7 @@ class Build extends Component<Props, {}> {
           <Loading
             text={this.props.status}
             style={{
-              fontSize: "18pt",
+              fontSize: "10pt",
               textAlign: "center",
               marginTop: "15px",
               color: "#666"

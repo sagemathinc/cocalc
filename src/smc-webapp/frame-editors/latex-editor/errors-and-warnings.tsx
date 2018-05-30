@@ -192,7 +192,7 @@ class ErrorsAndWarnings extends Component<ErrorsAndWarningsProps, {}> {
             text={this.props.status}
             style={{
               fontSize: "10pt",
-              color: "#444"
+              color: "#666"
             }}
           />
         </div>
