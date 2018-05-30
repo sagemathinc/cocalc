@@ -355,7 +355,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     }
   }
 
-  _ensure_project_is_open(cb, switch_to?) {
+  _ensure_project_is_open(cb) {
     const s: any = this.redux.getStore("projects");
     if (!s.is_project_open(this.project_id)) {
       (this.redux.getActions("projects") as any).open_project({
@@ -1089,7 +1089,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
               project_id: this.project_id,
               command: "cp",
               args: [filename, new_filename],
-              cb: (err, output) => {
+              cb: (err) => {
                 if (err) {
                   return cb(err);
                 } else {
@@ -1105,7 +1105,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
             project_id: this.project_id,
             command: "smc-sws2sagews",
             args: [filename],
-            cb: (err, output) => {
+            cb: (err) => {
               return cb(err);
             }
           });
@@ -2430,7 +2430,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     };
     // only set created if this obj is new; have to just linearly search through paths right now...
     if (store.get("public_paths") != null) {
-      store.get("public_paths").map(function(v, k) {
+      store.get("public_paths").map(function(v) {
         if (v.get("path") === path) {
           delete obj.created;
           return false;
@@ -3258,7 +3258,7 @@ export function init(project_id) {
       options() {
         return q.options;
       }
-      _change(table, keys) {
+      _change(table) {
         return actions.setState({ [table_name]: table.get() });
       }
     };
@@ -3273,7 +3273,7 @@ export function init(project_id) {
       }
     }
     q.query.project_id = project_id;
-    const T = redux.createTable(
+    redux.createTable(
       project_redux_name(project_id, table_name),
       create_table(table_name, q)
     );

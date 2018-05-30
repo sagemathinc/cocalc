@@ -31,7 +31,7 @@ let rclass: (x?) => () => JSX.Element;
 
 import * as immutable from "immutable";
 import * as React from "react";
-import { createStore as createReduxStore, Action } from "redux";
+import { createStore as createReduxStore } from "redux";
 import * as createReactClass from "create-react-class";
 import * as PropTypes from "prop-types";
 import { Provider, connect } from "react-redux";
