@@ -509,6 +509,11 @@ export class Actions<T = CodeEditorState> extends BaseActions<
   // though we have a unit test of it at this level.
   set_frame_type(id: string, type: string): void {
     this.set_frame_tree({ id, type });
+    if (this._cm[id] && type != "cm") {
+      // Make sure to clear cm cache in case switching type away,
+      // in case the component unmount doesn't do this.
+      delete this._cm[id];
+    }
   }
 
   // raises an exception if the node does not exist; always
@@ -1099,7 +1104,7 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     cursor?: boolean,
     focus?: boolean
   ): Promise<void> {
-    const cm_id : string | undefined = this._get_most_recent_cm_id();
+    const cm_id: string | undefined = this._get_most_recent_cm_id();
     const full_id: string | undefined = this.store.getIn([
       "local_view_state",
       "full_id"
