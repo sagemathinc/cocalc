@@ -36,21 +36,21 @@ const BUILD_SPECS = {
   },
 
   latex: {
-    button: true,
+    button: false,
     label: "LaTeX",
     icon: "cc-icon-tex-file",
     tip: "Run the LaTeX build command (typically latexmk)"
   },
 
   bibtex: {
-    button: true,
+    button: false,
     label: "BibTeX",
     icon: "file-code-o",
     tip: "Process bibliography using Bibtex"
   },
 
   sagetex: {
-    button: true,
+    button: false,
     label: "SageTex",
     icon: "cc-icon-sagemath-bold",
     tip: "Run SageTex, if necessary"
