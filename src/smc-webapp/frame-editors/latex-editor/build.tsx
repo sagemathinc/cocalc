@@ -28,7 +28,7 @@ interface BuildSpec {
 }
 
 const BUILD_SPECS = {
-  recompile: {
+  build: {
     button: true,
     label: "Build",
     icon: "retweet",
@@ -36,21 +36,21 @@ const BUILD_SPECS = {
   },
 
   latex: {
-    button: false,
+    button: true,
     label: "LaTeX",
     icon: "cc-icon-tex-file",
-    tip: "Run the LaTeX build command"
+    tip: "Run the LaTeX build command (typically latexmk)"
   },
 
   bibtex: {
-    button: false,
+    button: true,
     label: "BibTeX",
     icon: "file-code-o",
     tip: "Process bibliography using Bibtex"
   },
 
   sagetex: {
-    button: false,
+    button: true,
     label: "SageTex",
     icon: "cc-icon-sagemath-bold",
     tip: "Run SageTex, if necessary"

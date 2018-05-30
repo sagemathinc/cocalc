@@ -23,7 +23,7 @@ interface ExecOpts {
   network_timeout?: number;
   max_output?: number;
   bash?: boolean;
-  aggregate?: any;
+  aggregate?: string | number | {value:(string|number)} ;
   err_on_exit?: boolean;
   allow_post?: boolean; // set to false if genuinely could take a long time
 }

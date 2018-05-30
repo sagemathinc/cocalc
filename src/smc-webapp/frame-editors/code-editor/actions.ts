@@ -256,10 +256,13 @@ export class Actions<T = CodeEditorState> extends BaseActions<
 
   // Update the reload key in the store, which may *trigger* UI to
   // update itself as a result (e.g. a pdf preview or markdown preview pane).
-  set_reload(type: string): void {
+  set_reload(type: string, hash?:number): void {
     const reload: Map<string, any> = this.store.get("reload", Map());
+    if (hash === undefined) {
+      hash = this._syncstring.hash_of_saved_version()
+    }
     this.setState({
-      reload: reload.set(type, this._syncstring.hash_of_saved_version())
+      reload: reload.set(type,hash)
     });
   }
 

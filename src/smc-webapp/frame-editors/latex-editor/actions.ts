@@ -3,7 +3,7 @@ LaTeX Editor Actions.
 */
 
 const WIKI_HELP_URL = "https://github.com/sagemathinc/cocalc/wiki/LaTeX-Editor";
-const VIEWERS = ["pdfjs_canvas", "pdfjs_svg", "embed", "build"];
+const VIEWERS = ["pdfjs_canvas", "pdfjs_svg", "pdf_embed", "build"];
 
 import { fromJS, List, Map } from "immutable";
 import {
@@ -11,7 +11,7 @@ import {
   CodeEditorState
 } from "../code-editor/actions";
 import { latexmk, build_command } from "./latexmk";
-import { sagetex } from "./sagetex";
+import { sagetex, sagetex_hash } from "./sagetex";
 import * as synctex from "./synctex";
 import { bibtex } from "./bibtex";
 import { server_time, ExecOutput } from "../generic/client";
@@ -54,6 +54,7 @@ export class Actions extends BaseActions<LatexEditorState> {
   public project_id: string;
   public store: Store<LatexEditorState>;
   private _last_save_time: number;
+  private _last_sagetex_hash: string;
 
   _init2(): void {
     if (!this.is_public) {
@@ -67,7 +68,7 @@ export class Actions extends BaseActions<LatexEditorState> {
   _init_latexmk(): void {
     this._syncstring.on("save-to-disk", time => {
       this._last_save_time = time;
-      this.run_latexmk(time);
+      this.run_build(time);
     });
   }
 
@@ -92,7 +93,7 @@ export class Actions extends BaseActions<LatexEditorState> {
       if (x !== undefined && x.get("value") !== undefined) {
         this.setState({ build_command: fromJS(x.get("value")) });
         if (x.get("time")) {
-          this.run_latexmk(x.get("time"));
+          this.run_build(x.get("time"));
         }
       }
     });
@@ -105,24 +106,23 @@ export class Actions extends BaseActions<LatexEditorState> {
       return {
         direction: "col",
         type: "node",
-        first: { type: "cm" },
+        first: {
+          direction: "row",
+          type: "node",
+          first: { type: "cm" },
+          second: { type: "error" },
+          pos: 0.7
+        },
         second: {
           direction: "row",
           type: "node",
           first: { type: "pdfjs_canvas" },
-          second: {
-            direction: "col",
-            type: "node",
-            first: { type: "error" },
-            second: { type: "build" }
-          }
-        }
+          second: { type: "build" },
+          pos: 0.7
+        },
+        pos: 0.5
       };
     }
-  }
-
-  run_latexmk(time: number): void {
-    this.run_latex(time);
   }
 
   check_for_fatal_error(): void {
@@ -149,6 +149,15 @@ export class Actions extends BaseActions<LatexEditorState> {
     }
   }
 
+  async run_build(time: number): Promise<void> {
+    this.setState({ build_logs: Map() });
+    await this.run_latex(time);
+    const s = this.store.unsafe_getIn(["build_logs", "latex", "stdout"]);
+    if (typeof s == "string" && s.indexOf("sagetex.sty") != -1) {
+      await this.run_sagetex(time);
+    }
+  }
+
   async run_latex(time: number): Promise<void> {
     let output: BuildLog;
     let build_command: string | string[];
@@ -157,7 +166,7 @@ export class Actions extends BaseActions<LatexEditorState> {
       return;
     }
     this.set_error("");
-    this.setState({ build_logs: Map() });
+    this.set_build_logs({ latex: undefined });
     if (typeof s == "string") {
       build_command = s;
     } else {
@@ -201,7 +210,7 @@ export class Actions extends BaseActions<LatexEditorState> {
     // ... before setting a new one for all the viewers,
     // which causes them to reload.
     for (let x of VIEWERS) {
-      this.set_reload(x);
+      this.set_reload(x, time);
     }
   }
 
@@ -236,18 +245,42 @@ export class Actions extends BaseActions<LatexEditorState> {
   }
 
   async run_sagetex(time: number): Promise<void> {
-    this.set_status("Running SageTeX...");
+    const status = s => this.set_status(`Running SageTeX... ${s}`);
+    status("");
+    // First compute hash of sagetex file.
+    let hash: string;
     try {
+      hash = await sagetex_hash(this.project_id, this.path, time, status);
+      if (hash === this._last_sagetex_hash) {
+        // no change - nothing to do.
+        return;
+      }
+    } catch (err) {
+      this.set_error(err);
+      return;
+    } finally {
+      this.set_status("");
+    }
+
+    try {
+      // Next run Sage.
       const output: BuildLog = await sagetex(
         this.project_id,
         this.path,
-        time || this._last_save_time
+        hash,
+        status
       );
       this.set_build_logs({ sagetex: output });
+      // Now run latex again, since we had to run sagetex, which changes
+      // the sage output. This +1 forces re-running latex... but still dedups
+      // it in case of multiple users.
+      await this.run_latex(time + 1);
     } catch (err) {
       this.set_error(err);
+    } finally {
+      this._last_sagetex_hash = hash;
+      this.set_status("");
     }
-    this.set_status("");
   }
 
   async synctex_pdf_to_tex(page: number, x: number, y: number): Promise<void> {
@@ -376,8 +409,8 @@ export class Actions extends BaseActions<LatexEditorState> {
   async build_action(action: string): Promise<void> {
     let now: number = server_time().valueOf();
     switch (action) {
-      case "recompile":
-        this.run_latexmk(now);
+      case "build":
+        this.run_build(now);
         return;
       case "latex":
         this.run_latex(now);
@@ -471,6 +504,6 @@ export class Actions extends BaseActions<LatexEditorState> {
     this._syncdb.set({ key: "build_command", value: command, time: now });
     this._syncdb.save();
     this.setState({ build_command: fromJS(command) });
-    this.run_latexmk(now);
+    this.run_build(now);
   }
 }
