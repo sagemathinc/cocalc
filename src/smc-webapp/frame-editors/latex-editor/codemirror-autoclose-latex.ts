@@ -91,7 +91,11 @@ function auto_close_latex(cm): void {
       no_op(pos);
       continue;
     }
-    const environment: string = line.slice(i + "\\begin{".length, pos.ch - 1);
+    let environment: string = line.slice(i + "\\begin{".length, pos.ch - 1);
+    i = environment.indexOf("}");
+    if (i != -1) {
+      environment = environment.slice(0, i);
+    }
     const end: string = `\\end{${environment}}`;
     const s: string = cm.getRange(
       { line: pos.line + 1, ch: 0 },
