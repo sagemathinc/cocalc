@@ -31,7 +31,7 @@ let rclass: (x?) => () => JSX.Element;
 
 import * as immutable from "immutable";
 import * as React from "react";
-import { createStore as createReduxStore } from "redux";
+import { createStore as createReduxStore, Action } from "redux";
 import * as createReactClass from "create-react-class";
 import * as PropTypes from "prop-types";
 import { Provider, connect } from "react-redux";
@@ -47,6 +47,8 @@ import {
 } from "./smc-react/Store";
 
 import { Actions } from "./smc-react/Actions";
+
+import { ProjectActions, ProjectStore } from "./project_store"
 
 const misc = require("smc-util/misc");
 
@@ -235,9 +237,15 @@ export class AppRedux {
     return !!this._actions[name];
   }
 
+  getActions(
+    name: { project_id: string }
+  ): ProjectActions;
+  getActions<T, C extends Actions<T>>(
+    name: string
+  ): C;
   getActions<T, C extends Actions<T>>(
     name: string | { project_id: string }
-  ): C {
+  ): C | ProjectActions {
     if (typeof name === "string") {
       if (!this.hasActions(name)) {
         throw Error(`getActions: actions ${name} not registered`);
@@ -348,7 +356,7 @@ export class AppRedux {
     }
   }
 
-  getTable(name: string): Table {
+  getTable<T extends Table>(name: string): T {
     if (this._tables[name] == null) {
       throw Error(`getTable: table ${name} not registered`);
     }
@@ -362,7 +370,7 @@ export class AppRedux {
   // getProject... is safe to call any time. All structures will be created if they don't exist
   // TODO -- Typing: Type project Store
   // <T, C extends Store<T>>
-  getProjectStore = (project_id: string): any => {
+  getProjectStore = (project_id: string): ProjectStore => {
     if (!misc.is_valid_uuid_string(project_id)) {
       console.trace();
       console.warn(`getProjectStore: INVALID project_id -- ${project_id}`);
@@ -375,7 +383,7 @@ export class AppRedux {
 
   // TODO -- Typing: Type project Actions
   // T, C extends Actions<T>
-  getProjectActions(project_id: string): any {
+  getProjectActions(project_id: string): ProjectActions {
     if (!misc.is_valid_uuid_string(project_id)) {
       console.trace();
       console.warn(`getProjectActions: INVALID project_id -- ${project_id}`);

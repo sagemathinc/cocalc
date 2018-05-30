@@ -1,0 +1,3417 @@
+/*
+ * decaffeinate suggestions:
+ * DS001: Remove Babel/TypeScript constructor workaround
+ * DS102: Remove unnecessary code created because of implicit returns
+ * DS103: Rewrite code to no longer use __guard__
+ * DS104: Avoid inline assignments
+ * DS204: Change includes calls to have a more natural evaluation order
+ * DS205: Consider reworking code to avoid use of IIFEs
+ * DS207: Consider shorter variations of null checks
+ * Full docs: https://github.com/decaffeinate/decaffeinate/blob/master/docs/suggestions.md
+ */
+//##############################################################################
+//
+//    CoCalc: Collaborative Calculation in the Cloud
+//
+//    Copyright (C) 2015 -- 2016, SageMath, Inc.
+//
+//    This program is free software: you can redistribute it and/or modify
+//    it under the terms of the GNU General Public License as published by
+//    the Free Software Foundation, either version 3 of the License, or
+//    (at your option) any later version.
+//
+//    This program is distributed in the hope that it will be useful,
+//    but WITHOUT ANY WARRANTY; without even the implied warranty of
+//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//    GNU General Public License for more details.
+//
+//    You should have received a copy of the GNU General Public License
+//    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+//
+//##############################################################################
+
+let file_actions, project_file, prom_get_dir_listing_h, wrapped_editors;
+import * as async from "async";
+import * as underscore from "underscore";
+import * as immutable from "immutable";
+import * as os_path from "path";
+
+// At most this many of the most recent log messages for a project get loaded:
+// TODO: add a button to load the entire log or load more...
+const MAX_PROJECT_LOG_ENTRIES = 1000;
+
+const misc = require("smc-util/misc");
+let { MARKERS } = require("smc-util/sagews");
+let { alert_message } = require("./alerts");
+let { webapp_client } = require("./webapp_client");
+let { project_tasks } = require("./project_tasks");
+const { defaults, required } = misc;
+
+let misc_page = require("./misc_page");
+
+import {
+  Actions,
+  rtypes,
+  computed,
+  depends,
+  project_redux_name,
+  Table,
+  redux,
+  Store
+} from "./smc-react-ts";
+
+let file_actions$1 = (file_actions = {
+  compress: {
+    name: "Compress",
+    icon: "compress",
+    allows_multiple_files: true
+  },
+  delete: {
+    name: "Delete",
+    icon: "trash-o",
+    allows_multiple_files: true
+  },
+  rename: {
+    name: "Rename",
+    icon: "pencil",
+    allows_multiple_files: false
+  },
+  duplicate: {
+    name: "Duplicate",
+    icon: "clone",
+    allows_multiple_files: false
+  },
+  move: {
+    name: "Move",
+    icon: "arrows",
+    allows_multiple_files: true
+  },
+  copy: {
+    name: "Copy",
+    icon: "files-o",
+    allows_multiple_files: true
+  },
+  share: {
+    name: "Share",
+    icon: "share-square-o",
+    allows_multiple_files: false
+  },
+  download: {
+    name: "Download",
+    icon: "cloud-download",
+    allows_multiple_files: true
+  }
+});
+
+export { file_actions$1 as file_actions };
+if (typeof window !== "undefined" && window !== null) {
+  // don't import in case not in browser (for testing)
+  project_file = require("./project_file");
+  wrapped_editors = require("./editor_react_wrapper");
+}
+
+const MASKED_FILE_EXTENSIONS = {
+  py: ["pyc"],
+  java: ["class"],
+  cs: ["exe"],
+  tex: "aux bbl blg fdb_latexmk fls glo idx ilg ind lof log nav out snm synctex.gz toc xyc synctex.gz(busy) sagetex.sage sagetex.sout sagetex.scmd sagetex.sage.py sage-plots-for-FILENAME".split(
+    " "
+  ),
+  rnw: ["tex", "NODOT-concordance.tex"]
+};
+
+const BAD_FILENAME_CHARACTERS = "\\";
+const BAD_LATEX_FILENAME_CHARACTERS = '\'"()"~%';
+const BANNED_FILE_TYPES = ["doc", "docx", "pdf", "sws"];
+
+const FROM_WEB_TIMEOUT_S = 45;
+
+// src: where the library files are
+// start: open this file after copying the directory
+const LIBRARY = {
+  first_steps: {
+    src: "/ext/library/first-steps/src",
+    start: "first-steps.tasks"
+  }
+};
+
+const QUERIES = {
+  project_log: {
+    query: {
+      project_id: null,
+      account_id: null,
+      time: null, // if we wanted to only include last month.... time       : -> {">=":misc.days_ago(30)}
+      event: null
+    },
+    options: [{ order_by: "-time" }, { limit: MAX_PROJECT_LOG_ENTRIES }]
+  },
+
+  public_paths: {
+    query: {
+      id: null,
+      project_id: null,
+      path: null,
+      description: null,
+      disabled: null,
+      unlisted: null,
+      created: null,
+      last_edited: null,
+      last_saved: null,
+      counter: null
+    }
+  }
+};
+
+const must_define = function(redux) {
+  if (redux == null) {
+    throw Error(
+      "you must explicitly pass a redux object into each function in project_store"
+    );
+  }
+};
+
+const _init_library_index_ongoing = {};
+const _init_library_index_cache = {};
+
+interface ProjectStoreState {
+  // Shared
+  current_path: string;
+  history_path: string;
+  open_files: immutable.Map<string, immutable.Map<string, any>>;
+  open_files_order: any; //immutable.List,
+  public_paths: any; // immutable.List,
+  directory_listings: any; // immutable,
+  show_upload: boolean;
+  create_file_alert: boolean;
+  displayed_listing: any; // computed(object),
+
+  // Project Page
+  active_project_tab: string;
+  free_warning_closed: boolean; // Makes bottom height update
+  free_warning_extra_shown: boolean;
+  num_ghost_file_tabs: number;
+
+  // Project Files
+  activity: any; // immutable,
+  active_file_sort: object; // {column_name : string, is_descending : boolean}
+  page_number: number;
+  file_action: string; // undefineds is meaningfully none here
+  file_search: string;
+  show_hidden: boolean;
+  error: string;
+  checked_files: immutable.Set<string>;
+  selected_file_index: number; // Index on file listing to highlight starting at 0. undefined means none highlighted
+  new_name: string;
+  most_recent_file_click: string;
+
+  // Project Log
+  project_log: any; // immutable,
+  search: string;
+  page: number;
+
+  // Project New
+  default_filename: string;
+  file_creation_error: string;
+  library: Map<any, any>;
+  library_selected: object;
+  library_is_copying: boolean; // for the copy button, to signal an ongoing copy process
+  library_docs_sorted: any; //computed(immutable.List),
+
+  // Project Find
+  user_input: string;
+  search_results: any; // immutable.List,
+  search_error: string;
+  too_many_results: boolean;
+  command: string;
+  most_recent_search: string;
+  most_recent_path: string;
+  subdirectories: boolean;
+  case_sensitive: boolean;
+  hidden_files: boolean;
+  info_visible: boolean;
+  git_grep: boolean;
+
+  // Project Settings
+  get_public_path_id: (path: string) => any;
+  stripped_public_paths: any; //computed(immutable.List)
+}
+
+export class ProjectActions extends Actions<ProjectStoreState> {
+  public project_id: string;
+  private _last_history_state: string;
+  private last_close_timer: number;
+  private _log_open_time: { [key: string]: { id: number; start: number } };
+  private _activity_indicator_timers: { [key: string]: NodeJS.Timer };
+  private _set_directory_files_lock: { [key: string]: Function[] };
+
+  constructor(a, b) {
+    super(a, b);
+    this.destroy = this.destroy.bind(this);
+    this._ensure_project_is_open = this._ensure_project_is_open.bind(this);
+    this.get_store = this.get_store.bind(this);
+    this.clear_all_activity = this.clear_all_activity.bind(this);
+    this.set_url_to_path = this.set_url_to_path.bind(this);
+    this._url_in_project = this._url_in_project.bind(this);
+    this.push_state = this.push_state.bind(this);
+    this.move_file_tab = this.move_file_tab.bind(this);
+    this.close_tab = this.close_tab.bind(this);
+    this.set_active_tab = this.set_active_tab.bind(this);
+    this.add_a_ghost_file_tab = this.add_a_ghost_file_tab.bind(this);
+    this.clear_ghost_file_tabs = this.clear_ghost_file_tabs.bind(this);
+    this.set_next_default_filename = this.set_next_default_filename.bind(this);
+    this.set_activity = this.set_activity.bind(this);
+    this.log = this.log.bind(this);
+    this.log_opened_time = this.log_opened_time.bind(this);
+    this.save_file = this.save_file.bind(this);
+    this.save_all_files = this.save_all_files.bind(this);
+    this.open_file = this.open_file.bind(this);
+    this.get_scroll_saver_for = this.get_scroll_saver_for.bind(this);
+    this.goto_line = this.goto_line.bind(this);
+    this._set_chat_state = this._set_chat_state.bind(this);
+    this.open_chat = this.open_chat.bind(this);
+    this.close_chat = this.close_chat.bind(this);
+    this.set_chat_width = this.set_chat_width.bind(this);
+    this.flag_file_activity = this.flag_file_activity.bind(this);
+    this.convert_sagenb_worksheet = this.convert_sagenb_worksheet.bind(this);
+    this.convert_docx_file = this.convert_docx_file.bind(this);
+    this.close_all_files = this.close_all_files.bind(this);
+    this.close_file = this.close_file.bind(this);
+    this.foreground_project = this.foreground_project.bind(this);
+    this.open_directory = this.open_directory.bind(this);
+    this.set_current_path = this.set_current_path.bind(this);
+    this.set_file_search = this.set_file_search.bind(this);
+    this.fetch_directory_listing = this.fetch_directory_listing.bind(this);
+    this.set_sorted_file_column = this.set_sorted_file_column.bind(this);
+    this.increment_selected_file_index = this.increment_selected_file_index.bind(
+      this
+    );
+    this.decrement_selected_file_index = this.decrement_selected_file_index.bind(
+      this
+    );
+    this.zero_selected_file_index = this.zero_selected_file_index.bind(this);
+    this.clear_selected_file_index = this.clear_selected_file_index.bind(this);
+    this.set_most_recent_file_click = this.set_most_recent_file_click.bind(
+      this
+    );
+    this.set_selected_file_range = this.set_selected_file_range.bind(this);
+    this.set_file_checked = this.set_file_checked.bind(this);
+    this.set_file_list_checked = this.set_file_list_checked.bind(this);
+    this.set_file_list_unchecked = this.set_file_list_unchecked.bind(this);
+    this.set_all_files_unchecked = this.set_all_files_unchecked.bind(this);
+    this._suggest_duplicate_filename = this._suggest_duplicate_filename.bind(
+      this
+    );
+    this.set_file_action = this.set_file_action.bind(this);
+    this.show_file_action_panel = this.show_file_action_panel.bind(this);
+    this.get_from_web = this.get_from_web.bind(this);
+    this._finish_exec = this._finish_exec.bind(this);
+    this.zip_files = this.zip_files.bind(this);
+    this._convert_to_displayed_path = this._convert_to_displayed_path.bind(
+      this
+    );
+    this.init_library = this.init_library.bind(this);
+    this.copy_from_library = this.copy_from_library.bind(this);
+    this.set_library_is_copying = this.set_library_is_copying.bind(this);
+    this.copy_paths = this.copy_paths.bind(this);
+    this.copy_paths_between_projects = this.copy_paths_between_projects.bind(
+      this
+    );
+    this._move_files = this._move_files.bind(this);
+    this.move_files = this.move_files.bind(this);
+    this.delete_files = this.delete_files.bind(this);
+    this.download_file = this.download_file.bind(this);
+    this.print_file = this.print_file.bind(this);
+    this.show_upload = this.show_upload.bind(this);
+    this._absolute_path = this._absolute_path.bind(this);
+    this.create_folder = this.create_folder.bind(this);
+    this.create_file = this.create_file.bind(this);
+    this.new_file_from_web = this.new_file_from_web.bind(this);
+    this.set_public_path = this.set_public_path.bind(this);
+    this.disable_public_path = this.disable_public_path.bind(this);
+    this.toggle_search_checkbox_subdirectories = this.toggle_search_checkbox_subdirectories.bind(
+      this
+    );
+    this.toggle_search_checkbox_case_sensitive = this.toggle_search_checkbox_case_sensitive.bind(
+      this
+    );
+    this.toggle_search_checkbox_hidden_files = this.toggle_search_checkbox_hidden_files.bind(
+      this
+    );
+    this.toggle_search_checkbox_git_grep = this.toggle_search_checkbox_git_grep.bind(
+      this
+    );
+    this.process_results = this.process_results.bind(this);
+    this.search = this.search.bind(this);
+    this.load_target = this.load_target.bind(this);
+    this.show_extra_free_warning = this.show_extra_free_warning.bind(this);
+    this.close_free_warning = this.close_free_warning.bind(this);
+  }
+
+  destroy() {
+    must_define(this.redux);
+    this.close_all_files();
+    for (let table in QUERIES) {
+      this.redux.removeTable(project_redux_name(this.project_id, table));
+    }
+  }
+
+  _ensure_project_is_open(cb, switch_to?) {
+    const s: any = this.redux.getStore("projects");
+    if (!s.is_project_open(this.project_id)) {
+      (this.redux.getActions("projects") as any).open_project({
+        project_id: this.project_id,
+        switch_to: true
+      });
+      return s.wait_until_project_is_open(this.project_id, 30, cb);
+    } else {
+      return cb();
+    }
+  }
+
+  get_store(): ProjectStore | undefined {
+    if (this.redux.hasStore(this.name)) {
+      return this.redux.getStore<ProjectStoreState, ProjectStore>(this.name);
+    } else {
+      return undefined;
+    }
+  }
+
+  clear_all_activity() {
+    return this.setState({ activity: undefined });
+  }
+
+  set_url_to_path(current_path) {
+    if (current_path.length > 0 && !misc.endswith(current_path, "/")) {
+      current_path += "/";
+    }
+    return this.push_state(`files/${current_path}`);
+  }
+
+  _url_in_project(local_url) {
+    return `/projects/${this.project_id}/${misc.encode_path(local_url)}`;
+  }
+
+  push_state(local_url: string) {
+    if (local_url == null) {
+      local_url = this._last_history_state;
+    }
+    if (local_url == null) {
+      local_url = "";
+    }
+    this._last_history_state = local_url;
+    const { set_url } = require("./history");
+    set_url(this._url_in_project(local_url));
+    return misc_page.analytics_pageview(window.location.pathname);
+  }
+
+  move_file_tab(opts) {
+    const { old_index, new_index, open_files_order } = defaults(opts, {
+      old_index: required,
+      new_index: required,
+      open_files_order: required
+    }); // immutable
+
+    const x = open_files_order;
+    const item = x.get(old_index);
+    const temp_list = x.delete(old_index);
+    const new_list = temp_list.splice(new_index, 0, item);
+    this.setState({ open_files_order: new_list });
+    return (this.redux.getActions("page") as any).save_session();
+  }
+
+  // Closes a file tab
+  // Also closes file references.
+  close_tab(path) {
+    let store;
+    if (!(store = this.get_store())) {
+      return;
+    }
+    const { open_files_order } = store;
+    const { active_project_tab } = store;
+    const closed_index = open_files_order.indexOf(path);
+    const { size } = open_files_order;
+    if (misc.path_to_tab(path) === active_project_tab) {
+      let next_active_tab;
+      if (size === 1) {
+        next_active_tab = "files";
+      } else {
+        if (closed_index === size - 1) {
+          next_active_tab = misc.path_to_tab(
+            open_files_order.get(closed_index - 1)
+          );
+        } else {
+          next_active_tab = misc.path_to_tab(
+            open_files_order.get(closed_index + 1)
+          );
+        }
+      }
+      this.set_active_tab(next_active_tab);
+    }
+    if (closed_index === size - 1) {
+      this.clear_ghost_file_tabs();
+    } else {
+      this.add_a_ghost_file_tab();
+    }
+    window.clearTimeout(this.last_close_timer);
+    this.last_close_timer = window.setTimeout(this.clear_ghost_file_tabs, 5000);
+    return this.close_file(path);
+  }
+
+  // Expects one of ['files', 'new', 'log', 'search', 'settings']
+  //            or a file_redux_name
+  // Pushes to browser history
+  // Updates the URL
+  set_active_tab(key) {
+    let store;
+    if (!(store = this.get_store())) {
+      return;
+    }
+    if (store.active_project_tab === key) {
+      // nothing to do
+      return;
+    }
+    this.setState({ active_project_tab: key });
+    switch (key) {
+      case "files":
+        this.set_url_to_path(
+          store.current_path != null ? store.current_path : ""
+        );
+        return this.fetch_directory_listing();
+      case "new":
+        this.setState({ file_creation_error: undefined });
+        this.push_state(`new/${store.current_path}`);
+        return this.set_next_default_filename(
+          require("./account").default_filename()
+        );
+      case "log":
+        return this.push_state("log");
+      case "search":
+        return this.push_state(`search/${store.current_path}`);
+      case "settings":
+        return this.push_state("settings");
+      default:
+        // editor...
+        var path = misc.tab_to_path(key);
+        __guard__(this.redux.getActions("file_use"), x =>
+          x.mark_file(this.project_id, path, "open")
+        );
+        this.push_state(`files/${path}`);
+        this.set_current_path(misc.path_split(path).head);
+
+        // Reopen the file if relationship has changed
+        var is_public =
+          (redux.getStore("projects") as any).get_my_group(this.project_id) ===
+          "public";
+        var was_public = store.open_files.getIn([path, "component"]).is_public;
+        if (is_public !== was_public) {
+          return this.open_file({ path });
+        }
+    }
+  }
+
+  add_a_ghost_file_tab() {
+    let store;
+    if (!(store = this.get_store())) {
+      return;
+    }
+    const current_num = store.num_ghost_file_tabs;
+    return this.setState({ num_ghost_file_tabs: current_num + 1 });
+  }
+
+  clear_ghost_file_tabs() {
+    return this.setState({ num_ghost_file_tabs: 0 });
+  }
+
+  set_next_default_filename(next) {
+    return this.setState({ default_filename: next });
+  }
+
+  set_activity(opts) {
+    let store;
+    opts = defaults(opts, {
+      id: required, // client must specify this, e.g., id=misc.uuid()
+      status: undefined, // status update message during the activity -- description of progress
+      stop: undefined, // activity is done  -- can pass a final status message in.
+      error: undefined
+    }); // describe an error that happened
+    if (!(store = this.get_store())) {
+      return;
+    }
+    let x = store.activity != null ? store.activity.toJS() : undefined;
+    if (x == null) {
+      x = {};
+    }
+    // Actual implementyation of above specified API is VERY minimal for
+    // now -- just enough to display something to user.
+    if (opts.status != null) {
+      x[opts.id] = opts.status;
+      this.setState({ activity: x });
+    }
+    if (opts.error != null) {
+      const { error } = opts;
+      if (error === "") {
+        this.setState({ error });
+      } else {
+        this.setState({
+          error: (
+            (store.error != null ? store.error : "") +
+            "\n" +
+            error
+          ).trim()
+        });
+      }
+    }
+    if (opts.stop != null) {
+      if (opts.stop) {
+        x[opts.id] = opts.stop; // of course, just gets deleted below but that is because use is simple still
+      }
+      delete x[opts.id];
+      this.setState({ activity: x });
+    }
+  }
+
+  // report a log event to the backend -- will indirectly result in a new entry in the store...
+  // Returns the random log entry uuid. If called later with that id, then the time isn't
+  // changed and the event is merely updated.
+  log(event, id?) {
+    let needle;
+    if (
+      ((needle = (this.redux.getStore("projects") as any).get_my_group(
+        this.project_id
+      )),
+      ["public", "admin"].includes(needle))
+    ) {
+      // Ignore log events for *both* admin and public.
+      // Admin gets to be secretive (also their account_id --> name likely wouldn't be known to users).
+      // Public users don't log anything.
+      return; // ignore log events
+    }
+    const obj: any = {
+      event,
+      project_id: this.project_id
+    };
+    if (!id) {
+      // new log entry
+      id = misc.uuid();
+      obj.time = misc.server_time();
+    }
+    obj.id = id;
+    require("./webapp_client").webapp_client.query({
+      query: { project_log: obj },
+      cb: err => {
+        if (err) {
+          // TODO: what do we want to do if a log doesn't get recorded?
+          // (It *should* keep trying and store that in localStorage, and try next time, etc...
+          //  of course done in a systematic way across everything.)
+          return console.warn("error recording a log entry: ", err, event);
+        }
+      }
+    });
+    return id;
+  }
+
+  log_opened_time(path) {
+    // Call log_opened with a path to update the log with the fact that
+    // this file successfully opened and rendered so that the user can
+    // actually see it.  This is used to get a sense for how long things
+    // are taking...
+    const data =
+      this._log_open_time != null ? this._log_open_time[path] : undefined;
+    if (data == null) {
+      // never setup log event recording the start of open (this would get set in @open_file)
+      return;
+    }
+    const { id, start } = data;
+    // do not allow recording the time more than once, which would be weird.
+    delete this._log_open_time[path];
+    return this.log({ time: misc.server_time() - start }, id);
+  }
+
+  // Save the given file in this project (if it is open) to disk.
+  save_file(opts) {
+    let store;
+    opts = defaults(opts, { path: required });
+    if (
+      (!this.redux.getStore("projects") as any).is_project_open(this.project_id)
+    ) {
+      return; // nothing to do regarding save, since project isn't even open
+    }
+    // NOTE: someday we could have a non-public relationship to project, but still open an individual file in public mode
+    if (!(store = this.get_store())) {
+      return;
+    }
+    const is_public = __guard__(
+      store.open_files.getIn([opts.path, "component"]),
+      x => x.is_public
+    );
+    return project_file.save(opts.path, this.redux, this.project_id, is_public);
+  }
+
+  // Save all open files in this project
+  save_all_files() {
+    let store;
+    const s: any = this.redux.getStore("projects");
+    if (!s.is_project_open(this.project_id)) {
+      return; // nothing to do regarding save, since project isn't even open
+    }
+    const group = s.get_my_group(this.project_id);
+    if (group == null || group === "public") {
+      return; // no point in saving if not open enough to even know our group or if our relationship to entire project is "public"
+    }
+    if (!(store = this.get_store())) {
+      return;
+    }
+    return store.open_files.forEach((val, path) => {
+      const is_public = __guard__(val.get("component"), x => x.is_public); // might still in theory someday be true.
+      project_file.save(path, this.redux, this.project_id, is_public);
+    });
+  }
+
+  // Open the given file in this project.
+  open_file(
+    opts: {
+      path: string;
+      foreground?: boolean;
+      foreground_project?: boolean;
+      chat?: any;
+      chat_width?: number;
+      ignore_kiosk?: boolean;
+      new_browser_window?: boolean;
+    } = {
+      path: "never",
+      foreground: true,
+      foreground_project: true,
+      chat: undefined,
+      chat_width: undefined,
+      ignore_kiosk: false,
+      new_browser_window: false
+    }
+  ) {
+    // intercept any requests if in kiosk mode
+    if (
+      !opts.ignore_kiosk &&
+      (redux.getStore("page") as any).get("fullscreen") === "kiosk"
+    ) {
+      alert_message({
+        type: "error",
+        message: `CoCalc is in Kiosk mode, so you may not open new files.  Please try visiting ${
+          document.location.origin
+        } directly.`,
+        timeout: 15
+      });
+      return;
+    }
+
+    if (opts.new_browser_window) {
+      // options other than path don't do anything yet.
+      let url =
+        (window.app_base_url != null ? window.app_base_url : "") +
+        this._url_in_project(`files/${opts.path}`);
+      url += `?session=${misc.uuid().slice(0, 8)}`;
+      url += "&fullscreen=default";
+      misc_page.open_popup_window(url, { width: 800, height: 640 });
+      return;
+    }
+
+    this._ensure_project_is_open(err => {
+      if (err) {
+        return this.set_activity({
+          id: misc.uuid(),
+          error: `opening file -- ${err}`
+        });
+      } else {
+        // We wait here so that the editor gets properly initialized in the
+        // ProjectPage constructor.  Really this should probably be
+        // something we wait on with _ensure_project_is_open. **TODO** This should
+        // go away when we get rid of the ProjectPage entirely, when finishing
+        // the React rewrite.
+        return this.redux.getStore("projects").wait({
+          until: s => (s as any).get_my_group(this.project_id),
+          timeout: 60,
+          cb: (err, group) => {
+            let store;
+            if (err) {
+              this.set_activity({
+                id: misc.uuid(),
+                error: `opening file -- ${err}`
+              });
+              return;
+            }
+
+            const is_public = group === "public";
+            const ext = misc
+              .filename_extension_notilde(opts.path)
+              .toLowerCase();
+
+            if (!is_public && (ext === "sws" || ext.slice(0, 4) === "sws~")) {
+              // sagenb worksheet (or backup of it created during unzip of multiple worksheets with same name)
+              alert_message({
+                type: "info",
+                message: `Opening converted CoCalc worksheet file instead of '${
+                  opts.path
+                }...`
+              });
+              this.convert_sagenb_worksheet(
+                opts.path,
+                (err, sagews_filename) => {
+                  if (!err) {
+                    return this.open_file({
+                      path: sagews_filename,
+                      foreground: opts.foreground,
+                      foreground_project: opts.foreground_project,
+                      chat: opts.chat
+                    });
+                  } else {
+                    return alert_message({
+                      type: "error",
+                      message: `Error converting Sage Notebook sws file -- ${err}`
+                    });
+                  }
+                }
+              );
+              return;
+            }
+
+            if (!is_public && ext === "docx") {
+              // Microsoft Word Document
+              alert_message({
+                type: "info",
+                message: `Opening converted plain text file instead of '${
+                  opts.path
+                }...`
+              });
+              this.convert_docx_file(opts.path, (err, new_filename) => {
+                if (!err) {
+                  return this.open_file({
+                    path: new_filename,
+                    foreground: opts.foreground,
+                    foreground_project: opts.foreground_project,
+                    chat: opts.chat
+                  });
+                } else {
+                  return alert_message({
+                    type: "error",
+                    message: `Error converting Microsoft docx file -- ${err}`
+                  });
+                }
+              });
+              return;
+            }
+
+            if (!is_public) {
+              // the ? is because if the user is anonymous they don't have a file_use Actions (yet)
+              __guard__(this.redux.getActions("file_use"), x =>
+                x.mark_file(this.project_id, opts.path, "open")
+              );
+              const event = {
+                event: "open",
+                action: "open",
+                filename: opts.path
+              };
+              const id = this.log(event);
+
+              // Save the log entry id, so it is possible to optionally
+              // record how long it took for the file to open.  This
+              // may happen via a call from random places in our codebase,
+              // since the idea of "finishing opening and rendering" is
+              // not simple to define.
+              if (this._log_open_time == null) {
+                this._log_open_time = {};
+              }
+              this._log_open_time[opts.path] = {
+                id,
+                start: misc.server_time()
+              };
+
+              // grab chat state from local storage
+              const { local_storage } = require("./editor");
+              if (local_storage != null) {
+                if (opts.chat == null) {
+                  opts.chat = local_storage(
+                    this.project_id,
+                    opts.path,
+                    "is_chat_open"
+                  );
+                }
+                if (opts.chat_width == null) {
+                  opts.chat_width = local_storage(
+                    this.project_id,
+                    opts.path,
+                    "chat_width"
+                  );
+                }
+              }
+
+              if (misc.filename_extension(opts.path) === "sage-chat") {
+                opts.chat = false;
+              }
+            }
+
+            if (!(store = this.get_store())) {
+              return;
+            }
+            let { open_files } = store;
+
+            // Only generate the editor component if we don't have it already
+            // Also regenerate if view type (public/not-public) changes
+            if (
+              !open_files.has(opts.path) ||
+              __guard__(
+                open_files.getIn([opts.path, "component"]),
+                x1 => x1.is_public
+              ) !== is_public
+            ) {
+              const was_public = __guard__(
+                open_files.getIn([opts.path, "component"]),
+                x2 => x2.is_public
+              );
+              if (was_public != null && was_public !== is_public) {
+                this.setState({
+                  open_files: store.open_files.delete(opts.path)
+                });
+                project_file.remove(
+                  opts.path,
+                  this.redux,
+                  this.project_id,
+                  was_public
+                );
+              }
+
+              const { open_files_order } = store;
+
+              // Initialize the file's store and actions
+              const name = project_file.initialize(
+                opts.path,
+                this.redux,
+                this.project_id,
+                is_public
+              );
+
+              // Make the Editor react component
+              const Editor = project_file.generate(
+                opts.path,
+                this.redux,
+                this.project_id,
+                is_public
+              );
+
+              // Add it to open files
+              // IMPORTANT: info can't be a full immutable.js object, since Editor can't
+              // be converted to immutable,
+              // so don't try to do that.  Of course info could be an immutable map.
+              const info = {
+                redux_name: name,
+                is_public,
+                Editor
+              };
+              open_files = open_files.setIn([opts.path, "component"], info);
+              open_files = open_files.setIn(
+                [opts.path, "is_chat_open"],
+                opts.chat
+              );
+              open_files = open_files.setIn(
+                [opts.path, "chat_width"],
+                opts.chat_width
+              );
+              let index = open_files_order.indexOf(opts.path);
+              if (opts.chat) {
+                require("./chat/register").init(
+                  misc.meta_file(opts.path, "chat"),
+                  this.redux,
+                  this.project_id
+                );
+              }
+              // Closed by require('./project_file').remove
+
+              if (index === -1) {
+                index = open_files_order.size;
+              }
+              this.setState({
+                open_files,
+                open_files_order: open_files_order.set(index, opts.path)
+              });
+              (this.redux.getActions("page") as any).save_session();
+            }
+
+            if (opts.foreground) {
+              this.foreground_project();
+              return this.set_active_tab(misc.path_to_tab(opts.path));
+            }
+          }
+        });
+      }
+    });
+  }
+
+  get_scroll_saver_for(path) {
+    if (path != null) {
+      return scroll_position => {
+        const store = this.get_store();
+        // Ensure prerequisite things exist
+        if (
+          __guard__(store != null ? store.get("open_files") : undefined, x =>
+            x.getIn([path, "component"])
+          ) == null
+        ) {
+          return;
+        }
+        // WARNING: Saving scroll position does NOT trigger a rerender. This is intentional.
+        const info = store!.get("open_files").getIn([path, "component"]);
+        return (info.scroll_position = scroll_position);
+      };
+    }
+  }
+
+  // If the given path is open, and editor supports going to line, moves to the given line.
+  // Otherwise, does nothing.
+  goto_line(path, line) {
+    const a: any = redux.getEditorActions(this.project_id, path);
+    if (a == null) {
+      // try non-react editor
+      return __guardMethod__(
+        wrapped_editors.get_editor(this.project_id, path),
+        "programmatical_goto_line",
+        o => o.programmatical_goto_line(line)
+      );
+    } else {
+      return typeof a.programmatical_goto_line === "function"
+        ? a.programmatical_goto_line(line)
+        : undefined;
+    }
+  }
+
+  // Used by open/close chat below.
+  _set_chat_state(path, is_chat_open) {
+    let store;
+    if (!(store = this.get_store())) {
+      return;
+    }
+    const { open_files } = store;
+    if (open_files != null && path != null) {
+      return this.setState({
+        open_files: open_files.setIn([path, "is_chat_open"], is_chat_open)
+      });
+    }
+  }
+
+  // Open side chat for the given file, assuming the file is open, store is initialized, etc.
+  open_chat(opts) {
+    opts = defaults(opts, { path: required });
+    this._set_chat_state(opts.path, true);
+    require("./chat/register").init(
+      misc.meta_file(opts.path, "chat"),
+      this.redux,
+      this.project_id
+    );
+    return __guardMethod__(require("./editor"), "local_storage", o =>
+      o.local_storage(this.project_id, opts.path, "is_chat_open", true)
+    );
+  }
+
+  // Close side chat for the given file, assuming the file itself is open
+  close_chat(opts) {
+    opts = defaults(opts, { path: required });
+    this._set_chat_state(opts.path, false);
+    return __guardMethod__(require("./editor"), "local_storage", o =>
+      o.local_storage(this.project_id, opts.path, "is_chat_open", false)
+    );
+  }
+
+  set_chat_width(opts) {
+    let store;
+    opts = defaults(opts, {
+      path: required,
+      width: required
+    }); // between 0 and 1
+    if (!(store = this.get_store())) {
+      return;
+    }
+    const { open_files } = store;
+    if (open_files != null) {
+      const width = misc.ensure_bound(opts.width, 0.05, 0.95);
+      __guardMethod__(require("./editor"), "local_storage", o =>
+        o.local_storage(this.project_id, opts.path, "chat_width", width)
+      );
+      return this.setState({
+        open_files: open_files.setIn([opts.path, "chat_width"], width)
+      });
+    }
+  }
+
+  // OPTIMIZATION: Some possible performance problems here. Debounce may be necessary
+  flag_file_activity(filename) {
+    let store;
+    if (filename == null) {
+      return;
+    }
+
+    if (this._activity_indicator_timers == null) {
+      this._activity_indicator_timers = {};
+    }
+    const timer = this._activity_indicator_timers[filename];
+    if (timer != null) {
+      clearTimeout(timer);
+    }
+
+    const set_inactive = () => {
+      let store;
+      if (!(store = this.get_store())) {
+        return;
+      }
+      const current_files = store.open_files;
+      return this.setState({
+        open_files: current_files.setIn([filename, "has_activity"], false)
+      });
+    };
+
+    this._activity_indicator_timers[filename] = setTimeout(set_inactive, 1000);
+
+    if (!(store = this.get_store())) {
+      return;
+    }
+    const { open_files } = store;
+    const new_files_data = open_files.setIn([filename, "has_activity"], true);
+    return this.setState({ open_files: new_files_data });
+  }
+
+  convert_sagenb_worksheet(filename, cb) {
+    return async.series(
+      [
+        cb => {
+          const ext = misc.filename_extension(filename);
+          if (ext === "sws") {
+            return cb();
+          } else {
+            const i = filename.length - ext.length;
+            const new_filename =
+              filename.slice(0, i - 1) + ext.slice(3) + ".sws";
+            return webapp_client.exec({
+              project_id: this.project_id,
+              command: "cp",
+              args: [filename, new_filename],
+              cb: (err, output) => {
+                if (err) {
+                  return cb(err);
+                } else {
+                  filename = new_filename;
+                  return cb();
+                }
+              }
+            });
+          }
+        },
+        cb => {
+          return webapp_client.exec({
+            project_id: this.project_id,
+            command: "smc-sws2sagews",
+            args: [filename],
+            cb: (err, output) => {
+              return cb(err);
+            }
+          });
+        }
+      ],
+      err => {
+        if (err) {
+          return cb(err);
+        } else {
+          return cb(
+            undefined,
+            filename.slice(0, filename.length - 3) + "sagews"
+          );
+        }
+      }
+    );
+  }
+
+  convert_docx_file(filename, cb) {
+    return webapp_client.exec({
+      project_id: this.project_id,
+      command: "smc-docx2txt",
+      args: [filename],
+      cb: (err, output) => {
+        if (err) {
+          return cb(`${err}, ${misc.to_json(output)}`);
+        } else {
+          return cb(false, filename.slice(0, filename.length - 4) + "txt");
+        }
+      }
+    });
+  }
+
+  // Closes all files and removes all references
+  close_all_files() {
+    let store;
+    if (!(store = this.get_store())) {
+      return;
+    }
+    const file_paths = store.open_files;
+    if (file_paths.isEmpty()) {
+      return;
+    }
+
+    const empty = file_paths.map((obj, path) => {
+      const is_public = __guard__(obj.getIn(["component"]), x => x.is_public);
+      project_file.remove(path, this.redux, this.project_id, is_public);
+      return false;
+    });
+
+    return this.setState({
+      open_files_order: empty,
+      open_files: immutable.Map({})
+    });
+  }
+
+  // Closes the file and removes all references.
+  // Does not update tabs
+  close_file(path) {
+    let store;
+    if (!(store = this.get_store())) {
+      return;
+    }
+    const x = store.open_files_order;
+    const index = x.indexOf(path);
+    if (index !== -1) {
+      const { open_files } = store;
+      const is_public = __guard__(
+        open_files.getIn([path, "component"]),
+        x1 => x1.is_public
+      );
+      this.setState({
+        open_files_order: x.delete(index),
+        open_files: open_files.delete(path)
+      });
+      project_file.remove(path, this.redux, this.project_id, is_public);
+      (this.redux.getActions("page") as any).save_session();
+    }
+  }
+
+  // Makes this project the active project tab
+  foreground_project() {
+    return this._ensure_project_is_open(err => {
+      if (err) {
+        // TODO!
+        console.warn(
+          "error putting project in the foreground: ",
+          err,
+          this.project_id
+        );
+      } else {
+        (this.redux.getActions("projects") as any).foreground_project(
+          this.project_id
+        );
+      }
+    });
+  }
+
+  open_directory(path) {
+    return this._ensure_project_is_open(err => {
+      if (err) {
+        // TODO!
+        return console.log(
+          "error opening directory in project: ",
+          err,
+          this.project_id,
+          path
+        );
+      } else {
+        let store;
+        if (path[path.length - 1] === "/") {
+          path = path.slice(0, -1);
+        }
+        this.foreground_project();
+        this.set_current_path(path);
+        if (!(store = this.get_store())) {
+          return;
+        }
+        if (store.active_project_tab === "files") {
+          this.set_url_to_path(path);
+        } else {
+          this.set_active_tab("files");
+        }
+        return this.set_all_files_unchecked();
+      }
+    });
+  }
+
+  // ONLY updates current path
+  // Does not push to URL, browser history, or add to analytics
+  // Use internally or for updating current path in background
+  set_current_path(path) {
+    // SMELL: Track from history.coffee
+    let store;
+    if (path === NaN) {
+      path = "";
+    }
+    if (path == null) {
+      path = "";
+    }
+    if (typeof path !== "string") {
+      (window as any).cpath_args = arguments;
+      throw Error(
+        "Current path should be a string. Revieved arguments are available in window.cpath_args"
+      );
+    }
+    // Set the current path for this project. path is either a string or array of segments.
+
+    if (!(store = this.get_store())) {
+      return;
+    }
+    let history_path = store.history_path != null ? store.history_path : "";
+    if (!history_path.startsWith(path) || path.length > history_path.length) {
+      history_path = path;
+    }
+
+    this.setState({
+      current_path: path,
+      history_path,
+      page_number: 0,
+      most_recent_file_click: undefined
+    });
+
+    return this.fetch_directory_listing();
+  }
+
+  set_file_search(search) {
+    return this.setState({
+      file_search: search,
+      page_number: 0,
+      file_action: undefined,
+      most_recent_file_click: undefined,
+      create_file_alert: false
+    });
+  }
+
+  // Update the directory listing cache for the given path
+  // Use current path if path not provided
+  fetch_directory_listing(opts?) {
+    let status, store;
+    if (!(store = this.get_store())) {
+      return;
+    }
+    opts = defaults(opts, {
+      path: store.current_path,
+      finish_cb: undefined
+    }); // WARNING: THINK VERY HARD BEFORE YOU USE THIS
+    // In the vast majority of cases, you just want to look at the data.
+    // Very rarely should you need something to execute exactly after this
+    let { path } = opts;
+    //if DEBUG then console.log('ProjectStore::fetch_directory_listing, opts:', opts, opts.finish_cb)
+    if (path == null) {
+      // nothing to do if path isn't defined -- there is no current path -- see https://github.com/sagemathinc/cocalc/issues/818
+      return;
+    }
+
+    if (this._set_directory_files_lock == null) {
+      this._set_directory_files_lock = {};
+    }
+    const _key = `${path}`;
+    // this makes sure finish_cb is being called, even when there are concurrent requests
+    if (this._set_directory_files_lock[_key] != null) {
+      // currently doing it already
+      if (opts.finish_cb != null) {
+        this._set_directory_files_lock[_key].push(opts.finish_cb);
+      }
+      //if DEBUG then console.log('ProjectStore::fetch_directory_listing aborting:', _key, opts)
+      return;
+    }
+    this._set_directory_files_lock[_key] = [];
+    // Wait until user is logged in, project store is loaded enough
+    // that we know our relation to this project, namely so that
+    // get_my_group is defined.
+    const id = misc.uuid();
+    if (path) {
+      status = `Loading file list - ${misc.trunc_middle(path, 30)}`;
+    } else {
+      status = "Loading file list";
+    }
+    this.set_activity({ id, status });
+    let my_group: any;
+    let the_listing: any;
+    return async.series(
+      [
+        cb => {
+          // make sure that our relationship to this project is known.
+          return this.redux.getStore("projects").wait({
+            until: s => (s as any).get_my_group(this.project_id),
+            timeout: 30,
+            cb: (err, group) => {
+              my_group = group;
+              return cb(err);
+            }
+          });
+        },
+        cb => {
+          store = this.get_store();
+          if (store == null) {
+            cb("store no longer defined");
+            return;
+          }
+          if (path == null) {
+            path = store.current_path;
+          }
+          return get_directory_listing({
+            project_id: this.project_id,
+            path,
+            hidden: true,
+            max_time_s: 15 * 60, // keep trying for up to 15 minutes
+            group: my_group,
+            cb: (err, listing) => {
+              the_listing = listing;
+              return cb(err);
+            }
+          });
+        }
+      ],
+      err => {
+        this.set_activity({ id, stop: "" });
+        // Update the path component of the immutable directory listings map:
+        if (!(store = this.get_store())) {
+          return;
+        }
+        if (err && !misc.is_string(err)) {
+          err = misc.to_json(err);
+        }
+        const map = store.directory_listings.set(
+          path,
+          err ? err : immutable.fromJS(the_listing.files)
+        );
+        this.setState({ directory_listings: map });
+        // done! releasing lock, then executing callback(s)
+        const cbs = this._set_directory_files_lock[_key];
+        delete this._set_directory_files_lock[_key];
+        for (let cb of cbs != null ? cbs : []) {
+          //if DEBUG then console.log('ProjectStore::fetch_directory_listing cb from lock', cb)
+          if (typeof cb === "function") {
+            cb();
+          }
+        }
+        //if DEBUG then console.log('ProjectStore::fetch_directory_listing cb', opts, opts.finish_cb)
+        return typeof opts.finish_cb === "function"
+          ? opts.finish_cb()
+          : undefined;
+      }
+    );
+  }
+
+  // Sets the active file_sort to next_column_name
+  set_sorted_file_column(column_name) {
+    let is_descending;
+    const current = __guard__(this.get_store(), x => x.active_file_sort);
+    if ((current != null ? current.column_name : undefined) === column_name) {
+      is_descending = !current.is_descending;
+    } else {
+      is_descending = false;
+    }
+    const next_file_sort = { is_descending, column_name };
+    return this.setState({ active_file_sort: next_file_sort });
+  }
+
+  // Increases the selected file index by 1
+  // undefined increments to 0
+  increment_selected_file_index() {
+    let store;
+    if (!(store = this.get_store())) {
+      return;
+    }
+    const current_index =
+      store.selected_file_index != null ? store.selected_file_index : -1;
+    return this.setState({ selected_file_index: current_index + 1 });
+  }
+
+  // Decreases the selected file index by 1.
+  // Guaranteed to never set below 0.
+  // Does nothing when selected_file_index is undefined
+  decrement_selected_file_index() {
+    let store;
+    if (!(store = this.get_store())) {
+      return;
+    }
+    const current_index = store.selected_file_index;
+    if (current_index != null && current_index > 0) {
+      return this.setState({ selected_file_index: current_index - 1 });
+    }
+  }
+
+  zero_selected_file_index() {
+    return this.setState({ selected_file_index: 0 });
+  }
+
+  clear_selected_file_index() {
+    return this.setState({ selected_file_index: undefined });
+  }
+
+  // Set the most recently clicked checkbox, expects a full/path/name
+  set_most_recent_file_click(file) {
+    return this.setState({ most_recent_file_click: file });
+  }
+
+  // Set the selected state of all files between the most_recent_file_click and the given file
+  set_selected_file_range(file, checked) {
+    let range, store;
+    if (!(store = this.get_store())) {
+      return;
+    }
+    const most_recent = store.most_recent_file_click;
+    if (most_recent == null) {
+      // nothing had been clicked before, treat as normal click
+      range = [file];
+    } else {
+      // get the range of files
+      const { current_path } = store;
+      const names = store.displayed_listing.listing.map(a =>
+        misc.path_to_file(current_path, a.name)
+      );
+      range = misc.get_array_range(names, most_recent, file);
+    }
+
+    if (checked) {
+      return this.set_file_list_checked(range);
+    } else {
+      return this.set_file_list_unchecked(range);
+    }
+  }
+
+  // set the given file to the given checked state
+  set_file_checked(file, checked) {
+    let store = this.get_store();
+    if (store === undefined) {
+      return;
+    }
+    let changes: {
+      checked_files?: immutable.Set<string>;
+      file_action?: string | undefined;
+    } = {};
+    if (checked) {
+      changes.checked_files = store.get("checked_files").add(file);
+      if (
+        store.get("file_action") != null &&
+        changes.checked_files.size > 1 &&
+        !file_actions[store.get("file_action")].allows_multiple_files
+      ) {
+        changes.file_action = undefined;
+      }
+    } else {
+      changes.checked_files = store.get("checked_files").delete(file);
+      if (changes.checked_files.size === 0) {
+        changes.file_action = undefined;
+      }
+    }
+
+    return this.setState(changes);
+  }
+
+  // check all files in the given file_list
+  set_file_list_checked(file_list) {
+    let store = this.get_store();
+    if (store === undefined) {
+      return;
+    }
+    const changes: {
+      checked_files: immutable.Set<string>;
+      file_action?: string | undefined;
+    } = { checked_files: store.get("checked_files").union(file_list) };
+    if (
+      store.get("file_action") != null &&
+      changes.checked_files.size > 1 &&
+      !file_actions[store.get("file_action")].allows_multiple_files
+    ) {
+      changes.file_action = undefined;
+    }
+
+    return this.setState(changes);
+  }
+
+  // uncheck all files in the given file_list
+  set_file_list_unchecked(file_list) {
+    let store = this.get_store();
+    if (store === undefined) {
+      return;
+    }
+    const changes: {
+      checked_files: immutable.Set<string>;
+      file_action?: string | undefined;
+    } = { checked_files: store.get("checked_files").subtract(file_list) };
+
+    if (changes.checked_files.size === 0) {
+      changes.file_action = undefined;
+    }
+
+    return this.setState(changes);
+  }
+
+  // uncheck all files
+  set_all_files_unchecked() {
+    let store;
+    if (!(store = this.get_store())) {
+      return;
+    }
+    return this.setState({
+      checked_files: store.checked_files.clear(),
+      file_action: undefined
+    });
+  }
+
+  _suggest_duplicate_filename(name) {
+    let store;
+    if (!(store = this.get_store())) {
+      return;
+    }
+
+    const files_in_dir = {};
+    // This will set files_in_dir to our current view of the files in the current
+    // directory (at least the visible ones) or do nothing in case we don't know
+    // anything about files (highly unlikely).  Unfortunately (for this), our
+    // directory listings are stored as (immutable) lists, so we have to make
+    // a map out of them.
+    const listing =
+      store.directory_listings != null
+        ? store.directory_listings.get(store.current_path)
+        : undefined;
+    if (typeof listing === "string") {
+      // must be an error
+      return name; // simple fallback
+    }
+    if (listing != null) {
+      listing.map(function(x) {
+        files_in_dir[x.get("name")] = true;
+      });
+    }
+    // This loop will keep trying new names until one isn't in the directory
+    while (true) {
+      name = misc.suggest_duplicate_filename(name);
+      if (!files_in_dir[name]) {
+        return name;
+      }
+    }
+  }
+
+  set_file_action(action, get_basename) {
+    let store;
+    if (!(store = this.get_store())) {
+      return;
+    }
+
+    switch (action) {
+      case "move":
+        var checked_files = store.checked_files.toArray();
+        (this.redux.getActions("projects") as any).fetch_directory_tree(
+          this.project_id,
+          { exclusions: checked_files }
+        );
+        break;
+      case "copy":
+        (this.redux.getActions("projects") as any).fetch_directory_tree(
+          this.project_id
+        );
+        break;
+      case "duplicate":
+        this.setState({
+          new_name: this._suggest_duplicate_filename(get_basename())
+        });
+        break;
+      case "rename":
+        this.setState({ new_name: misc.path_split(get_basename()).tail });
+        break;
+    }
+    return this.setState({ file_action: action });
+  }
+
+  show_file_action_panel(opts) {
+    opts = defaults(opts, {
+      path: required,
+      action: required
+    });
+    const path_splitted = misc.path_split(opts.path);
+    this.open_directory(path_splitted.head);
+    this.set_all_files_unchecked();
+    this.set_file_checked(opts.path, true);
+    return this.set_file_action(opts.action, () => path_splitted.tail);
+  }
+
+  get_from_web(opts) {
+    opts = defaults(opts, {
+      url: required,
+      dest: undefined,
+      timeout: 45,
+      alert: true,
+      cb: undefined
+    }); // cb(true or false, depending on error)
+
+    const { command, args } = misc.transform_get_url(opts.url);
+
+    return require("./webapp_client").webapp_client.exec({
+      project_id: this.project_id,
+      command,
+      timeout: opts.timeout,
+      path: opts.dest,
+      args,
+      cb: (err, result) => {
+        if (opts.alert) {
+          if (err) {
+            alert_message({ type: "error", message: err });
+          } else if (result.event === "error") {
+            alert_message({ type: "error", message: result.error });
+          }
+        }
+        return typeof opts.cb === "function"
+          ? opts.cb(err || result.event === "error")
+          : undefined;
+      }
+    });
+  }
+
+  // function used internally by things that call webapp_client.exec
+  _finish_exec(id) {
+    // returns a function that takes the err and output and does the right activity logging stuff.
+    return (err, output) => {
+      this.fetch_directory_listing();
+      if (err) {
+        this.set_activity({ id, error: err });
+      } else if (
+        (output != null ? output.event : undefined) === "error" ||
+        (output != null ? output.error : undefined)
+      ) {
+        this.set_activity({ id, error: output.error });
+      }
+      return this.set_activity({ id, stop: "" });
+    };
+  }
+
+  zip_files(opts) {
+    let id;
+    opts = defaults(opts, {
+      src: required,
+      dest: required,
+      zip_args: undefined,
+      path: undefined, // default to root of project
+      id: undefined,
+      cb: undefined
+    });
+    const args = (opts.zip_args != null ? opts.zip_args : []).concat(
+      ["-rq"],
+      [opts.dest],
+      opts.src
+    );
+    if (opts.cb == null) {
+      id = opts.id != null ? opts.id : misc.uuid();
+      this.set_activity({
+        id,
+        status: `Creating ${opts.dest} from ${opts.src.length} ${misc.plural(
+          opts.src.length,
+          "file"
+        )}`
+      });
+    }
+    return webapp_client.exec({
+      project_id: this.project_id,
+      command: "zip",
+      args,
+      timeout: 50,
+      network_timeout: 60,
+      err_on_exit: true, // this should fail if exit_code != 0
+      path: opts.path,
+      cb: opts.cb != null ? opts.cb : this._finish_exec(id)
+    });
+  }
+
+  // DANGER: ASSUMES PATH IS IN THE DISPLAYED LISTING
+  _convert_to_displayed_path(path) {
+    if (path.slice(-1) === "/") {
+      return path;
+    } else {
+      if (
+        __guard__(
+          __guard__(
+            __guard__(this.get_store(), x2 => x2.displayed_listing),
+            x1 => x1.file_map[misc.path_split(path).tail]
+          ),
+          x => x.isdir
+        )
+      ) {
+        return path + "/";
+      } else {
+        return path;
+      }
+    }
+  }
+
+  // this is called once by the project initialization
+  init_library() {
+    //if DEBUG then console.log("init_library")
+    // Deprecated: this only tests the existence
+    const check = (v, k, cb) => {
+      //if DEBUG then console.log("init_library.check", v, k)
+      let store;
+      if (!(store = this.get_store())) {
+        cb("no store");
+        return;
+      }
+      if ((store.library != null ? store.library.get(k) : undefined) != null) {
+        cb("already done");
+        return;
+      }
+      const { src } = v;
+      const cmd = `test -e ${src}`;
+      return webapp_client.exec({
+        project_id: this.project_id,
+        command: cmd,
+        bash: true,
+        timeout: 30,
+        network_timeout: 120,
+        err_on_exit: false,
+        path: ".",
+        cb: (err, output) => {
+          if (!err) {
+            if (!(store = this.get_store())) {
+              cb("no store");
+              return;
+            }
+            let { library } = store;
+            library = library.set(k, output.exit_code === 0);
+            this.setState({ library });
+          }
+          return cb(err);
+        }
+      });
+    };
+
+    return async.series([cb => async.eachOfSeries(LIBRARY, check, cb)]);
+  }
+
+  init_library_index() {
+    let library, store;
+    if (_init_library_index_cache[this.project_id] != null) {
+      const data = _init_library_index_cache[this.project_id];
+      if (!(store = this.get_store())) {
+        return;
+      }
+      library = store.library.set("examples", data);
+      this.setState({ library });
+      return;
+    }
+
+    if (_init_library_index_ongoing[this.project_id]) {
+      return;
+    }
+    _init_library_index_ongoing[this.project_id] = true;
+
+    ({ webapp_client } = require("./webapp_client"));
+
+    const index_json_url = webapp_client.read_file_from_project({
+      project_id: this.project_id,
+      path: "/ext/library/cocalc-examples/index.json"
+    });
+
+    const fetch = cb => {
+      if (!this.get_store()) {
+        cb("no store");
+        return;
+      }
+      return $.ajax({
+        url: index_json_url,
+        timeout: 5000,
+        success: data => {
+          //if DEBUG then console.log("init_library/datadata
+          data = immutable.fromJS(data);
+          if (!(store = this.get_store())) {
+            cb("no store");
+            return;
+          }
+          library = store.library.set("examples", data);
+          this.setState({ library });
+          _init_library_index_cache[this.project_id] = data;
+          return cb();
+        }
+      }).fail(err =>
+        //#if DEBUG then console.log("init_library/index: error reading file: #{misc.to_json(err)}")
+        cb(err.statusText != null ? err.statusText : "error")
+      );
+    };
+
+    return misc.retry_until_success({
+      f: fetch,
+      start_delay: 1000,
+      max_delay: 10000,
+      max_time: 1000 * 60 * 3, // try for at most 3 minutes
+      cb: () => {
+        return (_init_library_index_ongoing[this.project_id] = false);
+      }
+    });
+  }
+
+  copy_from_library(opts) {
+    let lib;
+    opts = defaults(opts, {
+      entry: undefined,
+      src: undefined,
+      target: undefined,
+      start: undefined,
+      docid: undefined, // for the log
+      title: undefined, // for the log
+      cb: undefined
+    });
+
+    if (opts.entry != null) {
+      lib = LIBRARY[opts.entry];
+      if (lib == null) {
+        this.setState({ error: `Library entry '${opts.entry}' unknown` });
+        return;
+      }
+    }
+
+    const id = opts.id != null ? opts.id : misc.uuid();
+    this.set_activity({ id, status: "Copying files from library ..." });
+
+    // the rsync command purposely does not preserve the timestamps,
+    // such that they look like "new files" and listed on top under default sorting
+    const source = os_path.join(opts.src != null ? opts.src : lib.src, "/");
+    const target = os_path.join(
+      opts.target != null ? opts.target : opts.entry,
+      "/"
+    );
+    const start =
+      opts.start != null ? opts.start : lib != null ? lib.start : undefined;
+
+    return webapp_client.exec({
+      project_id: this.project_id,
+      command: "rsync",
+      args: ["-rlDx", source, target],
+      timeout: 120, // how long rsync runs on client
+      network_timeout: 120, // how long network call has until it must return something or get total error.
+      err_on_exit: true,
+      path: ".",
+      cb: (err, output) => {
+        this._finish_exec(id)(err, output);
+        if (!err && start != null) {
+          const open_path = os_path.join(target, start);
+          if (open_path[open_path.length - 1] === "/") {
+            this.open_directory(open_path);
+          } else {
+            this.open_file({ path: open_path });
+          }
+          this.log({
+            event: "library",
+            action: "copy",
+            docid: opts.docid,
+            source: opts.src,
+            title: opts.title,
+            target
+          });
+        }
+        return typeof opts.cb === "function" ? opts.cb(err) : undefined;
+      }
+    });
+  }
+
+  set_library_is_copying(status) {
+    return this.setState({ library_is_copying: status });
+  }
+
+  copy_paths(opts) {
+    opts = defaults(opts, {
+      src: required, // Should be an array of source paths
+      dest: required,
+      id: undefined,
+      only_contents: false
+    }); // true for duplicating files
+
+    const with_slashes = opts.src.map(this._convert_to_displayed_path);
+
+    this.log({
+      event: "file_action",
+      action: "copied",
+      files: with_slashes.slice(0, 3),
+      count: opts.src.length > 3 ? opts.src.length : undefined,
+      dest: opts.dest + (opts.only_contents ? "" : "/")
+    });
+
+    if (opts.only_contents) {
+      opts.src = with_slashes;
+    }
+
+    // If files start with a -, make them interpretable by rsync (see https://github.com/sagemathinc/cocalc/issues/516)
+    const deal_with_leading_dash = function(src_path) {
+      if (src_path[0] === "-") {
+        return `./${src_path}`;
+      } else {
+        return src_path;
+      }
+    };
+
+    // Ensure that src files are not interpreted as an option to rsync
+    opts.src = opts.src.map(deal_with_leading_dash);
+
+    const id = opts.id != null ? opts.id : misc.uuid();
+    this.set_activity({
+      id,
+      status: `Copying ${opts.src.length} ${misc.plural(
+        opts.src.length,
+        "file"
+      )} to ${opts.dest}`
+    });
+
+    let args = ["-rltgoDxH"];
+
+    // We ensure the target copy is writable if *any* source path starts with .snapshots.
+    // See https://github.com/sagemathinc/cocalc/issues/2497
+    // This is a little lazy, but whatever.
+    for (let x of opts.src) {
+      if (misc.startswith(x, ".snapshots")) {
+        args = args.concat(["--perms", "--chmod", "u+w"]);
+        break;
+      }
+    }
+
+    args = args.concat(opts.src);
+    args = args.concat([opts.dest]);
+
+    return webapp_client.exec({
+      project_id: this.project_id,
+      command: "rsync", // don't use "a" option to rsync, since on snapshots results in destroying project access!
+      args,
+      timeout: 120, // how long rsync runs on client
+      network_timeout: 120, // how long network call has until it must return something or get total error.
+      err_on_exit: true,
+      path: ".",
+      cb: this._finish_exec(id)
+    });
+  }
+
+  copy_paths_between_projects(opts) {
+    opts = defaults(opts, {
+      public: false,
+      src_project_id: required, // id of source project
+      src: required, // list of relative paths of directors or files in the source project
+      target_project_id: required, // if of target project
+      target_path: undefined, // defaults to src_path
+      overwrite_newer: false, // overwrite newer versions of file at destination (destructive)
+      delete_missing: false, // delete files in dest that are missing from source (destructive)
+      backup: false, // make ~ backup files instead of overwriting changed files
+      timeout: undefined, // how long to wait for the copy to complete before reporting "error" (though it could still succeed)
+      exclude_history: false, // if true, exclude all files of the form *.sage-history
+      id: undefined
+    });
+    // TODO: wrote this but *NOT* tested yet -- needed "copy_click".
+    const id = opts.id != null ? opts.id : misc.uuid();
+    this.set_activity({
+      id,
+      status: `Copying ${opts.src.length} ${misc.plural(
+        opts.src.length,
+        "path"
+      )} to another project`
+    });
+    const { src } = opts;
+    delete opts.src;
+    const with_slashes = src.map(this._convert_to_displayed_path);
+    this.log({
+      event: "file_action",
+      action: "copied",
+      files: with_slashes.slice(0, 3),
+      count: src.length > 3 ? src.length : undefined,
+      project: opts.target_project_id
+    });
+    const f = (src_path, cb) => {
+      const opts0 = misc.copy(opts);
+      opts0.cb = cb;
+      opts0.src_path = src_path;
+      // we do this for consistent semantics with file copy
+      opts0.target_path = misc.path_to_file(
+        opts0.target_path,
+        misc.path_split(src_path).tail
+      );
+      return webapp_client.copy_path_between_projects(opts0);
+    };
+    return async.mapLimit(src, 3, f, this._finish_exec(id));
+  }
+
+  _move_files(opts) {
+    //PRIVATE -- used internally to move files
+    opts = defaults(opts, {
+      src: required,
+      dest: required,
+      path: undefined, // default to root of project
+      mv_args: undefined,
+      cb: required
+    });
+    if (!opts.dest && opts.path == null) {
+      opts.dest = ".";
+    }
+
+    return webapp_client.exec({
+      project_id: this.project_id,
+      command: "mv",
+      args: (opts.mv_args != null ? opts.mv_args : []).concat(
+        ["--"],
+        opts.src,
+        [opts.dest]
+      ),
+      timeout: 15, // move should be fast..., unless across file systems.
+      network_timeout: 20,
+      err_on_exit: true, // this should fail if exit_code != 0
+      path: opts.path,
+      cb: opts.cb
+    });
+  }
+
+  move_files(opts) {
+    let path;
+    opts = defaults(opts, {
+      src: required, // Array of src paths to mv
+      dest: required, // Single dest string
+      dest_is_folder: required,
+      path: undefined, // default to root of project
+      mv_args: undefined,
+      id: undefined,
+      include_chats: false
+    }); // If we want to copy .filename.sage-chat
+
+    // TODO: Put this somewhere else!
+    const get_chat_path = path => misc.meta_file(path, "chat");
+    //{head, tail} = misc.path_split(path)
+    //misc.normalized_path_join(head ? '', ".#{tail ? ''}.sage-chat")
+
+    if (opts.include_chats) {
+      if (opts.dest_is_folder) {
+        for (path of opts.src) {
+          const chat_path = get_chat_path(path);
+          if (!opts.src.includes(chat_path)) {
+            opts.src.push(chat_path);
+          }
+        }
+      } else {
+        const old_chat_path = get_chat_path(opts.src[0]);
+        const new_chat_path = get_chat_path(opts.dest);
+
+        this.move_files({
+          src: [old_chat_path],
+          dest: new_chat_path,
+          dest_is_folder: opts.dest_is_folder
+        });
+      }
+    }
+
+    delete opts.include_chats;
+    delete opts.dest_is_folder;
+
+    const check_existence_of = path => {
+      let store;
+      path = misc.path_split(path);
+      if (!(store = this.get_store())) {
+        return;
+      }
+      return store
+        .get("directory_listings")
+        .get(path.head != null ? path.head : "")
+        .some(item => item.get("name") === path.tail);
+    };
+
+    opts.src = (() => {
+      const result: string[] = [];
+      for (path of opts.src) {
+        if (check_existence_of(path)) {
+          result.push(path);
+        }
+      }
+      return result;
+    })();
+
+    if (opts.src.length === 0) {
+      return;
+    }
+
+    const id = opts.id != null ? opts.id : misc.uuid();
+    this.set_activity({
+      id,
+      status: `Moving ${opts.src.length} ${misc.plural(
+        opts.src.length,
+        "file"
+      )} to ${opts.dest}`
+    });
+    delete opts.id;
+
+    opts.cb = err => {
+      if (err) {
+        this.set_activity({ id, error: err });
+      } else {
+        this.fetch_directory_listing();
+      }
+      this.log({
+        event: "file_action",
+        action: "moved",
+        files: opts.src.slice(0, 3),
+        count: opts.src.length > 3 ? opts.src.length : undefined,
+        dest: opts.dest
+      });
+      return this.set_activity({ id, stop: "" });
+    };
+    return this._move_files(opts);
+  }
+
+  delete_files(opts) {
+    let mesg;
+    opts = defaults(opts, { paths: required });
+    if (opts.paths.length === 0) {
+      return;
+    }
+    for (let path of opts.paths) {
+      this.close_tab(path);
+    }
+    const id = misc.uuid();
+    if (underscore.isEqual(opts.paths, [".trash"])) {
+      mesg = "the trash";
+    } else if (opts.paths.length === 1) {
+      mesg = `${opts.paths[0]}`;
+    } else {
+      mesg = `${opts.paths.length} files`;
+    }
+    this.set_activity({ id, status: `Deleting ${mesg}` });
+    return webapp_client.exec({
+      project_id: this.project_id,
+      command: "rm",
+      timeout: 60,
+      args: ["-rf", "--"].concat(opts.paths),
+      cb: (err, result) => {
+        if (err) {
+          return this.set_activity({
+            id,
+            error: `Network error while trying to delete ${mesg} -- ${err}`,
+            stop: ""
+          });
+        } else if (result.event === "error") {
+          return this.set_activity({
+            id,
+            error: `Error deleting ${mesg} -- ${result.error}`,
+            stop: ""
+          });
+        } else {
+          this.set_activity({
+            id,
+            status: `Successfully deleted ${mesg}.`,
+            stop: ""
+          });
+          return this.log({
+            event: "file_action",
+            action: "deleted",
+            files: opts.paths.slice(0, 3),
+            count: opts.paths.length > 3 ? opts.paths.length : undefined
+          });
+        }
+      }
+    });
+  }
+
+  download_file(opts) {
+    let url;
+    const { download_file, open_new_tab } = misc_page;
+    opts = defaults(opts, {
+      path: required,
+      log: false,
+      auto: true,
+      print: false,
+      timeout: 45
+    });
+
+    if (opts.log) {
+      this.log({
+        event: "file_action",
+        action: "downloaded",
+        files: opts.path
+      });
+    }
+
+    if (opts.auto && !opts.print) {
+      url = project_tasks(this.project_id).download_href(opts.path);
+      return download_file(url);
+    } else {
+      url = project_tasks(this.project_id).url_href(opts.path);
+      const tab = open_new_tab(url);
+      if (tab != null && opts.print) {
+        // "?" since there might be no print method -- could depend on browser API
+        return typeof tab.print === "function" ? tab.print() : undefined;
+      }
+    }
+  }
+
+  print_file(opts) {
+    opts.print = true;
+    return this.download_file(opts);
+  }
+
+  show_upload(show) {
+    return this.setState({ show_upload: show });
+  }
+
+  // Compute the absolute path to the file with given name but with the
+  // given extension added to the file (e.g., "md") if the file doesn't have
+  // that extension.  Throws an Error if the path name is invalid.
+  _absolute_path(name, current_path, ext?) {
+    if (name.length === 0) {
+      throw Error("Cannot use empty filename");
+    }
+    for (let bad_char of BAD_FILENAME_CHARACTERS) {
+      if (name.indexOf(bad_char) !== -1) {
+        throw Error(`Cannot use '${bad_char}' in a filename`);
+      }
+    }
+    let s = misc.path_to_file(current_path, name);
+    if (ext != null && misc.filename_extension(s) !== ext) {
+      s = `${s}.${ext}`;
+    }
+    return s;
+  }
+
+  create_folder(opts) {
+    let p;
+    opts = defaults(opts, {
+      name: required,
+      current_path: undefined,
+      switch_over: true
+    }); // Whether or not to switch to the new folder
+    let { name, current_path, switch_over } = opts;
+    this.setState({ file_creation_error: undefined });
+    if (name[name.length - 1] === "/") {
+      name = name.slice(0, -1);
+    }
+    try {
+      p = this._absolute_path(name, current_path);
+    } catch (e) {
+      this.setState({ file_creation_error: e.message });
+      return;
+    }
+    return project_tasks(this.project_id).ensure_directory_exists({
+      path: p,
+      cb: err => {
+        if (err) {
+          return this.setState({
+            file_creation_error: `Error creating directory '${p}' -- ${err}`
+          });
+        } else if (switch_over) {
+          return this.open_directory(p);
+        }
+      }
+    });
+  }
+
+  create_file(opts) {
+    let p;
+    opts = defaults(opts, {
+      name: undefined,
+      ext: undefined,
+      current_path: undefined,
+      switch_over: true
+    }); // Whether or not to switch to the new file
+    this.setState({ file_creation_error: undefined }); // clear any create file display state
+    let { name } = opts;
+    if ((name === ".." || name === ".") && opts.ext == null) {
+      this.setState({
+        file_creation_error: "Cannot create a file named . or .."
+      });
+      return;
+    }
+    if (misc.is_only_downloadable(name)) {
+      this.new_file_from_web(name, opts.current_path);
+      return;
+    }
+    if (name[name.length - 1] === "/") {
+      if (opts.ext == null) {
+        this.create_folder({
+          name,
+          current_path: opts.current_path
+        });
+        return;
+      } else {
+        name = name.slice(0, name.length - 1);
+      }
+    }
+    try {
+      p = this._absolute_path(name, opts.current_path, opts.ext);
+    } catch (e) {
+      this.setState({ file_creation_error: e.message });
+      return;
+    }
+    const ext = misc.filename_extension(p);
+    if (BANNED_FILE_TYPES.includes(ext)) {
+      this.setState({
+        file_creation_error: `Cannot create a file with the ${ext} extension`
+      });
+      return;
+    }
+    if (ext === "tex") {
+      const filename = misc.path_split(name).tail;
+      for (let bad_char of BAD_LATEX_FILENAME_CHARACTERS) {
+        if (filename.indexOf(bad_char) !== -1) {
+          this.setState({
+            file_creation_error: `Cannot use '${bad_char}' in a LaTeX filename '${filename}'`
+          });
+          return;
+        }
+      }
+    }
+    return webapp_client.exec({
+      project_id: this.project_id,
+      command: "smc-new-file",
+      timeout: 10,
+      args: [p],
+      err_on_exit: true,
+      cb: (err, output) => {
+        if (err) {
+          return this.setState({
+            file_creation_error: `${
+              (output != null ? output.stdout : undefined) != null
+                ? output != null
+                  ? output.stdout
+                  : undefined
+                : ""
+            } ${
+              (output != null ? output.stderr : undefined) != null
+                ? output != null
+                  ? output.stderr
+                  : undefined
+                : ""
+            } ${err}`
+          });
+        } else if (opts.switch_over) {
+          return this.open_file({
+            path: p
+          });
+        }
+      }
+    });
+  }
+
+  new_file_from_web(url, current_path, cb?) {
+    let d = current_path;
+    if (d === "") {
+      d = "root directory of project";
+    }
+    const id = misc.uuid();
+    this.set_active_tab("files");
+    this.set_activity({
+      id,
+      status: `Downloading '${url}' to '${d}', which may run for up to ${FROM_WEB_TIMEOUT_S} seconds...`
+    });
+    return this.get_from_web({
+      url,
+      dest: current_path,
+      timeout: FROM_WEB_TIMEOUT_S,
+      alert: true,
+      cb: err => {
+        this.fetch_directory_listing();
+        this.set_activity({ id, stop: "" });
+        return typeof cb === "function" ? cb(err) : undefined;
+      }
+    });
+  }
+
+  /*
+     * Actions for PUBLIC PATHS
+     */
+  set_public_path(
+    path,
+    opts: {
+      description?: string;
+      unlisted?: string;
+    } = {}
+  ) {
+    let store = this.get_store();
+    if (!store) {
+      return;
+    }
+    let now = misc.server_time();
+    const obj = {
+      project_id: this.project_id,
+      path,
+      description: opts.description || "",
+      disabled: false,
+      unlisted: opts.unlisted || false,
+      last_edited: now,
+      created: now
+    };
+    // only set created if this obj is new; have to just linearly search through paths right now...
+    if (store.get("public_paths") != null) {
+      store.get("public_paths").map(function(v, k) {
+        if (v.get("path") === path) {
+          delete obj.created;
+          return false;
+        }
+      });
+    }
+    return this.redux.getProjectTable(this.project_id, "public_paths").set(obj);
+  }
+
+  disable_public_path(path) {
+    return this.redux.getProjectTable(this.project_id, "public_paths").set({
+      project_id: this.project_id,
+      path,
+      disabled: true,
+      last_edited: misc.server_time()
+    });
+  }
+
+  /*
+     * Actions for Project Search
+     */
+
+  toggle_search_checkbox_subdirectories() {
+    let store;
+    if (!(store = this.get_store())) {
+      return;
+    }
+    return this.setState({ subdirectories: !store.subdirectories });
+  }
+
+  toggle_search_checkbox_case_sensitive() {
+    let store;
+    if (!(store = this.get_store())) {
+      return;
+    }
+    return this.setState({ case_sensitive: !store.case_sensitive });
+  }
+
+  toggle_search_checkbox_hidden_files() {
+    let store;
+    if (!(store = this.get_store())) {
+      return;
+    }
+    return this.setState({ hidden_files: !store.hidden_files });
+  }
+
+  toggle_search_checkbox_git_grep() {
+    let store;
+    if (!(store = this.get_store())) {
+      return;
+    }
+    return this.setState({ git_grep: !store.git_grep });
+  }
+
+  process_results(err, output, max_results, max_output, cmd) {
+    let store;
+    if (!(store = this.get_store())) {
+      return;
+    }
+    if ((err && output == null) || (output != null && output.stdout == null)) {
+      this.setState({ search_error: err });
+      return;
+    }
+
+    const results = output.stdout.split("\n");
+    const too_many_results =
+      output.stdout.length >= max_output || results.length > max_results || err;
+    let num_results = 0;
+    const search_results: {}[] = [];
+    for (let line of results) {
+      if (line.trim() === "") {
+        continue;
+      }
+      let i = line.indexOf(":");
+      num_results += 1;
+      if (i !== -1) {
+        // all valid lines have a ':', the last line may have been truncated too early
+        let filename = line.slice(0, i);
+        if (filename.slice(0, 2) === "./") {
+          filename = filename.slice(2);
+        }
+        let context = line.slice(i + 1);
+        // strip codes in worksheet output
+        if (context.length > 0 && context[0] === MARKERS.output) {
+          i = context.slice(1).indexOf(MARKERS.output);
+          context = context.slice(i + 2, context.length - 1);
+        }
+
+        search_results.push({
+          filename,
+          description: context
+        });
+      }
+
+      if (num_results >= max_results) {
+        break;
+      }
+    }
+
+    if (store.command === cmd) {
+      // only update the state if the results are from the most recent command
+      return this.setState({
+        too_many_results,
+        search_results
+      });
+    }
+  }
+
+  search() {
+    let cmd, ins, store;
+    if (!(store = this.get_store())) {
+      return;
+    }
+
+    const query = store.user_input.trim().replace(/"/g, '\\"');
+    if (query === "") {
+      return;
+    }
+    const search_query = `"${query}"`;
+
+    // generate the grep command for the given query with the given flags
+    if (store.case_sensitive) {
+      ins = "";
+    } else {
+      ins = " -i ";
+    }
+
+    if (store.git_grep) {
+      let max_depth;
+      if (store.subdirectories) {
+        max_depth = "";
+      } else {
+        max_depth = "--max-depth=0";
+      }
+      cmd = `git rev-parse --is-inside-work-tree && git grep -I -H ${ins} ${max_depth} ${search_query} || `;
+    } else {
+      cmd = "";
+    }
+    if (store.subdirectories) {
+      if (store.hidden_files) {
+        cmd += `rgrep -I -H --exclude-dir=.smc --exclude-dir=.snapshots ${ins} ${search_query} -- *`;
+      } else {
+        cmd += `rgrep -I -H --exclude-dir='.*' --exclude='.*' ${ins} ${search_query} -- *`;
+      }
+    } else {
+      if (store.hidden_files) {
+        cmd += `grep -I -H ${ins} ${search_query} -- .* *`;
+      } else {
+        cmd += `grep -I -H ${ins} ${search_query} -- *`;
+      }
+    }
+
+    cmd += ` | grep -v ${MARKERS.cell}`;
+    const max_results = 1000;
+    const max_output = 110 * max_results; // just in case
+
+    this.setState({
+      search_results: undefined,
+      search_error: undefined,
+      command: cmd,
+      most_recent_search: query,
+      most_recent_path: store.current_path
+    });
+
+    return webapp_client.exec({
+      project_id: this.project_id,
+      command: cmd + " | cut -c 1-256", // truncate horizontal line length (imagine a binary file that is one very long line)
+      timeout: 20, // how long grep runs on client
+      network_timeout: 25, // how long network call has until it must return something or get total error.
+      max_output,
+      bash: true,
+      err_on_exit: true,
+      path: store.current_path,
+      cb: (err, output) => {
+        return this.process_results(err, output, max_results, max_output, cmd);
+      }
+    });
+  }
+
+  // Loads path in this project from string
+  //  files/....
+  //  new
+  //  log
+  //  settings
+  //  search
+  load_target(target, foreground = true, ignore_kiosk = false) {
+    const segments = target.split("/");
+    const full_path = segments.slice(1).join("/");
+    const parent_path = segments.slice(1, segments.length - 1).join("/");
+    const last = segments.slice(-1).join();
+    //if DEBUG then console.log("ProjectStore::load_target args:", segments, full_path, parent_path, last, foreground, ignore_kiosk)
+    switch (segments[0]) {
+      case "files":
+        if (target[target.length - 1] === "/" || full_path === "") {
+          //if DEBUG then console.log("ProjectStore::load_target → open_directory", parent_path)
+          return this.open_directory(parent_path);
+        } else {
+          // TODOJ: Change when directory listing is synchronized. Just have to query client state then.
+          // Assume that if it's loaded, it's good enough.
+          return async.waterfall(
+            [
+              cb => {
+                let store;
+                if (!(store = this.get_store())) {
+                  return cb("no store");
+                } else {
+                  const { item, err } = store.get_item_in_path(
+                    last,
+                    parent_path
+                  );
+                  //if DEBUG then console.log("ProjectStore::load_target → waterfall1", item, err)
+                  return cb(err, item);
+                }
+              },
+              (item, cb) => {
+                // Fetch if error or nothing found
+                if (item == null) {
+                  //if DEBUG then console.log("ProjectStore::load_target → fetch_directory_listing", parent_path)
+                  return this.fetch_directory_listing({
+                    path: parent_path,
+                    finish_cb: () => {
+                      let store;
+                      if (!(store = this.get_store())) {
+                        return cb("no store");
+                      } else {
+                        let err;
+                        ({ item, err } = store.get_item_in_path(
+                          last,
+                          parent_path
+                        ));
+                        //if DEBUG then console.log("ProjectStore::load_target → waterfall2/1", item, err)
+                        return cb(err, item);
+                      }
+                    }
+                  });
+                } else {
+                  //if DEBUG then console.log("ProjectStore::load_target → waterfall2/2", item)
+                  return cb(undefined, item);
+                }
+              }
+            ],
+            (err, item) => {
+              if (err != null) {
+                if (err === "timeout") {
+                  alert_message({
+                    type: "error",
+                    message: `Timeout opening '${target}' -- try later`
+                  });
+                } else {
+                  alert_message({
+                    type: "error",
+                    message: `Error opening '${target}': ${err}`
+                  });
+                }
+              }
+              if (item != null ? item.get("isdir") : undefined) {
+                return this.open_directory(full_path);
+              } else {
+                //if DEBUG then console.log("ProjectStore::load_target → open_file", full_path, foreground, ignore_kiosk)
+                return this.open_file({
+                  path: full_path,
+                  foreground,
+                  foreground_project: foreground,
+                  ignore_kiosk
+                });
+              }
+            }
+          );
+        }
+
+      case "new": // ignore foreground for these and below, since would be nonsense
+        this.set_current_path(full_path);
+        return this.set_active_tab("new");
+      case "log":
+        return this.set_active_tab("log");
+      case "settings":
+        return this.set_active_tab("settings");
+      case "search":
+        this.set_current_path(full_path);
+        return this.set_active_tab("search");
+    }
+  }
+
+  show_extra_free_warning() {
+    return this.setState({ free_warning_extra_shown: true });
+  }
+
+  close_free_warning() {
+    return this.setState({ free_warning_closed: true });
+  }
+}
+export class ProjectStore extends Store<ProjectStoreState> {}
+const create_project_store_def = function(name, project_id) {
+  return {
+    name,
+
+    project_id,
+
+    _init() {
+      // If we are explicitly listed as a collaborator on this project,
+      // watch for this to change, and if it does, close the project.
+      // This avoids leaving it open after we are removed, which is confusing,
+      // given that all permissions have vanished.
+      const projects = this.redux.getStore("projects"); // may not be available; for example when testing
+      if (
+        (projects != null
+          ? projects.getIn(["project_map", this.project_id])
+          : undefined) != null
+      ) {
+        // only do this if we are on project in the first place!
+        return projects.on("change", this._projects_store_collab_check);
+      }
+    },
+
+    destroy() {
+      return __guard__(this.redux.getStore("projects"), x =>
+        x.removeListener("change", this._projects_store_collab_check)
+      );
+    },
+
+    _projects_store_collab_check(state) {
+      if (state.getIn(["project_map", this.project_id]) == null) {
+        // User has been removed from the project!
+        return this.redux.getActions("page").close_project_tab(this.project_id);
+      }
+    },
+
+    getInitialState: () => {
+      return {
+        current_path: "",
+        history_path: "",
+        show_hidden: false,
+        checked_files: immutable.Set(),
+        public_paths: undefined,
+        directory_listings: immutable.Map(),
+        user_input: "",
+        show_upload: false,
+        active_project_tab: "files",
+        open_files_order: immutable.List([]),
+        open_files: immutable.Map({}),
+        num_ghost_file_tabs: 0,
+        library: immutable.Map({}),
+        library_selected: undefined,
+        library_is_copying: false,
+        git_grep: true
+      };
+    },
+
+    reduxState: {
+      account: {
+        other_settings: rtypes.immutable.Map
+      }
+    },
+
+    stateTypes: {
+      // Shared
+      current_path: rtypes.string,
+      history_path: rtypes.string,
+      open_files: rtypes.immutable.Map,
+      open_files_order: rtypes.immutable.List,
+      public_paths: rtypes.immutable.List,
+      directory_listings: rtypes.immutable,
+      show_upload: rtypes.bool,
+      create_file_alert: rtypes.bool,
+      displayed_listing: computed(rtypes.object),
+
+      // Project Page
+      active_project_tab: rtypes.string,
+      free_warning_closed: rtypes.bool, // Makes bottom height update
+      free_warning_extra_shown: rtypes.bool,
+      num_ghost_file_tabs: rtypes.number,
+
+      // Project Files
+      activity: rtypes.immutable,
+      active_file_sort: rtypes.object, // {column_name : string, is_descending : bool}
+      page_number: rtypes.number,
+      file_action: rtypes.string,
+      file_search: rtypes.string,
+      show_hidden: rtypes.bool,
+      error: rtypes.string,
+      checked_files: rtypes.immutable,
+      selected_file_index: rtypes.number, // Index on file listing to highlight starting at 0. undefined means none highlighted
+      new_name: rtypes.string,
+      most_recent_file_click: rtypes.string,
+
+      // Project Log
+      project_log: rtypes.immutable,
+      search: rtypes.string,
+      page: rtypes.number,
+
+      // Project New
+      default_filename: rtypes.string,
+      file_creation_error: rtypes.string,
+      library: rtypes.immutable.Map,
+      library_selected: rtypes.object,
+      library_is_copying: rtypes.bool, // for the copy button, to signal an ongoing copy process
+      library_docs_sorted: computed(rtypes.immutable.List),
+
+      // Project Find
+      user_input: rtypes.string,
+      search_results: rtypes.immutable.List,
+      search_error: rtypes.string,
+      too_many_results: rtypes.bool,
+      command: rtypes.string,
+      most_recent_search: rtypes.string,
+      most_recent_path: rtypes.string,
+      subdirectories: rtypes.bool,
+      case_sensitive: rtypes.bool,
+      hidden_files: rtypes.bool,
+      info_visible: rtypes.bool,
+      git_grep: rtypes.bool,
+
+      // Project Settings
+      get_public_path_id: rtypes.func,
+      stripped_public_paths: computed(rtypes.immutable.List)
+    },
+
+    // Non-default input functions
+    get_public_path_id() {
+      ({ project_id } = this);
+      return function(path) {
+        // (this exists because rethinkdb doesn't have compound primary keys)
+        const { SCHEMA, client_db } = require("smc-util/schema");
+        return SCHEMA.public_paths.user_query.set.fields.id(
+          { project_id, path },
+          client_db
+        );
+      };
+    },
+
+    active_file_sort() {
+      if (this.get("active_file_sort") != null) {
+        return this.get("active_file_sort").toJS();
+      } else {
+        const is_descending = false;
+        const column_name = this.redux
+          .getStore("account")
+          .getIn(["other_settings", "default_file_sort"]);
+        return { is_descending, column_name };
+      }
+    },
+
+    // Computed values
+
+    // cached pre-processed file listing, which should always be up to date when
+    // called, and properly depends on dependencies.
+    displayed_listing: depends(
+      "active_file_sort",
+      "current_path",
+      "history_path",
+      "directory_listings",
+      "stripped_public_paths",
+      "file_search",
+      "other_settings",
+      "show_hidden"
+    )(function() {
+      const search_escape_char = "/";
+      let listing = this.directory_listings.get(this.current_path);
+      if (typeof listing === "string") {
+        if (
+          listing.indexOf("ECONNREFUSED") !== -1 ||
+          listing.indexOf("ENOTFOUND") !== -1
+        ) {
+          return { error: "no_instance" }; // the host VM is down
+        } else if (listing.indexOf("o such path") !== -1) {
+          return { error: "no_dir" };
+        } else if (listing.indexOf("ot a directory") !== -1) {
+          return { error: "not_a_dir" };
+        } else if (listing.indexOf("not running") !== -1) {
+          // yes, no underscore.
+          return { error: "not_running" };
+        } else {
+          return { error: listing };
+        }
+      }
+      if (listing == null) {
+        return {};
+      }
+      if ((listing != null ? listing.errno : undefined) != null) {
+        return { error: misc.to_json(listing) };
+      }
+      listing = listing.toJS();
+
+      if (this.other_settings.get("mask_files")) {
+        this._compute_file_masks(listing);
+      }
+
+      if (this.current_path === ".snapshots") {
+        this._compute_snapshot_display_names(listing);
+      }
+
+      const search =
+        this.file_search != null ? this.file_search.toLowerCase() : undefined;
+      if (search && search[0] !== search_escape_char) {
+        listing = this._matched_files(search, listing);
+      }
+
+      const sorter = (() => {
+        switch (this.active_file_sort.column_name) {
+          case "name":
+            return this._sort_on_string_field("name");
+          case "time":
+            return this._sort_on_numerical_field("mtime", -1);
+          case "size":
+            return this._sort_on_numerical_field("size");
+          case "type":
+            return (a, b) => {
+              if (a.isdir && !b.isdir) {
+                return -1;
+              } else if (b.isdir && !a.isdir) {
+                return 1;
+              } else {
+                return misc.cmp_array(
+                  a.name.split(".").reverse(),
+                  b.name.split(".").reverse()
+                );
+              }
+            };
+        }
+      })();
+
+      listing.sort(sorter);
+
+      if (this.active_file_sort.is_descending) {
+        listing.reverse();
+      }
+
+      if (!this.show_hidden) {
+        listing = (() => {
+          const result: string[] = [];
+          for (let l of listing) {
+            if (!l.name.startsWith(".")) {
+              result.push(l);
+            }
+          }
+          return result;
+        })();
+      }
+
+      const map = {};
+      for (var x of listing) {
+        map[x.name] = x;
+      }
+
+      x = { listing, public: {}, path: this.current_path, file_map: map };
+
+      this._compute_public_files(
+        x,
+        this.stripped_public_paths,
+        this.current_path
+      );
+
+      return x;
+    }),
+
+    stripped_public_paths: depends("public_paths")(function() {
+      if (this.public_paths != null) {
+        return immutable.fromJS(
+          (() => {
+            const result: any[] = [];
+            const object = this.public_paths.toJS();
+            for (let _ in object) {
+              const x = object[_];
+              result.push(misc.copy_without(x, ["id", "project_id"]));
+            }
+            return result;
+          })()
+        );
+      }
+    }),
+
+    library_docs_sorted: depends("library")(function() {
+      const docs = this.library.getIn(["examples", "documents"]);
+      const metadata = this.library.getIn(["examples", "metadata"]);
+
+      if (docs != null) {
+        // sort by a triplet: idea is to have the docs sorted by their category,
+        // where some categories have weights (e.g. "introduction" comes first, no matter what)
+        const sortfn = function(doc) {
+          let left, left1;
+          return [
+            (left = metadata.getIn([
+              "categories",
+              doc.get("category"),
+              "weight"
+            ])) != null
+              ? left
+              : 0,
+            metadata
+              .getIn(["categories", doc.get("category"), "name"])
+              .toLowerCase(),
+            (left1 = __guard__(doc.get("title"), x => x.toLowerCase())) != null
+              ? left1
+              : doc.get("id")
+          ];
+        };
+        return docs.sortBy(sortfn);
+      }
+    }),
+
+    // Returns the cursor positions for the given project_id/path, if that
+    // file is opened, and supports cursors and is either old (and ...) or
+    // is in react and has store with a cursors key.
+    get_users_cursors(path, account_id) {
+      const store: any = redux.getEditorStore(this.project_id, path);
+      if (store == null) {
+        // try non-react editor
+        return __guardMethod__(
+          wrapped_editors.get_editor(this.project_id, path),
+          "get_users_cursors",
+          o => o.get_users_cursors(account_id)
+        );
+      } else {
+        return __guard__(store.get("cursors"), x => x.get(account_id));
+      }
+    },
+
+    // Not a property
+    is_file_open(path) {
+      return this.getIn(["open_files", path]) != null;
+    },
+
+    // Returns
+    // Not a property
+    get_item_in_path(name, path) {
+      const listing = this.directory_listings.get(path);
+      if (typeof listing === "string") {
+        // must be an error
+        return { err: listing };
+      }
+      return {
+        item:
+          listing != null
+            ? listing.find(val => val.get("name") === name)
+            : undefined
+      };
+    },
+
+    get_raw_link(path) {
+      let url = document.URL;
+      url = url.slice(0, url.indexOf("/projects/"));
+      return `${url}/${this.project_id}/raw/${misc.encode_path(path)}`;
+    },
+
+    _match(words, s, is_dir) {
+      s = s.toLowerCase();
+      for (let t of words) {
+        if (t[t.length - 1] === "/") {
+          if (!is_dir) {
+            return false;
+          } else if (s.indexOf(t.slice(0, -1)) === -1) {
+            return false;
+          }
+        } else if (s.indexOf(t) === -1) {
+          return false;
+        }
+      }
+      return true;
+    },
+
+    _matched_files(search, listing) {
+      if (listing == null) {
+        return [];
+      }
+      const words = search.split(" ");
+      return (() => {
+        const result: string[] = [];
+        for (let x of listing) {
+          if (
+            this._match(
+              words,
+              x.display_name != null ? x.display_name : x.name,
+              x.isdir
+            )
+          ) {
+            result.push(x);
+          }
+        }
+        return result;
+      })();
+    },
+
+    _compute_file_masks(listing) {
+      const filename_map = misc.dict(listing.map(item => [item.name, item])); // map filename to file
+      return (() => {
+        const result: any[] = [];
+        for (let file of listing) {
+          // note: never skip already masked files, because of rnw->tex
+          var filename = file.name;
+
+          // mask items beginning with '.'
+          if (misc.startswith(filename, ".")) {
+            file.mask = true;
+            continue;
+          }
+
+          // mask compiled files, e.g. mask 'foo.class' when 'foo.java' exists
+          var ext = misc.filename_extension(filename).toLowerCase();
+          var basename = filename.slice(0, filename.length - ext.length);
+          result.push(
+            (() => {
+              const result1: any[] = [];
+              for (let mask_ext of MASKED_FILE_EXTENSIONS[ext] != null
+                ? MASKED_FILE_EXTENSIONS[ext]
+                : []) {
+                // check each possible compiled extension
+                var bn;
+                if (misc.startswith(mask_ext, "NODOT")) {
+                  bn = basename.slice(0, -1); // exclude the trailing dot
+                  mask_ext = mask_ext.slice("NODOT".length);
+                } else if (mask_ext.indexOf("FILENAME") >= 0) {
+                  bn = mask_ext.replace("FILENAME", filename);
+                  mask_ext = "";
+                } else {
+                  bn = basename;
+                }
+                result1.push(
+                  filename_map[`${bn}${mask_ext}`] != null
+                    ? (filename_map[`${bn}${mask_ext}`].mask = true)
+                    : undefined
+                );
+              }
+              return result1;
+            })()
+          );
+        }
+        return result;
+      })();
+    },
+
+    _compute_snapshot_display_names(listing) {
+      return (() => {
+        const result: number[] = [];
+        for (let item of listing) {
+          const tm = misc.parse_bup_timestamp(item.name);
+          item.display_name = `${tm}`;
+          result.push((item.mtime = (tm - 0) / 1000));
+        }
+        return result;
+      })();
+    },
+
+    // Mutates data to include info on public paths.
+    _compute_public_files: (data, public_paths, current_path) => {
+      const { listing } = data;
+      const pub = data.public;
+      if (public_paths != null && public_paths.size > 0) {
+        const head = current_path ? current_path + "/" : "";
+        const paths: string[] = [];
+        const public_path_data = {};
+        for (var x of public_paths.toJS()) {
+          public_path_data[x.path] = x;
+          paths.push(x.path);
+        }
+        return (() => {
+          const result: any = [];
+          for (x of listing) {
+            const full = head + x.name;
+            const p = misc.containing_public_path(full, paths);
+            if (p != null) {
+              x.public = public_path_data[p];
+              x.is_public = !x.public.disabled;
+              result.push((pub[x.name] = public_path_data[p]));
+            } else {
+              result.push(undefined);
+            }
+          }
+          return result;
+        })();
+      }
+    },
+
+    _sort_on_string_field: field => {
+      return function(a, b) {
+        let left, left1;
+        return misc.cmp(
+          (left = a[field] != null ? a[field].toLowerCase() : undefined) != null
+            ? left
+            : "",
+          (left1 = b[field] != null ? b[field].toLowerCase() : undefined) !=
+          null
+            ? left1
+            : ""
+        );
+      };
+    },
+
+    _sort_on_numerical_field: (field, factor = 1) => {
+      return (a, b) =>
+        misc.cmp(
+          (a[field] != null ? a[field] : -1) * factor,
+          (b[field] != null ? b[field] : -1) * factor
+        );
+    }
+  };
+};
+
+export function init(project_id) {
+  must_define(redux);
+  const name = project_redux_name(project_id);
+  let store = redux.getStore(name);
+  if (store != null) {
+    return;
+  }
+
+  // Initialize everything
+  const actions = redux.createActions(name, ProjectActions);
+  actions.project_id = project_id; // so actions can assume this is available on the object
+  store = redux.createStore(create_project_store_def(name, project_id));
+
+  const queries = misc.deep_copy(QUERIES);
+  const create_table = function(table_name, q) {
+    //console.log("create_table", table_name)
+    return class P extends Table {
+      constructor(a, b) {
+        super(a, b);
+        this.query = this.query.bind(this);
+        this.options = this.options.bind(this);
+        this._change = this._change.bind(this);
+      }
+
+      query() {
+        return { [table_name]: q.query };
+      }
+      options() {
+        return q.options;
+      }
+      _change(table, keys) {
+        return actions.setState({ [table_name]: table.get() });
+      }
+    };
+  };
+
+  for (let table_name in queries) {
+    const q = queries[table_name];
+    for (let k in q) {
+      const v = q[k];
+      if (typeof v === "function") {
+        q[k] = v();
+      }
+    }
+    q.query.project_id = project_id;
+    const T = redux.createTable(
+      project_redux_name(project_id, table_name),
+      create_table(table_name, q)
+    );
+  }
+}
+
+const prom_client = require("./prom-client");
+if (prom_client.enabled) {
+  prom_get_dir_listing_h = prom_client.new_histogram(
+    "get_dir_listing_seconds",
+    "get_directory_listing time",
+    {
+      buckets: [1, 2, 5, 7, 10, 15, 20, 30, 50],
+      labels: ["public", "state", "err"]
+    }
+  );
+}
+
+var get_directory_listing = function(opts) {
+  let method, prom_dir_listing_start, prom_labels, state, time0, timeout;
+  opts = defaults(opts, {
+    project_id: required,
+    path: required,
+    hidden: required,
+    max_time_s: required,
+    group: required,
+    cb: required
+  });
+
+  ({ webapp_client } = require("./webapp_client"));
+
+  if (prom_client.enabled) {
+    prom_dir_listing_start = misc.server_time();
+    prom_labels = { public: false };
+  }
+
+  if (["owner", "collaborator", "admin"].includes(opts.group)) {
+    method = webapp_client.project_directory_listing;
+    // Also, make sure project starts running, in case it isn't.
+    state = (redux
+      .getStore("projects") as any)
+      .getIn(["project_map", opts.project_id, "state", "state"]);
+    if (prom_client.enabled) {
+      prom_labels.state = state;
+    }
+    if (state !== "running") {
+      timeout = 0.5;
+      time0 = misc.server_time();
+      (redux.getActions("projects") as any).start_project(opts.project_id);
+    } else {
+      timeout = 1;
+    }
+  } else {
+    state = time0 = undefined;
+    method = webapp_client.public_project_directory_listing;
+    timeout = 15;
+    if (prom_client.enabled) {
+      prom_labels.public = true;
+    }
+  }
+
+  let listing: any;
+  let listing_err: any;
+  const f = cb =>
+    //console.log 'get_directory_listing.f ', opts.path
+    method({
+      project_id: opts.project_id,
+      path: opts.path,
+      hidden: opts.hidden,
+      timeout,
+      cb(err, x) {
+        //console.log("f ", err, x)
+        if (err) {
+          if (timeout < 5) {
+            timeout *= 1.3;
+          }
+          return cb(err);
+        } else {
+          if (x != null ? x.error : undefined) {
+            if (x.error.code === "ENOENT") {
+              listing_err = "no_dir";
+            } else if (x.error.code === "ENOTDIR") {
+              listing_err = "not_a_dir";
+            } else {
+              listing_err = x.error;
+            }
+            return cb();
+          } else {
+            listing = x;
+            return cb();
+          }
+        }
+      }
+    });
+
+  return misc.retry_until_success({
+    f,
+    max_time: opts.max_time_s * 1000,
+    start_delay: 100,
+    max_delay: 1000,
+    //log         : console.log
+    cb(err) {
+      //console.log opts.path, 'get_directory_listing.success or timeout', err
+      if (prom_client.enabled && prom_dir_listing_start != null) {
+        prom_labels.err = !!err;
+        const tm = (misc.server_time() - prom_dir_listing_start) / 1000;
+        if (!isNaN(tm)) {
+          if (prom_get_dir_listing_h != null) {
+            prom_get_dir_listing_h.observe(prom_labels, tm);
+          }
+        }
+      }
+
+      opts.cb(err != null ? err : listing_err, listing);
+      if (time0 && state !== "running" && !err) {
+        // successfully opened, started, and got directory listing
+        return redux.getProjectActions(opts.project_id).log({
+          event: "start_project",
+          time: misc.server_time() - time0
+        });
+      }
+    }
+  });
+};
+
+function __guard__(value, transform) {
+  return typeof value !== "undefined" && value !== null
+    ? transform(value)
+    : undefined;
+}
+function __guardMethod__(obj, methodName, transform) {
+  if (
+    typeof obj !== "undefined" &&
+    obj !== null &&
+    typeof obj[methodName] === "function"
+  ) {
+    return transform(obj, methodName);
+  } else {
+    return undefined;
+  }
+}
