@@ -84,6 +84,8 @@ export class Actions<T = CodeEditorState> extends BaseActions<
   protected _state: "closed" | undefined;
   protected _syncstring: any;
   protected _syncdb?: any; /* auxiliary file optionally used for shared project configuration (e.g., for latex) */
+  private _syncstring_init : boolean = false;  // true once init has happened.
+  private _syncdb_init : boolean = false; // true once init has happened
   protected _key_handler: any;
   protected _cm: { [key: string]: CodeMirror.Editor } = {};
 
@@ -187,10 +189,12 @@ export class Actions<T = CodeEditorState> extends BaseActions<
 
     this._syncstring.once("init", err => {
       if (err) {
-        this.set_error(`Error opening -- ${err}`);
+        this.set_error(`Fatal error opening file -- ${err}.  Please try reopening the file again.`);
+        return;
       }
+      this._syncstring_init = true;
       this._syncstring_metadata();
-      if (!this.store.get("is_loaded")) {
+      if (!this.store.get("is_loaded") && (this._syncdb === undefined || this._syncdb_init)) {
         this.setState({ is_loaded: true });
       }
     });
@@ -220,11 +224,22 @@ export class Actions<T = CodeEditorState> extends BaseActions<
   // editors to store shared configuration or other information.  E.g., it's
   // used by the latex editor to store the build command, master file, etc.
   _init_syncdb(primary_keys: string[], string_cols?: string[]): void {
+    const aux = aux_file(this.path, "syncdb");
     this._syncdb = syncdb({
       project_id: this.project_id,
-      path: aux_file(this.path, "syncdb"),
+      path: aux,
       primary_keys: primary_keys,
       string_cols: string_cols
+    });
+    this._syncdb.once("init", err => {
+      if (err) {
+        this.set_error(`Fatal error opening config "${aux}" -- ${err}.  Please try reopening the file again.`);
+        return;
+      }
+      this._syncdb_init = true;
+      if (!this.store.get("is_loaded") && (this._syncstring === undefined || this._syncstring_init)) {
+        this.setState({ is_loaded: true });
+      }
     });
   }
 

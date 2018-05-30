@@ -9,7 +9,8 @@ export async function latexmk(
   project_id: string,
   path: string,
   build_command: string | string[],
-  time: number // (ms since epoch)  used to aggregate multiple calls into one across all users.
+  time: number, // (ms since epoch)  used to aggregate multiple calls into one across all users.
+  status: Function
 ): Promise<ExecOutput> {
   const x = path_split(path);
   let bash: boolean;
@@ -19,10 +20,12 @@ export async function latexmk(
     bash = true;
     command = build_command;
     args = undefined;
+    status(command);
   } else {
     bash = false;
     command = build_command[0];
     args = build_command.slice(1);
+    status([command].concat(args).join(" "));
   }
   return await exec({
     bash: bash,

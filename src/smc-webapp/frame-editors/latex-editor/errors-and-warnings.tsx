@@ -183,7 +183,6 @@ class ErrorsAndWarnings extends Component<ErrorsAndWarningsProps, {}> {
         <div
           style={{
             margin: "5px",
-            position: "absolute",
             right: 0,
             background: "white",
             paddingLeft: "5px"
@@ -192,8 +191,8 @@ class ErrorsAndWarnings extends Component<ErrorsAndWarningsProps, {}> {
           <Loading
             text={this.props.status}
             style={{
-              fontSize: "12pt",
-              color: "#666"
+              fontSize: "10pt",
+              color: "#444"
             }}
           />
         </div>

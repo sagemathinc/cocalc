@@ -72,8 +72,30 @@ export class Actions extends BaseActions<LatexEditorState> {
   }
 
   _init_config(): void {
-    this._init_syncdb(['key']);
-    this.set_build_command(build_command("PDFLaTeX", path_split(this.path).tail));
+    this.setState({ build_command: "" }); // empty means not yet initialized
+    this._init_syncdb(["key"]);
+    this._syncdb.on("init", () => {
+      const x = this._syncdb.get_one({
+        key: "build_command"
+      });
+      if (x !== undefined) {
+        this.setState({ build_command: fromJS(x.get("value")) });
+      } else {
+        // default
+        this.set_build_command(
+          build_command("PDFLaTeX", path_split(this.path).tail)
+        );
+      }
+    });
+    this._syncdb.on("change", () => {
+      const x = this._syncdb.get_one({ key: "build_command" });
+      if (x !== undefined && x.get("value") !== undefined) {
+        this.setState({ build_command: fromJS(x.get("value")) });
+        if (x.get("time")) {
+          this.run_latexmk(x.get("time"));
+        }
+      }
+    });
   }
 
   _raw_default_frame_tree(): FrameTree {
@@ -128,24 +150,28 @@ export class Actions extends BaseActions<LatexEditorState> {
   }
 
   async run_latex(time: number): Promise<void> {
-    this.set_status("Running LaTeX...");
-    this.set_error("");
-    this.setState({ build_logs: Map() });
     let output: BuildLog;
     let build_command: string | string[];
     let s: string | List<string> = this.store.get("build_command");
+    if (!s) {
+      return;
+    }
+    this.set_error("");
+    this.setState({ build_logs: Map() });
     if (typeof s == "string") {
       build_command = s;
     } else {
       build_command = s.toJS();
     }
-
+    const status = s => this.set_status(`Running Latex... ${s}`);
+    status("");
     try {
       output = await latexmk(
         this.project_id,
         this.path,
         build_command,
-        time || this._last_save_time
+        time || this._last_save_time,
+        status
       );
     } catch (err) {
       this.set_error(err);
@@ -441,7 +467,10 @@ export class Actions extends BaseActions<LatexEditorState> {
   }
 
   set_build_command(command: string | string[]): void {
-    console.log("set build command to ", command);
+    const now = server_time().valueOf();
+    this._syncdb.set({ key: "build_command", value: command, time: now });
+    this._syncdb.save();
     this.setState({ build_command: fromJS(command) });
+    this.run_latexmk(now);
   }
 }

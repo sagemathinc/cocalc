@@ -12,8 +12,6 @@ import {
   MenuItem,
   DropdownButton,
   ButtonToolbar,
-  Form,
-  FormGroup,
   FormControl
 } from "react-bootstrap";
 
@@ -59,7 +57,7 @@ export class BuildCommand extends Component<Props, State> {
     if (typeof cmd === "string") {
       s = cmd;
     } else {
-      s = "";
+      let v: string[] = [];
       cmd.forEach(function(t: string) {
         if (split(t).length > 1) {
           // some minimal escape for now...
@@ -69,8 +67,9 @@ export class BuildCommand extends Component<Props, State> {
             t = `"${t}"`;
           }
         }
-        s += " " + t;
+        v.push(t);
       });
+      s = v.join(" ");
     }
     return s;
   }
@@ -102,11 +101,7 @@ export class BuildCommand extends Component<Props, State> {
   render_dropdown(): Rendered {
     return (
       <ButtonToolbar>
-        <DropdownButton
-          title="Engine"
-          id="cc-latex-build-command"
-          pullRight
-        >
+        <DropdownButton title="Engine" id="cc-latex-build-command" pullRight>
           {this.render_items()}
         </DropdownButton>
       </ButtonToolbar>
@@ -115,6 +110,15 @@ export class BuildCommand extends Component<Props, State> {
 
   handle_command_line_change(val: string): void {
     this.setState({ build_command: val });
+  }
+
+  handle_build_change(): void {
+    if (
+      this.state.build_command !=
+      this.build_command_string(this.props.build_command)
+    ) {
+      this.props.actions.set_build_command(this.state.build_command);
+    }
   }
 
   render_command_line(): Rendered {
@@ -129,14 +133,19 @@ export class BuildCommand extends Component<Props, State> {
         value={this.state.build_command}
         onChange={e => this.handle_command_line_change((e.target as any).value)}
         onFocus={() => this.setState({ focus: true })}
+        onKeyDown={evt => {
+          if (
+            evt.keyCode == 13 ||
+            ((evt.metaKey || evt.ctrlKey) &&
+              String.fromCharCode(evt.which).toLowerCase() == "s")
+          ) {
+            this.handle_build_change();
+            evt.preventDefault();
+          }
+        }}
         onBlur={() => {
           this.setState({ focus: false });
-          if (
-            this.state.build_command !=
-            this.build_command_string(this.props.build_command)
-          ) {
-            this.props.actions.set_build_command(this.state.build_command);
-          }
+          this.handle_build_change();
         }}
       />
     );
@@ -149,11 +158,9 @@ export class BuildCommand extends Component<Props, State> {
       <Alert bsStyle="info">
         <div style={{ color: "#666" }}>
           <h4>Build Command</h4>
-          You can enter absolutely any custom build command line you want (it
-          will be run using bash, so separate multiple commands with a
-          semicolon). You can also use the "Engine" menu to select a
-          preset build command. The build command is stored in a comment at the
-          bottom of the master LaTeX file.
+          Select a build engine from the menu at the right, or enter absolutely
+          any custom build command line you want.  Custom build commands are run using bash, so
+          you can separate multiple commands with a semicolon.
         </div>
       </Alert>
     );
@@ -161,18 +168,16 @@ export class BuildCommand extends Component<Props, State> {
 
   render_form(): Rendered {
     return (
-      <Form horizontal style={{ marginTop: "5px", marginBottom: "-30px" }}>
-        <FormGroup style={{ display: "flex" }}>
-          <div style={{ flex: 1, paddingLeft: "15px" }}>
+      <div style={{ marginTop: "5px", marginBottom: "-15px" }}>
+        <div style={{ display: "flex" }}>
+          <div style={{ flex: 1 }}>
             {this.render_command_line()}
             <br />
             {this.render_help()}
           </div>
-          <div style={{ padding: "0 15px 0 5px" }}>
-            {this.render_dropdown()}
-          </div>
-        </FormGroup>
-      </Form>
+          <div style={{ paddingLeft: "5px" }}>{this.render_dropdown()}</div>
+        </div>
+      </div>
     );
   }
   render(): Rendered {
