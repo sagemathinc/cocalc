@@ -27,7 +27,7 @@ let pdfjs_buttons = set([
 
 const EDITOR_SPEC = {
   cm: {
-    short: "LaTeX",
+    short: "Source",
     name: "LaTeX Source Code",
     icon: "code",
     component: CodemirrorEditor,
@@ -52,8 +52,8 @@ const EDITOR_SPEC = {
   },
 
   pdfjs_canvas: {
-    short: "PDF (canvas)",
-    name: "PDF - Canvas",
+    short: "PDF (preview)",
+    name: "PDF - Preview",
     icon: "file-pdf-o",
     component: PDFJS,
     buttons: pdfjs_buttons,
@@ -87,6 +87,7 @@ const EDITOR_SPEC = {
     path: pdf_path
   },
 
+  /*
   pdfjs_svg: {
     short: "PDF (svg)",
     name: "PDF - SVG",
@@ -98,7 +99,6 @@ const EDITOR_SPEC = {
     renderer: "svg"
   }
 
-  /*
     latexjs: {
         short: "Preview 1",
         name: "Rough Preview  1 - LaTeX.js",

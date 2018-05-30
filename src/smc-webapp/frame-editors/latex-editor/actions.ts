@@ -53,7 +53,6 @@ interface LatexEditorState extends CodeEditorState {
 export class Actions extends BaseActions<LatexEditorState> {
   public project_id: string;
   public store: Store<LatexEditorState>;
-
   private _last_save_time: number;
 
   _init2(): void {
@@ -61,7 +60,7 @@ export class Actions extends BaseActions<LatexEditorState> {
       this._init_syncstring_value();
       this._init_latexmk();
       this._init_spellcheck();
-      this._init_build_command();
+      this._init_config();
     }
   }
 
@@ -72,7 +71,8 @@ export class Actions extends BaseActions<LatexEditorState> {
     });
   }
 
-  _init_build_command(): void {
+  _init_config(): void {
+    this._init_syncdb(['key']);
     this.set_build_command(build_command("PDFLaTeX", path_split(this.path).tail));
   }
 

@@ -16,8 +16,10 @@ import {
   log_error,
   public_get_text_file,
   prettier,
-  syncstring
+  syncstring,
+  syncdb
 } from "../generic/client";
+import { aux_file } from "../frame-tree/util";
 import { callback_opts, retry_until_success } from "../generic/async-utils";
 import {
   filename_extension,
@@ -81,6 +83,7 @@ export class Actions<T = CodeEditorState> extends BaseActions<
 > {
   protected _state: "closed" | undefined;
   protected _syncstring: any;
+  protected _syncdb?: any; /* auxiliary file optionally used for shared project configuration (e.g., for latex) */
   protected _key_handler: any;
   protected _cm: { [key: string]: CodeMirror.Editor } = {};
 
@@ -213,6 +216,18 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     this._init_has_unsaved_changes();
   }
 
+  // This is currently NOT used in this base class.  It's used in other
+  // editors to store shared configuration or other information.  E.g., it's
+  // used by the latex editor to store the build command, master file, etc.
+  _init_syncdb(primary_keys: string[], string_cols?: string[]): void {
+    this._syncdb = syncdb({
+      project_id: this.project_id,
+      path: aux_file(this.path, "syncdb"),
+      primary_keys: primary_keys,
+      string_cols: string_cols
+    });
+  }
+
   // Reload the document.  This is used mainly for *public* viewing of
   // a file.
   reload(): void {
@@ -275,6 +290,13 @@ export class Actions<T = CodeEditorState> extends BaseActions<
       this._syncstring._save();
       this._syncstring.close();
       delete this._syncstring;
+    }
+    if (this._syncdb) {
+      // syncstring was initialized; be sure not to
+      // loose the very last change user made!
+      this._syncdb.save_asap();
+      this._syncdb.close();
+      delete this._syncdb;
     }
     // Remove underlying codemirror doc from cache.
     cm_doc_cache.close(this.project_id, this.path);
