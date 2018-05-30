@@ -405,7 +405,7 @@ class AppRedux
             throw Error("getTable: table #{name} not registered")
         return @_tables[name]
 
-    projectStoreExists: (project_id) =>
+    hasProjectStore: (project_id) =>
         return !!this.getStore(project_redux_name(project_id))
 
     # getProject... is safe to call any time. All structures will be created if they don't exist
@@ -414,7 +414,7 @@ class AppRedux
         if not misc.is_valid_uuid_string(project_id)
             console.trace()
             console.warn("getProjectStore: INVALID project_id -- #{project_id}")
-        if not projectStoreExists(project_id)
+        if not @hasProjectStore(project_id)
             require("project_store").init(project_id)
         return @getStore(project_redux_name(project_id))
 
@@ -422,7 +422,7 @@ class AppRedux
         if not misc.is_valid_uuid_string(project_id)
             console.trace()
             console.warn("getProjectActions: INVALID project_id -- #{project_id}")
-        if not projectStoreExists(project_id)
+        if not @hasProjectStore(project_id)
             require("project_store").init(project_id)
         return @getActions(project_redux_name(project_id))
 
@@ -430,7 +430,7 @@ class AppRedux
         if not misc.is_valid_uuid_string(project_id)
             console.trace()
             console.warn("getProjectTable: INVALID project_id -- #{project_id}")
-        if not projectStoreExists(project_id)
+        if not @hasProjectStore(project_id)
             require("project_store").init(project_id)
         return @getTable(project_redux_name(project_id, name))
 
