@@ -203,7 +203,8 @@ Data = rclass
     render: ->
         type  = undefined
         value = undefined
-        @props.message.get('data').forEach (v, k) ->
+        data = @props.message.get('data')
+        data?.forEach? (v, k) ->
             type  = k
             value = v
             return false
