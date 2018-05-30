@@ -128,6 +128,7 @@ const EDITOR_SPEC = {
 
 export const Editor = createEditor({
   format_bar: true,
+  format_bar_exclude: { strikethrough: true, SpecialChar:true, image:true, unformat:true },  // disabled until we can properly implement them!
   editor_spec: EDITOR_SPEC,
   display_name: "LaTeXEditor"
 });
