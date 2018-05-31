@@ -9,7 +9,7 @@ This is a renderer using pdf.js.
 const WINDOW_SIZE: number = 3000;
 const HIGHLIGHT_TIME_S: number = 3;
 
-const { Loading } = require("smc-webapp/r_misc");
+const { Icon, Loading } = require("smc-webapp/r_misc");
 
 import { delay } from "awaiting";
 import { Map } from "immutable";
@@ -126,11 +126,11 @@ class PDFJS extends Component<PDFJSProps, PDFJSState> {
     return (
       <div
         style={{
-          fontSize: "24pt",
+          fontSize: "20pt",
           color: "#666"
         }}
       >
-        Missing PDF
+        Missing PDF (<Icon name='play-circle'/> Build or fix)
       </div>
     );
   }

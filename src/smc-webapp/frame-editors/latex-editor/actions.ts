@@ -53,7 +53,7 @@ interface LatexEditorState extends CodeEditorState {
 export class Actions extends BaseActions<LatexEditorState> {
   public project_id: string;
   public store: Store<LatexEditorState>;
-  private _last_save_time: number;
+  private _last_save_time: number = 0;
   private _last_sagetex_hash: string;
   private is_building : boolean = false;
 
@@ -69,6 +69,11 @@ export class Actions extends BaseActions<LatexEditorState> {
 
   _init_latexmk(): void {
     this._syncstring.on("save-to-disk", time => {
+      if (this._last_save_time === 0) {
+        // first time.
+        this._last_save_time = time;
+        this.build();
+      }
       this._last_save_time = time;
     });
   }
