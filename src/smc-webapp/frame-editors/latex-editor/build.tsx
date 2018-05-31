@@ -73,9 +73,9 @@ interface Props {
   path: string;
   reload: number;
   font_size: number;
+  status: string;
 
   // reduxProps:
-  status: string;
   build_logs: BuildLogs;
   build_command: string | List<string>;
 }
@@ -85,7 +85,6 @@ class Build extends Component<Props, {}> {
     return {
       [name]: {
         build_logs: rtypes.immutable.Map,
-        status: rtypes.string,
         build_command: rtypes.oneOfType([rtypes.string, rtypes.immutable.List])
       }
     };

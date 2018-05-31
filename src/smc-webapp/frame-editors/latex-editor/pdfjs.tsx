@@ -19,6 +19,7 @@ import { is_different, seconds_ago } from "../generic/misc";
 import { dblclick } from "./mouse-click";
 import {
   Component,
+  Fragment,
   React,
   ReactDOM,
   rclass,
@@ -44,6 +45,7 @@ interface PDFJSProps {
   font_size: number;
   renderer: string /* "canvas" or "svg" */;
   is_current: boolean;
+  status: string;
 
   // reduxProps
   zoom_page_width?: string;
@@ -110,7 +112,8 @@ class PDFJS extends Component<PDFJSProps, PDFJSState> {
           "zoom_page_height",
           "sync",
           "scroll_pdf_into_view",
-          "is_current"
+          "is_current",
+          "status"
         ]
       ) ||
       is_different(this.state, next_state, [
@@ -122,6 +125,18 @@ class PDFJS extends Component<PDFJSProps, PDFJSState> {
     );
   }
 
+  render_status(): Rendered {
+    if (this.props.status) {
+      return <Loading text="Building..." />;
+    } else {
+      return (
+        <Fragment>
+          <Icon name="play-circle" /> Build or fix
+        </Fragment>
+      );
+    }
+  }
+
   render_missing(): Rendered {
     return (
       <div
@@ -130,7 +145,7 @@ class PDFJS extends Component<PDFJSProps, PDFJSState> {
           color: "#666"
         }}
       >
-        Missing PDF (<Icon name='play-circle'/> Build or fix)
+        Missing PDF -- {this.render_status()}
       </div>
     );
   }

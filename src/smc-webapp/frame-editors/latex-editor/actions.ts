@@ -55,8 +55,7 @@ export class Actions extends BaseActions<LatexEditorState> {
   public store: Store<LatexEditorState>;
   private _last_save_time: number = 0;
   private _last_sagetex_hash: string;
-  private is_building : boolean = false;
-
+  private is_building: boolean = false;
 
   _init2(): void {
     if (!this.is_public) {
@@ -64,16 +63,22 @@ export class Actions extends BaseActions<LatexEditorState> {
       this._init_latexmk();
       this._init_spellcheck();
       this._init_config();
+      this._init_first_build();
     }
+  }
+
+  _init_first_build(): void {
+    const f = () => {
+      if (this.store.get("is_loaded")) {
+        this.build();
+      }
+    };
+    this._syncstring.once("init", f);
+    this._syncdb.once("init", f);
   }
 
   _init_latexmk(): void {
     this._syncstring.on("save-to-disk", time => {
-      if (this._last_save_time === 0) {
-        // first time.
-        this._last_save_time = time;
-        this.build();
-      }
       this._last_save_time = time;
     });
   }
@@ -155,8 +160,8 @@ export class Actions extends BaseActions<LatexEditorState> {
   // used by generic framework.
   async build(): Promise<void> {
     if (this.is_building) {
-      return
-    };
+      return;
+    }
     this.is_building = true;
     try {
       await this.save(false);

@@ -178,6 +178,7 @@ class FrameTreeEditor0 extends Component<FrameTreeEditorProps, {}> {
           is_saving={this.props.is_saving}
           gutter_markers={this.props.gutter_markers}
           editor_settings={this.props.editor_settings}
+          status={this.props.status}
         />
       </div>
     );
