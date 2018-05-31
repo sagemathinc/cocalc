@@ -17,7 +17,6 @@ import { pdf_path } from "./util";
 let pdfjs_buttons = set([
   "print",
   "download",
-  "save",
   "decrease_font_size",
   "increase_font_size",
   "zoom_page_width",
@@ -32,6 +31,7 @@ const EDITOR_SPEC = {
     icon: "code",
     component: CodemirrorEditor,
     buttons: set([
+      "build",
       "print",
       "decrease_font_size",
       "increase_font_size",
@@ -67,7 +67,7 @@ const EDITOR_SPEC = {
     name: "Errors and Warnings",
     icon: "bug",
     component: ErrorsAndWarnings,
-    buttons: set([])
+    buttons: set(['build'])
   },
 
   build: {
@@ -75,7 +75,7 @@ const EDITOR_SPEC = {
     name: "Build Control",
     icon: "terminal",
     component: Build,
-    buttons: set([])
+    buttons: set(['build', 'clean'])
   },
 
   pdf_embed: {

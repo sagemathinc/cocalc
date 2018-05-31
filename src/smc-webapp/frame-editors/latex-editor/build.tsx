@@ -100,6 +100,14 @@ class Build extends Component<Props, {}> {
     ]);
   }
 
+  render_log_label(stage: string, time_str: string): Rendered {
+    return (
+      <h5>
+        {BUILD_SPECS[stage].label} Output {time_str}
+      </h5>
+    );
+  }
+
   render_log(stage): Rendered {
     if (this.props.build_logs == null) return;
     let x = this.props.build_logs.get(stage);
@@ -115,9 +123,7 @@ class Build extends Component<Props, {}> {
     }
     return (
       <Fragment>
-        <h5>
-          {BUILD_SPECS[stage].label} Output {time_str}
-        </h5>
+        {this.render_log_label(stage, time_str)}
         <textarea
           readOnly={true}
           style={{
@@ -223,7 +229,6 @@ class Build extends Component<Props, {}> {
           fontSize: "10pt"
         }}
       >
-        {this.render_buttons()}
         {this.render_build_command()}
         {this.render_status()}
         {this.render_log("latex")}

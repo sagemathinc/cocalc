@@ -108,7 +108,10 @@ export class FrameTitleBar extends Component<Props, {}> {
     if (!explicit && buttons == null) {
       return true;
     }
-    return buttons != null ? buttons[action_name] : false;
+    if (!this.props.actions[action_name]) {
+      return false;
+    }
+    return buttons != null ? !!buttons[action_name] : false;
   }
 
   click_close(): void {
@@ -729,11 +732,14 @@ export class FrameTitleBar extends Component<Props, {}> {
   render_save_timetravel_group(): Rendered {
     const labels = this.show_labels();
     return (
-      <ButtonGroup key={"save-group"}>
-        {this.render_save(labels)}
-        {!this.props.is_public ? this.render_timetravel(labels) : undefined}
-        {this.render_reload(labels)}
-      </ButtonGroup>
+      <Fragment>
+        <Space />
+        <ButtonGroup key={"save-group"}>
+          {this.render_save(labels)}
+          {!this.props.is_public ? this.render_timetravel(labels) : undefined}
+          {this.render_reload(labels)}
+        </ButtonGroup>
+      </Fragment>
     );
   }
 
@@ -757,6 +763,46 @@ export class FrameTitleBar extends Component<Props, {}> {
         >
           <Icon name={"fa-sitemap"} />{" "}
           <VisibleMDLG>{this.show_labels() ? "Format" : undefined}</VisibleMDLG>
+        </Button>
+      </Fragment>
+    );
+  }
+
+  render_build(): Rendered {
+    if (!this.is_visible("build", true)) {
+      return;
+    }
+    return (
+      <Fragment>
+        <Space />
+        <Button
+          bsSize={this.button_size()}
+          key={"build"}
+          onClick={() => this.props.actions.build(this.props.id)}
+          title={"Build project"}
+        >
+          <Icon name={"play-circle"} />{" "}
+          <VisibleMDLG>Build</VisibleMDLG>
+        </Button>
+      </Fragment>
+    );
+  }
+
+  render_clean(): Rendered {
+    if (!this.is_visible("clean", true)) {
+      return;
+    }
+    return (
+      <Fragment>
+        <Space />
+        <Button
+          bsSize={this.button_size()}
+          key={"clean"}
+          onClick={() => this.props.actions.clean(this.props.id)}
+          title={"Clean auxiliary build files"}
+        >
+          <Icon name={"trash"} />{" "}
+          <VisibleMDLG>{this.show_labels() ? "Clean" : undefined}</VisibleMDLG>
         </Button>
       </Fragment>
     );
@@ -789,7 +835,7 @@ export class FrameTitleBar extends Component<Props, {}> {
     return (
       <EditorFileInfoDropdown
         key={"info"}
-        title={"File related actions"}
+        title={"File` related actions"}
         filename={this.props.path}
         actions={redux.getProjectActions(this.props.project_id)}
         is_public={false}
@@ -810,6 +856,8 @@ export class FrameTitleBar extends Component<Props, {}> {
     }
     return (
       <div style={style} key={"buttons"}>
+        {this.render_build()}
+        {this.render_clean()}
         {this.render_save_timetravel_group()}
         {!this.props.is_public ? this.render_undo_redo_group() : undefined}
         {this.render_zoom_group()}

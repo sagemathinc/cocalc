@@ -149,6 +149,15 @@ export class Actions extends BaseActions<LatexEditorState> {
     }
   }
 
+  // used by generic framework.
+  build(): void {
+    this.build_action("build");
+  }
+
+  clean (): void {
+    this.build_action("clean");
+  }
+
   async run_build(time: number): Promise<void> {
     this.setState({ build_logs: Map() });
     await this.run_latex(time);
