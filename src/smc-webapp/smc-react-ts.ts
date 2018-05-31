@@ -305,7 +305,7 @@ export class AppRedux {
 
   getStore<T, C extends Store<T>>(name: string): C {
     if (!this.hasStore(name)) {
-      throw Error(`getStore: store ${name} not registered`);
+      throw Error(`getStore: store "${name}" not registered`);
     }
     return this._stores[name];
   }
@@ -313,7 +313,7 @@ export class AppRedux {
   createTable(name: string, table_class = Table): Table {
     const tables = this._tables;
     if (tables[name] != null) {
-      throw Error(`createTable: table ${name} already exists`);
+      throw Error(`createTable: table "${name}" already exists`);
     }
     const table = new table_class(name, this);
     return (tables[name] = table);
