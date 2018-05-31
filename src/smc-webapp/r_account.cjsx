@@ -1059,6 +1059,7 @@ EditorSettings = rclass
 KEYBOARD_SHORTCUTS =
     #'Next file tab'                : 'control+]'  # temporarily disabled since broken in many ways
     #'Previous file tab'            : 'control+['
+    'Build project / run code'     : 'shift+enter'
     'Smaller text'                 : 'control+<'
     'Bigger text'                  : 'control+>'
     'Toggle comment'               : 'control+/'

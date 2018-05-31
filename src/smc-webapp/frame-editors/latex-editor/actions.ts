@@ -55,6 +55,8 @@ export class Actions extends BaseActions<LatexEditorState> {
   public store: Store<LatexEditorState>;
   private _last_save_time: number;
   private _last_sagetex_hash: string;
+  private is_building : boolean = false;
+
 
   _init2(): void {
     if (!this.is_public) {
@@ -68,7 +70,6 @@ export class Actions extends BaseActions<LatexEditorState> {
   _init_latexmk(): void {
     this._syncstring.on("save-to-disk", time => {
       this._last_save_time = time;
-      this.run_build(time);
     });
   }
 
@@ -92,9 +93,6 @@ export class Actions extends BaseActions<LatexEditorState> {
       const x = this._syncdb.get_one({ key: "build_command" });
       if (x !== undefined && x.get("value") !== undefined) {
         this.setState({ build_command: fromJS(x.get("value")) });
-        if (x.get("time")) {
-          this.run_build(x.get("time"));
-        }
       }
     });
   }
@@ -150,11 +148,20 @@ export class Actions extends BaseActions<LatexEditorState> {
   }
 
   // used by generic framework.
-  build(): void {
-    this.build_action("build");
+  async build(): Promise<void> {
+    if (this.is_building) {
+      return
+    };
+    this.is_building = true;
+    try {
+      await this.save(false);
+      await this.run_build(this._last_save_time);
+    } finally {
+      this.is_building = false;
+    }
   }
 
-  clean (): void {
+  clean(): void {
     this.build_action("clean");
   }
 
@@ -513,6 +520,5 @@ export class Actions extends BaseActions<LatexEditorState> {
     this._syncdb.set({ key: "build_command", value: command, time: now });
     this._syncdb.save();
     this.setState({ build_command: fromJS(command) });
-    this.run_build(now);
   }
 }

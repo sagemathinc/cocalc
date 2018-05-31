@@ -5,7 +5,7 @@ Show errors and warnings.
 import { Map } from "immutable";
 import { capitalize, is_different, path_split } from "../generic/misc";
 import { Component, React, rclass, rtypes, Rendered } from "../generic/react";
-import { TypedMap } from "../../smc-react/TypedMap"
+import { TypedMap } from "../../smc-react/TypedMap";
 
 import { BuildLogs } from "./actions";
 
@@ -233,6 +233,18 @@ class ErrorsAndWarnings extends Component<ErrorsAndWarningsProps, {}> {
     );
   }
 
+  render_hint(): Rendered {
+    if (this.props.status || this.props.build_logs.size > 0) {
+      return;
+    }
+    return (
+      <div style={{ color: "#666" }}>
+        Click the <Icon name="play-circle" /> Build button or hit shift+enter to
+        run LaTeX.
+      </div>
+    );
+  }
+
   render(): React.ReactElement<any> {
     return (
       <div
@@ -243,6 +255,7 @@ class ErrorsAndWarnings extends Component<ErrorsAndWarningsProps, {}> {
           fontSize: "10pt"
         }}
       >
+        {this.render_hint()}
         {this.render_status()}
         {["errors", "typesetting", "warnings"].map(group =>
           this.render_group(group)

@@ -1,3 +1,4 @@
+
 /*
 FrameTitleBar - title bar in a frame, in the frame tree
 */
@@ -779,7 +780,7 @@ export class FrameTitleBar extends Component<Props, {}> {
           bsSize={this.button_size()}
           key={"build"}
           onClick={() => this.props.actions.build(this.props.id)}
-          title={"Build project"}
+          title={"Build project (shift+enter)"}
         >
           <Icon name={"play-circle"} />{" "}
           <VisibleMDLG>Build</VisibleMDLG>

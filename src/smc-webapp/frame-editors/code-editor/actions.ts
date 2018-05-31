@@ -823,7 +823,7 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     }
   }
 
-  save(explicit: boolean): void {
+  async save(explicit: boolean): Promise<void> {
     if (this.is_public) {
       return;
     }
@@ -842,7 +842,7 @@ export class Actions<T = CodeEditorState> extends BaseActions<
       }
     }
     this.set_syncstring_to_codemirror();
-    this._do_save();
+    await this._do_save();
   }
 
   time_travel(): void {

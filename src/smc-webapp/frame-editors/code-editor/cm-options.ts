@@ -6,8 +6,8 @@ using the given editor settings.
 import * as CodeMirror from "codemirror";
 const { file_associations } = require("smc-webapp/file-associations");
 const feature = require("smc-webapp/feature");
-import {path_split} from "../generic/misc";
-const {filename_extension_notilde, defaults} = require('misc');
+import { path_split } from "../generic/misc";
+const { filename_extension_notilde, defaults } = require("misc");
 
 import { extra_alt_keys } from "./mobile";
 import { Map } from "immutable";
@@ -144,9 +144,13 @@ export function cm_options(
         actions.format();
       },
       "Shift-Enter"() {
-        actions.set_error(
-          "You can evaluate code in a file with the extension 'sagews' or 'ipynb'.   Please create a Sage Worksheet or Jupyter notebook instead."
-        );
+        if (actions.build !== undefined) {
+          actions.build();
+        } else {
+          actions.set_error(
+            "You can evaluate code in a file with the extension 'sagews' or 'ipynb'.   Please create a Sage Worksheet or Jupyter notebook instead."
+          );
+        }
       }
     };
     for (let k in actionKeys) {
