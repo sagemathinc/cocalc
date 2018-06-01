@@ -743,7 +743,7 @@ export class FrameTitleBar extends Component<Props, {}> {
         bsSize={this.button_size()}
         key={"build"}
         onClick={() => this.props.actions.build(this.props.id)}
-        title={"Build project (shift+enter)"}
+        title={"Build project"}
       >
         <Icon name={"play-circle"} /> <VisibleMDLG>Build</VisibleMDLG>
       </Button>

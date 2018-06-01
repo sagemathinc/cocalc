@@ -88,6 +88,16 @@ export function cm_options(
   }
 
   if (actions) {
+    const build = () => {
+      if (actions.build !== undefined) {
+        actions.build(frame_id);
+      } else {
+        actions.set_error(
+          "You can evaluate code in a file with the extension 'sagews' or 'ipynb'.   Please create a Sage Worksheet or Jupyter notebook instead."
+        );
+      }
+    };
+
     const actionKeys = {
       "Cmd-S"() {
         actions.save(true);
@@ -144,13 +154,13 @@ export function cm_options(
         actions.format(frame_id);
       },
       "Shift-Enter"() {
-        if (actions.build !== undefined) {
-          actions.build(frame_id);
-        } else {
-          actions.set_error(
-            "You can evaluate code in a file with the extension 'sagews' or 'ipynb'.   Please create a Sage Worksheet or Jupyter notebook instead."
-          );
-        }
+        build();
+      },
+      "Cmd-T"() {
+        build();
+      },
+      "Alt-T"() {
+        build();
       }
     };
     for (let k in actionKeys) {

@@ -158,7 +158,13 @@ export class Actions extends BaseActions<LatexEditorState> {
   }
 
   // used by generic framework.
-  async build(): Promise<void> {
+  async build(id?: string): Promise<void> {
+    if (id) {
+      const cm = this._get_cm(id);
+      if (cm) {
+        cm.focus();
+      }
+    }
     if (this.is_building) {
       return;
     }
