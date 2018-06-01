@@ -1385,6 +1385,9 @@ export class Actions<T = CodeEditorState> extends BaseActions<
       case "css":
         parser = "postcss";
         break;
+      case "tex":
+        parser = "latex";
+        break;
       default:
         return;
     }

@@ -847,6 +847,7 @@ export class FrameTitleBar extends Component<Props, {}> {
     v.push(this.render_build());
     v.push(this.render_sync());
     v.push(this.render_clean());
+    v.push(this.render_format());
     if (!this.props.is_public) {
       v.push(this.render_undo_redo_group());
     }
@@ -858,7 +859,6 @@ export class FrameTitleBar extends Component<Props, {}> {
     if (!this.props.is_public) {
       v.push(this.render_format_group());
     }
-    v.push(this.render_format());
     v.push(this.render_help());
     v.push(this.render_print());
 
