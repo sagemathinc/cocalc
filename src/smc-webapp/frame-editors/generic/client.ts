@@ -134,3 +134,4 @@ export function default_font_size(): number {
     ? account.get("font_size", DEFAULT_FONT_SIZE)
     : DEFAULT_FONT_SIZE;
 }
+

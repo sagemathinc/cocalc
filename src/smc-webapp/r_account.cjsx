@@ -866,6 +866,7 @@ EDITOR_SETTINGS_CHECKBOXES =
     show_trailing_whitespace  : 'show spaces at ends of lines'
     spaces_instead_of_tabs    : 'send spaces when the tab key is pressed'
     extra_button_bar          : 'more editing functions (mainly in Sage worksheets)'
+    build_on_save             : 'build LaTex file whenever it is saved to disk'
     show_exec_warning         : 'warn that certain files are not directly executable'
     jupyter_classic           : <span>use classical Jupyter notebook <a href='https://github.com/sagemathinc/cocalc/wiki/JupyterClassicModern' target='_blank'>(DANGER: this can cause trouble...)</a></span>
 
