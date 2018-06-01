@@ -799,6 +799,7 @@ export class Actions<T = CodeEditorState> extends BaseActions<
   async _do_save(): Promise<void> {
     let that = this;
     try {
+      this.set_status("Saving to disk...");
       await retry_until_success({
         f: async function() {
           /* evidently no fat arrow with async/await + typescript */
@@ -820,6 +821,8 @@ export class Actions<T = CodeEditorState> extends BaseActions<
         project_id: this.project_id,
         error: "Error saving file -- has_unsaved_changes"
       });
+    } finally {
+      this.set_status("");
     }
   }
 

@@ -5,7 +5,7 @@ Very simple for now.  We should obviously add more later, e.g., number of lines 
 */
 
 import { React, Component, Rendered } from "../generic/react";
-const { Space } = require("smc-webapp/r_misc");
+const { Loading, Space } = require("smc-webapp/r_misc");
 
 interface Props {
   status: string;
@@ -14,6 +14,12 @@ interface Props {
 export class StatusBar extends Component<Props, {}> {
   shouldComponentUpdate(next: Props): boolean {
     return this.props.status !== next.status;
+  }
+
+  render_icon(): Rendered {
+    if (this.props.status) {
+      return <Loading text='' />;
+    }
   }
 
   render(): Rendered {
@@ -27,6 +33,7 @@ export class StatusBar extends Component<Props, {}> {
           background: "#eee"
         }}
       >
+        {this.render_icon()}
         {this.props.status}
         <Space />
       </div>
