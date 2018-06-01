@@ -138,14 +138,14 @@ export function cm_options(
         cm.execCommand("findPrev");
       },
       "Shift-Cmd-F"() {
-        actions.format();
+        actions.format(frame_id);
       },
       "Shift-Ctrl-F"() {
-        actions.format();
+        actions.format(frame_id);
       },
       "Shift-Enter"() {
         if (actions.build !== undefined) {
-          actions.build();
+          actions.build(frame_id);
         } else {
           actions.set_error(
             "You can evaluate code in a file with the extension 'sagews' or 'ipynb'.   Please create a Sage Worksheet or Jupyter notebook instead."

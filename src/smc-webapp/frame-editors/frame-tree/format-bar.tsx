@@ -56,6 +56,7 @@ export class FormatBar extends Component<Props, {}> {
         key={name}
         title={title}
         onClick={() => this.props.actions.format_action(name)}
+        bsSize="small"
       >
         {label}
       </Button>
@@ -194,6 +195,7 @@ export class FormatBar extends Component<Props, {}> {
         title={<Icon name={"font"} />}
         key={"font-family"}
         id={"font-family"}
+        bsSize="small"
       >
         {items}
       </DropdownButton>
@@ -224,6 +226,7 @@ export class FormatBar extends Component<Props, {}> {
         title={<Icon name={"text-height"} />}
         key={"font-size"}
         id={"font-size"}
+        bsSize="small"
       >
         {items}
       </DropdownButton>
@@ -274,6 +277,7 @@ export class FormatBar extends Component<Props, {}> {
         title={<Icon name={"header"} />}
         key={"heading"}
         id={"heading"}
+        bsSize="small"
       >
         {items}
       </DropdownButton>
@@ -318,6 +322,7 @@ export class FormatBar extends Component<Props, {}> {
         title={<Icon name={"paint-brush"} />}
         key={"font-color"}
         id={"font-color"}
+        bsSize="small"
       >
         {items}
       </DropdownButton>

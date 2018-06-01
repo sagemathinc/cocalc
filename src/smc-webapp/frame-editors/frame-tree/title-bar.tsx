@@ -1,9 +1,8 @@
-
 /*
 FrameTitleBar - title bar in a frame, in the frame tree
 */
 
-import { React, Rendered, Component, Fragment, redux } from "../generic/react";
+import { React, Rendered, Component, redux } from "../generic/react";
 import { is_safari } from "../generic/browser";
 import * as CSS from "csstype";
 
@@ -17,6 +16,7 @@ const {
 } = require("react-bootstrap");
 
 const {
+  r_join,
   Icon,
   Space,
   Tip,
@@ -340,18 +340,15 @@ export class FrameTitleBar extends Component<Props, {}> {
     }
     const labels = this.show_labels();
     return (
-      <Fragment>
-        <Space />
-        <Button
-          key={"sync"}
-          title={"Synchronize views (alt+enter)"}
-          bsSize={this.button_size()}
-          onClick={() => this.props.actions.sync(this.props.id)}
-        >
-          <Icon name={"fab fa-staylinked"} />{" "}
-          {labels ? <VisibleMDLG>Sync</VisibleMDLG> : undefined}
-        </Button>
-      </Fragment>
+      <Button
+        key={"sync"}
+        title={"Synchronize views (alt+enter)"}
+        bsSize={this.button_size()}
+        onClick={() => this.props.actions.sync(this.props.id)}
+      >
+        <Icon name={"fab fa-staylinked"} />{" "}
+        {labels ? <VisibleMDLG>Sync</VisibleMDLG> : undefined}
+      </Button>
     );
   }
 
@@ -361,18 +358,15 @@ export class FrameTitleBar extends Component<Props, {}> {
     }
     const labels = this.show_labels();
     return (
-      <Fragment>
-        <Space />
-        <Button
-          key={"download"}
-          title={"Download this file"}
-          bsSize={this.button_size()}
-          onClick={() => this.props.actions.download(this.props.id)}
-        >
-          <Icon name={"cloud-download"} />{" "}
-          {labels ? <VisibleMDLG>Download</VisibleMDLG> : undefined}
-        </Button>
-      </Fragment>
+      <Button
+        key={"download"}
+        title={"Download this file"}
+        bsSize={this.button_size()}
+        onClick={() => this.props.actions.download(this.props.id)}
+      >
+        <Icon name={"cloud-download"} />{" "}
+        {labels ? <VisibleMDLG>Download</VisibleMDLG> : undefined}
+      </Button>
     );
   }
 
@@ -427,14 +421,11 @@ export class FrameTitleBar extends Component<Props, {}> {
 
   render_find_replace_group(): Rendered {
     return (
-      <Fragment>
-        <Space />
-        <ButtonGroup key={"find-group"}>
-          {this.render_find()}
-          {!this.props.is_public ? this.render_replace() : undefined}
-          {this.render_goto_line()}
-        </ButtonGroup>
-      </Fragment>
+      <ButtonGroup key={"find-group"}>
+        {this.render_find()}
+        {!this.props.is_public ? this.render_replace() : undefined}
+        {this.render_goto_line()}
+      </ButtonGroup>
     );
   }
 
@@ -494,14 +485,11 @@ export class FrameTitleBar extends Component<Props, {}> {
 
   render_copy_group(): Rendered {
     return (
-      <Fragment>
-        <Space />
-        <ButtonGroup key={"copy"}>
-          {!this.props.is_public ? this.render_cut() : undefined}
-          {this.render_copy()}
-          {!this.props.is_public ? this.render_paste() : undefined}
-        </ButtonGroup>
-      </Fragment>
+      <ButtonGroup key={"copy"}>
+        {!this.props.is_public ? this.render_cut() : undefined}
+        {this.render_copy()}
+        {!this.props.is_public ? this.render_paste() : undefined}
+      </ButtonGroup>
     );
   }
 
@@ -510,13 +498,10 @@ export class FrameTitleBar extends Component<Props, {}> {
       return;
     }
     return (
-      <Fragment>
-        <Space />
-        <ButtonGroup key={"zoom"}>
-          {this.render_zoom_out()}
-          {this.render_zoom_in()}
-        </ButtonGroup>
-      </Fragment>
+      <ButtonGroup key={"zoom"}>
+        {this.render_zoom_out()}
+        {this.render_zoom_in()}
+      </ButtonGroup>
     );
   }
 
@@ -528,13 +513,10 @@ export class FrameTitleBar extends Component<Props, {}> {
       return;
     }
     return (
-      <Fragment>
-        <Space />
-        <ButtonGroup key={"height-width"}>
-          {this.render_zoom_page_height()}
-          {this.render_zoom_page_width()}
-        </ButtonGroup>
-      </Fragment>
+      <ButtonGroup key={"height-width"}>
+        {this.render_zoom_page_height()}
+        {this.render_zoom_page_width()}
+      </ButtonGroup>
     );
   }
 
@@ -583,13 +565,10 @@ export class FrameTitleBar extends Component<Props, {}> {
 
   render_undo_redo_group(): Rendered {
     return (
-      <Fragment>
-        <Space />
-        <ButtonGroup key={"undo-group"}>
-          {this.render_undo()}
-          {this.render_redo()}
-        </ButtonGroup>
-      </Fragment>
+      <ButtonGroup key={"undo-group"}>
+        {this.render_undo()}
+        {this.render_redo()}
+      </ButtonGroup>
     );
   }
 
@@ -598,20 +577,15 @@ export class FrameTitleBar extends Component<Props, {}> {
       return;
     }
     return (
-      <Fragment>
-        <Space />
-        <ButtonGroup key={"format-group"}>
-          <Button
-            key={"auto-indent"}
-            title={"Automatically format selected code"}
-            onClick={() => this.props.actions.auto_indent()}
-            disabled={this.props.read_only}
-            bsSize={this.button_size()}
-          >
-            <Icon name="indent" />
-          </Button>
-        </ButtonGroup>
-      </Fragment>
+      <Button
+        key={"auto-indent"}
+        title={"Automatically format selected code"}
+        onClick={() => this.props.actions.auto_indent()}
+        disabled={this.props.read_only}
+        bsSize={this.button_size()}
+      >
+        <Icon name="indent" />
+      </Button>
     );
   }
 
@@ -662,22 +636,19 @@ export class FrameTitleBar extends Component<Props, {}> {
     }
     let labels = this.show_labels();
     return (
-      <Fragment>
-        <Space />
-        <Button
-          key={"help"}
-          title={"Show help for working with this type of document"}
-          bsSize={this.button_size()}
-          onClick={() =>
-            typeof this.props.actions.help === "function"
-              ? this.props.actions.help(this.props.type)
-              : undefined
-          }
-        >
-          <Icon name="question-circle" />{" "}
-          <VisibleMDLG>{labels ? "Help" : undefined}</VisibleMDLG>
-        </Button>
-      </Fragment>
+      <Button
+        key={"help"}
+        title={"Show help for working with this type of document"}
+        bsSize={this.button_size()}
+        onClick={() =>
+          typeof this.props.actions.help === "function"
+            ? this.props.actions.help(this.props.type)
+            : undefined
+        }
+      >
+        <Icon name="question-circle" />{" "}
+        <VisibleMDLG>{labels ? "Help" : undefined}</VisibleMDLG>
+      </Button>
     );
   }
 
@@ -733,14 +704,11 @@ export class FrameTitleBar extends Component<Props, {}> {
   render_save_timetravel_group(): Rendered {
     const labels = this.show_labels();
     return (
-      <Fragment>
-        <Space />
-        <ButtonGroup key={"save-group"}>
-          {this.render_save(labels)}
-          {!this.props.is_public ? this.render_timetravel(labels) : undefined}
-          {this.render_reload(labels)}
-        </ButtonGroup>
-      </Fragment>
+      <ButtonGroup key={"save-group"}>
+        {this.render_save(labels)}
+        {!this.props.is_public ? this.render_timetravel(labels) : undefined}
+        {this.render_reload(labels)}
+      </ButtonGroup>
     );
   }
 
@@ -752,20 +720,17 @@ export class FrameTitleBar extends Component<Props, {}> {
       return;
     }
     return (
-      <Fragment>
-        <Space />
-        <Button
-          bsSize={this.button_size()}
-          key={"format"}
-          onClick={() => this.props.actions.format(this.props.id)}
-          title={
-            "Run Prettier (or some other AST-based service) to canonically format this entire document"
-          }
-        >
-          <Icon name={"fa-sitemap"} />{" "}
-          <VisibleMDLG>{this.show_labels() ? "Format" : undefined}</VisibleMDLG>
-        </Button>
-      </Fragment>
+      <Button
+        bsSize={this.button_size()}
+        key={"format"}
+        onClick={() => this.props.actions.format(this.props.id)}
+        title={
+          "Run Prettier (or some other AST-based service) to canonically format this entire document"
+        }
+      >
+        <Icon name={"fa-sitemap"} />{" "}
+        <VisibleMDLG>{this.show_labels() ? "Format" : undefined}</VisibleMDLG>
+      </Button>
     );
   }
 
@@ -774,18 +739,14 @@ export class FrameTitleBar extends Component<Props, {}> {
       return;
     }
     return (
-      <Fragment>
-        <Space />
-        <Button
-          bsSize={this.button_size()}
-          key={"build"}
-          onClick={() => this.props.actions.build(this.props.id)}
-          title={"Build project (shift+enter)"}
-        >
-          <Icon name={"play-circle"} />{" "}
-          <VisibleMDLG>Build</VisibleMDLG>
-        </Button>
-      </Fragment>
+      <Button
+        bsSize={this.button_size()}
+        key={"build"}
+        onClick={() => this.props.actions.build(this.props.id)}
+        title={"Build project (shift+enter)"}
+      >
+        <Icon name={"play-circle"} /> <VisibleMDLG>Build</VisibleMDLG>
+      </Button>
     );
   }
 
@@ -794,18 +755,15 @@ export class FrameTitleBar extends Component<Props, {}> {
       return;
     }
     return (
-      <Fragment>
-        <Space />
-        <Button
-          bsSize={this.button_size()}
-          key={"clean"}
-          onClick={() => this.props.actions.clean(this.props.id)}
-          title={"Clean auxiliary build files"}
-        >
-          <Icon name={"trash"} />{" "}
-          <VisibleMDLG>{this.show_labels() ? "Clean" : undefined}</VisibleMDLG>
-        </Button>
-      </Fragment>
+      <Button
+        bsSize={this.button_size()}
+        key={"clean"}
+        onClick={() => this.props.actions.clean(this.props.id)}
+        title={"Clean auxiliary build files"}
+      >
+        <Icon name={"trash"} />{" "}
+        <VisibleMDLG>{this.show_labels() ? "Clean" : undefined}</VisibleMDLG>
+      </Button>
     );
   }
 
@@ -814,18 +772,15 @@ export class FrameTitleBar extends Component<Props, {}> {
       return;
     }
     return (
-      <Fragment>
-        <Space />
-        <Button
-          bsSize={this.button_size()}
-          key={"print"}
-          onClick={() => this.props.actions.print(this.props.id)}
-          title={"Print file to PDF"}
-        >
-          <Icon name={"print"} />{" "}
-          <VisibleMDLG>{this.show_labels() ? "Print" : undefined}</VisibleMDLG>
-        </Button>
-      </Fragment>
+      <Button
+        bsSize={this.button_size()}
+        key={"print"}
+        onClick={() => this.props.actions.print(this.props.id)}
+        title={"Print file to PDF"}
+      >
+        <Icon name={"print"} />{" "}
+        <VisibleMDLG>{this.show_labels() ? "Print" : undefined}</VisibleMDLG>
+      </Button>
     );
   }
 
@@ -855,23 +810,36 @@ export class FrameTitleBar extends Component<Props, {}> {
     } else {
       style = { maxHeight: "34px", overflow: "hidden", flex: 1 };
     }
+    const v: Rendered[] = [];
+    v.push(this.render_build());
+    v.push(this.render_clean());
+    v.push(this.render_save_timetravel_group());
+    if (!this.props.is_public) {
+      v.push(this.render_undo_redo_group());
+    }
+    v.push(this.render_zoom_group());
+    v.push(this.render_page_width_height_group());
+    v.push(this.render_sync());
+    v.push(this.render_download());
+    v.push(this.render_copy_group());
+    v.push(this.render_find_replace_group());
+    if (!this.props.is_public) {
+      v.push(this.render_format_group());
+    }
+    v.push(this.render_format());
+    v.push(this.render_print());
+    v.push(this.render_help());
+
+    const w: Rendered[] = [];
+    for (let c of v) {
+      if (c != null) {
+        w.push(c);
+      }
+    }
+
     return (
       <div style={style} key={"buttons"}>
-        {this.render_build()}
-        {this.render_clean()}
-        {this.render_save_timetravel_group()}
-        {!this.props.is_public ? this.render_undo_redo_group() : undefined}
-        {this.render_zoom_group()}
-        {this.render_page_width_height_group()}
-        {this.render_sync()}
-        {this.render_download()}
-        {this.render_copy_group()}
-        {this.render_find_replace_group()}
-        {!this.props.is_public ? this.render_format_group() : undefined}
-        {this.render_format()}
-        {<Space />}
-        {this.render_print()}
-        {this.render_help()}
+        {r_join(w, <Space />)}
       </div>
     );
   }

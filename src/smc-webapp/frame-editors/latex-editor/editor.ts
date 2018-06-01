@@ -31,6 +31,7 @@ const EDITOR_SPEC = {
     icon: "code",
     component: CodemirrorEditor,
     buttons: set([
+      "auto_indent",
       "build",
       "print",
       "decrease_font_size",
