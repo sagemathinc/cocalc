@@ -36,8 +36,6 @@ redux_lib        = require('redux')
 createReactClass = require('create-react-class')
 PropTypes        = require('prop-types')
 {createSelector} = require('reselect')
-
-
 {Provider, connect}  = require('react-redux')
 misc                 = require('smc-util/misc')
 {defaults, required} = misc
@@ -415,7 +413,7 @@ class AppRedux
             console.trace()
             console.warn("getProjectStore: INVALID project_id -- #{project_id}")
         if not @hasProjectStore(project_id)
-            require("project_store").init(project_id)
+            require('./project_store').init(project_id)
         return @getStore(project_redux_name(project_id))
 
     getProjectActions: (project_id) =>
@@ -423,7 +421,7 @@ class AppRedux
             console.trace()
             console.warn("getProjectActions: INVALID project_id -- #{project_id}")
         if not @hasProjectStore(project_id)
-            require("project_store").init(project_id)
+            require('./project_store').init(project_id)
         return @getActions(project_redux_name(project_id))
 
     getProjectTable: (project_id, name) =>
@@ -431,7 +429,7 @@ class AppRedux
             console.trace()
             console.warn("getProjectTable: INVALID project_id -- #{project_id}")
         if not @hasProjectStore(project_id)
-            require("project_store").init(project_id)
+            require('./project_store').init(project_id)
         return @getTable(project_redux_name(project_id, name))
 
     removeProjectReferences: (project_id) =>

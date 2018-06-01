@@ -229,7 +229,7 @@ export class AppRedux {
     return this._actions[name];
   }
 
-  hasActions(name:string):boolean {
+  hasActions(name: string): boolean {
     return !!this._actions[name];
   }
 
@@ -305,7 +305,7 @@ export class AppRedux {
 
   getStore<T, C extends Store<T>>(name: string): C {
     if (!this.hasStore(name)) {
-      throw Error(`getStore: store ${name} not registered`);
+      throw Error(`getStore: store "${name}" not registered`);
     }
     return this._stores[name];
   }
@@ -313,7 +313,7 @@ export class AppRedux {
   createTable(name: string, table_class = Table): Table {
     const tables = this._tables;
     if (tables[name] != null) {
-      throw Error(`createTable: table ${name} already exists`);
+      throw Error(`createTable: table "${name}" already exists`);
     }
     const table = new table_class(name, this);
     return (tables[name] = table);
@@ -348,7 +348,7 @@ export class AppRedux {
 
   getTable(name: string): Table {
     if (this._tables[name] == null) {
-      throw Error(`getTable: table ${name} not registered`);
+      throw Error(`getTable: table "${name}" not registered`);
     }
     return this._tables[name];
   }
@@ -363,10 +363,10 @@ export class AppRedux {
   getProjectStore = (project_id: string): any => {
     if (!misc.is_valid_uuid_string(project_id)) {
       console.trace();
-      console.warn(`getProjectStore: INVALID project_id -- ${project_id}`);
+      console.warn(`getProjectStore: INVALID project_id -- "${project_id}"`);
     }
     if (!this.hasProjectStore(project_id)) {
-      require("project_store").init(project_id);
+      require('./project_store').init(project_id);
     }
     return this.getStore(project_redux_name(project_id));
   };
@@ -376,10 +376,10 @@ export class AppRedux {
   getProjectActions(project_id: string): any {
     if (!misc.is_valid_uuid_string(project_id)) {
       console.trace();
-      console.warn(`getProjectActions: INVALID project_id -- ${project_id}`);
+      console.warn(`getProjectActions: INVALID project_id -- "${project_id}"`);
     }
     if (!this.hasProjectStore(project_id)) {
-      require("project_store").init(project_id);
+      require('./project_store').init(project_id);
     }
     return this.getActions(project_redux_name(project_id));
   }
@@ -388,10 +388,10 @@ export class AppRedux {
   getProjectTable(project_id: string, name: string): any {
     if (!misc.is_valid_uuid_string(project_id)) {
       console.trace();
-      console.warn(`getProjectTable: INVALID project_id -- ${project_id}`);
+      console.warn(`getProjectTable: INVALID project_id -- "${project_id}"`);
     }
     if (!this.hasProjectStore(project_id)) {
-      require("project_store").init(project_id);
+      require('./project_store').init(project_id);
     }
     return this.getTable(project_redux_name(project_id, name));
   }
@@ -415,7 +415,7 @@ export class AppRedux {
   getEditorStore(project_id: string, path: string, is_public: boolean) {
     if (!misc.is_valid_uuid_string(project_id)) {
       console.trace();
-      console.warn(`getEditorStore: INVALID project_id -- ${project_id}`);
+      console.warn(`getEditorStore: INVALID project_id -- "${project_id}"`);
     }
     return this.getStore(file_redux_name(project_id, path, is_public));
   }
@@ -423,7 +423,7 @@ export class AppRedux {
   getEditorActions(project_id: string, path: string, is_public: boolean) {
     if (!misc.is_valid_uuid_string(project_id)) {
       console.trace();
-      console.warn(`getEditorActions: INVALID project_id -- ${project_id}`);
+      console.warn(`getEditorActions: INVALID project_id -- "${project_id}"`);
     }
     return this.getActions(file_redux_name(project_id, path, is_public));
   }

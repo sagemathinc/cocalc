@@ -35,8 +35,6 @@ misc      = require('smc-util/misc')
 {project_tasks} = require('./project_tasks')
 {types, defaults, required} = misc
 
-misc_page = require('./misc_page')
-
 {Actions, rtypes, computed, depends, project_redux_name, Table, redux}  = require('./smc-react')
 
 exports.file_actions = file_actions =
@@ -165,7 +163,7 @@ class ProjectActions extends Actions
         @_last_history_state = local_url
         {set_url} = require('./history')
         set_url(@_url_in_project(local_url))
-        misc_page.analytics_pageview(window.location.pathname)
+        require('./misc_page').analytics_pageview(window.location.pathname)
 
     move_file_tab: (opts) =>
         {old_index, new_index, open_files_order} = defaults opts,
@@ -372,7 +370,7 @@ class ProjectActions extends Actions
             url  = (window.app_base_url ? '') + @_url_in_project('files/' + opts.path)
             url += '?session=' + misc.uuid().slice(0,8)
             url += '&fullscreen=default'
-            misc_page.open_popup_window(url, {width: 800, height: 640})
+            require('./misc_page').open_popup_window(url, {width: 800, height: 640})
             return
 
         @_ensure_project_is_open (err) =>
@@ -1334,7 +1332,7 @@ class ProjectActions extends Actions
                         count  : if opts.paths.length > 3 then opts.paths.length
 
     download_file: (opts) =>
-        {download_file, open_new_tab} = misc_page
+        {download_file, open_new_tab} = require('./misc_page')
         opts = defaults opts,
             path    : required
             log     : false
