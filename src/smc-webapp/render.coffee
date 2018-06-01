@@ -20,13 +20,18 @@ global['DEBUG']  = false
 global['$'] = global['window'].$ = $ = ->
 $.get = ->
 
-static_react_pages = [
-    [require('./billing.cjsx').render_static_pricing_page(), 'policies/_static_pricing_page.html'],
-    #[require('./r_help.cjsx').render_static_about(), '_static_about.html'],
-    [require('./r_misc.cjsx').render_static_footer(), '_static_footer.html'],
-    #[require('./r_misc.cjsx').render_static_sage_preview(), '_static_sage_preview.html'],
-    [require('./r_help.cjsx').render_static_third_party_software(), '_static_third_party_software.html'],
-]
+try
+    static_react_pages = [
+        [require('./billing.cjsx').render_static_pricing_page(), 'policies/_static_pricing_page.html'],
+        #[require('./r_help.cjsx').render_static_about(), '_static_about.html'],
+        [require('./r_misc.cjsx').render_static_footer(), '_static_footer.html'],
+        #[require('./r_misc.cjsx').render_static_sage_preview(), '_static_sage_preview.html'],
+        [require('./r_help.cjsx').render_static_third_party_software(), '_static_third_party_software.html'],
+    ]
+catch err
+    # this fails right now in the standalone docker image, and doesn't really matter for that anyways...
+    console.warn("Skipping static react pages", err);
+    static_react_pages = []
 
 # Code for static server-side rendering of the subscription options.
 # note, that we use renderToStaticMarkup, not renderToString
