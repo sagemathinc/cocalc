@@ -28,6 +28,7 @@
     "serve-index": "^1.7.2",
     "start-stop-daemon": "^0.1.1",
     "temp": "^0.8.3",
+    "tmp": "0.0.33",
     "ts-node": "^6.0.3",
     "typescript": "^2.8.4",
     "underscore": "^1.8.3",
