@@ -134,9 +134,9 @@ var extra_content = function(environment: string): string {
     case "enumerate":
     case "itemize":
     case "list":
-      return "\n\\item First \n\\item Second ";
+      return "\n\\item First ";
     case "description":
-      return "\n\\item [label] First \n\\item [label] Second ";
+      return "\n\\item [label] First  ";
     case "figure":
       return "\n% body of the figure\n\\caption{figure title}";
     default:

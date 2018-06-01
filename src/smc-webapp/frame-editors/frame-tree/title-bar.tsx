@@ -85,6 +85,7 @@ interface Props {
   is_public: boolean; // public view of a file
   type: string;
   editor_spec: any;
+  status: string;
 }
 
 export class FrameTitleBar extends Component<Props, {}> {
@@ -100,7 +101,8 @@ export class FrameTitleBar extends Component<Props, {}> {
       "has_uncommitted_changes",
       "is_public",
       "is_saving",
-      "type"
+      "type",
+      "status"
     ]);
   }
 
@@ -740,6 +742,7 @@ export class FrameTitleBar extends Component<Props, {}> {
     }
     return (
       <Button
+        disabled={!!this.props.status}
         bsSize={this.button_size()}
         key={"build"}
         onClick={() => this.props.actions.build(this.props.id)}

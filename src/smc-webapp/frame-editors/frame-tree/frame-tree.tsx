@@ -184,6 +184,7 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
         is_public={this.props.is_public}
         type={desc.get("type")}
         editor_spec={this.props.editor_spec}
+        status={this.props.status}
       />
     );
   }
