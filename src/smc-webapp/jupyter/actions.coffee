@@ -36,7 +36,8 @@ jupyter_kernels = undefined
 {IPynbImporter} = require('./import-from-ipynb')
 
 #DEFAULT_KERNEL = 'python2'
-DEFAULT_KERNEL = 'anaconda3'
+#DEFAULT_KERNEL = 'anaconda3'
+DEFAULT_KERNEL = 'sagemath'
 
 syncstring    = require('smc-util/syncstring')
 
