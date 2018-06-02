@@ -441,6 +441,8 @@ class Project(object):
                     os.environ['SMC'] = self.smc_path
                     os.environ['USER'] = os.environ['USERNAME'] =  os.environ['LOGNAME'] = self.username
                     os.environ['MAIL'] = '/var/mail/%s'%self.username
+                    # Needed to read code from system-wide installed location.
+                    os.environ['NODE_PATH'] = '/cocalc/src/node_modules/smc-util:/cocalc/src/node_modules:/cocalc/src:/cocalc/src/smc-project/node_modules::/cocalc/src/smc-webapp/node_modules'
                     if self._single:
                         # In single-machine mode, everything is on localhost.
                         os.environ['SMC_HOST'] = 'localhost'
