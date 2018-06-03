@@ -109,8 +109,10 @@ def uid(project_id):
     # user could somehow generate an account id of their choosing, this wouldn't help them get the
     # same uid as another user.
     # 2^31-1=max uid which works with FUSE and node (and Linux, which goes up to 2^32-2).
+    # 2^29 was the biggest that seemed to work with Docker on my crostini pixelbook, so shrinking to that.
+    # This is NOT used in production anymore, so should be fine.
     n = int(hashlib.sha512(project_id).hexdigest()[:8], 16)  # up to 2^32
-    n //= 2  # up to 2^31   (floor div so will work with python3 too)
+    n //= 8  # up to 2^29  (floor div so will work with python3 too)
     return n if n>65537 else n+65537   # 65534 used by linux for user sync, etc.
 
 
@@ -189,7 +191,10 @@ class Project(object):
     def create_user(self, login_shell='/bin/bash'):
         if not os.path.exists(self.project_path):
             os.makedirs(self.project_path)
-            self.chown(self.project_path)  # only chown if just made; it's recursive and can be very expensive in general!
+        # We used to only chown if just made; it's recursive and can be very expensive in general!
+        # However, since we're changing the uid mapping, we really do have to do this every time,
+        # or we break existing installs.
+        self.chown(self.project_path)
         if self._dev:
             return
         cmd(['/usr/sbin/groupadd', '-g', self.uid, '-o', self.username], ignore_errors=True)
