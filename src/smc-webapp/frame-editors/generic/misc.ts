@@ -47,6 +47,16 @@ export function splitlines(s: string): string[] {
   return r ? r : [];
 }
 
+// Like Python's string split -- splits on whitespace
+export function split(s:string) : string[] {
+  const r = s.match(/\S+/g);
+  if (r) {
+    return r;
+  } else {
+    return [];
+  }
+}
+
 export function is_different(a: any, b: any, fields: string[]): boolean {
   let field: string;
   if (a == null) {
@@ -130,19 +140,22 @@ export function cmp(a: any, b: any): -1 | 0 | 1 {
   return 0;
 }
 
-export function cmp_Date(a : Date | undefined | null, b : Date | undefined | null) : -1 | 0 | 1 {
-    if ((a == null)) {
-        return -1;
-    }
-    if ((b == null)) {
-        return 1;
-    }
-    if (a < b) {
-        return -1;
-    } else if (a > b) {
-        return 1;
-    }
-    return 0;   // note: a == b for Date objects doesn't work as expected, but that's OK here.
+export function cmp_Date(
+  a: Date | undefined | null,
+  b: Date | undefined | null
+): -1 | 0 | 1 {
+  if (a == null) {
+    return -1;
+  }
+  if (b == null) {
+    return 1;
+  }
+  if (a < b) {
+    return -1;
+  } else if (a > b) {
+    return 1;
+  }
+  return 0; // note: a == b for Date objects doesn't work as expected, but that's OK here.
 }
 
 // see https://stackoverflow.com/questions/728360/how-do-i-correctly-clone-a-javascript-object/30042948#30042948
@@ -192,4 +205,36 @@ export function len(obj: object | undefined | null): number {
     return 0;
   }
   return Object.keys(obj).length;
+}
+
+// Specific, easy to read: describe amount of time before right now
+// Use negative input for after now (i.e., in the future).
+export function milliseconds_ago(ms) {
+  return new Date(new Date().valueOf() - ms);
+}
+export function seconds_ago(s) {
+  return exports.milliseconds_ago(1000 * s);
+}
+export function minutes_ago(m) {
+  return exports.seconds_ago(60 * m);
+}
+export function hours_ago(h) {
+  return exports.minutes_ago(60 * h);
+}
+export function days_ago(d) {
+  return exports.hours_ago(24 * d);
+}
+export function weeks_ago(w) {
+  return exports.days_ago(7 * w);
+}
+export function months_ago(m) {
+  return exports.days_ago(30.5 * m);
+}
+
+
+// encode a UNIX path, which might have # and % in it.
+// Maybe alternatively, (encodeURIComponent(p) for p in path.split('/')).join('/') ?
+export function encode_path(path) {
+    path = encodeURI(path);  // doesn't escape # and ?, since they are special for urls (but not unix paths)
+    return path.replace(/#/g,'%23').replace(/\?/g,'%3F');
 }

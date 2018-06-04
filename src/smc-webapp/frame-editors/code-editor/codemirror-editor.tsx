@@ -147,11 +147,11 @@ export class CodemirrorEditor extends Component<Props, State> {
   }
 
   _cm_undo(): void {
-    this.props.actions.undo();
+    this.props.actions.undo(this.props.id);
   }
 
   _cm_redo(): void {
-    this.props.actions.redo();
+    this.props.actions.redo(this.props.id);
   }
 
   _cm_destroy(): void {

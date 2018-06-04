@@ -6,12 +6,17 @@ on the backend.  This avoids having to send the whole file back and forth, worry
 and their cursors, file state etc.  -- it just merges in the prettification at a point in time.
 Also, by doing this on the backend we don't add 5MB (!) to the webpack frontend bundle, to install
 something that is not supported on the frontend anyway.
+
+---
+
+NOTE: for tex files, we use latexformat, rather than prettier.
 */
 
 declare var require: any;
 
 const { math_escape, math_unescape } = require("smc-util/markdown-utils");
 const prettier = require("prettier");
+const { latex_format } = require("./latex-format");
 const body_parser = require("body-parser");
 const express = require("express");
 const { remove_math, replace_math } = require("smc-util/mathjax-utils"); // from project Jupyter
@@ -21,7 +26,7 @@ export function prettier_router(client, log) {
   router.use(body_parser.json());
   router.use(body_parser.urlencoded({ extended: true }));
 
-  router.post("/.smc/prettier", function(req, res) {
+  router.post("/.smc/prettier", async function(req, res) {
     let { path } = req.body;
 
     if (path == null) {
@@ -49,7 +54,13 @@ export function prettier_router(client, log) {
       [input, math] = remove_math(math_escape(input));
     }
     try {
-      pretty = prettier.format(input, options);
+      switch (options.parser) {
+        case "latex":
+          pretty = await latex_format(input, options);
+          break;
+        default:
+          pretty = prettier.format(input, options);
+      }
     } catch (err) {
       log.debug(err);
       res.json({ status: "error", phase: "format", error: err });

@@ -6,8 +6,8 @@ using the given editor settings.
 import * as CodeMirror from "codemirror";
 const { file_associations } = require("smc-webapp/file-associations");
 const feature = require("smc-webapp/feature");
-import {path_split} from "../generic/misc";
-const {filename_extension_notilde, defaults} = require('misc');
+import { path_split } from "../generic/misc";
+const { filename_extension_notilde, defaults } = require("misc");
 
 import { extra_alt_keys } from "./mobile";
 import { Map } from "immutable";
@@ -88,6 +88,16 @@ export function cm_options(
   }
 
   if (actions) {
+    const build = () => {
+      if (actions.build !== undefined) {
+        actions.build(frame_id);
+      } else {
+        actions.set_error(
+          "You can evaluate code in a file with the extension 'sagews' or 'ipynb'.   Please create a Sage Worksheet or Jupyter notebook instead."
+        );
+      }
+    };
+
     const actionKeys = {
       "Cmd-S"() {
         actions.save(true);
@@ -138,15 +148,19 @@ export function cm_options(
         cm.execCommand("findPrev");
       },
       "Shift-Cmd-F"() {
-        actions.format();
+        actions.format(frame_id);
       },
       "Shift-Ctrl-F"() {
-        actions.format();
+        actions.format(frame_id);
       },
       "Shift-Enter"() {
-        actions.set_error(
-          "You can evaluate code in a file with the extension 'sagews' or 'ipynb'.   Please create a Sage Worksheet or Jupyter notebook instead."
-        );
+        build();
+      },
+      "Cmd-T"() {
+        build();
+      },
+      "Alt-T"() {
+        build();
       }
     };
     for (let k in actionKeys) {

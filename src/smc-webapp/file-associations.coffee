@@ -124,7 +124,7 @@ file_associations['noext-dockerfile'] =
 file_associations['tex'] =
     editor : 'latex'
     icon   : 'cc-icon-tex-file'
-    opts   : {mode:'stex2', indent_unit:4, tab_size:4}
+    opts   : {mode:'stex2', indent_unit:2, tab_size:2}
     name   : "LaTeX"
 
 file_associations['rnw'] =

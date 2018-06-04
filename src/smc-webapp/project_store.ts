@@ -46,8 +46,6 @@ let { webapp_client } = require("./webapp_client");
 let { project_tasks } = require("./project_tasks");
 const { defaults, required } = misc;
 
-let misc_page = require("./misc_page");
-
 import {
   Actions,
   rtypes,
@@ -402,7 +400,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     this._last_history_state = local_url;
     const { set_url } = require("./history");
     set_url(this._url_in_project(local_url));
-    misc_page.analytics_pageview(window.location.pathname);
+    require('./misc_page').analytics_pageview(window.location.pathname);
   }
 
   move_file_tab(opts): void {
@@ -708,7 +706,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         this._url_in_project(`files/${opts.path}`);
       url += `?session=${misc.uuid().slice(0, 8)}`;
       url += "&fullscreen=default";
-      misc_page.open_popup_window(url, { width: 800, height: 640 });
+      require('./misc_page').open_popup_window(url, { width: 800, height: 640 });
       return;
     }
 
@@ -2208,7 +2206,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
 
   download_file(opts): void {
     let url;
-    const { download_file, open_new_tab } = misc_page;
+    const { download_file, open_new_tab } = require('./misc_page');
     opts = defaults(opts, {
       path: required,
       log: false,

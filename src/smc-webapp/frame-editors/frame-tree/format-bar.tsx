@@ -6,6 +6,8 @@ import { React, Component, Rendered, Fragment } from "../generic/react";
 
 import { cmp } from "../generic/misc";
 
+import { SetMap } from "./types";
+
 const css_colors = require("css-color-names");
 
 const {
@@ -25,6 +27,7 @@ const FONT_SIZES = "xx-small x-small small medium large x-large xx-large".split(
 interface Props {
   actions: any; // type of file being edited, which impacts what buttons are shown.
   extension: string; // store   : rtypes.immutable.Map      # state about format bar stored in external store
+  exclude?: SetMap; // exclude buttons with these names
 }
 
 export class FormatBar extends Component<Props, {}> {
@@ -39,6 +42,9 @@ export class FormatBar extends Component<Props, {}> {
     // component for the button, show that in the button; if not given, use
     // icon with given name.
   ): Rendered {
+    if (this.props.exclude && this.props.exclude[name]) {
+      return;
+    }
     if (typeof label === "undefined") {
       label = <Icon name={name} />;
     } else if (typeof label === "string") {
@@ -50,6 +56,7 @@ export class FormatBar extends Component<Props, {}> {
         key={name}
         title={title}
         onClick={() => this.props.actions.format_action(name)}
+        bsSize="small"
       >
         {label}
       </Button>
@@ -188,6 +195,7 @@ export class FormatBar extends Component<Props, {}> {
         title={<Icon name={"font"} />}
         key={"font-family"}
         id={"font-family"}
+        bsSize="small"
       >
         {items}
       </DropdownButton>
@@ -218,6 +226,7 @@ export class FormatBar extends Component<Props, {}> {
         title={<Icon name={"text-height"} />}
         key={"font-size"}
         id={"font-size"}
+        bsSize="small"
       >
         {items}
       </DropdownButton>
@@ -268,6 +277,7 @@ export class FormatBar extends Component<Props, {}> {
         title={<Icon name={"header"} />}
         key={"heading"}
         id={"heading"}
+        bsSize="small"
       >
         {items}
       </DropdownButton>
@@ -312,6 +322,7 @@ export class FormatBar extends Component<Props, {}> {
         title={<Icon name={"paint-brush"} />}
         key={"font-color"}
         id={"font-color"}
+        bsSize="small"
       >
         {items}
       </DropdownButton>

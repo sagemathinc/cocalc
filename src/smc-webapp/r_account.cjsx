@@ -861,11 +861,12 @@ EDITOR_SETTINGS_CHECKBOXES =
     auto_close_brackets       : 'automatically close brackets'
     match_xml_tags            : 'automatically match XML tags'
     auto_close_xml_tags       : 'automatically close XML tags'
-    #auto_close_latex          : 'automatically close LaTeX environments'
+    auto_close_latex          : 'automatically close LaTeX environments'
     strip_trailing_whitespace : 'remove whenever file is saved'
     show_trailing_whitespace  : 'show spaces at ends of lines'
     spaces_instead_of_tabs    : 'send spaces when the tab key is pressed'
     extra_button_bar          : 'more editing functions (mainly in Sage worksheets)'
+    build_on_save             : 'build LaTex file whenever it is saved to disk'
     show_exec_warning         : 'warn that certain files are not directly executable'
     jupyter_classic           : <span>use classical Jupyter notebook <a href='https://github.com/sagemathinc/cocalc/wiki/JupyterClassicModern' target='_blank'>(DANGER: this can cause trouble...)</a></span>
 
@@ -1059,6 +1060,7 @@ EditorSettings = rclass
 KEYBOARD_SHORTCUTS =
     #'Next file tab'                : 'control+]'  # temporarily disabled since broken in many ways
     #'Previous file tab'            : 'control+['
+    'Build project / run code'     : 'shift+enter; alt+t; command+t'
     'Smaller text'                 : 'control+<'
     'Bigger text'                  : 'control+>'
     'Toggle comment'               : 'control+/'

@@ -16,11 +16,12 @@ import {
   log_error,
   public_get_text_file,
   prettier,
-  syncstring
+  syncstring,
+  syncdb
 } from "../generic/client";
+import { aux_file } from "../frame-tree/util";
 import { callback_opts, retry_until_success } from "../generic/async-utils";
 import {
-  cmp_Date,
   filename_extension,
   history_path,
   len,
@@ -82,6 +83,9 @@ export class Actions<T = CodeEditorState> extends BaseActions<
 > {
   protected _state: "closed" | undefined;
   protected _syncstring: any;
+  protected _syncdb?: any; /* auxiliary file optionally used for shared project configuration (e.g., for latex) */
+  private _syncstring_init : boolean = false;  // true once init has happened.
+  private _syncdb_init : boolean = false; // true once init has happened
   protected _key_handler: any;
   protected _cm: { [key: string]: CodeMirror.Editor } = {};
 
@@ -185,10 +189,12 @@ export class Actions<T = CodeEditorState> extends BaseActions<
 
     this._syncstring.once("init", err => {
       if (err) {
-        this.set_error(`Error opening -- ${err}`);
+        this.set_error(`Fatal error opening file -- ${err}.  Please try reopening the file again.`);
+        return;
       }
+      this._syncstring_init = true;
       this._syncstring_metadata();
-      if (!this.store.get("is_loaded")) {
+      if (!this.store.get("is_loaded") && (this._syncdb === undefined || this._syncdb_init)) {
         this.setState({ is_loaded: true });
       }
     });
@@ -214,6 +220,29 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     this._init_has_unsaved_changes();
   }
 
+  // This is currently NOT used in this base class.  It's used in other
+  // editors to store shared configuration or other information.  E.g., it's
+  // used by the latex editor to store the build command, master file, etc.
+  _init_syncdb(primary_keys: string[], string_cols?: string[]): void {
+    const aux = aux_file(this.path, "syncdb");
+    this._syncdb = syncdb({
+      project_id: this.project_id,
+      path: aux,
+      primary_keys: primary_keys,
+      string_cols: string_cols
+    });
+    this._syncdb.once("init", err => {
+      if (err) {
+        this.set_error(`Fatal error opening config "${aux}" -- ${err}.  Please try reopening the file again.`);
+        return;
+      }
+      this._syncdb_init = true;
+      if (!this.store.get("is_loaded") && (this._syncstring === undefined || this._syncstring_init)) {
+        this.setState({ is_loaded: true });
+      }
+    });
+  }
+
   // Reload the document.  This is used mainly for *public* viewing of
   // a file.
   reload(): void {
@@ -227,10 +256,13 @@ export class Actions<T = CodeEditorState> extends BaseActions<
 
   // Update the reload key in the store, which may *trigger* UI to
   // update itself as a result (e.g. a pdf preview or markdown preview pane).
-  set_reload(type: string): void {
+  set_reload(type: string, hash?:number): void {
     const reload: Map<string, any> = this.store.get("reload", Map());
+    if (hash === undefined) {
+      hash = this._syncstring.hash_of_saved_version()
+    }
     this.setState({
-      reload: reload.set(type, this._syncstring.hash_of_saved_version())
+      reload: reload.set(type,hash)
     });
   }
 
@@ -276,6 +308,13 @@ export class Actions<T = CodeEditorState> extends BaseActions<
       this._syncstring._save();
       this._syncstring.close();
       delete this._syncstring;
+    }
+    if (this._syncdb) {
+      // syncstring was initialized; be sure not to
+      // loose the very last change user made!
+      this._syncdb.save_asap();
+      this._syncdb.close();
+      delete this._syncdb;
     }
     // Remove underlying codemirror doc from cache.
     cm_doc_cache.close(this.project_id, this.path);
@@ -375,6 +414,7 @@ export class Actions<T = CodeEditorState> extends BaseActions<
       // already set -- nothing more to do
       return;
     }
+    this._cm[active_id];
     if (!this._is_leaf_id(active_id)) {
       if (ignore_if_missing) return;
       throw Error(`set_active_id - no leaf with id "${active_id}"`);
@@ -395,10 +435,10 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     // If active_id is the id of a codemirror editor,
     // save that it was focused just now; this is just a quick solution to
     // "give me last active cm" -- we will switch to something
-    // more generic later.
-    let cm: any = this._cm[active_id];
+    // more generic later -- TODO: switch to use _active_id_history
+    let cm: CodeMirror.Editor | undefined = this._cm[active_id];
     if (cm) {
-      cm._last_active = new Date();
+      (cm as any)._last_active = new Date();
       cm.focus();
     }
   }
@@ -406,18 +446,31 @@ export class Actions<T = CodeEditorState> extends BaseActions<
   // Make whatever frame is defined and was most recently active
   // be the current active frame.
   make_most_recent_frame_active(): void {
-    let tree = this._get_tree();
-    for (let i = this._active_id_history.length - 1; i >= 0; i--) {
-      let id = this._active_id_history[i];
-      if (tree_ops.is_leaf_id(tree, id)) {
-        this.set_active_id(id);
-        return;
-      }
-    }
-    let id: string | undefined = tree_ops.get_some_leaf_id(tree);
+    let id: string | undefined = this._get_most_recent_active_frame_id();
     if (id) {
       this.set_active_id(id);
+      return;
     }
+    id = tree_ops.get_some_leaf_id(this._get_tree());
+    if (id) {
+      // must be true, since tree is always nontrivial!
+      this.set_active_id(id);
+    }
+  }
+
+  // Gets active_id.  the active_id **should** always
+  // be defined, but if for some reason it is not, then
+  // this function all sets it and returns that.
+  _get_active_id(): string {
+    let id: string | undefined = this.store.getIn([
+      "local_view_state",
+      "active_id"
+    ]);
+    if (!id) {
+      id = tree_ops.get_some_leaf_id(this._get_tree());
+      this.set_active_id(id);
+    }
+    return id;
   }
 
   _get_tree(): ImmutableFrameTree {
@@ -496,6 +549,11 @@ export class Actions<T = CodeEditorState> extends BaseActions<
   // though we have a unit test of it at this level.
   set_frame_type(id: string, type: string): void {
     this.set_frame_tree({ id, type });
+    if (this._cm[id] && type != "cm") {
+      // Make sure to clear cm cache in case switching type away,
+      // in case the component unmount doesn't do this.
+      delete this._cm[id];
+    }
   }
 
   // raises an exception if the node does not exist; always
@@ -741,6 +799,7 @@ export class Actions<T = CodeEditorState> extends BaseActions<
   async _do_save(): Promise<void> {
     let that = this;
     try {
+      this.set_status("Saving to disk...");
       await retry_until_success({
         f: async function() {
           /* evidently no fat arrow with async/await + typescript */
@@ -762,10 +821,12 @@ export class Actions<T = CodeEditorState> extends BaseActions<
         project_id: this.project_id,
         error: "Error saving file -- has_unsaved_changes"
       });
+    } finally {
+      this.set_status("");
     }
   }
 
-  save(explicit: boolean): void {
+  async save(explicit: boolean): Promise<void> {
     if (this.is_public) {
       return;
     }
@@ -784,7 +845,7 @@ export class Actions<T = CodeEditorState> extends BaseActions<
       }
     }
     this.set_syncstring_to_codemirror();
-    this._do_save();
+    await this._do_save();
   }
 
   time_travel(): void {
@@ -878,7 +939,6 @@ export class Actions<T = CodeEditorState> extends BaseActions<
   //   if recent is not given, return some cm
   // 3. If no cm's return undefined.
   _get_cm(id?: string, recent?: boolean): CodeMirror.Editor | undefined {
-    let v;
     if (id) {
       let cm: CodeMirror.Editor | undefined = this._cm[id];
       if (!cm) {
@@ -889,31 +949,10 @@ export class Actions<T = CodeEditorState> extends BaseActions<
       }
     }
     if (recent) {
-      // TODO: rewrite this (and code in set_active_id) to work generically
-      // for any frame tree leaf type.
-      v = (() => {
-        const result: any[] = [];
-        for (let _ in this._cm) {
-          const obj = this._cm[_];
-          result.push(obj);
-        }
-        return result;
-      })();
-      if (v.length === 0) {
-        return;
-      }
-      v.sort(
-        (a, b) =>
-          -cmp_Date(
-            a._last_active != null ? a._last_active : 0,
-            b._last_active != null ? b._last_active : 0
-          )
-      );
-      return v[0];
+      return this._get_cm(this._get_most_recent_cm_id(), false);
     } else {
       for (id in this._cm) {
-        v = this._cm[id];
-        return v;
+        return this._cm[id];
       }
     }
   }
@@ -925,6 +964,12 @@ export class Actions<T = CodeEditorState> extends BaseActions<
 
   _recent_cm(): CodeMirror.Editor | undefined {
     return this._get_cm(undefined, true);
+  }
+
+  _get_most_recent_cm_id(): string | undefined {
+    return this._get_most_recent_active_frame_id(
+      node => node.get("type") == "cm"
+    );
   }
 
   _active_cm(): CodeMirror.Editor | undefined {
@@ -1097,14 +1142,34 @@ export class Actions<T = CodeEditorState> extends BaseActions<
   // used when clicking on other user avatar,
   // in the latex editor, etc.
   // If cursor is given, moves the cursor to the line too.
-  programmatical_goto_line(
+  async programmatical_goto_line(
     line: number,
     cursor?: boolean,
     focus?: boolean
-  ): void {
-    const cm = this._recent_cm();
+  ): Promise<void> {
+    const cm_id: string | undefined = this._get_most_recent_cm_id();
+    const full_id: string | undefined = this.store.getIn([
+      "local_view_state",
+      "full_id"
+    ]);
+    if (full_id && full_id != cm_id) {
+      this.unset_frame_full();
+      // have to wait for cm to get created and registered.
+      await delay(1);
+    }
+
+    let cm = this._get_cm(cm_id);
     if (cm == null) {
-      return;
+      // this case can only happen in derived classes with non-cm editors.
+      this.split_frame("col", this._get_active_id(), "cm");
+      // Have to wait until the codemirror editor is created and registered, which
+      // is caused by component mounting.
+      await delay(1);
+      cm = this._recent_cm();
+      if (cm == null) {
+        // still failed -- give up.
+        return;
+      }
     }
     const pos = { line: line - 1, ch: 0 };
     const info = cm.getScrollInfo();
@@ -1248,7 +1313,7 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     const info = new GutterMarker({
       line: opts.line,
       gutter_id: opts.gutter_id,
-      component: opts.component,
+      component: opts.component
     });
     this.setState({ gutter_markers: gutter_markers.set(opts.id, info) });
   }
@@ -1268,7 +1333,8 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     let gutter_markers: GutterMarkers = this.store.get("gutter_markers", Map());
     const before = gutter_markers;
     gutter_markers.map((info, id) => {
-      if (info !== undefined && info.get("gutter_id") === gutter_id && id)  {   /* && id is to satify typescript */
+      if (info !== undefined && info.get("gutter_id") === gutter_id && id) {
+        /* && id is to satify typescript */
         gutter_markers = gutter_markers.delete(id);
       }
     });
@@ -1319,6 +1385,9 @@ export class Actions<T = CodeEditorState> extends BaseActions<
       case "css":
         parser = "postcss";
         break;
+      case "tex":
+        parser = "latex";
+        break;
       default:
         return;
     }
@@ -1356,6 +1425,32 @@ export class Actions<T = CodeEditorState> extends BaseActions<
       opts.cm = this._get_cm();
     }
     await test_line(opts);
+  }
+
+  // Get the id of the most recent active frame.
+  // If f is given, restrict to frames for which f(node)
+  // is true, and if there are no such frames at all,
+  // then return undefined.  If there is a matching frame
+  // that has never been active in this session, will use that
+  // in arbitrary order.
+  _get_most_recent_active_frame_id(f?: Function): string | undefined {
+    let tree = this._get_tree();
+    for (let i = this._active_id_history.length - 1; i >= 0; i--) {
+      let id = this._active_id_history[i];
+      if (tree_ops.is_leaf_id(tree, id)) {
+        if (f === undefined || f(tree_ops.get_node(tree, id))) {
+          return id;
+        }
+      }
+    }
+    // now just check for any frame at all.
+    for (let id in this._get_leaf_ids()) {
+      if (f === undefined || f(tree_ops.get_node(tree, id))) {
+        return id;
+      }
+    }
+    // truly nothing!
+    return;
   }
 
   /* Get current value of the cm editor doc. Returns undefined if no

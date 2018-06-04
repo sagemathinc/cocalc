@@ -16,7 +16,7 @@ import { pdf_path } from "./util";
 
 let pdfjs_buttons = set([
   "print",
-  "save",
+  "download",
   "decrease_font_size",
   "increase_font_size",
   "zoom_page_width",
@@ -26,11 +26,12 @@ let pdfjs_buttons = set([
 
 const EDITOR_SPEC = {
   cm: {
-    short: "LaTeX",
+    short: "Source",
     name: "LaTeX Source Code",
     icon: "code",
     component: CodemirrorEditor,
     buttons: set([
+      "build",
       "print",
       "decrease_font_size",
       "increase_font_size",
@@ -45,14 +46,15 @@ const EDITOR_SPEC = {
       "undo",
       "redo",
       "sync",
-      "help"
+      "help",
+      "format"
     ]),
     gutters: ["Codemirror-latex-errors"]
   },
 
   pdfjs_canvas: {
-    short: "PDF (canvas)",
-    name: "PDF - Canvas",
+    short: "PDF (preview)",
+    name: "PDF - Preview",
     icon: "file-pdf-o",
     component: PDFJS,
     buttons: pdfjs_buttons,
@@ -66,7 +68,7 @@ const EDITOR_SPEC = {
     name: "Errors and Warnings",
     icon: "bug",
     component: ErrorsAndWarnings,
-    buttons: set([])
+    buttons: set(['build'])
   },
 
   build: {
@@ -74,18 +76,19 @@ const EDITOR_SPEC = {
     name: "Build Control",
     icon: "terminal",
     component: Build,
-    buttons: set([])
+    buttons: set(['build', 'clean'])
   },
 
-  embed: {
+  pdf_embed: {
     short: "PDF (native)",
     name: "PDF - Native",
     icon: "file-pdf-o",
-    buttons: set(["print", "save"]),
+    buttons: set(["print", "save", "download"]),
     component: PDFEmbed,
     path: pdf_path
   },
 
+  /*
   pdfjs_svg: {
     short: "PDF (svg)",
     name: "PDF - SVG",
@@ -97,7 +100,6 @@ const EDITOR_SPEC = {
     renderer: "svg"
   }
 
-  /*
     latexjs: {
         short: "Preview 1",
         name: "Rough Preview  1 - LaTeX.js",
@@ -127,6 +129,7 @@ const EDITOR_SPEC = {
 
 export const Editor = createEditor({
   format_bar: true,
+  format_bar_exclude: { strikethrough: true, SpecialChar:true, image:true, unformat:true },  // disabled until we can properly implement them!
   editor_spec: EDITOR_SPEC,
   display_name: "LaTeXEditor"
 });

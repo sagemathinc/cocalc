@@ -16,6 +16,8 @@ import {
   PDFDocumentProxy
 } from "pdfjs-dist/webpack";
 
+import { SyncHighlight } from "./pdfjs-annotation";
+
 export const PAGE_GAP: number = 20;
 
 interface PageProps {
@@ -26,6 +28,7 @@ interface PageProps {
   renderer: string;
   scale: number;
   page: PDFPageProxy;
+  sync_highlight?: SyncHighlight;
 }
 
 export class Page extends Component<PageProps, {}> {
@@ -35,7 +38,11 @@ export class Page extends Component<PageProps, {}> {
 
   shouldComponentUpdate(next_props: PageProps): boolean {
     return (
-      is_different(this.props, next_props, ["n", "renderer", "scale"]) ||
+      is_different(
+        this.props,
+        next_props,
+        ["n", "renderer", "scale", "sync_highlight"]
+      ) ||
       this.props.doc.pdfInfo.fingerprint !== next_props.doc.pdfInfo.fingerprint
     );
   }
@@ -53,6 +60,7 @@ export class Page extends Component<PageProps, {}> {
           page={this.props.page}
           scale={this.props.scale}
           click_annotation={f}
+          sync_highlight={this.props.sync_highlight}
         />
       );
     } else {
@@ -61,6 +69,7 @@ export class Page extends Component<PageProps, {}> {
           page={this.props.page}
           scale={this.props.scale}
           click_annotation={f}
+          sync_highlight={this.props.sync_highlight}
         />
       );
     }
@@ -101,7 +110,7 @@ export class Page extends Component<PageProps, {}> {
       let dest = await this.props.doc.getDestination(annotation.dest);
       let page: number = (await this.props.doc.getPageIndex(dest[0])) + 1;
       let page_height = this.props.page.pageInfo.view[3];
-      this.props.actions.scroll_into_view(
+      this.props.actions.scroll_pdf_into_view(
         page,
         page_height - dest[3],
         this.props.id
