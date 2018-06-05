@@ -306,10 +306,9 @@ class AppRedux
             throw Error("name must be a string")
         return @_actions[name] ?= new actions_class(name, @)
 
-    hasActions(name: string): boolean {
+    hasActions: (name) =>
         return !!this._actions[name];
-    }
-    
+
     getActions: (name) =>
         if not name?
             throw Error("name must be a string or an object with a project_id attribute, but is undefined")
