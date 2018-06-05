@@ -473,16 +473,21 @@ export class ProjectActions extends Actions<ProjectStoreState> {
           store.get("current_path") != null ? store.get("current_path") : ""
         );
         this.fetch_directory_listing();
+        break;
       case "new":
         this.setState({ file_creation_error: undefined });
         this.push_state(`new/${store.get("current_path")}`);
         this.set_next_default_filename(require("./account").default_filename());
+        break;
       case "log":
         this.push_state("log");
+        break;
       case "search":
         this.push_state(`search/${store.get("current_path")}`);
+        break;
       case "settings":
         this.push_state("settings");
+        break;
       default:
         // editor...
         var path = misc.tab_to_path(key);
