@@ -220,14 +220,18 @@ export class AppRedux {
 
   createActions<T, C extends Actions<T>>(
     name: string,
-    actions_class: new (a, b) => C
+    actions_class?: new (a, b) => C
   ): C {
     if (name == null) {
       throw Error("name must be a string");
     }
 
     if (this._actions[name] == null) {
-      this._actions[name] = new actions_class(name, this);
+      if (actions_class === undefined) {
+        this._actions[name] = new Actions(name, this);
+      } else {
+        this._actions[name] = new actions_class(name, this);
+      }
     }
 
     return this._actions[name];
@@ -264,6 +268,10 @@ export class AppRedux {
   createStore<
     State extends store_base_state = store_base_state,
     C extends Store<State> = Store<State>
+  >(name: string, init?: State): C;
+  createStore<
+    State extends store_base_state = store_base_state,
+    C extends Store<State> = Store<State>
   >(name: string, store_class?: StoreConstructorType<State, C>, init?: State): C;
   createStore<
     State extends store_base_state = store_base_state,
@@ -275,17 +283,18 @@ export class AppRedux {
     init?: {} | State
   ): C {
     let S: C;
-    let _StoreClass: any;
-    if (store_class === undefined) {
-      _StoreClass = Store;
-    } else {
-      _StoreClass = store_class;
-    }
     if (typeof spec === "string") {
       let name = spec;
       S = this._stores[name];
+      if (init === undefined && typeof(store_class) !== 'function') { // so can do createStore(name, {default init}) 
+        init = store_class
+      }
       if (S == null) {
-        S = this._stores[name] = new _StoreClass(name, this);
+        if (store_class === undefined) {
+          (S as any) = this._stores[name] = new Store(name, this);
+        } else {
+          S = this._stores[name] = new store_class(name, this);
+        }
         // Put into store. WARNING: New set_states CAN OVERWRITE THESE FUNCTIONS
         let C = immutable.Map(S as {});
         C = C.delete("redux"); // No circular pointing
@@ -297,7 +306,11 @@ export class AppRedux {
     } else {
       S = this._stores[spec.name];
       if (S == null) {
-        S = new _StoreClass(spec.name, this, spec);
+        if (store_class === undefined) {
+          (S as any) = new Store(spec.name, this, spec);
+        } else {
+          S = new store_class(spec.name, this, spec);
+        }
         this._stores[spec.name] = S;
         // TODOJ: REMOVE
         S.__converted = true;
