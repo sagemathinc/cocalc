@@ -10,6 +10,8 @@ import { redux } from "./react";
 
 import { callback_opts } from "./async-utils";
 
+import { FakeSyncstring } from "./syncstring-fake";
+
 export function server_time(): Date {
   return webapp_client.server_time();
 }
@@ -23,7 +25,7 @@ interface ExecOpts {
   network_timeout?: number;
   max_output?: number;
   bash?: boolean;
-  aggregate?: string | number | {value:(string|number)} ;
+  aggregate?: string | number | { value: string | number };
   err_on_exit?: boolean;
   allow_post?: boolean; // set to false if genuinely could take a long time
 }
@@ -104,10 +106,16 @@ interface SyncstringOpts {
   cursors?: boolean;
   before_change_hook?: Function;
   after_change_hook?: Function;
+  fake?: boolean; // if true make a fake syncstring with a similar API, but does nothing. (Used to make code more uniform.)
 }
 
 export function syncstring(opts: SyncstringOpts): any {
   const opts1: any = opts;
+  if (opts.fake) {
+    return new FakeSyncstring();
+  } else {
+    delete opts.fake;
+  }
   opts1.id = schema.client_db.sha1(opts.project_id, opts.path);
   return webapp_client.sync_string(opts1);
 }
@@ -134,4 +142,3 @@ export function default_font_size(): number {
     ? account.get("font_size", DEFAULT_FONT_SIZE)
     : DEFAULT_FONT_SIZE;
 }
-
