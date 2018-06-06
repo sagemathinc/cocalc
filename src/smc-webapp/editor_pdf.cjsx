@@ -112,6 +112,8 @@ delete_iframe = (project_id, path) ->
     iframes[k].remove()
     delete iframes[k]
 
+# DIsabled in favor of new frame editor.
+###
 for pub in [true, false]
     require('./project_file').register_file_editor
         ext       : 'pdf'
@@ -125,4 +127,4 @@ for pub in [true, false]
         remove    : (path, redux, project_id) ->
             delete_iframe(project_id, path)
 
-
+###

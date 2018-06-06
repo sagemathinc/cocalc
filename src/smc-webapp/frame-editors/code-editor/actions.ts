@@ -179,12 +179,20 @@ export class Actions<T = CodeEditorState> extends BaseActions<
   }
 
   _init_syncstring(): void {
+    let fake_syncstring = false;
+    if (filename_extension(this.path) === 'pdf'){
+      // Use a fake syncstring, since we do not directly
+      // edit the PDF file itself.
+      // TODO: make this a more generic mechanism.
+      fake_syncstring = true;
+    }
     this._syncstring = syncstring({
       project_id: this.project_id,
       path: this.path,
       cursors: true,
       before_change_hook: () => this.set_syncstring_to_codemirror(),
-      after_change_hook: () => this.set_codemirror_to_syncstring()
+      after_change_hook: () => this.set_codemirror_to_syncstring(),
+      fake : fake_syncstring
     });
 
     this._syncstring.once("init", err => {

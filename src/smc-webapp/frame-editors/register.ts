@@ -12,4 +12,6 @@ import "./markdown-editor/register.ts";
 import "./html-editor/register.ts";
 import "./latex-editor/register.ts";
 
+import "./pdf-editor/register.ts";
+
 import "./generic/test/init";
