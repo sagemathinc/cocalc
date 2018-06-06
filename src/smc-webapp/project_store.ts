@@ -979,11 +979,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     const a: any = redux.getEditorActions(this.project_id, path);
     if (a == null) {
       // try non-react editor
-      return __guardMethod__(
-        wrapped_editors.get_editor(this.project_id, path),
-        "programmatical_goto_line",
-        o => o.programmatical_goto_line(line)
-      );
+      let editor = wrapped_editors.get_editor(this.project_id, path);
+      return editor ? editor.programmatical_goto_line(line) : undefined
     } else {
       return typeof a.programmatical_goto_line === "function"
         ? a.programmatical_goto_line(line)
@@ -1014,18 +1011,16 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       this.redux,
       this.project_id
     );
-    return __guardMethod__(require("./editor"), "local_storage", o =>
-      o.local_storage(this.project_id, opts.path, "is_chat_open", true)
-    );
+    let editor = require("./editor");
+    editor ?  editor.local_storage(this.project_id, opts.path, "is_chat_open", true): undefined
   }
 
   // Close side chat for the given file, assuming the file itself is open
   close_chat(opts) {
     opts = defaults(opts, { path: required });
     this._set_chat_state(opts.path, false);
-    return __guardMethod__(require("./editor"), "local_storage", o =>
-      o.local_storage(this.project_id, opts.path, "is_chat_open", false)
-    );
+    let editor = require("./editor");
+    editor ? editor.local_storage(this.project_id, opts.path, "is_chat_open", false): undefined
   }
 
   set_chat_width(opts): void {
@@ -1040,9 +1035,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     const open_files = store.get("open_files");
     if (open_files != null) {
       const width = misc.ensure_bound(opts.width, 0.05, 0.95);
-      __guardMethod__(require("./editor"), "local_storage", o =>
-        o.local_storage(this.project_id, opts.path, "chat_width", width)
-      );
+      let editor = require("./editor");
+      editor ? editor.local_storage(this.project_id, opts.path, "chat_width", width): undefined
       this.setState({
         open_files: open_files.setIn([opts.path, "chat_width"], width)
       });
@@ -3070,11 +3064,8 @@ const create_project_store_def = function(name, project_id) {
       const store: any = redux.getEditorStore(this.project_id, path);
       if (store == null) {
         // try non-react editor
-        return __guardMethod__(
-          wrapped_editors.get_editor(this.project_id, path),
-          "get_users_cursors",
-          o => o.get_users_cursors(account_id)
-        );
+        let editors = wrapped_editors.get_editor(this.project_id, path);
+        return editors ? editors.get_users_cursors(account_id) : undefined;
       } else {
         return store.get("cursors") && store.get("cursors").get(account_id);
       }
@@ -3433,15 +3424,3 @@ var get_directory_listing = function(opts) {
     }
   });
 };
-
-function __guardMethod__(obj, methodName, transform) {
-  if (
-    typeof obj !== "undefined" &&
-    obj !== null &&
-    typeof obj[methodName] === "function"
-  ) {
-    return transform(obj, methodName);
-  } else {
-    return undefined;
-  }
-}
