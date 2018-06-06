@@ -1,7 +1,6 @@
 /*
  * decaffeinate suggestions:
  * DS102: Remove unnecessary code created because of implicit returns
- * DS103: Rewrite code to no longer use __guard__
  * DS104: Avoid inline assignments
  * DS204: Change includes calls to have a more natural evaluation order
  * DS205: Consider reworking code to avoid use of IIFEs
@@ -400,7 +399,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     this._last_history_state = local_url;
     const { set_url } = require("./history");
     set_url(this._url_in_project(local_url));
-    require('./misc_page').analytics_pageview(window.location.pathname);
+    require("./misc_page").analytics_pageview(window.location.pathname);
   }
 
   move_file_tab(opts): void {
@@ -491,9 +490,13 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       default:
         // editor...
         var path = misc.tab_to_path(key);
-        __guard__(this.redux.getActions("file_use"), x =>
-          x.mark_file(this.project_id, path, "open")
-        );
+        if (this.redux.hasActions("file_use")) {
+          (this.redux.getActions("file_use") as any).mark_file(
+            this.project_id,
+            path,
+            "open"
+          );
+        }
         this.push_state(`files/${path}`);
         this.set_current_path(misc.path_split(path).head);
 
@@ -642,10 +645,10 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     if (store === undefined) {
       return;
     }
-    const is_public = __guard__(
-      store.get("open_files").getIn([opts.path, "component"]),
-      x => x.is_public
-    );
+
+    const path_data = store.get("open_files").getIn([opts.path, "component"]);
+    const is_public = path_data ? path_data.is_public : false;
+
     project_file.save(opts.path, this.redux, this.project_id, is_public);
   }
 
@@ -664,7 +667,9 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       return;
     }
     store.get("open_files").forEach((val, path) => {
-      const is_public = __guard__(val.get("component"), x => x.is_public); // might still in theory someday be true.
+      const is_public = val.get("component")
+        ? val.get("component").is_public
+        : false; // might still in theory someday be true.
       project_file.save(path, this.redux, this.project_id, is_public);
     });
   }
@@ -711,7 +716,10 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         this._url_in_project(`files/${opts.path}`);
       url += `?session=${misc.uuid().slice(0, 8)}`;
       url += "&fullscreen=default";
-      require('./misc_page').open_popup_window(url, { width: 800, height: 640 });
+      require("./misc_page").open_popup_window(url, {
+        width: 800,
+        height: 640
+      });
       return;
     }
 
@@ -800,10 +808,14 @@ export class ProjectActions extends Actions<ProjectStoreState> {
             }
 
             if (!is_public) {
-              // the ? is because if the user is anonymous they don't have a file_use Actions (yet)
-              __guard__(this.redux.getActions("file_use"), x =>
-                x.mark_file(this.project_id, opts.path, "open")
-              );
+              if (this.redux.hasActions("file_use")) {
+                // if the user is anonymous they don't have a file_use Actions (yet)
+                (this.redux.getActions("file_use") as any).mark_file(
+                  this.project_id,
+                  opts.path,
+                  "open"
+                );
+              }
               const event = {
                 event: "open",
                 action: "open",
@@ -855,17 +867,15 @@ export class ProjectActions extends Actions<ProjectStoreState> {
 
             // Only generate the editor component if we don't have it already
             // Also regenerate if view type (public/not-public) changes
+            let file_info = open_files.getIn([opts.path, "component"]) || {
+              is_public: false
+            };
             if (
               !open_files.has(opts.path) ||
-              __guard__(
-                open_files.getIn([opts.path, "component"]),
-                x1 => x1.is_public
-              ) !== is_public
+              file_info.is_public !== is_public
             ) {
-              const was_public = __guard__(
-                open_files.getIn([opts.path, "component"]),
-                x2 => x2.is_public
-              );
+              const was_public = file_info.is_public;
+
               if (was_public != null && was_public !== is_public) {
                 this.setState({
                   open_files: open_files.delete(opts.path)
@@ -948,11 +958,11 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     if (path != null) {
       return scroll_position => {
         const store = this.get_store();
-        // Ensure prerequisite things exist
         if (
-          __guard__(store != null ? store.get("open_files") : undefined, x =>
-            x.getIn([path, "component"])
-          ) == null
+          // Ensure prerequisite things exist
+          store === undefined ||
+          store.get("open_files") === undefined ||
+          store.get("open_files").getIn([path, "component"]) === undefined
         ) {
           return;
         }
@@ -1149,7 +1159,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     }
 
     file_paths.map((obj, path) => {
-      const is_public = __guard__(obj.getIn(["component"]), x => x.is_public);
+      const component_data = obj.getIn(["component"]);
+      const is_public = component_data ? component_data.is_public : undefined;
       project_file.remove(path, this.redux, this.project_id, is_public);
     });
 
@@ -1170,10 +1181,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     const index = x.indexOf(path);
     if (index !== -1) {
       const open_files = store.get("open_files");
-      const is_public = __guard__(
-        open_files.getIn([path, "component"]),
-        x1 => x1.is_public
-      );
+      const component_data = open_files.getIn([path, "component"]);
+      const is_public = component_data ? component_data.is_public : undefined;
       this.setState({
         open_files_order: x.delete(index),
         open_files: open_files.delete(path)
@@ -1393,7 +1402,11 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   // Sets the active file_sort to next_column_name
   set_sorted_file_column(column_name): void {
     let is_descending;
-    const current = __guard__(this.get_store(), x => x.active_file_sort);
+    const store = this.get_store();
+    if (store === undefined) {
+      return;
+    }
+    const current = store.get("active_file_sort");
     if ((current != null ? current.column_name : undefined) === column_name) {
       is_descending = !current.is_descending;
     } else {
@@ -1719,19 +1732,15 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     if (path.slice(-1) === "/") {
       return path;
     } else {
-      if (
-        __guard__(
-          __guard__(
-            __guard__(this.get_store(), x2 => x2.displayed_listing),
-            x1 => x1.file_map[misc.path_split(path).tail]
-          ),
-          x => x.isdir
-        )
-      ) {
-        return path + "/";
-      } else {
-        return path;
+      let store = this.get_store();
+      let file_name = misc.path_split(path).tail;
+      if (store !== undefined && store.get("displayed_listing")) {
+        let file_data = store.get("displayed_listing").file_map[file_name];
+        if (file_data !== undefined && file_data.isdir) {
+          return path + "/";
+        }
       }
+      return path;
     }
   }
 
@@ -2211,7 +2220,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
 
   download_file(opts): void {
     let url;
-    const { download_file, open_new_tab } = require('./misc_page');
+    const { download_file, open_new_tab } = require("./misc_page");
     opts = defaults(opts, {
       path: required,
       log: false,
@@ -2773,9 +2782,13 @@ const create_project_store_def = function(name, project_id) {
     },
 
     destroy() {
-      return __guard__(this.redux.getStore("projects"), x =>
-        x.removeListener("change", this._projects_store_collab_check)
-      );
+      let projects_store = this.redux.getStore("projects");
+      if (projects_store !== undefined) {
+        projects_store.removeListener(
+          "change",
+          this._projects_store_collab_check
+        );
+      }
     },
 
     _projects_store_collab_check(state) {
@@ -3037,21 +3050,13 @@ const create_project_store_def = function(name, project_id) {
         // sort by a triplet: idea is to have the docs sorted by their category,
         // where some categories have weights (e.g. "introduction" comes first, no matter what)
         const sortfn = function(doc) {
-          let left, left1;
           return [
-            (left = metadata.getIn([
-              "categories",
-              doc.get("category"),
-              "weight"
-            ])) != null
-              ? left
-              : 0,
+            metadata.getIn(["categories", doc.get("category"), "weight"]) || 0,
             metadata
               .getIn(["categories", doc.get("category"), "name"])
               .toLowerCase(),
-            (left1 = __guard__(doc.get("title"), x => x.toLowerCase())) != null
-              ? left1
-              : doc.get("id")
+            (doc.get("title") && doc.get("title").toLowerCase()) ||
+              doc.get("id")
           ];
         };
         return docs.sortBy(sortfn);
@@ -3071,7 +3076,7 @@ const create_project_store_def = function(name, project_id) {
           o => o.get_users_cursors(account_id)
         );
       } else {
-        return __guard__(store.get("cursors"), x => x.get(account_id));
+        return store.get("cursors") && store.get("cursors").get(account_id);
       }
     },
 
@@ -3429,11 +3434,6 @@ var get_directory_listing = function(opts) {
   });
 };
 
-function __guard__(value, transform) {
-  return typeof value !== "undefined" && value !== null
-    ? transform(value)
-    : undefined;
-}
 function __guardMethod__(obj, methodName, transform) {
   if (
     typeof obj !== "undefined" &&
