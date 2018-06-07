@@ -9,7 +9,7 @@ const DEFAULT_FONT_SIZE: number = require("smc-util/db-schema")
 import { redux } from "./react";
 import { callback_opts } from "./async-utils";
 import { FakeSyncstring } from "./syncstring-fake";
-import { Map} from "immutable";
+import { Map } from "immutable";
 
 export function server_time(): Date {
   return webapp_client.server_time();
@@ -135,6 +135,16 @@ export function syncdb(opts: SyncDBOpts): any {
   return webapp_client.sync_db(opts1);
 }
 
+interface QueryOpts {
+  query: object;
+  changes?: boolean;
+  options?: object[]; // e.g., [{limit:5}]
+}
+
+export async function query(opts: QueryOpts): Promise<any> {
+  return callback_opts(webapp_client.query)(opts)
+}
+
 export function get_default_font_size(): number {
   const account = redux.getStore("account");
   return account
@@ -142,13 +152,13 @@ export function get_default_font_size(): number {
     : DEFAULT_FONT_SIZE;
 }
 
-export function get_editor_settings() : Map<string,any> {
+export function get_editor_settings(): Map<string, any> {
   const account = redux.getStore("account");
-  if(account) {
+  if (account) {
     let e = account.get("editor_settings");
-    if(e) {
+    if (e) {
       return e;
     }
   }
-  return Map();  // not loaded
+  return Map(); // not loaded
 }
