@@ -1,7 +1,5 @@
 /*
  * decaffeinate suggestions:
- * DS204: Change includes calls to have a more natural evaluation order
- * DS205: Consider reworking code to avoid use of IIFEs
  * DS207: Consider shorter variations of null checks
  * Full docs: https://github.com/decaffeinate/decaffeinate/blob/master/docs/suggestions.md
  */
@@ -577,10 +575,10 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   // changed and the event is merely updated.
   // Returns undefined if log event is ignored
   log(event, id?: string): string | undefined {
-    const needle = (this.redux.getStore("projects") as any).get_my_group(
+    const my_role = (this.redux.getStore("projects") as any).get_my_group(
       this.project_id
     );
-    if (["public", "admin"].includes(needle)) {
+    if (["public", "admin"].includes(my_role)) {
       // Ignore log events for *both* admin and public.
       // Admin gets to be secretive (also their account_id --> name likely wouldn't be known to users).
       // Public users don't log anything.
@@ -2119,15 +2117,13 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         .some(item => item.get("name") === path_parts.tail);
     };
 
-    opts.src = (() => {
-      const result: string[] = [];
-      for (path of opts.src) {
-        if (check_existence_of(path)) {
-          result.push(path);
-        }
+    const valid_sources: string[] = [];
+    for (path of opts.src) {
+      if (check_existence_of(path)) {
+        valid_sources.push(path);
       }
-      return result;
-    })();
+    }
+    opts.src = valid_sources;
 
     if (opts.src.length === 0) {
       return;
