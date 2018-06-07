@@ -417,7 +417,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   // Also closes file references.
   close_tab(path): void {
     let store = this.get_store();
-    if (store === undefined) {
+    if (store == undefined) {
       return;
     }
     const open_files_order = store.get("open_files_order");
@@ -457,7 +457,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   // Updates the URL
   set_active_tab(key: string): void {
     let store = this.get_store();
-    if (store === undefined || store.get("active_project_tab") === key) {
+    if (store == undefined || store.get("active_project_tab") === key) {
       // nothing to do
       return;
     }
@@ -510,7 +510,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
 
   add_a_ghost_file_tab(): void {
     let store = this.get_store();
-    if (store === undefined) {
+    if (store == undefined) {
       return;
     }
     const current_num = store.get("num_ghost_file_tabs");
@@ -533,7 +533,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       error: undefined
     }); // describe an error that happened
     let store = this.get_store();
-    if (store === undefined) {
+    if (store == undefined) {
       return;
     }
     let x =
@@ -635,7 +635,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     }
     // NOTE: someday we could have a non-public relationship to project, but still open an individual file in public mode
     let store = this.get_store();
-    if (store === undefined) {
+    if (store == undefined) {
       return;
     }
 
@@ -656,7 +656,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       return; // no point in saving if not open enough to even know our group or if our relationship to entire project is "public"
     }
     let store = this.get_store();
-    if (store === undefined) {
+    if (store == undefined) {
       return;
     }
     store.get("open_files").forEach((val, path) => {
@@ -853,7 +853,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
             }
 
             let store = this.get_store();
-            if (store === undefined) {
+            if (store == undefined) {
               return;
             }
             let open_files = store.get("open_files");
@@ -953,9 +953,9 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         const store = this.get_store();
         if (
           // Ensure prerequisite things exist
-          store === undefined ||
-          store.get("open_files") === undefined ||
-          store.get("open_files").getIn([path, "component"]) === undefined
+          store == undefined ||
+          store.get("open_files") == undefined ||
+          store.get("open_files").getIn([path, "component"]) == undefined
         ) {
           return;
         }
@@ -985,7 +985,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   // Used by open/close chat below.
   _set_chat_state(path, is_chat_open): void {
     let store = this.get_store();
-    if (store === undefined) {
+    if (store == undefined) {
       return;
     }
     const open_files = store.get("open_files");
@@ -1027,7 +1027,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       width: required
     }); // between 0 and 1
     let store = this.get_store();
-    if (store === undefined) {
+    if (store == undefined) {
       return;
     }
     const open_files = store.get("open_files");
@@ -1056,7 +1056,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
 
     const set_inactive = () => {
       let store = this.get_store();
-      if (store === undefined) {
+      if (store == undefined) {
         return;
       }
       const current_files = store.get("open_files");
@@ -1068,7 +1068,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     this._activity_indicator_timers[filename] = setTimeout(set_inactive, 1000);
 
     let store = this.get_store();
-    if (store === undefined) {
+    if (store == undefined) {
       return;
     }
     const open_files = store.get("open_files");
@@ -1144,7 +1144,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   // Closes all files and removes all references
   close_all_files() {
     let store = this.get_store();
-    if (store === undefined) {
+    if (store == undefined) {
       return;
     }
     const file_paths = store.get("open_files");
@@ -1168,7 +1168,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   // Does not update tabs
   close_file(path): void {
     let store = this.get_store();
-    if (store === undefined) {
+    if (store == undefined) {
       return;
     }
     const x = store.get("open_files_order");
@@ -1221,7 +1221,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         this.foreground_project();
         this.set_current_path(path);
         let store = this.get_store();
-        if (store === undefined) {
+        if (store == undefined) {
           return;
         }
         if (store.get("active_project_tab") === "files") {
@@ -1251,7 +1251,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     // Set the current path for this project. path is either a string or array of segments.
 
     let store = this.get_store();
-    if (store === undefined) {
+    if (store == undefined) {
       return;
     }
     let history_path =
@@ -1285,7 +1285,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   fetch_directory_listing(opts?): void {
     let status;
     let store = this.get_store();
-    if (store === undefined) {
+    if (store == undefined) {
       return;
     }
     opts = defaults(opts, {
@@ -1366,7 +1366,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         this.set_activity({ id, stop: "" });
         // Update the path component of the immutable directory listings map:
         store = this.get_store();
-        if (store === undefined) {
+        if (store == undefined) {
           return;
         }
         if (err && !misc.is_string(err)) {
@@ -1397,7 +1397,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   set_sorted_file_column(column_name): void {
     let is_descending;
     const store = this.get_store();
-    if (store === undefined) {
+    if (store == undefined) {
       return;
     }
     const current = store.get("active_file_sort");
@@ -1414,7 +1414,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   // undefined increments to 0
   increment_selected_file_index(): void {
     let store = this.get_store();
-    if (store === undefined) {
+    if (store == undefined) {
       return;
     }
     const current_index =
@@ -1429,7 +1429,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   // Does nothing when selected_file_index is undefined
   decrement_selected_file_index(): void {
     let store = this.get_store();
-    if (store === undefined) {
+    if (store == undefined) {
       return;
     }
     const current_index = store.get("selected_file_index");
@@ -1455,7 +1455,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   set_selected_file_range(file: string, checked: boolean): void {
     let range;
     let store = this.get_store();
-    if (store === undefined) {
+    if (store == undefined) {
       return;
     }
     const most_recent = store.get("most_recent_file_click");
@@ -1481,7 +1481,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   // set the given file to the given checked state
   set_file_checked(file: string, checked: boolean) {
     let store = this.get_store();
-    if (store === undefined) {
+    if (store == undefined) {
       return;
     }
     let changes: {
@@ -1510,7 +1510,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   // check all files in the given file_list
   set_file_list_checked(file_list: immutable.List<string>): void {
     let store = this.get_store();
-    if (store === undefined) {
+    if (store == undefined) {
       return;
     }
     const changes: {
@@ -1531,7 +1531,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   // uncheck all files in the given file_list
   set_file_list_unchecked(file_list: immutable.List<string>): void {
     let store = this.get_store();
-    if (store === undefined) {
+    if (store == undefined) {
       return;
     }
     const changes: {
@@ -1549,7 +1549,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   // uncheck all files
   set_all_files_unchecked(): void {
     let store = this.get_store();
-    if (store === undefined) {
+    if (store == undefined) {
       return;
     }
     this.setState({
@@ -1560,7 +1560,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
 
   private _suggest_duplicate_filename(name: string): string | undefined {
     let store = this.get_store();
-    if (store === undefined) {
+    if (store == undefined) {
       return;
     }
 
@@ -1594,7 +1594,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
 
   set_file_action(action, get_basename): void {
     let store = this.get_store();
-    if (store === undefined) {
+    if (store == undefined) {
       return;
     }
 
@@ -1745,7 +1745,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     const check = (v, k, cb) => {
       //if DEBUG then console.log("init_library.check", v, k)
       let store = this.get_store();
-      if (store === undefined) {
+      if (store == undefined) {
         cb("no store");
         return;
       }
@@ -1770,7 +1770,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         cb: (err, output) => {
           if (!err) {
             let store = this.get_store();
-            if (store === undefined) {
+            if (store == undefined) {
               cb("no store");
               return;
             }
@@ -1791,7 +1791,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     if (_init_library_index_cache[this.project_id] != null) {
       const data = _init_library_index_cache[this.project_id];
       store = this.get_store();
-      if (store === undefined) {
+      if (store == undefined) {
         return;
       }
       library = store.get("library").set("examples", data);
@@ -1813,7 +1813,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
 
     const fetch = cb => {
       let store = this.get_store();
-      if (store === undefined) {
+      if (store == undefined) {
         cb("no store");
         return;
       }
@@ -1825,7 +1825,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
           data = immutable.fromJS(data);
 
           let store = this.get_store();
-          if (store === undefined) {
+          if (store == undefined) {
             cb("no store");
             return;
           }
@@ -2108,7 +2108,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     const check_existence_of = (path: string): boolean => {
       let store = this.get_store();
       let path_parts = misc.path_split(path);
-      if (store === undefined) {
+      if (store == undefined) {
         return false;
       }
       return store
@@ -2464,7 +2464,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
 
   toggle_search_checkbox_subdirectories() {
     let store = this.get_store();
-    if (store === undefined) {
+    if (store == undefined) {
       return;
     }
     this.setState({ subdirectories: !store.get("subdirectories") });
@@ -2472,7 +2472,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
 
   toggle_search_checkbox_case_sensitive() {
     let store = this.get_store();
-    if (store === undefined) {
+    if (store == undefined) {
       return;
     }
     return this.setState({ case_sensitive: !store.get("case_sensitive") });
@@ -2480,7 +2480,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
 
   toggle_search_checkbox_hidden_files() {
     let store = this.get_store();
-    if (store === undefined) {
+    if (store == undefined) {
       return;
     }
     return this.setState({ hidden_files: !store.get("hidden_files") });
@@ -2488,7 +2488,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
 
   toggle_search_checkbox_git_grep() {
     let store = this.get_store();
-    if (store === undefined) {
+    if (store == undefined) {
       return;
     }
     return this.setState({ git_grep: !store.get("git_grep") });
@@ -2496,7 +2496,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
 
   process_results(err, output, max_results, max_output, cmd) {
     let store = this.get_store();
-    if (store === undefined) {
+    if (store == undefined) {
       return;
     }
     if ((err && output == null) || (output != null && output.stdout == null)) {
@@ -2551,7 +2551,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   search() {
     let cmd, ins;
     let store = this.get_store();
-    if (store === undefined) {
+    if (store == undefined) {
       return;
     }
 
@@ -2647,7 +2647,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
             [
               cb => {
                 let store = this.get_store();
-                if (store === undefined) {
+                if (store == undefined) {
                   return cb("no store");
                 } else {
                   const { item, err } = store.get_item_in_path(
@@ -2666,7 +2666,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
                     path: parent_path,
                     finish_cb: () => {
                       let store = this.get_store();
-                      if (store === undefined) {
+                      if (store == undefined) {
                         return cb("no store");
                       } else {
                         let err;
