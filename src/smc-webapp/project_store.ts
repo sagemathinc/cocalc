@@ -1,7 +1,5 @@
 /*
  * decaffeinate suggestions:
- * DS102: Remove unnecessary code created because of implicit returns
- * DS104: Avoid inline assignments
  * DS204: Change includes calls to have a more natural evaluation order
  * DS205: Consider reworking code to avoid use of IIFEs
  * DS207: Consider shorter variations of null checks
@@ -28,7 +26,7 @@
 //
 //##############################################################################
 
-let file_actions, project_file, prom_get_dir_listing_h, wrapped_editors;
+let project_file, prom_get_dir_listing_h, wrapped_editors;
 import * as async from "async";
 import * as underscore from "underscore";
 import * as immutable from "immutable";
@@ -56,7 +54,7 @@ import {
   Store
 } from "./smc-react-ts";
 
-let file_actions$1 = (file_actions = {
+const file_actions = {
   compress: {
     name: "Compress",
     icon: "compress",
@@ -97,9 +95,9 @@ let file_actions$1 = (file_actions = {
     icon: "cloud-download",
     allows_multiple_files: true
   }
-});
+};
 
-export { file_actions$1 as file_actions };
+export { file_actions };
 if (typeof window !== "undefined" && window !== null) {
   // don't import in case not in browser (for testing)
   project_file = require("./project_file");
@@ -579,13 +577,10 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   // changed and the event is merely updated.
   // Returns undefined if log event is ignored
   log(event, id?: string): string | undefined {
-    let needle;
-    if (
-      ((needle = (this.redux.getStore("projects") as any).get_my_group(
-        this.project_id
-      )),
-      ["public", "admin"].includes(needle))
-    ) {
+    const needle = (this.redux.getStore("projects") as any).get_my_group(
+      this.project_id
+    );
+    if (["public", "admin"].includes(needle)) {
       // Ignore log events for *both* admin and public.
       // Admin gets to be secretive (also their account_id --> name likely wouldn't be known to users).
       // Public users don't log anything.
@@ -968,7 +963,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         }
         // WARNING: Saving scroll position does NOT trigger a rerender. This is intentional.
         const info = store!.get("open_files").getIn([path, "component"]);
-        return (info.scroll_position = scroll_position);
+        info.scroll_position = scroll_position; // Yes, this mutates the store silently.
+        return scroll_position;
       };
     }
   }
@@ -980,7 +976,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     if (a == null) {
       // try non-react editor
       let editor = wrapped_editors.get_editor(this.project_id, path);
-      return editor ? editor.programmatical_goto_line(line) : undefined
+      return editor ? editor.programmatical_goto_line(line) : undefined;
     } else {
       return typeof a.programmatical_goto_line === "function"
         ? a.programmatical_goto_line(line)
@@ -1012,7 +1008,9 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       this.project_id
     );
     let editor = require("./editor");
-    editor ?  editor.local_storage(this.project_id, opts.path, "is_chat_open", true): undefined
+    editor
+      ? editor.local_storage(this.project_id, opts.path, "is_chat_open", true)
+      : undefined;
   }
 
   // Close side chat for the given file, assuming the file itself is open
@@ -1020,7 +1018,9 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     opts = defaults(opts, { path: required });
     this._set_chat_state(opts.path, false);
     let editor = require("./editor");
-    editor ? editor.local_storage(this.project_id, opts.path, "is_chat_open", false): undefined
+    editor
+      ? editor.local_storage(this.project_id, opts.path, "is_chat_open", false)
+      : undefined;
   }
 
   set_chat_width(opts): void {
@@ -1036,7 +1036,9 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     if (open_files != null) {
       const width = misc.ensure_bound(opts.width, 0.05, 0.95);
       let editor = require("./editor");
-      editor ? editor.local_storage(this.project_id, opts.path, "chat_width", width): undefined
+      editor
+        ? editor.local_storage(this.project_id, opts.path, "chat_width", width)
+        : undefined;
       this.setState({
         open_files: open_files.setIn([opts.path, "chat_width"], width)
       });
@@ -2884,7 +2886,7 @@ const create_project_store_def = function(name, project_id) {
 
     // Non-default input functions
     get_public_path_id() {
-      ({ project_id } = this);
+      const project_id = this.project_id;
       return function(path) {
         // (this exists because rethinkdb doesn't have compound primary keys)
         const { SCHEMA, client_db } = require("smc-util/schema");
@@ -3228,15 +3230,9 @@ const create_project_store_def = function(name, project_id) {
 
     _sort_on_string_field: field => {
       return function(a, b) {
-        let left, left1;
         return misc.cmp(
-          (left = a[field] != null ? a[field].toLowerCase() : undefined) != null
-            ? left
-            : "",
-          (left1 = b[field] != null ? b[field].toLowerCase() : undefined) !=
-          null
-            ? left1
-            : ""
+          a[field] !== undefined ? a[field].toLowerCase() : "",
+          b[field] !== undefined ? b[field].toLowerCase() : ""
         );
       };
     },
