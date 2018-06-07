@@ -389,7 +389,7 @@ export class AppRedux {
       console.warn(`getProjectStore: INVALID project_id -- "${project_id}"`);
     }
     if (!this.hasProjectStore(project_id)) {
-      require('./project_store').init(project_id);
+      require('./project_store').init(project_id, this);
     }
     return this.getStore(project_redux_name(project_id));
   };
@@ -402,7 +402,7 @@ export class AppRedux {
       console.warn(`getProjectActions: INVALID project_id -- "${project_id}"`);
     }
     if (!this.hasProjectStore(project_id)) {
-      require('./project_store').init(project_id);
+      require('./project_store').init(project_id, this);
     }
     return this.getActions(project_redux_name(project_id));
   }
@@ -414,7 +414,7 @@ export class AppRedux {
       console.warn(`getProjectTable: INVALID project_id -- "${project_id}"`);
     }
     if (!this.hasProjectStore(project_id)) {
-      require('./project_store').init(project_id);
+      require('./project_store').init(project_id, this);
     }
     return this.getTable(project_redux_name(project_id, name));
   }
