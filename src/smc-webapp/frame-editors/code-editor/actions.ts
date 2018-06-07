@@ -1289,7 +1289,7 @@ export class Actions<T = CodeEditorState> extends BaseActions<
   }
 
   async format_action(cmd, args): Promise<void> {
-    const cm = this._get_cm();
+    const cm = this._get_cm(undefined, true);
     if (cm == null) {
       // format bar only makes sense when some cm is there...
       return;
