@@ -1066,10 +1066,11 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     // cm code-editor frames have been closed (or just aren't visible).
     let cm: any = this._get_cm();
     if (!cm) {
-      cm = this._get_doc();
-    }
-    if (!cm) {
-      return;
+      try {
+        cm = this._get_doc();
+      } catch (err) {
+        return;
+      }
     }
     cm.setValueNoJump(this._syncstring.to_str());
     this.update_save_status();

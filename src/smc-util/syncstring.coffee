@@ -1272,7 +1272,9 @@ class SyncDoc extends EventEmitter
             return
 
         if @_handle_patch_update_queue_running
-            cb?("handle_patch_update_queue_running")
+            # wait until the update is done, then try again.
+            @once '_handle_patch_update_queue_done', =>
+                @_save(cb)
             return
 
         if @_saving
@@ -2028,6 +2030,8 @@ class SyncDoc extends EventEmitter
         else
             # OK, done and nothing in the queue
             @_handle_patch_update_queue_running = false
+            # Notify _save to try again.
+            @emit('_handle_patch_update_queue_done')
 
     ###
     Merge remote patches and live version to create new live version,
