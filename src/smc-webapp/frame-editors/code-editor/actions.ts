@@ -84,8 +84,8 @@ export class Actions<T = CodeEditorState> extends BaseActions<
   protected _state: "closed" | undefined;
   protected _syncstring: any;
   protected _syncdb?: any; /* auxiliary file optionally used for shared project configuration (e.g., for latex) */
-  private _syncstring_init : boolean = false;  // true once init has happened.
-  private _syncdb_init : boolean = false; // true once init has happened
+  private _syncstring_init: boolean = false; // true once init has happened.
+  private _syncdb_init: boolean = false; // true once init has happened
   protected _key_handler: any;
   protected _cm: { [key: string]: CodeMirror.Editor } = {};
 
@@ -180,7 +180,7 @@ export class Actions<T = CodeEditorState> extends BaseActions<
 
   _init_syncstring(): void {
     let fake_syncstring = false;
-    if (filename_extension(this.path) === 'pdf'){
+    if (filename_extension(this.path) === "pdf") {
       // Use a fake syncstring, since we do not directly
       // edit the PDF file itself.
       // TODO: make this a more generic mechanism.
@@ -192,17 +192,22 @@ export class Actions<T = CodeEditorState> extends BaseActions<
       cursors: true,
       before_change_hook: () => this.set_syncstring_to_codemirror(),
       after_change_hook: () => this.set_codemirror_to_syncstring(),
-      fake : fake_syncstring
+      fake: fake_syncstring
     });
 
     this._syncstring.once("init", err => {
       if (err) {
-        this.set_error(`Fatal error opening file -- ${err}.  Please try reopening the file again.`);
+        this.set_error(
+          `Fatal error opening file -- ${err}.  Please try reopening the file again.`
+        );
         return;
       }
       this._syncstring_init = true;
       this._syncstring_metadata();
-      if (!this.store.get("is_loaded") && (this._syncdb === undefined || this._syncdb_init)) {
+      if (
+        !this.store.get("is_loaded") &&
+        (this._syncdb === undefined || this._syncdb_init)
+      ) {
         this.setState({ is_loaded: true });
       }
     });
@@ -241,11 +246,16 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     });
     this._syncdb.once("init", err => {
       if (err) {
-        this.set_error(`Fatal error opening config "${aux}" -- ${err}.  Please try reopening the file again.`);
+        this.set_error(
+          `Fatal error opening config "${aux}" -- ${err}.  Please try reopening the file again.`
+        );
         return;
       }
       this._syncdb_init = true;
-      if (!this.store.get("is_loaded") && (this._syncstring === undefined || this._syncstring_init)) {
+      if (
+        !this.store.get("is_loaded") &&
+        (this._syncstring === undefined || this._syncstring_init)
+      ) {
         this.setState({ is_loaded: true });
       }
     });
@@ -264,13 +274,13 @@ export class Actions<T = CodeEditorState> extends BaseActions<
 
   // Update the reload key in the store, which may *trigger* UI to
   // update itself as a result (e.g. a pdf preview or markdown preview pane).
-  set_reload(type: string, hash?:number): void {
+  set_reload(type: string, hash?: number): void {
     const reload: Map<string, any> = this.store.get("reload", Map());
     if (hash === undefined) {
-      hash = this._syncstring.hash_of_saved_version()
+      hash = this._syncstring.hash_of_saved_version();
     }
     this.setState({
-      reload: reload.set(type,hash)
+      reload: reload.set(type, hash)
     });
   }
 
@@ -355,7 +365,10 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     }
 
     if (!local_view_state.has("font_size")) {
-      local_view_state = local_view_state.set("font_size", get_default_font_size());
+      local_view_state = local_view_state.set(
+        "font_size",
+        get_default_font_size()
+      );
     }
 
     let frame_tree = local_view_state.get("frame_tree");
@@ -556,12 +569,29 @@ export class Actions<T = CodeEditorState> extends BaseActions<
   // NOTE: This is only meant to be used in derived classes right now,
   // though we have a unit test of it at this level.
   set_frame_type(id: string, type: string): void {
+    // save what is currently the most recent frame of this type.
+    const prev_id = this._get_most_recent_active_frame_id_of_type(type);
+
     this.set_frame_tree({ id, type });
     if (this._cm[id] && type != "cm") {
       // Make sure to clear cm cache in case switching type away,
       // in case the component unmount doesn't do this.
       delete this._cm[id];
     }
+
+    // Reset the font size for the frame based on recent
+    // pref for this type.
+    let font_size: number = 0;
+    if (prev_id) {
+      const node = tree_ops.get_node(this._get_tree(), prev_id);
+      if (node) {
+        font_size = node.get("font_size");
+      }
+    }
+    if (!font_size) {
+      font_size = get_default_font_size();
+    }
+    this.set_font_size(id, font_size);
   }
 
   // raises an exception if the node does not exist; always
@@ -746,7 +776,7 @@ export class Actions<T = CodeEditorState> extends BaseActions<
 
   // Set the location of all of OUR cursors.  This is entirely
   // so the information can propogate to other users via the syncstring.
-  set_cursor_locs(locs : any[]): void {
+  set_cursor_locs(locs: any[]): void {
     if (locs.length === 0) {
       // don't remove on blur -- cursor will fade out just fine
       return;
@@ -1460,6 +1490,12 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     }
     // truly nothing!
     return;
+  }
+
+  _get_most_recent_active_frame_id_of_type(type: string): string | undefined {
+    return this._get_most_recent_active_frame_id(
+      node => node.get("type") == type
+    );
   }
 
   /* Get current value of the cm editor doc. Returns undefined if no
