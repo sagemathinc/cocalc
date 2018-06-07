@@ -12,7 +12,7 @@ import { fromJS, List, Map, Set } from "immutable";
 import { debounce } from "underscore";
 import { callback, delay } from "awaiting";
 import {
-  default_font_size,
+  get_default_font_size,
   log_error,
   public_get_text_file,
   prettier,
@@ -355,7 +355,7 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     }
 
     if (!local_view_state.has("font_size")) {
-      local_view_state = local_view_state.set("font_size", default_font_size());
+      local_view_state = local_view_state.set("font_size", get_default_font_size());
     }
 
     let frame_tree = local_view_state.get("frame_tree");
@@ -882,7 +882,7 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     if (!node) {
       return;
     }
-    let font_size: number = node.get("font_size", default_font_size());
+    let font_size: number = node.get("font_size", get_default_font_size());
     font_size += delta;
     if (font_size < 2) {
       font_size = 2;

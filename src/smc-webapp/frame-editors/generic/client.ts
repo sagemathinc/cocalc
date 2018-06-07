@@ -7,10 +7,9 @@ const schema = require("smc-util/schema");
 const DEFAULT_FONT_SIZE: number = require("smc-util/db-schema")
   .DEFAULT_FONT_SIZE;
 import { redux } from "./react";
-
 import { callback_opts } from "./async-utils";
-
 import { FakeSyncstring } from "./syncstring-fake";
+import { Map} from "immutable";
 
 export function server_time(): Date {
   return webapp_client.server_time();
@@ -136,9 +135,20 @@ export function syncdb(opts: SyncDBOpts): any {
   return webapp_client.sync_db(opts1);
 }
 
-export function default_font_size(): number {
+export function get_default_font_size(): number {
   const account = redux.getStore("account");
   return account
     ? account.get("font_size", DEFAULT_FONT_SIZE)
     : DEFAULT_FONT_SIZE;
+}
+
+export function get_editor_settings() : Map<string,any> {
+  const account = redux.getStore("account");
+  if(account) {
+    let e = account.get("editor_settings");
+    if(e) {
+      return e;
+    }
+  }
+  return Map();  // not loaded
 }
