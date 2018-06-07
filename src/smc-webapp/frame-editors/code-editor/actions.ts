@@ -746,12 +746,12 @@ export class Actions<T = CodeEditorState> extends BaseActions<
 
   // Set the location of all of OUR cursors.  This is entirely
   // so the information can propogate to other users via the syncstring.
-  set_cursor_locs(locs = [], side_effect): void {
+  set_cursor_locs(locs : any[]): void {
     if (locs.length === 0) {
       // don't remove on blur -- cursor will fade out just fine
       return;
     }
-    this._syncstring.set_cursor_locs(locs, side_effect);
+    this._syncstring.set_cursor_locs(locs);
   }
 
   // Delete trailing whitespace, avoiding any line that contains
@@ -1064,7 +1064,7 @@ export class Actions<T = CodeEditorState> extends BaseActions<
   set_codemirror_to_syncstring(): void {
     // NOTE: we fallback to getting the underling CM doc, in case all actual
     // cm code-editor frames have been closed (or just aren't visible).
-    let cm: any = this._get_cm();
+    let cm: any = this._get_cm(undefined, true);
     if (!cm) {
       try {
         cm = this._get_doc();
