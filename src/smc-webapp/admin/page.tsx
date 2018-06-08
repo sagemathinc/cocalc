@@ -10,15 +10,26 @@ import { SystemNotifications } from "./system-notifications";
 export class AdminPage extends Component {
   render() {
     return (
-      <div>
+      <div
+        style={{
+          overflowY: "scroll",
+          overflowX: "hidden",
+          margin: "30px"
+        }}
+      >
         <h3>Administrative server settings</h3>
         (not full implemented yet!)
-
+        <hr/>
         <AccountCreationToken />
+        <hr/>
         <SiteSettings />
+        <hr/>
         <StripeAPIKeys />
+        <hr/>
         <StripeUser />
+        <hr/>
         <SubscriptionManager />
+        <hr/>
         <SystemNotifications />
       </div>
     );

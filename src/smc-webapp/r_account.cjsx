@@ -331,7 +331,7 @@ PasswordSetting = rclass
         if @is_submittable()
             <Button onClick={@save_new_password} bsStyle='success'>
                 Change password
-                </Button>
+            </Button>
         else
             <Button disabled bsStyle='success'>Change password</Button>
 
@@ -1301,107 +1301,6 @@ StripeKeys = rclass
         if @state.error
             <ErrorDisplay error={@state.error} onClose={=>@setState(error:'')} />
 
-site_settings_conf = require('smc-util/schema').site_settings_conf
-async = require('async')
-underscore = require('underscore')
-SiteSettings = rclass
-    displayName : 'Account-SiteSettings'
-
-    getInitialState: ->
-        return {state :'view'}  # view --> load --> edit --> save --> view, and error
-
-    render_error: ->
-        if @state.error
-            <ErrorDisplay error={@state.error} onClose={=>@setState(error:'')} />
-
-    load: ->
-        @setState(state:'load')
-        webapp_client.query
-            query :
-                site_settings : [{name:null, value:null}]
-            cb : (err, result) =>
-                if err
-                    @setState(state:'error', error:err)
-                else
-                    data = {}
-                    for x in result.query.site_settings
-                        data[x.name] = x.value
-                    @setState
-                        state  : 'edit'
-                        error  : undefined
-                        data   : data
-                        edited : misc.deep_copy(data)
-
-    render_edit_button: ->
-        <Button onClick={=>@load()}>Edit...</Button>
-
-    save: ->
-        @setState(state:'save')
-        f = (x, cb) =>
-            webapp_client.query
-                query :
-                    site_settings : {name: x.name, value: x.value}
-                cb : cb
-        v = []
-        for name, value of @state.edited
-            if not underscore.isEqual(value, @state.data[name])
-                v.push({name:name, value:value})
-        async.map v, f, (err) =>
-            if err
-                @setState(state:'error', error:err)
-            else
-                @setState(state:'view')
-
-    render_save_button: ->
-        <Button onClick={@save}>Save</Button>
-
-    render_version_hint: (value) ->
-        if new Date(parseInt(value)*1000) > new Date()
-            error = <div style={background:'red', color:'white', margin:'15px', padding:'15px'}>INVALID version - it is in the future!!</div>
-        else
-            error = undefined
-        <div style={marginTop:'15px', color:'#666'}>
-            Your browser version: <pre style={background: 'white', fontSize: '10pt'}>{smc_version.version}</pre>
-            {error}
-        </div>
-
-    render_row: (name, value) ->
-        if not value?
-            value = site_settings_conf[name].default
-        conf = site_settings_conf[name]
-        label = <Tip key={name} title={conf.name} tip={conf.desc}>{conf.name}</Tip>
-        <LabeledRow label={label} key={name}>
-            <FormGroup>
-                <FormControl ref={name} type='text' value={value}
-                    onChange={=>e = misc.copy(@state.edited); e[name]=ReactDOM.findDOMNode(@refs[name]).value; @setState(edited:e)} />
-                {@render_version_hint(value) if name == 'version_recommended_browser'}
-            </FormGroup>
-        </LabeledRow>
-
-    render_editor: ->
-        for name in misc.keys(site_settings_conf)
-            @render_row(name, @state.edited[name])
-
-    render_main: ->
-        switch @state.state
-            when 'view'
-                @render_edit_button()
-            when 'edit'
-                <Well>
-                    {@render_editor()}
-                    {@render_save_button()}
-                </Well>
-            when 'save'
-                <div>Saving site configuration...</div>
-            when 'load'
-                <div>Loading site configuration...</div>
-
-    render: ->
-        <div>
-            {@render_main()}
-            {@render_error()}
-        </div>
-
 SystemMessage = rclass
     displayName : 'Account-SystemMessage'
 
@@ -1473,9 +1372,6 @@ AdminSettings = rclass
         <Panel header={<h2> <Icon name='users' /> Administrative server settings</h2>}>
             <LabeledRow label='Stripe API Keys' style={marginTop:'15px'}>
                 <StripeKeys />
-            </LabeledRow>
-            <LabeledRow label='Site Settings' style={marginTop:'15px'}>
-                <SiteSettings />
             </LabeledRow>
             <LabeledRow label='System Notifications' style={marginTop:'15px'}>
             <SystemMessage />
