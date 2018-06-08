@@ -20,7 +20,7 @@
 ###############################################################################
 
 {React, ReactDOM, rtypes, rclass, redux, Redux} = require('./smc-react')
-{Col, Row, ButtonToolbar, ButtonGroup, MenuItem, Button, Well, FormControl, FormGroup
+{Col, Row, ButtonToolbar, ButtonGroup, MenuItem, Button, Well, FormControl, FormGroup, Radio,
 ButtonToolbar, Popover, OverlayTrigger, SplitButton, MenuItem, Alert, Checkbox, Breadcrumb, Navbar} =  require('react-bootstrap')
 misc = require('smc-util/misc')
 {ActivityDisplay, DirectoryInput, Icon, Loading, ProjectState, COLORS,
@@ -1544,10 +1544,6 @@ ProjectFilesActionBox = rclass
         </Alert>
 
     render_share: ->
-        quotas = @props.get_total_project_quotas(@props.project_id)
-        if not quotas?.network
-            return @render_share_error()
-
         # currently only works for a single selected file
         single_file = @props.checked_files.first()
         single_file_data = @props.file_map[misc.path_split(single_file).tail]
@@ -1573,64 +1569,104 @@ ProjectFilesActionBox = rclass
                 </Col>
             </Row>
             <Row>
-                <Col sm={4} style={color:'#666'}>
-                    <h4>Description</h4>
-                    <FormGroup>
-                        <FormControl
-                            autoFocus     = {true}
-                            ref          = 'share_description'
-                            key          = 'share_description'
-                            type         = 'text'
-                            defaultValue = {single_file_data.public?.description ? ''}
-                            disabled     = {parent_is_public}
-                            placeholder  = 'Description...'
-                            onKeyUp      = {@action_key}
+                <Col sm={12} style={fontSize:'12pt'}>
+                    <h4 style={color:'#666'}>Options</h4>
+                    {@render_sharing_options(single_file_data)}
+                </Col>
+            </Row>
+            {if not single_file_data.is_public then undefined else <>
+                <Row>
+                    <Col sm={4} style={color:'#666'}>
+                        <h4>Description</h4>
+                        <FormGroup>
+                            <FormControl
+                                autoFocus     = {true}
+                                ref          = 'share_description'
+                                key          = 'share_description'
+                                type         = 'text'
+                                defaultValue = {single_file_data.public?.description ? ''}
+                                disabled     = {parent_is_public}
+                                placeholder  = 'Description...'
+                                onKeyUp      = {@action_key}
+                            />
+                        </FormGroup>
+                        {@render_share_warning() if parent_is_public}
+                    </Col>
+                    <Col sm={4} style={color:'#666'}>
+                        <h4>Items</h4>
+                        {@render_selected_files_list()}
+                    </Col>
+                    {<Col sm={4} style={color:'#666'}>
+                        <h4>Shared publicly</h4>
+                        <CopyToClipBoard
+                            value         = {url}
+                            button_before = {button_before}
+                            hide_after    = {true}
                         />
-                    </FormGroup>
-                    {@render_share_warning() if parent_is_public}
-                </Col>
-                <Col sm={4} style={color:'#666'}>
-                    <h4>Items</h4>
-                    {@render_selected_files_list()}
-                </Col>
-                {<Col sm={4} style={color:'#666'}>
-                    <h4>Shared publicly</h4>
-                    <CopyToClipBoard
-                        value         = {url}
-                        button_before = {button_before}
-                        hide_after    = {true}
-                    />
-                </Col> if single_file_data.is_public}
-            </Row>
-            <Row>
-                <Col sm={4}>
-                    <ButtonToolbar>
-                        <ButtonGroup style={paddingBottom: '5px'}>
-                            <Button bsStyle='primary' onClick={@share_click} disabled={parent_is_public}>
-                                <Icon name='share-square-o' /><Space/>
-                                {if single_file_data.is_public then 'Update description' else 'Make item public'}
-                            </Button>
-                            <Button bsStyle='warning' onClick={@stop_sharing_click} disabled={not single_file_data.is_public or parent_is_public}>
-                                <Icon name='shield' /> Make item private
-                            </Button>
-                        </ButtonGroup>
-                        <Button onClick={@cancel_action}>
-                            Close
+                    </Col> if single_file_data.is_public}
+                </Row>
+                <Row>
+                    <Col sm={12}>
+                        <Button bsStyle='primary' onClick={@share_click} disabled={parent_is_public} style={marginBottom:"5px"}>
+                            <Icon name='share-square-o' /> Update description
                         </Button>
-                    </ButtonToolbar>
-                </Col>
-                <Col sm={4}>
-                    {<ButtonToolbar>
-                        {@render_social_buttons(single_file)}
-                    </ButtonToolbar> if show_social_media}
-                </Col>
-            </Row>
+                    </Col>
+                </Row>
+            </>}
             <Row>
                 <Col sm={12}>
-                    {@render_unlisting_checkbox(single_file_data)}
+                    <Button onClick={@cancel_action}>
+                        Close
+                    </Button>
                 </Col>
             </Row>
         </div>
+
+    handle_sharing_options_change: (single_file_data) -> (e) =>
+        # The reason we need single_fie_data is because I think "set_public_path" does not
+        # merge the "options", so you have to pass in the current description.
+        state = e.target.value
+        if state == "private"
+            @props.actions.disable_public_path(@props.checked_files.first())
+        else if state == "public_listed"
+            # single_file_data.public is suppose to work in this state
+            description = single_file_data.public.description
+            @props.actions.set_public_path(@props.checked_files.first(), {description: description, unlisted: false})
+        else if state == "public_unlisted"
+            description = single_file_data.public.description
+            @props.actions.set_public_path(@props.checked_files.first(), {description: description, unlisted: true})
+
+    get_sharing_options_state: (single_file_data) ->
+        if single_file_data.is_public and single_file_data.public?.unlisted
+            return "public_unlisted"
+        if single_file_data.is_public and not single_file_data.public?.unlisted
+            return "public_listed"
+        return "private"
+
+    render_sharing_options: (single_file_data) ->
+        state = @get_sharing_options_state(single_file_data)
+        handler = @handle_sharing_options_change(single_file_data)
+        <>
+            <FormGroup>
+            {if @props.get_total_project_quotas(@props.project_id)?.network then <Radio name="sharing_options" value="public_listed" checked={state == "public_listed"} onChange={handler} inline>
+                    <Icon name='eye'/><Space/>
+                    <i>Public (listed)</i> This file will appear on the <a href="https://cocalc.com/share" target="_blank">share server</a>.
+              </Radio> else <Radio disabled={true} name="sharing_options" value="public_listed" checked={state == "public_listed"} inline>
+                    <Icon name='eye'/><Space/>
+                    <del><i>Public (listed)</i> This file will appear on the <a href="https://cocalc.com/share" target="_blank">share server</a>.</del> Public (listed) is only available for projects with network enabled.
+                </Radio>}
+              <br/>
+              <Radio name="sharing_options" value="public_unlisted" checked={state == "public_unlisted"} onChange={handler} inline>
+                <Icon name='eye-slash'/><Space/>
+                <i>Public (unlisted)</i> Only allow those with a link to view this.
+              </Radio>
+              <br/>
+              <Radio name="sharing_options" value="private" checked={state == "private"} onChange={handler} inline>
+                <Icon name='lock'/><Space/>
+                <i>Private</i> Only collaborators on this project can view this file.
+              </Radio>
+            </FormGroup>
+        </>
 
     render_social_buttons: (single_file) ->
         # sort like in account settings
