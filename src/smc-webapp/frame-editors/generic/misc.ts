@@ -238,3 +238,34 @@ export function encode_path(path) {
     path = encodeURI(path);  // doesn't escape # and ?, since they are special for urls (but not unix paths)
     return path.replace(/#/g,'%23').replace(/\?/g,'%3F');
 }
+
+
+
+const reValidEmail = (function() {
+    const sQtext = "[^\\x0d\\x22\\x5c\\x80-\\xff]";
+    const sDtext = "[^\\x0d\\x5b-\\x5d\\x80-\\xff]";
+    const sAtom = "[^\\x00-\\x20\\x22\\x28\\x29\\x2c\\x2e\\x3a-\\x3c\\x3e\\x40\\x5b-\\x5d\\x7f-\\xff]+";
+    const sQuotedPair = "\\x5c[\\x00-\\x7f]";
+    const sDomainLiteral = `\\x5b(${sDtext}|${sQuotedPair})*\\x5d`;
+    const sQuotedString = `\\x22(${sQtext}|${sQuotedPair})*\\x22`;
+    const sDomain_ref = sAtom;
+    const sSubDomain = `(${sDomain_ref}|${sDomainLiteral})`;
+    const sWord = `(${sAtom}|${sQuotedString})`;
+    const sDomain = sSubDomain + "(\\x2e" + sSubDomain + ")*";
+    const sLocalPart = sWord + "(\\x2e" + sWord + ")*";
+    const sAddrSpec = sLocalPart + "\\x40" + sDomain; // complete RFC822 email address spec
+    const sValidEmail = `^${sAddrSpec}$`; // as whole string
+    return new RegExp(sValidEmail);
+})();
+
+export function is_valid_email_address(email: string) : boolean {
+    // From http://stackoverflow.com/questions/46155/validate-email-address-in-javascript
+    // but converted to Javascript; it's near the middle but claims to be exactly RFC822.
+    if (reValidEmail.test(email)) {
+        return true;
+    } else {
+        return false;
+    }
+}
+
+export const to_json = JSON.stringify;

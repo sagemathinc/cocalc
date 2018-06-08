@@ -142,7 +142,7 @@ interface QueryOpts {
 }
 
 export async function query(opts: QueryOpts): Promise<any> {
-  return callback_opts(webapp_client.query)(opts)
+  return callback_opts(webapp_client.query)(opts);
 }
 
 export function get_default_font_size(): number {
@@ -161,4 +161,11 @@ export function get_editor_settings(): Map<string, any> {
     }
   }
   return Map(); // not loaded
+}
+
+export async function stripe_admin_create_customer(opts: {
+  account_id?: string;
+  email_address?: string;
+}): Promise<void> {
+    return callback_opts(webapp_client.stripe_admin_create_customer)(opts);
 }

@@ -31,7 +31,7 @@ export class AccountCreationToken extends Component<{}, State> {
     };
   }
 
-  edit() {
+  edit() : void {
     this.setState({ state: "edit" });
   }
 
@@ -100,7 +100,7 @@ export class AccountCreationToken extends Component<{}, State> {
     }
   }
 
-  render_error() {
+  render_error() : Rendered {
     if (this.state.error) {
       return (
         <ErrorDisplay
@@ -111,13 +111,13 @@ export class AccountCreationToken extends Component<{}, State> {
     }
   }
 
-  render_save() {
+  render_save() : Rendered {
     if (this.state.state === "save") {
       return <Saving />;
     }
   }
 
-  render_unsupported() {
+  render_unsupported() : Rendered {
     // see https://github.com/sagemathinc/cocalc/issues/333
     return (
       <div style={{ color: "#666" }}>
@@ -126,18 +126,24 @@ export class AccountCreationToken extends Component<{}, State> {
     );
   }
 
-  render() {
+  render_content(): Rendered {
     if (redux.getStore("account").get("strategies").size > 1) {
       return this.render_unsupported();
     }
     return (
       <div>
+        {this.render_control()}
+        {this.render_save()}
+        {this.render_error()}
+      </div>
+    );
+  }
+
+  render() : Rendered {
+    return (
+      <div>
         <h4>Account Creation Token</h4>
-        <div>
-          {this.render_control()}
-          {this.render_save()}
-          {this.render_error()}
-        </div>
+        {this.render_content()}
       </div>
     );
   }
