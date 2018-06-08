@@ -9,19 +9,19 @@ import {
   redux
 } from "../frame-editors/generic/react";
 
-import {Button, Well, FormGroup, FormControl} from "react-bootstrap";
+import { Button, Well, FormGroup, FormControl } from "react-bootstrap";
 
 import { query } from "../frame-editors/generic/client";
 
-const {ErrorDisplay, Saving} = require("../r_misc");
+const { ErrorDisplay, Saving } = require("../r_misc");
 
 interface State {
-  state: "view" | "edit" | "save" ;
-  token : string;
-  error : string;
+  state: "view" | "edit" | "save";
+  token: string;
+  error: string;
 }
 
-export class AccountCreationToken extends Component<{},State> {
+export class AccountCreationToken extends Component<{}, State> {
   constructor(props) {
     super(props);
     this.state = {
@@ -56,7 +56,7 @@ export class AccountCreationToken extends Component<{},State> {
     return (
       <Button
         style={{ marginRight: "1ex" }}
-        onClick={this.save}
+        onClick={() => this.save()}
         bsStyle="success"
       >
         Save token
@@ -64,11 +64,11 @@ export class AccountCreationToken extends Component<{},State> {
     );
   }
 
-  render_control() : Rendered {
+  render_control(): Rendered {
     switch (this.state.state) {
       case "view":
         return (
-          <Button onClick={this.edit} bsStyle="warning">
+          <Button onClick={() => this.edit()} bsStyle="warning">
             Change token...
           </Button>
         );
@@ -82,7 +82,9 @@ export class AccountCreationToken extends Component<{},State> {
                   ref="input"
                   type="text"
                   value={this.state.token}
-                  onChange={e => this.setState({ token: (e.target as any).value })}
+                  onChange={e =>
+                    this.setState({ token: (e.target as any).value })
+                  }
                 />
               </FormGroup>
             </form>
@@ -130,9 +132,12 @@ export class AccountCreationToken extends Component<{},State> {
     }
     return (
       <div>
-        {this.render_control()}
-        {this.render_save()}
-        {this.render_error()}
+        <h4>Account Creation Token</h4>
+        <div>
+          {this.render_control()}
+          {this.render_save()}
+          {this.render_error()}
+        </div>
       </div>
     );
   }

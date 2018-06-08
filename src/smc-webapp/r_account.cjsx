@@ -1235,79 +1235,6 @@ OtherSettings = rclass
             {@render_page_size_warning()}
         </Panel>
 
-AccountCreationToken = rclass
-    displayName : 'AccountCreationToken'
-
-    getInitialState: ->
-        state : 'view'   # view --> edit --> save --> view
-        token : ''
-        error : ''
-
-    edit: ->
-        @setState(state:'edit')
-
-    save: ->
-        @setState(state:'save')
-        token = @state.token
-        webapp_client.query
-            query :
-                server_settings : {name:'account_creation_token',value:token}
-            cb : (err) =>
-                if err
-                    @setState(state:'edit', error:err)
-                else
-                    @setState(state:'view', error:'', token:'')
-
-    render_save_button: ->
-        <Button style={marginRight:'1ex'} onClick={@save} bsStyle='success'>Save token</Button>
-
-    render_control: ->
-        switch @state.state
-            when 'view'
-                <Button onClick={@edit} bsStyle='warning'>Change token...</Button>
-            when 'load'
-                <Loading />
-            when 'edit', 'save'
-                <Well>
-                    <form onSubmit={@save}>
-                        <FormGroup>
-                            <FormControl
-                                ref      = 'input'
-                                type     = 'text'
-                                value    = {@state.token}
-                                onChange = {(e)=>@setState(token:e.target.value)}
-                            />
-                        </FormGroup>
-                    </form>
-                    {@render_save_button()}
-                    <Button onClick={=>@setState(state:'view', token:'')}>Cancel</Button>
-                    <br /><br />
-                    (Set to empty to not require a token.)
-                </Well>
-
-    render_error: ->
-        if @state.error
-            <ErrorDisplay error={@state.error} onClose={=>@setState(error:'')} />
-
-    render_save: ->
-        if @state.state == 'save'
-            <Saving />
-
-    render_unsupported: ->  # see https://github.com/sagemathinc/cocalc/issues/333
-        <div style={color:"#666"}>
-            Not supported since some passport strategies are enabled.
-        </div>
-
-    render: ->
-        if STRATEGIES.length > 1
-            return @render_unsupported()
-        <div>
-             {@render_control()}
-             {@render_save()}
-             {@render_error()}
-        </div>
-
-
 StripeKeys = rclass
     displayName : 'Account-StripeKeys'
 
@@ -1608,9 +1535,6 @@ AdminSettings = rclass
         add_stripe_label = <Tip title="Add/Update Stripe User" tip="Make it so the user with the given email address has a corresponding stripe identity, even if they have never entered a credit card.  You'll need this if you want to directly create a plan for them in Stripe.">Add/Update Stripe Users</Tip>
 
         <Panel header={<h2> <Icon name='users' /> Administrative server settings</h2>}>
-            <LabeledRow label='Account Creation Token'>
-                <AccountCreationToken />
-            </LabeledRow>
             <LabeledRow label='Stripe API Keys' style={marginTop:'15px'}>
                 <StripeKeys />
             </LabeledRow>
