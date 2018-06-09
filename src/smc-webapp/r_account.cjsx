@@ -1235,72 +1235,6 @@ OtherSettings = rclass
             {@render_page_size_warning()}
         </Panel>
 
-StripeKeys = rclass
-    displayName : 'Account-StripeKeys'
-
-    getInitialState: ->
-        state           : 'view'   # view --> edit --> save --> saved
-        secret_key      : ''
-        publishable_key : ''
-        error           : undefined
-
-    edit: ->
-        @setState(state:'edit')
-
-    save: ->
-        @setState(state:'save')
-        f = (name, cb) =>
-        query = (server_settings : {name:"stripe_#{name}_key", value:@state["#{name}_key"]} for name in ['secret', 'publishable'])
-        webapp_client.query
-            query : query
-            cb    : (err) =>
-                if err
-                    @setState(state:'edit', error:err)
-                else
-                    @setState(state:'saved', error:'', secret_key:'', publishable_key:'')
-
-    cancel: ->
-        @setState(state:'view', error:'', secret_key:'', publishable_key:'')
-
-    render: ->
-        <div>
-            {@render_main()}
-            {@render_error()}
-        </div>
-
-    render_main:->
-        switch @state.state
-            when 'view', 'saved'
-                <div>
-                    {"stripe keys saved!" if @state.state == 'saved'}
-                    <Button bsStyle='warning' onClick={@edit}>Change Stripe keys...</Button>
-                </div>
-            when 'save'
-                <div>Saving Stripe keys...</div>
-            when 'edit'
-                <Well>
-                    <LabeledRow label='Secret key'>
-                        <FormGroup>
-                            <FormControl ref='input_secret_key' type='text' value={@state.secret_key}
-                                onChange={(e)=>@setState(secret_key:e.target.value)} />
-                        </FormGroup>
-                    </LabeledRow>
-                    <LabeledRow label='Publishable key'>
-                        <FormGroup>
-                            <FormControl ref='input_publishable_key' type='text' value={@state.publishable_key}
-                                onChange={(e)=>@setState(publishable_key:e.target.value)} />
-                        </FormGroup>
-                    </LabeledRow>
-                    <ButtonToolbar>
-                        <Button bsStyle='success' onClick={@save}>Save Stripe keys...</Button>
-                        <Button onClick={@cancel}>Cancel</Button>
-                    </ButtonToolbar>
-                </Well>
-
-    render_error: ->
-        if @state.error
-            <ErrorDisplay error={@state.error} onClose={=>@setState(error:'')} />
-
 SystemMessage = rclass
     displayName : 'Account-SystemMessage'
 
@@ -1370,11 +1304,8 @@ AdminSettings = rclass
             return <span />
 
         <Panel header={<h2> <Icon name='users' /> Administrative server settings</h2>}>
-            <LabeledRow label='Stripe API Keys' style={marginTop:'15px'}>
-                <StripeKeys />
-            </LabeledRow>
             <LabeledRow label='System Notifications' style={marginTop:'15px'}>
-            <SystemMessage />
+                <SystemMessage />
             </LabeledRow>
         </Panel>
 
