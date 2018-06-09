@@ -39,12 +39,13 @@ interface ScrollIntoViewParams {
   id: string;
 }
 
-const ScrollIntoViewRecord = createTypedMap<ScrollIntoViewParams>();
+export const ScrollIntoViewRecord = createTypedMap<ScrollIntoViewParams>();
+export type ScrollIntoViewMap = TypedMap<ScrollIntoViewParams>;
 
 interface LatexEditorState extends CodeEditorState {
   build_logs: BuildLogs;
   sync: string;
-  scroll_pdf_into_view: TypedMap<ScrollIntoViewParams>;
+  scroll_pdf_into_view: ScrollIntoViewMap;
   zoom_page_width: string;
   zoom_page_height: string;
   build_command: string | List<string>;
