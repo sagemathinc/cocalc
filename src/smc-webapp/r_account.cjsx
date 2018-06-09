@@ -1235,65 +1235,7 @@ OtherSettings = rclass
             {@render_page_size_warning()}
         </Panel>
 
-SystemMessage = rclass
-    displayName : 'Account-SystemMessage'
 
-    reduxProps :
-        system_notifications :
-            notifications : rtypes.immutable
-
-    getInitialState: ->
-        return {state :'view'}  # view <--> edit
-
-    render_buttons: ->
-        open = 0
-        @props.notifications.map (mesg, id) ->
-            if not mesg.get('done')
-                open += 1
-        <ButtonToolbar>
-            <Button onClick={=>@setState(state:'edit')}>Compose...</Button>
-            {<Button onClick={@mark_all_done}>Mark {open} {misc.plural(open, 'notification')} done</Button> if open > 0}
-            {<Button disabled={true}>No outstanding notifications</Button> if open == 0}
-        </ButtonToolbar>
-
-
-    render_editor: ->
-        <Well>
-            <FormGroup>
-                <FormControl
-                    autoFocus
-                    value          = {@state.mesg}
-                    ref            = 'input'
-                    rows           = {3}
-                    componentClass = 'textarea'
-                    onChange       = {=>@setState(mesg:ReactDOM.findDOMNode(@refs.input).value)}
-                />
-            </FormGroup>
-            <ButtonToolbar>
-                <Button onClick={@send} bsStyle="danger"><Icon name='paper-plane-o'/> Send</Button>
-                <Button onClick={=>@setState(state:'view')}>Cancel</Button>
-            </ButtonToolbar>
-        </Well>
-
-    send: ->
-        @setState(state:'view')
-        mesg = @state.mesg?.trim()  # mesg need not be defined
-        if mesg
-            redux.getActions('system_notifications').send_message
-                text     : mesg
-                priority : 'high'
-
-    mark_all_done: ->
-        redux.getActions('system_notifications').mark_all_done()
-
-    render: ->
-        if not @props.notifications?
-            return <Loading/>
-        switch @state.state
-            when 'view'
-                @render_buttons()
-            when 'edit'
-                @render_editor()
 
 AdminSettings = rclass
     propTypes :
@@ -1304,9 +1246,7 @@ AdminSettings = rclass
             return <span />
 
         <Panel header={<h2> <Icon name='users' /> Administrative server settings</h2>}>
-            <LabeledRow label='System Notifications' style={marginTop:'15px'}>
-                <SystemMessage />
-            </LabeledRow>
+            Moved to the new Admin top level page.
         </Panel>
 
 # Render the entire settings component
