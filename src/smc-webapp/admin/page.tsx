@@ -18,7 +18,6 @@ export class AdminPage extends Component {
         }}
       >
         <h3>Administrative server settings</h3>
-        (not full implemented yet!)
         <hr/>
         <AccountCreationToken />
         <hr/>
