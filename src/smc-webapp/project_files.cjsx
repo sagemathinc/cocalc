@@ -1514,7 +1514,7 @@ ProjectFilesActionBox = rclass
 
     render_share_defn: ->
         <div style={color:'#555'}>
-            Use sharing to make a file or directory <a href="https://cocalc.com/share" target="_blank"><b><i>visible to the world.</i></b></a> Learn more about sharing files <a href="https://github.com/sagemathinc/cocalc/wiki/share" target="_blank"><b><i>here.</i></b></a> If you would like to collaborate and chat with other people on documents in this project, go the project Settings tab and "Add people to project".
+            <a href="https://github.com/sagemathinc/cocalc/wiki/share" target="_blank">Use sharing</a> to make a file or directory <a href="https://cocalc.com/share" target="_blank"><b><i>visible to the world.</i></b></a>   (If you would instead like to privately collaborate and chat with people in this project, go the project Settings tab and "Add people to project".)
         </div>
 
     set_public_file_unlisting_to: (new_value) ->
@@ -1543,6 +1543,16 @@ ProjectFilesActionBox = rclass
             </div>
         </Alert>
 
+    render_how_shared: (parent_is_public, single_file_data) ->
+        if parent_is_public
+            return
+        <div>
+            <br/>
+            <div style={color:'#444', fontSize:'15pt'}>How this file or directory is shared</div>
+            <br/>
+            {@render_sharing_options(single_file_data)}
+        </div>
+
     render_share: ->
         # currently only works for a single selected file
         single_file = @props.checked_files.first()
@@ -1570,8 +1580,7 @@ ProjectFilesActionBox = rclass
             </Row>
             <Row>
                 <Col sm={12} style={fontSize:'12pt'}>
-                    <h4 style={color:'#666'}>Options</h4>
-                    {@render_sharing_options(single_file_data)}
+                    {@render_how_shared(parent_is_public, single_file_data)}
                 </Col>
             </Row>
             {if not single_file_data.is_public then undefined else <>
@@ -1630,10 +1639,10 @@ ProjectFilesActionBox = rclass
             @props.actions.disable_public_path(@props.checked_files.first())
         else if state == "public_listed"
             # single_file_data.public is suppose to work in this state
-            description = single_file_data.public.description
+            description = single_file_data.public?.description ? ''
             @props.actions.set_public_path(@props.checked_files.first(), {description: description, unlisted: false})
         else if state == "public_unlisted"
-            description = single_file_data.public.description
+            description = single_file_data.public?.description ? ''
             @props.actions.set_public_path(@props.checked_files.first(), {description: description, unlisted: true})
 
     get_sharing_options_state: (single_file_data) ->
@@ -1650,20 +1659,20 @@ ProjectFilesActionBox = rclass
             <FormGroup>
             {if @props.get_total_project_quotas(@props.project_id)?.network then <Radio name="sharing_options" value="public_listed" checked={state == "public_listed"} onChange={handler} inline>
                     <Icon name='eye'/><Space/>
-                    <i>Public (listed)</i> This file will appear on the <a href="https://cocalc.com/share" target="_blank">share server</a>.
+                    <i>Public (listed)</i> - This will appear on the <a href="https://cocalc.com/share" target="_blank">public share server</a>.
               </Radio> else <Radio disabled={true} name="sharing_options" value="public_listed" checked={state == "public_listed"} inline>
                     <Icon name='eye'/><Space/>
-                    <del><i>Public (listed)</i> This file will appear on the <a href="https://cocalc.com/share" target="_blank">share server</a>.</del> Public (listed) is only available for projects with network enabled.
+                    <del><i>Public (listed)</i> - This will appear on the <a href="https://cocalc.com/share" target="_blank">share server</a>.</del> Public (listed) is only available for projects with network enabled.
                 </Radio>}
               <br/>
               <Radio name="sharing_options" value="public_unlisted" checked={state == "public_unlisted"} onChange={handler} inline>
                 <Icon name='eye-slash'/><Space/>
-                <i>Public (unlisted)</i> Only allow those with a link to view this.
+                <i>Public (unlisted)</i> - Only people with the link can view this.
               </Radio>
               <br/>
               <Radio name="sharing_options" value="private" checked={state == "private"} onChange={handler} inline>
                 <Icon name='lock'/><Space/>
-                <i>Private</i> Only collaborators on this project can view this file.
+                <i>Private</i> - Only collaborators on this project can view this.
               </Radio>
             </FormGroup>
         </>
