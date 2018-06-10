@@ -642,7 +642,17 @@ class SyncDoc extends EventEmitter
                 action = 'chat'
             else
                 action = 'edit'
+            @_last_user_change = misc.minutes_ago(60)  # initialize
             file_use = () =>
+                # We ONLY count this and record that the file was edited if there was an actual
+                # change record in the patches log, by this user, since last time.
+                user_is_active = false
+                for tm, _ of @_my_patches
+                    if new Date(parseInt(tm)) > @_last_user_change
+                        user_is_active = true
+                        break
+                if not user_is_active
+                    return
                 @_last_user_change = new Date()
                 @_client.mark_file(project_id:@_project_id, path:@_path, action:action, ttl:opts.file_use_interval)
 
