@@ -60,7 +60,12 @@ def install_project():
 
     # Pre-compile everything to Javascript, so that loading is much faster and more efficient.
     # This can easily save more than 2 seconds, given how big things have got.
-    cmd("cd /usr/lib/node_modules && coffee -c smc-util smc-util-node smc-webapp smc-project smc-project/jupyter smc-webapp/jupyter")
+    ## CRITICAL: disabled -- this breaks badly with webpack now due to either CS2 or Typescript, with
+    ## errors like "Uncaught TypeError: Class constructor  cannot be invoked without 'new'", so
+    ## do not do this.  Maybe using webpack differently would help.   People using docker are usually
+    ## using very fast local disk, so this optimization is less important.  And soon we'll be all on
+    ## Typescript instead of Coffeescript, so it won't matter.
+    ## cmd("cd /usr/lib/node_modules && coffee -c smc-util smc-util-node smc-webapp smc-project smc-project/jupyter smc-webapp/jupyter")
 
 def install_hub():
     for path in ['.', 'smc-util', 'smc-util-node', 'smc-hub']:
