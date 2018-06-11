@@ -213,6 +213,9 @@ Usage of Assistant Examples
     WHERE cnt > 1
     ORDER BY cnt DESC;
 
+Jupyter kernel defaults
+
+    SELECT COUNT(*), editor_settings ->> 'jupyter' AS kernel from accounts GROUP BY kernel ORDER BY count DESC;
 
 ## Stripe
 
