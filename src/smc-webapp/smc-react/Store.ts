@@ -1,8 +1,8 @@
 import { EventEmitter } from "events";
 import * as async from "async";
 import * as underscore from "underscore";
-import { createSelector } from "reselect";
-import { AppRedux } from "../smc-react-ts";
+import { createSelector, Selector } from "reselect";
+import { AppRedux, depends } from "../smc-react-ts";
 
 const misc = require("smc-util/misc");
 const { defaults, required } = misc;
@@ -17,33 +17,18 @@ export type StoreConstructorType<T, C = Store<T>> = new (
   store_def?: T
 ) => C;
 
-/*
-store_def =
-    reduxState:
-        account:
-            full_name : computed rtypes.string
+export interface selector<State, K extends keyof State> {
+  dependencies?: (keyof State)[];
+  fn: () => State[K];
+}
 
-    * Values not defined in stateTypes are not accessible as properties
-    * They are also not available through reduxProps
-    stateTypes:
-        basic_input         : rtypes.string
-        displayed_cc_number : rtypes.string
-        some_list           : rtypes.immutable.List
-        filtered_val        : computed rtypes.immutable.List
-
-    displayed_cc_number: ->
-        return @getIn(['project_map', 'users', 'cc'])
-
-    filtered_val: depends('basic_input', 'some_list') ->
-        return @some_list.filter (val) => val == @basic_input
-
-Note: you cannot name a property "state" or "props"
-*/
+// For usage see ./examples/example_stores.ts
 export class Store<State> extends EventEmitter {
   public name: string;
-  public __converted?: boolean;
+  public __converted?: boolean;s
   public getInitialState?: () => State;
   protected redux: AppRedux;
+  protected selectors: { [K in keyof Partial<State>]: selector<State, K> };
   private _last_state: State;
 
   constructor(name: string, redux: AppRedux, store_def?: State) {
@@ -57,6 +42,44 @@ export class Store<State> extends EventEmitter {
     this.name = name;
     this.redux = redux;
     this.setMaxListeners(150);
+    if (this.selectors) {
+      type selector = Selector<State, any>;
+      let created_selectors: { [K in keyof State]: selector } = {} as any;
+
+      let dependency_graph: any = {}; // Used to check for cycles
+
+      for (let selector_name of Object.getOwnPropertyNames(this.selectors)) {
+
+        // List of dependent selectors for this prop_name
+        let dependent_selectors: selector[] = [];
+
+        // Names of dependencies
+        let dependencies = this.selectors[selector_name].dependencies;
+        dependency_graph[selector_name] = dependencies || [];
+
+        if (dependencies) {
+          for (let dep_name of dependencies) {
+            if (created_selectors[dep_name] == undefined) {
+              created_selectors[dep_name] = () => this.get(dep_name);
+            }
+            dependent_selectors.push(created_selectors[dep_name]);
+
+            // Set the selector function to the new selector
+            this.selectors[dep_name].fn = (createSelector(
+              dependent_selectors as any,
+              this.selectors[dep_name].fn
+            ) as any);
+          }
+        }
+      }
+      // check if there are cycles
+      try {
+        misc.top_sort(dependency_graph)
+      } catch {
+        throw new Error(`redux store "${name}" has cycle in its selector dependencies`)
+      }
+      return;
+    }
     if (store_def == null) {
       return;
     }
@@ -101,13 +124,21 @@ export class Store<State> extends EventEmitter {
     return this.redux._redux_store.getState().get(this.name);
   }
 
-  get<K extends keyof State, NSV = State[K]>(field: K, notSetValue?: NSV): State[K] | NSV {
-    return this.redux._redux_store
-      .getState()
-      .getIn([this.name, field, notSetValue]);
+  get<K extends keyof State, NSV = State[K]>(
+    field: K,
+    notSetValue?: NSV
+  ): State[K] | NSV {
+    if (this.selectors[field] != undefined) {
+      return this.selectors[field].fn();
+    } else {
+      return this.redux._redux_store
+        .getState()
+        .getIn([this.name, field, notSetValue]);
+    }
   }
 
   // Only works 3 levels deep.
+  // If K1 is a selector, you must use store.get(K1)
   // It's probably advisable to normalize your data if you find yourself that deep
   // https://redux.js.org/recipes/structuring-reducers/normalizing-state-shape
   // If you need to describe a recurse data structure such as a binary tree, use unsafe_getIn.
@@ -115,10 +146,11 @@ export class Store<State> extends EventEmitter {
     path: [K1],
     notSetValue?: NSV
   ): State[K1] | NSV;
-  getIn<K1 extends keyof State, K2 extends keyof State[K1], NSV = State[K1][K2]>(
-    path: [K1, K2],
-    notSetValue?: NSV
-  ): State[K1][K2] | NSV;
+  getIn<
+    K1 extends keyof State,
+    K2 extends keyof State[K1],
+    NSV = State[K1][K2]
+  >(path: [K1, K2], notSetValue?: NSV): State[K1][K2] | NSV;
   getIn<
     K1 extends keyof State,
     K2 extends keyof State[K1],

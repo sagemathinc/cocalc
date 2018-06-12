@@ -17,16 +17,9 @@ let { webapp_client } = require("./webapp_client");
 let { project_tasks } = require("./project_tasks");
 const { defaults, required } = misc;
 
-import {
-  Actions,
-  project_redux_name,
-  redux
-} from "./smc-react-ts";
+import { Actions, project_redux_name, redux } from "./smc-react-ts";
 
-import {
-  ProjectStore,
-  ProjectStoreState
-} from "./project_store"
+import { ProjectStore, ProjectStoreState } from "./project_store";
 
 const BAD_FILENAME_CHARACTERS = "\\";
 const BAD_LATEX_FILENAME_CHARACTERS = '\'"()"~%';
@@ -1316,10 +1309,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     if (store == undefined) {
       return;
     }
-    const current_index =
-      store.get("selected_file_index") != null
-        ? store.get("selected_file_index")
-        : -1;
+    const selected_index = store.get("selected_file_index");
+    const current_index = selected_index != null ? selected_index : -1;
     this.setState({ selected_file_index: current_index + 1 });
   }
 
@@ -1389,10 +1380,11 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     } = {};
     if (checked) {
       changes.checked_files = store.get("checked_files").add(file);
+      const file_action = store.get("file_action");
       if (
-        store.get("file_action") != null &&
+        file_action != null &&
         changes.checked_files.size > 1 &&
-        !FILE_ACTIONS[store.get("file_action")].allows_multiple_files
+        !FILE_ACTIONS[file_action].allows_multiple_files
       ) {
         changes.file_action = undefined;
       }
@@ -1416,10 +1408,11 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       checked_files: immutable.Set<string>;
       file_action?: string | undefined;
     } = { checked_files: store.get("checked_files").union(file_list) };
+    const file_action = store.get("file_action");
     if (
-      store.get("file_action") != null &&
+      file_action != undefined &&
       changes.checked_files.size > 1 &&
-      !FILE_ACTIONS[store.get("file_action")].allows_multiple_files
+      !FILE_ACTIONS[file_action].allows_multiple_files
     ) {
       changes.file_action = undefined;
     }
@@ -2646,7 +2639,6 @@ if (prom_client.enabled) {
     }
   );
 }
-
 
 var get_directory_listing = function(opts) {
   let method, prom_dir_listing_start, prom_labels, state, time0, timeout;
