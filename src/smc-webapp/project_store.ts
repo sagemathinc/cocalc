@@ -199,16 +199,14 @@ export class ProjectStore extends Store<ProjectStoreState> {
     };
   };
 
-  reduxState = () => {
-    return {
-      returnaccount: {
-        other_settings: rtypes.immutable.Map
-      }
-    };
-  };
-
   // Selectors
   selectors = {
+    other_settings: {
+      fn: () => {
+        return (this.redux.getStore("account") as any).get("other_settings")
+      }
+    },
+
     get_public_path_id: {
       fn: () => {
         const project_id = this.project_id;
