@@ -31,6 +31,7 @@ misc = require('smc-util/misc')
 {ProjectPage, MobileProjectPage} = require('./project_page')
 {AccountPage} = require('./account_page')
 {FileUsePage} = require('./file_use')
+{AdminPage} = require('admin/page')
 
 ACTIVE_BG_COLOR = COLORS.TOP_BAR.ACTIVE
 feature = require('./feature')
@@ -47,6 +48,8 @@ exports.ActiveAppContent = ({active_top_tab, render_small}) ->
             return <div>To be implemented</div>
         when 'file-use'
             return <FileUsePage redux={redux} />
+        when 'admin'
+            return <AdminPage redux={redux} />
         when undefined
             return
         else

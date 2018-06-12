@@ -58,8 +58,7 @@ export class Actions extends CodeEditorActions {
           print_html({
             html: $(`#frame-${id}`).html(),
             project_id: this.project_id,
-            path: this.path,
-            font_size: node.get("font_size")
+            path: this.path
           });
           break;
         default:

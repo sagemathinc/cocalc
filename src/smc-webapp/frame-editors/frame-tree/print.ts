@@ -44,7 +44,6 @@ interface PrintOptions {
   src?: string; // if given, just loads that url (default: ''); this is typically a raw URL into a project.
   path?: string; // must be given if src is empty, so can put it in the HTML title and relative links work.
   project_id?: string; // must be given if src is empty
-  font_size?: number; // if given (and src not given) will scale body appropriately
 }
 
 // Raises an exception if there is an error.
@@ -92,22 +91,15 @@ function write_content(w, opts: PrintOptions): void {
     html = opts.html;
   }
   const title: string = path_split(opts.path).tail;
-  html = html_with_deps(html, title, opts.font_size);
+  html = html_with_deps(html, title);
   w.document.write(html);
   w.document.close();
 }
 
 function html_with_deps(
   html: string,
-  title: string,
-  font_size?: number
+  title: string
 ): string {
-  let transform = "";
-  if (font_size) {
-    transform = `transform-origin: top left; transform: scale(${font_size /
-      12});`;
-  }
-
   return `\
 <html lang="en">
     <head>
@@ -128,7 +120,7 @@ function html_with_deps(
             crossorigin="anonymous" />
 
     </head>
-    <body style='${transform}; margin:7%'>
+    <body style='margin:7%'>
         ${html}
     </body>
 </html>\

@@ -642,7 +642,18 @@ class SyncDoc extends EventEmitter
                 action = 'chat'
             else
                 action = 'edit'
+            @_last_user_change = misc.minutes_ago(60)  # initialize
             file_use = () =>
+                # We ONLY count this and record that the file was edited if there was an actual
+                # change record in the patches log, by this user, since last time.
+                user_is_active = false
+                for tm, _ of @_my_patches
+                    if new Date(parseInt(tm)) > @_last_user_change
+                        user_is_active = true
+                        break
+                if not user_is_active
+                    return
+                @_last_user_change = new Date()
                 @_client.mark_file(project_id:@_project_id, path:@_path, action:action, ttl:opts.file_use_interval)
 
             @on('user_change', underscore.throttle(file_use, opts.file_use_interval, true))
@@ -650,6 +661,13 @@ class SyncDoc extends EventEmitter
         if opts.cursors
             # Initialize throttled cursors functions
             set_cursor_locs = (locs, side_effect) =>
+                if not @_last_user_change? or new Date() - @_last_user_change >= 1000*5*60
+                    # We ignore setting cursor location in case the user hasn't actually
+                    # modified this file recently (5 minutes).  It's annoying to just see a cursor
+                    # moving around for a user who isn't doing anything, and this also
+                    # prevents bugs in side_effect detection (which is super hard to
+                    # get right).
+                    return
                 x =
                     string_id : @_string_id
                     user_id   : @_user_id
