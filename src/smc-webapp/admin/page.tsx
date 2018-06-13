@@ -6,6 +6,7 @@ import { StripeAPIKeys } from "./stripe-api-keys";
 import { StripeUser } from "./stripe-user";
 import { SubscriptionManager } from "./subscription-manager";
 import { SystemNotifications } from "./system-notifications";
+import { UserSearch } from "./user-search";
 
 export class AdminPage extends Component {
   render() {
@@ -30,6 +31,8 @@ export class AdminPage extends Component {
         <SubscriptionManager />
         <hr/>
         <SystemNotifications />
+        <hr />
+        <UserSearch />
       </div>
     );
   }
