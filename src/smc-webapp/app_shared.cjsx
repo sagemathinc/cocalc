@@ -51,7 +51,7 @@ exports.ActiveAppContent = ({active_top_tab, render_small}) ->
         when 'admin'
             return <AdminPage redux={redux} />
         when undefined
-            return
+            return <div>Broken... active_top_tab is undefined</div>
         else
             project_name = redux.getProjectStore(active_top_tab).name
             if render_small
@@ -93,6 +93,8 @@ exports.NavTab = rclass
             />
 
     on_click: (e) ->
+        console.log "Clicked!", @props.name, @actions('page')
+        console.log redux.getStore('page').get("active_top_tab")
         if @props.name?
             @actions('page').set_active_tab(@props.name)
         @props.on_click?()

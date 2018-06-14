@@ -13,9 +13,9 @@ store = require('./store')
 
 state_app = undefined # Expects a state application with stores and actions
 exports.init = (redux) =>
-    return if redux.getActions(info.name)
+    return if redux.hasActions(info.name)
 
-    redux.createStore(store.definition)
+    redux.createStore(info.name)
     redux.createActions(info.name, actions.create(redux))
     state_app = redux
     return exports.MarkdownInput

@@ -254,11 +254,12 @@ class PageActions extends Actions
         false
 
 redux.createActions('page', PageActions)
-
-redux.createStore
+redux.createStore('page', {active_top_tab: 'account'})
+###
     name: 'page'
 
     getInitialState: ->
+        console.log "Setting initial state in page"
         active_top_tab        : 'account'
 
     stateTypes:
@@ -277,7 +278,7 @@ redux.createStore
         session               : rtypes.string # session query in the URL
         last_status_time      : rtypes.string
         get_api_key           : rtypes.string
-
+###
 recent_disconnects = []
 record_disconnect = () ->
     recent_disconnects.push(+new Date())

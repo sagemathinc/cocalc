@@ -19,7 +19,10 @@ export class Actions<T> {
   }
 
   setState(obj: Partial<{ [P in keyof T]: T[P] }>): void {
+    console.log(`Setting state to ${JSON.stringify(obj)} `)
+    // console.trace()
     if (this.redux.getStore(this.name) == undefined) {
+      console.warn(`${this.name} has an undefined store`)
       return;
     }
     if (DEBUG && this.redux.getStore(this.name).__converted) {

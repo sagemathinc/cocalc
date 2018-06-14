@@ -5,7 +5,7 @@
 async = require('async')
 immutable = require('immutable')
 
-{Actions, Store, Table, redux}  = require('./smc-react')
+{Actions, Store, Table, redux}  = require('./smc-react-ts')
 
 {alert_message} = require('./alerts')
 

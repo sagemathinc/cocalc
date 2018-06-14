@@ -1,3 +1,4 @@
+
 ###############################################################################
 #
 #    CoCalc: Collaborative Calculation in the Cloud
@@ -627,7 +628,7 @@ exports.Support = rclass
         </Modal>
 
 init_redux = (redux) ->
-    if not redux.getActions('support')?
+    if not redux.hasActions('support')
         redux.createActions('support', SupportActions)
         redux.createStore('support', SupportStore, {})
 init_redux(redux)
