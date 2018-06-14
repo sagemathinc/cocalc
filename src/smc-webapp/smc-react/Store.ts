@@ -97,12 +97,11 @@ export class Store<State> extends EventEmitter {
     notSetValue?: NSV
   ): State[K] | NSV {
     if (this.selectors && this.selectors[field] != undefined) {
-      console.log(`Getting selector: ${field}`)
       return this.selectors[field].fn();
     } else {
       return this.redux._redux_store
         .getState()
-        .getIn([this.name, field, notSetValue]);
+        .getIn([this.name, field], notSetValue);
     }
   }
 
