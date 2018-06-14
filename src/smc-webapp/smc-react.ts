@@ -36,11 +36,7 @@ import * as createReactClass from "create-react-class";
 import * as PropTypes from "prop-types";
 import { Provider, connect } from "react-redux";
 
-import {
-  Store,
-  store_base_state,
-  StoreConstructorType
-} from "./smc-react/Store";
+import { Store, StoreConstructorType } from "./smc-react/Store";
 
 import { Actions } from "./smc-react/Actions";
 
@@ -219,9 +215,9 @@ export class AppRedux {
     if (name == null) {
       throw Error("name must be a string");
     }
-    
+
     if (this._stores[name] == undefined) {
-      console.warn(`Store for ${name} is not yet defined`)
+      console.warn(`Store for ${name} is not yet defined`);
     }
 
     if (this._actions[name] == null) {
@@ -243,11 +239,11 @@ export class AppRedux {
   getActions<T, C extends Actions<T>>(name: string): C;
   getActions<T, C extends Actions<T>>(
     name: string | { project_id: string }
-  ): C {
+  ): C | undefined {
     if (typeof name === "string") {
       if (!this.hasActions(name)) {
-        return undefined
-        // throw Error(`getActions: actions ${name} not registered`);
+        console.warn(`getActions: actions ${name} not registered`);
+        return undefined;
       } else {
         return this._actions[name];
       }
@@ -259,20 +255,13 @@ export class AppRedux {
     }
   }
 
-  createStore<
-    State extends store_base_state,
-    C extends Store<State> = Store<State>
-  >(
+  createStore<State, C extends Store<State> = Store<State>>(
     name: string,
     store_class?: StoreConstructorType<State, C>,
     init?: {} | State
   ): C {
-    if (name.name === "page") {
-      console.log("Creating page store")
-    }
-    console.log(`Creating store: ${name} (${name.name})`)
+    console.log(`Creating store: ${name} (${(name as any).name})`);
     let S: C;
-    let name: string;
     if (typeof name === "string") {
       S = this._stores[name];
       if (init === undefined && typeof store_class !== "function") {
@@ -292,8 +281,10 @@ export class AppRedux {
         this._set_state({ [name]: C });
       }
     } else {
-      console.log(`${name.name} is broken`)
-      S = this._stores[name.name] = new store_class(name.name, this);
+      let spec = name as any;
+      console.warn(`${spec.name} is broken`);
+      let S0 = (this._stores[spec.name] = new Store<State>(spec.name, this));
+      S = S0 as any;
     }
     if (typeof S.getInitialState === "function") {
       init = S.getInitialState();
@@ -308,10 +299,10 @@ export class AppRedux {
     return !!this._stores[name];
   }
 
-  getStore<State, C extends Store<State>>(name: string): C {
+  getStore<State, C extends Store<State>>(name: string): C | undefined {
     if (!this.hasStore(name)) {
+      console.warn(`getStore: store "${name}" not registered`);
       return undefined;
-      // throw Error(`getStore: store "${name}" not registered`);
     }
     return this._stores[name];
   }
@@ -414,7 +405,7 @@ export class AppRedux {
     }
     const name = project_redux_name(project_id);
     let store = this.getStore(name);
-    if (typeof store.destroy == "function") {
+    if (store && typeof store.destroy == "function") {
       store.destroy();
     }
     this.removeActions(name);
@@ -472,13 +463,13 @@ const connect_component = spec => {
         console.warn("spec = ", spec);
         throw Error("store_name of spec *must* be defined");
       }
-      const store = redux.getStore(store_name);
+      const store: Store<any> | undefined = redux.getStore(store_name);
       for (let prop in info) {
         var val;
         const type = info[prop];
 
         if (store == undefined) {
-          console.warn("store is undefined ", store_name)
+          console.warn("store is undefined ", store_name);
           val = undefined;
         } else {
           val = store.get(prop);

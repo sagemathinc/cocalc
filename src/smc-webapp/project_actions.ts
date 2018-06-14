@@ -233,7 +233,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     this._activity_indicator_timers = {};
   }
 
-  destroy(): void {
+  destroy = (): void => {
     must_define(this.redux);
     this.close_all_files();
     for (let table in QUERIES) {
@@ -615,12 +615,13 @@ export class ProjectActions extends Actions<ProjectStoreState> {
           error: `opening file -- ${err}`
         });
       } else {
+        let projects_store = this.redux.getStore("projects");
         // We wait here so that the editor gets properly initialized in the
         // ProjectPage constructor.  Really this should probably be
         // something we wait on with _ensure_project_is_open. **TODO** This should
         // go away when we get rid of the ProjectPage entirely, when finishing
         // the React rewrite.
-        return this.redux.getStore("projects").wait({
+        return !projects_store || projects_store.wait({
           until: s => (s as any).get_my_group(this.project_id),
           timeout: 60,
           cb: (err, group) => {
@@ -1222,8 +1223,9 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     return async.series(
       [
         cb => {
+          let projects_store = this.redux.getStore("projects");
           // make sure that our relationship to this project is known.
-          return this.redux.getStore("projects").wait({
+          return !projects_store || projects_store.wait({
             until: s => (s as any).get_my_group(this.project_id),
             timeout: 30,
             cb: (err, group) => {

@@ -19,7 +19,7 @@ class cafeActions extends Actions<bakeryState> {
     // '"cashier"' does not exist in type 'Partial<{ cake: string; pie: string; }>'
   }
 
-  get_store(): Store<bakeryState> {
+  get_store(): Store<bakeryState> | undefined {
     return this.redux.getStore<bakeryState, Store<bakeryState>>(this.name);
   }
 }

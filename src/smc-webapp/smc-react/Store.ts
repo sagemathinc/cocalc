@@ -1,15 +1,11 @@
 import { EventEmitter } from "events";
 import * as async from "async";
 import * as underscore from "underscore";
-import { createSelector } from "reselect";
+import { createSelector, Selector } from "reselect";
 import { AppRedux } from "../smc-react-ts";
 
 const misc = require("smc-util/misc");
 const { defaults, required } = misc;
-
-export interface store_base_state {
-  readonly name: string;
-}
 
 export type StoreConstructorType<T, C = Store<T>> = new (
   name: string,
@@ -17,32 +13,16 @@ export type StoreConstructorType<T, C = Store<T>> = new (
   store_def?: T
 ) => C;
 
-/*
-store_def =
-    reduxState:
-        account:
-            full_name : computed rtypes.string
+export interface selector<State, K extends keyof State> {
+  dependencies?: (keyof State)[];
+  fn: () => State[K];
+}
 
-    * Values not defined in stateTypes are not accessible as properties
-    * They are also not available through reduxProps
-    stateTypes:
-        basic_input         : rtypes.string
-        displayed_cc_number : rtypes.string
-        some_list           : rtypes.immutable.List
-        filtered_val        : computed rtypes.immutable.List
-
-    displayed_cc_number: ->
-        return @getIn(['project_map', 'users', 'cc'])
-
-    filtered_val: depends('basic_input', 'some_list') ->
-        return @some_list.filter (val) => val == @basic_input
-
-Note: you cannot name a property "state" or "props"
-*/
 export class Store<State> extends EventEmitter {
   public name: string;
   public getInitialState?: () => State;
   protected redux: AppRedux;
+  protected selectors: { [K in keyof Partial<State>]: selector<State, K> };
   private _last_state: State;
 
   constructor(name: string, redux: AppRedux) {
@@ -56,6 +36,45 @@ export class Store<State> extends EventEmitter {
     this.name = name;
     this.redux = redux;
     this.setMaxListeners(150);
+    if (this.selectors) {
+      type selector = Selector<State, any>;
+      let created_selectors: { [K in keyof State]: selector } = {} as any;
+
+      let dependency_graph: any = {}; // Used to check for cycles
+
+      for (let selector_name of Object.getOwnPropertyNames(this.selectors)) {
+        // List of dependent selectors for this prop_name
+        let dependent_selectors: selector[] = [];
+
+        // Names of dependencies
+        let dependencies = this.selectors[selector_name].dependencies;
+        dependency_graph[selector_name] = dependencies || [];
+
+        if (dependencies) {
+          for (let dep_name of dependencies) {
+            if (created_selectors[dep_name] == undefined) {
+              created_selectors[dep_name] = () => this.get(dep_name);
+            }
+            dependent_selectors.push(created_selectors[dep_name]);
+
+            // Set the selector function to the new selector
+            this.selectors[dep_name].fn = createSelector(
+              dependent_selectors as any,
+              this.selectors[dep_name].fn
+            ) as any;
+          }
+        }
+      }
+      // check if there are cycles
+      try {
+        misc.top_sort(dependency_graph);
+      } catch {
+        throw new Error(
+          `redux store "${name}" has cycle in its selector dependencies`
+        );
+      }
+      return;
+    }
   }
 
   _handle_store_change(state: State): void {

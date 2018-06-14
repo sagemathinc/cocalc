@@ -37,14 +37,12 @@ const misc = require("smc-util/misc");
 import { QUERIES, FILE_ACTIONS, ProjectActions } from "./project_actions";
 
 import {
-  rtypes,
   project_redux_name,
   Table,
   redux,
   Store,
   AppRedux
 } from "./smc-react-ts";
-import { selector } from "./smc-react/Store";
 
 export { FILE_ACTIONS as file_actions, ProjectActions };
 
@@ -590,7 +588,7 @@ export function init(project_id: string, redux: AppRedux) {
   // Initialize everything
   const actions = redux.createActions(name, ProjectActions);
   actions.project_id = project_id; // so actions can assume this is available on the object
-  redux.createStore(ProjectStore);
+  redux.createStore(name, ProjectStore);
 
   const queries = misc.deep_copy(QUERIES);
   const create_table = function(table_name, q) {
