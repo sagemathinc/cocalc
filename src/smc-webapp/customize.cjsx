@@ -62,7 +62,9 @@ SiteName = rclass
         if @props.site_name
             <span>{@props.site_name}</span>
         else
-            <Loading/>
+            <div>
+                Is this broken?
+            </div>
 
 exports.SiteName = rclass
     displayName : 'SiteName-redux'
