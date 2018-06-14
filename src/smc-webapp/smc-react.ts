@@ -456,6 +456,7 @@ const connect_component = spec => {
         throw Error("store_name of spec *must* be defined");
       }
       const store: Store<any> | undefined = redux.getStore(store_name);
+      console.log("Store is", !store || store.getState().toJS())
       for (let prop in info) {
         var val;
         const type = info[prop];
@@ -464,17 +465,22 @@ const connect_component = spec => {
           console.warn("store is undefined ", store_name);
           val = undefined;
         } else {
+          console.log("Getting prop:", prop, "from", store.name)
           val = store.get(prop);
         }
 
         if (type.category === "IMMUTABLE") {
+          console.log("type is immutable")
           props[prop] = val;
         } else {
+          console.log("type is mutable")
           props[prop] =
             (val != null ? val.toJS : undefined) != null ? val.toJS() : val;
         }
+        console.log("Got", prop, "is", val)
       }
     }
+    console.log("Connect returning:", props)
     return props;
   };
   return connect(map_state_to_props);
