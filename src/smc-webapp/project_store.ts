@@ -586,9 +586,9 @@ export function init(project_id: string, redux: AppRedux) {
   }
 
   // Initialize everything
+  redux.createStore(name, ProjectStore);
   const actions = redux.createActions(name, ProjectActions);
   actions.project_id = project_id; // so actions can assume this is available on the object
-  redux.createStore(name, ProjectStore);
 
   const queries = misc.deep_copy(QUERIES);
   const create_table = function(table_name, q) {

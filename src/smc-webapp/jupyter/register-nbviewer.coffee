@@ -27,8 +27,8 @@ exports.register = (webapp_client) ->
             name = redux_name(project_id, path)
             if redux.getActions(name)?
                 return name  # already initialized
-            actions = redux.createActions(name, NBViewerActions)
             store   = redux.createStore(name)
+            actions = redux.createActions(name, NBViewerActions)
             actions._init(project_id, path, store, webapp_client, content)
             return name
 

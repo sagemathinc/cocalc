@@ -30,8 +30,8 @@ exports.register = ->
             if redux.getActions(name)?
                 return name  # already initialized
 
-            actions = redux.createActions(name, TaskActions)
             store   = redux.createStore(name, TaskStore)
+            actions = redux.createActions(name, TaskActions)
 
             syncdb = webapp_client.sync_db
                 project_id      : project_id

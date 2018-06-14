@@ -499,9 +499,6 @@ class ProjectsActions extends Actions
             project_id : project_id
             deleted    : not is_deleted
 
-# Register projects actions
-actions = redux.createActions('projects', ProjectsActions)
-
 # This require defines a jQuery plugin that depends on the above actions being defined.
 # This will go away when we get rid of use of jQuery and instead 100% use react.
 require('./process-links')
@@ -783,6 +780,9 @@ init_store =
     public_project_titles : immutable.Map()
 
 store = redux.createStore('projects', ProjectsStore, init_store)
+
+# Register projects actions
+actions = redux.createActions('projects', ProjectsActions)
 
 # Create and register projects table, which gets automatically
 # synchronized with the server.

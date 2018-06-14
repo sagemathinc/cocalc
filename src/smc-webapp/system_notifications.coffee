@@ -21,8 +21,8 @@ class NotificationsActions extends Actions
             if not mesg.get('done')
                 table.set(id:id, done:true)
 
-actions = redux.createActions(name, NotificationsActions)
 store   = redux.createStore(name, {loading:true})
+actions = redux.createActions(name, NotificationsActions)
 
 class NotificationsTable extends Table
     query: ->

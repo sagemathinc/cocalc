@@ -207,8 +207,8 @@ class BillingActions extends Actions
         ], cb)
 
 
-actions = redux.createActions('billing', BillingActions)
 store   = redux.createStore('billing', Store, {applied_coupons:{}})
+actions = redux.createActions('billing', BillingActions)
 
 validate =
     valid   : {border:'1px solid green'}

@@ -75,8 +75,8 @@ init_redux = (path, redux, project_id) ->
     name = redux_name(project_id, path)
     if redux.getActions(name)?
         return  # already initialized
-    actions = redux.createActions(name, CodemirrorActions)
     store   = redux.createStore(name, default_store_state)
+    actions = redux.createActions(name, CodemirrorActions)
 
     console.log("getting syncstring for '#{path}'")
     synchronized_string

@@ -629,8 +629,8 @@ exports.Support = rclass
 
 init_redux = (redux) ->
     if not redux.hasActions('support')
-        redux.createActions('support', SupportActions)
         redux.createStore('support', SupportStore, {})
+        redux.createActions('support', SupportActions)
 init_redux(redux)
 
 # project wide public API

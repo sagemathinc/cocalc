@@ -414,8 +414,8 @@ ComputeEnvironment = rclass
 
 # react magic
 
-actions  = redux.createActions(NAME, ComputeEnvironmentActions)
 store    = redux.createStore(NAME, ComputeEnvironmentStore)
+actions  = redux.createActions(NAME, ComputeEnvironmentActions)
 
 exports.ComputeEnvironment = ->
     displayName : 'ComputeEnvironment-redux'

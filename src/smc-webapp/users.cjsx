@@ -48,8 +48,6 @@ class UsersActions extends Actions
                             user_map = user_map.set(account_id, immutable.fromJS(obj))
                             @setState(user_map : user_map)
 
-actions = redux.createActions('users', UsersActions)
-
 # Define user store: all the users you collaborate with
 class UsersStore extends Store
     get_first_name: (account_id) =>
@@ -98,6 +96,9 @@ class UsersStore extends Store
 
 # Register user store
 store = redux.createStore('users', UsersStore)
+
+# Register user actions
+actions = redux.createActions('users', UsersActions)
 
 # Create and register projects table, which gets automatically
 # synchronized with the server.

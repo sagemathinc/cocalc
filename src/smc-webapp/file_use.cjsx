@@ -613,8 +613,8 @@ notification_list_click_handler = (e) ->
 
 init_redux = (redux) ->
     if not redux.getActions('file_use')?
-        actions = redux.createActions('file_use', FileUseActions)
         store   = redux.createStore('file_use', FileUseStore, {})
+        actions = redux.createActions('file_use', FileUseActions)
         redux.createTable('file_use', FileUseTable)
         actions._init()  # must be after making store
 

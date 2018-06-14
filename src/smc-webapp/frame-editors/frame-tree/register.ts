@@ -32,11 +32,10 @@ function register(ext, component, Actions, is_public) {
       if (redux.getActions(name) != null) {
         return name; // already initialized
       }
-      const actions = redux.createActions(name, Actions);
-
       // We purposely are just using the simple default store; that's all that is needed
       // for these editors.
       const store = redux.createStore(name);
+      const actions = redux.createActions(name, Actions);
 
       // Call the base class init.  (NOTE: it also calls _init2 if defined.)
       actions._init(project_id, path, is_public, store);

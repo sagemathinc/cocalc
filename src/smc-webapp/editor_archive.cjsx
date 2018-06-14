@@ -71,8 +71,8 @@ init_redux = (path, redux, project_id) ->
     name = redux_name(project_id, path)
     if redux.getActions(name)?
         return  # already initialized
-    actions = redux.createActions(name, ArchiveActions)
     store   = redux.createStore(name)
+    actions = redux.createActions(name, ArchiveActions)
     actions.set_archive_contents(project_id, path)
     return name
 

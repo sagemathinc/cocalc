@@ -253,8 +253,8 @@ class PageActions extends Actions
     sign_in: =>
         false
 
-redux.createActions('page', PageActions)
 redux.createStore('page', {active_top_tab: 'account'})
+redux.createActions('page', PageActions)
 ###
     name: 'page'
 

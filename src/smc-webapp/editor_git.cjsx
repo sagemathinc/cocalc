@@ -392,9 +392,9 @@ exports.init_redux = init_redux = (redux, project_id, filename) ->
     name = redux_name(project_id, filename)
     if redux.getActions(name)?
         return  # already initialized
+    redux.createStore(name)
     actions = redux.createActions(name, GitActions)
     actions.init(project_id, filename)
-    redux.createStore(name)
 
 Git = (name) -> rclass
     reduxProps:
