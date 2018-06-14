@@ -27,8 +27,8 @@ register_file_editor({
       return name; // already initialized
     }
 
-    const actions = redux.createActions(name, TimeActions);
     const store: Store<StopwatchEditorState> = redux.createStore(name);
+    const actions = redux.createActions(name, TimeActions);
 
     actions._init(project_id, path);
 
@@ -59,8 +59,8 @@ register_file_editor({
     if (actions !== undefined && actions.syncdb !== undefined) {
       actions.syncdb.close();
     }
-    const store: Store<StopwatchEditorState> = redux.getStore(name);
-    if (store === undefined) {
+    const store: Store<StopwatchEditorState> | undefined = redux.getStore(name);
+    if (store == undefined) {
       return name;
     }
     // It is *critical* to first unmount the store, then the actions,
