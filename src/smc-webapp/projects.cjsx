@@ -219,7 +219,6 @@ class ProjectsActions extends Actions
             target       : undefined # string  The file path to open
             switch_to    : true      # bool    Whether or not to foreground it
             ignore_kiosk : false     # bool    Ignore ?fullscreen=kiosk
-        require('./project_store').init(opts.project_id)
         project_store = redux.getProjectStore(opts.project_id)
         project_actions = redux.getProjectActions(opts.project_id)
         relation = redux.getStore('projects').get_my_group(opts.project_id)

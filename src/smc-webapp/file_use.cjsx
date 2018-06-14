@@ -364,7 +364,6 @@ open_file_use_entry = (info, redux) ->
     redux.getActions('page').toggle_show_file_use()
     # open the file
     require.ensure [], =>
-        require('./project_store').init(info.project_id)
         redux.getProjectActions(info.project_id).open_file
             path               : info.path
             foreground         : true
