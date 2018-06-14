@@ -681,20 +681,13 @@ const Redux = createReactClass({
   },
   render() {
     return React.createElement(
-        'div',
-        {},
-        this.props.children
-      );
-    /*
-    return React.createElement(
       Provider,
       { store: this.props.redux._redux_store },
       this.props.children
     );
-    */
   }
 });
-// The lines above are just the non-cjsx version of this:
+// The lines above are just the non-tsx version of this:
 //<Provider store={@props.redux._redux_store}>
 //    {@props.children}
 //</Provider>
