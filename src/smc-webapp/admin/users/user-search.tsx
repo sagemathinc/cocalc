@@ -9,9 +9,11 @@ import {
   Component,
   Rendered,
   ReactDOM
-} from "../frame-editors/generic/react";
+} from "smc-webapp/frame-editors/generic/react";
 
-import { user_search, User } from "../frame-editors/generic/client";
+import { user_search, User } from "smc-webapp/frame-editors/generic/client";
+
+import { UserResult } from "./user";
 
 interface UserSearchState {
   state: "edit" | "running";
@@ -100,14 +102,10 @@ export class UserSearch extends Component<{}, UserSearchState> {
   }
 
   render_user(user: User): Rendered {
-    return (
-      <div key={user.account_id}>
-        <code>{JSON.stringify(user)}</code>
-      </div>
-    );
+    return <UserResult key={user.account_id} {...user} />;
   }
 
-  render_result(): Rendered[]  | Rendered {
+  render_result(): Rendered[] | Rendered {
     if (this.state.result.length == 0) {
       return <div>No results</div>;
     }

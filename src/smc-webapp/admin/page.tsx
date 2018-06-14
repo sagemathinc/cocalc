@@ -6,7 +6,7 @@ import { StripeAPIKeys } from "./stripe-api-keys";
 import { StripeUser } from "./stripe-user";
 import { SubscriptionManager } from "./subscription-manager";
 import { SystemNotifications } from "./system-notifications";
-import { UserSearch } from "./user-search";
+import { UserSearch } from "./users/user-search";
 
 export class AdminPage extends Component {
   render() {
