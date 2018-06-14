@@ -205,6 +205,7 @@ export class AppRedux {
   }
 
   _set_state(change): void {
+    console.log(`Setting state ${change.name}`)
     this._redux_store.dispatch(action_set_state(change));
   }
 
@@ -260,31 +261,22 @@ export class AppRedux {
     store_class?: StoreConstructorType<State, C>,
     init?: {} | State
   ): C {
-    console.log(`Creating store: ${name} (${(name as any).name})`);
-    let S: C;
-    if (typeof name === "string") {
-      S = this._stores[name];
-      if (init === undefined && typeof store_class !== "function") {
-        // so can do createStore(name, {default init})
-        init = store_class;
-        store_class = undefined;
+    let S: C = this._stores[name];
+    if (init === undefined && typeof store_class !== "function") {
+      // so can do createStore(name, {default init})
+      init = store_class;
+      store_class = undefined;
+    }
+    if (S == null) {
+      if (store_class === undefined) {
+        (S as any) = this._stores[name] = new Store(name, this);
+      } else {
+        S = this._stores[name] = new store_class(name, this);
       }
-      if (S == null) {
-        if (store_class === undefined) {
-          (S as any) = this._stores[name] = new Store(name, this);
-        } else {
-          S = this._stores[name] = new store_class(name, this);
-        }
-        // Put into store. WARNING: New set_states CAN OVERWRITE THESE FUNCTIONS
-        let C = immutable.Map(S as {});
-        C = C.delete("redux"); // No circular pointing
-        this._set_state({ [name]: C });
-      }
-    } else {
-      let spec = name as any;
-      console.warn(`${spec.name} is broken`);
-      let S0 = (this._stores[spec.name] = new Store<State>(spec.name, this));
-      S = S0 as any;
+      // Put into store. WARNING: New set_states CAN OVERWRITE THESE FUNCTIONS
+      let C = immutable.Map(S as {});
+      C = C.delete("redux"); // No circular pointing
+      this._set_state({ [name]: C });
     }
     if (typeof S.getInitialState === "function") {
       init = S.getInitialState();

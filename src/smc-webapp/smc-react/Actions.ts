@@ -21,6 +21,7 @@ export class Actions<T> {
       return;
     }
     this.redux._set_state({ [this.name]: obj });
+    console.log("This redux is:", this.redux._redux_store.getState().get(this.name).toJS())
   };
 
   destroy = (): void => {
