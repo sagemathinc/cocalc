@@ -33,7 +33,6 @@ import * as immutable from "immutable";
 import * as React from "react";
 import { createStore as createReduxStore } from "redux";
 import * as createReactClass from "create-react-class";
-import * as PropTypes from "prop-types";
 import { Provider, connect } from "react-redux";
 
 import { Store, StoreConstructorType } from "./smc-react/Store";
@@ -216,10 +215,6 @@ export class AppRedux {
       throw Error("name must be a string");
     }
 
-    if (this._stores[name] == undefined) {
-      console.warn(`Store for ${name} is not yet defined`);
-    }
-
     if (this._actions[name] == null) {
       if (actions_class === undefined) {
         this._actions[name] = new Actions(name, this);
@@ -242,7 +237,6 @@ export class AppRedux {
   ): C | undefined {
     if (typeof name === "string") {
       if (!this.hasActions(name)) {
-        console.warn(`getActions: actions ${name} not registered`);
         return undefined;
       } else {
         return this._actions[name];
@@ -292,7 +286,6 @@ export class AppRedux {
 
   getStore<State, C extends Store<State>>(name: string): C | undefined {
     if (!this.hasStore(name)) {
-      console.warn(`getStore: store "${name}" not registered`);
       return undefined;
     }
     return this._stores[name];
