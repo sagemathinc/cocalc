@@ -4,7 +4,7 @@ React Component for displaying the entire page on a mobile device.
 
 {React, ReactDOM, rclass, redux, rtypes, Redux, redux_fields} = require('./smc-react')
 {Button, Navbar, Nav, NavItem, MenuItem} = require('react-bootstrap')
-{Loading, Icon, Tip} = require('./r_misc')
+{ErrorBoundary, Loading, Icon, Tip} = require('./r_misc')
 
 # SMC Pages
 # SMELL: Page UI's are mixed with their store/state.
@@ -172,7 +172,7 @@ Page = rclass
             {### Children must define their own padding from navbar and screen borders ###}
             <ErrorBoundary>
                 <ActiveAppContent active_top_tab={@props.active_top_tab} render_small={true}/>
-            <ErrorBoundary>
+            </ErrorBoundary>
         </div>
 
 page =
