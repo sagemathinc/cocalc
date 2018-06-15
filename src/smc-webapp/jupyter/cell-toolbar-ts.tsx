@@ -20,7 +20,7 @@ const BAR_STYLE = {
   padding: "2px"
 };
 
-export interface CellToolBarProps {
+export interface CellToolbarProps {
   actions: any;
   cell_toolbar: string;
   cell: ImmutableMap<string,any>; // TODO: what is this
@@ -33,7 +33,7 @@ const TOOLBARS = {
   metadata: Metadata
 };
 
-export class CellToolBar extends Component<CellToolBarProps> {
+export class CellToolbar extends Component<CellToolbarProps> {
   render() {
     const T = TOOLBARS[this.props.cell_toolbar];
     if (T === undefined) {

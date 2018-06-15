@@ -3,7 +3,7 @@ Redux actions for nbviewer.
 */
 
 const { Actions } = require("../smc-react");
-import { cm_options } from "./cm_options";
+const { cm_options } = require("./cm_options");
 import { fromJS } from "immutable";
 const cell_utils = require("./cell-utils"); // TODO: import types
 import { JUPYTER_MIMETYPES } from "./util";
