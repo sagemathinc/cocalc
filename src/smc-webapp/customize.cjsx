@@ -90,7 +90,7 @@ exports.SiteDescription = rclass
     propTypes :
         style : rtypes.object
     render: ->
-        <Redux}>
+        <Redux>
             <SiteDescription style={@props.style}/>
         </Redux>
 
