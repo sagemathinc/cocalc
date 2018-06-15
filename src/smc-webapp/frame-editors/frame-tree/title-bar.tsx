@@ -2,7 +2,7 @@
 FrameTitleBar - title bar in a frame, in the frame tree
 */
 
-import { React, Rendered, Component, Fragment, redux } from "../generic/react";
+import { React, Rendered, Component, redux } from "../generic/react";
 import { is_safari } from "../generic/browser";
 import * as CSS from "csstype";
 
@@ -16,6 +16,7 @@ const {
 } = require("react-bootstrap");
 
 const {
+  r_join,
   Icon,
   Space,
   Tip,
@@ -84,6 +85,7 @@ interface Props {
   is_public: boolean; // public view of a file
   type: string;
   editor_spec: any;
+  status: string;
 }
 
 export class FrameTitleBar extends Component<Props, {}> {
@@ -99,7 +101,8 @@ export class FrameTitleBar extends Component<Props, {}> {
       "has_uncommitted_changes",
       "is_public",
       "is_saving",
-      "type"
+      "type",
+      "status"
     ]);
   }
 
@@ -108,7 +111,10 @@ export class FrameTitleBar extends Component<Props, {}> {
     if (!explicit && buttons == null) {
       return true;
     }
-    return buttons != null ? buttons[action_name] : false;
+    if (!this.props.actions[action_name]) {
+      return false;
+    }
+    return buttons != null ? !!buttons[action_name] : false;
   }
 
   click_close(): void {
@@ -336,18 +342,33 @@ export class FrameTitleBar extends Component<Props, {}> {
     }
     const labels = this.show_labels();
     return (
-      <Fragment>
-        <Space />
-        <Button
-          key={"sync"}
-          title={"Synchronize views (alt+enter)"}
-          bsSize={this.button_size()}
-          onClick={() => this.props.actions.sync(this.props.id)}
-        >
-          <Icon name={"fab fa-staylinked"} />{" "}
-          {labels ? <VisibleMDLG>Sync</VisibleMDLG> : undefined}
-        </Button>
-      </Fragment>
+      <Button
+        key={"sync"}
+        title={"Synchronize views (alt+enter)"}
+        bsSize={this.button_size()}
+        onClick={() => this.props.actions.sync(this.props.id)}
+      >
+        <Icon name={"fab fa-staylinked"} />{" "}
+        {labels ? <VisibleMDLG>Sync</VisibleMDLG> : undefined}
+      </Button>
+    );
+  }
+
+  render_download(): Rendered {
+    if (!this.is_visible("download") || this.props.actions.download == null) {
+      return;
+    }
+    const labels = this.show_labels();
+    return (
+      <Button
+        key={"download"}
+        title={"Download this file"}
+        bsSize={this.button_size()}
+        onClick={() => this.props.actions.download(this.props.id)}
+      >
+        <Icon name={"cloud-download"} />{" "}
+        {labels ? <VisibleMDLG>Download</VisibleMDLG> : undefined}
+      </Button>
     );
   }
 
@@ -401,16 +422,25 @@ export class FrameTitleBar extends Component<Props, {}> {
   }
 
   render_find_replace_group(): Rendered {
-    return (
-      <Fragment>
-        <Space />
-        <ButtonGroup key={"find-group"}>
-          {this.render_find()}
-          {!this.props.is_public ? this.render_replace() : undefined}
-          {this.render_goto_line()}
-        </ButtonGroup>
-      </Fragment>
-    );
+    const v: Rendered[] = [];
+    let x: Rendered;
+    x = this.render_find();
+    if (x) {
+      v.push(x);
+    }
+    if (!this.props.is_public) {
+      x = this.render_replace();
+      if (x) {
+        v.push(x);
+      }
+    }
+    x = this.render_goto_line();
+    if (x) {
+      v.push(x);
+    }
+    if (v.length > 0) {
+      return <ButtonGroup key={"find-group"}>{v}</ButtonGroup>;
+    }
   }
 
   render_cut(): Rendered {
@@ -468,16 +498,26 @@ export class FrameTitleBar extends Component<Props, {}> {
   }
 
   render_copy_group(): Rendered {
-    return (
-      <Fragment>
-        <Space />
-        <ButtonGroup key={"copy"}>
-          {!this.props.is_public ? this.render_cut() : undefined}
-          {this.render_copy()}
-          {!this.props.is_public ? this.render_paste() : undefined}
-        </ButtonGroup>
-      </Fragment>
-    );
+    const v: Rendered[] = [];
+    let x: Rendered;
+    if (!this.props.is_public) {
+      x = this.render_cut();
+      if (x) {
+        v.push(x);
+      }
+    }
+    if (this.is_visible("copy")) {
+      v.push(this.render_copy());
+    }
+    if (!this.props.is_public) {
+      x = this.render_paste();
+      if (x) {
+        v.push(x);
+      }
+    }
+    if (v.length > 0) {
+      return <ButtonGroup key={"copy"}>{v}</ButtonGroup>;
+    }
   }
 
   render_zoom_group(): Rendered {
@@ -485,13 +525,10 @@ export class FrameTitleBar extends Component<Props, {}> {
       return;
     }
     return (
-      <Fragment>
-        <Space />
-        <ButtonGroup key={"zoom"}>
-          {this.render_zoom_out()}
-          {this.render_zoom_in()}
-        </ButtonGroup>
-      </Fragment>
+      <ButtonGroup key={"zoom"}>
+        {this.render_zoom_out()}
+        {this.render_zoom_in()}
+      </ButtonGroup>
     );
   }
 
@@ -503,13 +540,10 @@ export class FrameTitleBar extends Component<Props, {}> {
       return;
     }
     return (
-      <Fragment>
-        <Space />
-        <ButtonGroup key={"height-width"}>
-          {this.render_zoom_page_height()}
-          {this.render_zoom_page_width()}
-        </ButtonGroup>
-      </Fragment>
+      <ButtonGroup key={"height-width"}>
+        {this.render_zoom_page_height()}
+        {this.render_zoom_page_width()}
+      </ButtonGroup>
     );
   }
 
@@ -557,15 +591,13 @@ export class FrameTitleBar extends Component<Props, {}> {
   }
 
   render_undo_redo_group(): Rendered {
-    return (
-      <Fragment>
-        <Space />
-        <ButtonGroup key={"undo-group"}>
-          {this.render_undo()}
-          {this.render_redo()}
-        </ButtonGroup>
-      </Fragment>
-    );
+    const v: Rendered[] = [];
+    let x: Rendered;
+    if ((x = this.render_undo())) v.push(x);
+    if ((x = this.render_redo())) v.push(x);
+    if (v.length > 0) {
+      return <ButtonGroup key={"undo-group"}>{v}</ButtonGroup>;
+    }
   }
 
   render_format_group(): Rendered {
@@ -573,20 +605,15 @@ export class FrameTitleBar extends Component<Props, {}> {
       return;
     }
     return (
-      <Fragment>
-        <Space />
-        <ButtonGroup key={"format-group"}>
-          <Button
-            key={"auto-indent"}
-            title={"Automatically format selected code"}
-            onClick={() => this.props.actions.auto_indent()}
-            disabled={this.props.read_only}
-            bsSize={this.button_size()}
-          >
-            <Icon name="indent" />
-          </Button>
-        </ButtonGroup>
-      </Fragment>
+      <Button
+        key={"auto-indent"}
+        title={"Automatically format selected code"}
+        onClick={() => this.props.actions.auto_indent()}
+        disabled={this.props.read_only}
+        bsSize={this.button_size()}
+      >
+        <Icon name="indent" />
+      </Button>
     );
   }
 
@@ -637,22 +664,19 @@ export class FrameTitleBar extends Component<Props, {}> {
     }
     let labels = this.show_labels();
     return (
-      <Fragment>
-        <Space />
-        <Button
-          key={"help"}
-          title={"Show help for working with this type of document"}
-          bsSize={this.button_size()}
-          onClick={() =>
-            typeof this.props.actions.help === "function"
-              ? this.props.actions.help(this.props.type)
-              : undefined
-          }
-        >
-          <Icon name="question-circle" />{" "}
-          <VisibleMDLG>{labels ? "Help" : undefined}</VisibleMDLG>
-        </Button>
-      </Fragment>
+      <Button
+        key={"help"}
+        title={"Show help for working with this type of document"}
+        bsSize={this.button_size()}
+        onClick={() =>
+          typeof this.props.actions.help === "function"
+            ? this.props.actions.help(this.props.type)
+            : undefined
+        }
+      >
+        <Icon name="question-circle" />{" "}
+        <VisibleMDLG>{labels ? "Help" : undefined}</VisibleMDLG>
+      </Button>
     );
   }
 
@@ -707,13 +731,16 @@ export class FrameTitleBar extends Component<Props, {}> {
 
   render_save_timetravel_group(): Rendered {
     const labels = this.show_labels();
-    return (
-      <ButtonGroup key={"save-group"}>
-        {this.render_save(labels)}
-        {!this.props.is_public ? this.render_timetravel(labels) : undefined}
-        {this.render_reload(labels)}
-      </ButtonGroup>
-    );
+    const v: Rendered[] = [];
+    let x: Rendered;
+    if ((x = this.render_save(labels))) v.push(x);
+    if (!this.props.is_public) {
+      if ((x = this.render_timetravel(labels))) v.push(x);
+    }
+    if ((x = this.render_reload(labels))) v.push(x);
+    if (v.length > 0) {
+      return <ButtonGroup key={"save-group"}>{v}</ButtonGroup>;
+    }
   }
 
   render_format(): Rendered {
@@ -724,20 +751,51 @@ export class FrameTitleBar extends Component<Props, {}> {
       return;
     }
     return (
-      <Fragment>
-        <Space />
-        <Button
-          bsSize={this.button_size()}
-          key={"format"}
-          onClick={() => this.props.actions.format(this.props.id)}
-          title={
-            "Run Prettier (or some other AST-based service) to canonically format this entire document"
-          }
-        >
-          <Icon name={"fa-sitemap"} />{" "}
-          <VisibleMDLG>{this.show_labels() ? "Format" : undefined}</VisibleMDLG>
-        </Button>
-      </Fragment>
+      <Button
+        bsSize={this.button_size()}
+        key={"format"}
+        onClick={() => this.props.actions.format(this.props.id)}
+        title={
+          "Run Prettier (or some other AST-based service) to canonically format this entire document"
+        }
+      >
+        <Icon name={"fa-sitemap"} />{" "}
+        <VisibleMDLG>{this.show_labels() ? "Format" : undefined}</VisibleMDLG>
+      </Button>
+    );
+  }
+
+  render_build(): Rendered {
+    if (!this.is_visible("build", true)) {
+      return;
+    }
+    return (
+      <Button
+        disabled={!!this.props.status}
+        bsSize={this.button_size()}
+        key={"build"}
+        onClick={() => this.props.actions.build(this.props.id)}
+        title={"Build project"}
+      >
+        <Icon name={"play-circle"} /> <VisibleMDLG>Build</VisibleMDLG>
+      </Button>
+    );
+  }
+
+  render_clean(): Rendered {
+    if (!this.is_visible("clean", true)) {
+      return;
+    }
+    return (
+      <Button
+        bsSize={this.button_size()}
+        key={"clean"}
+        onClick={() => this.props.actions.clean(this.props.id)}
+        title={"Clean auxiliary build files"}
+      >
+        <Icon name={"trash"} />{" "}
+        <VisibleMDLG>{this.show_labels() ? "Clean" : undefined}</VisibleMDLG>
+      </Button>
     );
   }
 
@@ -746,18 +804,15 @@ export class FrameTitleBar extends Component<Props, {}> {
       return;
     }
     return (
-      <Fragment>
-        <Space />
-        <Button
-          bsSize={this.button_size()}
-          key={"print"}
-          onClick={() => this.props.actions.print(this.props.id)}
-          title={"Print file to PDF"}
-        >
-          <Icon name={"print"} />{" "}
-          <VisibleMDLG>{this.show_labels() ? "Print" : undefined}</VisibleMDLG>
-        </Button>
-      </Fragment>
+      <Button
+        bsSize={this.button_size()}
+        key={"print"}
+        onClick={() => this.props.actions.print(this.props.id)}
+        title={"Print file to PDF"}
+      >
+        <Icon name={"print"} />{" "}
+        <VisibleMDLG>{this.show_labels() ? "Print" : undefined}</VisibleMDLG>
+      </Button>
     );
   }
 
@@ -768,7 +823,7 @@ export class FrameTitleBar extends Component<Props, {}> {
     return (
       <EditorFileInfoDropdown
         key={"info"}
-        title={"File related actions"}
+        title={"File` related actions"}
         filename={this.props.path}
         actions={redux.getProjectActions(this.props.project_id)}
         is_public={false}
@@ -785,22 +840,38 @@ export class FrameTitleBar extends Component<Props, {}> {
       // extra buttons are cleanly not visible when frame is thin.
       style = { maxHeight: "30px", overflow: "hidden", flex: 1 };
     } else {
-      style = { maxHeight: "34px", overflow: "hidden", flex: 1 };
+      style = { maxHeight: "34px", overflow: "hidden", flex: 1, marginLeft:'2px' };
     }
+    const v: Rendered[] = [];
+    v.push(this.render_save_timetravel_group());
+    v.push(this.render_build());
+    v.push(this.render_sync());
+    v.push(this.render_clean());
+    v.push(this.render_format());
+    if (!this.props.is_public) {
+      v.push(this.render_undo_redo_group());
+    }
+    v.push(this.render_zoom_group());
+    v.push(this.render_page_width_height_group());
+    v.push(this.render_download());
+    v.push(this.render_copy_group());
+    v.push(this.render_find_replace_group());
+    if (!this.props.is_public) {
+      v.push(this.render_format_group());
+    }
+    v.push(this.render_help());
+    v.push(this.render_print());
+
+    const w: Rendered[] = [];
+    for (let c of v) {
+      if (c != null) {
+        w.push(c);
+      }
+    }
+
     return (
       <div style={style} key={"buttons"}>
-        {this.render_save_timetravel_group()}
-        {!this.props.is_public ? this.render_undo_redo_group() : undefined}
-        {this.render_zoom_group()}
-        {this.render_sync()}
-        {this.render_page_width_height_group()}
-        {this.render_copy_group()}
-        {this.render_find_replace_group()}
-        {!this.props.is_public ? this.render_format_group() : undefined}
-        {this.render_format()}
-        {<Space />}
-        {this.render_print()}
-        {this.render_help()}
+        {r_join(w, <Space />)}
       </div>
     );
   }

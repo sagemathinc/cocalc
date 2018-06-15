@@ -91,6 +91,7 @@ PAGE_REDUX_PROPS =
         account_id             : rtypes.string
         is_logged_in           : rtypes.bool
         show_global_info       : rtypes.bool
+        groups                 : rtypes.immutable.List
     support :
         show                   : rtypes.bool
 
@@ -111,7 +112,8 @@ Page = rclass
         @actions('page').clear_all_handlers()
 
     render_account_tab: ->
-        if false and @props.account_id
+        ###
+        if @props.account_id
             a = <Avatar
                     size       = {20}
                     account_id = {@props.account_id}
@@ -120,12 +122,23 @@ Page = rclass
                     />
         else
             a = 'cog'
+        ###
 
         <NavTab
             name           = 'account'
             label          = {'Account'}
             label_class    = {nav_class}
-            icon           = {a}
+            icon           = {'cog'}
+            actions        = {@actions('page')}
+            active_top_tab = {@props.active_top_tab}
+        />
+
+    render_admin_tab: ->
+        <NavTab
+            name           = 'admin'
+            label          = {'Admin'}
+            label_class    = {nav_class}
+            icon           = {'users'}
             actions        = {@actions('page')}
             active_top_tab = {@props.active_top_tab}
         />
@@ -170,6 +183,7 @@ Page = rclass
         logged_in = @props.is_logged_in
         <Nav id='smc-right-tabs-fixed' style={height:'40px', lineHeight:'20px', margin:'0', overflowY:'hidden'}>
             {@render_account_tab() if logged_in}
+            {@render_admin_tab() if logged_in and @props.groups?.includes('admin')}
             {@render_sign_in_tab() if not logged_in}
             <NavTab
                 name           = {'about'}

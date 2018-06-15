@@ -9,11 +9,14 @@ const { FrameTree } = require("./frame-tree");
 
 import { copy, is_different } from "../generic/misc";
 
+import { SetMap } from "./types";
+
 interface FrameTreeEditorProps {
   actions: any;
   path: string;
   project_id: string;
   format_bar: boolean;
+  format_bar_exclude?: SetMap;
   editor_spec: any;
 
   // reduxProps below:
@@ -135,7 +138,13 @@ class FrameTreeEditor0 extends Component<FrameTreeEditorProps, {}> {
       this.props.editor_settings &&
       this.props.editor_settings.get("extra_button_bar")
     )
-      return <FormatBar actions={this.props.actions} extension={"html"} />;
+      return (
+        <FormatBar
+          actions={this.props.actions}
+          extension={"html"}
+          exclude={this.props.format_bar_exclude}
+        />
+      );
   }
 
   render_frame_tree(): Rendered {
@@ -169,6 +178,7 @@ class FrameTreeEditor0 extends Component<FrameTreeEditorProps, {}> {
           is_saving={this.props.is_saving}
           gutter_markers={this.props.gutter_markers}
           editor_settings={this.props.editor_settings}
+          status={this.props.status}
         />
       </div>
     );
@@ -237,6 +247,7 @@ const FrameTreeEditor = rclass(FrameTreeEditor0);
 interface Options {
   display_name: string;
   format_bar: boolean;
+  format_bar_exclude?: SetMap;
   editor_spec: any;
 }
 
@@ -259,6 +270,7 @@ export function createEditor(opts: Options) {
           path={this.props.path}
           project_id={this.props.project_id}
           format_bar={opts.format_bar}
+          format_bar_exclude={opts.format_bar_exclude}
           editor_spec={opts.editor_spec}
         />
       );

@@ -58,11 +58,12 @@ function component(
     <Tip
       title={message}
       tip={content}
-      placement={"bottom"}
+      placement={"right"}
       icon={spec.icon}
       stable={true}
       popover_style={{
         marginLeft: "10px",
+        opacity: 0.9,
         border: `2px solid ${spec.color}`
       }}
       delayShow={0}

@@ -92,6 +92,7 @@ interface FrameTreeProps {
   is_saving: boolean;
   gutter_markers: Map<string, any>;
   editor_settings: Map<string, any>;
+  status:string;
 }
 
 interface FrameTreeState {
@@ -124,7 +125,8 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
         "resize",
         "is_saving",
         "gutter_markers",
-        "editor_settings"
+        "editor_settings",
+        "status"
       ])
     );
   }
@@ -155,6 +157,7 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
         is_saving={this.props.is_saving}
         gutter_markers={this.props.gutter_markers}
         editor_settings={this.props.editor_settings}
+        status={this.props.status}
       />
     );
   }
@@ -181,6 +184,7 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
         is_public={this.props.is_public}
         type={desc.get("type")}
         editor_spec={this.props.editor_spec}
+        status={this.props.status}
       />
     );
   }
@@ -226,6 +230,7 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
           gutters={spec.gutters != null ? spec.gutters : []}
           gutter_markers={this.props.gutter_markers}
           editor_settings={this.props.editor_settings}
+          status={this.props.status}
           renderer={spec.renderer}
         />
       </div>

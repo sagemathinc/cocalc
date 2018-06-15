@@ -147,11 +147,11 @@ export class CodemirrorEditor extends Component<Props, State> {
   }
 
   _cm_undo(): void {
-    this.props.actions.undo();
+    this.props.actions.undo(this.props.id);
   }
 
   _cm_redo(): void {
-    this.props.actions.redo();
+    this.props.actions.redo(this.props.id);
   }
 
   _cm_destroy(): void {
@@ -166,16 +166,27 @@ export class CodemirrorEditor extends Component<Props, State> {
   }
 
   _cm_cursor(): void {
+    if (!this.props.is_current) {
+      // not in focus, so any cursor movement is not to be broadcast.
+      return;
+    }
     if (this.cm == null) {
+      // not yet done initializing/mounting or already unmounting,
+      // so nothing to do.
       return;
     }
     const locs = this.cm
       .getDoc()
       .listSelections()
       .map(c => ({ x: c.anchor.ch, y: c.anchor.line }));
-    // is cursor move is being caused by external setValueNoJump, so just a side effect of something another user did.
+    // side_effect is whether or not the cursor move is being caused by an
+    // external setValueNoJump, so just a side effect of something another user did.
     const side_effect = (this.cm as any)._setValueNoJump;
-    this.props.actions.set_cursor_locs(locs, side_effect);
+    if (side_effect) {
+      // cursor movement is a side effect of upstream change, so ignore.
+      return;
+    }
+    this.props.actions.set_cursor_locs(locs);
   }
 
   // Save the UI state of the CM (not the actual content) -- scroll position, selections, etc.
@@ -229,7 +240,7 @@ export class CodemirrorEditor extends Component<Props, State> {
 
     // Needed e.g., for vim ":w" support; obviously this is global, so be careful.
     if ((CodeMirror as any).commands.save == null) {
-      (CodeMirror as any).commands.save = function(cm : any) {
+      (CodeMirror as any).commands.save = function(cm: any) {
         if (cm._actions) {
           cm._actions.save(true);
         }
@@ -338,7 +349,8 @@ export class CodemirrorEditor extends Component<Props, State> {
 
   render_cursors(): Rendered {
     if (this.props.cursors != null && this.cm != null && this.state.has_cm) {
-      // Very important not to render without cm defined, because that renders to static Codemirror instead.
+      // Very important not to render without cm defined, because that renders
+      // to static Codemirror instead.
       return <Cursors cursors={this.props.cursors} codemirror={this.cm} />;
     }
   }

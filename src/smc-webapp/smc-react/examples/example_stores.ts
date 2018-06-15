@@ -1,8 +1,8 @@
-import { Store, store_definition } from "../Store";
+import { Store, store_base_state } from "../Store";
 import { redux } from "../../smc-react-ts";
 
 // Basic Store
-export interface bakeryState extends store_definition {
+export interface bakeryState extends store_base_state {
   name: "simple_store";
   cake: string;
   pie: string;
@@ -36,7 +36,7 @@ store.get("pie");
 //
 type drinkTypes = "mocha" | "cappucccino" | "latte";
 
-export interface cafeState extends store_definition {
+export interface cafeState extends store_base_state {
   drinks: drinkTypes[];
   costs: Partial<{ [P in drinkTypes]: number }>;
   people: {

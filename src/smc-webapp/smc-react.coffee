@@ -36,8 +36,6 @@ redux_lib        = require('redux')
 createReactClass = require('create-react-class')
 PropTypes        = require('prop-types')
 {createSelector} = require('reselect')
-
-
 {Provider, connect}  = require('react-redux')
 misc                 = require('smc-util/misc')
 {defaults, required} = misc
@@ -46,12 +44,6 @@ exports.COLOR =
     BG_RED  : '#d9534f' # the red bootstrap color of the button background
     FG_RED  : '#c9302c' # red used for text
     FG_BLUE : '#428bca' # blue used for text
-
-# We do this so this module can be used without having to include all the
-# project-store related functionality.  When it gets loaded, it will set the
-# project_store module below.  This is purely a potential lazy loading optimization.
-project_store = undefined
-exports.register_project_store = (x) -> project_store = x
 
 class Table
     constructor: (@name, @redux) ->
@@ -360,6 +352,7 @@ class AppRedux
                 S._init?()
         return S
 
+    # Returns undefined if the store is not created
     getStore: (name) =>
         if not name?
             throw Error("name must be a string")
@@ -410,35 +403,42 @@ class AppRedux
             throw Error("getTable: table #{name} not registered")
         return @_tables[name]
 
-    # getProject[...] only works if the project_store has been
-    # initialized by calling register_project_store.  This
-    # happens when project_store is require'd.
+    hasProjectStore: (project_id) =>
+        return !!this.getStore(project_redux_name(project_id))
+
+    # getProject... is safe to call any time. All structures will be created if they don't exist
+    # Thus use getStore(...) to check for existence.
     getProjectStore: (project_id) =>
         if not misc.is_valid_uuid_string(project_id)
             console.trace()
             console.warn("getProjectStore: INVALID project_id -- #{project_id}")
+        if not @hasProjectStore(project_id)
+            require('./project_store').init(project_id)
         return @getStore(project_redux_name(project_id))
 
     getProjectActions: (project_id) =>
         if not misc.is_valid_uuid_string(project_id)
             console.trace()
             console.warn("getProjectActions: INVALID project_id -- #{project_id}")
+        if not @hasProjectStore(project_id)
+            require('./project_store').init(project_id)
         return @getActions(project_redux_name(project_id))
 
     getProjectTable: (project_id, name) =>
         if not misc.is_valid_uuid_string(project_id)
             console.trace()
             console.warn("getProjectTable: INVALID project_id -- #{project_id}")
+        if not @hasProjectStore(project_id)
+            require('./project_store').init(project_id)
         return @getTable(project_redux_name(project_id, name))
 
     removeProjectReferences: (project_id) =>
         if not misc.is_valid_uuid_string(project_id)
             console.trace()
             console.warn("getProjectReferences: INVALID project_id -- #{project_id}")
-
         name = project_redux_name(project_id);
         store = @getStore(name)
-        if typeof store.destroy == "function"
+        if store? and typeof store.destroy == "function"
             store.destroy()
         @removeActions(name)
         @removeStore(name)

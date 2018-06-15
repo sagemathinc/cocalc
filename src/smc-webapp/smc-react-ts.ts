@@ -27,7 +27,7 @@ if (DEBUG == null) {
   var DEBUG = false;
 }
 
-let rclass: (x?) => () => React.ReactElement<any>;
+let rclass: (x?) => () => JSX.Element;
 
 import * as immutable from "immutable";
 import * as React from "react";
@@ -37,12 +37,12 @@ import * as PropTypes from "prop-types";
 import { Provider, connect } from "react-redux";
 
 let redux: AppRedux;
-let coffee = require("./smc-react")
-redux = coffee.redux
+let coffee = require("./smc-react");
+redux = coffee.redux;
 
 import {
   Store,
-  store_definition,
+  store_base_state,
   StoreConstructorType
 } from "./smc-react/Store";
 
@@ -229,16 +229,19 @@ export class AppRedux {
     return this._actions[name];
   }
 
+  hasActions(name: string): boolean {
+    return !!this._actions[name];
+  }
+
   getActions<T, C extends Actions<T>>(
     name: string | { project_id: string }
   ): C {
-    if (name == null) {
-      throw Error(
-        "name must be a string or an object with a project_id attribute, but is undefined"
-      );
-    }
     if (typeof name === "string") {
-      return this._actions[name];
+      if (!this.hasActions(name)) {
+        throw Error(`getActions: actions ${name} not registered`);
+      } else {
+        return this._actions[name];
+      }
     } else {
       if (name.project_id == null) {
         throw Error("Object must have project_id attribute");
@@ -247,23 +250,32 @@ export class AppRedux {
     }
   }
 
-  createStore<T extends store_definition>(spec: T, store_class): Store<T>;
-  createStore<T, C extends Store<T>>(
-    name: string,
-    store_class: StoreConstructorType<T, C>,
-    init?: T
-  ): C;
-  createStore<T extends store_definition, C extends Store<T>>(
+  // Technically this overloading is not best practice but name and spec are semantically very different
+  createStore<
+    T extends store_base_state = store_base_state,
+    C extends Store<T> = Store<T>
+  >(name: string, store_class?: StoreConstructorType<T, C>, init?: T): C;
+  createStore<
+    T extends store_base_state = store_base_state,
+    C extends Store<T> = Store<T>
+  >(spec: T, store_class?: StoreConstructorType<T, C>, init?: T): C;
+  createStore<T extends store_base_state, C extends Store<T> = Store<T>>(
     spec: string | T,
-    store_class: StoreConstructorType<T, C>,
+    store_class?: StoreConstructorType<T, C>,
     init?: {} | T
   ): C {
     let S: C;
+    let _StoreClass: any;
+    if (store_class === undefined) {
+      _StoreClass = Store;
+    } else {
+      _StoreClass = store_class;
+    }
     if (typeof spec === "string") {
       let name = spec;
       S = this._stores[name];
       if (S == null) {
-        S = this._stores[name] = new store_class(name, this);
+        S = this._stores[name] = new _StoreClass(name, this);
         // Put into store. WARNING: New set_states CAN OVERWRITE THESE FUNCTIONS
         let C = immutable.Map(S as {});
         C = C.delete("redux"); // No circular pointing
@@ -275,7 +287,7 @@ export class AppRedux {
     } else {
       S = this._stores[spec.name];
       if (S == null) {
-        S = new store_class(spec.name, this, spec);
+        S = new _StoreClass(spec.name, this, spec);
         this._stores[spec.name] = S;
         // TODOJ: REMOVE
         S.__converted = true;
@@ -287,29 +299,27 @@ export class AppRedux {
     return S;
   }
 
+  hasStore(name: string): boolean {
+    return !!this._stores[name];
+  }
+
   getStore<T, C extends Store<T>>(name: string): C {
-    if (name == null) {
-      throw Error("name must be a string");
+    if (!this.hasStore(name)) {
+      throw Error(`getStore: store "${name}" not registered`);
     }
     return this._stores[name];
   }
 
   createTable(name: string, table_class = Table): Table {
-    if (name == null) {
-      throw Error("name must be a string");
-    }
     const tables = this._tables;
     if (tables[name] != null) {
-      throw Error(`createTable: table ${name} already exists`);
+      throw Error(`createTable: table "${name}" already exists`);
     }
     const table = new table_class(name, this);
     return (tables[name] = table);
   }
 
   removeTable(name: string): void {
-    if (name == null) {
-      throw Error("name must be a string");
-    }
     if (this._tables[name] != null) {
       if (this._tables[name]._table != null) {
         this._tables[name]._table.close();
@@ -319,9 +329,6 @@ export class AppRedux {
   }
 
   removeStore(name: string): void {
-    if (name == null) {
-      throw Error("name must be a string");
-    }
     if (this._stores[name] != null) {
       const S = this._stores[name];
       S.emit("destroy");
@@ -331,10 +338,7 @@ export class AppRedux {
     }
   }
 
-  removeActions(name): void {
-    if (name == null) {
-      throw Error("name must be a string");
-    }
+  removeActions(name: string): void {
     if (this._actions[name] != null) {
       const A = this._actions[name];
       delete this._actions[name];
@@ -343,32 +347,39 @@ export class AppRedux {
   }
 
   getTable(name: string): Table {
-    if (name == null) {
-      throw Error("name must be a string");
-    }
     if (this._tables[name] == null) {
-      throw Error(`getTable: table ${name} not registered`);
+      throw Error(`getTable: table "${name}" not registered`);
     }
     return this._tables[name];
   }
 
+  hasProjectStore(project_id: string): boolean {
+    return this.hasStore(project_redux_name(project_id));
+  }
+
+  // getProject... is safe to call any time. All structures will be created if they don't exist
   // TODO -- Typing: Type project Store
   // <T, C extends Store<T>>
-  getProjectStore(project_id: string): any {
+  getProjectStore = (project_id: string): any => {
     if (!misc.is_valid_uuid_string(project_id)) {
       console.trace();
-      console.warn(`getProjectStore: INVALID project_id -- ${project_id}`);
+      console.warn(`getProjectStore: INVALID project_id -- "${project_id}"`);
     }
-
+    if (!this.hasProjectStore(project_id)) {
+      require('./project_store').init(project_id);
+    }
     return this.getStore(project_redux_name(project_id));
-  }
+  };
 
   // TODO -- Typing: Type project Actions
   // T, C extends Actions<T>
   getProjectActions(project_id: string): any {
     if (!misc.is_valid_uuid_string(project_id)) {
       console.trace();
-      console.warn(`getProjectActions: INVALID project_id -- ${project_id}`);
+      console.warn(`getProjectActions: INVALID project_id -- "${project_id}"`);
+    }
+    if (!this.hasProjectStore(project_id)) {
+      require('./project_store').init(project_id);
     }
     return this.getActions(project_redux_name(project_id));
   }
@@ -377,7 +388,10 @@ export class AppRedux {
   getProjectTable(project_id: string, name: string): any {
     if (!misc.is_valid_uuid_string(project_id)) {
       console.trace();
-      console.warn(`getProjectTable: INVALID project_id -- ${project_id}`);
+      console.warn(`getProjectTable: INVALID project_id -- "${project_id}"`);
+    }
+    if (!this.hasProjectStore(project_id)) {
+      require('./project_store').init(project_id);
     }
     return this.getTable(project_redux_name(project_id, name));
   }
@@ -385,7 +399,9 @@ export class AppRedux {
   removeProjectReferences(project_id: string): void {
     if (!misc.is_valid_uuid_string(project_id)) {
       console.trace();
-      console.warn(`getProjectReferences: INVALID project_id -- "${project_id}"`);
+      console.warn(
+        `getProjectReferences: INVALID project_id -- "${project_id}"`
+      );
     }
     const name = project_redux_name(project_id);
     let store = this.getStore(name);
@@ -399,7 +415,7 @@ export class AppRedux {
   getEditorStore(project_id: string, path: string, is_public: boolean) {
     if (!misc.is_valid_uuid_string(project_id)) {
       console.trace();
-      console.warn(`getEditorStore: INVALID project_id -- ${project_id}`);
+      console.warn(`getEditorStore: INVALID project_id -- "${project_id}"`);
     }
     return this.getStore(file_redux_name(project_id, path, is_public));
   }
@@ -407,7 +423,7 @@ export class AppRedux {
   getEditorActions(project_id: string, path: string, is_public: boolean) {
     if (!misc.is_valid_uuid_string(project_id)) {
       console.trace();
-      console.warn(`getEditorActions: INVALID project_id -- ${project_id}`);
+      console.warn(`getEditorActions: INVALID project_id -- "${project_id}"`);
     }
     return this.getActions(file_redux_name(project_id, path, is_public));
   }
@@ -452,7 +468,7 @@ const connect_component = spec => {
         var val;
         const type = info[prop];
         // TODO: Use typing on store
-        if ((store != null ? store.__converted : undefined) != null) {
+        if (store !== undefined && store.__converted) {
           val = store[prop];
           let info = Object.getOwnPropertyDescriptor(store, prop);
           if (info == undefined || info.get == null) {

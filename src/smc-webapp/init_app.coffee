@@ -141,6 +141,9 @@ class PageActions extends Actions
             when 'file-use'
                 history.set_url('/file-use')
                 set_window_title('File Usage')
+            when 'admin'
+                history.set_url('/admin')
+                set_window_title('Admin')
             when undefined
                 return
             else

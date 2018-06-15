@@ -142,10 +142,10 @@ exports.load_target = load_target = (target, ignore_kiosk=false) ->
                 redux.getActions('account').set_active_tab('support')
             if segments[1] == 'ssh-keys'
                 redux.getActions('account').set_active_tab('ssh-keys')
-        when 'file-use'
+        when 'file-use', 'admin'
             if not logged_in
                 return
-            redux.getActions('page').set_active_tab('file-use')
+            redux.getActions('page').set_active_tab(segments[0])
 
 window.onpopstate = (event) ->
     #console.log("location: " + document.location + ", state: " + JSON.stringify(event.state))

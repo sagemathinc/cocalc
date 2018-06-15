@@ -249,6 +249,7 @@ schema.accounts =
                     multiple_cursors          : true
                     track_revisions           : true
                     extra_button_bar          : true
+                    build_on_save             : true
                     first_line_number         : 1
                     indent_unit               : 4
                     tab_size                  : 4

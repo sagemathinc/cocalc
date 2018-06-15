@@ -29,7 +29,7 @@ class TestLex:
 class TestSageVersion:
     def test_sage_vsn(self, exec2):
         code = "sage.misc.banner.banner()"
-        patn = "version 8.1"
+        patn = "version 8.2"
         exec2(code, pattern = patn)
 
 class TestDecorators:
