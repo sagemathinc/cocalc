@@ -23,12 +23,17 @@
 {Col, Row, ButtonToolbar, ButtonGroup, MenuItem, Button, Well, FormControl, FormGroup, Radio,
 ButtonToolbar, Popover, OverlayTrigger, SplitButton, MenuItem, Alert, Checkbox, Breadcrumb, Navbar} =  require('react-bootstrap')
 misc = require('smc-util/misc')
-{ActivityDisplay, DirectoryInput, Icon, Loading, ProjectState, COLORS,
+{ActivityDisplay, DirectoryInput, Icon, ProjectState, COLORS,
 SearchInput, TimeAgo, ErrorDisplay, Space, Tip, LoginLink, Footer, CourseProjectExtraHelp, CopyToClipBoard} = require('./r_misc')
 {SMC_Dropwrapper} = require('./smc-dropzone')
 {FileTypeSelector, NewFileButton} = require('./project_new')
 {SiteName} = require('./customize')
 {file_actions} = require('./project_store')
+
+Loading = () ->
+    <div>
+        Loading...
+    </div>
 
 {BillingPageLink, BillingPageForCourseRedux, PayCourseFee}     = require('./billing')
 {human_readable_size} = misc
