@@ -244,7 +244,7 @@ export class ProjectStore extends Store<ProjectStoreState> {
         "other_settings",
         "show_hidden"
       ]),
-      fn: function() {
+      fn: () => {
         const search_escape_char = "/";
         let listing = this.get("directory_listings").get(
           this.get("current_path")

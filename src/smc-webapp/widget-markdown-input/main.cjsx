@@ -9,13 +9,13 @@ misc = require('smc-util/misc')
 # Sibling Libraries
 info = require('./info')
 actions = require('./actions')
-store = require('./store')
+{ store } = require('./store')
 
 state_app = undefined # Expects a state application with stores and actions
 exports.init = (redux) =>
     return if redux.hasActions(info.name)
 
-    redux.createStore(info.name)
+    redux.createStore(info.name, store)
     redux.createActions(info.name, actions.create(redux))
     state_app = redux
     return exports.MarkdownInput
