@@ -49,7 +49,7 @@ exports.HelpEmailLink = rclass
     propTypes :
         text : rtypes.string
     render: ->
-        <Redux redux={redux}>
+        <Redux>
             <HelpEmailLink text={@props.text} />
         </Redux>
 
@@ -67,7 +67,7 @@ SiteName = rclass
 exports.SiteName = rclass
     displayName : 'SiteName-redux'
     render: ->
-        <Redux redux={redux}>
+        <Redux>
             <SiteName />
         </Redux>
 
@@ -90,7 +90,7 @@ exports.SiteDescription = rclass
     propTypes :
         style : rtypes.object
     render: ->
-        <Redux redux={redux}>
+        <Redux}>
             <SiteDescription style={@props.style}/>
         </Redux>
 
@@ -123,7 +123,7 @@ exports.TermsOfService = rclass
         style : rtypes.object
 
     render: ->
-        <Redux redux={redux}>
+        <Redux>
             <TermsOfService style={@props.style} />
         </Redux>
 
@@ -141,7 +141,7 @@ exports.AccountCreationEmailInstructions = rclass
     displayName : 'AccountCreationEmailInstructions'
 
     render: ->
-        <Redux redux={redux}>
+        <Redux>
             <AccountCreationEmailInstructions />
         </Redux>
 

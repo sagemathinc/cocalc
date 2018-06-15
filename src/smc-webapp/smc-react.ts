@@ -456,31 +456,24 @@ const connect_component = spec => {
         throw Error("store_name of spec *must* be defined");
       }
       const store: Store<any> | undefined = redux.getStore(store_name);
-      console.log("Store is", !store || store.getState().toJS())
       for (let prop in info) {
         var val;
         const type = info[prop];
 
         if (store == undefined) {
-          console.warn("store is undefined ", store_name);
           val = undefined;
         } else {
-          console.log("Getting prop:", prop, "from", store.name)
           val = store.get(prop);
         }
 
         if (type.category === "IMMUTABLE") {
-          console.log("type is immutable")
           props[prop] = val;
         } else {
-          console.log("type is mutable")
           props[prop] =
             (val != null ? val.toJS : undefined) != null ? val.toJS() : val;
         }
-        console.log("Got", prop, "is", val)
       }
     }
-    console.log("Connect returning:", props)
     return props;
   };
   return connect(map_state_to_props);
@@ -593,8 +586,12 @@ const react_component = function(x) {
     C = createReactClass(x);
     if (x.reduxProps != null) {
       // Make the ones comming from redux get automatically injected, as long
-      // as this component is in a heierarchy wrapped by <Redux redux={redux}>...</Redux>
-      C = connect_component(x.reduxProps)(C);
+      // as this component is in a heierarchy wrapped by <Redux>...</Redux>
+      let composer = connect_component(x.reduxProps);
+      console.log("before C:", C);
+      C = composer(C);
+      console.log("composer:", composer);
+      console.log("after C:", C);
     }
   }
   return C;
@@ -675,23 +672,6 @@ switch (MODE) {
     throw Error(`UNKNOWN smc-react MODE='${MODE}'`);
 }
 
-const Redux = createReactClass({
-  propTypes: {
-    redux: PropTypes.object.isRequired
-  },
-  render() {
-    return React.createElement(
-      Provider,
-      { store: this.props.redux._redux_store },
-      this.props.children
-    );
-  }
-});
-// The lines above are just the non-tsx version of this:
-//<Provider store={@props.redux._redux_store}>
-//    {@props.children}
-//</Provider>
-
 // Public interface
 export function is_redux(obj) {
   return obj instanceof AppRedux;
@@ -723,6 +703,20 @@ export function project_redux_name(project_id: string, name?: string): string {
 }
 
 let redux = new AppRedux();
+
+class Redux extends React.Component {
+  render() {
+    return React.createElement(
+      Provider,
+      { store: redux._redux_store },
+      this.props.children
+    );
+  }
+}
+// The lines above are just the non-tsx version of this:
+//<Provider store={redux._redux_store}>
+//    {@props.children}
+//</Provider>
 
 export const Component = React.Component;
 export type Rendered = React.ReactElement<any> | undefined;
