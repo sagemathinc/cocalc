@@ -586,11 +586,7 @@ const react_component = function(x) {
     if (x.reduxProps != null) {
       // Make the ones comming from redux get automatically injected, as long
       // as this component is in a heierarchy wrapped by <Redux>...</Redux>
-      let composer = connect_component(x.reduxProps);
-      console.log("before C:", C);
-      C = composer(C);
-      console.log("composer:", composer);
-      console.log("after C:", C);
+      C = connect_component(x.reduxProps)(C);
     }
   }
   return C;
