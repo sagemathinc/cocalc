@@ -81,7 +81,7 @@ export class CodeMirror extends Component<CodeMirrorProps, CodeMirrorState> {
       (IS_TOUCH ||
         this.props.is_focused ||
         this.props.options.get("lineNumbers") ||
-        (this.props.cursors != null ? this.props.cursors.size : undefined) > 0)
+        (this.props.cursors != null ? this.props.cursors.size > 0 : false))
     ) {
       return (
         <CodeMirrorEditor
