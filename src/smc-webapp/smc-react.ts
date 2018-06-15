@@ -205,7 +205,6 @@ export class AppRedux {
   }
 
   _set_state(change): void {
-    console.log(`Setting state ${change.name}`)
     this._redux_store.dispatch(action_set_state(change));
   }
 
