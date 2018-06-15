@@ -72,7 +72,7 @@ const bounded_integer = function(n: any, min: any, max: any, def: any) {
 const CellWriteProtectedException = new Error("CellWriteProtectedException");
 const CellDeleteProtectedException = new Error("CellDeleteProtectedException");
 
-exports.JupyterActions = class JupyterActions extends Actions {
+export class JupyterActions extends Actions {
   constructor(...args) {
     {
       // TODO: get rid of this
@@ -333,7 +333,7 @@ exports.JupyterActions = class JupyterActions extends Actions {
 
     if (
       !client.is_project() &&
-      (typeof window !== "undefined" && window !== null ? window.$ : undefined) != null
+      (typeof window !== "undefined" && window !== null ? (window as any).$ : undefined) != null
     ) {
       // frontend browser client with jQuery
       this.set_jupyter_kernels(); // must be after setting project_id above.
@@ -360,7 +360,7 @@ exports.JupyterActions = class JupyterActions extends Actions {
   init_scroll_pos_hook() {
     // maintain scroll hook on change; critical for multiuser editing
     let after: any;
-    let before = (after = undefined);
+    let before: any = (after = undefined);
     this._hook_before_change = () => {
       return (before = __guard__($(".cocalc-jupyter-hook").offset(), x => x.top));
     };
@@ -628,7 +628,7 @@ exports.JupyterActions = class JupyterActions extends Actions {
     if (this.store.check_edit_protection(id, this)) {
       return;
     }
-    const obj = {
+    const obj: any = {
       type: "cell",
       id,
       cell_type
@@ -778,7 +778,7 @@ exports.JupyterActions = class JupyterActions extends Actions {
     sel_ids = immutable.Set(
       (() => {
         let asc, end;
-        const result = [];
+        const result: any[] = [];
         for (
           i = endpoint0, end = endpoint1, asc = endpoint0 <= end;
           asc ? i <= end : i >= end;
@@ -958,9 +958,10 @@ exports.JupyterActions = class JupyterActions extends Actions {
             if (record == null) {
               return;
             }
+            // TODO: var?
             var orig_kernel = this.store.get("kernel");
             var kernel = record.get("kernel");
-            var obj = {
+            var obj: any = {
               trust: !!record.get("trust"), // case to boolean
               backend_state: record.get("backend_state"),
               kernel_state: record.get("kernel_state"),
@@ -978,7 +979,8 @@ exports.JupyterActions = class JupyterActions extends Actions {
               obj.kernel_info = this.store.get_kernel_info(kernel);
               obj.backend_kernel_info = undefined;
             } else {
-              const kernel_changed = false;
+              // TODO: this was unused
+              // const kernel_changed = false;
             }
             this.setState(obj);
             if (!this._is_project && orig_kernel !== kernel) {
@@ -989,7 +991,7 @@ exports.JupyterActions = class JupyterActions extends Actions {
         }
       });
     }
-    if (cell_list_needs_recompute: any) {
+    if (cell_list_needs_recompute) {
       this.set_cell_list();
     }
     const cur_id = this.store.get("cur_id");
@@ -1149,7 +1151,7 @@ exports.JupyterActions = class JupyterActions extends Actions {
     return this.store.getIn(["cells", id]) == null;
   }
 
-  _new_id(is_available: any) {
+  _new_id(is_available?: any) {
     if (is_available == null) {
       is_available = this._id_is_available;
     }
@@ -1231,7 +1233,7 @@ exports.JupyterActions = class JupyterActions extends Actions {
       return;
     }
     const cells = this.store.get("cells");
-    const changes = immutable.Set();
+    // const changes = immutable.Set(); // TODO: unused
     for (
       let pos = 0, end = w.length, asc = 0 <= end;
       asc ? pos < end : pos > end;
@@ -1472,7 +1474,7 @@ exports.JupyterActions = class JupyterActions extends Actions {
     this.set_cur_id_from_index(i);
   }
 
-  set_cursor_locs(locs: any = [], side_effect: any) {
+  set_cursor_locs(locs: any = [], side_effect?: any) {
     if (locs.length === 0) {
       // don't remove on blur -- cursor will fade out just fine
       return;
@@ -1547,6 +1549,8 @@ exports.JupyterActions = class JupyterActions extends Actions {
       return;
     }
     for (let cell_id of [cur_id, next_id]) {
+      // TODO/WARNING: this doesn't look correct:
+      cell_id = cell_id; // TODO: use?
       if (!this.store.is_cell_editable(cur_id)) {
         this.set_error("Cells protected from editing cannot be merged.");
         return;
@@ -1565,7 +1569,7 @@ exports.JupyterActions = class JupyterActions extends Actions {
       "\n" +
       ((left1 = __guard__(cells.get(next_id), x1 => x1.get("input"))) != null ? left1 : "");
 
-    let output = undefined;
+    let output: any = undefined;
     const output0 = __guard__(cells.get(cur_id), x2 => x2.get("output"));
     const output1 = __guard__(cells.get(next_id), x3 => x3.get("output"));
     if (output0 == null) {
@@ -1664,8 +1668,8 @@ exports.JupyterActions = class JupyterActions extends Actions {
   // This toggles the boolean value of given metadata field.
   // If not set, it is assumed to be true and toggled to false
   // For more than one cell, the first one is used to toggle all cells to the inverted state
-  toggle_metadata_boolean(key: any, extra_processing: any) {
-    let new_value = undefined;
+  toggle_metadata_boolean(key: any, extra_processing?: any) {
+    let new_value: any = undefined;
     for (let id of this.store.get_selected_cell_ids_list()) {
       if (new_value == null) {
         var left;
@@ -1849,7 +1853,7 @@ exports.JupyterActions = class JupyterActions extends Actions {
   }
 
   // Meant to be used for implementing actions -- do not call externally
-  _get_cell_input(id: any) {
+  _get_cell_input(id?: any) {
     let left, left1;
     if (id == null) {
       id = this.store.get("cur_id");
@@ -2037,7 +2041,7 @@ exports.JupyterActions = class JupyterActions extends Actions {
     complete.pos += 1;
     const target = complete.code.slice(complete.cursor_start, complete.cursor_end);
     complete.matches = (() => {
-      const result = [];
+      const result: any = [];
       for (let x of complete.matches) {
         if (misc.startswith(x, target)) {
           result.push(x);
@@ -2055,7 +2059,7 @@ exports.JupyterActions = class JupyterActions extends Actions {
     }
   }
 
-  introspect(code: any, level: any, cursor_pos: any) {
+  introspect(code: any, level: any, cursor_pos?: any) {
     const req = (this._introspect_request =
       (this._introspect_request != null ? this._introspect_request : 0) + 1);
 
@@ -2170,6 +2174,7 @@ exports.JupyterActions = class JupyterActions extends Actions {
       start_delay: 1000,
       max_delay: 10000,
       cb: err => {
+        err = err; // TODO: handle this
         return (this._fetching_backend_kernel_info = false);
       }
     });
@@ -2181,7 +2186,7 @@ exports.JupyterActions = class JupyterActions extends Actions {
   // the corresponding dialog in
   // the file manager, so gives a step to confirm, etc.
   // The path may optionally be *any* file in this project.
-  file_action(action_name: any, path: any) {
+  file_action(action_name: any, path?: any) {
     const a = this.redux.getProjectActions(this.store.get("project_id"));
     if (path == null) {
       path = this.store.get("path");
@@ -2217,7 +2222,7 @@ exports.JupyterActions = class JupyterActions extends Actions {
     return this.set_backend_kernel_info();
   }
 
-  focus(wait: any) {
+  focus(wait?: any) {
     //console.log 'focus', wait, (new Error()).stack
     if (this._state === "closed") {
       return;
@@ -2232,7 +2237,7 @@ exports.JupyterActions = class JupyterActions extends Actions {
     }
   }
 
-  blur(wait: any) {
+  blur(wait?: any) {
     if (this._state === "closed") {
       return;
     }
@@ -2295,7 +2300,7 @@ exports.JupyterActions = class JupyterActions extends Actions {
     return this.setState({ more_output: x.set(id, immutable.fromJS(more_output)) });
   }
 
-  reset_more_output(id: any) {
+  reset_more_output(id?: any) {
     let left: any;
     const more_output = (left = this.store.get("more_output")) != null ? left : immutable.Map();
     if (more_output.has(id)) {
@@ -2426,7 +2431,7 @@ exports.JupyterActions = class JupyterActions extends Actions {
     }
     const v = k[name] != null ? k[name] : [];
     const w = (() => {
-      const result = [];
+      const result: any = [];
       for (let x of v) {
         if (!underscore.isEqual(x, shortcut)) {
           result.push(x);
@@ -2458,7 +2463,8 @@ exports.JupyterActions = class JupyterActions extends Actions {
         }
       },
       timeout: 0,
-      cb: (err, choice) => {
+      cb: (err: any, choice: any) => {
+        err = err; // TODO: use/handle this
         this.focus_unlock();
         return opts.cb(choice);
       }
@@ -2513,6 +2519,7 @@ exports.JupyterActions = class JupyterActions extends Actions {
 
   // if cell is being edited, use this to move the cursor *in that cell*
   move_edit_cursor(delta: any) {
+    delta = delta; // TODO: implement/use this
     return this.set_error("move_edit_cursor not implemented");
   }
 
@@ -2538,7 +2545,7 @@ exports.JupyterActions = class JupyterActions extends Actions {
       // handle password input separately by first submitting to the backend.
       this.submit_password(id, value, () => {
         value = __range__(0, value.length, false)
-          .map(i => "●")
+          .map((_: any) => "●")
           .join("");
         this.set_cell_output(id, output.set(n, mesg.set("value", value)), false);
         return this.save_asap();
@@ -2714,7 +2721,8 @@ exports.JupyterActions = class JupyterActions extends Actions {
     return this._ajax({
       url: server_urls.get_store_url(this.store.get("project_id"), this.store.get("path"), key),
       timeout: 10000,
-      cb: (err, value) => {
+      cb: (err: any, value: any) => {
+        err = err; // TODO: handle err
         if (this._state === "closed") {
           return;
         }
@@ -3016,7 +3024,7 @@ function __guard__(value: any, transform: any) {
   return typeof value !== "undefined" && value !== null ? transform(value) : undefined;
 }
 function __range__(left: any, right: any, inclusive: any) {
-  let range = [];
+  let range: any[] = [];
   let ascending = left < right;
   let end = !inclusive ? right : ascending ? right + 1 : right - 1;
   for (let i = left; ascending ? i < end : i > end; ascending ? i++ : i--) {

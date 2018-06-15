@@ -6,7 +6,7 @@ const { Actions } = require("../smc-react");
 const { cm_options } = require("./cm_options");
 import { fromJS } from "immutable";
 const cell_utils = require("./cell-utils"); // TODO: import types
-import { JUPYTER_MIMETYPES } from "./util";
+const { JUPYTER_MIMETYPES } = require("./util");
 const { IPynbImporter } = require("./import-from-ipynb"); // TODO: import types
 
 export class NBViewerActions extends Actions {
