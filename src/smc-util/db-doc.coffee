@@ -648,6 +648,10 @@ class exports.SyncDB extends EventEmitter
         @_doc.save_to_disk(cb)
         return
 
+    # for compat with syncstring api.
+    _save: (cb) => @save(cb)
+    save_to_disk: (cb) => @save(cb)
+
     save_asap: (cb) =>
         @_check()
         @_doc.save_asap(cb)
