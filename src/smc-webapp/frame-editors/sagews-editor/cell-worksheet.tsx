@@ -1,6 +1,9 @@
 import { Map } from "immutable";
 import { React, Component, Rendered, rtypes, rclass } from "../generic/react";
 
+import { InputCell } from "./cell-input";
+import { OutputCell } from "./cell-output";
+
 interface Props {
   // reduxProps:
   cells: Map<string, Map<string, any>>;
@@ -15,12 +18,26 @@ class CellWorksheet extends Component<Props, {}> {
     };
   }
 
-  render_cells(): Rendered {
-    return <code>{JSON.stringify(this.props.cells.toJS())}</code>;
+  render_cells(): Rendered[] {
+    const v: Rendered[] = [];
+    // TODO: sort by position.
+    this.props.cells.forEach((cell, id) => {
+      v.push(
+        <div key={id}>
+          <div>
+            <InputCell input={cell.get("input")} />
+          </div>
+          <div>
+            <OutputCell output={cell.get("output", Map())} />
+          </div>
+        </div>
+      );
+    });
+    return v;
   }
 
   render(): Rendered {
-    return <div>Cell Worksheet {this.render_cells()}</div>;
+    return <div>{this.render_cells()}</div>;
   }
 }
 

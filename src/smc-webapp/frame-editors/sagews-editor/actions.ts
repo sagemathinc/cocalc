@@ -8,19 +8,7 @@ import { Actions, CodeEditorState } from "../code-editor/actions";
 import { FrameTree } from "../frame-tree/types";
 import { Store } from "../../smc-react-ts";
 
-interface OutputMessage {}
-
-interface OutputMessages {
-  [key: string]: OutputMessage;
-}
-
-interface CellObject {
-  id: string;
-  pos?: number;
-  flags?: string;
-  input?: string;
-  output?: OutputMessages;
-}
+import { CellObject } from "./types";
 
 interface SageWorksheetEditorState extends CodeEditorState {
   /*  cells: {
