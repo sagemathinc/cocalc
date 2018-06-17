@@ -32,7 +32,8 @@ Emits:
   - 'state', state -- for each state change
 */
 
-abstract class CodeExecutorAbstract extends EventEmitter implements CodeExecutor {
+abstract class CodeExecutorAbstract extends EventEmitter
+  implements CodeExecutor {
   protected state: States = "init";
   protected request: ExecutionRequest;
 
@@ -58,9 +59,7 @@ abstract class CodeExecutorAbstract extends EventEmitter implements CodeExecutor
 
 class CodeExecutorProject extends CodeExecutorAbstract {
   // start code running
-  async start(): Promise<void> {
-    console.log(this.request);
-  }
+  async start(): Promise<void> {}
 
   // interrupt running code
   async interrupt(): Promise<void> {}
@@ -74,7 +73,16 @@ class CodeExecutorProject extends CodeExecutorAbstract {
 class CodeExecutorMock extends CodeExecutorAbstract {
   // start code running
   async start(): Promise<void> {
-    console.log(this.request);
+    console.log("start", this.request);
+    switch (this.request.code) {
+      case "2+2":
+        this.emit("output", { stdout: "4" });
+        break;
+      default:
+        this.emit("output", {
+          stderr: `Unknown mock code "${this.request.code}"`
+        });
+    }
     this._set_state("done");
   }
 

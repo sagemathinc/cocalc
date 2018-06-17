@@ -10,7 +10,7 @@ import { Store } from "../../smc-react-ts";
 
 import { CellObject } from "./types";
 
-import { code_executor, CodeExecutor } from "./sage-session";
+import { code_executor, CodeExecutor } from "./code-executor";
 
 interface SageWorksheetEditorState extends CodeEditorState {
   /*  cells: {
