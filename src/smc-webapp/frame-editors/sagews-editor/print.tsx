@@ -1,8 +1,8 @@
 import { Map } from "immutable";
 import { React, Component, Rendered, rtypes, rclass } from "../generic/react";
 
-import { InputCell } from "./cell-input";
-import { OutputCell } from "./cell-output";
+import { InputCell } from "./input-cell";
+import { OutputCell } from "./output-cell";
 
 interface Props {
   // reduxProps:
@@ -25,10 +25,10 @@ class Print extends Component<Props, {}> {
       v.push(
         <div key={id}>
           <div>
-            <InputCell input={cell.get("input")} />
+            <InputCell input={cell.get("input")} id={id} />
           </div>
           <div>
-            <OutputCell output={cell.get("output", Map())} />
+            <OutputCell output={cell.get("output", Map())} id={id} />
           </div>
         </div>
       );

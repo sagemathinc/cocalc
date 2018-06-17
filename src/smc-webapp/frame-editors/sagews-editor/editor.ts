@@ -16,7 +16,7 @@ import { createEditor } from "../frame-tree/editor";
 import { set } from "../generic/misc";
 import { CellWorksheet } from "./cell-worksheet";
 import { DocumentWorksheet } from "./document-worksheet";
-import { Print } from "./print";
+//import { Print } from "./print";
 
 const worksheet_buttons = set([
   "print",
@@ -49,14 +49,14 @@ const EDITOR_SPEC = {
     icon: "file-alt",
     component: DocumentWorksheet,
     buttons: worksheet_buttons
-  },
+  }/*,
   print: {
     short: "Print",
     name: "Printable View",
     icon: "print",
     component: Print,
     buttons: set(["print"])
-  }
+  }*/
 };
 
 export const Editor = createEditor({

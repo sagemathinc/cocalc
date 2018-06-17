@@ -1,8 +1,12 @@
 import { Map } from "immutable";
 import { React, Component, Rendered, rtypes, rclass } from "../generic/react";
 
-import { InputCell } from "./cell-input";
-import { OutputCell } from "./cell-output";
+import { input_is_hidden, output_is_hidden } from "./flags";
+
+import { InputCell } from "./input-cell";
+import { OutputCell } from "./output-cell";
+import { HiddenInputCell } from "./hidden-input-cell";
+import { HiddenOutputCell } from "./hidden-output-cell";
 
 interface Props {
   // reduxProps:
@@ -18,18 +22,32 @@ class CellWorksheet extends Component<Props, {}> {
     };
   }
 
+  render_input_cell(cell: Map<string, any>): Rendered {
+    if (input_is_hidden(cell.get("flags"))) {
+      return <HiddenInputCell id={cell.get("id")} />;
+    } else {
+      return <InputCell input={cell.get("input")} id={cell.get("id")} />;
+    }
+  }
+
+  render_output_cell(cell: Map<string, any>): Rendered {
+    if (output_is_hidden(cell.get("flags"))) {
+      return <HiddenOutputCell id={cell.get("id")} />;
+    } else {
+      return (
+        <OutputCell output={cell.get("output", Map())} id={cell.get("id")} />
+      );
+    }
+  }
+
   render_cells(): Rendered[] {
     const v: Rendered[] = [];
     // TODO: sort by position.
     this.props.cells.forEach((cell, id) => {
       v.push(
         <div key={id}>
-          <div>
-            <InputCell input={cell.get("input")} />
-          </div>
-          <div>
-            <OutputCell output={cell.get("output", Map())} />
-          </div>
+          <div>{this.render_input_cell(cell)}</div>
+          <div>{this.render_output_cell(cell)}</div>
         </div>
       );
     });

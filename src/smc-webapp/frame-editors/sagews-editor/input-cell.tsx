@@ -1,6 +1,7 @@
 import { React, Component, Rendered } from "../generic/react";
 
 interface Props {
+  id : string;
   input: string;
 }
 

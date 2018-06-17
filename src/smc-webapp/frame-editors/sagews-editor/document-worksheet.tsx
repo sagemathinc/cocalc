@@ -1,6 +1,8 @@
 import { Map } from "immutable";
 import { React, Component, Rendered, rtypes, rclass } from "../generic/react";
 
+import { input_is_hidden, output_is_hidden } from "./flags";
+
 interface Props {
   // reduxProps:
   cells: Map<string, Map<string, any>>;
@@ -9,9 +11,17 @@ interface Props {
 function cells_to_value(cells: Map<string, Map<string, any>>): string {
   let value: string = ""; // todo: sort matters...
   cells.forEach((cell, _) => {
-    value += cell.get("input") + "\n";
-    value += "---\n";
-    value += JSON.stringify(cell.get("output", Map()).toJS());
+    if (input_is_hidden(cell.get('flags'))) {
+      value += 'hidden';
+    } else {
+      value += cell.get("input");
+    }
+    value += "\n---\n";
+    if (output_is_hidden(cell.get('flags'))) {
+      value += 'hidden';
+    } else {
+      value += JSON.stringify(cell.get("output", Map()).toJS());
+    }
     value += "\n===\n";
     return;
   });
