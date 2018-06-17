@@ -2506,3 +2506,46 @@ message
     event      : 'remove_all_upgrades'
     id         : undefined
 
+
+###
+Sage Worksheet Support, v2
+###
+# client --> project
+message
+    event        : 'sagews_execute_code'
+    id           : undefined
+    path         : required
+    code         : required
+    data         : undefined
+    cell_id      : undefined  # if is a cell, which is being executed (so if client does not ack, output is still recorded)
+    preparse     : true
+
+# project --> client
+message
+    event        : 'sagews_output'
+    id           : required
+    path         : required
+    output       : required     # the actual output message
+
+# client --> project
+message
+    event        : 'sagews_output_ack'
+    id           : required
+
+# client --> project
+message
+    event        : 'sagews_interrupt'
+    id           : undefined
+    path         : required
+
+# client --> project
+message
+    event        : 'sagews_quit'
+    id           : undefined
+    path         : required
+
+# client --> project
+message
+    event        : 'sagews_start'
+    id           : undefined
+    path         : required

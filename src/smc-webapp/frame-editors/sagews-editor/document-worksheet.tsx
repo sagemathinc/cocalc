@@ -40,6 +40,7 @@ class DocumentWorksheet extends Component<Props, {}> {
   render_doc(): Rendered {
     return (
       <textarea
+        rows={10}
         value={cells_to_value(this.props.cells)}
         style={{ width: "100%" }}
         onChange={function() {}}

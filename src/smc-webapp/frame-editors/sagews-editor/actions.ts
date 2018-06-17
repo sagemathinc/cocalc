@@ -10,6 +10,8 @@ import { Store } from "../../smc-react-ts";
 
 import { CellObject } from "./types";
 
+import { code_executor, CodeExecutor } from "./sage-session";
+
 interface SageWorksheetEditorState extends CodeEditorState {
   /*  cells: {
     [key: string]: CellObject;
@@ -54,5 +56,15 @@ export class SageWorksheetActions extends Actions<SageWorksheetEditorState> {
 
   print(id: string): void {
     console.warn("TODO -- print", id);
+  }
+
+  _code_executor(
+    code: string,
+    data?: object,
+    cell_id?: string,
+    preparse?: boolean
+  ): CodeExecutor {
+    // todo: if cell_id is given, ensure is valid.
+    return code_executor({path: this.path, code, data, cell_id, preparse});
   }
 }
