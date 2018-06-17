@@ -16,6 +16,7 @@ import { createEditor } from "../frame-tree/editor";
 import { set } from "../generic/misc";
 import { CellWorksheet } from "./cell-worksheet";
 import { DocumentWorksheet } from "./document-worksheet";
+import { Print } from "./print";
 
 const worksheet_buttons = set([
   "print",
@@ -38,16 +39,23 @@ const EDITOR_SPEC = {
   cells: {
     short: "Cells",
     name: "Cell Worksheet",
-    icon: "code",
+    icon: "minus-square",
     component: CellWorksheet,
     buttons: worksheet_buttons
   },
   document: {
     short: "Document",
     name: "Document Worksheet",
-    icon: "eye",
+    icon: "file-alt",
     component: DocumentWorksheet,
     buttons: worksheet_buttons
+  },
+  print: {
+    short: "Print",
+    name: "Printable View",
+    icon: "print",
+    component: Print,
+    buttons: set(["print"])
   }
 };
 
@@ -56,5 +64,3 @@ export const Editor = createEditor({
   editor_spec: EDITOR_SPEC,
   display_name: "SageWorksheetEditor"
 });
-
-

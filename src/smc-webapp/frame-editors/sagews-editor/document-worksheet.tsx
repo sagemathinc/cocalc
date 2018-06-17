@@ -6,6 +6,18 @@ interface Props {
   cells: Map<string, Map<string, any>>;
 }
 
+function cells_to_value(cells: Map<string, Map<string, any>>): string {
+  let value: string = ""; // todo: sort matters...
+  cells.forEach((cell, _) => {
+    value += cell.get("input") + "\n";
+    value += "---\n";
+    value += JSON.stringify(cell.get("output", Map()).toJS());
+    value += "\n===\n";
+    return;
+  });
+  return value;
+}
+
 class DocumentWorksheet extends Component<Props, {}> {
   static reduxProps({ name }) {
     return {
@@ -15,22 +27,18 @@ class DocumentWorksheet extends Component<Props, {}> {
     };
   }
 
-  render_cells(): Rendered {
+  render_doc(): Rendered {
     return (
       <textarea
-        value={JSON.stringify(this.props.cells.toJS())}
+        value={cells_to_value(this.props.cells)}
         style={{ width: "100%" }}
+        onChange={function() {}}
       />
     );
   }
 
   render(): Rendered {
-    return (
-      <div>
-        Document Worksheet<br />
-        {this.render_cells()}
-      </div>
-    );
+    return <div>{this.render_doc()}</div>;
   }
 }
 
