@@ -69,23 +69,23 @@ block content
       div.col-md-12.center
         h1 Online LaTeX Editor
       div.col-sm-6
-        img(src=require("webapp-lib/assets/latex-editor-01.png")).fit
+        img(src=require("webapp-lib/assets/latex-editor-02.png")).fit
       div.col-sm-6
         p.
-          #{NAME} is an online web service where you can
-          #[strong author #[a(href="https://www.latex-project.org/") LaTeX documents] right inside your browser].
+          #{NAME} is a web service where you can
+          #[strong edit #[a(href="https://www.latex-project.org/") LaTeX documents] online right inside your browser].
         p.
-          It handles all the tedious details for you. You no longer have to:
+          It handles all tedious details for you. You no longer have to:
         ul
           li Install a LaTeX environment,
           li Configure its engine and install packages,
-          li Periodically backup versions of your files.
+          li Periodically backup versions of your LaTeX files.
         p.
           Instead, all you need to do to get started is to
         ol
-          li Create an account
-          li Create a project
-          li Upload your #[code *.tex] files and open them in #{NAME}'s online environment.
+          li Create an account,
+          li Create a project,
+          li Write or upload your #[code *.tex] files and open them in #{NAME}'s online environment.
 
   a.anchor#a-overview
   div.space#overview
@@ -100,11 +100,11 @@ block content
         div.col-md-12
           h2 #[i.fa.fa-heartbeat] Managed LaTeX environments
         div.col-md-6
-          img(src=require("webapp-lib/assets/cocalc-latex-custom-command.png")).fit
+          img(src=require("webapp-lib/assets/latex-custom-command-02.png")).fit
         div.col-md-6
           div.
             #{NAME} makes sure that your desired LaTeX engine is available and ready to use.
-            Select between #[a(href="http://www.tug.org/applications/pdftex/") PDF Latex],
+            You can choose between #[a(href="http://www.tug.org/applications/pdftex/") PDF Latex],
             #[a(href="http://xetex.sourceforge.net/") XeLaTeX] or #[a(href="http://www.luatex.org/") LuaTeX].
           div.
             Many packages and utilities like #[a(href="https://sourceforge.net/projects/pgf/") PGF&TikZ] are pre-installed.
@@ -113,7 +113,7 @@ block content
             which means that you do not have to bother too much about any additional configuration.
           div.
             Finally, it is possible to fully customize the compilation command.
-            You can bring your own Shell-script or Makefile!
+            This means you can bring your own Shell-script or Makefile!
 
     a.anchor#a-computational
     div.container.space#computational
@@ -121,7 +121,7 @@ block content
         div.col-md-12
           h2 #[i.fa.fa-users] Full computational environment
         div.col-md-6
-          img(src=require("webapp-lib/assets/latex-editor-01.png")).fit
+          img(src=require("webapp-lib/assets/latex-editor-02.png")).fit
         div.col-md-6
           div.
             What sets #{NAME} apart from other online LaTeX editors is #[strong full access to computational software].
@@ -204,8 +204,7 @@ block content
         div.col-md-6
           div
             +video-player
-              source(src="https://storage.googleapis.com/cocalc-extra/cc-latex-forward-inverse-2x.webm" type="video/webm; codecs=vp9")
-              source(src="https://storage.googleapis.com/cocalc-extra/cc-latex-forward-inverse-2x.mp4" type="video/mp4")
+              source(src="https://storage.googleapis.com/cocalc-extra/latex-forward-inverse-02.webm" type="video/webm; codecs=vp9")
         div.col-md-6
           div.
             Let #{NAME} help you find your way around in large documents!
