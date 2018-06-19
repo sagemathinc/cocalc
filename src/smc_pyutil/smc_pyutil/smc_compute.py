@@ -444,7 +444,9 @@ class Project(object):
                 if pid == 0:
                     os.environ['HOME'] = self.project_path
                     os.environ['SMC'] = self.smc_path
-                    os.environ['USER'] = os.environ['USERNAME'] =  os.environ['LOGNAME'] = self.username
+                    os.environ['COCALC_SECRET_TOKEN'] = os.path.join(self.smc_path, 'secret_token')
+                    os.environ['COCALC_PROJECT_ID'] = self.project_id
+                    os.environ['USER'] = os.environ['USERNAME'] =  os.environ['LOGNAME'] = os.environ['COCALC_USERNAME'] = self.username
                     os.environ['MAIL'] = '/var/mail/%s'%self.username
                     # Needed to read code from system-wide installed location.
                     os.environ['NODE_PATH'] = '/cocalc/src/node_modules/smc-util:/cocalc/src/node_modules:/cocalc/src:/cocalc/src/smc-project/node_modules::/cocalc/src/smc-webapp/node_modules'
