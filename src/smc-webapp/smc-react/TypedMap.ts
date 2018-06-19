@@ -284,17 +284,3 @@ export function createTypedMap<TProps>(defaults?: Partial<TProps>): TypedMapFact
 
   return TypedMap;
 }
-
-// Example use
-
-interface SaleRecord {
-  name: string;
-  price: number;
-  time?: number; // This can be omitted
-}
-
-let Sale = createTypedMap<SaleRecord>();
-let sale1 = new Sale({ name: "Mocha", price: 10 });
-// let sale2 = sale1.set("name", "Jow");
-
-console.log(sale1.get("name"))
