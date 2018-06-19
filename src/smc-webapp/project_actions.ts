@@ -571,7 +571,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       new_browser_window?: boolean;
     }): void {
     opts = defaults(opts, {
-      path: required
+      path: required,
       foreground: true,
       foreground_project: true,
       chat: undefined,

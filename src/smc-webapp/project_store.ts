@@ -282,12 +282,9 @@ export class ProjectStore extends Store<ProjectStoreState> {
           _compute_snapshot_display_names(listing);
         }
 
-        const search =
-          this.get("file_search") != null
-            ? this.get("file_search").toLowerCase()
-            : undefined;
+        const search = this.get("file_search")
         if (search && search[0] !== search_escape_char) {
-          listing = _matched_files(search, listing);
+          listing = _matched_files(search.toLowerCase(), listing);
         }
 
         const sorter = (() => {

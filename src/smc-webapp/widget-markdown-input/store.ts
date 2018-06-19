@@ -5,11 +5,11 @@ import * as immutable from "immutable";
 import { Store } from "../smc-react/Store";
 
 interface markdownWidgetState {
-  open_inputs: immutable.Map<string, string>;
+  open_inputs: immutable.Map<any, any>;
 }
 
 class store extends Store<markdownWidgetState> {
-  getInitialState() {
+  getInitialState = function() {
     return {
       open_inputs: immutable.Map({})
     };

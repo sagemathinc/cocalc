@@ -20,7 +20,7 @@ interface chatState {
 }
 
 class store extends Store<chatState> {
-  getInitialState() {
+  getInitialState = function() {
     return {
       height: 0,
       input: "",
