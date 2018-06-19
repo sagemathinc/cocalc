@@ -93,8 +93,6 @@ exports.NavTab = rclass
             />
 
     on_click: (e) ->
-        console.log "Clicked!", @props.name, @actions('page')
-        console.log redux.getStore('page').get("active_top_tab")
         if @props.name?
             @actions('page').set_active_tab(@props.name)
         @props.on_click?()
