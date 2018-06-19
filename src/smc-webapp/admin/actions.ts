@@ -1,3 +1,0 @@
-/*
-Actions for the admin page.
-*/

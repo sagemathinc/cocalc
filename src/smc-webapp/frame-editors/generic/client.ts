@@ -167,5 +167,26 @@ export async function stripe_admin_create_customer(opts: {
   account_id?: string;
   email_address?: string;
 }): Promise<void> {
-    return callback_opts(webapp_client.stripe_admin_create_customer)(opts);
+  return callback_opts(webapp_client.stripe_admin_create_customer)(opts);
 }
+
+export interface User {
+  account_id: string;
+  created: string;
+  email_address?: string;
+  first_name: string;
+  last_active: string | null;
+  last_name: string;
+}
+
+export async function user_search(opts: {
+  query: string;
+  query_id?: number;
+  limit?: number;
+  timeout?: number;
+  admin? : boolean;
+  active? : string;
+}): Promise<User[]> {
+  return callback_opts(webapp_client.user_search)(opts);
+}
+

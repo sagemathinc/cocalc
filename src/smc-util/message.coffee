@@ -1129,6 +1129,12 @@ API message2
         query:
             init  : required
             desc  : "comma separated list of email addresses or strings such as 'foo bar'"
+        admin:
+            init  : false
+            desc  : "if true and user is an admin, includes email addresses in result, and does more permissive search"
+        active:
+            init  : '6 months'
+            desc  : "only include users active for this interval of time"
         limit:
             init  : 20
             desc  : 'maximum number of results returned'
@@ -1206,7 +1212,7 @@ Email and string search types may be mixed in a single query:
 message
     event   : 'user_search_results'
     id      : undefined
-    results : required  # list of {first_name:, last_name:, account_id:} objects.
+    results : required  # list of {first_name:, last_name:, account_id:, last_active:?, created:?, email_address:?} objects.; email_address only for admin
 
 # hub --> client
 message

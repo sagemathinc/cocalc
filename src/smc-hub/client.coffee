@@ -1153,18 +1153,32 @@ class exports.Client extends EventEmitter
                         @push_to_client(resp)
 
     mesg_user_search: (mesg) =>
-        if not mesg.limit? or mesg.limit > 50
-            # hard cap at 50...
+        if not mesg.admin and (not mesg.limit? or mesg.limit > 50)
+            # hard cap at 50... (for non-admin)
             mesg.limit = 50
-        @touch()
-        @database.user_search
-            query : mesg.query
-            limit : mesg.limit
-            cb    : (err, results) =>
-                if err
-                    @error_to_client(id:mesg.id, error:err)
+        locals = {results: undefined}
+        async.series([
+            (cb) =>
+                if mesg.admin
+                    @assert_user_is_in_group('admin', cb)
                 else
-                    @push_to_client(message.user_search_results(id:mesg.id, results:results))
+                    cb()
+            (cb) =>
+                @touch()
+                @database.user_search
+                    query  : mesg.query
+                    limit  : mesg.limit
+                    admin  : mesg.admin
+                    active : mesg.active
+                    cb     : (err, results) =>
+                        locals.results = results
+                        cb(err)
+        ], (err) =>
+            if err
+                @error_to_client(id:mesg.id, error:err)
+            else
+                @push_to_client(message.user_search_results(id:mesg.id, results:locals.results))
+        )
 
     mesg_invite_collaborator: (mesg) =>
         @touch()

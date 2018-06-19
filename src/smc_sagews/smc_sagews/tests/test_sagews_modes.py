@@ -253,5 +253,5 @@ class TestJuliaMode:
         exec2('%julia\nquadratic(a, sqr_term, b) = (-b + sqr_term) / 2a\nquadratic(2.0, -2.0, -12.0)', '2.5')
 
     def test_julia_version(self, exec2):
-        exec2("%julia\nVERSION", pattern='"0.6.2"')
+        exec2("%julia\nVERSION", pattern='"0.6.3"')
 
