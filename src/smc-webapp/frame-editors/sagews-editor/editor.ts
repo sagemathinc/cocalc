@@ -59,6 +59,21 @@ const EDITOR_SPEC = {
   }*/
 };
 
+/* Ideas:
+
+- Editor that focuses on a single cell.
+- Exporting to different formats
+- Slideshow
+- Sage documentation (e.g., the entire reference manual)
+- Assistant
+- Terminal (interface to running sage server)
+- List of variables you have defined
+
+All this for sagews *or* .ipynb...
+
+- Bash mode cell that becomes part of document.
+*/
+
 export const Editor = createEditor({
   format_bar: true,
   editor_spec: EDITOR_SPEC,
