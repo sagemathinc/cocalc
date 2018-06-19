@@ -47,8 +47,8 @@ register_file_editor({
         alert_message({ type: "error", message: mesg });
         return;
       }
+      syncdb.on("change", actions._syncdb_change);
       actions._syncdb_change();
-      return syncdb.on("change", actions._syncdb_change);
     });
     return name;
   },
