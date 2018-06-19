@@ -21,7 +21,7 @@ import { update_gutters } from "./gutters";
 import { pdf_path } from "./util";
 import { forgetDocument, url_to_pdf } from "./pdfjs-doc-cache";
 import { FrameTree } from "../frame-tree/types";
-import { Store } from "../../smc-react-ts";
+import { Store } from "../../smc-react";
 import { createTypedMap, TypedMap } from "../../smc-react/TypedMap";
 import { print_html } from "../frame-tree/print";
 import { raw_url } from "../frame-tree/util";

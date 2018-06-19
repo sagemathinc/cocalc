@@ -42,7 +42,7 @@ import {
   redux,
   Store,
   AppRedux
-} from "./smc-react-ts";
+} from "./smc-react";
 
 export { FILE_ACTIONS as file_actions, ProjectActions };
 

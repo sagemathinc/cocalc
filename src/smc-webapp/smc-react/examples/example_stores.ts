@@ -1,5 +1,5 @@
 import { Store } from "../Store";
-import { redux } from "../../smc-react-ts";
+import { redux } from "../../smc-react";
 
 // Basic Store
 export interface bakeryState {

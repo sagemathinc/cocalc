@@ -5,7 +5,7 @@ Register the time editor -- stopwatch
 */
 
 let { register_file_editor } = require("../project_file");
-import { redux_name, Store, AppRedux } from "../smc-react-ts";
+import { redux_name, Store, AppRedux } from "../smc-react";
 let { webapp_client } = require("../webapp_client");
 let { alert_message } = require("../alerts");
 

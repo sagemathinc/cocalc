@@ -5,7 +5,7 @@ underlying synchronized state.
 
 const misc = require("smc-util/misc");
 let { webapp_client } = require("../webapp_client");
-import { Actions, Store } from "../smc-react-ts";
+import { Actions, Store } from "../smc-react";
 import { TypedMap } from "../smc-react/TypedMap";
 import { List } from "immutable";
 

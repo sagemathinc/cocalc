@@ -17,7 +17,7 @@ let { webapp_client } = require("./webapp_client");
 let { project_tasks } = require("./project_tasks");
 const { defaults, required } = misc;
 
-import { Actions, project_redux_name, redux } from "./smc-react-ts";
+import { Actions, project_redux_name, redux } from "./smc-react";
 
 import { ProjectStore, ProjectStoreState } from "./project_store";
 
