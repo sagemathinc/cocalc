@@ -569,16 +569,16 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       chat_width?: number;
       ignore_kiosk?: boolean;
       new_browser_window?: boolean;
-    } = {
-      path: "never", // TODO: What's the right way to do this?
+    }): void {
+    opts = defaults(opts, {
+      path: required
       foreground: true,
       foreground_project: true,
       chat: undefined,
       chat_width: undefined,
       ignore_kiosk: false,
       new_browser_window: false
-    }
-  ): void {
+    });
     // intercept any requests if in kiosk mode
     if (
       !opts.ignore_kiosk &&
@@ -2230,6 +2230,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     try {
       p = this._absolute_path(name, opts.current_path, opts.ext);
     } catch (e) {
+      console.warn("Absolute path creation error")
       this.setState({ file_creation_error: e.message });
       return;
     }
@@ -2251,7 +2252,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         }
       }
     }
-    return webapp_client.exec({
+    webapp_client.exec({
       project_id: this.project_id,
       command: "smc-new-file",
       timeout: 10,
@@ -2259,23 +2260,17 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       err_on_exit: true,
       cb: (err, output) => {
         if (err) {
-          return this.setState({
-            file_creation_error: `${
-              (output != null ? output.stdout : undefined) != null
-                ? output != null
-                  ? output.stdout
-                  : undefined
-                : ""
-            } ${
-              (output != null ? output.stderr : undefined) != null
-                ? output != null
-                  ? output.stderr
-                  : undefined
-                : ""
-            } ${err}`
+          let stdout = "";
+          let stderr = "";
+          if (output) {
+            stdout = output.stdout || "";
+            stderr = output.stderr || "";
+          }
+          this.setState({
+            file_creation_error: `${stdout} ${stderr} ${err}`
           });
         } else if (opts.switch_over) {
-          return this.open_file({
+          this.open_file({
             path: p
           });
         }
