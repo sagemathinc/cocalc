@@ -403,7 +403,16 @@ describe 'user enumeration functionality: ', ->
             cb    : (err, users) ->
                 expect(users.length).toBe(1)
                 n = 0
-                expect(users[0]).toEqual("email_address": "sage0@sagemath.com", account_id:users[n].account_id, first_name: "Sage#{n}", last_name: "Math#{n}")
+                data = users[0]
+                delete data.created
+                expect(data).toEqual(
+                    email_address: "sage0@sagemath.com",
+                    account_id:users[n].account_id,
+                    first_name: "Sage#{n}",
+                    last_name: "Math#{n}",
+                    email_address_verified: null,
+                    last_active: null
+                )
                 done(err)
     it "searches for the non-existent user with email sageBLAH@sagemath.com", (done) ->
         db.user_search
