@@ -59,7 +59,6 @@ exports.Library = rclass ({name}) ->
     getInitialState: ->
         lang        : 'python'
         show_thumb  : false
-        # sorted_docs : undefined    # depends('library') ->
 
     metadata: ->
         @props.library?.getIn(['examples', 'metadata'])

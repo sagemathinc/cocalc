@@ -22,7 +22,7 @@
 //##############################################################################
 
 // Important: code below now assumes that a global variable called "DEBUG" is **defined**!
-declare var DEBUG: boolean, Primus, smc;
+declare var DEBUG: boolean, smc;
 if (DEBUG == null) {
   var DEBUG = false;
 }
@@ -37,6 +37,7 @@ import { Provider, connect } from "react-redux";
 
 import { Store, StoreConstructorType } from "./app-framework/Store";
 import { Actions } from "./app-framework/Actions";
+import { Table, TableConstructor } from "./app-framework/Table"
 
 const misc = require("smc-util/misc");
 
@@ -45,50 +46,6 @@ export let COLOR = {
   BG_RED: "#d9534f", // the red bootstrap color of the button background
   FG_RED: "#c9302c", // red used for text
   FG_BLUE: "#428bca" // blue used for text
-};
-
-abstract class Table {
-  public name: string;
-  public _table: any;
-  protected redux: AppRedux;
-
-  // override in derived class to pass in options to the query -- these only impact initial query, not changefeed!
-  abstract options(): any[];
-  abstract query(): void;
-  protected abstract _change(table: any, keys: string[]): void;
-
-  constructor(name, redux) {
-    this.set = this.set.bind(this);
-    if (this.options) {
-      this.options.bind(this);
-    }
-    this.name = name;
-    this.redux = redux;
-    if (typeof Primus === "undefined" || Primus === null) {
-      // hack for now -- not running in browser (instead in testing server)
-      return;
-    }
-    this._table = require("./webapp_client").webapp_client.sync_table(
-      this.query(),
-      this.options ? this.options() : []
-    );
-    if (this._change !== undefined) {
-      this._table.on("change", keys => {
-        this._change(this._table, keys);
-      });
-    }
-  }
-
-  set(changes: object, merge, cb): void {
-    this._table.set(changes, merge, cb);
-  }
-}
-
-type TableConstructor<T extends Table> = new (name, redux) => T;
-
-const depends = (...dependency_names) => deriving_func => {
-  deriving_func.dependency_names = dependency_names;
-  return deriving_func;
 };
 
 const action_set_state = function(change) {
@@ -710,7 +667,6 @@ export type Rendered = React.ReactElement<any> | undefined;
 export { rclass }; // use rclass instead of createReactClass to get access to reduxProps support
 export { rtypes }; // has extra rtypes.immutable, needed for reduxProps to leave value as immutable
 export { computed };
-export { depends };
 export { React };
 export let { Fragment } = React;
 export { Redux };
