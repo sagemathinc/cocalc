@@ -214,6 +214,8 @@ block content
           div.
             #[strong Inverse search] does the opposite: double-click on a part in the output and
             your cursor jumps (roughly) to the line in the source file for that output.
+          div.
+            Under the hood, #{NAME} uses #[a(href="https://github.com/jlaurens/synctex") SyncTeX] seamlessly.
 
     a.anchor#a-timetravel
     div.container.space#timetravel
@@ -230,7 +232,7 @@ block content
             You can go back and forth in time across hundreds of changes to recover your previous edits.
           div.
             This is especially helpful for pinpointing which of the recent changes did cause a #[strong compilation error].
-            Simply tell the interface to show the changes in the past few minutes and you can review the recent changes.
+            You can see the most recent changes during the past few minutes and see exactly where the modification happenend.
 
     a.anchor#a-chat
     div.container.space#chat
@@ -238,7 +240,7 @@ block content
         div.col-md-12
           h2 #[i.fa.fa-comments-o] Side-Chat panel
         div.col-md-6
-          img(src=require("webapp-lib/assets/cocalc-latex-editor-side-chat-02.png")).fit
+          img(src=require("webapp-lib/assets/cocalc-latex-side-chat-v2.png")).fit
         div.col-md-6
           div.
             A #[strong side-by-side chat] for each LaTeX file
@@ -276,7 +278,7 @@ block content
             It offers its own hosting of #[a(href="/shared") shared documents],
             alongside with any associated data files.
           div.
-            You can select, if you want to be indexed and listed publicly or rather make the shared file only available via a confidential URL.
+            You can configure if your published files should be listed publicly, or rather only be available via a confidential URL.
 
   div
     div.container
