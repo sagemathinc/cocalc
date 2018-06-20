@@ -9,6 +9,9 @@ html(lang="en")
   body
     style.
       #{require('!css-loader?minimize!app-startup-style.css')}
+    
+    div#mocha
+    
     div#smc-startup-banner
       div.banner-blink
         img(src=require('!url-loader?mimetype=image/svg+xml!cocalc-icon-white-transparent.svg'))
@@ -27,6 +30,10 @@ html(lang="en")
             window.app_base_url='#{BASE_URL}';
     else
         script(type="text/javascript" src="base_url.js")
+
+    //- Support for mocha testing.  We want this in all environments, since testing everywhere is important!
+    // See https://cdnjs.com/libraries/mocha for URL's when upgrading.
+    script(type="text/javascript", src="https://cdnjs.cloudflare.com/ajax/libs/mocha/5.1.1/mocha.min.js")
 
     script(type="text/javascript").
         window.webapp_initial_start_time = (new Date()).getTime();

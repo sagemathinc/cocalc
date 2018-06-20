@@ -277,6 +277,9 @@ exports.from_json_socket = (x) ->
 # convert object x to a JSON string, removing any keys that have "pass" in them and
 # any values that are potentially big -- this is meant to only be used for logging.
 exports.to_safe_str = (x) ->
+    if typeof(x) == 'string'
+        # nothing we can do at this point -- already a string.
+        return x
     obj = {}
     for key, value of x
         sanitize = false
@@ -2283,3 +2286,51 @@ exports.jupyter_language_to_name = (lang) ->
         return 'SageMath'
     else
         return lang.charAt(0).toUpperCase() + lang[1..]
+
+# Find the kernel whose name is closest to the given name.
+exports.closest_kernel_match = (name,kernel_list) ->
+    name = name.toLowerCase().replace("matlab","octave")
+    bestValue = -1
+    bestMatch = null
+    for i in [0..kernel_list.size-1]
+        k = kernel_list.get(i)
+        kernel_name = k.get("name").toLowerCase()
+        v = 0
+        for j in [0..name.length-1]
+            if name[j] == kernel_name[j]
+                v++
+            else
+                break
+        # TODO: don't use regular name comparison, use compareVersionStrings
+        if v > bestValue or (v == bestValue and bestMatch and compareVersionStrings(k.get("name"),bestMatch.get("name")) == 1)
+            bestValue = v
+            bestMatch = k
+    return bestMatch
+
+# compareVersionStrings takes two strings "a","b"
+# and returns 1 is "a" is bigger, 0 if they are the same, and -1 if "a" is smaller.
+# By "bigger" we compare the integer and non-integer parts of the strings separately.
+# Examples:
+#     - "sage.10" is bigger than "sage.9" (because 10 > 9)
+#     - "python.1" is bigger than "sage.9" (because "python" > "sage")
+#     - "sage.1.23" is bigger than "sage.0.456" (because 1 > 0)
+#     - "sage.1.2.3" is bigger than "sage.1.2" (because "." > "")
+compareVersionStrings = (a, b) ->
+  a = a.split(/(\d+)/)
+  b = b.split(/(\d+)/)
+  for i in [0..Math.max(a.length, b.length)-1]
+    l = a[i] or ""
+    r = b[i] or ""
+    if /\d/.test(l) and /\d/.test(r)
+      vA = parseInt(l)
+      vB = parseInt(r)
+      if vA > vB
+        return 1
+      if vA < vB
+        return -1
+    else
+      if l > r
+        return 1
+      if l < r
+        return -1
+  return 0

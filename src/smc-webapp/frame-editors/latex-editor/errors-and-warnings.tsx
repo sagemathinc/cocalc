@@ -3,10 +3,11 @@ Show errors and warnings.
 */
 
 import { Map } from "immutable";
+import { capitalize, is_different, path_split } from "../generic/misc";
+import { Component, React, rclass, rtypes, Rendered } from "../generic/react";
+import { TypedMap } from "../../smc-react/TypedMap";
 
-import { capitalize, is_different, path_split } from "../misc";
-
-import { Component, React, rclass, rtypes, Rendered } from "../react";
+import { BuildLogs } from "./actions";
 
 const { Icon, Loading } = require("smc-webapp/r_misc");
 
@@ -65,9 +66,17 @@ const ITEM_STYLES = {
   }
 };
 
+interface item {
+  line: string;
+  file: string;
+  level: number;
+  message?: string;
+  content?: string;
+}
+
 interface ItemProps {
   actions: any;
-  item: Map<any, string>;
+  item: TypedMap<item>;
 }
 
 class Item extends Component<ItemProps, {}> {
@@ -144,17 +153,17 @@ interface ErrorsAndWarningsProps {
   font_size: number;
 
   // reduxProps:
-  build_log: Map<string, any>;
+  build_logs: BuildLogs;
   status: string;
 }
 
 class ErrorsAndWarnings extends Component<ErrorsAndWarningsProps, {}> {
-  static defaultProps = { build_log: Map(), status: "" };
+  static defaultProps = { build_logs: Map(), status: "" };
 
   static reduxProps({ name }) {
     return {
       [name]: {
-        build_log: rtypes.immutable.Map,
+        build_logs: rtypes.immutable.Map,
         status: rtypes.string
       }
     };
@@ -163,8 +172,8 @@ class ErrorsAndWarnings extends Component<ErrorsAndWarningsProps, {}> {
   shouldComponentUpdate(props): boolean {
     return (
       is_different(this.props, props, ["status", "font_size"]) ||
-      this.props.build_log.getIn(["latex", "parse"]) !=
-        props.build_log.getIn(["latex", "parse"])
+      this.props.build_logs.getIn(["latex", "parse"]) !=
+        props.build_logs.getIn(["latex", "parse"])
     );
   }
 
@@ -174,7 +183,6 @@ class ErrorsAndWarnings extends Component<ErrorsAndWarningsProps, {}> {
         <div
           style={{
             margin: "5px",
-            position: "absolute",
             right: 0,
             background: "white",
             paddingLeft: "5px"
@@ -183,7 +191,7 @@ class ErrorsAndWarnings extends Component<ErrorsAndWarningsProps, {}> {
           <Loading
             text={this.props.status}
             style={{
-              fontSize: "12pt",
+              fontSize: "10pt",
               color: "#666"
             }}
           />
@@ -210,7 +218,7 @@ class ErrorsAndWarnings extends Component<ErrorsAndWarningsProps, {}> {
 
   render_group(group): Rendered {
     const spec: SpecItem = SPEC[group_to_level(group)];
-    const content = this.props.build_log.getIn(["latex", "parse", group]);
+    const content = this.props.build_logs.getIn(["latex", "parse", group]);
     if (!content) {
       return;
     }
@@ -225,6 +233,18 @@ class ErrorsAndWarnings extends Component<ErrorsAndWarningsProps, {}> {
     );
   }
 
+  render_hint(): Rendered {
+    if (this.props.status || this.props.build_logs.size > 0) {
+      return;
+    }
+    return (
+      <div style={{ color: "#666" }}>
+        Click the <Icon name="play-circle" /> Build button or hit shift+enter to
+        run LaTeX.
+      </div>
+    );
+  }
+
   render(): React.ReactElement<any> {
     return (
       <div
@@ -232,9 +252,10 @@ class ErrorsAndWarnings extends Component<ErrorsAndWarningsProps, {}> {
         style={{
           overflowY: "scroll",
           padding: "5px 15px",
-          fontSize: "11pt"
+          fontSize: "10pt"
         }}
       >
+        {this.render_hint()}
         {this.render_status()}
         {["errors", "typesetting", "warnings"].map(group =>
           this.render_group(group)

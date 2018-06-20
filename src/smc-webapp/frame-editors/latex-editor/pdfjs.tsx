@@ -7,21 +7,28 @@ This is a renderer using pdf.js.
 // less likely the user will see a blank page for a moment, but
 // also potentially makes things feel slightly slower and heavier.
 const WINDOW_SIZE: number = 3000;
+const HIGHLIGHT_TIME_S: number = 3;
 
+const { Icon, Loading } = require("smc-webapp/r_misc");
+
+import { delay } from "awaiting";
 import { Map } from "immutable";
-
 import { throttle } from "underscore";
-
 import * as $ from "jquery";
-
-import { is_different } from "../misc";
+import { is_different, seconds_ago } from "../generic/misc";
 import { dblclick } from "./mouse-click";
-
-import { Component, React, ReactDOM, rclass, rtypes, Rendered } from "../react";
-const { Loading } = require("smc-webapp/r_misc");
-import { getDocument, url_to_pdf } from "./pdfjs-doc-cache.ts";
-import { Page, PAGE_GAP } from "./pdfjs-page.tsx";
-
+import {
+  Component,
+  Fragment,
+  React,
+  ReactDOM,
+  rclass,
+  rtypes,
+  Rendered
+} from "../generic/react";
+import { getDocument, url_to_pdf } from "./pdfjs-doc-cache";
+import { Page, PAGE_GAP } from "./pdfjs-page";
+import { SyncHighlight } from "./pdfjs-annotation";
 import { PDFDocumentProxy, PDFPageProxy } from "pdfjs-dist/webpack";
 
 // Ensure this jQuery plugin is defined:
@@ -38,12 +45,13 @@ interface PDFJSProps {
   font_size: number;
   renderer: string /* "canvas" or "svg" */;
   is_current: boolean;
+  status: string;
 
   // reduxProps
   zoom_page_width?: string;
   zoom_page_height?: string;
   sync?: string;
-  scroll_into_view?: { page: number; y: number; id: string };
+  scroll_pdf_into_view?: { page: number; y: number; id: string };
 }
 
 interface PDFJSState {
@@ -51,6 +59,7 @@ interface PDFJSState {
   doc: PDFDocumentProxy;
   pages: PDFPageProxy[];
   scrollTop: number;
+  missing: boolean;
 }
 
 class PDFJS extends Component<PDFJSProps, PDFJSState> {
@@ -70,7 +79,8 @@ class PDFJS extends Component<PDFJSProps, PDFJSState> {
       loaded: false,
       doc: { pdfInfo: { fingerprint: "" } },
       pages: [],
-      scrollTop: scroll
+      scrollTop: scroll,
+      missing: false
     };
   }
 
@@ -80,7 +90,7 @@ class PDFJS extends Component<PDFJSProps, PDFJSState> {
         zoom_page_width: rtypes.string,
         zoom_page_height: rtypes.string,
         sync: rtypes.string,
-        scroll_into_view: rtypes.object
+        scroll_pdf_into_view: rtypes.object
       }
     };
   }
@@ -101,13 +111,42 @@ class PDFJS extends Component<PDFJSProps, PDFJSState> {
           "zoom_page_width",
           "zoom_page_height",
           "sync",
-          "scroll_into_view",
-          "is_current"
+          "scroll_pdf_into_view",
+          "is_current",
+          "status"
         ]
       ) ||
-      this.state.loaded != next_state.loaded ||
-      this.state.scrollTop != next_state.scrollTop ||
+      is_different(this.state, next_state, [
+        "loaded",
+        "scrollTop",
+        "missing"
+      ]) ||
       this.state.doc.pdfInfo.fingerprint != next_state.doc.pdfInfo.fingerprint
+    );
+  }
+
+  render_status(): Rendered {
+    if (this.props.status) {
+      return <Loading text="Building..." />;
+    } else {
+      return (
+        <Fragment>
+          <Icon name="play-circle" /> Build or fix
+        </Fragment>
+      );
+    }
+  }
+
+  render_missing(): Rendered {
+    return (
+      <div
+        style={{
+          fontSize: "20pt",
+          color: "#666"
+        }}
+      >
+        Missing PDF -- {this.render_status()}
+      </div>
     );
   }
 
@@ -124,14 +163,17 @@ class PDFJS extends Component<PDFJSProps, PDFJSState> {
     }
   }
 
-  restore_scroll(): void {
+  async restore_scroll(wait?: number): Promise<void> {
+    if (wait !== undefined) {
+      await delay(wait);
+    }
     if (!this.props.editor_state || !this.mounted) return;
     this.restored_scroll = true;
     const scroll: Map<string, number> = this.props.editor_state.get("scroll");
     if (!scroll) return;
     let elt = $(ReactDOM.findDOMNode(this.refs.scroll));
-    elt.scrollTop(scroll.get("top"));
-    elt.scrollLeft(scroll.get("left"));
+    elt.scrollTop(scroll.get("top") || 0);
+    elt.scrollLeft(scroll.get("left") || 0);
   }
 
   async load_doc(reload: number): Promise<void> {
@@ -140,6 +182,7 @@ class PDFJS extends Component<PDFJSProps, PDFJSState> {
         url_to_pdf(this.props.project_id, this.props.path, reload)
       );
       if (!this.mounted) return;
+      this.setState({ missing: false });
       let v: Promise<PDFPageProxy>[] = [];
       for (let n = 1; n <= doc.numPages; n++) {
         v.push(doc.getPage(n));
@@ -149,54 +192,86 @@ class PDFJS extends Component<PDFJSProps, PDFJSState> {
       this.setState({
         doc: doc,
         loaded: true,
-        pages: pages
+        pages: pages,
+        missing: false
       });
     } catch (err) {
       // This is normal if the PDF is being modified *as* it is being loaded...
+      if (this.mounted && err.toString().indexOf("Missing") != -1) {
+        this.setState({ missing: true });
+      }
       console.log(`WARNING: error loading PDF -- ${err}`);
       //this.props.actions.set_error();
     }
   }
 
-  async scroll_into_view(page: number, y: number, id: string): Promise<void> {
-    if (id && id != this.props.id) {
-      // id is set, and it's not set to *this* viewer, so ignore.
+  async scroll_pdf_into_view(
+    page: number,
+    y: number,
+    id: string
+  ): Promise<void> {
+    if (id != this.props.id) {
+      // not set to *this* viewer, so ignore.
       return;
     }
-    this.props.actions.setState({ scroll_into_view: undefined }); // we got the message.
-    const doc = this.state.doc;
-    if (!doc) {
+    let is_ready = () => {
+      return this.state.doc != null && this.state.doc.getPage != null;
+    };
+    let i = 0;
+    while (i < 50 && !is_ready()) {
+      // doc can be defined but not doc.getPage.
       // can't scroll document into position if we haven't even loaded it yet.  Just do nothing in this case.
+      await delay(100);
+      if (!this.mounted) return;
+      i += 1;
+    }
+    if (!is_ready()) {
+      // give up.
       return;
     }
+    const doc = this.state.doc;
+
     /*
         We iterative through each page in the document, determine its height, and add that
         to a running total, along with the gap between pages.  Once we get to the given page,
         we then just add y.  We then scroll the containing div down to that position.
         */
+    // Get all pages before page we are scrolling to in parallel.
+    let page_promises: PDFPageProxy[] = [];
+    for (let n = 1; n <= page; n++) {
+      page_promises.push(doc.getPage(n));
+    }
+
+    let pages;
     try {
-      // Get all pages before page we are scrolling to in parallel.
-      let page_promises: PDFPageProxy[] = [];
-      for (let n = 1; n <= page; n++) {
-        page_promises.push(doc.getPage(n));
-      }
-      let pages = await Promise.all(page_promises);
-      if (!this.mounted) return;
-      const scale = this.scale();
-      let s = PAGE_GAP + y * scale;
-      for (let page of pages.slice(0, pages.length - 1)) {
-        s += scale * page.pageInfo.view[3] + PAGE_GAP;
-      }
-      let elt = $(ReactDOM.findDOMNode(this.refs.scroll));
-      let height = elt.height();
-      if (!height) return;
-      s -= height / 2;
-      elt.scrollTop(s);
+      pages = await Promise.all(page_promises);
     } catch (err) {
       this.props.actions.set_error(
         `error scrolling PDF into position -- ${err}`
       );
     }
+
+    await delay(0);
+    if (!this.mounted) return;
+
+    const scale = this.scale();
+    let s: number = PAGE_GAP + y * scale;
+    for (let page of pages.slice(0, pages.length - 1)) {
+      s += scale * page.pageInfo.view[3] + PAGE_GAP;
+    }
+    let elt = $(ReactDOM.findDOMNode(this.refs.scroll));
+    let height = elt.height();
+    if (!height) return;
+    s -= height / 2;
+    elt.scrollTop(s);
+    i = 0;
+    do {
+      i += 1;
+      await delay(100);
+      if (!this.mounted) return;
+      elt.scrollTop(s);
+    } while (i < 50 && Math.abs((elt.scrollTop() as number) - s) > 10);
+    this.props.actions.setState({ scroll_pdf_into_view: undefined });
   }
 
   componentWillReceiveProps(next_props: PDFJSProps): void {
@@ -213,11 +288,11 @@ class PDFJS extends Component<PDFJSProps, PDFJSState> {
       this.load_doc(next_props.reload);
     }
     if (
-      next_props.scroll_into_view &&
-      this.props.scroll_into_view !== next_props.scroll_into_view
+      this.props.scroll_pdf_into_view !== next_props.scroll_pdf_into_view &&
+      next_props.scroll_pdf_into_view
     ) {
-      let { page, y, id } = next_props.scroll_into_view;
-      this.scroll_into_view(page, y, id);
+      let { page, y, id } = next_props.scroll_pdf_into_view;
+      this.scroll_pdf_into_view(page, y, id);
     }
     if (
       this.props.is_current != next_props.is_current &&
@@ -225,6 +300,7 @@ class PDFJS extends Component<PDFJSProps, PDFJSState> {
     ) {
       // ensure any codemirror (etc.) elements blur, when this pdfjs viewer is focused.
       $(document.activeElement).blur();
+      $(ReactDOM.findDOMNode(this.refs.scroll)).focus();
     }
   }
 
@@ -236,16 +312,21 @@ class PDFJS extends Component<PDFJSProps, PDFJSState> {
     $(ReactDOM.findDOMNode(this.refs.scroll)).mouse_draggable();
   }
 
-  focus_on_click(): void {
-    // Whenever pdf is clicked on, in the *next* render loop, we
-    // defocus the codemirrors by calling this blur below.
-    // This makes it so space-key, arrows, etc. properly scroll.
-    function blur_codemirror(): void {
-      setTimeout(function(): void {
-        $(document.activeElement).blur();
-      }, 0);
+  async scroll_click(evt, scroll): Promise<void> {
+    scroll.focus();
+    if (this.props.is_current) {
+      return;
     }
-    $(ReactDOM.findDOMNode(this.refs.scroll)).on("click", blur_codemirror);
+    evt.stopPropagation(); // stop propagation to focus doesn't land on *individual page*
+    this.props.actions.set_active_id(this.props.id); // fix side effect of stopping propagation.
+    // wait an do another focus -- critical or keyboard navigation is flakie.
+    await delay(0);
+    scroll.focus();
+  }
+
+  focus_on_click(): void {
+    let scroll = $(ReactDOM.findDOMNode(this.refs.scroll));
+    scroll.on("click", evt => this.scroll_click(evt, scroll));
   }
 
   async zoom_page_width(): Promise<void> {
@@ -308,6 +389,19 @@ class PDFJS extends Component<PDFJSProps, PDFJSState> {
       ) {
         renderer = this.props.renderer;
       }
+      let sync_highlight: SyncHighlight | undefined;
+      if (
+        this.props.scroll_pdf_into_view !== undefined &&
+        this.props.scroll_pdf_into_view.page === n &&
+        this.props.scroll_pdf_into_view.id === this.props.id
+      ) {
+        sync_highlight = {
+          y: this.props.scroll_pdf_into_view.y,
+          until: seconds_ago(-HIGHLIGHT_TIME_S)
+        };
+      } else {
+        sync_highlight = undefined;
+      }
       pages.push(
         <Page
           id={this.props.id}
@@ -318,20 +412,26 @@ class PDFJS extends Component<PDFJSProps, PDFJSState> {
           key={n}
           renderer={renderer}
           scale={scale}
+          sync_highlight={sync_highlight}
         />
       );
       top += scale * page.pageInfo.view[3] + PAGE_GAP;
     }
     if (!this.restored_scroll) {
-      // Restore the scroll position after the above pages get rendered into the DOM.
-      setTimeout(() => this.restore_scroll(), 0);
+      // Restore the scroll position after the above pages get
+      // rendered into the DOM.
+      this.restore_scroll(0);
     }
     return pages;
   }
 
   render_content(): Rendered | Rendered[] {
     if (!this.state.loaded) {
-      return this.render_loading();
+      if (this.state.missing) {
+        return this.render_missing();
+      } else {
+        return this.render_loading();
+      }
     } else {
       return this.render_pages();
     }
@@ -345,6 +445,10 @@ class PDFJS extends Component<PDFJSProps, PDFJSState> {
     return 12 * scale;
   }
 
+  render_highlight(): Rendered {
+    return <div style={{ background: "yellow" }} id={"cc-highlight"} />;
+  }
+
   render() {
     return (
       <div
@@ -353,13 +457,12 @@ class PDFJS extends Component<PDFJSProps, PDFJSState> {
           width: "100%",
           cursor: "default",
           textAlign: "center",
-          minHeight: !this.state.loaded ? "2000px" : undefined,
           backgroundColor: !this.state.loaded ? "white" : undefined
         }}
         onScroll={throttle(() => this.on_scroll(), 250)}
         ref={"scroll"}
         tabIndex={
-          0 /* Need so keyboard navigation works; also see mouse-draggable click event. */
+          1 /* Need so keyboard navigation works; also see mouse-draggable click event. */
         }
       >
         <div>{this.render_content()}</div>

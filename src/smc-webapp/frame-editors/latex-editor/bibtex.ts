@@ -2,8 +2,8 @@
 Run BibTex
 */
 
-import { exec } from "../async-utils";
-import { parse_path } from "./util";
+import { exec } from "../generic/client";
+import { parse_path } from "../frame-tree/util";
 
 // time (ms since epoch) to use for aggregate
 

@@ -350,3 +350,20 @@ footer
   border-right: 30px solid #525659
   border-bottom: 5px solid #525659
   border-top: 5px solid #525659
+
+// issue #2892 -- katex formulas mangled in RTL contexts
+// this here is just a workaround
+span.katex
+  direction: ltr
+
+// the marker looks absurdly tiny otherwise...
+//.CodeMirror-guttermarker-open
+//  cursor: pointer
+
+//.CodeMirror-guttermarker-closed
+//  cursor: pointer
+
+//.CodeMirror-guttermarker-subtle
+//  position: absolute
+//  font-size: 28px
+//  margin-top: -14px

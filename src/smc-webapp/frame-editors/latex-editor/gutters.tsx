@@ -7,11 +7,11 @@ one gets a gutter mark, with pref to errors.  The main error log shows everythin
 
 import * as React from "react";
 
-import { path_split, capitalize } from "../misc";
+import { path_split, capitalize } from "../generic/misc";
 
 const { Icon, Tip } = require("smc-webapp/r_misc");
 
-import { SPEC, SpecItem } from "./errors-and-warnings.tsx";
+import { SPEC, SpecItem } from "./errors-and-warnings";
 
 import { ProcessedLatexLog, Error } from "./latex-log-parser";
 
@@ -58,11 +58,12 @@ function component(
     <Tip
       title={message}
       tip={content}
-      placement={"bottom"}
+      placement={"right"}
       icon={spec.icon}
       stable={true}
       popover_style={{
         marginLeft: "10px",
+        opacity: 0.9,
         border: `2px solid ${spec.color}`
       }}
       delayShow={0}

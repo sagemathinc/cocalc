@@ -252,7 +252,7 @@ NewsletterSetting = rclass
     render_checkbox: ->
         <Checkbox
             style    = {margin: '0'}
-            checked  = {@props.other_settings.newsletter}
+            checked  = {@props.other_settings.get('newsletter')}
             ref      = 'newsletter'
             onChange = {(e)=>@on_change(e.target.checked)}
         >
@@ -331,7 +331,7 @@ PasswordSetting = rclass
         if @is_submittable()
             <Button onClick={@save_new_password} bsStyle='success'>
                 Change password
-                </Button>
+            </Button>
         else
             <Button disabled bsStyle='success'>Change password</Button>
 
@@ -861,11 +861,12 @@ EDITOR_SETTINGS_CHECKBOXES =
     auto_close_brackets       : 'automatically close brackets'
     match_xml_tags            : 'automatically match XML tags'
     auto_close_xml_tags       : 'automatically close XML tags'
-    #auto_close_latex          : 'automatically close LaTeX environments'
+    auto_close_latex          : 'automatically close LaTeX environments'
     strip_trailing_whitespace : 'remove whenever file is saved'
     show_trailing_whitespace  : 'show spaces at ends of lines'
     spaces_instead_of_tabs    : 'send spaces when the tab key is pressed'
     extra_button_bar          : 'more editing functions (mainly in Sage worksheets)'
+    build_on_save             : 'build LaTex file whenever it is saved to disk'
     show_exec_warning         : 'warn that certain files are not directly executable'
     jupyter_classic           : <span>use classical Jupyter notebook <a href='https://github.com/sagemathinc/cocalc/wiki/JupyterClassicModern' target='_blank'>(DANGER: this can cause trouble...)</a></span>
 
@@ -941,7 +942,7 @@ EditorSettingsFontSize = rclass
         on_change : rtypes.func.isRequired
 
     render: ->
-        <LabeledRow label='Font Size'>
+        <LabeledRow label='Font Size' className='cc-account-prefs-font-size'>
             <NumberInput
                 on_change = {(n)=>@props.on_change('font_size',n)}
                 min       = {6}
@@ -1034,7 +1035,7 @@ EditorSettings = rclass
 
     on_change: (name, val) ->
         if name == 'autosave' or name == 'font_size'
-            @props.redux.getTable('account').set("{name}" : val)
+            @props.redux.getTable('account').set("#{name}" : val)
         else
             @props.redux.getTable('account').set(editor_settings:{"#{name}":val})
 
@@ -1059,6 +1060,7 @@ EditorSettings = rclass
 KEYBOARD_SHORTCUTS =
     #'Next file tab'                : 'control+]'  # temporarily disabled since broken in many ways
     #'Previous file tab'            : 'control+['
+    'Build project / run code'     : 'shift+enter; alt+t; command+t'
     'Smaller text'                 : 'control+<'
     'Bigger text'                  : 'control+>'
     'Toggle comment'               : 'control+/'
@@ -1233,367 +1235,7 @@ OtherSettings = rclass
             {@render_page_size_warning()}
         </Panel>
 
-AccountCreationToken = rclass
-    displayName : 'AccountCreationToken'
 
-    getInitialState: ->
-        state : 'view'   # view --> edit --> save --> view
-        token : ''
-        error : ''
-
-    edit: ->
-        @setState(state:'edit')
-
-    save: ->
-        @setState(state:'save')
-        token = @state.token
-        webapp_client.query
-            query :
-                server_settings : {name:'account_creation_token',value:token}
-            cb : (err) =>
-                if err
-                    @setState(state:'edit', error:err)
-                else
-                    @setState(state:'view', error:'', token:'')
-
-    render_save_button: ->
-        <Button style={marginRight:'1ex'} onClick={@save} bsStyle='success'>Save token</Button>
-
-    render_control: ->
-        switch @state.state
-            when 'view'
-                <Button onClick={@edit} bsStyle='warning'>Change token...</Button>
-            when 'load'
-                <Loading />
-            when 'edit', 'save'
-                <Well>
-                    <form onSubmit={@save}>
-                        <FormGroup>
-                            <FormControl
-                                ref      = 'input'
-                                type     = 'text'
-                                value    = {@state.token}
-                                onChange = {(e)=>@setState(token:e.target.value)}
-                            />
-                        </FormGroup>
-                    </form>
-                    {@render_save_button()}
-                    <Button onClick={=>@setState(state:'view', token:'')}>Cancel</Button>
-                    <br /><br />
-                    (Set to empty to not require a token.)
-                </Well>
-
-    render_error: ->
-        if @state.error
-            <ErrorDisplay error={@state.error} onClose={=>@setState(error:'')} />
-
-    render_save: ->
-        if @state.state == 'save'
-            <Saving />
-
-    render_unsupported: ->  # see https://github.com/sagemathinc/cocalc/issues/333
-        <div style={color:"#666"}>
-            Not supported since some passport strategies are enabled.
-        </div>
-
-    render: ->
-        if STRATEGIES.length > 1
-            return @render_unsupported()
-        <div>
-             {@render_control()}
-             {@render_save()}
-             {@render_error()}
-        </div>
-
-
-StripeKeys = rclass
-    displayName : 'Account-StripeKeys'
-
-    getInitialState: ->
-        state           : 'view'   # view --> edit --> save --> saved
-        secret_key      : ''
-        publishable_key : ''
-        error           : undefined
-
-    edit: ->
-        @setState(state:'edit')
-
-    save: ->
-        @setState(state:'save')
-        f = (name, cb) =>
-        query = (server_settings : {name:"stripe_#{name}_key", value:@state["#{name}_key"]} for name in ['secret', 'publishable'])
-        webapp_client.query
-            query : query
-            cb    : (err) =>
-                if err
-                    @setState(state:'edit', error:err)
-                else
-                    @setState(state:'saved', error:'', secret_key:'', publishable_key:'')
-
-    cancel: ->
-        @setState(state:'view', error:'', secret_key:'', publishable_key:'')
-
-    render: ->
-        <div>
-            {@render_main()}
-            {@render_error()}
-        </div>
-
-    render_main:->
-        switch @state.state
-            when 'view', 'saved'
-                <div>
-                    {"stripe keys saved!" if @state.state == 'saved'}
-                    <Button bsStyle='warning' onClick={@edit}>Change Stripe keys...</Button>
-                </div>
-            when 'save'
-                <div>Saving Stripe keys...</div>
-            when 'edit'
-                <Well>
-                    <LabeledRow label='Secret key'>
-                        <FormGroup>
-                            <FormControl ref='input_secret_key' type='text' value={@state.secret_key}
-                                onChange={(e)=>@setState(secret_key:e.target.value)} />
-                        </FormGroup>
-                    </LabeledRow>
-                    <LabeledRow label='Publishable key'>
-                        <FormGroup>
-                            <FormControl ref='input_publishable_key' type='text' value={@state.publishable_key}
-                                onChange={(e)=>@setState(publishable_key:e.target.value)} />
-                        </FormGroup>
-                    </LabeledRow>
-                    <ButtonToolbar>
-                        <Button bsStyle='success' onClick={@save}>Save Stripe keys...</Button>
-                        <Button onClick={@cancel}>Cancel</Button>
-                    </ButtonToolbar>
-                </Well>
-
-    render_error: ->
-        if @state.error
-            <ErrorDisplay error={@state.error} onClose={=>@setState(error:'')} />
-
-site_settings_conf = require('smc-util/schema').site_settings_conf
-async = require('async')
-underscore = require('underscore')
-SiteSettings = rclass
-    displayName : 'Account-SiteSettings'
-
-    getInitialState: ->
-        return {state :'view'}  # view --> load --> edit --> save --> view, and error
-
-    render_error: ->
-        if @state.error
-            <ErrorDisplay error={@state.error} onClose={=>@setState(error:'')} />
-
-    load: ->
-        @setState(state:'load')
-        webapp_client.query
-            query :
-                site_settings : [{name:null, value:null}]
-            cb : (err, result) =>
-                if err
-                    @setState(state:'error', error:err)
-                else
-                    data = {}
-                    for x in result.query.site_settings
-                        data[x.name] = x.value
-                    @setState
-                        state  : 'edit'
-                        error  : undefined
-                        data   : data
-                        edited : misc.deep_copy(data)
-
-    render_edit_button: ->
-        <Button onClick={=>@load()}>Edit...</Button>
-
-    save: ->
-        @setState(state:'save')
-        f = (x, cb) =>
-            webapp_client.query
-                query :
-                    site_settings : {name: x.name, value: x.value}
-                cb : cb
-        v = []
-        for name, value of @state.edited
-            if not underscore.isEqual(value, @state.data[name])
-                v.push({name:name, value:value})
-        async.map v, f, (err) =>
-            if err
-                @setState(state:'error', error:err)
-            else
-                @setState(state:'view')
-
-    render_save_button: ->
-        <Button onClick={@save}>Save</Button>
-
-    render_version_hint: (value) ->
-        if new Date(parseInt(value)*1000) > new Date()
-            error = <div style={background:'red', color:'white', margin:'15px', padding:'15px'}>INVALID version - it is in the future!!</div>
-        else
-            error = undefined
-        <div style={marginTop:'15px', color:'#666'}>
-            Your browser version: <pre style={background: 'white', fontSize: '10pt'}>{smc_version.version}</pre>
-            {error}
-        </div>
-
-    render_row: (name, value) ->
-        if not value?
-            value = site_settings_conf[name].default
-        conf = site_settings_conf[name]
-        label = <Tip key={name} title={conf.name} tip={conf.desc}>{conf.name}</Tip>
-        <LabeledRow label={label} key={name}>
-            <FormGroup>
-                <FormControl ref={name} type='text' value={value}
-                    onChange={=>e = misc.copy(@state.edited); e[name]=ReactDOM.findDOMNode(@refs[name]).value; @setState(edited:e)} />
-                {@render_version_hint(value) if name == 'version_recommended_browser'}
-            </FormGroup>
-        </LabeledRow>
-
-    render_editor: ->
-        for name in misc.keys(site_settings_conf)
-            @render_row(name, @state.edited[name])
-
-    render_main: ->
-        switch @state.state
-            when 'view'
-                @render_edit_button()
-            when 'edit'
-                <Well>
-                    {@render_editor()}
-                    {@render_save_button()}
-                </Well>
-            when 'save'
-                <div>Saving site configuration...</div>
-            when 'load'
-                <div>Loading site configuration...</div>
-
-    render: ->
-        <div>
-            {@render_main()}
-            {@render_error()}
-        </div>
-
-SystemMessage = rclass
-    displayName : 'Account-SystemMessage'
-
-    reduxProps :
-        system_notifications :
-            notifications : rtypes.immutable
-
-    getInitialState: ->
-        return {state :'view'}  # view <--> edit
-
-    render_buttons: ->
-        open = 0
-        @props.notifications.map (mesg, id) ->
-            if not mesg.get('done')
-                open += 1
-        <ButtonToolbar>
-            <Button onClick={=>@setState(state:'edit')}>Compose...</Button>
-            {<Button onClick={@mark_all_done}>Mark {open} {misc.plural(open, 'notification')} done</Button> if open > 0}
-            {<Button disabled={true}>No outstanding notifications</Button> if open == 0}
-        </ButtonToolbar>
-
-
-    render_editor: ->
-        <Well>
-            <FormGroup>
-                <FormControl
-                    autoFocus
-                    value          = {@state.mesg}
-                    ref            = 'input'
-                    rows           = {3}
-                    componentClass = 'textarea'
-                    onChange       = {=>@setState(mesg:ReactDOM.findDOMNode(@refs.input).value)}
-                />
-            </FormGroup>
-            <ButtonToolbar>
-                <Button onClick={@send} bsStyle="danger"><Icon name='paper-plane-o'/> Send</Button>
-                <Button onClick={=>@setState(state:'view')}>Cancel</Button>
-            </ButtonToolbar>
-        </Well>
-
-    send: ->
-        @setState(state:'view')
-        mesg = @state.mesg?.trim()  # mesg need not be defined
-        if mesg
-            redux.getActions('system_notifications').send_message
-                text     : mesg
-                priority : 'high'
-
-    mark_all_done: ->
-        redux.getActions('system_notifications').mark_all_done()
-
-    render: ->
-        if not @props.notifications?
-            return <Loading/>
-        switch @state.state
-            when 'view'
-                @render_buttons()
-            when 'edit'
-                @render_editor()
-
-AddStripeUser = rclass
-    displayName : 'Account-AddStripeUser'
-
-    getInitialState: ->
-        email : ''
-        status: ''
-
-    status_mesg: (s) ->
-        @setState(status:@state.status + (if @state.status then '\n' else '') + s.trim())
-
-    add_stripe_user: ->
-        email = @state.email
-        if not email
-            # nothing to do -- shouldn't happen since button should be disabled.
-            return false
-
-        @status_mesg("Adding/updating #{email}...")
-        @setState(email: '')
-        webapp_client.stripe_admin_create_customer
-            email_address : email.trim()
-            cb            : (err, mesg) =>
-                if err
-                    @status_mesg("Error: #{misc.to_json(err)}")
-                else
-                    @status_mesg("Successfully added/updated #{email}")
-
-        return false
-
-    render_form: ->
-        <form onSubmit={(e)=>e.preventDefault();if misc.is_valid_email_address(@state.email.trim()) then @add_stripe_user()}>
-            <Row>
-                <Col md={6}>
-                    <FormGroup>
-                        <FormControl
-                            ref         = 'input'
-                            type        = 'text'
-                            value       = {@state.email}
-                            placeholder = "Email address"
-                            onChange    = {=>@setState(email:ReactDOM.findDOMNode(@refs.input).value)}
-                        />
-                    </FormGroup>
-                </Col>
-                <Col md={6}>
-                    <Button bsStyle='warning' disabled={not misc.is_valid_email_address(@state.email.trim())} onClick={@add_stripe_user}>Add/Update Stripe Info</Button>
-                </Col>
-            </Row>
-        </form>
-
-    render_status: ->
-        if not @state.status
-            return
-        <div>
-            <pre>{@state.status}</pre>
-            <Button onClick={=>@setState(status:'')}>Clear</Button>
-        </div>
-
-    render: ->
-        <div>
-            {@render_form()}
-            {@render_status()}
-        </div>
 
 AdminSettings = rclass
     propTypes :
@@ -1603,24 +1245,8 @@ AdminSettings = rclass
         if not @props.groups?.contains('admin')
             return <span />
 
-        add_stripe_label = <Tip title="Add/Update Stripe User" tip="Make it so the user with the given email address has a corresponding stripe identity, even if they have never entered a credit card.  You'll need this if you want to directly create a plan for them in Stripe.">Add/Update Stripe Users</Tip>
-
         <Panel header={<h2> <Icon name='users' /> Administrative server settings</h2>}>
-            <LabeledRow label='Account Creation Token'>
-                <AccountCreationToken />
-            </LabeledRow>
-            <LabeledRow label='Stripe API Keys' style={marginTop:'15px'}>
-                <StripeKeys />
-            </LabeledRow>
-            <LabeledRow label='Site Settings' style={marginTop:'15px'}>
-                <SiteSettings />
-            </LabeledRow>
-            <LabeledRow label='System Notifications' style={marginTop:'15px'}>
-            <SystemMessage />
-            </LabeledRow>
-            <LabeledRow label={add_stripe_label} style={marginTop:'15px'}>
-            <AddStripeUser />
-            </LabeledRow>
+            Moved to the new Admin top level page.
         </Panel>
 
 # Render the entire settings component

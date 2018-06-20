@@ -8,34 +8,52 @@ We do NOT render any other annotations (e.g., notes, etc.), as would be produced
 like is here:  https://tex.stackexchange.com/questions/6306/how-to-annotate-pdf-files-generated-by-pdflatex
 */
 
-import { Component, React, Rendered } from "../react";
+const HIGHLIGHT_HEIGHT: number = 30;
 
-import { PDFAnnotationData, PDFPageProxy, PDFJS } from "pdfjs-dist/webpack";
-import { is_different } from "../misc";
+import { Component, React, Rendered } from "../generic/react";
+
+import { PDFAnnotationData, PDFPageProxy } from "pdfjs-dist/webpack";
+
+// Evidently the typescript code is wrong for this PDFJS.Util thing, so we use require.
+const PDFJS = require("pdfjs-dist/webpack");
+
+import { delay } from "awaiting";
+
+import { is_different } from "../generic/misc";
+
+export interface SyncHighlight {
+  y: number;
+  until: Date;
+}
 
 interface Props {
   page: PDFPageProxy;
   scale: number;
   click_annotation: Function;
+  // If sync_highlight is set, draw a horizontal yellow highlight around
+  // this y position, which fades out over the next few seconds.
+  sync_highlight?: SyncHighlight;
 }
 
 interface State {
   annotations?: PDFAnnotationData;
+  sync_highlight?: SyncHighlight;
 }
 
 export class AnnotationLayer extends Component<Props, State> {
   private mounted: boolean;
+  private sync_highlight_number: number = 0;
 
   constructor(props) {
     super(props);
-    this.state = { annotations: undefined };
+    this.state = { annotations: undefined, sync_highlight: undefined };
   }
 
   shouldComponentUpdate(next_props: Props, next_state: State): boolean {
     return (
-      is_different(this.props, next_props, ["scale"]) ||
+      is_different(this.props, next_props, ["scale", "sync_highlight"]) ||
       this.props.page.version !== next_props.page.version ||
-      this.state.annotations !== next_state.annotations
+      is_different(this.state, next_state, ["annotations", "sync_highlight"])
     );
   }
 
@@ -92,6 +110,18 @@ export class AnnotationLayer extends Component<Props, State> {
       );
       v.push(elt);
     }
+
+    // handle highlight which is used for synctex.
+    if (this.state.sync_highlight !== undefined) {
+      v.push(
+        this.render_sync_highlight(
+          scale,
+          this.props.page.pageInfo.view[2],
+          this.state.sync_highlight.y
+        )
+      );
+    }
+
     return (
       <div
         style={{
@@ -103,9 +133,43 @@ export class AnnotationLayer extends Component<Props, State> {
     );
   }
 
+  render_sync_highlight(scale: number, width: number, y: number): Rendered {
+    return (
+      <div
+        onDoubleClick={e => e.stopPropagation()}
+        key={"sync"}
+        style={{
+          position: "absolute",
+          top: (y - HIGHLIGHT_HEIGHT / 2) * scale,
+          width: width * scale,
+          height: HIGHLIGHT_HEIGHT * scale,
+          opacity: 0.35,
+          background: "yellow",
+          border: "1px solid grey",
+          boxShadow: "3px 3px 3px 0px #ddd"
+        }}
+      />
+    );
+  }
+
   componentWillReceiveProps(next_props: Props): void {
     if (this.props.page.version != next_props.page.version) {
       this.update_annotations(next_props.page);
+    }
+    if (next_props.sync_highlight !== undefined) {
+      this.setState({ sync_highlight: next_props.sync_highlight });
+      this.remove_sync_highlight(
+        next_props.sync_highlight.until.valueOf() - new Date().valueOf()
+      );
+    }
+  }
+
+  async remove_sync_highlight(wait_ms: number): Promise<void> {
+    this.sync_highlight_number += 1;
+    const sync_highlight_number = this.sync_highlight_number;
+    await delay(wait_ms);
+    if (this.mounted && this.sync_highlight_number === sync_highlight_number) {
+      this.setState({ sync_highlight: undefined });
     }
   }
 

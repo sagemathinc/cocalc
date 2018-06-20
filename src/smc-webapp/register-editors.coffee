@@ -15,14 +15,8 @@ require('./editor_pdf')
 require('./stopwatch/register')
 require('./jupyter/register')
 require('./tasks/register')
-require('./code-editor/register')
-require('./markdown-editor/register')
-require('./rst-editor/register')
-require('./rmd-editor/register')
-require('./wiki-editor/register')
-require('./media-viewer/register')
 
-require('./frame-editors/register')
+require('./media-viewer/register')
 
 # Public editors
 #require('./public/editor_image')
@@ -32,3 +26,6 @@ require('./editor-data/generic')
 
 # All the non-react editors.
 require('./editor').register_nonreact_editors()
+
+require('./frame-editors/register')
+

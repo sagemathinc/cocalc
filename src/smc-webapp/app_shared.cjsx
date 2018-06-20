@@ -31,6 +31,7 @@ misc = require('smc-util/misc')
 {ProjectPage, MobileProjectPage} = require('./project_page')
 {AccountPage} = require('./account_page')
 {FileUsePage} = require('./file_use')
+{AdminPage} = require('admin/page')
 
 ACTIVE_BG_COLOR = COLORS.TOP_BAR.ACTIVE
 feature = require('./feature')
@@ -47,6 +48,8 @@ exports.ActiveAppContent = ({active_top_tab, render_small}) ->
             return <div>To be implemented</div>
         when 'file-use'
             return <FileUsePage redux={redux} />
+        when 'admin'
+            return <AdminPage redux={redux} />
         when undefined
             return
         else
@@ -341,8 +344,8 @@ exports.ConnectionInfo = rclass
                 <Col sm={6}>
                     <pre>{if @props.hub? then @props.hub else "Not signed in"}</pre>
                 </Col>
-                <Col sm={2} smOffset={1}>
-                    <Button bsStyle='warning' onClick={=>webapp_client._fix_connection(true)}>
+                <Col sm={2}>
+                    <Button onClick={=>webapp_client._fix_connection(true)}>
                         <Icon name='repeat' spin={@props.status == 'connecting'} /> Reconnect
                     </Button>
                 </Col>

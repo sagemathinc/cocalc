@@ -29,7 +29,7 @@ class TestLex:
 class TestSageVersion:
     def test_sage_vsn(self, exec2):
         code = "sage.misc.banner.banner()"
-        patn = "version 8.1"
+        patn = "version 8.2"
         exec2(code, pattern = patn)
 
 class TestDecorators:
@@ -152,6 +152,89 @@ class TestBasic:
             assert re.sub('\s+','',patn) in re.sub('\s+','',mesg['code']['source'])
             conftest.recv_til_done(sagews, test_id)
             break
+
+class TestPythonFutureFeatures:
+    def test_pyfutfeats_0(self,exec2):
+        exec2("python_future_feature()", "[]\n")
+
+    def test_pyfutfeats_1(self,exec2):
+        exec2("python_future_feature('division')", "False\n")
+
+    def test_pyfutfeats_2(self,exec2):
+        exec2("python_future_feature('division', True)")
+
+    def test_pyfutfeats_3(self,exec2):
+        exec2("python_future_feature()", "['division']\n")
+
+    def test_pyfutfeats_4(self,exec2):
+        exec2("python_future_feature('division')", "True\n")
+
+    def test_pyfutfeats_5(self,exec2):
+        exec2("print(8r / 5r)", "1.6\n")
+
+    def test_pyfutfeats_6(self,exec2):
+        exec2("python_future_feature('division', False)")
+
+    def test_pyfutfeats_7(self,exec2):
+        exec2("python_future_feature()", "[]\n")
+
+    def test_pyfutfeats_8(self,exec2):
+        exec2("python_future_feature('division')", "False\n")
+
+    def test_pyfutfeats_9(self,exec2):
+        exec2("print(8r / 5r)", "1\n")
+
+class TestPythonFutureImport:
+    def test_pyfutimp_0(self,exec2):
+        code = dedent(r"""
+        for feature in python_future_feature():
+            python_future_feature(feature, False)
+        """)
+        exec2(code)
+
+    def test_pyfutimp_1(self,exec2):
+        exec2("print(8r / 5r)", "1\n")
+
+    def test_pyfutimp_2(self,exec2):
+        code = dedent(r"""
+        from __future__ import division
+        print(8r / 5r)
+        """)
+        output = "1.6\n"
+        exec2(code, output)
+
+    def test_pyfutimp_3(self,exec2):
+        exec2("print(8r / 5r)", "1.6\n")
+
+    def test_pyfutimp_4(self,exec2):
+        exec2("python_future_feature('division', False)")
+
+    def test_pyfutimp_5(self,exec2):
+        exec2("print(8r / 5r)", "1\n")
+
+class TestPy3printMode:
+    def test_py3print_mode0(self,exec2):
+        exec2("py3print_mode()", "False\n")
+
+    def test_py3print_mode1(self,exec2):
+        exec2("py3print_mode(True)")
+
+    def test_py3print_mode2(self,exec2):
+        exec2("py3print_mode()", "True\n")
+
+    def test_py3print_mode3(self,exec2):
+        code = dedent(r"""
+        py3print_mode(True)
+        print('hello', end=' Q')
+        """)
+        output = "hello Q"
+        exec2(code, output)
+
+    def test_py3print_mode4(self,exec2):
+        exec2("py3print_mode(False)")
+
+    def test_py3print_mode5(self,exec2):
+        exec2("print '42'", "42\n")
 
 class TestUnderscore:
     # https://github.com/sagemathinc/cocalc/issues/1107

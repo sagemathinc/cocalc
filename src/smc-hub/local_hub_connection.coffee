@@ -290,7 +290,7 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
     query_cancel_all_changefeeds: (cb) =>
         if not @_query_changefeeds? or @_query_changefeeds.length == 0
             cb?(); return
-        dbg = (m)-> winston.debug("query_cancel_all_changefeeds(project_id='#{@project_id}'): #{m}")
+        dbg = (m) => winston.debug("query_cancel_all_changefeeds(project_id='#{@project_id}'): #{m}")
         v = @_query_changefeeds
         dbg("canceling #{v.length} changefeeds")
         delete @_query_changefeeds

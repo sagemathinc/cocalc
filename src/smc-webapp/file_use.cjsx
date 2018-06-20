@@ -383,8 +383,7 @@ open_file_use_entry = (info, redux) ->
     redux.getActions('page').toggle_show_file_use()
     # open the file
     require.ensure [], =>
-        # ensure that we can get the actions for a specific project.
-        require('./project_store')
+        require('./project_store').init(info.project_id)
         redux.getProjectActions(info.project_id).open_file
             path               : info.path
             foreground         : true
@@ -531,7 +530,7 @@ FileUseViewer = rclass
         @actions('page').toggle_show_file_use()
 
     render_mark_all_read_button: ->
-        <Button key='mark_all_read_button' bsStyle='warning'
+        <Button key='mark_all_read_button'
             onClick={@click_mark_all_read}>
             <Icon name='check-square'/> Mark all Read
         </Button>
@@ -576,10 +575,10 @@ FileUseViewer = rclass
     render: ->
         <div className={"smc-file-use-viewer"}>
             <Row key='top'>
-                <Col sm={8}>
+                <Col sm={7}>
                     {@render_search_box()}
                 </Col>
-                <Col sm={4}>
+                <Col sm={5}>
                     <div style={float:'right'}>
                         {@render_mark_all_read_button()}
                     </div>

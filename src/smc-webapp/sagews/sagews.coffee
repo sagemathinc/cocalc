@@ -1516,7 +1516,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                 e.html(mesg.html)
             else
                 e.html_noscript(mesg.html)
-            e.mathjax(hide_when_rendering:false)
+            e.katex()
             output.append(e)
             @process_html_output(e)
 
@@ -1526,7 +1526,9 @@ class SynchronizedWorksheet extends SynchronizedDocument2
         if mesg.d3?
             e = $("<div>")
             output.append(e)
-            require.ensure [], () =>
+            # TODO this is a hotfix. Make this loading lazy again -- #2860
+            #require.ensure [], () =>
+            if true
                 require('./d3')  # install the d3 plugin
                 e.d3
                     viewer : mesg.d3.viewer
@@ -1536,28 +1538,28 @@ class SynchronizedWorksheet extends SynchronizedDocument2
             # markdown
             # we replace all backslashes by double backslashes since bizarely the markdown-it processes replaces \$ with $, which
             # breaks later use of mathjax :-(.  This will get deleted soon.
-            html = markdown.markdown_to_html(misc.replace_all(mesg.md,'\\$', '\\\\$'))
+            html = markdown.markdown_to_html(mesg.md)
             t = $('<div class="sagews-output-md">')
             if @editor.opts.allow_javascript_eval
                 t.html(html)
             else
                 t.html_noscript(html)
-            #console.log 'sagews:mesg.md, t:', t
-            t.mathjax(hide_when_rendering:false)
+            t.katex()
             output.append(t)
             @process_html_output(t)
 
         if mesg.tex?
             # latex
             val = mesg.tex
-            elt = $("<div class='sagews-output-tex'>")
-            arg = {tex:val.tex}
             if val.display
-                arg.display = true
+                delim = '$$'
             else
-                arg.inline = true
-            arg.hide_when_rendering = false
-            output.append(elt.mathjax(arg))
+                delim = '$'
+            html = markdown.markdown_to_html(delim + val.tex + delim)
+            t = $("<div class='sagews-output-tex'>")
+            t.html(html)
+            t.find('span.cocalc-katex-error').mathjax(hide_when_rendering:false)
+            output.append(t)
 
         if mesg.raw_input?
             output.append(@raw_input(mesg.raw_input))
@@ -1592,8 +1594,11 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                         elt = $("<div class='webapp-3d-container'></div>")
                         elt.data('uuid',val.uuid)
                         output.append(elt)
-                        require.ensure [], () =>   # only load 3d library if needed
-                            require('./3d').render_3d_scene
+                        # TODO this is a temporary fix -- uncomment it again and remove the if true line once "require.ensure" works again
+                        #require.ensure [], () =>   # only load 3d library if needed
+                        if true
+                            {render_3d_scene} = require('./3d')
+                            render_3d_scene
                                 url     : target
                                 element : elt
                                 cb      : (err, obj) =>

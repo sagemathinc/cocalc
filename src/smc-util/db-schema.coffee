@@ -116,6 +116,8 @@ schema.account_creation_actions =
             desc : 'When this action should be expired.'
     pg_indexes : ['email_address']
 
+exports.DEFAULT_FONT_SIZE = DEFAULT_FONT_SIZE = 14
+
 schema.accounts =
     desc : 'All user accounts.'
     primary_key : 'account_id'
@@ -247,6 +249,7 @@ schema.accounts =
                     multiple_cursors          : true
                     track_revisions           : true
                     extra_button_bar          : true
+                    build_on_save             : true
                     first_line_number         : 1
                     indent_unit               : 4
                     tab_size                  : 4
@@ -264,18 +267,18 @@ schema.accounts =
                     default_file_sort : 'time'
                     show_global_info2 : null
                     first_steps       : true
-                    newsletter        : true
+                    newsletter        : false
                     time_ago_absolute : false
                     no_free_warnings  : false   # if true, do not show warning when using non-member projects
                 first_name      : ''
                 last_name       : ''
                 terminal        :
-                    font_size    : 14
+                    font_size    : DEFAULT_FONT_SIZE
                     color_scheme : 'default'
                     font         : 'monospace'
                 autosave        : 45
                 evaluate_key    : 'Shift-Enter'
-                font_size       : 14
+                font_size       : DEFAULT_FONT_SIZE
                 passports       : {}
                 groups          : []
                 last_active     : null

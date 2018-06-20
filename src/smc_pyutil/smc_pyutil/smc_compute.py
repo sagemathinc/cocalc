@@ -109,8 +109,10 @@ def uid(project_id):
     # user could somehow generate an account id of their choosing, this wouldn't help them get the
     # same uid as another user.
     # 2^31-1=max uid which works with FUSE and node (and Linux, which goes up to 2^32-2).
+    # 2^29 was the biggest that seemed to work with Docker on my crostini pixelbook, so shrinking to that.
+    # This is NOT used in production anymore, so should be fine.
     n = int(hashlib.sha512(project_id).hexdigest()[:8], 16)  # up to 2^32
-    n //= 2  # up to 2^31   (floor div so will work with python3 too)
+    n //= 8  # up to 2^29  (floor div so will work with python3 too)
     return n if n>65537 else n+65537   # 65534 used by linux for user sync, etc.
 
 
@@ -189,7 +191,10 @@ class Project(object):
     def create_user(self, login_shell='/bin/bash'):
         if not os.path.exists(self.project_path):
             os.makedirs(self.project_path)
-            self.chown(self.project_path)  # only chown if just made; it's recursive and can be very expensive in general!
+        # We used to only chown if just made; it's recursive and can be very expensive in general!
+        # However, since we're changing the uid mapping, we really do have to do this every time,
+        # or we break existing installs.
+        self.chown(self.project_path)
         if self._dev:
             return
         cmd(['/usr/sbin/groupadd', '-g', self.uid, '-o', self.username], ignore_errors=True)
@@ -439,8 +444,12 @@ class Project(object):
                 if pid == 0:
                     os.environ['HOME'] = self.project_path
                     os.environ['SMC'] = self.smc_path
-                    os.environ['USER'] = os.environ['USERNAME'] =  os.environ['LOGNAME'] = self.username
+                    os.environ['COCALC_SECRET_TOKEN'] = os.path.join(self.smc_path, 'secret_token')
+                    os.environ['COCALC_PROJECT_ID'] = self.project_id
+                    os.environ['USER'] = os.environ['USERNAME'] =  os.environ['LOGNAME'] = os.environ['COCALC_USERNAME'] = self.username
                     os.environ['MAIL'] = '/var/mail/%s'%self.username
+                    # Needed to read code from system-wide installed location.
+                    os.environ['NODE_PATH'] = '/cocalc/src/node_modules/smc-util:/cocalc/src/node_modules:/cocalc/src:/cocalc/src/smc-project/node_modules::/cocalc/src/smc-webapp/node_modules'
                     if self._single:
                         # In single-machine mode, everything is on localhost.
                         os.environ['SMC_HOST'] = 'localhost'

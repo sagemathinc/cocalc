@@ -20,12 +20,11 @@
 
 async = require('async')
 
-{React, ReactDOM, rclass, rtypes, is_redux, is_redux_actions, redux, Store, Actions, Redux} = require('./smc-react')
+{Component, React, ReactDOM, rclass, rtypes, is_redux, is_redux_actions, redux, Store, Actions, Redux} = require('./smc-react')
 {Alert, Button, ButtonToolbar, Checkbox, Col, Form, FormControl, FormGroup, ControlLabel, InputGroup, Overlay, OverlayTrigger, Popover, Modal, Tooltip, Row, Well} = require('react-bootstrap')
 {HelpEmailLink, SiteName, CompanyName, PricingUrl, PolicyTOSPageUrl, PolicyIndexPageUrl, PolicyPricingPageUrl} = require('./customize')
 {UpgradeRestartWarning} = require('./upgrade_restart_warning')
 copy_to_clipboard = require('copy-to-clipboard')
-math_katex = require('./math_katex')
 
 # injected by webpack, but not for react-static renderings (ATTN don't assign to uppercase vars!)
 smc_version = SMC_VERSION ? 'N/A'
@@ -100,6 +99,21 @@ exports.SetIntervalMixin =
     componentWillUnmount: ->
         @intervals.forEach clearInterval
 
+exports.SetIntervalHOC = (Comp) ->
+    class SetIntervalWrapper extends Component
+        componentWillMount: ->
+            @intervals = []
+
+        setInterval: (fn, ms) ->
+            @intervals.push setInterval fn, ms
+
+        componentWillUnmount: ->
+            @intervals.forEach clearInterval
+
+        render: ->
+            Comp.setInterval = @setInterval
+            return React.createElement(Comp, @props, @props.children)
+
 exports.Space = Space = ->
     <span>&nbsp;</span>
 
@@ -163,7 +177,7 @@ exports.Icon = Icon = rclass
             else
                 # temporary until file_associations can be changed
                 if name.slice(0, 3) == 'cc-' and name isnt 'cc-stripe'
-                    classNames = "fa #{name}"
+                    classNames = "fab #{name}"
                     # the cocalc icon font can't do any extra tricks
                 else
                     # temporary until file_associations can be changed
@@ -647,12 +661,13 @@ exports.LabeledRow = LabeledRow = rclass
         label      : rtypes.any.isRequired
         style      : rtypes.object            # NOTE: for perf reasons, we do not update if only the style changes!
         label_cols : rtypes.number    # number between 1 and 11 (default: 4)
+        className  : rtypes.string
 
     getDefaultProps: ->
         label_cols : 4
 
     render: ->
-        <Row style={@props.style}>
+        <Row style={@props.style} className={@props.className} >
             <Col xs={@props.label_cols} style={marginTop:'8px'}>
                 {@props.label}
             </Col>
@@ -962,14 +977,8 @@ exports.SearchInput = rclass
             </InputGroup>
         </FormGroup>
 
-# rendered_mathjax is used for backend pre-rendering of mathjax by the share server.
-rendered_mathjax = undefined
-exports.set_rendered_mathjax = (value, html) ->
-    rendered_mathjax ?= {}
-    if rendered_mathjax[value]?
-        rendered_mathjax[value].ref += 1
-    else
-        rendered_mathjax[value] = {html:html, ref:1}
+# This is set to true when run from the share server.  All rendering of HTML must then be synchronous.
+exports.SHARE_SERVER = false
 
 exports.HTML = HTML = rclass
     displayName : 'Misc-HTML' # this name is assumed and USED in the smc-hub/share/mathjax-support to identify this component; do NOT change!
@@ -978,7 +987,6 @@ exports.HTML = HTML = rclass
         value            : rtypes.string
         style            : rtypes.object
         auto_render_math : rtypes.bool     # optional -- used to detect and render math
-        only_mathjax     : rtypes.bool     # optional -- used to render math only with mathjax if auto_render_math is true
         project_id       : rtypes.string   # optional -- can be used to improve link handling (e.g., to images)
         file_path        : rtypes.string   # optional -- ...
         className        : rtypes.string   # optional class
@@ -1005,30 +1013,12 @@ exports.HTML = HTML = rclass
                  'reload_images', 'highlight_code']) or \
                not underscore.isEqual(@props.style, next.style)
 
-    _update_mathjax: (cb) ->
+    _update_mathjax: ->
         if not @_is_mounted  # see https://github.com/sagemathinc/cocalc/issues/1689
-            cb()
             return
-        if @_needs_mathjax
-            locals =  {elt: $(ReactDOM.findDOMNode(@))}
-            if @props.mathjax_selector
-                locals.elt = locals.elt.find(@props.mathjax_selector)
-            locals.n = locals.elt.length
-            if locals.n == 0
-                # nothing needs mathjax, so just return -- critical to do this since no cb below will get run.
-                cb?()
-                return
-            locals.elt.mathjax
-                hide_when_rendering : false
-                cb : () =>
-                    # Awkward code, since cb may be called more than once if there
-                    # where more than one node.
-                    locals.n -= 1
-                    if locals.n <= 0
-                        cb?()
-                        cb = undefined
-        else
-            cb()
+        if not @props.auto_render_math
+            return
+        $(ReactDOM.findDOMNode(@)).katex()
 
     _update_highlight: ->
         if not @_is_mounted or not @props.highlight?
@@ -1058,6 +1048,9 @@ exports.HTML = HTML = rclass
             $(ReactDOM.findDOMNode(@)).highlight_code()
 
     _do_updates: ->
+        if exports.SHARE_SERVER
+            return
+        @_update_mathjax()
         @_update_links()
         @_update_tables()
         @_update_highlight()
@@ -1067,14 +1060,7 @@ exports.HTML = HTML = rclass
     update_content: ->
         if not @_is_mounted
             return
-
-        if @_needs_mathjax
-            @_update_mathjax =>
-                if not @_is_mounted
-                    return
-                @_do_updates()
-        else
-            @_do_updates()
+        @_do_updates()
 
     componentDidUpdate: ->
         @update_content()
@@ -1092,26 +1078,21 @@ exports.HTML = HTML = rclass
         if not @props.value
             return {__html: ''}
 
-        if @props.auto_render_math and rendered_mathjax?
-            x = rendered_mathjax?[@props.value]
-            if x?
-                x.ref -= 1
-                if x.ref <= 0
-                    delete rendered_mathjax?[@props.value]
-                return {__html:x.html}
-
         if @props.safeHTML
             html = require('./misc_page').sanitize_html_safe(@props.value, @props.post_hook)
         else
             html = require('./misc_page').sanitize_html(@props.value, true, true, @props.post_hook)
 
-        if @props.auto_render_math
-            # we currently have no implementation of katex on arbitrary html
-            @_needs_mathjax = true
-            #else
-                # try using katex first.
-                #{html, is_complete} = math_katex.render(html)
-            #    @_needs_mathjax = not is_complete
+        if exports.SHARE_SERVER
+            {jQuery} = require('smc-webapp/jquery-plugins/katex')  # ensure have plugin here.
+            elt = jQuery("<div>")
+            elt.html(html)
+            if @props.auto_render_math
+                elt.katex()
+            elt.find("table").addClass("table")
+            if @props.highlight_code
+                elt.highlight_code()
+            html = elt.html()
 
         return {__html: html}
 
@@ -1150,33 +1131,29 @@ exports.Markdown = rclass
         href_transform   : rtypes.func     # optional function used to first transform href target strings
         post_hook        : rtypes.func     # see docs to HTML
         highlight        : rtypes.immutable.Set
-        auto_render_math : rtypes.bool     # render math
         content_editable : rtypes.bool     # if true, makes rendered Markdown contenteditable
-        checkboxes       : rtypes.bool     # if true, replace "[ ]" and "[ ]" by nice rendered versions.
         id               : rtypes.string
         reload_images    : rtypes.bool
         highlight_code   : rtypes.bool
 
     getDefaultProps: ->
-        auto_render_math : true
         safeHTML         : true
 
     shouldComponentUpdate: (next) ->
-        return misc.is_different(@props, next, ['value', 'auto_render_math', 'highlight', 'safeHTML',  \
+        return misc.is_different(@props, next, ['value', 'highlight', 'safeHTML',  \
                     'checkboxes', 'reload_images', 'highlight_code']) or \
                not underscore.isEqual(@props.style, next.style)
 
     to_html: ->
         if not @props.value
             return
-        return markdown.markdown_to_html(@props.value, {checkboxes:@props.checkboxes, katex:@props.auto_render_math})
+        return markdown.markdown_to_html(@props.value)
 
     render: ->
         <HTML
             id               = {@props.id}
+            auto_render_math = {true}
             value            = {@to_html()}
-            auto_render_math = {@props.auto_render_math}
-            mathjax_selector = {".cocalc-katex-error"}
             style            = {@props.style}
             project_id       = {@props.project_id}
             file_path        = {@props.file_path}

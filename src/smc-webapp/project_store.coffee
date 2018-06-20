@@ -35,9 +35,7 @@ misc      = require('smc-util/misc')
 {project_tasks} = require('./project_tasks')
 {types, defaults, required} = misc
 
-misc_page = require('./misc_page')
-
-{Actions, rtypes, computed, depends, Table, register_project_store, redux}  = require('./smc-react')
+{Actions, rtypes, computed, depends, project_redux_name, Table, redux}  = require('./smc-react')
 
 # "no such path" and "not a directory" error indicator strings
 exports.NO_DIR    = NO_DIR    = 'no_dir'
@@ -76,9 +74,6 @@ exports.file_actions = file_actions =
         name  : 'Download'
         icon  : 'cloud-download'
         allows_multiple_files : true
-
-# Register this module with the redux module, so it can be used by the reset of SMC easily.
-register_project_store(exports)
 
 if window?
     # don't import in case not in browser (for testing)
@@ -156,17 +151,17 @@ must_define = (redux) ->
     if not redux?
         throw Error('you must explicitly pass a redux object into each function in project_store')
 
-# Name used by the project_store for the sub-stores corresponding to that project.
-exports.redux_name = key = (project_id, name) ->
-    s = "project-#{project_id}"
-    if name?
-        s += "-#{name}"
-    return s
-
 _init_library_index_ongoing = {}
 _init_library_index_cache   = {}
 
 class ProjectActions extends Actions
+    destroy: =>
+        must_define(@redux)
+        name = project_redux_name(@project_id)
+        @close_all_files()
+        for table, _ of QUERIES
+            @redux.removeTable(project_redux_name(@project_id, table))
+
     _ensure_project_is_open: (cb, switch_to) =>
         s = @redux.getStore('projects')
         if not s.is_project_open(@project_id)
@@ -197,7 +192,7 @@ class ProjectActions extends Actions
         @_last_history_state = local_url
         {set_url} = require('./history')
         set_url(@_url_in_project(local_url))
-        misc_page.analytics_pageview(window.location.pathname)
+        require('./misc_page').analytics_pageview(window.location.pathname)
 
     move_file_tab: (opts) =>
         {old_index, new_index, open_files_order} = defaults opts,
@@ -405,7 +400,7 @@ class ProjectActions extends Actions
             url  = (window.app_base_url ? '') + @_url_in_project('files/' + opts.path)
             url += '?session=' + misc.uuid().slice(0,8)
             url += '&fullscreen=default'
-            misc_page.open_popup_window(url, {width: 800, height: 640})
+            require('./misc_page').open_popup_window(url, {width: 800, height: 640})
             return
 
         @_ensure_project_is_open (err) =>
@@ -1370,6 +1365,8 @@ class ProjectActions extends Actions
             paths : required
         if opts.paths.length == 0
             return
+        for path in opts.paths
+            @close_tab(path)
         id = misc.uuid()
         if underscore.isEqual(opts.paths, ['.trash'])
             mesg = "the trash"
@@ -1397,7 +1394,7 @@ class ProjectActions extends Actions
                         count  : if opts.paths.length > 3 then opts.paths.length
 
     download_file: (opts) =>
-        {download_file, open_new_tab} = misc_page
+        {download_file, open_new_tab} = require('./misc_page')
         opts = defaults opts,
             path    : required
             log     : false
@@ -2035,12 +2032,12 @@ create_project_store_def = (name, project_id) ->
     _sort_on_numerical_field: (field, factor=1) =>
         (a,b) -> misc.cmp((a[field] ? -1) * factor, (b[field] ? -1) * factor)
 
-exports.getStore = getStore = (project_id, redux) ->
+exports.init = (project_id) ->
     must_define(redux)
-    name  = key(project_id)
+    name  = project_redux_name(project_id)
     store = redux.getStore(name)
     if store?
-        return store
+        return
 
     # Initialize everything
     actions = redux.createActions(name, ProjectActions)
@@ -2063,31 +2060,9 @@ exports.getStore = getStore = (project_id, redux) ->
             if typeof(v) == 'function'
                 q[k] = v()
         q.query.project_id = project_id
-        T = redux.createTable(key(project_id, table_name), create_table(table_name, q))
+        T = redux.createTable(project_redux_name(project_id, table_name), create_table(table_name, q))
 
-    return store
-
-exports.getActions = (project_id, redux) ->
-    must_define(redux)
-    if not getStore(project_id, redux)?
-        getStore(project_id, redux)
-    return redux.getActions(key(project_id))
-
-exports.getTable = (project_id, name, redux) ->
-    must_define(redux)
-    if not getStore(project_id, redux)?
-        getStore(project_id, redux)
-    return redux.getTable(key(project_id, name))
-
-exports.deleteStoreActionsTable = (project_id, redux) ->
-    must_define(redux)
-    name = key(project_id)
-    redux.getStore(name)?.destroy?()
-    redux.getActions(name).close_all_files()
-    redux.removeActions(name)
-    for table,_ of QUERIES
-        redux.removeTable(key(project_id, table))
-    redux.removeStore(name)
+    return
 
 prom_client = require('./prom-client')
 if prom_client.enabled
@@ -2177,4 +2152,3 @@ exports.get_directory_listing = get_directory_listing = (opts) ->
                 redux.getProjectActions(opts.project_id).log
                     event : 'start_project'
                     time  : misc.server_time() - time0
-

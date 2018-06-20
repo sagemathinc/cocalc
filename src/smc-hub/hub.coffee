@@ -28,6 +28,9 @@ many HUBs running.
 
 require('coffee2-cache')
 
+# Make loading typescript just work.
+require('ts-node').register()
+
 DEBUG = false
 
 if not process.env.SMC_TEST
@@ -690,3 +693,4 @@ command_line = () ->
 
 if process.argv.length > 1
     command_line()
+

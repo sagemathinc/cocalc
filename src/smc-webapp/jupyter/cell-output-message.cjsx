@@ -58,9 +58,16 @@ exports.Stderr = Stderr = rclass
     mixins: [ImmutablePureRenderMixin]
 
     render: ->
-        # span below?  what? -- See https://github.com/sagemathinc/cocalc/issues/1958
-        <div style={STDERR_STYLE}><span>{@props.message.get('text')}</span>
-        </div>
+        value = @props.message.get('text')
+        if is_ansi(value)
+            <div style={STDERR_STYLE}>
+                <Ansi>{value}</Ansi>
+            </div>
+        else
+            # span below?  what? -- See https://github.com/sagemathinc/cocalc/issues/1958
+            <div style={STDERR_STYLE}>
+                <span>{value}</span>
+            </div>
 
 Image = rclass
     propTypes:
@@ -203,7 +210,8 @@ Data = rclass
     render: ->
         type  = undefined
         value = undefined
-        @props.message.get('data').forEach (v, k) ->
+        data = @props.message.get('data')
+        data?.forEach? (v, k) ->
             type  = k
             value = v
             return false

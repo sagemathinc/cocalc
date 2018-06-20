@@ -2,17 +2,13 @@
 Component that shows rendered HTML.
 */
 
-import { is_different, path_split } from "../misc";
-
+import { delay } from "awaiting";
+import { is_different, path_split } from "../generic/misc";
 import { Map } from "immutable";
-
 import { throttle } from "underscore";
-
-const { Loading, HTML } = require("smc-webapp/r_misc");
-
-import { React, Component, Rendered, ReactDOM } from "../react";
-
+import { React, Component, Rendered, ReactDOM } from "../generic/react";
 import { MAX_WIDTH } from "./options.ts";
+const { HTML } = require("smc-webapp/r_misc");
 
 interface PropTypes {
   id: string;
@@ -34,8 +30,7 @@ export class QuickHTMLPreview extends Component<PropTypes, {}> {
       "path",
       "font_size",
       "read_only",
-      "value",
-      "content"
+      "value"
     ]);
   }
 
@@ -49,12 +44,15 @@ export class QuickHTMLPreview extends Component<PropTypes, {}> {
   }
 
   componentDidMount(): void {
-    this.restore_scroll();
-    setTimeout(() => this.restore_scroll, 200);
-    setTimeout(() => this.restore_scroll, 500);
+    for (let wait of [0, 200, 500]) {
+      this.restore_scroll(wait);
+    }
   }
 
-  restore_scroll() {
+  async restore_scroll(wait?: number): Promise<void> {
+    if (wait) {
+      await delay(wait);
+    }
     const scroll: number | undefined = this.props.editor_state.get("scroll");
     if (scroll !== undefined) {
       $(ReactDOM.findDOMNode(this.refs.scroll)).scrollTop(scroll);
@@ -68,12 +66,6 @@ export class QuickHTMLPreview extends Component<PropTypes, {}> {
   } // gets rid of inline CSS style
 
   render(): Rendered {
-    const value: string | undefined =
-      this.props.value === undefined ? this.props.content : this.props.value;
-    // the cocalc-editor-div is needed for a safari hack only
-    if (value === undefined) {
-      return <Loading />;
-    }
     return (
       <div
         style={{
@@ -93,8 +85,7 @@ export class QuickHTMLPreview extends Component<PropTypes, {}> {
           }}
         >
           <HTML
-            id={`frame-${this.props.id}`}
-            value={value}
+            value={this.props.value}
             project_id={this.props.project_id}
             file_path={path_split(this.props.path).head}
             safeHTML={true}

@@ -118,6 +118,9 @@ exports.scroll_top = () ->
 #############################################
 {required, defaults} = require('smc-util/misc')
 
+# These should all get moved to this subdir and be in typescript.  For now there is one:
+require('./jquery-plugins/katex')
+
 # Force reload all images by appending random query param to their src URL.
 $.fn.reload_images = (opts) ->
     @each ->
@@ -208,8 +211,6 @@ mathjax_enqueue = (x) ->
 exports.mathjax_finish_startup = ->
     for x in mathjax_queue
         mathjax_enqueue(x)
-    if DEBUG
-        console.log 'finishing mathjax startup'
 
 mathjax_typeset = (el) ->
     # no MathJax.Hub, since there is no MathJax defined!

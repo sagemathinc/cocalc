@@ -22,11 +22,6 @@ react_support        = require('./react')
 {render_static_path} = require('./render-static-path')
 util                 = require('./util')
 
-# This MUST be loaded last, e.g,. it overwrites some of the jQuery plugins
-# (mathjax from misc_page) that are implicitly loaded by the above requires.
-require('./process-react')
-
-
 # this reads it from disk
 google_analytics     = require('./util').google_analytics_token()
 

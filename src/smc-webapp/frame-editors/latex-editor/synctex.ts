@@ -2,8 +2,8 @@
 Use synctex to go back and forth between latex files and pdfs.
 */
 
-import { path_split, splitlines } from "../misc";
-import { exec, ExecOutput } from "../async-utils";
+import { path_split, splitlines } from "../generic/misc";
+import { exec, ExecOutput } from "../generic/client";
 
 interface SyncTex {
   [key: string]: string | number;

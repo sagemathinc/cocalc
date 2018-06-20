@@ -9,6 +9,7 @@ AGPLv3
 
 # require('coffee-cache').setCacheDir("#{process.env.HOME}/.coffee/cache")
 
+require('smc-hub/share/jsdom-support')
 misc = require('smc-util/misc')
 smc_react = require('../../smc-react')
 require('../../project_store')  # needed so that project store is available.

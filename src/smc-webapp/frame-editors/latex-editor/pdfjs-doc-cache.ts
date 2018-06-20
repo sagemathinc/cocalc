@@ -24,7 +24,11 @@ import {
   PDFDocumentProxy
 } from "pdfjs-dist/webpack";
 
-import { pdf_path, raw_url } from "./util";
+import { raw_url } from "../frame-tree/util";
+
+import { pdf_path } from "./util";
+
+import { encode_path } from "../generic/misc";
 
 const options = {
   max: MAX_PAGES,
@@ -38,7 +42,7 @@ export function url_to_pdf(
   path: string,
   reload: number
 ): string {
-  return `${raw_url(project_id, pdf_path(path))}?param=${reload}`;
+  return `${raw_url(project_id, encode_path(pdf_path(path)))}?param=${reload}`;
 }
 
 const doc_cache = LRU(options);

@@ -42,7 +42,7 @@ exports.DescVisible = rclass
     render: ->
         if not @props.num_visible? or not @props.local_view_state? or not @props.num_tasks?
             return <span />
-        <div style={padding:'10px 0px', float: 'right', marginRight: '15px', fontSize:'12pt'}>
+        <div style={padding:'10px 0px', float: 'right', marginRight: '15px', fontSize:'12pt', position:'absolute', marginLeft:'5px'}>
             {@render_visible()}
             {@render_search()}
             {@render_checked()}

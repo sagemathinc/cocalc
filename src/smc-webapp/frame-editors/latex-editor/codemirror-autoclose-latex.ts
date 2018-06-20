@@ -15,7 +15,7 @@ declare module "codemirror" {
   function innerMode(mode: any, state: any): any;
 }
 
-import { splitlines } from "../misc";
+import { splitlines } from "../generic/misc";
 
 CodeMirror.defineOption("autoCloseLatex", false, function(cm, val, old) {
   if (old) {
@@ -91,7 +91,11 @@ function auto_close_latex(cm): void {
       no_op(pos);
       continue;
     }
-    const environment: string = line.slice(i + "\\begin{".length, pos.ch - 1);
+    let environment: string = line.slice(i + "\\begin{".length, pos.ch - 1);
+    i = environment.indexOf("}");
+    if (i != -1) {
+      environment = environment.slice(0, i);
+    }
     const end: string = `\\end{${environment}}`;
     const s: string = cm.getRange(
       { line: pos.line + 1, ch: 0 },
@@ -130,9 +134,9 @@ var extra_content = function(environment: string): string {
     case "enumerate":
     case "itemize":
     case "list":
-      return "\n\\item First \n\\item Second ";
+      return "\n\\item First ";
     case "description":
-      return "\n\\item [label] First \n\\item [label] Second ";
+      return "\n\\item [label] First  ";
     case "figure":
       return "\n% body of the figure\n\\caption{figure title}";
     default:

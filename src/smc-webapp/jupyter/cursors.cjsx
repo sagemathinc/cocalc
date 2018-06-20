@@ -2,6 +2,10 @@
 React component that represents cursors of other users.
 ###
 
+# How long until another user's cursor is no longer displayed, if they don't move.
+# (NOTE: might take a little longer since we use a long interval.)
+CURSOR_TIME_S = 15
+
 {React, ReactDOM, rclass, rtypes}  = require('../smc-react')
 
 {debounce} = require('underscore')
@@ -175,8 +179,17 @@ exports.Cursors = rclass
         account:
             account_id : rtypes.string
 
-    shouldComponentUpdate: (props) ->
-        return misc.is_different(@props, props, ['cursors', 'user_map', 'account_id'])
+    getInitialState: ->
+        n : 0
+
+    shouldComponentUpdate: (props, state) ->
+        return misc.is_different(@props, props, ['cursors', 'user_map', 'account_id']) or @state.n != state.n
+
+    componentDidMount: ->
+        @_interval = setInterval((=>@setState(n : @state.n+1)),  CURSOR_TIME_S/2*1000)
+
+    componentWillUnmount: ->
+        clearInterval(@_interval)
 
     profile: (account_id) ->
         user = @props.user_map.get(account_id)
@@ -198,7 +211,7 @@ exports.Cursors = rclass
         @props.cursors?.forEach (locs, account_id) =>
             {color, name} = @profile(account_id)
             locs.forEach (pos) =>
-                if now - pos.get('time') <= 60000
+                if now - pos.get('time') <= CURSOR_TIME_S*1000
                     if account_id == @props.account_id
                         # don't show our own cursor (we just haven't made this possible due to only keying by account_id)
                         return

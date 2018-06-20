@@ -12,6 +12,9 @@
 #                  http://www.gnu.org/licenses/                                         #
 #########################################################################################
 
+# set backend of matplot lib before any other module is loaded
+import matplotlib
+matplotlib.use('Agg')
 
 import copy, os, sys, types, re
 
@@ -3629,6 +3632,45 @@ def typeset_mode(on=True, display=True, **args):
         sys.displayhook = f
     else:
         sys.displayhook = displayhook
+
+
+def python_future_feature(feature=None, enable=None):
+    """
+    Enable python features from the __future__ system.
+
+    EXAMPLES::
+
+    Enable python3 printing:
+
+        python_future_feature('print_function', True)
+        python_future_feature('print_function')   # returns True
+        print("hello", end="")
+
+    Then switch back to python2 printing
+        python_future_feature('print_function', False)
+        print "hello"
+
+    """
+    return salvus.python_future_feature(feature, enable)
+
+def py3print_mode(enable=None):
+    """
+    Enable python3 print syntax.
+
+    EXAMPLES::
+
+    Enable python3 printing:
+
+        py3print_mode(True)
+        py3print_mode()   # returns True
+        print("hello", end="")
+
+    Then switch back to python2 printing
+        py3print_mode(False)
+        print "hello"
+
+    """
+    return salvus.python_future_feature('print_function', enable)
 
 def default_mode(mode):
     """

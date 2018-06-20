@@ -2,8 +2,8 @@
  * Clean up all aux files.
  */
 
-import { exec } from "../async-utils";
-import { parse_path } from "./util";
+import { exec } from "../generic/client";
+import { parse_path } from "../frame-tree/util";
 
 const EXT: string[] = [
   ".aux",

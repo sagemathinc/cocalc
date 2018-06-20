@@ -1015,7 +1015,7 @@ class exports.Connection extends EventEmitter
     # Individual Projects
     #################################################
 
-    open_project: (opts) ->
+    open_project: (opts) =>
         opts = defaults opts,
             project_id   : required
             cb           : required
@@ -1025,7 +1025,7 @@ class exports.Connection extends EventEmitter
                     project_id : opts.project_id
             cb : opts.cb
 
-    write_text_file_to_project: (opts) ->
+    write_text_file_to_project: (opts) =>
         opts = defaults opts,
             project_id : required
             path       : required
@@ -1043,7 +1043,7 @@ class exports.Connection extends EventEmitter
             timeout : opts.timeout
             cb      : (err, resp) => opts.cb?(err, resp)
 
-    read_text_file_from_project: (opts) ->
+    read_text_file_from_project: (opts) =>
         opts = defaults opts,
             project_id : required
             path       : required
@@ -1064,7 +1064,7 @@ class exports.Connection extends EventEmitter
     # downloaded using standard AJAX.
     # Despite the callback, this function is NOT asynchronous (that was for historical reasons).
     # It also just returns the url.
-    read_file_from_project: (opts) ->
+    read_file_from_project: (opts) =>
         opts = defaults opts,
             project_id : required
             path       : required
@@ -1375,10 +1375,12 @@ class exports.Connection extends EventEmitter
             query_id : -1     # So we can check that it matches the most recent query
             limit    : 20
             timeout  : DEFAULT_TIMEOUT
+            active   : '6 months'
+            admin    : false  # admins can do and admin version of the query, which returns email addresses and does substring searches on email
             cb       : required
 
         @call
-            message : message.user_search(query:opts.query, limit:opts.limit)
+            message : message.user_search(query:opts.query, limit:opts.limit, admin:opts.admin, active:opts.active)
             timeout : opts.timeout
             cb      : (err, resp) =>
                 if err

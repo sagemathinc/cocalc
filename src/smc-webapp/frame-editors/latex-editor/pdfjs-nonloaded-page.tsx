@@ -2,9 +2,9 @@
 
 import { PDFPageProxy } from "pdfjs-dist/webpack";
 
-import { Component, React } from "../react";
+import { Component, React } from "../generic/react";
 
-import { is_different } from "../misc";
+import { is_different } from "../generic/misc";
 
 interface Props {
   page: PDFPageProxy;
