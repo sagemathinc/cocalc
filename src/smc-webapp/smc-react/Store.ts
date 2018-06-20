@@ -109,6 +109,7 @@ export class Store<State> extends EventEmitter {
   // It's probably advisable to normalize your data if you find yourself that deep
   // https://redux.js.org/recipes/structuring-reducers/normalizing-state-shape
   // If you need to describe a recurse data structure such as a binary tree, use unsafe_getIn.
+  // Does not work with selectors.
   getIn<K1 extends keyof State, NSV>(
     path: [K1],
     notSetValue?: NSV

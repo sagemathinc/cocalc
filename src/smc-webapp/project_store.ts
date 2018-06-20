@@ -23,9 +23,6 @@
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 //##############################################################################
-
-const literal = <T extends string>(val: T[]) => val;
-
 let wrapped_editors;
 if (typeof window !== "undefined" && window !== null) {
   // don't import in case not in browser (for testing)
@@ -43,6 +40,8 @@ import {
   Store,
   AppRedux
 } from "./smc-react";
+
+import { literal } from "./smc-react/literal"
 
 export { FILE_ACTIONS as file_actions, ProjectActions };
 

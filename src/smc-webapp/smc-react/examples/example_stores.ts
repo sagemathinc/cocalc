@@ -1,5 +1,6 @@
 import { Store } from "../Store";
 import { redux } from "../../smc-react";
+import { literal } from "../literal";
 
 // Basic Store
 export interface bakeryState {
@@ -7,35 +8,31 @@ export interface bakeryState {
   pie: string;
 }
 
-export const simple = "simple_store";
-
 export const init_state: bakeryState = {
   cake: "chocolate",
   pie: "pizza"
 };
 
-redux.createStore(simple, Store, init_state);
+const NAME = "simple";
+redux.createStore(NAME, Store, init_state);
 
 // Do this
-let alt_store: Store<bakeryState> | undefined = redux.getStore(simple);
-if (alt_store != undefined) {
-  alt_store.get("pie");
-}
+let store0: Store<bakeryState> | undefined = redux.getStore(NAME);
 
 // Don't do this
-let store = redux.getStore<bakeryState, Store<bakeryState>>(simple);
+let store1 = redux.getStore<bakeryState, Store<bakeryState>>(NAME);
 
-// get must take a parameter defined by your state interface
-if (store != undefined) {
-  store.get("pie");
-}
+// A store with a computed value
 
-// The following should error!
-// store.get("pi");
+/*
+# Using Selectors and computed values
 
-//
-// More complex example
-//
+1. In State of Store<State>, define what the selector returns
+2. In init, define what the default state ought to be
+3. In the selectors property of the Store, define dependencies and the function
+
+*If you have any questions, ask J3 how this works* 
+*/
 type drinkTypes = "mocha" | "cappucccino" | "latte";
 
 export interface cafeState {
@@ -49,20 +46,26 @@ export interface cafeState {
       shifts: string[];
     };
   };
+  order_amount: Partial<{ [P in drinkTypes]: number }>;
+  subTotal: number;
 }
 
 class cafeStore extends Store<cafeState> {
-  // We don't really use many functions on stores now but here's what it would look like...
-  subTotal(drinkCount: Partial<{ [P in drinkTypes]: number }>): number {
-    let total: number = 0;
-    for (let item in drinkCount) {
-      let cost = this.get("costs");
-      if (cost !== undefined && cost[item]) {
-        total = total + cost[item] * drinkCount[item];
+  selectors = {
+    subTotal: {
+      dependencies: literal(["order_amount", "costs"]),
+      fn: () => {
+        let total: number = 0;
+        for (let item in this.get("order_amount")) {
+          let cost = this.get("costs");
+          if (cost !== undefined && cost[item]) {
+            total = total + cost[item] * this.get("order_amount")[item];
+          }
+        }
+        return total;
       }
     }
-    return total;
-  }
+  };
 }
 
 let init_cafe_store_state: cafeState = {
@@ -77,7 +80,9 @@ let init_cafe_store_state: cafeState = {
     baristas: {
       shifts: ["Frank", "Melissa"]
     }
-  }
+  },
+  order_amount: {},
+  subTotal: 0
 };
 
 redux.createStore("cafeStore", cafeStore, init_cafe_store_state);
