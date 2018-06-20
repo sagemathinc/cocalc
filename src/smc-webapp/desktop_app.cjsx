@@ -285,4 +285,4 @@ page =
         </ErrorBoundary>
     </Redux>
 
-exports.render = () => ReactDOM.render(page, document.getElementById('app-framework-container'))
+exports.render = () => ReactDOM.render(page, document.getElementById('smc-react-container'))
