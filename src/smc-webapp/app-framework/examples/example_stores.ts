@@ -17,10 +17,10 @@ const NAME = "simple";
 redux.createStore(NAME, Store, init_state);
 
 // Do this
-let store0: Store<bakeryState> | undefined = redux.getStore(NAME);
+// let store0: Store<bakeryState> | undefined = redux.getStore(NAME);
 
 // Don't do this
-let store1 = redux.getStore<bakeryState, Store<bakeryState>>(NAME);
+// let store1 = redux.getStore<bakeryState, Store<bakeryState>>(NAME);
 
 // A store with a computed value
 

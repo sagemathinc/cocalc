@@ -40,7 +40,7 @@ Computed values are
  - Callable from outside React code
  - Not stored in the redux state. Maintain redux state as pure data
 
-```coffee
+```ts
 {redux, computed, depends, rtypes} = require('app-state-framework')
 redux.createStore
     name: 'account'

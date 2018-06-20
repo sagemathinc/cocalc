@@ -1,15 +1,21 @@
-import { Map } from "immutable";
 /*
-export interface TypedMap extends Map<string, any> {
-    toJS(): DataType;
-    get(key: K, notSetValue?: DataType[K]): DataType[K];
-    set(key: K, value: DataType[K]): this;
+# Example usage
+
+```ts
+interface SaleRecord {
+  name: string;
+  price: number;
+  time?: number; // This can be omitted
 }
 
-function createTypedMap<T extends Object>(data: T): TypedMap {
-    return Map(data) as TypedMap
-}
+let Sale = createTypedMap<SaleRecord>();
+let sale1 = new Sale({ name: "Latte", price: 10 });
+let sale2 = sale1.set("name", "Mocha");
+```
+
+For more information see "app-framework/examples/"
 */
+import { Map } from "immutable";
 
 export interface TypedMap<TProps> {
   // Reading values
