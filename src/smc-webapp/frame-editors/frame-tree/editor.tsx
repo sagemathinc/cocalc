@@ -1,27 +1,27 @@
-import { React, rclass, rtypes, Component, Rendered } from "../generic/react";
+import { React, rclass, rtypes, Component, Rendered } from "../../app-framework";
 
 const { ErrorDisplay, Loading } = require("smc-webapp/r_misc");
 
-import { FormatBar } from "./format-bar.tsx";
+import { FormatBar } from "./format-bar";
 
-import { StatusBar } from "./status-bar.tsx";
+import { StatusBar } from "./status-bar";
 const { FrameTree } = require("./frame-tree");
 
 import { copy, is_different } from "../generic/misc";
 
 import { SetMap } from "./types";
 
-interface FrameTreeEditorProps {
+interface ReactProps {
+  name: string;
   actions: any;
   path: string;
   project_id: string;
   format_bar: boolean;
   format_bar_exclude?: SetMap;
   editor_spec: any;
+}
 
-  // reduxProps below:
-  name: string;
-
+interface ReduxProps {
   editor_settings?: Map<string, any>;
 
   is_public: boolean;
@@ -43,6 +43,8 @@ interface FrameTreeEditorProps {
   is_saving: boolean;
   gutter_markers: Map<string, any>;
 }
+
+type FrameTreeEditorProps = ReactProps & ReduxProps;
 
 class FrameTreeEditor0 extends Component<FrameTreeEditorProps, {}> {
   private editor_spec: any = {};
@@ -242,7 +244,7 @@ class FrameTreeEditor0 extends Component<FrameTreeEditorProps, {}> {
   }
 }
 
-const FrameTreeEditor = rclass(FrameTreeEditor0);
+const FrameTreeEditor = rclass<ReactProps>(FrameTreeEditor0);
 
 interface Options {
   display_name: string;
@@ -262,7 +264,7 @@ export function createEditor(opts: Options) {
   class Editor extends Component<EditorProps, {}> {
     public displayName: string = opts.display_name;
 
-    render(): Rendered {
+    render(): JSX.Element {
       return (
         <FrameTreeEditor
           actions={this.props.actions}

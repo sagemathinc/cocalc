@@ -27,7 +27,7 @@ if (DEBUG == null) {
   var DEBUG = false;
 }
 
-let rclass: (x?) => () => JSX.Element;
+let rclass: <P extends object>(Component: React.ComponentType<P>) => React.ComponentType<P>;
 
 import * as immutable from "immutable";
 import * as React from "react";
@@ -561,7 +561,7 @@ switch (MODE) {
     //  reset_render_count()
     //  JSON.stringify(get_render_count())
     var render_count = {};
-    rclass = function(x) {
+    rclass = function(x: any) {
       x._render = x.render;
       x.render = function() {
         render_count[x.displayName] =
@@ -596,7 +596,7 @@ switch (MODE) {
     };
     break;
   case "verbose":
-    rclass = function(x) {
+    rclass = function(x: any) {
       x._render = x.render;
       x.render = function() {
         console.log(x.displayName);

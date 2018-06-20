@@ -25,7 +25,7 @@ import {
   rclass,
   rtypes,
   Rendered
-} from "../generic/react";
+} from "../../app-framework";
 import { getDocument, url_to_pdf } from "./pdfjs-doc-cache";
 import { Page, PAGE_GAP } from "./pdfjs-page";
 import { SyncHighlight } from "./pdfjs-annotation";

@@ -28,7 +28,7 @@ or
 import { delay } from "awaiting";
 import { is_safari } from "../generic/browser";
 import { is_different } from "../generic/misc";
-import { React, ReactDOM, Component } from "../generic/react";
+import { React, ReactDOM, Component } from "../../app-framework";
 import { Map, Set } from "immutable";
 
 const Draggable = require("react-draggable");

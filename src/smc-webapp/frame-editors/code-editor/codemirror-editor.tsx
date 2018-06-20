@@ -12,7 +12,7 @@ import { Map, Set } from "immutable";
 
 import { is_safari } from "../generic/browser";
 import * as CodeMirror from "codemirror";
-import { React, ReactDOM, Rendered, Component } from "../generic/react";
+import { React, ReactDOM, Rendered, Component } from "../../app-framework";
 
 import { throttle } from "underscore";
 
