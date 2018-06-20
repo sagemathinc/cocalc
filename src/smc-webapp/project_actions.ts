@@ -958,7 +958,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       });
     };
 
-    this._activity_indicator_timers[filename] = setTimeout(set_inactive, 1000);
+    this._activity_indicator_timers[filename] = setTimeout(set_inactive, 1000) as NodeJS.Timer;
 
     let store = this.get_store();
     if (store == undefined) {
