@@ -79,7 +79,7 @@ export class Actions extends BaseActions<LatexEditorState> {
   }
 
   _init_latexmk(): void {
-    const account : any = this.redux.getStore("account");
+    const account: any = this.redux.getStore("account");
 
     this._syncstring.on("save-to-disk", time => {
       this._last_save_time = time;

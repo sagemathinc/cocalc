@@ -35,6 +35,7 @@ import {
   ImmutableFrameTree,
   SetMap
 } from "../frame-tree/types";
+import { SettingsObject } from "../settings/types";
 import { misspelled_words } from "./spell-check";
 import * as cm_doc_cache from "./doc";
 import { test_line } from "./simulate_typing";
@@ -44,6 +45,7 @@ import "../generic/codemirror-plugins";
 import * as tree_ops from "../frame-tree/tree-ops";
 import { Actions as BaseActions, Store } from "../../smc-react-ts";
 import { createTypedMap, TypedMap } from "../../smc-react/TypedMap";
+import { language } from "../generic/misc-page";
 
 const copypaste = require("smc-webapp/copy-paste-buffer");
 
@@ -76,6 +78,7 @@ export interface CodeEditorState {
   error: any;
   status: any;
   read_only: boolean;
+  settings: Map<string, any>; // settings specific to this file (but **not** this user or browser), e.g., spell check language.
 }
 
 export class Actions<T = CodeEditorState> extends BaseActions<
@@ -131,7 +134,8 @@ export class Actions<T = CodeEditorState> extends BaseActions<
       has_uncommitted_changes: false,
       is_saving: false,
       gutter_markers: Map(),
-      cursors: Map()
+      cursors: Map(),
+      settings: fromJS(this._default_settings())
     });
 
     this._save_local_view_state = debounce(
@@ -176,6 +180,12 @@ export class Actions<T = CodeEditorState> extends BaseActions<
   // Init spellchecking whenever syncstring saves -- only used in derived classes, where
   // spelling makes sense...
   _init_spellcheck(): void {
+    // TODO: lame explicit cast
+    const settings: Map<string, any> = this.store.get("settings");
+    if (!settings.has("spell")) {
+      // ensure that the spell checker setting is available.
+      this.set_setting("spell", language());
+    }
     this.update_misspelled_words();
     this._syncstring.on("save-to-disk", time =>
       this.update_misspelled_words(time)
@@ -1567,5 +1577,15 @@ export class Actions<T = CodeEditorState> extends BaseActions<
       throw Error(`unique frame with id ${id} not in DOM`);
     }
     return elt;
+  }
+
+  _default_settings(): SettingsObject {
+    return {};
+  }
+
+  set_setting(key: string, value: any): void {
+    // TODO: lame explicit cast
+    const settings: Map<string, any> = this.store.get("settings"); 
+    this.setState({ settings: settings.set(key, fromJS(value)) });
   }
 }

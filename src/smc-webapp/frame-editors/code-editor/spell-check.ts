@@ -4,8 +4,7 @@ Backend spell checking support
 
 import { filename_extension } from "../generic/misc";
 import { exec, ExecOutput } from "../generic/client";
-
-const misc_page = require("smc-webapp/misc_page");
+import { language } from "../generic/misc-page";
 
 interface Options {
   project_id: string;
@@ -16,7 +15,7 @@ interface Options {
 
 export async function misspelled_words(opts: Options): Promise<string[]> {
   if (!opts.lang) {
-    opts.lang = misc_page.language();
+    opts.lang = language();
   }
   if (opts.lang === "disable") {
     return [];
@@ -25,17 +24,22 @@ export async function misspelled_words(opts: Options): Promise<string[]> {
   let mode: string;
   switch (filename_extension(opts.path)) {
     case "html":
-      mode = "html";
+      mode = "--mode=html";
       break;
     case "tex":
-      mode = "tex";
+      mode = "--mode=tex";
       break;
     default:
-      mode = "none";
+      mode = "--mode=none";
   }
-  const command = `cat '${opts.path}'|aspell --mode=${mode} --lang=${
-    opts.lang
-  } list|sort|uniq`;
+  let lang;
+  if (opts.lang) {
+    lang = `--lang=${opts.lang}`;
+  } else {
+    lang = "";
+  }
+  const command = `cat '${opts.path}'|aspell ${mode} ${lang} list|sort|uniq`;
+  //console.log(command);
 
   const output: ExecOutput = await exec({
     project_id: opts.project_id,
