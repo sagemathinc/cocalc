@@ -11,7 +11,7 @@ import { copy, is_different } from "../generic/misc";
 
 import { SetMap } from "./types";
 
-interface ReactProps {
+interface FrameTreeEditorReactProps {
   name: string;
   actions: any;
   path: string;
@@ -21,7 +21,7 @@ interface ReactProps {
   editor_spec: any;
 }
 
-interface ReduxProps {
+interface FrameTreeEditorReduxProps {
   editor_settings?: Map<string, any>;
 
   is_public: boolean;
@@ -44,9 +44,9 @@ interface ReduxProps {
   gutter_markers: Map<string, any>;
 }
 
-type FrameTreeEditorProps = ReactProps & ReduxProps;
+type FrameTreeEditorProps = FrameTreeEditorReactProps & FrameTreeEditorReduxProps;
 
-class FrameTreeEditor0 extends Component<FrameTreeEditorProps, {}> {
+const FrameTreeEditor0 = class extends Component<FrameTreeEditorProps, {}> {
   private editor_spec: any = {};
 
   constructor(props) {
@@ -242,9 +242,9 @@ class FrameTreeEditor0 extends Component<FrameTreeEditorProps, {}> {
       </div>
     );
   }
-}
+} as React.ComponentType<FrameTreeEditorReactProps>
 
-const FrameTreeEditor = rclass<ReactProps>(FrameTreeEditor0);
+const FrameTreeEditor = rclass(FrameTreeEditor0);
 
 interface Options {
   display_name: string;
