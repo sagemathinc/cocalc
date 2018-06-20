@@ -2,7 +2,7 @@
 import * as immutable from "immutable";
 
 // Internal Libraries
-import { Store } from "../smc-react/Store";
+import { Store } from "../app-framework/Store";
 
 interface chatState {
   height: number; // 0 means not rendered; otherwise is the height of the chat editor

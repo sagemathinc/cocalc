@@ -21,7 +21,7 @@
 
 misc = require('smc-util/misc')
 
-{React, Actions, Store, Table, redux, rtypes, rclass}  = require('./smc-react')
+{React, Actions, Store, Table, redux, rtypes, rclass}  = require('./app-framework')
 
 {TimeAgo, Tip} = require('./r_misc')
 

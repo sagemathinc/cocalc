@@ -4,7 +4,7 @@ Render a single project entry, which goes in the list of projects
 
 immutable  = require('immutable')
 
-{React, rtypes, rclass}  = require('../smc-react')
+{React, rtypes, rclass}  = require('../app-framework')
 {Button, Row, Col, Well} = require('react-bootstrap')
 {Icon, Markdown, ProjectState, r_join, Space, TimeAgo} = require('../r_misc')
 {AddCollaborators} = require('../collaborators/add-to-project')

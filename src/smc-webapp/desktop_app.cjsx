@@ -21,7 +21,7 @@
 
 {isMobile} = require('./feature')
 
-{React, ReactDOM, rclass, redux, rtypes, Redux, redux_fields} = require('./smc-react')
+{React, ReactDOM, rclass, redux, rtypes, Redux, redux_fields} = require('./app-framework')
 
 {Navbar, Nav, NavItem} = require('react-bootstrap')
 {ErrorBoundary, Loading, Icon, Tip}   = require('./r_misc')
@@ -285,4 +285,4 @@ page =
         </ErrorBoundary>
     </Redux>
 
-exports.render = () => ReactDOM.render(page, document.getElementById('smc-react-container'))
+exports.render = () => ReactDOM.render(page, document.getElementById('app-framework-container'))

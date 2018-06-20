@@ -3,7 +3,7 @@ Git "editor" -- basically an application that let's you interact with git.
 
 ###
 
-{React, ReactDOM, rclass, rtypes, Redux, Actions, Store}  = require('./smc-react')
+{React, ReactDOM, rclass, rtypes, Redux, Actions, Store}  = require('./app-framework')
 {Button, Form, FormControl, FormGroup, Panel, Row, Col, ControlLabel, Tabs, Tab, DropdownButton, MenuItem, Modal} = require('react-bootstrap')
 {Icon, Octicon, Space, Tip} = require('./r_misc')
 {webapp_client} = require('./webapp_client')

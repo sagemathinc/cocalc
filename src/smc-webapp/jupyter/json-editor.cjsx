@@ -4,7 +4,7 @@ A JSON Editor
 This is just built using codemirror for now.
 ###
 
-{React, ReactDOM, rclass, rtypes}  = require('../smc-react')
+{React, ReactDOM, rclass, rtypes}  = require('../app-framework')
 
 json_stable = require('json-stable-stringify')
 syncstring  = require('smc-util/syncstring')

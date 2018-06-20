@@ -25,7 +25,7 @@ misc = require('smc-util/misc')
 {webapp_client} = require('../webapp_client')
 
 # React libraries and components
-{React, ReactDOM, rclass, rtypes}  = require('../smc-react')
+{React, ReactDOM, rclass, rtypes}  = require('../app-framework')
 {Button, ButtonToolbar, ButtonGroup, FormGroup, FormControl, InputGroup, Row, Col, Panel, Well} = require('react-bootstrap')
 
 # CoCalc components

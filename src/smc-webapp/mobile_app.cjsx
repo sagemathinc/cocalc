@@ -2,7 +2,7 @@
 React Component for displaying the entire page on a mobile device.
 ###
 
-{React, ReactDOM, rclass, redux, rtypes, Redux, redux_fields} = require('./smc-react')
+{React, ReactDOM, rclass, redux, rtypes, Redux, redux_fields} = require('./app-framework')
 {Button, Navbar, Nav, NavItem, MenuItem} = require('react-bootstrap')
 {ErrorBoundary, Loading, Icon, Tip} = require('./r_misc')
 

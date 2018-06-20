@@ -15,7 +15,7 @@ underscore = require('underscore')
 misc       = require('smc-util/misc')
 {required, defaults} = misc
 
-{Actions}  = require('../smc-react')
+{Actions}  = require('../app-framework')
 
 util       = require('./util')
 

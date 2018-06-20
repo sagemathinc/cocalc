@@ -5,7 +5,7 @@ Show errors and warnings.
 import { Map } from "immutable";
 import { capitalize, is_different, path_split } from "../generic/misc";
 import { Component, React, rclass, rtypes, Rendered } from "../generic/react";
-import { TypedMap } from "../../smc-react/TypedMap";
+import { TypedMap } from "../../app-framework/TypedMap";
 
 import { BuildLogs } from "./actions";
 

@@ -8,7 +8,7 @@ misc                   = require('smc-util/misc')
 
 {register_file_editor} = require('../file-editors')
 {alert_message}        = require('../alerts')
-{redux_name}           = require('../smc-react')
+{redux_name}           = require('../app-framework')
 {webapp_client}        = require('../webapp_client')
 
 {JupyterEditor}        = require('./main')

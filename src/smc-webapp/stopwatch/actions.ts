@@ -5,8 +5,8 @@ underlying synchronized state.
 
 const misc = require("smc-util/misc");
 let { webapp_client } = require("../webapp_client");
-import { Actions, Store } from "../smc-react";
-import { TypedMap } from "../smc-react/TypedMap";
+import { Actions, Store } from "../app-framework";
+import { TypedMap } from "../app-framework/TypedMap";
 import { List } from "immutable";
 
 export interface StopwatchEditorState {

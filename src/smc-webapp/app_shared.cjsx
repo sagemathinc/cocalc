@@ -19,7 +19,7 @@
 #
 ###############################################################################
 
-{React, ReactDOM, rclass, redux, rtypes, Redux, Actions, Store, COLOR} = require('./smc-react')
+{React, ReactDOM, rclass, redux, rtypes, Redux, Actions, Store, COLOR} = require('./app-framework')
 {Button, Col, Row, Modal, NavItem} = require('react-bootstrap')
 {Icon, Space, Tip} = require('./r_misc')
 {COLORS} = require('smc-util/theme')

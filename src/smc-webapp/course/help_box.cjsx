@@ -18,7 +18,7 @@
 #
 ##############################################################################
 
-{React, rclass, rtypes}  = require('../smc-react')
+{React, rclass, rtypes}  = require('../app-framework')
 {Panel} = require('react-bootstrap')
 {Icon} = require('../r_misc')
 {SITE_NAME, LIVE_DEMO_REQUEST} = require('smc-util/theme')

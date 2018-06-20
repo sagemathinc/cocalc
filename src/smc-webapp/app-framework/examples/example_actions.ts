@@ -1,5 +1,5 @@
 import { Store } from "../Store";
-import { redux, Actions } from "../../smc-react";
+import { redux, Actions } from "../../app-framework";
 
 import { bakeryState } from "./example_stores";
 

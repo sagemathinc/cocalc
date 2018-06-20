@@ -35,7 +35,7 @@ markdown = require('./markdown')
 
 {Row, Col, Well, Button, ButtonGroup, ButtonToolbar, Grid, FormControl, FormGroup, InputGroup, Alert, Checkbox, Label} = require('react-bootstrap')
 {ErrorDisplay, Icon, Loading, LoginLink, Saving, SearchInput, Space , TimeAgo, Tip, UPGRADE_ERROR_STYLE, UpgradeAdjustor, Footer} = require('./r_misc')
-{React, ReactDOM, Actions, Store, Table, redux, rtypes, rclass, Redux}  = require('./smc-react')
+{React, ReactDOM, Actions, Store, Table, redux, rtypes, rclass, Redux}  = require('./app-framework')
 {BillingPageSimplifiedRedux} = require('./billing')
 {UsersViewing} = require('./other-users')
 {PROJECT_UPGRADES} = require('smc-util/schema')

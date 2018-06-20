@@ -35,9 +35,8 @@ import { createStore as createReduxStore } from "redux";
 import * as createReactClass from "create-react-class";
 import { Provider, connect } from "react-redux";
 
-import { Store, StoreConstructorType } from "./smc-react/Store";
-
-import { Actions } from "./smc-react/Actions";
+import { Store, StoreConstructorType } from "./app-framework/Store";
+import { Actions } from "./app-framework/Actions";
 
 const misc = require("smc-util/misc");
 
@@ -596,7 +595,7 @@ if (typeof smc === "undefined" || smc === null) {
 }
 
 if (MODE !== "default") {
-  console.log(`smc-react MODE='${MODE}'`);
+  console.log(`app-framework MODE='${MODE}'`);
 }
 
 switch (MODE) {
@@ -650,14 +649,14 @@ switch (MODE) {
     };
     break;
   case "trace":
-    var { react_debug_trace } = require("./smc-react-debug");
+    var { react_debug_trace } = require("./app-framework-debug");
     rclass = react_debug_trace(react_component);
     break;
   case "default":
     rclass = react_component;
     break;
   default:
-    throw Error(`UNKNOWN smc-react MODE='${MODE}'`);
+    throw Error(`UNKNOWN app-framework MODE='${MODE}'`);
 }
 
 // Public interface

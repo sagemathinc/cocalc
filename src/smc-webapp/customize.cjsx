@@ -7,7 +7,7 @@ Site Customize -- dynamically customize the look of SMC for the client.
 ###
 
 
-{redux, Redux, rclass, rtypes, React} = require('./smc-react')
+{redux, Redux, rclass, rtypes, React} = require('./app-framework')
 # {Loading} = require('./r_misc')
 Loading = () ->
     <div>

@@ -20,7 +20,7 @@
 ###############################################################################
 
 {Col, Row, Panel, Table, Tab, Tabs, Modal, Button} = require('react-bootstrap')
-{redux, Redux, rclass, rtypes, React, Actions, Store} = require('./smc-react')
+{redux, Redux, rclass, rtypes, React, Actions, Store} = require('./app-framework')
 {Loading, Markdown} = require('./r_misc')
 {HelpEmailLink, SiteName} = require('./customize')
 

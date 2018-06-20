@@ -2,7 +2,7 @@
 import * as immutable from "immutable";
 
 // Internal Libraries
-import { Store } from "../smc-react/Store";
+import { Store } from "../app-framework/Store";
 
 interface markdownWidgetState {
   open_inputs: immutable.Map<any, any>;

@@ -18,7 +18,7 @@ Later, maybe:
  - Time tracking
 */
 
-import { Component, React, Rendered, rclass, rtypes } from "../smc-react";
+import { Component, React, Rendered, rclass, rtypes } from "../app-framework";
 let { Loading } = require("../r_misc");
 
 import { Stopwatch } from "./stopwatch";

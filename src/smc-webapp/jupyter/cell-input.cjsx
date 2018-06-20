@@ -5,7 +5,7 @@ immutable = require('immutable')
 
 misc = require('smc-util/misc')
 
-{React, ReactDOM, rclass, rtypes}  = require('../smc-react')
+{React, ReactDOM, rclass, rtypes}  = require('../app-framework')
 {Markdown} = require('../r_misc')
 
 {CodeMirror} = require('./codemirror')

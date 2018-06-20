@@ -3,7 +3,7 @@
 AGPLv3
 ###
 
-{React, ReactDOM, rclass, rtypes, Redux, Actions, Store}  = require('./smc-react')
+{React, ReactDOM, rclass, rtypes, Redux, Actions, Store}  = require('./app-framework')
 {Button, Panel, Row, Col} = require('react-bootstrap')
 {ErrorDisplay, Icon, Loading} = require('./r_misc')
 {webapp_client} = require('./webapp_client')

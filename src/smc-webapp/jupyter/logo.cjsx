@@ -2,7 +2,7 @@
 The kernel's logo display
 ###
 
-{React, ReactDOM, rclass, rtypes}  = require('../smc-react')
+{React, ReactDOM, rclass, rtypes}  = require('../app-framework')
 
 {get_logo_url} = require('./server-urls')
 

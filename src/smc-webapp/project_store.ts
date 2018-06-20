@@ -39,9 +39,9 @@ import {
   redux,
   Store,
   AppRedux
-} from "./smc-react";
+} from "./app-framework";
 
-import { literal } from "./smc-react/literal"
+import { literal } from "./app-framework/literal"
 
 export { FILE_ACTIONS as file_actions, ProjectActions };
 

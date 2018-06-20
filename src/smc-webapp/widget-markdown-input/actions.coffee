@@ -2,7 +2,7 @@
 
 # Internal Libraries
 misc = require('smc-util/misc')
-{Actions} = require('../smc-react')
+{Actions} = require('../app-framework')
 
 # Sibling Libraries
 info = require('./info')

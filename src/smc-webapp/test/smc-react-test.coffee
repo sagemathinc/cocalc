@@ -1,5 +1,5 @@
 `DEBUG = true`
-{computed, depends, rtypes, __internals} = require('../smc-react')
+{computed, depends, rtypes, __internals} = require('../app-framework')
 {harvest_import_functions, harvest_own_functions, generate_selectors} = __internals
 
 # 3rd Party Libraries

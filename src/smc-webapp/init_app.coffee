@@ -19,7 +19,7 @@
 #
 ###############################################################################
 
-{Actions, Store, redux, rtypes, computed} = require('./smc-react')
+{Actions, Store, redux, rtypes, computed} = require('./app-framework')
 {webapp_client}         = require('./webapp_client')
 misc                    = require('smc-util/misc')
 

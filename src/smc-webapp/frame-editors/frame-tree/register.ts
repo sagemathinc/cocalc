@@ -6,7 +6,7 @@ Basically, this is like register_file_editor, but much more specialized.
 
 const general_register_file_editor = require("smc-webapp/file-editors").register_file_editor;
 
-const { redux_name } = require("smc-webapp/smc-react");
+const { redux_name } = require("smc-webapp/app-framework");
 
 interface Register {
   ext:

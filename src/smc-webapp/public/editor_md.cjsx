@@ -22,7 +22,7 @@
 misc = require('smc-util/misc')
 
 # React libraries
-{React, ReactDOM, rclass, rtypes, Redux, Actions, Store}  = require('../smc-react')
+{React, ReactDOM, rclass, rtypes, Redux, Actions, Store}  = require('../app-framework')
 
 {ErrorDisplay, Loading, Markdown} = require('../r_misc')
 

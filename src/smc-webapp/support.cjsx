@@ -21,7 +21,7 @@
 ###############################################################################
 $          = window.$
 underscore = _ = require('underscore')
-{React, ReactDOM, Actions, Store, rtypes, rclass, redux, COLOR}  = require('./smc-react')
+{React, ReactDOM, Actions, Store, rtypes, rclass, redux, COLOR}  = require('./app-framework')
 {Button, FormControl, FormGroup, Well, Alert, Modal, Table} = require('react-bootstrap')
 {Icon, Markdown, Loading, Space, ImmutablePureRenderMixin, Footer} = require('./r_misc')
 misc            = require('smc-util/misc')

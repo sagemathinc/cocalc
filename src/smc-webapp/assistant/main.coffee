@@ -38,7 +38,7 @@
 
 # cocalc libs
 {defaults, required, optional} = misc = require('smc-util/misc')
-{redux, Redux} = require('../smc-react')
+{redux, Redux} = require('../app-framework')
 # assistant libs
 {ExamplesStore} = require('./store')
 {ExamplesActions}   = require('./actions')

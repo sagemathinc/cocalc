@@ -6,7 +6,7 @@ Task due date
 
 {Button} = require('react-bootstrap')
 
-{React, rclass, rtypes}  = require('../smc-react')
+{React, rclass, rtypes}  = require('../app-framework')
 
 {DateTimePicker, Icon, Space, TimeAgo} = require('../r_misc')
 

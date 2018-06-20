@@ -1,4 +1,4 @@
-import { AppRedux } from "../smc-react";
+import { AppRedux } from "../app-framework";
 
 // NOTE: it is intentional that there is no get method.  Instead, get data
 // from stores.  The table will set stores (via creating actions) as

@@ -33,7 +33,7 @@ misc = require('smc-util/misc')
 {synchronized_string} = require('./syncdoc')
 
 # React libraries
-{React, ReactDOM, rclass, rtypes, redux, Redux, Actions, Store}  = require('./smc-react')
+{React, ReactDOM, rclass, rtypes, redux, Redux, Actions, Store}  = require('./app-framework')
 {Loading} = require('r_misc')
 {Input} = require('react-bootstrap')
 

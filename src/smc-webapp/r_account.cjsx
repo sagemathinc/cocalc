@@ -19,7 +19,7 @@
 #
 ###############################################################################
 
-{React, ReactDOM, rtypes, rclass, redux}  = require('./smc-react')
+{React, ReactDOM, rtypes, rclass, redux}  = require('./app-framework')
 
 {Button, ButtonToolbar, Checkbox, Panel, Grid, Row, Col, FormControl, FormGroup, Well, Modal, ProgressBar, Alert} = require('react-bootstrap')
 

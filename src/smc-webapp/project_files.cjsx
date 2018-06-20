@@ -19,7 +19,7 @@
 #
 ###############################################################################
 
-{React, ReactDOM, rtypes, rclass, redux, Redux} = require('./smc-react')
+{React, ReactDOM, rtypes, rclass, redux, Redux} = require('./app-framework')
 {Col, Row, ButtonToolbar, ButtonGroup, MenuItem, Button, Well, FormControl, FormGroup, Radio,
 ButtonToolbar, Popover, OverlayTrigger, SplitButton, MenuItem, Alert, Checkbox, Breadcrumb, Navbar} =  require('react-bootstrap')
 misc = require('smc-util/misc')

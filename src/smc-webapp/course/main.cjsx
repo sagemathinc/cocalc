@@ -30,7 +30,7 @@ immutable = require('immutable')
 misc = require('smc-util/misc')
 
 # React libraries
-{React, rclass, rtypes}  = require('../smc-react')
+{React, rclass, rtypes}  = require('../app-framework')
 
 {Button, ButtonToolbar, ButtonGroup, Row, Col, Panel, Tabs, Tab} = require('react-bootstrap')
 

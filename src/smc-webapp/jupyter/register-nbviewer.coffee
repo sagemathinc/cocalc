@@ -8,7 +8,7 @@ be used on the backend.
 ###
 
 {register_file_editor} = require('../file-editors')
-{redux_name}           = require('../smc-react')
+{redux_name}           = require('../app-framework')
 
 {NBViewer}             = require('./nbviewer')
 {NBViewerActions}      = require('./nbviewer-actions')

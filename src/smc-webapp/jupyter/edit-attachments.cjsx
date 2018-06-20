@@ -2,7 +2,7 @@
 Modal for editing attachments that are attached to a markdown cell
 ###
 
-{React, ReactDOM, rclass, rtypes}  = require('../smc-react')
+{React, ReactDOM, rclass, rtypes}  = require('../app-framework')
 {Icon} = require('../r_misc')
 {Button, Modal} = require('react-bootstrap')
 

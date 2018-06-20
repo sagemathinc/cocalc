@@ -4,7 +4,7 @@ A single file tab that
 There is one of these for each open file in a project.
 ###
 
-{React, ReactDOM, Fragment, rclass, rtypes} = require('../smc-react')
+{React, ReactDOM, Fragment, rclass, rtypes} = require('../app-framework')
 
 misc = require('smc-util/misc')
 

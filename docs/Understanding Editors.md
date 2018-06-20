@@ -41,7 +41,7 @@ Computed values are
  - Not stored in the redux state. Maintain redux state as pure data
 
 ```coffee
-{redux, computed, depends, rtypes} = require('smc-react')
+{redux, computed, depends, rtypes} = require('app-state-framework')
 redux.createStore
     name: 'account'
 

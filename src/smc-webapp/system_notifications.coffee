@@ -1,7 +1,7 @@
 misc  = require('smc-util/misc')
 {defaults, required} = misc
 
-{Actions, Store, Table, redux} = require('./smc-react')
+{Actions, Store, Table, redux} = require('./app-framework')
 {alert_message} = require('./alerts')
 
 name = 'system_notifications'

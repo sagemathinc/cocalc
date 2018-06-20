@@ -2,7 +2,7 @@ import { EventEmitter } from "events";
 import * as async from "async";
 import * as underscore from "underscore";
 import { createSelector, Selector } from "reselect";
-import { AppRedux } from "../smc-react";
+import { AppRedux } from "../app-framework";
 
 const misc = require("smc-util/misc");
 const { defaults, required } = misc;

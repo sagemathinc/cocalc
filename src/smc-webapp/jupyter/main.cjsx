@@ -4,7 +4,7 @@ Top-level react component, which ties everything together
 
 {ErrorDisplay, Icon, Loading} = require('../r_misc')
 
-{React, ReactDOM, rclass, rtypes}  = require('../smc-react')
+{React, ReactDOM, rclass, rtypes}  = require('../app-framework')
 
 # React components that implement parts of the Jupyter notebook.
 

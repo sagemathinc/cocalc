@@ -2,7 +2,7 @@
 Top-level react component for task list
 ###
 
-{React, rclass, rtypes} = require('../smc-react')
+{React, rclass, rtypes} = require('../app-framework')
 
 {Loading}               = require('../r_misc')
 

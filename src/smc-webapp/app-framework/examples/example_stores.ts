@@ -1,5 +1,5 @@
 import { Store } from "../Store";
-import { redux } from "../../smc-react";
+import { redux } from "../../app-framework";
 import { literal } from "../literal";
 
 // Basic Store

@@ -25,7 +25,7 @@ misc           = require('smc-util/misc')
 misc_page      = require('./misc_page')
 os_path        = require('path')
 
-{React, ReactDOM, Actions, Store, Table, rtypes, rclass, Redux}  = require('./smc-react')
+{React, ReactDOM, Actions, Store, Table, rtypes, rclass, Redux}  = require('./app-framework')
 {Col, Row, Button, ButtonGroup, ButtonToolbar, FormControl, FormGroup, Panel, Input, Well, SplitButton, MenuItem, Alert, ListGroup, ListGroupItem} = require('react-bootstrap')
 {Markdown, Space, TimeAgo, ErrorDisplay, Icon, Loading, TimeAgo, Tip, Space} = require('./r_misc')
 {webapp_client} = require('./webapp_client')

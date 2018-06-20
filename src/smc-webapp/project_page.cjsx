@@ -45,7 +45,7 @@ Draggable = require('react-draggable')
 project_file = require('./project_file')
 {file_associations} = require('./file-associations')
 
-{React, ReactDOM, rclass, redux, rtypes, Redux} = require('./smc-react')
+{React, ReactDOM, rclass, redux, rtypes, Redux} = require('./app-framework')
 {DeletedProjectWarning, ErrorBoundary, Icon, Loading, Space} = require('./r_misc')
 
 {ChatIndicator} = require('./chat-indicator')

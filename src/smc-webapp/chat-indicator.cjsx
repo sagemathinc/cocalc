@@ -23,7 +23,7 @@
 
 misc = require('smc-util/misc')
 
-{React, ReactDOM, rclass, redux, rtypes, Redux, COLOR} = require('./smc-react')
+{React, ReactDOM, rclass, redux, rtypes, Redux, COLOR} = require('./app-framework')
 {Icon, Tip, Loading, Space} = require('./r_misc')
 
 {UsersViewing} = require('./other-users')

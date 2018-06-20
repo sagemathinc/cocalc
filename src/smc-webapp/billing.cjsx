@@ -24,7 +24,7 @@ async         = require('async')
 misc          = require('smc-util/misc')
 _             = require('underscore')
 
-{redux, rclass, React, ReactDOM, rtypes, Actions, Store}  = require('./smc-react')
+{redux, rclass, React, ReactDOM, rtypes, Actions, Store}  = require('./app-framework')
 
 {Button, ButtonToolbar, FormControl, FormGroup, Row, Col, Accordion, Panel, Well, Alert, ButtonGroup, InputGroup} = require('react-bootstrap')
 {ActivityDisplay, CloseX, ErrorDisplay, Icon, Loading, SelectorInput, r_join, SkinnyError, Space, TimeAgo, Tip, Footer} = require('./r_misc')

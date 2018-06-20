@@ -17,7 +17,7 @@ import katex from "katex";
 
 import { throttle } from "underscore";
 
-import { Fragment, React, ReactDOM, rclass, rtypes } from "smc-webapp/smc-react";
+import { Fragment, React, ReactDOM, rclass, rtypes } from "smc-webapp/app-framework";
 
 import { Alert } from "react-bootstrap";
 

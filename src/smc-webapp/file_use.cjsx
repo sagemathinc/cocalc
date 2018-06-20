@@ -58,7 +58,7 @@ editor = require('./editor')
 sha1 = require('smc-util/schema').client_db.sha1
 
 # react in smc-specific modules
-{React, ReactDOM, Actions, Store, Table, rtypes, rclass, Redux, redux}  = require('./smc-react')
+{React, ReactDOM, Actions, Store, Table, rtypes, rclass, Redux, redux}  = require('./app-framework')
 {r_join, Icon, Loading, LoginLink, SearchInput, TimeAgo} = require('./r_misc')
 {Button, Col, Row} = require('react-bootstrap')
 {User} = require('./users')

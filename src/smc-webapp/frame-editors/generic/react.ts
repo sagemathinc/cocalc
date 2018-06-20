@@ -9,7 +9,7 @@ export const {
   Fragment,
   redux,
   Redux
-} = require("smc-webapp/smc-react");
+} = require("smc-webapp/app-framework");
 
 import * as ReactOrig from "react";
 

@@ -2,7 +2,7 @@
 Some buttons
 */
 
-import { React } from "../smc-react";
+import { React } from "../app-framework";
 import { TimeActions } from "./actions";
 type TimeActions = InstanceType<typeof TimeActions>;
 

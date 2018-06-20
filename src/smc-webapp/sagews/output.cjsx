@@ -2,7 +2,7 @@
 Rendering output part of a Sage worksheet cell
 ###
 
-{rclass, React, rtypes} = require('../smc-react')
+{rclass, React, rtypes} = require('../app-framework')
 
 misc = require('smc-util/misc')
 

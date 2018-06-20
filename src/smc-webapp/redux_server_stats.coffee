@@ -2,7 +2,7 @@
 Redux: server stats
 ###
 
-{Table, redux} = require('./smc-react')
+{Table, redux} = require('./app-framework')
 
 name    = 'server_stats'
 store   = redux.createStore(name, {loading:true})

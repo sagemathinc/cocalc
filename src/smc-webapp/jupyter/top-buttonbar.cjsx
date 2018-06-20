@@ -7,7 +7,7 @@ The static buttonbar at the top.
 
 {Icon} = require('../r_misc')
 
-{React, ReactDOM, rclass, rtypes}  = require('../smc-react')
+{React, ReactDOM, rclass, rtypes}  = require('../app-framework')
 
 misc = require('smc-util/misc')
 {required, defaults} = misc

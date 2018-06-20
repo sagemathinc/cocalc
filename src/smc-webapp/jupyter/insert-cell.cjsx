@@ -2,7 +2,7 @@
 Insert a cell
 ###
 
-{React, ReactDOM, rclass, rtypes}  = require('../smc-react')
+{React, ReactDOM, rclass, rtypes}  = require('../app-framework')
 
 {IS_TOUCH} = require('../feature')
 

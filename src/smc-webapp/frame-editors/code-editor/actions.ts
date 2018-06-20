@@ -42,8 +42,8 @@ import { Rendered } from "../generic/react";
 import * as CodeMirror from "codemirror";
 import "../generic/codemirror-plugins";
 import * as tree_ops from "../frame-tree/tree-ops";
-import { Actions as BaseActions, Store } from "../../smc-react";
-import { createTypedMap, TypedMap } from "../../smc-react/TypedMap";
+import { Actions as BaseActions, Store } from "../../app-framework";
+import { createTypedMap, TypedMap } from "../../app-framework/TypedMap";
 
 const copypaste = require("smc-webapp/copy-paste-buffer");
 

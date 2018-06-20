@@ -22,7 +22,7 @@
 
 _                = require('underscore')
 immutable        = require('immutable')
-{redux, Store}  = require('../smc-react')
+{redux, Store}  = require('../app-framework')
 {INIT_STATE}     = require('./common')
 
 

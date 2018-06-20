@@ -32,7 +32,7 @@ underscore = require('underscore')
 {synchronized_string} = require('./syncdoc')
 
 # React libraries
-{React, ReactDOM, rclass, rtypes, Redux, redux, Actions, Store}  = require('./smc-react')
+{React, ReactDOM, rclass, rtypes, Redux, redux, Actions, Store}  = require('./app-framework')
 {Loading, SearchInput, Icon} = require('r_misc')
 {Alert, Button, Col, Row, Panel, ButtonToolbar, Input} = require('react-bootstrap')
 

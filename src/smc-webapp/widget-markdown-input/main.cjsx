@@ -4,7 +4,7 @@ markdown = require('../markdown')
 
 # Internal Libraries
 misc = require('smc-util/misc')
-{React, ReactDOM, rclass, rtypes} = require('../smc-react')
+{React, ReactDOM, rclass, rtypes} = require('../app-framework')
 
 # Sibling Libraries
 info = require('./info')

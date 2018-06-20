@@ -1,7 +1,7 @@
 # 3rd Party Libraries
 
 # Internal Libraries
-{React, rtypes} = require('../smc-react')
+{React, rtypes} = require('../app-framework')
 {webapp_client} = require('../webapp_client')
 
 # Sibling Libraries
