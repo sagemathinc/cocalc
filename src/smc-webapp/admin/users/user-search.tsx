@@ -9,7 +9,7 @@ import {
   Component,
   Rendered,
   ReactDOM
-} from "smc-webapp/frame-editors/generic/react";
+} from "smc-webapp/app-framework";
 
 import { user_search, User } from "smc-webapp/frame-editors/generic/client";
 

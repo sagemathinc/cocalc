@@ -1,4 +1,4 @@
-import { React, Component } from "../frame-editors/generic/react";
+import { React, Component } from "../app-framework";
 
 import { AccountCreationToken } from "./account-creation-token";
 import { SiteSettings } from "./site-settings";
