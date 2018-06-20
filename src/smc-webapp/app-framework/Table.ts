@@ -24,7 +24,7 @@ export abstract class Table {
       // hack for now -- not running in browser (instead in testing server)
       return;
     }
-    this._table = require("./webapp_client").webapp_client.sync_table(
+    this._table = require("../webapp_client").webapp_client.sync_table(
       this.query(),
       this.options ? this.options() : []
     );
