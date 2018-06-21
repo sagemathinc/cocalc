@@ -4,9 +4,10 @@ Top-level react component for editing markdown documents
 
 import { IFrameHTML } from "../html-editor/iframe-html";
 import { CodemirrorEditor } from "../code-editor/codemirror-editor";
-import  { set } from "../generic/misc";
+import { set } from "../generic/misc";
 import { createEditor } from "../frame-tree/editor";
 import { aux_file } from "../frame-tree/util";
+import { SETTINGS_SPEC } from "../settings/editor";
 
 const EDITOR_SPEC = {
   cm: {
@@ -52,7 +53,9 @@ const EDITOR_SPEC = {
       "max-width": "900px",
       margin: "auto"
     }
-  }
+  },
+
+  settings: SETTINGS_SPEC
 };
 
 export const Editor = createEditor({

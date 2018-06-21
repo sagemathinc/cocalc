@@ -7,6 +7,7 @@ import { set } from "../generic/misc";
 import { QuickHTMLPreview } from "./rendered-html.tsx";
 import { IFrameHTML } from "./iframe-html.tsx";
 import { CodemirrorEditor } from "../code-editor/codemirror-editor";
+import { SETTINGS_SPEC } from "../settings/editor";
 
 const EDITOR_SPEC = {
   cm: {
@@ -60,7 +61,9 @@ const EDITOR_SPEC = {
       "time_travel",
       "reload"
     ])
-  }
+  },
+
+  settings: SETTINGS_SPEC
 };
 
 export const Editor = createEditor({

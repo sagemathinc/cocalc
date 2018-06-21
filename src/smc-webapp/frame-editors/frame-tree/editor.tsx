@@ -42,6 +42,8 @@ interface FrameTreeEditorProps {
   misspelled_words: Set<string>;
   is_saving: boolean;
   gutter_markers: Map<string, any>;
+
+  settings: Map<string, any>;
 }
 
 class FrameTreeEditor0 extends Component<FrameTreeEditorProps, {}> {
@@ -86,7 +88,9 @@ class FrameTreeEditor0 extends Component<FrameTreeEditorProps, {}> {
         misspelled_words: rtypes.immutable.Set.isRequired,
         is_saving: rtypes.bool.isRequired,
 
-        gutter_markers: rtypes.immutable.Map.isRequired
+        gutter_markers: rtypes.immutable.Map.isRequired,
+
+        settings: rtypes.immutable.Map.isRequired
       }
     };
   }
@@ -123,7 +127,9 @@ class FrameTreeEditor0 extends Component<FrameTreeEditorProps, {}> {
           "is_saving",
           "gutter_markers",
 
-          "editor_settings"
+          "editor_settings",
+
+          "settings"
         ]
       ) ||
       this.props.editor_settings.get("extra_button_bar") !==
@@ -178,6 +184,7 @@ class FrameTreeEditor0 extends Component<FrameTreeEditorProps, {}> {
           is_saving={this.props.is_saving}
           gutter_markers={this.props.gutter_markers}
           editor_settings={this.props.editor_settings}
+          settings={this.props.settings}
           status={this.props.status}
         />
       </div>
