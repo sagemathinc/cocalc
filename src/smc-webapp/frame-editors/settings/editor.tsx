@@ -54,7 +54,7 @@ export class Settings extends Component<Props, {}> {
         }}
       >
         <h3>
-          <Icon name="wrench" /> Settings
+          <Icon name="wrench" /> Editor Settings
         </h3>
         {this.render_settings()}
       </div>

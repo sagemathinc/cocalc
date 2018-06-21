@@ -33,13 +33,19 @@ export async function misspelled_words(opts: Options): Promise<string[]> {
       mode = "--mode=none";
   }
   let lang;
-  if (opts.lang) {
-    lang = `--lang=${opts.lang}`;
-  } else {
-    lang = "";
+  switch(opts.lang) {
+    case 'default':
+      lang = `--lang=${language()}`;
+      break;
+    case 'disabled':
+      lang = '';
+      break;
+    default:
+      lang = `--lang=${opts.lang}`;
+
   }
   const command = `cat '${opts.path}'|aspell ${mode} ${lang} list|sort|uniq`;
-  //console.log(command);
+  console.log(command);
 
   const output: ExecOutput = await exec({
     project_id: opts.project_id,

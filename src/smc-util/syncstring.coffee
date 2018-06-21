@@ -965,6 +965,7 @@ class SyncDoc extends EventEmitter
                 last_file_change  : null
                 doctype           : null
                 archived          : null
+                settings          : null
 
         async.series([
             (cb) =>
@@ -1267,6 +1268,18 @@ class SyncDoc extends EventEmitter
     # returns immutable.js map from account_id to list of cursor positions, if cursors are enabled.
     get_cursors: =>
         return @_cursor_map
+
+    set_settings: (obj) =>
+        x = @_syncstring_table?.get_one()
+        if not x
+            return
+        settings = x.get('settings', {})
+        for k, v of obj
+            settings[k] = v
+        @_syncstring_table.set(x)
+
+    get_settings: =>
+        return @_syncstring_table?.get_one().get('settings')
 
     save_asap: (cb) =>
         @_save(cb)

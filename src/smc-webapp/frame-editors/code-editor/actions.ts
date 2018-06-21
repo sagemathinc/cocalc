@@ -45,7 +45,6 @@ import "../generic/codemirror-plugins";
 import * as tree_ops from "../frame-tree/tree-ops";
 import { Actions as BaseActions, Store } from "../../smc-react-ts";
 import { createTypedMap, TypedMap } from "../../smc-react/TypedMap";
-import { language } from "../generic/misc-page";
 
 const copypaste = require("smc-webapp/copy-paste-buffer");
 
@@ -184,7 +183,7 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     const settings: Map<string, any> = this.store.get("settings");
     if (!settings.has("spell")) {
       // ensure that the spell checker setting is available.
-      this.set_setting("spell", language());
+      this.set_setting("spell", "default");
     }
     this.update_misspelled_words();
     this._syncstring.on("save-to-disk", time =>
@@ -301,7 +300,13 @@ export class Actions<T = CodeEditorState> extends BaseActions<
   // update itself as a result (e.g. a pdf preview or markdown preview pane).
   set_reload(type: string, hash?: number): void {
     const reload: Map<string, any> = this.store.get("reload", Map());
+    if (!reload) {
+      return;
+    }
     if (hash === undefined) {
+      if (!this._syncstring) {
+        return;
+      }
       hash = this._syncstring.hash_of_saved_version();
     }
     this.setState({
@@ -1585,7 +1590,8 @@ export class Actions<T = CodeEditorState> extends BaseActions<
 
   set_setting(key: string, value: any): void {
     // TODO: lame explicit cast
-    const settings: Map<string, any> = this.store.get("settings"); 
+    const settings: Map<string, any> = this.store.get("settings");
     this.setState({ settings: settings.set(key, fromJS(value)) });
+    this._syncstring.set_settings({key:value});
   }
 }
