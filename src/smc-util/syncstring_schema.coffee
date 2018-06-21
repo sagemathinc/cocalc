@@ -75,6 +75,9 @@ schema.syncstrings =
         doctype :
             type : 'string'
             desc : "(optional) JSON string describing meaning of the patches (i.e., of this document0 -- e.g., {type:'db', opts:{primary_keys:['id'], string_cols:['name']}}"
+        settings :
+            type : 'map'
+            desc : 'Shared (by all users) configuration settings for editing this file (e.g., which spellcheck language to use).'
 
     pg_indexes : ['last_active']
 
@@ -95,6 +98,7 @@ schema.syncstrings =
                 last_file_change  : null
                 doctype           : null
                 archived          : null
+                settings          : null
             required_fields :
                 path              : true
                 project_id        : true
@@ -123,6 +127,7 @@ schema.syncstrings =
                 read_only         : true
                 last_file_change  : true
                 doctype           : true
+                settings          : true
             required_fields :
                 path              : true
                 project_id        : true

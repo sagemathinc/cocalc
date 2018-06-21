@@ -35,6 +35,7 @@ import {
   ImmutableFrameTree,
   SetMap
 } from "../frame-tree/types";
+import { SettingsObject } from "../settings/types";
 import { misspelled_words } from "./spell-check";
 import * as cm_doc_cache from "./doc";
 import { test_line } from "./simulate_typing";
@@ -76,6 +77,7 @@ export interface CodeEditorState {
   error: any;
   status: any;
   read_only: boolean;
+  settings: Map<string, any>; // settings specific to this file (but **not** this user or browser), e.g., spell check language.
 }
 
 export class Actions<T = CodeEditorState> extends BaseActions<
@@ -89,6 +91,10 @@ export class Actions<T = CodeEditorState> extends BaseActions<
   protected _key_handler: any;
   protected _cm: { [key: string]: CodeMirror.Editor } = {};
 
+  protected doctype: string = "syncstring";
+  protected primary_keys: string[] = [];
+  protected string_cols: string[] = [];
+
   public project_id: string;
   public path: string;
   public store: Store<CodeEditorState>;
@@ -98,6 +104,7 @@ export class Actions<T = CodeEditorState> extends BaseActions<
   private _cm_selections: any;
   private _update_misspelled_words_last_hash: any;
   private _active_id_history: string[] = [];
+  private _spellcheck_is_supported: boolean = false;
 
   _init(
     project_id: string,
@@ -127,7 +134,8 @@ export class Actions<T = CodeEditorState> extends BaseActions<
       has_uncommitted_changes: false,
       is_saving: false,
       gutter_markers: Map(),
-      cursors: Map()
+      cursors: Map(),
+      settings: fromJS(this._default_settings())
     });
 
     this._save_local_view_state = debounce(
@@ -172,28 +180,39 @@ export class Actions<T = CodeEditorState> extends BaseActions<
   // Init spellchecking whenever syncstring saves -- only used in derived classes, where
   // spelling makes sense...
   _init_spellcheck(): void {
-    this.update_misspelled_words();
+    this._spellcheck_is_supported = true;
     this._syncstring.on("save-to-disk", time =>
       this.update_misspelled_words(time)
     );
   }
 
   _init_syncstring(): void {
-    let fake_syncstring = false;
-    if (filename_extension(this.path) === "pdf") {
-      // Use a fake syncstring, since we do not directly
-      // edit the PDF file itself.
-      // TODO: make this a more generic mechanism.
-      fake_syncstring = true;
+    if (this.doctype == "syncstring") {
+      let fake_syncstring = false;
+      if (filename_extension(this.path) === "pdf") {
+        // Use a fake syncstring, since we do not directly
+        // edit the PDF file itself.
+        // TODO: make this a more generic mechanism.
+        fake_syncstring = true;
+      }
+      this._syncstring = syncstring({
+        project_id: this.project_id,
+        path: this.path,
+        cursors: true,
+        before_change_hook: () => this.set_syncstring_to_codemirror(),
+        after_change_hook: () => this.set_codemirror_to_syncstring(),
+        fake: fake_syncstring
+      });
+    } else if (this.doctype == "syncdb") {
+      this._syncstring = syncdb({
+        project_id: this.project_id,
+        path: this.path,
+        primary_keys: this.primary_keys,
+        string_cols: this.string_cols
+      });
+    } else {
+      throw Error(`invalid doctype="${this.doctype}"`);
     }
-    this._syncstring = syncstring({
-      project_id: this.project_id,
-      path: this.path,
-      cursors: true,
-      before_change_hook: () => this.set_syncstring_to_codemirror(),
-      after_change_hook: () => this.set_codemirror_to_syncstring(),
-      fake: fake_syncstring
-    });
 
     this._syncstring.once("init", err => {
       if (err) {
@@ -204,6 +223,7 @@ export class Actions<T = CodeEditorState> extends BaseActions<
       }
       this._syncstring_init = true;
       this._syncstring_metadata();
+      this._init_settings();
       if (
         !this.store.get("is_loaded") &&
         (this._syncdb === undefined || this._syncdb_init)
@@ -276,7 +296,13 @@ export class Actions<T = CodeEditorState> extends BaseActions<
   // update itself as a result (e.g. a pdf preview or markdown preview pane).
   set_reload(type: string, hash?: number): void {
     const reload: Map<string, any> = this.store.get("reload", Map());
+    if (!reload) {
+      return;
+    }
     if (hash === undefined) {
+      if (!this._syncstring) {
+        return;
+      }
       hash = this._syncstring.hash_of_saved_version();
     }
     this.setState({
@@ -1297,7 +1323,14 @@ export class Actions<T = CodeEditorState> extends BaseActions<
   // sets the mispelled_words part of the state to the immutable
   // Set of those words.  They can then be rendered by any editor/view.
   async update_misspelled_words(time?: number): Promise<void> {
-    const hash = this._syncstring.hash_of_saved_version();
+    // hash combines state of file with spell check setting.
+    // TODO: store /type fail.
+    const lang = (this.store.get("settings") as Map<string, any>).get("spell");
+    if (!lang) {
+      // spell check configuration not yet initialized
+      return;
+    }
+    const hash = this._syncstring.hash_of_saved_version() + lang;
     if (hash === this._update_misspelled_words_last_hash) {
       // same file as before, so do not bother.
       return;
@@ -1307,6 +1340,7 @@ export class Actions<T = CodeEditorState> extends BaseActions<
       const words: string[] = await misspelled_words({
         project_id: this.project_id,
         path: this.path,
+        lang,
         time
       });
       const x = Set(words);
@@ -1552,5 +1586,37 @@ export class Actions<T = CodeEditorState> extends BaseActions<
       throw Error(`unique frame with id ${id} not in DOM`);
     }
     return elt;
+  }
+
+  _default_settings(): SettingsObject {
+    return {};
+  }
+
+  /* Functions related to settings */
+
+  set_settings(obj: object): void {
+    this._syncstring.set_settings(obj);
+    this.setState({ settings: this._syncstring.get_settings() });
+    if (obj.hasOwnProperty("spell")) {
+      this.update_misspelled_words();
+    }
+  }
+
+  _init_settings(): void {
+    const settings = this._syncstring.get_settings();
+    this.setState({ settings: settings });
+
+    if (this._spellcheck_is_supported) {
+      if (!settings.get("spell")) {
+        // ensure spellcheck is a possible setting, if necessary.
+        this.set_settings({ spell: "default" });
+      }
+      // initial spellcheck
+      this.update_misspelled_words();
+    }
+
+    this._syncstring.on("settings-change", settings => {
+      this.setState({ settings: settings });
+    });
   }
 }

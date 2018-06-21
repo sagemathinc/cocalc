@@ -11,6 +11,7 @@ import { PDFEmbed } from "./pdf-embed";
 import { CodemirrorEditor } from "../code-editor/codemirror-editor";
 import { Build } from "./build";
 import { ErrorsAndWarnings } from "./errors-and-warnings";
+import { SETTINGS_SPEC } from "../settings/editor";
 
 import { pdf_path } from "./util";
 
@@ -87,6 +88,8 @@ const EDITOR_SPEC = {
     component: PDFEmbed,
     path: pdf_path
   },
+
+  settings: SETTINGS_SPEC
 
   /*
   pdfjs_svg: {
