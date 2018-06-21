@@ -652,6 +652,11 @@ class exports.SyncDB extends EventEmitter
     _save: (cb) => @save(cb)
     save_to_disk: (cb) => @save(cb)
 
+    # also for compat api.
+    set_settings: (obj) => @_doc.set_settings(obj)
+    get_settings: => return @_doc.get_settings()
+
+
     save_asap: (cb) =>
         @_check()
         @_doc.save_asap(cb)
