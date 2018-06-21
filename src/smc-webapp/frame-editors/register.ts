@@ -15,6 +15,6 @@ import "./latex-editor/register.ts";
 import "./pdf-editor/register.ts";
 
 // Work in progress -- uncomment to use new sagews support.
-// import "./sagews-editor/register.ts";
+import "./sagews-editor/register.ts";
 
 import "./generic/test/init";
