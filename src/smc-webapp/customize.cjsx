@@ -8,11 +8,14 @@ Site Customize -- dynamically customize the look of SMC for the client.
 
 
 {redux, Redux, rclass, rtypes, React} = require('./app-framework')
-# {Loading} = require('./r_misc')
-Loading = () ->
-    <div>
-        Loading...
-    </div>
+
+# Caused by some circular importing. Will get fixed with typescript `import` syntax
+r_misc = require('./r_misc')
+if not r_misc.Loading?
+    Loading = (props) ->
+        {Loading} = require('./r_misc')
+        return <Loading {...props} />
+
 schema = require('smc-util/schema')
 misc   = require('smc-util/misc')
 theme  = require('smc-util/theme')
@@ -20,12 +23,12 @@ theme  = require('smc-util/theme')
 test_commercial = (c) ->
     return c[0]?.toLowerCase() == 'y'  # make it true if starts with y
 
-store    = redux.createStore('customize', defaults)
-actions  = redux.createActions('customize')
-actions.setState(is_commercial: true)  # really simple way to have a default value -- gets changed below once the $?.get returns.
 defaults = misc.dict( ([k, v.default] for k, v of schema.site_settings_conf) )
 defaults.is_commercial = test_commercial(defaults.commercial)
 
+store    = redux.createStore('customize', defaults)
+actions  = redux.createActions('customize')
+actions.setState(is_commercial: true)  # really simple way to have a default value -- gets changed below once the $?.get returns.
 
 # If we are running in the browser, then we customize the schema.  This also gets run on the backend
 # to generate static content, which can't be customized.
