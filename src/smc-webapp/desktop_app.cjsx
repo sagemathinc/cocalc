@@ -112,7 +112,6 @@ Page = rclass
         @actions('page').clear_all_handlers()
 
     render_account_tab: ->
-        ###
         if @props.account_id
             a = <Avatar
                     size       = {20}
@@ -122,13 +121,12 @@ Page = rclass
                     />
         else
             a = 'cog'
-        ###
 
         <NavTab
             name           = 'account'
             label          = {'Account'}
             label_class    = {nav_class}
-            icon           = {'cog'}
+            icon           = {a}
             actions        = {@actions('page')}
             active_top_tab = {@props.active_top_tab}
         />

@@ -65,7 +65,7 @@ exports.NavTab = rclass
     propTypes :
         label           : rtypes.string
         label_class     : rtypes.string
-        icon            : rtypes.string
+        icon            : rtypes.oneOfType([rtypes.string,rtypes.object])
         close           : rtypes.bool
         on_click        : rtypes.func
         active_top_tab  : rtypes.string
@@ -87,10 +87,13 @@ exports.NavTab = rclass
 
     make_icon: ->
         if @props.icon?
-            <Icon
-                name  = {@props.icon}
-                style = {fontSize: 20, paddingRight: 2}
-            />
+            if typeof @props.icon == "string"
+                <Icon
+                    name  = {@props.icon}
+                    style = {fontSize: 20, paddingRight: 2}
+                />
+            else
+                @props.icon
 
     on_click: (e) ->
         if @props.name?
@@ -118,6 +121,7 @@ exports.NavTab = rclass
             inner_style = @props.inner_style
         else
             inner_style =
+                display: 'flex'
                 padding : '10px'
         if @props.add_inner_style
             misc.merge(inner_style, @props.add_inner_style)
