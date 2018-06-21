@@ -9,7 +9,7 @@ import { language } from "../generic/misc-page";
 interface Options {
   project_id: string;
   path: string;
-  lang?: string;
+  lang: string;
   time?: number;
 }
 
@@ -17,7 +17,7 @@ export async function misspelled_words(opts: Options): Promise<string[]> {
   if (!opts.lang) {
     opts.lang = language();
   }
-  if (opts.lang === "disable") {
+  if (opts.lang === "disabled") {
     return [];
   }
 
@@ -45,7 +45,7 @@ export async function misspelled_words(opts: Options): Promise<string[]> {
 
   }
   const command = `cat '${opts.path}'|aspell ${mode} ${lang} list|sort|uniq`;
-  console.log(command);
+  //console.log(command);
 
   const output: ExecOutput = await exec({
     project_id: opts.project_id,

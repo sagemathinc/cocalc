@@ -104,6 +104,7 @@ export class Actions<T = CodeEditorState> extends BaseActions<
   private _cm_selections: any;
   private _update_misspelled_words_last_hash: any;
   private _active_id_history: string[] = [];
+  private _spellcheck_is_supported: boolean = false;
 
   _init(
     project_id: string,
@@ -179,13 +180,7 @@ export class Actions<T = CodeEditorState> extends BaseActions<
   // Init spellchecking whenever syncstring saves -- only used in derived classes, where
   // spelling makes sense...
   _init_spellcheck(): void {
-    // TODO: lame explicit cast
-    const settings: Map<string, any> = this.store.get("settings");
-    if (!settings.has("spell")) {
-      // ensure that the spell checker setting is available.
-      this.set_setting("spell", "default");
-    }
-    this.update_misspelled_words();
+    this._spellcheck_is_supported = true;
     this._syncstring.on("save-to-disk", time =>
       this.update_misspelled_words(time)
     );
@@ -228,6 +223,7 @@ export class Actions<T = CodeEditorState> extends BaseActions<
       }
       this._syncstring_init = true;
       this._syncstring_metadata();
+      this._init_settings();
       if (
         !this.store.get("is_loaded") &&
         (this._syncdb === undefined || this._syncdb_init)
@@ -1327,7 +1323,14 @@ export class Actions<T = CodeEditorState> extends BaseActions<
   // sets the mispelled_words part of the state to the immutable
   // Set of those words.  They can then be rendered by any editor/view.
   async update_misspelled_words(time?: number): Promise<void> {
-    const hash = this._syncstring.hash_of_saved_version();
+    // hash combines state of file with spell check setting.
+    // TODO: store /type fail.
+    const lang = (this.store.get("settings") as Map<string, any>).get("spell");
+    if (!lang) {
+      // spell check configuration not yet initialized
+      return;
+    }
+    const hash = this._syncstring.hash_of_saved_version() + lang;
     if (hash === this._update_misspelled_words_last_hash) {
       // same file as before, so do not bother.
       return;
@@ -1337,6 +1340,7 @@ export class Actions<T = CodeEditorState> extends BaseActions<
       const words: string[] = await misspelled_words({
         project_id: this.project_id,
         path: this.path,
+        lang,
         time
       });
       const x = Set(words);
@@ -1588,10 +1592,31 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     return {};
   }
 
-  set_setting(key: string, value: any): void {
-    // TODO: lame explicit cast
-    const settings: Map<string, any> = this.store.get("settings");
-    this.setState({ settings: settings.set(key, fromJS(value)) });
-    this._syncstring.set_settings({key:value});
+  /* Functions related to settings */
+
+  set_settings(obj: object): void {
+    this._syncstring.set_settings(obj);
+    this.setState({ settings: this._syncstring.get_settings() });
+    if (obj.hasOwnProperty("spell")) {
+      this.update_misspelled_words();
+    }
+  }
+
+  _init_settings(): void {
+    const settings = this._syncstring.get_settings();
+    this.setState({ settings: settings });
+
+    if (this._spellcheck_is_supported) {
+      if (!settings.get("spell")) {
+        // ensure spellcheck is a possible setting, if necessary.
+        this.set_settings({ spell: "default" });
+      }
+      // initial spellcheck
+      this.update_misspelled_words();
+    }
+
+    this._syncstring.on("settings-change", settings => {
+      this.setState({ settings: settings });
+    });
   }
 }

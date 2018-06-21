@@ -32,12 +32,13 @@ export class Settings extends Component<Props, {}> {
             <SpellCheck
               key={key}
               value={value}
-              set={value => this.props.actions.set_setting(key, value)}
+              set={value => this.props.actions.set_settings({ [key]: value })}
             />
           );
           return;
         default:
-          console.warn(`UNKNOWN setting ${key}`);
+          console.warn(`UNKNOWN setting ${key} -- ignoring`);
+        // we could delete it like so -- this.props.actions.set_settings({[key]:null});
       }
     });
     return v;
@@ -53,7 +54,12 @@ export class Settings extends Component<Props, {}> {
           fontSize: "10pt"
         }}
       >
-        <h3>
+        <h3
+          style={{
+            borderBottom: "1px solid #ccc",
+            paddingBottom: "15px"
+          }}
+        >
           <Icon name="wrench" /> Editor Settings
         </h3>
         {this.render_settings()}

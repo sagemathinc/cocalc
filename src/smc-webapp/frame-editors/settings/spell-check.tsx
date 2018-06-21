@@ -54,7 +54,6 @@ export class SpellCheck extends Component<Props, {}> {
         <Radio
           value="default"
           name="radioGroup"
-          inline
           checked={this.props.value == "default"}
           onChange={handle_radio_change}
         >
@@ -63,7 +62,6 @@ export class SpellCheck extends Component<Props, {}> {
         <Radio
           name="radioGroup"
           value="disabled"
-          inline
           checked={this.props.value == "disabled"}
           onChange={handle_radio_change}
         >
@@ -72,7 +70,6 @@ export class SpellCheck extends Component<Props, {}> {
         <Radio
           name="radioGroup"
           value="other"
-          inline
           checked={
             this.props.value != "default" && this.props.value != "disabled"
           }
@@ -112,9 +109,9 @@ export class SpellCheck extends Component<Props, {}> {
 
   render(): Rendered {
     return (
-      <div style={{ border: "1px solid #ccc", padding: "5px" }}>
+      <div style={{padding: "5px" }}>
         <div style={{ fontSize: "11pt" }}>
-          <b>Spellcheck language</b> for this file
+          <b>Spellcheck settings</b> for this file (spellcheck happens on save):
         </div>
         <div style={{ marginLeft: "5ex" }}> {this.render_radio_buttons()}</div>
       </div>
