@@ -246,7 +246,7 @@ welcome_email_html = (token_url) -> """
 <h1>Welcome to #{SITE_NAME}</h1>
 
 <p style="margin-top:0;margin-bottom:10px;">
-<a href="#{DOMAIN_NAME}">#{SITE_NAME}</a> is sophisticated web service for collaborative computation.
+<a href="#{DOMAIN_NAME}">#{SITE_NAME}</a> is a sophisticated web service for collaborative computation.
 </p>
 
 <p style="margin-top:0;margin-bottom:20px;">
@@ -258,11 +258,11 @@ This was either initiated by you, a friend or colleague invited you, or you're a
 
 <hr size="1"/>
 
-<h3>Explore #{SITE_NAME}</h3>
+<h3>Exploring #{SITE_NAME}</h3>
 <p style="margin-top:0;margin-bottom:10px;">
-Your work on #{SITE_NAME} happens inside <strong>private projects</strong>.
-They form your personal workspaces containing your files, computational worksheets, and data.
-You run your computations through the web interface, via interactive worksheets and notebooks, or by executing a program in a terminal.
+In #{SITE_NAME} your work happens inside <strong>private projects</strong>.
+These are personal workspaces which contain your files, computational worksheets, and data.
+You can run your computations through the web interface, via interactive worksheets and notebooks, or by executing a program in a terminal.
 #{SITE_NAME} supports online editing of
     <a href="http://jupyter.org/">Jupyter Notebooks</a>,
     <a href="http://www.sagemath.org/">Sage Worksheets</a>,
