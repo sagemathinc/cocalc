@@ -239,7 +239,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     for (let table in QUERIES) {
       this.redux.removeTable(project_redux_name(this.project_id, table));
     }
-  }
+  };
 
   _ensure_project_is_open(cb): void {
     const s: any = this.redux.getStore("projects");
@@ -560,16 +560,15 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   }
 
   // Open the given file in this project.
-  open_file(
-    opts: {
-      path: string;
-      foreground?: boolean;
-      foreground_project?: boolean;
-      chat?: any;
-      chat_width?: number;
-      ignore_kiosk?: boolean;
-      new_browser_window?: boolean;
-    }): void {
+  open_file(opts: {
+    path: string;
+    foreground?: boolean;
+    foreground_project?: boolean;
+    chat?: any;
+    chat_width?: number;
+    ignore_kiosk?: boolean;
+    new_browser_window?: boolean;
+  }): void {
     opts = defaults(opts, {
       path: required,
       foreground: true,
@@ -621,37 +620,66 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         // something we wait on with _ensure_project_is_open. **TODO** This should
         // go away when we get rid of the ProjectPage entirely, when finishing
         // the React rewrite.
-        return !projects_store || projects_store.wait({
-          until: s => (s as any).get_my_group(this.project_id),
-          timeout: 60,
-          cb: (err, group) => {
-            if (err) {
-              this.set_activity({
-                id: misc.uuid(),
-                error: `opening file -- ${err}`
-              });
-              return;
-            }
+        return (
+          !projects_store ||
+          projects_store.wait({
+            until: s => (s as any).get_my_group(this.project_id),
+            timeout: 60,
+            cb: (err, group) => {
+              if (err) {
+                this.set_activity({
+                  id: misc.uuid(),
+                  error: `opening file -- ${err}`
+                });
+                return;
+              }
 
-            const is_public = group === "public";
-            const ext = misc
-              .filename_extension_notilde(opts.path)
-              .toLowerCase();
+              const is_public = group === "public";
+              const ext = misc
+                .filename_extension_notilde(opts.path)
+                .toLowerCase();
 
-            if (!is_public && (ext === "sws" || ext.slice(0, 4) === "sws~")) {
-              // sagenb worksheet (or backup of it created during unzip of multiple worksheets with same name)
-              alert_message({
-                type: "info",
-                message: `Opening converted CoCalc worksheet file instead of '${
-                  opts.path
-                }...`
-              });
-              this.convert_sagenb_worksheet(
-                opts.path,
-                (err, sagews_filename) => {
+              if (!is_public && (ext === "sws" || ext.slice(0, 4) === "sws~")) {
+                // sagenb worksheet (or backup of it created during unzip of multiple worksheets with same name)
+                alert_message({
+                  type: "info",
+                  message: `Opening converted CoCalc worksheet file instead of '${
+                    opts.path
+                  }...`
+                });
+                this.convert_sagenb_worksheet(
+                  opts.path,
+                  (err, sagews_filename) => {
+                    if (!err) {
+                      this.open_file({
+                        path: sagews_filename,
+                        foreground: opts.foreground,
+                        foreground_project: opts.foreground_project,
+                        chat: opts.chat
+                      });
+                    } else {
+                      alert_message({
+                        type: "error",
+                        message: `Error converting Sage Notebook sws file -- ${err}`
+                      });
+                    }
+                  }
+                );
+                return;
+              }
+
+              if (!is_public && ext === "docx") {
+                // Microsoft Word Document
+                alert_message({
+                  type: "info",
+                  message: `Opening converted plain text file instead of '${
+                    opts.path
+                  }...`
+                });
+                this.convert_docx_file(opts.path, (err, new_filename) => {
                   if (!err) {
                     this.open_file({
-                      path: sagews_filename,
+                      path: new_filename,
                       foreground: opts.foreground,
                       foreground_project: opts.foreground_project,
                       chat: opts.chat
@@ -659,183 +687,157 @@ export class ProjectActions extends Actions<ProjectStoreState> {
                   } else {
                     alert_message({
                       type: "error",
-                      message: `Error converting Sage Notebook sws file -- ${err}`
+                      message: `Error converting Microsoft docx file -- ${err}`
                     });
                   }
-                }
-              );
-              return;
-            }
-
-            if (!is_public && ext === "docx") {
-              // Microsoft Word Document
-              alert_message({
-                type: "info",
-                message: `Opening converted plain text file instead of '${
-                  opts.path
-                }...`
-              });
-              this.convert_docx_file(opts.path, (err, new_filename) => {
-                if (!err) {
-                  this.open_file({
-                    path: new_filename,
-                    foreground: opts.foreground,
-                    foreground_project: opts.foreground_project,
-                    chat: opts.chat
-                  });
-                } else {
-                  alert_message({
-                    type: "error",
-                    message: `Error converting Microsoft docx file -- ${err}`
-                  });
-                }
-              });
-              return;
-            }
-
-            if (!is_public) {
-              if (this.redux.hasActions("file_use")) {
-                // if the user is anonymous they don't have a file_use Actions (yet)
-                (this.redux.getActions("file_use") as any).mark_file(
-                  this.project_id,
-                  opts.path,
-                  "open"
-                );
-              }
-              const event = {
-                event: "open",
-                action: "open",
-                filename: opts.path
-              };
-              const id = this.log(event);
-
-              // Save the log entry id, so it is possible to optionally
-              // record how long it took for the file to open.  This
-              // may happen via a call from random places in our codebase,
-              // since the idea of "finishing opening and rendering" is
-              // not simple to define.
-              if (id !== undefined) {
-                this._log_open_time[opts.path] = {
-                  id,
-                  start: misc.server_time()
-                };
-              }
-
-              // grab chat state from local storage
-              const { local_storage } = require("./editor");
-              if (local_storage != null) {
-                if (opts.chat == null) {
-                  opts.chat = local_storage(
-                    this.project_id,
-                    opts.path,
-                    "is_chat_open"
-                  );
-                }
-                if (opts.chat_width == null) {
-                  opts.chat_width = local_storage(
-                    this.project_id,
-                    opts.path,
-                    "chat_width"
-                  );
-                }
-              }
-
-              if (misc.filename_extension(opts.path) === "sage-chat") {
-                opts.chat = false;
-              }
-            }
-
-            let store = this.get_store();
-            if (store == undefined) {
-              return;
-            }
-            let open_files = store.get("open_files");
-
-            // Only generate the editor component if we don't have it already
-            // Also regenerate if view type (public/not-public) changes
-            let file_info = open_files.getIn([opts.path, "component"]) || {
-              is_public: false
-            };
-            if (
-              !open_files.has(opts.path) ||
-              file_info.is_public !== is_public
-            ) {
-              const was_public = file_info.is_public;
-
-              if (was_public != null && was_public !== is_public) {
-                this.setState({
-                  open_files: open_files.delete(opts.path)
                 });
-                project_file.remove(
+                return;
+              }
+
+              if (!is_public) {
+                if (this.redux.hasActions("file_use")) {
+                  // if the user is anonymous they don't have a file_use Actions (yet)
+                  (this.redux.getActions("file_use") as any).mark_file(
+                    this.project_id,
+                    opts.path,
+                    "open"
+                  );
+                }
+                const event = {
+                  event: "open",
+                  action: "open",
+                  filename: opts.path
+                };
+                const id = this.log(event);
+
+                // Save the log entry id, so it is possible to optionally
+                // record how long it took for the file to open.  This
+                // may happen via a call from random places in our codebase,
+                // since the idea of "finishing opening and rendering" is
+                // not simple to define.
+                if (id !== undefined) {
+                  this._log_open_time[opts.path] = {
+                    id,
+                    start: misc.server_time()
+                  };
+                }
+
+                // grab chat state from local storage
+                const { local_storage } = require("./editor");
+                if (local_storage != null) {
+                  if (opts.chat == null) {
+                    opts.chat = local_storage(
+                      this.project_id,
+                      opts.path,
+                      "is_chat_open"
+                    );
+                  }
+                  if (opts.chat_width == null) {
+                    opts.chat_width = local_storage(
+                      this.project_id,
+                      opts.path,
+                      "chat_width"
+                    );
+                  }
+                }
+
+                if (misc.filename_extension(opts.path) === "sage-chat") {
+                  opts.chat = false;
+                }
+              }
+
+              let store = this.get_store();
+              if (store == undefined) {
+                return;
+              }
+              let open_files = store.get("open_files");
+
+              // Only generate the editor component if we don't have it already
+              // Also regenerate if view type (public/not-public) changes
+              let file_info = open_files.getIn([opts.path, "component"]) || {
+                is_public: false
+              };
+              if (
+                !open_files.has(opts.path) ||
+                file_info.is_public !== is_public
+              ) {
+                const was_public = file_info.is_public;
+
+                if (was_public != null && was_public !== is_public) {
+                  this.setState({
+                    open_files: open_files.delete(opts.path)
+                  });
+                  project_file.remove(
+                    opts.path,
+                    this.redux,
+                    this.project_id,
+                    was_public
+                  );
+                }
+
+                const open_files_order = store.get("open_files_order");
+
+                // Initialize the file's store and actions
+                const name = project_file.initialize(
                   opts.path,
                   this.redux,
                   this.project_id,
-                  was_public
+                  is_public
                 );
-              }
 
-              const open_files_order = store.get("open_files_order");
-
-              // Initialize the file's store and actions
-              const name = project_file.initialize(
-                opts.path,
-                this.redux,
-                this.project_id,
-                is_public
-              );
-
-              // Make the Editor react component
-              const Editor = project_file.generate(
-                opts.path,
-                this.redux,
-                this.project_id,
-                is_public
-              );
-
-              // Add it to open files
-              // IMPORTANT: info can't be a full immutable.js object, since Editor can't
-              // be converted to immutable,
-              // so don't try to do that.  Of course info could be an immutable map.
-              const info = {
-                redux_name: name,
-                is_public,
-                Editor
-              };
-              open_files = open_files.setIn([opts.path, "component"], info);
-              open_files = open_files.setIn(
-                [opts.path, "is_chat_open"],
-                opts.chat
-              );
-              open_files = open_files.setIn(
-                [opts.path, "chat_width"],
-                opts.chat_width
-              );
-              let index = open_files_order.indexOf(opts.path);
-              if (opts.chat) {
-                require("./chat/register").init(
-                  misc.meta_file(opts.path, "chat"),
+                // Make the Editor react component
+                const Editor = project_file.generate(
+                  opts.path,
                   this.redux,
-                  this.project_id
+                  this.project_id,
+                  is_public
                 );
-              }
-              // Closed by require('./project_file').remove
 
-              if (index === -1) {
-                index = open_files_order.size;
-              }
-              this.setState({
-                open_files,
-                open_files_order: open_files_order.set(index, opts.path)
-              });
-              (this.redux.getActions("page") as any).save_session();
-            }
+                // Add it to open files
+                // IMPORTANT: info can't be a full immutable.js object, since Editor can't
+                // be converted to immutable,
+                // so don't try to do that.  Of course info could be an immutable map.
+                const info = {
+                  redux_name: name,
+                  is_public,
+                  Editor
+                };
+                open_files = open_files.setIn([opts.path, "component"], info);
+                open_files = open_files.setIn(
+                  [opts.path, "is_chat_open"],
+                  opts.chat
+                );
+                open_files = open_files.setIn(
+                  [opts.path, "chat_width"],
+                  opts.chat_width
+                );
+                let index = open_files_order.indexOf(opts.path);
+                if (opts.chat) {
+                  require("./chat/register").init(
+                    misc.meta_file(opts.path, "chat"),
+                    this.redux,
+                    this.project_id
+                  );
+                }
+                // Closed by require('./project_file').remove
 
-            if (opts.foreground) {
-              this.foreground_project();
-              this.set_active_tab(misc.path_to_tab(opts.path));
+                if (index === -1) {
+                  index = open_files_order.size;
+                }
+                this.setState({
+                  open_files,
+                  open_files_order: open_files_order.set(index, opts.path)
+                });
+                (this.redux.getActions("page") as any).save_session();
+              }
+
+              if (opts.foreground) {
+                this.foreground_project();
+                this.set_active_tab(misc.path_to_tab(opts.path));
+              }
             }
-          }
-        });
+          })
+        );
       }
     });
   }
@@ -958,7 +960,10 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       });
     };
 
-    this._activity_indicator_timers[filename] = setTimeout(set_inactive, 1000) as NodeJS.Timer;
+    this._activity_indicator_timers[filename] = setTimeout(
+      set_inactive,
+      1000
+    ) as NodeJS.Timer;
 
     let store = this.get_store();
     if (store == undefined) {
@@ -1225,14 +1230,17 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         cb => {
           let projects_store = this.redux.getStore("projects");
           // make sure that our relationship to this project is known.
-          return !projects_store || projects_store.wait({
-            until: s => (s as any).get_my_group(this.project_id),
-            timeout: 30,
-            cb: (err, group) => {
-              my_group = group;
-              return cb(err);
-            }
-          });
+          return (
+            !projects_store ||
+            projects_store.wait({
+              until: s => (s as any).get_my_group(this.project_id),
+              timeout: 30,
+              cb: (err, group) => {
+                my_group = group;
+                return cb(err);
+              }
+            })
+          );
         },
         cb => {
           store = this.get_store();
@@ -1711,27 +1719,29 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         cb("no store");
         return;
       }
-      return $.ajax({
-        url: index_json_url,
-        timeout: 5000,
-        success: data => {
-          //if DEBUG then console.log("init_library/datadata
-          data = immutable.fromJS(data);
+      return $
+        .ajax({
+          url: index_json_url,
+          timeout: 5000,
+          success: data => {
+            //if DEBUG then console.log("init_library/datadata
+            data = immutable.fromJS(data);
 
-          let store = this.get_store();
-          if (store == undefined) {
-            cb("no store");
-            return;
+            let store = this.get_store();
+            if (store == undefined) {
+              cb("no store");
+              return;
+            }
+            library = store.get("library").set("examples", data);
+            this.setState({ library });
+            _init_library_index_cache[this.project_id] = data;
+            return cb();
           }
-          library = store.get("library").set("examples", data);
-          this.setState({ library });
-          _init_library_index_cache[this.project_id] = data;
-          return cb();
-        }
-      }).fail(err =>
-        //#if DEBUG then console.log("init_library/index: error reading file: #{misc.to_json(err)}")
-        cb(err.statusText != null ? err.statusText : "error")
-      );
+        })
+        .fail(err =>
+          //#if DEBUG then console.log("init_library/index: error reading file: #{misc.to_json(err)}")
+          cb(err.statusText != null ? err.statusText : "error")
+        );
     };
 
     return misc.retry_until_success({
@@ -2232,7 +2242,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     try {
       p = this._absolute_path(name, opts.current_path, opts.ext);
     } catch (e) {
-      console.warn("Absolute path creation error")
+      console.warn("Absolute path creation error");
       this.setState({ file_creation_error: e.message });
       return;
     }
