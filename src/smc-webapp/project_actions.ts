@@ -2087,6 +2087,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       timeout: 60,
       args: ["-rf", "--"].concat(opts.paths),
       cb: (err, result) => {
+        this.fetch_directory_listing();
         if (err) {
           return this.set_activity({
             id,
