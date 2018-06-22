@@ -108,7 +108,7 @@ for i in range(2):
                     continue
             else:
                 blob_wanted -= 1
-                file_uuid = mesg[:SHA_LEN]
+                file_uuid = mesg[:SHA_LEN].decode()
                 assert file_uuid == conftest.uuidsha1(mesg[SHA_LEN:])
                 m = conftest.message.save_blob(sha1 = file_uuid)
                 sagews.send_json(m)
