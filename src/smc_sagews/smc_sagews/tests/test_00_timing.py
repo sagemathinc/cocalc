@@ -22,7 +22,7 @@ class TestSageTiming:
         assert result == 0
         tick = time.time()
         elapsed = tick - start
-        assert 1.0 == pytest.approx(elapsed, abs = 0.1)
+        assert 1.0 == pytest.approx(elapsed, abs = 0.2)
 
     def test_load_sage(self):
         start = time.time()
@@ -98,7 +98,7 @@ class TestStartSageServer:
         print("socket unlocked")
         conn = conftest.ConnectionJSON(sock)
         c_ack = conn._recv(1)
-        assert c_ack == 'y',"expect ack for token, got %s"%c_ack
+        assert c_ack == b'y',"expect ack for token, got %s"%c_ack
 
         # start session
         msg = conftest.message.start_session()
@@ -142,6 +142,6 @@ class TestStartSageServer:
 
         # check timing
         print("elapsed 2+2 %s"%elapsed)
-        assert elapsed < 12.0
+        assert elapsed < 15.0
 
         return
