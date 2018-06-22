@@ -59,7 +59,7 @@ class ConnectionJSON(object):
 
     def _send(self, s):
         length_header = struct.pack(">L", len(s))
-        self._conn.send(length_header + s)
+        self._conn.send(length_header + s.encode())
 
     def send_json(self, m):
         m = json.dumps(m)
@@ -115,14 +115,15 @@ class ConnectionJSON(object):
                 raise EOFError
             s += t
 
-        if s[0] == 'j':
+        mtyp = chr(s[0])
+        if mtyp == 'j':
             try:
-                return 'json', json.loads(s[1:])
+                return 'json', json.loads(s[1:].decode())
             except Exception as msg:
                 log("Unable to parse JSON '%s'"%s[1:])
                 raise
 
-        elif s[0] == 'b':
+        elif mtyp == 'b':
             return 'blob', s[1:]
         raise ValueError("unknown message type '%s'"%s[0])
     def set_timeout(self, timeout):
@@ -138,7 +139,7 @@ def truncate_text(s, max_size):
 class Message(object):
     def _new(self, event, props={}):
         m = {'event':event}
-        for key, val in props.iteritems():
+        for key, val in props.items():
             if key != 'self':
                 m[key] = val
         return m
@@ -300,7 +301,7 @@ else:
 
 def client_unlock_connection(sock):
     secret_token = open(secret_token_path).read().strip()
-    sock.sendall(secret_token)
+    sock.sendall(secret_token.encode())
 
 def path_info():
     file = __file__
@@ -575,7 +576,7 @@ def execblob(request, sagews, test_id):
                 want_blob = False
                 # when a blob is sent, the first 36 bytes are the sha1 uuid
                 print("blob len %s"%len(mesg))
-                file_uuid = mesg[:SHA_LEN]
+                file_uuid = mesg[:SHA_LEN].decode()
                 assert file_uuid == uuidsha1(mesg[SHA_LEN:])
 
                 # sage_server expects an ack with the right uuid
@@ -642,7 +643,7 @@ def sagews(request):
     client_unlock_connection(sock)
     print("socket unlocked")
     conn = ConnectionJSON(sock)
-    c_ack = conn._recv(1)
+    c_ack = conn._recv(1).decode()
     assert c_ack == 'y',"expect ack for token, got %s"%c_ack
 
     # open connection with sage_server and run tests
