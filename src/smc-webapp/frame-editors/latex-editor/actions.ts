@@ -79,7 +79,7 @@ export class Actions extends BaseActions<LatexEditorState> {
   }
 
   _init_latexmk(): void {
-    const account : any = this.redux.getStore("account");
+    const account: any = this.redux.getStore("account");
 
     this._syncstring.on("save-to-disk", time => {
       this._last_save_time = time;
@@ -414,6 +414,9 @@ export class Actions extends BaseActions<LatexEditorState> {
     sagetex?: BuildLog;
   }): void {
     let build_logs: BuildLogs = this.store.get("build_logs");
+    if(!build_logs) {  // may have already been closed.
+      return;
+    }
     let k: string;
     for (k in obj) {
       const v: BuildLog = obj[k];
