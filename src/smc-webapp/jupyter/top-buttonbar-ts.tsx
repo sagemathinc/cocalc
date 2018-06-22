@@ -4,10 +4,9 @@ The static buttonbar at the top.
 
 import { React, Component, rclass, rtypes } from "../frame-editors/generic/react"; // TODO: this will move
 import * as immutable from "immutable";
-import { ButtonGroup, Dropdown, MenuItem } from "react-bootstrap";
+import { Button, ButtonGroup, Form, FormControl } from "react-bootstrap";
 const { Icon } = require("../r_misc");
 const misc = require("smc-util/misc");
-const { required, defaults } = misc;
 const { UncommittedChanges } = require("./uncommitted-changes");
 
 interface TopButtonbarProps {
@@ -82,8 +81,19 @@ export class TopButtonbar0 extends Component<TopButtonbarProps> {
   };
 
   render_button(key: any, name: any) {
-    let { name, style, disabled = false, label = "", className } =
-      typeof name === "object" ? name : ({} as any);
+    // TODO: this is weird and confusing.
+    let className: string | undefined;
+    let disabled = false;
+    let label = "";
+    let style: any;
+    if (typeof(name) === 'object') {
+        var name;
+        ({name, disabled, style, label, className} = name);
+    }
+    if (style == null) {     style = undefined; }
+    if (disabled == null) {  disabled = false; }
+    if (label == null) {     label = ''; }
+    if (className == null) { className = undefined; }
     if (this.props.read_only) {
       // all buttons disabled in read-only mode
       disabled = true;
@@ -93,11 +103,10 @@ export class TopButtonbar0 extends Component<TopButtonbarProps> {
     if (obj == null) {
       return;
     }
+    let icon: any;
     const focus = !misc.endswith(obj.m, "...");
     if (obj.i) {
       icon = <Icon name={obj.i} />;
-    } else {
-      icon = undefined;
     }
     return (
       <Button
@@ -161,7 +170,7 @@ export class TopButtonbar0 extends Component<TopButtonbarProps> {
 
   render_select_cell_type() {
     let cell_type: any;
-    if ((this.props.sel_ids != null ? this.props.sel_ids.size : undefined) > 1) {
+    if (this.props.sel_ids != null ? this.props.sel_ids!.size > 1 : false) {
       cell_type = "multi";
     } else {
       cell_type =
@@ -235,7 +244,8 @@ export class TopButtonbar0 extends Component<TopButtonbarProps> {
   }
 
   render_switch_button() {
-    if (this.props.fullscreen === "kiosk" || $.browser.firefox) {
+    // TODO: does "$" have a "browser" property?
+    if (this.props.fullscreen === "kiosk" || ($ as any).browser.firefox) {
       return;
     }
     return (

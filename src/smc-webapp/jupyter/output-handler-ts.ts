@@ -202,7 +202,7 @@ export class OutputHandler extends EventEmitter {
 
   // Process incoming messages.  This may mutate mesg.
   message = (mesg: any) => {
-    let has_exec_count, left;
+    let has_exec_count: any;
     if (this._state === "closed") {
       return;
     }
@@ -334,8 +334,4 @@ export class OutputHandler extends EventEmitter {
         : undefined;
     }
   };
-}
-
-function __guard__(value, transform) {
-  return typeof value !== "undefined" && value !== null ? transform(value) : undefined;
 }

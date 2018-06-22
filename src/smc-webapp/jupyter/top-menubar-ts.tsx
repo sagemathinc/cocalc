@@ -13,7 +13,7 @@ const misc_page = require("../misc_page");
 const misc = require("smc-util/misc");
 const { required, defaults } = misc;
 
-const OPACITY = ".9";
+// const OPACITY = ".9"; // TODO: this was never read
 const TITLE_STYLE: React.CSSProperties = {
   color: "#666",
   border: 0,
@@ -157,10 +157,8 @@ export class TopMenubar0 extends Component<TopMenubarProps> {
   }
 
   render_edit() {
-    const cell_type = __guard__(
-      this.props.cells != null ? this.props.cells.get(this.props.cur_id) : undefined,
-      x => x.get("cell_type")
-    );
+    const cell_type = this.props.cells != null
+      ? this.props.cells.getIn([this.props.cur_id,"cell_type"]) : undefined;
     return this.render_menu({
       heading: "Edit",
       disabled: this.props.read_only,
@@ -309,7 +307,7 @@ export class TopMenubar0 extends Component<TopMenubarProps> {
 
   render_kernel() {
     const items = this.render_kernel_items();
-    const names = [
+    const names: any[] = [
       `${this.props.kernel_state !== "busy" ? "<" : ""}interrupt kernel`,
       "confirm restart kernel",
       "confirm restart kernel and clear output",
@@ -317,7 +315,7 @@ export class TopMenubar0 extends Component<TopMenubarProps> {
       "",
       "<Change kernel..."
     ]
-      .concat(items)
+      .concat(items as any || [])
       .concat(["", "refresh kernels"]);
 
     return this.render_menu({
@@ -522,7 +520,7 @@ render_widgets: -> # TODO: not supported in v1
   }
 
   render_links() {
-    const v = [];
+    const v: any = [];
     const lang =
       this.props.kernel_info != null ? this.props.kernel_info.get("language") : undefined;
     const f = this[`links_${lang}`];
