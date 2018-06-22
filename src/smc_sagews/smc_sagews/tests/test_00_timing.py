@@ -142,6 +142,6 @@ class TestStartSageServer:
 
         # check timing
         print("elapsed 2+2 %s"%elapsed)
-        assert elapsed < 12.0
+        assert elapsed < 15.0
 
         return
