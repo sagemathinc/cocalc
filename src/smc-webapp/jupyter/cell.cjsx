@@ -168,7 +168,7 @@ exports.Cell = rclass
         # Note that the cell id is used for the cell-list.cjsx scroll functionality.
         <div
             style     = {style}
-            onMouseUp = {@click_on_cell if not @props.is_current}
+            onMouseDown = {@click_on_cell if not @props.is_current}
             onDoubleClick = {@double_click}
             id        = {@props.id}
         >
