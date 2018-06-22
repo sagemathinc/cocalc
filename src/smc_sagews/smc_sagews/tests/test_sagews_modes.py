@@ -250,8 +250,8 @@ class TestAnaconda3Mode:
 
 class TestJuliaMode:
     def test_julia_quadratic(self, exec2):
-        exec2('%julia\nquadratic(a, sqr_term, b) = (-b + sqr_term) / 2a\nquadratic(2.0, -2.0, -12.0)', '2.5')
+        exec2('%julia\nquadratic(a, sqr_term, b) = (-b + sqr_term) / 2a\nquadratic(2.0, -2.0, -12.0)', '2.5', timeout=40)
 
     def test_julia_version(self, exec2):
-        exec2("%julia\nVERSION", pattern='"0.6.3"')
+        exec2("%julia\nVERSION", pattern='"0.6.3"', timeout=40)
 
