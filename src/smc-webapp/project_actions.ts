@@ -1978,12 +1978,14 @@ export class ProjectActions extends Actions<ProjectStoreState> {
 
     if (opts.include_chats) {
       if (opts.dest_is_folder) {
-        for (path of opts.src) {
+        let chat_paths: string[] = [];
+        for (let path of opts.src) {
           const chat_path = get_chat_path(path);
           if (!opts.src.includes(chat_path)) {
-            opts.src.push(chat_path);
+            chat_paths.push(chat_path);
           }
         }
+        opts.src.concat(chat_paths);
       } else {
         const old_chat_path = get_chat_path(opts.src[0]);
         const new_chat_path = get_chat_path(opts.dest);
