@@ -112,7 +112,9 @@ Shortcuts = rclass
                 key      = {key}
                 shortcut = {shortcut}
             />
-            {### @render_shortcut_delete_icon() # disabled for now ###}
+            {
+                undefined and @render_shortcut_delete_icon() # disabled for now
+            }
         </span>
 
     cancel_edit: ->
@@ -327,7 +329,9 @@ exports.KeyboardShortcuts = rclass
             Click a command to perform it.
             <br/>
             NOTE: Keyboard shortcuts are not customizable yet.
-            {### To add a keyboard shortcut, click plus next to the key combination then type the new keys. ###}
+            {
+                undefined # To add a keyboard shortcut, click plus next to the key combination then type the new keys.
+            }
         </div>
 
     render: ->
