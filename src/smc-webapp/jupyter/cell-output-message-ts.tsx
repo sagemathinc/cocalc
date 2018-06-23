@@ -178,11 +178,11 @@ class Image extends Component<ImageProps, ImageState> {
   }
 }
 
-interface TextPlain {
+interface TextPlainProps {
   value: string;
 }
 
-class TextPlain extends Component<TextPlain> {
+class TextPlain extends Component<TextPlainProps> {
   render() {
     // span?  what? -- See https://github.com/sagemathinc/cocalc/issues/1958
     return (
@@ -194,7 +194,7 @@ class TextPlain extends Component<TextPlain> {
 }
 
 interface UntrustedJavascriptProps {
-  value: object | string; // TODO: not used?
+  value: any; // TODO: not used?
 }
 
 class UntrustedJavascript extends Component<UntrustedJavascriptProps> {
@@ -204,7 +204,7 @@ class UntrustedJavascript extends Component<UntrustedJavascriptProps> {
 }
 
 interface JavascriptProps {
-  value: object | string; // TODO: not used?
+  value: any | string; // TODO: not used?
 }
 
 class Javascript extends Component<JavascriptProps> {
@@ -325,26 +325,24 @@ class Data extends Component<DataProps> {
         case "image":
           let height: any;
           let width: any;
-          @props.message.get('metadata')?.forEach? (value, key) =>
-          (this.props.message.get("metadata") || []).forEach((value:any,key:any) => {
-              if (key === "width") {
-                (width = value);
-              } else if (key === "height") {
-                (height = value);
-              } else {
-                // sometimes metadata is e.g., "image/png":{width:, height:}
-                if (value && value.forEach) {
-                  value.forEach((value:any,key:any) => {
-                    if (key === "width") {
-                      width = value;
-                    } else if (key === "height") {
-                      height = value;
-                    }
-                  })
-                }
+          this.props.message.get("metadata", []).forEach((value: any, key: any) => {
+            if (key === "width") {
+              width = value;
+            } else if (key === "height") {
+              height = value;
+            } else {
+              // sometimes metadata is e.g., "image/png":{width:, height:}
+              if (value && value.forEach) {
+                value.forEach((value: any, key: any) => {
+                  if (key === "width") {
+                    return (width = value);
+                  } else if (key === "height") {
+                    return (height = value);
+                  }
+                });
               }
-            }),
-          );
+            }
+          });
           return (
             <Image
               project_id={this.props.project_id}
@@ -363,7 +361,7 @@ class Data extends Component<DataProps> {
               if (this.props.trust) {
                 return <Javascript value={value} />;
               }
-                return <UntrustedJavascript value={value} />;
+              return <UntrustedJavascript value={value} />;
             case "pdf":
               return <PDF value={value} project_id={this.props.project_id} />;
           }

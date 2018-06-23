@@ -110,6 +110,24 @@ export class Cell extends Component<CellProps> {
     }
   }
 
+  double_click = (event: any) => {
+    if (this.props.actions == null) {
+      return;
+    }
+    if (this.props.cell.getIn(["metadata", "editable"]) === false) {
+      return;
+    }
+    if (this.props.cell.get("cell_type") !== "markdown") {
+      return;
+    }
+    this.props.actions.unselect_all_cells();
+    const id = this.props.cell.get("id");
+    this.props.actions.set_md_cell_editing(id);
+    this.props.actions.set_cur_id(id);
+    this.props.actions.set_mode("edit");
+    return event.stopPropagation();
+  };
+
   render_metadata_state() {
     const style: React.CSSProperties = {
       position: "absolute",
@@ -188,7 +206,12 @@ export class Cell extends Component<CellProps> {
 
     // Note that the cell id is used for the cell-list.cjsx scroll functionality.
     return (
-      <div style={style} onMouseUp={this.click_on_cell} id={this.props.id}>
+      <div
+        style={style}
+        onMouseUp={this.props.is_current ? undefined : this.click_on_cell}
+        onDoubleClick={this.double_click}
+        id={this.props.id}
+      >
         {this.render_hook()}
         {this.render_metadata_state()}
         {this.render_cell_input(this.props.cell)}
