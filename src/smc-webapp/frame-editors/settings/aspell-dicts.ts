@@ -3,10 +3,14 @@ Got via `aspell dump dicts` on Ubuntu 18.04, after doing `apt-get install aspell
 and removing dups.  Maybe update this someday...
 */
 
+import { language } from "../generic/misc-page";
+
 const langs = require("langs");
 (window as any).langs = langs;
 
 export const DICTS: string[] = [
+  "default",
+  "disabled",
   "af",
   "am",
   "ar",
@@ -150,6 +154,16 @@ export const DICTS: string[] = [
 
 // Slightly more human readable discription of dict.
 export function dict_desc(dict: string): string {
+  if (dict == 'default') {
+    let lang = language();
+    if (lang == 'default') {
+      return lang;
+    }
+    return dict_desc(lang);
+  }
+  if (dict == 'disabled') {
+    return "Disabled (no spell check)";
+  }
   let country = dict.slice(0, 2);
   let other = dict.slice(3);
   if(!langs.has("1", country)) {
