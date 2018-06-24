@@ -160,7 +160,7 @@ export class CodemirrorEditor extends Component<Props, State> {
     }
     delete (this.cm as any).undo;
     delete (this.cm as any).redo;
-    $(this.cm.getWrapperElement()).remove(); // remove from DOM -- "Remove this from your tree to delete an editor instance."
+    $(this.cm.getWrapperElement()).remove(); // remove from DOM -- "Remove this from your tree to delete an editor instance."  NOTE: there is still potentially a reference to the cm in this.props.actions._cm[id]; that's how we can bring back this frame (with given id) very efficiently.
     delete this.cm;
   }
 
