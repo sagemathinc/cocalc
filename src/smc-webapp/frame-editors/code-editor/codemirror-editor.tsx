@@ -158,7 +158,6 @@ export class CodemirrorEditor extends Component<Props, State> {
     if (this.cm == null) {
       return;
     }
-    this.props.actions.unset_cm(this.props.id);
     delete (this.cm as any).undo;
     delete (this.cm as any).redo;
     $(this.cm.getWrapperElement()).remove(); // remove from DOM -- "Remove this from your tree to delete an editor instance."
@@ -247,7 +246,22 @@ export class CodemirrorEditor extends Component<Props, State> {
       };
     }
 
-    this.cm = CodeMirror.fromTextArea(node, options);
+    let cm: CodeMirror.Editor = this.props.actions._cm[this.props.id];
+    if (cm != undefined) {
+      // Reuse existing codemirror editor, rather
+      // than creating a new one -- faster and preserves
+      // state such as code folding.
+      this.cm = cm;
+      if (!node.parentNode) {
+        // this never happens, but is needed for typescript.
+        return;
+      }
+      node.parentNode.insertBefore(cm.getWrapperElement(), node.nextSibling);
+      cm.refresh();
+      return;
+    } else {
+      this.cm = CodeMirror.fromTextArea(node, options);
+    }
 
     if (!this.props.is_public) {
       this.cm_highlight_misspelled_words(this.props.misspelled_words);
@@ -377,7 +391,7 @@ export class CodemirrorEditor extends Component<Props, State> {
       <div style={style} className="smc-vfill cocalc-editor-div">
         {this.render_cursors()}
         {this.render_gutter_markers()}
-        <textarea ref="textarea" />
+        <textarea ref="textarea" style={{display:'none'}} />
       </div>
     );
   }
