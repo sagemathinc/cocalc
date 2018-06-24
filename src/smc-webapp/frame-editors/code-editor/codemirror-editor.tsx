@@ -20,8 +20,8 @@ const misc = require("smc-util/misc");
 
 const { Cursors } = require("smc-webapp/jupyter/cursors");
 
-const { cm_options } = require("./cm-options");
-const codemirror_state = require("./codemirror-state");
+const { cm_options } = require("../codemirror/cm-options");
+const codemirror_state = require("../codemirror/codemirror-state");
 const doc = require("./doc.ts");
 
 const { GutterMarkers } = require("./codemirror-gutter-markers.tsx");

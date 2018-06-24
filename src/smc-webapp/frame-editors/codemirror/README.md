@@ -1,0 +1,3 @@
+Support for making it easier to use CodeMirror with react in cocalc.
+
+One idea here: a generic codemirror editor manager object, so that CodeMirror are only destroyed when the frame (or editor) is completely closed. I.e., when the component that contains them is unmounted, they are moved out of the main visible part of the DOM to somewhere, then put back when component is remounted, rather than created from scratch. If this were used across the board, it would also feel faster... I might just implement this next anyways, since it's been bugging me for awhile. Anyway, this would fix the code folding state issue automatically as a side effect.
