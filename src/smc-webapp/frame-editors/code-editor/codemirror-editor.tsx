@@ -257,16 +257,36 @@ export class CodemirrorEditor extends Component<Props, State> {
         return;
       }
       node.parentNode.insertBefore(cm.getWrapperElement(), node.nextSibling);
-      cm.refresh();
-      return;
     } else {
       this.cm = CodeMirror.fromTextArea(node, options);
+      this.init_new_codemirror();
+    }
+
+    if (this.props.editor_state != null) {
+      codemirror_state.set_state(this.cm, this.props.editor_state.toJS());
     }
 
     if (!this.props.is_public) {
       this.cm_highlight_misspelled_words(this.props.misspelled_words);
     }
 
+    this.setState({ has_cm: true });
+
+    if (this.props.is_current) {
+      this.cm.focus();
+    }
+    this.cm.setOption("readOnly", this.props.read_only);
+
+    this.cm_refresh();
+    await delay(0);
+    // now in the next render loop
+    this.cm_refresh();
+    if (this.props.is_current && this.cm) {
+      this.cm.focus();
+    }
+  }
+
+  init_new_codemirror() : void {
     (this.cm as any)._actions = this.props.actions;
 
     if (this.props.is_public) {
@@ -286,10 +306,6 @@ export class CodemirrorEditor extends Component<Props, State> {
       }
     }
 
-    if (this.props.editor_state != null) {
-      codemirror_state.set_state(this.cm, this.props.editor_state.toJS());
-    }
-
     const save_editor_state = throttle(() => this.save_editor_state(), 250);
     this.cm.on("scroll", save_editor_state);
 
@@ -302,8 +318,6 @@ export class CodemirrorEditor extends Component<Props, State> {
       e.attr("style") + "; height:100%; font-family:monospace !important;"
     );
     // see http://stackoverflow.com/questions/2655925/apply-important-css-style-using-jquery
-
-    this.setState({ has_cm: true });
 
     this.props.actions.set_cm(this.props.id, this.cm);
 
@@ -348,17 +362,6 @@ export class CodemirrorEditor extends Component<Props, State> {
     (this.cm as any).undo = () => this._cm_undo();
     (this.cm as any).redo = () => this._cm_redo();
 
-    if (this.props.is_current) {
-      this.cm.focus();
-    }
-    this.cm.setOption("readOnly", this.props.read_only);
-
-    await delay(0);
-    // now in the next render loop
-    this.cm_refresh();
-    if (this.props.is_current && this.cm) {
-      this.cm.focus();
-    }
   }
 
   render_cursors(): Rendered {
