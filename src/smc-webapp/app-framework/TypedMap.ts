@@ -120,24 +120,26 @@ interface TypedMapFactory<TProps extends Object> {
   new (values: TProps): TypedMap<TProps>;
 }
 
-export function createTypedMap<TProps>(defaults?: Partial<TProps>): TypedMapFactory<TProps> {
+export function createTypedMap<TProps>(
+  defaults?: Partial<TProps>
+): TypedMapFactory<TProps> {
   let default_map: Map<any, any>;
   if (defaults !== undefined) {
-    default_map = Map(defaults as any)
+    default_map = Map(defaults as any);
   }
   class TypedMap {
     private data: any;
 
     constructor(TProps: TProps) {
       if (default_map !== undefined) {
-        this.data = default_map.merge(TProps as any)
+        this.data = default_map.merge(TProps as any);
       } else {
         this.data = Map(TProps as any);
       }
     }
 
     // Reading values
-    has(key: string): key is keyof TProps {
+    has(key: string | number | symbol): key is keyof TProps {
       return this.data.has(key);
     }
 
@@ -200,7 +202,7 @@ export function createTypedMap<TProps>(defaults?: Partial<TProps>): TypedMapFact
       merger: (oldVal: any, newVal: any, key: any) => any,
       ...collections: Array<Partial<TProps> | Iterable<[string, any]>>
     ): this {
-      return this.data.mergeDeepWith(merger, collections)
+      return this.data.mergeDeepWith(merger, collections);
     }
 
     /**
@@ -227,7 +229,7 @@ export function createTypedMap<TProps>(defaults?: Partial<TProps>): TypedMapFact
       return this.data.mergIn(keyPath, collections);
     }
     mergeDeepIn(keyPath: Iterable<any>, ...collections: Array<any>): this {
-      return this.data.mergeDeepIn(keyPath, collections)
+      return this.data.mergeDeepIn(keyPath, collections);
     }
 
     /**
@@ -237,7 +239,7 @@ export function createTypedMap<TProps>(defaults?: Partial<TProps>): TypedMapFact
       return this.data.deleteIn(keyPath);
     }
     removeIn(keyPath: Iterable<any>): this {
-      return this.data.removeIn(keyPath)
+      return this.data.removeIn(keyPath);
     }
 
     // Conversion to JavaScript types
@@ -245,7 +247,7 @@ export function createTypedMap<TProps>(defaults?: Partial<TProps>): TypedMapFact
      * Deeply converts this Record to equivalent native JavaScript Object.
      */
     toJS(): { [K in keyof TProps]: any } {
-      return this.data.toJS()
+      return this.data.toJS();
     }
 
     /**
@@ -277,14 +279,14 @@ export function createTypedMap<TProps>(defaults?: Partial<TProps>): TypedMapFact
      * @see `Map#wasAltered`
      */
     wasAltered(): boolean {
-      return this.data.wasAltered()
+      return this.data.wasAltered();
     }
 
     /**
      * @see `Map#asImmutable`
      */
     asImmutable(): this {
-      return this.data.asImmutable()
+      return this.data.asImmutable();
     }
   }
 
