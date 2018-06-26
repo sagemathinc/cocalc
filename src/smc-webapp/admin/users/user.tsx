@@ -2,13 +2,15 @@
 Display of basic information about a user, with link to get more information about that user.
 */
 
-const { Icon, TimeAgo } = require("smc-webapp/r_misc");
+const { Icon, Space, TimeAgo } = require("smc-webapp/r_misc");
 
 import {
   React,
   Component,
   Rendered
 } from "smc-webapp/frame-editors/generic/react";
+
+import { capitalize } from "smc-webapp/frame-editors/generic/misc";
 
 import { Row, Col } from "react-bootstrap";
 
@@ -18,20 +20,32 @@ import { Subscriptions } from "./subscriptions";
 
 import { Projects } from "./projects";
 
+import { Activity } from "./activity";
+
 interface State {
-  show_projects: boolean;
-  show_subscriptions: boolean;
+  projects: boolean;
+  subscriptions: boolean;
+  activity: boolean;
 }
 
 interface Props extends User {
   header?: boolean;
 }
 
+type More = "projects" | "subscriptions" | "activity";
+
+const MORE: More[] = ["projects", "subscriptions", "activity"];
+
 export class UserResult extends Component<Props, State> {
   constructor(props, state) {
     super(props, state);
-    this.state = { show_projects: false, show_subscriptions: false };
+    const x: any = {};
+    for (let name of MORE) {
+      x[name] = false;
+    }
+    this.state = x as State;
   }
+
   render_created(): Rendered {
     if (!this.props.created) {
       return <span>unknown</span>;
@@ -47,17 +61,24 @@ export class UserResult extends Component<Props, State> {
   }
 
   render_subscriptions(): Rendered {
-    if (!this.state.show_subscriptions) {
+    if (!this.state.subscriptions) {
       return;
     }
     return <Subscriptions account_id={this.props.account_id} />;
   }
 
   render_projects(): Rendered {
-    if (!this.state.show_projects) {
+    if (!this.state.projects) {
       return;
     }
     return <Projects account_id={this.props.account_id} />;
+  }
+
+  render_activity(): Rendered {
+    if (!this.state.activity) {
+      return;
+    }
+    return <Activity account_id={this.props.account_id} />;
   }
 
   render_caret(show: boolean): Rendered {
@@ -68,6 +89,32 @@ export class UserResult extends Component<Props, State> {
     }
   }
 
+  render_more_link(name: More): Rendered {
+    // sorry abou the any below; I could NOT get typescript to work.
+    return (
+      <a
+        style={{ cursor: "pointer" }}
+        onClick={() => (this as any).setState({ [name]: !this.state[name] })}
+      >
+        {capitalize(name)} {this.render_caret(this.state[name])}
+      </a>
+    );
+  }
+
+  render_more_links(): Rendered {
+    return (
+      <div>
+        {this.render_more_link("projects")}
+        <Space />
+        <Space />
+        {this.render_more_link("subscriptions")}
+        <Space />
+        <Space />
+        {this.render_more_link("activity")}
+      </div>
+    );
+  }
+
   render_row(): Rendered {
     return (
       <div>
@@ -75,38 +122,21 @@ export class UserResult extends Component<Props, State> {
           <Col md={1}>{this.props.first_name}</Col>
           <Col md={1}>{this.props.last_name}</Col>
           <Col md={2}>{this.props.email_address}</Col>
-          <Col md={2}>{this.render_created()}</Col>
-          <Col md={2}>{this.render_last_active()}</Col>
-          <Col md={2}>
-            <a
-              onClick={() =>
-                this.setState({ show_projects: !this.state.show_projects })
-              }
-            >
-              {this.render_caret(this.state.show_projects)} Projects
-            </a>{" "}
+          <Col md={3}>
+            {this.render_last_active()} ({this.render_created()})
           </Col>
-          <Col md={2}>
-            <a
-              onClick={() =>
-                this.setState({
-                  show_subscriptions: !this.state.show_subscriptions
-                })
-              }
-            >
-              {this.render_caret(this.state.show_subscriptions)} Subscriptions
-            </a>
-          </Col>
+          <Col md={3}>{this.render_more_links()}</Col>
         </Row>
         {this.render_subscriptions()}
         {this.render_projects()}
+        {this.render_activity()}
       </div>
     );
   }
 
   render_row_header(): Rendered {
     return (
-      <div>
+      <div style={{ color: "#666" }}>
         <Row>
           <Col md={1}>
             <b>{this.props.first_name}</b>
@@ -117,17 +147,14 @@ export class UserResult extends Component<Props, State> {
           <Col md={2}>
             <b>{this.props.email_address}</b>
           </Col>
-          <Col md={2}>
-            <b>{this.props.created}</b>
+          <Col md={3}>
+            <b>
+              {this.props.last_active} ({this.props.created}){" "}
+              <Icon name="caret-down" />{" "}
+            </b>
           </Col>
-          <Col md={2}>
-            <b>{this.props.last_active}</b>
-          </Col>
-          <Col md={2}>
-            <b>Projects</b>
-          </Col>
-          <Col md={2}>
-            <b>Subscriptions</b>
+          <Col md={3}>
+            <b>More...</b>
           </Col>
         </Row>
       </div>

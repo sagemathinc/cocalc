@@ -4,7 +4,7 @@ import { AccountCreationToken } from "./account-creation-token";
 import { SiteSettings } from "./site-settings";
 import { StripeAPIKeys } from "./stripe-api-keys";
 import { StripeUser } from "./stripe-user";
-import { SubscriptionManager } from "./subscription-manager";
+//import { SubscriptionManager } from "./subscription-manager";
 import { SystemNotifications } from "./system-notifications";
 import { UserSearch } from "./users/user-search";
 
@@ -18,21 +18,19 @@ export class AdminPage extends Component {
           margin: "30px"
         }}
       >
-        <h3>Administrative server settings</h3>
-        <hr/>
-        <AccountCreationToken />
+        <h3>Administration</h3>
+        <hr />
+        <UserSearch />
         <hr/>
         <SiteSettings />
+        <hr/>
+        <SystemNotifications />
         <hr/>
         <StripeAPIKeys />
         <hr/>
         <StripeUser />
         <hr/>
-        <SubscriptionManager />
-        <hr/>
-        <SystemNotifications />
-        <hr />
-        <UserSearch />
+        <AccountCreationToken />
       </div>
     );
   }
