@@ -1,3 +1,4 @@
+
 import * as async from "async";
 import * as underscore from "underscore";
 import * as immutable from "immutable";
@@ -125,7 +126,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   private _last_history_state: string;
   private last_close_timer: number;
   private _log_open_time: { [key: string]: { id: string; start: number } };
-  private _activity_indicator_timers: { [key: string]: NodeJS.Timer };
+  private _activity_indicator_timers: { [key: string]: number };
   private _set_directory_files_lock: { [key: string]: Function[] };
 
   constructor(a, b) {
@@ -963,7 +964,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     this._activity_indicator_timers[filename] = setTimeout(
       set_inactive,
       1000
-    ) as NodeJS.Timer;
+    );
 
     let store = this.get_store();
     if (store == undefined) {
