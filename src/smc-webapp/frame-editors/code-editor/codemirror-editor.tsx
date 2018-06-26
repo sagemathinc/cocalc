@@ -336,7 +336,7 @@ export class CodemirrorEditor extends Component<Props, State> {
       save_syncstring_throttle();
       if (changeObj.origin != null && changeObj.origin !== "setValue") {
         this.props.actions.setState({ has_unsaved_changes: true });
-        return this.props.actions.exit_undo_mode();
+        this.props.actions.exit_undo_mode();
       }
     });
 

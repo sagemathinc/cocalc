@@ -3,6 +3,7 @@ import {Map} from "immutable";
 
 interface Props {
   id : string;
+  actions: any;
   output: Map<string,Map<string,any>>;
 }
 
