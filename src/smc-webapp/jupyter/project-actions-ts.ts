@@ -32,7 +32,7 @@ export class JupyterActions extends actions.JupyterActions {
 
         Going from ready to starting happens when a code execution is requested.
         */
-    if (!["init", "ready", "spawning", "starting", "running"].includes(state)) {
+    if (["init", "ready", "spawning", "starting", "running"].indexOf(state) === -1) {
       throw Error(`invalid backend state '${state}'`);
     }
     this._backend_state = state;

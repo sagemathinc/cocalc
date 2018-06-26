@@ -166,7 +166,7 @@ export class IPynbImporter {
     this._kernel =
       this._ipynb &&
       this._ipynb.metadata &&
-      this._ipynb.metadata.kerelspec &&
+      this._ipynb.metadata.kernelspec &&
       this._ipynb.metadata.kernelspec.name;
   };
 

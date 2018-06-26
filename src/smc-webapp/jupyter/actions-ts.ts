@@ -35,12 +35,18 @@ const commands = require("./commands");
 const cell_utils = require("./cell-utils");
 const { cm_options } = require("./cm_options");
 
+// TODO: seperate front specific code that uses this stuff
+declare const $: any;
+declare const window: any;
+declare const localStorage: any;
+
 let jupyter_kernels: any = undefined;
 
 const { IPynbImporter } = require("./import-from-ipynb");
 
-//DEFAULT_KERNEL = 'python2'
-const DEFAULT_KERNEL = "anaconda3";
+// DEFAULT_KERNEL = 'python2'
+// DEFAULT_KERNEL = "anaconda3";
+const DEFAULT_KERNEL = "sagemath";
 
 const syncstring = require("smc-util/syncstring");
 
@@ -99,7 +105,7 @@ export class JupyterActions extends Actions {
       directory: __guard__(misc.path_split(path), x1 => x1.head),
       path,
       is_focused: false, // whether or not the editor is focused.
-      max_output_length: 10000,
+      max_output_length: 10000
     });
 
     if (this._client) {
@@ -107,7 +113,7 @@ export class JupyterActions extends Actions {
         return this.setState({
           has_unsaved_changes: this.syncdb != null ? this.syncdb.has_unsaved_changes() : undefined,
           has_uncommitted_changes:
-            this.syncdb != null ? this.syncdb.has_uncommitted_changes() : undefined,
+            this.syncdb != null ? this.syncdb.has_uncommitted_changes() : undefined
         });
       };
       const f = () => {
@@ -216,7 +222,7 @@ export class JupyterActions extends Actions {
     }
     if (!this._is_project) {
       return __guard__(this.redux.getStore("account"), x =>
-        x.removeListener("change", this._account_change),
+        x.removeListener("change", this._account_change)
       );
     }
   };
@@ -241,7 +247,7 @@ export class JupyterActions extends Actions {
     opts = defaults(opts, {
       url: required,
       timeout: 15000,
-      cb: undefined,
+      cb: undefined
     }); // (err, data as Javascript object -- i.e., JSON is parsed)
     if (typeof $ === "undefined" || $ === null) {
       if (typeof opts.cb === "function") {
@@ -255,14 +261,14 @@ export class JupyterActions extends Actions {
       success: data => {
         //try
         return typeof opts.cb === "function" ? opts.cb(undefined, JSON.parse(data)) : undefined;
-      },
+      }
       //catch err
       //    opts.cb?("#{err}")
     }).fail(
       err =>
         typeof opts.cb === "function"
           ? opts.cb(err.statusText != null ? err.statusText : "error")
-          : undefined,
+          : undefined
     );
   };
 
@@ -290,7 +296,7 @@ export class JupyterActions extends Actions {
           } catch (e) {
             return this.set_error(`Error setting Jupyter kernels -- ${data} ${e}`);
           }
-        },
+        }
       });
     };
 
@@ -298,7 +304,7 @@ export class JupyterActions extends Actions {
       f,
       start_delay: 1500,
       max_delay: 15000,
-      max_time: 60000,
+      max_time: 60000
     });
   };
 
@@ -324,7 +330,7 @@ export class JupyterActions extends Actions {
       err = err + "\n\n" + cur;
     }
     return this.setState({
-      error: err,
+      error: err
     });
   };
 
@@ -340,9 +346,9 @@ export class JupyterActions extends Actions {
         id,
         input,
         start: null,
-        end: null,
+        end: null
       },
-      save,
+      save
     );
   };
 
@@ -351,9 +357,9 @@ export class JupyterActions extends Actions {
       {
         type: "cell",
         id,
-        output,
+        output
       },
-      save,
+      save
     );
   };
 
@@ -436,7 +442,7 @@ export class JupyterActions extends Actions {
     const obj: any = {
       type: "cell",
       id,
-      cell_type,
+      cell_type
     };
     if (cell_type !== "code") {
       // delete output and exec time info when switching to non-code cell_type
@@ -592,11 +598,11 @@ export class JupyterActions extends Actions {
           result.push(v[i]);
         }
         return result;
-      })(),
+      })()
     );
     return this.setState({
       sel_ids,
-      cur_id: id,
+      cur_id: id
     });
   };
 
@@ -776,8 +782,8 @@ export class JupyterActions extends Actions {
                 record.get("max_output_length"),
                 100,
                 100000,
-                20000,
-              ),
+                20000
+              )
             };
             if (kernel !== orig_kernel) {
               obj.kernel = kernel;
@@ -820,7 +826,7 @@ export class JupyterActions extends Actions {
         let left: any;
         const kernel =
           (left = __guard__(this.redux.getStore("account"), x1 =>
-            x1.getIn(["editor_settings", "jupyter", "kernel"]),
+            x1.getIn(["editor_settings", "jupyter", "kernel"])
           )) != null
             ? left
             : DEFAULT_KERNEL;
@@ -871,7 +877,7 @@ export class JupyterActions extends Actions {
         let cursors = (left = cell.get("cursors")) != null ? left : immutable.Map();
         loc = loc.set("time", info.get("time")).delete("id");
         const locs = ((left1 = cursors.get(account_id)) != null ? left1 : immutable.List()).push(
-          loc,
+          loc
         );
         cursors = cursors.set(account_id, locs);
         cell = cell.set("cursors", cursors);
@@ -974,14 +980,14 @@ export class JupyterActions extends Actions {
       this.store.get("cells"),
       this.store.get("cell_list"),
       this.store.get("cur_id"),
-      delta,
+      delta
     );
     const new_id = this._new_id();
     this._set({
       type: "cell",
       id: new_id,
       pos,
-      input: "",
+      input: ""
     });
     this.set_cur_id(new_id);
     return new_id; // violates CQRS... (this *is* used elsewhere)
@@ -1015,7 +1021,7 @@ export class JupyterActions extends Actions {
       } else {
         const verb = not_deletable === 1 ? "is" : "are";
         this.set_error(
-          `${not_deletable} ${misc.plural(not_deletable, "cell")} ${verb} protected from deletion.`,
+          `${not_deletable} ${misc.plural(not_deletable, "cell")} ${verb} protected from deletion.`
         );
       }
     }
@@ -1121,9 +1127,9 @@ export class JupyterActions extends Actions {
         end: null,
         output: null,
         exec_count: null,
-        collapsed: null,
+        collapsed: null
       },
-      save,
+      save
     );
     return this.set_trust_notebook(true);
   };
@@ -1141,9 +1147,9 @@ export class JupyterActions extends Actions {
         end: null,
         output: null,
         exec_count: null,
-        collapsed: null,
+        collapsed: null
       },
-      save,
+      save
     );
   };
 
@@ -1192,7 +1198,7 @@ export class JupyterActions extends Actions {
     let needle, new_id;
     const v = this.store.get_selected_cell_ids_list();
     this.run_selected_cells();
-    if (((needle = this.store.get("cur_id")), v.includes(needle))) {
+    if (((needle = this.store.get("cur_id")), v.indexOf(needle) > -1)) {
       new_id = this.insert_cell(1);
     } else {
       new_id = this.insert_cell(-1);
@@ -1402,9 +1408,9 @@ export class JupyterActions extends Actions {
         input,
         output: output != null ? output : null,
         start: null,
-        end: null,
+        end: null
       },
-      save,
+      save
     );
   };
 
@@ -1489,7 +1495,7 @@ export class JupyterActions extends Actions {
         id,
         metadata: { [key]: new_value },
         merge: true,
-        save: true,
+        save: true
       });
     }
     return this.save_asap();
@@ -1602,7 +1608,7 @@ export class JupyterActions extends Actions {
   // zoom in or out delta font sizes
   set_font_size = (pixels: any) => {
     this.setState({
-      font_size: pixels,
+      font_size: pixels
     });
     // store in localStorage
     return this.set_local_storage("font_size", pixels);
@@ -1667,7 +1673,7 @@ export class JupyterActions extends Actions {
       (left1 = __guardMethod__(
         this._input_editors != null ? this._input_editors[id] : undefined,
         "save",
-        o => o.save(),
+        o => o.save()
       )) != null
         ? left1
         : this.store.getIn(["cells", id, "input"])) != null
@@ -1680,7 +1686,7 @@ export class JupyterActions extends Actions {
     return __guardMethod__(
       this._input_editors != null ? this._input_editors[this.store.get("cur_id")] : undefined,
       "tab_key",
-      o => o.tab_key(),
+      o => o.tab_key()
     );
   };
 
@@ -1694,7 +1700,7 @@ export class JupyterActions extends Actions {
     __guardMethod__(
       this._input_editors != null ? this._input_editors[id] : undefined,
       "set_cursor",
-      o => o.set_cursor(pos),
+      o => o.set_cursor(pos)
     );
   };
 
@@ -1702,7 +1708,7 @@ export class JupyterActions extends Actions {
     if (this.store.get("kernel") !== kernel) {
       return this._set({
         type: "settings",
-        kernel,
+        kernel
       });
     }
   };
@@ -1711,8 +1717,8 @@ export class JupyterActions extends Actions {
     return __guard__(this.redux.getProjectActions(this.store.get("project_id")), x =>
       x.open_file({
         path: misc.history_path(this.store.get("path")),
-        foreground: true,
-      }),
+        foreground: true
+      })
     );
   };
 
@@ -1756,7 +1762,7 @@ export class JupyterActions extends Actions {
         this.store.get("project_id"),
         this.store.get("path"),
         code,
-        cursor_pos,
+        cursor_pos
       ),
       timeout: 5000,
       cb: (err, data) => {
@@ -1786,7 +1792,7 @@ export class JupyterActions extends Actions {
           // special case -- a unique completion and we know id of cell in which completing is given
           return this.select_complete(id, complete.matches[0]);
         }
-      },
+      }
     });
   };
 
@@ -1824,7 +1830,7 @@ export class JupyterActions extends Actions {
     const new_input = syncstring.three_way_merge({
       base,
       local: input,
-      remote,
+      remote
     });
     this.set_cell_input(id, new_input, save);
   };
@@ -1880,7 +1886,7 @@ export class JupyterActions extends Actions {
         this.store.get("path"),
         code,
         cursor_pos,
-        level,
+        level
       ),
       timeout: 30000,
       cb: (err, data) => {
@@ -1900,7 +1906,7 @@ export class JupyterActions extends Actions {
         }
 
         return this.setState({ introspect: immutable.fromJS(introspect) });
-      },
+      }
     });
   };
 
@@ -1913,7 +1919,7 @@ export class JupyterActions extends Actions {
   signal = (signal = "SIGINT") => {
     this._ajax({
       url: server_urls.get_signal_url(this.store.get("project_id"), this.store.get("path"), signal),
-      timeout: 5000,
+      timeout: 5000
     });
   };
 
@@ -1937,7 +1943,7 @@ export class JupyterActions extends Actions {
           } else {
             return dbg(`error = ${err}`);
           }
-        },
+        }
       });
       return;
     }
@@ -1969,7 +1975,7 @@ export class JupyterActions extends Actions {
             this.set_cm_options();
             return cb();
           }
-        },
+        }
       });
     };
 
@@ -1981,7 +1987,7 @@ export class JupyterActions extends Actions {
       cb: err => {
         err = err; // TODO: handle this
         return (this._fetching_backend_kernel_info = false);
-      },
+      }
     });
   };
 
@@ -2051,7 +2057,7 @@ export class JupyterActions extends Actions {
     } else {
       return this.setState({
         is_focused: false,
-        mode: "escape",
+        mode: "escape"
       });
     }
   };
@@ -2069,7 +2075,7 @@ export class JupyterActions extends Actions {
   set_max_output_length = n => {
     return this._set({
       type: "settings",
-      max_output_length: n,
+      max_output_length: n
     });
   };
 
@@ -2079,7 +2085,7 @@ export class JupyterActions extends Actions {
       url: server_urls.get_more_output_url(
         this.store.get("project_id"),
         this.store.get("path"),
-        id,
+        id
       ),
       timeout: 60000,
       cb: (err, more_output) => {
@@ -2092,7 +2098,7 @@ export class JupyterActions extends Actions {
           }
           return this.set_more_output(id, { time, mesg_list: more_output });
         }
-      },
+      }
     });
   };
 
@@ -2118,13 +2124,13 @@ export class JupyterActions extends Actions {
     const editor_settings = __guardMethod__(
       __guard__(this.redux.getStore("account"), x1 => x1.get("editor_settings")),
       "toJS",
-      o => o.toJS(),
+      o => o.toJS()
     );
     const line_numbers = this.store.get_local_storage("line_numbers");
     const read_only = this.store.get("read_only");
     const x = immutable.fromJS({
       options: cm_options(mode, editor_settings, line_numbers, read_only),
-      markdown: cm_options({ name: "gfm2" }, editor_settings, line_numbers, read_only),
+      markdown: cm_options({ name: "gfm2" }, editor_settings, line_numbers, read_only)
     });
 
     if (!x.equals(this.store.get("cm_options"))) {
@@ -2172,7 +2178,7 @@ export class JupyterActions extends Actions {
       show: true,
       lang,
       lang_select: false,
-      handler: this.code_assistant_handler,
+      handler: this.code_assistant_handler
     });
   };
 
@@ -2272,7 +2278,7 @@ export class JupyterActions extends Actions {
         err = err; // TODO: use/handle this
         this.focus_unlock();
         return opts.cb(choice);
-      },
+      }
     });
   };
 
@@ -2298,14 +2304,14 @@ export class JupyterActions extends Actions {
         if (choice === "Trust") {
           return this.set_trust_notebook(true);
         }
-      },
+      }
     });
   };
 
   set_trust_notebook = (trust: any) => {
     return this._set({
       type: "settings",
-      trust: !!trust,
+      trust: !!trust
     }); // case to bool
   };
 
@@ -2372,7 +2378,7 @@ export class JupyterActions extends Actions {
         this.store.get("project_id"),
         this.store.get("path"),
         key,
-        value,
+        value
       ),
       timeout: 15000,
       cb: err => {
@@ -2383,7 +2389,7 @@ export class JupyterActions extends Actions {
           this.set_error(`Error setting backend key/value store (${err})`);
         }
         return typeof cb === "function" ? cb(err) : undefined;
-      },
+      }
     });
   };
 
@@ -2443,7 +2449,7 @@ export class JupyterActions extends Actions {
       new_id: this._new_id,
       process_attachment:
         this._jupyter_kernel != null ? this._jupyter_kernel.process_attachment : undefined,
-      output_handler: this._output_handler,
+      output_handler: this._output_handler
     }); // undefined in client; defined in project
 
     if (data_only) {
@@ -2479,7 +2485,9 @@ export class JupyterActions extends Actions {
 
   nbconvert = (args: any) => {
     let needle;
-    if (((needle = this.store.getIn(["nbconvert", "state"])), ["start", "run"].includes(needle))) {
+    if (
+      ((needle = this.store.getIn(["nbconvert", "state"])), ["start", "run"].indexOf(needle) > -1)
+    ) {
       // not allowed
       return;
     }
@@ -2487,7 +2495,7 @@ export class JupyterActions extends Actions {
       type: "nbconvert",
       args,
       state: "start",
-      error: null,
+      error: null
     });
   };
 
@@ -2512,7 +2520,9 @@ export class JupyterActions extends Actions {
       to = "html";
     }
     this.setState({ nbconvert_dialog: { to } });
-    if (((needle = this.store.getIn(["nbconvert", "state"])), !["start", "run"].includes(needle))) {
+    if (
+      ((needle = this.store.getIn(["nbconvert", "state"])), ["start", "run"].indexOf(needle) === -1)
+    ) {
       // start it
       return this.nbconvert(["--to", to]);
     }
@@ -2535,7 +2545,7 @@ export class JupyterActions extends Actions {
         if (nbconvert.getIn(["error", "key"]) === key) {
           return this.setState({ nbconvert: nbconvert.set("error", value) });
         }
-      },
+      }
     });
   };
 
@@ -2555,7 +2565,7 @@ export class JupyterActions extends Actions {
     return this._set({
       type: "cell",
       id,
-      slide: value,
+      slide: value
     });
   };
 
@@ -2634,9 +2644,9 @@ export class JupyterActions extends Actions {
       {
         type: "cell",
         id,
-        attachments,
+        attachments
       },
-      save,
+      save
     );
   };
 
@@ -2659,9 +2669,9 @@ export class JupyterActions extends Actions {
         // can update before the attachments props are updated.
         return setTimeout(
           () => this.insert_input_at_cursor(id, this._attachment_markdown(name), true),
-          10,
+          10
         );
-      },
+      }
     });
   };
 
@@ -2672,7 +2682,7 @@ export class JupyterActions extends Actions {
     this.set_cell_attachment(id, name, null, false);
     return this.set_cell_input(
       id,
-      misc.replace_all(this._get_cell_input(id), this._attachment_markdown(name), ""),
+      misc.replace_all(this._get_cell_input(id), this._attachment_markdown(name), "")
     );
   };
 
@@ -2684,9 +2694,9 @@ export class JupyterActions extends Actions {
       {
         type: "cell",
         id,
-        tags: { [tag]: true },
+        tags: { [tag]: true }
       },
-      save,
+      save
     );
   };
 
@@ -2698,9 +2708,9 @@ export class JupyterActions extends Actions {
       {
         type: "cell",
         id,
-        tags: { [tag]: null },
+        tags: { [tag]: null }
       },
-      save,
+      save
     );
   };
 
@@ -2727,7 +2737,7 @@ export class JupyterActions extends Actions {
       id: required,
       metadata: required,
       save: true,
-      merge: false,
+      merge: false
     }));
 
     // Special case: delete metdata (unconditionally)
@@ -2736,9 +2746,9 @@ export class JupyterActions extends Actions {
         {
           type: "cell",
           id,
-          metadata: null,
+          metadata: null
         },
-        save,
+        save
       );
       return;
     }
@@ -2770,18 +2780,18 @@ export class JupyterActions extends Actions {
       {
         type: "cell",
         id,
-        metadata: null,
+        metadata: null
       },
-      false,
+      false
     );
     // then set
     this._set(
       {
         type: "cell",
         id,
-        metadata,
+        metadata
       },
-      save,
+      save
     );
     if (this.store.getIn(["edit_cell_metadata", "id"]) === id) {
       return this.edit_cell_metadata(id); // updates the state while editing
@@ -2802,7 +2812,7 @@ export class JupyterActions extends Actions {
         "If you are having trouble with the the CoCalc Jupyter Notebook, you can switch to the Classical Jupyter Notebook.   You can always switch back to the CoCalc Jupyter Notebook easily later from Jupyter or account settings (and please let us know what is missing so we can add it!).\n\n---\n\n**WARNING:** Multiple people simultaneously editing a notebook, with some using classical and some using the new mode, will NOT work!  Switching back and forth will likely also cause problems (use TimeTravel to recover).  *Please avoid using classical notebook mode if you possibly can!*\n\n[More info and the latest status...](https://github.com/sagemathinc/cocalc/wiki/JupyterClassicModern)",
       choices: [
         { title: "Switch to Classical Notebook", style: "warning" },
-        { title: "Continue using CoCalc Jupyter Notebook", default: true },
+        { title: "Continue using CoCalc Jupyter Notebook", default: true }
       ],
       cb: choice => {
         if (choice !== "Switch to Classical Notebook") {
@@ -2811,7 +2821,7 @@ export class JupyterActions extends Actions {
         this.redux.getTable("account").set({ editor_settings: { jupyter_classic: true } });
         this.save();
         return this.file_action("reopen_file", this.store.get("path"));
-      },
+      }
     });
   };
 

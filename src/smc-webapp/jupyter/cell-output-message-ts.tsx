@@ -32,7 +32,7 @@ const OUT_STYLE: React.CSSProperties = {
   fontFamily: "monospace",
   paddingTop: "5px",
   paddingBottom: "5px",
-  paddingLeft: "5px",
+  paddingLeft: "5px"
 };
 
 // const ANSI_STYLE: React.CSSProperties = OUT_STYLE;
@@ -299,7 +299,7 @@ class Data extends Component<DataProps> {
         type = k;
         value = v;
         return false;
-      }),
+      })
     );
     if (type) {
       const [a, b] = type.split("/");
@@ -428,7 +428,7 @@ class MoreOutput extends Component<MoreOutputProps> {
 
 const INPUT_STYLE: React.CSSProperties = {
   padding: "0em 0.25em",
-  margin: "0em 0.25em",
+  margin: "0em 0.25em"
 };
 
 interface InputDoneProps {
@@ -589,7 +589,7 @@ const OUTPUT_STYLE: React.CSSProperties = {
   backgroundColor: "#fff",
   border: 0,
   marginBottom: 0,
-  marginLeft: "1px",
+  marginLeft: "1px"
 };
 
 const OUTPUT_STYLE_SCROLLED = misc.merge({ maxHeight: "40vh" }, OUTPUT_STYLE);
@@ -708,7 +708,8 @@ function immutable_equals_single(a: any, b: any) {
     if ((is_redux(a) && is_redux(b)) || (is_redux_actions(a) && is_redux_actions(b))) {
       return a === b;
     }
-    if (immutable.isImmutable(a) && immutable.isImmutable(b)) {
+    // TODO: use immutable.isImmutable
+    if ((immutable as any).Iterable.isIterable(a) && (immutable as any).Iterable.isIterable(b)) {
       return immutable.is(a, b);
     }
     if ((a != null && b == null) || (a == null && b != null)) {
