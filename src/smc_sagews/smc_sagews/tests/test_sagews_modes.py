@@ -13,7 +13,7 @@ class TestP3Mode:
     def test_p3a(self, exec2):
         exec2("p3 = jupyter('python3')")
     def test_p3b(self, exec2):
-        exec2("%p3\nimport sys\nprint(sys.version)", pattern=r"^3\.5\.\d+ ")
+        exec2("%p3\nimport sys\nprint(sys.version)", pattern=r"^3\.[56]\.\d+ ")
 
 class TestSingularMode:
     def test_singular_version(self, exec2):
@@ -27,10 +27,17 @@ class TestSingularMode:
         exec2(code,
              u'[1]:\n   _[1]=9\n   _[2]=x6-2x3y2-x2y3+y4\n   _[3]=-x5+y2\n[2]:\n   1,1,2\n')
 
+import pytest
+import platform
+
+@pytest.mark.skipif(platform.linux_distribution()[1]=="18.04",
+                    reason="scala jupyter kernel broken in 18.04")
 class TestScalaMode:
     def test_scala_list(self, exec2):
         exec2("%scala\nList(1,2,3)", html_pattern="res0.*List.*Int.*List.*1.*2.*3", timeout = 80)
 
+@pytest.mark.skipif(platform.linux_distribution()[1]=="18.04",
+                    reason="scala jupyter kernel broken in 18.04")
 class TestScala211Mode:
     # example from ScalaTour-1.6, p. 31, Pattern Matching
     # http://www.scala-lang.org/docu/files/ScalaTour-1.6.pdf
@@ -247,6 +254,16 @@ class TestAnaconda3Mode:
 
     def test_a3_error(self, exec2):
         exec2('%a3\nxyz*', html_pattern = 'span style.*color')
+
+class TestAnaconda5Mode:
+    def test_start_a5(self, exec2):
+        exec2('a5 = jupyter("anaconda5")')
+
+    def test_issue_862(self, exec2):
+        exec2('%a5\nx=1\nprint("x = %s" % x)\nx','x = 1\n')
+
+    def test_a5_error(self, exec2):
+        exec2('%a5\nxyz*', html_pattern = 'span style.*color')
 
 class TestJuliaMode:
     def test_julia_quadratic(self, exec2):
