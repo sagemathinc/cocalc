@@ -101,6 +101,21 @@ export class UserSearch extends Component<{}, UserSearchState> {
     );
   }
 
+  render_user_header(): Rendered {
+    return (
+      <UserResult
+        key={"header"}
+        header={true}
+        account_id=""
+        first_name="First name"
+        last_name="Last name"
+        email_address="Email address"
+        created="Created"
+        last_active="Last active"
+      />
+    );
+  }
+
   render_user(user: User): Rendered {
     return <UserResult key={user.account_id} {...user} />;
   }
@@ -110,7 +125,7 @@ export class UserSearch extends Component<{}, UserSearchState> {
       return <div>No results</div>;
     }
     let user: User;
-    let v: Rendered[] = [];
+    let v: Rendered[] = [this.render_user_header()];
     for (user of this.state.result) {
       v.push(this.render_user(user));
     }
