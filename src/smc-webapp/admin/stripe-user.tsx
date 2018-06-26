@@ -82,7 +82,7 @@ export class StripeUser extends Component<{}, StripeUserState> {
             <Button
               bsStyle="warning"
               disabled={!is_valid_email_address(this.state.email.trim())}
-              onClick={this.add_stripe_user}
+              onClick={() => this.add_stripe_user()}
             >
               Add/Update Stripe Info
             </Button>
