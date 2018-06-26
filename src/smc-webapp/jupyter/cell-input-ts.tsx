@@ -3,12 +3,13 @@ React component that describes the input of a cell
 */
 import { React, Component } from "../frame-editors/generic/react"; // TODO: this will move
 import { Map as ImmutableMap, fromJS } from "immutable";
+import { Button } from "react-bootstrap";
 
 // TODO: import jquery
 
 // TODO: use imports
 const misc = require("smc-util/misc");
-const { Markdown } = require("../r_misc");
+const { Icon, Markdown } = require("../r_misc");
 const { CodeMirror } = require("./codemirror");
 const { InputPrompt } = require("./prompt");
 const { Complete } = require("./complete");
@@ -51,7 +52,7 @@ function markdown_post_hook(elt) {
       $("<a/>")
         .addClass("cocalc-jupyter-anchor-link")
         .attr("href", `#${hash}`)
-        .text("¶"),
+        .text("¶")
     );
   });
 }
@@ -143,18 +144,34 @@ export class CellInput extends Component<CellInputProps> {
     }
     return opt;
   };
-  render_codemirror = type => (
-    <CodeMirror
-      value={this.props.cell.get("input", "")}
-      options={this.options(type)}
-      actions={this.props.actions}
-      id={this.props.cell.get("id")}
-      is_focused={this.props.is_focused}
-      font_size={this.props.font_size}
-      cursors={this.props.cell.get("cursors")}
-    />
-  );
-  render_markdown = () => {
+  render_codemirror(type: any) {
+    return (
+      <CodeMirror
+        value={this.props.cell.get("input", "")}
+        options={this.options(type)}
+        actions={this.props.actions}
+        id={this.props.cell.get("id")}
+        is_focused={this.props.is_focused}
+        font_size={this.props.font_size}
+        cursors={this.props.cell.get("cursors")}
+      />
+    );
+  }
+  render_markdown_edit_button() {
+    if (
+      !this.props.is_current ||
+      this.props.actions == null ||
+      this.props.cell.getIn(["metadata", "editable"]) === false
+    ) {
+      return;
+    }
+    return (
+      <Button onClick={this.handle_md_double_click} style={{ float: "right" }}>
+        <Icon name="edit" /> Edit
+      </Button>
+    );
+  }
+  render_markdown() {
     let value = this.props.cell.get("input", "").trim();
     if (value === "" && this.props.actions) {
       value = "Type *Markdown* and LaTeX: $\\alpha^2$";
@@ -165,6 +182,7 @@ export class CellInput extends Component<CellInputProps> {
         style={{ width: "100%", wordWrap: "break-word", overflow: "auto" }}
         className="cocalc-jupyter-rendered cocalc-jupyter-rendered-md"
       >
+        {this.render_markdown_edit_button()}
         <Markdown
           value={value}
           project_id={this.props.project_id}
@@ -175,9 +193,11 @@ export class CellInput extends Component<CellInputProps> {
         />
       </div>
     );
-  };
-  render_unsupported = (type: any) => <div>Unsupported cell type {type}</div>;
-  render_input_value = (type: any) => {
+  }
+  render_unsupported(type: any) {
+    return <div>Unsupported cell type {type}</div>;
+  }
+  render_input_value(type: any) {
     switch (type) {
       case "code":
         return this.render_codemirror(type);
@@ -189,16 +209,15 @@ export class CellInput extends Component<CellInputProps> {
       default:
         return this.render_unsupported(type);
     }
-  };
-  render_complete = () => {
+  }
+  render_complete() {
     if (this.props.complete && this.props.complete.get("matches", fromJS([])).size > 0) {
       return (
         <Complete complete={this.props.complete} actions={this.props.actions} id={this.props.id} />
       );
     }
-  };
-
-  render_cell_toolbar = () => {
+  }
+  render_cell_toolbar() {
     if (this.props.cell_toolbar && this.props.actions) {
       return (
         <CellToolbar
@@ -208,8 +227,8 @@ export class CellInput extends Component<CellInputProps> {
         />
       );
     }
-  };
-  render_time = () => {
+  }
+  render_time() {
     if (this.props.cell.get("start") !== undefined) {
       return (
         <div
@@ -218,7 +237,7 @@ export class CellInput extends Component<CellInputProps> {
             zIndex: 1,
             right: "2px",
             width: "100%",
-            paddingLeft: "5px",
+            paddingLeft: "5px"
           }}
           className="pull-right hidden-xs"
         >
@@ -230,7 +249,7 @@ export class CellInput extends Component<CellInputProps> {
               right: "5px",
               lineHeight: 1.25,
               top: "1px",
-              textAlign: "right",
+              textAlign: "right"
             }}
           >
             <CellTiming
@@ -242,8 +261,7 @@ export class CellInput extends Component<CellInputProps> {
         </div>
       );
     }
-  };
-
+  }
   render() {
     const type = this.props.cell.get("cell_type") || "code";
     return (
@@ -253,7 +271,7 @@ export class CellInput extends Component<CellInputProps> {
           style={{
             display: "flex",
             flexDirection: "row",
-            alignItems: "stretch",
+            alignItems: "stretch"
           }}
         >
           {this.render_input_prompt(type)}

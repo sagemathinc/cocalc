@@ -86,14 +86,22 @@ export class TopButtonbar0 extends Component<TopButtonbarProps> {
     let disabled = false;
     let label = "";
     let style: any;
-    if (typeof(name) === 'object') {
-        var name;
-        ({name, disabled, style, label, className} = name);
+    if (typeof name === "object") {
+      var name;
+      ({ name, disabled, style, label, className } = name);
     }
-    if (style == null) {     style = undefined; }
-    if (disabled == null) {  disabled = false; }
-    if (label == null) {     label = ''; }
-    if (className == null) { className = undefined; }
+    if (style == null) {
+      style = undefined;
+    }
+    if (disabled == null) {
+      disabled = false;
+    }
+    if (label == null) {
+      label = "";
+    }
+    if (className == null) {
+      className = undefined;
+    }
     if (this.props.read_only) {
       // all buttons disabled in read-only mode
       disabled = true;
@@ -206,7 +214,7 @@ export class TopButtonbar0 extends Component<TopButtonbarProps> {
       name: "show code assistant",
       label: "Assistant",
       className: "pull-right",
-      style: { marginRight: "10px" }
+      style: { marginRight: "1px" }
     });
   }
 
@@ -262,7 +270,7 @@ export class TopButtonbar0 extends Component<TopButtonbarProps> {
     const obj = {
       name: "close and halt",
       disabled: false,
-      label: "Close and halt"
+      label: "Halt"
     };
     return this.render_button("close and halt", obj);
   }
@@ -298,7 +306,7 @@ export class TopButtonbar0 extends Component<TopButtonbarProps> {
 
   render() {
     return (
-      <div style={{ margin: "1px 1px 0px 10px", backgroundColor: "#fff" }}>
+      <div style={{ margin: "1px 1px 0px 1px", backgroundColor: "#fff" }}>
         <Form inline>
           {this.render_add_cell()}
           <span style={{ marginLeft: "5px" }} />
