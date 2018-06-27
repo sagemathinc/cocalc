@@ -12,6 +12,7 @@ import {
 } from "../code-editor/actions";
 import { latexmk, build_command } from "./latexmk";
 import { sagetex, sagetex_hash } from "./sagetex";
+import { knitr } from "./knitr";
 import * as synctex from "./synctex";
 import { bibtex } from "./bibtex";
 import { server_time, ExecOutput } from "../generic/client";
@@ -25,7 +26,11 @@ import { Store } from "../../smc-react-ts";
 import { createTypedMap, TypedMap } from "../../smc-react/TypedMap";
 import { print_html } from "../frame-tree/print";
 import { raw_url } from "../frame-tree/util";
-import { path_split } from "../generic/misc";
+import {
+  path_split,
+  separate_file_extension,
+  change_filename_extension
+} from "../generic/misc";
 
 interface BuildLog extends ExecOutput {
   parse?: ProcessedLatexLog;
@@ -57,14 +62,33 @@ export class Actions extends BaseActions<LatexEditorState> {
   private _last_save_time: number = 0;
   private _last_sagetex_hash: string;
   private is_building: boolean = false;
+  private ext: string = "tex";
+  private knitr: boolean = false;
+  private filename_rnw: string;
 
   _init2(): void {
     if (!this.is_public) {
+      this._init_ext();
       this._init_syncstring_value();
       this._init_latexmk();
       this._init_spellcheck();
       this._init_config();
       this._init_first_build();
+    }
+  }
+
+  _init_ext(): void {
+    /* number one reason to check is to detect .rnw files */
+    const ext = separate_file_extension(this.path).ext;
+    if (ext) {
+      this.ext = ext.toLowerCase();
+      if (this.ext == "rnw") {
+        this.knitr = true;
+        this.filename_rnw = this.path;
+        // changing the path to the (to be generated) tex file makes everyting else
+        // here compatible with the latex commands
+        this.path = change_filename_extension(this.path, "tex");
+      }
     }
   }
 
@@ -189,11 +213,33 @@ export class Actions extends BaseActions<LatexEditorState> {
 
   async run_build(time: number): Promise<void> {
     this.setState({ build_logs: Map() });
+    if (this.knitr) {
+      await this.run_knitr(time);
+    }
     await this.run_latex(time);
     const s = this.store.unsafe_getIn(["build_logs", "latex", "stdout"]);
     if (typeof s == "string" && s.indexOf("sagetex.sty") != -1) {
       await this.run_sagetex(time);
     }
+  }
+
+  async run_knitr(time: number): Promise<void> {
+    let output: BuildLog;
+    const status = s => this.set_status(`Running Rweave... ${s}`);
+    status("");
+
+    try {
+      output = await knitr(
+        this.project_id,
+        this.filename_rnw,
+        time || this._last_save_time,
+        status
+      );
+    } catch (err) {
+      this.set_error(err);
+      return;
+    }
+    console.log(output);
   }
 
   async run_latex(time: number): Promise<void> {
