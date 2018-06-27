@@ -112,7 +112,6 @@ Page = rclass
         @actions('page').clear_all_handlers()
 
     render_account_tab: ->
-        ###
         if @props.account_id
             a = <Avatar
                     size       = {20}
@@ -122,13 +121,12 @@ Page = rclass
                     />
         else
             a = 'cog'
-        ###
 
         <NavTab
             name           = 'account'
             label          = {'Account'}
             label_class    = {nav_class}
-            icon           = {'cog'}
+            icon           = {a}
             actions        = {@actions('page')}
             active_top_tab = {@props.active_top_tab}
         />
@@ -139,6 +137,7 @@ Page = rclass
             label          = {'Admin'}
             label_class    = {nav_class}
             icon           = {'users'}
+            inner_style    = {padding: '10px', display: 'flex'}
             actions        = {@actions('page')}
             active_top_tab = {@props.active_top_tab}
         />
@@ -153,6 +152,7 @@ Page = rclass
             label           = 'Sign in'
             label_class     = {nav_class}
             icon            = 'sign-in'
+            inner_style     = {padding: '10px', display: 'flex'}
             on_click        = {@sign_in_tab_clicked}
             actions         = {@actions('page')}
             active_top_tab  = {@props.active_top_tab}
@@ -167,6 +167,7 @@ Page = rclass
             label          = {'Help'}
             label_class    = {nav_class}
             icon           = {'medkit'}
+            inner_style    = {padding: '10px', display: 'flex'}
             actions        = {@actions('page')}
             active_top_tab = {@props.active_top_tab}
             on_click       = {=>redux.getActions('support').show(true)}
@@ -190,6 +191,7 @@ Page = rclass
                 label          = {'CoCalc'}
                 label_class    = {nav_class}
                 icon           = {'info-circle'}
+                inner_style    = {padding: '10px', display: 'flex'}
                 actions        = {@actions('page')}
                 active_top_tab = {@props.active_top_tab} />
             <NavItem className='divider-vertical hidden-xs' />
