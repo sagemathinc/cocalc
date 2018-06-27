@@ -4,7 +4,7 @@ Viewer for public ipynb files.
 
 {ErrorDisplay, Icon, Loading} = require('../r_misc')
 
-{React, ReactDOM, rclass, rtypes}  = require('../smc-react')
+{React, ReactDOM, rclass, rtypes}  = require('../app-framework')
 
 {CellList}   = require('./cell-list')
 

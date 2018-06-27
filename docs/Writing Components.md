@@ -1,7 +1,7 @@
 ## `rclass`
 
 ### Normal Usage
-Just use as if your object was being passed to `React.creatClass()`
+Just use as if your object was being passed to `React.createClass()`
 
 ### Enhanced Usage
 However, it can also be passed a function which takes in properties only known at runtime. This allows you to do things like pass in names of stores which are generated at run time.

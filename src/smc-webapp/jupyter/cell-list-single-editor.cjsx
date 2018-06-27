@@ -7,7 +7,7 @@ Meant as a simple proof of concept.
 
 immutable = require('immutable')
 
-{React, ReactDOM, rclass, rtypes}  = require('../smc-react')
+{React, ReactDOM, rclass, rtypes}  = require('../app-framework')
 
 {Loading} = require('../r_misc')
 

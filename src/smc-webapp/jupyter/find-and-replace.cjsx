@@ -2,7 +2,7 @@
 The find and replace modal dialog
 """
 
-{React, ReactDOM, rclass, rtypes}  = require('../smc-react')
+{React, ReactDOM, rclass, rtypes}  = require('../app-framework')
 {Button, ButtonGroup, ControlLabel, FieldGroup, FormControl, FormGroup, InputGroup, Modal} = require('react-bootstrap')
 {ErrorDisplay, Icon} = require('../r_misc')
 

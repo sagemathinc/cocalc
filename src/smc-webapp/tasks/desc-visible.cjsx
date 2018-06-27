@@ -2,7 +2,7 @@
 Summary line about what is being shown.
 ###
 
-{React, rclass, rtypes}  = require('../smc-react')
+{React, rclass, rtypes}  = require('../app-framework')
 
 {plural} = require('smc-util/misc')
 

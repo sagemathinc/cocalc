@@ -6,7 +6,7 @@ the file codemirror-editor.cjsx, and also many differences.  Part of the
 subtlely comes from editing JSON, but not saving when state is invalid.
 ###
 
-{React, ReactDOM, rclass, rtypes}  = require('../smc-react')
+{React, ReactDOM, rclass, rtypes}  = require('../app-framework')
 
 misc = require('smc-util/misc')
 

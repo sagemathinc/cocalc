@@ -2,7 +2,7 @@
 Add collaborators to a project
 ###
 
-{React, ReactDOM, redux, rtypes, rclass}  = require('../smc-react')
+{React, ReactDOM, redux, rtypes, rclass}  = require('../app-framework')
 
 {Alert, Button, ButtonToolbar, FormControl, FormGroup, Well, Checkbox} = require('react-bootstrap')
 

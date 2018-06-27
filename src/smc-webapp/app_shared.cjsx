@@ -19,7 +19,7 @@
 #
 ###############################################################################
 
-{React, ReactDOM, rclass, redux, rtypes, Redux, Actions, Store, COLOR} = require('./smc-react')
+{React, ReactDOM, rclass, redux, rtypes, Redux, Actions, Store, COLOR} = require('./app-framework')
 {Button, Col, Row, Modal, NavItem} = require('react-bootstrap')
 {Icon, Space, Tip} = require('./r_misc')
 {COLORS} = require('smc-util/theme')
@@ -51,7 +51,7 @@ exports.ActiveAppContent = ({active_top_tab, render_small}) ->
         when 'admin'
             return <AdminPage redux={redux} />
         when undefined
-            return
+            return <div>Broken... active_top_tab is undefined</div>
         else
             project_name = redux.getProjectStore(active_top_tab).name
             if render_small

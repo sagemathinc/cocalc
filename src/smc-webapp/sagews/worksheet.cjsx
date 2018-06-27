@@ -2,7 +2,7 @@
 React component to render a sage worksheet statically (for use by share server or public mode)
 ###
 
-{rclass, React, rtypes} = require('../smc-react')
+{rclass, React, rtypes} = require('../app-framework')
 
 misc = require('smc-util/misc')
 

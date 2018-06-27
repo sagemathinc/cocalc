@@ -1,4 +1,4 @@
-{Actions, Store}  = require('../smc-react')
+{Actions, Store}  = require('../app-framework')
 
 class exports.HistoryActions extends Actions
 

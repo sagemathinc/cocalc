@@ -4,7 +4,7 @@ Settings and configuration for editing this file.
 
 import { Map } from "immutable";
 
-import { React, Rendered, Component } from "../generic/react";
+import { React, Rendered, Component } from "../../app-framework";
 
 import { is_different } from "../generic/misc";
 

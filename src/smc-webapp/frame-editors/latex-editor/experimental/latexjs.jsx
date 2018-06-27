@@ -11,7 +11,7 @@ https://github.com/michael-brade/LaTeX.js
 
 import { throttle } from "underscore";
 
-import { React, ReactDOM, rclass, rtypes } from "../smc-react";
+import { React, ReactDOM, rclass, rtypes } from "../app-framework";
 
 import misc from "smc-util/misc";
 

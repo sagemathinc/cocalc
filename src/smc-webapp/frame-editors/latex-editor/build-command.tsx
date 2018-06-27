@@ -15,7 +15,7 @@ import {
   FormControl
 } from "react-bootstrap";
 
-import { React, Rendered, Component } from "../generic/react";
+import { React, Rendered, Component } from "../../app-framework";
 
 import { split } from "../generic/misc";
 

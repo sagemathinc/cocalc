@@ -4,8 +4,8 @@ Show errors and warnings.
 
 import { Map } from "immutable";
 import { capitalize, is_different, path_split } from "../generic/misc";
-import { Component, React, rclass, rtypes, Rendered } from "../generic/react";
-import { TypedMap } from "../../smc-react/TypedMap";
+import { Component, React, rclass, rtypes, Rendered } from "../../app-framework";
+import { TypedMap } from "../../app-framework/TypedMap";
 
 import { BuildLogs } from "./actions";
 
@@ -158,7 +158,7 @@ interface ErrorsAndWarningsProps {
 }
 
 class ErrorsAndWarnings extends Component<ErrorsAndWarningsProps, {}> {
-  static defaultProps = { build_logs: Map(), status: "" };
+  static defaultProps = { build_logs: Map<string, any>(), status: "" };
 
   static reduxProps({ name }) {
     return {

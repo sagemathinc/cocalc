@@ -22,32 +22,32 @@
 
 _                = require('underscore')
 immutable        = require('immutable')
-{rtypes, redux}  = require('../smc-react')
+{redux, Store}  = require('../app-framework')
 {INIT_STATE}     = require('./common')
 
 
-exports.makeExamplesStore = (NAME) ->
-    name: NAME
+###
+stateTypes:
+    project_id          : rtypes.string      # the project_id
+    category0           : rtypes.number      # index of selected first category (left)
+    category1           : rtypes.number      # index of selected second category (second from left)
+    category2           : rtypes.number      # index of selected third category (document titles)
+    category_list0      : rtypes.arrayOf(rtypes.string)  # list of first category entries
+    category_list1      : rtypes.arrayOf(rtypes.string)  # list of second level categories
+    category_list2      : rtypes.arrayOf(rtypes.string)  # third level are the document titles
+    code                : rtypes.string      # displayed content of selected document
+    setup_code          : rtypes.string      # optional, common code in the sub-category
+    prepend_setup_code  : rtypes.bool        # if true, setup code is prepended to code
+    descr               : rtypes.string      # markdown-formatted content of document description
+    hits                : rtypes.arrayOf(rtypes.array)  # search results
+    search_str          : rtypes.string      # substring to search for -- or undefined
+    search_sel          : rtypes.number      # index of selected matched documents
+    submittable         : rtypes.bool        # if true, the buttons at the bottom are active
+    category1_top       : rtypes.arrayOf(rtypes.string)
+    unknown_lang        : rtypes.bool        # true if there is no known set of documents for the language
+###
 
-    stateTypes:
-        project_id          : rtypes.string      # the project_id
-        category0           : rtypes.number      # index of selected first category (left)
-        category1           : rtypes.number      # index of selected second category (second from left)
-        category2           : rtypes.number      # index of selected third category (document titles)
-        category_list0      : rtypes.arrayOf(rtypes.string)  # list of first category entries
-        category_list1      : rtypes.arrayOf(rtypes.string)  # list of second level categories
-        category_list2      : rtypes.arrayOf(rtypes.string)  # third level are the document titles
-        code                : rtypes.string      # displayed content of selected document
-        setup_code          : rtypes.string      # optional, common code in the sub-category
-        prepend_setup_code  : rtypes.bool        # if true, setup code is prepended to code
-        descr               : rtypes.string      # markdown-formatted content of document description
-        hits                : rtypes.arrayOf(rtypes.array)  # search results
-        search_str          : rtypes.string      # substring to search for -- or undefined
-        search_sel          : rtypes.number      # index of selected matched documents
-        submittable         : rtypes.bool        # if true, the buttons at the bottom are active
-        category1_top       : rtypes.arrayOf(rtypes.string)
-        unknown_lang        : rtypes.bool        # true if there is no known set of documents for the language
-
+exports.ExamplesStore = class ExamplesStore extends Store
     getInitialState: ->
         INIT_STATE
 

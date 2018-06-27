@@ -19,7 +19,7 @@
 ##############################################################################
 
 {defaults, required} = require('smc-util/misc')
-{React, rclass, rtypes}  = require('../smc-react')
+{React, rclass, rtypes}  = require('../app-framework')
 {Alert, Button, ButtonToolbar, ButtonGroup, Input, Row, Col, Panel} = require('react-bootstrap')
 {HiddenXS, Icon, Tip, VisibleMDLG} = require('../r_misc')
 

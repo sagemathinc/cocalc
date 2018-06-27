@@ -4,7 +4,7 @@ Image viewer component -- for viewing standard image types.
 
 {filename_extension}              = require('smc-util/misc')
 
-{React, ReactDOM, rclass, rtypes} = require('../smc-react')
+{React, ReactDOM, rclass, rtypes} = require('../app-framework')
 {webapp_client}                   = require('../webapp_client')
 
 {ButtonBar}                       = require('./button-bar')

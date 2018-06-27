@@ -4,7 +4,7 @@ The stopwatch component
 
 import { Button, ButtonGroup, Well } from "react-bootstrap";
 
-import { Component, React } from "../smc-react-ts";
+import { Component, React } from "../app-framework";
 
 import { TimerState } from "./actions"
 

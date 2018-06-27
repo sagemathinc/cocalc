@@ -31,7 +31,7 @@ misc_page = require('./misc_page')
 {defaults, required} = misc
 
 # React libraries
-{React, ReactDOM, rclass, rtypes, Actions, Store}  = require('./smc-react')
+{React, ReactDOM, rclass, rtypes, Actions, Store}  = require('./app-framework')
 {Icon, Loading, Markdown, SearchInput, TimeAgo, Tip} = require('./r_misc')
 {Alert, Button, Col, Grid, FormGroup, FormControl, ListGroup, ListGroupItem, Row, ButtonGroup, Well} = require('react-bootstrap')
 

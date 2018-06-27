@@ -31,7 +31,7 @@ else
 
 $ = window.$
 misc = require('smc-util/misc')
-{React, ReactDOM, redux, rtypes, rclass} = require('./smc-react')
+{React, ReactDOM, redux, rtypes, rclass} = require('./app-framework')
 {Well, Col, Row, Accordion, Panel, ProgressBar, Table} = require('react-bootstrap')
 {Icon, Loading, Space, TimeAgo, UNIT, Footer} = require('./r_misc')
 {HelpEmailLink, SiteName, SiteDescription, PolicyPricingPageUrl} = require('./customize')

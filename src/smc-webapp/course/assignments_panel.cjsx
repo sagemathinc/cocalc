@@ -26,7 +26,7 @@ misc = require('smc-util/misc')
 {COLORS} = require('smc-util/theme')
 
 # React libraries
-{React, rclass, rtypes} = require('../smc-react')
+{React, rclass, rtypes} = require('../app-framework')
 {Alert, Button, ButtonToolbar, ButtonGroup, FormControl, FormGroup, Checkbox, Row, Col, Panel} = require('react-bootstrap')
 
 # CoCalc and course components

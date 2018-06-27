@@ -2,7 +2,7 @@
 Focused codemirror editor, which you can interactively type into.
 ###
 
-{React, ReactDOM, rclass, rtypes}  = require('../smc-react')
+{React, ReactDOM, rclass, rtypes}  = require('../app-framework')
 
 underscore    = require('underscore')
 

@@ -33,7 +33,7 @@ misc = require('smc-util/misc')
 {synchronized_string} = require('./syncdoc')
 
 # React libraries
-{React, ReactDOM, rclass, rtypes, redux, Redux, Actions, Store}  = require('./smc-react')
+{React, ReactDOM, rclass, rtypes, redux, Redux, Actions, Store}  = require('./app-framework')
 {Loading} = require('r_misc')
 {Input} = require('react-bootstrap')
 
@@ -75,8 +75,8 @@ init_redux = (path, redux, project_id) ->
     name = redux_name(project_id, path)
     if redux.getActions(name)?
         return  # already initialized
-    actions = redux.createActions(name, CodemirrorActions)
     store   = redux.createStore(name, default_store_state)
+    actions = redux.createActions(name, CodemirrorActions)
 
     console.log("getting syncstring for '#{path}'")
     synchronized_string

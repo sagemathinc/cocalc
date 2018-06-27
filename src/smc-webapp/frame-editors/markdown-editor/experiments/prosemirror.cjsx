@@ -5,7 +5,7 @@ Mainly just for fun...
 ###
 
 {Loading, Markdown} = require('smc-webapp/r_misc')
-{React, ReactDOM, rclass, rtypes}  = require('smc-webapp/smc-react')
+{React, ReactDOM, rclass, rtypes}  = require('smc-webapp/app-framework')
 {Button} = require('react-bootstrap')
 
 options = require('./options.ts')

@@ -8,7 +8,7 @@ Headings of the task list:
 
 {Row, Col} = require('react-bootstrap')
 
-{React, rclass, rtypes}  = require('../smc-react')
+{React, rclass, rtypes}  = require('../app-framework')
 
 {Icon, Space} = require('../r_misc')
 

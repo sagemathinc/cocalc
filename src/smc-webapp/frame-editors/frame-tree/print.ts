@@ -12,7 +12,7 @@ const { HTML } = require("smc-webapp/r_misc");
 //import ReactDOMServer from "react-dom/server";
 const ReactDOMServer = require("react-dom/server");
 
-import { React, Redux, redux } from "../generic/react";
+import { React, Redux, redux } from "../../app-framework";
 
 let BLOCKED: boolean | undefined = undefined;
 
@@ -83,7 +83,7 @@ function write_content(w, opts: PrintOptions): void {
 
     const C = React.createElement(
       Redux,
-      { redux },
+      { redux } as any,
       React.createElement(HTML, props)
     );
     html = ReactDOMServer.renderToStaticMarkup(C);

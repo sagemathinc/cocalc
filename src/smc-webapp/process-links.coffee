@@ -5,7 +5,7 @@ when we fully switch to react.
 
 misc = require('smc-util/misc')
 
-projects_load_target = require('./smc-react').redux.getActions('projects').load_target
+projects_load_target = require('./app-framework').redux.getActions('projects').load_target
 
 load_target = (target, switch_to) ->
     # get rid of "?something" in "path/file.ext?something"

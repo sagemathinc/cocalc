@@ -5,7 +5,7 @@ Register the time editor -- stopwatch
 */
 
 let { register_file_editor } = require("../project_file");
-import { redux_name, Store, AppRedux } from "../smc-react-ts";
+import { redux_name, Store, AppRedux } from "../app-framework";
 let { webapp_client } = require("../webapp_client");
 let { alert_message } = require("../alerts");
 
@@ -27,8 +27,8 @@ register_file_editor({
       return name; // already initialized
     }
 
-    const actions = redux.createActions(name, TimeActions);
     const store: Store<StopwatchEditorState> = redux.createStore(name);
+    const actions = redux.createActions(name, TimeActions);
 
     actions._init(project_id, path);
 
@@ -47,8 +47,8 @@ register_file_editor({
         alert_message({ type: "error", message: mesg });
         return;
       }
+      syncdb.on("change", actions._syncdb_change);
       actions._syncdb_change();
-      return syncdb.on("change", actions._syncdb_change);
     });
     return name;
   },
@@ -59,8 +59,8 @@ register_file_editor({
     if (actions !== undefined && actions.syncdb !== undefined) {
       actions.syncdb.close();
     }
-    const store: Store<StopwatchEditorState> = redux.getStore(name);
-    if (store === undefined) {
+    const store: Store<StopwatchEditorState> | undefined = redux.getStore(name);
+    if (store == undefined) {
       return name;
     }
     // It is *critical* to first unmount the store, then the actions,

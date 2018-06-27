@@ -2,7 +2,7 @@
 Task last changed: displays when this task was last changed
 ###
 
-{React, rclass, rtypes}  = require('../smc-react')
+{React, rclass, rtypes}  = require('../app-framework')
 
 {TimeAgo} = require('../r_misc')
 
