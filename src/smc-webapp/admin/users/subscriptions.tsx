@@ -1,8 +1,12 @@
+<<<<<<< HEAD
 import {
   React,
   Component,
   Rendered
 } from "smc-webapp/app-framework";
+=======
+import { React, Component, Rendered } from "smc-webapp/app-framework";
+>>>>>>> master
 
 interface Props {
   account_id: string;
