@@ -2,7 +2,11 @@
 Use synctex to go back and forth between latex files and pdfs.
 */
 
-import { path_split, splitlines } from "../generic/misc";
+import {
+  path_split,
+  splitlines,
+  change_filename_extension
+} from "../generic/misc";
 import { exec, ExecOutput } from "../generic/client";
 
 interface SyncTex {
@@ -47,8 +51,12 @@ export async function tex_to_pdf(opts: {
   tex_path: string; // source tex file with given line/column
   line: number; // 1-based line number
   column: number; // 1-based column
+  knitr: boolean;
 }): Promise<SyncTex> {
   let { head, tail } = path_split(opts.tex_path);
+  if (opts.knitr) {
+    tail = change_filename_extension(tail, "Rnw");
+  }
   let output = await exec_synctex(opts.project_id, head, [
     "view",
     "-i",

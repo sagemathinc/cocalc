@@ -436,7 +436,8 @@ export class Actions extends BaseActions<LatexEditorState> {
         column,
         tex_path: filename,
         pdf_path: pdf_path(this.path),
-        project_id: this.project_id
+        project_id: this.project_id,
+        knitr: this.knitr
       });
     } catch (err) {
       console.warn("ERROR ", err);
