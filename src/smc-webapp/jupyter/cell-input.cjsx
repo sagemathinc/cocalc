@@ -6,7 +6,9 @@ immutable = require('immutable')
 misc = require('smc-util/misc')
 
 {React, ReactDOM, rclass, rtypes}  = require('../app-framework')
-{Markdown} = require('../r_misc')
+{Icon, Markdown} = require('../r_misc')
+
+{Button} = require('react-bootstrap')
 
 {CodeMirror} = require('./codemirror')
 
@@ -130,6 +132,12 @@ exports.CellInput = rclass
             cursors       = {@props.cell.get('cursors')}
         />
 
+    render_markdown_edit_button: ->
+        if not @props.is_current or not @props.actions? or @props.cell.getIn(['metadata', 'editable']) == false
+            return
+        return <Button onClick={@handle_md_double_click} style={float:'right'}>
+            <Icon name='edit'/> Edit
+        </Button>
 
     render_markdown: ->
         value = @props.cell.get('input')?.trim()
@@ -143,6 +151,7 @@ exports.CellInput = rclass
             style         = {width:'100%', wordWrap: 'break-word', overflow: 'auto'}
             className     = 'cocalc-jupyter-rendered cocalc-jupyter-rendered-md'
             >
+            {@render_markdown_edit_button()}
             <Markdown
                 value          = {value}
                 project_id     = {@props.project_id}

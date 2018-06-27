@@ -803,6 +803,9 @@ export class Actions<T = CodeEditorState> extends BaseActions<
   // Set the location of all of OUR cursors.  This is entirely
   // so the information can propogate to other users via the syncstring.
   set_cursor_locs(locs: any[]): void {
+    if (!this._syncstring) {
+      return;  // not currently valid.
+    }
     if (locs.length === 0) {
       // don't remove on blur -- cursor will fade out just fine
       return;
@@ -977,24 +980,6 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     this._cm[id] = cm;
     // Creating codemirror for the first time -- need to initialize it.
     this.set_codemirror_to_syncstring();
-  }
-
-  unset_cm(id: string): void {
-    const cm = this._get_cm(id);
-    if (cm == null) {
-      return;
-    }
-    if (
-      tree_ops.has_id(this.store.getIn(["local_view_state", "frame_tree"]), id)
-    ) {
-      // Save the selections, in case this editor
-      // is displayed again.
-      if (this._cm_selections == null) {
-        this._cm_selections = {};
-      }
-      this._cm_selections[id] = cm.getDoc().listSelections();
-    }
-    delete this._cm[id];
   }
 
   // 1. if id given, returns cm with given id if id
