@@ -26,7 +26,7 @@ _               = require('underscore')
 async           = require('async')
 misc            = require('smc-util/misc')
 {webapp_client} = require('./webapp_client')
-{redux}         = require('./smc-react')
+{redux}         = require('./app-framework')
 {project_tasks} = require('./project_tasks')
 markdown        = require('./markdown')
 

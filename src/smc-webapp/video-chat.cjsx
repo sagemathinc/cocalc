@@ -25,7 +25,7 @@ misc          = require('smc-util/misc')
 {sha1}        = require('smc-util/schema').client_db
 {server_time} = require('./webapp_client').webapp_client
 
-{React, ReactDOM, rclass, redux, rtypes, Redux} = require('./smc-react')
+{React, ReactDOM, rclass, redux, rtypes, Redux} = require('./app-framework')
 {Icon, Tip, SetIntervalMixin} = require('./r_misc')
 
 VIDEO_UPDATE_INTERVAL_MS = 30*1000

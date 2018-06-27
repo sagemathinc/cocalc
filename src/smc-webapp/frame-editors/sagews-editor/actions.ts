@@ -7,7 +7,7 @@ import { TypedMap } from "app-framework/TypedMap";
 import { Actions, CodeEditorState } from "../code-editor/actions";
 //import { print_html } from "../frame-tree/print";
 import { FrameTree } from "../frame-tree/types";
-import { Store } from "../../smc-react-ts";
+import { Store } from "../../app-framework";
 
 import { CellObject } from "./types";
 

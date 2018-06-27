@@ -3,7 +3,7 @@ Display information about a public path.
 
 ###
 
-{rclass, React, rtypes} = require('../smc-react')
+{rclass, React, rtypes} = require('../app-framework')
 
 {Space} = require('../r_misc')
 

@@ -14,7 +14,7 @@ const { Markdown } = require("smc-webapp/r_misc");
 
 import { is_different, path_split } from "../generic/misc";
 import { throttle } from "underscore";
-import { React, Component, Rendered, ReactDOM } from "../generic/react";
+import { React, Component, Rendered, ReactDOM } from "../../app-framework";
 
 const { process_checkboxes } = require("smc-webapp/tasks/desc-rendering");
 const { apply_without_math } = require("smc-util/mathjax-utils-2");

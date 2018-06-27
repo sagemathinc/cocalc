@@ -3,7 +3,7 @@ The metadata editing toolbar.
 ###
 
 {Button} = require('react-bootstrap')
-{React, ReactDOM, rclass, rtypes}  = require('../smc-react')
+{React, ReactDOM, rclass, rtypes}  = require('../app-framework')
 
 exports.Metadata = rclass
     propTypes :

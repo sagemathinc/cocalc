@@ -6,7 +6,7 @@ import * as $ from "jquery";
 
 import { PDFPageProxy, PDFPageViewport } from "pdfjs-dist/webpack";
 
-import { Component, React, ReactDOM } from "../generic/react";
+import { Component, React, ReactDOM } from "../../app-framework";
 
 import { is_different } from "../generic/misc";
 

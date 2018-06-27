@@ -21,10 +21,10 @@
 
 {isMobile} = require('./feature')
 
-{React, ReactDOM, rclass, redux, rtypes, Redux, redux_fields} = require('./smc-react')
+{React, ReactDOM, rclass, redux, rtypes, Redux, redux_fields} = require('./app-framework')
 
 {Navbar, Nav, NavItem} = require('react-bootstrap')
-{Loading, Icon, Tip}   = require('./r_misc')
+{ErrorBoundary, Loading, Icon, Tip}   = require('./r_misc')
 {COLORS} = require('smc-util/theme')
 
 # CoCalc Pages
@@ -273,11 +273,16 @@ Page = rclass
             {<FullscreenButton /> if (@props.fullscreen != 'kiosk')}
             {### Children must define their own padding from navbar and screen borders ###}
             {### Note that the parent is a flex container ###}
-            <ActiveAppContent active_top_tab={@props.active_top_tab}/>
+            <ErrorBoundary>
+                <ActiveAppContent active_top_tab={@props.active_top_tab}/>
+            </ErrorBoundary>
         </div>
 
-page = <Redux redux={redux}>
-    <Page redux={redux}/>
-</Redux>
+page =
+    <Redux redux={redux}>
+        <ErrorBoundary>
+            <Page redux={redux}/>
+        </ErrorBoundary>
+    </Redux>
 
 exports.render = () => ReactDOM.render(page, document.getElementById('smc-react-container'))

@@ -31,7 +31,7 @@ account_page    = require('./account_page')
 misc_page = require('./misc_page')
 
 misc     = require("misc")
-{redux}   = require('./smc-react')
+{redux}   = require('./app-framework')
 
 {reset_password_key} = require('./password-reset')
 

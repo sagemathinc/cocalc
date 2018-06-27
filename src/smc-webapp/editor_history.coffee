@@ -29,7 +29,7 @@ async = require('async')
 misc = require('smc-util/misc')
 
 {webapp_client} = require('./webapp_client')
-{redux} = require('./smc-react')
+{redux} = require('./app-framework')
 {FileEditor, codemirror_session_editor} = require('./editor')
 
 sagews  = require('./sagews/sagews')

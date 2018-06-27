@@ -11,7 +11,7 @@ Button bar:
  - Help       : Show help about the task editor (link to github wiki)
 ###
 
-{React, rclass, rtypes} = require('../smc-react')
+{React, rclass, rtypes} = require('../app-framework')
 {ButtonGroup, Button}   = require('react-bootstrap')
 {Icon, Space}           = require('../r_misc')
 {UncommittedChanges}    = require('../jupyter/uncommitted-changes')

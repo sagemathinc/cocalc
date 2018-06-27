@@ -3,7 +3,7 @@ Confirmation dialog, for explicitly confirming dangerous actions.
 """
 
 {Icon, Markdown} = require('../r_misc')
-{React, ReactDOM, rclass, rtypes}  = require('../smc-react')
+{React, ReactDOM, rclass, rtypes}  = require('../app-framework')
 {Button, Modal} = require('react-bootstrap')
 
 exports.ConfirmDialog = rclass

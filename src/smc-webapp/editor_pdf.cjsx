@@ -21,7 +21,7 @@
 
 {Button, ButtonGroup} = require('react-bootstrap')
 
-{React, ReactDOM, rclass, rtypes, Redux, Actions, Store}  = require('./smc-react')
+{React, ReactDOM, rclass, rtypes, Redux, Actions, Store}  = require('./app-framework')
 {webapp_client} = require('./webapp_client')
 {Icon} = require('./r_misc')
 

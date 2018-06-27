@@ -1,5 +1,5 @@
 import { Map, Set } from "immutable";
-import { React, Component, Rendered, rtypes, rclass } from "../generic/react";
+import { React, Component, Rendered, rtypes, rclass } from "../../app-framework";
 
 import { Cell } from "./cell";
 

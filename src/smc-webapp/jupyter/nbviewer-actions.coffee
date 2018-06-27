@@ -3,7 +3,7 @@ Redux actions for nbviewer.
 
 """
 
-{Actions}       = require('../smc-react')
+{Actions}       = require('../app-framework')
 {cm_options}    = require('./cm_options')
 immutable       = require('immutable')
 cell_utils      = require('./cell-utils')

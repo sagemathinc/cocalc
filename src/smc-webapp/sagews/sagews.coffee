@@ -34,7 +34,7 @@ misc_page         = require('../misc_page')
 message           = require('smc-util/message')
 markdown          = require('../markdown')
 {webapp_client}   = require('../webapp_client')
-{redux}           = require('../smc-react')
+{redux}           = require('../app-framework')
 {alert_message}   = require('../alerts')
 
 {sagews_eval}     = require('./sagews-eval')

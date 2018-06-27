@@ -4,7 +4,7 @@ This is a renderer using the embed tag, so works with browsers that have a PDF v
 
 import { raw_url } from "../frame-tree/util";
 
-import { Component, Fragment, React, Rendered } from "../generic/react";
+import { Component, Fragment, React, Rendered } from "../../app-framework";
 
 export interface Props {
   actions: any;

@@ -5,7 +5,7 @@
 async = require('async')
 immutable = require('immutable')
 
-{Actions, Store, Table, redux}  = require('./smc-react')
+{Actions, Store, Table, redux}  = require('./app-framework')
 
 {alert_message} = require('./alerts')
 
@@ -212,9 +212,6 @@ class AccountActions extends Actions
             ssh_keys :
                 "#{fingerprint}" : null   # null is how to tell the backend/synctable to delete this...
 
-# Register account actions
-actions = redux.createActions('account', AccountActions)
-
 # Define account store
 class AccountStore extends Store
     # User type
@@ -295,6 +292,9 @@ init = misc.deep_copy(require('smc-util/schema').SCHEMA.accounts.user_query.get.
 init.other_settings.show_global_info2 = 'loading' # indicates it is starting up
 init.user_type = if misc.get_local_storage(remember_me) then 'signing_in' else 'public'  # default
 redux.createStore('account', AccountStore, init)
+
+# Register account actions
+actions = redux.createActions('account', AccountActions)
 
 # Create and register account table, which gets automatically
 # synchronized with the server.

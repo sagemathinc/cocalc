@@ -38,9 +38,9 @@
 
 # cocalc libs
 {defaults, required, optional} = misc = require('smc-util/misc')
-{redux, Redux} = require('../smc-react')
+{redux, Redux} = require('../app-framework')
 # assistant libs
-{makeExamplesStore} = require('./store')
+{ExamplesStore} = require('./store')
 {ExamplesActions}   = require('./actions')
 
 ### Private API ###
@@ -49,7 +49,7 @@ exports.redux_name = (project_id, path) ->
     return "examples-#{project_id}-#{path}"
 
 exports.init_action_and_store = (name, project_id, path) ->
-    store   = redux.createStore(makeExamplesStore(name))
+    store   = redux.createStore(name, ExamplesStore)
     actions = redux.createActions(name, ExamplesActions)
     actions._init(store, project_id, path)
     return [actions, store]

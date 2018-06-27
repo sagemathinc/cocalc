@@ -7,7 +7,7 @@ The static buttonbar at the top.
 
 {Icon} = require('../r_misc')
 
-{React, ReactDOM, rclass, rtypes}  = require('../smc-react')
+{React, ReactDOM, rclass, rtypes}  = require('../app-framework')
 
 misc = require('smc-util/misc')
 {required, defaults} = misc
@@ -137,7 +137,7 @@ exports.TopButtonbar = rclass ({name}) ->
         @render_button('0', 'show keyboard shortcuts')
 
     render_assistant: ->
-        @render_button('assistant', {name:'show code assistant', label: 'Assistant', className:'pull-right', style: {marginRight: '10px'}})
+        @render_button('assistant', {name:'show code assistant', label: 'Assistant', className:'pull-right', style: {marginRight: '1px'}})
 
     render_group_undo_redo: ->
         @render_button_group(['global undo', 'global redo'])
@@ -168,7 +168,7 @@ exports.TopButtonbar = rclass ({name}) ->
         obj =
             name     : 'close and halt'
             disabled : false
-            label    : 'Close and halt'
+            label    : 'Halt'
         return @render_button('close and halt', obj)
 
     render_group_save_timetravel: ->
@@ -192,7 +192,7 @@ exports.TopButtonbar = rclass ({name}) ->
         </ButtonGroup>
 
     render: ->
-        <div style={margin: '1px 1px 0px 10px', backgroundColor:'#fff'}>
+        <div style={margin: '1px 1px 0px 1px', backgroundColor:'#fff'}>
             <Form inline>
                 {@render_add_cell()}
                 <span style={marginLeft:'5px'}/>

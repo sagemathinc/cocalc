@@ -6,7 +6,7 @@ misc_page = require('../misc_page')
 {COLORS}  = require('smc-util/theme')
 misc      = require('smc-util/misc')
 
-{React, ReactDOM, rclass, rtypes}  = require('../smc-react')
+{React, ReactDOM, rclass, rtypes}  = require('../app-framework')
 
 {Icon, Loading, Tip}    = require('../r_misc')
 

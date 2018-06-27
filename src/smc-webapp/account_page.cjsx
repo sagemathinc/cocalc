@@ -25,7 +25,7 @@ immutable = require('immutable')
 # Import redux_account, so the account store is initialized.
 require('./redux_account')
 
-{React, ReactDOM, rclass, rtypes, redux} = require('./smc-react')
+{React, ReactDOM, rclass, rtypes, redux} = require('./app-framework')
 {Tab, Tabs, Grid, Col, Row}              = require('react-bootstrap')
 {LandingPage}                            = require('./landing_page')
 {AccountSettingsTop}                     = require('./r_account')

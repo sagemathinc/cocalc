@@ -25,7 +25,7 @@ misc = require('smc-util/misc')
 
 {server_time} = require('./webapp_client').webapp_client
 
-{rclass, React, ReactDOM, redux, Redux, rtypes} = require('./smc-react')
+{rclass, React, ReactDOM, redux, Redux, rtypes} = require('./app-framework')
 {Loading, SetIntervalMixin, Space} = require('./r_misc')
 {OverlayTrigger, Tooltip} = require('react-bootstrap')
 

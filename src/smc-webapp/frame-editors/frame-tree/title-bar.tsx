@@ -2,7 +2,7 @@
 FrameTitleBar - title bar in a frame, in the frame tree
 */
 
-import { React, Rendered, Component, redux } from "../generic/react";
+import { React, Rendered, Component, redux } from "../../app-framework";
 import { is_safari } from "../generic/browser";
 import * as CSS from "csstype";
 

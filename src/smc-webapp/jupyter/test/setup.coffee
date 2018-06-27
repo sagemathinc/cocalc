@@ -11,7 +11,7 @@ AGPLv3
 
 require('smc-hub/share/jsdom-support')
 misc = require('smc-util/misc')
-smc_react = require('../../smc-react')
+smc_react = require('../../app-framework')
 require('../../project_store')  # needed so that project store is available.
 
 project_id = '197cebae-6410-469a-8299-54498e438f51'

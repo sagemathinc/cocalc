@@ -3,7 +3,7 @@ React component that renders the ordered list of cells
 ###
 
 immutable                         = require('immutable')
-{React, ReactDOM, rclass, rtypes} = require('../smc-react')
+{React, ReactDOM, rclass, rtypes} = require('../app-framework')
 {Loading}                         = require('../r_misc')
 {Cell}                            = require('./cell')
 {InsertCell}                      = require('./insert-cell')

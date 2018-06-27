@@ -2,7 +2,7 @@
 The format bar
 */
 
-import { React, Component, Rendered, Fragment } from "../generic/react";
+import { React, Component, Rendered, Fragment } from "../../app-framework";
 
 import { cmp } from "../generic/misc";
 

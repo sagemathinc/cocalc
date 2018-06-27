@@ -8,7 +8,7 @@ misc                   = require('smc-util/misc')
 
 {register_file_editor} = require('../file-editors')
 {alert_message}        = require('../alerts')
-{redux_name}           = require('../smc-react')
+{redux_name}           = require('../app-framework')
 {webapp_client}        = require('../webapp_client')
 
 {TaskEditor}           = require('./editor')
@@ -30,8 +30,8 @@ exports.register = ->
             if redux.getActions(name)?
                 return name  # already initialized
 
-            actions = redux.createActions(name, TaskActions)
             store   = redux.createStore(name, TaskStore)
+            actions = redux.createActions(name, TaskActions)
 
             syncdb = webapp_client.sync_db
                 project_id      : project_id

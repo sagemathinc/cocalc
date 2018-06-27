@@ -39,12 +39,12 @@ import { SettingsObject } from "../settings/types";
 import { misspelled_words } from "./spell-check";
 import * as cm_doc_cache from "./doc";
 import { test_line } from "./simulate_typing";
-import { Rendered } from "../generic/react";
+import { Rendered } from "../../app-framework";
 import * as CodeMirror from "codemirror";
 import "../generic/codemirror-plugins";
 import * as tree_ops from "../frame-tree/tree-ops";
-import { Actions as BaseActions, Store } from "../../smc-react-ts";
-import { createTypedMap, TypedMap } from "../../smc-react/TypedMap";
+import { Actions as BaseActions, Store } from "../../app-framework";
+import { createTypedMap, TypedMap } from "../../app-framework/TypedMap";
 
 const copypaste = require("smc-webapp/copy-paste-buffer");
 

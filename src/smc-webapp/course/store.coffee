@@ -20,7 +20,7 @@
 ###############################################################################
 
 # React libraries
-{Actions, Store}  = require('../smc-react')
+{Actions, Store}  = require('../app-framework')
 
 # SMC libraries
 misc = require('smc-util/misc')

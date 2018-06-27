@@ -2,7 +2,7 @@
 A single task
 ###
 
-{React, rclass, rtypes}  = require('../smc-react')
+{React, rclass, rtypes}  = require('../app-framework')
 
 {Row, Col} = require('react-bootstrap')
 

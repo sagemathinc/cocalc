@@ -13,7 +13,7 @@ $('body').append(html)
 init_buttonbars()
 
 # Load/initialize Redux-based react functionality
-{redux} = require('./smc-react')
+{redux} = require('./app-framework')
 
 # Initialize server stats redux store
 require('./redux_server_stats')
@@ -36,7 +36,7 @@ mobile = require('./mobile_app')
 desktop = require('./desktop_app')
 
 # Feature must be loaded before account and anything that might use cookies or localStorage,
-# but after smc-react and the basic app definition.
+# but after app-framework and the basic app definition.
 {IS_MOBILE, isMobile} = require('./feature')
 
 if IS_MOBILE and not isMobile.tablet()

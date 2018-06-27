@@ -22,7 +22,7 @@
 # CoCalc libs
 {defaults, required, optional} = misc = require('smc-util/misc')
 # react aspects
-{React, ReactDOM, redux, Redux} = require('../smc-react')
+{React, ReactDOM, redux, Redux} = require('../app-framework')
 
 # Assistant functions
 {ExamplesDialog} = require('./dialog')

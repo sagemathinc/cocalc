@@ -18,7 +18,7 @@
 #
 ##############################################################################
 
-{React, rclass, rtypes}  = require('../smc-react')
+{React, rclass, rtypes}  = require('../app-framework')
 {Button, ButtonToolbar, Panel, Well} = require('react-bootstrap')
 {Icon} = require('../r_misc')
 
