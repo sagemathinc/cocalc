@@ -83,8 +83,8 @@ function parse_synctex_output(output: string): SyncTex {
   const numberReSnippet =
     "(?:NaN|-?(?:(?:\\d+|\\d*\\.\\d+)(?:[E|e][+|-]?\\d+)?|Infinity))";
   const matchOnlyNumberRe = new RegExp("^(" + numberReSnippet + ")$");
-  const BEGIN = "SyncTeX result begin",
-    END = "SyncTeX result end";
+  const BEGIN = "SyncTeX result begin";
+  const END = "SyncTeX result end";
   const i = output.indexOf(BEGIN);
   if (i == -1) return {};
   const j = output.indexOf(END);

@@ -39,7 +39,7 @@ export async function patch_synctex(
   const cmd = `echo 'require(patchSynctex); patchSynctex("${filename}");' | ${R_CMD}`;
   status(`running ${cmd}`);
   return exec({
-    allow_post: false,
+    allow_post: true,
     timeout: 10,
     command: cmd,
     bash: true,

@@ -507,7 +507,7 @@ export class Actions extends BaseActions<LatexEditorState> {
 
     this.set_status("Cleaning up auxiliary files...");
     try {
-      await clean(this.project_id, this.path, logger);
+      await clean(this.project_id, this.path, this.knitr, logger);
     } catch (err) {
       this.set_error(`Error cleaning auxiliary files -- ${err}`);
     }
