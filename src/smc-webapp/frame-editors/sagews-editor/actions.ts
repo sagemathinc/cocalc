@@ -2,6 +2,7 @@
 Sage Worksheet Editor Actions
 */
 import { Map } from "immutable";
+import { TypedMap } from "app-framework/TypedMap";
 
 import { Actions, CodeEditorState } from "../code-editor/actions";
 //import { print_html } from "../frame-tree/print";
@@ -16,8 +17,9 @@ interface SageWorksheetEditorState extends CodeEditorState {
   /*  cells: {
     [key: string]: CellObject;
   };
-  */
   cells: any;
+  */
+  cells: Map<string, TypedMap<CellObject>>;
 }
 
 export class SageWorksheetActions extends Actions<SageWorksheetEditorState> {
@@ -65,6 +67,6 @@ export class SageWorksheetActions extends Actions<SageWorksheetEditorState> {
     preparse?: boolean
   ): CodeExecutor {
     // todo: if cell_id is given, ensure is valid.
-    return code_executor({path: this.path, code, data, cell_id, preparse});
+    return code_executor({ path: this.path, code, data, cell_id, preparse });
   }
 }

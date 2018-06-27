@@ -804,7 +804,7 @@ export class Actions<T = CodeEditorState> extends BaseActions<
   // so the information can propogate to other users via the syncstring.
   set_cursor_locs(locs: any[]): void {
     if (!this._syncstring) {
-      return;  // not currently valid.
+      return; // not currently valid.
     }
     if (locs.length === 0) {
       // don't remove on blur -- cursor will fade out just fine
@@ -1103,6 +1103,9 @@ export class Actions<T = CodeEditorState> extends BaseActions<
   }
 
   set_codemirror_to_syncstring(): void {
+    if (!this._syncstring.to_str) {  // TODO: this happens when syncstring is a syncdb, e.g., sagews
+      return;
+    }
     // NOTE: we fallback to getting the underling CM doc, in case all actual
     // cm code-editor frames have been closed (or just aren't visible).
     let cm: any = this._get_cm(undefined, true);
