@@ -65,7 +65,7 @@ exports.NavTab = rclass
     propTypes :
         label           : rtypes.string
         label_class     : rtypes.string
-        icon            : rtypes.oneOfType([rtypes.string,rtypes.object])
+        icon            : rtypes.oneOfType([rtypes.string,rtypes.element])
         close           : rtypes.bool
         on_click        : rtypes.func
         active_top_tab  : rtypes.string
