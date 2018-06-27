@@ -2,7 +2,7 @@
 Sage Worksheet Editor Actions
 */
 import { Map } from "immutable";
-import { TypedMap } from "app-framework/TypedMap";
+import { TypedMap } from "../../app-framework/TypedMap";
 
 import { Actions, CodeEditorState } from "../code-editor/actions";
 //import { print_html } from "../frame-tree/print";
@@ -29,7 +29,7 @@ export class SageWorksheetActions extends Actions<SageWorksheetEditorState> {
   public store: Store<SageWorksheetEditorState>;
 
   _init2(): void {
-    this.setState({ cells: {} });
+    this.setState({ cells: Map({}) });
 
     this._syncstring.on("change", keys => {
       keys.forEach(value => {
@@ -48,7 +48,7 @@ export class SageWorksheetActions extends Actions<SageWorksheetEditorState> {
     this._syncstring.set(cell);
   }
 
-  private _get_cell(id: string): Map<string, any> {
+  private _get_cell(id: string): TypedMap<CellObject> {
     return this._syncstring.get_one({ id: id, type: "cell" });
   }
 

@@ -1,6 +1,6 @@
 import { Map, Set } from "immutable";
 
-import { React, Component, Rendered } from "../generic/react";
+import { React, Component, Rendered } from "../../app-framework";
 
 import { input_is_hidden, output_is_hidden } from "./flags";
 
@@ -16,26 +16,29 @@ interface Props {
 
   path: string;
   project_id: string;
-  font_size : number;
-  cursors : Map<string,any>;
-  editor_state : Map<string,any>;
-  read_only : boolean;
+  font_size: number;
+  cursors: Map<string, any>;
+  editor_state: Map<string, any>;
+  read_only: boolean;
   is_current: boolean;
   is_public: boolean;
-  misspelled_words : Set<string>;
-  resize : number;
+  misspelled_words: Set<string>;
+  resize: number;
   gutters: string[];
   gutter_markers: Map<string, any>;
   editor_settings: Map<string, any>;
 
-  value? : string;
+  value?: string;
 }
 
 export class Cell extends Component<Props, {}> {
   render_input_cell(): Rendered {
     if (input_is_hidden(this.props.cell.get("flags"))) {
       return (
-        <HiddenInputCell id={this.props.cell.get("id")} actions={this.props.actions} />
+        <HiddenInputCell
+          id={this.props.cell.get("id")}
+          actions={this.props.actions}
+        />
       );
     } else {
       return (
@@ -43,7 +46,6 @@ export class Cell extends Component<Props, {}> {
           input={this.props.cell.get("input")}
           id={this.props.cell.get("id")}
           actions={this.props.actions}
-
           path={this.props.path}
           project_id={this.props.project_id}
           font_size={this.props.font_size}
@@ -66,7 +68,10 @@ export class Cell extends Component<Props, {}> {
   render_output_cell(): Rendered {
     if (output_is_hidden(this.props.cell.get("flags"))) {
       return (
-        <HiddenOutputCell id={this.props.cell.get("id")} actions={this.props.actions} />
+        <HiddenOutputCell
+          id={this.props.cell.get("id")}
+          actions={this.props.actions}
+        />
       );
     } else {
       return (
