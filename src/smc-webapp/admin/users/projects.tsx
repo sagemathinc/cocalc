@@ -1,8 +1,4 @@
-import {
-  React,
-  Component,
-  Rendered
-} from "smc-webapp/app-framework";
+import { React, Component, Rendered, redux } from "smc-webapp/app-framework";
 
 import { cmp } from "smc-webapp/frame-editors/generic/misc";
 
@@ -115,28 +111,35 @@ export class Projects extends Component<Props, State> {
     return <div>{v}</div>;
   }
 
-  render_last_active(project : Project) : Rendered {
+  render_last_active(project: Project): Rendered {
     if (project.last_active && project.last_active[this.props.account_id]) {
-      return <TimeAgo date={project.last_active[this.props.account_id]} />
+      return <TimeAgo date={project.last_active[this.props.account_id]} />;
     }
-    return <span></span>
+    return <span />;
   }
 
-  render_description(project: Project) : Rendered {
-    if (project.description == 'No Description') {
+  render_description(project: Project): Rendered {
+    if (project.description == "No Description") {
       return;
     }
-    return <span>project.description</span>;
+    return <span>{project.description}</span>;
+  }
+
+  open_project(project_id: string): void {
+    const projects : any = redux.getActions("projects"); // todo: any?
+    projects.open_project({ project_id: project_id, switch_to: true });
   }
 
   render_project(project: Project): Rendered {
     return (
       <Row key={project.project_id}>
-        <Col md={2}>{project.title}</Col>
-        <Col md={2}>{this.render_description(project)}</Col>
         <Col md={2}>
-          {this.render_last_active(project)}
+          <a style={{cursor:'pointer'}} onClick={() => this.open_project(project.project_id)}>
+            {project.title}
+          </a>
         </Col>
+        <Col md={2}>{this.render_description(project)}</Col>
+        <Col md={2}>{this.render_last_active(project)}</Col>
       </Row>
     );
   }
