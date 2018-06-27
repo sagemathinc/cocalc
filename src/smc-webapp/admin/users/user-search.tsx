@@ -70,6 +70,10 @@ export class UserSearch extends Component<{}, UserSearchState> {
     if (!this.mounted) {
       return;
     }
+    if (!result) {
+      this.status_mesg("ERROR");
+      return;
+    }
     (window as any).result = result;
     result.sort(function(a, b) {
       return -cmp(user_sort_key(a), user_sort_key(b));
