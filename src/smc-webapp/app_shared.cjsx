@@ -121,7 +121,6 @@ exports.NavTab = rclass
             inner_style = @props.inner_style
         else
             inner_style =
-                display: 'flex'
                 padding : '10px'
         if @props.add_inner_style
             misc.merge(inner_style, @props.add_inner_style)
