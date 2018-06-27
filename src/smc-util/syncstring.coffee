@@ -637,7 +637,7 @@ class SyncDoc extends EventEmitter
                     @_undelete()
 
         if opts.file_use_interval and @_client.is_user()
-            is_chat = misc.filename_extension(@_path) == 'sage-chat'
+            is_chat = misc.filename_extension(@_path) in ['chat', 'sage-chat']
             if is_chat
                 action = 'chat'
             else

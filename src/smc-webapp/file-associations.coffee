@@ -242,7 +242,7 @@ file_associations['course'] =
     opts   : {}
     name   : 'course'
 
-file_associations['sage-chat'] =
+file_associations['sage-chat'] = file_associations['chat'] =
     editor : 'chat'
     icon   : 'fa-comment'
     opts   : {}

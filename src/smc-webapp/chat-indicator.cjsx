@@ -97,7 +97,7 @@ exports.ChatIndicator = rclass
         </span>
 
     render_chat_button: ->
-        if misc.filename_extension(@props.path) == 'sage-chat'
+        if misc.filename_extension(@props.path) in ['chat', 'sage-chat']
             # Special case: do not show side chat for chatrooms
             return
 

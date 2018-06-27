@@ -579,7 +579,7 @@ NoFiles = rclass
                     <Col sm={12}>
                         <Tip title='Create a Chatroom'  placement='right'  icon='comment'
                             tip='Create a chatroom for chatting with other collaborators on this project.'>
-                            <NewFileButton icon='comment' name='Chatroom' on_click={@props.create_file} ext='sage-chat' />
+                            <NewFileButton icon='comment' name='Chatroom' on_click={@props.create_file} ext='chat' />
                         </Tip>
                     </Col>
                 </Row>
@@ -2021,7 +2021,7 @@ ProjectFilesNew = rclass
     getDefaultProps: ->
         file_search : ''
 
-    new_file_button_types : ['sagews', 'term', 'ipynb', 'tex', 'rnw', 'md', 'tasks', 'course', 'sage', 'py', 'sage-chat']
+    new_file_button_types : ['sagews', 'term', 'ipynb', 'tex', 'rnw', 'md', 'tasks', 'course', 'sage', 'py', 'chat']
 
     file_dropdown_icon: ->
         <span style={whiteSpace: 'nowrap'}>

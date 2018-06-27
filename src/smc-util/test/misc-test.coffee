@@ -608,7 +608,7 @@ describe "meta_file", ->
     it "constructs a metafile to a given file", ->
         mf("foo", "history").should.be.eql ".foo.sage-history"
         mf("/", "batz").should.be.eql "..sage-batz"
-        mf("/home/user/file.ext", "chat").should.be.eql "/home/user/.file.ext.sage-chat"
+        mf("/home/user/file.ext", "chat").should.be.eql "/home/user/.file.ext.chat"
 
 
 describe "trunc", ->

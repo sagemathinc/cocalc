@@ -65,9 +65,10 @@ ChatEditorGenerator = (path, redux, project_id) ->
 
     return C_ChatRoom
 
-require('../project_file').register_file_editor
-    ext       : 'sage-chat'
-    icon      : 'comment'
-    init      : init
-    generator : ChatEditorGenerator
-    remove    : remove
+for ext in ['chat', 'sage-chat']
+    require('../project_file').register_file_editor
+        ext       : ext
+        icon      : 'comment'
+        init      : init
+        generator : ChatEditorGenerator
+        remove    : remove

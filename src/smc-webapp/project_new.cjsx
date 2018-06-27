@@ -344,7 +344,7 @@ ProjectNewForm = rclass ({name}) ->
                             <Col sm={6}>
                                 <Tip title='Create a chatroom'  placement='left'  icon='comment'
                                     tip='Create a chatroom for chatting with other collaborators on this project.'>
-                                    <NewFileButton icon='comment' name='Create a chatroom' on_click={@create_file} ext='sage-chat' />
+                                    <NewFileButton icon='comment' name='Create a chatroom' on_click={@create_file} ext='chat' />
                                 </Tip>
                             </Col>
                         </Row>

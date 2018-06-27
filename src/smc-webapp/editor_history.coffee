@@ -144,7 +144,7 @@ class exports.HistoryEditor extends FileEditor
             else
                 @view_doc = codemirror_session_editor(@project_id, @filename, opts)
 
-        if @ext in ['course', 'sage-chat']
+        if @ext in ['course', 'sage-chat', 'chat']
             @element.find(".webapp-editor-history-no-viewer").show()
             @top_elt = @element.find(".webapp-editor-history-no-viewer")
         else
