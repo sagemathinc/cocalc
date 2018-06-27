@@ -45,7 +45,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             # Check for "sudo" by admin to query as a different user, which is done by specifying
             #    options = [..., {account_id:'uuid'}, ...].
             for x in opts.options
-                if x.account_id? and x.account_id != opts.account_id
+                if x.account_id?
                     # Check user is an admin, then change opts.account_id
                     @get_account
                         columns    : ['groups']
