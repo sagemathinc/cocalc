@@ -961,7 +961,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       });
     };
 
-    this._activity_indicator_timers[filename] = setTimeout(
+    this._activity_indicator_timers[filename] = window.setTimeout(
       set_inactive,
       1000
     );
