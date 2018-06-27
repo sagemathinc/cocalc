@@ -15,7 +15,7 @@ export class AdminPage extends Component {
         style={{
           overflowY: "scroll",
           overflowX: "hidden",
-          margin: "30px"
+          margin: "0px 45px"
         }}
       >
         <h3>Administration</h3>
