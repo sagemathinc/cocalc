@@ -36,9 +36,6 @@ function project_sort_key(project: Project, account_id: string): string {
   if (project.last_active && project.last_active[account_id]) {
     return project.last_active[account_id];
   }
-  /* if (project.last_edited) {
-    return project.last_edited;
-  }*/
   return "";
 }
 
@@ -65,7 +62,6 @@ export class Projects extends Component<Props, State> {
     });
   }
 
-  //smc.client.query({query:{projects:[{title:null}]}, cb:console.log, options:[{account_id:"42d15466-d07a-4a37-b499-95bb9b4e60da"}] })
   async search(): Promise<void> {
     this.status_mesg("Searching...");
     const projects: Project[] = (await query({
@@ -90,7 +86,6 @@ export class Projects extends Component<Props, State> {
       this.status_mesg("ERROR");
       return;
     }
-    (window as any).projects = projects;
     projects.sort(
       (a, b) =>
         -cmp(

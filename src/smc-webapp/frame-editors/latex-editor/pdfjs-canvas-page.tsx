@@ -38,14 +38,16 @@ export class CanvasPage extends Component<Props, {}> {
     canvas.height = viewport.height;
     canvas.style.width = `${viewport.width / window.devicePixelRatio}px`;
     canvas.style.height = `${viewport.height / window.devicePixelRatio}px`;
+    $(div).empty();
+    div.appendChild(canvas);
     try {
       await page.render({
         canvasContext: ctx,
         viewport: viewport,
         enableWebGL: true
       });
-      $(div).empty();
-      div.appendChild(canvas);
+      //$(div).empty();
+      //div.appendChild(canvas);
     } catch (err) {
       console.error(`pdf.js -- Error rendering canvas page: ${err}`);
       return;
