@@ -12,7 +12,7 @@ import {
 } from "../code-editor/actions";
 import { latexmk, build_command } from "./latexmk";
 import { sagetex, sagetex_hash } from "./sagetex";
-import { knitr } from "./knitr";
+import { knitr, patch_synctex } from "./knitr";
 import * as synctex from "./synctex";
 import { bibtex } from "./bibtex";
 import { server_time, ExecOutput } from "../generic/client";
@@ -31,6 +31,7 @@ import {
   separate_file_extension,
   change_filename_extension
 } from "../generic/misc";
+import { IBuildSpecs } from "./build";
 
 interface BuildLog extends ExecOutput {
   parse?: ProcessedLatexLog;
@@ -217,6 +218,9 @@ export class Actions extends BaseActions<LatexEditorState> {
       await this.run_knitr(time);
     }
     await this.run_latex(time);
+    if (this.knitr) {
+      await this.run_patch_synctex(time);
+    }
     const s = this.store.unsafe_getIn(["build_logs", "latex", "stdout"]);
     if (typeof s == "string" && s.indexOf("sagetex.sty") != -1) {
       await this.run_sagetex(time);
@@ -225,7 +229,7 @@ export class Actions extends BaseActions<LatexEditorState> {
 
   async run_knitr(time: number): Promise<void> {
     let output: BuildLog;
-    const status = s => this.set_status(`Running Rweave... ${s}`);
+    const status = s => this.set_status(`Running Knitr... ${s}`);
     status("");
 
     try {
@@ -238,8 +242,28 @@ export class Actions extends BaseActions<LatexEditorState> {
     } catch (err) {
       this.set_error(err);
       return;
+    } finally {
+      this.set_status("");
     }
-    console.log(output);
+    this.set_build_logs({ knitr: output });
+  }
+
+  async run_patch_synctex(time: number): Promise<void> {
+    const status = s => this.set_status(`Running Knitr/Synctex... ${s}`);
+    status("");
+    try {
+      await patch_synctex(
+        this.project_id,
+        this.path,
+        time || this._last_save_time,
+        status
+      );
+    } catch (err) {
+      this.set_error(err);
+      return;
+    } finally {
+      this.set_status("");
+    }
   }
 
   async run_latex(time: number): Promise<void> {
@@ -454,11 +478,7 @@ export class Actions extends BaseActions<LatexEditorState> {
     });
   }
 
-  set_build_logs(obj: {
-    latex?: BuildLog;
-    bibtex?: BuildLog;
-    sagetex?: BuildLog;
-  }): void {
+  set_build_logs(obj: { [K in keyof IBuildSpecs]?: BuildLog }): void {
     let build_logs: BuildLogs = this.store.get("build_logs");
     if (!build_logs) {
       // may have already been closed.
