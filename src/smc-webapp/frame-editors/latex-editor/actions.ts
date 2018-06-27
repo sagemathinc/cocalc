@@ -414,7 +414,8 @@ export class Actions extends BaseActions<LatexEditorState> {
     sagetex?: BuildLog;
   }): void {
     let build_logs: BuildLogs = this.store.get("build_logs");
-    if(!build_logs) {  // may have already been closed.
+    if (!build_logs) {
+      // may have already been closed.
       return;
     }
     let k: string;

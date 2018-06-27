@@ -2019,9 +2019,6 @@ exports.register_nonreact_editors = ->
                     console.error('You have to call super(@project_id, @filename) in the constructor to properly initialize this FileEditor instance.')
                 return e
 
-    # Editors for private normal editable files.
-    register(false, LatexEditor,      ['tex', 'rnw'])
-
     register(false, Terminal,         ['term', 'sage-term'])
 
     {HistoryEditor} = require('./editor_history')
