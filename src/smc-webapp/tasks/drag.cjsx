@@ -2,7 +2,7 @@
 Drag tasks handle (and other support)
 ###
 
-{React, rclass, rtypes}  = require('../smc-react')
+{React, rclass, rtypes}  = require('../app-framework')
 
 {Icon, Tip} = require('../r_misc')
 

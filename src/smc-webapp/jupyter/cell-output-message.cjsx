@@ -6,7 +6,7 @@ TODO: most components should instead be in separate files.
 
 misc = require('smc-util/misc')
 
-{React, ReactDOM, rclass, rtypes}  = require('../smc-react')
+{React, ReactDOM, rclass, rtypes}  = require('../app-framework')
 {Icon, ImmutablePureRenderMixin, Markdown, HTML} = require('../r_misc')
 {sanitize_html} = require('../misc_page')
 {Button} = require('react-bootstrap')

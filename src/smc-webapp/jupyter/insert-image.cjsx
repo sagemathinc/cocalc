@@ -2,7 +2,7 @@
 Modal for inserting an image
 ###
 
-{React, ReactDOM, rclass, rtypes}  = require('../smc-react')
+{React, ReactDOM, rclass, rtypes}  = require('../app-framework')
 {Icon} = require('../r_misc')
 {Button, Modal} = require('react-bootstrap')
 {SMC_Dropzone} = require('../smc-dropzone')

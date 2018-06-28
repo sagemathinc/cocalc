@@ -52,7 +52,7 @@ exports.jupyter_backend = (syncdb, client) ->
     dbg()
     {JupyterActions} = require('smc-webapp/jupyter/project-actions')
     {JupyterStore}   = require('smc-webapp/jupyter/store')
-    smc_react        = require('smc-webapp/smc-react')
+    smc_react        = require('smc-webapp/app-framework')
 
     project_id = client.client_id()
 

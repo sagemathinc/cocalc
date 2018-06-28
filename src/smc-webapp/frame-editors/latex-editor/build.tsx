@@ -12,7 +12,7 @@ import {
   Fragment,
   Rendered,
   Component
-} from "../generic/react";
+} from "../../app-framework";
 
 import { BuildLogs } from "./actions";
 

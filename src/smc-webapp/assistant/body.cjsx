@@ -24,7 +24,7 @@ _         = require('underscore')
 immutable = require('immutable')
 # react elements
 {Col, Row, Panel, Button, FormGroup, Checkbox, FormControl, Well, Alert, Modal, Table, Nav, NavItem, ListGroup, ListGroupItem, InputGroup} = require('react-bootstrap')
-{React, ReactDOM, redux, Redux, Actions, Store, rtypes, rclass} = require('../smc-react')
+{React, ReactDOM, redux, Redux, Actions, Store, rtypes, rclass} = require('../app-framework')
 {Loading, Icon, Markdown, Space} = require('../r_misc')
 # cocalc libs
 {defaults, required, optional} = misc = require('smc-util/misc')

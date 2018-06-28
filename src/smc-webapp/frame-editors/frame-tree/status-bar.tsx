@@ -4,7 +4,7 @@ Show a minimal status bar at the bottom of the screen when status is set in the 
 Very simple for now.  We should obviously add more later, e.g., number of lines of the file...
 */
 
-import { React, Component, Rendered } from "../generic/react";
+import { React, Component, Rendered } from "../../app-framework";
 const { Loading, Space } = require("smc-webapp/r_misc");
 
 interface Props {

@@ -9,7 +9,7 @@ WIKI_HELP_URL = "https://github.com/sagemathinc/cocalc/wiki/tasks"
 immutable  = require('immutable')
 underscore = require('underscore')
 
-{Actions}  = require('../smc-react')
+{Actions}  = require('../app-framework')
 
 misc = require('smc-util/misc')
 

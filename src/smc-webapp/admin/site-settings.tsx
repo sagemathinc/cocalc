@@ -5,7 +5,7 @@ import {
   Component,
   Rendered,
   ReactDOM
-} from "../frame-editors/generic/react";
+} from "../app-framework";
 
 import { query } from "../frame-editors/generic/client";
 import { copy, deep_copy, keys } from "../frame-editors/generic/misc";

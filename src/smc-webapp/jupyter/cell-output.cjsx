@@ -4,7 +4,7 @@ React component that describes the output of a cell
 
 misc = require('smc-util/misc')
 
-{React, ReactDOM, rclass, rtypes}  = require('../smc-react')
+{React, ReactDOM, rclass, rtypes}  = require('../app-framework')
 
 {CellOutputMessages} = require('./cell-output-message')
 

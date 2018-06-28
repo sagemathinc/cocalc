@@ -1,4 +1,4 @@
-import { React, Component, Rendered } from "../generic/react";
+import { React, Component, Rendered } from "../../app-framework";
 
 interface Props {
   id: string;

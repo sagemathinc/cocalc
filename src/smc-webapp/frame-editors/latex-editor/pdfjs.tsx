@@ -25,7 +25,7 @@ import {
   rclass,
   rtypes,
   Rendered
-} from "../generic/react";
+} from "../../app-framework";
 import { getDocument, url_to_pdf } from "./pdfjs-doc-cache";
 import { Page, PAGE_GAP } from "./pdfjs-page";
 import { SyncHighlight } from "./pdfjs-annotation";
@@ -60,11 +60,11 @@ interface PDFJSState {
   pages: PDFPageProxy[];
   scrollTop: number;
   missing: boolean;
+  restored_scroll: boolean;
 }
 
 class PDFJS extends Component<PDFJSProps, PDFJSState> {
   private mounted: boolean;
-  private restored_scroll: boolean;
 
   constructor(props) {
     super(props);
@@ -80,7 +80,8 @@ class PDFJS extends Component<PDFJSProps, PDFJSState> {
       doc: { pdfInfo: { fingerprint: "" } },
       pages: [],
       scrollTop: scroll,
-      missing: false
+      missing: false,
+      restored_scroll: false
     };
   }
 
@@ -119,7 +120,8 @@ class PDFJS extends Component<PDFJSProps, PDFJSState> {
       is_different(this.state, next_state, [
         "loaded",
         "scrollTop",
-        "missing"
+        "missing",
+        "restored_scroll"
       ]) ||
       this.state.doc.pdfInfo.fingerprint != next_state.doc.pdfInfo.fingerprint
     );
@@ -155,6 +157,7 @@ class PDFJS extends Component<PDFJSProps, PDFJSState> {
   }
 
   on_scroll(): void {
+    if (!this.state.restored_scroll) return;
     let elt = $(ReactDOM.findDOMNode(this.refs.scroll));
     const scroll = { top: elt.scrollTop(), left: elt.scrollLeft() };
     this.props.actions.save_editor_state(this.props.id, { scroll });
@@ -163,17 +166,21 @@ class PDFJS extends Component<PDFJSProps, PDFJSState> {
     }
   }
 
-  async restore_scroll(wait?: number): Promise<void> {
+  async restore_scroll(): Promise<void> {
+    await this._restore_scroll(0);
+    this.setState({ restored_scroll: true });
+  }
+
+  async _restore_scroll(wait?: number): Promise<void> {
     if (wait !== undefined) {
       await delay(wait);
     }
-    if (!this.props.editor_state || !this.mounted) return;
-    this.restored_scroll = true;
+    if (!this.mounted || !this.props.editor_state) return;
     const scroll: Map<string, number> = this.props.editor_state.get("scroll");
     if (!scroll) return;
     let elt = $(ReactDOM.findDOMNode(this.refs.scroll));
-    elt.scrollTop(scroll.get("top") || 0);
-    elt.scrollLeft(scroll.get("left") || 0);
+    elt.scrollTop(scroll.get("top", 0));
+    elt.scrollLeft(scroll.get("left", 0));
   }
 
   async load_doc(reload: number): Promise<void> {
@@ -417,10 +424,10 @@ class PDFJS extends Component<PDFJSProps, PDFJSState> {
       );
       top += scale * page.pageInfo.view[3] + PAGE_GAP;
     }
-    if (!this.restored_scroll) {
-      // Restore the scroll position after the above pages get
+    if (!this.state.restored_scroll) {
+      // Restore the scroll position after the pages get
       // rendered into the DOM.
-      this.restore_scroll(0);
+      this.restore_scroll();
     }
     return pages;
   }
@@ -433,7 +440,15 @@ class PDFJS extends Component<PDFJSProps, PDFJSState> {
         return this.render_loading();
       }
     } else {
-      return this.render_pages();
+      return (
+        <div
+          style={{
+            visibility: this.state.restored_scroll ? "visible" : "hidden"
+          }}
+        >
+          {this.render_pages()}
+        </div>
+      );
     }
   }
 
@@ -459,7 +474,7 @@ class PDFJS extends Component<PDFJSProps, PDFJSState> {
           textAlign: "center",
           backgroundColor: !this.state.loaded ? "white" : undefined
         }}
-        onScroll={throttle(() => this.on_scroll(), 250)}
+        onScroll={throttle(() => this.on_scroll(), 150)}
         ref={"scroll"}
         tabIndex={
           1 /* Need so keyboard navigation works; also see mouse-draggable click event. */

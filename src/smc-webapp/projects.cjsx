@@ -35,7 +35,7 @@ markdown = require('./markdown')
 
 {Row, Col, Well, Button, ButtonGroup, ButtonToolbar, Grid, FormControl, FormGroup, InputGroup, Alert, Checkbox, Label} = require('react-bootstrap')
 {ErrorDisplay, Icon, Loading, LoginLink, Saving, SearchInput, Space , TimeAgo, Tip, UPGRADE_ERROR_STYLE, UpgradeAdjustor, Footer} = require('./r_misc')
-{React, ReactDOM, Actions, Store, Table, redux, rtypes, rclass, Redux}  = require('./smc-react')
+{React, ReactDOM, Actions, Store, Table, redux, rtypes, rclass, Redux}  = require('./app-framework')
 {BillingPageSimplifiedRedux} = require('./billing')
 {UsersViewing} = require('./other-users')
 {PROJECT_UPGRADES} = require('smc-util/schema')
@@ -219,7 +219,6 @@ class ProjectsActions extends Actions
             target       : undefined # string  The file path to open
             switch_to    : true      # bool    Whether or not to foreground it
             ignore_kiosk : false     # bool    Ignore ?fullscreen=kiosk
-        require('./project_store').init(opts.project_id)
         project_store = redux.getProjectStore(opts.project_id)
         project_actions = redux.getProjectActions(opts.project_id)
         relation = redux.getStore('projects').get_my_group(opts.project_id)
@@ -499,13 +498,6 @@ class ProjectsActions extends Actions
             project_id : project_id
             deleted    : not is_deleted
 
-# Register projects actions
-actions = redux.createActions('projects', ProjectsActions)
-
-# This require defines a jQuery plugin that depends on the above actions being defined.
-# This will go away when we get rid of use of jQuery and instead 100% use react.
-require('./process-links')
-
 # Define projects store
 class ProjectsStore extends Store
     get_project: (project_id) =>
@@ -783,6 +775,13 @@ init_store =
     public_project_titles : immutable.Map()
 
 store = redux.createStore('projects', ProjectsStore, init_store)
+
+# Register projects actions
+actions = redux.createActions('projects', ProjectsActions)
+
+# This require defines a jQuery plugin that depends on the above actions being defined.
+# This will go away when we get rid of use of jQuery and instead 100% use react.
+require('./process-links')
 
 # Create and register projects table, which gets automatically
 # synchronized with the server.

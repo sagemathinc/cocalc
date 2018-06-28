@@ -9,7 +9,7 @@ json = require('json-stable-stringify')
 
 misc = require('smc-util/misc')
 
-{React, ReactDOM, rclass, rtypes}  = require('../smc-react')
+{React, ReactDOM, rclass, rtypes}  = require('../app-framework')
 {Button, Modal} = require('react-bootstrap')
 {Icon, SearchInput} = require('../r_misc')
 

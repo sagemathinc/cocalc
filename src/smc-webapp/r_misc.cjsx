@@ -20,7 +20,7 @@
 
 async = require('async')
 
-{Component, React, ReactDOM, rclass, rtypes, is_redux, is_redux_actions, redux, Store, Actions, Redux} = require('./smc-react')
+{Component, React, ReactDOM, rclass, rtypes, is_redux, is_redux_actions, redux, Store, Actions, Redux} = require('./app-framework')
 {Alert, Button, ButtonToolbar, Checkbox, Col, FormControl, FormGroup, ControlLabel, InputGroup, Overlay, OverlayTrigger, Popover, Modal, Tooltip, Row, Well} = require('react-bootstrap')
 {HelpEmailLink, SiteName, CompanyName, PricingUrl, PolicyTOSPageUrl, PolicyIndexPageUrl, PolicyPricingPageUrl} = require('./customize')
 {UpgradeRestartWarning} = require('./upgrade_restart_warning')
@@ -2030,3 +2030,46 @@ exports.VisibleLG = rclass
         <span className={'visible-lg-inline'}>
             {@props.children}
         </span>
+
+# Error boundry. Pass components in as children to create one.
+# https://reactjs.org/blog/2017/07/26/error-handling-in-react-16.html
+exports.ErrorBoundary = rclass
+    displayName: 'Error-Boundary'
+
+    getInitialState: ->
+        error : undefined
+        info  : undefined
+
+    componentDidCatch: (error, info) ->
+        # TODO: Report the error to some backend service...
+        @setState
+            error : error
+            info  : info
+
+    render: ->
+        if @state.info?
+            <Alert
+                bsStyle = 'warning'
+                style   = {margin:'15px'}
+            >
+                <h2 style={color:'rgb(217, 83, 79)'}>
+                    <Icon name='exclamation-triangle'/> Oh noes!! Well this is embarrasing... 😬
+                </h2>
+                <h4>
+                    {"We've already been notified of this error and are hard at work fixing it."}
+                </h4>
+                {"If you'd like to expidite the bug fixing, please file a support ticket describing what you were trying to do when the error occured."}
+                <Button onClick={console.log "TODO"}>
+                    Create Ticket
+                </Button>
+                <details style={whiteSpace:'pre-wrap', cursor:'pointer'} >
+                    <summary>Trace</summary>
+                    <div style={cursor:'pointer'} >
+                        {@state.error?.toString()}
+                        <br/>
+                        {@state.info.componentStack}
+                    </div>
+                </details>
+            </Alert>
+        else
+            @props.children

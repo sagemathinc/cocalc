@@ -41,6 +41,27 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             changes    : undefined
             cb         : undefined
 
+        if opts.account_id?
+            # Check for "sudo" by admin to query as a different user, which is done by specifying
+            #    options = [..., {account_id:'uuid'}, ...].
+            for x in opts.options
+                if x.account_id?
+                    # Check user is an admin, then change opts.account_id
+                    @get_account
+                        columns    : ['groups']
+                        account_id : opts.account_id
+                        cb         : (err, r) =>
+                            if err
+                                opts.cb?(err)
+                            else if r['groups']? and 'admin' in r['groups']
+                                opts.account_id = x.account_id
+                                opts.options = (y for y in opts.options when not y['account_id']?)
+                                # now do query with new opts and options not including account_id sudo.
+                                @user_query(opts)
+                            else
+                                opts.cb?('user must be admin to sudo')
+                    return
+
         if not opts.client_id?
             # No client_id given, so do not use query queue.
             delete opts.priority
@@ -70,7 +91,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             changes    : undefined  # id of change feed
             cb         : undefined  # cb(err, result)  # WARNING -- this *will* get called multiple times when changes is true!
         id = misc.uuid().slice(0,6)
-        dbg = @_dbg("user_query(id=#{id})")
+        dbg = @_dbg("_user_query(id=#{id})")
         dbg(misc.to_json(opts.query))
         if misc.is_array(opts.query)
             dbg('array query instead')

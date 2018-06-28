@@ -1,12 +1,12 @@
 # 3rd Party Libraries
 
 # Internal Libraries
-{React, rtypes} = require('../smc-react')
+{React, rtypes} = require('../app-framework')
 {webapp_client} = require('../webapp_client')
 
 # Sibling Libraries
 util = require('./util')
-{get_store_def} = require('./store')
+{store} = require('./store')
 {ChatActions} = require('./actions')
 {ChatRoom} = require('../smc_chat')
 
@@ -16,7 +16,7 @@ exports.init = init = (path, redux, project_id) ->
         return name  # already initialized
 
     actions = redux.createActions(name, ChatActions)
-    store   = redux.createStore(get_store_def(name))
+    store   = redux.createStore(name, store)
 
     syncdb = webapp_client.sync_db
         project_id   : project_id

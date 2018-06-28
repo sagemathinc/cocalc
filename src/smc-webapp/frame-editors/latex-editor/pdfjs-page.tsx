@@ -2,7 +2,7 @@
 Manages rendering a single page using either SVG or Canvas
 */
 
-import { React, Rendered, Component } from "../generic/react";
+import { React, Rendered, Component } from "../../app-framework";
 
 import { is_different } from "../generic/misc";
 

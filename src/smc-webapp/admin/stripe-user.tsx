@@ -13,7 +13,7 @@ import {
   Component,
   Rendered,
   ReactDOM
-} from "../frame-editors/generic/react";
+} from "../app-framework";
 
 interface StripeUserState {
   email: string;

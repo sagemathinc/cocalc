@@ -6,7 +6,7 @@ import { expect as expect0 } from "chai";
 export const expect = expect0;
 (window as any).expect = expect;
 
-import { redux as redux0 } from "../react";
+import { redux as redux0 } from "../../../app-framework";
 export const redux = redux0;
 
 // hardcode for now... until we see how this is going to work.
@@ -53,7 +53,7 @@ function open_file(project_id: string, path: string): FileTestData {
       "projects redux store MUST be initialized before using test utils open_file"
     );
   }
-  projects.open_project({ project_id: project_id });
+  (projects as any).open_project({ project_id: project_id });
   exists(
     (data.redux.project.actions = redux.getProjectActions(project_id)),
     "project actions"

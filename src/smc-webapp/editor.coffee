@@ -36,7 +36,7 @@ async = require('async')
 
 message = require('smc-util/message')
 
-{redux} = require('./smc-react')
+{redux} = require('./app-framework')
 
 _ = underscore = require('underscore')
 

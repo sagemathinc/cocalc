@@ -336,12 +336,12 @@ The purpose, all in all, is to provide a sane, predictable, reproducible
 way to manage and track (using middleware that logs actions) the live
 state of a complex application.  We'll come back to this later with some
 specific examples.  SMC wraps most of its use of Redux into its own
-abstractions that are implemented in ``smc-webapp/smc-react.coffee``.
+abstractions that are implemented in ``smc-webapp/app-framework.coffee``.
 
 React-Redux
 ^^^^^^^^^^^
 
-SMC's ``smc-react.coffee`` modules also makes use of the `React Redux`_
+SMC's ``app-framework.coffee`` modules also makes use of the `React Redux`_
 JavaScript module to tie Redux state objects to React containers (i.e.
 update displays when the state changes--abstracting the state itself from
 any given view of the state).  This is just a package for making it
@@ -672,7 +672,7 @@ where we actually set up the user interface (note that that doesn't happen at
 all if we can't at least establish a connection to a hub first--there are also
 fallbacks for displaying messages to the user in case there are delays in
 making that connection).  The first module loaded from ``entry-point.coffee``
-with any notable side-effect ``smc-react.coffee``.  This initializes a single
+with any notable side-effect ``app-framework.coffee``.  This initializes a single
 instance of a class called ``AppRedux`` which it exports to other modules with
 the variable name ``redux``.
 
@@ -813,7 +813,7 @@ application state independent of the view, the ``<Page>`` component
 implements a specific view of the state.
 
 ``<Page>`` is created using a helper function called ``rclass`` which is
-defined in ``smc-react.coffee``.  This is a wrapper around both React and
+defined in ``app-framework.coffee``.  This is a wrapper around both React and
 React-Redux for creating the component class, and hooking different props on
 the component up to the Redux state.  The component can have props that are
 filled/updated from any number of sub-stores in the ``AppRedux`` instance.

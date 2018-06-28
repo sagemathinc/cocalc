@@ -5,7 +5,7 @@ Meant to be efficient to render hundreds
 of these on the page at once.
 ###
 
-{React, ReactDOM, rclass, rtypes}  = require('../smc-react')
+{React, ReactDOM, rclass, rtypes}  = require('../app-framework')
 
 misc_page     = require('../misc_page')
 
