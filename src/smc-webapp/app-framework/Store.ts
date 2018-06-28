@@ -28,7 +28,6 @@ export class Store<State> extends EventEmitter {
   constructor(name: string, redux: AppRedux) {
     super();
     this._handle_store_change = this._handle_store_change.bind(this);
-    this.destroy = this.destroy.bind(this);
     this.getState = this.getState.bind(this);
     this.get = this.get.bind(this);
     this.getIn = this.getIn.bind(this);
@@ -84,7 +83,7 @@ export class Store<State> extends EventEmitter {
     }
   }
 
-  destroy(): void {
+  destroy = (): void => {
     this.redux.removeStore(this.name);
   }
 
