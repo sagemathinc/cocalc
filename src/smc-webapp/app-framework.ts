@@ -558,6 +558,8 @@ if (MODE !== "default") {
   console.log(`app-framework MODE='${MODE}'`);
 }
 
+let redux = new AppRedux();
+
 switch (MODE) {
   case "count":
     // Use these in the console:
@@ -575,15 +577,16 @@ switch (MODE) {
       };
       return react_component(x);
     };
-    (window as any).get_render_count = function() {
+    (redux as any).get_render_count = function() {
       let total = 0;
       for (let k in render_count) {
         const v = render_count[k];
         total += v;
       }
+
       return { counts: render_count, total };
     };
-    (window as any).reset_render_count = function() {
+    (redux as any).reset_render_count = function() {
       render_count = {};
     };
     break;
@@ -648,8 +651,6 @@ export function project_redux_name(project_id: string, name?: string): string {
   if (name !== undefined) s += `-${name}`;
   return s;
 }
-
-let redux = new AppRedux();
 
 class Redux extends React.Component {
   render() {
