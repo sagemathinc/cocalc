@@ -6,7 +6,7 @@ React component that represents cursors of other users.
 # (NOTE: might take a little longer since we use a long interval.)
 CURSOR_TIME_S = 15
 
-{React, ReactDOM, rclass, rtypes}  = require('../smc-react')
+{React, ReactDOM, rclass, rtypes}  = require('../app-framework')
 
 {debounce} = require('underscore')
 

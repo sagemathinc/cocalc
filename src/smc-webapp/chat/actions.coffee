@@ -2,7 +2,7 @@
 immutable = require('immutable')
 
 # Internal Libraries
-{Actions} = require('../smc-react')
+{Actions} = require('../app-framework')
 {webapp_client} = require('../webapp_client')
 
 # Sibling Libraries

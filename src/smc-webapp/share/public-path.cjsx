@@ -8,7 +8,7 @@ misc = require('smc-util/misc')
 
 {human_readable_size} = misc
 
-{rclass, Redux, React, ReactDOM, redux, rtypes} = require('../smc-react')
+{rclass, Redux, React, ReactDOM, redux, rtypes} = require('../app-framework')
 
 {HTML, Markdown} = require('../r_misc')
 file_editors = require('../file-editors')

@@ -36,7 +36,7 @@ $                = window.$
 {alert_message}  = require('./alerts')
 misc             = require('smc-util/misc')
 {copy, filename_extension, required, defaults, to_json, uuid, from_json} = require('smc-util/misc')
-{redux}          = require('./smc-react')
+{redux}          = require('./app-framework')
 {alert_message}  = require('./alerts')
 
 misc_page        = require('./misc_page')

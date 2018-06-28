@@ -2,7 +2,7 @@ misc = require('smc-util/misc')
 
 {defaults, required} = misc
 
-{React} = require('./smc-react')
+{React} = require('./app-framework')
 
 # Map of extensions to the appropriate structures below
 file_editors =

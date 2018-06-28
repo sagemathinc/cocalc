@@ -10,7 +10,7 @@ import {
 
 import { query } from "../frame-editors/generic/client";
 
-import { React, Component, Rendered } from "../frame-editors/generic/react";
+import { React, Component, Rendered } from "../app-framework";
 
 interface State {
   state: "view" | "edit" | "save" | "saved"; // view --> edit --> save --> saved --> ...

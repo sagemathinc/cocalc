@@ -3,7 +3,7 @@ A banner across the top of a course that appears if the instructor is not paying
 know they should.
 ###
 
-{React, rclass, rtypes}  = require('../smc-react')
+{React, rclass, rtypes}  = require('../app-framework')
 
 {Alert} = require('react-bootstrap')
 {Icon, Space} = require('../r_misc')

@@ -3,7 +3,7 @@ The slideshow toolbar functionality for cells.
 ###
 
 {FormControl} = require('react-bootstrap')
-{React, ReactDOM, rclass, rtypes}  = require('../smc-react')
+{React, ReactDOM, rclass, rtypes}  = require('../app-framework')
 
 TYPES = [ \
     {title:'-',         value:''}, \

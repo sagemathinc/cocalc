@@ -1,4 +1,4 @@
-{React, rtypes, rclass}  = require('../smc-react')
+{React, rtypes, rclass}  = require('../app-framework')
 
 {Panel} = require('react-bootstrap')
 {Icon} = require('../r_misc')

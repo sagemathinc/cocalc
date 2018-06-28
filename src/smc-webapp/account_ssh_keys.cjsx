@@ -5,7 +5,7 @@ immutable = require('immutable')
 # Internal & React Libraries
 misc = require('smc-util/misc')
 {defaults, types, required} = misc
-{React, ReactDOM, rclass, rtypes} = require('./smc-react')
+{React, ReactDOM, rclass, rtypes} = require('./app-framework')
 {SSHKeyList, SSHKeyAdder} = require('./widget-ssh-keys/main')
 
 exports.SSHKeysPage = rclass

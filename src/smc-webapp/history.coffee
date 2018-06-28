@@ -76,7 +76,7 @@ The URI schema is as follows:
 
 ###
 
-{redux} = require('./smc-react')
+{redux} = require('./app-framework')
 
 # Determine query params based on state of the project store
 params = ->

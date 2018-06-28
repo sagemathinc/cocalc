@@ -2,7 +2,7 @@
 Checkbox for toggline done status
 ###
 
-{React, rclass, rtypes}  = require('../smc-react')
+{React, rclass, rtypes}  = require('../app-framework')
 
 {Icon} = require('../r_misc')
 

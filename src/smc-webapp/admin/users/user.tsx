@@ -8,7 +8,7 @@ import {
   React,
   Component,
   Rendered
-} from "smc-webapp/frame-editors/generic/react";
+} from "smc-webapp/app-framework";
 
 import { capitalize } from "smc-webapp/frame-editors/generic/misc";
 

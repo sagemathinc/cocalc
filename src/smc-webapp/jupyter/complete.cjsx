@@ -1,4 +1,4 @@
-{React, ReactDOM, rclass, rtypes}  = require('../smc-react')
+{React, ReactDOM, rclass, rtypes}  = require('../app-framework')
 
 # WARNING: Complete closing when clicking outside the complete box
 # is handled in cell-list on_click.  This is ugly code (since not localized),

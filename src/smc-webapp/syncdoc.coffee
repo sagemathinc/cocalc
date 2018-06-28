@@ -37,7 +37,7 @@ templates = $("#webapp-editor-templates")
 
 account = require('./account')
 
-{redux} = require('./smc-react')
+{redux} = require('./app-framework')
 
 {EventEmitter} = require('events')
 

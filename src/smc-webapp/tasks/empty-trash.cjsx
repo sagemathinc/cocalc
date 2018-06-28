@@ -2,7 +2,7 @@
 Button to empty the trash, thus "permanently" deleting all deleted tasks.
 ###
 
-{React, rclass, rtypes}  = require('../smc-react')
+{React, rclass, rtypes}  = require('../app-framework')
 
 {Button} = require('react-bootstrap')
 

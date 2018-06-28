@@ -2,9 +2,9 @@
 React Component for displaying the entire page on a mobile device.
 ###
 
-{React, ReactDOM, rclass, redux, rtypes, Redux, redux_fields} = require('./smc-react')
+{React, ReactDOM, rclass, redux, rtypes, Redux, redux_fields} = require('./app-framework')
 {Button, Navbar, Nav, NavItem, MenuItem} = require('react-bootstrap')
-{Loading, Icon, Tip} = require('./r_misc')
+{ErrorBoundary, Loading, Icon, Tip} = require('./r_misc')
 
 # SMC Pages
 # SMELL: Page UI's are mixed with their store/state.
@@ -170,12 +170,16 @@ Page = rclass
             </Navbar> if not @props.fullscreen}
             {@render_menu() if (@state.show_menu and (@props.fullscreen != 'kiosk'))}
             {### Children must define their own padding from navbar and screen borders ###}
-            <ActiveAppContent active_top_tab={@props.active_top_tab} render_small={true}/>
+            <ErrorBoundary>
+                <ActiveAppContent active_top_tab={@props.active_top_tab} render_small={true}/>
+            </ErrorBoundary>
         </div>
 
 page =
     <Redux redux={redux}>
-        <Page />
+        <ErrorBoundary>
+            <Page />
+        </ErrorBoundary>
     </Redux>
 
 exports.render = () =>

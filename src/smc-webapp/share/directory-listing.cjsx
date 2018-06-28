@@ -4,7 +4,7 @@ This is...
 
 misc = require('smc-util/misc')
 
-{rclass, Redux, React, rtypes} = require('../smc-react')
+{rclass, Redux, React, rtypes} = require('../app-framework')
 
 file_editors = require('../file-editors')
 

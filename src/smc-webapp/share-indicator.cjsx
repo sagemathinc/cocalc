@@ -4,7 +4,7 @@ Indicator about whether or not file or path is publicly shared.
 
 misc = require('smc-util/misc')
 
-{React, ReactDOM, rclass, redux, rtypes, Redux, COLOR} = require('./smc-react')
+{React, ReactDOM, rclass, redux, rtypes, Redux, COLOR} = require('./app-framework')
 {Icon, Loading, Space} = require('./r_misc')
 
 SHARE_INDICATOR_STYLE =

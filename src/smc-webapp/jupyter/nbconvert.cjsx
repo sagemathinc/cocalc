@@ -5,7 +5,7 @@ NBConvert dialog -- for running nbconvert
 shell_escape = require('shell-escape')
 
 {Icon, Loading} = require('../r_misc')
-{React, ReactDOM, rclass, rtypes}  = require('../smc-react')
+{React, ReactDOM, rclass, rtypes}  = require('../app-framework')
 TimeAgo = require('react-timeago').default
 {Button, ButtonGroup, Modal} = require('react-bootstrap')
 

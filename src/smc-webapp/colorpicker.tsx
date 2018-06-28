@@ -11,7 +11,7 @@
 #    - Vivek Venkatachalam
 ###
 */
-import { React, Component } from "./frame-editors/generic/react"; // TODO: this will move
+import { React, Component } from "./app-framework"; // TODO: this will move
 
 // TODO: when upgrade to react@>=16.3, we can use React.createRef instead of call backrefs below.
 

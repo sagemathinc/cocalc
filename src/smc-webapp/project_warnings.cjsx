@@ -2,7 +2,7 @@
 {Alert, Button} = require('react-bootstrap')
 
 # Internal & React Libraries
-{React, rclass, rtypes} = require('./smc-react')
+{React, rclass, rtypes} = require('./app-framework')
 {Icon} = require('./r_misc')
 
 alert_style =

@@ -2,7 +2,7 @@
 
 import * as $ from "jquery";
 
-import { Component, React, ReactDOM } from "../generic/react";
+import { Component, React, ReactDOM } from "../../app-framework";
 
 import { SVGGraphics, PDFPageProxy, PDFPageViewport } from "pdfjs-dist/webpack";
 

@@ -2,7 +2,7 @@
 Handle iframe output messages involving a srcdoc.
 ###
 
-{React, ReactDOM, rclass, rtypes}  = require('../smc-react')
+{React, ReactDOM, rclass, rtypes}  = require('../app-framework')
 
 {get_blob_url} = require('./server-urls')
 {Icon} = require('../r_misc')

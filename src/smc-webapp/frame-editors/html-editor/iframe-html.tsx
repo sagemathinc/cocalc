@@ -10,7 +10,7 @@ import { is_different } from "../generic/misc";
 
 import { throttle } from "underscore";
 
-import { Component, React, ReactDOM, Rendered } from "../generic/react";
+import { Component, React, ReactDOM, Rendered } from "../../app-framework";
 
 import * as CSS from "csstype";
 

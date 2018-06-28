@@ -1,6 +1,6 @@
 # This file contains embedded help texts for the LaTeX editor
 
-{redux} = require('../smc-react')
+{redux} = require('../app-framework')
 {SITE_NAME} = require('smc-util/theme')
 SiteName = redux.getStore('customize').site_name ? SITE_NAME
 

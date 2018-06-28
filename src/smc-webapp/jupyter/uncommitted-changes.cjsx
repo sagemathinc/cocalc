@@ -3,7 +3,7 @@ Component that shows a warning message if has_uncommitted_changes is true for mo
 ###
 
 
-{React, ReactDOM, rclass, rtypes}  = require('../smc-react')
+{React, ReactDOM, rclass, rtypes}  = require('../app-framework')
 
 {Tip} = require('../r_misc')
 

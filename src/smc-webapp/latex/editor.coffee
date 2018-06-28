@@ -33,7 +33,7 @@ misc_page       = require('../misc_page')
 {defaults, required} = misc
 
 {alert_message} = require('../alerts')
-{redux}         = require('../smc-react')
+{redux}         = require('../app-framework')
 editor          = require('../editor')
 printing        = require('../printing')
 {project_tasks} = require('../project_tasks')

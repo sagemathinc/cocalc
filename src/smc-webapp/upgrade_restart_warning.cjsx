@@ -2,7 +2,7 @@
 {Alert} = require('react-bootstrap')
 
 # Internal & React Libraries
-{React} = require('./smc-react')
+{React} = require('./app-framework')
 
 # Sibling Libraries
 

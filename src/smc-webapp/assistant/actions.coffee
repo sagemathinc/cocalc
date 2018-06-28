@@ -21,7 +21,7 @@
 
 _            = require('underscore')
 immutable    = require('immutable')
-{Actions}    = require('../smc-react')
+{Actions}    = require('../app-framework')
 {INIT_STATE} = require('./common')
 
 # the json from the server, where the entries for the documents are

@@ -9,7 +9,7 @@ Task description:
 
 {Icon} = require('../r_misc')
 
-{React, rclass, rtypes}  = require('../smc-react')
+{React, rclass, rtypes}  = require('../app-framework')
 
 {DescriptionRendered} = require('./desc-rendered')
 

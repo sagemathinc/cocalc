@@ -8,7 +8,7 @@ TODO:
 ###
 
 
-{React, ReactDOM, rclass, rtypes}  = require('../smc-react')
+{React, ReactDOM, rclass, rtypes}  = require('../app-framework')
 
 {CodeMirrorEditor} = require('./codemirror-editor')
 {CodeMirrorStatic} = require('./codemirror-static')

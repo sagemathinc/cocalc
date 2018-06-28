@@ -6,7 +6,7 @@ import {
   rclass,
   redux,
   Rendered
-} from "../frame-editors/generic/react";
+} from "../app-framework";
 
 import {
   Button,
@@ -105,14 +105,14 @@ class SystemNotifications extends Component<Props, State> {
   send(): void {
     this.setState({ state: "view" });
     if (!this.state.mesg) return;
-    redux.getActions("system_notifications").send_message({
+    (redux.getActions("system_notifications") as any).send_message({
       text: this.state.mesg.trim(),
       priority: "high"
     });
   }
 
   mark_all_done(): void {
-    redux.getActions("system_notifications").mark_all_done();
+    (redux.getActions("system_notifications") as any).mark_all_done();
   }
 
   render_body(): Rendered {
