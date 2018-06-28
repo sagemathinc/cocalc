@@ -112,7 +112,7 @@ exports.Avatar = Avatar = rclass
     render_line: ->
         return if not @props.activity?
         {project_id, path} = @props.activity
-        line = @get_cursor_line(project_id, path)
+        line = @get_cursor_line()
         if line?
             <span><Space/> (Line {line})</span>
 

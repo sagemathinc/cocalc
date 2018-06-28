@@ -123,7 +123,7 @@ export interface ProjectStoreState {
 export class ProjectStore extends Store<ProjectStoreState> {
   public project_id: string;
 
-  _init() {
+  _init = () => {
     // If we are explicitly listed as a collaborator on this project,
     // watch for this to change, and if it does, close the project.
     // This avoids leaving it open after we are removed, which is confusing,
@@ -139,7 +139,7 @@ export class ProjectStore extends Store<ProjectStoreState> {
     }
   }
 
-  destroy(): void {
+  destroy = () => {
     let projects_store = this.redux.getStore("projects");
     if (projects_store !== undefined) {
       projects_store.removeListener(
@@ -398,7 +398,7 @@ export class ProjectStore extends Store<ProjectStoreState> {
   // Returns the cursor positions for the given project_id/path, if that
   // file is opened, and supports cursors and is either old (and ...) or
   // is in react and has store with a cursors key.
-  get_users_cursors(path, account_id) {
+  get_users_cursors = (path, account_id) => {
     const store: any = redux.getEditorStore(this.project_id, path);
     if (store == null) {
       // try non-react editor
@@ -409,11 +409,11 @@ export class ProjectStore extends Store<ProjectStoreState> {
     }
   }
 
-  is_file_open(path) {
+  is_file_open = (path) => {
     return this.getIn(["open_files", path]) != null;
   }
 
-  get_item_in_path(name, path) {
+  get_item_in_path = (name, path) => {
     const listing = this.get("directory_listings").get(path);
     if (typeof listing === "string") {
       // must be an error
@@ -427,7 +427,7 @@ export class ProjectStore extends Store<ProjectStoreState> {
     };
   }
 
-  get_raw_link(path) {
+  get_raw_link = (path) => {
     let url = document.URL;
     url = url.slice(0, url.indexOf("/projects/"));
     return `${url}/${this.project_id}/raw/${misc.encode_path(path)}`;
