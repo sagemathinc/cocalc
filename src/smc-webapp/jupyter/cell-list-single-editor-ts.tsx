@@ -5,7 +5,7 @@ React component that renders the ordered list of cells
 Meant as a simple proof of concept.
 */
 
-import { React, Component, ReactDOM } from "../frame-editors/generic/react"; // TODO: this will move
+import { React, Component, ReactDOM } from "../app-framework"; // TODO: this will move
 const { CodeMirror } = require("./codemirror");
 import * as immutable from "immutable";
 const { Loading } = require("../r_misc");

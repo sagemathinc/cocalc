@@ -2,7 +2,7 @@
 The toolbar at the top of each cell
 */
 
-import { React, Component } from "../frame-editors/generic/react"; // TODO: this will move
+import { React, Component } from "../app-framework"; // TODO: this will move
 
 const { Slideshow } = require("./cell-toolbar-slideshow"); // TODO: use import
 const { Attachments } = require("./cell-toolbar-attachments"); // TODO: use import

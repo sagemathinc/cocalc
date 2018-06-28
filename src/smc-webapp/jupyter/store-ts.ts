@@ -3,7 +3,8 @@ The Store
 */
 
 const misc = require("smc-util/misc");
-const { Store } = require("../smc-react");
+import { Store } from "../app-framework";
+import { Set } from "immutable";
 const { export_to_ipynb } = require("./export-to-ipynb");
 
 // TODO: seperate front specific code that uses this stuff
@@ -13,7 +14,55 @@ declare const localStorage: any;
 // copy/paste between different notebooks works.
 let global_clipboard: any = undefined;
 
-export class JupyterStore extends Store {
+export interface JupyterStoreState {
+  nbconvert_dialog: any;
+  cell_toolbar: string;
+  edit_attachments: any;
+  edit_cell_metadata: any;
+  raw_ipynb: any;
+  backend_kernel_info: any;
+  cell_list: any;
+  cells: any;
+  cur_id: any;
+  error?: string;
+  fatal: string;
+  has_unsaved_changes?: boolean;
+  has_uncommitted_changes?: boolean;
+  kernel: any | string;
+  kernels: any;
+  kernel_info: any;
+  max_output_length: number;
+  metadata: any;
+  md_edit_ids: Set<string>;
+  path: string;
+  is_focused: boolean;
+  directory: string;
+  more_output: any;
+  read_only: boolean;
+  name: string;
+  project_id: string;
+  font_size: number;
+  sel_ids: any;
+  toolbar?: any;
+  view_mode: string;
+  mode: string;
+  nbconvert: any;
+  about: boolean;  
+  start_time: any;
+  complete: any;
+  introspect: any;
+  cm_options: any;
+  find_and_replace: any;
+  keyboard_shortcuts: any;
+  confirm_dialog: any;
+  insert_image: any;
+  scroll: any;
+}
+
+export class JupyterStore extends Store<JupyterStoreState> {
+  private _is_project: any;
+  private _more_output: any;
+  private store: any;
   // Return map from selected cell ids to true, in no particular order
   get_selected_cell_ids = () => {
     const selected = {};
@@ -130,7 +179,7 @@ export class JupyterStore extends Store {
       // not sufficiently loaded yet.
       return;
     }
-    
+
     const more_output: any = {};
     let cell_list = this.get("cell_list");
     if (cell_list == null) {
@@ -152,13 +201,13 @@ export class JupyterStore extends Store {
       kernelspec: this.get_kernel_info(this.get("kernel")),
       language_info: this.get_language_info(),
       blob_store,
-      more_output,
+      more_output
     });
   };
 
   get_language_info = () => {
-    const a = this.getIn(["backend_kernel_info", "language_info"])
-    const b = this.getIn(["metadata", "language_info"])
+    const a = this.getIn(["backend_kernel_info", "language_info"]);
+    const b = this.getIn(["metadata", "language_info"]);
     return a != null ? a : b;
   };
 
@@ -172,16 +221,25 @@ export class JupyterStore extends Store {
     }
     let mode: any;
     if (metadata != null) {
-      if (metadata.language_info != null && metadata.language_info.codemirror_mode != null) {
+      if (
+        metadata.language_info != null &&
+        metadata.language_info.codemirror_mode != null
+      ) {
         mode = metadata.language_info.codemirror_mode;
-      } else if (metadata.language_info != null && metadata.language_info.name != null) {
+      } else if (
+        metadata.language_info != null &&
+        metadata.language_info.name != null
+      ) {
         mode = metadata.language_info.name;
-      } else if (metadata.kernelspec != null && metadata.kernelspec.language != null) {
-        mode = metadata.kernelspec.language.toLowerCase()
+      } else if (
+        metadata.kernelspec != null &&
+        metadata.kernelspec.language != null
+      ) {
+        mode = metadata.kernelspec.language.toLowerCase();
       }
     }
     if (mode == null) {
-      mode = this.get("kernel") // may be better than nothing...; e.g., octave kernel has no mode.
+      mode = this.get("kernel"); // may be better than nothing...; e.g., octave kernel has no mode.
     }
     if (typeof mode === "string") {
       mode = { name: mode }; // some kernels send a string back for the mode; others an object
@@ -230,7 +288,9 @@ export class JupyterStore extends Store {
   };
 
   get_raw_link = (path: any) => {
-    return this.redux.getProjectStore(this.get("project_id")).get_raw_link(path);
+    return this.redux
+      .getProjectStore(this.get("project_id"))
+      .get_raw_link(path);
   };
 
   is_cell_editable = (id: any) => {
@@ -261,7 +321,6 @@ export class JupyterStore extends Store {
 
   get_cell_metadata_flag = (id: any, key: any) => {
     // default is true
-    let left;
-    return (left = this.getIn(["cells", id, "metadata", key])) != null ? left : true;
+    return this.unsafe_getIn(["cells", id, "metadata", key],true); // TODO: type
   };
 }

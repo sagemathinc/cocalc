@@ -6,7 +6,13 @@ React component that represents cursors of other users.
 // (NOTE: might take a little longer since we use a long interval.)
 const CURSOR_TIME_S = 15;
 
-import { React, Component, rclass, rtypes, ReactDOM } from "../frame-editors/generic/react"; // TODO: this will move
+import {
+  React,
+  Component,
+  rclass,
+  rtypes,
+  ReactDOM
+} from "../app-framework"; // TODO: this will move
 import { Map as ImmutableMap } from "immutable";
 const misc = require("smc-util/misc");
 
@@ -86,14 +92,21 @@ export class Cursor extends Component<CursorProps, CursorState> {
           position: "relative",
           cursor: "text",
           pointerEvents: "all",
-          top: this.props.top,
+          top: this.props.top
         }}
         onMouseEnter={() => this.show_name()}
         onMouseLeave={() => this.show_name(2000)}
         onTouchStart={() => this.show_name()}
         onTouchEnd={() => this.show_name(2000)}
       >
-        <span style={{ width: 0, height: "1em", borderLeft: "2px solid", position: "absolute" }} />
+        <span
+          style={{
+            width: 0,
+            height: "1em",
+            borderLeft: "2px solid",
+            position: "absolute"
+          }}
+        />
         <span
           style={{
             width: "6px",
@@ -101,7 +114,7 @@ export class Cursor extends Component<CursorProps, CursorState> {
             top: "-2px",
             height: "6px",
             position: "absolute",
-            backgroundColor: this.props.color,
+            backgroundColor: this.props.color
           }}
         />
         {this.state.show_name ? (
@@ -117,7 +130,7 @@ export class Cursor extends Component<CursorProps, CursorState> {
               background: this.props.color,
               fontFamily: "sans-serif",
               boxShadow: "3px 3px 5px 0px #bbb",
-              opacity: 0.8,
+              opacity: 0.8
             }}
           >
             {this.props.name}
@@ -144,13 +157,24 @@ class PositionedCursor extends Component<PositionedCursorProps> {
   private _mounted: any; // TODO: dont do this
   private _pos: any;
   shouldComponentUpdate(next) {
-    return misc.is_different(this.props, next, ["line", "ch", "name", "color", "time"]);
+    return misc.is_different(this.props, next, [
+      "line",
+      "ch",
+      "name",
+      "color",
+      "time"
+    ]);
   }
 
   _render_cursor(props: any) {
     return ReactDOM.render(
-      <Cursor name={props.name} color={props.color} top={"-1.2em"} time={this.props.time} />,
-      this._elt,
+      <Cursor
+        name={props.name}
+        color={props.color}
+        top={"-1.2em"}
+        time={this.props.time}
+      />,
+      this._elt
     );
   }
 
@@ -160,7 +184,11 @@ class PositionedCursor extends Component<PositionedCursorProps> {
     this._elt.style.position = "absolute";
     this._elt.style["z-index"] = "5";
     this._render_cursor(this.props);
-    this.props.codemirror.addWidget({ line: this.props.line, ch: this.props.ch }, this._elt, false);
+    this.props.codemirror.addWidget(
+      { line: this.props.line, ch: this.props.ch },
+      this._elt,
+      false
+    );
   }
 
   _position_cursor() {
@@ -236,7 +264,7 @@ class StaticPositionedCursor extends Component<StaticPositionedCursorProps> {
       whiteSpace: "pre",
       top: "4px", // must match what is used in codemirror-static.
       left: "4px",
-      pointerEvents: "none", // so clicking in the spaces (the string position below) doesn't break click to focus cell.
+      pointerEvents: "none" // so clicking in the spaces (the string position below) doesn't break click to focus cell.
     };
 
     // we position using newlines and blank spaces, so no measurement is needed.
@@ -268,7 +296,11 @@ class StaticPositionedCursor extends Component<StaticPositionedCursorProps> {
     return (
       <div style={style}>
         {position}
-        <Cursor time={this.props.time} name={this.props.name} color={this.props.color} />
+        <Cursor
+          time={this.props.time}
+          name={this.props.name}
+          color={this.props.color}
+        />
       </div>
     );
   }
@@ -291,11 +323,11 @@ class Cursors0 extends Component<CursorsProps, CursorsState> {
   private _interval: any;
   public static reduxProps = {
     users: {
-      user_map: rtypes.immutable.Map,
+      user_map: rtypes.immutable.Map
     },
     account: {
-      account_id: rtypes.string,
-    },
+      account_id: rtypes.string
+    }
   };
 
   constructor(props: CursorsProps, context: any) {
@@ -305,15 +337,18 @@ class Cursors0 extends Component<CursorsProps, CursorsState> {
 
   shouldComponentUpdate(props, state) {
     return (
-      misc.is_different(this.props, props, ["cursors", "user_map", "account_id"]) ||
-      this.state.n !== state.n
+      misc.is_different(
+        this.props,
+        props,
+        ["cursors", "user_map", "account_id"]
+      ) || this.state.n !== state.n
     );
   }
 
   componentDidMount() {
     this._interval = setInterval(
       () => this.setState({ n: this.state.n + 1 }),
-      (CURSOR_TIME_S / 2) * 1000,
+      (CURSOR_TIME_S / 2) * 1000
     );
   }
 
@@ -326,8 +361,14 @@ class Cursors0 extends Component<CursorsProps, CursorsState> {
     const user = this.props.user_map.get(account_id);
     if (user != null) {
       let left;
-      color = (left = user.getIn(["profile", "color"])) != null ? left : "rgb(170,170,170)";
-      name = misc.trunc_middle(user.get("first_name") + " " + user.get("last_name"), 60);
+      color =
+        (left = user.getIn(["profile", "color"])) != null
+          ? left
+          : "rgb(170,170,170)";
+      name = misc.trunc_middle(
+        user.get("first_name") + " " + user.get("last_name"),
+        60
+      );
     } else {
       color = "rgb(170,170,170)";
       name = "Private User";
@@ -363,13 +404,15 @@ class Cursors0 extends Component<CursorsProps, CursorsState> {
                 line={(left = pos.get("y")) != null ? left : 0}
                 ch={(left1 = pos.get("x")) != null ? left1 : 0}
                 codemirror={this.props.codemirror}
-              />,
+              />
             );
           }
         });
       });
     }
-    return <div style={{ position: "relative", height: 0, zIndex: 5 }}>{v}</div>;
+    return (
+      <div style={{ position: "relative", height: 0, zIndex: 5 }}>{v}</div>
+    );
   }
 }
 

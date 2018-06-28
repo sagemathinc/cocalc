@@ -8,7 +8,7 @@
 Modal for editing cell metadata that are attached to any cell
 */
 
-import { React, Component } from "../frame-editors/generic/react"; // TODO: this will move
+import { React, Component } from "../app-framework"; // TODO: this will move
 const { Icon } = require("../r_misc");
 import { Button, Modal } from "react-bootstrap";
 import { Map as ImmutableMap } from "immutable";

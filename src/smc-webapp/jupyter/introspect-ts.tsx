@@ -2,7 +2,7 @@
 Introspection display panel
 */
 
-import { React, Component } from "../frame-editors/generic/react"; // TODO: this will move
+import { React, Component } from "../app-framework"; // TODO: this will move
 import { Map as ImmutableMap } from "immutable";
 
 const { Icon } = require("../r_misc"); // TODO: import types

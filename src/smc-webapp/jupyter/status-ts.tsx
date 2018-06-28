@@ -2,7 +2,7 @@
 Kernel display
 */
 
-import { React, Component, rclass, rtypes } from "../frame-editors/generic/react"; // TODO: this will move
+import { React, Component, rclass, rtypes } from "../app-framework"; // TODO: this will move
 import * as immutable from "immutable";
 const { Icon, Loading, Tip } = require("../r_misc");
 const { closest_kernel_match } = require("smc-util/misc");

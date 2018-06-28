@@ -2,7 +2,7 @@
 Component that shows a warning message if has_uncommitted_changes is true for more than a few seconds.
 */
 
-import { React, Component } from "../frame-editors/generic/react"; // TODO: this will move
+import { React, Component } from "../app-framework"; // TODO: this will move
 
 const STYLE: React.CSSProperties = {
   backgroundColor: "red",

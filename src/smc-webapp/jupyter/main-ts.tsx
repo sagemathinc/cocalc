@@ -2,7 +2,7 @@
 Top-level react component, which ties everything together
 */
 
-import { React, Component, rclass, rtypes } from "../frame-editors/generic/react"; // TODO: this will move
+import { React, Component, rclass, rtypes } from "../app-framework"; // TODO: this will move
 import * as immutable from "immutable";
 const { ErrorDisplay, Loading } = require("../r_misc");
 // React components that implement parts of the Jupyter notebook.

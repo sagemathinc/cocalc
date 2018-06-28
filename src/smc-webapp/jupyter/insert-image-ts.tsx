@@ -2,7 +2,7 @@
 Modal for inserting an image
 */
 
-import { React, Component } from "../frame-editors/generic/react"; // TODO: this will move
+import { React, Component } from "../app-framework"; // TODO: this will move
 
 const { Icon } = require("../r_misc"); // TODO: import types
 const { Button, Modal } = require("react-bootstrap"); // TODO: import types

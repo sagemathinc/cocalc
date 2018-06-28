@@ -3,7 +3,7 @@ About dialog -- provides info about the Jupyter Notebook
 */
 
 const Ansi = require("ansi-to-react");
-import { React, Component } from "../frame-editors/generic/react"; // TODO: this will move
+import { React, Component } from "../app-framework"; // TODO: this will move
 import { Button, Modal } from "react-bootstrap";
 const { Icon } = require("../r_misc"); // TODO: import types
 const { ShowSupportLink } = require("../support"); // TODO: import types

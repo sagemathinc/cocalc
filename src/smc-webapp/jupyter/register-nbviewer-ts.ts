@@ -8,7 +8,7 @@ be used on the backend.
 */
 
 const { register_file_editor } = require("../file-editors"); // TODO: import types
-const { redux_name } = require("../smc-react"); // TODO: import types
+const { redux_name } = require("../app-framework"); // TODO: import types
 const { NBViewer } = require("./nbviewer"); // TODO: import types
 const { NBViewerActions } = require("./nbviewer-actions"); // TODO: import types
 

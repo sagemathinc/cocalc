@@ -2,7 +2,7 @@
 Handle iframe output messages involving a srcdoc.
 */
 
-import { React, Component } from "../frame-editors/generic/react"; // TODO: this will move
+import { React, Component } from "../app-framework"; // TODO: this will move
 
 const { get_blob_url } = require("./server-urls"); // TODO: import and type
 const { Icon } = require("../r_misc"); // TODO: import and type

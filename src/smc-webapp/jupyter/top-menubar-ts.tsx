@@ -4,7 +4,7 @@ The Menu bar across the top
 File, Edit, etc....
 */
 
-import { React, Component, rclass, rtypes } from "../frame-editors/generic/react"; // TODO: this will move
+import { React, Component, rclass, rtypes } from "../app-framework"; // TODO: this will move
 import * as immutable from "immutable";
 import { ButtonGroup, Dropdown, MenuItem } from "react-bootstrap";
 const { Icon } = require("../r_misc");

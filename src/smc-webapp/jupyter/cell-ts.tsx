@@ -2,7 +2,7 @@
 React component that describes a single cell
 */
 
-import { React, Component, rclass, rtypes } from "../frame-editors/generic/react"; // TODO: this will move
+import { React, Component, rclass, rtypes } from "../app-framework"; // TODO: this will move
 import { Map as ImmutableMap } from "immutable";
 const misc_page = require("../misc_page"); // TODO: import type
 const { COLORS } = require("smc-util/theme"); // TODO: import type
@@ -134,7 +134,7 @@ export class Cell extends Component<CellProps> {
       top: "2px",
       left: "5px",
       color: COLORS.GRAY_L,
-      whiteSpace: "nowrap",
+      whiteSpace: "nowrap"
     };
 
     if (this.props.is_current || this.props.is_selected) {
@@ -159,7 +159,11 @@ export class Cell extends Component<CellProps> {
           undefined
         )}
         {!this.props.editable ? (
-          <Tip title={"Protected from modifications"} placement={"right"} size={"small"}>
+          <Tip
+            title={"Protected from modifications"}
+            placement={"right"}
+            size={"small"}
+          >
             <Icon name="lock" />
           </Tip>
         ) : (
@@ -197,7 +201,7 @@ export class Cell extends Component<CellProps> {
       border: `1px solid ${color1}`,
       borderLeft: `5px solid ${color2}`,
       padding: "2px 5px",
-      position: "relative",
+      position: "relative"
     };
 
     if (this.props.is_selected) {
@@ -232,27 +236,38 @@ VISIBLE_STYLE =
 
 const NOT_VISIBLE_STYLE: React.CSSProperties = {
   position: "absolute",
-  fontSize: 0,
+  fontSize: 0
 };
 
 // TODO: type?
-const Hook = rclass(function({ name }) {
-  return {
-    reduxProps: {
+
+interface HookReactProps {
+  name: string;
+}
+
+interface HookReduxProps {
+  hook_offset?: number;
+  mode?: string;
+}
+
+class Hook0 extends Component<HookReactProps & HookReduxProps> {
+  public static reduxProps({ name }) {
+    return {
       [name]: {
         hook_offset: rtypes.number,
-        mode: rtypes.string,
-      },
-    },
+        mode: rtypes.string
+      }
+    };
+  }
+  render() {
+    const style = misc.copy(NOT_VISIBLE_STYLE);
+    style.top = this.props.mode === "edit" ? this.props.hook_offset : undefined;
+    return (
+      <div style={style} className="cocalc-jupyter-hook">
+        <Icon name="circle" />
+      </div>
+    );
+  } 
+}
 
-    render() {
-      const style = misc.copy(NOT_VISIBLE_STYLE);
-      style.top = this.props.mode === "edit" ? this.props.hook_offset : undefined;
-      return (
-        <div style={style} className="cocalc-jupyter-hook">
-          <Icon name="circle" />
-        </div>
-      );
-    },
-  };
-});
+const Hook = rclass<HookReactProps>(Hook0);

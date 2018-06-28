@@ -2,7 +2,7 @@
 React component that describes the output of a cell
 */
 
-import { React, Component } from "../frame-editors/generic/react"; // TODO: this will move
+import { React, Component } from "../app-framework"; // TODO: this will move
 import { Map as ImmutableMap } from "immutable";
 const { CellOutputMessages } = require("./cell-output-message");
 const { OutputPrompt } = require("./prompt");

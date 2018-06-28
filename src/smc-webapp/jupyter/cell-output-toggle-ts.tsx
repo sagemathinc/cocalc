@@ -2,7 +2,7 @@
 Components related to toggling the way output is displayed.
 */
 
-import { React, Component } from "../frame-editors/generic/react"; // TODO: this will move
+import { React, Component } from "../app-framework"; // TODO: this will move
 
 const { Icon } = require("../r_misc"); // TODO: type
 const { merge } = require("smc-util/misc");

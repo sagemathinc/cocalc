@@ -2,7 +2,7 @@
 The find and replace modal dialog
 */
 
-import { React, Component } from "../frame-editors/generic/react"; // TODO: this will move
+import { React, Component } from "../app-framework"; // TODO: this will move
 import { Button, FormControl, FormGroup, InputGroup, Modal } from "react-bootstrap";
 import * as immutable from "immutable";
 const { ErrorDisplay, Icon } = require("../r_misc");

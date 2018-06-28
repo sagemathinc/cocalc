@@ -7,7 +7,7 @@ import {
   Component,
   rclass,
   rtypes
-} from "../frame-editors/generic/react"; // TODO: this will move
+} from "../app-framework"; // TODO: this will move
 
 const { ErrorDisplay, Loading } = require("../r_misc"); // TODO: import
 const { CellList } = require("./cell-list"); // TODO: import

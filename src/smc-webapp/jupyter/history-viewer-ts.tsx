@@ -3,7 +3,7 @@ History viewer for Jupyter notebooks
 */
 
 import * as immutable from "immutable";
-import { React, Component, ReactDOM, Redux, redux } from "../frame-editors/generic/react"; // TODO: this will move
+import { React, Component, ReactDOM, Redux, redux } from "../app-framework"; // TODO: this will move
 const misc = require("smc-util/misc");
 const cell_utils = require("./cell-utils");
 const { CellList } = require("./cell-list");
@@ -35,7 +35,7 @@ export class HistoryViewer extends Component<HistoryViewerProps> {
       options: cm_options(),
     }); // TODO
 
-    const account_store = redux.getStore("account");
+    const account_store = redux.getStore("account") as any;
     let font_size = 14;
     if (account_store) {
       font_size = account_store.get("font_size", font_size);
@@ -84,7 +84,7 @@ export function jupyter_history_viewer_jquery_shim(syncdb: any) {
     },
     set_version(version) {
       return ReactDOM.render(
-        <Redux redux={redux}>
+        <Redux>
           <HistoryViewer syncdb={syncdb} version={version} />
         </Redux>,
         elt[0],

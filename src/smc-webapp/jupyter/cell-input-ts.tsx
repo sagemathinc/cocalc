@@ -1,7 +1,7 @@
 /*
 React component that describes the input of a cell
 */
-import { React, Component } from "../frame-editors/generic/react"; // TODO: this will move
+import { React, Component } from "../app-framework"; // TODO: this will move
 import { Map as ImmutableMap, fromJS } from "immutable";
 import { Button } from "react-bootstrap";
 

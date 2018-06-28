@@ -1,7 +1,7 @@
 /*
 NBConvert dialog -- for running nbconvert
 */
-import { React, Component } from "../frame-editors/generic/react"; // TODO: this will move
+import { React, Component } from "../app-framework"; // TODO: this will move
 import * as immutable from "immutable";
 const shell_escape = require("shell-escape");
 const { Icon, Loading } = require("../r_misc");

@@ -8,7 +8,7 @@ const misc = require("smc-util/misc");
 
 const { register_file_editor } = require("../file-editors");
 const { alert_message } = require("../alerts");
-const { redux_name } = require("../smc-react");
+import { redux_name } from "../app-framework";
 const { webapp_client } = require("../webapp_client");
 
 const { JupyterEditor } = require("./main");

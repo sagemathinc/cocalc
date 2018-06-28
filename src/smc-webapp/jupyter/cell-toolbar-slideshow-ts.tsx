@@ -2,7 +2,7 @@
 The slideshow toolbar functionality for cells.
 */
 
-import { React, Component } from "../frame-editors/generic/react"; // TODO: this will move
+import { React, Component } from "../app-framework"; // TODO: this will move
 
 import { FormControl } from "react-bootstrap";
 import { Map as ImmutableMap } from "immutable";

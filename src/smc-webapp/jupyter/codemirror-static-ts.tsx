@@ -5,7 +5,7 @@ Meant to be efficient to render hundreds
 of these on the page at once.
 */
 
-import { React, Component } from "../frame-editors/generic/react"; // TODO: this
+import { React, Component } from "../app-framework"; // TODO: this
 import { Map as ImmutableMap } from "immutable";
 const misc_page = require("../misc_page");
 const misc = require("smc-util/misc");

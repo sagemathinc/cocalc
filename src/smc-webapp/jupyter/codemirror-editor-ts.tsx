@@ -2,7 +2,7 @@
 Focused codemirror editor, which you can interactively type into.
 */
 
-import { React, Component, ReactDOM } from "../frame-editors/generic/react"; // TODO: this will move
+import { React, Component, ReactDOM } from "../app-framework"; // TODO: this will move
 import * as underscore from "underscore";
 import { Map as ImmutableMap } from "immutable";
 const syncstring = require("smc-util/syncstring");

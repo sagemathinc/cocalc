@@ -2,7 +2,7 @@
 Provide nice JSON view of the ipynb
 */
 
-import { React, Component } from "../frame-editors/generic/react"; // TODO: this will move
+import { React, Component } from "../app-framework"; // TODO: this will move
 import { Map as ImmutableMap } from "immutable";
 const Inspector = require("react-json-inspector");
 

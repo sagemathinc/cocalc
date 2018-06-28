@@ -1,3 +1,3 @@
-const { Actions } = require("../smc-react"); // TODO: import types
+const { Actions } = require("../app-framework"); // TODO: import types
 
 export class HistoryActions extends Actions {}

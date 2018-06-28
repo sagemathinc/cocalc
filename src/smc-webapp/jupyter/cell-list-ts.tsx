@@ -3,7 +3,7 @@ React component that renders the ordered list of cells
 */
 
 import * as immutable from "immutable";
-import { React, Component } from "../frame-editors/generic/react"; // TODO: this will move
+import { React, Component } from "../app-framework"; // TODO: this will move
 const { Loading } = require("../r_misc");
 const { Cell } = require("./cell");
 const { InsertCell } = require("./insert-cell");

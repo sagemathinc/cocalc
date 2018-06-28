@@ -2,7 +2,7 @@
 The static buttonbar at the top.
 */
 
-import { React, Component, rclass, rtypes } from "../frame-editors/generic/react"; // TODO: this will move
+import { React, Component, rclass, rtypes } from "../app-framework"; // TODO: this will move
 import * as immutable from "immutable";
 import { Button, ButtonGroup, Form, FormControl } from "react-bootstrap";
 const { Icon } = require("../r_misc");

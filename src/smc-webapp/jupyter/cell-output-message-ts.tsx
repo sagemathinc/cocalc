@@ -14,7 +14,7 @@ Handling of output messages.
 TODO: most components should instead be in separate files.
 */
 
-import { React, Component } from "../frame-editors/generic/react"; // TODO: this will move
+import { React, Component } from "../app-framework"; // TODO: this will move
 import { Button } from "react-bootstrap";
 import * as immutable from "immutable";
 const misc = require("smc-util/misc");
@@ -24,7 +24,7 @@ const Ansi = require("ansi-to-react");
 const { IFrame } = require("./cell-output-iframe");
 const { get_blob_url } = require("./server-urls");
 const { javascript_eval } = require("./javascript-eval");
-const { is_redux, is_redux_actions } = require("../smc-react");
+const { is_redux, is_redux_actions } = require("../app-framework");
 
 const OUT_STYLE: React.CSSProperties = {
   whiteSpace: "pre-wrap",

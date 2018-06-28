@@ -26,7 +26,8 @@ import * as underscore from "underscore";
 
 const misc = require("smc-util/misc");
 const { required, defaults } = misc;
-const { Actions } = require("../smc-react");
+import { Actions } from "../app-framework";
+import { JupyterStoreState } from "./store-ts";
 const util = require("./util");
 const server_urls = require("./server-urls");
 const parsing = require("./parsing");
@@ -61,8 +62,48 @@ underlying synchronized state.
 const CellWriteProtectedException = new Error("CellWriteProtectedException");
 const CellDeleteProtectedException = new Error("CellDeleteProtectedException");
 
-export class JupyterActions extends Actions {
-  _init = (project_id: any, path: any, syncdb: any, store: any, client: any) => {
+export class JupyterActions extends Actions<JupyterStoreState> {
+  private _account_change_editor_settings: any;
+  private _account_id: any; // TODO: check if this is used publicly
+  private _hook_before_change: any;
+  private _hook_after_change: any;
+  private _client: any;
+  private _commands: any;
+  private _is_project: any;
+  private _state: any;
+  private assistant_actions: any;
+  private path: any;
+  private project_id: any;
+  private set_save_status: any;
+  private store: any;
+  private syncdb: any;
+  private util: any;  // TODO: check if this is used publicly
+  private _key_handler: any;
+  private _file_watcher: any;
+  private manager_on_cell_change: any;
+  private update_keyboard_shortcuts: any;
+  private nbconvert_change: any;
+  private initialize_manager: any;
+  private manager_run_cell_process_queue: any;
+  private _last_cursors?: any;
+  private _last_start?: any;
+  private _cursor_locs?: any;
+  private _input_editors?: any;
+  private _complete_request?: any;
+  private _introspect_request?: any;
+  private _jupyter_kernel?: any;
+  private _fetching_backend_kernel_info?: boolean;
+  private _blur_lock: any;
+  private ensure_backend_kernel_setup?: any;
+  private _output_handler?: any;
+
+  _init = (
+    project_id: any,
+    path: any,
+    syncdb: any,
+    store: any,
+    client: any
+  ) => {
     let left: any, left1: any;
     store.dbg = f => {
       return client.dbg(`JupyterStore('${store.get("path")}').${f}`);
@@ -98,7 +139,9 @@ export class JupyterActions extends Actions {
         (left =
           (left1 = this.store.get_local_storage("font_size")) != null
             ? left1
-            : __guard__(this.redux.getStore("account"), x => x.get("font_size"))) != null
+            : __guard__(this.redux.getStore("account"), x =>
+                x.get("font_size")
+              )) != null
           ? left
           : 14,
       project_id,
@@ -111,9 +154,12 @@ export class JupyterActions extends Actions {
     if (this._client) {
       const do_set = () => {
         return this.setState({
-          has_unsaved_changes: this.syncdb != null ? this.syncdb.has_unsaved_changes() : undefined,
+          has_unsaved_changes:
+            this.syncdb != null ? this.syncdb.has_unsaved_changes() : undefined,
           has_uncommitted_changes:
-            this.syncdb != null ? this.syncdb.has_uncommitted_changes() : undefined
+            this.syncdb != null
+              ? this.syncdb.has_uncommitted_changes()
+              : undefined
         });
       };
       const f = () => {
@@ -134,7 +180,9 @@ export class JupyterActions extends Actions {
     this.syncdb.once("change", () => {
       // Important -- this also gets run on the backend, where
       // @redux.getProjectActions(project_id) is maybe undefined...
-      return __guard__(this.redux.getProjectActions(project_id), x2 => x2.log_opened_time(path));
+      return __guard__(this.redux.getProjectActions(project_id), x2 =>
+        x2.log_opened_time(path)
+      );
     });
 
     if (!client.is_project()) {
@@ -144,15 +192,19 @@ export class JupyterActions extends Actions {
 
     if (
       !client.is_project() &&
-      (typeof window !== "undefined" && window !== null ? (window as any).$ : undefined) != null
+      (typeof window !== "undefined" && window !== null
+        ? (window as any).$
+        : undefined) != null
     ) {
       // frontend browser client with jQuery
       this.set_jupyter_kernels(); // must be after setting project_id above.
 
       // set codemirror editor options whenever account editor_settings change.
-      const account_store = this.redux.getStore("account");
+      const account_store = this.redux.getStore("account") as any; // TODO: check if ever is undefined
       account_store.on("change", this._account_change);
-      this._account_change_editor_settings = account_store.get("editor_settings");
+      this._account_change_editor_settings = account_store.get(
+        "editor_settings"
+      );
       this._commands = commands.commands(this);
 
       return this.init_scroll_pos_hook();
@@ -173,7 +225,10 @@ export class JupyterActions extends Actions {
     let after: any;
     let before: any = (after = undefined);
     this._hook_before_change = () => {
-      return (before = __guard__($(".cocalc-jupyter-hook").offset(), x => x.top));
+      return (before = __guard__(
+        $(".cocalc-jupyter-hook").offset(),
+        x => x.top
+      ));
     };
     return (this._hook_after_change = () => {
       after = __guard__($(".cocalc-jupyter-hook").offset(), x => x.top);
@@ -185,11 +240,14 @@ export class JupyterActions extends Actions {
 
   _account_change = state => {
     // TODO: this is just an ugly hack until we implement redux change listeners for particular keys.
-    if (!state.get("editor_settings").equals(this._account_change_editor_settings)) {
+    if (
+      !state.get("editor_settings").equals(this._account_change_editor_settings)
+    ) {
       const new_settings = state.get("editor_settings");
       if (
-        this._account_change_editor_settings.get("jupyter_keyboard_shortcuts") !==
-        new_settings.get("jupyter_keyboard_shortcuts")
+        this._account_change_editor_settings.get(
+          "jupyter_keyboard_shortcuts"
+        ) !== new_settings.get("jupyter_keyboard_shortcuts")
       ) {
         this.update_keyboard_shortcuts();
       }
@@ -213,7 +271,7 @@ export class JupyterActions extends Actions {
     delete this.syncdb;
     delete this._commands;
     if (this._key_handler != null) {
-      this.redux.getActions("page").erase_active_key_handler(this._key_handler);
+      (this.redux.getActions("page") as any).erase_active_key_handler(this._key_handler);
       delete this._key_handler;
     }
     if (this._file_watcher != null) {
@@ -234,13 +292,15 @@ export class JupyterActions extends Actions {
     if (this._key_handler == null) {
       this._key_handler = keyboard.create_key_handler(this);
     }
-    return this.redux
-      .getActions("page")
+    return (this.redux
+      .getActions("page") as any)
       .set_active_key_handler(this._key_handler, this.project_id, this.path);
   };
 
   disable_key_handler = () => {
-    return this.redux.getActions("page").erase_active_key_handler(this._key_handler);
+    return (this.redux
+      .getActions("page") as any)
+      .erase_active_key_handler(this._key_handler);
   };
 
   _ajax = (opts: any) => {
@@ -260,7 +320,9 @@ export class JupyterActions extends Actions {
       timeout: opts.timeout,
       success: data => {
         //try
-        return typeof opts.cb === "function" ? opts.cb(undefined, JSON.parse(data)) : undefined;
+        return typeof opts.cb === "function"
+          ? opts.cb(undefined, JSON.parse(data))
+          : undefined;
       }
       //catch err
       //    opts.cb?("#{err}")
@@ -279,7 +341,9 @@ export class JupyterActions extends Actions {
         return;
       }
       return this._ajax({
-        url: server_urls.get_server_url(this.store.get("project_id")) + "/kernels.json",
+        url:
+          server_urls.get_server_url(this.store.get("project_id")) +
+          "/kernels.json",
         timeout: 3000,
         cb: (err, data) => {
           if (err) {
@@ -291,10 +355,14 @@ export class JupyterActions extends Actions {
             this.setState({ kernels: jupyter_kernels });
             // We must also update the kernel info (e.g., display name), now that we
             // know the kernels (e.g., maybe it changed or is now known but wasn't before).
-            this.setState({ kernel_info: this.store.get_kernel_info(this.store.get("kernel")) });
+            this.setState({
+              kernel_info: this.store.get_kernel_info(this.store.get("kernel"))
+            });
             return cb();
           } catch (e) {
-            return this.set_error(`Error setting Jupyter kernels -- ${data} ${e}`);
+            return this.set_error(
+              `Error setting Jupyter kernels -- ${data} ${e}`
+            );
           }
         }
       });
@@ -388,7 +456,10 @@ export class JupyterActions extends Actions {
         if (!this.store.is_cell_editable(id)) {
           not_editable += 1;
         } else {
-          this._set({ type: "cell", id, output: null, exec_count: null }, false);
+          this._set(
+            { type: "cell", id, output: null, exec_count: null },
+            false
+          );
         }
       }
     });
@@ -401,8 +472,16 @@ export class JupyterActions extends Actions {
   // prop can be: 'collapsed', 'scrolled'
   toggle_output = (id: any, prop: any) => {
     let left: any;
-    if ((left = this.store.getIn(["cells", id, "cell_type"])) != null ? left : "code" === "code") {
-      return this._set({ type: "cell", id, [prop]: !this.store.getIn(["cells", id, prop]) });
+    if (
+      (left = this.store.getIn(["cells", id, "cell_type"])) != null
+        ? left
+        : "code" === "code"
+    ) {
+      return this._set({
+        type: "cell",
+        id,
+        [prop]: !this.store.getIn(["cells", id, prop])
+      });
     }
   };
 
@@ -433,8 +512,14 @@ export class JupyterActions extends Actions {
   };
 
   set_cell_type = (id, cell_type = "code") => {
-    if (cell_type !== "markdown" && cell_type !== "raw" && cell_type !== "code") {
-      throw Error(`cell type (='${cell_type}') must be 'markdown', 'raw', or 'code'`);
+    if (
+      cell_type !== "markdown" &&
+      cell_type !== "raw" &&
+      cell_type !== "code"
+    ) {
+      throw Error(
+        `cell type (='${cell_type}') must be 'markdown', 'raw', or 'code'`
+      );
     }
     if (this.store.check_edit_protection(id, this)) {
       return;
@@ -680,7 +765,8 @@ export class JupyterActions extends Actions {
       console.warn(`ignoring cell with invalid id='${JSON.stringify(id)}'`);
       return;
     }
-    const cells = (left = this.store.get("cells")) != null ? left : immutable.Map();
+    const cells =
+      (left = this.store.get("cells")) != null ? left : immutable.Map();
     let cell_list_needs_recompute = false;
     //@dbg("_syncdb_cell_change")("#{id} #{JSON.stringify(new_cell?.toJS())}")
     let old_cell = cells.get(id);
@@ -731,7 +817,9 @@ export class JupyterActions extends Actions {
     if (typeof this._hook_after_change === "function") {
       this._hook_after_change();
     }
-    return typeof this.set_save_status === "function" ? this.set_save_status() : undefined;
+    return typeof this.set_save_status === "function"
+      ? this.set_save_status()
+      : undefined;
   };
 
   __syncdb_change = (changes: any) => {
@@ -752,7 +840,10 @@ export class JupyterActions extends Actions {
             var error = record != null ? record.get("error") : undefined;
             this.setState({ fatal: error });
             // This check can be deleted in a few weeks:
-            if (error != null && error.indexOf("file is currently being read or written") !== -1) {
+            if (
+              error != null &&
+              error.indexOf("file is currently being read or written") !== -1
+            ) {
               // No longer relevant -- see https://github.com/sagemathinc/cocalc/issues/1742
               this.syncdb.delete({ type: "fatal" });
             }
@@ -844,7 +935,10 @@ export class JupyterActions extends Actions {
     let cells = (cells_before = this.store.get("cells"));
     const next_cursors = this.syncdb.get_cursors();
     next_cursors.forEach((info, account_id) => {
-      const last_info = this._last_cursors != null ? this._last_cursors.get(account_id) : undefined;
+      const last_info =
+        this._last_cursors != null
+          ? this._last_cursors.get(account_id)
+          : undefined;
       if (last_info != null ? last_info.equals(info) : undefined) {
         // no change for this particular users, so nothing further to do
         return;
@@ -858,9 +952,13 @@ export class JupyterActions extends Actions {
           if (cell == null) {
             return;
           }
-          const cursors = (left = cell.get("cursors")) != null ? left : immutable.Map();
+          const cursors =
+            (left = cell.get("cursors")) != null ? left : immutable.Map();
           if (cursors.has(account_id)) {
-            cells = cells.set(id, cell.set("cursors", cursors.delete(account_id)));
+            cells = cells.set(
+              id,
+              cell.set("cursors", cursors.delete(account_id))
+            );
             return false; // nothing further to do
           }
         });
@@ -874,11 +972,13 @@ export class JupyterActions extends Actions {
         if (cell == null) {
           return;
         }
-        let cursors = (left = cell.get("cursors")) != null ? left : immutable.Map();
+        let cursors =
+          (left = cell.get("cursors")) != null ? left : immutable.Map();
         loc = loc.set("time", info.get("time")).delete("id");
-        const locs = ((left1 = cursors.get(account_id)) != null ? left1 : immutable.List()).push(
-          loc
-        );
+        const locs = ((left1 = cursors.get(account_id)) != null
+          ? left1
+          : immutable.List()
+        ).push(loc);
         cursors = cursors.set(account_id, locs);
         cell = cell.set("cursors", cursors);
         cells = cells.set(id, cell);
@@ -897,7 +997,11 @@ export class JupyterActions extends Actions {
       return;
     }
     // check write protection regarding specific keys to be set
-    if (obj.type === "cell" && obj.id != null && !this.store.is_cell_editable(obj.id)) {
+    if (
+      obj.type === "cell" &&
+      obj.id != null &&
+      !this.store.is_cell_editable(obj.id)
+    ) {
       for (let protected_key of ["input", "cell_type", "attachments"]) {
         if (misc.has_key(protected_key)) {
           throw CellWriteProtectedException;
@@ -907,7 +1011,9 @@ export class JupyterActions extends Actions {
     //@dbg("_set")("obj=#{misc.to_json(obj)}")
     this.syncdb.set(obj, save);
     // ensure that we update locally immediately for our own changes.
-    return this._syncdb_change(immutable.fromJS([misc.copy_with(obj, ["id", "type"])]));
+    return this._syncdb_change(
+      immutable.fromJS([misc.copy_with(obj, ["id", "type"])])
+    );
   };
 
   // might throw a CellDeleteProtectedException
@@ -922,7 +1028,9 @@ export class JupyterActions extends Actions {
       }
     }
     this.syncdb.delete(obj, save);
-    return this._syncdb_change(immutable.fromJS([{ type: obj.type, id: obj.id }]));
+    return this._syncdb_change(
+      immutable.fromJS([{ type: obj.type, id: obj.id }])
+    );
   };
 
   _sync = () => {
@@ -943,16 +1051,23 @@ export class JupyterActions extends Actions {
     // Saves our customer format sync doc-db to disk; the backend will
     // also save the normal ipynb file to disk right after.
     this.syncdb.save(() => {
-      return typeof this.set_save_status === "function" ? this.set_save_status() : undefined;
+      return typeof this.set_save_status === "function"
+        ? this.set_save_status()
+        : undefined;
     });
-    return typeof this.set_save_status === "function" ? this.set_save_status() : undefined;
+    return typeof this.set_save_status === "function"
+      ? this.set_save_status()
+      : undefined;
   };
 
   save_asap = () => {
     if (this.syncdb != null) {
       this.syncdb.save_asap(err => {
         if (err) {
-          return setTimeout(() => (this.syncdb != null ? this.syncdb.save_asap() : undefined), 50);
+          return setTimeout(
+            () => (this.syncdb != null ? this.syncdb.save_asap() : undefined),
+            50
+          );
         }
       });
     }
@@ -1021,7 +1136,10 @@ export class JupyterActions extends Actions {
       } else {
         const verb = not_deletable === 1 ? "is" : "are";
         this.set_error(
-          `${not_deletable} ${misc.plural(not_deletable, "cell")} ${verb} protected from deletion.`
+          `${not_deletable} ${misc.plural(
+            not_deletable,
+            "cell"
+          )} ${verb} protected from deletion.`
         );
       }
     }
@@ -1034,7 +1152,11 @@ export class JupyterActions extends Actions {
       return;
     }
     const v = __guard__(this.store.get("cell_list"), x => x.toJS());
-    const w = cell_utils.move_selected_cells(v, this.store.get_selected_cell_ids(), delta);
+    const w = cell_utils.move_selected_cells(
+      v,
+      this.store.get_selected_cell_ids(),
+      delta
+    );
     if (w == null) {
       return;
     }
@@ -1178,7 +1300,10 @@ export class JupyterActions extends Actions {
     this.run_selected_cells();
 
     const cell_list = this.store.get("cell_list");
-    if ((cell_list != null ? cell_list.get(cell_list.size - 1) : undefined) === last_id) {
+    if (
+      (cell_list != null ? cell_list.get(cell_list.size - 1) : undefined) ===
+      last_id
+    ) {
       this.set_cur_id(last_id);
       const new_id = this.insert_cell(1);
       // this is ugly, but I don't know a better way; when the codemirror editor of
@@ -1226,7 +1351,9 @@ export class JupyterActions extends Actions {
     if (i == null) {
       return;
     }
-    for (let id of __guard__(this.store.get("cell_list"), x => x.toJS().slice(0, i))) {
+    for (let id of __guard__(this.store.get("cell_list"), x =>
+      x.toJS().slice(0, i)
+    )) {
       this.run_cell(id);
     }
   };
@@ -1237,7 +1364,9 @@ export class JupyterActions extends Actions {
     if (i == null) {
       return;
     }
-    for (let id of __guard__(this.store.get("cell_list"), x => x.toJS().slice(i))) {
+    for (let id of __guard__(this.store.get("cell_list"), x =>
+      x.toJS().slice(i)
+    )) {
       this.run_cell(id);
     }
   };
@@ -1292,7 +1421,9 @@ export class JupyterActions extends Actions {
     }
     this._cursor_locs = locs; // remember our own cursors for splitting cell
     // syncdb not always set -- https://github.com/sagemathinc/cocalc/issues/2107
-    return this.syncdb != null ? this.syncdb.set_cursor_locs(locs, side_effect) : undefined;
+    return this.syncdb != null
+      ? this.syncdb.set_cursor_locs(locs, side_effect)
+      : undefined;
   };
 
   split_current_cell = () => {
@@ -1376,9 +1507,13 @@ export class JupyterActions extends Actions {
       return;
     }
     const input =
-      ((left = __guard__(cells.get(cur_id), x => x.get("input"))) != null ? left : "") +
+      ((left = __guard__(cells.get(cur_id), x => x.get("input"))) != null
+        ? left
+        : "") +
       "\n" +
-      ((left1 = __guard__(cells.get(next_id), x1 => x1.get("input"))) != null ? left1 : "");
+      ((left1 = __guard__(cells.get(next_id), x1 => x1.get("input"))) != null
+        ? left1
+        : "");
 
     let output: any = undefined;
     const output0 = __guard__(cells.get(cur_id), x2 => x2.get("output"));
@@ -1393,7 +1528,11 @@ export class JupyterActions extends Actions {
       let asc, i;
       output = output0;
       let n = output0.size;
-      for (i = 0, end = output1.size, asc = 0 <= end; asc ? i < end : i > end; asc ? i++ : i--) {
+      for (
+        i = 0, end = output1.size, asc = 0 <= end;
+        asc ? i < end : i > end;
+        asc ? i++ : i--
+      ) {
         output = output.set(`${n}`, output1.get(`${i}`));
         n += 1;
       }
@@ -1429,7 +1568,9 @@ export class JupyterActions extends Actions {
       return;
     }
     this.set_cur_id(v[0]);
-    return __range__(0, n - 1, false).map(i => this.merge_cell_below(i === n - 2));
+    return __range__(0, n - 1, false).map(i =>
+      this.merge_cell_below(i === n - 2)
+    );
   };
 
   // Copy all currently selected cells into our internal clipboard
@@ -1485,7 +1626,9 @@ export class JupyterActions extends Actions {
       if (new_value == null) {
         var left;
         const current_value =
-          (left = this.store.getIn(["cells", id, "metadata", key])) != null ? left : true;
+          (left = this.store.getIn(["cells", id, "metadata", key])) != null
+            ? left
+            : true;
         new_value = !current_value;
       }
       if (typeof extra_processing === "function") {
@@ -1540,9 +1683,16 @@ export class JupyterActions extends Actions {
         after_pos = cells.getIn([v[0], "pos"]);
       } else {
         before_pos = cells.getIn([cell_before_pasted_id, "pos"]);
-        after_pos = cells.getIn([this.store.get_cell_id(+1, cell_before_pasted_id), "pos"]);
+        after_pos = cells.getIn([
+          this.store.get_cell_id(+1, cell_before_pasted_id),
+          "pos"
+        ]);
       }
-      const positions = cell_utils.positions_between(before_pos, after_pos, clipboard.size);
+      const positions = cell_utils.positions_between(
+        before_pos,
+        after_pos,
+        clipboard.size
+      );
       return clipboard.forEach((cell, i) => {
         cell = cell.set("id", this._new_id()); // randomize the id of the cell
         cell = cell.set("pos", positions[i]);
@@ -1565,17 +1715,23 @@ export class JupyterActions extends Actions {
   };
 
   toggle_header = () => {
-    return this.redux != null ? this.redux.getActions("page").toggle_fullscreen() : undefined;
+    return this.redux != null
+      ? (this.redux.getActions("page") as any).toggle_fullscreen()
+      : undefined;
   };
 
   set_header_state = (val: any) => {
-    return this.redux != null ? this.redux.getActions("page").set_fullscreen(val) : undefined;
+    return this.redux != null
+      ? (this.redux.getActions("page") as any).set_fullscreen(val)
+      : undefined;
   };
 
   set_line_numbers = (show: any) => {
     this.set_local_storage("line_numbers", !!show);
     // unset the line_numbers property from all cells
-    const cells = this.store.get("cells").map(cell => cell.delete("line_numbers"));
+    const cells = this.store
+      .get("cells")
+      .map(cell => cell.delete("line_numbers"));
     if (!cells.equals(this.store.get("cells"))) {
       // actually changed
       this.setState({ cells });
@@ -1602,7 +1758,9 @@ export class JupyterActions extends Actions {
           : this.store.get_local_storage("line_numbers")) != null
         ? left
         : false;
-    return this.setState({ cells: cells.set(id, cell.set("line_numbers", !line_numbers)) });
+    return this.setState({
+      cells: cells.set(id, cell.set("line_numbers", !line_numbers))
+    });
   };
 
   // zoom in or out delta font sizes
@@ -1642,13 +1800,17 @@ export class JupyterActions extends Actions {
   // File --> Open: just show the file listing page.
   file_open = () => {
     if (this.redux != null) {
-      this.redux.getProjectActions(this.store.get("project_id")).set_active_tab("files");
+      this.redux
+        .getProjectActions(this.store.get("project_id"))
+        .set_active_tab("files");
     }
   };
 
   file_new = () => {
     if (this.redux != null) {
-      this.redux.getProjectActions(this.store.get("project_id")).set_active_tab("new");
+      this.redux
+        .getProjectActions(this.store.get("project_id"))
+        .set_active_tab("new");
     }
   };
 
@@ -1660,7 +1822,9 @@ export class JupyterActions extends Actions {
   };
 
   unregister_input_editor = (id: any) => {
-    return this._input_editors != null ? delete this._input_editors[id] : undefined;
+    return this._input_editors != null
+      ? delete this._input_editors[id]
+      : undefined;
   };
 
   // Meant to be used for implementing actions -- do not call externally
@@ -1684,7 +1848,9 @@ export class JupyterActions extends Actions {
   // Press tab key in editor of currently selected cell.
   tab_key = () => {
     return __guardMethod__(
-      this._input_editors != null ? this._input_editors[this.store.get("cur_id")] : undefined,
+      this._input_editors != null
+        ? this._input_editors[this.store.get("cur_id")]
+        : undefined,
       "tab_key",
       o => o.tab_key()
     );
@@ -1714,11 +1880,13 @@ export class JupyterActions extends Actions {
   };
 
   show_history_viewer = () => {
-    return __guard__(this.redux.getProjectActions(this.store.get("project_id")), x =>
-      x.open_file({
-        path: misc.history_path(this.store.get("path")),
-        foreground: true
-      })
+    return __guard__(
+      this.redux.getProjectActions(this.store.get("project_id")),
+      x =>
+        x.open_file({
+          path: misc.history_path(this.store.get("path")),
+          foreground: true
+        })
     );
   };
 
@@ -1752,7 +1920,9 @@ export class JupyterActions extends Actions {
     // or a number.
     if (misc.is_object(pos)) {
       const lines = code.split("\n");
-      cursor_pos = misc.sum(__range__(0, pos.line, false).map(i => lines[i].length + 1)) + pos.ch;
+      cursor_pos =
+        misc.sum(__range__(0, pos.line, false).map(i => lines[i].length + 1)) +
+        pos.ch;
     } else {
       cursor_pos = pos;
     }
@@ -1771,7 +1941,9 @@ export class JupyterActions extends Actions {
           return;
         }
         if (err || (data != null ? data.status : undefined) !== "ok") {
-          this.setState({ complete: { error: err != null ? err : "completion failed" } });
+          this.setState({
+            complete: { error: err != null ? err : "completion failed" }
+          });
           return;
         }
         const complete = data;
@@ -1786,7 +1958,10 @@ export class JupyterActions extends Actions {
         }
         this.setState({ complete: immutable.fromJS(complete) });
         if (
-          __guard__(complete != null ? complete.matches : undefined, x => x.length) === 1 &&
+          __guard__(
+            complete != null ? complete.matches : undefined,
+            x => x.length
+          ) === 1 &&
           id != null
         ) {
           // special case -- a unique completion and we know id of cell in which completing is given
@@ -1797,7 +1972,8 @@ export class JupyterActions extends Actions {
   };
 
   clear_complete = () => {
-    this._complete_request = (this._complete_request != null ? this._complete_request : 0) + 1;
+    this._complete_request =
+      (this._complete_request != null ? this._complete_request : 0) + 1;
     return this.setState({ complete: undefined });
   };
 
@@ -1817,7 +1993,10 @@ export class JupyterActions extends Actions {
       // We don't actually make the completion until the next render loop,
       // so that the editor is already in edit mode.  This way the cursor is
       // in the right position after making the change.
-      return setTimeout(() => this.merge_cell_input(id, complete.get("base"), new_input), 0);
+      return setTimeout(
+        () => this.merge_cell_input(id, complete.get("base"), new_input),
+        0
+      );
     }
   };
 
@@ -1850,7 +2029,10 @@ export class JupyterActions extends Actions {
     complete.code = code.slice(0, pos) + c + code.slice(pos);
     complete.cursor_end += 1;
     complete.pos += 1;
-    const target = complete.code.slice(complete.cursor_start, complete.cursor_end);
+    const target = complete.code.slice(
+      complete.cursor_start,
+      complete.cursor_end
+    );
     complete.matches = (() => {
       const result: any = [];
       for (let x of complete.matches) {
@@ -1918,7 +2100,11 @@ export class JupyterActions extends Actions {
 
   signal = (signal = "SIGINT") => {
     this._ajax({
-      url: server_urls.get_signal_url(this.store.get("project_id"), this.store.get("path"), signal),
+      url: server_urls.get_signal_url(
+        this.store.get("project_id"),
+        this.store.get("path"),
+        signal
+      ),
       timeout: 5000
     });
   };
@@ -1957,7 +2143,10 @@ export class JupyterActions extends Actions {
         cb();
       }
       return this._ajax({
-        url: server_urls.get_kernel_info_url(this.store.get("project_id"), this.store.get("path")),
+        url: server_urls.get_kernel_info_url(
+          this.store.get("project_id"),
+          this.store.get("path")
+        ),
         timeout: 15000,
         cb: (err, data) => {
           if (err) {
@@ -2107,13 +2296,17 @@ export class JupyterActions extends Actions {
     if (this.store.getIn(["cells", id]) == null) {
       return;
     }
-    const x = (left = this.store.get("more_output")) != null ? left : immutable.Map();
-    return this.setState({ more_output: x.set(id, immutable.fromJS(more_output)) });
+    const x =
+      (left = this.store.get("more_output")) != null ? left : immutable.Map();
+    return this.setState({
+      more_output: x.set(id, immutable.fromJS(more_output))
+    });
   };
 
   reset_more_output = (id?: any) => {
     let left: any;
-    const more_output = (left = this.store.get("more_output")) != null ? left : immutable.Map();
+    const more_output =
+      (left = this.store.get("more_output")) != null ? left : immutable.Map();
     if (more_output.has(id)) {
       return this.setState({ more_output: more_output.delete(id) });
     }
@@ -2122,7 +2315,9 @@ export class JupyterActions extends Actions {
   set_cm_options = () => {
     const mode = this.store.get_cm_mode();
     const editor_settings = __guardMethod__(
-      __guard__(this.redux.getStore("account"), x1 => x1.get("editor_settings")),
+      __guard__(this.redux.getStore("account"), x1 =>
+        x1.get("editor_settings")
+      ),
       "toJS",
       o => o.toJS()
     );
@@ -2130,7 +2325,12 @@ export class JupyterActions extends Actions {
     const read_only = this.store.get("read_only");
     const x = immutable.fromJS({
       options: cm_options(mode, editor_settings, line_numbers, read_only),
-      markdown: cm_options({ name: "gfm2" }, editor_settings, line_numbers, read_only)
+      markdown: cm_options(
+        { name: "gfm2" },
+        editor_settings,
+        line_numbers,
+        read_only
+      )
     });
 
     if (!x.equals(this.store.get("cm_options"))) {
@@ -2205,7 +2405,9 @@ export class JupyterActions extends Actions {
       console.warn("account settings not loaded"); // should not happen
       return;
     }
-    const k = this._account_change_editor_settings.get("jupyter_keyboard_shortcuts");
+    const k = this._account_change_editor_settings.get(
+      "jupyter_keyboard_shortcuts"
+    );
     if (k != null) {
       return JSON.parse(k);
     } else {
@@ -2230,9 +2432,9 @@ export class JupyterActions extends Actions {
   };
 
   _set_keyboard_settings = (k: any) => {
-    return this.redux
-      .getTable("account")
-      .set({ editor_settings: { jupyter_keyboard_shortcuts: JSON.stringify(k) } });
+    return (this.redux.getTable("account") as any).set({
+      editor_settings: { jupyter_keyboard_shortcuts: JSON.stringify(k) }
+    });
   };
 
   delete_keyboard_shortcut = (name: any, shortcut: any) => {
@@ -2288,7 +2490,9 @@ export class JupyterActions extends Actions {
     } else {
       const confirm_dialog = this.store.get("confirm_dialog");
       if (confirm_dialog != null) {
-        return this.setState({ confirm_dialog: confirm_dialog.set("choice", choice) });
+        return this.setState({
+          confirm_dialog: confirm_dialog.set("choice", choice)
+        });
       }
     }
   };
@@ -2299,7 +2503,10 @@ export class JupyterActions extends Actions {
       title: "Trust this Notebook?",
       body:
         "A trusted Jupyter notebook may execute hidden malicious Javascript code when you open it. Selecting trust below, or evaluating any cell, will immediately execute any Javascript code in this notebook now and henceforth. (NOTE: CoCalc does NOT implement the official Jupyter security model for trusted notebooks; in particular, we assume that you do trust collaborators on your CoCalc projects.)",
-      choices: [{ title: "Trust", style: "danger", default: true }, { title: "Cancel" }],
+      choices: [
+        { title: "Trust", style: "danger", default: true },
+        { title: "Cancel" }
+      ],
       cb: choice => {
         if (choice === "Trust") {
           return this.set_trust_notebook(true);
@@ -2320,7 +2527,10 @@ export class JupyterActions extends Actions {
   };
 
   command = (name: any) => {
-    const f = __guard__(this._commands != null ? this._commands[name] : undefined, x => x.f);
+    const f = __guard__(
+      this._commands != null ? this._commands[name] : undefined,
+      x => x.f
+    );
     if (f != null) {
       f();
     } else {
@@ -2358,7 +2568,11 @@ export class JupyterActions extends Actions {
         value = __range__(0, value.length, false)
           .map((_: any) => "●")
           .join("");
-        this.set_cell_output(id, output.set(n, mesg.set("value", value)), false);
+        this.set_cell_output(
+          id,
+          output.set(n, mesg.set("value", value)),
+          false
+        );
         return this.save_asap();
       });
       return;
@@ -2412,8 +2626,14 @@ export class JupyterActions extends Actions {
     // We have to parse out the kernel so we can use process_output below.
     // (TODO: rewrite so process_output is not associated with a specific kernel)
     const kernel =
-      __guard__(ipynb.metadata != null ? ipynb.metadata.kernelspec : undefined, x => x.name) != null
-        ? __guard__(ipynb.metadata != null ? ipynb.metadata.kernelspec : undefined, x => x.name)
+      __guard__(
+        ipynb.metadata != null ? ipynb.metadata.kernelspec : undefined,
+        x => x.name
+      ) != null
+        ? __guard__(
+            ipynb.metadata != null ? ipynb.metadata.kernelspec : undefined,
+            x => x.name
+          )
         : DEFAULT_KERNEL; // very like to work since official ipynb file without this kernelspec is invalid.
     //dbg("kernel in ipynb: name='#{kernel}'")
 
@@ -2448,7 +2668,9 @@ export class JupyterActions extends Actions {
       existing_ids: __guard__(this.store.get("cell_list"), x1 => x1.toJS()),
       new_id: this._new_id,
       process_attachment:
-        this._jupyter_kernel != null ? this._jupyter_kernel.process_attachment : undefined,
+        this._jupyter_kernel != null
+          ? this._jupyter_kernel.process_attachment
+          : undefined,
       output_handler: this._output_handler
     }); // undefined in client; defined in project
 
@@ -2486,7 +2708,8 @@ export class JupyterActions extends Actions {
   nbconvert = (args: any) => {
     let needle;
     if (
-      ((needle = this.store.getIn(["nbconvert", "state"])), ["start", "run"].indexOf(needle) > -1)
+      ((needle = this.store.getIn(["nbconvert", "state"])),
+      ["start", "run"].indexOf(needle) > -1)
     ) {
       // not allowed
       return;
@@ -2521,7 +2744,8 @@ export class JupyterActions extends Actions {
     }
     this.setState({ nbconvert_dialog: { to } });
     if (
-      ((needle = this.store.getIn(["nbconvert", "state"])), ["start", "run"].indexOf(needle) === -1)
+      ((needle = this.store.getIn(["nbconvert", "state"])),
+      ["start", "run"].indexOf(needle) === -1)
     ) {
       // start it
       return this.nbconvert(["--to", to]);
@@ -2534,7 +2758,11 @@ export class JupyterActions extends Actions {
       return;
     }
     return this._ajax({
-      url: server_urls.get_store_url(this.store.get("project_id"), this.store.get("path"), key),
+      url: server_urls.get_store_url(
+        this.store.get("project_id"),
+        this.store.get("path"),
+        key
+      ),
       timeout: 10000,
       cb: (err: any, value: any) => {
         err = err; // TODO: handle err
@@ -2549,7 +2777,7 @@ export class JupyterActions extends Actions {
     });
   };
 
-  cell_toolbar = (name: any) => {
+  cell_toolbar = (name: string) => {
     // Set which cell toolbar is visible.  At most one may be visible.
     // name=undefined to not show any.
     return this.setState({ cell_toolbar: name });
@@ -2570,7 +2798,9 @@ export class JupyterActions extends Actions {
   };
 
   ensure_positions_are_unique = () => {
-    const changes = cell_utils.ensure_positions_are_unique(this.store.get("cells"));
+    const changes = cell_utils.ensure_positions_are_unique(
+      this.store.get("cells")
+    );
     if (changes != null) {
       for (let id in changes) {
         const pos = changes[id];
@@ -2586,16 +2816,18 @@ export class JupyterActions extends Actions {
       // doesn't make sense for project (right now at least)
       return;
     }
-    const s = this.redux.getStore("account");
+    const s = this.redux.getStore("account") as any;
     if (s == null) {
       return;
     }
     const cur =
-      (left = __guard__(s.getIn(["editor_settings", "jupyter"]), x => x.toJS())) != null
+      (left = __guard__(s.getIn(["editor_settings", "jupyter"]), x =>
+        x.toJS()
+      )) != null
         ? left
         : {};
     cur.kernel = kernel;
-    this.redux.getTable("account").set({ editor_settings: { jupyter: cur } });
+    (this.redux.getTable("account") as any).set({ editor_settings: { jupyter: cur } });
   };
 
   edit_attachments = (id: any) => {
@@ -2638,7 +2870,9 @@ export class JupyterActions extends Actions {
       return;
     }
     const attachments =
-      (left = __guard__(cell.get("attachments"), x => x.toJS())) != null ? left : {};
+      (left = __guard__(cell.get("attachments"), x => x.toJS())) != null
+        ? left
+        : {};
     attachments[name] = val;
     return this._set(
       {
@@ -2662,13 +2896,21 @@ export class JupyterActions extends Actions {
     this.set_cell_attachment(id, name, { type: "load", value: path });
     this.store.wait({
       until: () => {
-        return this.store.getIn(["cells", id, "attachments", name, "type"]) === "sha1";
+        return (
+          this.store.getIn(["cells", id, "attachments", name, "type"]) ===
+          "sha1"
+        );
       },
       cb: () => {
         // This has to happen in the next render loop, since changing immediately
         // can update before the attachments props are updated.
         return setTimeout(
-          () => this.insert_input_at_cursor(id, this._attachment_markdown(name), true),
+          () =>
+            this.insert_input_at_cursor(
+              id,
+              this._attachment_markdown(name),
+              true
+            ),
           10
         );
       }
@@ -2682,7 +2924,11 @@ export class JupyterActions extends Actions {
     this.set_cell_attachment(id, name, null, false);
     return this.set_cell_input(
       id,
-      misc.replace_all(this._get_cell_input(id), this._attachment_markdown(name), "")
+      misc.replace_all(
+        this._get_cell_input(id),
+        this._attachment_markdown(name),
+        ""
+      )
     );
   };
 
@@ -2724,7 +2970,9 @@ export class JupyterActions extends Actions {
   edit_cell_metadata = (id: any) => {
     let left: any;
     const metadata =
-      (left = this.store.getIn(["cells", id, "metadata"])) != null ? left : immutable.Map();
+      (left = this.store.getIn(["cells", id, "metadata"])) != null
+        ? left
+        : immutable.Map();
     this.blur_lock();
     return this.setState({ edit_cell_metadata: { id, metadata } });
   };
@@ -2756,7 +3004,9 @@ export class JupyterActions extends Actions {
     if (merge) {
       let left: any;
       const current =
-        (left = this.store.getIn(["cells", id, "metadata"])) != null ? left : immutable.Map();
+        (left = this.store.getIn(["cells", id, "metadata"])) != null
+          ? left
+          : immutable.Map();
       metadata = current.merge(metadata);
     }
 
@@ -2802,7 +3052,9 @@ export class JupyterActions extends Actions {
     if (this._state === "load") {
       return;
     }
-    return this.setState({ raw_ipynb: immutable.fromJS(this.store.get_ipynb()) });
+    return this.setState({
+      raw_ipynb: immutable.fromJS(this.store.get_ipynb())
+    });
   };
 
   switch_to_classical_notebook = () => {
@@ -2818,7 +3070,9 @@ export class JupyterActions extends Actions {
         if (choice !== "Switch to Classical Notebook") {
           return;
         }
-        this.redux.getTable("account").set({ editor_settings: { jupyter_classic: true } });
+        (this.redux
+          .getTable("account") as any)
+          .set({ editor_settings: { jupyter_classic: true } });
         this.save();
         return this.file_action("reopen_file", this.store.get("path"));
       }
@@ -2836,7 +3090,9 @@ export class JupyterActions extends Actions {
 }
 
 function __guard__(value: any, transform: any) {
-  return typeof value !== "undefined" && value !== null ? transform(value) : undefined;
+  return typeof value !== "undefined" && value !== null
+    ? transform(value)
+    : undefined;
 }
 function __range__(left: any, right: any, inclusive: any) {
   let range: any[] = [];
@@ -2848,7 +3104,11 @@ function __range__(left: any, right: any, inclusive: any) {
   return range;
 }
 function __guardMethod__(obj: any, methodName: any, transform: any) {
-  if (typeof obj !== "undefined" && obj !== null && typeof obj[methodName] === "function") {
+  if (
+    typeof obj !== "undefined" &&
+    obj !== null &&
+    typeof obj[methodName] === "function"
+  ) {
     return transform(obj, methodName);
   } else {
     return undefined;
