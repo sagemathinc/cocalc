@@ -55,6 +55,7 @@ interface LatexEditorState extends CodeEditorState {
   zoom_page_width: string;
   zoom_page_height: string;
   build_command: string | List<string>;
+  knitr: boolean;
 }
 
 export class Actions extends BaseActions<LatexEditorState> {
@@ -89,6 +90,7 @@ export class Actions extends BaseActions<LatexEditorState> {
         // changing the path to the (to be generated) tex file makes everyting else
         // here compatible with the latex commands
         this.path = change_filename_extension(this.path, "tex");
+        this.setState({knitr: this.knitr});
       }
     }
   }
@@ -126,7 +128,7 @@ export class Actions extends BaseActions<LatexEditorState> {
       } else {
         // default
         this.set_build_command(
-          build_command("PDFLaTeX", path_split(this.path).tail)
+          build_command("PDFLaTeX", path_split(this.path).tail, this.knitr)
         );
       }
     });

@@ -94,6 +94,7 @@ interface Props {
   // reduxProps:
   build_logs: BuildLogs;
   build_command: string | List<string>;
+  knitr: boolean;
 }
 
 class Build extends Component<Props, {}> {
@@ -101,7 +102,8 @@ class Build extends Component<Props, {}> {
     return {
       [name]: {
         build_logs: rtypes.immutable.Map,
-        build_command: rtypes.oneOfType([rtypes.string, rtypes.immutable.List])
+        build_command: rtypes.oneOfType([rtypes.string, rtypes.immutable.List]),
+        knitr: rtypes.bool
       }
     };
   }
@@ -111,7 +113,8 @@ class Build extends Component<Props, {}> {
       "build_logs",
       "status",
       "font_size",
-      "build_command"
+      "build_command",
+      "knitr"
     ]);
   }
 
@@ -188,6 +191,7 @@ class Build extends Component<Props, {}> {
         filename={path_split(this.props.path).tail}
         actions={this.props.actions}
         build_command={this.props.build_command}
+        knitr={this.props.knitr}
       />
     );
   }
