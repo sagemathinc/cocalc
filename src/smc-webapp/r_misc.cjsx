@@ -2059,7 +2059,7 @@ exports.ErrorBoundary = rclass
                     {"We have been notified of this error. You must refresh your browser."}
                 </h4>
                 {"If you'd like to expedite the bug fixing, please file a support ticket describing what you were trying to do when the error occured."}
-                </br>
+                <br/>
                 <Button onClick={=>redux.getActions('support').show(true)}>
                     Create Ticket
                 </Button>

@@ -41,7 +41,7 @@ import {
   AppRedux
 } from "./app-framework";
 
-import { literal } from "./app-framework/literal"
+import { literal } from "./app-framework/literal";
 
 export { FILE_ACTIONS as file_actions, ProjectActions };
 
@@ -137,7 +137,7 @@ export class ProjectStore extends Store<ProjectStoreState> {
       // only do this if we are on project in the first place!
       return projects.on("change", this._projects_store_collab_check);
     }
-  }
+  };
 
   destroy = () => {
     let projects_store = this.redux.getStore("projects");
@@ -147,7 +147,7 @@ export class ProjectStore extends Store<ProjectStoreState> {
         this._projects_store_collab_check
       );
     }
-  }
+  };
 
   private _projects_store_collab_check(state): void {
     if (state.getIn(["project_map", this.project_id]) == null) {
@@ -281,7 +281,7 @@ export class ProjectStore extends Store<ProjectStoreState> {
           _compute_snapshot_display_names(listing);
         }
 
-        const search = this.get("file_search")
+        const search = this.get("file_search");
         if (search && search[0] !== search_escape_char) {
           listing = _matched_files(search.toLowerCase(), listing);
         }
@@ -402,16 +402,20 @@ export class ProjectStore extends Store<ProjectStoreState> {
     const store: any = redux.getEditorStore(this.project_id, path);
     if (store == null) {
       // try non-react editor
-      let editors = wrapped_editors.get_editor(this.project_id, path);
-      return editors ? editors.get_users_cursors(account_id) : undefined;
+      const editors = wrapped_editors.get_editor(this.project_id, path);
+      if (editors && editors.get_users_cursors) {
+        return editors.get_users_cursors(account_id);
+      } else {
+        return undefined;
+      }
     } else {
       return store.get("cursors") && store.get("cursors").get(account_id);
     }
-  }
+  };
 
-  is_file_open = (path) => {
+  is_file_open = path => {
     return this.getIn(["open_files", path]) != null;
-  }
+  };
 
   get_item_in_path = (name, path) => {
     const listing = this.get("directory_listings").get(path);
@@ -425,13 +429,13 @@ export class ProjectStore extends Store<ProjectStoreState> {
           ? listing.find(val => val.get("name") === name)
           : undefined
     };
-  }
+  };
 
-  get_raw_link = (path) => {
+  get_raw_link = path => {
     let url = document.URL;
     url = url.slice(0, url.indexOf("/projects/"));
     return `${url}/${this.project_id}/raw/${misc.encode_path(path)}`;
-  }
+  };
 }
 
 function _match(words, s, is_dir) {
