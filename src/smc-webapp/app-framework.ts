@@ -595,6 +595,7 @@ class Redux extends React.Component {
 //</Provider>
 
 // Change this line to alter the debugging mode.
+// Only touch this if testing in a browser
 rclass = debug_transform(rclass, MODES.default);
 
 export const Component = React.Component;

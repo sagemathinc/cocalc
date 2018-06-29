@@ -1,27 +1,28 @@
-declare var smc, window;
+declare var smc, performance;
 
 export enum MODES {
   count = "count", // collect count of number of times each component is rendered; call get_render_count and reset_render_count to see.
   time = "time", // show every single component render and how long it took
   verbose = "verbose", // print every CoCalc component that is rendered when rendered
-  trace = "trace" // print only components that take some time, along with timing info
+  trace = "trace", // print only components that take some time, along with timing info
+  default = "default" // Do nothing extra
 }
 
 export function debug_transform(rclass: any, mode = MODES.default) {
-  if (typeof smc === "undefined" || smc === null || window == undefined) {
-    return rclass // do not enable debugging in prod or if window doesn't exist
+  if (typeof smc === "undefined" || smc === null) {
+    return rclass // do not enable debugging in prod
   }
 
   if (mode !== "default") {
-    console.log(`app-framework MODE='${mode}'`);
+    console.log(`app-framework debug_transform MODE='${mode}'`);
   }
 
   let composed_rclass;
   switch (mode) {
     case "count":
       // Use these in the console:
-      //  reset_render_count()
-      //  JSON.stringify(get_render_count())
+      //  smc.reset_render_count()
+      //  JSON.stringify(smc.get_render_count())
       var render_count = {};
       composed_rclass = function(x: any) {
         x._render = x.render;
@@ -34,7 +35,7 @@ export function debug_transform(rclass: any, mode = MODES.default) {
         };
         return rclass(x);
       };
-      window.get_render_count = function() {
+      smc.get_render_count = function() {
         let total = 0;
         for (let k in render_count) {
           const v = render_count[k];
@@ -43,7 +44,7 @@ export function debug_transform(rclass: any, mode = MODES.default) {
 
         return { counts: render_count, total };
       };
-      window.reset_render_count = function() {
+      smc.reset_render_count = function() {
         render_count = {};
       };
       break;
