@@ -1,3 +1,11 @@
+/*
+@j3 -- fix this.
+
+   - transform is exported, but where is it used?
+   - react_component is referenced but NOT used.  It's also NOT defined anywhere in our codebase.
+   - same for smc, but I fixed that.
+
+
 declare var smc;
 
 let MODE = "default"; // one of 'default', 'count', 'verbose', 'time'
@@ -68,7 +76,7 @@ export function transform(rclass: any) {
       };
       break;
     case "trace":
-      var { react_debug_trace } = require("./app-framework-debug");
+      var { react_debug_trace } = require("../app-framework-debug");
       rclass = react_debug_trace(react_component);
       break;
     case "default":
@@ -79,3 +87,5 @@ export function transform(rclass: any) {
   }
   return rclass;
 }
+
+*/
