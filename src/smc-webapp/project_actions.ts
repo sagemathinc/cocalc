@@ -1,3 +1,5 @@
+// TODO: we should refactor our code to now have these window/document/$ references here.
+declare var window, document, $;
 
 import * as async from "async";
 import * as underscore from "underscore";
@@ -471,7 +473,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     const my_role = (this.redux.getStore("projects") as any).get_my_group(
       this.project_id
     );
-    if (["public", "admin"].includes(my_role)) {
+    if (["public", "admin"].indexOf(my_role) != -1) {
       // Ignore log events for *both* admin and public.
       // Admin gets to be secretive (also their account_id --> name likely wouldn't be known to users).
       // Public users don't log anything.
@@ -947,7 +949,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
 
     const timer = this._activity_indicator_timers[filename];
     if (timer != null) {
-      clearTimeout(timer);
+      window.clearTimeout(timer);
     }
 
     const set_inactive = () => {
@@ -1992,7 +1994,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         let chat_paths: string[] = [];
         for (let path of opts.src) {
           const chat_path = get_chat_path(path);
-          if (!opts.src.includes(chat_path)) {
+          if (opts.src.indexOf(chat_path) == -1) {
             chat_paths.push(chat_path);
           }
         }
@@ -2249,7 +2251,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       return;
     }
     const ext = misc.filename_extension(p);
-    if (BANNED_FILE_TYPES.includes(ext)) {
+    if (BANNED_FILE_TYPES.indexOf(ext) != -1) {
       this.setState({
         file_creation_error: `Cannot create a file with the ${ext} extension`
       });
@@ -2669,7 +2671,7 @@ var get_directory_listing = function(opts) {
     prom_labels = { public: false };
   }
 
-  if (["owner", "collaborator", "admin"].includes(opts.group)) {
+  if (["owner", "collaborator", "admin"].indexOf(opts.group) != -1) {
     method = webapp_client.project_directory_listing;
     // Also, make sure project starts running, in case it isn't.
     state = (redux.getStore("projects") as any).getIn([
