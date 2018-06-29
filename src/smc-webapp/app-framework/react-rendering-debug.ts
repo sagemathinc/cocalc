@@ -1,36 +1,29 @@
-/*
-@j3 -- fix this.
+declare var smc, window;
 
-   - transform is exported, but where is it used?
-   - react_component is referenced but NOT used.  It's also NOT defined anywhere in our codebase.
-   - same for smc, but I fixed that.
-
-
-declare var smc;
-
-let MODE = "default"; // one of 'default', 'count', 'verbose', 'time'
-//MODE = 'verbose'  # print every CoCalc component that is rendered when rendered
-//MODE = 'trace'     # print only components that take some time, along with timing info
-//MODE = 'count'    # collect count of number of times each component is rendered; call get_render_count and reset_render_count to see.
-//MODE = 'time'      # show every single component render and how long it took
-
-// smc is a global variable in the frontend.
-
-if (typeof smc === "undefined" || smc === null) {
-  MODE = "default"; // never enable in prod
+export enum MODES {
+  count = "count", // collect count of number of times each component is rendered; call get_render_count and reset_render_count to see.
+  time = "time", // show every single component render and how long it took
+  verbose = "verbose", // print every CoCalc component that is rendered when rendered
+  trace = "trace" // print only components that take some time, along with timing info
 }
 
-if (MODE !== "default") {
-  console.log(`app-framework MODE='${MODE}'`);
-}
-export function transform(rclass: any) {
-  switch (MODE) {
+export function debug_transform(rclass: any, mode = MODES.default) {
+  if (typeof smc === "undefined" || smc === null || window == undefined) {
+    return rclass // do not enable debugging in prod or if window doesn't exist
+  }
+
+  if (mode !== "default") {
+    console.log(`app-framework MODE='${mode}'`);
+  }
+
+  let composed_rclass;
+  switch (mode) {
     case "count":
       // Use these in the console:
       //  reset_render_count()
       //  JSON.stringify(get_render_count())
       var render_count = {};
-      rclass = function(x: any) {
+      composed_rclass = function(x: any) {
         x._render = x.render;
         x.render = function() {
           render_count[x.displayName] =
@@ -39,9 +32,9 @@ export function transform(rclass: any) {
               : 0) + 1;
           return this._render();
         };
-        return react_component(x);
+        return rclass(x);
       };
-      (redux as any).get_render_count = function() {
+      window.get_render_count = function() {
         let total = 0;
         for (let k in render_count) {
           const v = render_count[k];
@@ -50,14 +43,14 @@ export function transform(rclass: any) {
 
         return { counts: render_count, total };
       };
-      (redux as any).reset_render_count = function() {
+      window.reset_render_count = function() {
         render_count = {};
       };
       break;
     case "time":
-      rclass = x => {
+      composed_rclass = x => {
         const t0 = performance.now();
-        const r = react_component(x);
+        const r = rclass(x);
         const t1 = performance.now();
         if (t1 - t0 > 1) {
           console.log(r.displayName, "took", t1 - t0, "ms of time");
@@ -66,26 +59,24 @@ export function transform(rclass: any) {
       };
       break;
     case "verbose":
-      rclass = function(x: any) {
+      composed_rclass = function(x: any) {
         x._render = x.render;
         x.render = function() {
           console.log(x.displayName);
           return this._render();
         };
-        return react_component(x);
+        return rclass(x);
       };
       break;
     case "trace":
       var { react_debug_trace } = require("../app-framework-debug");
-      rclass = react_debug_trace(react_component);
+      composed_rclass = react_debug_trace(rclass);
       break;
     case "default":
-      rclass = react_component;
+      composed_rclass = rclass;
       break;
     default:
-      throw Error(`UNKNOWN app-framework MODE='${MODE}'`);
+      throw Error(`UNKNOWN app-framework MODE='${mode}'`);
   }
-  return rclass;
+  return composed_rclass;
 }
-
-*/
