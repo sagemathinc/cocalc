@@ -8,5 +8,6 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "baseUrl": "."
-  }
+  },
+  "exclude": ["./data", "node_modules"]
 }
