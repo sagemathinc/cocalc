@@ -5,7 +5,7 @@
 import { exec } from "../generic/client";
 import { parse_path } from "../frame-tree/util";
 
-const EXT: string[] = [
+const EXTENSIONS: string[] = [
   ".aux",
   ".logger",
   ".bbl",
@@ -23,6 +23,7 @@ const EXT: string[] = [
 export async function clean(
   project_id: string,
   path: string,
+  delete_tex: boolean = false,
   logger: Function
 ) {
   const { directory, base } = parse_path(path);
@@ -38,7 +39,12 @@ export async function clean(
     logger(output.stdout + "\n" + output.stderr + "\n");
   }
   // this in particular gets rid of the sagetex files
-  const files = EXT.map(ext => `${base}${ext}`);
+  let exts = EXTENSIONS;
+  if (delete_tex) {
+    // this looks weird, but for .rnw files Knitr generates the .tex file
+    exts = exts.concat(".tex");
+  }
+  const files = exts.map(ext => `${base}${ext}`);
   // -f: don't complain when it doesn't exist
   // --: then it works with filenames starting with a "-"
   const args = ["-v", "-f", "--"].concat(files);

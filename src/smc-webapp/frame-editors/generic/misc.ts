@@ -41,6 +41,16 @@ export function separate_file_extension(
   return { name, ext };
 }
 
+// change the filename's extension to the new one.
+// if there is no extension, add it.
+export function change_filename_extension(
+  path: string,
+  new_ext: string
+): string {
+  const { name } = separate_file_extension(path);
+  return `${name}.${new_ext}`;
+}
+
 // Like Python splitlines.
 export function splitlines(s: string): string[] {
   const r = s.match(/[^\r\n]+/g);
