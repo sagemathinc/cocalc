@@ -512,6 +512,12 @@ if MEASURE
     bundleAnalyzerPlugin = new BundleAnalyzerPlugin({analyzerMode: 'static'})
     plugins = plugins.concat([bundleAnalyzerPlugin])
 
+# we exclude the ROOT/data directory (where the dev projects are, etc.)
+# that issue helped me: https://github.com/TypeStrong/ts-loader/issues/544
+data_dir = path.resolve(__dirname, 'data')
+exclude_dirs = [data_dir + '/**/*.ts', data_dir + '/**/*.tsx']
+console.log("exclude_dirs: #{exclude_dirs}")
+
 module.exports =
     cache: true
 
@@ -553,8 +559,8 @@ module.exports =
             },
             { test: [/node_modules\/prom-client\/.*\.js$/], loader: 'babel-loader' },
             { test: [/latex-editor\/.*\.jsx?$/], loader: 'babel-loader' },
-            { test: /\.tsx$/, loader: "babel-loader!ts-loader" },
-            { test: /\.ts$/, loader: "ts-loader" },
+            { test: /\.tsx$/, loader: "babel-loader!ts-loader", exclude: exclude_dirs },
+            { test: /\.ts$/, loader: "ts-loader", exclude: exclude_dirs },
             { test: /\.less$/,   use: ["style-loader", "css-loader", "less-loader?#{cssConfig}"] },
             { test: /\.scss$/,   use: ["style-loader", "css-loader", "sass-loader?#{cssConfig}"] },
             { test: /\.sass$/,   use: ["style-loader", "css-loader", "sass-loader?#{cssConfig}&indentedSyntax"] },
