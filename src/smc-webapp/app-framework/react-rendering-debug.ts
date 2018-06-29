@@ -1,8 +1,12 @@
+declare var smc;
+
 let MODE = "default"; // one of 'default', 'count', 'verbose', 'time'
 //MODE = 'verbose'  # print every CoCalc component that is rendered when rendered
 //MODE = 'trace'     # print only components that take some time, along with timing info
 //MODE = 'count'    # collect count of number of times each component is rendered; call get_render_count and reset_render_count to see.
 //MODE = 'time'      # show every single component render and how long it took
+
+// smc is a global variable in the frontend.
 
 if (typeof smc === "undefined" || smc === null) {
   MODE = "default"; // never enable in prod
