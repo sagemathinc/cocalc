@@ -1,7 +1,5 @@
 /*
 
-*/
-
 import { Map } from "immutable";
 import { React, Component, Rendered, rtypes, rclass } from "../../app-framework";
 
@@ -48,3 +46,4 @@ class Print extends Component<Props, {}> {
 
 const tmp0 = rclass(Print);
 //export { tmp0 as Print };
+*/
