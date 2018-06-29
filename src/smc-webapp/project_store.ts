@@ -24,6 +24,12 @@
 //
 //##############################################################################
 let wrapped_editors;
+
+// TODO: we should refactor our code to now have these window/document references
+// in *this* file.  This very code (all the redux/store stuff) is used via node.js
+// in projects, so should not reference window or document.
+
+declare var window, document;
 if (typeof window !== "undefined" && window !== null) {
   // don't import in case not in browser (for testing)
   wrapped_editors = require("./editor_react_wrapper");
