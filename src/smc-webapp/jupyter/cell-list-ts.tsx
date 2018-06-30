@@ -193,7 +193,7 @@ export class CellList extends Component<CellListProps> {
     );
   }
 
-  on_click(e) {
+  on_click = (e) => {
     this.props.actions.clear_complete();
     if ($(e.target).hasClass("cocalc-complete")) {
       // Bootstrap simulates a click even when user presses escape; can't catch there.
