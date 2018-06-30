@@ -12,18 +12,18 @@ opts_chunk$set(cache=TRUE, autodep=TRUE)
 options(formatR.arrow=TRUE, width=90)
 @
 
-\title{Knitr in SMC}
+\title{Knitr in CoCalc}
 
 \author{Author Name}
 
 \maketitle
 
 <<summary>>=
-x <- c(2,3,4,5,1,2,3,2,1)
+x <- c(2,1,7,4,4,5,4,6,4,5,4,3,4,5,1)
 summary(x)
 @
 
-<<histogram-plot, fig.width=4, fig.height=4, out.width='.4\\linewidth'>>=
+<<histogram-plot, fig.width=4, fig.height=4, out.width='.5\\linewidth'>>=
 hist(x)
 @
 
