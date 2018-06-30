@@ -40,7 +40,7 @@ export function cm_options(mode: any, editor_settings?: any, line_numbers?: any,
     foldGutter: editor_settings.code_folding,
     lineWrapping: true,
     readOnly: read_only,
-    indentWithTabs: editor_settings.spaces_instead_of_tabs,
+    indentWithTabs: !editor_settings.spaces_instead_of_tabs,
     showCursorWhenSelecting: true,
     extraKeys: {}
     // NOTE: "keyMap" and other properties listed below must not appear here as "undefined"
