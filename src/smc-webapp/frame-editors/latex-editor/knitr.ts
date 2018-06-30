@@ -15,7 +15,7 @@ export async function knitr(
   status: Function
 ): Promise<ExecOutput> {
   const { directory, filename } = parse_path(path);
-  const cmd: string = `echo 'require(knitr); opts_knit$set(concordance = TRUE); knit("${filename}")' | ${R_CMD}`;
+  const cmd: string = `echo 'require(knitr); opts_knit$set(concordance = TRUE, progress = FALSE); knit("${filename}")' | ${R_CMD}`;
   status(`running ${cmd}`);
   return exec({
     allow_post: false, // definitely could take a long time to fully run Rweave
