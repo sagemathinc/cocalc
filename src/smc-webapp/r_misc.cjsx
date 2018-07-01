@@ -2056,10 +2056,11 @@ exports.ErrorBoundary = rclass
                     <Icon name='exclamation-triangle'/> Oh noes!! Well this is embarrasing... 😬
                 </h2>
                 <h4>
-                    {"We've already been notified of this error and are hard at work fixing it."}
+                    {"We have been notified of this error. You must refresh your browser."}
                 </h4>
-                {"If you'd like to expidite the bug fixing, please file a support ticket describing what you were trying to do when the error occured."}
-                <Button onClick={console.log "TODO"}>
+                {"If you'd like to expedite the bug fixing, please file a support ticket describing what you were trying to do when the error occured."}
+                <br/>
+                <Button onClick={=>redux.getActions('support').show(true)}>
                     Create Ticket
                 </Button>
                 <details style={whiteSpace:'pre-wrap', cursor:'pointer'} >

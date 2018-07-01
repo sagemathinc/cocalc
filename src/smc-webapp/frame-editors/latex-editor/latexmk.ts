@@ -3,13 +3,13 @@ Convert LaTeX file to PDF using latexmk.
 */
 
 import { exec, ExecOutput } from "../generic/client";
-import { path_split } from "../generic/misc";
+import { path_split, change_filename_extension } from "../generic/misc";
 
 export async function latexmk(
   project_id: string,
   path: string,
   build_command: string | string[],
-  time: number, // (ms since epoch)  used to aggregate multiple calls into one across all users.
+  time: number | undefined, // (ms since epoch)  used to aggregate multiple calls into one across all users.
   status: Function
 ): Promise<ExecOutput> {
   const x = path_split(path);
@@ -42,7 +42,11 @@ export async function latexmk(
 
 export type Engine = "PDFLaTeX" | "XeLaTeX" | "LuaTex";
 
-export function build_command(engine: Engine, filename: string): string[] {
+export function build_command(
+  engine: Engine,
+  filename: string,
+  knitr: boolean
+): string[] {
   /*
   errorstopmode recommended by
   http://tex.stackexchange.com/questions/114805/pdflatex-nonstopmode-with-tikz-stops-compiling
@@ -62,6 +66,9 @@ export function build_command(engine: Engine, filename: string): string[] {
     case "LuaTex":
       name = "lualatex";
       break;
+  }
+  if (knitr) {
+    filename = change_filename_extension(filename, "tex");
   }
   /*
     -f: force even when there are errors

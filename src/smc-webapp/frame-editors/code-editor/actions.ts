@@ -256,8 +256,8 @@ export class Actions<T = CodeEditorState> extends BaseActions<
   // This is currently NOT used in this base class.  It's used in other
   // editors to store shared configuration or other information.  E.g., it's
   // used by the latex editor to store the build command, master file, etc.
-  _init_syncdb(primary_keys: string[], string_cols?: string[]): void {
-    const aux = aux_file(this.path, "syncdb");
+  _init_syncdb(primary_keys: string[], string_cols?: string[], path?: string): void {
+    const aux = aux_file(path || this.path, "syncdb");
     this._syncdb = syncdb({
       project_id: this.project_id,
       path: aux,
