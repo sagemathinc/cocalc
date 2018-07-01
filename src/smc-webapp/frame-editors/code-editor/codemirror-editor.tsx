@@ -255,7 +255,20 @@ export class CodemirrorEditor extends Component<Props, State> {
       // than creating a new one -- faster and preserves
       // state such as code folding.
       let key: string;
-      for (key in options) {
+      for (key of [
+        "lineNumbers",
+        "showTrailingSpace",
+        "indentUnit",
+        "tabSize",
+        "smartIndent",
+        "electricChars",
+        "matchBrackets",
+        "autoCloseBrackets",
+        "autoCloseLatex",
+        "lineWrapping",
+        "indentWithTabs",
+        "theme"
+      ]) {
         if (!isEqual(cm.options[key], options[key])) {
           cm.setOption(key, options[key]);
         }
