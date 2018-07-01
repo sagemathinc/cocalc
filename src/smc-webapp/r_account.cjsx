@@ -21,7 +21,7 @@
 
 {React, ReactDOM, rtypes, rclass, redux}  = require('./app-framework')
 
-{Button, ButtonToolbar, Checkbox, Panel, Grid, Row, Col, FormControl, FormGroup, Well, Modal, ProgressBar, Alert} = require('react-bootstrap')
+{Button, ButtonToolbar, Checkbox, Panel, Grid, Row, Col, FormControl, FormGroup, Well, Modal, ProgressBar, Alert, Radio} = require('react-bootstrap')
 
 {ErrorDisplay, Icon, LabeledRow, Loading, NumberInput, Saving, SelectorInput, Tip, Footer, Space} = require('./r_misc')
 
@@ -739,52 +739,6 @@ ProfileSettings = rclass
     onColorChange: (value) ->
         @props.redux.getTable('account').set(profile : {color: value})
 
-    onGravatarSelect: (e) ->
-        if e.target.checked
-            email = @props.email_address
-            gravatar_url = "https://www.gravatar.com/avatar/#{md5 email.toLowerCase()}?d=identicon&s=#{30}"
-            @props.redux.getTable('account').set(profile : {image: gravatar_url})
-        else
-            @props.redux.getTable('account').set(profile : {image: ""})
-
-    render_gravatar_button: ->
-        <Button bsStyle='info' onClick={=>@setState(show_instructions:true)}>
-            Set Gravatar...
-        </Button>
-
-    render_instruction_well: ->
-        <Well style={marginTop:'10px', marginBottom:'10px'}>
-            Go to the <a href="https://en.gravatar.com" target="_blank"> Wordpress Gravatar site </a> and
-            sign in (or create an account) using {@props.email_address}.
-            <br/><br/>
-            <br/><br/>
-            <Button onClick={=>@setState(show_instructions:false)}>
-                Close
-            </Button>
-        </Well>
-
-    render_gravatar_needs_email: ->
-        <div className="lighten">
-            Gravatar only available if you set an email address in the account settings panel above.
-        </div>
-
-    render_set_gravatar: ->
-        if not @props.email_address
-            return @render_gravatar_needs_email()
-        <Row>
-            <Col md={6} key='checkbox'>
-                <Checkbox
-                    ref      = "checkbox"
-                    checked  = {!!@props.profile.get('image')}
-                    onChange = {@onGravatarSelect}>
-                    Use gravatar
-                </Checkbox>
-            </Col>
-            <Col md={6} key='set'>
-                {@render_gravatar_button() if not @state.show_instructions}
-            </Col>
-        </Row>
-
     render_header: ->
         <h2>
             <Avatar
@@ -796,6 +750,61 @@ ProfileSettings = rclass
             Profile
         </h2>
 
+    handleImageOptions: (e) ->
+        state = e.target.value
+        if state == "gravatar"
+            url = @get_gravatar_url()
+        else if state == "adorable"
+            url = @get_adorable_url()
+        else if state == "custom"
+            @setState({show_image_upload: true})
+        else if state == "default"
+            url = @get_default_url()
+        @props.redux.getTable('account').set(profile : {image: url})
+
+    get_gravatar_url: -> "https://www.gravatar.com/avatar/#{md5 @props.email_address.toLowerCase()}?d=identicon&s=#{30}"
+
+    get_adorable_url: -> "https://api.adorable.io/avatars/100/#{md5 @props.email_address.toLowerCase()}.png"
+
+    get_default_url: -> ""
+
+    get_custom_url: -> @props.profile.get("image_custom")
+
+    handle_image_file_upload: (e) ->
+        console.log(e.target)
+        console.log(e.target.files)
+        files = e.target.files
+        if (files.length > 0) and (files[0].type.startsWith("image/"))
+            file = files[0]
+        if file == null
+            return
+        reader = new FileReader()
+        reader.onload = (e) =>
+            console.log e.target.result
+            @props.redux.getTable('account').set(profile : {image: e.target.result})
+        reader.readAsDataURL(file)
+
+    render_image_options: ->
+        image = @props.profile.get("image")
+        if image == @get_gravatar_url()
+            state = "gravatar"
+        else if image == @get_adorable_url()
+            state = "adorable"
+        else if image == @get_default_url()
+            state = "default"
+        else if image?.startsWith?("data:image")
+            state = "custom"
+        <FormGroup>
+            <Radio name="profile_image_options" value="default" checked={state == "default"} onChange={@handleImageOptions} inline>Default (first letter of your name)</Radio>
+            <br/>
+            <Radio name="profile_image_options" value="gravatar" checked={state == "gravatar"} onChange={@handleImageOptions} inline>Gravatar (see <a href="https://en.gravatar.com/">here</a>).</Radio>
+            <br/>
+            <Radio name="profile_image_options" value="adorable" checked={state == "adorable"} onChange={@handleImageOptions} inline>Adorable</Radio>
+            <br/>
+            <Radio name="profile_image_options" value="custom" checked={state == "custom"} onChange={@handleImageOptions} inline>Custom</Radio>
+            {if @state.show_image_upload then <label>Upload file: <input type="file" onChange={@handle_image_file_upload}/></label> else undefined}
+        </FormGroup>
+
     render: ->
         if not @props.account_id? or not @props.profile?
             return <Loading />
@@ -804,7 +813,7 @@ ProfileSettings = rclass
                 <ColorPicker color={@props.profile.get('color')} style={maxWidth:"150px"} onChange={@onColorChange}/>
             </LabeledRow>
             <LabeledRow label='Picture'>
-                {if @state.show_instructions then @render_instruction_well() else @render_set_gravatar()}
+                {@render_image_options()}
              </LabeledRow>
         </Panel>
 
