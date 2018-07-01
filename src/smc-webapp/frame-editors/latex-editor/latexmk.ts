@@ -9,7 +9,7 @@ export async function latexmk(
   project_id: string,
   path: string,
   build_command: string | string[],
-  time: number, // (ms since epoch)  used to aggregate multiple calls into one across all users.
+  time: number | undefined, // (ms since epoch)  used to aggregate multiple calls into one across all users.
   status: Function
 ): Promise<ExecOutput> {
   const x = path_split(path);

@@ -774,10 +774,27 @@ export class FrameTitleBar extends Component<Props, {}> {
         disabled={!!this.props.status}
         bsSize={this.button_size()}
         key={"build"}
-        onClick={() => this.props.actions.build(this.props.id)}
+        onClick={() => this.props.actions.build(this.props.id, false)}
         title={"Build project"}
       >
         <Icon name={"play-circle"} /> <VisibleMDLG>Build</VisibleMDLG>
+      </Button>
+    );
+  }
+
+  render_force_build(): Rendered {
+    if (!this.is_visible("force_build", true)) {
+      return;
+    }
+    return (
+      <Button
+        disabled={!!this.props.status}
+        bsSize={this.button_size()}
+        key={"force-build"}
+        onClick={() => this.props.actions.force_build(this.props.id)}
+        title={"Force rebuild entire project"}
+      >
+        <Icon name={"play"} /> <VisibleMDLG>Force Rebuild</VisibleMDLG>
       </Button>
     );
   }
@@ -845,6 +862,7 @@ export class FrameTitleBar extends Component<Props, {}> {
     const v: Rendered[] = [];
     v.push(this.render_save_timetravel_group());
     v.push(this.render_build());
+    v.push(this.render_force_build());
     v.push(this.render_sync());
     v.push(this.render_clean());
     v.push(this.render_format());

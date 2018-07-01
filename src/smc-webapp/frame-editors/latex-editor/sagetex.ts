@@ -50,6 +50,6 @@ export async function sagetex(
     project_id: project_id,
     path: directory,
     err_on_exit: false,
-    aggregate: { value: hash } // thought by hsy: but what if the computation has randomized aspects?
+    aggregate: hash ? { value: hash } : undefined
   });
 }

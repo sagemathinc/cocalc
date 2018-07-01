@@ -98,7 +98,7 @@ export class Actions extends BaseActions<LatexEditorState> {
   _init_first_build(): void {
     const f = () => {
       if (this.store.get("is_loaded")) {
-        this.build();
+        this.build("", false);
       }
     };
     this._syncstring.once("init", f);
@@ -111,7 +111,7 @@ export class Actions extends BaseActions<LatexEditorState> {
     this._syncstring.on("save-to-disk", time => {
       this._last_save_time = time;
       if (account && account.getIn(["editor_settings", "build_on_save"])) {
-        this.build();
+        this.build("", false);
       }
     });
   }
@@ -192,8 +192,28 @@ export class Actions extends BaseActions<LatexEditorState> {
     }
   }
 
+  _forget_pdf_document(): void {
+    forgetDocument(
+      url_to_pdf(
+        this.project_id,
+        this.path,
+        this.store.unsafe_getIn(["reload", VIEWERS[0]])
+      )
+    );
+  }
+
+  close(): void {
+    this._forget_pdf_document();
+    super.close();
+  }
+
+  // supports the "Force Rebuild" button.
+  async force_build(id: string) : Promise<void> {
+    await this.build(id, true);
+  }
+
   // used by generic framework.
-  async build(id?: string): Promise<void> {
+  async build(id: string, force: boolean): Promise<void> {
     if (id) {
       const cm = this._get_cm(id);
       if (cm) {
@@ -206,7 +226,7 @@ export class Actions extends BaseActions<LatexEditorState> {
     this.is_building = true;
     try {
       await this.save(false);
-      await this.run_build(this._last_save_time);
+      await this.run_build(this._last_save_time, force);
     } finally {
       this.is_building = false;
     }
@@ -216,22 +236,22 @@ export class Actions extends BaseActions<LatexEditorState> {
     this.build_action("clean");
   }
 
-  async run_build(time: number): Promise<void> {
+  async run_build(time: number, force: boolean): Promise<void> {
     this.setState({ build_logs: Map() });
     if (this.knitr) {
-      await this.run_knitr(time);
+      await this.run_knitr(time, force);
     }
-    await this.run_latex(time);
+    await this.run_latex(time, force);
     if (this.knitr) {
-      await this.run_patch_synctex(time);
+      await this.run_patch_synctex(time, force);
     }
     const s = this.store.unsafe_getIn(["build_logs", "latex", "stdout"]);
     if (typeof s == "string" && s.indexOf("sagetex.sty") != -1) {
-      await this.run_sagetex(time);
+      await this.run_sagetex(time, force);
     }
   }
 
-  async run_knitr(time: number): Promise<void> {
+  async run_knitr(time: number, force: boolean): Promise<void> {
     let output: BuildLog;
     const status = s => this.set_status(`Running Knitr... ${s}`);
     status("");
@@ -240,7 +260,7 @@ export class Actions extends BaseActions<LatexEditorState> {
       output = await knitr(
         this.project_id,
         this.filename_rnw,
-        time || this._last_save_time,
+        force ? undefined : (time || this._last_save_time),
         status
       );
     } catch (err) {
@@ -252,14 +272,14 @@ export class Actions extends BaseActions<LatexEditorState> {
     this.set_build_logs({ knitr: output });
   }
 
-  async run_patch_synctex(time: number): Promise<void> {
+  async run_patch_synctex(time: number, force: boolean): Promise<void> {
     const status = s => this.set_status(`Running Knitr/Synctex... ${s}`);
     status("");
     try {
       await patch_synctex(
         this.project_id,
         this.path,
-        time || this._last_save_time,
+        force ? undefined : (time || this._last_save_time),
         status
       );
     } catch (err) {
@@ -270,7 +290,7 @@ export class Actions extends BaseActions<LatexEditorState> {
     }
   }
 
-  async run_latex(time: number): Promise<void> {
+  async run_latex(time: number, force: boolean): Promise<void> {
     let output: BuildLog;
     let build_command: string | string[];
     let s: string | List<string> = this.store.get("build_command");
@@ -291,7 +311,7 @@ export class Actions extends BaseActions<LatexEditorState> {
         this.project_id,
         this.path,
         build_command,
-        time || this._last_save_time,
+        force ? undefined : (time || this._last_save_time),
         status
       );
     } catch (err) {
@@ -326,28 +346,13 @@ export class Actions extends BaseActions<LatexEditorState> {
     }
   }
 
-  _forget_pdf_document(): void {
-    forgetDocument(
-      url_to_pdf(
-        this.project_id,
-        this.path,
-        this.store.unsafe_getIn(["reload", VIEWERS[0]])
-      )
-    );
-  }
-
-  close(): void {
-    this._forget_pdf_document();
-    super.close();
-  }
-
-  async run_bibtex(time: number): Promise<void> {
+  async run_bibtex(time: number, force: boolean): Promise<void> {
     this.set_status("Running BibTeX...");
     try {
       const output: BuildLog = await bibtex(
         this.project_id,
         this.path,
-        time || this._last_save_time
+        force ? undefined : (time || this._last_save_time)
       );
       this.set_build_logs({ bibtex: output });
     } catch (err) {
@@ -356,11 +361,12 @@ export class Actions extends BaseActions<LatexEditorState> {
     this.set_status("");
   }
 
-  async run_sagetex(time: number): Promise<void> {
+  async run_sagetex(time: number, force: boolean): Promise<void> {
     const status = s => this.set_status(`Running SageTeX... ${s}`);
     status("");
     // First compute hash of sagetex file.
-    let hash: string;
+    let hash: string = '';
+    if (!force) {
     try {
       hash = await sagetex_hash(this.project_id, this.path, time, status);
       if (hash === this._last_sagetex_hash) {
@@ -372,7 +378,8 @@ export class Actions extends BaseActions<LatexEditorState> {
       return;
     } finally {
       this.set_status("");
-    }
+
+      }}
 
     try {
       // Next run Sage.
@@ -386,7 +393,7 @@ export class Actions extends BaseActions<LatexEditorState> {
       // Now run latex again, since we had to run sagetex, which changes
       // the sage output. This +1 forces re-running latex... but still dedups
       // it in case of multiple users.
-      await this.run_latex(time + 1);
+      await this.run_latex(time + 1, force);
     } catch (err) {
       this.set_error(err);
     } finally {
@@ -519,20 +526,23 @@ export class Actions extends BaseActions<LatexEditorState> {
     this.set_status("");
   }
 
-  async build_action(action: string): Promise<void> {
+  async build_action(action: string, force?: boolean): Promise<void> {
+    if (force === undefined) {
+      force = false;
+    }
     let now: number = server_time().valueOf();
     switch (action) {
       case "build":
-        this.run_build(now);
+        this.run_build(now, false);
         return;
       case "latex":
-        this.run_latex(now);
+        this.run_latex(now, false);
         return;
       case "bibtex":
-        this.run_bibtex(now);
+        this.run_bibtex(now, false);
         return;
       case "sagetex":
-        this.run_sagetex(now);
+        this.run_sagetex(now, false);
         return;
       case "clean":
         this.run_clean();

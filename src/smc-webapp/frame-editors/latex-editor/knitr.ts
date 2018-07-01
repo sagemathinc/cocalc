@@ -11,7 +11,7 @@ const R_CMD = "R --no-save --no-restore --quiet --no-readline";
 export async function knitr(
   project_id: string,
   path: string, // pass in this.filename_rnw
-  time: number,
+  time: number | undefined,
   status: Function
 ): Promise<ExecOutput> {
   const { directory, filename } = parse_path(path);
@@ -25,14 +25,14 @@ export async function knitr(
     project_id: project_id,
     path: directory,
     err_on_exit: false,
-    aggregate: { value: time } // one might think to aggregate on hash, but the output could be random!
+    aggregate:time ? { value: time } : undefined // one might think to aggregate on hash, but the output could be random!
   });
 }
 
 export async function patch_synctex(
   project_id: string,
   path: string, // pass in the actual .tex file path
-  time: number,
+  time: number | undefined,
   status: Function
 ) {
   const { directory, filename } = parse_path(path);
@@ -46,6 +46,6 @@ export async function patch_synctex(
     project_id: project_id,
     path: directory,
     err_on_exit: false,
-    aggregate: { value: time }
+    aggregate: time ? { value: time } : undefined
   });
 }
