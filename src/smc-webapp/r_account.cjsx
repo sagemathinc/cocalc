@@ -759,16 +759,14 @@ ProfileSettings = rclass
         else if state == "custom"
             @setState({show_image_upload: true})
         else if state == "default"
-            url = @get_default_url()
+            url = @get_default_image_url()
         @props.redux.getTable('account').set(profile : {image: url})
 
     get_gravatar_url: -> "https://www.gravatar.com/avatar/#{md5 @props.email_address.toLowerCase()}?d=identicon&s=#{30}"
 
     get_adorable_url: -> "https://api.adorable.io/avatars/100/#{md5 @props.email_address.toLowerCase()}.png"
 
-    get_default_url: -> ""
-
-    get_custom_url: -> @props.profile.get("image_custom")
+    get_default_image_url: -> ""
 
     handle_image_file_upload: (e) ->
         console.log(e.target)
@@ -778,11 +776,44 @@ ProfileSettings = rclass
             file = files[0]
         if file == null
             return
+        @handle_profile_image_file file
+
+    handle_profile_image_file: (file) ->
+        if typeof file == "string"
+            @props.redux.getTable('account').set(profile : {image: file})
+            return
         reader = new FileReader()
         reader.onload = (e) =>
-            console.log e.target.result
             @props.redux.getTable('account').set(profile : {image: e.target.result})
         reader.readAsDataURL(file)
+
+    handle_image_file_drop: (e) ->
+        e?.preventDefault?()
+        items = e.dataTransfer.files
+        for item in items
+            if item.type.startsWith("image/")
+                @handle_profile_image_file(item.getAsFile())
+                return
+        text = e.dataTransfer.getData("text") || ""
+        if text.startsWith("http")
+            @handle_profile_image_file(text)
+
+    handle_image_file_paste: (e) ->
+        e?.preventDefault?()
+        items = e.clipboardData.items
+        for item in items
+            if item.type.startsWith("image/")
+                @handle_profile_image_file(item.getAsFile())
+                return
+        text = e.clipboardData.getData("text") || ""
+        if text.startsWith("http") or text.startsWith("data:image")
+            @handle_profile_image_file(text)
+
+    handle_image_file_input: (e) ->
+        e?.preventDefault?()
+        files = e.target.files
+        if (files.length > 0) and (files[0].type.startsWith("image/"))
+            @handle_profile_image_file files[0]
 
     render_image_options: ->
         image = @props.profile.get("image")
@@ -790,7 +821,7 @@ ProfileSettings = rclass
             state = "gravatar"
         else if image == @get_adorable_url()
             state = "adorable"
-        else if image == @get_default_url()
+        else if image == @get_default_image_url()
             state = "default"
         else if image?.startsWith?("data:image")
             state = "custom"
@@ -801,8 +832,15 @@ ProfileSettings = rclass
             <br/>
             <Radio name="profile_image_options" value="adorable" checked={state == "adorable"} onChange={@handleImageOptions} inline>Adorable</Radio>
             <br/>
-            <Radio name="profile_image_options" value="custom" checked={state == "custom"} onChange={@handleImageOptions} inline>Custom</Radio>
-            {if @state.show_image_upload then <label>Upload file: <input type="file" onChange={@handle_image_file_upload}/></label> else undefined}
+            <div
+                onDrop={@handle_image_file_drop}
+                onPaste={@handle_image_file_paste}
+                style={{cursor:"pointer",minWidth:"100px",minHeight:"100px",display:"block",border:"2px solid black",padding:"10px",margin:"5px"}}
+            >
+                Drag or paste an image here or upload one.
+                <br/>
+                <input type="file" onChange={@handle_image_file_input}/>
+            </div>
         </FormGroup>
 
     render: ->
