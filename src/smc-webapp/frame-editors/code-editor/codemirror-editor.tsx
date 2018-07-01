@@ -207,7 +207,7 @@ export class CodemirrorEditor extends Component<Props, State> {
     if (this.cm == null || this.props.is_public) {
       return;
     }
-    this.props.actions.set_syncstring_to_codemirror();
+    this.props.actions.set_syncstring_to_codemirror(this.props.id);
     this.props.actions.syncstring_save();
   }
 
@@ -319,6 +319,7 @@ export class CodemirrorEditor extends Component<Props, State> {
         this.cm.setValue(this.props.value);
       }
     } else {
+      /*
       if (!doc.has_doc(this.props.project_id, this.props.path)) {
         // save it to cache so can be used by other components/editors
         doc.set_doc(this.props.project_id, this.props.path, this.cm);
@@ -328,6 +329,7 @@ export class CodemirrorEditor extends Component<Props, State> {
           doc.get_linked_doc(this.props.project_id, this.props.path)
         );
       }
+      */
     }
 
     const save_editor_state = throttle(() => this.save_editor_state(), 250);

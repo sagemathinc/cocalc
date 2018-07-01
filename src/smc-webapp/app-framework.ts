@@ -599,6 +599,7 @@ class Redux extends React.Component {
 // complete list of options, see app-framework/react-rendering-debug.ts.
 rclass = debug_transform(rclass, MODES.default);
 //rclass = debug_transform(rclass, MODES.count);
+//rclass = debug_transform(rclass, MODES.verbose);
 
 export const Component = React.Component;
 export type Rendered = React.ReactElement<any> | undefined;

@@ -256,7 +256,11 @@ export class Actions<T = CodeEditorState> extends BaseActions<
   // This is currently NOT used in this base class.  It's used in other
   // editors to store shared configuration or other information.  E.g., it's
   // used by the latex editor to store the build command, master file, etc.
-  _init_syncdb(primary_keys: string[], string_cols?: string[], path?: string): void {
+  _init_syncdb(
+    primary_keys: string[],
+    string_cols?: string[],
+    path?: string
+  ): void {
     const aux = aux_file(path || this.path, "syncdb");
     this._syncdb = syncdb({
       project_id: this.project_id,
@@ -804,7 +808,7 @@ export class Actions<T = CodeEditorState> extends BaseActions<
   // so the information can propogate to other users via the syncstring.
   set_cursor_locs(locs: any[]): void {
     if (!this._syncstring) {
-      return;  // not currently valid.
+      return; // not currently valid.
     }
     if (locs.length === 0) {
       // don't remove on blur -- cursor will fade out just fine
@@ -1086,11 +1090,15 @@ export class Actions<T = CodeEditorState> extends BaseActions<
   }
 
   set_syncstring_to_codemirror(id?: string): void {
+    console.log('set_syncstring', id);
     const cm = this._get_cm(id);
     if (!cm) {
       return;
     }
     this.set_syncstring(cm.getValue());
+    if (id) {
+      this.set_codemirror_to_syncstring(id);
+    }
   }
 
   set_syncstring(value: string): void {
@@ -1102,9 +1110,18 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     return this._syncstring.emit("change");
   }
 
-  set_codemirror_to_syncstring(): void {
+  set_codemirror_to_syncstring(exclude_id?: string): void {
+    console.log('set_codemirror', exclude_id);
     // NOTE: we fallback to getting the underling CM doc, in case all actual
     // cm code-editor frames have been closed (or just aren't visible).
+    let cm: CodeMirror.Editor;
+    let id: string;
+    for (id in this._cm) {
+      if (id == exclude_id) {
+        continue;
+      }
+      cm = this._cm[id];
+      /*
     let cm: any = this._get_cm(undefined, true);
     if (!cm) {
       try {
@@ -1113,7 +1130,9 @@ export class Actions<T = CodeEditorState> extends BaseActions<
         return;
       }
     }
-    cm.setValueNoJump(this._syncstring.to_str());
+    */
+      cm.setValueNoJump(this._syncstring.to_str());
+    }
     this.update_save_status();
   }
 
