@@ -93,12 +93,12 @@ interface File {
   files: string[];
 }
 
-export interface ProcessedLatexLog {
-  errors: Error[];
-  warnings: Error[];
-  typesetting: Error[];
-  all: Error[];
-  files: string[];
+export class ProcessedLatexLog {
+  errors: Error[] = [];
+  warnings: Error[] = [];
+  typesetting: Error[] = [];
+  all: Error[] = [];
+  files: string[] = [];
 }
 
 export class LatexParser {

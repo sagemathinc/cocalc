@@ -4,7 +4,13 @@ Show errors and warnings.
 
 import { Map } from "immutable";
 import { capitalize, is_different, path_split } from "../generic/misc";
-import { Component, React, rclass, rtypes, Rendered } from "../../app-framework";
+import {
+  Component,
+  React,
+  rclass,
+  rtypes,
+  Rendered
+} from "../../app-framework";
 import { TypedMap } from "../../app-framework/TypedMap";
 
 import { BuildLogs } from "./actions";

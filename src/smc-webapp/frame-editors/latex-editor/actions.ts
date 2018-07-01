@@ -12,7 +12,7 @@ import {
 } from "../code-editor/actions";
 import { latexmk, build_command } from "./latexmk";
 import { sagetex, sagetex_hash } from "./sagetex";
-import { knitr, patch_synctex } from "./knitr";
+import { knitr, patch_synctex, knitr_errors } from "./knitr";
 import * as synctex from "./synctex";
 import { bibtex } from "./bibtex";
 import { server_time, ExecOutput } from "../generic/client";
@@ -33,7 +33,7 @@ import {
 } from "../generic/misc";
 import { IBuildSpecs } from "./build";
 
-interface BuildLog extends ExecOutput {
+export interface BuildLog extends ExecOutput {
   parse?: ProcessedLatexLog;
 }
 
@@ -208,7 +208,7 @@ export class Actions extends BaseActions<LatexEditorState> {
   }
 
   // supports the "Force Rebuild" button.
-  async force_build(id: string) : Promise<void> {
+  async force_build(id: string): Promise<void> {
     await this.build(id, true);
   }
 
@@ -239,7 +239,8 @@ export class Actions extends BaseActions<LatexEditorState> {
   async run_build(time: number, force: boolean): Promise<void> {
     this.setState({ build_logs: Map() });
     if (this.knitr) {
-      await this.run_knitr(time, force);
+      let knitr_errors = await this.run_knitr(time, force);
+      if (knitr_errors) return;
     }
     await this.run_latex(time, force);
     if (this.knitr) {
@@ -251,7 +252,7 @@ export class Actions extends BaseActions<LatexEditorState> {
     }
   }
 
-  async run_knitr(time: number, force: boolean): Promise<void> {
+  async run_knitr(time: number, force: boolean): Promise<boolean> {
     let output: BuildLog;
     const status = s => this.set_status(`Running Knitr... ${s}`);
     status("");
@@ -260,16 +261,31 @@ export class Actions extends BaseActions<LatexEditorState> {
       output = await knitr(
         this.project_id,
         this.filename_rnw,
-        force ? undefined : (time || this._last_save_time),
+        force ? undefined : time || this._last_save_time,
         status
       );
     } catch (err) {
       this.set_error(err);
-      return;
+      return true;
     } finally {
       this.set_status("");
     }
+    output.parse = knitr_errors(output);
+    console.log(output.parse);
     this.set_build_logs({ knitr: output });
+    this.clear_gutter("Codemirror-latex-errors");
+    update_gutters({
+      path: this.path,
+      log: output.parse,
+      set_gutter: (line, component) => {
+        this.set_gutter_marker({
+          line,
+          component,
+          gutter_id: "Codemirror-latex-errors"
+        });
+      }
+    });
+    return output.parse.all.length > 0;
   }
 
   async run_patch_synctex(time: number, force: boolean): Promise<void> {
@@ -279,7 +295,7 @@ export class Actions extends BaseActions<LatexEditorState> {
       await patch_synctex(
         this.project_id,
         this.path,
-        force ? undefined : (time || this._last_save_time),
+        force ? undefined : time || this._last_save_time,
         status
       );
     } catch (err) {
@@ -311,7 +327,7 @@ export class Actions extends BaseActions<LatexEditorState> {
         this.project_id,
         this.path,
         build_command,
-        force ? undefined : (time || this._last_save_time),
+        force ? undefined : time || this._last_save_time,
         status
       );
     } catch (err) {
@@ -322,6 +338,7 @@ export class Actions extends BaseActions<LatexEditorState> {
     output.parse = new LatexParser(output.stdout, {
       ignoreDuplicates: true
     }).parse();
+    console.log(output.parse);
     this.set_build_logs({ latex: output });
     this.check_for_fatal_error();
     this.clear_gutter("Codemirror-latex-errors");
@@ -352,7 +369,7 @@ export class Actions extends BaseActions<LatexEditorState> {
       const output: BuildLog = await bibtex(
         this.project_id,
         this.path,
-        force ? undefined : (time || this._last_save_time)
+        force ? undefined : time || this._last_save_time
       );
       this.set_build_logs({ bibtex: output });
     } catch (err) {
@@ -365,21 +382,21 @@ export class Actions extends BaseActions<LatexEditorState> {
     const status = s => this.set_status(`Running SageTeX... ${s}`);
     status("");
     // First compute hash of sagetex file.
-    let hash: string = '';
+    let hash: string = "";
     if (!force) {
-    try {
-      hash = await sagetex_hash(this.project_id, this.path, time, status);
-      if (hash === this._last_sagetex_hash) {
-        // no change - nothing to do.
+      try {
+        hash = await sagetex_hash(this.project_id, this.path, time, status);
+        if (hash === this._last_sagetex_hash) {
+          // no change - nothing to do.
+          return;
+        }
+      } catch (err) {
+        this.set_error(err);
         return;
+      } finally {
+        this.set_status("");
       }
-    } catch (err) {
-      this.set_error(err);
-      return;
-    } finally {
-      this.set_status("");
-
-      }}
+    }
 
     try {
       // Next run Sage.
