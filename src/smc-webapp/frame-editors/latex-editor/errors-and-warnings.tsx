@@ -161,6 +161,7 @@ interface ErrorsAndWarningsProps {
   // reduxProps:
   build_logs: BuildLogs;
   status: string;
+  knitr: boolean;
 }
 
 class ErrorsAndWarnings extends Component<ErrorsAndWarningsProps, {}> {
@@ -170,16 +171,19 @@ class ErrorsAndWarnings extends Component<ErrorsAndWarningsProps, {}> {
     return {
       [name]: {
         build_logs: rtypes.immutable.Map,
-        status: rtypes.string
+        status: rtypes.string,
+        knitr: rtypes.bool
       }
     };
   }
 
   shouldComponentUpdate(props): boolean {
     return (
-      is_different(this.props, props, ["status", "font_size"]) ||
+      is_different(this.props, props, ["status", "font_size", "knitr"]) ||
       this.props.build_logs.getIn(["latex", "parse"]) !=
-        props.build_logs.getIn(["latex", "parse"])
+        props.build_logs.getIn(["latex", "parse"]) ||
+      this.props.build_logs.getIn(["knitr", "parse"]) !=
+        props.build_logs.getIn(["knitr", "parse"])
     );
   }
 
@@ -222,9 +226,12 @@ class ErrorsAndWarnings extends Component<ErrorsAndWarningsProps, {}> {
     }
   }
 
-  render_group(group): Rendered {
+  render_group(tool: string, group: string): Rendered {
+    if (tool == "knitr" && !this.props.knitr) {
+      return undefined;
+    }
     const spec: SpecItem = SPEC[group_to_level(group)];
-    const content = this.props.build_logs.getIn(["latex", "parse", group]);
+    const content = this.props.build_logs.getIn([tool, "parse", group]);
     if (!content) {
       return;
     }
@@ -232,7 +239,7 @@ class ErrorsAndWarnings extends Component<ErrorsAndWarningsProps, {}> {
       <div key={group}>
         <h3>
           <Icon name={spec.icon} style={{ color: spec.color }} />{" "}
-          {capitalize(group)}
+          {capitalize(group)} ({capitalize(tool)})
         </h3>
         {this.render_group_content(content)}
       </div>
@@ -264,7 +271,10 @@ class ErrorsAndWarnings extends Component<ErrorsAndWarningsProps, {}> {
         {this.render_hint()}
         {this.render_status()}
         {["errors", "typesetting", "warnings"].map(group =>
-          this.render_group(group)
+          this.render_group("latex", group)
+        )}
+        {["errors", "typesetting", "warnings"].map(group =>
+          this.render_group("knitr", group)
         )}
       </div>
     );
