@@ -55,10 +55,7 @@ Execution halted
 **/
 
 export function knitr_errors(output: BuildLog): ProcessedLatexLog {
-  const all: Error[] = [];
-  const errors: Error[] = [];
-  const warnings: Error[] = [];
-  const typesetting: Error[] = [];
+  const pll = new ProcessedLatexLog();
 
   let file: string = "";
   let err: Error | undefined = undefined;
@@ -75,8 +72,8 @@ export function knitr_errors(output: BuildLog): ProcessedLatexLog {
         content: "",
         raw: ""
       };
-      errors.push(err);
-      all.push(err);
+      pll.errors.push(err);
+      pll.all.push(err);
       continue;
     }
     if (line.substring(line.length - warnmsg.length) == warnmsg) {
@@ -88,8 +85,8 @@ export function knitr_errors(output: BuildLog): ProcessedLatexLog {
         content: "",
         raw: ""
       };
-      warnings.push(err);
-      all.push(err);
+      pll.warnings.push(err);
+      pll.all.push(err);
       continue;
     }
     if (line.search("processing file:") == 0) {
@@ -99,13 +96,7 @@ export function knitr_errors(output: BuildLog): ProcessedLatexLog {
       err.content += `${line}\n`;
     }
   }
-  return {
-    errors,
-    warnings,
-    typesetting,
-    all,
-    files: []
-  };
+  return pll;
 }
 
 export async function patch_synctex(

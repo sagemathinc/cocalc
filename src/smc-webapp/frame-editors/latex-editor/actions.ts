@@ -17,7 +17,7 @@ import * as synctex from "./synctex";
 import { bibtex } from "./bibtex";
 import { server_time, ExecOutput } from "../generic/client";
 import { clean } from "./clean";
-import { LatexParser, ProcessedLatexLog } from "./latex-log-parser";
+import { LatexParser, IProcessedLatexLog } from "./latex-log-parser";
 import { update_gutters } from "./gutters";
 import { pdf_path } from "./util";
 import { forgetDocument, url_to_pdf } from "./pdfjs-doc-cache";
@@ -34,7 +34,7 @@ import {
 import { IBuildSpecs } from "./build";
 
 export interface BuildLog extends ExecOutput {
-  parse?: ProcessedLatexLog;
+  parse?: IProcessedLatexLog;
 }
 
 export type BuildLogs = Map<string, Map<string, any>>;
@@ -267,12 +267,12 @@ export class Actions extends BaseActions<LatexEditorState> {
       );
     } catch (err) {
       this.set_error(err);
-      this.setState({ knitr_error: true});
+      this.setState({ knitr_error: true });
       return;
     } finally {
       this.set_status("");
     }
-    output.parse = knitr_errors(output);
+    output.parse = knitr_errors(output).toJS();
     this.set_build_logs({ knitr: output });
     this.clear_gutter("Codemirror-latex-errors");
     update_gutters({
