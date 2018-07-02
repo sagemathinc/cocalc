@@ -55,8 +55,6 @@ Execution halted
 **/
 
 export function knitr_errors(output: BuildLog): ProcessedLatexLog {
-  let i = 0;
-
   const all: Error[] = [];
   const errors: Error[] = [];
   const warnings: Error[] = [];
@@ -68,7 +66,6 @@ export function knitr_errors(output: BuildLog): ProcessedLatexLog {
   const warnmsg = "Warning message:";
 
   for (let line of output.stderr.split("\n")) {
-    console.log(`line ${i}: ${line}`);
     if (line.search("Error") == 0) {
       err = {
         line: null,
@@ -101,7 +98,6 @@ export function knitr_errors(output: BuildLog): ProcessedLatexLog {
     if (err != undefined) {
       err.content += `${line}\n`;
     }
-    i += 1;
   }
   return {
     errors,

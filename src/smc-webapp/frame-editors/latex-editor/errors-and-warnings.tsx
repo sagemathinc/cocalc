@@ -273,9 +273,7 @@ class ErrorsAndWarnings extends Component<ErrorsAndWarningsProps, {}> {
         {["errors", "typesetting", "warnings"].map(group =>
           this.render_group("latex", group)
         )}
-        {["errors", "typesetting", "warnings"].map(group =>
-          this.render_group("knitr", group)
-        )}
+        {["errors", "warnings"].map(group => this.render_group("knitr", group))}
       </div>
     );
   }

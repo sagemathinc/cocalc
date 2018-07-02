@@ -56,6 +56,7 @@ interface LatexEditorState extends CodeEditorState {
   zoom_page_height: string;
   build_command: string | List<string>;
   knitr: boolean;
+  knitr_error: boolean; // true, if there is a knitr problem
 }
 
 export class Actions extends BaseActions<LatexEditorState> {
@@ -90,7 +91,7 @@ export class Actions extends BaseActions<LatexEditorState> {
         // changing the path to the (to be generated) tex file makes everyting else
         // here compatible with the latex commands
         this.path = change_filename_extension(this.path, "tex");
-        this.setState({ knitr: this.knitr });
+        this.setState({ knitr: this.knitr, knitr_error: false });
       }
     }
   }
@@ -239,8 +240,8 @@ export class Actions extends BaseActions<LatexEditorState> {
   async run_build(time: number, force: boolean): Promise<void> {
     this.setState({ build_logs: Map() });
     if (this.knitr) {
-      let knitr_errors = await this.run_knitr(time, force);
-      if (knitr_errors) return;
+      await this.run_knitr(time, force);
+      if (this.store.get("knitr_error")) return;
     }
     await this.run_latex(time, force);
     if (this.knitr) {
@@ -252,7 +253,7 @@ export class Actions extends BaseActions<LatexEditorState> {
     }
   }
 
-  async run_knitr(time: number, force: boolean): Promise<boolean> {
+  async run_knitr(time: number, force: boolean): Promise<void> {
     let output: BuildLog;
     const status = s => this.set_status(`Running Knitr... ${s}`);
     status("");
@@ -266,12 +267,12 @@ export class Actions extends BaseActions<LatexEditorState> {
       );
     } catch (err) {
       this.set_error(err);
-      return true;
+      this.setState({ knitr_error: true});
+      return;
     } finally {
       this.set_status("");
     }
     output.parse = knitr_errors(output);
-    console.log(output.parse);
     this.set_build_logs({ knitr: output });
     this.clear_gutter("Codemirror-latex-errors");
     update_gutters({
@@ -285,7 +286,7 @@ export class Actions extends BaseActions<LatexEditorState> {
         });
       }
     });
-    return output.parse.all.length > 0;
+    this.setState({ knitr_error: output.parse.all.length > 0 });
   }
 
   async run_patch_synctex(time: number, force: boolean): Promise<void> {
@@ -338,7 +339,6 @@ export class Actions extends BaseActions<LatexEditorState> {
     output.parse = new LatexParser(output.stdout, {
       ignoreDuplicates: true
     }).parse();
-    console.log(output.parse);
     this.set_build_logs({ latex: output });
     this.check_for_fatal_error();
     this.clear_gutter("Codemirror-latex-errors");
