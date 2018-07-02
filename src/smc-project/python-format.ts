@@ -5,7 +5,7 @@ const { spawn } = require("child_process");
 // const { replace_all } = require("smc-util/misc");
 
 interface ParserOptions {
-  parser: string;
+  parser?: string;
   tabWidth?: number;
   useTabs?: boolean;
   util?: string;
@@ -48,7 +48,8 @@ export async function python_format(
   }
 
   // all fine, we read from the temp file
-  let output: string = await callback(readFile, input_path);
+  let output : Buffer = await callback(readFile, input_path);
+  let s : string = output.toString('utf-8');
 
-  return output;
+  return s;
 }
