@@ -27,7 +27,9 @@ if (DEBUG == null) {
   var DEBUG = false;
 }
 
-let rclass: <P extends object>(Component: React.ComponentType<P>) => React.ComponentType<P>;
+let rclass: <P extends object>(
+  Component: React.ComponentType<P>
+) => React.ComponentType<P>;
 
 import * as immutable from "immutable";
 import * as React from "react";
@@ -37,10 +39,12 @@ import { Provider, connect } from "react-redux";
 
 import { Store, StoreConstructorType } from "./app-framework/Store";
 import { Actions } from "./app-framework/Actions";
-import { Table, TableConstructor } from "./app-framework/Table"
+import { Table, TableConstructor } from "./app-framework/Table";
 
-import { ProjectStore } from "./project_store"
-import { ProjectActions } from "./project_actions"
+import { ProjectStore } from "./project_store";
+import { ProjectActions } from "./project_actions";
+
+import { debug_transform, MODES } from "./app-framework/react-rendering-debug";
 
 const misc = require("smc-util/misc");
 
@@ -590,9 +594,15 @@ class Redux extends React.Component {
 //    {@props.children}
 //</Provider>
 
+// Change this line to alter the debugging mode.
+// Only touch this if testing in a browser, e.g., change this to MODES.count.  For a
+// complete list of options, see app-framework/react-rendering-debug.ts.
+rclass = debug_transform(rclass, MODES.default);
+//rclass = debug_transform(rclass, MODES.count);
+
 export const Component = React.Component;
 export type Rendered = React.ReactElement<any> | undefined;
-export { rclass }; // use rclass instead of createReactClass to get access to reduxProps support
+export { rclass }; // use rclass to get access to reduxProps support
 export { rtypes }; // has extra rtypes.immutable, needed for reduxProps to leave value as immutable
 export { computed };
 export { React };

@@ -15,6 +15,7 @@ React Component for displaying the entire page on a mobile device.
 {AccountPage}  = require('./account_page') # SMELL: Not used but gets around a webpack error..
 {FileUsePage}  = require('./file_use')
 {Support}      = require('./support')
+{Avatar}       = require('./other-users')
 
 # SMC Libraries
 misc = require('smc-util/misc')
@@ -37,6 +38,7 @@ PAGE_REDUX_PROPS =
     file_use :
         notify_count      : rtypes.number
     account :
+        account_id        : rtypes.string
         is_logged_in      : rtypes.bool
     support :
         show : rtypes.bool
@@ -86,16 +88,26 @@ Page = rclass
         @setState(show_menu:false)
 
     render_menu: ->
+        if @props.account_id
+            a = <Avatar
+                    size       = {20}
+                    account_id = {@props.account_id}
+                    no_tooltip = {true}
+                    no_loading = {true}
+                    />
+        else
+            a = 'cog'
         <div style={width:'100vw', backgroundColor:'white'}>
             <Nav stacked>
                 <NavTab
                     on_click       = {@close_menu}
                     name           = {'account'}
                     label          = {'Account'}
-                    icon           = {'cog'}
+                    icon           = {a}
                     actions        = {@actions('page')}
                     active_top_tab = {@props.active_top_tab}
                     style          = {width:'100%'}
+                    inner_style    = {padding: '10px', display: 'flex', alignItems: 'center'}
                 />
                 <NavTab
                     on_click       = {@close_menu}
@@ -105,6 +117,7 @@ Page = rclass
                     actions        = {@actions('page')}
                     active_top_tab = {@props.active_top_tab}
                     style          = {width:'100%'}
+                    inner_style    = {padding: '10px', display: 'flex', alignItems: 'center'}
                 />
                 <NavTab
                     label          = {'Help'}
@@ -113,6 +126,7 @@ Page = rclass
                     active_top_tab = {@props.active_top_tab}
                     on_click       = {=>@close_menu(); @actions('support').show(true)}
                     style          = {width:'100%'}
+                    inner_style    = {padding: '10px', display: 'flex', alignItems: 'center'}
                 />
                 {<NotificationBell
                     on_click = {=>@close_menu(); @actions('page').set_active_tab('file-use')}

@@ -16,7 +16,7 @@ export async function sagetex_hash(
   path: string,
   time: number,
   status: Function
-) : Promise<string> {
+): Promise<string> {
   const { base, directory } = parse_path(path); // base, directory, filename
   const s = sagetex_file(base);
   status(`sha1sum ${s}`);
@@ -50,6 +50,6 @@ export async function sagetex(
     project_id: project_id,
     path: directory,
     err_on_exit: false,
-    aggregate: {value: hash}
+    aggregate: hash ? { value: hash } : undefined
   });
 }

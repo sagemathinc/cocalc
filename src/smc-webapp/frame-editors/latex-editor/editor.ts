@@ -74,10 +74,10 @@ const EDITOR_SPEC = {
 
   build: {
     short: "Build",
-    name: "Build Control",
+    name: "Build Control and Log",
     icon: "terminal",
     component: Build,
-    buttons: set(['build', 'clean'])
+    buttons: set(['build', 'force_build', 'clean'])
   },
 
   pdf_embed: {
