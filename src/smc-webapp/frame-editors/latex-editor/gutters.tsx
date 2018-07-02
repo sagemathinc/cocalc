@@ -13,11 +13,11 @@ const { Icon, Tip } = require("smc-webapp/r_misc");
 
 import { SPEC, SpecItem } from "./errors-and-warnings";
 
-import { ProcessedLatexLog, Error } from "./latex-log-parser";
+import { IProcessedLatexLog, Error } from "./latex-log-parser";
 
 export function update_gutters(opts: {
   path: string;
-  log: ProcessedLatexLog;
+  log: IProcessedLatexLog;
   set_gutter: Function;
 }): void {
   let path: string = path_split(opts.path).tail;
