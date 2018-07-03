@@ -792,6 +792,9 @@ schema.projects =
         compute_image :
             type : 'string'
             desc : 'Specify the name of the underlying (kucalc) compute image (default: "latest")'
+        academic :
+            type : 'map'
+            desc : 'Configure (kucalc specific) academic related aspects. (available software, environment, ...)'
 
     pg_indexes : [
         'last_edited',
@@ -821,6 +824,7 @@ schema.projects =
                 action_request : null   # last requested action -- {action:?, time:?, started:?, finished:?, err:?}
                 course         : null
                 compute_image  : 'latest'
+                academic       : {}
         set :
             fields :
                 project_id     : 'project_write'
