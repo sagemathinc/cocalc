@@ -5,7 +5,11 @@ Misc utility functions for manipulating and working wth cells.
 import * as immutable from "immutable";
 const misc = require("smc-util/misc");
 
-export function positions_between(before_pos: number, after_pos: number, num: number) {
+export function positions_between(
+  before_pos: number,
+  after_pos: number,
+  num: number
+) {
   // Return an array of num equally spaced positions starting after
   // before_pos and ending before after_pos, so
   //   [before_pos+delta, before_pos+2*delta, ..., after_pos-delta]
@@ -32,7 +36,11 @@ export function positions_between(before_pos: number, after_pos: number, num: nu
     }
   }
   const v: number[] = [];
-  for (let i = 0, end = num, asc = 0 <= end; asc ? i < end : i > end; asc ? i++ : i--) {
+  for (
+    let i = 0, end = num, asc = 0 <= end;
+    asc ? i < end : i > end;
+    asc ? i++ : i--
+  ) {
     v.push(pos);
     pos += delta;
   }
@@ -86,7 +94,7 @@ export function new_cell_pos(
   cells?: immutable.Map<any, any>,
   cell_list?: immutable.List<string>,
   cur_id?: string,
-  delta?: -1 | 1,
+  delta?: -1 | 1
 ) {
   /*
     Returns pos for a new cell whose position
@@ -135,7 +143,7 @@ export function new_cell_pos(
 export function move_selected_cells(
   v?: string[],
   selected?: { [id: string]: true },
-  delta?: number,
+  delta?: number
 ) {
   /*
     - v = ordered js array of all cell id's
@@ -149,7 +157,7 @@ export function move_selected_cells(
   }
   const w: string[] = [];
   // put selected cells in their proper new positions
-  for (let i = 0; i <= v.length; i++) {
+  for (let i = 0; i < v.length; i++) {
     if (selected[v[i]]) {
       const n = i + delta;
       if (n < 0 || n >= v.length) {
@@ -161,7 +169,7 @@ export function move_selected_cells(
   }
   // now put non-selected in remaining places
   let k = 0;
-  for (let i = 0; i <= v.length; i++) {
+  for (let i = 0; i < v.length; i++) {
     if (!selected[v[i]]) {
       while (w[k] != null) {
         k += 1;
