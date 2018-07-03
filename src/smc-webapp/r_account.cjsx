@@ -756,11 +756,10 @@ ProfileSettings = rclass
             url = @get_gravatar_url()
         else if state == "adorable"
             url = @get_adorable_url()
-        else if state == "custom"
-            @setState({show_image_upload: true})
         else if state == "default"
             url = @get_default_image_url()
-        @props.redux.getTable('account').set(profile : {image: url})
+        if url != undefined
+            @props.redux.getTable('account').set(profile : {image: url})
 
     get_gravatar_url: -> "https://www.gravatar.com/avatar/#{md5 @props.email_address.toLowerCase()}?d=identicon&s=#{30}"
 
@@ -769,8 +768,6 @@ ProfileSettings = rclass
     get_default_image_url: -> ""
 
     handle_image_file_upload: (e) ->
-        console.log(e.target)
-        console.log(e.target.files)
         files = e.target.files
         if (files.length > 0) and (files[0].type.startsWith("image/"))
             file = files[0]
@@ -779,6 +776,7 @@ ProfileSettings = rclass
         @handle_profile_image_file file
 
     handle_profile_image_file: (file) ->
+        @setState({is_dragging_image_over_drop: false})
         if typeof file == "string"
             @props.redux.getTable('account').set(profile : {image: file})
             return
@@ -788,18 +786,19 @@ ProfileSettings = rclass
         reader.readAsDataURL(file)
 
     handle_image_file_drop: (e) ->
-        e?.preventDefault?()
+        e.preventDefault()
+        e.stopPropagation()
         items = e.dataTransfer.files
         for item in items
             if item.type.startsWith("image/")
-                @handle_profile_image_file(item.getAsFile())
+                @handle_profile_image_file(item)
                 return
         text = e.dataTransfer.getData("text") || ""
         if text.startsWith("http")
             @handle_profile_image_file(text)
 
     handle_image_file_paste: (e) ->
-        e?.preventDefault?()
+        e.preventDefault()
         items = e.clipboardData.items
         for item in items
             if item.type.startsWith("image/")
@@ -810,7 +809,7 @@ ProfileSettings = rclass
             @handle_profile_image_file(text)
 
     handle_image_file_input: (e) ->
-        e?.preventDefault?()
+        e.preventDefault()
         files = e.target.files
         if (files.length > 0) and (files[0].type.startsWith("image/"))
             @handle_profile_image_file files[0]
@@ -832,15 +831,30 @@ ProfileSettings = rclass
             <br/>
             <Radio name="profile_image_options" value="adorable" checked={state == "adorable"} onChange={@handleImageOptions} inline>Adorable</Radio>
             <br/>
-            <div
-                onDrop={@handle_image_file_drop}
-                onPaste={@handle_image_file_paste}
-                style={{cursor:"pointer",minWidth:"100px",minHeight:"100px",display:"block",border:"2px solid black",padding:"10px",margin:"5px"}}
-            >
-                Drag or paste an image here or upload one.
-                <br/>
-                <input type="file" onChange={@handle_image_file_input}/>
-            </div>
+            <Row style={marginTop: '15px', borderTop: '1px solid #ccc', paddingTop: '15px'}>
+                <Col xs={12} sm={6} style={borderTop:'none'}>
+                    <div
+                        className={"webapp-image-drop" + (if @state.is_dragging_image_over_drop then " webapp-image-drop-dragging" else "")}
+                        onDrop={@handle_image_file_drop}
+                        onPaste={@handle_image_file_paste}
+                        onDragEnter={(e) => @setState({is_dragging_image_over_drop: true})}
+                        onDragLeave={(e) => @setState({is_dragging_image_over_drop: false})}
+                    >
+                        {
+                        if @state.is_dragging_image_over_drop
+                            "Drop an image here."
+                        else
+                            "Drag a custom image here."
+                        }
+                    </div>
+                </Col>
+                <Col xs={12} sm={6}>
+                    <Button onClick={(e) -> document.getElementById("upload-profile-image-input").click()}>
+                        <input id="upload-profile-image-input" style={display:'none'} type="file" onChange={@handle_image_file_input}/>
+                        Upload an image
+                    </Button>
+                </Col>
+            </Row>
         </FormGroup>
 
     render: ->
