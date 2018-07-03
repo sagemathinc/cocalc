@@ -53,6 +53,10 @@ MetricsRecorder  = require('./metrics-recorder')
 
 conf         = require('./conf')
 
+# Show the cookie banner in the following EU countries -- are we missing someone?
+COOKIE_COUNTRIES = ['AT', 'BE', 'BG', 'CY', 'CZ', 'DE', 'DK', 'ES', 'EE', 'FI', 'FR',
+                    'GB', 'GR', 'HR', 'HU', 'IE', 'IT', 'LT', 'LU', 'LV', 'MT', 'NL',
+                    'PL', 'PT', 'RO', 'SK', 'SI', 'SE']
 
 {http_message_api_v1} = require('./api/handler')
 
@@ -325,6 +329,15 @@ exports.init_express_http_server = (opts) ->
                     else
                         res.type(filename)
                     res.send(data)
+
+    router.get '/cookies/banner', (req, res) ->
+        # uses Cloudflare's geolocation service
+        code = req.get('CF-IPCountry') ? null
+        res.json(
+            country_code: code
+            show_banner : code in COOKIE_COUNTRIES
+        )
+        res.end()
 
     # TODO: is this cookie trick dangerous in some surprising way?
     router.get '/cookies', (req, res) ->
