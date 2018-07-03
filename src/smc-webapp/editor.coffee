@@ -1999,8 +1999,6 @@ class JupyterNBViewerEmbedded extends FileEditor
             @iframe.attr('src', "//nbviewer.jupyter.org/urls/#{ipynb_src}")
         @element.show()
 
-{LatexEditor} = require('./latex/editor')
-
 exports.register_nonreact_editors = ->
 
     # Make non-react editors available in react rewrite
