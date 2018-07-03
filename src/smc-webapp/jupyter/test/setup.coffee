@@ -9,6 +9,9 @@ AGPLv3
 
 # require('coffee-cache').setCacheDir("#{process.env.HOME}/.coffee/cache")
 
+require('ts-node').register()
+require('node-cjsx').transform()
+
 require('smc-hub/share/jsdom-support')
 misc = require('smc-util/misc')
 smc_react = require('../../app-framework')

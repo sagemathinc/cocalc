@@ -115,7 +115,7 @@ export class CodemirrorEditor extends Component<Props, State> {
       this.cm_refresh();
     }
     if (this.props.editor_settings != next.editor_settings) {
-      this.init_codemirror(next);
+      this.update_codemirror(next);
     }
   }
 
@@ -254,25 +254,6 @@ export class CodemirrorEditor extends Component<Props, State> {
       // Reuse existing codemirror editor, rather
       // than creating a new one -- faster and preserves
       // state such as code folding.
-      let key: string;
-      for (key of [
-        "lineNumbers",
-        "showTrailingSpace",
-        "indentUnit",
-        "tabSize",
-        "smartIndent",
-        "electricChars",
-        "matchBrackets",
-        "autoCloseBrackets",
-        "autoCloseLatex",
-        "lineWrapping",
-        "indentWithTabs",
-        "theme"
-      ]) {
-        if (!isEqual(cm.options[key], options[key])) {
-          cm.setOption(key, options[key]);
-        }
-      }
       if (!this.cm) {
         this.cm = cm;
         if (!node.parentNode) {
@@ -280,6 +261,7 @@ export class CodemirrorEditor extends Component<Props, State> {
           return;
         }
         node.parentNode.insertBefore(cm.getWrapperElement(), node.nextSibling);
+        this.update_codemirror(props, options);
       }
     } else {
       this.cm = CodeMirror.fromTextArea(node, options);
@@ -385,6 +367,42 @@ export class CodemirrorEditor extends Component<Props, State> {
     // replace undo/redo by our sync aware versions
     (this.cm as any).undo = () => this._cm_undo();
     (this.cm as any).redo = () => this._cm_redo();
+  }
+
+  update_codemirror(props: Props, options?): void {
+    if (!this.cm) {
+      return;
+    }
+    if (!options) {
+      options = cm_options(
+        props.path,
+        props.editor_settings,
+        props.gutters,
+        props.actions,
+        props.id
+      );
+    }
+
+    let cm = this.cm;
+    let key: string;
+    for (key of [
+      "lineNumbers",
+      "showTrailingSpace",
+      "indentUnit",
+      "tabSize",
+      "smartIndent",
+      "electricChars",
+      "matchBrackets",
+      "autoCloseBrackets",
+      "autoCloseLatex",
+      "lineWrapping",
+      "indentWithTabs",
+      "theme"
+    ]) {
+      if (!isEqual(cm.options[key], options[key])) {
+        cm.setOption(key, options[key]);
+      }
+    }
   }
 
   render_cursors(): Rendered {
