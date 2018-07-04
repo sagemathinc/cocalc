@@ -1,5 +1,3 @@
-// 3rd Party Libraries
-
 // Internal Libraries
 import { Actions, redux } from "../app-framework";
 

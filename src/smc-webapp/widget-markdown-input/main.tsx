@@ -50,10 +50,6 @@ class MarkdownInput0 extends Component<ReactProps & ReduxProps, MarkdownInputSta
   constructor(props) {
     super(props);
     this.state = this.getInitialState();
-    this.getInitialState = this.getInitialState.bind(this);
-    this.componentDidMount = this.componentDidMount.bind(this);
-    this.componentWillUnmount = this.componentWillUnmount.bind(this);
-    this.render = this.render.bind(this);
   }
 
   static reduxProps() {
