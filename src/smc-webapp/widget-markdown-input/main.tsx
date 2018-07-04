@@ -50,6 +50,10 @@ class MarkdownInput0 extends Component<ReactProps & ReduxProps, MarkdownInputSta
   constructor(props) {
     super(props);
     this.state = this.getInitialState();
+    this.getInitialState = this.getInitialState.bind(this);
+    this.componentDidMount = this.componentDidMount.bind(this);
+    this.componentWillUnmount = this.componentWillUnmount.bind(this);
+    this.render = this.render.bind(this);
   }
 
   static reduxProps() {
@@ -60,7 +64,7 @@ class MarkdownInput0 extends Component<ReactProps & ReduxProps, MarkdownInputSta
     }
   }
 
-  getInitialState() {
+  getInitialState = () => {
     let value = this.props.default_value || "";
     let editing = false;
     if (
@@ -101,7 +105,7 @@ class MarkdownInput0 extends Component<ReactProps & ReduxProps, MarkdownInputSta
     }
   }
 
-  persist_value(value) {
+  persist_value = (value) => {
     if (this.props.persist_id != null) {
       this.getActions().set_value(
         this.props.persist_id,
@@ -110,13 +114,13 @@ class MarkdownInput0 extends Component<ReactProps & ReduxProps, MarkdownInputSta
     }
   }
 
-  clear_persist() {
+  clear_persist = () => {
     if (this.props.persist_id != null) {
       this.getActions().clear(this.props.persist_id);
     }
   }
 
-  set_value(value) {
+  set_value = (value) => {
     if (typeof this.props.on_change === "function") {
       this.props.on_change(value);
     }
@@ -124,7 +128,7 @@ class MarkdownInput0 extends Component<ReactProps & ReduxProps, MarkdownInputSta
     this.setState({ value });
   }
 
-  edit() {
+  edit = () => {
     if (typeof this.props.on_edit === "function") {
       this.props.on_edit(this.state.value);
     }
@@ -134,7 +138,7 @@ class MarkdownInput0 extends Component<ReactProps & ReduxProps, MarkdownInputSta
     this.setState({ value: this.props.default_value });
   }
 
-  cancel() {
+  cancel = () => {
     if (typeof this.props.on_cancel === "function") {
       this.props.on_cancel(this.state.value);
     }
@@ -144,7 +148,7 @@ class MarkdownInput0 extends Component<ReactProps & ReduxProps, MarkdownInputSta
     }
   }
 
-  save() {
+  save = () => {
     if (typeof this.props.on_save === "function") {
       this.props.on_save(this.state.value);
     }
@@ -154,7 +158,7 @@ class MarkdownInput0 extends Component<ReactProps & ReduxProps, MarkdownInputSta
     }
   }
 
-  keydown(e) {
+  keydown = (e) => {
     if (e.keyCode === 27) {
       this.cancel();
     } else if (e.keyCode === 13 && e.shiftKey) {
@@ -162,7 +166,7 @@ class MarkdownInput0 extends Component<ReactProps & ReduxProps, MarkdownInputSta
     }
   }
 
-  to_html() {
+  to_html = () => {
     if (this.props.default_value) {
       const html = markdown.markdown_to_html(this.props.default_value);
       return { __html: html };
