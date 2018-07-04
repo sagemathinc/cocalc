@@ -1,7 +1,7 @@
 // 3rd Party Libraries
 
 // Internal Libraries
-import { Actions, redux, Store } from "../app-framework";
+import { Actions, redux } from "../app-framework";
 
 // Sibling Libraries
 import * as info from "./info";

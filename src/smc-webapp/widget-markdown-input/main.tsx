@@ -47,6 +47,11 @@ interface MarkdownInputState {
 class MarkdownInput0 extends Component<ReactProps & ReduxProps, MarkdownInputState> {
   displayName: "WidgetMarkdownInput";
 
+  constructor(props) {
+    super(props);
+    this.state = this.getInitialState();
+  }
+
   static reduxProps() {
     return {
       markdown_inputs: {
@@ -192,7 +197,7 @@ class MarkdownInput0 extends Component<ReactProps & ReduxProps, MarkdownInputSta
                 rows={this.props.rows != null ? this.props.rows : 4}
                 placeholder={this.props.placeholder}
                 value={this.state.value}
-                onChange={e =>
+                onChange={() =>
                   this.set_value(ReactDOM.findDOMNode(this.refs.input).value)
                 }
                 onKeyDown={this.keydown}
