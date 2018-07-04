@@ -221,6 +221,10 @@ export class Actions<T = CodeEditorState> extends BaseActions<
         );
         return;
       }
+      if (!this._syncstring || this._state == 'closed') {
+        // the doc could perhaps be closed by the time this init is fired, in which case just bail -- no point in trying to initialize anything.
+        return;
+      }
       this._syncstring_init = true;
       this._syncstring_metadata();
       this._init_settings();
