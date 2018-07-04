@@ -90,6 +90,9 @@ export class Page extends Component<PageProps, {}> {
   }
 
   click(event): void {
+    if (!this.props.actions.synctex_pdf_to_tex) {  // no support for synctex for whatever is using this.
+      return;
+    }
     let x: number = event.nativeEvent.offsetX / this.props.scale;
     let y: number = event.nativeEvent.offsetY / this.props.scale;
     this.props.actions.synctex_pdf_to_tex(this.props.n, x, y);
