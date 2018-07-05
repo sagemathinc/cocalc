@@ -44,7 +44,7 @@ export const EDITOR_SPEC = {
     short: "PDF (native)",
     name: "PDF - Native",
     icon: "file-pdf-o",
-    buttons: set(["print", "download"]),
+    buttons: set(["reload", "print", "download"]),
     component: PDFEmbed,
   },
 
