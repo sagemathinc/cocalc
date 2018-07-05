@@ -126,6 +126,23 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       this.assistant_actions = instantiate_assistant(project_id, path);
     }
 
+    let font_size: any = this.store.get_local_storage('font_size');
+    if (font_size == null) {
+      const account = this.redux.getStore("account")
+      if (account != null) {
+        font_size = account.get("font_size")
+      }
+    }
+    if (font_size == null) {
+      font_size = 14
+    }
+
+    let directory: any;
+    let split_path = misc.path_split(path);
+    if (split_path != null) {
+      directory = split_path.head;
+    }
+
     this.setState({
       view_mode: "normal",
       error: undefined,
@@ -135,17 +152,9 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       sel_ids: immutable.Set(), // immutable set of selected cells
       md_edit_ids: immutable.Set(), // set of ids of markdown cells in edit mode
       mode: "escape",
-      font_size:
-        (left =
-          (left1 = this.store.get_local_storage("font_size")) != null
-            ? left1
-            : __guard__(this.redux.getStore("account"), x =>
-                x.get("font_size")
-              )) != null
-          ? left
-          : 14,
+      font_size,
       project_id,
-      directory: __guard__(misc.path_split(path), x1 => x1.head),
+      directory,
       path,
       is_focused: false, // whether or not the editor is focused.
       max_output_length: 10000
@@ -238,7 +247,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     });
   };
 
-  _account_change = state => {
+  _account_change = (state: any) => {
     // TODO: this is just an ugly hack until we implement redux change listeners for particular keys.
     if (
       !state.get("editor_settings").equals(this._account_change_editor_settings)
@@ -279,9 +288,10 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       delete this._file_watcher;
     }
     if (!this._is_project) {
-      return __guard__(this.redux.getStore("account"), x =>
-        x.removeListener("change", this._account_change)
-      );
+      const account = this.redux.getStore("account")
+      if (account != null) {
+        account.removeListener("change", this._account_change)
+      }
     }
   };
 
@@ -471,13 +481,9 @@ export class JupyterActions extends Actions<JupyterStoreState> {
 
   // prop can be: 'collapsed', 'scrolled'
   toggle_output = (id: any, prop: any) => {
-    let left: any;
-    if (
-      (left = this.store.getIn(["cells", id, "cell_type"])) != null
-        ? left
-        : "code" === "code"
-    ) {
-      return this._set({
+    const cell_type = this.store.getIn(["cells", id, "cell_type"]);
+    if (cell_type == null || cell_type == "code") {
+      this._set({
         type: "cell",
         id,
         [prop]: !this.store.getIn(["cells", id, prop])
