@@ -173,6 +173,10 @@ export class Actions<T = CodeEditorState> extends BaseActions<
   // Init setting of value whenever syncstring changes -- only used in derived classes
   _init_syncstring_value(): void {
     this._syncstring.on("change", () => {
+      if (!this._syncstring) {
+        // edge case where actions closed but this event was still triggered.
+        return;
+      }
       this.setState({ value: this._syncstring.to_str() });
     });
   }
