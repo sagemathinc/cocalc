@@ -7,7 +7,12 @@ import { Actions, CodeEditorState } from "../code-editor/actions";
 import { print_html } from "../frame-tree/print";
 import { raw_url } from "../frame-tree/util";
 
-import {ScrollIntoViewRecord, ScrollIntoViewMap} from "../latex-editor/actions";
+import {
+  ScrollIntoViewRecord,
+  ScrollIntoViewMap
+} from "../latex-editor/actions";
+
+import { EDITOR_SPEC } from "./editor";
 
 interface PDFEditorState extends CodeEditorState {
   scroll_pdf_into_view: ScrollIntoViewMap;
@@ -18,6 +23,15 @@ interface PDFEditorState extends CodeEditorState {
 export class PDFActions extends Actions<PDFEditorState> {
   _raw_default_frame_tree(): FrameTree {
     return { type: "pdfjs_canvas" };
+  }
+
+  reload(id: string): void {
+    console.log("reload", id);
+    const now: number = new Date().valueOf();
+    let type: string;
+    for (type in EDITOR_SPEC) {
+      this.set_reload(type, now);
+    }
   }
 
   print(): void {

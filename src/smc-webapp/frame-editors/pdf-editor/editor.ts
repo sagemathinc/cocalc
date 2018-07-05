@@ -10,6 +10,7 @@ import { PDFJS } from "../latex-editor/pdfjs";
 import { PDFEmbed } from "../latex-editor/pdf-embed";
 
 let pdfjs_buttons = set([
+  "reload",
   "print",
   "download",
   "decrease_font_size",
@@ -18,7 +19,7 @@ let pdfjs_buttons = set([
   "zoom_page_height"
 ]);
 
-const EDITOR_SPEC = {
+export const EDITOR_SPEC = {
   pdfjs_canvas: {
     short: "PDF.js",
     name: "PDF.js - Canvas",

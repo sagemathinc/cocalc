@@ -291,7 +291,7 @@ export class Actions<T = CodeEditorState> extends BaseActions<
 
   // Reload the document.  This is used mainly for *public* viewing of
   // a file.
-  reload(): void {
+  reload(_ : string): void {  // id not used here...
     if (!this.store.get("is_loaded")) {
       // currently in the process of loading
       return;
