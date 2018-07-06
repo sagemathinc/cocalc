@@ -455,7 +455,7 @@ export class CourseActions extends Actions<
     return opts.id;
   }
 
-  clear_activity(id) {
+  clear_activity(id?) {
     if (id != null) {
       return this.set_activity({ id }); // clears for this id
     } else {
