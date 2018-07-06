@@ -38,13 +38,15 @@ const { defaults } = misc;
 
 // Course Library
 import { STEPS } from "./util";
-import { Map } from "immutable";
+import { Map, Set } from "immutable";
 import { TypedMap } from "../app-framework/TypedMap";
 
 // Upgrades
 const project_upgrades = require("./project-upgrades");
 
 type Student = TypedMap<{
+  account_id: string;
+  email_address: string;
   project_id: string;
   deleted: boolean;
 }>;
@@ -58,20 +60,41 @@ type Assignment = TypedMap<{
 type Handout = TypedMap<{
   deleted: boolean;
   handout_id: string;
+  target_path: string;
 }>;
 
 export interface CourseState {
-  activity: string;
+  activity: { [key: string]: string };
+  action_all_projects_state: string;  
+  active_student_sort: { column_name: string; is_descending: boolean };
+  active_assignment_sort:  { column_name: string; is_descending: boolean };
   assignments: Map<string, Assignment>;
+  course_filename: string;
+  course_project_id: string;
+  configure_projects: string;
+  error: string;
+  expanded_students: Set<string>;
+  expanded_assignments: Set<string>;
+  expanded_peer_configs: Set<string>;
+  expanded_handouts: Set<string>;
+  expanded_skip_gradings: Set<string>;
   handouts: Map<string, Handout>;
-  students: Map<string, Student>;
-  student_id: string;
-  settings: {
-    shared_project_id: string;
-    pay: boolean;
+  saving: boolean;
+  settings: TypedMap<{
     allow_collabs: boolean;
+    description: string;
     email_invite: string;
-  };
+    institute_pay: boolean;
+    pay: boolean;
+    shared_project_id: string;
+    student_pay: boolean;
+    title: string;
+  }>;
+  show_save_button: boolean;
+  student_id: string;
+  students: Map<string, Student>;
+  tab: string;
+  unsaved: boolean;
 }
 
 export class CourseStore extends Store<CourseState> {
@@ -185,17 +208,17 @@ export class CourseStore extends Store<CourseState> {
 
   get_shared_project_id() {
     // return project_id (a string) if shared project has been created, or undefined or empty string otherwise.
-    return this.getIn(["settings", "shared_project_id"]);
+    return this.get("settings").get("shared_project_id");
   }
 
   get_pay() {
     let left;
-    return (left = this.getIn(["settings", "pay"])) != null ? left : "";
+    return (left = this.get("settings").get("pay")) != null ? left : "";
   }
 
   get_allow_collabs() {
     let left;
-    return (left = this.getIn(["settings", "allow_collabs"])) != null
+    return (left = this.get("settings").get("allow_collabs")) != null
       ? left
       : true;
   }
@@ -203,7 +226,7 @@ export class CourseStore extends Store<CourseState> {
   get_email_invite() {
     let left;
     const { SITE_NAME, DOMAIN_NAME } = require("smc-util/theme");
-    return (left = this.getIn(["settings", "email_invite"])) != null
+    return (left = this.get("settings").get("email_invite")) != null
       ? left
       : `We will use [${SITE_NAME}](${DOMAIN_NAME}) for the course *{title}*.  \n\nPlease sign up!\n\n--\n\n{name}`;
   }
@@ -229,11 +252,11 @@ export class CourseStore extends Store<CourseState> {
     const first_name =
       (left = student.get("first_name")) != null
         ? left
-        : (this.redux.getStore("users") as any).get_first_name(account_id);
+        : this.redux.getStore("users").get_first_name(account_id);
     const last_name =
       (left1 = student.get("last_name")) != null
         ? left1
-        : (this.redux.getStore("users") as any).get_last_name(account_id);
+        : this.redux.getStore("users").get_last_name(account_id);
     if (first_name != null && last_name != null) {
       full_name = first_name + " " + last_name;
     } else if (first_name != null) {
@@ -271,7 +294,7 @@ export class CourseStore extends Store<CourseState> {
     return student.get("email_address");
   }
 
-  get_student_ids(opts) {
+  get_student_ids(opts?) {
     opts = defaults(opts, { deleted: false });
     if (this.get("students") == null) {
       return;
@@ -517,7 +540,7 @@ export class CourseStore extends Store<CourseState> {
   // Return the last time the assignment was copied to/from the
   // student (in the given step of the workflow), or undefined.
   // Even an attempt to copy with an error counts.
-  last_copied(step, assignment, student_id, no_error) {
+  last_copied(step, assignment, student_id, no_error?) {
     const x = __guard__(
       __guard__(this.get_assignment(assignment), x2 => x2.get(`last_${step}`)),
       x1 => x1.get(student_id)
@@ -742,7 +765,7 @@ export class CourseStore extends Store<CourseState> {
     const plan = project_upgrades.upgrade_plan({
       account_id: account_store.get_account_id(),
       purchased_upgrades: account_store.get_total_upgrades(),
-      project_map: (this.redux.getStore("projects") as any).get("project_map"),
+      project_map: this.redux.getStore("projects").get("project_map"),
       student_project_ids: this.get_student_project_ids({
         include_deleted: true,
         map: true
