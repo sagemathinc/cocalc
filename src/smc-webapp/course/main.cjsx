@@ -72,7 +72,7 @@ init_redux = (course_filename, redux, course_project_id) ->
 
     store = redux.createStore(the_redux_name, CourseStore, initial_store_state)
     actions = redux.createActions(the_redux_name, CourseActions)
-    actions.syncdb = syncdbs[the_redux_name] = CourseSync.create_sync_db(redux, actions, store)
+    actions.syncdb = syncdbs[the_redux_name] = CourseSync.create_sync_db(redux, actions, store, course_filename)
 
     return the_redux_name
 

@@ -14,7 +14,6 @@ WARNING: Pure Javascript with no crazy dependencies for easy unit testing.
 */
 
 const misc = require("smc-util/misc");
-const { types } = misc;
 
 type ProjectMap = Map<any, any>;
 interface ExistenceMap {
