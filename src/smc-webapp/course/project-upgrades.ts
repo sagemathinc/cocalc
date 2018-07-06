@@ -1,3 +1,5 @@
+import { Map } from "immutable";
+
 /*
  * decaffeinate suggestions:
  * DS103: Rewrite code to no longer use __guard__
@@ -14,14 +16,18 @@ WARNING: Pure Javascript with no crazy dependencies for easy unit testing.
 const misc = require("smc-util/misc");
 const { types } = misc;
 
-export function available_upgrades(opts) {
-  types(opts, {
-    account_id: types.string.isRequired, // id of a user
-    purchased_upgrades: types.object.isRequired, // map of the total upgrades purchased by account_id
-    project_map: types.immutable.Map.isRequired, // immutable.js map of data about projects
-    student_project_ids: types.object.isRequired
-  }); // map project_id:true with keys *all* student
+type ProjectMap = Map<any, any>;
+interface ExistenceMap {
+  [keys: string]: boolean;
+}
+
+export function available_upgrades(opts: {
+  account_id: string; // id of a user
+  purchased_upgrades: object; // map of the total upgrades purchased by account_id
+  project_map: ProjectMap; // immutable.js map of data about projects
+  student_project_ids: ExistenceMap; // map project_id:true with keys *all* student
   // projects in course, including deleted
+}) {
   /*
     Return the total upgrades that the user with given account_id has to apply
     toward this course.   This is all upgrades they have purchased minus
@@ -48,12 +54,11 @@ export function available_upgrades(opts) {
   return available;
 }
 
-export function current_student_project_upgrades(opts) {
-  types(opts, {
-    account_id: types.string.isRequired, // id of a user
-    project_map: types.immutable.Map.isRequired, // immutable.js map of data about projects
-    student_project_ids: types.object.isRequired
-  }); // map project_id:true with keys *all* student
+export function current_student_project_upgrades(opts: {
+  account_id: string; // id of a user
+  project_map: ProjectMap; // immutable.js map of data about projects
+  student_project_ids: ExistenceMap; // map project_id:true with keys *all* student
+}) {
   /*
     Return the total upgrades currently applied to each student project from
     everybody else except the user with given account_id.
@@ -85,17 +90,16 @@ export function current_student_project_upgrades(opts) {
   return other;
 }
 
-export function upgrade_plan(opts) {
-  types(opts, {
-    account_id: types.string.isRequired, // id of a user
-    purchased_upgrades: types.object.isRequired, // map of the total upgrades purchased by account_id
-    project_map: types.immutable.Map.isRequired, // immutable.js map of data about projects
-    student_project_ids: types.object.isRequired, // map project_id:true with keys *all* student
-    // projects in course, including deleted
-    deleted_project_ids: types.object.isRequired, // map project_id:true just for projects where
-    // student is considered deleted from class
-    upgrade_goal: types.object.isRequired
-  }); // [quota0:x, quota1:y]
+export function upgrade_plan(opts: {
+  account_id: string; // id of a user
+  purchased_upgrades: object; // map of the total upgrades purchased by account_id
+  project_map: ProjectMap; // immutable.js map of data about projects
+  student_project_ids: ExistenceMap; // map project_id:true with keys *all* student
+  //                                    projects in course, including deleted
+  deleted_project_ids: ExistenceMap; // map project_id:true just for projects where
+  //                                    student is considered deleted from class
+  upgrade_goal: object; // [quota0:x, quota1:y]
+}) {
   /*
     Determine what upgrades should be applied by this user to get
     the student projects to the given upgrade goal.  Preference
@@ -171,7 +175,6 @@ export function upgrade_plan(opts) {
         : {};
     let change = false;
     for (quota in opts.upgrade_goal) {
-      const _ = opts.upgrade_goal[quota];
       if (
         (alloc[quota] != null ? alloc[quota] : 0) !==
         (plan[project_id][quota] != null ? plan[project_id][quota] : 0)
