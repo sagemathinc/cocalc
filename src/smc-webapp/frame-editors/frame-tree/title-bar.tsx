@@ -5,6 +5,7 @@ FrameTitleBar - title bar in a frame, in the frame tree
 import { React, Rendered, Component, redux } from "../../app-framework";
 import { is_safari } from "../generic/browser";
 import * as CSS from "csstype";
+import { COLORS } from "smc-util/theme";
 
 let close_style;
 const { debounce } = require("underscore");
@@ -88,7 +89,18 @@ interface Props {
   status: string;
 }
 
-export class FrameTitleBar extends Component<Props, {}> {
+interface State {
+  is_active: boolean;
+}
+
+export class FrameTitleBar extends Component<Props, State> {
+  constructor(props) {
+    super(props);
+    this.state = {
+      is_active: false
+    };
+  }
+
   shouldComponentUpdate(next): boolean {
     return misc.is_different(this.props, next, [
       "active_id",
@@ -104,6 +116,11 @@ export class FrameTitleBar extends Component<Props, {}> {
       "type",
       "status"
     ]);
+  }
+
+  getDerivedStateFromProps(next) {
+    const is_active = this.props.id === next.active_id;
+    return { is_active };
   }
 
   is_visible(action_name: string, explicit?: boolean): boolean {
@@ -288,6 +305,7 @@ export class FrameTitleBar extends Component<Props, {}> {
         title={"Decrease font size"}
         bsSize={this.button_size()}
         onClick={() => this.props.actions.decrease_font_size(this.props.id)}
+        style={this.button_bg_style()}
       >
         <Icon name={"search-minus"} />
       </Button>
@@ -304,6 +322,7 @@ export class FrameTitleBar extends Component<Props, {}> {
         title={"Increase font size"}
         onClick={() => this.props.actions.increase_font_size(this.props.id)}
         bsSize={this.button_size()}
+        style={this.button_bg_style()}
       >
         <Icon name={"search-plus"} />
       </Button>
@@ -317,6 +336,7 @@ export class FrameTitleBar extends Component<Props, {}> {
         title={"Zoom to page width"}
         bsSize={this.button_size()}
         onClick={() => this.props.actions.zoom_page_width(this.props.id)}
+        style={this.button_bg_style()}
       >
         <Icon name={"arrows-alt-h"} />
       </Button>
@@ -330,6 +350,7 @@ export class FrameTitleBar extends Component<Props, {}> {
         title={"Zoom to page height"}
         bsSize={this.button_size()}
         onClick={() => this.props.actions.zoom_page_height(this.props.id)}
+        style={this.button_bg_style()}
       >
         <Icon name={"arrows-alt-v"} />
       </Button>
@@ -347,6 +368,7 @@ export class FrameTitleBar extends Component<Props, {}> {
         title={"Synchronize views (alt+enter)"}
         bsSize={this.button_size()}
         onClick={() => this.props.actions.sync(this.props.id)}
+        style={this.button_bg_style()}
       >
         <Icon name={"fab fa-staylinked"} />{" "}
         {labels ? <VisibleMDLG>Sync</VisibleMDLG> : undefined}
@@ -365,6 +387,7 @@ export class FrameTitleBar extends Component<Props, {}> {
         title={"Download this file"}
         bsSize={this.button_size()}
         onClick={() => this.props.actions.download(this.props.id)}
+        style={this.button_bg_style()}
       >
         <Icon name={"cloud-download"} />{" "}
         {labels ? <VisibleMDLG>Download</VisibleMDLG> : undefined}
@@ -383,6 +406,7 @@ export class FrameTitleBar extends Component<Props, {}> {
         onClick={() => this.props.actions.replace(this.props.id)}
         disabled={this.props.read_only}
         bsSize={this.button_size()}
+        style={this.button_bg_style()}
       >
         <Icon name="exchange" />
       </Button>
@@ -399,6 +423,7 @@ export class FrameTitleBar extends Component<Props, {}> {
         title={"Find text"}
         onClick={() => this.props.actions.find(this.props.id)}
         bsSize={this.button_size()}
+        style={this.button_bg_style()}
       >
         <Icon name="search" />
       </Button>
@@ -415,6 +440,7 @@ export class FrameTitleBar extends Component<Props, {}> {
         title={"Jump to line"}
         onClick={() => this.props.actions.goto_line(this.props.id)}
         bsSize={this.button_size()}
+        style={this.button_bg_style()}
       >
         <Icon name="bolt" />
       </Button>
@@ -567,6 +593,7 @@ export class FrameTitleBar extends Component<Props, {}> {
         onClick={() => this.props.actions.undo()}
         disabled={this.props.read_only}
         bsSize={this.button_size()}
+        style={this.button_bg_style()}
       >
         <Icon name="undo" />
       </Button>
@@ -584,6 +611,7 @@ export class FrameTitleBar extends Component<Props, {}> {
         onClick={() => this.props.actions.redo()}
         disabled={this.props.read_only}
         bsSize={this.button_size()}
+        style={this.button_bg_style()}
       >
         <Icon name="repeat" />
       </Button>
@@ -650,6 +678,7 @@ export class FrameTitleBar extends Component<Props, {}> {
         title={"Reload this file"}
         bsSize={this.button_size()}
         onClick={() => this.props.actions.reload(this.props.id)}
+        style={this.button_bg_style()}
       >
         <Icon name="repeat" />{" "}
         <VisibleMDLG>{labels ? "Reload" : undefined}</VisibleMDLG>
@@ -673,6 +702,7 @@ export class FrameTitleBar extends Component<Props, {}> {
             ? this.props.actions.help(this.props.type)
             : undefined
         }
+        style={this.button_bg_style()}
       >
         <Icon name="question-circle" />{" "}
         <VisibleMDLG>{labels ? "Help" : undefined}</VisibleMDLG>
@@ -719,6 +749,7 @@ export class FrameTitleBar extends Component<Props, {}> {
           this.props.actions.save(true);
           this.props.actions.focus(this.props.id);
         }}
+        style={this.button_bg_style()}
       >
         <Icon name={icon} style={{ width: "15px", display: "inline-block" }} />{" "}
         <VisibleMDLG>{label}</VisibleMDLG>
@@ -758,6 +789,7 @@ export class FrameTitleBar extends Component<Props, {}> {
         title={
           "Run Prettier (or some other AST-based service) to canonically format this entire document"
         }
+        style={this.button_bg_style()}
       >
         <Icon name={"fa-sitemap"} />{" "}
         <VisibleMDLG>{this.show_labels() ? "Format" : undefined}</VisibleMDLG>
@@ -776,6 +808,7 @@ export class FrameTitleBar extends Component<Props, {}> {
         key={"build"}
         onClick={() => this.props.actions.build(this.props.id, false)}
         title={"Build project"}
+        style={this.button_bg_style()}
       >
         <Icon name={"play-circle"} /> <VisibleMDLG>Build</VisibleMDLG>
       </Button>
@@ -793,22 +826,30 @@ export class FrameTitleBar extends Component<Props, {}> {
         key={"force-build"}
         onClick={() => this.props.actions.force_build(this.props.id)}
         title={"Force rebuild entire project"}
+        style={this.button_bg_style()}
       >
         <Icon name={"play"} /> <VisibleMDLG>Force Rebuild</VisibleMDLG>
       </Button>
     );
   }
 
+  button_bg_style() {
+    const bg_col = this.state.is_active ? "white" : COLORS.GRAY_L;
+    return { "background-color": bg_col };
+  }
+
   render_clean(): Rendered {
     if (!this.is_visible("clean", true)) {
       return;
     }
+
     return (
       <Button
         bsSize={this.button_size()}
         key={"clean"}
         onClick={() => this.props.actions.clean(this.props.id)}
         title={"Clean auxiliary build files"}
+        style={this.button_bg_style()}
       >
         <Icon name={"trash"} />{" "}
         <VisibleMDLG>{this.show_labels() ? "Clean" : undefined}</VisibleMDLG>
@@ -826,6 +867,7 @@ export class FrameTitleBar extends Component<Props, {}> {
         key={"print"}
         onClick={() => this.props.actions.print(this.props.id)}
         title={"Print file to PDF"}
+        style={this.button_bg_style()}
       >
         <Icon name={"print"} />{" "}
         <VisibleMDLG>{this.show_labels() ? "Print" : undefined}</VisibleMDLG>
@@ -857,7 +899,12 @@ export class FrameTitleBar extends Component<Props, {}> {
       // extra buttons are cleanly not visible when frame is thin.
       style = { maxHeight: "30px", overflow: "hidden", flex: 1 };
     } else {
-      style = { maxHeight: "34px", overflow: "hidden", flex: 1, marginLeft:'2px' };
+      style = {
+        maxHeight: "34px",
+        overflow: "hidden",
+        flex: 1,
+        marginLeft: "2px"
+      };
     }
     const v: Rendered[] = [];
     v.push(this.render_save_timetravel_group());
@@ -941,10 +988,9 @@ export class FrameTitleBar extends Component<Props, {}> {
   render(): Rendered {
     // Whether this is *the* active currently focused frame:
     let style;
-    const is_active = this.props.id === this.props.active_id;
-    if (is_active) {
+    if (this.state.is_active) {
       style = misc.copy(title_bar_style);
-      style.background = "#f8f8f8";
+      style.background = COLORS.GRAY_L;
     } else {
       style = title_bar_style;
     }
@@ -953,7 +999,7 @@ export class FrameTitleBar extends Component<Props, {}> {
       // ugly hack....
       // for some reason this is really necessary on safari, but
       // breaks on everything else!
-      if (!is_active) {
+      if (!this.state.is_active) {
         style = misc.copy(style);
       }
       if (this.props.is_only || this.props.is_full) {
@@ -966,8 +1012,8 @@ export class FrameTitleBar extends Component<Props, {}> {
     return (
       <div style={style} id={`titlebar-${this.props.id}`}>
         {this.render_control()}
-        {is_active ? this.render_main_buttons() : undefined}
-        {!is_active ? this.render_title() : undefined}
+        {this.render_main_buttons()}
+        {!this.state.is_active ? this.render_title() : undefined}
       </div>
     );
   }
