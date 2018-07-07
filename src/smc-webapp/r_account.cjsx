@@ -29,6 +29,7 @@
 
 {ColorPicker} = require('./colorpicker')
 {Avatar} = require('./other-users')
+{ProfileImageSelector} = require('./r_profile_image')
 
 md5 = require('md5')
 
@@ -41,6 +42,7 @@ smc_version = require('smc-util/smc-version')
 {PROJECT_UPGRADES} = require('smc-util/schema')
 
 {APIKeySetting} = require('./api-key')
+
 
 # Define a component for working with the user's basic
 # account information.
@@ -750,113 +752,6 @@ ProfileSettings = rclass
             Profile
         </h2>
 
-    handleImageOptions: (e) ->
-        state = e.target.value
-        if state == "gravatar"
-            url = @get_gravatar_url()
-        else if state == "adorable"
-            url = @get_adorable_url()
-        else if state == "default"
-            url = @get_default_image_url()
-        if url != undefined
-            @props.redux.getTable('account').set(profile : {image: url})
-
-    get_gravatar_url: -> "https://www.gravatar.com/avatar/#{md5 @props.email_address.toLowerCase()}?d=identicon&s=#{30}"
-
-    get_adorable_url: -> "https://api.adorable.io/avatars/100/#{md5 @props.email_address.toLowerCase()}.png"
-
-    get_default_image_url: -> ""
-
-    handle_image_file_upload: (e) ->
-        files = e.target.files
-        if (files.length > 0) and (files[0].type.startsWith("image/"))
-            file = files[0]
-        if file == null
-            return
-        @handle_profile_image_file file
-
-    handle_profile_image_file: (file) ->
-        @setState({is_dragging_image_over_drop: false})
-        if typeof file == "string"
-            @props.redux.getTable('account').set(profile : {image: file})
-            return
-        reader = new FileReader()
-        reader.onload = (e) =>
-            @props.redux.getTable('account').set(profile : {image: e.target.result})
-        reader.readAsDataURL(file)
-
-    handle_image_file_drop: (e) ->
-        e.preventDefault()
-        e.stopPropagation()
-        items = e.dataTransfer.files
-        for item in items
-            if item.type.startsWith("image/")
-                @handle_profile_image_file(item)
-                return
-        text = e.dataTransfer.getData("text") || ""
-        if text.startsWith("http")
-            @handle_profile_image_file(text)
-
-    handle_image_file_paste: (e) ->
-        e.preventDefault()
-        items = e.clipboardData.items
-        for item in items
-            if item.type.startsWith("image/")
-                @handle_profile_image_file(item.getAsFile())
-                return
-        text = e.clipboardData.getData("text") || ""
-        if text.startsWith("http") or text.startsWith("data:image")
-            @handle_profile_image_file(text)
-
-    handle_image_file_input: (e) ->
-        e.preventDefault()
-        files = e.target.files
-        if (files.length > 0) and (files[0].type.startsWith("image/"))
-            @handle_profile_image_file files[0]
-
-    render_image_options: ->
-        image = @props.profile.get("image")
-        if image == @get_gravatar_url()
-            state = "gravatar"
-        else if image == @get_adorable_url()
-            state = "adorable"
-        else if image == @get_default_image_url()
-            state = "default"
-        else if image?.startsWith?("data:image")
-            state = "custom"
-        <FormGroup>
-            <Radio name="profile_image_options" value="default" checked={state == "default"} onChange={@handleImageOptions} inline>Default (first letter of your name)</Radio>
-            <br/>
-            <Radio name="profile_image_options" value="gravatar" checked={state == "gravatar"} onChange={@handleImageOptions} inline>Gravatar (see <a href="https://en.gravatar.com/">here</a>).</Radio>
-            <br/>
-            <Radio name="profile_image_options" value="adorable" checked={state == "adorable"} onChange={@handleImageOptions} inline>Adorable</Radio>
-            <br/>
-            <Row style={marginTop: '15px', borderTop: '1px solid #ccc', paddingTop: '15px'}>
-                <Col xs={12} sm={6} style={borderTop:'none'}>
-                    <div
-                        className={"webapp-image-drop" + (if @state.is_dragging_image_over_drop then " webapp-image-drop-dragging" else "")}
-                        onDrop={@handle_image_file_drop}
-                        onPaste={@handle_image_file_paste}
-                        onDragEnter={(e) => @setState({is_dragging_image_over_drop: true})}
-                        onDragLeave={(e) => @setState({is_dragging_image_over_drop: false})}
-                    >
-                        {
-                        if @state.is_dragging_image_over_drop
-                            "Drop an image here."
-                        else
-                            "Drag a custom image here."
-                        }
-                    </div>
-                </Col>
-                <Col xs={12} sm={6}>
-                    <Button onClick={(e) -> document.getElementById("upload-profile-image-input").click()}>
-                        <input id="upload-profile-image-input" style={display:'none'} type="file" onChange={@handle_image_file_input}/>
-                        Upload an image
-                    </Button>
-                </Col>
-            </Row>
-        </FormGroup>
-
     render: ->
         if not @props.account_id? or not @props.profile?
             return <Loading />
@@ -865,7 +760,12 @@ ProfileSettings = rclass
                 <ColorPicker color={@props.profile.get('color')} style={maxWidth:"150px"} onChange={@onColorChange}/>
             </LabeledRow>
             <LabeledRow label='Picture'>
-                {@render_image_options()}
+                <ProfileImageSelector
+                    account_id={@props.account_id}
+                    email_address={@props.email_address}
+                    redux={@props.redux}
+                    profile={@props.profile}
+                />
              </LabeledRow>
         </Panel>
 
