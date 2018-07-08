@@ -54,8 +54,10 @@ export class ProfileImageSelector extends Component<
           .set({ profile: { image: src } }, "none", resolve)
       )
     );
+    // TODO: wrap redux set in a async wrapper and use regular js errors, then have one catch here.
     p.promise
       .then((e: any) => {
+        // TODO: view this error
         this.setState({ error: `${e}`, is_loading: false });
       })
       .catch((e: any) => e != null && !e.isCanceled && console.error(e)); // this is just to suppress the canceled error
