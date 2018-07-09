@@ -2,7 +2,7 @@
 Skip assigning or collecting an assignment, so next step can be attempted.
 ###
 
-{React, rclass, rtypes} = require('../smc-react')
+{React, rclass, rtypes} = require('../app-framework')
 
 {Icon, Space, Tip} = require('../r_misc')
 {Button} = require('react-bootstrap')

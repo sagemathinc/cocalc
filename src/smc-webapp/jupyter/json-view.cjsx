@@ -4,7 +4,7 @@ Provide nice JSON view of the ipynb
 
 Inspector = require('react-json-inspector')
 
-{React, ReactDOM, rclass, rtypes}  = require('../smc-react')
+{React, ReactDOM, rclass, rtypes}  = require('../app-framework')
 
 {Loading} = require('../r_misc')
 

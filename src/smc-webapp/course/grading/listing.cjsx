@@ -34,7 +34,7 @@ chat_redux_name      = editor_chat.redux_name
 {NO_DIR}             = require('../../project_store')
 
 # React libraries
-{React, rclass, rtypes, redux} = require('../../smc-react')
+{React, rclass, rtypes, redux} = require('../../app-framework')
 {DateTimePicker, ErrorDisplay, Icon, LabeledRow, Loading, MarkdownInput, Space, Tip, NumberInput, VisibleLG} = require('../../r_misc')
 {Alert, Button, ButtonToolbar, ButtonGroup, Form, FormControl, FormGroup, ControlLabel, InputGroup, Checkbox, Row, Col, Panel, Breadcrumb} = require('react-bootstrap')
 

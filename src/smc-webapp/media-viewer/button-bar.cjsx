@@ -7,7 +7,7 @@ For now we just pass in a single function and don't bother with actions/redux, e
 since there is no state or need for it...
 ###
 
-{React, ReactDOM, rclass, rtypes}  = require('../smc-react')
+{React, ReactDOM, rclass, rtypes}  = require('../app-framework')
 
 {Icon} = require('../r_misc')
 

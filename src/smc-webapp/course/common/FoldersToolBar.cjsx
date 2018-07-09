@@ -26,7 +26,7 @@ misc = require('smc-util/misc')
 {webapp_client} = require('smc-webapp/webapp_client')
 
 # React libraries
-{React, rclass, rtypes, ReactDOM}  = require('smc-webapp/smc-react')
+{React, rclass, rtypes, ReactDOM}  = require('smc-webapp/app-framework')
 {ErrorDisplay, Icon, SearchInput, SkinnyError} = require('smc-webapp/r_misc')
 {Button, ButtonToolbar, FormControl, FormGroup, Row, Col} = require('react-bootstrap')
 

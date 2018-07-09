@@ -6,8 +6,8 @@ import { delay } from "awaiting";
 import { is_different, path_split } from "../generic/misc";
 import { Map } from "immutable";
 import { throttle } from "underscore";
-import { React, Component, Rendered, ReactDOM } from "../generic/react";
-import { MAX_WIDTH } from "./options.ts";
+import { React, Component, Rendered, ReactDOM } from "../../app-framework";
+import { MAX_WIDTH } from "./options";
 const { HTML } = require("smc-webapp/r_misc");
 
 interface PropTypes {

@@ -31,7 +31,7 @@ _         = require('underscore')
 {Avatar}             = require('../../other-users')
 
 # React libraries
-{React, rclass, rtypes, ReactDOM} = require('../../smc-react')
+{React, rclass, rtypes, ReactDOM} = require('../../app-framework')
 {Alert, Button, ButtonToolbar, ButtonGroup, Form, FormControl, FormGroup, ControlLabel, InputGroup, Checkbox, Row, Col, Panel, Breadcrumb} = require('react-bootstrap')
 
 # CoCalc and course components

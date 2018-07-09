@@ -2,7 +2,7 @@
 Create a new project
 ###
 
-{React, ReactDOM, redux, rtypes, rclass}  = require('../smc-react')
+{React, ReactDOM, redux, rtypes, rclass}  = require('../app-framework')
 
 {Row, Col, Well, Button, ButtonToolbar, FormControl, FormGroup, Alert, ErrorDisplay} = require('react-bootstrap')
 

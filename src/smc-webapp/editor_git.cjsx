@@ -3,7 +3,7 @@ Git "editor" -- basically an application that let's you interact with git.
 
 ###
 
-{React, ReactDOM, rclass, rtypes, Redux, Actions, Store}  = require('./smc-react')
+{React, ReactDOM, rclass, rtypes, Redux, Actions, Store}  = require('./app-framework')
 {Button, Form, FormControl, FormGroup, Panel, Row, Col, ControlLabel, Tabs, Tab, DropdownButton, MenuItem, Modal} = require('react-bootstrap')
 {Icon, Octicon, Space, Tip} = require('./r_misc')
 {webapp_client} = require('./webapp_client')
@@ -392,9 +392,9 @@ exports.init_redux = init_redux = (redux, project_id, filename) ->
     name = redux_name(project_id, filename)
     if redux.getActions(name)?
         return  # already initialized
+    redux.createStore(name)
     actions = redux.createActions(name, GitActions)
     actions.init(project_id, filename)
-    redux.createStore(name)
 
 Git = (name) -> rclass
     reduxProps:

@@ -6,7 +6,7 @@ misc = require('smc-util/misc')
 
 {webapp_client} = require('./webapp_client')
 
-{React, ReactDOM, rtypes, rclass, redux}  = require('./smc-react')
+{React, ReactDOM, rtypes, rclass, redux}  = require('./app-framework')
 
 {CloseX, ErrorDisplay, Icon, LabeledRow, Loading} = require('./r_misc')
 

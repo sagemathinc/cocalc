@@ -3,7 +3,7 @@ The Task Store
 ###
 
 immutable = require('immutable')
-{Store}   = require('../smc-react')
+{Store}   = require('../app-framework')
 misc      = require('smc-util/misc')
 
 class exports.TaskStore extends Store

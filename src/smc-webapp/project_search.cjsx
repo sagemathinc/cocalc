@@ -21,7 +21,7 @@
 
 underscore = require('underscore')
 
-{React, ReactDOM, Actions, Store, rtypes, rclass, Redux}  = require('./smc-react')
+{React, ReactDOM, Actions, Store, rtypes, rclass, Redux}  = require('./app-framework')
 
 {Col, Row, Button, FormControl, FormGroup, Well, InputGroup, Alert, Checkbox} = require('react-bootstrap')
 {Icon, Loading, SearchInput, Space, ImmutablePureRenderMixin} = require('./r_misc')

@@ -8,7 +8,7 @@ File, Edit, etc....
 
 {Icon} = require('../r_misc')
 
-{React, ReactDOM, rclass, rtypes}  = require('../smc-react')
+{React, ReactDOM, rclass, rtypes}  = require('../app-framework')
 
 {KeyboardShortcut} = require('./keyboard-shortcuts')
 

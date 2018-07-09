@@ -52,7 +52,7 @@ exports.jupyter_backend = (syncdb, client) ->
     dbg()
     {JupyterActions} = require('smc-webapp/jupyter/project-actions')
     {JupyterStore}   = require('smc-webapp/jupyter/store')
-    smc_react        = require('smc-webapp/smc-react')
+    app_data         = require('smc-webapp/app-framework')
 
     project_id = client.client_id()
 
@@ -60,9 +60,9 @@ exports.jupyter_backend = (syncdb, client) ->
     # official ipynb format:
     path = misc.original_path(syncdb._path)
 
-    redux_name = smc_react.redux_name(project_id, path)
-    actions    = new JupyterActions(redux_name, smc_react.redux)
-    store      = new JupyterStore(redux_name, smc_react.redux)
+    redux_name = app_data.redux_name(project_id, path)
+    store      = app_data.redux.createStore(redux_name, JupyterStore)
+    actions    = app_data.redux.createActions(redux_name, JupyterActions)
 
     actions._init(project_id, path, syncdb, store, client)
 

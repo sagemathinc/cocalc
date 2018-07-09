@@ -2,6 +2,8 @@
 // depending on whether syncstring is defined or undefined.
 import { EventEmitter } from "events";
 
+import { Map } from "immutable";
+
 import { delay } from "awaiting";
 
 export class FakeSyncstring extends EventEmitter {
@@ -31,9 +33,15 @@ export class FakeSyncstring extends EventEmitter {
 
   redo() {}
 
-  get_read_only() { return false; }
-  has_uncommitted_changes() { return false; }
-  has_unsaved_changes() { return false; }
+  get_read_only() {
+    return false;
+  }
+  has_uncommitted_changes() {
+    return false;
+  }
+  has_unsaved_changes() {
+    return false;
+  }
 
   hash_of_saved_version() {
     return 0;
@@ -56,4 +64,10 @@ export class FakeSyncstring extends EventEmitter {
       cb();
     }
   }
+
+  get_settings(): Map<string, any> {
+    return Map();
+  }
+
+  set_settings(_: object): void {}
 }

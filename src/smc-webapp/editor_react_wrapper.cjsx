@@ -26,7 +26,7 @@
 
 {debounce} = require('underscore')
 
-{rclass, rtypes, ReactDOM, React} = require('./smc-react')
+{rclass, rtypes, ReactDOM, React} = require('./app-framework')
 {defaults, required, copy} = require('smc-util/misc')
 
 WrappedEditor = rclass ({project_name}) ->

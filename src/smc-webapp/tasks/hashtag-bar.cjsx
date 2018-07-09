@@ -4,7 +4,7 @@ Hashtag bar for selecting which tasks are shown by tags
 
 {Button, ButtonGroup} = require('react-bootstrap')
 
-{React, rclass, rtypes}  = require('../smc-react')
+{React, rclass, rtypes}  = require('../app-framework')
 
 misc = require('smc-util/misc')
 

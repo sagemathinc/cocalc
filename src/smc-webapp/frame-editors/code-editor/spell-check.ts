@@ -4,38 +4,48 @@ Backend spell checking support
 
 import { filename_extension } from "../generic/misc";
 import { exec, ExecOutput } from "../generic/client";
-
-const misc_page = require("smc-webapp/misc_page");
+import { language } from "../generic/misc-page";
 
 interface Options {
   project_id: string;
   path: string;
-  lang?: string;
+  lang: string;
   time?: number;
 }
 
 export async function misspelled_words(opts: Options): Promise<string[]> {
   if (!opts.lang) {
-    opts.lang = misc_page.language();
+    opts.lang = language();
   }
-  if (opts.lang === "disable") {
+  if (opts.lang === "disabled") {
     return [];
   }
 
   let mode: string;
   switch (filename_extension(opts.path)) {
     case "html":
-      mode = "html";
+      mode = "--mode=html";
       break;
     case "tex":
-      mode = "tex";
+      mode = "--mode=tex";
       break;
     default:
-      mode = "none";
+      mode = "--mode=none";
   }
-  const command = `cat '${opts.path}'|aspell --mode=${mode} --lang=${
-    opts.lang
-  } list|sort|uniq`;
+  let lang;
+  switch(opts.lang) {
+    case 'default':
+      lang = `--lang=${language()}`;
+      break;
+    case 'disabled':
+      lang = '';
+      break;
+    default:
+      lang = `--lang=${opts.lang}`;
+
+  }
+  const command = `cat '${opts.path}'|aspell ${mode} ${lang} list|sort|uniq`;
+  //console.log(command);
 
   const output: ExecOutput = await exec({
     project_id: opts.project_id,

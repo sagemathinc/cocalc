@@ -965,6 +965,7 @@ class SyncDoc extends EventEmitter
                 last_file_change  : null
                 doctype           : null
                 archived          : null
+                settings          : null
 
         async.series([
             (cb) =>
@@ -1268,6 +1269,14 @@ class SyncDoc extends EventEmitter
     get_cursors: =>
         return @_cursor_map
 
+    # set settings map.  (no-op if not yet initialized -- thus DO NOT call until initialized...)
+    set_settings: (obj) =>
+        @_syncstring_table?.set({string_id:@_string_id, settings:obj})
+
+    # get immutable.js settings object
+    get_settings: =>
+        return @_syncstring_table?.get_one().get('settings') ? immutable.Map()
+
     save_asap: (cb) =>
         @_save(cb)
 
@@ -1550,7 +1559,9 @@ class SyncDoc extends EventEmitter
         if not @_syncstring_table? # not initialized; nothing to do
             #dbg("nothing to do")
             return
-        x = @_syncstring_table.get_one()?.toJS()
+
+        data = @_syncstring_table.get_one()
+        x = data?.toJS()
 
         @_handle_syncstring_save_state(x?.save?.state, x?.save?.time)
 
@@ -1576,7 +1587,9 @@ class SyncDoc extends EventEmitter
                 deleted       : @_deleted
                 doctype       : misc.to_json(@_doctype)
             @_syncstring_table.set(obj)
+            @_settings = immutable.Map()
             @emit('metadata-change')
+            @emit("settings-change", @_settings)
         else
             # Existing document.
             if x.archived
@@ -1590,6 +1603,12 @@ class SyncDoc extends EventEmitter
             @_users             = x.users
             @_project_id        = x.project_id
             @_path              = x.path
+
+            settings = data.get('settings', immutable.Map())
+            if settings != @_settings
+                @emit("settings-change", settings)
+                @_settings = settings
+
             if @_deleted? and x.deleted and not @_deleted # change to deleted
                 @emit("deleted")
             @_deleted           = x.deleted

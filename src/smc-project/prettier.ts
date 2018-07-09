@@ -17,6 +17,7 @@ declare var require: any;
 const { math_escape, math_unescape } = require("smc-util/markdown-utils");
 const prettier = require("prettier");
 const { latex_format } = require("./latex-format");
+const { python_format } = require("./python-format");
 const body_parser = require("body-parser");
 const express = require("express");
 const { remove_math, replace_math } = require("smc-util/mathjax-utils"); // from project Jupyter
@@ -57,6 +58,9 @@ export function prettier_router(client, log) {
       switch (options.parser) {
         case "latex":
           pretty = await latex_format(input, options);
+          break;
+        case "python":
+          pretty = await python_format(input, options);
           break;
         default:
           pretty = prettier.format(input, options);

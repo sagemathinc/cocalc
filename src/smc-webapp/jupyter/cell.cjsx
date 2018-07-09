@@ -6,7 +6,7 @@ misc_page = require('../misc_page')
 {COLORS}  = require('smc-util/theme')
 misc      = require('smc-util/misc')
 
-{React, ReactDOM, rclass, rtypes}  = require('../smc-react')
+{React, ReactDOM, rclass, rtypes}  = require('../app-framework')
 
 {Icon, Loading, Tip}    = require('../r_misc')
 
@@ -92,6 +92,18 @@ exports.Cell = rclass
             @props.actions.set_cur_id(@props.id)
             @props.actions.unselect_all_cells()
 
+    double_click: (event) ->
+        return if not @props.actions?
+        return if @props.cell.getIn(['metadata', 'editable']) == false
+        return if @props.cell.get('cell_type') != 'markdown'
+        @props.actions.unselect_all_cells()
+        id = @props.cell.get('id')
+        @props.actions.set_md_cell_editing(id)
+        @props.actions.set_cur_id(id)
+        @props.actions.set_mode('edit')
+        event.stopPropagation()
+
+
     render_hook: ->
         if @props.is_current and @props.actions?
             <Hook name={@props.actions.name} />
@@ -156,7 +168,8 @@ exports.Cell = rclass
         # Note that the cell id is used for the cell-list.cjsx scroll functionality.
         <div
             style     = {style}
-            onMouseUp = {@click_on_cell}
+            onMouseDown = {@click_on_cell if not @props.is_current}
+            onDoubleClick = {@double_click}
             id        = {@props.id}
         >
             {@render_hook()}

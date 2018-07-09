@@ -553,6 +553,8 @@ module.exports =
             },
             { test: [/node_modules\/prom-client\/.*\.js$/], loader: 'babel-loader' },
             { test: [/latex-editor\/.*\.jsx?$/], loader: 'babel-loader' },
+            # Note: ts-loader is not a very good webpack citizen https://github.com/TypeStrong/ts-loader/issues/552
+            # It just kind of does its own thing. See tsconfig.json for further congiration.
             { test: /\.tsx$/, loader: "babel-loader!ts-loader" },
             { test: /\.ts$/, loader: "ts-loader" },
             { test: /\.less$/,   use: ["style-loader", "css-loader", "less-loader?#{cssConfig}"] },

@@ -3,7 +3,7 @@ Temporary support for jupyter classic...  Only load this in the browser, obvious
 and **after** the account store.
 ###
 
-{redux} = require('../smc-react')
+{redux} = require('../app-framework')
 
 
 account_store = redux.getStore('account')

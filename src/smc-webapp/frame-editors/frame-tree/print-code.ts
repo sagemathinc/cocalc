@@ -3,7 +3,7 @@ Use React to convert a code file to printable form, entirely on the frontend.
 */
 
 import { renderToStaticMarkup } from "react-dom/server";
-import { React } from "../generic/react";
+import { React } from "../../app-framework";
 import { fromJS } from "immutable";
 import { print_window, popup } from "./print";
 import { path_split } from "../generic/misc";

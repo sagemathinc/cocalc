@@ -8,7 +8,7 @@ import {
 } from "smc-webapp/frame-editors/generic/test/util";
 
 describe("test the account preferences page", function() {
-  const page = redux.getActions('page');
+  const page: any = redux.getActions('page');
   describe("test the editor settings panel", function() {
     it("changes to the account prefs page", function() {
       page.set_active_tab('account');

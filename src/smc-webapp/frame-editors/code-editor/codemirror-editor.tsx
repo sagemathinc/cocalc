@@ -12,16 +12,16 @@ import { Map, Set } from "immutable";
 
 import { is_safari } from "../generic/browser";
 import * as CodeMirror from "codemirror";
-import { React, ReactDOM, Rendered, Component } from "../generic/react";
+import { React, ReactDOM, Rendered, Component } from "../../app-framework";
 
-import { throttle } from "underscore";
+import { throttle, isEqual } from "underscore";
 
 const misc = require("smc-util/misc");
 
 const { Cursors } = require("smc-webapp/jupyter/cursors");
 
-const { cm_options } = require("./cm-options");
-const codemirror_state = require("./codemirror-state");
+const { cm_options } = require("../codemirror/cm-options");
+const codemirror_state = require("../codemirror/codemirror-state");
 const doc = require("./doc.ts");
 
 const { GutterMarkers } = require("./codemirror-gutter-markers.tsx");
@@ -86,7 +86,7 @@ export class CodemirrorEditor extends Component<Props, State> {
   }
 
   componentDidMount(): void {
-    this.init_codemirror();
+    this.init_codemirror(this.props);
   }
 
   componentWillReceiveProps(next: Props): void {
@@ -113,6 +113,9 @@ export class CodemirrorEditor extends Component<Props, State> {
       this.props.editor_state !== next.editor_state
     ) {
       this.cm_refresh();
+    }
+    if (this.props.editor_settings != next.editor_settings) {
+      this.update_codemirror(next);
     }
   }
 
@@ -158,10 +161,9 @@ export class CodemirrorEditor extends Component<Props, State> {
     if (this.cm == null) {
       return;
     }
-    this.props.actions.unset_cm(this.props.id);
     delete (this.cm as any).undo;
     delete (this.cm as any).redo;
-    $(this.cm.getWrapperElement()).remove(); // remove from DOM -- "Remove this from your tree to delete an editor instance."
+    $(this.cm.getWrapperElement()).remove(); // remove from DOM -- "Remove this from your tree to delete an editor instance."  NOTE: there is still potentially a reference to the cm in this.props.actions._cm[id]; that's how we can bring back this frame (with given id) very efficiently.
     delete this.cm;
   }
 
@@ -215,7 +217,7 @@ export class CodemirrorEditor extends Component<Props, State> {
     }
   }
 
-  async init_codemirror(): Promise<void> {
+  async init_codemirror(props: Props): Promise<void> {
     const node: HTMLTextAreaElement = ReactDOM.findDOMNode(this.refs.textarea);
     if (node == null) {
       return;
@@ -224,17 +226,17 @@ export class CodemirrorEditor extends Component<Props, State> {
     this.safari_hack();
 
     const options = cm_options(
-      this.props.path,
-      this.props.editor_settings,
-      this.props.gutters,
-      this.props.actions,
-      this.props.id
+      props.path,
+      props.editor_settings,
+      props.gutters,
+      props.actions,
+      props.id
     );
 
     this.style_active_line = options.styleActiveLine;
     options.styleActiveLine = false;
 
-    if (this.props.is_public) {
+    if (props.is_public) {
       options.readOnly = true;
     }
 
@@ -247,12 +249,50 @@ export class CodemirrorEditor extends Component<Props, State> {
       };
     }
 
-    this.cm = CodeMirror.fromTextArea(node, options);
-
-    if (!this.props.is_public) {
-      this.cm_highlight_misspelled_words(this.props.misspelled_words);
+    let cm: CodeMirror.Editor = this.props.actions._cm[this.props.id];
+    if (cm != undefined) {
+      // Reuse existing codemirror editor, rather
+      // than creating a new one -- faster and preserves
+      // state such as code folding.
+      if (!this.cm) {
+        this.cm = cm;
+        if (!node.parentNode) {
+          // this never happens, but is needed for typescript.
+          return;
+        }
+        node.parentNode.insertBefore(cm.getWrapperElement(), node.nextSibling);
+        this.update_codemirror(props, options);
+      }
+    } else {
+      this.cm = CodeMirror.fromTextArea(node, options);
+      this.init_new_codemirror();
     }
 
+    if (props.editor_state != null) {
+      codemirror_state.set_state(this.cm, props.editor_state.toJS());
+    }
+
+    if (!props.is_public) {
+      this.cm_highlight_misspelled_words(props.misspelled_words);
+    }
+
+    this.setState({ has_cm: true });
+
+    if (props.is_current) {
+      this.cm.focus();
+    }
+    this.cm.setOption("readOnly", props.read_only);
+
+    this.cm_refresh();
+    await delay(0);
+    // now in the next render loop
+    this.cm_refresh();
+    if (props.is_current && this.cm) {
+      this.cm.focus();
+    }
+  }
+
+  init_new_codemirror(): void {
     (this.cm as any)._actions = this.props.actions;
 
     if (this.props.is_public) {
@@ -272,10 +312,6 @@ export class CodemirrorEditor extends Component<Props, State> {
       }
     }
 
-    if (this.props.editor_state != null) {
-      codemirror_state.set_state(this.cm, this.props.editor_state.toJS());
-    }
-
     const save_editor_state = throttle(() => this.save_editor_state(), 250);
     this.cm.on("scroll", save_editor_state);
 
@@ -288,8 +324,6 @@ export class CodemirrorEditor extends Component<Props, State> {
       e.attr("style") + "; height:100%; font-family:monospace !important;"
     );
     // see http://stackoverflow.com/questions/2655925/apply-important-css-style-using-jquery
-
-    this.setState({ has_cm: true });
 
     this.props.actions.set_cm(this.props.id, this.cm);
 
@@ -333,17 +367,41 @@ export class CodemirrorEditor extends Component<Props, State> {
     // replace undo/redo by our sync aware versions
     (this.cm as any).undo = () => this._cm_undo();
     (this.cm as any).redo = () => this._cm_redo();
+  }
 
-    if (this.props.is_current) {
-      this.cm.focus();
+  update_codemirror(props: Props, options?): void {
+    if (!this.cm) {
+      return;
     }
-    this.cm.setOption("readOnly", this.props.read_only);
+    if (!options) {
+      options = cm_options(
+        props.path,
+        props.editor_settings,
+        props.gutters,
+        props.actions,
+        props.id
+      );
+    }
 
-    await delay(0);
-    // now in the next render loop
-    this.cm_refresh();
-    if (this.props.is_current && this.cm) {
-      this.cm.focus();
+    let cm = this.cm;
+    let key: string;
+    for (key of [
+      "lineNumbers",
+      "showTrailingSpace",
+      "indentUnit",
+      "tabSize",
+      "smartIndent",
+      "electricChars",
+      "matchBrackets",
+      "autoCloseBrackets",
+      "autoCloseLatex",
+      "lineWrapping",
+      "indentWithTabs",
+      "theme"
+    ]) {
+      if (!isEqual(cm.options[key], options[key])) {
+        cm.setOption(key, options[key]);
+      }
     }
   }
 
@@ -377,7 +435,7 @@ export class CodemirrorEditor extends Component<Props, State> {
       <div style={style} className="smc-vfill cocalc-editor-div">
         {this.render_cursors()}
         {this.render_gutter_markers()}
-        <textarea ref="textarea" />
+        <textarea ref="textarea" style={{ display: "none" }} />
       </div>
     );
   }

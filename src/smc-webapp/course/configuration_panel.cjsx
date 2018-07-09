@@ -28,7 +28,7 @@ misc            = require('smc-util/misc')
 {COLORS}        = require('smc-util/theme')
 
 # React libraries and Components
-{React, rclass, rtypes}  = require('../smc-react')
+{React, rclass, rtypes}  = require('../app-framework')
 {Alert, Button, ButtonToolbar, ButtonGroup, Row, Col,
     Panel, Well, FormGroup, FormControl, Checkbox} = require('react-bootstrap')
 

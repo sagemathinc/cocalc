@@ -1,27 +1,27 @@
-import { React, rclass, rtypes, Component, Rendered } from "../generic/react";
+import { React, rclass, rtypes, Component, Rendered } from "../../app-framework";
 
 const { ErrorDisplay, Loading } = require("smc-webapp/r_misc");
 
-import { FormatBar } from "./format-bar.tsx";
+import { FormatBar } from "./format-bar";
 
-import { StatusBar } from "./status-bar.tsx";
+import { StatusBar } from "./status-bar";
 const { FrameTree } = require("./frame-tree");
 
 import { copy, is_different } from "../generic/misc";
 
 import { SetMap } from "./types";
 
-interface FrameTreeEditorProps {
+interface FrameTreeEditorReactProps {
+  name: string;
   actions: any;
   path: string;
   project_id: string;
   format_bar: boolean;
   format_bar_exclude?: SetMap;
   editor_spec: any;
+}
 
-  // reduxProps below:
-  name: string;
-
+interface FrameTreeEditorReduxProps {
   editor_settings?: Map<string, any>;
 
   is_public: boolean;
@@ -42,9 +42,13 @@ interface FrameTreeEditorProps {
   misspelled_words: Set<string>;
   is_saving: boolean;
   gutter_markers: Map<string, any>;
+
+  settings: Map<string, any>;
 }
 
-class FrameTreeEditor0 extends Component<FrameTreeEditorProps, {}> {
+type FrameTreeEditorProps = FrameTreeEditorReactProps & FrameTreeEditorReduxProps;
+
+const FrameTreeEditor0 = class extends Component<FrameTreeEditorProps, {}> {
   private editor_spec: any = {};
 
   constructor(props) {
@@ -86,7 +90,9 @@ class FrameTreeEditor0 extends Component<FrameTreeEditorProps, {}> {
         misspelled_words: rtypes.immutable.Set.isRequired,
         is_saving: rtypes.bool.isRequired,
 
-        gutter_markers: rtypes.immutable.Map.isRequired
+        gutter_markers: rtypes.immutable.Map.isRequired,
+
+        settings: rtypes.immutable.Map.isRequired
       }
     };
   }
@@ -123,7 +129,9 @@ class FrameTreeEditor0 extends Component<FrameTreeEditorProps, {}> {
           "is_saving",
           "gutter_markers",
 
-          "editor_settings"
+          "editor_settings",
+
+          "settings"
         ]
       ) ||
       this.props.editor_settings.get("extra_button_bar") !==
@@ -178,6 +186,7 @@ class FrameTreeEditor0 extends Component<FrameTreeEditorProps, {}> {
           is_saving={this.props.is_saving}
           gutter_markers={this.props.gutter_markers}
           editor_settings={this.props.editor_settings}
+          settings={this.props.settings}
           status={this.props.status}
         />
       </div>
@@ -240,7 +249,7 @@ class FrameTreeEditor0 extends Component<FrameTreeEditorProps, {}> {
       </div>
     );
   }
-}
+} as React.ComponentType<FrameTreeEditorReactProps>
 
 const FrameTreeEditor = rclass(FrameTreeEditor0);
 
@@ -262,7 +271,7 @@ export function createEditor(opts: Options) {
   class Editor extends Component<EditorProps, {}> {
     public displayName: string = opts.display_name;
 
-    render(): Rendered {
+    render(): JSX.Element {
       return (
         <FrameTreeEditor
           actions={this.props.actions}

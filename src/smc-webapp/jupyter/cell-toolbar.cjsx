@@ -2,7 +2,7 @@
 The toolbar at the top of each cell
 ###
 
-{React, ReactDOM, rclass, rtypes}  = require('../smc-react')
+{React, ReactDOM, rclass, rtypes}  = require('../app-framework')
 
 {Slideshow}   = require('./cell-toolbar-slideshow')
 {Attachments} = require('./cell-toolbar-attachments')

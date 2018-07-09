@@ -35,7 +35,7 @@ chat_register        = require('../chat/register')
 {STEPS, previous_step, step_direction, step_verb, step_ready, NO_ACCOUNT} = require('./util')
 
 # React libraries
-{Actions, Store}  = require('../smc-react')
+{Actions, Store}  = require('../app-framework')
 
 PARALLEL_LIMIT = 5  # number of async things to do in parallel
 

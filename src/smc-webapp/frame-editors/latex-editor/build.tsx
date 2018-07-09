@@ -12,7 +12,7 @@ import {
   Fragment,
   Rendered,
   Component
-} from "../generic/react";
+} from "../../app-framework";
 
 import { BuildLogs } from "./actions";
 
@@ -20,14 +20,23 @@ import { BuildCommand } from "./build-command";
 
 const { Icon, Loading } = require("smc-webapp/r_misc");
 
-interface BuildSpec {
+interface IBuildSpec {
   button: boolean;
   label: string;
   icon: string;
   tip: string;
 }
 
-const BUILD_SPECS = {
+export interface IBuildSpecs {
+  build: IBuildSpec;
+  latex: IBuildSpec;
+  bibtex: IBuildSpec;
+  sagetex: IBuildSpec;
+  knitr: IBuildSpec;
+  clean: IBuildSpec;
+}
+
+const BUILD_SPECS: IBuildSpecs = {
   build: {
     button: true,
     label: "Build",
@@ -56,6 +65,13 @@ const BUILD_SPECS = {
     tip: "Run SageTex, if necessary"
   },
 
+  knitr: {
+    button: false,
+    label: "Knitr",
+    icon: "cc-icon-r",
+    tip: "Run Knitr, if necessary"
+  },
+
   clean: {
     button: true,
     label: "Clean",
@@ -78,6 +94,7 @@ interface Props {
   // reduxProps:
   build_logs: BuildLogs;
   build_command: string | List<string>;
+  knitr: boolean;
 }
 
 class Build extends Component<Props, {}> {
@@ -85,7 +102,8 @@ class Build extends Component<Props, {}> {
     return {
       [name]: {
         build_logs: rtypes.immutable.Map,
-        build_command: rtypes.oneOfType([rtypes.string, rtypes.immutable.List])
+        build_command: rtypes.oneOfType([rtypes.string, rtypes.immutable.List]),
+        knitr: rtypes.bool
       }
     };
   }
@@ -95,7 +113,8 @@ class Build extends Component<Props, {}> {
       "build_logs",
       "status",
       "font_size",
-      "build_command"
+      "build_command",
+      "knitr"
     ]);
   }
 
@@ -172,6 +191,7 @@ class Build extends Component<Props, {}> {
         filename={path_split(this.props.path).tail}
         actions={this.props.actions}
         build_command={this.props.build_command}
+        knitr={this.props.knitr}
       />
     );
   }
@@ -194,7 +214,7 @@ class Build extends Component<Props, {}> {
     }
   }
 
-  render_build_action_button(action: string, spec: BuildSpec): Rendered {
+  render_build_action_button(action: string, spec: IBuildSpec): Rendered {
     return (
       <Button
         key={spec.label}
@@ -210,7 +230,7 @@ class Build extends Component<Props, {}> {
   render_buttons() {
     let v: Rendered[] = [];
     for (let action in BUILD_SPECS) {
-      const spec: BuildSpec = BUILD_SPECS[action];
+      const spec: IBuildSpec = BUILD_SPECS[action];
       if (spec.button) {
         v.push(this.render_build_action_button(action, spec));
       }
@@ -232,6 +252,7 @@ class Build extends Component<Props, {}> {
         {this.render_status()}
         {this.render_log("latex")}
         {this.render_log("sagetex")}
+        {this.render_log("knitr")}
         {this.render_log("bibtex")}
         {this.render_clean()}
       </div>

@@ -30,7 +30,7 @@ _         = require('underscore')
 {Avatar}             = require('../../other-users')
 
 # React libraries
-{React, rclass, rtypes} = require('../../smc-react')
+{React, rclass, rtypes} = require('../../app-framework')
 Fragment = React.Fragment
 {DateTimePicker, ErrorDisplay, Icon, LabeledRow, Loading, MarkdownInput, Space, Tip, NumberInput} = require('../../r_misc')
 {Alert, Button, ButtonToolbar, ButtonGroup, Form, FormControl, FormGroup, ControlLabel, InputGroup, Checkbox, Row, Col, Panel, Breadcrumb} = require('react-bootstrap')

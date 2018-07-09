@@ -25,7 +25,7 @@ misc = require('smc-util/misc')
 {COLORS} = require('smc-util/theme')
 
 # React libraries
-{React, rclass, rtypes} = require('../smc-react')
+{React, rclass, rtypes} = require('../app-framework')
 {Row, Col} = require('react-bootstrap')
 {MarkdownInput, Space, Tip} = require('../r_misc')
 

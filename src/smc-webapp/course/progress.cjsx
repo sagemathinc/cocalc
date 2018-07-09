@@ -2,7 +2,7 @@
 Progress indicator for assigning/collecting/etc. a particular assignment or handout.
 ###
 
-{React, rclass, rtypes} = require('../smc-react')
+{React, rclass, rtypes} = require('../app-framework')
 {Icon, Space} = require('../r_misc')
 
 {COLORS} = require('smc-util/theme')

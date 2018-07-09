@@ -1,4 +1,4 @@
-{React, ReactDOM, rclass, rtypes}  = require('../smc-react')
+{React, ReactDOM, rclass, rtypes}  = require('../app-framework')
 {TimeAgo} = require('../r_misc')
 
 exports.CellTiming = rclass

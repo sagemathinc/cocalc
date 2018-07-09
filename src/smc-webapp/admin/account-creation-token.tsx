@@ -7,7 +7,7 @@ import {
   Rendered,
   Component,
   redux
-} from "../frame-editors/generic/react";
+} from "../app-framework";
 
 import { Button, Well, FormGroup, FormControl } from "react-bootstrap";
 
@@ -127,7 +127,8 @@ export class AccountCreationToken extends Component<{}, State> {
   }
 
   render_content(): Rendered {
-    if (redux.getStore("account").get("strategies").size > 1) {
+    const account_store: any = redux.getStore("account");
+    if (account_store ? account_store.get("strategies").size > 1 : undefined) {
       return this.render_unsupported();
     }
     return (

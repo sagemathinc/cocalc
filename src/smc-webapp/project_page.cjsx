@@ -45,8 +45,8 @@ Draggable = require('react-draggable')
 project_file = require('./project_file')
 {file_associations} = require('./file-associations')
 
-{React, ReactDOM, rclass, redux, rtypes, Redux} = require('./smc-react')
-{DeletedProjectWarning, Icon, Loading, Space} = require('./r_misc')
+{React, ReactDOM, rclass, redux, rtypes, Redux} = require('./app-framework')
+{DeletedProjectWarning, ErrorBoundary, Icon, Loading, Space} = require('./r_misc')
 
 {ChatIndicator} = require('./chat-indicator')
 
@@ -658,13 +658,15 @@ exports.MobileProjectPage = rclass ({name}) ->
                     {@render_one_file_item() if @props.open_files_order.size == 1}
                 </Nav>
             </div> if not @props.fullscreen}
-            <ProjectContentViewer
-                project_id      = {@props.project_id}
-                project_name    = {@props.name}
-                active_tab_name = {@props.active_project_tab}
-                opened_file     = {@props.open_files.getIn([active_path])}
-                file_path       = {active_path}
-                group           = {group}
-                save_scroll     = {@actions(name).get_scroll_saver_for(active_path)}
-            />
+            <ErrorBoundary>
+                <ProjectContentViewer
+                    project_id      = {@props.project_id}
+                    project_name    = {@props.name}
+                    active_tab_name = {@props.active_project_tab}
+                    opened_file     = {@props.open_files.getIn([active_path])}
+                    file_path       = {active_path}
+                    group           = {group}
+                    save_scroll     = {@actions(name).get_scroll_saver_for(active_path)}
+                />
+            </ErrorBoundary>
         </div>

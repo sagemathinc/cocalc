@@ -30,7 +30,7 @@ immutable = require('immutable')
 misc_page            = require('smc-webapp/misc_page')
 
 # React libraries
-{React, rclass, rtypes} = require('../../smc-react')
+{React, rclass, rtypes} = require('../../app-framework')
 {DateTimePicker, ErrorDisplay, Icon, Loading, Space, Tip, CheckedIcon} = require('../../r_misc')
 {Alert, Button, ButtonToolbar, ButtonGroup, Form, FormControl, FormGroup, ControlLabel, InputGroup, Checkbox, Row, Col, Panel, Breadcrumb} = require('react-bootstrap')
 

@@ -6,7 +6,7 @@ Rendering input part of a Sage worksheet cell
 
 options = fromJS({mode:{name:'sagews'}})
 
-{rclass, React, rtypes} = require('../smc-react')
+{rclass, React, rtypes} = require('../app-framework')
 
 {CodeMirrorStatic} = require('../jupyter/codemirror-static')
 

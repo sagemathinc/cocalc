@@ -26,7 +26,7 @@ misc = require('smc-util/misc')
 
 schema = require('smc-util/schema')
 
-{React, rclass, rtypes, ReactDOM}  = require('../smc-react')
+{React, rclass, rtypes, ReactDOM}  = require('../app-framework')
 
 {Icon, Loading, NoUpgrades, Tip, UPGRADE_ERROR_STYLE} = require('../r_misc')
 

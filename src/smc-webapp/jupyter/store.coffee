@@ -4,7 +4,7 @@ The Store
 
 immutable         = require('immutable')
 misc              = require('smc-util/misc')
-{Store}           = require('../smc-react')
+{Store}           = require('../app-framework')
 {export_to_ipynb} = require('./export-to-ipynb')
 
 # Used for copy/paste.  We make a single global clipboard, so that

@@ -692,8 +692,10 @@ exports.lower_email_address = (email_address) ->
 #    email_queries: ["email@something.com", "justanemail@mail.com"]
 # }
 exports.parse_user_search = (query) ->
-    queries = (q.trim().toLowerCase() for q in query.split(/,|;/))
     r = {string_queries:[], email_queries:[]}
+    if typeof(query) != 'string'
+        return r
+    queries = (q.trim().toLowerCase() for q in query.split(/,|;/))
     email_re = /<(.*)>/
     for x in queries
         if x

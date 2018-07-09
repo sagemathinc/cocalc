@@ -2,7 +2,7 @@
 Modal for editing cell metadata that are attached to any cell
 ###
 
-{React, ReactDOM, rclass, rtypes}  = require('../smc-react')
+{React, ReactDOM, rclass, rtypes}  = require('../app-framework')
 {Icon, Space} = require('../r_misc')
 {Button, Modal} = require('react-bootstrap')
 

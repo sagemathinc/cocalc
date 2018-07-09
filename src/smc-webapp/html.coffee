@@ -19,7 +19,7 @@ $('body').append(html)
 
 # TODO: Attach footer to bottom of all pages
 
-#{React, ReactDOM} = require('./smc-react')
+#{React, ReactDOM} = require('./app-framework')
 #{Footer} = require("./r_misc")
 #$('body').append("<footer id='footer'></footer>")
 #ReactDOM.render(React.createElement(Footer), document.getElementById("footer"))
@@ -44,7 +44,7 @@ $('body').append(html)
 
 # TODO: Attach footer to bottom of all pages
 
-#{React, ReactDOM} = require('./smc-react')
+#{React, ReactDOM} = require('./app-framework')
 #{Footer} = require("./r_misc")
 #$('body').append("<footer id='footer'></footer>")
 #ReactDOM.render(React.createElement(Footer), document.getElementById("footer"))

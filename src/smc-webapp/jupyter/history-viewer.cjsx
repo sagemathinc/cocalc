@@ -4,7 +4,7 @@ History viewer for Jupyter notebooks
 
 immutable  = require('immutable')
 
-{React, ReactDOM, rclass, rtypes, redux, Redux}  = require('../smc-react')
+{React, ReactDOM, rclass, rtypes, redux, Redux}  = require('../app-framework')
 
 misc         = require('smc-util/misc')
 cell_utils   = require('./cell-utils')

@@ -26,7 +26,7 @@ underscore = require('underscore')
 {COLORS}             = require('smc-util/theme')
 
 # React libraries
-{React, Fragment, rclass, rtypes}  = require('../smc-react')
+{React, Fragment, rclass, rtypes}  = require('../app-framework')
 
 {Button, ButtonToolbar, ButtonGroup, FormControl, FormGroup, Row, Col} = require('react-bootstrap')
 

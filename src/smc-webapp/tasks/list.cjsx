@@ -10,7 +10,7 @@ misc = require('smc-util/misc')
 
 {Icon} = require('../r_misc')
 
-{React, ReactDOM, rclass, rtypes}  = require('../smc-react')
+{React, ReactDOM, rclass, rtypes}  = require('../app-framework')
 
 {SortableContainer, SortableElement} = require('react-sortable-hoc')
 

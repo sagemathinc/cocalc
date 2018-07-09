@@ -26,7 +26,7 @@
 {COLORS}             = require('smc-util/theme')
 
 # React libraries
-{React, rclass, rtypes} = require('../../smc-react')
+{React, rclass, rtypes} = require('../../app-framework')
 {DateTimePicker, ErrorDisplay, Icon, LabeledRow, Loading, MarkdownInput, Space, Tip, NumberInput} = require('../../r_misc')
 {Alert, Button, ButtonToolbar, ButtonGroup, Form, FormControl, FormGroup, ControlLabel, InputGroup, Checkbox, Row, Col, Panel, Breadcrumb} = require('react-bootstrap')
 

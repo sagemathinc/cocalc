@@ -8,7 +8,7 @@ codemirror initially for editing.
 
 misc = require('smc-util/misc')
 
-{React, ReactDOM, rclass, rtypes} = require('smc-webapp/smc-react')
+{React, ReactDOM, rclass, rtypes} = require('smc-webapp/app-framework')
 {Icon, Space}           = require('smc-webapp/r_misc')
 {Button, Col,  ControlLabel,
  Form, FormControl, FormGroup, Well}  = require('react-bootstrap')
