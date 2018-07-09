@@ -15,7 +15,7 @@ import {
   FormControl
 } from "react-bootstrap";
 
-import { React, Rendered, Component } from "../generic/react";
+import { React, Rendered, Component } from "../../app-framework";
 
 import { split } from "../generic/misc";
 
@@ -27,6 +27,7 @@ interface Props {
   actions: any;
   filename: string;
   build_command: string | List<string>;
+  knitr: boolean;
 }
 
 interface State {
@@ -39,7 +40,7 @@ export class BuildCommand extends Component<Props, State> {
     super(props);
     this.state = {
       build_command: this.build_command_string(props.build_command),
-      focus: false
+      focus: false,
     };
   }
 
@@ -74,16 +75,18 @@ export class BuildCommand extends Component<Props, State> {
     return s;
   }
 
+  select_engine(engine: Engine): void {
+    this.props.actions.set_build_command(
+      build_command(engine, this.props.filename, this.props.knitr)
+    );
+  }
+
   render_item(engine: string): Rendered {
     return (
       <MenuItem
         key={engine}
         eventKey={engine}
-        onSelect={engine =>
-          this.props.actions.set_build_command(
-            build_command(engine, this.props.filename)
-          )
-        }
+        onSelect={engine => this.select_engine(engine)}
       >
         {engine}
       </MenuItem>
@@ -159,8 +162,8 @@ export class BuildCommand extends Component<Props, State> {
         <div style={{ color: "#666" }}>
           <h4>Build Command</h4>
           Select a build engine from the menu at the right, or enter absolutely
-          any custom build command line you want.  Custom build commands are run using bash, so
-          you can separate multiple commands with a semicolon.
+          any custom build command line you want. Custom build commands are run
+          using bash, so you can separate multiple commands with a semicolon.
         </div>
       </Alert>
     );

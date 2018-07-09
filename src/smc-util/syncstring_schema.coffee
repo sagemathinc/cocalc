@@ -79,7 +79,7 @@ schema.syncstrings =
             type : 'map'
             desc : 'Shared (by all users) configuration settings for editing this file (e.g., which spellcheck language to use).'
 
-    pg_indexes : ['last_active']
+    pg_indexes : ['last_active', 'archived']
 
     user_query:
         get :

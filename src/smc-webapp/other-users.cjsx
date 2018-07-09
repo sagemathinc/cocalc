@@ -25,7 +25,7 @@ misc = require('smc-util/misc')
 
 {server_time} = require('./webapp_client').webapp_client
 
-{rclass, React, ReactDOM, redux, Redux, rtypes} = require('./smc-react')
+{rclass, React, ReactDOM, redux, Redux, rtypes} = require('./app-framework')
 {Loading, SetIntervalMixin, Space} = require('./r_misc')
 {OverlayTrigger, Tooltip} = require('react-bootstrap')
 
@@ -112,7 +112,7 @@ exports.Avatar = Avatar = rclass
     render_line: ->
         return if not @props.activity?
         {project_id, path} = @props.activity
-        line = @get_cursor_line(project_id, path)
+        line = @get_cursor_line()
         if line?
             <span><Space/> (Line {line})</span>
 

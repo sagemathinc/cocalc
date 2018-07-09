@@ -2,7 +2,7 @@
 Rendered view of the description of a single task
 ###
 
-{React, rclass, rtypes}  = require('../smc-react')
+{React, rclass, rtypes}  = require('../app-framework')
 
 {Markdown} = require('../r_misc')
 

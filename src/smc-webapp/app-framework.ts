@@ -22,31 +22,29 @@
 //##############################################################################
 
 // Important: code below now assumes that a global variable called "DEBUG" is **defined**!
-declare var DEBUG: boolean, Primus, smc;
+declare var DEBUG: boolean, smc;
 if (DEBUG == null) {
   var DEBUG = false;
 }
 
-let rclass: (x?) => () => JSX.Element;
+let rclass: <P extends object>(
+  Component: React.ComponentType<P>
+) => React.ComponentType<P>;
 
 import * as immutable from "immutable";
 import * as React from "react";
 import { createStore as createReduxStore } from "redux";
 import * as createReactClass from "create-react-class";
-import * as PropTypes from "prop-types";
 import { Provider, connect } from "react-redux";
 
-let redux: AppRedux;
-let coffee = require("./smc-react");
-redux = coffee.redux;
+import { Store, StoreConstructorType } from "./app-framework/Store";
+import { Actions } from "./app-framework/Actions";
+import { Table, TableConstructor } from "./app-framework/Table";
 
-import {
-  Store,
-  store_base_state,
-  StoreConstructorType
-} from "./smc-react/Store";
+import { ProjectStore } from "./project_store";
+import { ProjectActions } from "./project_actions";
 
-import { Actions } from "./smc-react/Actions";
+import { debug_transform, MODES } from "./app-framework/react-rendering-debug";
 
 const misc = require("smc-util/misc");
 
@@ -55,48 +53,6 @@ export let COLOR = {
   BG_RED: "#d9534f", // the red bootstrap color of the button background
   FG_RED: "#c9302c", // red used for text
   FG_BLUE: "#428bca" // blue used for text
-};
-
-class Table {
-  public name: string;
-  public _table: any;
-  protected redux: AppRedux;
-  protected readonly _change: (table: any, keys: string[]) => void;
-
-  // override in derived class to pass in options to the query -- these only impact initial query, not changefeed!
-  options?: () => any[];
-  query: () => void;
-
-  constructor(name, redux) {
-    this.set = this.set.bind(this);
-    if (this.options) {
-      this.options.bind(this);
-    }
-    this.name = name;
-    this.redux = redux;
-    if (typeof Primus === "undefined" || Primus === null) {
-      // hack for now -- not running in browser (instead in testing server)
-      return;
-    }
-    this._table = require("./webapp_client").webapp_client.sync_table(
-      this.query(),
-      this.options ? this.options() : []
-    );
-    if (this._change !== undefined) {
-      this._table.on("change", keys => {
-        this._change(this._table, keys);
-      });
-    }
-  }
-
-  set(changes: object, merge, cb): void {
-    this._table.set(changes, merge, cb);
-  }
-}
-
-const depends = (...dependency_names) => deriving_func => {
-  deriving_func.dependency_names = dependency_names;
-  return deriving_func;
 };
 
 const action_set_state = function(change) {
@@ -216,14 +172,18 @@ export class AppRedux {
 
   createActions<T, C extends Actions<T>>(
     name: string,
-    actions_class: new (a, b) => C
+    actions_class?: new (a, b) => C
   ): C {
     if (name == null) {
       throw Error("name must be a string");
     }
 
     if (this._actions[name] == null) {
-      this._actions[name] = new actions_class(name, this);
+      if (actions_class === undefined) {
+        this._actions[name] = new Actions(name, this);
+      } else {
+        this._actions[name] = new actions_class(name, this);
+      }
     }
 
     return this._actions[name];
@@ -233,12 +193,14 @@ export class AppRedux {
     return !!this._actions[name];
   }
 
+  getActions(name: { project_id: string }): ProjectActions;
+  getActions<T, C extends Actions<T>>(name: string): C;
   getActions<T, C extends Actions<T>>(
     name: string | { project_id: string }
-  ): C {
+  ): C | ProjectActions | undefined {
     if (typeof name === "string") {
       if (!this.hasActions(name)) {
-        throw Error(`getActions: actions ${name} not registered`);
+        return undefined;
       } else {
         return this._actions[name];
       }
@@ -250,51 +212,33 @@ export class AppRedux {
     }
   }
 
-  // Technically this overloading is not best practice but name and spec are semantically very different
-  createStore<
-    T extends store_base_state = store_base_state,
-    C extends Store<T> = Store<T>
-  >(name: string, store_class?: StoreConstructorType<T, C>, init?: T): C;
-  createStore<
-    T extends store_base_state = store_base_state,
-    C extends Store<T> = Store<T>
-  >(spec: T, store_class?: StoreConstructorType<T, C>, init?: T): C;
-  createStore<T extends store_base_state, C extends Store<T> = Store<T>>(
-    spec: string | T,
-    store_class?: StoreConstructorType<T, C>,
-    init?: {} | T
+  createStore<State, C extends Store<State> = Store<State>>(
+    name: string,
+    store_class?: StoreConstructorType<State, C>,
+    init?: {} | State
   ): C {
-    let S: C;
-    let _StoreClass: any;
-    if (store_class === undefined) {
-      _StoreClass = Store;
-    } else {
-      _StoreClass = store_class;
+    let S: C = this._stores[name];
+    if (init === undefined && typeof store_class !== "function") {
+      // so can do createStore(name, {default init})
+      init = store_class;
+      store_class = undefined;
     }
-    if (typeof spec === "string") {
-      let name = spec;
-      S = this._stores[name];
-      if (S == null) {
-        S = this._stores[name] = new _StoreClass(name, this);
-        // Put into store. WARNING: New set_states CAN OVERWRITE THESE FUNCTIONS
-        let C = immutable.Map(S as {});
-        C = C.delete("redux"); // No circular pointing
-        this._set_state({ [name]: C });
-        if (init != null) {
-          this._set_state({ [name]: init });
-        }
+    if (S == null) {
+      if (store_class === undefined) {
+        (S as any) = this._stores[name] = new Store(name, this);
+      } else {
+        S = this._stores[name] = new store_class(name, this);
       }
-    } else {
-      S = this._stores[spec.name];
-      if (S == null) {
-        S = new _StoreClass(spec.name, this, spec);
-        this._stores[spec.name] = S;
-        // TODOJ: REMOVE
-        S.__converted = true;
-      }
-      if (typeof S.getInitialState === "function") {
-        S.getInitialState();
-      }
+      // Put into store. WARNING: New set_states CAN OVERWRITE THESE FUNCTIONS
+      let C = immutable.Map(S as {});
+      C = C.delete("redux"); // No circular pointing
+      this._set_state({ [name]: C });
+    }
+    if (typeof S.getInitialState === "function") {
+      init = S.getInitialState();
+    }
+    if (init != null) {
+      this._set_state({ [name]: init });
     }
     return S;
   }
@@ -303,14 +247,17 @@ export class AppRedux {
     return !!this._stores[name];
   }
 
-  getStore<T, C extends Store<T>>(name: string): C {
+  getStore<State, C extends Store<State>>(name: string): C | undefined {
     if (!this.hasStore(name)) {
-      throw Error(`getStore: store "${name}" not registered`);
+      return undefined;
     }
     return this._stores[name];
   }
 
-  createTable(name: string, table_class = Table): Table {
+  createTable<T extends Table>(
+    name: string,
+    table_class: TableConstructor<T>
+  ): T {
     const tables = this._tables;
     if (tables[name] != null) {
       throw Error(`createTable: table "${name}" already exists`);
@@ -346,7 +293,7 @@ export class AppRedux {
     }
   }
 
-  getTable(name: string): Table {
+  getTable<T extends Table>(name: string): T {
     if (this._tables[name] == null) {
       throw Error(`getTable: table "${name}" not registered`);
     }
@@ -360,28 +307,28 @@ export class AppRedux {
   // getProject... is safe to call any time. All structures will be created if they don't exist
   // TODO -- Typing: Type project Store
   // <T, C extends Store<T>>
-  getProjectStore = (project_id: string): any => {
+  getProjectStore = (project_id: string): ProjectStore => {
     if (!misc.is_valid_uuid_string(project_id)) {
       console.trace();
       console.warn(`getProjectStore: INVALID project_id -- "${project_id}"`);
     }
     if (!this.hasProjectStore(project_id)) {
-      require('./project_store').init(project_id);
+      require("./project_store").init(project_id, this);
     }
-    return this.getStore(project_redux_name(project_id));
+    return this.getStore(project_redux_name(project_id)) as any;
   };
 
   // TODO -- Typing: Type project Actions
   // T, C extends Actions<T>
-  getProjectActions(project_id: string): any {
+  getProjectActions(project_id: string): ProjectActions {
     if (!misc.is_valid_uuid_string(project_id)) {
       console.trace();
       console.warn(`getProjectActions: INVALID project_id -- "${project_id}"`);
     }
     if (!this.hasProjectStore(project_id)) {
-      require('./project_store').init(project_id);
+      require("./project_store").init(project_id, this);
     }
-    return this.getActions(project_redux_name(project_id));
+    return this.getActions(project_redux_name(project_id)) as any;
   }
 
   // TODO -- Typing: Type project Table
@@ -391,7 +338,7 @@ export class AppRedux {
       console.warn(`getProjectTable: INVALID project_id -- "${project_id}"`);
     }
     if (!this.hasProjectStore(project_id)) {
-      require('./project_store').init(project_id);
+      require("./project_store").init(project_id, this);
     }
     return this.getTable(project_redux_name(project_id, name));
   }
@@ -405,14 +352,14 @@ export class AppRedux {
     }
     const name = project_redux_name(project_id);
     let store = this.getStore(name);
-    if (typeof store.destroy == "function") {
+    if (store && typeof store.destroy == "function") {
       store.destroy();
     }
     this.removeActions(name);
     this.removeStore(name);
   }
 
-  getEditorStore(project_id: string, path: string, is_public: boolean) {
+  getEditorStore(project_id: string, path: string, is_public?: boolean) {
     if (!misc.is_valid_uuid_string(project_id)) {
       console.trace();
       console.warn(`getEditorStore: INVALID project_id -- "${project_id}"`);
@@ -420,7 +367,7 @@ export class AppRedux {
     return this.getStore(file_redux_name(project_id, path, is_public));
   }
 
-  getEditorActions(project_id: string, path: string, is_public: boolean) {
+  getEditorActions(project_id: string, path: string, is_public?: boolean) {
     if (!misc.is_valid_uuid_string(project_id)) {
       console.trace();
       console.warn(`getEditorActions: INVALID project_id -- "${project_id}"`);
@@ -463,26 +410,17 @@ const connect_component = spec => {
         console.warn("spec = ", spec);
         throw Error("store_name of spec *must* be defined");
       }
-      const store = redux.getStore(store_name);
+      const store: Store<any> | undefined = redux.getStore(store_name);
       for (let prop in info) {
         var val;
         const type = info[prop];
-        // TODO: Use typing on store
-        if (store !== undefined && store.__converted) {
-          val = store[prop];
-          let info = Object.getOwnPropertyDescriptor(store, prop);
-          if (info == undefined || info.get == null) {
-            if (DEBUG) {
-              console.warn(
-                `Requested reduxProp \`${prop}\` from store \`${store_name}\` but it is not defined in its stateTypes nor reduxProps`
-              );
-            }
-            val = state.getIn([store_name, prop]);
-          }
+
+        if (store == undefined) {
+          val = undefined;
         } else {
-          // TODOJ: remove *if* all stores are ever converted  (which may or may not be desirable/needed)
-          val = state.getIn([store_name, prop]);
+          val = store.get(prop);
         }
+
         if (type.category === "IMMUTABLE") {
           props[prop] = val;
         } else {
@@ -510,7 +448,7 @@ x.actions must not be defined.
 
 */
 
-const react_component = function(x) {
+rclass = function(x: any) {
   let C;
   if (typeof x === "function" && typeof x.reduxProps === "function") {
     // using an ES6 class *and* reduxProps...
@@ -603,104 +541,14 @@ const react_component = function(x) {
     C = createReactClass(x);
     if (x.reduxProps != null) {
       // Make the ones comming from redux get automatically injected, as long
-      // as this component is in a heierarchy wrapped by <Redux redux={redux}>...</Redux>
+      // as this component is in a heierarchy wrapped by <Redux>...</Redux>
       C = connect_component(x.reduxProps)(C);
     }
   }
   return C;
 };
 
-let MODE = "default"; // one of 'default', 'count', 'verbose', 'time'
-//MODE = 'verbose'  # print every CoCalc component that is rendered when rendered
-//MODE = 'trace'     # print only components that take some time, along with timing info
-//MODE = 'count'    # collect count of number of times each component is rendered; call get_render_count and reset_render_count to see.
-//MODE = 'time'      # show every single component render and how long it took
-
-if (typeof smc === "undefined" || smc === null) {
-  MODE = "default"; // never enable in prod
-}
-
-if (MODE !== "default") {
-  console.log(`smc-react MODE='${MODE}'`);
-}
-
-switch (MODE) {
-  case "count":
-    // Use these in the console:
-    //  reset_render_count()
-    //  JSON.stringify(get_render_count())
-    var render_count = {};
-    rclass = function(x) {
-      x._render = x.render;
-      x.render = function() {
-        render_count[x.displayName] =
-          (render_count[x.displayName] != null
-            ? render_count[x.displayName]
-            : 0) + 1;
-        return this._render();
-      };
-      return react_component(x);
-    };
-    (window as any).get_render_count = function() {
-      let total = 0;
-      for (let k in render_count) {
-        const v = render_count[k];
-        total += v;
-      }
-      return { counts: render_count, total };
-    };
-    (window as any).reset_render_count = function() {
-      render_count = {};
-    };
-    break;
-  case "time":
-    rclass = x => {
-      const t0 = performance.now();
-      const r = react_component(x);
-      const t1 = performance.now();
-      if (t1 - t0 > 1) {
-        console.log(r.displayName, "took", t1 - t0, "ms of time");
-      }
-      return r;
-    };
-    break;
-  case "verbose":
-    rclass = function(x) {
-      x._render = x.render;
-      x.render = function() {
-        console.log(x.displayName);
-        return this._render();
-      };
-      return react_component(x);
-    };
-    break;
-  case "trace":
-    var { react_debug_trace } = require("./smc-react-debug");
-    rclass = react_debug_trace(react_component);
-    break;
-  case "default":
-    rclass = react_component;
-    break;
-  default:
-    throw Error(`UNKNOWN smc-react MODE='${MODE}'`);
-}
-
-const Redux = createReactClass({
-  propTypes: {
-    redux: PropTypes.object.isRequired
-  },
-  render() {
-    return React.createElement(
-      Provider,
-      { store: this.props.redux._redux_store },
-      this.props.children
-    );
-  }
-});
-// The lines above are just the non-cjsx version of this:
-//<Provider store={@props.redux._redux_store}>
-//    {@props.children}
-//</Provider>
+let redux = new AppRedux();
 
 // Public interface
 export function is_redux(obj) {
@@ -715,7 +563,7 @@ export function is_redux_actions(obj) {
 export function redux_name(
   project_id: string,
   path: string,
-  is_public: boolean
+  is_public?: boolean
 ) {
   if (is_public) {
     return `public-${project_id}-${path}`;
@@ -732,12 +580,31 @@ export function project_redux_name(project_id: string, name?: string): string {
   return s;
 }
 
+class Redux extends React.Component {
+  render() {
+    return React.createElement(
+      Provider,
+      { store: redux._redux_store },
+      this.props.children
+    );
+  }
+}
+// The lines above are just the non-tsx version of this:
+//<Provider store={redux._redux_store}>
+//    {@props.children}
+//</Provider>
+
+// Change this line to alter the debugging mode.
+// Only touch this if testing in a browser, e.g., change this to MODES.count.  For a
+// complete list of options, see app-framework/react-rendering-debug.ts.
+rclass = debug_transform(rclass, MODES.default);
+//rclass = debug_transform(rclass, MODES.count);
+
 export const Component = React.Component;
 export type Rendered = React.ReactElement<any> | undefined;
-export { rclass }; // use rclass instead of createReactClass to get access to reduxProps support
+export { rclass }; // use rclass to get access to reduxProps support
 export { rtypes }; // has extra rtypes.immutable, needed for reduxProps to leave value as immutable
 export { computed };
-export { depends };
 export { React };
 export let { Fragment } = React;
 export { Redux };

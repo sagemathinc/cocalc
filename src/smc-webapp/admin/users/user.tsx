@@ -4,11 +4,7 @@ Display of basic information about a user, with link to get more information abo
 
 const { Icon, Space, TimeAgo } = require("smc-webapp/r_misc");
 
-import {
-  React,
-  Component,
-  Rendered
-} from "smc-webapp/frame-editors/generic/react";
+import { React, Component, Rendered } from "smc-webapp/app-framework";
 
 import { capitalize } from "smc-webapp/frame-editors/generic/misc";
 
@@ -126,6 +122,17 @@ export class UserResult extends Component<Props, State> {
             {this.render_last_active()} ({this.render_created()})
           </Col>
           <Col md={3}>{this.render_more_links()}</Col>
+          <Col md={2}>
+            <span
+              style={{
+                fontSize: "9px",
+                overflowX: "scroll",
+                whiteSpace: "nowrap"
+              }}
+            >
+              {this.props.account_id}
+            </span>
+          </Col>
         </Row>
         {this.render_subscriptions()}
         {this.render_projects()}
@@ -155,6 +162,9 @@ export class UserResult extends Component<Props, State> {
           </Col>
           <Col md={3}>
             <b>More...</b>
+          </Col>
+          <Col md={2}>
+            <b>{this.props.account_id}</b>
           </Col>
         </Row>
       </div>

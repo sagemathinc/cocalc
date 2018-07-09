@@ -2,11 +2,11 @@
 Redux: server stats
 ###
 
-{Table, redux} = require('./smc-react')
+{Table, redux} = require('./app-framework')
 
 name    = 'server_stats'
-actions = redux.createActions(name)
 store   = redux.createStore(name, {loading:true})
+actions = redux.createActions(name)
 
 $ = window.$
 {BASE_URL} = require('misc_page')

@@ -30,7 +30,7 @@ immutable = require('immutable')
 misc = require('smc-util/misc')
 
 # React libraries
-{React, rclass, rtypes}  = require('../smc-react')
+{React, rclass, rtypes}  = require('../app-framework')
 
 {Button, ButtonToolbar, ButtonGroup, Row, Col, Panel, Tabs, Tab} = require('react-bootstrap')
 
@@ -70,8 +70,8 @@ init_redux = (course_filename, redux, course_project_id) ->
         active_assignment_sort : {column_name : "due_date", is_descending : false}
         settings               : {allow_collabs : true}
 
-    actions = redux.createActions(the_redux_name, CourseActions)
     store = redux.createStore(the_redux_name, CourseStore, initial_store_state)
+    actions = redux.createActions(the_redux_name, CourseActions)
     actions.syncdb = syncdbs[the_redux_name] = CourseSync.create_sync_db(redux, actions, store)
 
     return the_redux_name

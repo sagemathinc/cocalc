@@ -29,7 +29,7 @@ async = require('async')
 misc = require('smc-util/misc')
 
 {webapp_client} = require('./webapp_client')
-{redux} = require('./smc-react')
+{redux} = require('./app-framework')
 {FileEditor, codemirror_session_editor} = require('./editor')
 
 sagews  = require('./sagews/sagews')
@@ -156,7 +156,6 @@ class exports.HistoryEditor extends FileEditor
             opts0 =
                 allow_javascript_eval : false
                 static_viewer         : true
-                read_only             : true
             @worksheet = new (sagews.SynchronizedWorksheet)(@view_doc, opts0)
 
         if @ext == 'ipynb' and @jupyter_classic()

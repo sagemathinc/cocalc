@@ -15,7 +15,7 @@ Internally which of the above is stored in a single string, with the following p
 
 import { DropdownButton, MenuItem } from "react-bootstrap";
 
-import { React, Rendered, Component } from "../generic/react";
+import { React, Rendered, Component } from "../../app-framework";
 
 import { is_different } from "../generic/misc";
 

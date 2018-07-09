@@ -22,7 +22,7 @@
 ###
 The Landing Page
 ###
-{rclass, React, ReactDOM, redux, rtypes} = require('./smc-react')
+{rclass, React, ReactDOM, redux, rtypes} = require('./app-framework')
 {Alert, Button, ButtonToolbar, Col, Modal, Grid, Row, FormControl, FormGroup, Well, ClearFix, Checkbox} = require('react-bootstrap')
 {ErrorDisplay, Icon, Loading, ImmutablePureRenderMixin, Footer, UNIT, COLORS, ExampleBox, Space, Tip} = require('./r_misc')
 {HelpEmailLink, SiteName, SiteDescription, TermsOfService, AccountCreationEmailInstructions} = require('./customize')

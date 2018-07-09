@@ -66,7 +66,7 @@ misc                 = require('smc-util/misc')
 {defaults, required} = misc
 {dmp}                = require('smc-util/syncstring')
 {webapp_client}      = require('./webapp_client')
-{redux}              = require('./smc-react')
+{redux}              = require('./app-framework')
 syncdoc              = require('./syncdoc')
 misc_page            = require('./misc_page')
 

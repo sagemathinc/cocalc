@@ -2,7 +2,7 @@
 Showing list of users of a project
 ###
 
-{React, redux, rtypes, rclass}  = require('../smc-react')
+{React, redux, rtypes, rclass}  = require('../app-framework')
 
 {User} = require('../users')
 

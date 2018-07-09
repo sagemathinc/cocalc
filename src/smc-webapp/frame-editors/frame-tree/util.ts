@@ -42,5 +42,6 @@ export const PRETTIER_SUPPORT = {
   ts: true,
   tsx: true,
   json: true,
+  py: true, // use external tool
   tex: true  // actually use latexformat
 };

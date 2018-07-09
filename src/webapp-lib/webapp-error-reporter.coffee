@@ -265,7 +265,7 @@ if ENABLED and window.setImmediate
 sendLogLine = (severity, args) ->
     misc = require('smc-util/misc')
     if typeof(args) == 'object'
-        message = misc.to_safe_str(args)
+        message = misc.trunc_middle(misc.to_json(args), 1000)
     else
         message = Array.prototype.slice.call(args).join(", ")
     sendError(

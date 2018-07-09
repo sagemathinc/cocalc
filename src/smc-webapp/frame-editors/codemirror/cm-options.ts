@@ -253,8 +253,8 @@ export function cm_options(
     indentWithTabs: !opts.spaces_instead_of_tabs,
     showCursorWhenSelecting: true,
     extraKeys,
-    cursorScrollMargin: 6,
-    viewportMargin: 50
+    cursorScrollMargin: 3,
+    viewportMargin: 10
   };
 
   if (opts.match_xml_tags) {

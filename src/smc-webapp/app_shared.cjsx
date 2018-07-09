@@ -19,7 +19,7 @@
 #
 ###############################################################################
 
-{React, ReactDOM, rclass, redux, rtypes, Redux, Actions, Store, COLOR} = require('./smc-react')
+{React, ReactDOM, rclass, redux, rtypes, Redux, Actions, Store, COLOR} = require('./app-framework')
 {Button, Col, Row, Modal, NavItem} = require('react-bootstrap')
 {Icon, Space, Tip} = require('./r_misc')
 {COLORS} = require('smc-util/theme')
@@ -51,7 +51,7 @@ exports.ActiveAppContent = ({active_top_tab, render_small}) ->
         when 'admin'
             return <AdminPage redux={redux} />
         when undefined
-            return
+            return <div>Broken... active_top_tab is undefined</div>
         else
             project_name = redux.getProjectStore(active_top_tab).name
             if render_small
@@ -65,7 +65,7 @@ exports.NavTab = rclass
     propTypes :
         label           : rtypes.string
         label_class     : rtypes.string
-        icon            : rtypes.string
+        icon            : rtypes.oneOfType([rtypes.string,rtypes.element])
         close           : rtypes.bool
         on_click        : rtypes.func
         active_top_tab  : rtypes.string
@@ -87,10 +87,13 @@ exports.NavTab = rclass
 
     make_icon: ->
         if @props.icon?
-            <Icon
-                name  = {@props.icon}
-                style = {fontSize: 20, paddingRight: 2}
-            />
+            if typeof @props.icon == "string"
+                <Icon
+                    name  = {@props.icon}
+                    style = {fontSize: 20, paddingRight: 2}
+                />
+            else
+                @props.icon
 
     on_click: (e) ->
         if @props.name?

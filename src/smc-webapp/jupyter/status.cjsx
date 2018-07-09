@@ -2,7 +2,7 @@
 Kernel display
 ###
 
-{React, ReactDOM, rclass, rtypes}  = require('../smc-react')
+{React, ReactDOM, rclass, rtypes}  = require('../app-framework')
 {Icon, Loading, Tip} = require('../r_misc')
 {closest_kernel_match} = require('smc-util/misc')
 {Logo} = require('./logo')

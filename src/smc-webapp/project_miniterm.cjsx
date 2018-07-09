@@ -31,7 +31,7 @@ IDEAS FOR LATER:
 
 ###
 
-{rclass, React, rtypes, ReactDOM}  = require('./smc-react')
+{rclass, React, rtypes, ReactDOM}  = require('./app-framework')
 {Button, FormControl, InputGroup, FormGroup, Row, Col} = require('react-bootstrap')
 {ErrorDisplay, Icon} = require('./r_misc')
 

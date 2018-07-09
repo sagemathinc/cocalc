@@ -3,7 +3,7 @@ The tag editing toolbar functionality for cells.
 ###
 
 {Button, FormControl, FormGroup, InputGroup} = require('react-bootstrap')
-{React, ReactDOM, rclass, rtypes}  = require('../smc-react')
+{React, ReactDOM, rclass, rtypes}  = require('../app-framework')
 {Icon} = require('../r_misc')
 
 misc = require('smc-util/misc')

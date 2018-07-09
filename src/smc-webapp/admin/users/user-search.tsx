@@ -9,7 +9,7 @@ import {
   Component,
   Rendered,
   ReactDOM
-} from "smc-webapp/frame-editors/generic/react";
+} from "smc-webapp/app-framework";
 
 import { user_search, User } from "smc-webapp/frame-editors/generic/client";
 
@@ -137,12 +137,12 @@ export class UserSearch extends Component<{}, UserSearchState> {
       <UserResult
         key={"header"}
         header={true}
-        account_id=""
         first_name="First"
         last_name="Last"
         email_address="Email"
         created="Created"
         last_active="Active"
+        account_id="Account ID"
       />
     );
   }

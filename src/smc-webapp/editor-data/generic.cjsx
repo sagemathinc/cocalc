@@ -6,7 +6,7 @@ See https://github.com/sagemathinc/cocalc/issues/2462
 
 # React libraries
 {Well} = require('react-bootstrap')
-{React, ReactDOM, rclass, rtypes}  = require('../smc-react')
+{React, ReactDOM, rclass, rtypes}  = require('../app-framework')
 
 {webapp_client} = require('../webapp_client')
 {Markdown}      = require('../r_misc')

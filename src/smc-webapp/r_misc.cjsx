@@ -20,7 +20,7 @@
 
 async = require('async')
 
-{Component, React, ReactDOM, rclass, rtypes, is_redux, is_redux_actions, redux, Store, Actions, Redux} = require('./smc-react')
+{Component, React, ReactDOM, rclass, rtypes, is_redux, is_redux_actions, redux, Store, Actions, Redux} = require('./app-framework')
 {Alert, Button, ButtonToolbar, Checkbox, Col, FormControl, FormGroup, ControlLabel, InputGroup, Overlay, OverlayTrigger, Popover, Modal, Tooltip, Row, Well} = require('react-bootstrap')
 {HelpEmailLink, SiteName, CompanyName, PricingUrl, PolicyTOSPageUrl, PolicyIndexPageUrl, PolicyPricingPageUrl} = require('./customize')
 {UpgradeRestartWarning} = require('./upgrade_restart_warning')
@@ -2030,3 +2030,53 @@ exports.VisibleLG = rclass
         <span className={'visible-lg-inline'}>
             {@props.children}
         </span>
+
+# Error boundry. Pass components in as children to create one.
+# https://reactjs.org/blog/2017/07/26/error-handling-in-react-16.html
+exports.ErrorBoundary = rclass
+    displayName: 'Error-Boundary'
+
+    getInitialState: ->
+        error : undefined
+        info  : undefined
+
+    componentDidCatch: (error, info) ->
+        # TODO: Report the error to some backend service...
+        @setState
+            error : error
+            info  : info
+
+    render: ->
+        # This is way worse than nothing, because it surpresses reporting the actual error to the
+        # backend!!!  I'm disabling it completely.
+        return @props.children
+        if @state.info?
+            <Alert
+                bsStyle = 'warning'
+                style   = {margin:'15px'}
+            >
+                <h2 style={color:'rgb(217, 83, 79)'}>
+                    <Icon name='bug'/> You have just encountered a bug in CoCalc.  This is not your fault.
+                </h2>
+                <h4>
+                    {"You will probably have to refresh your browser to continue."}
+                </h4>
+                {"We have been notified of this error; however, if this bug is causing you significant trouble, file a support ticket:"}
+                <br/>
+                <br/>
+                <Button onClick={=>redux.getActions('support').show(true)}>
+                    Create Ticket
+                </Button>
+                <br/>
+                <br/>
+                <details style={whiteSpace:'pre-wrap', cursor:'pointer'} >
+                    <summary>Stack trace (in case you are curious)</summary>
+                    <div style={cursor:'pointer'} >
+                        {@state.error?.toString()}
+                        <br/>
+                        {@state.info.componentStack}
+                    </div>
+                </details>
+            </Alert>
+        else
+            @props.children

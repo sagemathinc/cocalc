@@ -2,8 +2,8 @@
 Component that manages rendering all the gutter markers associated to a Codemirror editor.
 */
 
-import { React, Component, Rendered } from "../generic/react";
-import { GutterMarker } from "./codemirror-gutter-marker.tsx";
+import { React, Component, Rendered } from "../../app-framework";
+import { GutterMarker } from "./codemirror-gutter-marker";
 import * as CodeMirror from "codemirror";
 
 export interface GutterSpec {
