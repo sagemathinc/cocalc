@@ -1810,7 +1810,7 @@ You can find the comments they made in the folders below.\
   }
 
   // Copy the given assignment to all non-deleted students, doing several copies in parallel at once.
-  return_assignment_to_all_students(assignment, new_only) {
+  return_assignment_to_all_students(assignment, new_only?) {
     let left;
     const id = this.set_activity({
       desc: `Returning assignments to all students ${

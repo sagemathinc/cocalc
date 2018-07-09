@@ -58,7 +58,7 @@ let {
 } = require("../r_misc");
 
 // Course components
-import { CourseStore } from "./store";
+import { CourseStore, AssignmentRecord, HandoutRecord, StudentRecord } from "./store";
 import { CourseActions } from "./actions";
 import * as CourseSync from "./sync";
 import { CSSProperties } from "react";
@@ -158,9 +158,9 @@ interface CourseReduxProps {
   error: string;
   tab: string;
   activity: Map<any, any>; // status messages about current activity happening (e.g., things being assigned)
-  students: Map<any, any>;
-  assignments: Map<any, any>;
-  handouts: Map<any, any>;
+  students: Map<string, StudentRecord>;
+  assignments: Map<string, AssignmentRecord>;
+  handouts: Map<string, HandoutRecord>;
   settings: Map<any, any>;
   unsaved: boolean;
 

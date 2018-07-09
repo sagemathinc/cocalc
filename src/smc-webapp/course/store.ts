@@ -44,31 +44,43 @@ import { TypedMap } from "../app-framework/TypedMap";
 // Upgrades
 const project_upgrades = require("./project-upgrades");
 
-type Student = TypedMap<{
+export type StudentRecord = TypedMap<{
   account_id: string;
   email_address: string;
   project_id: string;
   deleted: boolean;
 }>;
 
-type Assignment = TypedMap<{
+export type AssignmentRecord = TypedMap<{
+  assignment_id: string;
   deleted: boolean;
   due_date: Date;
   path: string;
+  peer_grade: boolean;
+  note: string;
+  last_assignment: string;
+  skip_assignment: boolean;
+  skip_collect: boolean;
+  skip_grading: boolean;
 }>;
 
-type Handout = TypedMap<{
+export type HandoutRecord = TypedMap<{
   deleted: boolean;
   handout_id: string;
   target_path: string;
 }>;
 
+export type SortDescription = TypedMap<{
+  column_name: string;
+  is_descending: boolean;
+}>;
+
 export interface CourseState {
   activity: { [key: string]: string };
-  action_all_projects_state: string;  
+  action_all_projects_state: string;
   active_student_sort: { column_name: string; is_descending: boolean };
-  active_assignment_sort:  { column_name: string; is_descending: boolean };
-  assignments: Map<string, Assignment>;
+  active_assignment_sort: { column_name: string; is_descending: boolean };
+  assignments: Map<string, AssignmentRecord>;
   course_filename: string;
   course_project_id: string;
   configure_projects: string;
@@ -78,7 +90,7 @@ export interface CourseState {
   expanded_peer_configs: Set<string>;
   expanded_handouts: Set<string>;
   expanded_skip_gradings: Set<string>;
-  handouts: Map<string, Handout>;
+  handouts: Map<string, HandoutRecord>;
   saving: boolean;
   settings: TypedMap<{
     allow_collabs: boolean;
@@ -92,7 +104,7 @@ export interface CourseState {
   }>;
   show_save_button: boolean;
   student_id: string;
-  students: Map<string, Student>;
+  students: Map<string, StudentRecord>;
   tab: string;
   unsaved: boolean;
 }
@@ -360,7 +372,7 @@ export class CourseStore extends Store<CourseState> {
   }
 
   get_sorted_students() {
-    const v: Student[] = [];
+    const v: StudentRecord[] = [];
     this.get("students").map(student => {
       if (!student.get("deleted")) {
         return v.push(student);
@@ -406,13 +418,13 @@ export class CourseStore extends Store<CourseState> {
   }
 
   get_sorted_assignments() {
-    const v: Assignment[] = [];
+    const v: AssignmentRecord[] = [];
     this.get_assignments().map(assignment => {
       if (!assignment.get("deleted")) {
         return v.push(assignment);
       }
     });
-    const f = function(a: Assignment) {
+    const f = function(a: AssignmentRecord) {
       let left;
       return [
         (left = a.get("due_date")) != null ? left : 0,
@@ -655,7 +667,7 @@ export class CourseStore extends Store<CourseState> {
     return this.get("handouts");
   }
 
-  get_handout(handout: string | Handout): Handout | undefined {
+  get_handout(handout: string | HandoutRecord): HandoutRecord | undefined {
     // return handout with given id if a string; otherwise, just return handout (the input)
     if (typeof handout !== "string") {
       handout = handout.get("handout_id");

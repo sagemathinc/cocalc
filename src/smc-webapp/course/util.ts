@@ -1,4 +1,5 @@
 import { Map } from "immutable";
+import { TypedMap } from "../app-framework/TypedMap";
 
 /*
  * decaffeinate suggestions:
@@ -194,10 +195,10 @@ export function parse_students(student_map: Map<string, any>, user_map, redux) {
 // Turns Map(Keys -> Objects{...}) into [Objects{primary_key : Key, ...}]
 // TODO: Type return array better
 export function immutable_to_list(x: undefined): undefined;
-export function immutable_to_list<K, V, M extends Map<any, V>>(
-  x: Map<K, M>,
-  primary_key: string
-): M[];
+export function immutable_to_list<T, P>(
+  x: Map<string, T>,
+  primary_key: P
+): T extends TypedMap<infer S> ? S[] : T extends Map<string, infer S> ? S[] : any;
 export function immutable_to_list(x: any, primary_key?): any {
   if (x == null || x == undefined) {
     return;
@@ -206,7 +207,7 @@ export function immutable_to_list(x: any, primary_key?): any {
   x.map((val, key) => v.push(misc.merge(val.toJS(), { [primary_key]: key })));
   return v;
 }
-
+Object.assign
 // Returns a list of matched objects and the number of objects
 // which were in the original list but omitted in the returned list
 export function compute_match_list(opts) {
@@ -296,7 +297,9 @@ enum StudentField {
   hosting = "hosting"
 }
 
-export function pick_student_sorter<T extends { column_name: StudentField }>(sort: T) {
+export function pick_student_sorter<T extends { column_name: StudentField }>(
+  sort: T
+) {
   switch (sort.column_name) {
     case "email":
       return sort_on_string_field("email_address");
