@@ -90,11 +90,9 @@ class MarkdownInput0 extends Component<
     };
   };
 
-  getDefaultProps = () => {
-    return {
-      edit_button_text: "Edit",
-      hide_edit_button: false
-    };
+  static defaultProps = {
+    edit_button_text: "Edit",
+    hide_edit_button: false
   };
 
   getActions() {
