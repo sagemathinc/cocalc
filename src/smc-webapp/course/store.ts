@@ -45,7 +45,9 @@ import { TypedMap } from "../app-framework/TypedMap";
 const project_upgrades = require("./project-upgrades");
 
 export type StudentRecord = TypedMap<{
+  create_project: number; // Time the student project was created
   account_id: string;
+  student_id: string;
   first_name: string;
   last_name: string;
   last_active: number;
@@ -53,6 +55,7 @@ export type StudentRecord = TypedMap<{
   email_address: string;
   project_id: string;
   deleted: boolean;
+  note: string;
 }>;
 
 export type StudentsMap = Map<string, StudentRecord>

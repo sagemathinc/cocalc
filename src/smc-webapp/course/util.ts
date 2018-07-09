@@ -289,7 +289,8 @@ const sort_on_string_field = field => (a, b) =>
 const sort_on_numerical_field = field => (a, b) =>
   misc.cmp(a[field] * -1, b[field] * -1);
 
-enum StudentField {
+
+export enum StudentField {
   email = "email",
   first_name = "first_name",
   last_name = "last_name",
