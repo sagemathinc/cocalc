@@ -1,5 +1,6 @@
 import { Map } from "immutable";
 import { TypedMap } from "../app-framework/TypedMap";
+import { StudentsMap } from "./store";
 
 /*
  * decaffeinate suggestions:
@@ -133,8 +134,7 @@ export function step_ready(step: Step, n) {
 //    hosting       : bool
 //    email_address : string
 // }
-// TODO Type student map
-export function parse_students(student_map: Map<string, any>, user_map, redux) {
+export function parse_students(student_map: StudentsMap, user_map, redux) {
   const v = immutable_to_list(student_map, "student_id");
   for (var x of v) {
     if (x.account_id != null) {

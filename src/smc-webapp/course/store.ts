@@ -46,10 +46,16 @@ const project_upgrades = require("./project-upgrades");
 
 export type StudentRecord = TypedMap<{
   account_id: string;
+  first_name: string;
+  last_name: string;
+  last_active: number;
+  hosting: boolean;
   email_address: string;
   project_id: string;
   deleted: boolean;
 }>;
+
+export type StudentsMap = Map<string, StudentRecord>
 
 export type AssignmentRecord = TypedMap<{
   assignment_id: string;
@@ -64,11 +70,15 @@ export type AssignmentRecord = TypedMap<{
   skip_grading: boolean;
 }>;
 
+export type AssignmentsMap = Map<string, AssignmentRecord>
+
 export type HandoutRecord = TypedMap<{
   deleted: boolean;
   handout_id: string;
   target_path: string;
 }>;
+
+export type HandoutsMap = Map<string, HandoutRecord>
 
 export type SortDescription = TypedMap<{
   column_name: string;
@@ -80,7 +90,7 @@ export interface CourseState {
   action_all_projects_state: string;
   active_student_sort: { column_name: string; is_descending: boolean };
   active_assignment_sort: { column_name: string; is_descending: boolean };
-  assignments: Map<string, AssignmentRecord>;
+  assignments: AssignmentsMap;
   course_filename: string;
   course_project_id: string;
   configure_projects: string;
@@ -90,7 +100,7 @@ export interface CourseState {
   expanded_peer_configs: Set<string>;
   expanded_handouts: Set<string>;
   expanded_skip_gradings: Set<string>;
-  handouts: Map<string, HandoutRecord>;
+  handouts: HandoutsMap;
   saving: boolean;
   settings: TypedMap<{
     allow_collabs: boolean;
@@ -104,7 +114,7 @@ export interface CourseState {
   }>;
   show_save_button: boolean;
   student_id: string;
-  students: Map<string, StudentRecord>;
+  students: StudentsMap;
   tab: string;
   unsaved: boolean;
 }
