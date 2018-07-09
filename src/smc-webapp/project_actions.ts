@@ -22,7 +22,12 @@ const { defaults, required } = misc;
 
 import { Actions, project_redux_name, redux } from "./app-framework";
 
-import { ProjectStore, ProjectStoreState, NOT_A_DIR, NO_DIR } from "./project_store";
+import {
+  ProjectStore,
+  ProjectStoreState,
+  NOT_A_DIR,
+  NO_DIR
+} from "./project_store";
 
 const BAD_FILENAME_CHARACTERS = "\\";
 const BAD_LATEX_FILENAME_CHARACTERS = '\'"()"~%';
@@ -571,7 +576,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     chat_width?: number;
     ignore_kiosk?: boolean;
     new_browser_window?: boolean;
-    payload: any;
+    payload?: any;
   }): void {
     opts = defaults(opts, {
       path: required,
@@ -841,7 +846,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
                 this.set_active_tab(misc.path_to_tab(opts.path));
               }
               if (opts.payload) {
-                let a = redux.getEditorActions(this.project_id, opts.path);
+                let a: any = redux.getEditorActions(this.project_id, opts.path);
                 if (a.dispatch_payload) {
                   a.dispatch_payload(opts.payload);
                 }
@@ -2049,7 +2054,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         if (course_discussions.length > 0) {
           const src_head_tail = misc.path_split(orig_src);
           const dest_head_tail = misc.path_split(opts.dest);
-          for (let cd of Array.from(course_discussions)) {
+          const course_dirs: string[] = Array.from(course_discussions);
+          for (let cd of course_dirs) {
             // postfix is the remaining part of the filename itself
             const postfix = cd.slice(1 + src_head_tail.tail.length);
             const src = os_path.join(src_head_tail.head, cd);

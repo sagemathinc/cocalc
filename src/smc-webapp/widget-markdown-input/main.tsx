@@ -7,6 +7,7 @@ import {
   Component,
   React,
   ReactDOM,
+  Rendered,
   rclass,
   redux,
   rtypes
@@ -262,7 +263,7 @@ class MarkdownInput0 extends Component<
       }
       let rendered_button: Rendered = undefined;
       if (!this.props.hide_edit_button) {
-        const props = { onClick: this.edit };
+        const props: { onClick; bsSize? } = { onClick: this.edit };
         if (this.props.edit_button_bsSize) {
           props.bsSize = this.props.edit_button_bsSize;
         }
