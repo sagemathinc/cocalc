@@ -41,6 +41,7 @@ describe("Jupyter - testing a single action", function() {
   });
 });
 
+/*
 describe("Jupyter - testing a store function", function() {
   this.timeout(10000);
   let editor: TestEditor;
@@ -52,12 +53,11 @@ describe("Jupyter - testing a store function", function() {
     editor.delete();
   });
   it("list kernels", async () => {
-    /*
     const store: JupyterStore = editor.store;
     await new Promise(resolve => {
       console.log(store.get_language_info());
       setTimeout(resolve, 1000);
     });
-    */
   });
 });
+*/
