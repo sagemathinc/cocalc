@@ -27,7 +27,7 @@ import * as underscore from "underscore";
 const misc = require("smc-util/misc");
 const { required, defaults } = misc;
 import { Actions } from "../app-framework";
-import { JupyterStoreState } from "./store-ts";
+import { JupyterStoreState, JupyterStore } from "./store";
 const util = require("./util");
 const server_urls = require("./server-urls");
 const parsing = require("./parsing");
@@ -64,7 +64,7 @@ const CellDeleteProtectedException = new Error("CellDeleteProtectedException");
 
 export class JupyterActions extends Actions<JupyterStoreState> {
   private _account_change_editor_settings: any;
-  private _account_id: any; // TODO: check if this is used publicly
+  public _account_id: any; // Note: this is used in test
   private _hook_before_change: any;
   private _hook_after_change: any;
   private _client: any;
@@ -76,8 +76,8 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   private project_id: any;
   private set_save_status: any;
   private store: any;
-  private syncdb: any;
-  private util: any;  // TODO: check if this is used publicly
+  public syncdb: any;
+  public util: any; // TODO: check if this is used publicly
   private _key_handler: any;
   private _file_watcher: any;
   private manager_on_cell_change: any;
@@ -104,7 +104,6 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     store: any,
     client: any
   ) => {
-    let left: any, left1: any;
     store.dbg = f => {
       return client.dbg(`JupyterStore('${store.get("path")}').${f}`);
     };
@@ -126,15 +125,17 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       this.assistant_actions = instantiate_assistant(project_id, path);
     }
 
-    let font_size: any = this.store.get_local_storage('font_size');
+    let font_size: any = this.store.get_local_storage("font_size");
     if (font_size == null) {
-      const account = this.redux.getStore("account")
+      const account = this.redux.getStore<JupyterStoreState, JupyterStore>(
+        "account"
+      );
       if (account != null) {
-        font_size = account.get("font_size")
+        font_size = account.get("font_size");
       }
     }
     if (font_size == null) {
-      font_size = 14
+      font_size = 14;
     }
 
     let directory: any;
@@ -280,7 +281,9 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     delete this.syncdb;
     delete this._commands;
     if (this._key_handler != null) {
-      (this.redux.getActions("page") as any).erase_active_key_handler(this._key_handler);
+      (this.redux.getActions("page") as any).erase_active_key_handler(
+        this._key_handler
+      );
       delete this._key_handler;
     }
     if (this._file_watcher != null) {
@@ -288,9 +291,9 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       delete this._file_watcher;
     }
     if (!this._is_project) {
-      const account = this.redux.getStore("account")
+      const account = this.redux.getStore("account");
       if (account != null) {
-        account.removeListener("change", this._account_change)
+        account.removeListener("change", this._account_change);
       }
     }
   };
@@ -302,15 +305,17 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     if (this._key_handler == null) {
       this._key_handler = keyboard.create_key_handler(this);
     }
-    return (this.redux
-      .getActions("page") as any)
-      .set_active_key_handler(this._key_handler, this.project_id, this.path);
+    return (this.redux.getActions("page") as any).set_active_key_handler(
+      this._key_handler,
+      this.project_id,
+      this.path
+    );
   };
 
   disable_key_handler = () => {
-    return (this.redux
-      .getActions("page") as any)
-      .erase_active_key_handler(this._key_handler);
+    return (this.redux.getActions("page") as any).erase_active_key_handler(
+      this._key_handler
+    );
   };
 
   _ajax = (opts: any) => {
@@ -2833,7 +2838,9 @@ export class JupyterActions extends Actions<JupyterStoreState> {
         ? left
         : {};
     cur.kernel = kernel;
-    (this.redux.getTable("account") as any).set({ editor_settings: { jupyter: cur } });
+    (this.redux.getTable("account") as any).set({
+      editor_settings: { jupyter: cur }
+    });
   };
 
   edit_attachments = (id: any) => {
@@ -3076,9 +3083,9 @@ export class JupyterActions extends Actions<JupyterStoreState> {
         if (choice !== "Switch to Classical Notebook") {
           return;
         }
-        (this.redux
-          .getTable("account") as any)
-          .set({ editor_settings: { jupyter_classic: true } });
+        (this.redux.getTable("account") as any).set({
+          editor_settings: { jupyter_classic: true }
+        });
         this.save();
         return this.file_action("reopen_file", this.store.get("path"));
       }

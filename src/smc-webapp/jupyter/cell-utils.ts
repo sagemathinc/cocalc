@@ -6,8 +6,8 @@ import * as immutable from "immutable";
 const misc = require("smc-util/misc");
 
 export function positions_between(
-  before_pos: number,
-  after_pos: number,
+  before_pos: number | undefined,
+  after_pos: number | undefined,
   num: number
 ) {
   // Return an array of num equally spaced positions starting after
@@ -15,7 +15,7 @@ export function positions_between(
   //   [before_pos+delta, before_pos+2*delta, ..., after_pos-delta]
   // where delta is a function of the endpoints and num.
   let delta: number, pos: number;
-  if (before_pos > after_pos) {
+  if (before_pos != null && after_pos != null && before_pos > after_pos) {
     [before_pos, after_pos] = [after_pos, before_pos];
   }
   if (before_pos == null) {
@@ -61,7 +61,7 @@ export function sorted_cell_list(cells: immutable.Map<any, any>) {
     .toList();
 }
 
-export function ensure_positions_are_unique(cells: immutable.Map<any, any>) {
+export function ensure_positions_are_unique(cells?: immutable.Map<any, any>) {
   // Verify that pos's of cells are distinct.  If not
   // return map from id's to new unique positions.
   if (cells == null) {
