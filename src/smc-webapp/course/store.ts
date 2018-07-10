@@ -334,7 +334,7 @@ export class CourseStore extends Store<CourseState> {
   }
 
   // return list of all student projects (or undefined if not loaded)
-  get_student_project_ids(opts) {
+  get_student_project_ids(opts?) {
     let include, v;
     const { include_deleted, deleted_only, map } = defaults(opts, {
       include_deleted: false,

@@ -30,19 +30,34 @@
 // Upgrading quotas for all student projects
 //#############################################################################
 
-import underscore from "underscore";
+const misc = require("smc-util/misc");
 
-import misc from "smc-util/misc";
-
-import schema from "smc-util/schema";
-
-import { React, rclass, rtypes, ReactDOM } from "../app-framework";
-
-import { Icon, Loading, NoUpgrades, Tip, UPGRADE_ERROR_STYLE } from "../r_misc";
-
-import { UpgradeRestartWarning } from "../upgrade_restart_warning";
+const schema = require("smc-util/schema");
 
 import {
+  Component,
+  React,
+  rclass,
+  rtypes,
+  ReactDOM,
+  AppRedux
+} from "../app-framework";
+import { CourseActions } from "./actions";
+import { redux } from "../frame-editors/generic/test/util";
+import { CourseState, CourseStore } from "./store";
+import { Map } from "immutable";
+
+const {
+  Icon,
+  Loading,
+  NoUpgrades,
+  Tip,
+  UPGRADE_ERROR_STYLE
+} = require("../r_misc");
+
+const { UpgradeRestartWarning } = require("../upgrade_restart_warning");
+
+const {
   Alert,
   Button,
   ButtonToolbar,
@@ -52,26 +67,44 @@ import {
   Panel,
   Row,
   Col
-} from "react-bootstrap";
+} = require("react-bootstrap");
 
-export let StudentProjectUpgrades = rclass({
-  propTypes() {
-    return {
-      name: rtypes.string.isRequired,
-      redux: rtypes.object.isRequired,
-      upgrade_goal: rtypes.immutable.Map,
-      institute_pay: rtypes.bool,
-      student_pay: rtypes.bool
-    };
-  },
+interface StudentProjectUpgradesProps {
+  name: string;
+  redux: AppRedux;
+  upgrade_goal?: Map<any, any>;
+  institute_pay?: boolean;
+  student_pay?: boolean;
+}
 
-  getInitialState() {
-    return {
+interface StudentProjectUpgradesState {
+  upgrade_quotas: boolean; // true if display the quota upgrade panel
+  upgrades: object;
+  upgrade_plan?: object;
+}
+
+export class StudentProjectUpgrades extends Component<
+  StudentProjectUpgradesProps,
+  StudentProjectUpgradesState
+> {
+  public _upgrade_is_invalid: boolean;
+
+  constructor(props) {
+    super(props);
+    this.state = {
       upgrade_quotas: false, // true if display the quota upgrade panel
-      upgrades: undefined,
+      upgrades: {},
       upgrade_plan: undefined
     };
-  },
+  }
+
+  get_actions(): CourseActions {
+    return redux.getActions(this.props.name);
+  }
+
+  get_store(): CourseStore {
+    return redux.getStore(this.props.name) as any;
+  }
 
   upgrade_goal() {
     const goal = {};
@@ -83,15 +116,15 @@ export let StudentProjectUpgrades = rclass({
       goal[quota] = val / display_factor;
     }
     return goal;
-  },
+  }
 
   save_upgrade_quotas() {
     this.setState({ upgrade_quotas: false });
-    const a = this.actions(this.props.name);
+    const a = this.get_actions();
     const upgrade_goal = this.upgrade_goal();
     a.set_upgrade_goal(upgrade_goal);
     return a.upgrade_all_student_projects(upgrade_goal);
-  },
+  }
 
   render_upgrade_heading(num_projects) {
     return (
@@ -108,7 +141,7 @@ export let StudentProjectUpgrades = rclass({
         </Col>
       </Row>
     );
-  },
+  }
 
   is_upgrade_input_valid(val, limit) {
     let round_number;
@@ -119,16 +152,9 @@ export let StudentProjectUpgrades = rclass({
     } else {
       return true;
     }
-  },
+  }
 
-  render_upgrade_row_input(
-    quota,
-    input_type,
-    current,
-    yours,
-    num_projects,
-    limit
-  ) {
+  render_upgrade_row_input(quota, input_type, yours, num_projects, limit) {
     let label, val;
     const ref = `upgrade_${quota}`;
     if (input_type === "number") {
@@ -215,7 +241,7 @@ export let StudentProjectUpgrades = rclass({
       );
       return;
     }
-  },
+  }
 
   render_upgrade_row(quota, available, current, yours, num_projects) {
     // quota -- name of the quota
@@ -280,7 +306,6 @@ export let StudentProjectUpgrades = rclass({
           {this.render_upgrade_row_input(
             quota,
             input_type,
-            current,
             yours,
             num_projects,
             limit
@@ -291,7 +316,7 @@ export let StudentProjectUpgrades = rclass({
         </Col>
       </Row>
     );
-  },
+  }
 
   render_upgrade_rows(
     purchased_upgrades,
@@ -306,30 +331,21 @@ export let StudentProjectUpgrades = rclass({
     // total_upgrades     - the total amount of each quota that has been applied (by anybody) to these student projects
     // your_upgrades      - total amount of each quota that this user has applied to these student projects
     this._upgrade_is_invalid = false; // will get set to true by render_upgrade_row if invalid.
-    return (() => {
-      const result = [];
-      for (let quota of schema.PROJECT_UPGRADES.field_order) {
-        const total = purchased_upgrades[quota];
-        const yours = your_upgrades[quota] != null ? your_upgrades[quota] : 0;
-        const available =
-          total -
-          (applied_upgrades[quota] != null ? applied_upgrades[quota] : 0) +
-          yours;
-        const current =
-          total_upgrades[quota] != null ? total_upgrades[quota] : 0;
-        result.push(
-          this.render_upgrade_row(
-            quota,
-            available,
-            current,
-            yours,
-            num_projects
-          )
-        );
-      }
-      return result;
-    })();
-  },
+    const result: any[] = [];
+    for (let quota of schema.PROJECT_UPGRADES.field_order) {
+      const total = purchased_upgrades[quota];
+      const yours = your_upgrades[quota] != null ? your_upgrades[quota] : 0;
+      const available =
+        total -
+        (applied_upgrades[quota] != null ? applied_upgrades[quota] : 0) +
+        yours;
+      const current = total_upgrades[quota] != null ? total_upgrades[quota] : 0;
+      result.push(
+        this.render_upgrade_row(quota, available, current, yours, num_projects)
+      );
+    }
+    return result;
+  }
 
   render_upgrade_quotas() {
     const { redux } = this.props;
@@ -348,7 +364,7 @@ export let StudentProjectUpgrades = rclass({
       );
     }
 
-    const course_store = redux.getStore(this.props.name);
+    const course_store = this.get_store();
     if (course_store == null) {
       return <Loading />;
     }
@@ -379,7 +395,6 @@ export let StudentProjectUpgrades = rclass({
     // Sum total amount of each quota that we have applied to all student projects
     let total_upgrades = {}; // all upgrades by anybody
     let your_upgrades = {}; // just by you
-    const account_id = account_store.get_account_id();
     for (let project_id of project_ids) {
       your_upgrades = misc.map_sum(
         your_upgrades,
@@ -419,7 +434,7 @@ export let StudentProjectUpgrades = rclass({
           : undefined}
       </Alert>
     );
-  },
+  }
 
   save_admin_upgrade(e) {
     e.preventDefault();
@@ -427,9 +442,9 @@ export let StudentProjectUpgrades = rclass({
     const quotas = JSON.parse(s);
     // This console.log is intentional.
     console.log(`admin upgrade '${s}' -->`, quotas);
-    this.actions(this.props.name).admin_upgrade_all_student_projects(quotas);
+    this.get_actions().admin_upgrade_all_student_projects(quotas);
     return false;
-  },
+  }
 
   render_admin_upgrade() {
     return (
@@ -450,7 +465,7 @@ export let StudentProjectUpgrades = rclass({
         </form>
       </div>
     );
-  },
+  }
 
   render_upgrade_submit_buttons() {
     return (
@@ -470,7 +485,7 @@ export let StudentProjectUpgrades = rclass({
         </Button>
       </ButtonToolbar>
     );
-  },
+  }
 
   // call this function to switch state from not viewing the upgrader to viewing the upgrader.
   adjust_quotas() {
@@ -482,9 +497,7 @@ export let StudentProjectUpgrades = rclass({
           : undefined) != null
         ? left
         : {};
-    const upgrade_plan = this.props.redux
-      .getStore(this.props.name)
-      .get_upgrade_plan(upgrades);
+    const upgrade_plan = this.get_store().get_upgrade_plan(upgrades);
     for (let quota in upgrades) {
       const val = upgrades[quota];
       upgrades[quota] =
@@ -495,14 +508,12 @@ export let StudentProjectUpgrades = rclass({
       upgrades,
       upgrade_plan
     });
-  },
+  }
 
   update_plan() {
-    const plan = this.props.redux
-      .getStore(this.props.name)
-      .get_upgrade_plan(this.upgrade_goal());
+    const plan = this.get_store().get_upgrade_plan(this.upgrade_goal());
     return this.setState({ upgrade_plan: plan });
-  },
+  }
 
   render_upgrade_plan() {
     if (this.state.upgrade_plan == null) {
@@ -524,7 +535,7 @@ export let StudentProjectUpgrades = rclass({
         </span>
       );
     }
-  },
+  }
 
   render_upgrade_quotas_button() {
     return (
@@ -532,14 +543,11 @@ export let StudentProjectUpgrades = rclass({
         <Icon name="arrow-circle-up" /> Adjust upgrades...
       </Button>
     );
-  },
+  }
 
   handle_institute_pay_checkbox(e) {
-    return this.actions(this.props.name).set_pay_choice(
-      "institute",
-      e.target.checked
-    );
-  },
+    return this.get_actions().set_pay_choice("institute", e.target.checked);
+  }
 
   render_checkbox() {
     return (
@@ -552,7 +560,7 @@ export let StudentProjectUpgrades = rclass({
         </Checkbox>
       </span>
     );
-  },
+  }
 
   render_details() {
     return (
@@ -576,7 +584,7 @@ export let StudentProjectUpgrades = rclass({
         </div>
       </div>
     );
-  },
+  }
 
   render() {
     let bg, style;
@@ -601,7 +609,7 @@ export let StudentProjectUpgrades = rclass({
       </Panel>
     );
   }
-});
+}
 
 function __guard__(value, transform) {
   return typeof value !== "undefined" && value !== null
