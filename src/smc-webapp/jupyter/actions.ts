@@ -63,39 +63,40 @@ const CellWriteProtectedException = new Error("CellWriteProtectedException");
 const CellDeleteProtectedException = new Error("CellDeleteProtectedException");
 
 export class JupyterActions extends Actions<JupyterStoreState> {
+  // TODO: type these
   private _account_change_editor_settings: any;
-  public _account_id: any; // Note: this is used in test
-  private _hook_before_change: any;
-  private _hook_after_change: any;
-  private _client: any;
+  private _blur_lock: any;
   private _commands: any;
+  private _cursor_locs?: any;
+  private _fetching_backend_kernel_info?: boolean;
+  private _hook_after_change: any;
+  private _hook_before_change: any;
+  private _input_editors?: any;
+  private _introspect_request?: any;
   private _is_project: any;
-  private _state: any;
+  private _key_handler: any;
+  private _last_cursors?: any;
+  private _last_start?: any;
   private assistant_actions: any;
   private path: any;
   private project_id: any;
   private set_save_status: any;
-  private store: any;
+  private update_keyboard_shortcuts: any;
+  protected _client: any;
+  protected _file_watcher: any;
+  protected _jupyter_kernel?: any;
+  protected _state: any;
+  public _account_id: any; // Note: this is used in test
+  public _complete_request?: any;
+  public _output_handler?: any;
+  public ensure_backend_kernel_setup?: any;
+  public initialize_manager: any;
+  public manager_on_cell_change: any;
+  public manager_run_cell_process_queue: any;
+  public nbconvert_change: any;
+  public store: any;
   public syncdb: any;
   public util: any; // TODO: check if this is used publicly
-  private _key_handler: any;
-  private _file_watcher: any;
-  private manager_on_cell_change: any;
-  private update_keyboard_shortcuts: any;
-  private nbconvert_change: any;
-  private initialize_manager: any;
-  private manager_run_cell_process_queue: any;
-  private _last_cursors?: any;
-  private _last_start?: any;
-  private _cursor_locs?: any;
-  private _input_editors?: any;
-  private _complete_request?: any;
-  private _introspect_request?: any;
-  private _jupyter_kernel?: any;
-  private _fetching_backend_kernel_info?: boolean;
-  private _blur_lock: any;
-  private ensure_backend_kernel_setup?: any;
-  private _output_handler?: any;
 
   _init = (
     project_id: any,
@@ -1920,7 +1921,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   // Only the most recent fetch has any impact, and calling
   // clear_complete() ensures any fetch made before that
   // is ignored.
-  complete = (code: any, pos: any, id: any, offset: any) => {
+  complete = (code: any, pos?: any, id?: any, offset?: any) => {
     let cursor_pos;
     const req = (this._complete_request =
       (this._complete_request != null ? this._complete_request : 0) + 1);
@@ -1968,13 +1969,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
           complete.offset = offset;
         }
         this.setState({ complete: immutable.fromJS(complete) });
-        if (
-          __guard__(
-            complete != null ? complete.matches : undefined,
-            x => x.length
-          ) === 1 &&
-          id != null
-        ) {
+        if (complete != null && complete.matches && complete.matches.length === 1 && id != null) {
           // special case -- a unique completion and we know id of cell in which completing is given
           return this.select_complete(id, complete.matches[0]);
         }
@@ -2302,7 +2297,8 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     });
   };
 
-  set_more_output = (id: any, more_output: any) => {
+  // TODO: set_more_output on project-actions is different
+  set_more_output = (id: any, more_output: any,_?:any) => {
     let left: any;
     if (this.store.getIn(["cells", id]) == null) {
       return;

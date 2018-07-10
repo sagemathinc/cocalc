@@ -7,14 +7,25 @@ available in the project or requires node to run, so that we can
 fully unit test it via mocking of components.
 */
 import * as immutable from "immutable";
+import {JupyterActions as JupyterActions0} from './actions';
 const async = require("async");
 const underscore = require("underscore");
 const misc = require("smc-util/misc");
-const actions = require("./actions");
 const json_stable = require("json-stable-stringify");
 const { OutputHandler } = require("./output-handler");
 
-export class JupyterActions extends actions.JupyterActions {
+export class JupyterActions extends JupyterActions0 {
+  // TODO: type
+  private _backend_state: any;
+  private _initialize_manager_already_done: any;
+  private _kernel_state: any;
+  private _last_save_ipynb_file: any;
+  private _manager_run_cell_queue: any;
+  private _run_again: any;
+  private _run_nbconvert_lock: any;
+  private _running_cells:any;
+  private _throttled_ensure_positions_are_unique: any;
+
   set_backend_state = (state: any) => {
     /*
         The backend states, which are put in the syncdb so clients

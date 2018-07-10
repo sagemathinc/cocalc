@@ -174,7 +174,7 @@ export class JupyterStore extends Store<JupyterStoreState> {
   };
 
   // Export the Jupyer notebook to an ipynb object.
-  get_ipynb = (blob_store: any) => {
+  get_ipynb = (blob_store?: any) => {
     if (this.get("cells") == null || this.get("cell_list") == null) {
       // not sufficiently loaded yet.
       return;
