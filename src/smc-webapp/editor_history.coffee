@@ -156,7 +156,6 @@ class exports.HistoryEditor extends FileEditor
             opts0 =
                 allow_javascript_eval : false
                 static_viewer         : true
-                read_only             : true
             @worksheet = new (sagews.SynchronizedWorksheet)(@view_doc, opts0)
 
         if @ext == 'ipynb' and @jupyter_classic()

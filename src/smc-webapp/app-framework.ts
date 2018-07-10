@@ -27,7 +27,9 @@ if (DEBUG == null) {
   var DEBUG = false;
 }
 
-let rclass: <P extends object>(Component: React.ComponentType<P>) => React.ComponentType<P>;
+let rclass: <P extends object>(
+  Component: React.ComponentType<P>
+) => React.ComponentType<P>;
 
 import * as immutable from "immutable";
 import * as React from "react";
@@ -37,10 +39,12 @@ import { Provider, connect } from "react-redux";
 
 import { Store, StoreConstructorType } from "./app-framework/Store";
 import { Actions } from "./app-framework/Actions";
-import { Table, TableConstructor } from "./app-framework/Table"
+import { Table, TableConstructor } from "./app-framework/Table";
 
-import { ProjectStore } from "./project_store"
-import { ProjectActions } from "./project_actions"
+import { ProjectStore } from "./project_store";
+import { ProjectActions } from "./project_actions";
+
+import { debug_transform, MODES } from "./app-framework/react-rendering-debug";
 
 const misc = require("smc-util/misc");
 
@@ -444,7 +448,7 @@ x.actions must not be defined.
 
 */
 
-const react_component = function(x) {
+rclass = function(x: any) {
   let C;
   if (typeof x === "function" && typeof x.reduxProps === "function") {
     // using an ES6 class *and* reduxProps...
@@ -544,80 +548,7 @@ const react_component = function(x) {
   return C;
 };
 
-let MODE = "default"; // one of 'default', 'count', 'verbose', 'time'
-//MODE = 'verbose'  # print every CoCalc component that is rendered when rendered
-//MODE = 'trace'     # print only components that take some time, along with timing info
-//MODE = 'count'    # collect count of number of times each component is rendered; call get_render_count and reset_render_count to see.
-//MODE = 'time'      # show every single component render and how long it took
-
-if (typeof smc === "undefined" || smc === null) {
-  MODE = "default"; // never enable in prod
-}
-
-if (MODE !== "default") {
-  console.log(`app-framework MODE='${MODE}'`);
-}
-
-switch (MODE) {
-  case "count":
-    // Use these in the console:
-    //  reset_render_count()
-    //  JSON.stringify(get_render_count())
-    var render_count = {};
-    rclass = function(x: any) {
-      x._render = x.render;
-      x.render = function() {
-        render_count[x.displayName] =
-          (render_count[x.displayName] != null
-            ? render_count[x.displayName]
-            : 0) + 1;
-        return this._render();
-      };
-      return react_component(x);
-    };
-    (window as any).get_render_count = function() {
-      let total = 0;
-      for (let k in render_count) {
-        const v = render_count[k];
-        total += v;
-      }
-      return { counts: render_count, total };
-    };
-    (window as any).reset_render_count = function() {
-      render_count = {};
-    };
-    break;
-  case "time":
-    rclass = x => {
-      const t0 = performance.now();
-      const r = react_component(x);
-      const t1 = performance.now();
-      if (t1 - t0 > 1) {
-        console.log(r.displayName, "took", t1 - t0, "ms of time");
-      }
-      return r;
-    };
-    break;
-  case "verbose":
-    rclass = function(x: any) {
-      x._render = x.render;
-      x.render = function() {
-        console.log(x.displayName);
-        return this._render();
-      };
-      return react_component(x);
-    };
-    break;
-  case "trace":
-    var { react_debug_trace } = require("./app-framework-debug");
-    rclass = react_debug_trace(react_component);
-    break;
-  case "default":
-    rclass = react_component;
-    break;
-  default:
-    throw Error(`UNKNOWN app-framework MODE='${MODE}'`);
-}
+let redux = new AppRedux();
 
 // Public interface
 export function is_redux(obj) {
@@ -649,8 +580,6 @@ export function project_redux_name(project_id: string, name?: string): string {
   return s;
 }
 
-let redux = new AppRedux();
-
 class Redux extends React.Component {
   render() {
     return React.createElement(
@@ -665,9 +594,15 @@ class Redux extends React.Component {
 //    {@props.children}
 //</Provider>
 
+// Change this line to alter the debugging mode.
+// Only touch this if testing in a browser, e.g., change this to MODES.count.  For a
+// complete list of options, see app-framework/react-rendering-debug.ts.
+rclass = debug_transform(rclass, MODES.default);
+//rclass = debug_transform(rclass, MODES.count);
+
 export const Component = React.Component;
 export type Rendered = React.ReactElement<any> | undefined;
-export { rclass }; // use rclass instead of createReactClass to get access to reduxProps support
+export { rclass }; // use rclass to get access to reduxProps support
 export { rtypes }; // has extra rtypes.immutable, needed for reduxProps to leave value as immutable
 export { computed };
 export { React };

@@ -103,11 +103,11 @@ exports.defaults = (obj1, obj2, allow_extra, strict=false) ->
         for prop, val of obj1
             if not obj2.hasOwnProperty(prop)
                 err = "misc.defaults -- TypeError: got an unexpected argument '#{prop}' #{error()}"
+                console.trace()
                 if strict or DEBUG or TEST_MODE
                     throw new Error(err)
                 else
                     console.warn(err)
-                    console.trace()
     return r
 
 # WARNING -- don't accidentally use this as a default:

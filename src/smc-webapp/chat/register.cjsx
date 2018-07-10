@@ -6,7 +6,7 @@
 
 # Sibling Libraries
 util = require('./util')
-{store} = require('./store')
+{ChatStore} = require('./store')
 {ChatActions} = require('./actions')
 {ChatRoom} = require('../smc_chat')
 
@@ -16,7 +16,7 @@ exports.init = init = (path, redux, project_id) ->
         return name  # already initialized
 
     actions = redux.createActions(name, ChatActions)
-    store   = redux.createStore(name, store)
+    store   = redux.createStore(name, ChatStore)
 
     syncdb = webapp_client.sync_db
         project_id   : project_id

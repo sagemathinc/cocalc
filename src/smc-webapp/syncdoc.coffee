@@ -182,6 +182,7 @@ class SynchronizedDocument2 extends SynchronizedDocument
             sync_interval   : 2000   # never send sync messages upstream more often than this
             cm_foldOptions  : undefined
             static_viewer   : undefined # must be considered now due to es6 classes
+            allow_javascript_eval : true   # used only by sage worksheets, which derive from this -- but we have to put this here due to super being called.
 
         if @opts.static_viewer?
             return

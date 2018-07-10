@@ -93,12 +93,24 @@ interface File {
   files: string[];
 }
 
-export interface ProcessedLatexLog {
+export interface IProcessedLatexLog {
   errors: Error[];
   warnings: Error[];
   typesetting: Error[];
   all: Error[];
   files: string[];
+}
+
+export class ProcessedLatexLog implements IProcessedLatexLog {
+  errors: Error[] = [];
+  warnings: Error[] = [];
+  typesetting: Error[] = [];
+  all: Error[] = [];
+  files: string[] = [];
+
+  toJS(): IProcessedLatexLog {
+    return Object.assign({}, this);
+  }
 }
 
 export class LatexParser {
@@ -124,7 +136,7 @@ export class LatexParser {
     this.openParens = 0;
   }
 
-  parse(): ProcessedLatexLog {
+  parse(): IProcessedLatexLog {
     while ((this.currentLine = this.log.nextLine()) != null) {
       if (this.state === state.NORMAL) {
         if (this.currentLineIsError()) {
@@ -163,7 +175,7 @@ export class LatexParser {
         this.state = state.NORMAL;
       }
     }
-    return this.postProcess(this.data);
+    return this.postProcess(this.data).toJS();
   }
 
   currentLineIsError(): boolean {
@@ -336,12 +348,8 @@ export class LatexParser {
   }
 
   postProcess(data: Error[]): ProcessedLatexLog {
-    const all: Error[] = [];
-    const errors: Error[] = [];
-    const warnings: Error[] = [];
-    const typesetting: Error[] = [];
+    const pll = new ProcessedLatexLog();
     const hashes: string[] = [];
-
     const hashEntry: Function = entry => entry.raw;
 
     let i: number = 0;
@@ -351,22 +359,16 @@ export class LatexParser {
         continue;
       }
       if (data[i].level === "error") {
-        errors.push(data[i]);
+        pll.errors.push(data[i]);
       } else if (data[i].level === "typesetting") {
-        typesetting.push(data[i]);
+        pll.typesetting.push(data[i]);
       } else if (data[i].level === "warning") {
-        warnings.push(data[i]);
+        pll.warnings.push(data[i]);
       }
-      all.push(data[i]);
+      pll.all.push(data[i]);
       hashes.push(hashEntry(data[i]));
       i++;
     }
-    return {
-      errors,
-      warnings,
-      typesetting,
-      all,
-      files: this.rootFileList
-    };
+    return pll;
   }
 }

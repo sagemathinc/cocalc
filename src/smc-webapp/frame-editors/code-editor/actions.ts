@@ -173,6 +173,10 @@ export class Actions<T = CodeEditorState> extends BaseActions<
   // Init setting of value whenever syncstring changes -- only used in derived classes
   _init_syncstring_value(): void {
     this._syncstring.on("change", () => {
+      if (!this._syncstring) {
+        // edge case where actions closed but this event was still triggered.
+        return;
+      }
       this.setState({ value: this._syncstring.to_str() });
     });
   }
@@ -221,6 +225,10 @@ export class Actions<T = CodeEditorState> extends BaseActions<
         );
         return;
       }
+      if (!this._syncstring || this._state == 'closed') {
+        // the doc could perhaps be closed by the time this init is fired, in which case just bail -- no point in trying to initialize anything.
+        return;
+      }
       this._syncstring_init = true;
       this._syncstring_metadata();
       this._init_settings();
@@ -256,8 +264,8 @@ export class Actions<T = CodeEditorState> extends BaseActions<
   // This is currently NOT used in this base class.  It's used in other
   // editors to store shared configuration or other information.  E.g., it's
   // used by the latex editor to store the build command, master file, etc.
-  _init_syncdb(primary_keys: string[], string_cols?: string[]): void {
-    const aux = aux_file(this.path, "syncdb");
+  _init_syncdb(primary_keys: string[], string_cols?: string[], path?: string): void {
+    const aux = aux_file(path || this.path, "syncdb");
     this._syncdb = syncdb({
       project_id: this.project_id,
       path: aux,
@@ -283,7 +291,7 @@ export class Actions<T = CodeEditorState> extends BaseActions<
 
   // Reload the document.  This is used mainly for *public* viewing of
   // a file.
-  reload(): void {
+  reload(_ : string): void {  // id not used here...
     if (!this.store.get("is_loaded")) {
       // currently in the process of loading
       return;
@@ -1445,6 +1453,9 @@ export class Actions<T = CodeEditorState> extends BaseActions<
         break;
       case "tex":
         parser = "latex";
+        break;
+      case "py":
+        parser = "python";
         break;
       default:
         return;

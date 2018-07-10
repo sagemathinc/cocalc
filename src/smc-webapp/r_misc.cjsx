@@ -2047,23 +2047,30 @@ exports.ErrorBoundary = rclass
             info  : info
 
     render: ->
+        # This is way worse than nothing, because it surpresses reporting the actual error to the
+        # backend!!!  I'm disabling it completely.
+        return @props.children
         if @state.info?
             <Alert
                 bsStyle = 'warning'
                 style   = {margin:'15px'}
             >
                 <h2 style={color:'rgb(217, 83, 79)'}>
-                    <Icon name='exclamation-triangle'/> Oh noes!! Well this is embarrasing... 😬
+                    <Icon name='bug'/> You have just encountered a bug in CoCalc.  This is not your fault.
                 </h2>
                 <h4>
-                    {"We've already been notified of this error and are hard at work fixing it."}
+                    {"You will probably have to refresh your browser to continue."}
                 </h4>
-                {"If you'd like to expidite the bug fixing, please file a support ticket describing what you were trying to do when the error occured."}
-                <Button onClick={console.log "TODO"}>
+                {"We have been notified of this error; however, if this bug is causing you significant trouble, file a support ticket:"}
+                <br/>
+                <br/>
+                <Button onClick={=>redux.getActions('support').show(true)}>
                     Create Ticket
                 </Button>
+                <br/>
+                <br/>
                 <details style={whiteSpace:'pre-wrap', cursor:'pointer'} >
-                    <summary>Trace</summary>
+                    <summary>Stack trace (in case you are curious)</summary>
                     <div style={cursor:'pointer'} >
                         {@state.error?.toString()}
                         <br/>
