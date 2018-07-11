@@ -21,7 +21,7 @@
 
 {React, ReactDOM, rtypes, rclass, redux}  = require('./app-framework')
 
-{Button, ButtonToolbar, Checkbox, Panel, Grid, Row, Col, FormControl, FormGroup, Well, Modal, ProgressBar, Alert} = require('react-bootstrap')
+{Button, ButtonToolbar, Checkbox, Panel, Grid, Row, Col, FormControl, FormGroup, Well, Modal, ProgressBar, Alert, Radio} = require('react-bootstrap')
 
 {ErrorDisplay, Icon, LabeledRow, Loading, NumberInput, Saving, SelectorInput, Tip, Footer, Space} = require('./r_misc')
 
@@ -29,6 +29,7 @@
 
 {ColorPicker} = require('./colorpicker')
 {Avatar} = require('./other-users')
+{ProfileImageSelector} = require('./r_profile_image')
 
 md5 = require('md5')
 
@@ -41,6 +42,7 @@ smc_version = require('smc-util/smc-version')
 {PROJECT_UPGRADES} = require('smc-util/schema')
 
 {APIKeySetting} = require('./api-key')
+
 
 # Define a component for working with the user's basic
 # account information.
@@ -739,52 +741,6 @@ ProfileSettings = rclass
     onColorChange: (value) ->
         @props.redux.getTable('account').set(profile : {color: value})
 
-    onGravatarSelect: (e) ->
-        if e.target.checked
-            email = @props.email_address
-            gravatar_url = "https://www.gravatar.com/avatar/#{md5 email.toLowerCase()}?d=identicon&s=#{30}"
-            @props.redux.getTable('account').set(profile : {image: gravatar_url})
-        else
-            @props.redux.getTable('account').set(profile : {image: ""})
-
-    render_gravatar_button: ->
-        <Button bsStyle='info' onClick={=>@setState(show_instructions:true)}>
-            Set Gravatar...
-        </Button>
-
-    render_instruction_well: ->
-        <Well style={marginTop:'10px', marginBottom:'10px'}>
-            Go to the <a href="https://en.gravatar.com" target="_blank"> Wordpress Gravatar site </a> and
-            sign in (or create an account) using {@props.email_address}.
-            <br/><br/>
-            <br/><br/>
-            <Button onClick={=>@setState(show_instructions:false)}>
-                Close
-            </Button>
-        </Well>
-
-    render_gravatar_needs_email: ->
-        <div className="lighten">
-            Gravatar only available if you set an email address in the account settings panel above.
-        </div>
-
-    render_set_gravatar: ->
-        if not @props.email_address
-            return @render_gravatar_needs_email()
-        <Row>
-            <Col md={6} key='checkbox'>
-                <Checkbox
-                    ref      = "checkbox"
-                    checked  = {!!@props.profile.get('image')}
-                    onChange = {@onGravatarSelect}>
-                    Use gravatar
-                </Checkbox>
-            </Col>
-            <Col md={6} key='set'>
-                {@render_gravatar_button() if not @state.show_instructions}
-            </Col>
-        </Row>
-
     render_header: ->
         <h2>
             <Avatar
@@ -804,7 +760,12 @@ ProfileSettings = rclass
                 <ColorPicker color={@props.profile.get('color')} style={maxWidth:"150px"} onChange={@onColorChange}/>
             </LabeledRow>
             <LabeledRow label='Picture'>
-                {if @state.show_instructions then @render_instruction_well() else @render_set_gravatar()}
+                <ProfileImageSelector
+                    account_id={@props.account_id}
+                    email_address={@props.email_address}
+                    redux={@props.redux}
+                    profile={@props.profile}
+                />
              </LabeledRow>
         </Panel>
 
