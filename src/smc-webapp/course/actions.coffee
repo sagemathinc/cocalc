@@ -1122,7 +1122,7 @@ exports.CourseActions = class CourseActions extends Actions
                         listofpoints = ("  #{name}: #{misc.round2(p)}" for name, p of points.toJS()).join('\n')
                         content += """
                                    \n\nPOINTS:\n
-                                   During grading, these points were given to your files:
+                                   Your files got these points:
 
                                    #{listofpoints}
                                    """ + '\n'

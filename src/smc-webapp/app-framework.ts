@@ -425,7 +425,7 @@ const connect_component = spec => {
         if (typeof val !== "undefined" && val !== null) {
           const proto = val.__proto__.__proto__;
           if (proto && proto.constructor) {
-            is_record = proto.constructor === "Record";
+            is_record = proto.constructor.name === "Record";
           }
         }
 

@@ -638,7 +638,7 @@ exports.CourseStore = class CourseStore extends Store
                         locals.group = group
                         cb(err)
             (cb) =>
-                {get_directory_listing} = require('../project_store')
+                {get_directory_listing} = require('../project_actions')
                 {join} = require('path')
                 get_directory_listing
                     project_id : project_id

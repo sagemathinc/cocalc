@@ -22,6 +22,9 @@
 # global libs
 immutable = require('immutable')
 
+# cocalc libs
+{COMPUTE_FILE_MASKS} = require('../../project_store')
+
 # grading specific
 {PAGE_SIZE} = require('./common')
 
@@ -100,8 +103,7 @@ exports.Grading = class Grading extends GradingRecord
 
         # TODO this is stupid, file listings should be immutable.js
         listing_js = @listing.get('files')?.toJS() ? []
-        {compute_file_masks} = require('../../project_store')
-        compute_file_masks(listing_js)
+        COMPUTE_FILE_MASKS(listing_js)
         files      = immutable.fromJS(listing_js)
         if not @show_all_files
             files  = files.filterNot(course_specific_files)
