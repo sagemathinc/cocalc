@@ -23,39 +23,51 @@
 //
 //#############################################################################
 
-import { defaults, required } from "smc-util/misc";
-import { React, rclass, rtypes } from "../app-framework";
-import {
+import { React, Component, AppRedux } from "../app-framework";
+import { CourseActions } from "./actions";
+const {
   Alert,
   Button,
   ButtonToolbar,
-  ButtonGroup,
-  Input,
   Row,
   Col,
   Panel
-} from "react-bootstrap";
-import { HiddenXS, Icon, Tip, VisibleMDLG } from "../r_misc";
+} = require("react-bootstrap");
+const { HiddenXS, Icon, Tip, VisibleMDLG } = require("../r_misc");
 
-export let SharedProjectPanel = rclass({
-  displayName: "CourseEditor-SharedProject",
+interface SharedProjectPanelProps {
+  shared_project_id: string;
+  redux: AppRedux;
+  name: string;
+}
 
-  propTypes: {
-    shared_project_id: rtypes.string,
-    redux: rtypes.object.isRequired,
-    name: rtypes.string.isRequired
-  },
+interface SharedProjectPanelState {
+  confirm_create: boolean;
+}
 
-  getInitialState() {
-    return { confirm_create: false };
-  },
+export class SharedProjectPanel extends Component<
+  SharedProjectPanelProps,
+  SharedProjectPanelState
+> {
+  displayName: "CourseEditor-SharedProject";
+
+  constructor(props) {
+    super(props);
+    this.state = {
+      confirm_create: false
+    };
+  }
 
   shouldComponentUpdate(props, state) {
     return (
       this.state.confirm_create !== state.confirm_create ||
       this.props.shared_project_id !== props.shared_project_id
     );
-  },
+  }
+
+  get_actions(): CourseActions {
+    return this.props.redux.getActions(this.props.name);
+  }
 
   panel_header_text() {
     if (this.props.shared_project_id) {
@@ -63,7 +75,7 @@ export let SharedProjectPanel = rclass({
     } else {
       return "Optionally create a shared project for everybody";
     }
-  },
+  }
 
   render() {
     return (
@@ -81,7 +93,7 @@ export let SharedProjectPanel = rclass({
         </Col>
       </Row>
     );
-  },
+  }
 
   render_content() {
     if (this.props.shared_project_id) {
@@ -89,7 +101,7 @@ export let SharedProjectPanel = rclass({
     } else {
       return this.render_no_shared_project();
     }
-  },
+  }
 
   render_has_shared_project() {
     return (
@@ -116,13 +128,13 @@ export let SharedProjectPanel = rclass({
         </Button>
       </div>
     );
-  },
+  }
 
   open_project() {
     return this.props.redux
       .getActions("projects")
       .open_project({ project_id: this.props.shared_project_id });
-  },
+  }
 
   render_no_shared_project() {
     return (
@@ -159,7 +171,7 @@ export let SharedProjectPanel = rclass({
         {this.render_confirm_create()}
       </div>
     );
-  },
+  }
 
   render_confirm_create() {
     if (this.state.confirm_create) {
@@ -182,34 +194,30 @@ export let SharedProjectPanel = rclass({
         </Alert>
       );
     }
-  },
+  }
 
   create_shared_project() {
-    return this.props.redux.getActions(this.props.name).create_shared_project();
+    return this.get_actions().create_shared_project();
   }
-});
+}
 
-exports.SharedProjectPanel.Header = rclass({
-  propTypes: {
-    project_exists: rtypes.bool
-  },
+(SharedProjectPanel as any).Header = Header;
 
-  render() {
-    let tip;
-    if (this.props.project_exists) {
-      tip = "Shared project that everybody involved in this course may use.";
-    } else {
-      tip = "Create a shared project that everybody in this course may use.";
-    }
-    return (
-      <Tip delayShow={1300} title="Shared project" tip={tip}>
-        <span>
-          <Icon name="share-alt" />{" "}
-          <HiddenXS>
-            Shared <VisibleMDLG>Project</VisibleMDLG>
-          </HiddenXS>
-        </span>
-      </Tip>
-    );
+function Header(props: { project_exists: boolean }) {
+  let tip;
+  if (props.project_exists) {
+    tip = "Shared project that everybody involved in this course may use.";
+  } else {
+    tip = "Create a shared project that everybody in this course may use.";
   }
-});
+  return (
+    <Tip delayShow={1300} title="Shared project" tip={tip}>
+      <span>
+        <Icon name="share-alt" />{" "}
+        <HiddenXS>
+          Shared <VisibleMDLG>Project</VisibleMDLG>
+        </HiddenXS>
+      </span>
+    </Tip>
+  );
+}
