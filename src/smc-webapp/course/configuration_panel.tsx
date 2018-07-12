@@ -27,31 +27,24 @@
 //
 //##############################################################################
 
-// standard non-CoCalc libraries
-import immutable from "immutable";
-
 // CoCalc libraries
-import misc from "smc-util/misc";
-import { webapp_client } from "../webapp_client";
+const misc = require("smc-util/misc");
+const webapp_client = require("../webapp_client");
 
 // React libraries and Components
-import { React, rclass, rtypes } from "../app-framework";
-import {
+import { React, rclass, rtypes, Component, AppRedux } from "../app-framework";
+const {
   Alert,
   Button,
   ButtonToolbar,
-  ButtonGroup,
   Row,
   Col,
   Panel,
-  Well,
-  FormGroup,
-  FormControl,
   Checkbox
-} from "react-bootstrap";
+} = require("react-bootstrap");
 
 // CoCalc Components
-import {
+const {
   Calendar,
   HiddenXS,
   Icon,
@@ -62,41 +55,65 @@ import {
   TextInput,
   TimeAgo,
   Tip
-} from "../r_misc";
+} = require("../r_misc");
 
 import { StudentProjectUpgrades } from "./upgrades";
-import { HelpBox } from "./help_box";
-import { DeleteStudentsPanel } from "./delete_students";
-import { DeleteSharedProjectPanel } from "./delete_shared_project";
+import { CourseActions } from "./actions";
+import { redux } from "../frame-editors/generic/test/util";
+import { ProjectMap } from "../todo-types";
+import { CourseSettingsRecord, CourseStore } from "./store";
+const { HelpBox } = require("./help_box");
+const { DeleteStudentsPanel } = require("./delete_students");
+const { DeleteSharedProjectPanel } = require("./delete_shared_project");
 
 const STUDENT_COURSE_PRICE = require("smc-util/upgrade-spec").upgrades
   .subscription.student_course.price.month4;
 
-const StudentProjectsStartStopPanel = rclass(function({ name }) {
-  return {
-    displayName: "CourseEditorConfiguration-StudentProjectsStartStopPanel",
+interface StartStopPanelReactProps {
+  name: string;
+  num_running_projects: number;
+  num_students?: number;
+}
 
-    reduxProps: {
-      [name]: {
-        action_all_projects_state: rtypes.string
-      }
-    },
+interface StartStopPanelReduxProps {
+  action_all_projects_state: string;
+}
 
-    propTypes: {
-      num_running_projects: rtypes.number,
-      num_students: rtypes.number
-    },
+interface StartStopPanelState {
+  confirm_stop_all_projects: boolean;
+  confirm_start_all_projects: boolean;
+}
 
-    getDefaultProps() {
-      return { action_all_projects_state: "any" };
-    },
+const StudentProjectsStartStopPanel = rclass<StartStopPanelReactProps>(
+  class StudentProjectsStartStopPanel extends Component<
+    StartStopPanelReactProps & StartStopPanelReduxProps,
+    StartStopPanelState
+  > {
+    displayName: "CourseEditorConfiguration-StudentProjectsStartStopPanel";
 
-    getInitialState() {
+    static reduxProps({ name }) {
       return {
+        [name]: {
+          action_all_projects_state: rtypes.string
+        }
+      };
+    }
+
+    constructor(props) {
+      super(props);
+      this.state = {
         confirm_stop_all_projects: false,
         confirm_start_all_projects: false
       };
-    },
+    }
+
+    getDefaultProps() {
+      return { action_all_projects_state: "any" };
+    }
+
+    get_actions(): CourseActions {
+      return redux.getActions(this.props.name);
+    }
 
     render_in_progress_action() {
       let bsStyle;
@@ -121,7 +138,7 @@ const StudentProjectsStartStopPanel = rclass(function({ name }) {
           <Icon name="cc-icon-cocalc-ring" spin />
         </Alert>
       );
-    },
+    }
 
     render_confirm_stop_all_projects() {
       return (
@@ -135,9 +152,7 @@ const StudentProjectsStartStopPanel = rclass(function({ name }) {
               bsStyle="warning"
               onClick={() => {
                 this.setState({ confirm_stop_all_projects: false });
-                return this.actions(
-                  this.props.name
-                ).action_all_student_projects("stop");
+                return this.get_actions().action_all_student_projects("stop");
               }}
             >
               <Icon name="hand-stop-o" /> Stop all
@@ -152,7 +167,7 @@ const StudentProjectsStartStopPanel = rclass(function({ name }) {
           </ButtonToolbar>
         </Alert>
       );
-    },
+    }
 
     render_confirm_start_all_projects() {
       return (
@@ -166,9 +181,7 @@ const StudentProjectsStartStopPanel = rclass(function({ name }) {
               bsStyle="primary"
               onClick={() => {
                 this.setState({ confirm_start_all_projects: false });
-                return this.actions(
-                  this.props.name
-                ).action_all_student_projects("start");
+                return this.get_actions().action_all_student_projects("start");
               }}
             >
               <Icon name="flash" /> Start all
@@ -183,7 +196,7 @@ const StudentProjectsStartStopPanel = rclass(function({ name }) {
           </ButtonToolbar>
         </Alert>
       );
-    },
+    }
 
     render() {
       const r = this.props.num_running_projects;
@@ -257,73 +270,88 @@ const StudentProjectsStartStopPanel = rclass(function({ name }) {
         </Panel>
       );
     }
-  };
-});
+  }
+);
 
-const DisableStudentCollaboratorsPanel = rclass(function() {
-  return {
-    displayName: "DisableStudentCollaboratorsPanel",
+interface DisableStudentCollaboratorsPanelProps {
+  checked: boolean;
+  on_change: (checked: boolean) => void;
+}
 
-    propTypes: {
-      checked: rtypes.bool,
-      on_change: rtypes.func
-    },
+class DisableStudentCollaboratorsPanel extends Component<
+  DisableStudentCollaboratorsPanelProps
+> {
+  displayName: "DisableStudentCollaboratorsPanel";
 
-    shouldComponentUpdate(props) {
-      return this.props.checked !== props.checked;
-    },
+  shouldComponentUpdate(props) {
+    return this.props.checked !== props.checked;
+  }
 
-    render() {
-      return (
-        <Panel
-          header={
-            <h4>
-              <Icon name="envelope" /> Collaborator policy
-            </h4>
-          }
+  render() {
+    return (
+      <Panel
+        header={
+          <h4>
+            <Icon name="envelope" /> Collaborator policy
+          </h4>
+        }
+      >
+        <div
+          style={{
+            border: "1px solid lightgrey",
+            padding: "10px",
+            borderRadius: "5px"
+          }}
         >
-          <div
-            style={{
-              border: "1px solid lightgrey",
-              padding: "10px",
-              borderRadius: "5px"
-            }}
+          <Checkbox
+            checked={this.props.checked}
+            onChange={e => this.props.on_change(e.target.checked)}
           >
-            <Checkbox
-              checked={this.props.checked}
-              onChange={e => this.props.on_change(e.target.checked)}
-            >
-              Allow arbitrary collaborators
-            </Checkbox>
-          </div>
-          <hr />
-          <span style={{ color: "#666" }}>
-            Every collaborator on the project that contains this course is
-            automatically added to every student project (and the shared
-            project). In addition, each student is a collaborator on their
-            project. If students add additional collaborators, by default they
-            will be allowed. If you uncheck the above box, then collaborators
-            will be automatically removed from projects; in particular, students
-            may not add arbitrary collaborators to their projects.
-          </span>
-        </Panel>
-      );
-    }
-  };
-});
+            Allow arbitrary collaborators
+          </Checkbox>
+        </div>
+        <hr />
+        <span style={{ color: "#666" }}>
+          Every collaborator on the project that contains this course is
+          automatically added to every student project (and the shared project).
+          In addition, each student is a collaborator on their project. If
+          students add additional collaborators, by default they will be
+          allowed. If you uncheck the above box, then collaborators will be
+          automatically removed from projects; in particular, students may not
+          add arbitrary collaborators to their projects.
+        </span>
+      </Panel>
+    );
+  }
+}
 
-export let ConfigurationPanel = rclass({
-  displayName: "CourseEditorConfiguration",
+interface ConfigurationPanelProps {
+  redux: AppRedux;
+  name: string;
+  path: string;
+  project_id: string;
+  settings: CourseSettingsRecord;
+  project_map: ProjectMap;
+  shared_project_id?: string;
+}
 
-  propTypes: {
-    redux: rtypes.object.isRequired,
-    name: rtypes.string.isRequired,
-    path: rtypes.string.isRequired,
-    project_id: rtypes.string.isRequired,
-    settings: rtypes.immutable.Map.isRequired,
-    project_map: rtypes.immutable.Map.isRequired,
-    shared_project_id: rtypes.string
-  },
+interface ConfigurationPanelState {
+  show_students_pay_dialog: boolean;
+  students_pay?: boolean;
+}
+
+export class ConfigurationPanel extends Component<
+  ConfigurationPanelProps,
+  ConfigurationPanelState
+> {
+  displayName: "CourseEditorConfiguration";
+
+  constructor(props) {
+    super(props);
+    this.state = {
+      show_students_pay_dialog: false
+    };
+  }
 
   shouldComponentUpdate(props, state) {
     return (
@@ -334,11 +362,15 @@ export let ConfigurationPanel = rclass({
         "shared_project_id"
       ])
     );
-  },
+  }
 
-  getInitialState() {
-    return { show_students_pay_dialog: false };
-  },
+  get_actions(): CourseActions {
+    return redux.getActions(this.props.name);
+  }
+
+  get_store(): CourseStore {
+    return redux.getStore(this.props.name) as any;
+  }
 
   /*
      * Editing title/description
@@ -349,7 +381,7 @@ export let ConfigurationPanel = rclass({
         <Icon name="header" /> Title and description
       </h4>
     );
-  },
+  }
 
   render_title_description() {
     let left;
@@ -361,7 +393,7 @@ export let ConfigurationPanel = rclass({
         <LabeledRow label="Title">
           <TextInput
             text={(left = this.props.settings.get("title")) != null ? left : ""}
-            on_change={title => this.actions(this.props.name).set_title(title)}
+            on_change={title => this.get_actions().set_title(title)}
           />
         </LabeledRow>
         <LabeledRow label="Description">
@@ -371,9 +403,7 @@ export let ConfigurationPanel = rclass({
             rows={6}
             type="textarea"
             default_value={this.props.settings.get("description")}
-            on_save={desc =>
-              this.actions(this.props.name).set_description(desc)
-            }
+            on_save={desc => this.get_actions().set_description(desc)}
           />
         </LabeledRow>
         <hr />
@@ -387,7 +417,7 @@ export let ConfigurationPanel = rclass({
         </span>
       </Panel>
     );
-  },
+  }
 
   /*
      * Grade export
@@ -398,7 +428,7 @@ export let ConfigurationPanel = rclass({
         <Icon name="table" /> Export grades
       </h4>
     );
-  },
+  }
 
   path(ext) {
     // make path more likely to be python-readable...
@@ -406,17 +436,17 @@ export let ConfigurationPanel = rclass({
     p = misc.split(p).join("_");
     const i = p.lastIndexOf(".");
     return `export_${p.slice(0, i)}.${ext}`;
-  },
+  }
 
   open_file(path) {
-    return this.actions({ project_id: this.props.project_id }).open_file({
+    return redux.getActions({ project_id: this.props.project_id }).open_file({
       path,
       foreground: true
     });
-  },
+  }
 
   write_file(path, content) {
-    const actions = this.actions(this.props.name);
+    const actions = this.get_actions();
     const id = actions.set_activity({ desc: `Writing ${path}` });
     return webapp_client.write_text_file_to_project({
       project_id: this.props.project_id,
@@ -431,13 +461,12 @@ export let ConfigurationPanel = rclass({
         }
       }
     });
-  },
+  }
 
   save_grades_to_csv() {
     let assignment;
-    const store = this.props.redux.getStore(this.props.name);
+    const store = this.get_store();
     const assignments = store.get_sorted_assignments();
-    const students = store.get_sorted_students();
     // CSV definition: http://edoceo.com/utilitas/csv-file-format
     // i.e. double quotes everywhere (not single!) and double quote in double quotes usually blows up
     const timestamp = webapp_client.server_time().toISOString();
@@ -446,7 +475,7 @@ export let ConfigurationPanel = rclass({
     content += "Name,Id,Email,";
     content +=
       (() => {
-        const result = [];
+        const result: any[] = [];
         for (assignment of assignments) {
           result.push(`\"grade: ${assignment.get("path")}\"`);
         }
@@ -454,7 +483,7 @@ export let ConfigurationPanel = rclass({
       })().join(",") + ",";
     content +=
       (() => {
-        const result1 = [];
+        const result1: any[] = [];
         for (assignment of assignments) {
           result1.push(`\"comments: ${assignment.get("path")}\"`);
         }
@@ -463,7 +492,7 @@ export let ConfigurationPanel = rclass({
     for (var student of store.get_sorted_students()) {
       var left2;
       let grades = (() => {
-        const result2 = [];
+        const result2: any[] = [];
         for (assignment of assignments) {
           var left;
           result2.push(
@@ -476,7 +505,7 @@ export let ConfigurationPanel = rclass({
       })().join(",");
       grades = grades.replace(/\n/g, "\\n");
       let comments = (() => {
-        const result3 = [];
+        const result3: any[] = [];
         for (assignment of assignments) {
           var left1;
           result3.push(
@@ -499,7 +528,7 @@ export let ConfigurationPanel = rclass({
       content += line + "\n";
     }
     return this.write_file(this.path("csv"), content);
-  },
+  }
 
   save_grades_to_py() {
     /*
@@ -514,15 +543,14 @@ export let ConfigurationPanel = rclass({
         */
     let assignment;
     const timestamp = webapp_client.server_time().toISOString();
-    const store = this.props.redux.getStore(this.props.name);
+    const store = this.get_store();
     const assignments = store.get_sorted_assignments();
-    const students = store.get_sorted_students();
     let content = `course = '${this.props.settings.get("title")}'\n`;
     content += `exported = '${timestamp}'\n`;
     content += "assignments = [";
     content +=
       (() => {
-        const result = [];
+        const result: any[] = [];
         for (assignment of assignments) {
           result.push(`'${assignment.get("path")}'`);
         }
@@ -533,7 +561,7 @@ export let ConfigurationPanel = rclass({
 
     for (var student of store.get_sorted_students()) {
       let grades = (() => {
-        const result1 = [];
+        const result1: any[] = [];
         for (assignment of assignments) {
           var left;
           result1.push(
@@ -546,7 +574,7 @@ export let ConfigurationPanel = rclass({
       })().join(",");
       grades = grades.replace(/\n/g, "\\n");
       let comments = (() => {
-        const result2 = [];
+        const result2: any[] = [];
         for (assignment of assignments) {
           var left1;
           result2.push(
@@ -569,7 +597,7 @@ export let ConfigurationPanel = rclass({
     }
     content += "]\n";
     return this.write_file(this.path("py"), content);
-  },
+  }
 
   render_save_grades() {
     return (
@@ -598,7 +626,7 @@ export let ConfigurationPanel = rclass({
         </div>
       </Panel>
     );
-  },
+  }
 
   /*
      * Custom invitation email body
@@ -627,12 +655,8 @@ export let ConfigurationPanel = rclass({
             attach_to={this.props.name}
             rows={6}
             type="textarea"
-            default_value={this.props.redux
-              .getStore(this.props.name)
-              .get_email_invite()}
-            on_save={body =>
-              this.actions(this.props.name).set_email_invite(body)
-            }
+            default_value={this.get_store().get_email_invite()}
+            on_save={body => this.get_actions().set_email_invite(body)}
           />
         </div>
         <hr />
@@ -643,13 +667,11 @@ export let ConfigurationPanel = rclass({
         </span>
       </Panel>
     );
-  },
+  }
 
   render_start_all_projects() {
-    const r = this.props.redux
-      .getStore(this.props.name)
-      .num_running_projects(this.props.project_map);
-    const n = this.props.redux.getStore(this.props.name).num_students();
+    const r = this.get_store().num_running_projects(this.props.project_map);
+    const n = this.get_store().num_students();
     return (
       <StudentProjectsStartStopPanel
         name={this.props.name}
@@ -657,7 +679,7 @@ export let ConfigurationPanel = rclass({
         num_students={n}
       />
     );
-  },
+  }
 
   /*
     Students pay
@@ -669,11 +691,11 @@ export let ConfigurationPanel = rclass({
     } else {
       return misc.days_ago(-7);
     }
-  },
+  }
 
   click_student_pay_button() {
     return this.setState({ show_students_pay_dialog: true });
-  },
+  }
 
   render_students_pay_button() {
     return (
@@ -684,7 +706,7 @@ export let ConfigurationPanel = rclass({
           : "Configure how students will pay"}...
       </Button>
     );
-  },
+  }
 
   render_student_pay_choice_checkbox() {
     return (
@@ -701,14 +723,11 @@ export let ConfigurationPanel = rclass({
         </Checkbox>
       </span>
     );
-  },
+  }
 
   handle_student_pay_choice(e) {
-    return this.actions(this.props.name).set_pay_choice(
-      "student",
-      e.target.checked
-    );
-  },
+    return this.get_actions().set_pay_choice("student", e.target.checked);
+  }
 
   render_require_students_pay_desc() {
     const date = new Date(this.props.settings.get("pay"));
@@ -732,7 +751,7 @@ export let ConfigurationPanel = rclass({
         </span>
       );
     }
-  },
+  }
 
   render_require_students_pay_when() {
     let value;
@@ -747,9 +766,7 @@ export let ConfigurationPanel = rclass({
         <div style={{ width: "50%", marginLeft: "3em", marginBottom: "1ex" }}>
           <Calendar
             value={value != null ? value : this.props.settings.get("pay")}
-            on_change={date =>
-              this.actions(this.props.name).set_course_info(date)
-            }
+            on_change={date => this.get_actions().set_course_info(date)}
           />
         </div>
         {this.props.settings.get("pay")
@@ -757,7 +774,7 @@ export let ConfigurationPanel = rclass({
           : undefined}
       </div>
     );
-  },
+  }
 
   render_students_pay_submit_buttons() {
     return (
@@ -767,17 +784,15 @@ export let ConfigurationPanel = rclass({
         Close
       </Button>
     );
-  },
+  }
 
   handle_students_pay_checkbox(e) {
     if (e.target.checked) {
-      return this.actions(this.props.name).set_course_info(
-        this.get_student_pay_when()
-      );
+      return this.get_actions().set_course_info(this.get_student_pay_when());
     } else {
-      return this.actions(this.props.name).set_course_info("");
+      return this.get_actions().set_course_info("");
     }
-  },
+  }
 
   render_students_pay_checkbox_label() {
     if (this.props.settings.get("pay")) {
@@ -794,7 +809,7 @@ export let ConfigurationPanel = rclass({
     } else {
       return <span>Require that students upgrade...</span>;
     }
-  },
+  }
 
   render_students_pay_checkbox() {
     return (
@@ -807,7 +822,7 @@ export let ConfigurationPanel = rclass({
         </Checkbox>
       </span>
     );
-  },
+  }
 
   render_students_pay_dialog() {
     return (
@@ -833,7 +848,7 @@ export let ConfigurationPanel = rclass({
         {this.render_students_pay_submit_buttons()}
       </Alert>
     );
-  },
+  }
 
   render_student_pay_desc() {
     if (this.props.settings.get("pay")) {
@@ -861,7 +876,7 @@ export let ConfigurationPanel = rclass({
         </span>
       );
     }
-  },
+  }
 
   render_student_pay_details() {
     return (
@@ -873,7 +888,7 @@ export let ConfigurationPanel = rclass({
         <div style={{ color: "#666" }}>{this.render_student_pay_desc()}</div>
       </div>
     );
-  },
+  }
 
   render_require_students_pay() {
     let bg, style;
@@ -907,7 +922,7 @@ export let ConfigurationPanel = rclass({
           : undefined}
       </Panel>
     );
-  },
+  }
 
   render_require_institute_pay() {
     return (
@@ -931,34 +946,34 @@ export let ConfigurationPanel = rclass({
         }
       />
     );
-  },
+  }
 
   render_delete_shared_project() {
     if (this.props.shared_project_id) {
       return (
         <DeleteSharedProjectPanel
-          delete={this.actions(this.props.name).delete_shared_project}
+          delete={this.get_actions().delete_shared_project}
         />
       );
     }
-  },
+  }
 
   render_delete_students() {
     return (
       <DeleteStudentsPanel
-        delete={this.actions(this.props.name).delete_all_student_projects}
+        delete={this.get_actions().delete_all_student_projects}
       />
     );
-  },
+  }
 
   render_disable_students() {
     return (
       <DisableStudentCollaboratorsPanel
         checked={!!this.props.settings.get("allow_collabs")}
-        on_change={this.actions(this.props.name).set_allow_collabs}
+        on_change={this.get_actions().set_allow_collabs}
       />
     );
-  },
+  }
 
   render() {
     return (
@@ -982,20 +997,20 @@ export let ConfigurationPanel = rclass({
       </div>
     );
   }
-});
+}
 
-exports.ConfigurationPanel.Header = rclass({
-  render() {
-    return (
-      <Tip
-        delayShow={1300}
-        title="Configuration"
-        tip="Configure various things about your course here, including the title and description.  You can also export all grades in various formats from this page."
-      >
-        <span>
-          <Icon name="cogs" /> <HiddenXS>Configuration</HiddenXS>
-        </span>
-      </Tip>
-    );
-  }
-});
+(ConfigurationPanel as any).Header = Header;
+
+function Header() {
+  return (
+    <Tip
+      delayShow={1300}
+      title="Configuration"
+      tip="Configure various things about your course here, including the title and description.  You can also export all grades in various formats from this page."
+    >
+      <span>
+        <Icon name="cogs" /> <HiddenXS>Configuration</HiddenXS>
+      </span>
+    </Tip>
+  );
+}

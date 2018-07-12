@@ -88,6 +88,18 @@ export type SortDescription = TypedMap<{
   is_descending: boolean;
 }>;
 
+export type CourseSettingsRecord = TypedMap<{
+  allow_collabs: boolean;
+  description: string;
+  email_invite: string;
+  institute_pay: boolean;
+  pay: string | number | Date;
+  shared_project_id: string;
+  student_pay: boolean;
+  title: string;
+  upgrade_goal: Map<any, any>;
+}>;
+
 export interface CourseState {
   activity: { [key: string]: string };
   action_all_projects_state: string;
@@ -105,16 +117,7 @@ export interface CourseState {
   expanded_skip_gradings: Set<string>;
   handouts: HandoutsMap;
   saving: boolean;
-  settings: TypedMap<{
-    allow_collabs: boolean;
-    description: string;
-    email_invite: string;
-    institute_pay: boolean;
-    pay: boolean;
-    shared_project_id: string;
-    student_pay: boolean;
-    title: string;
-  }>;
+  settings: CourseSettingsRecord;
   show_save_button: boolean;
   student_id: string;
   students: StudentsMap;
