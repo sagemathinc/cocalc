@@ -613,9 +613,19 @@ class exports.JupyterActions extends Actions
                 @set_raw_ipynb()
 
     _syncdb_init_kernel: =>
+        default_kernel = @redux.getStore('account')?.getIn(['editor_settings', 'jupyter', 'kernel'])
         if not @store.get('kernel')
-            kernel = @redux.getStore('account')?.getIn(['editor_settings', 'jupyter', 'kernel']) ? DEFAULT_KERNEL
+            # Creating a new notebook with no kernel set
+            kernel = default_kernel ? DEFAULT_KERNEL
             @set_kernel(kernel)
+        else
+            # Opening an existing notebook
+            if not default_kernel
+                # But user has no default kernel, since they never before explicitly set one.
+                # So we set it.  This is so that a user's default
+                # kernel is that of the first ipynb they
+                # opened, which is very sensible in courses.
+                @set_default_kernel(@store.get('kernel'))
 
     _syncdb_cursor_activity: =>
         cells = cells_before = @store.get('cells')
