@@ -117,16 +117,16 @@ class exports.JupyterActions extends Actions
             @syncdb.on('metadata-change', @sync_read_only)
             @syncdb.on('connected', @sync_read_only)
 
-        @syncdb.on('change', @_syncdb_change)
-
-        if @_is_project
-            # Wait until the .ipynb file has actually been parsed into
+            # Browser Client: Wait until the .ipynb file has actually been parsed into
             # the (hidden, e.g. .a.ipynb.sage-jupyter2) syncdb file,
             # then set the kernel, if necessary.
             @syncdb.wait
                 until : (s) =>
                     return !!s.get_one({"type":"file"})
                 cb    : => @_syncdb_init_kernel()
+
+
+        @syncdb.on('change', @_syncdb_change)
 
         @syncdb.once 'change', =>
             # Important -- this also gets run on the backend, where
