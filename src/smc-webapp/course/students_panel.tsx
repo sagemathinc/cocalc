@@ -485,14 +485,11 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
           />
         );
       } else if (this.state.existing_students != null) {
-        let v;
         const existing: any[] = [];
         for (let email in this.state.existing_students.email) {
-          v = this.state.existing_students.email[email];
           existing.push(email);
         }
         for (let account_id in this.state.existing_students.account) {
-          v = this.state.existing_students.account[account_id];
           const user = this.props.user_map.get(account_id);
           existing.push(`${user.get("first_name")} ${user.get("last_name")}`);
         }

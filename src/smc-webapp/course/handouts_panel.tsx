@@ -27,45 +27,43 @@
 //##############################################################################
 
 // CoCalc libraries
-import misc from "smc-util/misc";
-const { defaults, required } = misc;
-import { webapp_client } from "../webapp_client";
+const misc = require("smc-util/misc");
 
 // React Libraries
-import { React, rclass, rtypes } from "../app-framework";
-import {
+import { React, rtypes, Component } from "../app-framework";
+const {
   Alert,
   Button,
   ButtonToolbar,
   ButtonGroup,
-  Input,
   FormGroup,
   FormControl,
   Row,
   Col,
-  Panel,
-  Table
-} from "react-bootstrap";
+  Panel
+} = require("react-bootstrap");
 
 // CoCalc and course components
-import util from "./util";
-import styles from "./styles";
+import * as util from "./util";
+import * as styles from "./styles";
 import { BigTime, FoldersToolbar } from "./common";
-import { ErrorDisplay, Icon, Tip, MarkdownInput } from "../r_misc";
+import {
+  HandoutsMap,
+  StudentsMap,
+  HandoutRecord,
+  CourseStore,
+  StudentRecord
+} from "./store";
+import { UserMap } from "../todo-types";
+import { ProjectActions } from "../project_store";
+import { Set } from "immutable";
+import { CourseActions } from "./actions";
+const { ErrorDisplay, Icon, Tip, MarkdownInput } = require("../r_misc");
 
 // Could be merged with steps system of assignments.
 // Probably not a good idea mixing the two.
 // Could also be coded into the components below but steps could be added in the future?
 const STEPS = () => ["handout"];
-
-const previous_step = function(step, peer) {
-  switch (step) {
-    case "handout":
-      return;
-    default:
-      return console.warn(`BUG! previous_step('${step}')`);
-  }
-};
 
 const step_direction = function(step) {
   switch (step) {
@@ -85,7 +83,7 @@ const step_verb = function(step) {
   }
 };
 
-const step_ready = function(step, n) {
+const step_ready = function(step) {
   switch (step) {
     case "handout":
       return "";
@@ -100,228 +98,265 @@ const past_tense = function(word) {
   }
 };
 
-export let HandoutsPanel = rclass(function({ name }) {
-  return {
-    displayName: "Course-editor-HandoutsPanel",
+interface HandoutsPanelReactProps {
+  name: string;
+  actions: CourseActions;
+  store_object: CourseStore;
+  project_actions: ProjectActions;
+  project_id: string;
+  all_handouts: HandoutsMap; // handout_id -> handout
+  students: StudentsMap; // student_id -> student
+  user_map: UserMap;
+}
 
-    reduxProps: {
+interface HandoutsPanelReduxProps {
+  expanded_handouts: Set<string>;
+}
+
+interface HandoutsPanelState {
+  show_deleted: boolean;
+  search: string; // Search value for filtering handouts
+}
+
+export class HandoutsPanel extends Component<
+  HandoutsPanelReactProps & HandoutsPanelReduxProps,
+  HandoutsPanelState
+> {
+  displayName: "Course-editor-HandoutsPanel";
+
+  constructor(props) {
+    super(props);
+    this.state = {
+      show_deleted: false,
+      search: ""
+    };
+  }
+
+  static reduxProps({ name }) {
+    return {
       [name]: {
         expanded_handouts: rtypes.immutable.Set
       }
-    },
+    };
+  }
 
-    propTypes: {
-      actions: rtypes.object.isRequired,
-      store_object: rtypes.object,
-      project_actions: rtypes.object.isRequired,
-      project_id: rtypes.string.isRequired,
-      all_handouts: rtypes.immutable.Map.isRequired, // handout_id -> handout
-      students: rtypes.immutable.Map.isRequired, // student_id -> student
-      user_map: rtypes.object.isRequired
-    },
+  // Update on different students, handouts, or filter parameters
+  // TODO: this is BS -- do this right.  Get rid of store_object above and
+  // put the actual data it uses; make everything immutable!
+  shouldComponentUpdate(nextProps, nextState) {
+    if (
+      nextProps.all_handouts !== this.props.all_handouts ||
+      nextProps.students !== this.props.students ||
+      this.props.expanded_handouts !== nextProps.expanded_handouts
+    ) {
+      return true;
+    }
+    if (!misc.is_equal(nextState, this.state)) {
+      return true;
+    }
+    return false;
+  }
 
-    getInitialState() {
-      return {
-        show_deleted: false,
-        search: ""
-      };
-    }, // Search value for filtering handouts
+  get_handout(id: string): HandoutRecord {
+    let handout = this.props.all_handouts.get(id);
+    if (handout == undefined) {
+      console.warn(`Tried to access undefined handout ${id}`);
+    }
+    return handout as any;
+  }
 
-    // Update on different students, handouts, or filter parameters
-    // TODO: this is BS -- do this right.  Get rid of store_object above and
-    // put the actual data it uses; make everything immutable!
-    shouldComponentUpdate(nextProps, nextState) {
-      if (
-        nextProps.all_handouts !== this.props.all_handouts ||
-        nextProps.students !== this.props.students ||
-        this.props.expanded_handouts !== nextProps.expanded_handouts
-      ) {
-        return true;
-      }
-      if (!misc.is_equal(nextState, this.state)) {
-        return true;
-      }
-      return false;
-    },
+  compute_handouts_list() {
+    let deleted, num_deleted, num_omitted;
+    let list = util.immutable_to_list(this.props.all_handouts, "handout_id");
 
-    compute_handouts_list() {
-      let deleted, num_deleted, num_omitted;
-      let list = util.immutable_to_list(this.props.all_handouts, "handout_id");
+    ({ list, num_omitted } = util.compute_match_list({
+      list,
+      search_key: "path",
+      search: this.state.search.trim()
+    }));
 
-      ({ list, num_omitted } = util.compute_match_list({
-        list,
-        search_key: "path",
-        search: this.state.search.trim()
-      }));
+    ({ list, deleted, num_deleted } = util.order_list({
+      list,
+      compare_function: (a, b) =>
+        misc.cmp(
+          a.path != null ? a.path.toLowerCase() : undefined,
+          b.path != null ? b.path.toLowerCase() : undefined
+        ),
+      reverse: false,
+      include_deleted: this.state.show_deleted
+    }));
 
-      ({ list, deleted, num_deleted } = util.order_list({
-        list,
-        compare_function: (a, b) =>
-          misc.cmp(
-            a.path != null ? a.path.toLowerCase() : undefined,
-            b.path != null ? b.path.toLowerCase() : undefined
-          ),
-        include_deleted: this.state.show_deleted
-      }));
+    return {
+      shown_handouts: list,
+      deleted_handouts: deleted,
+      num_omitted,
+      num_deleted
+    };
+  }
 
-      return {
-        shown_handouts: list,
-        deleted_handouts: deleted,
-        num_omitted,
-        num_deleted
-      };
-    },
-
-    render_show_deleted_button(num_deleted, num_shown) {
-      if (this.state.show_deleted) {
-        return (
-          <Button
-            style={styles.show_hide_deleted({ needs_margin: num_shown > 0 })}
-            onClick={() => this.setState({ show_deleted: false })}
-          >
-            <Tip
-              placement="left"
-              title="Hide deleted"
-              tip="Handouts are never really deleted.  Click this button so that deleted handouts aren't included at the bottom of the list."
-            >
-              Hide {num_deleted} deleted handouts
-            </Tip>
-          </Button>
-        );
-      } else {
-        return (
-          <Button
-            style={styles.show_hide_deleted({ needs_margin: num_shown > 0 })}
-            onClick={() => this.setState({ show_deleted: true, search: "" })}
-          >
-            <Tip
-              placement="left"
-              title="Show deleted"
-              tip="Handouts are not deleted forever even after you delete them.  Click this button to show any deleted handouts at the bottom of the list of handouts.  You can then click on the handout and click undelete to bring the handout back."
-            >
-              Show {num_deleted} deleted handouts
-            </Tip>
-          </Button>
-        );
-      }
-    },
-
-    yield_adder(deleted_handouts) {
-      const deleted_paths = {};
-      deleted_handouts.map(obj => {
-        if (obj.path) {
-          return (deleted_paths[obj.path] = obj.handout_id);
-        }
-      });
-
-      return path => {
-        if (deleted_paths[path] != null) {
-          return this.props.actions.undelete_handout(deleted_paths[path]);
-        } else {
-          return this.props.actions.add_handout(path);
-        }
-      };
-    },
-
-    render() {
-      // Computed data from state changes have to go in render
-      const {
-        shown_handouts,
-        deleted_handouts,
-        num_omitted,
-        num_deleted
-      } = this.compute_handouts_list();
-      const add_handout = this.yield_adder(deleted_handouts);
-
-      const header = (
-        <FoldersToolbar
-          search={this.state.search}
-          search_change={value => this.setState({ search: value })}
-          num_omitted={num_omitted}
-          project_id={this.props.project_id}
-          items={this.props.all_handouts}
-          add_folders={paths => paths.map(add_handout)}
-          item_name={"handout"}
-          plural_item_name={"handouts"}
-        />
-      );
-
+  render_show_deleted_button(num_deleted, num_shown) {
+    if (this.state.show_deleted) {
       return (
-        <Panel header={header}>
-          {shown_handouts.map((handout, i) => (
-            <Handout
-              backgroundColor={i % 2 === 0 ? "#eee" : undefined}
-              key={handout.handout_id}
-              handout={this.props.all_handouts.get(handout.handout_id)}
-              project_id={this.props.project_id}
-              students={this.props.students}
-              user_map={this.props.user_map}
-              actions={this.props.actions}
-              store_object={this.props.store_object}
-              open_directory={this.props.project_actions.open_directory}
-              is_expanded={this.props.expanded_handouts.has(handout.handout_id)}
-              name={this.props.name}
-            />
-          ))}
-          {num_deleted > 0
-            ? this.render_show_deleted_button(
-                num_deleted,
-                shown_handouts.length != null ? shown_handouts.length : 0
-              )
-            : undefined}
-        </Panel>
+        <Button
+          style={styles.show_hide_deleted({ needs_margin: num_shown > 0 })}
+          onClick={() => this.setState({ show_deleted: false })}
+        >
+          <Tip
+            placement="left"
+            title="Hide deleted"
+            tip="Handouts are never really deleted.  Click this button so that deleted handouts aren't included at the bottom of the list."
+          >
+            Hide {num_deleted} deleted handouts
+          </Tip>
+        </Button>
+      );
+    } else {
+      return (
+        <Button
+          style={styles.show_hide_deleted({ needs_margin: num_shown > 0 })}
+          onClick={() => this.setState({ show_deleted: true, search: "" })}
+        >
+          <Tip
+            placement="left"
+            title="Show deleted"
+            tip="Handouts are not deleted forever even after you delete them.  Click this button to show any deleted handouts at the bottom of the list of handouts.  You can then click on the handout and click undelete to bring the handout back."
+          >
+            Show {num_deleted} deleted handouts
+          </Tip>
+        </Button>
       );
     }
-  };
-});
+  }
 
-exports.HandoutsPanel.Header = rclass({
-  propTypes: {
-    n: rtypes.number
-  },
+  yield_adder(deleted_handouts) {
+    const deleted_paths = {};
+    deleted_handouts.map(obj => {
+      if (obj.path) {
+        return (deleted_paths[obj.path] = obj.handout_id);
+      }
+    });
+
+    return path => {
+      if (deleted_paths[path] != null) {
+        return this.props.actions.undelete_handout(deleted_paths[path]);
+      } else {
+        return this.props.actions.add_handout(path);
+      }
+    };
+  }
 
   render() {
+    // Computed data from state changes have to go in render
+    const {
+      shown_handouts,
+      deleted_handouts,
+      num_omitted,
+      num_deleted
+    } = this.compute_handouts_list();
+    const add_handout = this.yield_adder(deleted_handouts);
+
+    const header = (
+      <FoldersToolbar
+        search={this.state.search}
+        search_change={value => this.setState({ search: value })}
+        num_omitted={num_omitted}
+        project_id={this.props.project_id}
+        items={this.props.all_handouts}
+        add_folders={paths => paths.map(add_handout)}
+        item_name={"handout"}
+        plural_item_name={"handouts"}
+      />
+    );
+
     return (
-      <Tip
-        delayShow={1300}
-        title="Handouts"
-        tip="This tab lists all of the handouts associated with your course."
-      >
-        <span>
-          <Icon name="files-o" /> Handouts{" "}
-          {this.props.n != null ? ` (${this.props.n})` : ""}
-        </span>
-      </Tip>
+      <Panel header={header}>
+        {shown_handouts.map((handout, i) => (
+          <Handout
+            backgroundColor={i % 2 === 0 ? "#eee" : undefined}
+            key={handout.handout_id}
+            handout={this.get_handout(handout.handout_id)}
+            project_id={this.props.project_id}
+            students={this.props.students}
+            user_map={this.props.user_map}
+            actions={this.props.actions}
+            store_object={this.props.store_object}
+            open_directory={this.props.project_actions.open_directory}
+            is_expanded={this.props.expanded_handouts.has(handout.handout_id)}
+            name={this.props.name}
+          />
+        ))}
+        {num_deleted > 0
+          ? this.render_show_deleted_button(
+              num_deleted,
+              shown_handouts.length != null ? shown_handouts.length : 0
+            )
+          : undefined}
+      </Panel>
     );
   }
-});
+}
 
-var Handout = rclass({
-  propTypes: {
-    name: rtypes.string,
-    handout: rtypes.object,
-    backgroundColor: rtypes.string,
-    store_object: rtypes.object,
-    actions: rtypes.object,
-    open_directory: rtypes.func, // open_directory(path)
-    is_expanded: rtypes.bool
-  },
+(HandoutsPanel as any).Header = Header;
 
-  getInitialState() {
-    return { confirm_delete: false };
-  },
+function Header(props: { n: number }) {
+  return (
+    <Tip
+      delayShow={1300}
+      title="Handouts"
+      tip="This tab lists all of the handouts associated with your course."
+    >
+      <span>
+        <Icon name="files-o" /> Handouts{" "}
+        {props.n != null ? ` (${props.n})` : ""}
+      </span>
+    </Tip>
+  );
+}
+
+interface HandoutProps {
+  name: string;
+  handout: HandoutRecord;
+  backgroundColor?: string;
+  store_object: CourseStore;
+  actions: CourseActions;
+  open_directory: (path: string) => void; // open_directory(path)
+  is_expanded: boolean;
+  students: StudentsMap;
+  user_map: UserMap;
+  project_id: string;
+}
+
+interface HandoutState {
+  confirm_delete: boolean;
+  copy_confirm: boolean;
+  copy_confirm_handout: boolean;
+  copy_handout_confirm_overwrite: boolean;
+  copy_handout_confirm_overwrite_text: string;
+}
+
+class Handout extends Component<HandoutProps, HandoutState> {
+  constructor(props) {
+    super(props);
+    this.state = {
+      confirm_delete: false,
+      copy_confirm: false,
+      copy_confirm_handout: false,
+      copy_handout_confirm_overwrite: false,
+      copy_handout_confirm_overwrite_text: ""
+    };
+  }
 
   open_handout_path(e) {
     e.preventDefault();
     return this.props.open_directory(this.props.handout.get("path"));
-  },
+  }
 
-  copy_handout_to_all(step, new_only) {
+  copy_handout_to_all(new_only) {
     return this.props.actions.copy_handout_to_all_students(
       this.props.handout,
       new_only
     );
-  },
+  }
 
   render_more_header() {
     return (
@@ -334,7 +369,7 @@ var Handout = rclass({
         </Button>
       </div>
     );
-  },
+  }
 
   render_handout_notes() {
     return (
@@ -352,7 +387,7 @@ var Handout = rclass({
           <MarkdownInput
             persist_id={
               this.props.handout.get("path") +
-              this.props.handout.get("assignment_id") +
+              this.props.handout.get("handout_id") +
               "note"
             }
             attach_to={this.props.name}
@@ -366,12 +401,12 @@ var Handout = rclass({
         </Col>
       </Row>
     );
-  },
+  }
 
   render_copy_all(status) {
     const steps = STEPS();
     return (() => {
-      const result = [];
+      const result: any[] = [];
       for (let step of steps) {
         if (this.state[`copy_confirm_${step}`]) {
           result.push(this.render_copy_confirm(step, status));
@@ -381,7 +416,7 @@ var Handout = rclass({
       }
       return result;
     })();
-  },
+  }
 
   render_copy_confirm(step, status) {
     return (
@@ -394,7 +429,7 @@ var Handout = rclass({
           : undefined}
       </span>
     );
-  },
+  }
 
   render_copy_cancel(step) {
     const cancel = () => {
@@ -403,14 +438,14 @@ var Handout = rclass({
         [`copy_confirm_all_${step}`]: false,
         copy_confirm: false,
         copy_handout_confirm_overwrite: false
-      });
+      } as any);
     };
     return (
       <Button key="cancel" onClick={cancel}>
         Cancel
       </Button>
     );
-  },
+  }
 
   render_copy_handout_confirm_overwrite(step) {
     if (!this.state.copy_handout_confirm_overwrite) {
@@ -454,9 +489,9 @@ var Handout = rclass({
         </ButtonToolbar>
       </div>
     );
-  },
+  }
 
-  copy_handout(step, new_only, overwrite) {
+  copy_handout(step, new_only, overwrite?) {
     // handout to all (non-deleted) students
     switch (step) {
       case "handout":
@@ -473,8 +508,8 @@ var Handout = rclass({
       [`copy_confirm_${step}`]: false,
       [`copy_confirm_all_${step}`]: false,
       copy_confirm: false
-    });
-  },
+    } as any);
+  }
 
   render_copy_confirm_to_all(step, status) {
     const n = status[`not_${step}`];
@@ -487,7 +522,7 @@ var Handout = rclass({
         <div style={{ marginBottom: "15px" }}>
           {misc.capitalize(step_verb(step))} this handout {step_direction(step)}{" "}
           the {n} student{n > 1 ? "s" : ""}
-          {step_ready(step, n)}?
+          {step_ready(step)}?
         </div>
         <ButtonToolbar>
           <Button
@@ -501,7 +536,7 @@ var Handout = rclass({
         </ButtonToolbar>
       </Alert>
     );
-  },
+  }
 
   copy_confirm_all_caution(step) {
     switch (step) {
@@ -512,9 +547,9 @@ CAUTION: if you update a file that a student has also worked on, their work will
 Select "Replace student files!" in case you do not want to create any backups and also delete all other files in the assignment directory of their projects.\
 `;
     }
-  },
+  }
 
-  render_copy_confirm_overwrite_all(step, status) {
+  render_copy_confirm_overwrite_all(step) {
     return (
       <div key="copy_confirm_overwrite_all" style={{ marginTop: "15px" }}>
         <div style={{ marginBottom: "15px" }}>
@@ -542,7 +577,7 @@ Select "Replace student files!" in case you do not want to create any backups an
         {this.render_copy_handout_confirm_overwrite(step)}
       </div>
     );
-  },
+  }
 
   render_copy_confirm_to_all_or_new(step, status) {
     const n = status[`not_${step}`];
@@ -564,14 +599,11 @@ Select "Replace student files!" in case you do not want to create any backups an
               this.setState({
                 [`copy_confirm_all_${step}`]: true,
                 copy_confirm: true
-              })
+              } as any)
             }
             disabled={this.state[`copy_confirm_all_${step}`]}
           >
-            {step === "handout" ? "All" : "The"} {m} students{step_ready(
-              step,
-              m
-            )}...
+            {step === "handout" ? "All" : "The"} {m} students{step_ready(step)}...
           </Button>
           {n ? (
             <Button
@@ -588,11 +620,11 @@ Select "Replace student files!" in case you do not want to create any backups an
           {this.render_copy_cancel(step)}
         </ButtonToolbar>
         {this.state[`copy_confirm_all_${step}`]
-          ? this.render_copy_confirm_overwrite_all(step, status)
+          ? this.render_copy_confirm_overwrite_all(step)
           : undefined}
       </Alert>
     );
-  },
+  }
 
   render_handout_button(status) {
     let bsStyle;
@@ -630,16 +662,16 @@ Select "Replace student files!" in case you do not want to create any backups an
         </Tip>
       </Button>
     );
-  },
+  }
 
   delete_handout() {
     this.props.actions.delete_handout(this.props.handout);
-    return this.setState({ confirm_delete: false });
-  },
+    this.setState({ confirm_delete: false });
+  }
 
   undelete_handout() {
-    return this.props.actions.undelete_handout(this.props.handout);
-  },
+    this.props.actions.undelete_handout(this.props.handout);
+  }
 
   render_confirm_delete() {
     return (
@@ -660,7 +692,7 @@ Select "Replace student files!" in case you do not want to create any backups an
         </ButtonToolbar>
       </Alert>
     );
-  },
+  }
 
   render_delete_button() {
     if (this.props.handout.get("deleted")) {
@@ -697,7 +729,7 @@ Select "Replace student files!" in case you do not want to create any backups an
         </Tip>
       );
     }
-  },
+  }
 
   render_more() {
     return (
@@ -716,21 +748,27 @@ Select "Replace student files!" in case you do not want to create any backups an
         </Col>
       </Row>
     );
-  },
+  }
 
   outside_button_style: {
-    margin: "4px",
-    paddingTop: "6px",
-    paddingBottom: "4px"
-  },
+    margin: "4px";
+    paddingTop: "6px";
+    paddingBottom: "4px";
+  };
 
   render() {
-    const status = this.props.store_object.get_handout_status(
-      this.props.handout
-    );
+    let status = this.props.store_object.get_handout_status(this.props.handout);
+    if (status == undefined) {
+      status = {
+        handout: 0,
+        not_handout: 0
+      };
+    }
     return (
       <Row
-        style={this.props.is_expanded ? styles.selected_entry : styles.entry}
+        style={
+          this.props.is_expanded ? styles.selected_entry : styles.entry_style
+        }
       >
         <Col xs={12}>
           <Row
@@ -743,7 +781,7 @@ Select "Replace student files!" in case you do not want to create any backups an
                   href=""
                   onClick={e => {
                     e.preventDefault();
-                    return this.actions(this.props.name).toggle_item_expansion(
+                    return this.props.actions.toggle_item_expansion(
                       "handout",
                       this.props.handout.get("handout_id")
                     );
@@ -794,23 +832,23 @@ Select "Replace student files!" in case you do not want to create any backups an
       </Row>
     );
   }
-});
+}
 
-var StudentListForHandout = rclass({
-  propTypes: {
-    user_map: rtypes.object,
-    students: rtypes.object,
-    handout: rtypes.object,
-    store_object: rtypes.object,
-    actions: rtypes.object
-  },
+interface StudentListForHandoutProps {
+  user_map: UserMap;
+  students: StudentsMap;
+  handout: HandoutRecord;
+  store_object: CourseStore;
+  actions: CourseActions;
+}
 
+class StudentListForHandout extends Component<StudentListForHandoutProps> {
   render_students() {
     let x;
     let v = util.immutable_to_list(this.props.students, "student_id");
     // fill in names, for use in sorting and searching (TODO: caching)
     v = (() => {
-      const result = [];
+      const result: any[] = [];
       for (x of v) {
         if (!x.deleted) {
           result.push(x);
@@ -830,18 +868,16 @@ var StudentListForHandout = rclass({
       }
     }
 
-    v.sort((a, b) => misc.cmp(a.sort, b.sort));
+    v.sort((a, b) => misc.cmp((a as any).sort, (b as any).sort));
 
-    return (() => {
-      const result1 = [];
-      for (x of v) {
-        result1.push(this.render_student_info(x.student_id, x));
-      }
-      return result1;
-    })();
-  },
+    const result1: any[] = [];
+    for (x of v) {
+      result1.push(this.render_student_info(x.student_id));
+    }
+    return result1;
+  }
 
-  render_student_info(id, student) {
+  render_student_info(id) {
     return (
       <StudentHandoutInfo
         key={id}
@@ -858,7 +894,7 @@ var StudentListForHandout = rclass({
         handout={this.props.handout}
       />
     );
-  },
+  }
 
   render() {
     return (
@@ -868,14 +904,16 @@ var StudentListForHandout = rclass({
       </div>
     );
   }
-});
+}
 
-var StudentHandoutInfoHeader = rclass({
-  displayName: "CourseEditor-StudentHandoutInfoHeader",
+interface StudentHandoutInfoHeaderProps {
+  title: string;
+}
 
-  propTypes: {
-    title: rtypes.string.isRequired
-  },
+class StudentHandoutInfoHeader extends Component<
+  StudentHandoutInfoHeaderProps
+> {
+  displayName: "CourseEditor-StudentHandoutInfoHeader";
 
   render_col(step_number, key, width) {
     let tip, title;
@@ -895,12 +933,12 @@ var StudentHandoutInfoHeader = rclass({
         </Tip>
       </Col>
     );
-  },
+  }
 
   render_headers() {
     const w = 12;
     return <Row>{this.render_col(1, "last_handout", w)}</Row>;
-  },
+  }
 
   render() {
     return (
@@ -923,47 +961,47 @@ var StudentHandoutInfoHeader = rclass({
       </Row>
     );
   }
-});
+}
 
-var StudentHandoutInfo = rclass({
-  displayName: "CourseEditor-StudentHandoutInfo",
+interface StudentHandoutInfoProps {
+  actions: CourseActions;
+  info: { handout_id: string; student_id: string; status: string };
+  title: string | object;
+  student: string | StudentRecord; // required string (student_id) or student immutable js object
+  handout: string | HandoutRecord;
+}
 
-  propTypes: {
-    actions: rtypes.object.isRequired,
-    info: rtypes.object.isRequired,
-    title: rtypes.oneOfType([rtypes.string, rtypes.object]).isRequired,
-    student: rtypes.oneOfType([rtypes.string, rtypes.object]).isRequired, // required string (student_id) or student immutable js object
-    handout: rtypes.oneOfType([rtypes.string, rtypes.object]).isRequired
-  }, // required string (handout_id) or handout immutable js object
+class StudentHandoutInfo extends Component<StudentHandoutInfoProps> {
+  displayName: "CourseEditor-StudentHandoutInfo";
 
   getInitialState() {
     return {};
-  },
+  }
 
   open(handout_id, student_id) {
     return this.props.actions.open_handout(handout_id, student_id);
-  },
+  }
 
   copy(handout_id, student_id) {
     return this.props.actions.copy_handout_to_student(handout_id, student_id);
-  },
+  }
 
   stop(handout_id, student_id) {
     return this.props.actions.stop_copying_handout(handout_id, student_id);
-  },
+  }
 
-  render_last_time(name, time) {
+  render_last_time(time) {
     return (
       <div key="time" style={{ color: "#666" }}>
         (<BigTime date={time} />)
       </div>
     );
-  },
+  }
 
-  render_open_recopy_confirm(name, open, copy, copy_tip, open_tip) {
+  render_open_recopy_confirm(name, copy, copy_tip) {
     const key = `recopy_${name}`;
     if (this.state[key]) {
-      const v = [];
+      const v: any[] = [];
       v.push(
         <Button
           key="copy_confirm"
@@ -998,12 +1036,12 @@ var StudentHandoutInfo = rclass({
         </Button>
       );
     }
-  },
+  }
 
   render_open_recopy(name, open, copy, copy_tip, open_tip) {
     return (
       <ButtonToolbar key="open_recopy">
-        {this.render_open_recopy_confirm(name, open, copy, copy_tip, open_tip)}
+        {this.render_open_recopy_confirm(name, copy, copy_tip)}
         <Button key="open" onClick={open}>
           <Tip title="Open handout" tip={open_tip}>
             <Icon name="folder-open-o" /> Open
@@ -1011,9 +1049,9 @@ var StudentHandoutInfo = rclass({
         </Button>
       </ButtonToolbar>
     );
-  },
+  }
 
-  render_open_copying(name, open, stop) {
+  render_open_copying(open, stop) {
     return (
       <ButtonGroup key="open_copying">
         <Button key="copy" bsStyle="success" disabled={true}>
@@ -1027,7 +1065,7 @@ var StudentHandoutInfo = rclass({
         </Button>
       </ButtonGroup>
     );
-  },
+  }
 
   render_copy(name, copy, copy_tip) {
     return (
@@ -1037,7 +1075,7 @@ var StudentHandoutInfo = rclass({
         </Button>
       </Tip>
     );
-  },
+  }
 
   render_error(name, error) {
     if (typeof error !== "string") {
@@ -1055,7 +1093,7 @@ var StudentHandoutInfo = rclass({
         style={{ maxHeight: "140px", overflow: "auto" }}
       />
     );
-  },
+  }
 
   render_last(name, obj, info, enable_copy, copy_tip, open_tip) {
     const open = () => this.open(info.handout_id, info.student_id);
@@ -1064,10 +1102,10 @@ var StudentHandoutInfo = rclass({
     if (obj == null) {
       obj = {};
     }
-    const v = [];
+    const v: any[] = [];
     if (enable_copy) {
       if (obj.start) {
-        v.push(this.render_open_copying(name, open, stop));
+        v.push(this.render_open_copying(open, stop));
       } else if (obj.time) {
         v.push(this.render_open_recopy(name, open, copy, copy_tip, open_tip));
       } else {
@@ -1075,13 +1113,13 @@ var StudentHandoutInfo = rclass({
       }
     }
     if (obj.time) {
-      v.push(this.render_last_time(name, obj.time));
+      v.push(this.render_last_time(obj.time));
     }
     if (obj.error) {
       v.push(this.render_error(name, obj.error));
     }
     return v;
-  },
+  }
 
   render() {
     const width = 12;
@@ -1113,4 +1151,4 @@ var StudentHandoutInfo = rclass({
       </Row>
     );
   }
-});
+}

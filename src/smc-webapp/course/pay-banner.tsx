@@ -10,26 +10,32 @@ A banner across the top of a course that appears if the instructor is not paying
 know they should.
 */
 
-import { React, rclass, rtypes } from "../app-framework";
+import { Component, React, redux } from "../app-framework";
 
 import { Alert } from "react-bootstrap";
-import { Icon, Space } from "../r_misc";
+import { CourseSettingsRecord } from "./store";
+import { CourseActions } from "./actions";
+const { Icon, Space } = require("../r_misc");
 
-export let PayBanner = rclass({
-  propTypes: {
-    settings: rtypes.immutable.Map.isRequired,
-    num_students: rtypes.number,
-    tab: rtypes.string,
-    name: rtypes.string
-  },
+interface PayBannerProps {
+  settings: CourseSettingsRecord;
+  num_students: number;
+  tab: string;
+  name: string;
+}
 
+export class PayBanner extends Component<PayBannerProps> {
   shouldComponentUpdate(next) {
     return (
       this.props.settings !== next.settings ||
       this.props.tab !== next.tab ||
       this.props.num_students !== next.num_students
     );
-  },
+  }
+
+  get_actions(): CourseActions {
+    return redux.getActions(this.props.name);
+  }
 
   paid() {
     if ((this.props.num_students != null ? this.props.num_students : 0) <= 3) {
@@ -43,13 +49,11 @@ export let PayBanner = rclass({
       return true;
     }
     return false;
-  },
+  }
 
   show_configuration() {
-    return __guard__(this.actions(this.props.name), x =>
-      x.set_tab("configuration")
-    );
-  },
+    return __guard__(this.get_actions(), x => x.set_tab("configuration"));
+  }
 
   render() {
     let link, mesg, style;
@@ -104,7 +108,7 @@ export let PayBanner = rclass({
       </Alert>
     );
   }
-});
+}
 
 function __guard__(value, transform) {
   return typeof value !== "undefined" && value !== null

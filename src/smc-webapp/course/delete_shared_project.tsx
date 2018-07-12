@@ -23,18 +23,26 @@
 //
 //#############################################################################
 
-import { React, rclass, rtypes } from "../app-framework";
-import { Button, ButtonToolbar, Panel, Well } from "react-bootstrap";
-import { Icon } from "../r_misc";
+import { Component, React } from "../app-framework";
+const { Button, ButtonToolbar, Panel, Well } = require("react-bootstrap");
+const { Icon } = require("../r_misc")
 
-export let DeleteSharedProjectPanel = rclass({
-  propTypes: {
-    delete: rtypes.func.isRequired
-  },
+interface DeleteSharedProjectPanelProps {
+  delete: () => void;
+}
 
-  getInitialState() {
-    return { delete_shared_projects_confirm: false };
-  },
+interface DeleteSharedProjectPanelState {
+  delete_shared_projects_confirm: boolean;
+}
+
+export class DeleteSharedProjectPanel extends Component<
+  DeleteSharedProjectPanelProps,
+  DeleteSharedProjectPanelState
+> {
+  constructor(props) {
+    super(props);
+    this.state = { delete_shared_projects_confirm: false };
+  }
 
   render_confirm_delete_shared_projects() {
     return (
@@ -62,7 +70,7 @@ export let DeleteSharedProjectPanel = rclass({
         </ButtonToolbar>
       </Well>
     );
-  },
+  }
 
   render() {
     return (
@@ -94,4 +102,4 @@ export let DeleteSharedProjectPanel = rclass({
       </Panel>
     );
   }
-});
+}

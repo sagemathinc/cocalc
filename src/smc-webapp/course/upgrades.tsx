@@ -37,14 +37,12 @@ const schema = require("smc-util/schema");
 import {
   Component,
   React,
-  rclass,
-  rtypes,
   ReactDOM,
   AppRedux
 } from "../app-framework";
 import { CourseActions } from "./actions";
 import { redux } from "../frame-editors/generic/test/util";
-import { CourseState, CourseStore } from "./store";
+import {  CourseStore } from "./store";
 import { Map } from "immutable";
 
 const {

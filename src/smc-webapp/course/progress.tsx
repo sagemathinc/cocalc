@@ -8,12 +8,12 @@
 Progress indicator for assigning/collecting/etc. a particular assignment or handout.
 */
 
-import { React, rclass, rtypes } from "../app-framework";
-import { Icon, Space } from "../r_misc";
+import { React, Component } from "../app-framework";
+const { Icon, Space } = require("../r_misc");
 
-import { COLORS } from "smc-util/theme";
+const { COLORS } = require("smc-util/theme");
 
-import misc from "smc-util/misc";
+const misc = require("smc-util/misc");
 
 const progress_info = {
   color: COLORS.GRAY_D,
@@ -24,14 +24,14 @@ const progress_info = {
 const progress_info_done = misc.copy(progress_info);
 progress_info_done.color = COLORS.BS_GREEN_DD;
 
-export let Progress = rclass({
-  propTypes: {
-    done: rtypes.number,
-    not_done: rtypes.number,
-    step: rtypes.string,
-    skipped: rtypes.bool
-  }, // Show skipped text
+interface ProgressProps {
+  done: number;
+  not_done: number;
+  step: string;
+  skipped: boolean;
+}
 
+export class Progress extends Component<ProgressProps> {
   render_checkbox() {
     if (this.props.not_done === 0) {
       return (
@@ -41,7 +41,7 @@ export let Progress = rclass({
         </span>
       );
     }
-  },
+  }
 
   render_status() {
     if (!this.props.skipped) {
@@ -54,7 +54,7 @@ export let Progress = rclass({
     } else {
       return <React.Fragment>Skipped</React.Fragment>;
     }
-  },
+  }
 
   render() {
     let style;
@@ -77,4 +77,4 @@ export let Progress = rclass({
       </span>
     );
   }
-});
+}

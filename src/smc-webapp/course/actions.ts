@@ -2712,7 +2712,7 @@ You can find the comments they made in the folders below.\
   //    handout.status[student_id] = {time:?, error:err}
   //
   // where time >= now is the current time in milliseconds.
-  copy_handout_to_student(handout, student, overwrite) {
+  copy_handout_to_student(handout, student, overwrite?) {
     if (this._handout_start_copy(handout, student)) {
       return;
     }
@@ -2791,7 +2791,7 @@ You can find the comments they made in the folders below.\
   }
 
   // Copy the given handout to all non-deleted students, doing several copies in parallel at once.
-  copy_handout_to_all_students(handout, new_only, overwrite) {
+  copy_handout_to_all_students(handout, new_only, overwrite?) {
     const desc = `Copying handouts to all students ${
       new_only ? "who have not already received it" : ""
     }`;

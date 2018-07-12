@@ -23,18 +23,26 @@
 //
 //#############################################################################
 
-import { React, rclass, rtypes } from "../app-framework";
-import { Button, ButtonToolbar, Panel, Well } from "react-bootstrap";
-import { Icon } from "../r_misc";
+import { React, Component } from "../app-framework";
+const { Button, ButtonToolbar, Panel, Well } = require("react-bootstrap");
+const { Icon } = require("../r_misc");
 
-export let DeleteStudentsPanel = rclass({
-  propTypes: {
-    delete: rtypes.func.isRequired
-  },
+interface DeleteStudentsPanelProps {
+  delete: () => void;
+}
 
-  getInitialState() {
-    return { delete_student_projects_confirm: false };
-  },
+interface DeleteStudentsPanelState {
+  delete_student_projects_confirm: boolean;
+}
+
+export class DeleteStudentsPanel extends Component<
+  DeleteStudentsPanelProps,
+  DeleteStudentsPanelState
+> {
+  constructor(props) {
+    super(props);
+    this.state = { delete_student_projects_confirm: false };
+  }
 
   render_confirm_delete_student_projects() {
     return (
@@ -62,7 +70,7 @@ export let DeleteStudentsPanel = rclass({
         </ButtonToolbar>
       </Well>
     );
-  },
+  }
 
   render() {
     return (
@@ -93,4 +101,4 @@ export let DeleteStudentsPanel = rclass({
       </Panel>
     );
   }
-});
+}

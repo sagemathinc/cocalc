@@ -79,6 +79,8 @@ export type HandoutRecord = TypedMap<{
   deleted: boolean;
   handout_id: string;
   target_path: string;
+  path: string;
+  note: string;
 }>;
 
 export type HandoutsMap = Map<string, HandoutRecord>
