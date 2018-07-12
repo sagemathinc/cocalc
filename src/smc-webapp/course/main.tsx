@@ -58,23 +58,24 @@ let {
 } = require("../r_misc");
 
 // Course components
-import { CourseStore, AssignmentRecord, HandoutRecord, StudentRecord } from "./store";
+import {
+  CourseStore,
+  StudentsMap,
+  AssignmentsMap,
+  HandoutsMap,
+  CourseSettingsRecord
+} from "./store";
 import { CourseActions } from "./actions";
 import * as CourseSync from "./sync";
 import { CSSProperties } from "react";
 
-const { StudentsPanel } = require("./students_panel");
-//import { StudentsPanel } from "./students_panel";
-const { AssignmentsPanel } = require("./assignments_panel");
-//import { AssignmentsPanel } from "./assignments_panel";
-const { HandoutsPanel } = require("./handouts_panel");
-//import { HandoutsPanel } from "./handouts_panel";
-const { ConfigurationPanel } = require("./configuration_panel");
-//import { ConfigurationPanel } from "./configuration_panel";
-const { PayBanner } = require("./pay-baner");
-//import { PayBanner } from "./pay-banner";
-const { SharedProjectPanel } = require("./shared_project_panel");
-//import { SharedProjectPanel } from "./shared_project_panel";
+import { StudentsPanel, StudentsPanelHeader } from "./students_panel";
+import { AssignmentsPanel, AssignmentsPanelHeader } from "./assignments_panel";
+import { HandoutsPanel, HandoutsPanelHeader } from "./handouts_panel";
+import { ConfigurationPanel, ConfigurationPanelHeader } from "./configuration_panel";
+import { PayBanner } from "./pay-banner";
+import { SharedProjectPanel, SharedProjectPanelHeader } from "./shared_project_panel";
+import { UserMap, ProjectMap } from "../todo-types";
 
 const redux_name = (project_id, course_filename) =>
   `editor-${project_id}-${course_filename}`;
@@ -150,7 +151,7 @@ interface CourseReactProps {
   name: string;
   project_id: string;
   path: string;
-  saving? : boolean;
+  saving?: boolean;
   show_save_button?: boolean;
 }
 
@@ -158,15 +159,15 @@ interface CourseReduxProps {
   error: string;
   tab: string;
   activity: Map<any, any>; // status messages about current activity happening (e.g., things being assigned)
-  students: Map<string, StudentRecord>;
-  assignments: Map<string, AssignmentRecord>;
-  handouts: Map<string, HandoutRecord>;
-  settings: Map<any, any>;
+  students: StudentsMap;
+  assignments: AssignmentsMap;
+  handouts: HandoutsMap
+  settings: CourseSettingsRecord
   unsaved: boolean;
 
-  user_map: Map<any, any>;
+  user_map: UserMap
 
-  project_map: Map<any, any>;
+  project_map: ProjectMap
 }
 
 export const CourseEditor = rclass<CourseReactProps>(
@@ -239,7 +240,7 @@ export const CourseEditor = rclass<CourseReactProps>(
         <PayBanner
           settings={this.props.settings}
           num_students={
-            this.props.students != null ? this.props.students.size : undefined
+            this.props.students != null ? this.props.students.size : 0
           }
           tab={this.props.tab}
           name={this.props.name}
@@ -288,9 +289,7 @@ export const CourseEditor = rclass<CourseReactProps>(
     }
 
     save_to_disk() {
-      return this.props.redux != null
-        ? this.actions().save()
-        : undefined;
+      return this.props.redux != null ? this.actions().save() : undefined;
     }
 
     render_save_timetravel() {
@@ -452,30 +451,30 @@ export const CourseEditor = rclass<CourseReactProps>(
         >
           <Tab
             eventKey={"students"}
-            title={<StudentsPanel.Header n={this.num_students()} />}
+            title={<StudentsPanelHeader n={this.num_students()} />}
           >
             {this.render_students()}
           </Tab>
           <Tab
             eventKey={"assignments"}
-            title={<AssignmentsPanel.Header n={this.num_assignments()} />}
+            title={<AssignmentsPanelHeader n={this.num_assignments()} />}
           >
             {this.render_assignments()}
           </Tab>
           <Tab
             eventKey={"handouts"}
-            title={<HandoutsPanel.Header n={this.num_handouts()} />}
+            title={<HandoutsPanelHeader n={this.num_handouts()} />}
           >
             {this.render_handouts()}
           </Tab>
-          <Tab eventKey={"configuration"} title={<ConfigurationPanel.Header />}>
+          <Tab eventKey={"configuration"} title={<ConfigurationPanelHeader />}>
             <div style={{ marginTop: "1em" }} />
             {this.render_configuration()}
           </Tab>
           <Tab
             eventKey={"shared_project"}
             title={
-              <SharedProjectPanel.Header
+              <SharedProjectPanelHeader
                 project_exists={
                   !!(this.props.settings != null
                     ? this.props.settings.get("shared_project_id")

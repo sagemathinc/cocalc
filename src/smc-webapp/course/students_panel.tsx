@@ -812,9 +812,8 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
     }
   }
 );
-(StudentsPanel as any).Header = Header;
 
-export function Header(props: { n: number }) {
+export function StudentsPanelHeader(props: { n: number }) {
   return (
     <Tip
       delayShow={1300}

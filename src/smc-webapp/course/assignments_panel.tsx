@@ -339,8 +339,7 @@ export const AssignmentsPanel = rclass<AssignmentsPanelReactProps>(
   }
 );
 
-(AssignmentsPanel as any).Header = Header;
-export function Header(props: { n: number }) {
+export function AssignmentsPanelHeader(props: { n: number }) {
   return (
     <Tip
       delayShow={1300}

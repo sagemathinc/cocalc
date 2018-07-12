@@ -36,7 +36,7 @@ const {
 const { HiddenXS, Icon, Tip, VisibleMDLG } = require("../r_misc");
 
 interface SharedProjectPanelProps {
-  shared_project_id: string;
+  shared_project_id?: string;
   redux: AppRedux;
   name: string;
 }
@@ -201,9 +201,7 @@ export class SharedProjectPanel extends Component<
   }
 }
 
-(SharedProjectPanel as any).Header = Header;
-
-function Header(props: { project_exists: boolean }) {
+export function SharedProjectPanelHeader(props: { project_exists: boolean }) {
   let tip;
   if (props.project_exists) {
     tip = "Shared project that everybody involved in this course may use.";

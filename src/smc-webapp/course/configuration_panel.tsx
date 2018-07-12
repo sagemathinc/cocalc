@@ -999,9 +999,7 @@ export class ConfigurationPanel extends Component<
   }
 }
 
-(ConfigurationPanel as any).Header = Header;
-
-function Header() {
+export function ConfigurationPanelHeader() {
   return (
     <Tip
       delayShow={1300}

@@ -30,7 +30,7 @@
 const misc = require("smc-util/misc");
 
 // React Libraries
-import { React, rtypes, Component } from "../app-framework";
+import { React, rtypes, Component, rclass } from "../app-framework";
 const {
   Alert,
   Button,
@@ -58,7 +58,7 @@ import { UserMap } from "../todo-types";
 import { ProjectActions } from "../project_store";
 import { Set } from "immutable";
 import { CourseActions } from "./actions";
-const { ErrorDisplay, Icon, Tip, MarkdownInput } = require("../r_misc");
+const { ErrorDisplay, Icon, Tip, MarkdownInput, Loading } = require("../r_misc");
 
 // Could be merged with steps system of assignments.
 // Probably not a good idea mixing the two.
@@ -101,7 +101,7 @@ const past_tense = function(word) {
 interface HandoutsPanelReactProps {
   name: string;
   actions: CourseActions;
-  store_object: CourseStore;
+  store_object?: CourseStore;
   project_actions: ProjectActions;
   project_id: string;
   all_handouts: HandoutsMap; // handout_id -> handout
@@ -118,187 +118,187 @@ interface HandoutsPanelState {
   search: string; // Search value for filtering handouts
 }
 
-export class HandoutsPanel extends Component<
-  HandoutsPanelReactProps & HandoutsPanelReduxProps,
-  HandoutsPanelState
-> {
-  displayName: "Course-editor-HandoutsPanel";
+export let HandoutsPanel = rclass<HandoutsPanelReactProps>(
+  class HandoutsPanel extends Component<
+    HandoutsPanelReactProps & HandoutsPanelReduxProps,
+    HandoutsPanelState
+  > {
+    displayName: "Course-editor-HandoutsPanel";
 
-  constructor(props) {
-    super(props);
-    this.state = {
-      show_deleted: false,
-      search: ""
-    };
-  }
+    constructor(props) {
+      super(props);
+      this.state = {
+        show_deleted: false,
+        search: ""
+      };
+    }
 
-  static reduxProps({ name }) {
-    return {
-      [name]: {
-        expanded_handouts: rtypes.immutable.Set
+    static reduxProps({ name }) {
+      return {
+        [name]: {
+          expanded_handouts: rtypes.immutable.Set
+        }
+      };
+    }
+
+    // Update on different students, handouts, or filter parameters
+    // TODO: this is BS -- do this right.  Get rid of store_object above and
+    // put the actual data it uses; make everything immutable!
+    shouldComponentUpdate(nextProps, nextState) {
+      if (
+        nextProps.all_handouts !== this.props.all_handouts ||
+        nextProps.students !== this.props.students ||
+        this.props.expanded_handouts !== nextProps.expanded_handouts
+      ) {
+        return true;
       }
-    };
-  }
-
-  // Update on different students, handouts, or filter parameters
-  // TODO: this is BS -- do this right.  Get rid of store_object above and
-  // put the actual data it uses; make everything immutable!
-  shouldComponentUpdate(nextProps, nextState) {
-    if (
-      nextProps.all_handouts !== this.props.all_handouts ||
-      nextProps.students !== this.props.students ||
-      this.props.expanded_handouts !== nextProps.expanded_handouts
-    ) {
-      return true;
-    }
-    if (!misc.is_equal(nextState, this.state)) {
-      return true;
-    }
-    return false;
-  }
-
-  get_handout(id: string): HandoutRecord {
-    let handout = this.props.all_handouts.get(id);
-    if (handout == undefined) {
-      console.warn(`Tried to access undefined handout ${id}`);
-    }
-    return handout as any;
-  }
-
-  compute_handouts_list() {
-    let deleted, num_deleted, num_omitted;
-    let list = util.immutable_to_list(this.props.all_handouts, "handout_id");
-
-    ({ list, num_omitted } = util.compute_match_list({
-      list,
-      search_key: "path",
-      search: this.state.search.trim()
-    }));
-
-    ({ list, deleted, num_deleted } = util.order_list({
-      list,
-      compare_function: (a, b) =>
-        misc.cmp(
-          a.path != null ? a.path.toLowerCase() : undefined,
-          b.path != null ? b.path.toLowerCase() : undefined
-        ),
-      reverse: false,
-      include_deleted: this.state.show_deleted
-    }));
-
-    return {
-      shown_handouts: list,
-      deleted_handouts: deleted,
-      num_omitted,
-      num_deleted
-    };
-  }
-
-  render_show_deleted_button(num_deleted, num_shown) {
-    if (this.state.show_deleted) {
-      return (
-        <Button
-          style={styles.show_hide_deleted({ needs_margin: num_shown > 0 })}
-          onClick={() => this.setState({ show_deleted: false })}
-        >
-          <Tip
-            placement="left"
-            title="Hide deleted"
-            tip="Handouts are never really deleted.  Click this button so that deleted handouts aren't included at the bottom of the list."
-          >
-            Hide {num_deleted} deleted handouts
-          </Tip>
-        </Button>
-      );
-    } else {
-      return (
-        <Button
-          style={styles.show_hide_deleted({ needs_margin: num_shown > 0 })}
-          onClick={() => this.setState({ show_deleted: true, search: "" })}
-        >
-          <Tip
-            placement="left"
-            title="Show deleted"
-            tip="Handouts are not deleted forever even after you delete them.  Click this button to show any deleted handouts at the bottom of the list of handouts.  You can then click on the handout and click undelete to bring the handout back."
-          >
-            Show {num_deleted} deleted handouts
-          </Tip>
-        </Button>
-      );
-    }
-  }
-
-  yield_adder(deleted_handouts) {
-    const deleted_paths = {};
-    deleted_handouts.map(obj => {
-      if (obj.path) {
-        return (deleted_paths[obj.path] = obj.handout_id);
+      if (!misc.is_equal(nextState, this.state)) {
+        return true;
       }
-    });
+      return false;
+    }
 
-    return path => {
-      if (deleted_paths[path] != null) {
-        return this.props.actions.undelete_handout(deleted_paths[path]);
+    get_handout(id: string): HandoutRecord {
+      let handout = this.props.all_handouts.get(id);
+      if (handout == undefined) {
+        console.warn(`Tried to access undefined handout ${id}`);
+      }
+      return handout as any;
+    }
+
+    compute_handouts_list() {
+      let deleted, num_deleted, num_omitted;
+      let list = util.immutable_to_list(this.props.all_handouts, "handout_id");
+
+      ({ list, num_omitted } = util.compute_match_list({
+        list,
+        search_key: "path",
+        search: this.state.search.trim()
+      }));
+
+      ({ list, deleted, num_deleted } = util.order_list({
+        list,
+        compare_function: (a, b) =>
+          misc.cmp(
+            a.path != null ? a.path.toLowerCase() : undefined,
+            b.path != null ? b.path.toLowerCase() : undefined
+          ),
+        reverse: false,
+        include_deleted: this.state.show_deleted
+      }));
+
+      return {
+        shown_handouts: list,
+        deleted_handouts: deleted,
+        num_omitted,
+        num_deleted
+      };
+    }
+
+    render_show_deleted_button(num_deleted, num_shown) {
+      if (this.state.show_deleted) {
+        return (
+          <Button
+            style={styles.show_hide_deleted({ needs_margin: num_shown > 0 })}
+            onClick={() => this.setState({ show_deleted: false })}
+          >
+            <Tip
+              placement="left"
+              title="Hide deleted"
+              tip="Handouts are never really deleted.  Click this button so that deleted handouts aren't included at the bottom of the list."
+            >
+              Hide {num_deleted} deleted handouts
+            </Tip>
+          </Button>
+        );
       } else {
-        return this.props.actions.add_handout(path);
+        return (
+          <Button
+            style={styles.show_hide_deleted({ needs_margin: num_shown > 0 })}
+            onClick={() => this.setState({ show_deleted: true, search: "" })}
+          >
+            <Tip
+              placement="left"
+              title="Show deleted"
+              tip="Handouts are not deleted forever even after you delete them.  Click this button to show any deleted handouts at the bottom of the list of handouts.  You can then click on the handout and click undelete to bring the handout back."
+            >
+              Show {num_deleted} deleted handouts
+            </Tip>
+          </Button>
+        );
       }
-    };
+    }
+
+    yield_adder(deleted_handouts) {
+      const deleted_paths = {};
+      deleted_handouts.map(obj => {
+        if (obj.path) {
+          return (deleted_paths[obj.path] = obj.handout_id);
+        }
+      });
+
+      return path => {
+        if (deleted_paths[path] != null) {
+          return this.props.actions.undelete_handout(deleted_paths[path]);
+        } else {
+          return this.props.actions.add_handout(path);
+        }
+      };
+    }
+
+    render() {
+      // Computed data from state changes have to go in render
+      const {
+        shown_handouts,
+        deleted_handouts,
+        num_omitted,
+        num_deleted
+      } = this.compute_handouts_list();
+      const add_handout = this.yield_adder(deleted_handouts);
+
+      const header = (
+        <FoldersToolbar
+          search={this.state.search}
+          search_change={value => this.setState({ search: value })}
+          num_omitted={num_omitted}
+          project_id={this.props.project_id}
+          items={this.props.all_handouts}
+          add_folders={paths => paths.map(add_handout)}
+          item_name={"handout"}
+          plural_item_name={"handouts"}
+        />
+      );
+
+      return (
+        <Panel header={header}>
+          {shown_handouts.map((handout, i) => (
+            this.props.store_object ? <Handout
+              backgroundColor={i % 2 === 0 ? "#eee" : undefined}
+              key={handout.handout_id}
+              handout={this.get_handout(handout.handout_id)}
+              project_id={this.props.project_id}
+              students={this.props.students}
+              user_map={this.props.user_map}
+              actions={this.props.actions}
+              store_object={this.props.store_object}
+              open_directory={this.props.project_actions.open_directory}
+              is_expanded={this.props.expanded_handouts.has(handout.handout_id)}
+              name={this.props.name}
+            /> : <Loading />
+          ))}
+          {num_deleted > 0
+            ? this.render_show_deleted_button(
+                num_deleted,
+                shown_handouts.length != null ? shown_handouts.length : 0
+              )
+            : undefined}
+        </Panel>
+      );
+    }
   }
+);
 
-  render() {
-    // Computed data from state changes have to go in render
-    const {
-      shown_handouts,
-      deleted_handouts,
-      num_omitted,
-      num_deleted
-    } = this.compute_handouts_list();
-    const add_handout = this.yield_adder(deleted_handouts);
-
-    const header = (
-      <FoldersToolbar
-        search={this.state.search}
-        search_change={value => this.setState({ search: value })}
-        num_omitted={num_omitted}
-        project_id={this.props.project_id}
-        items={this.props.all_handouts}
-        add_folders={paths => paths.map(add_handout)}
-        item_name={"handout"}
-        plural_item_name={"handouts"}
-      />
-    );
-
-    return (
-      <Panel header={header}>
-        {shown_handouts.map((handout, i) => (
-          <Handout
-            backgroundColor={i % 2 === 0 ? "#eee" : undefined}
-            key={handout.handout_id}
-            handout={this.get_handout(handout.handout_id)}
-            project_id={this.props.project_id}
-            students={this.props.students}
-            user_map={this.props.user_map}
-            actions={this.props.actions}
-            store_object={this.props.store_object}
-            open_directory={this.props.project_actions.open_directory}
-            is_expanded={this.props.expanded_handouts.has(handout.handout_id)}
-            name={this.props.name}
-          />
-        ))}
-        {num_deleted > 0
-          ? this.render_show_deleted_button(
-              num_deleted,
-              shown_handouts.length != null ? shown_handouts.length : 0
-            )
-          : undefined}
-      </Panel>
-    );
-  }
-}
-
-(HandoutsPanel as any).Header = Header;
-
-function Header(props: { n: number }) {
+export function HandoutsPanelHeader(props: { n: number }) {
   return (
     <Tip
       delayShow={1300}
