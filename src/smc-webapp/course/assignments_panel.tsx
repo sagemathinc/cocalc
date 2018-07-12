@@ -30,7 +30,7 @@
 
 // CoCalc libraries
 const misc = require("smc-util/misc");
-const webapp_client = require("../webapp_client");
+const { webapp_client } = require("../webapp_client");
 
 // React libraries
 import {
@@ -106,7 +106,7 @@ interface AssignmentsPanelReduxProps {
 }
 
 interface AssignmentsPanelState {
-  err?: string; 
+  err?: string;
   search: string;
   show_deleted: boolean;
 }
@@ -122,7 +122,7 @@ export const AssignmentsPanel = rclass<AssignmentsPanelReactProps>(
         err: undefined, // error message to display at top.
         search: "", // search query to restrict which assignments are shown.
         show_deleted: false // whether or not to show deleted assignments on the bottom
-      }
+      };
     }
     displayName: "CourseEditorAssignments";
 

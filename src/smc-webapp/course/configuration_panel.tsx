@@ -29,7 +29,7 @@
 
 // CoCalc libraries
 const misc = require("smc-util/misc");
-const webapp_client = require("../webapp_client");
+const { webapp_client } = require("../webapp_client");
 
 // React libraries and Components
 import { React, rclass, rtypes, Component, AppRedux } from "../app-framework";

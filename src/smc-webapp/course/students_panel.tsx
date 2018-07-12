@@ -30,7 +30,7 @@
 
 // CoCalc libraries
 const misc = require("smc-util/misc");
-const webapp_client = require("../webapp_client");
+const { webapp_client } = require("../webapp_client");
 
 // React libraries and components
 import {
@@ -72,7 +72,13 @@ const {
 import * as util from "./util";
 import * as styles from "./styles";
 import { ProjectMap, UserMap } from "../todo-types";
-import { StudentsMap, AssignmentsMap, SortDescription, StudentRecord, CourseStore } from "./store";
+import {
+  StudentsMap,
+  AssignmentsMap,
+  SortDescription,
+  StudentRecord,
+  CourseStore
+} from "./store";
 import { literal } from "../app-framework/literal";
 import { redux } from "../frame-editors/generic/test/util";
 import { CourseActions } from "./actions";
@@ -859,7 +865,7 @@ interface StudentState {
 }
 
 class Student extends Component<StudentProps, StudentState> {
-  displayName: "CourseEditorStudent"
+  displayName: "CourseEditorStudent";
 
   get_actions(): CourseActions {
     return redux.getActions(this.props.name);
@@ -950,10 +956,7 @@ class Student extends Component<StudentProps, StudentState> {
       this.cancel_student_edit();
     }
     const item_id = this.props.student.get("student_id");
-    return this.get_actions().toggle_item_expansion(
-      "student",
-      item_id
-    );
+    return this.get_actions().toggle_item_expansion("student", item_id);
   }
 
   render_student() {
@@ -999,9 +1002,7 @@ class Student extends Component<StudentProps, StudentState> {
   }
 
   create_project() {
-    return this.get_actions().create_student_project(
-      this.props.student_id
-    );
+    return this.get_actions().create_student_project(this.props.student_id);
   }
 
   render_last_active() {
@@ -1029,7 +1030,8 @@ class Student extends Component<StudentProps, StudentState> {
   render_hosting() {
     const student_project_id = this.props.student.get("project_id");
     if (student_project_id) {
-      const upgrades = redux.getStore("projects")
+      const upgrades = redux
+        .getStore("projects")
         .get_total_project_quotas(student_project_id);
       if (upgrades == null) {
         // user opening the course isn't a collaborator on this student project yet
@@ -1163,14 +1165,11 @@ class Student extends Component<StudentProps, StudentState> {
   }
 
   save_student_changes() {
-    this.get_actions().set_internal_student_info(
-      this.props.student,
-      {
-        first_name: this.state.edited_first_name,
-        last_name: this.state.edited_last_name,
-        email_address: this.state.edited_email_address
-      }
-    );
+    this.get_actions().set_internal_student_info(this.props.student, {
+      first_name: this.state.edited_first_name,
+      last_name: this.state.edited_last_name,
+      email_address: this.state.edited_email_address
+    });
 
     return this.setState({ editing_student: false });
   }
@@ -1281,8 +1280,7 @@ class Student extends Component<StudentProps, StudentState> {
   }
 
   render_assignments_info() {
-    const peer_grade = this.get_store()
-      .any_assignment_uses_peer_grading();
+    const peer_grade = this.get_store().any_assignment_uses_peer_grading();
     const header = (
       <StudentAssignmentInfoHeader
         key="header"
@@ -1312,10 +1310,7 @@ class Student extends Component<StudentProps, StudentState> {
             placeholder="Notes about student (not visible to student)"
             default_value={this.props.student.get("note")}
             on_save={value =>
-              this.get_actions().set_student_note(
-                this.props.student,
-                value
-              )
+              this.get_actions().set_student_note(this.props.student, value)
             }
           />
         </Col>

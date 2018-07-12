@@ -34,7 +34,7 @@ import * as immutable from "immutable";
 
 // SMC libraries
 const misc = require("smc-util/misc");
-const webapp_client = require("../webapp_client");
+const { webapp_client } = require("../webapp_client");
 
 export let create_sync_db = (redux, actions, store, filename) => {
   if (redux == null || actions == null || store == null) {
