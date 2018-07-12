@@ -3,7 +3,7 @@
 
 exports.MathJaxConfig =
     skipStartupTypeset: true
-    extensions: ["tex2jax.js","asciimath2jax.js"]  # "static/mathjax_extensions/xypic.js"
+    extensions: ["tex2jax.js","asciimath2jax.js","Safe.js"]  # "static/mathjax_extensions/xypic.js"
     # NOTE: "output/CommonHTML" is the output default: http://docs.mathjax.org/en/latest/output.html
     # However, **DO NOT** use "output/CommonHTML" for the output JAX; it completely breaks
     # Sage worksheet output right now.  Maybe when/if worksheets are rewritten

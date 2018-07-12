@@ -649,7 +649,7 @@ export class FrameTitleBar extends Component<Props, {}> {
         key={"reload"}
         title={"Reload this file"}
         bsSize={this.button_size()}
-        onClick={() => this.props.actions.reload()}
+        onClick={() => this.props.actions.reload(this.props.id)}
       >
         <Icon name="repeat" />{" "}
         <VisibleMDLG>{labels ? "Reload" : undefined}</VisibleMDLG>
