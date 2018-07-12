@@ -1048,6 +1048,16 @@ class SyncDoc extends EventEmitter
                 else
                     @emit('init')
 
+    wait: (opts) =>
+        if not @_patches_table?
+            @_patches_table_queue ?= []
+            @_patches_table_queue.push(opts)
+            return
+        @_patches_table.wait
+            timeout : opts.timeout
+            until : => return opts.until(@)
+            cb    : opts.cb
+
     # Delete the synchronized string and **all** patches from the database -- basically
     # delete the complete history of editing this file.
     # WARNINGS:
@@ -1168,6 +1178,10 @@ class SyncDoc extends EventEmitter
 
         @_patches_table = @_client.sync_table({patches : @_patch_table_query(@_last_snapshot)}, \
                                               undefined, @_patch_interval, @_patch_interval)
+
+        if @_patches_table_queue?
+            for opts in @_patches_table_queue
+                @wait(opts)
 
         @_patches_table.once 'connected', =>
             patch_list.add(@_get_patches())
