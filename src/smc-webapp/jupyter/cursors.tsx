@@ -321,14 +321,14 @@ interface CursorsState {
 
 class Cursors0 extends Component<CursorsProps, CursorsState> {
   private _interval: any;
-  public static reduxProps = {
+  public static reduxProps = () => ({
     users: {
       user_map: rtypes.immutable.Map
     },
     account: {
       account_id: rtypes.string
     }
-  };
+  });
 
   constructor(props: CursorsProps, context: any) {
     super(props, context);
