@@ -55,7 +55,7 @@ schema.syncstrings =
             date : ['time']
         save :
             type : 'map'
-            desc : "{state:['requested', 'done'], hash:misc.hash_string(what was last saved), error:['' or 'error message']}"
+            desc : "{state:['requested', 'done'], hash:misc.hash_string(what was last saved), expected_hash:?, error:['' or 'error message']}"
         read_only :
             type : 'boolean'
             desc : 'true or false, depending on whether this syncstring is readonly or can be edited'

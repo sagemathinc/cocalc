@@ -59,6 +59,8 @@ misc      = require('./misc')
 
 schema    = require('./schema')
 
+{failing_to_save} = require('./failing-to-save')
+
 {Evaluator} = require('./syncstring_evaluator')
 
 {diff_match_patch} = require('./dmp')
@@ -683,6 +685,12 @@ class SyncDoc extends EventEmitter
             throw Error("value must be a document object with apply_patch, etc., methods")
         @_doc = value
         return
+
+    # Reconnect all the syncstring and patches tables, which
+    # define this syncstring.
+    reconnect: =>
+        @_syncstring_table?.reconnect()
+        @_patches_table?.reconnect()
 
     # Return underlying document, or undefined if document hasn't been set yet.
     get_doc: =>
@@ -1982,12 +1990,20 @@ class SyncDoc extends EventEmitter
         # to it not being touched (due to active editing).  Not having this leads to a lot of "can't save"
         # errors.
         @touch()
-        @_set_save(state:'requested', error:false)
+        data = @to_str()  # string version of this doc
+        expected_hash = misc.hash_string(data)
+        @_set_save(state:'requested', error:false, expected_hash:expected_hash)
 
     __do_save_to_disk_project: (cb) =>
         # check if on-disk version is same as in memory, in which case no save is needed.
         data = @to_str()  # string version of this doc
         hash = misc.hash_string(data)
+        expected_hash = @_syncstring_table.get_one().getIn(['save', 'expected_hash'])
+        if failing_to_save(@_path, hash, expected_hash)
+            @dbg("__save_to_disk_project")("FAILING TO SAVE-- hash=#{hash}, expected_hash=#{expected_hash} -- reconnecting")
+            cb('failing to save -- reconnecting')
+            @reconnect()
+            return
         if hash == @hash_of_saved_version()
             # No actual save to disk needed; still we better record this fact in table in case it
             # isn't already recorded
