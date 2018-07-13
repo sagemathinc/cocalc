@@ -36,7 +36,7 @@ const markdownlib = require("../markdown");
 // CoCalc libraries
 const misc = require("smc-util/misc");
 const { defaults, required } = misc;
-const webapp_client = require("../webapp_client");
+const { webapp_client } = require("../webapp_client");
 
 // Course Library
 import { previous_step, Step } from "./util";
