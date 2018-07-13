@@ -22,6 +22,29 @@ remember_me = webapp_client.remember_me_key()
 
 # Define account actions
 class AccountActions extends Actions
+    _init: (store) =>
+        console.log("AccountActions._init", store)
+        store.on("change", @derive_global_info_visible)
+
+    derive_global_info_visible: (store) =>
+        # TODO when there is more time, rewrite this to be tied to announcements of a specific type (and use their timestamps)
+        # for now, we use the existence of a timestamp value to indicate that the banner is not shown
+        sgi2 = store.getIn(['other_settings', 'show_global_info2'])
+        # unknown state, right after opening the application
+        if sgi2 == 'loading'
+            show = false
+        # not set means there is no timestamp → show banner
+        else if not sgi2?
+            show = true
+        # idea behind this 3rd case:
+        # show the banner only if its start_dt timetstamp is earlier than now
+        # *and* when the last "dismiss time" by the user is prior to it.
+        else
+            sgi2_dt = new Date(sgi2)
+            start_dt = new Date('2018-07-01T19:00:00.000Z')
+            show = start_dt < webapp_client.server_time() and sgi2_dt < start_dt
+        @setState(show_global_info: show)
+
     set_user_type: (user_type) =>
         @setState
             user_type    : user_type
@@ -263,27 +286,6 @@ class AccountStore extends Store
     get_page_size: =>
         return @getIn(['other_settings', 'page_size']) ? 50  # at least have a valid value if loading...
 
-    ###
-    TODO: This is deleted, but if you do setState(show_global_info: true), then it gets shown.
-    We need to delete this function and instead do like in the _init of actions, i.e.,
-    set derived state based on changes to account store in AccountActions.  -- william
-
-    is_global_info_visible: =>
-        # TODO when there is more time, rewrite this to be tied to announcements of a specific type (and use their timestamps)
-        # for now, we use the existence of a timestamp value to indicate that the banner is not shown
-        sgi2 = @getIn(['other_settings', 'show_global_info2'])
-        if sgi2 == 'loading'   # unknown state, right after opening the application
-            return false
-        if not sgi2?           # not set means there is no timestamp → show banner
-            return false  # true ## change to true, if reimplemnted.
-        sgi2_dt = new Date(sgi2)
-        ## idea behind this: show the banner only if its start_dt timetstamp is earlier than now
-        ## *and* when the last "dismiss time" by the user is prior to it. I.e. also change the
-        ## fallback in case there is no timestamp back to true.
-        # start_dt = new Date('2017-08-25T19:00:00.000Z')
-        # return start_dt < webapp_client.server_time() and sgi2_dt < start_dt
-        return false
-    ###
 
 # Register account store
 # Use the database defaults for all account info until this gets set after they login
@@ -291,10 +293,11 @@ init = misc.deep_copy(require('smc-util/schema').SCHEMA.accounts.user_query.get.
 # ... except for show_global_info2 (null or a timestamp)
 init.other_settings.show_global_info2 = 'loading' # indicates it is starting up
 init.user_type = if misc.get_local_storage(remember_me) then 'signing_in' else 'public'  # default
-redux.createStore('account', AccountStore, init)
+store = redux.createStore('account', AccountStore, init)
 
 # Register account actions
 actions = redux.createActions('account', AccountActions)
+actions._init(store)
 
 # Create and register account table, which gets automatically
 # synchronized with the server.
