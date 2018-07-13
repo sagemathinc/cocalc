@@ -117,6 +117,15 @@ class exports.JupyterActions extends Actions
             @syncdb.on('metadata-change', @sync_read_only)
             @syncdb.on('connected', @sync_read_only)
 
+            # Browser Client: Wait until the .ipynb file has actually been parsed into
+            # the (hidden, e.g. .a.ipynb.sage-jupyter2) syncdb file,
+            # then set the kernel, if necessary.
+            @syncdb.wait
+                until : (s) =>
+                    return !!s.get_one({"type":"file"})
+                cb    : => @_syncdb_init_kernel()
+
+
         @syncdb.on('change', @_syncdb_change)
 
         @syncdb.once 'change', =>
@@ -540,7 +549,6 @@ class exports.JupyterActions extends Actions
 
     __syncdb_change: (changes) =>
         do_init = @_is_project and @_state == 'init'
-        #console.log 'changes', changes, changes?.toJS()
         #@dbg("_syncdb_change")(JSON.stringify(changes?.toJS()))
         cell_list_needs_recompute = false
         changes?.forEach (key) =>
@@ -594,19 +602,20 @@ class exports.JupyterActions extends Actions
         if @_is_project
             if do_init
                 @initialize_manager()
-            @manager_run_cell_process_queue()
+            if @store.get('kernel')
+                @manager_run_cell_process_queue()
         else
             # client
             if @_state == 'init'
                 @_state = 'ready'
 
-            if not @store.get('kernel')
-                # kernel isn't set yet, so we set it.
-                kernel = @redux.getStore('account')?.getIn(['editor_settings', 'jupyter', 'kernel']) ? DEFAULT_KERNEL
-                @set_kernel(kernel)
-
             if @store.get("view_mode") == 'raw'
                 @set_raw_ipynb()
+
+    _syncdb_init_kernel: =>
+        if not @store.get('kernel')
+            kernel = @redux.getStore('account')?.getIn(['editor_settings', 'jupyter', 'kernel']) ? DEFAULT_KERNEL
+            @set_kernel(kernel)
 
     _syncdb_cursor_activity: =>
         cells = cells_before = @store.get('cells')
