@@ -23,10 +23,9 @@ remember_me = webapp_client.remember_me_key()
 # Define account actions
 class AccountActions extends Actions
     _init: (store) =>
-        console.log("AccountActions._init", store)
-        store.on("change", @derive_global_info_visible)
+        store.on("change", @derive_show_global_info)
 
-    derive_global_info_visible: (store) =>
+    derive_show_global_info: (store) =>
         # TODO when there is more time, rewrite this to be tied to announcements of a specific type (and use their timestamps)
         # for now, we use the existence of a timestamp value to indicate that the banner is not shown
         sgi2 = store.getIn(['other_settings', 'show_global_info2'])
@@ -34,15 +33,16 @@ class AccountActions extends Actions
         if sgi2 == 'loading'
             show = false
         # not set means there is no timestamp → show banner
-        else if not sgi2?
-            show = true
-        # idea behind this 3rd case:
-        # show the banner only if its start_dt timetstamp is earlier than now
-        # *and* when the last "dismiss time" by the user is prior to it.
         else
-            sgi2_dt = new Date(sgi2)
-            start_dt = new Date('2018-07-01T19:00:00.000Z')
-            show = start_dt < webapp_client.server_time() and sgi2_dt < start_dt
+            if not sgi2?
+                show = true
+            # 3rd case: a timestamp is set
+            # show the banner only if its start_dt timetstamp is earlier than now
+            # *and* when the last "dismiss time" by the user is prior to it.
+            else
+                sgi2_dt = new Date(sgi2)
+                start_dt = new Date('2018-07-01T19:00:00.000Z')
+                show = start_dt < webapp_client.server_time() and sgi2_dt < start_dt
         @setState(show_global_info: show)
 
     set_user_type: (user_type) =>
@@ -291,7 +291,7 @@ class AccountStore extends Store
 # Use the database defaults for all account info until this gets set after they login
 init = misc.deep_copy(require('smc-util/schema').SCHEMA.accounts.user_query.get.fields)
 # ... except for show_global_info2 (null or a timestamp)
-init.other_settings.show_global_info2 = 'loading' # indicates it is starting up
+init.other_settings.show_global_info2 = 'loading' # indicates there is no data yet
 init.user_type = if misc.get_local_storage(remember_me) then 'signing_in' else 'public'  # default
 store = redux.createStore('account', AccountStore, init)
 
