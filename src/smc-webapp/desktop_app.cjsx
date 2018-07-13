@@ -42,7 +42,7 @@
 misc = require('smc-util/misc')
 
 {ProjectsNav} = require('./projects_nav')
-{ActiveAppContent, CookieWarning, GlobalInformationMessage, LocalStorageWarning, ConnectionIndicator, ConnectionInfo, FullscreenButton, NavTab, NotificationBell, AppLogo, VersionWarning} = require('./app_shared')
+{ActiveAppContent, CookieWarning, GlobalInformationMessage, LocalStorageWarning, ConnectionIndicator, ConnectionInfo, FullscreenButton, NavTab, NotificationBell, AppLogo, VersionWarning, announce_bar_offset} = require('./app_shared')
 
 nav_class = 'hidden-xs'
 
@@ -245,6 +245,8 @@ Page = rclass
             width         : '100vw'
             overflow      : 'hidden'
 
+        top = if @props.show_global_info then "#{announce_bar_offset}px" else 0
+
         style_top_bar =
             display       : 'flex'
             marginBottom  : 0
@@ -254,9 +256,10 @@ Page = rclass
             right         : 0
             zIndex        : '100'
             borderRadius  : 0
-            top           : if @props.show_global_info then '40px' else 0
+            top           : top
 
-        positionHackHeight = (40 + if @props.show_global_info then 40 else 0) + 'px'
+        positionHackOffset = if @props.show_global_info then announce_bar_offset else 0
+        positionHackHeight = (40 + positionHackOffset) + 'px'
 
         <div ref="page" style={style} onDragOver={(e) -> e.preventDefault()} onDrop={@drop}>
             {<FileUsePageWrapper /> if @props.show_file_use}

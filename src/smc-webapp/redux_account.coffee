@@ -20,6 +20,9 @@ help = ->
 {webapp_client} = require('./webapp_client')
 remember_me = webapp_client.remember_me_key()
 
+exports.show_announce_start = new Date('2018-06-12T00:00:00.000Z')
+exports.show_announce_end = new Date('2018-07-21T14:00:00.000Z')
+
 # Define account actions
 class AccountActions extends Actions
     _init: (store) =>
@@ -32,17 +35,22 @@ class AccountActions extends Actions
         # unknown state, right after opening the application
         if sgi2 == 'loading'
             show = false
-        # not set means there is no timestamp → show banner
+        # value not set means there is no timestamp → show banner
         else
+            # ... if it is inside the scheduling window
+            start = exports.show_announce_start
+            end = exports.show_announce_end
+            in_window = start < webapp_client.server_time() < end
+
             if not sgi2?
-                show = true
+                show = in_window
             # 3rd case: a timestamp is set
             # show the banner only if its start_dt timetstamp is earlier than now
             # *and* when the last "dismiss time" by the user is prior to it.
             else
                 sgi2_dt = new Date(sgi2)
-                start_dt = new Date('2018-07-01T19:00:00.000Z')
-                show = start_dt < webapp_client.server_time() and sgi2_dt < start_dt
+                dismissed_before_start = sgi2_dt < start
+                show = in_window and dismissed_before_start
         @setState(show_global_info: show)
 
     set_user_type: (user_type) =>
