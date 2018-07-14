@@ -1118,7 +1118,7 @@ OtherSettings = rclass
 
     toggle_global_banner: (val) ->
         if val
-            # this must be null, not undefined. no idea why...
+            # this must be "null", not "undefined" – otherwise the data isn't stored in the DB.
             @on_change('show_global_info2', null)
         else
             @on_change('show_global_info2', webapp_client.server_time())
