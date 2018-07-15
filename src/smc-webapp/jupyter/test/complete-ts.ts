@@ -140,7 +140,7 @@ describe("edge cases completion tests -- ", () => {
   });
   it("do a completion wih no results", () => {
     const resp = { matches: [], status: "ok", cursor_start: 0, cursor_end: 2 };
-    actions.setState({ identity: "fake" });
+    actions.setState({ identity: "fake" } as any);
     actions._ajax = opts => {
       return opts.cb(undefined, resp);
     };
@@ -155,7 +155,7 @@ describe("edge cases completion tests -- ", () => {
       cursor_start: 0,
       cursor_end: 2
     };
-    actions.setState({ identity: "fake" });
+    actions.setState({ identity: "fake" } as any);
     actions._ajax = opts => {
       return opts.cb(undefined, resp);
     };
@@ -181,7 +181,7 @@ describe("edge cases completion tests -- ", () => {
       cursor_start: 4,
       cursor_end: 6
     };
-    actions.setState({ identity: "fake" });
+    actions.setState({ identity: "fake" } as any);
     actions._ajax = opts => {
       return opts.cb(undefined, resp);
     };

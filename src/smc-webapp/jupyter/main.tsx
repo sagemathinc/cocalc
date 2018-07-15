@@ -156,11 +156,11 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
   }
 
   render_menubar() {
-    return <TopMenubar actions={this.props.actions} name={name} />;
+    return <TopMenubar actions={this.props.actions} name={this.props.name} />;
   }
 
   render_buttonbar() {
-    return <TopButtonbar actions={this.props.actions} name={name} />;
+    return <TopButtonbar actions={this.props.actions} name={this.props.name} />;
   }
 
   render_heading() {

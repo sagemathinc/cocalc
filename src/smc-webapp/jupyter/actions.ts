@@ -367,18 +367,16 @@ export class JupyterActions extends Actions<JupyterStoreState> {
             return;
           }
           try {
-            jupyter_kernels = immutable.fromJS(data);
+            const jupyter_kernels = immutable.fromJS(data);
             this.setState({ kernels: jupyter_kernels });
             // We must also update the kernel info (e.g., display name), now that we
             // know the kernels (e.g., maybe it changed or is now known but wasn't before).
             this.setState({
               kernel_info: this.store.get_kernel_info(this.store.get("kernel"))
             });
-            return cb();
+            cb();
           } catch (e) {
-            return this.set_error(
-              `Error setting Jupyter kernels -- ${data} ${e}`
-            );
+            this.set_error(`Error setting Jupyter kernels -- ${data} ${e}`);
           }
         }
       });
@@ -1969,7 +1967,12 @@ export class JupyterActions extends Actions<JupyterStoreState> {
           complete.offset = offset;
         }
         this.setState({ complete: immutable.fromJS(complete) });
-        if (complete != null && complete.matches && complete.matches.length === 1 && id != null) {
+        if (
+          complete != null &&
+          complete.matches &&
+          complete.matches.length === 1 &&
+          id != null
+        ) {
           // special case -- a unique completion and we know id of cell in which completing is given
           return this.select_complete(id, complete.matches[0]);
         }
@@ -2298,7 +2301,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   };
 
   // TODO: set_more_output on project-actions is different
-  set_more_output = (id: any, more_output: any,_?:any) => {
+  set_more_output = (id: any, more_output: any, _?: any) => {
     let left: any;
     if (this.store.getIn(["cells", id]) == null) {
       return;
