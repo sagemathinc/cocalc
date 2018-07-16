@@ -7,7 +7,7 @@ available in the project or requires node to run, so that we can
 fully unit test it via mocking of components.
 */
 import * as immutable from "immutable";
-import {JupyterActions as JupyterActions0} from './actions';
+import { JupyterActions as JupyterActions0 } from "./actions";
 const async = require("async");
 const underscore = require("underscore");
 const misc = require("smc-util/misc");
@@ -23,7 +23,7 @@ export class JupyterActions extends JupyterActions0 {
   private _manager_run_cell_queue: any;
   private _run_again: any;
   private _run_nbconvert_lock: any;
-  private _running_cells:any;
+  private _running_cells: any;
   private _throttled_ensure_positions_are_unique: any;
 
   set_backend_state = (state: any) => {
@@ -43,13 +43,15 @@ export class JupyterActions extends JupyterActions0 {
 
         Going from ready to starting happens when a code execution is requested.
         */
-    if (["init", "ready", "spawning", "starting", "running"].indexOf(state) === -1) {
+    if (
+      ["init", "ready", "spawning", "starting", "running"].indexOf(state) === -1
+    ) {
       throw Error(`invalid backend state '${state}'`);
     }
     this._backend_state = state;
     return this._set({
       type: "settings",
-      backend_state: state,
+      backend_state: state
     });
   };
 
@@ -66,7 +68,9 @@ export class JupyterActions extends JupyterActions0 {
   // Here we ensure everything is in a consistent state so that we can react
   // to changes later.
   initialize_manager = () => {
+    console.log("INITIALIZING MANAGER");
     if (this._initialize_manager_already_done) {
+      console.log("DONE");
       return;
     }
     this._initialize_manager_already_done = true;
@@ -81,7 +85,7 @@ export class JupyterActions extends JupyterActions0 {
     this.sync_exec_state = underscore.debounce(this.sync_exec_state, 2000);
     this._throttled_ensure_positions_are_unique = underscore.debounce(
       this.ensure_positions_are_unique,
-      5000,
+      5000
     );
 
     // WARNING: @_load_from_disk_if_newer must happen before anything that might touch
@@ -92,7 +96,7 @@ export class JupyterActions extends JupyterActions0 {
 
     this.setState({
       // used by jupyter.coffee
-      start_time: this._client.server_time() - 0,
+      start_time: this._client.server_time() - 0
     });
     this.syncdb.delete({ type: "nbconvert" }); // clear on init, since can't be running yet
 
@@ -122,7 +126,7 @@ export class JupyterActions extends JupyterActions0 {
         const watcher = this._client.watch_file({
           path: this.store.get("path"),
           interval: 3000,
-          debounce: 1500,
+          debounce: 1500
         });
         return watcher.once("change", () => {
           dbg("file changed");
@@ -195,7 +199,8 @@ export class JupyterActions extends JupyterActions0 {
       return;
     }
 
-    const current = this._jupyter_kernel != null ? this._jupyter_kernel.name : undefined;
+    const current =
+      this._jupyter_kernel != null ? this._jupyter_kernel.name : undefined;
     if (current === kernel) {
       // everything is properly setup
       return;
@@ -223,7 +228,7 @@ export class JupyterActions extends JupyterActions0 {
     this._jupyter_kernel = this._client.jupyter_kernel({
       name: kernel,
       path: this.store.get("path"),
-      actions: this,
+      actions: this
     });
 
     // Since we just made a new kernel connection, clearly no cells are running on the backend.
@@ -269,7 +274,7 @@ export class JupyterActions extends JupyterActions0 {
 
   init_kernel_info = () => {
     const kernels = this.store.get("kernels");
-    const { size = undefined } = kernels;
+    const size = kernels != null ? kernels.size : undefined;
     const dbg = this.dbg("init_kernel_info");
     dbg(`kernels.size=${size}`);
     if (kernels == null) {
@@ -278,9 +283,11 @@ export class JupyterActions extends JupyterActions0 {
         cb: (err, kernels) => {
           dbg(`got ${err}, ${misc.to_json(kernels)}`);
           if (!err) {
-            return this.setState({ kernels: immutable.fromJS(kernels.jupyter_kernels) });
+            return this.setState({
+              kernels: immutable.fromJS(kernels.jupyter_kernels)
+            });
           }
-        },
+        }
       });
     }
   };
@@ -293,8 +300,10 @@ export class JupyterActions extends JupyterActions0 {
     const dbg = this.dbg(`manager_on_cell_change(id='${id}')`);
     dbg(
       `new_cell='${misc.to_json(
-        new_cell != null ? new_cell.toJS() : undefined,
-      )}',old_cell='${misc.to_json(old_cell != null ? old_cell.toJS() : undefined)}')`,
+        new_cell != null ? new_cell.toJS() : undefined
+      )}',old_cell='${misc.to_json(
+        old_cell != null ? old_cell.toJS() : undefined
+      )}')`
     );
 
     if (
@@ -307,7 +316,8 @@ export class JupyterActions extends JupyterActions0 {
 
     if (
       (new_cell != null ? new_cell.get("attachments") : undefined) != null &&
-      new_cell.get("attachments") !== (old_cell != null ? old_cell.get("attachments") : undefined)
+      new_cell.get("attachments") !==
+        (old_cell != null ? old_cell.get("attachments") : undefined)
     ) {
       return this.handle_cell_attachments(new_cell);
     }
@@ -353,7 +363,9 @@ export class JupyterActions extends JupyterActions0 {
 
   _cancel_run = (id: any) => {
     if (this._running_cells != null ? this._running_cells[id] : undefined) {
-      return this._jupyter_kernel != null ? this._jupyter_kernel.cancel_execute({ id }) : undefined;
+      return this._jupyter_kernel != null
+        ? this._jupyter_kernel.cancel_execute({ id })
+        : undefined;
     }
   };
 
@@ -376,12 +388,17 @@ export class JupyterActions extends JupyterActions0 {
     }
     const v: any[] = [];
     for (let id in this._manager_run_cell_queue) {
-      if (!(this._running_cells != null ? this._running_cells[id] : undefined)) {
+      if (
+        !(this._running_cells != null ? this._running_cells[id] : undefined)
+      ) {
         v.push(this.store.getIn(["cells", id]));
       }
     }
     v.sort((a, b) =>
-      misc.cmp(a != null ? a.get("start") : undefined, b != null ? b.get("start") : undefined),
+      misc.cmp(
+        a != null ? a.get("start") : undefined,
+        b != null ? b.get("start") : undefined
+      )
     );
     // dbg = @dbg("manager_run_cell_process_queue")
     // dbg("running: #{misc.to_json( ([a?.get('start'), a?.get('id')] for a in v) )}")
@@ -400,7 +417,7 @@ export class JupyterActions extends JupyterActions0 {
       cell,
       max_output_length: this.store.get("max_output_length"),
       report_started_ms: 250,
-      dbg: this.dbg(`handler(id='${cell.id}')`),
+      dbg: this.dbg(`handler(id='${cell.id}')`)
     });
 
     handler.on("more_output", (mesg, mesg_length) => {
@@ -409,7 +426,9 @@ export class JupyterActions extends JupyterActions0 {
 
     return handler.on(
       "process",
-      this._jupyter_kernel != null ? this._jupyter_kernel.process_output : undefined,
+      this._jupyter_kernel != null
+        ? this._jupyter_kernel.process_output
+        : undefined
     );
   };
 
@@ -453,7 +472,7 @@ export class JupyterActions extends JupyterActions0 {
     const cell: any = {
       id,
       type: "cell",
-      kernel: this.store.get("kernel"),
+      kernel: this.store.get("kernel")
     };
 
     dbg(`using max_output_length=${this.store.get("max_output_length")}`);
@@ -532,7 +551,11 @@ export class JupyterActions extends JupyterActions0 {
           handler.start();
         }
         if (mesg.content.payload != null) {
-          if ((mesg.content.payload != null ? mesg.content.payload.length : undefined) > 0) {
+          if (
+            (mesg.content.payload != null
+              ? mesg.content.payload.length
+              : undefined) > 0
+          ) {
             // payload shell message:
             // Despite https://ipython.org/ipython-doc/3/development/messaging.html#payloads saying
             // ""Payloads are considered deprecated, though their replacement is not yet implemented."
@@ -544,7 +567,7 @@ export class JupyterActions extends JupyterActions0 {
           // Normal iopub output message
           return handler.message(mesg.content);
         }
-      },
+      }
     });
   };
 
@@ -552,7 +575,11 @@ export class JupyterActions extends JupyterActions0 {
     if (id == null) {
       delete this.store._more_output;
     }
-    if ((this.store._more_output != null ? this.store._more_output[id] : undefined) != null) {
+    if (
+      (this.store._more_output != null
+        ? this.store._more_output[id]
+        : undefined) != null
+    ) {
       return delete this.store._more_output[id];
     }
   };
@@ -569,7 +596,7 @@ export class JupyterActions extends JupyterActions0 {
             messages: [],
             lengths: [],
             discarded: 0,
-            truncated: 0,
+            truncated: 0
           });
 
     output.length += length;
@@ -583,13 +610,19 @@ export class JupyterActions extends JupyterActions0 {
       let did_truncate = false;
 
       // check if there is a text field, which we can truncate
-      let len = output.messages[0].text != null ? output.messages[0].text.length : undefined;
+      let len =
+        output.messages[0].text != null
+          ? output.messages[0].text.length
+          : undefined;
       if (len != null) {
         need = output.length - goal_length + 50;
         if (len > need) {
           // Instead of throwing this message away, let's truncate its text part.  After
           // doing this, the message is at least need shorter than it was before.
-          output.messages[0].text = misc.trunc(output.messages[0].text, len - need);
+          output.messages[0].text = misc.trunc(
+            output.messages[0].text,
+            len - need
+          );
           did_truncate = true;
         }
       }
@@ -635,7 +668,7 @@ export class JupyterActions extends JupyterActions0 {
     this._file_watcher = this._client.watch_file({
       path: this.store.get("path"),
       interval: 3000,
-      debounce: 1500,
+      debounce: 1500
     });
 
     this._file_watcher.on("change", () => {
@@ -717,7 +750,11 @@ export class JupyterActions extends JupyterActions0 {
       cb: (err, stats) => {
         dbg(`stats.ctime = ${stats != null ? stats.ctime : undefined}`);
         if (err) {
-          // this just means the file doesn't exist.
+          // This err just means the file doesn't exist.
+          // We set the 'last load' to now in this case, since
+          // the frontend clients need to know that we
+          // have already scanned the disk.
+          this.set_last_load();
           return typeof cb === "function" ? cb() : undefined;
         } else {
           // we do include "equality", because rsync operations round down to full seconds.
@@ -730,14 +767,14 @@ export class JupyterActions extends JupyterActions0 {
             return typeof cb === "function" ? cb() : undefined;
           }
         }
-      },
+      }
     });
   };
 
   set_last_load = () => {
     return this.syncdb.set({
       type: "file",
-      last_load: new Date().getTime(),
+      last_load: new Date().getTime()
     });
   };
 
@@ -800,7 +837,7 @@ Read the ipynb file from disk.
         this.set_to_ipynb(content, data_only);
         this.set_last_load();
         return typeof cb === "function" ? cb() : undefined;
-      },
+      }
     });
   };
 
@@ -850,7 +887,7 @@ Read the ipynb file from disk.
           this._last_save_ipynb_file = new Date();
         }
         return typeof cb === "function" ? cb(err) : undefined;
-      },
+      }
     });
   };
 
@@ -864,7 +901,7 @@ Read the ipynb file from disk.
         type: "cell",
         id: this._new_id(),
         pos: 0,
-        input: "",
+        input: ""
       });
       // We are obviously contributing all content to this notebook.
       return this.set_trust_notebook(true);
@@ -896,9 +933,9 @@ Read the ipynb file from disk.
         */
     const dbg = this.dbg("run_nbconvert");
     dbg(
-      `${misc.to_json(old_val != null ? old_val.toJS() : undefined)} --> ${misc.to_json(
-        new_val != null ? new_val.toJS() : undefined,
-      )}`,
+      `${misc.to_json(
+        old_val != null ? old_val.toJS() : undefined
+      )} --> ${misc.to_json(new_val != null ? new_val.toJS() : undefined)}`
     );
     // TODO - e.g. clear key:value store
     if (new_val == null) {
@@ -921,7 +958,7 @@ Read the ipynb file from disk.
         this.syncdb.set({
           type: "nbconvert",
           state: "done",
-          error: "args must be an array",
+          error: "args must be an array"
         });
         return;
       }
@@ -930,7 +967,7 @@ Read the ipynb file from disk.
         type: "nbconvert",
         state: "run",
         start: new Date().getTime(),
-        error: null,
+        error: null
       });
       this.ensure_backend_kernel_setup();
       this._run_nbconvert_lock = true;
@@ -944,9 +981,9 @@ Read the ipynb file from disk.
             dbg("now actually running nbconvert");
             return this._jupyter_kernel.nbconvert({
               args,
-              cb,
+              cb
             });
-          },
+          }
         ],
         err => {
           dbg("finished running; removing lock");
@@ -969,9 +1006,9 @@ Read the ipynb file from disk.
             type: "nbconvert",
             state: "done",
             error: err,
-            time: new Date().getTime(),
+            time: new Date().getTime()
           });
-        },
+        }
       );
     }
   };
@@ -999,7 +1036,10 @@ Read the ipynb file from disk.
       attachments.forEach((x, name) => {
         if ((x != null ? x.get("type") : undefined) === "load") {
           // need to load from disk
-          this.set_cell_attachment(cell.get("id"), name, { type: "loading", value: null });
+          this.set_cell_attachment(cell.get("id"), name, {
+            type: "loading",
+            value: null
+          });
           if (this._jupyter_kernel != null) {
             this._jupyter_kernel.load_attachment({
               path: x.get("value"),
@@ -1007,15 +1047,15 @@ Read the ipynb file from disk.
                 if (err) {
                   return this.set_cell_attachment(cell.get("id"), name, {
                     type: "error",
-                    value: err,
+                    value: err
                   });
                 } else {
                   return this.set_cell_attachment(cell.get("id"), name, {
                     type: "sha1",
-                    value: sha1,
+                    value: sha1
                   });
                 }
-              },
+              }
             });
           }
         }

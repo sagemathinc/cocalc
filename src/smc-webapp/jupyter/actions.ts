@@ -184,6 +184,14 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       // Also maintain read_only state.
       this.syncdb.on("metadata-change", this.sync_read_only);
       this.syncdb.on("connected", this.sync_read_only);
+
+      // Browser Client: Wait until the .ipynb file has actually been parsed into
+      // the (hidden, e.g. .a.ipynb.sage-jupyter2) syncdb file,
+      // then set the kernel, if necessary.
+      this.syncdb.wait({
+        until: s => !!s.get_one({ type: "file" }),
+        cb: () => this._syncdb_init_kernel()
+      });
     }
 
     this.syncdb.on("change", this._syncdb_change);
@@ -834,7 +842,6 @@ export class JupyterActions extends Actions<JupyterStoreState> {
 
   __syncdb_change = (changes: any) => {
     const do_init = this._is_project && this._state === "init";
-    //console.log 'changes', changes, changes?.toJS()
     //@dbg("_syncdb_change")(JSON.stringify(changes?.toJS()))
     let cell_list_needs_recompute = false;
     if (changes != null) {
@@ -915,28 +922,30 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       if (do_init) {
         this.initialize_manager();
       }
-      return this.manager_run_cell_process_queue();
+      if (this.store.get("kernel")) {
+        this.manager_run_cell_process_queue();
+      }
     } else {
       // client
       if (this._state === "init") {
         this._state = "ready";
       }
 
-      if (!this.store.get("kernel")) {
-        // kernel isn't set yet, so we set it.
-        let left: any;
-        const kernel =
-          (left = __guard__(this.redux.getStore("account"), x1 =>
-            x1.getIn(["editor_settings", "jupyter", "kernel"])
-          )) != null
-            ? left
-            : DEFAULT_KERNEL;
-        this.set_kernel(kernel);
-      }
-
       if (this.store.get("view_mode") === "raw") {
         return this.set_raw_ipynb();
       }
+    }
+  };
+
+  _syncdb_init_kernel = () => {
+    if (this.store.get("kernel") == null) {
+      let kernel: any;
+      const account = this.redux.getStore("account");
+      if (account != null) {
+        kernel = account.getIn(["editor_settings", "jupyter", "kernel"]);
+      }
+      kernel = kernel || DEFAULT_KERNEL;
+      this.set_kernel(kernel);
     }
   };
 
