@@ -938,14 +938,23 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   };
 
   _syncdb_init_kernel = () => {
+    const account = this.redux.getStore("account");
+    const default_kernel =
+      account != null &&
+      account.getIn(["editor_settings", "jupyter", "kernel"] as any); // TODO: getIn types
     if (this.store.get("kernel") == null) {
-      let kernel: any;
-      const account = this.redux.getStore("account");
-      if (account != null) {
-        kernel = account.getIn(["editor_settings", "jupyter", "kernel"]);
-      }
-      kernel = kernel || DEFAULT_KERNEL;
+      // Creating a new notebook with no kernel set
+      const kernel = default_kernel || DEFAULT_KERNEL;
       this.set_kernel(kernel);
+    } else {
+      // Opening an existing notebook
+      if (default_kernel == null) {
+        // But user has no default kernel, since they never before explicitly set one.
+        // So we set it.  This is so that a user's default
+        // kernel is that of the first ipynb they
+        // opened, which is very sensible in courses.
+        this.set_default_kernel(this.store.get("kernel"));
+      }
     }
   };
 
