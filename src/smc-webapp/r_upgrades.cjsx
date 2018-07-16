@@ -290,7 +290,7 @@ exports.ProjectUpgradesTable = ProjectUpgradesTable = rclass
                     <strong>Project</strong>
                 </Col>
                 <Col sm={8}>
-                    <strong>Upgrades you have applied to this project</strong>
+                    <strong>Upgrades you have applied to this project (click to edit)</strong>
                 </Col>
             </Row>
             {@render_upgraded_projects_rows(upgraded_projects)}
