@@ -89,6 +89,7 @@ const StudentProjectsStartStopPanel = rclass<StartStopPanelReactProps>(
     StartStopPanelReactProps & StartStopPanelReduxProps,
     StartStopPanelState
   > {
+    defaultProps: any;
     displayName: "CourseEditorConfiguration-StudentProjectsStartStopPanel";
 
     static reduxProps({ name }) {
@@ -105,10 +106,7 @@ const StudentProjectsStartStopPanel = rclass<StartStopPanelReactProps>(
         confirm_stop_all_projects: false,
         confirm_start_all_projects: false
       };
-    }
-
-    getDefaultProps() {
-      return { action_all_projects_state: "any" };
+      this.defaultProps = { action_all_projects_state: "any" };
     }
 
     get_actions(): CourseActions {

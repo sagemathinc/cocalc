@@ -198,13 +198,13 @@ interface StudentAssignmentInfoProps {
   info: {
     assignment_id: string;
     student_id: string;
-    peer_assignment: {error: string}
-    peer_collect: {error: string}
-    last_assignment: {error: string}
-    last_collect: {error: string};
+    peer_assignment: { error: string };
+    peer_collect: { error: string };
+    last_assignment: { error: string };
+    last_collect: { error: string };
     last_peer_assignment: number;
-    last_peer_collect: {error: string};
-    last_return_graded: {error: string};
+    last_peer_collect: { error: string };
+    last_return_graded: { error: string };
   };
 }
 
@@ -225,6 +225,7 @@ export class StudentAssignmentInfo extends Component<
   StudentAssignmentInfoState
 > {
   displayName: "CourseEditor-StudentAssignmentInfo";
+  defaultProps: any;
 
   constructor(props: StudentAssignmentInfoProps) {
     super(props);
@@ -239,6 +240,10 @@ export class StudentAssignmentInfo extends Component<
       recopy_open_tip: false,
       recopy_placement: false
     };
+    this.defaultProps = {
+      grade: "",
+      comments: ""
+    };
   }
 
   get_actions(): CourseActions {
@@ -250,13 +255,6 @@ export class StudentAssignmentInfo extends Component<
       edited_grade: nextProps.grade != null ? nextProps.grade : "",
       edited_comments: nextProps.comments != null ? nextProps.comments : ""
     });
-  }
-
-  getDefaultProps() {
-    return {
-      grade: "",
-      comments: ""
-    };
   }
 
   open(type, assignment_id, student_id) {
@@ -477,12 +475,7 @@ export class StudentAssignmentInfo extends Component<
     const placement = name === "Return" ? "left" : "right";
     return (
       <ButtonToolbar key="open_recopy">
-        {this.render_open_recopy_confirm(
-          name,
-          copy,
-          copy_tip,
-          placement
-        )}
+        {this.render_open_recopy_confirm(name, copy, copy_tip, placement)}
         <Button key="open" onClick={open}>
           <Tip title="Open assignment" placement={placement} tip={open_tip}>
             <Icon name="folder-open-o" /> Open
@@ -618,18 +611,20 @@ export class StudentAssignmentInfo extends Component<
   }
 
   render_peer_collect() {
-    return <Col md={2} key='peer_collect'>
-        {
-          this.render_last({
-            name        : 'Peer Collect',
-            data        : this.props.info.last_peer_collect,
-            type        : 'peer-collected',
-            enable_copy : (this.props.info.last_peer_assignment != null),
-            copy_tip    : "Copy the peer-graded assignments from various student projects back to your project so you can assign their official grade.",
-            open_tip    : "Open your copy of your student's peer grading work in your own project, so that you can grade their work."
-          })
-        }
-    </Col>;
+    return (
+      <Col md={2} key="peer_collect">
+        {this.render_last({
+          name: "Peer Collect",
+          data: this.props.info.last_peer_collect,
+          type: "peer-collected",
+          enable_copy: this.props.info.last_peer_assignment != null,
+          copy_tip:
+            "Copy the peer-graded assignments from various student projects back to your project so you can assign their official grade.",
+          open_tip:
+            "Open your copy of your student's peer grading work in your own project, so that you can grade their work."
+        })}
+      </Col>
+    );
   }
 
   render() {

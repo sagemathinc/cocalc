@@ -69,16 +69,14 @@ class MultipleAddSearch extends Component<
   MultipleAddSearchProps,
   MultipleAddSearchState
 > {
+  public defaultProps: any;
   constructor(props) {
     super(props);
     this.state = {
       selected_items: [], // currently selected options
       show_selector: false
     };
-  }
-
-  getDefaultProps() {
-    return { item_name: "result" };
+    this.defaultProps = { item_name: "result" };
   }
 
   shouldComponentUpdate(newProps, newState) {
@@ -305,6 +303,8 @@ export class FoldersToolbar extends Component<
   FoldersToolbarProps,
   FoldersToolbarState
 > {
+  defaultProps: any;
+
   constructor(props) {
     super(props);
     this.state = {
@@ -314,9 +314,7 @@ export class FoldersToolbar extends Component<
       last_add_search: "",
       err: undefined
     };
-  }
-  getDefaultProps() {
-    return {
+    this.defaultProps = {
       item_name: "item",
       plural_item_name: "items"
     };
