@@ -211,7 +211,7 @@ export const CourseEditor = rclass<CourseReactProps>(
       ]);
     }
 
-    actions(): CourseActions {
+    get_actions(): CourseActions {
       return redux.getActions(this.props.name);
     }
 
@@ -222,7 +222,7 @@ export const CourseEditor = rclass<CourseReactProps>(
             this.props.activity != null ? this.props.activity.toJS() : undefined
           )}
           trunc={80}
-          on_clear={() => this.actions().clear_activity()}
+          on_clear={() => this.get_actions().clear_activity()}
         />
       );
     }
@@ -231,7 +231,7 @@ export const CourseEditor = rclass<CourseReactProps>(
       return (
         <ErrorDisplay
           error={this.props.error}
-          onClose={() => this.actions().set_error("")}
+          onClose={() => this.get_actions().set_error("")}
         />
       );
     }
@@ -254,12 +254,12 @@ export const CourseEditor = rclass<CourseReactProps>(
         <SaveButton
           saving={this.props.saving}
           unsaved={true}
-          on_click={() => this.actions().save()}
+          on_click={() => this.get_actions().save()}
         />
       );
     }
 
-    show_files() {
+    show_files = () => {
       return this.props.redux != null
         ? this.props.redux
             .getProjectActions(this.props.project_id)
@@ -279,7 +279,7 @@ export const CourseEditor = rclass<CourseReactProps>(
       );
     }
 
-    show_timetravel() {
+    show_timetravel = () => {
       return this.props.redux != null
         ? this.props.redux.getProjectActions(this.props.project_id).open_file({
             path: misc.history_path(this.props.path),
@@ -289,8 +289,8 @@ export const CourseEditor = rclass<CourseReactProps>(
         : undefined;
     }
 
-    save_to_disk() {
-      return this.props.redux != null ? this.actions().save() : undefined;
+    save_to_disk = () => {
+      return this.props.redux != null ? this.get_actions().save() : undefined;
     }
 
     render_save_timetravel() {
@@ -448,7 +448,7 @@ export const CourseEditor = rclass<CourseReactProps>(
           id={"course-tabs"}
           animation={false}
           activeKey={this.props.tab}
-          onSelect={key => this.actions().set_tab(key)}
+          onSelect={key => this.get_actions().set_tab(key)}
         >
           <Tab
             eventKey={"students"}

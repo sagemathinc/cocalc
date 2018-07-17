@@ -46,13 +46,13 @@ export class Progress extends Component<ProgressProps> {
   render_status() {
     if (!this.props.skipped) {
       return (
-        <React.Fragment>
+        <>
           ({this.props.done} / {this.props.not_done + this.props.done}{" "}
           {this.props.step})
-        </React.Fragment>
+        </>
       );
     } else {
-      return <React.Fragment>Skipped</React.Fragment>;
+      return <>Skipped</>;
     }
   }
 

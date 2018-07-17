@@ -116,7 +116,7 @@ export class StudentProjectUpgrades extends Component<
     return goal;
   }
 
-  save_upgrade_quotas() {
+  save_upgrade_quotas = () => {
     this.setState({ upgrade_quotas: false });
     const a = this.get_actions();
     const upgrade_goal = this.upgrade_goal();
@@ -434,7 +434,7 @@ export class StudentProjectUpgrades extends Component<
     );
   }
 
-  save_admin_upgrade(e) {
+  save_admin_upgrade = (e) => {
     e.preventDefault();
     const s = ReactDOM.findDOMNode(this.refs.admin_input).value;
     const quotas = JSON.parse(s);
@@ -486,7 +486,7 @@ export class StudentProjectUpgrades extends Component<
   }
 
   // call this function to switch state from not viewing the upgrader to viewing the upgrader.
-  adjust_quotas() {
+  adjust_quotas = () => {
     let left;
     const upgrades =
       (left =
@@ -543,7 +543,7 @@ export class StudentProjectUpgrades extends Component<
     );
   }
 
-  handle_institute_pay_checkbox(e) {
+  handle_institute_pay_checkbox = (e) => {
     return this.get_actions().set_pay_choice("institute", e.target.checked);
   }
 

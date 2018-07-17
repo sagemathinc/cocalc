@@ -939,7 +939,7 @@ class Student extends Component<StudentProps, StudentState> {
     }
   }
 
-  on_key_down(e) {
+  on_key_down = (e) => {
     switch (e.keyCode) {
       case 13:
         return this.save_student_changes();
@@ -948,7 +948,7 @@ class Student extends Component<StudentProps, StudentState> {
     }
   }
 
-  toggle_show_more(e) {
+  toggle_show_more = (e) => {
     e.preventDefault();
     if (this.state.editing_student) {
       this.cancel_student_edit();

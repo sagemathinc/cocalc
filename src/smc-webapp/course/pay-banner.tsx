@@ -51,7 +51,7 @@ export class PayBanner extends Component<PayBannerProps> {
     return false;
   }
 
-  show_configuration() {
+  show_configuration = () => {
     return __guard__(this.get_actions(), x => x.set_tab("configuration"));
   }
 

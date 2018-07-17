@@ -455,7 +455,7 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
     );
   }
 
-  date_change(date) {
+  date_change = (date) => {
     if (date == null) {
       date = this._due_date();
     }
@@ -1188,7 +1188,7 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
     );
   }
 
-  toggle_skip_grading() {
+  toggle_skip_grading = () => {
     return this.get_actions().set_skip(
       this.props.assignment,
       "grading",
@@ -1278,12 +1278,12 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
     ];
   }
 
-  delete_assignment() {
+  delete_assignment = () => {
     this.get_actions().delete_assignment(this.props.assignment);
     return this.setState({ confirm_delete: false });
   }
 
-  undelete_assignment() {
+  undelete_assignment = () => {
     return this.get_actions().undelete_assignment(this.props.assignment);
   }
 
@@ -1341,7 +1341,7 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
     }
   }
 
-  set_peer_grade(config) {
+  set_peer_grade = (config) => {
     return this.get_actions().set_peer_grade(this.props.assignment, config);
   }
 
@@ -1371,7 +1371,7 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
     }
   }
 
-  peer_due_change(date) {
+  peer_due_change = (date) => {
     return this.set_peer_grade({
       due_date: __guard__(this._peer_due(date), x => x.toISOString())
     });

@@ -346,16 +346,9 @@ class Handout extends Component<HandoutProps, HandoutState> {
     };
   }
 
-  open_handout_path(e) {
+  open_handout_path = (e) => {
     e.preventDefault();
     return this.props.open_directory(this.props.handout.get("path"));
-  }
-
-  copy_handout_to_all(new_only) {
-    return this.props.actions.copy_handout_to_all_students(
-      this.props.handout,
-      new_only
-    );
   }
 
   render_more_header() {
@@ -664,12 +657,12 @@ Select "Replace student files!" in case you do not want to create any backups an
     );
   }
 
-  delete_handout() {
+  delete_handout = () => {
     this.props.actions.delete_handout(this.props.handout);
     this.setState({ confirm_delete: false });
   }
 
-  undelete_handout() {
+  undelete_handout = () => {
     this.props.actions.undelete_handout(this.props.handout);
   }
 

@@ -459,7 +459,7 @@ export class ConfigurationPanel extends Component<
     });
   }
 
-  save_grades_to_csv() {
+  save_grades_to_csv = () => {
     let assignment;
     const store = this.get_store();
     const assignments = store.get_sorted_assignments();
@@ -526,7 +526,7 @@ export class ConfigurationPanel extends Component<
     return this.write_file(this.path("csv"), content);
   }
 
-  save_grades_to_py() {
+  save_grades_to_py = () => {
     /*
         example:
         course = 'title'
@@ -689,13 +689,13 @@ export class ConfigurationPanel extends Component<
     }
   }
 
-  click_student_pay_button() {
+  handle_student_pay_button = () => {
     return this.setState({ show_students_pay_dialog: true });
   }
 
   render_students_pay_button() {
     return (
-      <Button bsStyle="primary" onClick={this.click_student_pay_button}>
+      <Button bsStyle="primary" onClick={this.handle_student_pay_button}>
         <Icon name="arrow-circle-up" />{" "}
         {this.state.students_pay
           ? "Adjust settings"
@@ -721,7 +721,7 @@ export class ConfigurationPanel extends Component<
     );
   }
 
-  handle_student_pay_choice(e) {
+  handle_student_pay_choice = (e) => {
     return this.get_actions().set_pay_choice("student", e.target.checked);
   }
 
@@ -782,7 +782,7 @@ export class ConfigurationPanel extends Component<
     );
   }
 
-  handle_students_pay_checkbox(e) {
+  handle_students_pay_checkbox = (e) => {
     if (e.target.checked) {
       return this.get_actions().set_course_info(this.get_student_pay_when());
     } else {

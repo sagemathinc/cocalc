@@ -319,7 +319,7 @@ export class FoldersToolbar extends Component<
     plural_item_name: "items"
   };
 
-  do_add_search(search) {
+  do_add_search = (search) => {
     search = search.trim();
 
     if (this.state.add_is_searching && search === this.state.last_add_search) {
@@ -383,7 +383,7 @@ export class FoldersToolbar extends Component<
     });
   }
 
-  submit_selected(path_list) {
+  submit_selected = (path_list) => {
     if (path_list != null) {
       // If nothing is selected and the user clicks the button to "Add handout (etc)" then
       // path_list is undefined, hence don't do this.
@@ -394,7 +394,7 @@ export class FoldersToolbar extends Component<
     return this.clear_add_search();
   }
 
-  clear_add_search() {
+  clear_add_search = () => {
     return this.setState({
       add_search_results: immutable.List([]),
       none_found: false
