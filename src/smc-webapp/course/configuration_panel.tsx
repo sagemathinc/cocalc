@@ -434,14 +434,14 @@ export class ConfigurationPanel extends Component<
     return `export_${p.slice(0, i)}.${ext}`;
   }
 
-  open_file(path) {
+  open_file = (path) => {
     return redux.getActions({ project_id: this.props.project_id }).open_file({
       path,
       foreground: true
     });
   }
 
-  write_file(path, content) {
+  write_file = (path, content) => {
     const actions = this.get_actions();
     const id = actions.set_activity({ desc: `Writing ${path}` });
     return webapp_client.write_text_file_to_project({
