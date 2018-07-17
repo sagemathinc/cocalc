@@ -225,7 +225,6 @@ export class StudentAssignmentInfo extends Component<
   StudentAssignmentInfoState
 > {
   displayName: "CourseEditor-StudentAssignmentInfo";
-  defaultProps: any;
 
   constructor(props: StudentAssignmentInfoProps) {
     super(props);
@@ -240,11 +239,12 @@ export class StudentAssignmentInfo extends Component<
       recopy_open_tip: false,
       recopy_placement: false
     };
-    this.defaultProps = {
-      grade: "",
-      comments: ""
-    };
   }
+
+  static defaultProps = {
+    grade: "",
+    comments: ""
+  };
 
   get_actions(): CourseActions {
     return redux.getActions(this.props.name);
