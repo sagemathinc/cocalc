@@ -167,7 +167,7 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
       );
     }
 
-    do_add_search(e) {
+    do_add_search = (e) => {
       // Search for people to add to the course
       if (e != null) {
         e.preventDefault();
@@ -293,14 +293,14 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
       );
     }
 
-    add_selector_clicked() {
+    add_selector_clicked = () => {
       return this.setState({
         selected_option_nodes: ReactDOM.findDOMNode(this.refs.add_select)
           .selectedOptions
       });
     }
 
-    add_selected_students(options) {
+    add_selected_students = (options) => {
       const emails = {};
       for (let x of this.state.add_select) {
         if (x.account_id != null) {
@@ -344,7 +344,7 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
       });
     }
 
-    add_all_students() {
+    add_all_students = () => {
       const students: any[] = [];
       for (let entry of this.state.add_select) {
         const { account_id } = entry;

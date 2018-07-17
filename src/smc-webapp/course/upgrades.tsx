@@ -193,7 +193,7 @@ export class StudentProjectUpgrades extends Component<
               const u = this.state.upgrades;
               u[quota] = ReactDOM.findDOMNode(this.refs[ref]).value;
               this.setState({ upgrades: u });
-              return this.update_plan();
+              this.update_plan();
             }}
           />
           {label}
@@ -226,7 +226,7 @@ export class StudentProjectUpgrades extends Component<
               const u = this.state.upgrades;
               u[quota] = e.target.checked ? 1 : 0;
               this.setState({ upgrades: u });
-              return this.update_plan();
+              this.update_plan();
             }}
           />
           {label}
@@ -501,7 +501,7 @@ export class StudentProjectUpgrades extends Component<
       upgrades[quota] =
         val * schema.PROJECT_UPGRADES.params[quota].display_factor;
     }
-    return this.setState({
+    this.setState({
       upgrade_quotas: true,
       upgrades,
       upgrade_plan
@@ -510,7 +510,7 @@ export class StudentProjectUpgrades extends Component<
 
   update_plan() {
     const plan = this.get_store().get_upgrade_plan(this.upgrade_goal());
-    return this.setState({ upgrade_plan: plan });
+    this.setState({ upgrade_plan: plan });
   }
 
   render_upgrade_plan() {

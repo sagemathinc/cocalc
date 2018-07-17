@@ -632,7 +632,7 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
     );
   }
 
-  open_assignment_path() {
+  open_assignment_path = () => {
     return redux
       .getProjectActions(this.props.project_id)
       .open_directory(this.props.assignment.get("path"));
@@ -1181,7 +1181,7 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
     ];
   }
 
-  return_assignment() {
+  return_assignment = () => {
     // Assign assignment to all (non-deleted) students.
     return this.get_actions().return_assignment_to_all_students(
       this.props.assignment
