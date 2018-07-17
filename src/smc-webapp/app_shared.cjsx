@@ -556,7 +556,7 @@ exports.GlobalInformationMessage = rclass
         redux.getTable('account').set(other_settings:{show_global_info2:webapp_client.server_time()})
 
     render: ->
-        more_url = 'https://github.com/sagemathinc/cocalc/wiki/Maintenance2018'
+        more_url = 'https://github.com/sagemathinc/cocalc/wiki/Maintenance-2018'
         local_time = show_announce_end.toLocaleString()
         bgcol = COLORS.YELL_L
         style =
