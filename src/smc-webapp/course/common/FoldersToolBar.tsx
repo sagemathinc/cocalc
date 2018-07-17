@@ -25,7 +25,7 @@
 //
 //##############################################################################
 
-import underscore from "underscore";
+import * as underscore from "underscore";
 import * as immutable from "immutable";
 
 // CoCalc libraries
