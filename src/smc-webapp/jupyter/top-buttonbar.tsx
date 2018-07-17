@@ -45,9 +45,9 @@ export class TopButtonbar0 extends Component<TopButtonbarProps> {
     };
   }
 
-  focus() {
-    return this.props.actions.focus(true);
-  }
+  focus = () => {
+    this.props.actions.focus(true);
+  };
 
   shouldComponentUpdate(nextProps) {
     return (
@@ -60,7 +60,8 @@ export class TopButtonbar0 extends Component<TopButtonbarProps> {
           : undefined) ||
       nextProps.has_unsaved_changes !== this.props.has_unsaved_changes ||
       nextProps.read_only !== this.props.read_only ||
-      nextProps.has_uncommitted_changes !== this.props.has_uncommitted_changes ||
+      nextProps.has_uncommitted_changes !==
+        this.props.has_uncommitted_changes ||
       nextProps.kernel_state !== this.props.kernel_state ||
       nextProps.kernel_usage !== this.props.kernel_usage
     );
@@ -107,7 +108,9 @@ export class TopButtonbar0 extends Component<TopButtonbarProps> {
       disabled = true;
     }
     const obj =
-      this.props.actions._commands != null ? this.props.actions._commands[name] : undefined;
+      this.props.actions._commands != null
+        ? this.props.actions._commands[name]
+        : undefined;
     if (obj == null) {
       return;
     }
@@ -141,7 +144,9 @@ export class TopButtonbar0 extends Component<TopButtonbarProps> {
 
   render_button_group(names: any, hide_xs?: any) {
     return (
-      <ButtonGroup className={hide_xs ? "hidden-xs" : ""}>{this.render_buttons(names)}</ButtonGroup>
+      <ButtonGroup className={hide_xs ? "hidden-xs" : ""}>
+        {this.render_buttons(names)}
+      </ButtonGroup>
     );
   }
 
@@ -150,7 +155,10 @@ export class TopButtonbar0 extends Component<TopButtonbarProps> {
   }
 
   render_group_edit() {
-    return this.render_button_group(["cut cell", "copy cell", "paste cell and replace"], true);
+    return this.render_button_group(
+      ["cut cell", "copy cell", "paste cell and replace"],
+      true
+    );
   }
 
   render_group_move() {
@@ -159,7 +167,10 @@ export class TopButtonbar0 extends Component<TopButtonbarProps> {
 
   render_group_run() {
     let stop_style: React.CSSProperties | undefined;
-    if (((this.props.kernel_usage && this.props.kernel_usage.get("cpu")) || 0) > 50) {
+    if (
+      ((this.props.kernel_usage && this.props.kernel_usage.get("cpu")) || 0) >
+      50
+    ) {
       stop_style = { backgroundColor: "rgb(92,184,92)", color: "white" };
     }
 
@@ -171,10 +182,10 @@ export class TopButtonbar0 extends Component<TopButtonbarProps> {
     ]);
   }
 
-  cell_select_type(event: any) {
+  cell_select_type = (event: any) => {
     this.props.actions.set_selected_cell_type(event.target.value);
     return this.focus();
-  }
+  };
 
   render_select_cell_type() {
     let cell_type: any;
@@ -182,7 +193,8 @@ export class TopButtonbar0 extends Component<TopButtonbarProps> {
       cell_type = "multi";
     } else {
       cell_type =
-        (this.props.cells != null && this.props.cells.getIn([this.props.cur_id, "cell_type"])) ||
+        (this.props.cells != null &&
+          this.props.cells.getIn([this.props.cur_id, "cell_type"])) ||
         "code";
     }
     return (
@@ -248,7 +260,11 @@ export class TopButtonbar0 extends Component<TopButtonbarProps> {
   }
 
   render_uncommitted() {
-    return <UncommittedChanges has_uncommitted_changes={this.props.has_uncommitted_changes} />;
+    return (
+      <UncommittedChanges
+        has_uncommitted_changes={this.props.has_uncommitted_changes}
+      />
+    );
   }
 
   render_switch_button() {
@@ -261,7 +277,8 @@ export class TopButtonbar0 extends Component<TopButtonbarProps> {
         title="Switch to classical notebook"
         onClick={() => this.props.actions.switch_to_classical_notebook()}
       >
-        <Icon name="exchange" /> <span className="hidden-sm">Classical notebook...</span>
+        <Icon name="exchange" />{" "}
+        <span className="hidden-sm">Classical notebook...</span>
       </Button>
     );
   }
@@ -288,7 +305,9 @@ export class TopButtonbar0 extends Component<TopButtonbarProps> {
           disabled={!this.props.has_unsaved_changes || this.props.read_only}
         >
           <Icon name="save" />{" "}
-          <span className="hidden-sm">{this.props.read_only ? "Readonly" : "Save"}</span>
+          <span className="hidden-sm">
+            {this.props.read_only ? "Readonly" : "Save"}
+          </span>
           {this.render_uncommitted()}
         </Button>
         <Button

@@ -6,13 +6,7 @@ React component that represents cursors of other users.
 // (NOTE: might take a little longer since we use a long interval.)
 const CURSOR_TIME_S = 15;
 
-import {
-  React,
-  Component,
-  rclass,
-  rtypes,
-  ReactDOM
-} from "../app-framework"; // TODO: this will move
+import { React, Component, rclass, rtypes, ReactDOM } from "../app-framework"; // TODO: this will move
 import { Map as ImmutableMap } from "immutable";
 const misc = require("smc-util/misc");
 
@@ -30,6 +24,10 @@ interface CursorState {
 export class Cursor extends Component<CursorProps, CursorState> {
   private _mounted: any; // TODO: dont do this
   private _timer: any;
+  constructor(props: CursorProps, context: any) {
+    super(props, context);
+    this.state = {};
+  }
   shouldComponentUpdate(nextProps, nextState) {
     if (this.props.time !== nextProps.time) {
       this.show_name(2000);
@@ -348,7 +346,7 @@ class Cursors0 extends Component<CursorsProps, CursorsState> {
   componentDidMount() {
     this._interval = setInterval(
       () => this.setState({ n: this.state.n + 1 }),
-      (CURSOR_TIME_S / 2) * 1000
+      CURSOR_TIME_S / 2 * 1000
     );
   }
 

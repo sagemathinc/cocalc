@@ -940,8 +940,13 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   _syncdb_init_kernel = () => {
     const account = this.redux.getStore("account");
     const default_kernel =
-      account != null &&
-      account.getIn(["editor_settings", "jupyter", "kernel"] as any); // TODO: getIn types
+      account != null
+        ? // TODO: getIn types
+          account.getIn(
+            ["editor_settings", "jupyter", "kernel"] as any,
+            DEFAULT_KERNEL
+          )
+        : undefined;
     if (this.store.get("kernel") == null) {
       // Creating a new notebook with no kernel set
       const kernel = default_kernel || DEFAULT_KERNEL;
