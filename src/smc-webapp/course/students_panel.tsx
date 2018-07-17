@@ -993,13 +993,13 @@ class Student extends Component<StudentProps, StudentState> {
     );
   }
 
-  open_project() {
+  open_project = () => {
     return redux.getActions("projects").open_project({
       project_id: this.props.student.get("project_id")
     });
   }
 
-  create_project() {
+  create_project = () => {
     return this.get_actions().create_student_project(this.props.student_id);
   }
 
@@ -1158,11 +1158,11 @@ class Student extends Component<StudentProps, StudentState> {
     }
   }
 
-  cancel_student_edit() {
+  cancel_student_edit = () => {
     return this.setState(this.get_initial_state());
   }
 
-  save_student_changes() {
+  save_student_changes = () => {
     this.get_actions().set_internal_student_info(this.props.student, {
       first_name: this.state.edited_first_name,
       last_name: this.state.edited_last_name,
@@ -1172,16 +1172,16 @@ class Student extends Component<StudentProps, StudentState> {
     return this.setState({ editing_student: false });
   }
 
-  show_edit_name_dialogue() {
+  show_edit_name_dialogue = () => {
     return this.setState({ editing_student: true });
   }
 
-  delete_student() {
+  delete_student = () => {
     this.get_actions().delete_student(this.props.student);
     return this.setState({ confirm_delete: false });
   }
 
-  undelete_student() {
+  undelete_student = () => {
     return this.get_actions().undelete_student(this.props.student);
   }
 

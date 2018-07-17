@@ -97,10 +97,11 @@ class MultipleAddSearch extends Component<
     });
   }
 
-  clear_and_focus_search_input() {
+  clear_and_focus_search_input = () => {
     this.props.clear_search();
     return this.setState({ selected_items: [] });
   }
+
   search_button() {
     if (this.props.is_searching) {
       // Currently doing a search, so show a spinner
@@ -126,7 +127,7 @@ class MultipleAddSearch extends Component<
     }
   }
 
-  add_button_clicked(e) {
+  add_button_clicked = (e) => {
     e.preventDefault();
     if (this.state.selected_items.length === 0) {
       const first_entry = ReactDOM.findDOMNode(this.refs.selector).firstChild
@@ -138,7 +139,7 @@ class MultipleAddSearch extends Component<
     return this.clear_and_focus_search_input();
   }
 
-  change_selection(e) {
+  change_selection = (e) => {
     const v: string[] = [];
     for (let option of e.target.selectedOptions) {
       v.push(option.label);
