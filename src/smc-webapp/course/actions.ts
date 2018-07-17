@@ -30,7 +30,7 @@
 //##############################################################################
 
 // 3rd party libs
-import async from "async";
+import * as async from "async";
 const markdownlib = require("../markdown");
 
 // CoCalc libraries
