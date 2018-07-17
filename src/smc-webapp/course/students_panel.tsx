@@ -865,6 +865,11 @@ interface StudentState {
 }
 
 class Student extends Component<StudentProps, StudentState> {
+  constructor(props) {
+    super(props);
+    this.state = this.get_initial_state()
+  }
+
   displayName: "CourseEditorStudent";
 
   get_actions(): CourseActions {
@@ -873,6 +878,17 @@ class Student extends Component<StudentProps, StudentState> {
 
   get_store(): CourseStore {
     return redux.getStore(this.props.name) as any;
+  }
+
+  get_initial_state() {
+    return {
+      confirm_delete: false,
+      editing_student: false,
+      edited_first_name: this.props.student_name.first || "",
+      edited_last_name: this.props.student_name.last || "",
+      edited_email_address: this.props.student.get("email_address") || "",
+      more: false
+    };
   }
 
   shouldComponentUpdate(nextProps, nextState) {
@@ -921,24 +937,6 @@ class Student extends Component<StudentProps, StudentState> {
         edited_email_address: next.student.get("email_address")
       });
     }
-  }
-
-  getInitialState() {
-    let left;
-    return {
-      confirm_delete: false,
-      editing_student: false,
-      edited_first_name:
-        this.props.student_name.first != null
-          ? this.props.student_name.first
-          : "",
-      edited_last_name:
-        this.props.student_name.last != null
-          ? this.props.student_name.last
-          : "",
-      edited_email_address:
-        (left = this.props.student.get("email_address")) != null ? left : ""
-    };
   }
 
   on_key_down(e) {
@@ -1161,7 +1159,7 @@ class Student extends Component<StudentProps, StudentState> {
   }
 
   cancel_student_edit() {
-    return this.setState(this.getInitialState());
+    return this.setState(this.get_initial_state());
   }
 
   save_student_changes() {
