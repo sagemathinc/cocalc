@@ -1235,15 +1235,17 @@ export class CourseActions extends Actions<
       student_id,
       "project_id"
     ]);
-    if (student_project_id != null) {
+    if (student_project_id != undefined) {
       const student_account_id = store.getIn([
         "students",
         student_id,
         "account_id"
       ]);
-      this.redux
-        .getActions("projects")
-        .remove_collaborator(student_project_id, student_account_id);
+      if (student_account_id != undefined) {
+        this.redux
+          .getActions("projects")
+          .remove_collaborator(student_project_id, student_account_id);
+      }
       this.redux.getActions("projects").delete_project(student_project_id);
       return this._set({
         create_project: null,
