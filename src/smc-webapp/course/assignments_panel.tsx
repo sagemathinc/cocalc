@@ -566,10 +566,10 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
       width = 3;
     }
     const buttons: ReactElement<any>[] = [];
-    const insert_skip_button = () => {
+    const insert_skip_button = (key: string) => {
       const b2 = this.render_skip_grading_button(status);
       return buttons.push(
-        <Col md={width} key="skip_grading">
+        <Col md={width} key={key}>
           {b2}
         </Col>
       );
@@ -579,7 +579,7 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
       const b = this[`render_${name}_button`](status);
       // squeeze in the skip grading button (don't add it to STEPS!)
       if (!peer && name === "return_graded") {
-        insert_skip_button();
+        insert_skip_button("skip_grading");
       }
       if (b != null) {
         buttons.push(
@@ -588,7 +588,7 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
           </Col>
         );
         if (peer && name === "peer_collect") {
-          insert_skip_button();
+          insert_skip_button("skip_peer_collect");
         }
       }
     }

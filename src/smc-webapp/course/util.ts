@@ -50,7 +50,7 @@ export function STEPS(peer: boolean) {
     return [
       Step.assignment,
       Step.collect,
-      Step.peer_collect,
+      Step.peer_assignment,
       Step.peer_collect,
       Step.return_graded
     ];
