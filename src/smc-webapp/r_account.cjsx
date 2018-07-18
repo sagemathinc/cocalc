@@ -1116,19 +1116,37 @@ OtherSettings = rclass
     on_change: (name, value) ->
         @props.redux.getTable('account').set(other_settings:{"#{name}":value})
 
+    toggle_global_banner: (val) ->
+        if val
+            # this must be "null", not "undefined" – otherwise the data isn't stored in the DB.
+            @on_change('show_global_info2', null)
+        else
+            @on_change('show_global_info2', webapp_client.server_time())
+
     render_first_steps: ->
         <Checkbox
             checked  = {!!@props.other_settings.get('first_steps')}
             ref      = 'first_steps'
-            onChange = {(e)=>@on_change('first_steps', e.target.checked)}>
+            onChange = {(e)=>@on_change('first_steps', e.target.checked)}
+        >
             Offer to setup the "First Steps" guide (if available).
+        </Checkbox>
+
+    render_global_banner: ->
+        <Checkbox
+            checked  = {!@props.other_settings.get('show_global_info2')}
+            ref      = 'global_banner'
+            onChange = {(e)=>@toggle_global_banner(e.target.checked)}
+        >
+            Show announcement banner (only shows up if there is a message)
         </Checkbox>
 
     render_time_ago_absolute: ->
         <Checkbox
             checked  = {!!@props.other_settings.get('time_ago_absolute')}
             ref      = 'time_ago_absolute'
-            onChange = {(e)=>@on_change('time_ago_absolute', e.target.checked)}>
+            onChange = {(e)=>@on_change('time_ago_absolute', e.target.checked)}
+        >
             Display timestamps as absolute points in time – otherwise they are relative to the current time.
         </Checkbox>
 
@@ -1136,7 +1154,8 @@ OtherSettings = rclass
         <Checkbox
             checked  = {!!@props.other_settings.get('katex')}
             ref      = 'katex'
-            onChange = {(e)=>@on_change('katex', e.target.checked)}>
+            onChange = {(e)=>@on_change('katex', e.target.checked)}
+        >
             KaTeX: render using <a href="https://khan.github.io/KaTeX/" target="_blank">KaTeX</a> when possible, instead of <a href="https://www.mathjax.org/" target="_blank">MathJax</a>
         </Checkbox>
 
@@ -1145,7 +1164,8 @@ OtherSettings = rclass
             <Checkbox
                 checked  = {!!@props.other_settings.get('confirm_close')}
                 ref      = 'confirm_close'
-                onChange = {(e)=>@on_change('confirm_close', e.target.checked)}>
+                onChange = {(e)=>@on_change('confirm_close', e.target.checked)}
+            >
                 Confirm: always ask for confirmation before closing the browser window
             </Checkbox>
 
@@ -1215,6 +1235,7 @@ OtherSettings = rclass
         <Panel header={<h2> <Icon name='gear' /> Other settings</h2>}>
             {@render_confirm()}
             {@render_first_steps()}
+            {@render_global_banner()}
             {@render_time_ago_absolute()}
             {### @render_katex() ###}
             {@render_mask_files()}
