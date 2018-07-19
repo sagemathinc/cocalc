@@ -42,7 +42,7 @@ export class Introspect extends Component<IntrospectProps> {
   close = () => this.props.actions.clear_introspect();
   render_content() {
     const found = this.props.introspect.get("found");
-    if (found == null) {
+    if (found != null && !found) { // TODO: is "found" a boolean? if so this should be `found === false`
       return <div>Nothing found</div>;
     }
     return <CellOutputMessage message={this.props.introspect} />;
