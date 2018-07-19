@@ -58,7 +58,13 @@ import { UserMap } from "../todo-types";
 import { ProjectActions } from "../project_store";
 import { Set } from "immutable";
 import { CourseActions } from "./actions";
-const { ErrorDisplay, Icon, Tip, MarkdownInput, Loading } = require("../r_misc");
+const {
+  ErrorDisplay,
+  Icon,
+  Tip,
+  MarkdownInput,
+  Loading
+} = require("../r_misc");
 
 // Could be merged with steps system of assignments.
 // Probably not a good idea mixing the two.
@@ -271,21 +277,28 @@ export let HandoutsPanel = rclass<HandoutsPanelReactProps>(
 
       return (
         <Panel header={header}>
-          {shown_handouts.map((handout, i) => (
-            this.props.store_object ? <Handout
-              backgroundColor={i % 2 === 0 ? "#eee" : undefined}
-              key={handout.handout_id}
-              handout={this.get_handout(handout.handout_id)}
-              project_id={this.props.project_id}
-              students={this.props.students}
-              user_map={this.props.user_map}
-              actions={this.props.actions}
-              store_object={this.props.store_object}
-              open_directory={this.props.project_actions.open_directory}
-              is_expanded={this.props.expanded_handouts.has(handout.handout_id)}
-              name={this.props.name}
-            /> : <Loading />
-          ))}
+          {shown_handouts.map(
+            (handout, i) =>
+              this.props.store_object ? (
+                <Handout
+                  backgroundColor={i % 2 === 0 ? "#eee" : undefined}
+                  key={handout.handout_id}
+                  handout={this.get_handout(handout.handout_id)}
+                  project_id={this.props.project_id}
+                  students={this.props.students}
+                  user_map={this.props.user_map}
+                  actions={this.props.actions}
+                  store_object={this.props.store_object}
+                  open_directory={this.props.project_actions.open_directory}
+                  is_expanded={this.props.expanded_handouts.has(
+                    handout.handout_id
+                  )}
+                  name={this.props.name}
+                />
+              ) : (
+                <Loading />
+              )
+          )}
           {num_deleted > 0
             ? this.render_show_deleted_button(
                 num_deleted,
@@ -346,10 +359,10 @@ class Handout extends Component<HandoutProps, HandoutState> {
     };
   }
 
-  open_handout_path = (e) => {
+  open_handout_path = e => {
     e.preventDefault();
     return this.props.open_directory(this.props.handout.get("path"));
-  }
+  };
 
   render_more_header() {
     return (
@@ -660,11 +673,11 @@ Select "Replace student files!" in case you do not want to create any backups an
   delete_handout = () => {
     this.props.actions.delete_handout(this.props.handout);
     this.setState({ confirm_delete: false });
-  }
+  };
 
   undelete_handout = () => {
     this.props.actions.undelete_handout(this.props.handout);
-  }
+  };
 
   render_confirm_delete() {
     return (
@@ -967,8 +980,9 @@ interface StudentHandoutInfoProps {
 class StudentHandoutInfo extends Component<StudentHandoutInfoProps> {
   displayName: "CourseEditor-StudentHandoutInfo";
 
-  getInitialState() {
-    return {};
+  constructor(props) {
+    super(props);
+    this.state = {};
   }
 
   open(handout_id, student_id) {

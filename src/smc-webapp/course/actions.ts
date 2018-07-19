@@ -55,9 +55,7 @@ const primary_key = {
 
 // Requires a syncdb to be set later
 // Manages local and sync changes
-export class CourseActions extends Actions<
-  CourseState
-> {
+export class CourseActions extends Actions<CourseState> {
   public syncdb: any;
   private _last_collaborator_state: any;
   private _activity_id: number;
@@ -214,10 +212,10 @@ export class CourseActions extends Actions<
       throw Error("@redux must be defined");
     }
   }
-  
+
   get_store = (): CourseStore | undefined => {
     return this.redux.getStore<CourseState, CourseStore>(this.name);
-  }
+  };
 
   _loaded() {
     if (this.syncdb == null) {
@@ -384,7 +382,7 @@ export class CourseActions extends Actions<
     const projects_store = this.redux.getStore("projects");
     let institute_pay = true;
     let num = 0;
-    store.get("students").forEach((student) => {
+    store.get("students").forEach(student => {
       if (student.get("deleted")) {
         return;
       }
@@ -497,7 +495,7 @@ export class CourseActions extends Actions<
   shared_project_settings(title?) {
     const store = this.get_store();
     if (store == null) {
-      return {title: undefined, description: undefined};
+      return { title: undefined, description: undefined };
     }
     const x = {
       title: `Shared Project -- ${
@@ -616,7 +614,7 @@ export class CourseActions extends Actions<
     // Ensure every student is on the shared project
     for (let account_id in student_account_ids) {
       if (!shared_project_users.get(account_id)) {
-        actions.invite_collaborator(shared_project_id, account_id)
+        actions.invite_collaborator(shared_project_id, account_id);
       }
     }
   }
@@ -671,7 +669,15 @@ export class CourseActions extends Actions<
   // Takes an item_name and the id of the time
   // item_name should be one of
   // ['student', 'assignment', 'peer_config', handout', 'skip_grading']
-  toggle_item_expansion(item_name: "student" | "assignment" | "peer_config" | "handout" | "skip_grading", item_id) {
+  toggle_item_expansion(
+    item_name:
+      | "student"
+      | "assignment"
+      | "peer_config"
+      | "handout"
+      | "skip_grading",
+    item_id
+  ) {
     let adjusted;
     const store = this.get_store();
     if (store == null) {
@@ -722,7 +728,8 @@ export class CourseActions extends Actions<
               return;
             }
             return store.wait({
-              until: (store: CourseStore) => store.get_student(student_id).get("project_id"),
+              until: (store: CourseStore) =>
+                store.get_student(student_id).get("project_id"),
               timeout: 60,
               cb
             });
@@ -1063,7 +1070,9 @@ export class CourseActions extends Actions<
     if (store == null) {
       return;
     }
-    const title = `${store.get_student_name(student_id)} - ${store.get("settings").get("title")}`;
+    const title = `${store.get_student_name(student_id)} - ${store
+      .get("settings")
+      .get("title")}`;
     return this.redux
       .getActions("projects")
       .set_project_title(student_project_id, title);
@@ -1147,7 +1156,7 @@ export class CourseActions extends Actions<
 
   set_all_student_project_descriptions(description) {
     __guard__(this.get_store(), x =>
-      x.get_students().map((student) => {
+      x.get_students().map(student => {
         const student_project_id = student.get("project_id");
         if (student_project_id != null) {
           return this.redux
@@ -1171,7 +1180,7 @@ export class CourseActions extends Actions<
         table: "settings"
       });
     }
-    return store.get_students().map((student) => {
+    return store.get_students().map(student => {
       const student_project_id = student.get("project_id");
       // account_id: might not be known when student first added, or if student
       // hasn't joined smc yet so there is no id.
@@ -1394,13 +1403,17 @@ export class CourseActions extends Actions<
     if (ids == undefined) {
       return;
     }
-    return async.mapSeries(ids), f, err => {
-      if (err) {
-        return console.warn(`FAIL -- ${err}`);
-      } else {
-        return console.log("SUCCESS");
+    return (
+      async.mapSeries(ids),
+      f,
+      err => {
+        if (err) {
+          return console.warn(`FAIL -- ${err}`);
+        } else {
+          return console.log("SUCCESS");
+        }
       }
-    };
+    );
   }
 
   set_student_note(student, note) {
@@ -1489,12 +1502,11 @@ export class CourseActions extends Actions<
     student = store.get_student(student);
     const obj = {
       table: "assignments",
-      assignment_id: assignment.get("assignment_id"),
-      grades: undefined
+      assignment_id: assignment.get("assignment_id")
     };
     const grades = (left = this._get_one(obj).grades) != null ? left : {};
     grades[student.get("student_id")] = grade;
-    obj.grades = grades;
+    (obj as any).grades = grades;
     this._set(obj);
   }
 
@@ -1508,13 +1520,12 @@ export class CourseActions extends Actions<
     student = store.get_student(student);
     const obj = {
       table: "assignments",
-      assignment_id: assignment.get("assignment_id"),
-      comments: undefined
+      assignment_id: assignment.get("assignment_id")
     };
     const comments_map =
       (left = this._get_one(obj).comments) != null ? left : {};
     comments_map[student.get("student_id")] = comments;
-    obj.comments = comments_map;
+    (obj as any).comments = comments_map;
     return this._set(obj);
   }
 
@@ -2038,7 +2049,8 @@ You can find the comments they made in the folders below.\
               return;
             }
             return store.wait({
-              until: (store: CourseStore) => store.get_student_project_id(student_id),
+              until: (store: CourseStore) =>
+                store.get_student_project_id(student_id),
               cb: (err, x) => {
                 student_project_id = x;
                 return cb(err);
@@ -2065,7 +2077,7 @@ You can find the comments they made in the folders below.\
             desc: `Copying files to ${student_name}'s project`
           });
           if (store == undefined) {
-            console.warn(student_name, " failed to receieve files.")
+            console.warn(student_name, " failed to receieve files.");
             return;
           }
           return webapp_client.copy_path_between_projects({
@@ -2161,7 +2173,7 @@ You can find the comments they made in the folders below.\
       cb => {
         return this.copy_assignment_create_due_date_file(assignment, store, cb);
       },
-     () => {
+      () => {
         // by default, doesn't create the due file
         return this._action_all_students(
           assignment,
@@ -2628,10 +2640,9 @@ You can find the comments they made in the folders below.\
       }
       student = store.get_student(student);
       handout = store.get_handout(handout);
-      const obj = { 
-        table: "handouts", 
-        handout_id: handout.get("handout_id"),
-        status: undefined
+      const obj = {
+        table: "handouts",
+        handout_id: handout.get("handout_id")
       };
       const status_map =
         (left = __guard__(this._get_one(obj), x => x.status)) != null
@@ -2642,7 +2653,7 @@ You can find the comments they made in the folders below.\
       if (err) {
         status_map[student_id].error = err;
       }
-      obj.status = status_map;
+      (obj as any).status = status_map;
       return this._set(obj);
     }
   }
@@ -2656,7 +2667,7 @@ You can find the comments they made in the folders below.\
       }
       student = store.get_student(student);
       handout = store.get_handout(handout);
-      const obj = { table: "handouts", handout_id: handout.get("handout_id"), status: undefined };
+      const obj = { table: "handouts", handout_id: handout.get("handout_id") };
       const status_map =
         (left = __guard__(this._get_one(obj), x => x.status)) != null
           ? left
@@ -2671,7 +2682,7 @@ You can find the comments they made in the folders below.\
       }
       student_status.start = misc.mswalltime();
       status_map[student.get("student_id")] = student_status;
-      obj.status = status_map;
+      (obj as any).status = status_map;
       this._set(obj);
     }
     return false;
@@ -2686,7 +2697,7 @@ You can find the comments they made in the folders below.\
       }
       student = store.get_student(student);
       handout = store.get_handout(handout);
-      const obj = { table: "handouts", handout_id: handout.get("handout_id"), status: undefined };
+      const obj = { table: "handouts", handout_id: handout.get("handout_id") };
       const status = __guard__(this._get_one(obj), x => x.status);
       if (status == null) {
         return;
@@ -2698,7 +2709,7 @@ You can find the comments they made in the folders below.\
       if (student_status.start != null) {
         delete student_status.start;
         status[student.get("student_id")] = student_status;
-        obj.status = status;
+        (obj as any).status = status;
         return this._set(obj);
       }
     }
@@ -2758,7 +2769,8 @@ You can find the comments they made in the folders below.\
               return;
             }
             return store.wait({
-              until: (store: CourseStore) => store.get_student_project_id(student_id),
+              until: (store: CourseStore) =>
+                store.get_student_project_id(student_id),
               cb: (err, x) => {
                 student_project_id = x;
                 return cb(err);
@@ -2853,7 +2865,7 @@ You can find the comments they made in the folders below.\
     }
     const handout = store.get_handout(handout_id);
     if (handout == undefined) {
-      return
+      return;
     }
     const student = store.get_student(student_id);
     const student_project_id = student.get("project_id");
@@ -2870,7 +2882,7 @@ You can find the comments they made in the folders below.\
     // Now open it
     return this.redux.getProjectActions(proj).open_directory(path);
   }
-};
+}
 
 function __guard__(value, transform) {
   return typeof value !== "undefined" && value !== null
