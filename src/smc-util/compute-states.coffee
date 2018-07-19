@@ -90,7 +90,7 @@ exports.COMPUTE_STATES =
         commands : ['status', 'mintime']
 
     opened:
-        desc     : 'Project is available and ready to start running.'
+        desc     : 'Project is available and ready to try to run.'
         icon     : 'stop'
         display  : 'Stopped'
         stable   : true
