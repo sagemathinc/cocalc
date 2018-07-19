@@ -1509,7 +1509,7 @@ exports.ProjectState = rclass
     displayName : 'Misc-ProjectState'
 
     propTypes :
-        state     : rtypes.string
+        state     : rtypes.immutable.Map     # {state: 'running', time:'timestamp when switched to that state'}
         show_desc : rtypes.bool
 
     getDefaultProps: ->
@@ -1526,11 +1526,17 @@ exports.ProjectState = rclass
             <br/>
             <span style={fontSize:'11pt'}>
                 {desc}
+                {@render_time()}
             </span>
         </span>
 
+    render_time: ->
+        time = @props.state?.get('time')
+        if time
+            return <span><Space/> (<exports.TimeAgo date={time} />)</span>
+
     render: ->
-        s = COMPUTE_STATES[@props.state]
+        s = COMPUTE_STATES[@props.state?.get('state')]
         if not s?
             return <Loading />
         {display, desc, icon, stable} = s
