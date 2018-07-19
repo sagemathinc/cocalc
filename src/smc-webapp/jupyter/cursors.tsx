@@ -26,7 +26,7 @@ export class Cursor extends Component<CursorProps, CursorState> {
   private _timer: any;
   constructor(props: CursorProps, context: any) {
     super(props, context);
-    this.state = {};
+    this.state = { show_name: true };
   }
   shouldComponentUpdate(nextProps, nextState) {
     if (this.props.time !== nextProps.time) {
@@ -36,10 +36,6 @@ export class Cursor extends Component<CursorProps, CursorState> {
       misc.is_different(this.props, nextProps, ["name", "color"]) ||
       this.state.show_name !== nextState.show_name
     );
-  }
-
-  getInitialState() {
-    return { show_name: true };
   }
 
   componentDidMount() {
