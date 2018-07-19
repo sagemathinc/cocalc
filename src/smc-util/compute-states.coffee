@@ -39,7 +39,7 @@ The icon names below refer to font-awesome, and are used in the UI.
 
 exports.COMPUTE_STATES =
     archived:
-        desc     : 'Project is stored only in Google cloud nearline storage, and will take even longer to start.'
+        desc     : 'Project is stored in longterm storage, and will take even longer to start.'
         icon     : 'archive'     # font awesome icon
         display  : 'Archived'  # displayed name for users
         stable   : true
@@ -48,7 +48,7 @@ exports.COMPUTE_STATES =
         commands : ['unarchive']
 
     unarchiving:
-        desc     : 'Project is being copied from Google cloud nearline storage; this may take several minutes depending on how many files you have.'
+        desc     : 'Project is being copied from longterm storage; this may take several minutes depending on how many files you have.'
         icon     : 'globe'
         display  : 'Unarchiving'
         to       : {}
@@ -56,7 +56,7 @@ exports.COMPUTE_STATES =
         commands : ['status', 'mintime']
 
     archiving:
-        desc     : 'Project is being moved to Google cloud nearline storage for longterm storage.'
+        desc     : 'Project is being moved to longterm storage.'
         icon     : 'globe'
         display  : 'Archiving'
         to       : {}
@@ -64,7 +64,7 @@ exports.COMPUTE_STATES =
         commands : ['status', 'mintime']
 
     closed:
-        desc     : 'Project is stored only as ZFS streams, which must be imported, so it will take longer to start'
+        desc     : 'Project is stored only as ZFS streams, which must be imported, so it will take longer to start.'
         icon     : 'file-archive'     # font awesome icon
         display  : 'Closed'  # displayed name for users
         stable   : true
