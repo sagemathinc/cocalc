@@ -1,6 +1,6 @@
 UTM:
 
-    sselect time, event, value -> 'utm', value ->> 'referrer' from central_log where value ->> 'utm' is not null order by time desc limit 100;
+    select time, event, value -> 'utm', value ->> 'referrer' from central_log where value ->> 'utm' is not null order by time desc limit 100;
 
 Files being edited right now:
 

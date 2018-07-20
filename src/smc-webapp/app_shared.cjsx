@@ -32,9 +32,13 @@ misc = require('smc-util/misc')
 {AccountPage} = require('./account_page')
 {FileUsePage} = require('./file_use')
 {AdminPage} = require('admin/page')
+{show_announce_end} = require('./redux_account')
 
 ACTIVE_BG_COLOR = COLORS.TOP_BAR.ACTIVE
 feature = require('./feature')
+
+# same as nav bar height?
+exports.announce_bar_offset = announce_bar_offset = 40
 
 exports.ActiveAppContent = ({active_top_tab, render_small}) ->
     switch active_top_tab
@@ -384,9 +388,11 @@ exports.FullscreenButton = rclass
     reduxProps :
         page :
             fullscreen : rtypes.oneOf(['default', 'kiosk'])
+        account :
+            show_global_info       : rtypes.bool
 
     shouldComponentUpdate: (next) ->
-        return @props.fullscreen != next.fullscreen
+        return misc.is_different(@props, next, ['fullscreen', 'show_global_info'])
 
     on_fullscreen: (ev) ->
         if ev.shiftKey
@@ -396,13 +402,14 @@ exports.FullscreenButton = rclass
 
     render: ->
         icon = if @props.fullscreen then 'compress' else 'expand'
+        top_px = if @props.show_global_info then "#{announce_bar_offset + 1}px" else '1px'
 
         tip_style =
-            position   : 'fixed'
-            zIndex     : 10000
-            right      : 0
-            top        : '1px'
-            borderRadius: '3px'
+            position     : 'fixed'
+            zIndex       : 10000
+            right        : 0
+            top          : top_px
+            borderRadius : '3px'
 
 
         icon_style =
@@ -541,6 +548,7 @@ exports.LocalStorageWarning = rclass
 # for other global announcements.
 # For now, it just has a simple dismiss button backed by the account → other_settings, though.
 # 20171013: disabled, see https://github.com/sagemathinc/cocalc/issues/1982
+# 20180713: enabled again, we need it to announce the K2 switch
 exports.GlobalInformationMessage = rclass
     displayName: 'GlobalInformationMessage'
 
@@ -548,7 +556,8 @@ exports.GlobalInformationMessage = rclass
         redux.getTable('account').set(other_settings:{show_global_info2:webapp_client.server_time()})
 
     render: ->
-        more_url = 'https://github.com/sagemathinc/cocalc/wiki/KubernetesMigration'
+        more_url = 'https://github.com/sagemathinc/cocalc/wiki/Maintenance-2018'
+        local_time = show_announce_end.toLocaleString()
         bgcol = COLORS.YELL_L
         style =
             padding         : '5px 0 5px 5px'
@@ -562,12 +571,11 @@ exports.GlobalInformationMessage = rclass
 
         <Row style={style}>
             <Col sm={9} style={paddingTop: 3}>
-                <p><b>CoCalc <a target='_blank' href={more_url}>migrated to Kubernetes</a></b>.
-                {' '}Please report any issues.
+                <p><b>On {local_time} there will be a <a target='_blank' href={more_url}>scheduled downtime</a> for system maintenance.</b>
                 {' '}<a target='_blank' href={more_url}>More information...</a></p>
             </Col>
             <Col sm={3}>
-                <Button bsStyle='danger' bsSize="small" className='pull-right' style={marginRight:'20px'}
+                <Button bsStyle='danger' bsSize="small" className='pull-right' style={marginRight:'10px'}
                     onClick={@dismiss}>Close</Button>
             </Col>
         </Row>

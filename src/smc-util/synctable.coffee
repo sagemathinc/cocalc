@@ -372,6 +372,10 @@ class SyncTable extends EventEmitter
         @_state = 'disconnected'
         @_plug.connect()  # start trying to connect again
 
+    # disconnect, then connect again.
+    reconnect: =>
+        @_disconnected('reconnect called')
+
     # Return string key used in the immutable map in which this table is stored.
     key: (obj) =>
         return @_key(obj)

@@ -49,7 +49,7 @@ function katex_plugin(): void {
         macros: macros
       } as KatexOptions; // cast required due to macros not being in the typescript def file yet.
       let text = node.text();
-      let cached : any = math_cache.get(text);
+      let cached: any = math_cache.get(text);
       if (cached !== undefined) {
         node.replaceWith(cached.clone());
         return;
@@ -80,8 +80,8 @@ function katex_plugin(): void {
         if (node0.mathjax !== undefined) {
           node0.mathjax({
             cb: () => {
-              // parent since mathjax puts the rendered content NEXT to the script node0, not inside it (of course).
-              math_cache.set(text, node0.parent().clone());
+              // prev since mathjax puts the rendered content NEXT to the script node0, not inside it (of course).
+              math_cache.set(text, node0.prev().clone());
             }
           });
         }

@@ -2284,7 +2284,7 @@ exports.ProjectFiles = rclass ({name}) ->
                 </div>
 
     render_file_listing: (listing, file_map, error, project_state, public_view) ->
-        if project_state? and project_state not in ['running', 'saving']
+        if project_state?.get('state') and project_state.get('state') not in ['running', 'saving']
             return @render_project_state(project_state)
 
         if error
@@ -2357,7 +2357,7 @@ exports.ProjectFiles = rclass ({name}) ->
 
     render_start_project_button: (project_state) ->
         <Button
-            disabled = {project_state not in ['opened', 'closed']}
+            disabled = {project_state?.get('state') not in ['opened', 'closed', 'archived']}
             bsStyle  = "primary"
             bsSize   = "large"
             onClick  = {@start_project} >
@@ -2385,7 +2385,7 @@ exports.ProjectFiles = rclass ({name}) ->
         public_view = @props.get_my_group(@props.project_id) == 'public'
 
         if not public_view
-            project_state = @props.project_map?.getIn([@props.project_id, 'state', 'state'])
+            project_state = @props.project_map?.getIn([@props.project_id, 'state'])
 
         {listing, error, file_map} = @props.displayed_listing
 
