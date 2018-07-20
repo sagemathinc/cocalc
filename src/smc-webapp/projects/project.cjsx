@@ -23,10 +23,10 @@ exports.ProjectRow = rclass
             add_collab : rtypes.immutable.Set
 
     render_status: ->
-        state = @props.project.state?.state ? 'closed'
+        x = @props.project.state ? {state:'closed'}
         if state?
             <a>
-                <ProjectState state={state} />
+                <ProjectState state={immutable.fromJS(x)} />
             </a>
 
     render_last_edited: ->
