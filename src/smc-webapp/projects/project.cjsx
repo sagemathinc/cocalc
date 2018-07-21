@@ -24,10 +24,9 @@ exports.ProjectRow = rclass
 
     render_status: ->
         x = @props.project.state ? {state:'closed'}
-        if state?
-            <a>
-                <ProjectState state={immutable.fromJS(x)} />
-            </a>
+        <a>
+            <ProjectState state={immutable.fromJS(x)} />
+        </a>
 
     render_last_edited: ->
         try
