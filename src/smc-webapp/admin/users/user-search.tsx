@@ -65,7 +65,7 @@ export class UserSearch extends Component<{}, UserSearchState> {
       query: this.state.query,
       admin: true,
       limit: 100,
-      active: "1 year"
+      active: "20 months"
     });
     if (!this.mounted) {
       return;
