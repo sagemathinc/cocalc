@@ -222,7 +222,7 @@ schema.accounts =
         'created_by',
         'created',
         'api_key',
-        'last_active'
+        'last_active DESC NULLS LAST'
         ]
     user_query :
         get :
