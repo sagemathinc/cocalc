@@ -1,17 +1,8 @@
-/*
- * decaffeinate suggestions:
- * DS102: Remove unnecessary code created because of implicit returns
- * DS103: Rewrite code to no longer use __guard__
- * DS104: Avoid inline assignments
- * DS205: Consider reworking code to avoid use of IIFEs
- * DS207: Consider shorter variations of null checks
- * Full docs: https://github.com/decaffeinate/decaffeinate/blob/master/docs/suggestions.md
- */
 //#############################################################################
 //
 //    CoCalc: Collaborative Calculation in the Cloud
 //
-//    Copyright (C) 2015 -- 2016, SageMath, Inc.
+//    Copyright (C) 2016, Sagemath Inc.
 //
 //    This program is free software: you can redistribute it and/or modify
 //    it under the terms of the GNU General Public License as published by
@@ -29,50 +20,33 @@
 //##############################################################################
 
 // standard non-CoCalc libraries
-const immutable = require("immutable");
-const { IS_MOBILE, IS_TOUCH } = require("./feature");
-const underscore = require("underscore");
+import * as immutable from "immutable";
+const { IS_MOBILE, IS_TOUCH, isMobile } = require("./feature");
+import { debounce } from "underscore";
 
 // CoCalc libraries
+const { Avatar } = require("./other-users");
 const misc = require("smc-util/misc");
 const misc_page = require("./misc_page");
-const { defaults, required } = misc;
-const { webapp_client } = require("./webapp_client");
-
-const { alert_message } = require("./alerts");
 
 // React libraries
-const {
-  React,
-  ReactDOM,
-  rclass,
-  rtypes,
-  Actions,
-  Store,
-  Redux
-} = require("./app-framework");
-const { Icon, Loading, Markdown, TimeAgo, Tip } = require("./r_misc");
-const {
+import { React, ReactDOM, Component, rclass, rtypes } from "./app-framework";
+const { Icon, Loading, SearchInput, TimeAgo, Tip } = require("./r_misc");
+import {
+  Alert,
   Button,
   Col,
   Grid,
   FormGroup,
   FormControl,
-  ListGroup,
-  ListGroupItem,
-  Panel,
   Row,
   ButtonGroup,
   Well
-} = require("react-bootstrap");
-
-const { User } = require("./users");
+} from "react-bootstrap";
 
 const editor_chat = require("./editor_chat");
 
 const {
-  redux_name,
-  init_redux,
   newest_content,
   sender_is_viewer,
   show_user_name,
@@ -82,49 +56,105 @@ const {
   render_history_title,
   render_history_footer,
   render_history,
-  get_user_name,
   send_chat,
-  clear_input,
   is_at_bottom,
   scroll_to_bottom,
   scroll_to_position
 } = require("./editor_chat");
 
-const { ProjectUsers } = require("./projects/project-users");
-const { AddCollaborators } = require("./collaborators/add-to-project");
+const { VideoChatButton } = require("./video-chat");
+const { SMC_Dropwrapper } = require("./smc-dropzone");
 
-const Message = rclass({
-  displayName: "Message",
+interface MessageProps {
+  actions?: any;
 
-  propTypes: {
-    message: rtypes.object.isRequired, // immutable.js message object
-    history: rtypes.object,
+  focus_end?(e: any): void; // TODO: type
+  get_user_name: Function; // // TODO: this was optional but no existence checks
+
+  message: immutable.Map<any, any>; // immutable.js message object
+  history?: immutable.List<any>;
+  account_id: string;
+  date?: string;
+  sender_name?: string;
+  editor_name?: string;
+  user_map: immutable.Map<any, any>; // TODO: this was optional but no existence checks
+  project_id?: string; // optional -- improves relative links if given
+  file_path?: string; // optional -- (used by renderer; path containing the chat log)
+  font_size?: number;
+  show_avatar?: boolean;
+  is_prev_sender?: boolean;
+  is_next_sender?: boolean;
+  show_heads?: boolean;
+  saved_mesg?: string;
+
+  set_scroll?: Function;
+  include_avatar_col?: boolean;
+}
+
+interface MessageState {
+  edited_message: any;
+  history_size: number;
+  show_history: boolean;
+  new_changes: boolean;
+}
+
+export class Message extends Component<MessageProps, MessageState> {
+  public static propTypes = {
+    actions: rtypes.object,
+
+    focus_end: rtypes.func,
+    get_user_name: rtypes.func,
+
+    message: rtypes.immutable.Map.isRequired, // immutable.js message object
+    history: rtypes.immutable.List,
     account_id: rtypes.string.isRequired,
     date: rtypes.string,
     sender_name: rtypes.string,
     editor_name: rtypes.string,
-    user_map: rtypes.object,
+    user_map: rtypes.immutable.Map,
     project_id: rtypes.string, // optional -- improves relative links if given
     file_path: rtypes.string, // optional -- (used by renderer; path containing the chat log)
     font_size: rtypes.number,
     show_avatar: rtypes.bool,
-    get_user_name: rtypes.func,
     is_prev_sender: rtypes.bool,
     is_next_sender: rtypes.bool,
-    actions: rtypes.object,
     show_heads: rtypes.bool,
-    saved_mesg: rtypes.string,
-    close_input: rtypes.func
-  },
-
-  getInitialState() {
-    return {
+    saved_mesg: rtypes.string
+  };
+  constructor(props: MessageProps, context: any) {
+    super(props, context);
+    this.state = {
       edited_message: newest_content(this.props.message),
       history_size: this.props.message.get("history").size,
       show_history: false,
       new_changes: false
     };
-  },
+  }
+
+  shouldComponentUpdate(nextProps, nextState) {
+    return (
+      misc.is_different(
+        this.props,
+        nextProps,
+        [
+          "message",
+          "user_map",
+          "account_id",
+          "show_avatar",
+          "is_prev_sender",
+          "is_next_sender",
+          "editor_name",
+          "saved_mesg",
+          "sender_name"
+        ]
+      ) ||
+      misc.is_different(this.state, nextState, [
+        "edited_message",
+        "show_history",
+        "new_changes"
+      ])
+    );
+  }
 
   componentWillReceiveProps(newProps) {
     if (this.state.history_size !== this.props.message.get("history").size) {
@@ -132,66 +162,45 @@ const Message = rclass({
     }
     let changes = false;
     if (this.state.edited_message === newest_content(this.props.message)) {
-      let left;
-      this.setState({
-        edited_message:
-          (left = __guard__(
-            __guard__(newProps.message.get("history"), x1 => x1.first()),
-            x => x.get("content")
-          )) != null
-            ? left
-            : ""
-      });
+      let edited_message = "";
+      const history = newProps.message.get("history");
+      if (history != null && history.first() != null) {
+        edited_message = history.first().get("content") || "";
+      }
+      this.setState({ edited_message });
     } else {
       changes = true;
     }
-    return this.setState({ new_changes: changes });
-  },
-
-  shouldComponentUpdate(next, next_state) {
-    return (
-      this.props.message !== next.message ||
-      this.props.user_map !== next.user_map ||
-      this.props.account_id !== next.account_id ||
-      this.props.is_prev_sender !== next.is_prev_sender ||
-      this.props.is_next_sender !== next.is_next_sender ||
-      this.props.editor_name !== next.editor_name ||
-      this.props.saved_mesg !== next.saved_mesg ||
-      this.state.edited_message !== next_state.edited_message ||
-      this.state.show_history !== next_state.show_history ||
-      (!this.props.is_prev_sender &&
-        this.props.sender_name !== next.sender_name)
-    );
-  },
+    this.setState({ new_changes: changes });
+  }
 
   componentDidMount() {
     if (this.refs.editedMessage) {
-      return this.setState({ edited_message: this.props.saved_mesg });
+      this.setState({ edited_message: this.props.saved_mesg });
     }
-  },
+  }
 
   componentDidUpdate() {
     if (this.refs.editedMessage) {
-      return this.props.actions.saved_message(
+      this.props.actions.saved_message(
         ReactDOM.findDOMNode(this.refs.editedMessage).value
       );
     }
-  },
+  }
 
   toggle_history() {
-    //No history for mobile, since right now messages in mobile are too clunky
+    // No history for mobile, since right now messages in mobile are too clunky
     if (!IS_MOBILE) {
       if (!this.state.show_history) {
         return (
           <span
             className="small"
             style={{ marginLeft: "10px", cursor: "pointer" }}
-            onClick={() => this.toggle_history_side_chat(true)}
+            onClick={() => this.toggle_history_chat(true)}
           >
             <Tip
               title="Message History"
               tip="Show history of editing of this message."
-              placement="left"
             >
               <Icon name="history" /> Edited
             </Tip>
@@ -202,12 +211,11 @@ const Message = rclass({
           <span
             className="small"
             style={{ marginLeft: "10px", cursor: "pointer" }}
-            onClick={() => this.toggle_history_side_chat(false)}
+            onClick={() => this.toggle_history_chat(false)}
           >
             <Tip
               title="Message History"
               tip="Hide history of editing of this message."
-              placement="left"
             >
               <Icon name="history" /> Hide History
             </Tip>
@@ -215,11 +223,12 @@ const Message = rclass({
         );
       }
     }
-  },
+  }
 
-  toggle_history_side_chat(bool) {
-    return this.setState({ show_history: bool });
-  },
+  toggle_history_chat = (bool: boolean) => {
+    this.setState({ show_history: bool });
+    this.props.set_scroll != null && this.props.set_scroll();
+  };
 
   editing_status() {
     let text;
@@ -227,20 +236,23 @@ const Message = rclass({
       .get("editing")
       .remove(this.props.account_id)
       .keySeq();
-    const current_user =
-      this.props.user_map.get(this.props.account_id).get("first_name") +
-      " " +
-      this.props.user_map.get(this.props.account_id).get("last_name");
+    // TODO: is this used?
+    //const current_user =
+    //  this.props.user_map.get(this.props.account_id).get("first_name") +
+    //  " " +
+    //  this.props.user_map.get(this.props.account_id).get("last_name");
     if (is_editing(this.props.message, this.props.account_id)) {
+      // let color; // TODO: is this used?
       if (other_editors.size === 1) {
         // This user and someone else is also editing
         text = `${this.props.get_user_name(
-          other_editors.first(),
-          this.props.user_map
+          other_editors.first()
         )} is also editing this!`;
+        // color = "#E55435";
       } else if (other_editors.size > 1) {
         // Multiple other editors
         text = `${other_editors.size} other users are also editing this!`;
+        // color = "#E55435";
       } else if (
         this.state.history_size !== this.props.message.get("history").size &&
         this.state.new_changes
@@ -248,15 +260,19 @@ const Message = rclass({
         text = `${
           this.props.editor_name
         } has updated this message. Esc to discard your changes and see theirs`;
+        // color = "#E55435";
       } else {
-        text = "You are now editing ... Shift+Enter to submit changes.";
+        if (IS_TOUCH) {
+          text = "You are now editing ...";
+        } else {
+          text = "You are now editing ... Shift+Enter to submit changes.";
+        }
       }
     } else {
       if (other_editors.size === 1) {
         // One person is editing
         text = `${this.props.get_user_name(
-          other_editors.first(),
-          this.props.user_map
+          other_editors.first()
         )} is editing this message`;
       } else if (other_editors.size > 1) {
         // Multiple editors
@@ -283,66 +299,123 @@ const Message = rclass({
           <TimeAgo
             date={
               new Date(
-                __guard__(this.props.message.get("history").first(), x =>
-                  x.get("date")
-                )
+                this.props.message.get("history").first() != null
+                  ? this.props.message
+                      .get("history")
+                      .first()
+                      .get("date")
+                  : undefined
               )
             }
           />
           {name}
         </span>
       );
-    } else {
-      return (
-        <span className="small">
-          {text}
-          {is_editing(this.props.message, this.props.account_id) ? (
-            <Button
-              onClick={this.save_edit}
-              bsStyle="success"
-              style={{ marginLeft: "10px", marginTop: "-5px" }}
-              className="small"
-            >
-              Save
-            </Button>
-          ) : (
-            undefined
-          )}
-        </span>
-      );
     }
-  },
+    return (
+      <span className="small">
+        {text}
+        {is_editing(this.props.message, this.props.account_id) ? (
+          <Button
+            onClick={this.save_edit}
+            bsStyle="success"
+            style={{ marginLeft: "10px", marginTop: "-5px" }}
+            className="small"
+          >
+            Save
+          </Button>
+        ) : (
+          undefined
+        )}
+      </span>
+    );
+  }
 
-  edit_message() {
-    return this.props.actions.set_editing(this.props.message, true);
-  },
+  edit_message = () => {
+    this.props.actions.set_editing(this.props.message, true);
+  };
 
-  on_keydown(e) {
+  on_keydown = e => {
     if (e.keyCode === 27) {
       // ESC
       e.preventDefault();
       this.setState({
         edited_message: newest_content(this.props.message)
       });
-      return this.props.actions.set_editing(this.props.message, false);
+      this.props.actions.set_editing(this.props.message, false);
     } else if (e.keyCode === 13 && e.shiftKey) {
-      // shift+enter
-      return this.save_edit();
+      // 13: enter key
+      const mesg = ReactDOM.findDOMNode(this.refs.editedMessage).value;
+      if (mesg !== newest_content(this.props.message)) {
+        this.props.actions.send_edit(this.props.message, mesg);
+      } else {
+        this.props.actions.set_editing(this.props.message, false);
+      }
     }
-  },
+  };
 
-  save_edit() {
+  save_edit = () => {
     const mesg = ReactDOM.findDOMNode(this.refs.editedMessage).value;
     if (mesg !== newest_content(this.props.message)) {
-      return this.props.actions.send_edit(this.props.message, mesg);
+      this.props.actions.send_edit(this.props.message, mesg);
     } else {
-      return this.props.actions.set_editing(this.props.message, false);
+      this.props.actions.set_editing(this.props.message, false);
     }
-  },
+  };
 
   // All the columns
+  avatar_column() {
+    let margin_top, marginLeft, marginRight, textAlign;
+
+    let account =
+      this.props.user_map != null
+        ? this.props.user_map.get(this.props.message.get("sender_id"))
+        : undefined;
+    if (account != null) {
+      account = account.toJS();
+    }
+
+    if (this.props.is_prev_sender) {
+      margin_top = "5px";
+    } else {
+      margin_top = "15px";
+    }
+
+    if (sender_is_viewer(this.props.account_id, this.props.message)) {
+      textAlign = "left";
+      marginRight = "11px";
+    } else {
+      textAlign = "right";
+      marginLeft = "11px";
+    }
+
+    const style = {
+      display: "inline-block",
+      marginTop: margin_top,
+      marginLeft,
+      marginRight,
+      padding: "0px",
+      textAlign,
+      verticalAlign: "middle",
+      width: "4%"
+    };
+
+    // TODO: do something better when we don't know the user (or when sender account_id is bogus)
+    return (
+      <Col key={0} xsHidden={true} sm={1} style={style}>
+        <div>
+          {account != null && this.props.show_avatar ? (
+            <Avatar size={32} account_id={account.account_id} />
+          ) : (
+            undefined
+          )}
+        </div>
+      </Col>
+    );
+  }
+
   content_column() {
-    let borderRadius;
+    let borderRadius, marginBottom, marginTop: any;
     let value = newest_content(this.props.message);
 
     const {
@@ -360,11 +433,17 @@ const Message = rclass({
 
     const font_size = `${this.props.font_size}px`;
 
+    if (this.props.show_avatar) {
+      marginBottom = "1vh";
+    } else {
+      marginBottom = "3px";
+    }
+
     if (
       !this.props.is_prev_sender &&
       sender_is_viewer(this.props.account_id, this.props.message)
     ) {
-      const marginTop = "17px";
+      marginTop = "17px";
     }
 
     if (
@@ -379,30 +458,26 @@ const Message = rclass({
       borderRadius = "5px 5px 10px 10px";
     }
 
-    const message_style = {
+    const message_style: React.CSSProperties = {
+      color,
       background,
-      wordBreak: "break-word",
-      marginBottom: "3px",
+      wordWrap: "break-word",
+      marginBottom,
+      marginTop,
       borderRadius,
-      color
+      fontSize: font_size
     };
 
-    if (sender_is_viewer(this.props.account_id, this.props.message)) {
-      message_style.marginLeft = "10%";
-    } else {
-      message_style.marginRight = "10%";
-    }
-
     return (
-      <Col key={1} xs={11} style={{ width: "100%" }}>
+      <Col key={1} xs={10} sm={9}>
         {!this.props.is_prev_sender &&
         !sender_is_viewer(this.props.account_id, this.props.message)
           ? show_user_name(this.props.sender_name)
           : undefined}
         <Well
           style={message_style}
-          bsSize="small"
           className="smc-chat-message"
+          bsSize="small"
           onDoubleClick={this.edit_message}
         >
           <span style={lighten}>
@@ -436,25 +511,31 @@ const Message = rclass({
         {this.state.show_history ? render_history_footer() : undefined}
       </Col>
     );
-  },
+  }
+
+  // All the render methods
 
   render_input() {
     return (
-      <form>
+      <div>
         <FormGroup>
           <FormControl
+            style={{ fontSize: this.props.font_size }}
             autoFocus={true}
             rows={4}
             componentClass="textarea"
             ref="editedMessage"
             onKeyDown={this.on_keydown}
             value={this.state.edited_message}
-            onChange={e => this.setState({ edited_message: e.target.value })}
+            onChange={(e: any) =>
+              this.setState({ edited_message: e.target.value })
+            }
+            onFocus={this.props.focus_end}
           />
         </FormGroup>
-      </form>
+      </div>
     );
-  },
+  }
 
   render() {
     let cols;
@@ -464,22 +545,36 @@ const Message = rclass({
       if (sender_is_viewer(this.props.account_id, this.props.message)) {
         cols = cols.reverse();
       }
-      return <Row>{cols}</Row>;
     } else {
       cols = [this.content_column(), blank_column()];
       // mirror right-left for sender's view
       if (sender_is_viewer(this.props.account_id, this.props.message)) {
         cols = cols.reverse();
       }
-      return <Row>{cols}</Row>;
     }
+    return <Row>{cols}</Row>;
   }
-});
+}
 
-const ChatLog = rclass({
-  displayName: "ChatLog",
+const SCROLL_DEBOUNCE_MS = 750;
 
-  propTypes: {
+interface ChatLogProps {
+  messages: any; // immutable js map {timestamps} --> message.
+  user_map?: any; // immutable js map {collaborators} --> account info
+  account_id: string;
+  project_id?: string; // optional -- used to render links more effectively
+  file_path?: string; // optional -- ...
+  font_size?: number;
+  actions?: any;
+  show_heads?: boolean;
+  focus_end?(e: any): void;
+  saved_mesg?: string;
+  set_scroll?: Function;
+  search?: string;
+}
+
+export class ChatLog extends Component<ChatLogProps> {
+  public static propTypes = {
     messages: rtypes.object.isRequired, // immutable js map {timestamps} --> message.
     user_map: rtypes.object, // immutable js map {collaborators} --> account info
     account_id: rtypes.string,
@@ -488,69 +583,43 @@ const ChatLog = rclass({
     font_size: rtypes.number,
     actions: rtypes.object,
     show_heads: rtypes.bool,
+    focus_end: rtypes.func,
     saved_mesg: rtypes.string,
-    set_scroll: rtypes.func
-  },
+    set_scroll: rtypes.func,
+    search: rtypes.string
+  };
 
-  shouldComponentUpdate(next) {
+  shouldComponentUpdate(nextProps) {
     return (
-      this.props.messages !== next.messages ||
-      this.props.user_map !== next.user_map ||
-      this.props.account_id !== next.account_id ||
-      this.props.saved_mesg !== next.saved_mesg
+      this.props.messages !== nextProps.messages ||
+      this.props.search !== nextProps.search ||
+      this.props.user_map !== nextProps.user_map ||
+      this.props.account_id !== nextProps.account_id ||
+      this.props.saved_mesg !== nextProps.saved_mesg
     );
-  },
+  }
 
-  close_edit_inputs(current_message_date, id, saved_message) {
-    const sorted_dates = this.props.messages
-      .keySeq()
-      .sort(misc.cmp_Date)
-      .toJS();
-    return (() => {
-      const result = [];
-      for (let date of sorted_dates) {
-        var left;
-        const historyContent =
-          (left = __guard__(
-            this.props.messages
-              .get(date)
-              .get("history")
-              .first(),
-            x => x.get("content")
-          )) != null
-            ? left
-            : "";
-        if (
-          date !== current_message_date &&
-          __guard__(this.props.messages.get(date).get("editing"), x1 =>
-            x1.has(id)
-          )
-        ) {
-          if (historyContent !== saved_message) {
-            result.push(
-              this.props.actions.send_edit(
-                this.props.messages.get(date),
-                saved_message
-              )
-            );
-          } else {
-            result.push(
-              this.props.actions.set_editing(
-                this.props.messages.get(date),
-                false
-              )
-            );
-          }
-        } else {
-          result.push(undefined);
-        }
-      }
-      return result;
-    })();
-  },
+  get_user_name = account_id => {
+    let account_name;
+    const account =
+      this.props.user_map != null
+        ? this.props.user_map.get(account_id)
+        : undefined;
+    if (account != null) {
+      account_name = account.get("first_name") + " " + account.get("last_name");
+    } else {
+      account_name = "Unknown";
+    }
+    return account_name;
+  };
 
-  list_messages() {
-    const is_next_message_sender = function(index, dates, messages) {
+  render_list_messages() {
+    let search_terms;
+    const is_next_message_sender = function(
+      index: number,
+      dates: any,
+      messages: any
+    ) {
       if (index + 1 === dates.length) {
         return false;
       }
@@ -559,7 +628,11 @@ const ChatLog = rclass({
       return current_message.get("sender_id") === next_message.get("sender_id");
     };
 
-    const is_prev_message_sender = function(index, dates, messages) {
+    const is_prev_message_sender = function(
+      index: number,
+      dates: any,
+      messages: any
+    ) {
       if (index === 0) {
         return false;
       }
@@ -570,32 +643,48 @@ const ChatLog = rclass({
 
     const sorted_dates = this.props.messages
       .keySeq()
-      .sort(misc.cmp_Date)
+      .sort()
       .toJS();
-    const v = [];
+    const v: any[] = [];
+    if (this.props.search) {
+      search_terms = misc.search_split(this.props.search.toLowerCase());
+    } else {
+      search_terms = undefined;
+    }
+
+    let not_showing = 0;
     for (let i = 0; i < sorted_dates.length; i++) {
       const date = sorted_dates[i];
-      const sender_name = get_user_name(
-        __guard__(this.props.messages.get(date), x => x.get("sender_id")),
-        this.props.user_map
+      const message = this.props.messages.get(date);
+      const first =
+        message != null ? message.get("history").first() : undefined;
+      const last_editor_name = this.get_user_name(
+        first != null ? first.get("author_id") : undefined
       );
-      const last_editor_name = get_user_name(
-        __guard__(
-          __guard__(this.props.messages.get(date), x2 =>
-            x2.get("history").first()
-          ),
-          x1 => x1.get("author_id")
-        ),
-        this.props.user_map
+      const sender_name = this.get_user_name(
+        message != null ? message.get("sender_id") : undefined
       );
+      if (search_terms != null) {
+        let content =
+          (first != null ? first.get("content") : undefined) +
+          " " +
+          last_editor_name +
+          " " +
+          sender_name;
+        content = content.toLowerCase();
+        if (!misc.search_match(content, search_terms)) {
+          not_showing += 1;
+          continue;
+        }
+      }
 
       v.push(
         <Message
           key={date}
           account_id={this.props.account_id}
-          history={this.props.messages.get(date).get("history")}
+          history={message.get("history")}
           user_map={this.props.user_map}
-          message={this.props.messages.get(date)}
+          message={message}
           date={date}
           project_id={this.props.project_id}
           file_path={this.props.file_path}
@@ -615,123 +704,129 @@ const ChatLog = rclass({
             !is_next_message_sender(i, sorted_dates, this.props.messages)
           }
           include_avatar_col={this.props.show_heads}
-          get_user_name={get_user_name}
+          get_user_name={this.get_user_name}
           sender_name={sender_name}
-          editor_name={misc.trunc_middle(last_editor_name, 15)}
+          editor_name={last_editor_name}
           actions={this.props.actions}
-          saved_mesg={this.props.saved_mesg}
-          close_input={this.close_edit_inputs}
+          focus_end={this.props.focus_end}
+          saved_mesg={
+            message.getIn(["editing", this.props.account_id])
+              ? this.props.saved_mesg
+              : undefined
+          }
           set_scroll={this.props.set_scroll}
         />
       );
     }
 
+    if (not_showing) {
+      const s = (
+        <Alert bsStyle="warning" key="not_showing">
+          Hiding {not_showing} chats that do not match search for '{
+            this.props.search
+          }'.
+        </Alert>
+      );
+      v.push(s);
+    }
+
     return v;
-  },
+  }
 
   render() {
-    return (
-      <Grid fluid style={{ marginTop: "15px" }}>
-        {this.list_messages()}
-      </Grid>
-    );
+    return <Grid fluid>{this.render_list_messages()}</Grid>;
   }
-});
+}
 
-const log_container_style = {
-  overflowY: "auto",
-  flex: 1,
-  backgroundColor: "#fafafa"
-};
+interface ChatRoomOwnProps {}
 
-const ChatRoom = rclass(function({ name }) {
-  return {
-    displayName: "ChatRoom",
+interface ChatRoomReduxProps {
+  redux?: any;
+  actions?: any;
+  name: string;
+  project_id: string;
+  path?: string;
+  height: number;
+  input: string;
+  is_preview: boolean;
+  messages: any;
+  offset: number;
+  saved_mesg: string;
+  saved_position: number;
+  use_saved_position: boolean;
+  search: string;
+  user_map?: any;
+  account_id: string;
+  font_size?: number;
+  file_use?: any;
+}
 
-    reduxProps: {
+type ChatRoomProps = ChatRoomOwnProps & ChatRoomReduxProps;
+
+interface ChatRoomState {
+  preview: string;
+}
+
+class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
+  public static reduxProps({ name }) {
+    return {
       [name]: {
-        messages: rtypes.immutable,
-        input: rtypes.string,
-        saved_position: rtypes.number,
         height: rtypes.number,
+        input: rtypes.string,
+        is_preview: rtypes.bool,
+        messages: rtypes.immutable,
         offset: rtypes.number,
         saved_mesg: rtypes.string,
+        saved_position: rtypes.number,
         use_saved_position: rtypes.bool,
-        add_collab: rtypes.bool
+        search: rtypes.string
       },
+
       users: {
         user_map: rtypes.immutable
       },
+
       account: {
         account_id: rtypes.string,
         font_size: rtypes.number
       },
+
       file_use: {
         file_use: rtypes.immutable
-      },
-      projects: {
-        project_map: rtypes.immutable.Map
       }
-    },
+    };
+  }
 
-    propTypes: {
-      redux: rtypes.object.isRequired,
-      actions: rtypes.object.isRequired,
-      name: rtypes.string.isRequired,
-      project_id: rtypes.string.isRequired,
-      file_use_id: rtypes.string.isRequired,
-      path: rtypes.string
-    },
+  public static propTypes = {
+    redux: rtypes.object,
+    actions: rtypes.object,
+    name: rtypes.string.isRequired,
+    project_id: rtypes.string.isRequired,
+    path: rtypes.string
+  };
 
-    mark_as_read() {
-      const info = this.props.redux
-        .getStore("file_use")
-        .get_file_info(
-          this.props.project_id,
-          misc.original_path(this.props.path)
-        );
-      if (info == null || info.is_unseenchat) {
-        // only mark chat as read if it is unseen
-        const f = this.props.redux.getActions("file_use").mark_file;
-        f(this.props.project_id, this.props.path, "read");
-        return f(this.props.project_id, this.props.path, "chatseen");
+  constructor(props: ChatRoomProps, context: any) {
+    super(props, context);
+    this.state = { preview: "" };
+  }
+
+  private static preview_style: React.CSSProperties = {
+    background: "#f5f5f5",
+    fontSize: "14px",
+    borderRadius: "10px 10px 10px 10px",
+    boxShadow: "#666 3px 3px 3px",
+    paddingBottom: "20px"
+  };
+
+  private _is_mounted: boolean;
+
+  fix_scroll_position_after_mount = () => {
+    // Optionally set the scroll position back after waiting a moment
+    // for image sizes to load.
+    const fix_pos = () => {
+      if (!this._is_mounted) {
+        return;
       }
-    },
-
-    on_keydown(e) {
-      if (e.keyCode === 27) {
-        // ESC
-        return this.props.actions.set_input("");
-      } else if (e.keyCode === 13 && e.shiftKey) {
-        // shift + enter
-        return this.button_send_chat(e);
-      } else if (e.keyCode === 38 && this.props.input === "") {
-        // up arrow and empty
-        return this.props.actions.set_to_last_input();
-      }
-    },
-
-    button_send_chat(e) {
-      return send_chat(
-        e,
-        this.refs.log_container,
-        this.props.input,
-        this.props.actions
-      );
-    },
-
-    on_scroll(e) {
-      this.props.actions.set_use_saved_position(true);
-      const node = ReactDOM.findDOMNode(this.refs.log_container);
-      this.props.actions.save_scroll_state(
-        node.scrollTop,
-        node.scrollHeight,
-        node.offsetHeight
-      );
-      return e.preventDefault();
-    },
-
-    componentDidMount() {
       scroll_to_position(
         this.refs.log_container,
         this.props.saved_position,
@@ -740,296 +835,550 @@ const ChatRoom = rclass(function({ name }) {
         this.props.use_saved_position,
         this.props.actions
       );
-      return this.mark_as_read();
-    }, // The act of opening/displaying the chat marks it as seen...
-    // since this happens when the user shows it.
+    };
+    // We adjust the scroll position multiple times due to dynamic content (e.g., images)
+    // changing the vertical height as the chat history is rendered.  This can fail
+    // if the dynamic change takes a while, but the failure is a slight scroll position
+    // issue -- if the user is switching tabs back and forth in a session, that is very
+    // unlikely, due to the browser caching the dynamic content.
+    // The user is also unlikely to manually scroll the page then see it jump to
+    // this fixed position within 500ms of mounting.
+    return [0, 200, SCROLL_DEBOUNCE_MS - 250].map(tm =>
+      setTimeout(fix_pos, tm)
+    );
+  };
 
-    componentWillReceiveProps(next) {
+  componentDidMount() {
+    this._is_mounted = true;
+    this.fix_scroll_position_after_mount();
+    if (this.props.is_preview) {
       if (
-        (this.props.messages !== next.messages ||
-          this.props.input !== next.input) &&
         is_at_bottom(
           this.props.saved_position,
           this.props.offset,
           this.props.height
         )
       ) {
-        return this.props.actions.set_use_saved_position(false);
+        this.debounce_bottom();
       }
-    },
+    } else {
+      this.props.actions.set_is_preview(false);
+    }
+  }
 
-    componentDidUpdate() {
-      if (!this.props.use_saved_position) {
-        return scroll_to_bottom(this.refs.log_container, this.props.actions);
-      }
-    },
+  componentWillReceiveProps(next) {
+    if (
+      (this.props.messages !== next.messages ||
+        this.props.input !== next.input) &&
+      is_at_bottom(
+        this.props.saved_position,
+        this.props.offset,
+        this.props.height
+      )
+    ) {
+      this.props.actions.set_use_saved_position(false);
+    }
+  }
 
-    render_collab_caret() {
-      let icon;
-      if (this.props.add_collab) {
-        icon = <Icon name="caret-down" />;
-      } else {
-        icon = <Icon name="caret-right" />;
-      }
-      return (
-        <div
-          style={{
-            fontSize: "15pt",
-            width: "16px",
-            display: "inline-block",
-            cursor: "pointer"
-          }}
-        >
-          {icon}
-        </div>
+  componentDidUpdate() {
+    if (!this.props.use_saved_position) {
+      scroll_to_bottom(this.refs.log_container, this.props.actions);
+    }
+  }
+
+  mark_as_read = debounce(() => {
+    const info = this.props.redux
+      .getStore("file_use")
+      .get_file_info(this.props.project_id, this.props.path);
+    if (info == null || info.is_unread) {
+      // file is unread from *our* point of view, so mark read
+      return this.props.redux
+        .getActions("file_use")
+        .mark_file(this.props.project_id, this.props.path, "read", 2000);
+    }
+  }, 300);
+
+  keydown = (e: any) => {
+    // TODO: Add timeout component to is_typing
+    if (e.keyCode === 13 && e.shiftKey) {
+      // 13: enter key
+      return send_chat(
+        e,
+        this.refs.log_container,
+        ReactDOM.findDOMNode(this.refs.input).value,
+        this.props.actions
       );
-    },
+    } else if (
+      e.keyCode === 38 &&
+      ReactDOM.findDOMNode(this.refs.input).value === ""
+    ) {
+      // Up arrow on an empty input
+      this.props.actions.set_to_last_input();
+    }
+  };
 
-    render_add_collab() {
-      if (!this.props.add_collab) {
-        return;
-      }
-      const project =
-        this.props.project_map != null
-          ? this.props.project_map.get(this.props.project_id)
-          : undefined;
-      if (project == null) {
-        return;
-      }
-      return (
-        <div>
-          <div style={{ margin: "10px 0px" }}>
-            Who else would you like to work with?
-          </div>
-          <AddCollaborators project={project} inline={true} />
-          <span style={{ color: "#666" }}>
-            NOTE: Anybody you add can work with you on any file in this project.
-            Remove people in settings.
-          </span>
-        </div>
-      );
-    },
+  componentWillUnmount() {
+    this._is_mounted = false;
+    this.save_scroll_position();
+  }
 
-    render_collab_list() {
-      const project =
-        this.props.project_map != null
-          ? this.props.project_map.get(this.props.project_id)
-          : undefined;
-      if (project == null) {
-        return;
-      }
-      let style = undefined;
-      if (!this.props.add_collab) {
-        style = {
-          maxHeight: "1.7em",
-          whiteSpace: "nowrap",
-          overflow: "hidden",
-          textOverflow: "ellipsis"
-        };
-      }
-      return (
-        <div
-          style={style}
-          onClick={() =>
-            this.props.actions.setState({ add_collab: !this.props.add_collab })
-          }
-        >
-          {this.render_collab_caret()}
-          <span style={{ color: "#777", fontSize: "10pt" }}>
-            <ProjectUsers
-              project={project}
-              none={<span>Add people to work with...</span>}
-            />
-          </span>
-        </div>
-      );
-    },
-
-    render_project_users() {
-      return (
-        <div style={{ margin: "5px 15px" }}>
-          {this.render_collab_list()}
-          {this.render_add_collab()}
-        </div>
-      );
-    },
-
-    on_focus() {
-      // Remove any active key handler that is next to this side chat.
-      // E.g, this is critical for taks lists...
-      return this.props.redux.getActions("page").erase_active_key_handler();
-    },
-
-    render() {
-      if (this.props.messages == null || this.props.redux == null) {
-        return <Loading />;
-      }
-
-      const mark_as_read = underscore.throttle(this.mark_as_read, 3000);
-
-      // WARNING: making autofocus true would interfere with chat and terminals -- where chat and terminal are both focused at same time sometimes (esp on firefox).
-
-      return (
-        <div
-          style={{
-            height: "100%",
-            width: "100%",
-            position: "absolute",
-            display: "flex",
-            flexDirection: "column",
-            backgroundColor: "#efefef"
-          }}
-          onMouseMove={mark_as_read}
-          onFocus={this.on_focus}
-        >
-          {this.render_project_users()}
-          <div
-            style={log_container_style}
-            ref="log_container"
-            onScroll={this.on_scroll}
-          >
-            <ChatLog
-              messages={this.props.messages}
-              account_id={this.props.account_id}
-              user_map={this.props.user_map}
-              project_id={this.props.project_id}
-              font_size={this.props.font_size}
-              file_path={
-                this.props.path != null
-                  ? misc.path_split(this.props.path).head
-                  : undefined
-              }
-              actions={this.props.actions}
-              show_heads={false}
-            />
-          </div>
-          <div
-            style={{
-              marginTop: "auto",
-              padding: "5px",
-              paddingLeft: "15px",
-              paddingRight: "15px"
-            }}
-          >
-            <div style={{ display: "flex", height: "6em" }}>
-              <FormControl
-                style={{ width: "85%", height: "100%" }}
-                autoFocus={false}
-                componentClass="textarea"
-                ref="input"
-                onKeyDown={e => {
-                  mark_as_read();
-                  return this.on_keydown(e);
-                }}
-                value={this.props.input}
-                placeholder={"Type a message..."}
-                onChange={e => this.props.actions.set_input(e.target.value)}
-              />
-              <Button
-                style={{ width: "15%", height: "100%" }}
-                onClick={this.button_send_chat}
-                disabled={this.props.input === ""}
-                bsStyle="success"
-              >
-                <Icon name="chevron-circle-right" />
-              </Button>
-            </div>
-            <div style={{ color: "#888", padding: "5px" }}>
-              Shift+enter to send. Double click to edit. Use{" "}
-              <a
-                href="https://help.github.com/articles/getting-started-with-writing-and-formatting-on-github/"
-                target="_blank"
-              >
-                Markdown
-              </a>{" "}
-              and{" "}
-              <a
-                href="https://en.wikibooks.org/wiki/LaTeX/Mathematics"
-                target="_blank"
-              >
-                LaTeX
-              </a>.
-            </div>
-          </div>
-        </div>
+  save_scroll_position = () => {
+    this.props.actions.set_use_saved_position(true);
+    const node = ReactDOM.findDOMNode(this.refs.log_container);
+    if (node != null) {
+      this.props.actions.save_scroll_state(
+        node.scrollTop,
+        node.scrollHeight,
+        node.offsetHeight
       );
     }
   };
-});
 
-// Component for use via React
-exports.SideChat = function({ path, redux, project_id }) {
-  const name = redux_name(project_id, path);
-  const file_use_id = require("smc-util/schema").client_db.sha1(
-    project_id,
-    path
+  button_send_chat = e => {
+    send_chat(
+      e,
+      this.refs.log_container,
+      ReactDOM.findDOMNode(this.refs.input).value,
+      this.props.actions
+    );
+    ReactDOM.findDOMNode(this.refs.input).focus();
+  };
+
+  button_scroll_to_bottom = () => {
+    scroll_to_bottom(this.refs.log_container, this.props.actions);
+  };
+
+  button_off_click = () => {
+    this.props.actions.set_is_preview(false);
+    ReactDOM.findDOMNode(this.refs.input).focus();
+  };
+
+  button_on_click = () => {
+    this.props.actions.set_is_preview(true);
+    ReactDOM.findDOMNode(this.refs.input).focus();
+    if (
+      is_at_bottom(
+        this.props.saved_position,
+        this.props.offset,
+        this.props.height
+      )
+    ) {
+      scroll_to_bottom(this.refs.log_container, this.props.actions);
+    }
+  };
+
+  set_chat_log_state = debounce(() => {
+    if (this.refs.log_container != null) {
+      const node = ReactDOM.findDOMNode(this.refs.log_container);
+      this.props.actions.save_scroll_state(
+        node.scrollTop,
+        node.scrollHeight,
+        node.offsetHeight
+      );
+    }
+  }, 300);
+
+  set_preview_state = debounce(
+    () => {
+      if (this.refs.log_container != null) {
+        this.setState({ preview: this.props.input });
+      }
+      if (this.refs.preview) {
+        // const node = ReactDOM.findDOMNode(this.refs.preview); // TODO: is this used?
+        // return (this._preview_height = node.offsetHeight - 12); // TODO: is this used?
+      }
+    }, // sets it to 75px starting then scales with height.
+    300
   );
-  const actions = redux.getActions(name);
-  return (
-    <ChatRoom
-      redux={redux}
-      actions={redux.getActions(name)}
-      name={name}
-      project_id={project_id}
-      path={path}
-      file_use_id={file_use_id}
-    />
-  );
-};
 
-// Fitting the side chat into non-react parts of SMC:
+  debounce_bottom = debounce(() => {
+    //debounces it so that the preview shows up then calls
+    scroll_to_bottom(this.refs.log_container, this.props.actions);
+  }, 300);
 
-const render = function(redux, project_id, path) {
-  const name = redux_name(project_id, path);
-  const file_use_id = require("smc-util/schema").client_db.sha1(
-    project_id,
-    path
-  );
-  const actions = redux.getActions(name);
-  return (
-    <ChatRoom
-      redux={redux}
-      actions={actions}
-      name={name}
-      project_id={project_id}
-      path={path}
-      file_use_id={file_use_id}
-    />
-  );
-};
+  show_files = () => {
+    this.props.redux != null
+      ? this.props.redux
+          .getProjectActions(this.props.project_id)
+          .load_target("files")
+      : undefined;
+  };
 
-// Render the given chatroom, and return the name of the redux actions/store
-exports.render = function(project_id, path, dom_node, redux) {
-  const name = init_redux(path, redux, project_id);
-  ReactDOM.render(render(redux, project_id, path), dom_node);
-  return name;
-};
+  show_timetravel = () => {
+    this.props.redux != null
+      ? this.props.redux.getProjectActions(this.props.project_id).open_file({
+          path: misc.history_path(this.props.path),
+          foreground: true,
+          foreground_project: true
+        })
+      : undefined;
+  };
 
-exports.hide = (project_id, path, dom_node, redux) =>
-  ReactDOM.unmountComponentAtNode(dom_node);
+  // All render methods
+  render_bottom_tip() {
+    const tip = (
+      <span>
+        You may enter (Github flavored) markdown here and include Latex
+        mathematics in $ signs. In particular, use # for headings, > for block
+        quotes, *'s for italic text, **'s for bold text, - at the beginning of a
+        line for lists, back ticks ` for code, and URL's will automatically
+        become links. Press shift+enter to send your chat. Double click to edit
+        past chats.
+      </span>
+    );
 
-exports.show = (project_id, path, dom_node, redux) =>
-  ReactDOM.render(render(redux, project_id, path), dom_node);
-
-exports.free = function(project_id, path, dom_node, redux) {
-  const fname = redux_name(project_id, path);
-  const store = redux.getStore(fname);
-  if (store == null) {
-    return;
+    return (
+      <Tip title="Use Markdown" tip={tip}>
+        <div
+          style={{ color: "#767676", fontSize: "12.5px", marginBottom: "5px" }}
+        >
+          Shift+Enter to send your message. Double click chat bubbles to edit
+          them. Format using{" "}
+          <a
+            href="https://help.github.com/articles/getting-started-with-writing-and-formatting-on-github/"
+            target="_blank"
+          >
+            Markdown
+          </a>{" "}
+          and{" "}
+          <a
+            href="https://en.wikibooks.org/wiki/LaTeX/Mathematics"
+            target="_blank"
+          >
+            LaTeX
+          </a>. Emoticons: {misc.emoticons}.
+        </div>
+      </Tip>
+    );
   }
-  ReactDOM.unmountComponentAtNode(dom_node);
-  if (store.syncdb != null) {
-    store.syncdb.destroy();
-  }
-  delete store.state;
-  // It is *critical* to first unmount the store, then the actions,
-  // or there will be a huge memory leak.
-  redux.removeStore(fname);
-  return redux.removeActions(fname);
-};
 
-function __guard__(value, transform) {
-  return typeof value !== "undefined" && value !== null
-    ? transform(value)
-    : undefined;
+  render_preview_message() {
+    this.set_preview_state();
+    if (this.state.preview.length > 0) {
+      let value = this.state.preview;
+      value = misc.smiley({
+        s: value,
+        wrap: ['<span class="smc-editor-chat-smiley">', "</span>"]
+      });
+      value = misc_page.sanitize_html_safe(value);
+      const file_path =
+        this.props.path != null
+          ? misc.path_split(this.props.path).head
+          : undefined;
+
+      return (
+        <Row
+          ref="preview"
+          style={{ position: "absolute", bottom: "0px", width: "100%" }}
+        >
+          <Col xs={0} sm={2} />
+
+          <Col xs={10} sm={9}>
+            <Well bsSize="small" style={ChatRoom0.preview_style}>
+              <div
+                className="pull-right lighten"
+                style={{
+                  marginRight: "-8px",
+                  marginTop: "-10px",
+                  cursor: "pointer",
+                  fontSize: "13pt"
+                }}
+                onClick={this.button_off_click}
+              >
+                <Icon name="times" />
+              </div>
+              {render_markdown(value, this.props.project_id, file_path)}
+              <span className="pull-right small lighten">
+                Preview (press Shift+Enter to send)
+              </span>
+            </Well>
+          </Col>
+
+          <Col sm={1} />
+        </Row>
+      );
+    }
+  }
+
+  render_timetravel_button() {
+    const tip = <span>Browse all versions of this chatroom.</span>;
+
+    return (
+      <Button onClick={this.show_timetravel} bsStyle="info">
+        <Tip title="TimeTravel" tip={tip} placement="left">
+          <Icon name="history" /> TimeTravel
+        </Tip>
+      </Button>
+    );
+  }
+
+  render_bottom_button() {
+    const tip = <span>Scrolls the chat to the bottom</span>;
+
+    return (
+      <Button onClick={this.button_scroll_to_bottom}>
+        <Tip title="Scroll to Bottom" tip={tip} placement="left">
+          <Icon name="arrow-down" /> Bottom
+        </Tip>
+      </Button>
+    );
+  }
+
+  render_video_chat_button() {
+    return (
+      <VideoChatButton
+        project_id={this.props.project_id}
+        path={this.props.path}
+        label={"Video Chat"}
+      />
+    );
+  }
+
+  render_search() {
+    return (
+      <SearchInput
+        placeholder={"Find messages..."}
+        default_value={this.props.search}
+        on_change={debounce(
+          value => this.props.actions.setState({ search: value }),
+          500
+        )}
+        style={{ margin: 0 }}
+      />
+    );
+  }
+
+  render_button_row() {
+    return (
+      <Row style={{ marginTop: "5px" }}>
+        <Col xs={6} md={6} style={{ padding: "2px" }}>
+          {this.render_search()}
+        </Col>
+        <Col
+          xs={6}
+          md={6}
+          className="pull-right"
+          style={{ padding: "2px", textAlign: "right" }}
+        >
+          <ButtonGroup>
+            {this.render_timetravel_button()}
+            {this.render_video_chat_button()}
+            {this.render_bottom_button()}
+          </ButtonGroup>
+        </Col>
+      </Row>
+    );
+  }
+
+  generate_temp_upload_text = file => {
+    return `[Uploading...]\(${file.name}\)`;
+  };
+
+  start_upload = file => {
+    const text_area = ReactDOM.findDOMNode(this.refs.input);
+    const temporary_insertion_text = this.generate_temp_upload_text(file);
+    const temp_new_text =
+      this.props.input.slice(0, text_area.selectionStart) +
+      temporary_insertion_text +
+      this.props.input.slice(text_area.selectionEnd);
+    return this.props.actions.set_input(temp_new_text);
+  };
+
+  append_file = file => {
+    let final_insertion_text;
+    if (file.type.indexOf("image") !== -1) {
+      final_insertion_text = `<img src=\".chat-images/${
+        file.name
+      }\" width='100%'>`;
+    } else {
+      final_insertion_text = `[${file.name}](${file.name})`;
+    }
+
+    const temporary_insertion_text = this.generate_temp_upload_text(file);
+    const start_index = this.props.input.indexOf(temporary_insertion_text);
+    const end_index = start_index + temporary_insertion_text.length;
+
+    if (start_index === -1) {
+      return;
+    }
+
+    const new_text =
+      this.props.input.slice(0, start_index) +
+      final_insertion_text +
+      this.props.input.slice(end_index);
+    return this.props.actions.set_input(new_text);
+  };
+
+  private dropzoneWrapperRef: any;
+
+  handle_paste_event = (e: React.ClipboardEvent<FormControl>) => {
+    const items = e.clipboardData.items;
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      if (item != null && item.type.startsWith("image/")) {
+        e.preventDefault();
+        const file = item.getAsFile();
+        if (file != null) {
+          const blob = file.slice(0, -1, item.type);
+          this.dropzoneWrapperRef.dropzone.addFile(
+            // TODO: pasted things always have the same name,
+            // which can cause some overwriting of files.
+            // The best thing to do would be to hash the contents.
+            new File([blob], `paste-${Math.random()}`, { type: item.type })
+          );
+        }
+        return;
+      }
+    }
+  };
+
+  render_body() {
+    const chat_log_style: React.CSSProperties = {
+      overflowY: "auto",
+      overflowX: "hidden",
+      margin: "0",
+      padding: "0",
+      paddingRight: "10px",
+      background: "white",
+      flex: 1
+    };
+
+    const chat_input_style: React.CSSProperties = {
+      margin: "0",
+      height: "90px",
+      fontSize: this.props.font_size
+    };
+
+    return (
+      <Grid
+        fluid={true}
+        className="smc-vfill"
+        style={{ maxWidth: "1200px", display: "flex", flexDirection: "column" }}
+      >
+        {!IS_MOBILE ? this.render_button_row() : undefined}
+        <Row className="smc-vfill">
+          <Col
+            className="smc-vfill"
+            md={12}
+            style={{ padding: "0px 2px 0px 2px" }}
+          >
+            <Well
+              style={chat_log_style}
+              ref="log_container"
+              onScroll={debounce(this.save_scroll_position, SCROLL_DEBOUNCE_MS)}
+            >
+              <ChatLog
+                messages={this.props.messages}
+                account_id={this.props.account_id}
+                user_map={this.props.user_map}
+                project_id={this.props.project_id}
+                font_size={this.props.font_size}
+                file_path={
+                  this.props.path != null
+                    ? misc.path_split(this.props.path).head
+                    : undefined
+                }
+                actions={this.props.actions}
+                saved_mesg={this.props.saved_mesg}
+                search={this.props.search}
+                set_scroll={this.set_chat_log_state}
+                show_heads={true}
+              />
+              {this.props.input.length > 0 && this.props.is_preview
+                ? this.render_preview_message()
+                : undefined}
+            </Well>
+          </Col>
+        </Row>
+        <Row style={{ display: "flex" }}>
+          <Col style={{ flex: "1", padding: "0px 2px 0px 2px" }}>
+            <SMC_Dropwrapper
+              ref={node => (this.dropzoneWrapperRef = node)}
+              project_id={this.props.project_id}
+              dest_path={misc.normalized_path_join(
+                this.props.redux
+                  .getProjectStore(this.props.project_id)
+                  .get("current_path"),
+                "/.chat-images"
+              )}
+              event_handlers={{
+                complete: this.append_file,
+                sending: this.start_upload
+              }}
+            >
+              <FormGroup>
+                <FormControl
+                  autoFocus={!IS_MOBILE || isMobile.Android()}
+                  rows={4}
+                  componentClass="textarea"
+                  ref="input"
+                  onKeyDown={this.keydown}
+                  value={this.props.input}
+                  onPaste={this.handle_paste_event}
+                  placeholder={"Type a message..."}
+                  onChange={(e: any) => {
+                    this.props.actions.set_input(e.target.value);
+                    this.mark_as_read();
+                  }}
+                  style={chat_input_style}
+                />
+              </FormGroup>
+            </SMC_Dropwrapper>
+          </Col>
+          <Col
+            style={{
+              height: "90px",
+              padding: "0",
+              marginBottom: "0",
+              display: "flex",
+              flexDirection: "column"
+            }}
+          >
+            {!IS_MOBILE ? (
+              <Button
+                onClick={this.button_on_click}
+                disabled={this.props.input === ""}
+                bsStyle="info"
+                style={{ height: "50%", width: "100%" }}
+              >
+                Preview
+              </Button>
+            ) : (
+              undefined
+            )}
+            <Button
+              onClick={this.button_send_chat}
+              disabled={this.props.input === ""}
+              bsStyle="success"
+              style={{ flex: 1, width: "100%" }}
+            >
+              Send
+            </Button>
+          </Col>
+        </Row>
+        <Row>{!IS_MOBILE ? this.render_bottom_tip() : undefined}</Row>
+      </Grid>
+    );
+  }
+
+  render() {
+    if (
+      this.props.messages == null ||
+      this.props.redux == null ||
+      (this.props.input != null ? this.props.input.length : undefined) == null
+    ) {
+      return <Loading />;
+    }
+    return (
+      <div
+        onMouseMove={this.mark_as_read}
+        onClick={this.mark_as_read}
+        className="smc-vfill"
+      >
+        {this.render_body()}
+      </div>
+    );
+  }
 }
+
+export const ChatRoom = rclass(ChatRoom0);
