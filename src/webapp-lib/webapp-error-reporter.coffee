@@ -20,7 +20,7 @@
 ###############################################################################
 
 ###
-Catch and report webapp client errors to the SMC server.
+Catch and report webapp client errors to the CoCalc backend.
 This is based on bugsnag's MIT licensed lib: https://github.com/bugsnag/bugsnag-js
 The basic idea is to wrap very early at a very low level of the event system,
 such that all libraries loaded later are sitting on top of this.
@@ -290,6 +290,15 @@ if ENABLED and window.console?
     wrapFunction(console, "warn",  (-> sendLogLine("warn", arguments)))
     wrapFunction(console, "error", (-> sendLogLine("error", arguments)))
 
+# chrome only
+window.addEventListener "unhandledrejection", (event) ->
+    console.log("unhandledrejection", event)
+
+# how to trigger that one? does it actually work?
+# https://developer.mozilla.org/en-US/docs/Web/Events/rejectionhandled
+window.addEventListener "rejectionhandled", (event) ->
+    console.log("rejectionhandled", event)
+
 # public API
 
 exports.reportException = reportException
@@ -305,3 +314,16 @@ if DEBUG
         sendLogLine             : sendLogLine
         reportException         : reportException
         is_enabled              : -> ENABLED
+
+    window.smc.trigger_promise_exception = ->
+        # wrap in a function for a non-trivial stacktrace
+        do test_func = ->
+            p = new Promise((resolve, reject) -> setTimeout(reject, 100, 'foo'))
+            p.then((e) -> console.log("p fulfilled and done", e))
+
+            p2 = new Promise((resolve, reject) -> setTimeout(reject, 100, 'bar'))
+            p2.catch((e) -> console.log("p2 caught", e))
+
+            p3 = new Promise((resolve, reject) -> setTimeout(resolve, 100, 'baz'))
+            p3.then((e) -> console.log("p3 fulfilled and done", e))
+            return null
