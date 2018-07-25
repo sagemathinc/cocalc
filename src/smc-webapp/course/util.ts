@@ -198,7 +198,9 @@ export function immutable_to_list(x: undefined): undefined;
 export function immutable_to_list<T, P>(
   x: Map<string, T>,
   primary_key: P
-): T extends TypedMap<infer S> ? S[] : T extends Map<string, infer S> ? S[] : any;
+): T extends TypedMap<infer S>
+  ? S[]
+  : T extends Map<string, infer S> ? S[] : any;
 export function immutable_to_list(x: any, primary_key?): any {
   if (x == null || x == undefined) {
     return;
@@ -207,7 +209,7 @@ export function immutable_to_list(x: any, primary_key?): any {
   x.map((val, key) => v.push(misc.merge(val.toJS(), { [primary_key]: key })));
   return v;
 }
-Object.assign
+Object.assign;
 // Returns a list of matched objects and the number of objects
 // which were in the original list but omitted in the returned list
 export function compute_match_list(opts) {
@@ -288,7 +290,6 @@ const sort_on_string_field = field => (a, b) =>
 
 const sort_on_numerical_field = field => (a, b) =>
   misc.cmp(a[field] * -1, b[field] * -1);
-
 
 export enum StudentField {
   email = "email",

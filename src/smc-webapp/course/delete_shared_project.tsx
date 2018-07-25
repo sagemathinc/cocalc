@@ -25,7 +25,7 @@
 
 import { Component, React } from "../app-framework";
 const { Button, ButtonToolbar, Panel, Well } = require("react-bootstrap");
-const { Icon } = require("../r_misc")
+const { Icon } = require("../r_misc");
 
 interface DeleteSharedProjectPanelProps {
   delete: () => void;

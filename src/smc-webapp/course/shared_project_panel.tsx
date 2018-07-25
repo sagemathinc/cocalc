@@ -134,7 +134,7 @@ export class SharedProjectPanel extends Component<
     return this.props.redux
       .getActions("projects")
       .open_project({ project_id: this.props.shared_project_id });
-  }
+  };
 
   render_no_shared_project() {
     return (

@@ -72,9 +72,15 @@ import { CSSProperties } from "react";
 import { StudentsPanel, StudentsPanelHeader } from "./students_panel";
 import { AssignmentsPanel, AssignmentsPanelHeader } from "./assignments_panel";
 import { HandoutsPanel, HandoutsPanelHeader } from "./handouts_panel";
-import { ConfigurationPanel, ConfigurationPanelHeader } from "./configuration_panel";
+import {
+  ConfigurationPanel,
+  ConfigurationPanelHeader
+} from "./configuration_panel";
 import { PayBanner } from "./pay-banner";
-import { SharedProjectPanel, SharedProjectPanelHeader } from "./shared_project_panel";
+import {
+  SharedProjectPanel,
+  SharedProjectPanelHeader
+} from "./shared_project_panel";
 import { UserMap, ProjectMap } from "../todo-types";
 
 const redux_name = (project_id, course_filename) =>
@@ -162,13 +168,13 @@ interface CourseReduxProps {
   activity: Map<any, any>; // status messages about current activity happening (e.g., things being assigned)
   students: StudentsMap;
   assignments: AssignmentsMap;
-  handouts: HandoutsMap
-  settings: CourseSettingsRecord
+  handouts: HandoutsMap;
+  settings: CourseSettingsRecord;
   unsaved: boolean;
 
-  user_map: UserMap
+  user_map: UserMap;
 
-  project_map: ProjectMap
+  project_map: ProjectMap;
 }
 
 export const CourseEditor = rclass<CourseReactProps>(
@@ -265,7 +271,7 @@ export const CourseEditor = rclass<CourseReactProps>(
             .getProjectActions(this.props.project_id)
             .set_active_tab("files")
         : undefined;
-    }
+    };
 
     render_files_button() {
       return (
@@ -287,11 +293,11 @@ export const CourseEditor = rclass<CourseReactProps>(
             foreground_project: true
           })
         : undefined;
-    }
+    };
 
     save_to_disk = () => {
       return this.props.redux != null ? this.get_actions().save() : undefined;
-    }
+    };
 
     render_save_timetravel() {
       return (

@@ -40,7 +40,7 @@ export class SkipCopy extends Component<SkipCopyProps> {
       this.props.step,
       !this.props.assignment.get(`skip_${this.props.step}` as any)
     );
-  }
+  };
 
   render() {
     let icon;

@@ -53,7 +53,7 @@ export class PayBanner extends Component<PayBannerProps> {
 
   show_configuration = () => {
     return __guard__(this.get_actions(), x => x.set_tab("configuration"));
-  }
+  };
 
   render() {
     let link, mesg, style;

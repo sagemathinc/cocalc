@@ -34,15 +34,10 @@ const misc = require("smc-util/misc");
 
 const schema = require("smc-util/schema");
 
-import {
-  Component,
-  React,
-  ReactDOM,
-  AppRedux
-} from "../app-framework";
+import { Component, React, ReactDOM, AppRedux } from "../app-framework";
 import { CourseActions } from "./actions";
 import { redux } from "../frame-editors/generic/test/util";
-import {  CourseStore } from "./store";
+import { CourseStore } from "./store";
 import { Map } from "immutable";
 
 const {
@@ -122,7 +117,7 @@ export class StudentProjectUpgrades extends Component<
     const upgrade_goal = this.upgrade_goal();
     a.set_upgrade_goal(upgrade_goal);
     return a.upgrade_all_student_projects(upgrade_goal);
-  }
+  };
 
   render_upgrade_heading(num_projects) {
     return (
@@ -434,7 +429,7 @@ export class StudentProjectUpgrades extends Component<
     );
   }
 
-  save_admin_upgrade = (e) => {
+  save_admin_upgrade = e => {
     e.preventDefault();
     const s = ReactDOM.findDOMNode(this.refs.admin_input).value;
     const quotas = JSON.parse(s);
@@ -442,7 +437,7 @@ export class StudentProjectUpgrades extends Component<
     console.log(`admin upgrade '${s}' -->`, quotas);
     this.get_actions().admin_upgrade_all_student_projects(quotas);
     return false;
-  }
+  };
 
   render_admin_upgrade() {
     return (
@@ -506,7 +501,7 @@ export class StudentProjectUpgrades extends Component<
       upgrades,
       upgrade_plan
     });
-  }
+  };
 
   update_plan() {
     const plan = this.get_store().get_upgrade_plan(this.upgrade_goal());
@@ -543,9 +538,9 @@ export class StudentProjectUpgrades extends Component<
     );
   }
 
-  handle_institute_pay_checkbox = (e) => {
+  handle_institute_pay_checkbox = e => {
     return this.get_actions().set_pay_choice("institute", e.target.checked);
-  }
+  };
 
   render_checkbox() {
     return (

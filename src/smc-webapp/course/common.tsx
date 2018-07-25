@@ -259,11 +259,11 @@ export class StudentAssignmentInfo extends Component<
 
   open = (type, assignment_id, student_id) => {
     return this.get_actions().open_assignment(type, assignment_id, student_id);
-  }
+  };
 
   copy = (type, assignment_id, student_id) => {
     return this.get_actions().copy_assignment(type, assignment_id, student_id);
-  }
+  };
 
   stop = (type, assignment_id, student_id) => {
     return this.get_actions().stop_copying_assignment(
@@ -271,7 +271,7 @@ export class StudentAssignmentInfo extends Component<
       assignment_id,
       student_id
     );
-  }
+  };
 
   save_grade = (e?) => {
     __guardMethod__(e, "preventDefault", o => o.preventDefault());
@@ -286,17 +286,17 @@ export class StudentAssignmentInfo extends Component<
       this.state.edited_comments
     );
     return this.setState({ editing_grade: false });
-  }
+  };
 
   edit_grade = () => {
     return this.setState({ editing_grade: true });
-  }
+  };
 
-  handle_change = (e) => {
+  handle_change = e => {
     return this.setState({
       edited_grade: e.target.value != null ? e.target.value : ""
     });
-  }
+  };
 
   render_grade() {
     if (this.state.editing_grade) {
@@ -365,7 +365,7 @@ export class StudentAssignmentInfo extends Component<
     );
   }
 
-  on_key_down_grade_editor = (e) => {
+  on_key_down_grade_editor = e => {
     switch (e.keyCode) {
       case 27:
         return this.setState({
@@ -379,7 +379,7 @@ export class StudentAssignmentInfo extends Component<
         }
         break;
     }
-  }
+  };
 
   render_grade_col() {
     let grade = this.props.grade || "";

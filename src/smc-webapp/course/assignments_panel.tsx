@@ -455,7 +455,7 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
     );
   }
 
-  date_change = (date) => {
+  date_change = date => {
     if (date == null) {
       date = this._due_date();
     }
@@ -463,7 +463,7 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
       this.props.assignment,
       date != null ? date.toISOString() : undefined
     );
-  }
+  };
 
   render_note() {
     return (
@@ -636,7 +636,7 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
     return redux
       .getProjectActions(this.props.project_id)
       .open_directory(this.props.assignment.get("path"));
-  }
+  };
 
   render_open_button() {
     return (
@@ -825,7 +825,7 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
       default:
         console.log(`BUG -- unknown step: ${step}`);
     }
-    return this.setState({
+    this.setState({
       [`copy_confirm_${step}`]: false,
       [`copy_confirm_all_${step}`]: false,
       copy_confirm: false
@@ -1186,7 +1186,7 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
     return this.get_actions().return_assignment_to_all_students(
       this.props.assignment
     );
-  }
+  };
 
   toggle_skip_grading = () => {
     return this.get_actions().set_skip(
@@ -1194,7 +1194,7 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
       "grading",
       !this.props.assignment.get("skip_grading")
     );
-  }
+  };
 
   render_skip_grading_button(status) {
     let icon, left;
@@ -1281,11 +1281,11 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
   delete_assignment = () => {
     this.get_actions().delete_assignment(this.props.assignment);
     return this.setState({ confirm_delete: false });
-  }
+  };
 
   undelete_assignment = () => {
     return this.get_actions().undelete_assignment(this.props.assignment);
-  }
+  };
 
   render_confirm_delete() {
     return (
@@ -1341,9 +1341,9 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
     }
   }
 
-  set_peer_grade = (config) => {
+  set_peer_grade = config => {
     return this.get_actions().set_peer_grade(this.props.assignment, config);
-  }
+  };
 
   render_configure_peer_checkbox(config) {
     return (
@@ -1371,11 +1371,11 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
     }
   }
 
-  peer_due_change = (date) => {
+  peer_due_change = date => {
     return this.set_peer_grade({
       due_date: __guard__(this._peer_due(date), x => x.toISOString())
     });
-  }
+  };
 
   render_configure_peer_due(config) {
     const label = (
