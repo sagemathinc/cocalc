@@ -55,7 +55,7 @@ const {
 } = require("react-bootstrap");
 
 // CoCalc components
-const User = require("../users");
+const { User } = require("../users");
 const {
   ErrorDisplay,
   Icon,
@@ -147,9 +147,9 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
       };
     };
 
-    get_actions(): CourseActions {
+    get_actions = (): CourseActions => {
       return redux.getActions(this.props.name);
-    }
+    };
 
     shouldComponentUpdate(props, state) {
       return (
@@ -167,7 +167,7 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
       );
     }
 
-    do_add_search = (e) => {
+    do_add_search = e => {
       // Search for people to add to the course
       if (e != null) {
         e.preventDefault();
@@ -279,7 +279,7 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
           });
         }
       });
-    }
+    };
 
     student_add_button() {
       return (
@@ -298,9 +298,9 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
         selected_option_nodes: ReactDOM.findDOMNode(this.refs.add_select)
           .selectedOptions
       });
-    }
+    };
 
-    add_selected_students = (options) => {
+    add_selected_students = options => {
       const emails = {};
       for (let x of this.state.add_select) {
         if (x.account_id != null) {
@@ -342,7 +342,7 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
         selected_option_nodes: undefined,
         add_search: ""
       });
-    }
+    };
 
     add_all_students = () => {
       const students: any[] = [];
@@ -364,7 +364,7 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
         selected_option_nodes: undefined,
         add_search: ""
       });
-    }
+    };
 
     get_add_selector_options() {
       const v: any[] = [];
@@ -867,18 +867,18 @@ interface StudentState {
 class Student extends Component<StudentProps, StudentState> {
   constructor(props) {
     super(props);
-    this.state = this.get_initial_state()
+    this.state = this.get_initial_state();
   }
 
   displayName: "CourseEditorStudent";
 
-  get_actions(): CourseActions {
+  get_actions = (): CourseActions => {
     return redux.getActions(this.props.name);
-  }
+  };
 
-  get_store(): CourseStore {
+  get_store = (): CourseStore => {
     return redux.getStore(this.props.name) as any;
-  }
+  };
 
   get_initial_state() {
     return {
@@ -939,23 +939,23 @@ class Student extends Component<StudentProps, StudentState> {
     }
   }
 
-  on_key_down = (e) => {
+  on_key_down = e => {
     switch (e.keyCode) {
       case 13:
         return this.save_student_changes();
       case 27:
         return this.cancel_student_edit();
     }
-  }
+  };
 
-  toggle_show_more = (e) => {
+  toggle_show_more = e => {
     e.preventDefault();
     if (this.state.editing_student) {
       this.cancel_student_edit();
     }
     const item_id = this.props.student.get("student_id");
-    return this.get_actions().toggle_item_expansion("student", item_id);
-  }
+    this.get_actions().toggle_item_expansion("student", item_id);
+  };
 
   render_student() {
     return (
@@ -994,14 +994,14 @@ class Student extends Component<StudentProps, StudentState> {
   }
 
   open_project = () => {
-    return redux.getActions("projects").open_project({
+    redux.getActions("projects").open_project({
       project_id: this.props.student.get("project_id")
     });
-  }
+  };
 
   create_project = () => {
-    return this.get_actions().create_student_project(this.props.student_id);
-  }
+    this.get_actions().create_student_project(this.props.student_id);
+  };
 
   render_last_active() {
     const student_project_id = this.props.student.get("project_id");
@@ -1159,8 +1159,8 @@ class Student extends Component<StudentProps, StudentState> {
   }
 
   cancel_student_edit = () => {
-    return this.setState(this.get_initial_state());
-  }
+    this.setState(this.get_initial_state());
+  };
 
   save_student_changes = () => {
     this.get_actions().set_internal_student_info(this.props.student, {
@@ -1169,21 +1169,21 @@ class Student extends Component<StudentProps, StudentState> {
       email_address: this.state.edited_email_address
     });
 
-    return this.setState({ editing_student: false });
-  }
+    this.setState({ editing_student: false });
+  };
 
   show_edit_name_dialogue = () => {
-    return this.setState({ editing_student: true });
-  }
+    this.setState({ editing_student: true });
+  };
 
   delete_student = () => {
     this.get_actions().delete_student(this.props.student);
-    return this.setState({ confirm_delete: false });
-  }
+    this.setState({ confirm_delete: false });
+  };
 
   undelete_student = () => {
-    return this.get_actions().undelete_student(this.props.student);
-  }
+    this.get_actions().undelete_student(this.props.student);
+  };
 
   render_confirm_delete() {
     if (this.state.confirm_delete) {
@@ -1251,30 +1251,28 @@ class Student extends Component<StudentProps, StudentState> {
 
   render_assignments_info_rows() {
     const store = this.get_store();
-    return (() => {
-      const result: any[] = [];
-      for (let assignment of store.get_sorted_assignments()) {
-        const grade = store.get_grade(assignment, this.props.student);
-        const comments = store.get_comments(assignment, this.props.student);
-        const info = store.student_assignment_info(
-          this.props.student,
-          assignment
-        );
-        result.push(
-          <StudentAssignmentInfo
-            key={assignment.get("assignment_id")}
-            title={this.render_title(assignment)}
-            name={this.props.name}
-            student={this.props.student}
-            assignment={assignment}
-            grade={grade}
-            comments={comments}
-            info={info}
-          />
-        );
-      }
-      return result;
-    })();
+    const result: any[] = [];
+    for (let assignment of store.get_sorted_assignments()) {
+      const grade = store.get_grade(assignment, this.props.student);
+      const comments = store.get_comments(assignment, this.props.student);
+      const info = store.student_assignment_info(
+        this.props.student,
+        assignment
+      );
+      result.push(
+        <StudentAssignmentInfo
+          key={assignment.get("assignment_id")}
+          title={this.render_title(assignment)}
+          name={this.props.name}
+          student={this.props.student}
+          assignment={assignment}
+          grade={grade}
+          comments={comments}
+          info={info}
+        />
+      );
+    }
+    return result;
   }
 
   render_assignments_info() {
