@@ -1284,8 +1284,8 @@ class JupyterNotebook extends EventEmitter
         webapp_client.exec
             path        : @path
             project_id  : @project_id
-            command     : 'sage'
-            args        : ['-ipython', 'nbconvert', @file, "--to=#{opts.format}"]
+            command     : 'jupyter'
+            args        : ['nbconvert', @file, "--to=#{opts.format}"]
             bash        : false
             err_on_exit : true
             timeout     : 30
