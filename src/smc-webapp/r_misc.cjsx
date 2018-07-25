@@ -2054,9 +2054,6 @@ exports.ErrorBoundary = rclass
             info  : info
 
     render: ->
-        # This is way worse than nothing, because it surpresses reporting the actual error to the
-        # backend!!!  I'm disabling it completely.
-        return @props.children
         if @state.info?
             <Alert
                 bsStyle = 'warning'
