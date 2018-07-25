@@ -2349,18 +2349,17 @@ You can find the comments they made in the folders below.\
         `GRADING IS DUE ${new Date(due_date).toLocaleString()} \n\n ` +
         guidelines;
     }
-
     const target_base_path = assignment.get("path") + "-peer-grade";
     const f = (student_id, cb) => {
       const src_path = assignment.get("collect_path") + "/" + student_id;
       const target_path = target_base_path + "/" + student_id;
-      return async.series(
+      async.series(
         [
           cb => {
             // delete the student's name so that grading is anonymous; also, remove original
             // due date to avoid confusion.
             const name = store.get_student_name(student_id, true);
-            return webapp_client.exec({
+            webapp_client.exec({
               project_id: store.get("course_project_id"),
               command: "rm",
               args: [
@@ -2375,7 +2374,7 @@ You can find the comments they made in the folders below.\
           },
           cb => {
             // copy the files to be peer graded into place for this student
-            return webapp_client.copy_path_between_projects({
+            webapp_client.copy_path_between_projects({
               src_project_id: store.get("course_project_id"),
               src_path,
               target_project_id: student_project_id,
