@@ -954,11 +954,13 @@ ProjectFilesActions = rclass
             </div>
 
     render_action_button: (name) ->
+        disabled = (name in ["move","compress","rename"] and @props.current_path?.startsWith(".snapshots"))
         obj = file_actions[name]
         get_basename = =>
             misc.path_split(@props.checked_files?.first()).tail
         <Button
             onClick={=>@props.actions.set_file_action(name, get_basename)}
+            disabled={disabled}
             key={name} >
             <Icon name={obj.icon} /> <span className='hidden-sm'>{obj.name}...</span>
         </Button>
