@@ -221,7 +221,8 @@ schema.accounts =
         '(lower(last_name)  text_pattern_ops)',
         'created_by',
         'created',
-        'api_key'
+        'api_key',
+        'last_active DESC NULLS LAST'
         ]
     user_query :
         get :
