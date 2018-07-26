@@ -40,7 +40,7 @@ shouldCatch = true
 
 # set this to true, to enable the webapp error reporter for development
 enable_for_testing = false
-ENABLED = (not DEBUG) or enable_for_testing
+ENABLED = not BACKEND and ((not DEBUG) or enable_for_testing)
 
 # this is the MAIN function of this module
 # it's exported publicly and also used in various spots where exceptions are already
