@@ -971,7 +971,7 @@ ProjectFilesActions = rclass
             </div>
 
     render_action_button: (name) ->
-        disabled = (name in ["move","compress","rename"] and @props.current_path?.startsWith(".snapshots"))
+        disabled = (name in ["move","compress","rename","delete","share","duplicate"] and @props.current_path?.startsWith(".snapshots"))
         obj = file_actions[name]
         get_basename = =>
             misc.path_split(@props.checked_files?.first()).tail
