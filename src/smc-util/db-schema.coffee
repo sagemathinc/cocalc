@@ -794,7 +794,7 @@ schema.projects =
             desc : 'Specify the name of the underlying (kucalc) compute image (default: "latest")'
         addons :
             type : 'map'
-            desc : 'Configure (kucalc specific) addons for projects. (e.g. acadmic software, license keys, ...)'
+            desc : 'Configure (kucalc specific) addons for projects. (e.g. academic software, license keys, ...)'
 
     pg_indexes : [
         'last_edited',
