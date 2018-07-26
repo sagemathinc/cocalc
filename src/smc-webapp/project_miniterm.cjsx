@@ -39,7 +39,7 @@ IDEAS FOR LATER:
 
 output_style =
     position  : 'absolute'
-    zIndex    : 1
+    zIndex    : 2
     width     : '93%'
     boxShadow : '0px 0px 7px #aaa'
     maxHeight : '450px'
