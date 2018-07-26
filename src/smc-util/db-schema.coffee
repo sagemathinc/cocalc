@@ -221,7 +221,8 @@ schema.accounts =
         '(lower(last_name)  text_pattern_ops)',
         'created_by',
         'created',
-        'api_key'
+        'api_key',
+        'last_active DESC NULLS LAST'
         ]
     user_query :
         get :
@@ -792,6 +793,9 @@ schema.projects =
         compute_image :
             type : 'string'
             desc : 'Specify the name of the underlying (kucalc) compute image (default: "latest")'
+        addons :
+            type : 'map'
+            desc : 'Configure (kucalc specific) addons for projects. (e.g. academic software, license keys, ...)'
 
     pg_indexes : [
         'last_edited',
@@ -821,6 +825,7 @@ schema.projects =
                 action_request : null   # last requested action -- {action:?, time:?, started:?, finished:?, err:?}
                 course         : null
                 compute_image  : 'latest'
+                addons         : null
         set :
             fields :
                 project_id     : 'project_write'

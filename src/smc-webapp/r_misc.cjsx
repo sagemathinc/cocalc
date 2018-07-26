@@ -25,6 +25,7 @@ async = require('async')
 {HelpEmailLink, SiteName, CompanyName, PricingUrl, PolicyTOSPageUrl, PolicyIndexPageUrl, PolicyPricingPageUrl} = require('./customize')
 {UpgradeRestartWarning} = require('./upgrade_restart_warning')
 copy_to_clipboard = require('copy-to-clipboard')
+{reportException} = require('../webapp-lib/webapp-error-reporter')
 
 # injected by webpack, but not for react-static renderings (ATTN don't assign to uppercase vars!)
 smc_version = SMC_VERSION ? 'N/A'
@@ -2047,15 +2048,12 @@ exports.ErrorBoundary = rclass
         info  : undefined
 
     componentDidCatch: (error, info) ->
-        # TODO: Report the error to some backend service...
+        reportException(error,"render error",null,info)
         @setState
             error : error
             info  : info
 
     render: ->
-        # This is way worse than nothing, because it surpresses reporting the actual error to the
-        # backend!!!  I'm disabling it completely.
-        return @props.children
         if @state.info?
             <Alert
                 bsStyle = 'warning'

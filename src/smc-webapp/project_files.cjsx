@@ -19,12 +19,12 @@
 #
 ###############################################################################
 
-{React, ReactDOM, rtypes, rclass, redux, Redux} = require('./app-framework')
+{React, ReactDOM, rtypes, rclass, redux, Redux, Fragment} = require('./app-framework')
 {Col, Row, ButtonToolbar, ButtonGroup, MenuItem, Button, Well, FormControl, FormGroup, Radio,
 ButtonToolbar, Popover, OverlayTrigger, SplitButton, MenuItem, Alert, Checkbox, Breadcrumb, Navbar} =  require('react-bootstrap')
 misc = require('smc-util/misc')
 {ActivityDisplay, DirectoryInput, Icon, ProjectState, COLORS,
-SearchInput, TimeAgo, ErrorDisplay, Space, Tip, Loading, LoginLink, Footer, CourseProjectExtraHelp, CopyToClipBoard} = require('./r_misc')
+SearchInput, TimeAgo, ErrorDisplay, Space, Tip, Loading, LoginLink, Footer, CourseProjectExtraHelp, CopyToClipBoard, VisibleMDLG} = require('./r_misc')
 {SMC_Dropwrapper} = require('./smc-dropzone')
 {FileTypeSelector, NewFileButton} = require('./project_new')
 {SiteName} = require('./customize')
@@ -453,31 +453,44 @@ FirstSteps = rclass
         @props.redux.getTable('account').set(other_settings:{first_steps:false})
 
     render: ->
-        <Row>
-            <Navbar>
-                <Navbar.Header style={marginTop:'10px'}>
-                    <Navbar.Brand>
-                        New to <SiteName/>?
-                    </Navbar.Brand>
-                    <Navbar.Toggle />
-                </Navbar.Header>
-                <Navbar.Collapse>
-                    <Navbar.Text>
-                        <Button
-                            onClick = {@get_first_steps}
-                            bsStyle = {'info'} >
-                                Start the <strong>First Steps</strong> guide!
-                        </Button>
-                    </Navbar.Text>
-                    <Navbar.Text>
-                        <Button
-                            onClick={@dismiss_first_steps}>
-                                Dismiss
-                        </Button>
-                    </Navbar.Text>
-                </Navbar.Collapse>
-            </Navbar>
-        </Row>
+        style =
+            textAlign  : 'center'
+            padding    : '10px'
+            color      : COLORS.GRAY_L
+            position   : 'absolute'
+            bottom     : 0
+            fontSize   : '110%'
+
+        a =
+            cursor     : 'pointer'
+            color      : COLORS.GRAY
+
+        line2 =
+            fontSize   : '80%'
+
+        <Col sm={12} style={style}>
+            <Row>
+                <span>
+                    Are you new to <SiteName/>?
+                </span>
+                <Space/>
+                <span>
+                    <a onClick = {@get_first_steps} style={a}>
+                        Click to start the <strong>First Steps</strong> guide!
+                    </a>
+                </span>
+                <Space/>
+                <span>or</span>
+                <Space/>
+                <span>
+                    <a onClick={@dismiss_first_steps} style={a}>dismiss this message</a>.
+                </span>
+                <br/>
+                <span style={line2}>
+                    You can also load it via "+ Add" → "Library" → "First Steps in <SiteName />"
+                </span>
+            </Row>
+        </Col>
 
 NoFiles = rclass
     propTypes :
@@ -701,9 +714,9 @@ FileListing = rclass
 
     render_first_steps: ->
         name = 'first_steps'
+        return if @props.public_view
         return if not @props.library[name]
         return if not (@props.other_settings?.get(name) ? false)
-        return if @props.public_view
         return if @props.current_path isnt '' # only show in $HOME
         return if @props.file_map[name]?.isdir  # don't show if we have it ...
         return if @props.file_search[0] is TERM_MODE_CHAR
@@ -717,17 +730,21 @@ FileListing = rclass
             <TerminalModeDisplay/>
 
     render : ->
-        <Col sm={12}>
-            {@render_terminal_mode() if not @props.public_view}
-            {@render_first_steps()}
-            {<ListingHeader
-                active_file_sort = {@props.active_file_sort}
-                sort_by          = {@props.sort_by}
-                check_all        = {false}
-                /> if @props.listing.length > 0}
-            {@render_rows()}
-            {@render_no_files()}
-        </Col>
+        <Fragment>
+            <Col sm={12} style={zIndex:1}>
+                {@render_terminal_mode() if not @props.public_view}
+                {<ListingHeader
+                    active_file_sort = {@props.active_file_sort}
+                    sort_by          = {@props.sort_by}
+                    check_all        = {false}
+                    /> if @props.listing.length > 0}
+                {@render_rows()}
+                {@render_no_files()}
+            </Col>
+            <VisibleMDLG>
+                {@render_first_steps()}
+            </VisibleMDLG>
+        </Fragment>
 
 # One segment of the directory links at the top of the files listing.
 PathSegmentLink = rclass
@@ -954,11 +971,13 @@ ProjectFilesActions = rclass
             </div>
 
     render_action_button: (name) ->
+        disabled = (name in ["move","compress","rename","delete","share","duplicate"] and @props.current_path?.startsWith(".snapshots"))
         obj = file_actions[name]
         get_basename = =>
             misc.path_split(@props.checked_files?.first()).tail
         <Button
             onClick={=>@props.actions.set_file_action(name, get_basename)}
+            disabled={disabled}
             key={name} >
             <Icon name={obj.icon} /> <span className='hidden-sm'>{obj.name}...</span>
         </Button>

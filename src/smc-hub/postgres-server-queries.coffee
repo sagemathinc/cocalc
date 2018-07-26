@@ -880,11 +880,39 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                         f(account_id, username)
                     opts.cb(undefined, usernames)
 
+    # This searches for users. In case someone has to debug this, the "clear text" for the user search by name (tokens) is
+    # SELECT account_id, first_name, last_name, last_active, created
+    # FROM accounts
+    # WHERE deleted IS NOT TRUE
+    #   AND (
+    #     (
+    #       (
+    #         lower(first_name) LIKE $1::TEXT
+    #         OR
+    #         lower(last_name) LIKE $1::TEXT
+    #       )
+    #       AND
+    #       (
+    #         lower(first_name) LIKE $2::TEXT
+    #         OR
+    #         lower(last_name) LIKE $2::TEXT
+    #       )
+    #       AND
+    #          ...
+    #     )
+    #   )
+    #   AND (
+    #     (last_active >= NOW() - $3::INTERVAL)
+    #     OR
+    #     (created >= NOW() - $3::INTERVAL)
+    #   )
+    #   ORDER BY last_active DESC NULLS LAST
+    #   LIMIT $4::INTEGER
     user_search: (opts) =>
         opts = defaults opts,
             query  : required     # comma separated list of email addresses or strings such as 'foo bar' (find everything where foo and bar are in the name)
             limit  : 50           # limit on string queries; email query always returns 0 or 1 result per email address
-            active : '6 months'   # for name search (not email), only return users active this recently.
+            active : undefined    # for name search (not email), only return users active this recently. -- disabled b/c of #2991
             admin  : false
             cb     : required     # cb(err, list of {id:?, first_name:?, last_name:?, email_address:?}), where the
                                   # email_address *only* occurs in search queries that are by email_address -- we do not reveal
@@ -959,6 +987,8 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                     # name search only includes active users
                     query += " AND ((last_active >= NOW() - $#{i}::INTERVAL) OR (created >= NOW() - $#{i}::INTERVAL)) "
                     i += 1
+                # recently active users are much more relevant than old ones -- #2991
+                query += " ORDER BY last_active DESC NULLS LAST"
                 query += " LIMIT $#{i}::INTEGER"; i += 1
                 params.push(opts.limit)
                 @_query
