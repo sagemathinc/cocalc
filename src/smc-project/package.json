@@ -18,6 +18,7 @@
     "formidable": "^1.1.1",
     "googlediff": "^0.1.0",
     "json-stable-stringify": "^1.0.1",
+    "lean-client-js-node": "^1.2.12",
     "mkdirp": "^0.5.1",
     "mocha": "^3.4.2",
     "node-cleanup": "^2.1.2",
