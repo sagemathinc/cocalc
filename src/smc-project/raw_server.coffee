@@ -15,7 +15,9 @@ misc_node = require('smc-util-node/misc_node')
 
 {directory_listing_router} = require('./directory-listing')
 
-{prettier_router} = require('./prettier.ts')
+{lean_router} = require('./lean/http')
+
+{prettier_router} = require('./prettier')
 
 {upload_endpoint} = require('./upload')
 
@@ -92,6 +94,10 @@ exports.start_raw_server = (opts) ->
             # Setup the /.smc/directory_listing/... server, which is used to provide directory listings
             # to the hub (at least in KuCalc).
             raw_server.use(base, directory_listing_router(express))
+            
+            # Setup the /.smc/lean/... server, which is used for the HTTP part of the lean
+            # interface, and does nothing if not used.
+            raw_server.use(base, lean_router(express, opts.client));
 
             # Setup the /.smc/prettier POST endpoint, which is used for prettifying code.
             raw_server.use(base, prettier_router(opts.client, opts.logger))
