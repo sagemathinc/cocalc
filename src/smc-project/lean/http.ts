@@ -19,7 +19,7 @@ wait until that is done before returning (hence can easily
 timeout -- client should retry).
 */
 
-const BASE: string = "/.smc/lean";
+const BASE: string = "/.smc/lean/";
 
 import { lean, Lean } from "./lean";
 
@@ -27,40 +27,77 @@ type Router = any; // TODO
 
 export function lean_router(express, client): Router {
   let router: Router = express.Router();
-  lean_http_server(BASE, router, lean(client));
+  lean_http_server(BASE, router, lean(client), client.dbg("LEAN HTTP"));
   return router;
 }
 
-function lean_http_server(base: string, router: Router, lean: Lean): Router {
-  router.get(base + "*", function(req, res) {
+function to_number(x: any): number {
+  try {
+    return parseInt(x);
+  } catch {
+    return 0;
+  }
+}
+
+function lean_http_server(
+  base: string,
+  router: Router,
+  lean: Lean,
+  dbg
+): Router {
+  router.get(base + "*", async function(req, res) {
+    dbg("req.path=", req.path);
     const x: string = decodeURIComponent(req.path.slice(base.length).trim());
-    const v = x.split("/");
-    const command = v[0];
-    const path = v[1];
-    const line: number | undefined = req.query.line;
-    const column: number | undefined = req.query.column;
+    const i = x.indexOf("/");
+    let command: string;
+    let path: string | undefined = undefined;
+    if (i == -1) {
+      command = x;
+    } else {
+      command = x.slice(0, i);
+      path = x.slice(i + 1);
+    }
+    dbg("command=", command);
+    dbg("path=", path);
+    const line: number = to_number(req.query.line);
+    const column: number = to_number(req.query.column);
+    dbg("line=", line, " column", column);
 
     switch (command) {
       case "info":
-        res.json(await lean.info(path, line, column));
+        try {
+          res.json(await lean.info(path, line, column));
+        } catch (err) {
+          res.json({ status: "error", error: err });
+        }
         return;
       case "complete":
-        res.json(await lean.complete(path, line, column));
+        try {
+          res.json(await lean.complete(path, line, column));
+        } catch (err) {
+          res.json({ status: "error", error: err });
+        }
         return;
       case "kill":
         lean.kill();
-        res.json({'status':'ok'});
+        res.json({ status: "ok" });
         return;
       case "unregister":
         lean.unregister(path);
-        res.json({'status':'ok'});
+        res.json({ status: "ok" });
         return;
       case "register":
         lean.register(path);
-        res.json({'status':'ok'});
+        res.json({ status: "ok" });
         return;
       case "state":
-        res.json(lean.state());
+        res.json({ status: "ok", state: lean.state() });
+        return;
+      case "messages":
+        res.json({ status: "ok", messages: lean.messages(path) });
+        return;
+      case "tasks":
+        res.json({ status: "ok", tasks: lean.tasks() });
         return;
       default:
         res.json({ error: `Unknown command '${command}'` });
