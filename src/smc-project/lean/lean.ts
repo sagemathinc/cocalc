@@ -67,19 +67,28 @@ export class Lean extends EventEmitter {
       this.dbg("messages: ", allMessages.msgs);
       const to_save = {};
       for (let x of allMessages.msgs) {
-        const file_name = x.file_name;
+        const path : string = x.file_name;
         delete x.file_name;
-        if (this._state.paths[file_name] === undefined) {
-          this._state.paths[file_name] = [x];
+        if (this._state.paths[path] === undefined) {
+          this._state.paths[path] = [x];
         } else {
-          this._state.paths[file_name].push(x);
+          if (this._state.paths[path].length == 0) {
+            // delete everything since this was caused by a new sync.
+            // TODO: if we get rid of this._state.paths, we will need
+            // to detect when to do this delete differently.
+            const y = this.paths[path];
+            if (y !== undefined) {
+              y.syncdb.delete({type:'mesg'}, false);
+            }
+          }
+          this._state.paths[path].push(x);
         }
-        x.n = this._state.paths[file_name].length - 1;
+        x.n = this._state.paths[path].length - 1;
         x.type = "mesg";
-        const y = this.paths[file_name];
+        const y = this.paths[path];
         if (y !== undefined) {
-          y.syncdb.set(x);
-          to_save[file_name] = true;
+          y.syncdb.set(x, false);
+          to_save[path] = true;
         }
       }
       for (let path in to_save) {
@@ -110,10 +119,6 @@ export class Lean extends EventEmitter {
     async function on_change() {
       that.dbg("sync", path);
       that._state.paths[path] = [];
-      const y = that.paths[path];
-      if (y !== undefined) {
-        y.syncdb.delete({type:'mesg'});
-      }
       await that.server().sync(path, syncstring.to_str());
       that.emit(`sync-${path}`);
     }

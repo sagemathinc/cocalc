@@ -1815,6 +1815,7 @@ class exports.Connection extends EventEmitter
             file_use_interval  : 'default'
             cursors            : false
             patch_interval     : 1000
+            save_interval      : 2000
             before_change_hook : undefined
             after_change_hook  : undefined
         opts.client = @
@@ -1828,8 +1829,8 @@ class exports.Connection extends EventEmitter
             string_cols     : undefined
             cursors         : false
             change_throttle : 500     # amount to throttle change events (in ms)
-            save_interval   : 2000    # amount to debounce saves (in ms)
             patch_interval  : 1000
+            save_interval   : 2000    # amount to debounce saves (in ms)
         opts.client = @
         return new db_doc.SyncDB(opts)
 

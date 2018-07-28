@@ -106,6 +106,8 @@ interface SyncstringOpts {
   before_change_hook?: Function;
   after_change_hook?: Function;
   fake?: boolean; // if true make a fake syncstring with a similar API, but does nothing. (Used to make code more uniform.)
+  save_interval?: number; // amount to debounce saves (in ms)
+  patch_interval?: number;
 }
 
 export function syncstring(opts: SyncstringOpts): any {

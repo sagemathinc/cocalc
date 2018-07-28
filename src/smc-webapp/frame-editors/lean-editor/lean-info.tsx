@@ -1,4 +1,3 @@
-const { Icon } = require("../../r_misc");
 import { List } from "immutable";
 
 import {
