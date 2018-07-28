@@ -2,7 +2,26 @@ import * as lean_client from "lean-client-js-node";
 import { callback } from "awaiting";
 import { EventEmitter } from "events";
 
+// TODO: this is from
+//import { aux_file } from "smc-webapp/frame-tree/util";
+function path_split(path: string): any {
+  const v = path.split("/");
+  return { head: v.slice(0, -1).join("/"), tail: v[v.length - 1] };
+}
+function aux_file(path: string, ext: string): string {
+  let s = path_split(path);
+  s.tail += "." + ext;
+  if (s.head) {
+    return s.head + "/." + s.tail;
+  } else {
+    return "." + s.tail;
+  }
+}
+// end todo
+
+
 type SyncString = any;
+type SyncDB = any;
 type Client = any;
 type LeanServer = any;
 
@@ -46,6 +65,7 @@ export class Lean extends EventEmitter {
     this._server.error.on(err => this.dbg("error:", err));
     this._server.allMessages.on(allMessages => {
       this.dbg("messages: ", allMessages.msgs);
+      const to_save = {};
       for (let x of allMessages.msgs) {
         const file_name = x.file_name;
         delete x.file_name;
@@ -54,6 +74,16 @@ export class Lean extends EventEmitter {
         } else {
           this._state.paths[file_name].push(x);
         }
+        x.n = this._state.paths[file_name].length - 1;
+        x.type = "mesg";
+        const y = this.paths[file_name];
+        if (y !== undefined) {
+          y.syncdb.set(x);
+          to_save[file_name] = true;
+        }
+      }
+      for (let path in to_save) {
+        this.paths[path].syncdb.save();
       }
     });
     this._server.tasks.on(currentTasks => {
@@ -80,11 +110,20 @@ export class Lean extends EventEmitter {
     async function on_change() {
       that.dbg("sync", path);
       that._state.paths[path] = [];
+      const y = that.paths[path];
+      if (y !== undefined) {
+        y.syncdb.delete({type:'mesg'});
+      }
       await that.server().sync(path, syncstring.to_str());
       that.emit(`sync-${path}`);
     }
+    const syncdb: SyncDB = this.client.sync_db({
+      path: aux_file(path, "syncdb"),
+      primary_keys: ["type", "n"]
+    });
     this.paths[path] = {
       syncstring: syncstring,
+      syncdb: syncdb,
       on_change: on_change
     };
     this.paths[path].syncstring.on("change", on_change);
@@ -100,6 +139,7 @@ export class Lean extends EventEmitter {
     const x = this.paths[path];
     x.syncstring.removeListener("change", x.on_change);
     x.syncstring.close();
+    x.syncdb.close();
     delete this.paths[path];
   }
 

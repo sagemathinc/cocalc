@@ -36,7 +36,7 @@ const EDITOR_SPEC = {
     icon: "eye",
     component: LeanInfo,
     buttons: set(["decrease_font_size", "increase_font_size"])
-  }
+  },
   "lean-info": {
     short: "Mesages",
     name: "Display Messages",  /* less focused -- usually used in "term mode" */
