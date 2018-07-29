@@ -180,9 +180,9 @@ EmailAddressSetting = rclass
 
     change_button: ->
         if @is_submittable()
-            <Button onClick={@save_editing} bsStyle='success'>Change email address</Button>
+            <Button onClick={@save_editing} bsStyle='success'>Change Email Address</Button>
         else
-            <Button disabled bsStyle='success'>Change email address</Button>
+            <Button disabled bsStyle='success'>Change Email Address</Button>
 
     render_error: ->
         if @state.error
@@ -230,7 +230,7 @@ EmailAddressSetting = rclass
         <LabeledRow label='Email address'  style={marginBottom: '15px'}>
             <div>
                 {@props.email_address}
-                <Button className='pull-right'  disabled={@state.state != 'view'} onClick={@start_editing}>Change email...</Button>
+                <Button className='pull-right'  disabled={@state.state != 'view'} onClick={@start_editing}>Change Email...</Button>
             </div>
             {@render_edit() if @state.state != 'view'}
         </LabeledRow>
@@ -332,10 +332,10 @@ PasswordSetting = rclass
     change_button: ->
         if @is_submittable()
             <Button onClick={@save_new_password} bsStyle='success'>
-                Change password
+                Change Password
             </Button>
         else
-            <Button disabled bsStyle='success'>Change password</Button>
+            <Button disabled bsStyle='success'>Change Password</Button>
 
     render_error: ->
         if @state.error
@@ -392,7 +392,7 @@ PasswordSetting = rclass
         <LabeledRow label='Password' style={marginBottom: '15px'}>
             <div style={height:'30px'}>
                 <Button className='pull-right' disabled={@state.state != 'view'} onClick={@change_password}>
-                    Change password...
+                    Change Password...
                 </Button>
             </div>
             {@render_edit() if @state.state != 'view'}
@@ -522,7 +522,7 @@ AccountSettings = rclass
             {text}
             <ButtonToolbar style={textAlign: 'center', marginTop: '15px'}>
                 <Button bsStyle="primary" onClick={=>@actions('account').sign_out(@props.everywhere)}>
-                    <Icon name="external-link" /> Sign out
+                    <Icon name="external-link" /> Sign Out
                 </Button>
                 <Button onClick={=>@actions('account').setState(show_sign_out : false)}>
                     Cancel
@@ -535,11 +535,11 @@ AccountSettings = rclass
         <ButtonToolbar className='pull-right'>
             <Button bsStyle='warning' disabled={@props.show_sign_out and not @props.everywhere}
                 onClick={=>@actions('account').setState(show_sign_out : true, everywhere : false, sign_out_error:undefined)}>
-                <Icon name='sign-out'/> Sign out...
+                <Icon name='sign-out'/> Sign Out...
             </Button>
             <Button bsStyle='warning' disabled={@props.show_sign_out and @props.everywhere}
                 onClick={=>@actions('account').setState(show_sign_out : true, everywhere : true, sign_out_error:undefined)}>
-                <Icon name='sign-out'/> Sign out everywhere...
+                <Icon name='sign-out'/> Sign Out Everywhere...
             </Button>
         </ButtonToolbar>
 

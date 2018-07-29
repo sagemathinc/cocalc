@@ -62,7 +62,7 @@ upgrades.max_per_project =
 # is assumed elsewhere.
 upgrades.params =
     disk_quota :
-        display        : 'Disk space'
+        display        : 'Disk Space'
         unit           : 'MB'
         display_unit   : 'MB'
         display_factor : 1
@@ -107,7 +107,7 @@ upgrades.params =
         input_type     : 'number'
         desc           : 'Guaranteed minimum number of CPU cores that are dedicated to your project.'
     mintime :
-        display        : 'Idle timeout'
+        display        : 'Idle Timeout'
         unit           : 'second'
         display_unit   : 'hour'
         display_factor : 1/3600  # multiply internal by this to get what should be displayed
@@ -116,7 +116,7 @@ upgrades.params =
         input_type     : 'number'
         desc           : 'If the project is not used for this long, then it will be automatically stopped.'
     network :
-        display        : 'Internet access'
+        display        : 'Internet Access'
         unit           : 'project'
         display_unit   : 'project'
         display_factor : 1
@@ -125,7 +125,7 @@ upgrades.params =
         input_type     : 'checkbox'
         desc           : 'Full internet access enables a project to connect to the computers outside of CoCalc, download software packages, etc.'
     member_host :
-        display        : 'Member hosting'
+        display        : 'Member Hosting'
         unit           : 'project'
         display_unit   : 'project'
         display_factor : 1
