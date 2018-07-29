@@ -9,8 +9,8 @@ MIN_POSSIBLE_CPU =
 
 # Min possible **guaranteed** RAM.
 MIN_POSSIBLE_MEMORY =
-    member    : 200
-    nonmember : 125
+    member    : 300
+    nonmember : 200
 
 {DEFAULT_QUOTAS} = require('smc-util/upgrade-spec')
 
