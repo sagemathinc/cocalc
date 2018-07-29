@@ -671,7 +671,7 @@ ProjectControlPanel = rclass
 
     render_confirm_stop: ->
         if @state.show_stop_confirmation
-            <LabeledRow key='restart' label=''>
+            <LabeledRow key='stop' label=''>
                 <Well>
                     Stopping the project server will kill all processes.
                     After stopping a project, it will not start until a
@@ -697,7 +697,7 @@ ProjectControlPanel = rclass
                 <Icon name={COMPUTE_STATES.starting.icon} /> Restart Project...
             </Button>
             <Button bsStyle='warning' disabled={'stop' not in commands} onClick={(e)=>e.preventDefault(); @setState(show_stop_confirmation:true,restart:false)}>
-                <Icon name={COMPUTE_STATES.stopping.icon} /> Stop Project
+                <Icon name={COMPUTE_STATES.stopping.icon} /> Stop Project...
             </Button>
         </ButtonToolbar>
 
