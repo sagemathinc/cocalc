@@ -530,6 +530,11 @@ exports.NumberInput = NumberInput = rclass
     getInitialState: ->
         number : @props.number
 
+    sanitize_nan: (n) ->
+        if "#{n}" == 'NaN'  # or isNaN(n) ?
+            n = (@props.number ? 0)
+        return n
+
     sanitize: (n) ->
         if (not n?) or (n == '') or (n == @props.empty_text)
             if @props.allow_empty
@@ -537,20 +542,21 @@ exports.NumberInput = NumberInput = rclass
             else
                 n = 0
 
-        if "#{n}" == 'NaN'
-            n = (@props.number ? 0)
+        n = @sanitize_nan(n)
 
         # clip min/max
         if n < @props.min
             n = @props.min
         else if n > @props.max
             n = @props.max
+
         # rounding to lenth of mantissa
         if @props.mantissa_length == 0
             n = parseInt(n)
         else
             n = misc.roundN(parseFloat(n), @props.mantissa_length)
-        return n
+
+        return @sanitize_nan(n)
 
     saveNumber: (n) ->
         n = @sanitize(n)

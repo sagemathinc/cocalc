@@ -456,7 +456,7 @@ exports.Listing = rclass
 
         <div style={outer_style}>
             <div style={inner_style}>
-                (This is a private discussion. It is not shared with the student.)
+                (This is a confidential discussion! Click the "Files" button to see the collected assignment.)
             </div>
         </div>
 
