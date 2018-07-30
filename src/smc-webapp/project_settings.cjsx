@@ -632,7 +632,7 @@ ProjectControlPanel = rclass
 
     render_state: ->
         <span style={fontSize : '12pt', color: '#666'}>
-            <ProjectState show_desc={true} state={@props.project.get('state')?.get('state')} />
+            <ProjectState show_desc={true} state={@props.project.get('state')} />
         </span>
 
     render_idle_timeout: ->

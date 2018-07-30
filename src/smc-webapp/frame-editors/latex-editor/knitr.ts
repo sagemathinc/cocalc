@@ -9,7 +9,7 @@ import { BuildLog } from "./actions";
 
 // this still respects the environment variables and init files
 const R_CMD = "R";
-const R_ARGS: string[] = [
+const R_ARGS: ReadonlyArray<string> = [
   "--no-save",
   "--no-restore",
   "--quiet",

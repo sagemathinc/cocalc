@@ -546,7 +546,11 @@ class exports.JupyterActions extends actions.JupyterActions
             cb   : (err, stats) =>
                 dbg("stats.ctime = #{stats?.ctime}")
                 if err
-                    # this just means the file doesn't exist.
+                    # This err just means the file doesn't exist.
+                    # We set the 'last load' to now in this case, since
+                    # the frontend clients need to know that we
+                    # have already scanned the disk.
+                    @set_last_load()
                     cb?()
                 else
                     # we do include "equality", because rsync operations round down to full seconds.

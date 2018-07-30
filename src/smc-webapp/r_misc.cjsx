@@ -25,6 +25,7 @@ async = require('async')
 {HelpEmailLink, SiteName, CompanyName, PricingUrl, PolicyTOSPageUrl, PolicyIndexPageUrl, PolicyPricingPageUrl} = require('./customize')
 {UpgradeRestartWarning} = require('./upgrade_restart_warning')
 copy_to_clipboard = require('copy-to-clipboard')
+{reportException} = require('../webapp-lib/webapp-error-reporter')
 
 # injected by webpack, but not for react-static renderings (ATTN don't assign to uppercase vars!)
 smc_version = SMC_VERSION ? 'N/A'
@@ -1638,7 +1639,7 @@ exports.ProjectState = rclass
     displayName : 'Misc-ProjectState'
 
     propTypes :
-        state     : rtypes.string
+        state     : rtypes.immutable.Map     # {state: 'running', time:'timestamp when switched to that state'}
         show_desc : rtypes.bool
 
     getDefaultProps: ->
@@ -1655,11 +1656,17 @@ exports.ProjectState = rclass
             <br/>
             <span style={fontSize:'11pt'}>
                 {desc}
+                {@render_time()}
             </span>
         </span>
 
+    render_time: ->
+        time = @props.state?.get('time')
+        if time
+            return <span><Space/> (<exports.TimeAgo date={time} />)</span>
+
     render: ->
-        s = COMPUTE_STATES[@props.state]
+        s = COMPUTE_STATES[@props.state?.get('state')]
         if not s?
             return <Loading />
         {display, desc, icon, stable} = s
@@ -2170,7 +2177,7 @@ exports.ErrorBoundary = rclass
         info  : undefined
 
     componentDidCatch: (error, info) ->
-        # TODO: Report the error to some backend service...
+        reportException(error,"render error",null,info)
         @setState
             error : error
             info  : info

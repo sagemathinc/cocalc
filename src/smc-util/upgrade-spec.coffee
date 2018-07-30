@@ -48,12 +48,12 @@ exports.DEFAULT_QUOTAS =
     member_host    : 0
 
 upgrades.max_per_project =
-    disk_quota     : 50000
-    memory         : 8000
+    disk_quota     : 20000
+    memory         : 16000
     memory_request : 8000
     cores          : 4
     network        : 1
-    cpu_shares     : 2048
+    cpu_shares     : 1024*3
     mintime        : 24*3600*90
     member_host    : 1
 

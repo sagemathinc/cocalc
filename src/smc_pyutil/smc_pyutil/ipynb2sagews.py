@@ -103,12 +103,17 @@ class Ipynb2SageWS(object):
         """
         spec = self.nb['metadata']
         name = spec['kernelspec']['name']
-        cell = '''\
-        %auto
-        # This cell automatically evaluates on startup -- or run it manually if it didn't evaluate.
-        # Here, it initializes the Jupyter kernel with the specified name and sets it as the default mode for this worksheet.
-        jupyter_kernel = jupyter("{}")  # run "jupyter?" for more information.
-        %default_mode jupyter_kernel'''.format(name)
+        if name.startswith('sage'):
+            cell = '''\
+            # This worksheet was converted from a notebook running Jupyter kernel
+            # version {}.'''.format(name)
+        else:
+            cell = '''\
+            %auto
+            # This cell automatically evaluates on startup -- or run it manually if it didn't evaluate.
+            # Here, it initializes the Jupyter kernel with the specified name and sets it as the default mode for this worksheet.
+            jupyter_kernel = jupyter("{}")  # run "jupyter?" for more information.
+            %default_mode jupyter_kernel'''.format(name)
         self.write(SagewsCell(input=textwrap.dedent(cell)).convert())
 
     def body(self):
