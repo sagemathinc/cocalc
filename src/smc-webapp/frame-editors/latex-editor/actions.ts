@@ -186,7 +186,7 @@ export class Actions extends BaseActions<LatexEditorState> {
         s = s.slice(0, i + 1);
       }
       const err =
-        "WARNING: Your LaTeX file is badly misformatted; it is not possible to generate a useful PDF file.\n" +
+        "WARNING: It is not possible to generate a useful PDF file.\n" +
         s.trim();
       console.warn(err);
       this.set_error(err);
