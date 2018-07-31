@@ -310,6 +310,7 @@ export class Actions extends BaseActions<LatexEditorState> {
   async run_latex(time: number, force: boolean): Promise<void> {
     let output: BuildLog;
     let build_command: string | string[];
+    let timestamp = force ? undefined : time || this._last_save_time;
     let s: string | List<string> = this.store.get("build_command");
     if (!s) {
       return;
@@ -328,7 +329,7 @@ export class Actions extends BaseActions<LatexEditorState> {
         this.project_id,
         this.path,
         build_command,
-        force ? undefined : time || this._last_save_time,
+        timestamp,
         status
       );
     } catch (err) {
@@ -359,7 +360,7 @@ export class Actions extends BaseActions<LatexEditorState> {
     // ... before setting a new one for all the viewers,
     // which causes them to reload.
     for (let x of VIEWERS) {
-      this.set_reload(x, time);
+      this.set_reload(x, timestamp);
     }
   }
 
