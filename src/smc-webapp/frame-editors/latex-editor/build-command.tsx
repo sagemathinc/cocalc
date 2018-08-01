@@ -32,25 +32,47 @@ interface Props {
 
 interface State {
   build_command: string;
+  prev_build_command?: string;
   focus: boolean;
 }
 
 export class BuildCommand extends Component<Props, State> {
   constructor(props) {
     super(props);
+    let cmd = this.build_command_string(props.build_command);
+    if (!cmd) {
+      // sane default
+      cmd = this.default_command(props);
+    }
     this.state = {
-      build_command: this.build_command_string(props.build_command),
-      focus: false,
+      build_command: cmd,
+      focus: false
     };
   }
 
-  componentWillReceiveProps(next: Props): void {
-    if (next.build_command != this.props.build_command) {
-      // set by another user or menu selection.
-      this.setState({
-        build_command: this.build_command_string(next.build_command)
-      });
+  default_command(props): string {
+    let cmd: string[] = build_command(ENGINES[0], props.filename, props.knitr);
+    return this.build_command_string(List(cmd));
+  }
+
+  getDerivedStateFromProps(props: Props, state: State) {
+    // we don't change the build command, if user has it currently focused
+    if (!state.build_command) {
+      let init_cmd = this.default_command(props);
+      return { build_command: init_cmd };
     }
+    let new_build_cmd = this.build_command_string(props.build_command);
+    if (state.prev_build_command != new_build_cmd) {
+      if (!state.focus) {
+        return {
+          build_command: new_build_cmd,
+          prev_build_command: new_build_cmd
+        };
+      } else {
+        return undefined;
+      }
+    }
+    return undefined;
   }
 
   build_command_string(cmd: string | List<string>): string {
@@ -116,6 +138,7 @@ export class BuildCommand extends Component<Props, State> {
   }
 
   handle_build_change(): void {
+    this.setState({ focus: false });
     if (
       this.state.build_command !=
       this.build_command_string(this.props.build_command)
@@ -184,7 +207,7 @@ export class BuildCommand extends Component<Props, State> {
     );
   }
   render(): Rendered {
-    if (!this.props.build_command) {
+    if (!this.state.build_command) {
       return <Loading />;
     }
     return this.render_form();
