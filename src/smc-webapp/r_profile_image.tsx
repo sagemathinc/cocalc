@@ -313,7 +313,20 @@ export class ProfileImageSelector extends Component<
           onChange={(crop: any, pixelCrop: any) =>
             this.setState({ crop, pixelCrop })
           }
-          crop={this.state.crop || { x: 10, y: 10, width: 30, height: 30 }}
+          onImageLoaded={image => {
+            this.setState({
+              crop: ReactCrop.makeAspectCrop(
+                {
+                  x: 0,
+                  y: 0,
+                  aspect: 1,
+                  width: 30
+                },
+                image.width / image.height
+              )
+            });
+          }}
+          crop={this.state.crop}
         />
         <br />
         <ButtonToolbar>

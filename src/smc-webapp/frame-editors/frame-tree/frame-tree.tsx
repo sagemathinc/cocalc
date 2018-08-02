@@ -265,7 +265,7 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
     } else {
       // fix this disaster next time around.
       this.reset_frame_tree();
-      return <div>Invalid frame tree {JSON.stringify(desc)}</div>;
+      return <div>Invalid frame tree {JSON.stringify(desc)}; unknown type '{type}'.</div>;
     }
     return (
       <div
