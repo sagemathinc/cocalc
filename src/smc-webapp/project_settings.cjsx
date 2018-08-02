@@ -35,7 +35,7 @@ misc                 = require('smc-util/misc')
 {alert_message}      = require('./alerts')
 {project_tasks}      = require('./project_tasks')
 
-{Alert, Panel, Col, Row, Button, ButtonGroup, ButtonToolbar, FormControl, FormGroup, Well, Checkbox} = require('react-bootstrap')
+{Alert, Panel, Col, Row, Button, ButtonGroup, ButtonToolbar, FormControl, FormGroup, Well, Checkbox, DropdownButton, MenuItem} = require('react-bootstrap')
 {ErrorDisplay, MessageDisplay, Icon, LabeledRow, Loading, ProjectState, SearchInput, TextInput,
  NumberInput, DeletedProjectWarning, NonMemberProjectWarning, NoNetworkProjectWarning, Space, TimeAgo, Tip, UPGRADE_ERROR_STYLE, UpgradeAdjustor} = require('./r_misc')
 {React, ReactDOM, Actions, Store, Table, redux, rtypes, rclass, Redux}  = require('./app-framework')
@@ -739,6 +739,27 @@ ProjectControlPanel = rclass
             </span>
         </LabeledRow>
 
+    set_project_image: (name) ->
+        if DEBUG then console.log("set_project_image: #{name}")
+
+    render_project_image_items: ->
+        images = [["default", "default"], ["exp", "experimental"], ["stable", "stable"]]
+        for [name, descr] in images
+            <MenuItem key={name} eventKey={name} onSelect={@set_project_image}>
+                {descr}
+            </MenuItem>
+
+    render_select_project_image: ->
+        name = 'default' # @props.project.getIn(['...'])
+        <LabeledRow key='cpu-usage' label='Compute image' style={@rowstyle(true)}>
+            <span style={color:'#666'}>
+                <Icon name='compact-disc' />
+                <DropdownButton title={"default"} id={"project_image"}>
+                    {this.render_project_image_items()}
+                </DropdownButton>
+            </span>
+        </LabeledRow>
+
     rowstyle: (delim) ->
         style =
             marginBottom:  '5px'
@@ -752,6 +773,7 @@ ProjectControlPanel = rclass
             <LabeledRow key='state' label='State' style={@rowstyle(true)}>
                 {@render_state()}
             </LabeledRow>
+            {@render_select_project_image()}
             {@render_idle_timeout_row()}
             {@render_uptime()}
             {@render_cpu_usage()}
