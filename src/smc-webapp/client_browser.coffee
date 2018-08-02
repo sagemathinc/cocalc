@@ -103,11 +103,12 @@ class Connection extends client.Connection
 
         # Wait until load totally done.
         setTimeout(@_firefox60_bug, 5000)
+        setInterval(@_firefox60_bug, 60000)
 
     _firefox60_bug: =>
         {name, version} = require('misc/browser').get_browser()
-        if name == 'Firefox' and (version == '59' or version == '60')
-            @alert_message(type:'error', block:'true', timeout:10000, message:"Firefox versions 59 and 60 have a MAJOR bug. You *must* use a different web browser. See https://tinyurl.com/y9hphj39 and https://tinyurl.com/yboeepsf")
+        if name == 'Firefox' and (version == '59' or version == '60' or version == '61')
+            @alert_message(type:'error', block:'true', timeout:10000, message:"Firefox versions 59 and 60 and 61 have a MAJOR bug. You *must* use a different web browser. See https://tinyurl.com/y9hphj39 and https://tinyurl.com/yboeepsf")
 
     _setup_window_smc: () =>
         # if we are in DEBUG mode, inject the client into the global window object
