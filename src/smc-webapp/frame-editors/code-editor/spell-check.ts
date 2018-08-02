@@ -22,11 +22,13 @@ export async function misspelled_words(opts: Options): Promise<string[]> {
   }
 
   let mode: string;
-  switch (filename_extension(opts.path)) {
+  switch (filename_extension(opts.path).toLowerCase()) {
     case "html":
       mode = "--mode=html";
       break;
     case "tex":
+    case "rtex":
+    case "rnw":
       mode = "--mode=tex";
       break;
     default:
