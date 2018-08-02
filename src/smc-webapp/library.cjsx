@@ -251,7 +251,7 @@ exports.Library = rclass ({name}) ->
                     if @props.library_is_copying
                         <span><Loading text='Copying ...' /></span>
                     else
-                        <span><Icon name='files-o' /> Get a copy</span>
+                        <span><Icon name='files-o' /> Get A Copy</span>
                 }
             </Button>
         </div>

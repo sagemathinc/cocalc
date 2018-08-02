@@ -61,7 +61,7 @@ PublicPDF = rclass
                 <Button
                     target="_blank"
                     href="#{get_url(@props.project_id, @props.path)}?random=#{Math.random()}">
-                    <Icon name="external-link"/> Open in new window
+                    <Icon name="external-link"/> Open In New Window
                 </Button>
             </ButtonGroup>
             <div

@@ -152,7 +152,7 @@ ProjectSearchOutputHeader = rclass
                 "{@props.most_recent_search}"
                 <Space/>
                 <Button bsStyle='info' onClick={@change_info_visible}>
-                    <Icon name='info-circle' /> using grep...
+                    <Icon name='info-circle' /> How Does This Work?
                 </Button>
             </h4>
 

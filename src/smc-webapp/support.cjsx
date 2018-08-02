@@ -284,7 +284,7 @@ exports.SupportPage = rclass
                             onClick={=> @open(ticket.id)}>
                             {ticket.status.toUpperCase()}
                             <br/>
-                            Go to {ticket.id}
+                            Go To {ticket.id}
                         </Button>
                     </td>
                 </tr>
