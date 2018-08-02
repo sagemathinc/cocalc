@@ -793,7 +793,7 @@ schema.projects =
             desc : 'If project is running, this is the quota that it is running with.'
         compute_image :
             type : 'string'
-            desc : 'Specify the name of the underlying (kucalc) compute image (default: "default")'
+            desc : "Specify the name of the underlying (kucalc) compute image (default: '#{DEFAULT_COMPUTE_IMAGE}')"
         addons :
             type : 'map'
             desc : 'Configure (kucalc specific) addons for projects. (e.g. academic software, license keys, ...)'
