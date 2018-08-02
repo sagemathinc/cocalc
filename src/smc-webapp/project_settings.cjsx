@@ -590,6 +590,7 @@ ProjectControlPanel = rclass
         show_ssh               : false
         compute_image          : @props.project.get('compute_image')
         compute_image_changing : false
+        compute_image_focused  : false
 
     propTypes :
         project           : rtypes.object.isRequired
@@ -597,6 +598,7 @@ ProjectControlPanel = rclass
         compute_images    : rtypes.immutable.Map
 
     componentWillReceiveProps: (props) ->
+        return if @state.compute_image_focused
         new_image = props.project.get('compute_image')
         if new_image != @state.compute_image
             @setState(
@@ -753,7 +755,8 @@ ProjectControlPanel = rclass
         # image is reset to the previous name and componentWillReceiveProps will set it when new
         @setState(
             compute_image: current_name
-            compute_image_changing:true
+            compute_image_changing : true
+            compute_image_focused : false
         )
         pid = @props.project.get('project_id')
         new_name = @state.compute_image
@@ -778,9 +781,8 @@ ProjectControlPanel = rclass
             </MenuItem>
 
     render_select_compute_image: ->
-        not_running = @props.project.getIn(['state', 'state']) != 'running'
         no_value = (not @props.compute_images?) or (not @state.compute_image?)
-        return <Loading/> if not_running or no_value or @state.compute_image_changing
+        return <Loading/> if no_value or @state.compute_image_changing
         # this will at least return a suitable default value
         selected_name = @state.compute_image
         current_name = @props.project.get('compute_image')
@@ -793,6 +795,8 @@ ProjectControlPanel = rclass
             <DropdownButton
                 title={@compute_image_info(selected_name, 'title')}
                 id={selected_name}
+                onClick={(e)=>console.log(e); @setState(compute_image_focused:true)}
+                onBlur={=>@setState(compute_image_focused:false)}
             >
                 {this.render_compute_image_items()}
             </DropdownButton>
