@@ -196,15 +196,12 @@ export class JupyterActions extends Actions<JupyterStoreState> {
 
     this.syncdb.on("change", this._syncdb_change);
 
-    this.syncdb.once("change", () => {
-      // Important -- this also gets run on the backend, where
-      // @redux.getProjectActions(project_id) is maybe undefined...
-      return __guard__(this.redux.getProjectActions(project_id), x2 =>
-        x2.log_opened_time(path)
+    if (!client.is_project()) {  // only run this when used on the frontend.
+      // Put an entry in the project log once the jupyter notebook gets opened.
+      // NOTE: Obviously, the project does NOT need to put entries in the log.
+      this.syncdb.once("change", () =>
+        this.redux.getProjectActions(project_id).log_opened_time(path)
       );
-    });
-
-    if (!client.is_project()) {
       // project doesn't care about cursors
       this.syncdb.on("cursor_activity", this._syncdb_cursor_activity);
     }
