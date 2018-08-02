@@ -3,7 +3,12 @@ LaTeX Editor Actions.
 */
 
 const WIKI_HELP_URL = "https://github.com/sagemathinc/cocalc/wiki/LaTeX-Editor";
-const VIEWERS = ["pdfjs_canvas", "pdfjs_svg", "pdf_embed", "build"];
+const VIEWERS: ReadonlyArray<string> = [
+  "pdfjs_canvas",
+  "pdfjs_svg",
+  "pdf_embed",
+  "build"
+];
 
 import { fromJS, List, Map } from "immutable";
 import {
@@ -19,7 +24,7 @@ import { server_time, ExecOutput } from "../generic/client";
 import { clean } from "./clean";
 import { LatexParser, IProcessedLatexLog } from "./latex-log-parser";
 import { update_gutters } from "./gutters";
-import { pdf_path } from "./util";
+import { pdf_path, KNITR_EXTS } from "./util";
 import { forgetDocument, url_to_pdf } from "./pdfjs-doc-cache";
 import { FrameTree } from "../frame-tree/types";
 import { Store } from "../../app-framework";
@@ -71,8 +76,9 @@ export class Actions extends BaseActions<LatexEditorState> {
 
   _init2(): void {
     if (!this.is_public) {
+      this._init_ext_filename(); // safe to set before syncstring init
       this._init_syncstring_value();
-      this._init_ext(); // must come after syncstring init
+      this._init_ext_path(); // must come after syncstring init
       this._init_latexmk();
       this._init_spellcheck();
       this._init_config();
@@ -80,19 +86,33 @@ export class Actions extends BaseActions<LatexEditorState> {
     }
   }
 
-  _init_ext(): void {
+  _init_ext_filename(): void {
     /* number one reason to check is to detect .rnw/.rtex files */
     const ext = separate_file_extension(this.path).ext;
     if (ext) {
       this.ext = ext.toLowerCase();
-      if (["rnw", "rtex"].includes(this.ext)) {
+      if (KNITR_EXTS.includes(this.ext)) {
         this.knitr = true;
         this.filename_knitr = this.path;
-        // changing the path to the (to be generated) tex file makes everyting else
-        // here compatible with the latex commands
-        this.path = change_filename_extension(this.path, "tex");
-        this.setState({ knitr: this.knitr, knitr_error: false });
       }
+    }
+  }
+
+  // conditionally overwrites parent Action class method
+  get_spellcheck_path(): string {
+    if (this.knitr) {
+      return this.filename_knitr;
+    } else {
+      return super.get_spellcheck_path();
+    }
+  }
+
+  _init_ext_path(): void {
+    if (this.knitr) {
+      // changing the path to the (to be generated) tex file makes everyting else
+      // here compatible with the latex commands
+      this.path = change_filename_extension(this.path, "tex");
+      this.setState({ knitr: this.knitr, knitr_error: false });
     }
   }
 
