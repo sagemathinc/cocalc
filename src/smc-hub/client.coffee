@@ -29,6 +29,7 @@ hub_projects         = require('./projects')
 {send_email}         = require('./email')
 {api_key_action}     = require('./api/manage')
 {create_account, delete_account} = require('./create-account')
+{get_compute_images} = require('./compute-images')
 db_schema            = require('smc-util/db-schema')
 
 underscore = require('underscore')
@@ -2573,3 +2574,27 @@ class exports.Client extends EventEmitter
                     @error_to_client(id:mesg.id, error:err)
                 else
                     @push_to_client(message.success(id:mesg.id))
+
+    mesg_get_compute_images: (mesg) =>
+        dbg = @dbg("mesg_get_compute_images")
+        get_compute_images
+            cb: (err, images) =>
+                if err
+                    @error_to_client(id:mesg.id, error:err)
+                else
+                    resp = message.get_compute_images(id:mesg.id, images:images)
+                    @push_to_client(resp)
+
+    mesg_set_compute_image: (mesg) =>
+        dbg = @dbg("mesg_set_compute_image")
+        @get_project mesg, 'write', (err, project) =>
+            if err
+                return
+            @database.set_compute_image
+                project_id  : mesg.project_id
+                name        : mesg.name
+                cb          : (err) =>
+                    if err
+                        @error_to_client(id:mesg.id, error:err)
+                    else
+                        @push_to_client(message.success(id:mesg.id))

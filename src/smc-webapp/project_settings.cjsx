@@ -52,7 +52,6 @@ misc                 = require('smc-util/misc')
 {ProjectSettingsPanel} = require('./project/project-settings-support')
 {JupyterServerPanel}   = require('./project/plain-jupyter-server')
 
-
 URLBox = rclass
     displayName : 'URLBox'
 
@@ -587,12 +586,23 @@ ProjectControlPanel = rclass
     displayName : 'ProjectSettings-ProjectControlPanel'
 
     getInitialState: ->
-        restart  : false
-        show_ssh : false
+        restart                : false
+        show_ssh               : false
+        compute_image          : @props.project.get('compute_image')
+        compute_image_changing : false
 
     propTypes :
         project           : rtypes.object.isRequired
         allow_ssh         : rtypes.bool
+        compute_images    : rtypes.immutable.Map
+
+    componentWillReceiveProps: (props) ->
+        new_image = props.project.get('compute_image')
+        if new_image != @state.compute_image
+            @setState(
+                compute_image:new_image
+                compute_image_changing:false
+            )
 
     open_authorized_keys: (e) ->
         e.preventDefault()
@@ -739,26 +749,68 @@ ProjectControlPanel = rclass
             </span>
         </LabeledRow>
 
-    set_project_image: (name) ->
-        if DEBUG then console.log("set_project_image: #{name}")
+    save_compute_image: (current_name) ->
+        # image is reset to the previous name and componentWillReceiveProps will set it when new
+        @setState(
+            compute_image: current_name
+            compute_image_changing:true
+        )
+        pid = @props.project.get('project_id')
+        new_name = @state.compute_image
+        webapp_client.set_compute_image pid, new_name, (err) =>
+            if err
+                alert_message(type:'error', message:err)
+                @setState(compute_image_changing:false)
+            else
+                @restart_project()
 
-    render_project_image_items: ->
-        images = [["default", "default"], ["exp", "experimental"], ["stable", "stable"]]
-        for [name, descr] in images
-            <MenuItem key={name} eventKey={name} onSelect={@set_project_image}>
-                {descr}
+    set_compute_image: (name) ->
+        @setState(compute_image:name)
+
+    compute_image_info: (name, type) ->
+         @props.compute_images.getIn([name, type])
+
+    render_compute_image_items: ->
+        @props.compute_images.entrySeq().map (entry) =>
+            [name, data] = entry
+            <MenuItem key={name} eventKey={name} onSelect={@set_compute_image}>
+                {data.get('title')}
             </MenuItem>
 
-    render_select_project_image: ->
-        name = 'default' # @props.project.getIn(['...'])
-        <LabeledRow key='cpu-usage' label='Compute image' style={@rowstyle(true)}>
-            <span style={color:'#666'}>
-                <Icon name='compact-disc' />
-                <DropdownButton title={"default"} id={"project_image"}>
-                    {this.render_project_image_items()}
-                </DropdownButton>
+    render_select_compute_image: ->
+        not_running = @props.project.getIn(['state', 'state']) != 'running'
+        no_value = (not @props.compute_images?) or (not @state.compute_image?)
+        return <Loading/> if not_running or no_value or @state.compute_image_changing
+        # this will at least return a suitable default value
+        selected_name = @state.compute_image
+        current_name = @props.project.get('compute_image')
+
+        <div style={color:'#666'}>
+            <Icon name='compact-disc' />
+            <Space/>
+            Select image:
+            <Space/>
+            <DropdownButton
+                title={@compute_image_info(selected_name, 'title')}
+                id={selected_name}
+            >
+                {this.render_compute_image_items()}
+            </DropdownButton>
+            <br/>
+            <span>
+                <i>{@compute_image_info(selected_name, 'descr')}</i>
             </span>
-        </LabeledRow>
+            <br/>
+            {
+                if selected_name != current_name
+                    <Button
+                        onClick={=>@save_compute_image(current_name)}
+                        bsStyle='warning'
+                    >
+                        Save and Restart
+                    </Button>
+            }
+        </div>
 
     rowstyle: (delim) ->
         style =
@@ -773,7 +825,9 @@ ProjectControlPanel = rclass
             <LabeledRow key='state' label='State' style={@rowstyle(true)}>
                 {@render_state()}
             </LabeledRow>
-            {@render_select_project_image()}
+            <LabeledRow key='cpu-usage' label='Software Environment' style={@rowstyle(true)}>
+                {@render_select_compute_image()}
+            </LabeledRow>
             {@render_idle_timeout_row()}
             {@render_uptime()}
             {@render_cpu_usage()}
@@ -962,11 +1016,11 @@ ProjectSettingsBody = rclass ({name}) ->
             get_upgrades_you_applied_to_project : rtypes.func
             get_total_project_quotas : rtypes.func
             get_upgrades_to_project : rtypes.func
+            compute_images : rtypes.immutable.Map
 
-    shouldComponentUpdate: (nextProps) ->
-        return @props.project != nextProps.project or @props.user_map != nextProps.user_map or \
-                (nextProps.customer? and not nextProps.customer.equals(@props.customer)) or \
-                @props.project_map != nextProps.project_map
+    shouldComponentUpdate: (props) ->
+        return misc.is_different(@props, props, ['project', 'user_map', 'project_map', 'compute_images']) or \
+                (props.customer? and not props.customer.equals(@props.customer))
 
     render: ->
         # get the description of the share, in case the project is being shared
@@ -1011,7 +1065,11 @@ ProjectSettingsBody = rclass ({name}) ->
                 </Col>
                 <Col sm={6}>
                     <CollaboratorsPanel  project={@props.project} user_map={@props.user_map} />
-                    <ProjectControlPanel key='control' project={@props.project} allow_ssh={@props.kucalc != 'yes'} />
+                    <ProjectControlPanel key='control'
+                        project={@props.project}
+                        allow_ssh={@props.kucalc != 'yes'}
+                        compute_images={@props.compute_images}
+                    />
                     <SageWorksheetPanel  key='worksheet' project={@props.project} />
                     <JupyterServerPanel  key='jupyter' project_id={@props.project_id} />
                 </Col>

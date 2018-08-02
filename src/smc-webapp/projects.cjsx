@@ -498,6 +498,15 @@ class ProjectsActions extends Actions
             project_id : project_id
             deleted    : not is_deleted
 
+    init_project_images: =>
+        if DEBUG then console.log('init_project_images called')
+        webapp_client.get_compute_images (err, resp) =>
+                #if DEBUG then console.log('init_project_images:', resp)
+                if (not err and resp?.images?)
+                    @setState(compute_images:resp.images)
+                else
+                    if DEBUG then console.log("init_project_images problem:", err, resp)
+
 # Define projects store
 class ProjectsStore extends Store
     get_project: (project_id) =>
@@ -778,6 +787,8 @@ store = redux.createStore('projects', ProjectsStore, init_store)
 
 # Register projects actions
 actions = redux.createActions('projects', ProjectsActions)
+webapp_client.on "connected", () ->
+    actions.init_project_images()
 
 # This require defines a jQuery plugin that depends on the above actions being defined.
 # This will go away when we get rid of use of jQuery and instead 100% use react.
@@ -1186,6 +1197,7 @@ exports.ProjectsPage = ProjectsPage = rclass
             search            : rtypes.string
             selected_hashtags : rtypes.object
             show_all          : rtypes.bool
+            compute_images    : rtypes.immutable
         billing :
             customer      : rtypes.object
 
@@ -1200,6 +1212,7 @@ exports.ProjectsPage = ProjectsPage = rclass
         search            : ''
         selected_hashtags : {}
         show_all          : false
+        compute_images    : undefined
 
     componentWillReceiveProps: (next) ->
         if not @props.project_map?

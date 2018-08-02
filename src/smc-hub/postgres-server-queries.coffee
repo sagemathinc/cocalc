@@ -22,6 +22,8 @@ required = defaults.required
 
 {SCHEMA, DEFAULT_QUOTAS, PROJECT_UPGRADES, COMPUTE_STATES, RECENT_TIMES, RECENT_TIMES_KEY, site_settings_conf} = require('smc-util/schema')
 
+compute_images = require('./compute-images')
+
 PROJECT_GROUPS = misc.PROJECT_GROUPS
 
 {PROJECT_COLUMNS, one_result, all_results, count_result, expire_time} = require('./postgres-base')
@@ -2289,6 +2291,28 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             cb          : opts.cb
 
 
+    set_compute_image: (opts) =>
+        opts = defaults opts,
+            name        : required
+            project_id  : required
+            cb          : required
+        async.series([
+            (cb) =>
+                if not compute_images.is_valid(opts.name)
+                    cb("Invalid compute image name #{optes.name}")
+                else
+                    cb()
+            (cb) =>
+                @_query
+                    query   : "UPDATE projects"
+                    where   : 'project_id = $::UUID' : opts.project_id
+                    set     : {compute_image: opts.name}
+                    cb      : cb
+
+        ], (err) =>
+            opts.cb(err)
+        )
+
     ###
     Stats
     ###
@@ -2653,4 +2677,3 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             cache : true   # cache result (for a few seconds), since this is very unlikely to change.
             cb    : one_result 'member_host', (err, member_host) =>
                 opts.cb(err, !!member_host)
-

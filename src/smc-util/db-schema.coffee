@@ -96,6 +96,7 @@ schema.stats =
 misc = require('./misc')
 
 {DEFAULT_QUOTAS} = require('./upgrade-spec')
+{DEFAULT_COMPUTE_IMAGE} = require('smc-hub/compute-images')
 
 schema = exports.SCHEMA = {}
 
@@ -792,7 +793,7 @@ schema.projects =
             desc : 'If project is running, this is the quota that it is running with.'
         compute_image :
             type : 'string'
-            desc : 'Specify the name of the underlying (kucalc) compute image (default: "latest")'
+            desc : 'Specify the name of the underlying (kucalc) compute image (default: "default")'
         addons :
             type : 'map'
             desc : 'Configure (kucalc specific) addons for projects. (e.g. academic software, license keys, ...)'
@@ -824,7 +825,7 @@ schema.projects =
                 last_active    : null
                 action_request : null   # last requested action -- {action:?, time:?, started:?, finished:?, err:?}
                 course         : null
-                compute_image  : 'latest'
+                compute_image  : DEFAULT_COMPUTE_IMAGE
                 addons         : null
         set :
             fields :
