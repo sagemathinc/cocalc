@@ -1648,7 +1648,7 @@ ProjectFilesActionBox = rclass
                     </Button>
                 </Col>
             </Row>
-        </Div>
+        </div>
 
     handle_sharing_options_change: (single_file_data) -> (e) =>
         # The reason we need single_fie_data is because I think "set_public_path" does not

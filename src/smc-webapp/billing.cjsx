@@ -1601,16 +1601,14 @@ Subscription = rclass
     render_confirm: ->
         if not @state.confirm_cancel
             return
+        ###
+        TODO: this doesnt seem consistent but makes sense because of the use of "Cancel" a subscription
+        ###
         <Alert bsStyle='warning'>
             <Row style={borderBottom:'1px solid #999', paddingBottom:'15px', paddingTop:'15px'}>
                 <Col md={6}>
                     Are you sure you want to cancel this subscription?  If you cancel your subscription, it will run to the end of the subscription period, but will not be renewed when the current (already paid for) period ends; any upgrades provided by this subscription will be disabled.    If you need further clarification or need a refund, please email  <HelpEmailLink/>.
                 </Col>
-                {
-                    ###
-                    TODO: this doesnt seem consistent but makes sense because of the use of "Cancel" a subscription
-                    ###
-                }
                 <Col md={6}>
                     <Button onClick={=>@setState(confirm_cancel:false)}>Make No Change</Button>
                     <div style={float:'right'}>
