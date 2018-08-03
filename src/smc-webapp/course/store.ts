@@ -137,9 +137,6 @@ export class CourseStore extends Store<CourseState> {
     this.any_assignment_uses_peer_grading = this.any_assignment_uses_peer_grading.bind(
       this
     );
-    this.get_peers_that_student_will_grade = this.get_peers_that_student_will_grade.bind(
-      this
-    );
     this.get_peers_that_graded_student = this.get_peers_that_graded_student.bind(
       this
     );
@@ -199,19 +196,6 @@ export class CourseStore extends Store<CourseState> {
     return has_peer;
   }
 
-  get_peers_that_student_will_grade(assignment, student) {
-    // Return the peer assignment for grading of the given assignment for the given student,
-    // if such an assignment has been made.  If not, returns undefined.
-    // In particular, this returns a Javascript array of student_id's.
-    assignment = this.get_assignment(assignment);
-    student = this.get_student(student);
-    return __guard__(
-      __guard__(assignment.getIn(["peer_grade", "map"]), x1 =>
-        x1.get(student.get("student_id"))
-      ),
-      x => x.toJS()
-    );
-  }
 
   get_peers_that_graded_student(assignment, student) {
     // Return Javascript array of the student_id's of the students

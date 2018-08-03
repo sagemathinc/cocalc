@@ -1555,7 +1555,7 @@ export class CourseActions extends Actions<CourseState> {
       return;
     }
     assignment = store.get_assignment(assignment);
-    return this._set({
+    this._set({
       [name]: val,
       table: "assignments",
       assignment_id: assignment.get("assignment_id")
@@ -1608,13 +1608,15 @@ export class CourseActions extends Actions<CourseState> {
       return;
     }
     assignment = store.get_assignment(assignment);
-    if (assignment.getIn(["peer_grade", "map"]) != null) {
-      return; // nothing to do
+    let peers = assignment.getIn(["peer_grade", "map"]);
+    if(peers != null) {
+      return peers;
     }
     const N =
       (left = assignment.getIn(["peer_grade", "number"])) != null ? left : 1;
     const map = misc.peer_grading(store.get_student_ids(), N);
-    return this.set_peer_grade(assignment, { map });
+    this.set_peer_grade(assignment, { map });
+    return map;
   }
 
   // Copy the files for the given assignment_id from the given student to the
@@ -2328,10 +2330,14 @@ You can find the comments they made in the folders below.\
     const student_name = store.get_student_name(student);
     this.set_activity({ id, desc: `Copying peer grading to ${student_name}` });
 
-    this.update_peer_assignment(assignment); // synchronous
+    const peer_map = this.update_peer_assignment(assignment); // synchronous
 
     // list of student_id's
-    const peers = store.get_peers_that_student_will_grade(assignment, student);
+    if (peer_map == null) {
+      // empty peer assignment for this student (maybe added late)
+      return finish();
+    }
+    const peers = peer_map[student.get('student_id')];
     if (peers == null) {
       // empty peer assignment for this student (maybe added late)
       return finish();
