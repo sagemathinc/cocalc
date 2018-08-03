@@ -374,7 +374,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
           try {
           const project_id = this.store.get('project_id')
           const kernels = immutable.fromJS(data)
-          jupyter_kernels.set(project_id,kernels) // global
+          jupyter_kernels = jupyter_kernels.set(project_id,kernels) // global
           this.setState({kernels: kernels})
             // We must also update the kernel info (e.g., display name), now that we
             // know the kernels (e.g., maybe it changed or is now known but wasn't before).
