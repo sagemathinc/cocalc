@@ -115,7 +115,7 @@ class ConnectionJSON(object):
                 raise EOFError
             s += t
 
-        mtyp = chr(s[0])
+        mtyp = s[0]
         if mtyp == 'j':
             try:
                 return 'json', json.loads(s[1:].decode())
@@ -683,7 +683,6 @@ import time
 @pytest.fixture(scope = "class")
 def own_sage_server(request):
     assert os.geteuid() != 0, "Do not run as root, will kill all sage_servers."
-    #os.system("pkill -f sage_server_command_line")
     print("starting new sage_server")
     os.system("smc-sage-server start")
     time.sleep(0.5)
