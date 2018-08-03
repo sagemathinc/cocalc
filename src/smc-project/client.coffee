@@ -56,7 +56,9 @@ schema     = require('smc-util/schema')
 
 sage_session = require('./sage_session')
 
-jupyter = require('./jupyter/jupyter')
+#jupyter = require('./jupyter/jupyter')
+jupyter = require('./jupyter-coffee/jupyter')
+
 
 {json} = require('./common')
 
