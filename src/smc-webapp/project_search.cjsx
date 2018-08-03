@@ -89,6 +89,7 @@ ProjectSearchOutput = rclass
                 key              = {i}
                 filename         = {result.filename}
                 description      = {result.description}
+                line_number      = {result.line_number}
                 most_recent_path = {@props.most_recent_path}
                 actions          = {@props.actions} />
 
@@ -266,13 +267,14 @@ ProjectSearchResultLine = rclass
     propTypes :
         filename         : rtypes.string
         description      : rtypes.string
+        line_number      : rtypes.number
         most_recent_path : rtypes.string
         actions          : rtypes.object.isRequired
 
     click_filename: (e) ->
         e.preventDefault()
         @props.actions.open_file
-            path       : misc.path_to_file(@props.most_recent_path, @props.filename)
+            path       : misc.path_to_file(@props.most_recent_path, @props.filename, @props.line_number)
             foreground : misc.should_open_in_foreground(e)
 
     render: ->
