@@ -4,12 +4,7 @@ Functionality and UI to ensure a user with given email (or account_id) is sync'd
 
 import { Row, Col, FormGroup, FormControl, Button } from "react-bootstrap";
 
-import {
-  React,
-  Component,
-  Rendered,
-  ReactDOM
-} from "smc-webapp/app-framework";
+import { React, Component, Rendered, ReactDOM } from "smc-webapp/app-framework";
 
 import { user_search, User } from "smc-webapp/frame-editors/generic/client";
 
@@ -24,14 +19,14 @@ interface UserSearchState {
   result: User[];
 }
 
-function user_sort_key(user: User) : string {
-  if(user.last_active) {
+function user_sort_key(user: User): string {
+  if (user.last_active) {
     return user.last_active;
   }
-  if(user.created) {
+  if (user.created) {
     return user.created;
   }
-  return '';
+  return "";
 }
 
 export class UserSearch extends Component<{}, UserSearchState> {
@@ -64,8 +59,7 @@ export class UserSearch extends Component<{}, UserSearchState> {
     const result: User[] = await user_search({
       query: this.state.query,
       admin: true,
-      limit: 100,
-      active: "1 year"
+      limit: 100
     });
     if (!this.mounted) {
       return;

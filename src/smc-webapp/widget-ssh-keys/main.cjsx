@@ -168,9 +168,9 @@ DeleteConfirmation = rclass
             <hr />
             <ButtonToolbar>
                 <Button bsStyle='danger' onClick={@props.confirm}>
-                    Yes, delete this key.
+                    Yes, please delete this SSH key
                 </Button>
-                <Button bsStyle='primary' onClick={@props.cancel}>
+                <Button onClick={@props.cancel}>
                     Cancel
                 </Button>
             </ButtonToolbar>

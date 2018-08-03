@@ -1,5 +1,5 @@
 /*
-Run Rweave on rnw files
+Run Knitr on rnw/rtex files
 */
 
 import { exec, ExecOutput } from "../generic/client";
@@ -9,7 +9,7 @@ import { BuildLog } from "./actions";
 
 // this still respects the environment variables and init files
 const R_CMD = "R";
-const R_ARGS: string[] = [
+const R_ARGS: ReadonlyArray<string> = [
   "--no-save",
   "--no-restore",
   "--quiet",
@@ -19,7 +19,7 @@ const R_ARGS: string[] = [
 
 export async function knitr(
   project_id: string,
-  path: string, // pass in this.filename_rnw
+  path: string, // pass in this.filename_knitr
   time: number | undefined,
   status: Function
 ): Promise<ExecOutput> {

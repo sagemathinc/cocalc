@@ -637,9 +637,10 @@ class Kernel extends EventEmitter
                     info.nodejs_version   = process.version
                     info.start_time = @_actions?.store.get('start_time')
                     @_kernel_info = info
-                for cb in @_kernel_info_cbs
-                    cb(err, info)
-                delete @_kernel_info_cbs
+                if @_kernel_info_cbs?  # it could have been deleted by closing before finishing.
+                    for cb in @_kernel_info_cbs
+                        cb(err, info)
+                    delete @_kernel_info_cbs
 
     more_output: (opts) =>
         opts = defaults opts,
